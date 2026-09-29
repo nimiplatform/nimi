@@ -34,6 +34,9 @@ async function preflightRendererAppDependencies(): Promise<void> {
 const entryBootCopy = bootstrapEntryCopy as {
     initializingRuntime: string;
     startFailedTitle: string;
+    startFailedDescription: string;
+    retryStart: string;
+    technicalDetails: string;
     rendererEntryFailed: string;
 };
 
@@ -66,6 +69,7 @@ class EntryErrorBoundary extends React.Component<PropsWithChildren, EntryErrorBo
         if (this.state.error) {
             return <EntryBootSurface
               title={entryBootCopy.startFailedTitle}
+              description={entryBootCopy.startFailedDescription}
               detail={this.state.error.message || entryBootCopy.rendererEntryFailed}
             />;
         }
@@ -73,7 +77,9 @@ class EntryErrorBoundary extends React.Component<PropsWithChildren, EntryErrorBo
     }
 }
 
-function EntryBootSurface(props: { title: string; detail: string }) {
+// Rendered when the React tree itself failed, before translations are
+// available: plain words, a reload that runs startup again, folded detail.
+function EntryBootSurface(props: { title: string; description: string; detail: string }) {
     const prefersReducedMotion = usePrefersReducedMotion();
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--nimi-canvas-bg,#f8fafc)] px-6 text-[var(--nimi-text-primary,#111827)]">
@@ -90,8 +96,20 @@ function EntryBootSurface(props: { title: string; detail: string }) {
             {props.title}
           </h1>
           <p className="mt-3 break-words text-sm leading-6 text-[var(--nimi-text-secondary,#475569)]">
-            {props.detail}
+            {props.description}
           </p>
+          <button
+            type="button"
+            data-testid="entry-boot-reload"
+            onClick={() => window.location.reload()}
+            className="mt-5 inline-flex h-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg,#111827)] px-4 text-sm font-semibold text-[var(--nimi-action-primary-text,#ffffff)]"
+          >
+            {entryBootCopy.retryStart}
+          </button>
+          <details className="mt-4 text-xs text-[var(--nimi-text-muted,#64748b)]">
+            <summary className="cursor-pointer">{entryBootCopy.technicalDetails}</summary>
+            <p className="mt-2 break-words font-mono">{props.detail}</p>
+          </details>
         </motion.div>
       </div>
     );

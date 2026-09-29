@@ -4,6 +4,7 @@ import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { validateNimiLocalAppTextInput } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
+import { isNimiLocalAppByteView } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextDecideShellSpec } from '@nimiplatform/kit/core/sdk-contract';
 import {
   NimiElectronLocalAppHostError,
@@ -218,7 +219,22 @@ export function isElectronLocalAppScenarioExecute(command: string): boolean {
   return COMMAND_METHODS.get(command) === 'scenarioExecute';
 }
 
-/** Waits must leave the exclusive root gate free for cancellation and invalidation. */
+const CANCELABLE_METHODS: ReadonlySet<RendererLocalAppHostMethod> = new Set<RendererLocalAppHostMethod>([
+  'textTurnSubscribe', 'scenarioExecute', 'scenarioJobSubscribe', 'conversationVoiceTranscribe',
+  'conversationSubscribe', 'activitySubscribe', 'activityOpenDeliveriesSubscribe', 'agentWorkSubscribe',
+  'embodimentSubscribe', 'aiRealtimeSubscribe', 'agentRealtimeSubscribe', 'realmRealtimeSubscribe',
+]);
+
+/**
+ * A cancel or close ends work that was already admitted. It must stay
+ * reachable while a data-root switch waits for that work to settle.
+ */
+export function isElectronLocalAppCancel(command: string, payload: Readonly<Record<string, unknown>>): boolean {
+  const method = COMMAND_METHODS.get(command);
+  return method !== undefined && CANCELABLE_METHODS.has(method) && payload.action === 'cancel';
+}
+
+/** Waits must leave the root gate free for cancellation and invalidation. */
 export function isElectronLocalAppPullWait(command: string, payload: Readonly<Record<string, unknown>>): boolean {
   const method = COMMAND_METHODS.get(command);
   return method === 'integrationPollProvider'
@@ -704,8 +720,7 @@ function validatePayload(
     }
     case 'conversationAttachmentUpload': {
       assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId', 'mimeType', 'displayName', 'bytes'], ['agentHandle', 'conversationAnchorId', 'mimeType', 'bytes'], command);
-      if (!Array.isArray(payload.bytes) || payload.bytes.length === 0 || payload.bytes.length > 4 * 1024 * 1024
-        || payload.bytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)) {
+      if (!isNimiLocalAppByteView(payload.bytes) || payload.bytes.byteLength === 0 || payload.bytes.byteLength > 4 * 1024 * 1024) {
         throw invalidPayload(command, 'conversation attachment bytes are invalid');
       }
       const displayName = payload.displayName === undefined
@@ -716,7 +731,7 @@ function validatePayload(
         conversationAnchorId: requiredText(payload.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
         mimeType: boundedImageMime(payload.mimeType, command),
         ...(displayName ? { displayName } : {}),
-        bytes: [...payload.bytes] as NimiElectronLocalAppJson,
+        bytes: payload.bytes,
       };
     }
     case 'conversationArtifactRead':
@@ -730,8 +745,7 @@ function validatePayload(
         };
       }
       assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'mimeType', 'audioBytes'], command);
-      if (!Array.isArray(payload.audioBytes) || payload.audioBytes.length === 0 || payload.audioBytes.length > 6 * 1024 * 1024
-        || payload.audioBytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
+      if (!isNimiLocalAppByteView(payload.audioBytes) || payload.audioBytes.byteLength === 0 || payload.audioBytes.byteLength > 6 * 1024 * 1024
         || typeof payload.mimeType !== 'string' || !payload.mimeType.startsWith('audio/')
         || payload.mimeType.trim() !== payload.mimeType || /[\u0000-\u001f\u007f]/u.test(payload.mimeType)) {
         throw invalidPayload(command, 'conversation voice input is invalid');
@@ -740,7 +754,7 @@ function validatePayload(
         ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command,
           new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'mimeType', 'audioBytes']),
         mimeType: payload.mimeType,
-        audioBytes: [...payload.audioBytes] as NimiElectronLocalAppJson,
+        audioBytes: payload.audioBytes,
       };
     }
     case 'conversationVoiceRender':
@@ -1542,8 +1556,7 @@ function memoryPageToken(value: unknown, command: string): string {
 }
 
 function validateInputBytes(value: unknown, maximum: number, command: string): void {
-  if (!Array.isArray(value) || value.length === 0 || value.length > maximum
-    || value.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)) {
+  if (!isNimiLocalAppByteView(value) || value.byteLength === 0 || value.byteLength > maximum) {
     throw invalidPayload(command, 'inline bytes are invalid');
   }
 }
@@ -1681,10 +1694,10 @@ function validateJsonValue(
   value: unknown,
   command: string,
   maxBytes: number,
-  compactByteArrays = false,
+  admitInlineBytes = false,
 ): void {
   const state = { nodes: 0, ancestors: new Set<object>() };
-  const compactedByteArrays = new WeakSet<object>();
+  const inlineBytes = new WeakSet<object>();
   const visit = (entry: unknown, depth = 0): void => {
     state.nodes += 1;
     if (depth > 32 || state.nodes > 100_000) {
@@ -1695,16 +1708,15 @@ function validateJsonValue(
     if (!entry || typeof entry !== 'object' || state.ancestors.has(entry)) {
       throw invalidPayload(command, 'value is not JSON-compatible');
     }
+    // Inline media is an exact byte view bounded at its own field; it is not
+    // charged against the JSON document budget.
+    if (admitInlineBytes && isNimiLocalAppByteView(entry)) {
+      inlineBytes.add(entry);
+      return;
+    }
     state.ancestors.add(entry);
     if (Array.isArray(entry)) {
-      const isByteArray = compactByteArrays
-        && entry.length > 0
-        && entry.every((item) => Number.isInteger(item) && Number(item) >= 0 && Number(item) <= 255);
-      if (isByteArray) {
-        compactedByteArrays.add(entry);
-      } else {
-        for (const item of entry) visit(item, depth + 1);
-      }
+      for (const item of entry) visit(item, depth + 1);
     } else if (Object.getPrototypeOf(entry) === Object.prototype) {
       for (const item of Object.values(entry as Record<string, unknown>)) visit(item, depth + 1);
     } else {
@@ -1713,10 +1725,10 @@ function validateJsonValue(
     state.ancestors.delete(entry);
   };
   visit(value);
-  const encoded = JSON.stringify(value, compactByteArrays
+  const encoded = JSON.stringify(value, admitInlineBytes
     ? (_key, entry: unknown) => (
-        entry && typeof entry === 'object' && compactedByteArrays.has(entry)
-          ? `[inline-bytes:${(entry as readonly unknown[]).length}]`
+        entry && typeof entry === 'object' && inlineBytes.has(entry)
+          ? `[inline-bytes:${(entry as Uint8Array).byteLength}]`
           : entry
       )
     : undefined);
@@ -1772,7 +1784,7 @@ function presentationAssetsPayload(
       throw invalidPayload(command, `importedAssets[${index}].role is invalid`);
     }
     const contentLimit = entry.role === 'resource-pack' ? 2 * 1024 * 1024 : 64 * 1024 * 1024;
-    if (!(entry.content instanceof Uint8Array)
+    if (!isNimiLocalAppByteView(entry.content)
       || entry.content.byteLength === 0
       || entry.content.byteLength > contentLimit) {
       throw invalidPayload(command, `importedAssets[${index}].content is invalid`);

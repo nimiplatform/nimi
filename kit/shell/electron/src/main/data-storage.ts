@@ -3,7 +3,48 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { NimiElectronShellHostError, type NimiElectronStandardShellHost } from './types.js';
 import { errorMessage } from './errors.js';
-import { fileExists, resolveElectronStandardDataRootPath, serializeElectronStandardJsonValue } from './paths.js';
+import {
+  fileExists,
+  normalizeStandardRelativePath,
+  resolveElectronStandardDataRootPath,
+  serializeElectronStandardJsonValue,
+} from './paths.js';
+
+export type NimiElectronStandardStorageDocumentOrder = <T>(
+  scope: string,
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+  operation: () => Promise<T>,
+) => Promise<T>;
+
+/**
+ * Keeps reads and writes of one storage document in arrival order while a Host
+ * admits other standard-shell work alongside them.
+ */
+export function createElectronStandardStorageDocumentOrder(): NimiElectronStandardStorageDocumentOrder {
+  const tails = new Map<string, Promise<void>>();
+  return <T>(
+    scope: string,
+    payload: Readonly<Record<string, unknown>>,
+    command: string,
+    operation: () => Promise<T>,
+  ): Promise<T> => {
+    let key: string;
+    try {
+      key = `${scope}\0${path.normalize(normalizeStandardRelativePath(payload.relativePath, command))}`;
+    } catch {
+      // The operation reports the invalid path itself.
+      return operation();
+    }
+    const result = (tails.get(key) ?? Promise.resolve()).then(operation);
+    const settled = result.then(() => undefined, () => undefined);
+    tails.set(key, settled);
+    void settled.then(() => {
+      if (tails.get(key) === settled) tails.delete(key);
+    });
+    return result;
+  };
+}
 
 export async function resolveElectronStandardDataPath(
   host: NimiElectronStandardShellHost | undefined,

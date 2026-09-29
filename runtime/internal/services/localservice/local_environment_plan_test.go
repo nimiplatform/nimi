@@ -98,47 +98,34 @@ func TestResolveLocalEnvironmentPlanDefaultRuntimeDataRootUsesServiceDataRootIde
 	}
 }
 
-func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) {
+func TestResolveLocalEnvironmentPlanRejectsRetiredMediaPipelinePacks(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
-	runtimeDataRoot := svc.runtimeDataRoot
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          "local-image-python",
-		ConsumerScope:   "media.diffusers.cuda",
-		HostProfile:     localEnvironmentNvidiaProfile(),
-		RuntimeDataRoot: runtimeDataRoot,
-	})
-
-	if plan.State != localEnvironmentStateNeedsConfirmation {
-		t.Fatalf("expected setup-required plan, got %s", plan.State)
-	}
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyPythonUV)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyPythonRuntime)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyPythonVenv)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyPythonPackageSet)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyPythonTorchWheel)
-	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyCUDA)
-	for _, dep := range plan.Dependencies {
-		if dep.State == localEnvironmentStateReadyManaged || dep.State == localEnvironmentStateReadySystem {
-			t.Fatalf("dependency without selected source record projected ready: %+v", dep)
+	for _, request := range []localEnvironmentPlanRequest{
+		{PackID: "local-image-python", ConsumerScope: "media.diffusers.cuda"},
+		{PackID: "local-video-python", ConsumerScope: "media.video-python.cuda"},
+	} {
+		request.HostProfile = localEnvironmentNvidiaProfile()
+		request.RuntimeDataRoot = svc.runtimeDataRoot
+		plan := svc.resolveLocalEnvironmentPlan(request)
+		if plan.State != localEnvironmentStateUnsupported || plan.ReasonCode != "LOCAL_ENVIRONMENT_PACK_UNSUPPORTED" || len(plan.Dependencies) != 0 {
+			t.Fatalf("retired media pipeline pack %s = %+v, want unsupported without dependencies", request.PackID, plan)
 		}
 	}
-	imageVenv := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonVenv)
-	imagePackages := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonPackageSet)
-	if imageVenv.DependencyID != imagePackages.DependencyID || !strings.HasPrefix(imagePackages.DependencyID, "python-profile.") {
-		t.Fatalf("media venv/package-set do not project one complete dependency profile: venv=%+v package=%+v", imageVenv, imagePackages)
+	for _, consumer := range []string{"media.diffusers.cpu", "media.diffusers.cuda", "media.video-python.cpu", "media.video-python.cuda"} {
+		gate := svc.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
+			ConsumerID:      consumer,
+			HostProfile:     localEnvironmentNvidiaProfile(),
+			RuntimeDataRoot: svc.runtimeDataRoot,
+		})
+		if gate.State != localEnvironmentActivationStateUnsupported || gate.ReasonCode != localEnvironmentActivationReasonConsumerUnsupported {
+			t.Fatalf("retired media pipeline consumer %s gate = %+v, want unsupported consumer", consumer, gate)
+		}
 	}
-	videoPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          "local-video-python",
-		ConsumerScope:   "media.video-python.cuda",
-		HostProfile:     localEnvironmentNvidiaProfile(),
-		RuntimeDataRoot: runtimeDataRoot,
-	})
-	videoPackages := findLocalEnvironmentDependency(t, videoPlan, localEnvironmentFamilyPythonPackageSet)
-	if videoPackages.DependencyID != imagePackages.DependencyID || videoPackages.EnvironmentKey != imagePackages.EnvironmentKey {
-		t.Fatalf("equal image/video dependency inputs did not reuse one media profile: image=%+v video=%+v", imagePackages, videoPackages)
+	if contracts := len(svc.localEnvironmentPlanDependencyContracts); contracts != 0 {
+		t.Fatalf("retired media pipeline plans recorded %d dependency contracts", contracts)
 	}
 }
 
@@ -296,26 +283,29 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 	svc.SetEngineManager(&mockEngineManager{})
 	runtimeDataRoot := svc.runtimeDataRoot
 	profile := localEnvironmentNvidiaProfile()
-	profileRoot := filepath.Join(runtimeDataRoot, "environments", "python-profiles", "shared-media")
 	packageCacheRoot := filepath.Join(runtimeDataRoot, "dependencies", "python-package-cache")
-	writtenProfileDigest := ""
+	const (
+		nativeASRConsumer       = "speech.qwen3-asr.python"
+		transformersASRConsumer = "speech.qwen3-asr-transformers.python"
+	)
 
-	requestFor := func(packID string, consumer string) localEnvironmentPlanRequest {
+	requestFor := func(consumer string) localEnvironmentPlanRequest {
 		return localEnvironmentPlanRequest{
-			PackID:          packID,
+			PackID:          "local-speech",
 			ConsumerScope:   consumer,
 			HostProfile:     profile,
 			RuntimeDataRoot: runtimeDataRoot,
 		}
 	}
-	installProfileEvidence := func(t *testing.T, packID string, consumer string, activationArtifact string) (localEnvironmentPlanDependency, localEnvironmentPlanDependency) {
+	installProfileEvidence := func(t *testing.T, consumer string, activationArtifact string) (localEnvironmentPlanDependency, localEnvironmentPlanDependency, string) {
 		t.Helper()
-		plan := svc.resolveLocalEnvironmentPlan(requestFor(packID, consumer))
+		plan := svc.resolveLocalEnvironmentPlan(requestFor(consumer))
 		packageDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonPackageSet)
 		profileIdentity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, plan.PlatformTuple, "cuda")
 		if err != nil {
 			t.Fatalf("resolve dependency profile for %q: %v", consumer, err)
 		}
+		profileRoot := filepath.Join(runtimeDataRoot, "environments", "python-profiles", profileIdentity.ProfileDigest)
 		profileRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 			DependencyFamily:      packageDep.DependencyFamily,
 			DependencyID:          packageDep.DependencyID,
@@ -328,12 +318,7 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 			Hashes:                pythonDependencyProfileHashes(profileIdentity),
 		})
 		writeSelectedSourceLocalArtifactsForTest(t, profileRecord)
-		if writtenProfileDigest == "" {
-			writePythonDependencyProfileStaticFilesForTest(t, profileRoot, consumer, profileIdentity)
-			writtenProfileDigest = profileIdentity.ProfileDigest
-		} else if writtenProfileDigest != profileIdentity.ProfileDigest {
-			t.Fatalf("shared profile fixture received distinct profile digests: first=%s %s=%s", writtenProfileDigest, consumer, profileIdentity.ProfileDigest)
-		}
+		writePythonDependencyProfileStaticFilesForTest(t, profileRoot, consumer, profileIdentity)
 		promotedProfile := svc.upsertLocalEnvironmentSelectedSourceRecord(profileRecord)
 		recordReadyPythonPackageSetConsumptionJobForTest(t, svc, promotedProfile, consumer)
 
@@ -348,25 +333,20 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 			EnvironmentKey:        torchDep.EnvironmentKey,
 			CanonicalRoot:         packageCacheRoot,
 			Version:               torchIdentity.TorchVersion,
-			CompatibilityEvidence: []string{"accelerator_plane=cuda", "cuda_abi=cu126"},
+			CompatibilityEvidence: []string{"accelerator_plane=cuda", "cuda_abi=" + torchIdentity.CUDAABI},
 			VerifiedArtifacts:     []string{filepath.Join(packageCacheRoot, "torch-wheel.lock")},
 			SelectedConsumers:     []string{torchDep.ConsumerScope},
 			Hashes:                map[string]string{"wheel_lock_hash": torchIdentity.WheelLockHash},
 		})
 		writeSelectedSourceLocalArtifactsForTest(t, torchRecord)
 		svc.upsertLocalEnvironmentSelectedSourceRecord(torchRecord)
-		return packageDep, torchDep
+		return packageDep, torchDep, profileRoot
 	}
 
-	imageArtifact := "image-activation.ok"
-	imageProfileDep, imageTorchDep := installProfileEvidence(t, "local-image-python", "media.diffusers.cuda", imageArtifact)
-	videoArtifact := "video-activation.ok"
-	videoProfileDep, videoTorchDep := installProfileEvidence(t, "local-video-python", "media.video-python.cuda", videoArtifact)
-	if imageProfileDep.EnvironmentKey != videoProfileDep.EnvironmentKey || imageProfileDep.DependencyID != videoProfileDep.DependencyID {
-		t.Fatalf("equal media profile inputs did not share one profile identity: image=%+v video=%+v", imageProfileDep, videoProfileDep)
-	}
-	if imageTorchDep.EnvironmentKey != videoTorchDep.EnvironmentKey || imageTorchDep.DependencyID != videoTorchDep.DependencyID {
-		t.Fatalf("equal media wheel inputs did not share one canonical Torch source: image=%+v video=%+v", imageTorchDep, videoTorchDep)
+	nativeProfileDep, nativeTorchDep, _ := installProfileEvidence(t, nativeASRConsumer, "native-asr-activation.ok")
+	_, transformersTorchDep, transformersProfileRoot := installProfileEvidence(t, transformersASRConsumer, "transformers-asr-activation.ok")
+	if nativeTorchDep.EnvironmentKey != transformersTorchDep.EnvironmentKey || nativeTorchDep.DependencyID != transformersTorchDep.DependencyID {
+		t.Fatalf("equal wheel inputs did not share one canonical Torch source: native=%+v transformers=%+v", nativeTorchDep, transformersTorchDep)
 	}
 	statePath := svc.stateStorePath
 	modelsPath := svc.localModelsPath
@@ -378,31 +358,31 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 		t.Fatalf("restore service with shared Torch evidence: %v", err)
 	}
 	svc.SetEngineManager(&mockEngineManager{})
-	imageRepairJob, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
-		EnvironmentKey:   imageProfileDep.EnvironmentKey,
-		DependencyFamily: imageProfileDep.DependencyFamily,
-		DependencyID:     imageProfileDep.DependencyID,
-		ConsumerScope:    "media.diffusers.cuda",
+	nativeRepairJob, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
+		EnvironmentKey:   nativeProfileDep.EnvironmentKey,
+		DependencyFamily: nativeProfileDep.DependencyFamily,
+		DependencyID:     nativeProfileDep.DependencyID,
+		ConsumerScope:    nativeASRConsumer,
 		SourceKind:       localEnvironmentSourceManaged,
 	}, nil)
 	if err != nil {
-		t.Fatalf("start image profile repair projection: %v", err)
+		t.Fatalf("start native ASR profile repair projection: %v", err)
 	}
-	if _, ok, _ := svc.transitionLocalEnvironmentDependencyJob(imageRepairJob.JobID, localEnvironmentStateRepairRequired, "image profile consumption requires repair", true); !ok {
-		t.Fatal("transition image profile consumption to repair_required")
+	if _, ok, _ := svc.transitionLocalEnvironmentDependencyJob(nativeRepairJob.JobID, localEnvironmentStateRepairRequired, "native ASR profile consumption requires repair", true); !ok {
+		t.Fatal("transition native ASR profile consumption to repair_required")
 	}
 
-	imageAfterLoss := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("local-image-python", "media.diffusers.cuda")), localEnvironmentFamilyPythonPackageSet)
-	if imageAfterLoss.State != localEnvironmentStateRepairRequired {
-		t.Fatalf("image profile consumption = %+v, want repair_required after its own evidence is removed", imageAfterLoss)
+	nativeAfterLoss := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor(nativeASRConsumer)), localEnvironmentFamilyPythonPackageSet)
+	if nativeAfterLoss.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("native ASR profile consumption = %+v, want repair_required after its own evidence is removed", nativeAfterLoss)
 	}
-	videoStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("local-video-python", "media.video-python.cuda")), localEnvironmentFamilyPythonPackageSet)
-	if videoStillReady.State != localEnvironmentStateReadyManaged || videoStillReady.CanonicalRoot != profileRoot {
-		t.Fatalf("video profile consumption = %+v, want ready evidence at shared root %q", videoStillReady, profileRoot)
+	transformersStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor(transformersASRConsumer)), localEnvironmentFamilyPythonPackageSet)
+	if transformersStillReady.State != localEnvironmentStateReadyManaged || transformersStillReady.CanonicalRoot != transformersProfileRoot {
+		t.Fatalf("transformers ASR profile consumption = %+v, want ready evidence at its root %q", transformersStillReady, transformersProfileRoot)
 	}
-	videoTorchStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("local-video-python", "media.video-python.cuda")), localEnvironmentFamilyPythonTorchWheel)
-	if videoTorchStillReady.State != localEnvironmentStateReadyManaged || videoTorchStillReady.CanonicalRoot != packageCacheRoot {
-		t.Fatalf("canonical Torch source = %+v, want ready shared package cache %q", videoTorchStillReady, packageCacheRoot)
+	torchStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor(transformersASRConsumer)), localEnvironmentFamilyPythonTorchWheel)
+	if torchStillReady.State != localEnvironmentStateReadyManaged || torchStillReady.CanonicalRoot != packageCacheRoot {
+		t.Fatalf("canonical Torch source = %+v, want ready shared package cache %q", torchStillReady, packageCacheRoot)
 	}
 }
 
@@ -1199,4 +1179,24 @@ func findLocalEnvironmentDependency(t *testing.T, plan localEnvironmentPlan, fam
 	}
 	t.Fatalf("missing dependency family %s in plan %+v", family, plan)
 	return localEnvironmentPlanDependency{}
+}
+
+func TestMediaCodecPlanHasNoLoadoutAndRequiresExplicitConfirmation(t *testing.T) {
+	svc := newTestService(t)
+	resolution := &runtimev1.ResolveLocalEnvironmentPlanRequest{MediaCodec: true, HostProfile: localEnvironmentAppleSilicon128GBProfile()}
+	response, err := svc.ResolveLocalEnvironmentPlan(context.Background(), resolution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := response.GetPlan()
+	if plan.GetPackId() != "media-codec" || len(plan.GetDependencies()) != 1 || !plan.GetDependencies()[0].GetConfirmationRequired() {
+		t.Fatal(plan)
+	}
+	if _, err := svc.ApplyLocalEnvironmentPlan(context.Background(), &runtimev1.ApplyLocalEnvironmentPlanRequest{Resolution: resolution, ExpectedPlanId: plan.GetPlanId()}); err == nil {
+		t.Fatal("codec materialized without confirmation")
+	}
+	resolution.CapabilityContract = "music.generate"
+	if _, err := svc.ResolveLocalEnvironmentPlan(context.Background(), resolution); err == nil {
+		t.Fatal("codec accepted a second target")
+	}
 }

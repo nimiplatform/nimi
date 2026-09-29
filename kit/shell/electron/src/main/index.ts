@@ -38,6 +38,7 @@ export {
 export {
   createNimiElectronFixedRuntimeLifecycleHost,
   createNimiElectronRuntimeLifecycleHost,
+  NIMI_RUNTIME_STORED_DATA_UNSUPPORTED,
   type NimiElectronFixedRuntimeLifecycleHost,
   type NimiElectronRuntimeLifecycleHost,
 } from './runtime-lifecycle-host.js';

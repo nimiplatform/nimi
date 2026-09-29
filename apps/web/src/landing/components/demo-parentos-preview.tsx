@@ -547,7 +547,7 @@ function ScheduleDialog({ copy, reminderTitle, suggestedDate, minDate, onConfirm
         if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
       }}
     >
-      <div className="absolute inset-0 bg-slate-900/25 backdrop-blur-[2px]" onClick={onClose} role="presentation" aria-hidden="true" />
+      <div className="absolute inset-0 bg-slate-900/25" onClick={onClose} role="presentation" aria-hidden="true" />
       <Surface
         as="div"
         material="glass-thick"

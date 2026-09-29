@@ -366,6 +366,56 @@ describe('Electron fixed Runtime lifecycle host', () => {
   });
 });
 
+describe('Electron Runtime lifecycle hosts in maintenance', () => {
+  it('fixed status keeps a maintenance Runtime not running with its exact reason', async () => {
+    const maintenance = {
+      running: false,
+      managed: true,
+      state: 'maintenance',
+      releaseVersion: null,
+      releasePosture: 'non_release',
+      reasonCode: 'runtime-stored-data-unsupported',
+      retryable: false,
+    };
+    const host = createNimiElectronFixedRuntimeLifecycleHostForBinding({
+      fixedRuntimeServiceStatus: async () => ({ status: 'ok' as const, value: maintenance }),
+      fixedRuntimeServiceStart: async () => ({ status: 'ok' as const, value: maintenance }),
+      fixedRuntimeServiceRestart: async () => ({ status: 'ok' as const, value: maintenance }),
+    }, 'protected-desktop-control');
+    const commands = createElectronRuntimeBridgeCommandNames();
+    for (const command of [commands.status, commands.start]) {
+      await expect(host.invoke(command, commands)).resolves.toEqual({
+        running: false,
+        managed: true,
+        launchMode: 'RUNTIME',
+        grpcAddr: 'protected-desktop-control',
+        lastError: 'runtime-stored-data-unsupported',
+      });
+    }
+  });
+
+  it('source status reports maintenance instead of failing, and other failures still fail', async () => {
+    const commands = createElectronRuntimeBridgeCommandNames();
+    const statusOf = (reasonCode: string) => createNimiElectronSourceRuntimeLifecycleHostForProbe(
+      createNimiElectronDeveloperModeStatusProbeForBinding({
+        desktopDeveloperModeStatus: async () => ({ status: 'error' as const, reasonCode, retryable: false }),
+        desktopDeveloperModeSet: async () => ({ status: 'ok' as const, value: {} }),
+      }),
+      'protected-desktop-control',
+    ).invoke(commands.status, commands);
+    await expect(statusOf('runtime-stored-data-unsupported')).resolves.toEqual({
+      running: false,
+      managed: false,
+      launchMode: 'SOURCE',
+      grpcAddr: 'protected-desktop-control',
+      lastError: 'runtime-stored-data-unsupported',
+    });
+    await expect(statusOf('runtime-service-untrusted')).rejects.toMatchObject({
+      reasonCode: 'runtime-service-untrusted',
+    });
+  });
+});
+
 describe('Electron source Runtime lifecycle host', () => {
   it('reports Running only after a live protected owner read and rejects process control', async () => {
     const probe = vi.fn(async () => ({

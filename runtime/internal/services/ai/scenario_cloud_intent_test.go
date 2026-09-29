@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
@@ -40,7 +41,7 @@ func TestExecuteScenarioTextGenerateRejectsIncompletePrivateCloudIntent(t *testi
 func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
-	connectorSvc := connector.New(logger, store, nil)
+	connectorSvc := connector.New(logger, store, auditlog.New(128, 128))
 	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	created, err := connectorSvc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",

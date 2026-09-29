@@ -6,13 +6,16 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"slices"
 	"sync/atomic"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -153,7 +156,16 @@ func TestRetiredHunyuanProviderFailsTypedWithoutDispatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("store legacy Hunyuan connector: %v", err)
 	}
-	connectorSvc := connector.New(logger, store, nil)
+	auditBackend, err := runtimepersistence.Open(logger, filepath.Join(t.TempDir(), "audit-state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer auditBackend.Close()
+	audit, err := auditlog.Open(auditBackend, nil, 100, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	connectorSvc := connector.New(logger, store, audit)
 	ctx := authn.WithIdentity(
 		metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop")),
 		&authn.Identity{SubjectUserID: "user-001"},

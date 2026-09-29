@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { GoEngine } from '../src/product/engine.ts';
-import { createWork, createWorkspace, workCanEdit } from '../src/product/model.ts';
+import { createWork, createWorkspace, needsAiSetup, workCanEdit } from '../src/product/model.ts';
 
 function fixture(works, workspace) {
   const documents = new Map([['nimigo/v1/workspace.json', structuredClone(workspace)], ...works.map(work => [`nimigo/v1/work-${work.id}.json`, structuredClone(work)])]);
@@ -300,4 +300,136 @@ test('a forged saved read selection cannot turn the direct material action into 
   client.integration.invoke = async () => { invoked = true; throw new Error('must not invoke'); };
   try { await engine.initialize(); await assert.rejects(engine.importIntegrationMaterial(work.id, 0, {})); assert.equal(invoked, false); assert.equal(calls.starts.length, 0); assert.equal(engine.getWork(work.id).materials.length, 0); }
   finally { engine.dispose(); }
+});
+
+test('a refusal Runtime returned before admission fails the attempt and keeps its input; a lost transport stays unconfirmed', async () => {
+  for (const [reasonCode, expected] of [['resource-exhausted', 'failed'], ['runtime-access-denied', 'failed'], ['runtime-service-unavailable', 'uncertain']]) {
+    const { workspace, work } = workFixture(); const { engine, client } = fixture([work], workspace);
+    client.agentWork.start = async () => { throw Object.assign(new Error(reasonCode), { reasonCode }); };
+    try {
+      await engine.initialize();
+      await engine.run(work.id, '保留这段追加要求');
+      const saved = engine.getWork(work.id);
+      assert.equal(saved.status, expected, reasonCode);
+      assert.equal(saved.attempts.at(-1).input, '保留这段追加要求');
+    } finally { engine.dispose(); }
+  }
+});
+
+test('a typed question survives a Host exit and is answered without restarting the old execution', async () => {
+  const { workspace, work } = workFixture();
+  work.status = 'needs-input'; work.question = '选哪个受众？'; work.pendingRequest = { kind: 'input', question: '选哪个受众？' };
+  work.attempts = [{ id: 'asked', agentBinding: 'test-binding', executionId: 'expired-execution', startedAt: work.createdAt, status: 'complete' }];
+  const { engine, calls } = fixture([work], workspace);
+  try {
+    await engine.initialize();
+    assert.equal(engine.getWork(work.id).status, 'needs-input');
+    assert.equal(engine.pending.get(work.id)?.request.kind, 'input');
+    assert.equal(calls.gets.length, 0, 'the ended execution is not looked up again');
+    assert.equal(calls.starts.length, 0);
+    await engine.answer(work.id, '新用户');
+    assert.equal(calls.starts.length, 1);
+    assert.match(calls.starts[0].prompt, /选哪个受众？.*新用户/u);
+  } finally { engine.dispose(); }
+});
+
+test('an untyped question from an older record keeps its text and is never guessed into a decision', async () => {
+  const { workspace, work } = workFixture();
+  work.status = 'needs-input'; work.question = '旧记录里的问题';
+  work.attempts = [{ id: 'asked', agentBinding: 'test-binding', executionId: 'old', startedAt: work.createdAt, status: 'complete' }];
+  const { engine, calls } = fixture([work], workspace);
+  try {
+    await engine.initialize();
+    const saved = engine.getWork(work.id);
+    assert.equal(saved.status, 'stopped');
+    assert.match(saved.error, /旧记录里的问题/u);
+    assert.equal(engine.pending.size, 0);
+    await assert.rejects(engine.answer(work.id, '随便'), /等待本轮结束/u);
+    assert.equal(calls.starts.length, 0);
+  } finally { engine.dispose(); }
+});
+
+test('a restored World review applies only to the exact reviewed version', async () => {
+  const review = { kind: 'world-review', question: '审核对「晴川」的摘要修改', worldId: 'world-1', worldName: '晴川', baseContentHash: 'hash-reviewed', beforeSummary: '旧摘要', afterSummary: '新摘要' };
+  const world = contentHash => ({ id: 'world-1', contentHash, core: { identity: { name: '晴川', summary: '旧摘要' } }, lorebookDeclaration: { entries: [] }, origin: {}, visibility: 'private' });
+  for (const [current, applied] of [['hash-changed', false], ['hash-reviewed', true]]) {
+    const { workspace, work } = workFixture();
+    work.status = 'needs-input'; work.question = review.question; work.pendingRequest = review;
+    work.attempts = [{ id: 'asked', agentBinding: 'test-binding', executionId: 'ended', startedAt: work.createdAt, status: 'complete' }];
+    const { engine, client } = fixture([work], workspace);
+    const replaced = [];
+    client.realm = { worldCore: { get: async () => world(current), replace: async (id, body) => { replaced.push(body); return { ...world('hash-new'), core: body.core }; } } };
+    try {
+      await engine.initialize();
+      assert.equal(engine.pending.get(work.id)?.request.kind, 'world-review');
+      if (applied) {
+        await engine.decideWorldChange(work.id, true);
+        assert.equal(replaced.length, 1);
+        assert.equal(replaced[0].baseContentHash, 'hash-reviewed');
+        assert.equal(replaced[0].core.identity.summary, '新摘要');
+      } else {
+        await assert.rejects(engine.decideWorldChange(work.id, true), /已经变化/u);
+        assert.equal(replaced.length, 0);
+        assert.equal(engine.pending.get(work.id)?.request.kind, 'world-review', 'the review stays for a decision');
+      }
+    } finally { engine.dispose(); }
+  }
+});
+
+test('an answer is recorded before the round runs, and a refusal before recording keeps the question', async () => {
+  const { workspace, work } = workFixture();
+  work.status = 'needs-input'; work.question = '截止日期？'; work.pendingRequest = { kind: 'input', question: '截止日期？' };
+  work.attempts = [{ id: 'asked', agentBinding: 'test-binding', executionId: 'ended', startedAt: work.createdAt, status: 'complete' }];
+  const { engine, client } = fixture([work], workspace);
+  const entered = deferred(); const release = deferred();
+  client.agentWork.listToolCalls = async () => { entered.resolve(); await release.promise; return []; };
+  try {
+    await engine.initialize();
+    let recorded = false;
+    const answering = engine.answer(work.id, '下周五', () => { recorded = true; });
+    await entered.promise;
+    assert.equal(recorded, true, 'recorded while the round is still running');
+    assert.equal(engine.getWork(work.id).attempts.at(-1).input, '对问题「截止日期？」的回答：下周五');
+    release.resolve(); await answering;
+  } finally { release.resolve(); engine.dispose(); }
+
+  const second = workFixture();
+  second.work.status = 'needs-input'; second.work.question = '预算？'; second.work.pendingRequest = { kind: 'input', question: '预算？' };
+  second.work.attempts = [{ id: 'asked', agentBinding: 'test-binding', executionId: 'ended', startedAt: second.work.createdAt, status: 'complete' }];
+  const refused = fixture([second.work], second.workspace);
+  try {
+    await refused.engine.initialize();
+    refused.client.agentWork.listReferences = async () => [];
+    let recorded = false;
+    await assert.rejects(refused.engine.answer(second.work.id, '十万', () => { recorded = true; }), /Agent/u);
+    assert.equal(recorded, false);
+    assert.equal(refused.engine.pending.get(second.work.id)?.question, '预算？');
+  } finally { refused.engine.dispose(); }
+});
+
+test('a transient initialization failure can be retried in the same Host', async () => {
+  const { workspace, work } = workFixture(); const { engine, client } = fixture([work], workspace);
+  const readJson = client.storage.readJson; let failures = 1;
+  client.storage.readJson = async path => { if (failures > 0) { failures -= 1; throw new Error('storage temporarily unavailable'); } return readJson(path); };
+  try {
+    await engine.initialize();
+    assert.equal(engine.ready, false);
+    assert.match(engine.error, /temporarily unavailable/u);
+    await engine.initialize();
+    assert.equal(engine.ready, true);
+  } finally { engine.dispose(); }
+});
+
+test('an AI setup refusal points to Nimi settings and the reason leaves with its error', async () => {
+  const { workspace, work } = workFixture(); const { engine, client } = fixture([work], workspace);
+  client.agentWork.start = async () => { throw Object.assign(new Error('ai-config-not-found'), { reasonCode: 'ai-config-not-found' }); };
+  try {
+    await engine.initialize();
+    await engine.run(work.id);
+    assert.equal(engine.getWork(work.id).status, 'failed');
+    assert.equal(needsAiSetup(engine.getWork(work.id).errorReason), true);
+    await engine.modifyWork(work.id, w => { w.error = '另一个问题'; });
+    assert.equal(engine.getWork(work.id).errorReason, undefined);
+    assert.equal(needsAiSetup('agent-busy'), false);
+  } finally { engine.dispose(); }
 });

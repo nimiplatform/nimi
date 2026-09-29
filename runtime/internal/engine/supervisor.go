@@ -62,11 +62,13 @@ type supervisedProcess struct {
 	done                 chan struct{}
 	lifecycle            *supervisorProcessLifecycle
 	lifecycleWaitTimeout time.Duration
+	ownerRelease         *supervisorOwnerRelease
+	releaseOnce          sync.Once
 
-	mu           sync.Mutex
-	stopping     bool
-	waitErr      error
-	lifecycleErr error
+	mu            sync.Mutex
+	waitErr       error
+	forceKillSent bool
+	lifecycleErr  error
 }
 
 // NewSupervisor creates a new engine process supervisor.
@@ -121,9 +123,6 @@ func (s *Supervisor) Stop() error {
 	cancel := s.cancel
 	cmd := s.cmd
 	process := s.process
-	if process != nil {
-		process.markStopping()
-	}
 	s.runEpoch++
 	s.cancel = nil
 	s.mu.Unlock()
@@ -175,6 +174,21 @@ func (s *Supervisor) Stop() error {
 	)
 	s.setStatus(StatusUnhealthy, "shutdown failed: process remained alive after SIGKILL")
 	return fmt.Errorf("stop engine %s: process %d remained alive after SIGKILL", s.cfg.Kind, pid)
+}
+
+// ForceStop kills the tracked process tree at once. Shutdown uses it when its
+// deadline passed while a graceful Stop was still waiting.
+func (s *Supervisor) ForceStop() {
+	s.mu.RLock()
+	cmd := s.cmd
+	process := s.process
+	s.mu.RUnlock()
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	if err := signalTrackedSupervisorProcess(process, cmd.Process.Pid, syscall.SIGKILL); err != nil && process != nil {
+		process.recordLifecycleError(fmt.Errorf("force terminate supervised process tree: %w", err))
+	}
 }
 
 func (s *Supervisor) finishStoppedProcess(process *supervisedProcess, detail string) error {
@@ -315,24 +329,40 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	if len(s.cfg.CommandEnv) > 0 {
 		cmd.Env = mergeSupervisorCommandEnv(os.Environ(), s.cfg.CommandEnv)
 	}
+	ownerReader, ownerRelease, guardErr := guardSupervisorProcessOwner(cmd, s.cfg.ShutdownTimeout)
+	if guardErr != nil {
+		cancel()
+		s.setStatus(StatusStopped, fmt.Sprintf("start failed: %v", guardErr))
+		return fmt.Errorf("start engine %s: %w", s.cfg.Kind, guardErr)
+	}
+	// The child holds its own copy of the guard's read end.
+	defer func() {
+		if ownerReader != nil {
+			_ = ownerReader.Close()
+		}
+	}()
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		cancel()
+		ownerRelease.release()
 		return fmt.Errorf("capture stdout for engine %s: %w", s.cfg.Kind, err)
 	}
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
 		cancel()
+		ownerRelease.release()
 		return fmt.Errorf("capture stderr for engine %s: %w", s.cfg.Kind, err)
 	}
 
 	if !s.isRunEpochActive(epoch) {
 		cancel()
+		ownerRelease.release()
 		return nil
 	}
 	if err := ctx.Err(); err != nil {
 		cancel()
+		ownerRelease.release()
 		return err
 	}
 	s.setStatus(StatusStarting, "spawning process")
@@ -344,15 +374,21 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		return nil
 	}
 	startErr := cmd.Start()
+	if ownerReader != nil {
+		_ = ownerReader.Close()
+		ownerReader = nil
+	}
 	if startErr != nil {
 		s.mu.Unlock()
 		cancel()
+		ownerRelease.release()
 		s.setStatus(StatusStopped, fmt.Sprintf("start failed: %v", startErr))
 		return fmt.Errorf("start engine %s: %w", s.cfg.Kind, startErr)
 	}
 	if s.runEpoch != epoch {
 		s.mu.Unlock()
 		cancel()
+		ownerRelease.release()
 		if cmd.Process != nil {
 			waitDone := make(chan struct{})
 			go func() {
@@ -371,6 +407,7 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	if lifecycleErr != nil {
 		s.mu.Unlock()
 		cancel()
+		ownerRelease.release()
 		if cmd.Process != nil {
 			waitDone := make(chan struct{})
 			go func() {
@@ -392,6 +429,7 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		done:                 make(chan struct{}),
 		lifecycle:            processLifecycle,
 		lifecycleWaitTimeout: supervisorLifecycleWaitTimeout(s.cfg.ShutdownTimeout),
+		ownerRelease:         ownerRelease,
 	}
 	s.process = process
 	s.pid = cmd.Process.Pid
@@ -480,7 +518,7 @@ func (s *Supervisor) stopCanceledStart(cancelErr error) error {
 
 func supervisorCommandExecutablePath(cfg EngineConfig) string {
 	switch cfg.Kind {
-	case EngineMedia, EngineSpeech:
+	case EngineSpeech:
 		// Keep BinaryPath canonical for status and process-identity projections.
 		// Only the Windows process launch adapter consumes the shorter alias so
 		// CPython derives a legacy-safe sys.prefix for deeply nested packages.

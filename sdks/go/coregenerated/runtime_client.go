@@ -292,6 +292,7 @@ var RuntimeMethods = []RuntimeMethodDescriptor{
 	{MethodID: "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats", Service: "RuntimeRealmRealtimeService", Method: "ListRealmChats", Kind: "unary", RequestType: "ListRealmChatsRequest", ResponseType: "ListRealmChatsResponse"},
 	{MethodID: "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel", Service: "RuntimeRealmRealtimeService", Method: "OpenRealmRealtimeChannel", Kind: "unary", RequestType: "OpenRealmRealtimeChannelRequest", ResponseType: "OpenRealmRealtimeChannelResponse"},
 	{MethodID: "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents", Service: "RuntimeRealmRealtimeService", Method: "SubscribeRealmRealtimeEvents", Kind: "server_stream", RequestType: "SubscribeRealmRealtimeEventsRequest", ResponseType: "SubscribeRealmRealtimeEventsResponse"},
+	{MethodID: "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState", Service: "RuntimeServiceControlService", Method: "GetRuntimeServiceState", Kind: "unary", RequestType: "GetRuntimeServiceStateRequest", ResponseType: "GetRuntimeServiceStateResponse"},
 	{MethodID: "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart", Service: "RuntimeServiceControlService", Method: "RequestRuntimeRestart", Kind: "unary", RequestType: "RequestRuntimeRestartRequest", ResponseType: "RequestRuntimeRestartResponse"},
 }
 

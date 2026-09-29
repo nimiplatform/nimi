@@ -27,7 +27,7 @@ features:
 
 从[创建 Nimi App](/zh/start/create-an-app)开始，再接入应用需要的能力。[SDK 参考](/zh/sdk/)和 [Runtime 文档](/zh/runtime/)提供详细的接口、配置和执行说明。
 
-如果你想使用 Nimi，而不是开发 App，请访问[官网](https://nimi.ai)并查看[当前下载状态](https://nimi.ai/download)。
+如果你想使用 Nimi，而不是开发 App，请访问[官网](https://nimi.ai)并查看[当前下载状态](https://nimi.ai/download)。使用 Nimi Home 需要 Nimi 账号，并在浏览器中登录。
 
 ## 来源依据
 

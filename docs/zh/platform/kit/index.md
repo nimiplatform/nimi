@@ -12,10 +12,16 @@ consumer 可以共享视觉语言、无障碍行为、shell adapter 与常用交
 | `auth` | 可复用 authentication presentation 与 adapter |
 | `core` | 宿主无关 utility 与 capability helper |
 | `telemetry` | Renderer telemetry 与 error-boundary helper |
-| `shell/tauri` | 有界 native-host glue |
+| `shell/tauri` | Tauri App 使用的 Rust 宿主 glue，只承载标准 shell 的一部分 |
 
 Kit 按真实需求扩展。只有真实 App 或宿主需要复用同一行为，而且产品 owner
 已经明确时，才增加 reusable surface。Kit 不为“生态完整”预建公共功能目录。
+
+## Tauri 宿主
+
+Nimi App 在由 Desktop 监督的 Electron 宿主中开发，默认构建打包的也是这个 Electron 宿主，它承载完整的标准 shell。Tauri 仍是需要明确配置的构建选项，共享的 Tauri crate 只承载其中一部分。在 Tauri 宿主上，App 可以使用会话状态、App AIConfig、一次性文本生成（`generateCandidate`）、artifact 上传、App 存储（JSON 文档与资源文件）、Realm World 与 PersonaCharacter 操作、共享 Agent AIConfig、Agent 管理、自主性、形象与记忆控制、具身状态，以及 App 活动。
+
+流式文本回合、Scenario 执行与 Job、artifact 读取、音色资源、Realm 聊天与实时通道、Agent 介绍、引用与工作、Integrations、Agent Conversation、AI 与 Agent 实时会话、视频会话、App 媒体播放句柄、Avatar 宿主交接和 Resource Pack 导入都不由 Tauri 承载。在 Tauri 宿主上调用它们，会在任何 Tauri 命令执行前以 `capability-unavailable`（原因 `tauri-standard-shell-operation-unsupported`）失败。App 自己注册的 Tauri 命令不受影响。
 
 ## Owner 边界
 

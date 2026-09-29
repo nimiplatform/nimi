@@ -68,6 +68,8 @@ mod generated {
 }
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 mod installed_app_control;
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+mod runtime_service_mode;
 #[cfg(all(
     target_os = "windows",
     not(feature = "windows-source-local-development")
@@ -184,12 +186,13 @@ pub use carrier::{
     NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
-    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
-    DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse, DesktopAccountProjection,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
-    DesktopAccountSessionDeliveryKind, DesktopAccountSessionEvent,
-    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
-    DesktopAccountSessionState, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
+    DesktopAccountActionRequest, DesktopAccountAuditDiagnostic, DesktopAccountBeginLoginRequest,
+    DesktopAccountBeginLoginResponse, DesktopAccountCompleteLoginRequest,
+    DesktopAccountMutationResponse, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
+    DesktopAccountRealmUnaryResponse, DesktopAccountSessionDeliveryKind,
+    DesktopAccountSessionEvent, DesktopAccountSessionEventReceiver,
+    DesktopAccountSessionEventsRequest, DesktopAccountSessionState, DesktopAccountSessionStatus,
+    DesktopAccountSessionStatusRequest,
 };
 pub use first_party_product::{
     DesktopAccountProductClientStreamRequest, DesktopAccountProductStreamRequest,
@@ -222,7 +225,7 @@ pub use macos_service_control::{macos_runtime_service_registration, MacOsUnixSoc
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 pub use service::{
     FixedRuntimeServiceControl, RuntimeServiceAction, RuntimeServiceActionOutcome,
-    RuntimeServiceState, RuntimeServiceStatus,
+    RuntimeServiceMode, RuntimeServiceState, RuntimeServiceStatus,
 };
 #[cfg(target_os = "windows")]
 pub use windows_data_root::{prepare_fixed_runtime_data_root, FixedRuntimeDataRootError};

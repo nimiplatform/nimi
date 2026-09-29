@@ -121,6 +121,14 @@ test('post-update status fails closed on signature, build record, or candidate m
   assertRuntimeServiceHealthy(healthyStatus);
   assertRuntimeServiceDeploymentProfile(healthyStatus);
   assertRuntimeOfflineRepair(healthyStatus.offlineRepair);
+  // The fixed repair tool reports current v2 conversation row storage as
+  // not applicable; that current format must not block install or update.
+  assertRuntimeOfflineRepair({
+    ...healthyStatus.offlineRepair,
+    status: 'not-applicable',
+    skipReason: 'conversation_row_storage',
+    backupPath: null,
+  });
   assertRuntimeOfflineRepair({
     ...healthyStatus.offlineRepair,
     status: 'applied',
@@ -153,6 +161,8 @@ test('post-update status fails closed on signature, build record, or candidate m
     undefined,
     { ...healthyStatus.offlineRepair, status: 'applied', backupPath: null },
     { ...healthyStatus.offlineRepair, status: 'not-applicable', skipReason: 'unknown' },
+    { ...healthyStatus.offlineRepair, status: 'not-applicable', skipReason: 'conversation_row_storage', duplicateGroups: 1 },
+    { ...healthyStatus.offlineRepair, status: 'not-applicable', skipReason: 'conversation_row_storage', backupPath: 'D:\\NimiRuntime\\runtime.sqlite.pre-local-agent-chat-repair.sqlite' },
   ]) {
     assert.throws(
       () => assertRuntimeOfflineRepair(repair),

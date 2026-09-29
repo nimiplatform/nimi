@@ -288,7 +288,7 @@ export const storybookPreviewContent: HeroDemoStorybookPreview = {
     modelNote: '用于故事改编、分支编排和角色即兴对话。',
   },
   demo: {
-    hostOnly: '这一步需要 Nimi Desktop 中的 Storybook 本体（本机内容库与 Runtime AI）；网页演示只展示界面与交互。',
+    hostOnly: '这一步需要本机 Nimi 中的 Storybook 本体（本机内容库与 Runtime AI）；网页演示只展示界面与交互。',
     dismiss: '知道了',
   },
 };

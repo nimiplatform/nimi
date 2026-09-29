@@ -438,6 +438,7 @@ func (s *Service) currentUserDisplayProjection(ctx context.Context) (*runtimev1.
 func localAppAuthSessionProjection(session localAppRuntimeSession) authservice.LocalAppSessionProjection {
 	return authservice.LocalAppSessionProjection{
 		CurrentUser: session.currentUser, CurrentUserReasonCode: session.currentUserReason,
+		AppID: session.appID, AccountID: session.accountID,
 	}
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type {
   NimiLocalAppAgentHandle,
@@ -29,8 +29,6 @@ type UseAgentRuntimeSessionSnapshotHydrationInput = {
   activeConversationAnchorId: string | null;
   authStatus: AuthStatus;
   buildHostErrorDetails: RuntimeHostErrorDetailsBuilder;
-  bundleError: Error | null;
-  isBundleLoading: boolean;
   onRuntimeError?: (error: unknown) => void;
   queryClient: QueryClient;
   selectedThreadRecord: AgentLocalThreadSummary | null;
@@ -50,14 +48,42 @@ function compareEvents(
   return leftSequence < rightSequence ? -1 : leftSequence > rightSequence ? 1 : 0;
 }
 
+export type AgentRuntimeSessionHydrationState = {
+  /** The conversation has history that has not been read yet. */
+  readonly loading: boolean;
+  readonly error: Error | null;
+  readonly retry: () => void;
+};
+
+type HydrationOutcome = {
+  readonly key: string;
+  readonly status: 'loading' | 'ready' | 'error';
+  readonly error: Error | null;
+};
+
+function hydrationKey(input: UseAgentRuntimeSessionSnapshotHydrationInput): string | null {
+  const thread = input.selectedThreadRecord;
+  const conversationAnchorId = normalizeText(input.activeConversationAnchorId);
+  const agentHandle = normalizeText(thread?.targetSnapshot.agentHandle);
+  if (input.authStatus !== 'authenticated' || !thread || !conversationAnchorId || !agentHandle
+    || agentHandle !== normalizeText(input.activeAgentHandle)) {
+    return null;
+  }
+  return [agentHandle, conversationAnchorId, thread.id].join('|');
+}
+
 // @nimi-authority: rule.nimi.runtime.agent-participation.r175
 // @nimi-authority: rule.nimi.desktop.agent-projection.r029
 export function useAgentRuntimeSessionSnapshotHydration(
   input: UseAgentRuntimeSessionSnapshotHydrationInput,
-): void {
+): AgentRuntimeSessionHydrationState {
   const bindings = useDesktopRendererBindings();
   const visibleProjections = useAgentVisibleProjectionStore();
   const activeKeyRef = useRef<string | null>(null);
+  const [outcome, setOutcome] = useState<HydrationOutcome | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((current) => current + 1), []);
+  const currentKey = hydrationKey(input);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,14 +91,15 @@ export function useAgentRuntimeSessionSnapshotHydration(
     const thread = input.selectedThreadRecord;
     const conversationAnchorId = normalizeText(input.activeConversationAnchorId);
     const agentHandle = normalizeText(thread?.targetSnapshot.agentHandle) as NimiLocalAppAgentHandle;
-    if (input.authStatus !== 'authenticated' || !thread || !conversationAnchorId || !agentHandle
-      || agentHandle !== normalizeText(input.activeAgentHandle)
-      || input.isBundleLoading || Boolean(input.bundleError) || input.submittingThreadId === thread.id) {
+    const key = hydrationKey(input);
+    if (!key || !thread || input.submittingThreadId === thread.id) {
       return () => { cancelled = true; };
     }
 
-    const key = [agentHandle, conversationAnchorId, thread.id].join('|');
     activeKeyRef.current = key;
+    setOutcome((current) => (current?.key === key && current.status !== 'error'
+      ? current
+      : { key, status: 'loading', error: null }));
     const conversation = bindings.sdk.conversation();
     const bufferedEvents: NimiLocalAppConversationEvent[] = [];
     let projection: CanonicalConversationProjection | null = null;
@@ -90,6 +117,9 @@ export function useAgentRuntimeSessionSnapshotHydration(
       if (cancelled || activeKeyRef.current !== key) return;
       input.queryClient.setQueryData(bundleQueryKey(thread.id), bundle);
       visibleProjections.set(thread.id, bundle);
+      setOutcome((current) => (current?.key === key && current.status === 'ready'
+        ? current
+        : { key, status: 'ready', error: null }));
     };
 
     const authoritativeResync = async () => {
@@ -164,6 +194,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
       await eventPump;
     })().catch((error) => {
       if (cancelled) return;
+      setOutcome({ key, status: 'error', error: error instanceof Error ? error : new Error(String(error)) });
       input.onRuntimeError?.(error);
       logRendererEvent({
         level: 'warn',
@@ -188,12 +219,18 @@ export function useAgentRuntimeSessionSnapshotHydration(
     input.activeConversationAnchorId,
     input.authStatus,
     input.buildHostErrorDetails,
-    input.bundleError,
-    input.isBundleLoading,
     input.onRuntimeError,
     input.queryClient,
     input.selectedThreadRecord,
     input.submittingThreadId,
     visibleProjections,
+    attempt,
   ]);
+
+  const settled = outcome?.key === currentKey ? outcome : null;
+  return {
+    loading: currentKey !== null && settled?.status !== 'ready' && settled?.status !== 'error',
+    error: currentKey !== null && settled?.status === 'error' ? settled.error : null,
+    retry,
+  };
 }

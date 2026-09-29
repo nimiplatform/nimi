@@ -31,9 +31,8 @@ pnpm run test
 ```
 
 `dev:shell` enters the official `nimi-app dev` launcher; on Windows and macOS,
-Nimi Lab runs as a Desktop-supervised Electron App. `build:shell` remains the
-bounded native Tauri build path, not a second local-development carrier. A
-local project that is not admitted must be authorized through Developer Mode
+Nimi Lab runs as a Desktop-supervised Electron App; it has no Tauri build or
+development path. A local project that is not admitted must be authorized through Developer Mode
 and launched as an isolated `local_development` build. Nimi Lab does not own
 the principal, grant, or session and does not grant public App admission.
 

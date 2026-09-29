@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createServer } from 'node:net';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,11 +23,45 @@ export function localDevelopmentToolEnvironment(
   source: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   const output: NodeJS.ProcessEnv = {};
-  for (const key of ['PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL', 'NO_COLOR', 'CI']) {
+  for (const key of ['PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL', 'NO_COLOR', 'CI', 'SystemRoot', 'ComSpec', 'PATHEXT', 'TEMP', 'TMP']) {
     const value = source[key];
     if (typeof value === 'string' && value.length > 0 && !value.includes('\0')) output[key] = value;
   }
   return output;
+}
+
+// POSIX owner guard. A watcher reads the stdin pipe only Desktop can write
+// (explicitly: a background list would otherwise read /dev/null);
+// the script then execs the target, which keeps this pid and process group.
+// When Desktop is gone the pipe ends and the watcher stops its own group,
+// escalating after the budget a Desktop stop gives the tree; a group id is
+// never reused while its members live, so nothing outside it is signalled.
+// After an ordinary stop the watcher only outlives the target by that budget.
+const POSIX_OWNER_GUARD_SCRIPT = [
+  "(trap '' TERM; cat >/dev/null 2>&1; kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null) <&0 &",
+  'exec "$@" </dev/null',
+].join('\n');
+const POSIX_OWNER_LOSS_GRACE_SECONDS = 5;
+
+/** @internal Starts an invocation that ends with its Desktop owner on POSIX. */
+export function spawnPosixOwnerGuardedProcess(
+  invocation: { readonly command: string; readonly args: readonly string[] },
+  cwd: string,
+  environment: NodeJS.ProcessEnv,
+): ChildProcessWithoutNullStreams {
+  return spawn('/bin/sh', [
+    '-c',
+    POSIX_OWNER_GUARD_SCRIPT,
+    String(POSIX_OWNER_LOSS_GRACE_SECONDS),
+    invocation.command,
+    ...invocation.args,
+  ], {
+    cwd,
+    env: environment,
+    detached: true,
+    windowsHide: true,
+    stdio: 'pipe',
+  });
 }
 
 export function spawnLocalDevelopmentPackageScript(
@@ -34,7 +69,7 @@ export function spawnLocalDevelopmentPackageScript(
   cwd: string,
   options: {
     readonly platform?: NodeJS.Platform;
-    readonly executablePath?: string;
+    readonly nodeExecutable?: string;
     readonly guardianPath?: string;
     readonly sourceEnvironment?: NodeJS.ProcessEnv;
   } = {},
@@ -43,24 +78,18 @@ export function spawnLocalDevelopmentPackageScript(
   const invocation = resolveLocalDevelopmentPackageScriptInvocation(script, platform);
   const environment = localDevelopmentToolEnvironment(options.sourceEnvironment ?? process.env);
   if (platform !== 'win32') {
-    return spawn(invocation.command, invocation.args, {
-      cwd,
-      env: environment,
-      shell: invocation.shell,
-      detached: true,
-      windowsHide: true,
-      stdio: 'pipe',
-    });
+    return spawnPosixOwnerGuardedProcess(invocation, cwd, environment);
   }
   const guardianPath = options.guardianPath
     ?? fileURLToPath(new URL('./local-development-process-guardian.js', import.meta.url));
   const encodedInvocation = Buffer.from(JSON.stringify(invocation), 'utf8').toString('base64url');
-  return spawn(options.executablePath ?? process.execPath, [guardianPath, encodedInvocation], {
+  // Development already requires Node/Corepack. Run the guardian in that
+  // external Node, never in the trusted Home executable. Read the bundled
+  // script here because ordinary Node cannot resolve files inside app.asar.
+  const guardianSource = readFileSync(guardianPath, 'utf8');
+  return spawn(options.nodeExecutable ?? 'node', ['--input-type=module', '--eval', guardianSource, encodedInvocation], {
     cwd,
-    env: {
-      ...environment,
-      ELECTRON_RUN_AS_NODE: '1',
-    },
+    env: environment,
     detached: true,
     windowsHide: true,
     stdio: 'pipe',

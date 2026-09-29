@@ -19,8 +19,9 @@ type retirementSubstrate struct {
 func (*retirementSubstrate) Ensure(context.Context, string, []string, func() error, localexecution.TextProgressFunc) (string, bool, error) {
 	panic("not an inference test")
 }
-func (*retirementSubstrate) Healthy() bool { return true }
-func (s *retirementSubstrate) Stop() error { s.stops++; return s.stopErr }
+func (*retirementSubstrate) Healthy() bool     { return true }
+func (*retirementSubstrate) AccessKey() string { return "" }
+func (s *retirementSubstrate) Stop() error     { s.stops++; return s.stopErr }
 
 func TestModelAssetRetirementWaitsForHostLeaseAndConfirmedExit(t *testing.T) {
 	substrate := &retirementSubstrate{stopErr: errors.New("process exit not confirmed")}

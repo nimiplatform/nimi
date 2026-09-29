@@ -48,8 +48,6 @@ type AgentConversationShellState = {
   activeThreadId: string | null;
   activeConversationAnchorId: string | null;
   bundle: AgentLocalThreadBundle | null;
-  bundleError: Error | null;
-  isBundleLoading: boolean;
   messages: ReturnType<typeof toConversationMessageViewModel>[];
   selectedThreadRecord: AgentLocalThreadSummary | null;
   streamState: ReturnType<typeof useConversationStreamState>;
@@ -115,8 +113,6 @@ export function useAgentConversationShellState(
     activeThreadId,
     activeConversationAnchorId,
     bundle,
-    bundleError: null,
-    isBundleLoading: false,
     messages,
     selectedThreadRecord,
     streamState,

@@ -751,6 +751,7 @@ type AccountSessionSnapshot struct {
 	ReasonCode        ReasonCode             `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode      `protobuf:"varint,4,opt,name=account_reason_code,json=accountReasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"account_reason_code,omitempty"`
 	AccountProjection *AccountProjection     `protobuf:"bytes,5,opt,name=account_projection,json=accountProjection,proto3" json:"account_projection,omitempty"`
+	AuditDiagnostic   *ErrorInfo             `protobuf:"bytes,6,opt,name=audit_diagnostic,json=auditDiagnostic,proto3" json:"audit_diagnostic,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -816,6 +817,13 @@ func (x *AccountSessionSnapshot) GetAccountReasonCode() AccountReasonCode {
 func (x *AccountSessionSnapshot) GetAccountProjection() *AccountProjection {
 	if x != nil {
 		return x.AccountProjection
+	}
+	return nil
+}
+
+func (x *AccountSessionSnapshot) GetAuditDiagnostic() *ErrorInfo {
+	if x != nil {
+		return x.AuditDiagnostic
 	}
 	return nil
 }
@@ -1265,6 +1273,7 @@ type BeginLoginResponse struct {
 	ReasonCode            ReasonCode             `protobuf:"varint,9,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	AccountReasonCode     AccountReasonCode      `protobuf:"varint,10,opt,name=account_reason_code,json=accountReasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"account_reason_code,omitempty"`
 	ProductionInert       bool                   `protobuf:"varint,11,opt,name=production_inert,json=productionInert,proto3" json:"production_inert,omitempty"`
+	AuditDiagnostic       *ErrorInfo             `protobuf:"bytes,12,opt,name=audit_diagnostic,json=auditDiagnostic,proto3" json:"audit_diagnostic,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -1374,6 +1383,13 @@ func (x *BeginLoginResponse) GetProductionInert() bool {
 		return x.ProductionInert
 	}
 	return false
+}
+
+func (x *BeginLoginResponse) GetAuditDiagnostic() *ErrorInfo {
+	if x != nil {
+		return x.AuditDiagnostic
+	}
+	return nil
 }
 
 type CompleteLoginRequest struct {
@@ -1500,6 +1516,7 @@ type CompleteLoginResponse struct {
 	ReasonCode        ReasonCode             `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode      `protobuf:"varint,5,opt,name=account_reason_code,json=accountReasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"account_reason_code,omitempty"`
 	ProductionInert   bool                   `protobuf:"varint,6,opt,name=production_inert,json=productionInert,proto3" json:"production_inert,omitempty"`
+	AuditDiagnostic   *ErrorInfo             `protobuf:"bytes,7,opt,name=audit_diagnostic,json=auditDiagnostic,proto3" json:"audit_diagnostic,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1574,6 +1591,13 @@ func (x *CompleteLoginResponse) GetProductionInert() bool {
 		return x.ProductionInert
 	}
 	return false
+}
+
+func (x *CompleteLoginResponse) GetAuditDiagnostic() *ErrorInfo {
+	if x != nil {
+		return x.AuditDiagnostic
+	}
+	return nil
 }
 
 type RequestPresenceVerificationRequest struct {
@@ -1971,6 +1995,7 @@ type LogoutResponse struct {
 	ReasonCode        ReasonCode             `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode      `protobuf:"varint,4,opt,name=account_reason_code,json=accountReasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"account_reason_code,omitempty"`
 	ProductionInert   bool                   `protobuf:"varint,5,opt,name=production_inert,json=productionInert,proto3" json:"production_inert,omitempty"`
+	AuditDiagnostic   *ErrorInfo             `protobuf:"bytes,6,opt,name=audit_diagnostic,json=auditDiagnostic,proto3" json:"audit_diagnostic,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -2040,6 +2065,13 @@ func (x *LogoutResponse) GetProductionInert() bool {
 	return false
 }
 
+func (x *LogoutResponse) GetAuditDiagnostic() *ErrorInfo {
+	if x != nil {
+		return x.AuditDiagnostic
+	}
+	return nil
+}
+
 type SwitchAccountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Caller        *AccountCaller         `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
@@ -2100,6 +2132,7 @@ type SwitchAccountResponse struct {
 	ReasonCode        ReasonCode             `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode      `protobuf:"varint,5,opt,name=account_reason_code,json=accountReasonCode,proto3,enum=nimi.runtime.v1.AccountReasonCode" json:"account_reason_code,omitempty"`
 	ProductionInert   bool                   `protobuf:"varint,6,opt,name=production_inert,json=productionInert,proto3" json:"production_inert,omitempty"`
+	AuditDiagnostic   *ErrorInfo             `protobuf:"bytes,7,opt,name=audit_diagnostic,json=auditDiagnostic,proto3" json:"audit_diagnostic,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -2176,6 +2209,13 @@ func (x *SwitchAccountResponse) GetProductionInert() bool {
 	return false
 }
 
+func (x *SwitchAccountResponse) GetAuditDiagnostic() *ErrorInfo {
+	if x != nil {
+		return x.AuditDiagnostic
+	}
+	return nil
+}
+
 var File_runtime_v1_account_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_account_proto_rawDesc = "" +
@@ -2196,14 +2236,15 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x120\n" +
 	"\x14realm_environment_id\x18\x03 \x01(\tR\x12realmEnvironmentId\x12c\n" +
-	"\x15workspace_memberships\x18\x04 \x03(\v2..nimi.runtime.v1.WorkspaceMembershipProjectionR\x14workspaceMemberships\"\xd5\x02\n" +
+	"\x15workspace_memberships\x18\x04 \x03(\v2..nimi.runtime.v1.WorkspaceMembershipProjectionR\x14workspaceMemberships\"\x9c\x03\n" +
 	"\x16AccountSessionSnapshot\x12\x1a\n" +
 	"\bsequence\x18\x01 \x01(\x04R\bsequence\x12:\n" +
 	"\x05state\x18\x02 \x01(\x0e2$.nimi.runtime.v1.AccountSessionStateR\x05state\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\x04 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12Q\n" +
-	"\x12account_projection\x18\x05 \x01(\v2\".nimi.runtime.v1.AccountProjectionR\x11accountProjection\"\xba\x02\n" +
+	"\x12account_projection\x18\x05 \x01(\v2\".nimi.runtime.v1.AccountProjectionR\x11accountProjection\x12E\n" +
+	"\x10audit_diagnostic\x18\x06 \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\"\xba\x02\n" +
 	"\rAccountCaller\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fapp_instance_id\x18\x02 \x01(\tR\rappInstanceId\x12\x1b\n" +
@@ -2243,7 +2284,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\x0fcallback_origin\x18\x03 \x01(\tR\x0ecallbackOrigin\x12)\n" +
 	"\x10requested_scopes\x18\x04 \x03(\tR\x0frequestedScopes\x12\x1f\n" +
 	"\vttl_seconds\x18\x05 \x01(\x05R\n" +
-	"ttlSeconds\"\x86\x04\n" +
+	"ttlSeconds\"\xcd\x04\n" +
 	"\x12BeginLoginResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12(\n" +
 	"\x10login_attempt_id\x18\x02 \x01(\tR\x0eloginAttemptId\x126\n" +
@@ -2258,7 +2299,8 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\n" +
 	" \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
-	"\x10production_inert\x18\v \x01(\bR\x0fproductionInert\"\x83\x03\n" +
+	"\x10production_inert\x18\v \x01(\bR\x0fproductionInert\x12E\n" +
+	"\x10audit_diagnostic\x18\f \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\"\x83\x03\n" +
 	"\x14CompleteLoginRequest\x126\n" +
 	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x12(\n" +
 	"\x10login_attempt_id\x18\x02 \x01(\tR\x0eloginAttemptId\x12\x12\n" +
@@ -2270,7 +2312,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\vux_trace_id\x18\b \x01(\tR\tuxTraceId\x128\n" +
 	"\x18sealed_completion_ticket\x18\t \x01(\tR\x16sealedCompletionTicket\x12#\n" +
 	"\rrefresh_token\x18\n" +
-	" \x01(\tR\frefreshToken\"\xff\x02\n" +
+	" \x01(\tR\frefreshToken\"\xc6\x03\n" +
 	"\x15CompleteLoginResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12:\n" +
 	"\x05state\x18\x02 \x01(\x0e2$.nimi.runtime.v1.AccountSessionStateR\x05state\x12Q\n" +
@@ -2278,7 +2320,8 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\x05 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
-	"\x10production_inert\x18\x06 \x01(\bR\x0fproductionInert\"\x97\x01\n" +
+	"\x10production_inert\x18\x06 \x01(\bR\x0fproductionInert\x12E\n" +
+	"\x10audit_diagnostic\x18\a \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\"\x97\x01\n" +
 	"\"RequestPresenceVerificationRequest\x126\n" +
 	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x12\x18\n" +
 	"\apurpose\x18\x02 \x01(\tR\apurpose\x12\x1f\n" +
@@ -2314,17 +2357,18 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\rerror_message\x18\a \x01(\tR\ferrorMessage\"_\n" +
 	"\rLogoutRequest\x126\n" +
 	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xa5\x02\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xec\x02\n" +
 	"\x0eLogoutResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12:\n" +
 	"\x05state\x18\x02 \x01(\x0e2$.nimi.runtime.v1.AccountSessionStateR\x05state\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\x04 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
-	"\x10production_inert\x18\x05 \x01(\bR\x0fproductionInert\"f\n" +
+	"\x10production_inert\x18\x05 \x01(\bR\x0fproductionInert\x12E\n" +
+	"\x10audit_diagnostic\x18\x06 \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\"f\n" +
 	"\x14SwitchAccountRequest\x126\n" +
 	"\x06caller\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AccountCallerR\x06caller\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xff\x02\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xc6\x03\n" +
 	"\x15SwitchAccountResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12:\n" +
 	"\x05state\x18\x02 \x01(\x0e2$.nimi.runtime.v1.AccountSessionStateR\x05state\x12Q\n" +
@@ -2332,7 +2376,8 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\x05 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
-	"\x10production_inert\x18\x06 \x01(\bR\x0fproductionInert*\x9f\x03\n" +
+	"\x10production_inert\x18\x06 \x01(\bR\x0fproductionInert\x12E\n" +
+	"\x10audit_diagnostic\x18\a \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic*\x9f\x03\n" +
 	"\x13AccountSessionState\x12%\n" +
 	"!ACCOUNT_SESSION_STATE_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fACCOUNT_SESSION_STATE_ANONYMOUS\x10\x01\x12'\n" +
@@ -2486,6 +2531,7 @@ var file_runtime_v1_account_proto_goTypes = []any{
 	nil,                                          // 28: nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
 	(*timestamppb.Timestamp)(nil),                // 29: google.protobuf.Timestamp
 	(ReasonCode)(0),                              // 30: nimi.runtime.v1.ReasonCode
+	(*ErrorInfo)(nil),                            // 31: nimi.runtime.v1.ErrorInfo
 }
 var file_runtime_v1_account_proto_depIdxs = []int32{
 	7,  // 0: nimi.runtime.v1.WorkspaceMembershipProjection.membership_state:type_name -> nimi.runtime.v1.WorkspaceMembershipState
@@ -2496,65 +2542,70 @@ var file_runtime_v1_account_proto_depIdxs = []int32{
 	30, // 5: nimi.runtime.v1.AccountSessionSnapshot.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 6: nimi.runtime.v1.AccountSessionSnapshot.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	9,  // 7: nimi.runtime.v1.AccountSessionSnapshot.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	6,  // 8: nimi.runtime.v1.AccountCaller.mode:type_name -> nimi.runtime.v1.AccountCallerMode
-	29, // 9: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
-	1,  // 10: nimi.runtime.v1.AccountSessionEvent.event_type:type_name -> nimi.runtime.v1.AccountEventType
-	2,  // 11: nimi.runtime.v1.AccountSessionEvent.delivery_kind:type_name -> nimi.runtime.v1.AccountSessionDeliveryKind
-	10, // 12: nimi.runtime.v1.AccountSessionEvent.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
-	11, // 13: nimi.runtime.v1.GetAccountSessionStatusRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	30, // 14: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 15: nimi.runtime.v1.GetAccountSessionStatusResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	10, // 16: nimi.runtime.v1.GetAccountSessionStatusResponse.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
-	11, // 17: nimi.runtime.v1.SubscribeAccountSessionEventsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	11, // 18: nimi.runtime.v1.BeginLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	29, // 19: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
-	30, // 20: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 21: nimi.runtime.v1.BeginLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	11, // 22: nimi.runtime.v1.CompleteLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	0,  // 23: nimi.runtime.v1.CompleteLoginResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	9,  // 24: nimi.runtime.v1.CompleteLoginResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	30, // 25: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 26: nimi.runtime.v1.CompleteLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	11, // 27: nimi.runtime.v1.RequestPresenceVerificationRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	4,  // 28: nimi.runtime.v1.RequestPresenceVerificationResponse.state:type_name -> nimi.runtime.v1.PresenceVerificationState
-	5,  // 29: nimi.runtime.v1.RequestPresenceVerificationResponse.method:type_name -> nimi.runtime.v1.PresenceVerificationMethod
-	29, // 30: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
-	9,  // 31: nimi.runtime.v1.RequestPresenceVerificationResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	30, // 32: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 33: nimi.runtime.v1.RequestPresenceVerificationResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	11, // 34: nimi.runtime.v1.InvokeRealmUnaryRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	30, // 35: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 36: nimi.runtime.v1.InvokeRealmUnaryResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	11, // 37: nimi.runtime.v1.LogoutRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	0,  // 38: nimi.runtime.v1.LogoutResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	30, // 39: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 40: nimi.runtime.v1.LogoutResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	11, // 41: nimi.runtime.v1.SwitchAccountRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	0,  // 42: nimi.runtime.v1.SwitchAccountResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	9,  // 43: nimi.runtime.v1.SwitchAccountResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	30, // 44: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 45: nimi.runtime.v1.SwitchAccountResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 46: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
-	15, // 47: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
-	16, // 48: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
-	18, // 49: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
-	20, // 50: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
-	22, // 51: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
-	24, // 52: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
-	26, // 53: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
-	14, // 54: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
-	12, // 55: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
-	17, // 56: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
-	19, // 57: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
-	21, // 58: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
-	23, // 59: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
-	25, // 60: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
-	27, // 61: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
-	54, // [54:62] is the sub-list for method output_type
-	46, // [46:54] is the sub-list for method input_type
-	46, // [46:46] is the sub-list for extension type_name
-	46, // [46:46] is the sub-list for extension extendee
-	0,  // [0:46] is the sub-list for field type_name
+	31, // 8: nimi.runtime.v1.AccountSessionSnapshot.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	6,  // 9: nimi.runtime.v1.AccountCaller.mode:type_name -> nimi.runtime.v1.AccountCallerMode
+	29, // 10: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
+	1,  // 11: nimi.runtime.v1.AccountSessionEvent.event_type:type_name -> nimi.runtime.v1.AccountEventType
+	2,  // 12: nimi.runtime.v1.AccountSessionEvent.delivery_kind:type_name -> nimi.runtime.v1.AccountSessionDeliveryKind
+	10, // 13: nimi.runtime.v1.AccountSessionEvent.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
+	11, // 14: nimi.runtime.v1.GetAccountSessionStatusRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	30, // 15: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 16: nimi.runtime.v1.GetAccountSessionStatusResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	10, // 17: nimi.runtime.v1.GetAccountSessionStatusResponse.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
+	11, // 18: nimi.runtime.v1.SubscribeAccountSessionEventsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	11, // 19: nimi.runtime.v1.BeginLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	29, // 20: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
+	30, // 21: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 22: nimi.runtime.v1.BeginLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	31, // 23: nimi.runtime.v1.BeginLoginResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	11, // 24: nimi.runtime.v1.CompleteLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	0,  // 25: nimi.runtime.v1.CompleteLoginResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
+	9,  // 26: nimi.runtime.v1.CompleteLoginResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	30, // 27: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 28: nimi.runtime.v1.CompleteLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	31, // 29: nimi.runtime.v1.CompleteLoginResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	11, // 30: nimi.runtime.v1.RequestPresenceVerificationRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	4,  // 31: nimi.runtime.v1.RequestPresenceVerificationResponse.state:type_name -> nimi.runtime.v1.PresenceVerificationState
+	5,  // 32: nimi.runtime.v1.RequestPresenceVerificationResponse.method:type_name -> nimi.runtime.v1.PresenceVerificationMethod
+	29, // 33: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
+	9,  // 34: nimi.runtime.v1.RequestPresenceVerificationResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	30, // 35: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 36: nimi.runtime.v1.RequestPresenceVerificationResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	11, // 37: nimi.runtime.v1.InvokeRealmUnaryRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	30, // 38: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 39: nimi.runtime.v1.InvokeRealmUnaryResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	11, // 40: nimi.runtime.v1.LogoutRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	0,  // 41: nimi.runtime.v1.LogoutResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
+	30, // 42: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 43: nimi.runtime.v1.LogoutResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	31, // 44: nimi.runtime.v1.LogoutResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	11, // 45: nimi.runtime.v1.SwitchAccountRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	0,  // 46: nimi.runtime.v1.SwitchAccountResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
+	9,  // 47: nimi.runtime.v1.SwitchAccountResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	30, // 48: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 49: nimi.runtime.v1.SwitchAccountResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
+	31, // 50: nimi.runtime.v1.SwitchAccountResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	13, // 51: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
+	15, // 52: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
+	16, // 53: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
+	18, // 54: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
+	20, // 55: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
+	22, // 56: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
+	24, // 57: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
+	26, // 58: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
+	14, // 59: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
+	12, // 60: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
+	17, // 61: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
+	19, // 62: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
+	21, // 63: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
+	23, // 64: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
+	25, // 65: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
+	27, // 66: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
+	59, // [59:67] is the sub-list for method output_type
+	51, // [51:59] is the sub-list for method input_type
+	51, // [51:51] is the sub-list for extension type_name
+	51, // [51:51] is the sub-list for extension extendee
+	0,  // [0:51] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_account_proto_init() }

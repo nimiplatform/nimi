@@ -17,11 +17,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
@@ -31,8 +31,11 @@ const (
 	MIMETypePNG = "image/png"
 
 	FailureUnavailable FailureKind = "unavailable"
-	FailureMedia       FailureKind = "media"
-	FailureEncode      FailureKind = "encode"
+	// FailureCodecUnavailable is the managed codec itself being absent or
+	// unable to run, as opposed to a staging or media fault.
+	FailureCodecUnavailable FailureKind = "codec_unavailable"
+	FailureMedia            FailureKind = "media"
+	FailureEncode           FailureKind = "encode"
 )
 
 // FailureKind identifies the private media phase that failed.
@@ -110,6 +113,7 @@ type Result struct {
 
 // Pipeline is the narrow ScenarioJob-facing encode/mux/inspect seam.
 type Pipeline interface {
+	Ensure(context.Context) error
 	EncodeAndInspect(context.Context, *capabilitydriver.VideoInvocationPlan, localexecution.RawAVCandidate) (Result, error)
 }
 
@@ -118,56 +122,22 @@ type Pipeline interface {
 type Processor struct {
 	ffmpegPath  string
 	ffprobePath string
+	resolve     func(context.Context) (string, string, error)
 }
 
-const (
-	// PinnedWindowsCodecDependencyDir pins BtbN/FFmpeg-Builds tag
-	// autobuild-2026-08-06-13-39, asset
-	// ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-8.1.zip
-	// (sha256 ca516dbc913758d927256bc91050b0d50decd56bf8e4963a1375d666f7fcda05).
-	PinnedWindowsCodecDependencyDir = "media-codec/ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-8.1/bin"
-
-	// PinnedDarwinARM64CodecDependencyDir is the exact source-development
-	// install directory for the admitted macOS arm64 FFmpeg 8.0.1 toolchain.
-	PinnedDarwinARM64CodecDependencyDir = "media-codec/ffmpeg-8.0.1-darwin-arm64/bin"
-)
-
-// NewFromDependenciesRoot resolves the pinned codec executables under the
-// managed dependencies root and fails closed when they are absent.
-func NewFromDependenciesRoot(dependenciesRoot string) (*Processor, error) {
-	ffmpegPath, ffprobePath, err := ManagedCodecExecutablePaths(dependenciesRoot)
-	if err != nil {
-		return nil, err
-	}
-	return New(ffmpegPath, ffprobePath)
+// NewManaged resolves codec supply through the Runtime dependency owner on use.
+func NewManaged(resolve func(context.Context) (string, string, error)) *Processor {
+	return &Processor{resolve: resolve}
 }
-
-// ManagedCodecExecutablePaths shares the exact admitted codec dependency with
-// the audio preparation owner without creating another package/version truth.
-func ManagedCodecExecutablePaths(dependenciesRoot string) (string, string, error) {
-	root := strings.TrimSpace(dependenciesRoot)
-	if root == "" {
-		return "", "", &Error{Kind: FailureUnavailable, Op: "resolve codec dependency", Err: fmt.Errorf("dependencies root is empty")}
+func (p *Processor) Ensure(ctx context.Context) error {
+	if p == nil {
+		return &Error{Kind: FailureCodecUnavailable, Op: "resolve codec"}
 	}
-	return codecExecutablePaths(root, runtime.GOOS, runtime.GOARCH)
-}
-
-func codecExecutablePaths(dependenciesRoot string, goos string, goarch string) (string, string, error) {
-	var dependencyDir, suffix string
-	switch strings.ToLower(strings.TrimSpace(goos)) + "/" + strings.ToLower(strings.TrimSpace(goarch)) {
-	case "windows/amd64":
-		dependencyDir, suffix = PinnedWindowsCodecDependencyDir, ".exe"
-	case "darwin/arm64":
-		dependencyDir = PinnedDarwinARM64CodecDependencyDir
-	default:
-		return "", "", &Error{
-			Kind: FailureUnavailable,
-			Op:   "resolve codec dependency",
-			Err:  fmt.Errorf("no pinned video codec dependency is available for %s/%s", goos, goarch),
-		}
+	if p.resolve != nil {
+		_, _, err := p.resolve(ctx)
+		return err
 	}
-	base := filepath.Join(dependenciesRoot, filepath.FromSlash(dependencyDir))
-	return filepath.Join(base, "ffmpeg"+suffix), filepath.Join(base, "ffprobe"+suffix), nil
+	return VerifyCodecRuns(ctx, p.ffmpegPath, p.ffprobePath)
 }
 
 // New validates both executable paths and fails closed when codec tooling is
@@ -187,18 +157,18 @@ func New(ffmpegPath string, ffprobePath string) (*Processor, error) {
 func validateExecutablePath(name string, raw string) (string, error) {
 	path := strings.TrimSpace(raw)
 	if path == "" {
-		return "", &Error{Kind: FailureUnavailable, Op: "resolve " + name, Err: fmt.Errorf("executable path is empty")}
+		return "", &Error{Kind: FailureCodecUnavailable, Op: "resolve " + name, Err: fmt.Errorf("executable path is empty")}
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {
-		return "", &Error{Kind: FailureUnavailable, Op: "resolve " + name, Err: err}
+		return "", &Error{Kind: FailureCodecUnavailable, Op: "resolve " + name, Err: err}
 	}
 	info, err := os.Stat(absolute)
 	if err != nil {
-		return "", &Error{Kind: FailureUnavailable, Op: "resolve " + name, Err: err}
+		return "", &Error{Kind: FailureCodecUnavailable, Op: "resolve " + name, Err: err}
 	}
 	if info.IsDir() || !info.Mode().IsRegular() {
-		return "", &Error{Kind: FailureUnavailable, Op: "resolve " + name, Err: fmt.Errorf("path is not a regular file")}
+		return "", &Error{Kind: FailureCodecUnavailable, Op: "resolve " + name, Err: fmt.Errorf("path is not a regular file")}
 	}
 	return filepath.Clean(absolute), nil
 }
@@ -247,8 +217,20 @@ func ValidateCandidate(plan *capabilitydriver.VideoInvocationPlan, candidate loc
 // to one ffmpeg invocation, probes the staged MP4, and removes all staging
 // files before returning.
 func (p *Processor) EncodeAndInspect(ctx context.Context, plan *capabilitydriver.VideoInvocationPlan, candidate localexecution.RawAVCandidate) (Result, error) {
+	if p != nil && p.resolve != nil {
+		ffmpeg, probe, err := p.resolve(ctx)
+		if err != nil {
+			return Result{}, &Error{Kind: FailureCodecUnavailable, Op: "prepare codec dependency", Err: err}
+		}
+		concrete, err := New(ffmpeg, probe)
+		if err != nil {
+			return Result{}, err
+		}
+		return concrete.EncodeAndInspect(ctx, plan, candidate)
+	}
+
 	if p == nil || p.ffmpegPath == "" || p.ffprobePath == "" {
-		return Result{}, &Error{Kind: FailureUnavailable, Op: "encode video", Err: fmt.Errorf("codec processor is unavailable")}
+		return Result{}, &Error{Kind: FailureCodecUnavailable, Op: "encode video", Err: fmt.Errorf("codec processor is unavailable")}
 	}
 	if err := ValidateCandidate(plan, candidate); err != nil {
 		return Result{}, err
@@ -282,7 +264,7 @@ func (p *Processor) EncodeAndInspect(ctx context.Context, plan *capabilitydriver
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
-		return Result{}, &Error{Kind: FailureEncode, Op: "ffmpeg encode/mux", Err: commandFailure(err, stderr.String())}
+		return Result{}, &Error{Kind: codecFailureKind(ctx, err, FailureEncode), Op: "ffmpeg encode/mux", Err: commandFailure(err, stderr.String())}
 	}
 	facts, err := p.inspect(ctx, outputPath, plan)
 	if err != nil {
@@ -322,7 +304,7 @@ func (p *Processor) extractLastFrame(ctx context.Context, videoPath string, stag
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
-		return nil, &Error{Kind: FailureEncode, Op: "ffmpeg extract last frame", Err: commandFailure(err, stderr.String())}
+		return nil, &Error{Kind: codecFailureKind(ctx, err, FailureEncode), Op: "ffmpeg extract last frame", Err: commandFailure(err, stderr.String())}
 	}
 	payload, err := os.ReadFile(outputPath)
 	if err != nil {
@@ -424,7 +406,7 @@ func (p *Processor) inspect(ctx context.Context, path string, plan *capabilitydr
 	command.Stdout = &stdout
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
-		return Facts{}, mediaFailure("ffprobe inspect", commandFailure(err, stderr.String()))
+		return Facts{}, &Error{Kind: codecFailureKind(ctx, err, FailureMedia), Op: "ffprobe inspect", Err: commandFailure(err, stderr.String())}
 	}
 	var document probeDocument
 	if err := json.Unmarshal(stdout.Bytes(), &document); err != nil {
@@ -489,6 +471,35 @@ func (p *Processor) inspect(ctx context.Context, path string, plan *capabilitydr
 		Width: width, Height: height, FPS: 24, FrameCount: plan.FrameCount(),
 		Duration: time.Duration(videoDuration * float64(time.Second)), Channels: 2, SampleRate: 32000,
 	}, nil
+}
+
+// codecFailureKind keeps a codec that could not run apart from its verdict
+// on the media; a canceled context stays the phase's own failure.
+func codecFailureKind(ctx context.Context, err error, phase FailureKind) FailureKind {
+	if ctx.Err() == nil && audiomedia.CodecCouldNotRun(err) {
+		return FailureCodecUnavailable
+	}
+	return phase
+}
+
+// VerifyCodecRuns runs both executables once so a codec that exists but cannot
+// start (a missing shared library, a wrong architecture) is found before any
+// media work is admitted.
+func VerifyCodecRuns(ctx context.Context, ffmpegPath, ffprobePath string) error {
+	for _, executable := range []string{ffmpegPath, ffprobePath} {
+		runCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		command := exec.CommandContext(runCtx, executable, "-version")
+		output, err := command.CombinedOutput()
+		cancel()
+		if err != nil {
+			detail := strings.TrimSpace(string(output))
+			if len(detail) > 512 {
+				detail = detail[:512]
+			}
+			return &Error{Kind: FailureCodecUnavailable, Op: "run " + filepath.Base(executable), Err: commandFailure(err, detail)}
+		}
+	}
+	return nil
 }
 
 func mediaFailure(op string, err error) error {

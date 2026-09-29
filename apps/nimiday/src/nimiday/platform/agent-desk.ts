@@ -7,18 +7,20 @@ export type AgentRef = { readonly agentHandle: NimiLocalAppAgentHandle; readonly
 export type DeskPhase = 'idle' | 'loading' | 'unavailable' | 'no-agents' | 'choose' | 'opening' | 'ready';
 export type DeskMessage = { readonly id: string; readonly turnId: string; readonly role: 'user' | 'assistant' | 'app'; readonly text: string; readonly images: readonly { artifactId: string; mimeType: string; name: string | null }[] };
 export type LiveTool = { readonly turnId: string; readonly toolId: string; readonly name: string; readonly lifecycle: 'started' | 'updated' | 'completed' | 'failed' };
-export type TurnOutcome = { readonly turnId: string; readonly kind: 'completed' | 'failed' | 'interrupted'; readonly detail: string | null };
+export type TurnOutcome = { readonly turnId: string; readonly kind: 'completed' | 'failed' | 'interrupted'; readonly detail: string | null; readonly reasonCode: string };
 export type DeskState = {
   readonly phase: DeskPhase; readonly references: readonly AgentRef[]; readonly agent: AgentRef | null;
   readonly awaitingConfirmation: Appointment | null; readonly unreachable: AgentRef | null; readonly restoring: boolean;
   readonly messages: readonly DeskMessage[]; readonly truncatedBefore: boolean;
   readonly activeTurnId: string | null; readonly resourceBusy: boolean;
+  /** Busy with Day's own execution that this window did not start, such as a Host follow-up. */
+  readonly busyWithinDay: boolean;
   readonly streaming: { readonly turnId: string; readonly text: string } | null;
   readonly liveTools: readonly LiveTool[]; readonly lastOutcome: TurnOutcome | null;
   readonly connection: 'live' | 'reconnecting' | 'lost'; readonly error: string | null; readonly canUseWork: boolean;
 };
 export type TurnScope = NimiLocalAppAgentWorkScope;
-export type SendResult = { readonly ok: true; readonly turnId: string; readonly scope: TurnScope } | { readonly ok: false; readonly reason: 'busy' | 'not-ready' | 'failed'; readonly message: string };
+export type SendResult = { readonly ok: true; readonly turnId: string; readonly scope: TurnScope } | { readonly ok: false; readonly reason: 'busy' | 'not-ready' | 'failed'; readonly message: string; readonly reasonCode?: string };
 export type WorkSendInput = { readonly text: string; readonly requestId: string; readonly work: DayWork; readonly routineName?: string };
 export type DeskEvent =
   | { readonly type: 'live-tool'; readonly turnId: string; readonly tool: LiveTool }
@@ -30,13 +32,18 @@ export type DeskEventListener = (event: DeskEvent) => void;
 
 export type AgentDesk = ReturnType<typeof createAgentDesk>;
 
-const INITIAL: DeskState = { phase: 'idle', references: [], agent: null, awaitingConfirmation: null, unreachable: null, restoring: false, messages: [], truncatedBefore: false, activeTurnId: null, resourceBusy: false, streaming: null, liveTools: [], lastOutcome: null, connection: 'live', error: null, canUseWork: true };
+const INITIAL: DeskState = { phase: 'idle', references: [], agent: null, awaitingConfirmation: null, unreachable: null, restoring: false, messages: [], truncatedBefore: false, activeTurnId: null, resourceBusy: false, busyWithinDay: false, streaming: null, liveTools: [], lastOutcome: null, connection: 'live', error: null, canUseWork: true };
 const code = (error: unknown) => String((error as { reasonCode?: string; code?: string })?.reasonCode || (error as { code?: string })?.code || '');
 export function isStaleSelector(error: unknown): boolean { return /session|account-changed|runtime-restarted|local.app.access.denied/iu.test(code(error)); }
 const toRef = (agent: NimiLocalAppAgentReference): AgentRef => ({ agentHandle: agent.agentHandle, displayName: agent.displayName, avatarUrl: agent.avatarUrl, binding: agent.agentBinding || null });
 
 // @nimi-authority: rule.nimi.nimiday.assistant.business-effects
-export function createAgentDesk(client: Pick<NimiLocalAppClient, 'agentWork'> & Partial<Pick<NimiLocalAppClient, 'conversation'>>, options: { history?: () => readonly SkillRun[] } = {}) {
+export function createAgentDesk(client: Pick<NimiLocalAppClient, 'agentWork'> & Partial<Pick<NimiLocalAppClient, 'conversation'>>, options: {
+  history?: () => readonly SkillRun[];
+  /** Window work is submitted by its persistent Host before the renderer can disappear. */
+  startWork?: NimiLocalAppAgentWorkClient['start'];
+  onExecutionEnded?: (scope: TurnScope) => void;
+} = {}) {
   let state: DeskState = INITIAL;
   let closed = false;
   let epoch = 0;
@@ -55,8 +62,8 @@ export function createAgentDesk(client: Pick<NimiLocalAppClient, 'agentWork'> & 
     if (terminal.has(execution.executionId) || ['running', 'waiting_tool'].includes(execution.state)) return;
     terminal.add(execution.executionId);
     const turnId = execution.executionId;
-    if (active?.executionId === turnId) { active = null; void subscription?.cancel().catch(() => {}); subscription = undefined; }
-    publish({ activeTurnId: null, resourceBusy: false, streaming: null, lastOutcome: { turnId, kind: execution.state === 'succeeded' ? 'completed' : execution.state === 'failed' ? 'failed' : 'interrupted', detail: execution.message || null } });
+    if (active?.executionId === turnId) { options.onExecutionEnded?.(active); active = null; void subscription?.cancel().catch(() => {}); subscription = undefined; }
+    publish({ activeTurnId: null, resourceBusy: false, streaming: null, lastOutcome: { turnId, kind: execution.state === 'succeeded' ? 'completed' : execution.state === 'failed' ? 'failed' : 'interrupted', detail: execution.message || null, reasonCode: execution.reasonCode || '' } });
     if (execution.state === 'succeeded') {
       const message: DeskMessage = { id: `${turnId}:result`, turnId, role: 'assistant', text: execution.outputText, images: [] };
       publish({ messages: [...state.messages, message] });
@@ -83,7 +90,8 @@ export function createAgentDesk(client: Pick<NimiLocalAppClient, 'agentWork'> & 
     try {
       if (active) { const execution = await client.agentWork.get(active); if (closed || expected !== epoch) return; acceptResult(execution); }
       const status = await client.agentWork.status({ agentHandle: state.agent.agentHandle });
-      if (!closed && expected === epoch) publish({ resourceBusy: status.busy, connection: 'live' });
+      // ownExecutionId only labels the busy state; it never becomes this window's turn.
+      if (!closed && expected === epoch) publish({ resourceBusy: status.busy, busyWithinDay: status.busy && status.ownExecutionId !== null && status.ownExecutionId !== active?.executionId, connection: 'live' });
     } catch (error) {
       if (closed || expected !== epoch) return;
       publish({ connection: 'lost', error: code(error) || String(error) });
@@ -114,7 +122,7 @@ export function createAgentDesk(client: Pick<NimiLocalAppClient, 'agentWork'> & 
     if (closed || state.phase !== 'ready' || !agent) return { ok: false, reason: 'not-ready', message: '当前助理尚未就绪' };
     if (state.resourceBusy || active) return { ok: false, reason: 'busy', message: '助理正在处理另一项请求' };
     try {
-      const result = await client.agentWork.start({ agentHandle: agent.agentHandle, requestId: input.requestId, prompt: input.text, work: { ...input.work, ...(input.routineName ? { routineName: input.routineName } : {}) } });
+      const result = await (options.startWork ?? client.agentWork.start)({ agentHandle: agent.agentHandle, requestId: input.requestId, prompt: input.text, work: { ...input.work, ...(input.routineName ? { routineName: input.routineName } : {}) } });
       if (closed || expected !== epoch) { await client.agentWork.cancel({ agentHandle: agent.agentHandle, executionId: result.executionId }).catch(() => {}); return { ok: false, reason: 'failed', message: '执行范围已失效；不会继续旧工作' }; }
       active = { agentHandle: agent.agentHandle, executionId: result.executionId }; owned.add(result.executionId);
       publish({ activeTurnId: result.executionId, resourceBusy: true, messages: [...state.messages, { id: `${result.executionId}:request`, turnId: result.executionId, role: input.routineName ? 'app' : 'user', text: input.text, images: [] }] });
@@ -132,7 +140,7 @@ export function createAgentDesk(client: Pick<NimiLocalAppClient, 'agentWork'> & 
       return { ok: true, turnId: result.executionId, scope: ownScope };
     } catch (error) {
       if (code(error).replaceAll('_', '-').toLowerCase() === 'agent-busy') { publish({ resourceBusy: true }); return { ok: false, reason: 'busy', message: '助理正在处理另一项请求' }; }
-      return { ok: false, reason: 'failed', message: String(error) };
+      return { ok: false, reason: 'failed', message: String(error), reasonCode: code(error) };
     }
   };
   return {
@@ -149,6 +157,6 @@ export function createAgentDesk(client: Pick<NimiLocalAppClient, 'agentWork'> & 
     interrupt: async (executionId: string): Promise<'interrupted' | 'not-active' | 'failed'> => { if (!active || active.executionId !== executionId || !owned.has(executionId)) return 'not-active'; try { acceptResult(await client.agentWork.cancel(active)); return 'interrupted'; } catch { return 'failed'; } },
     ownsTurn: (id: string | null) => id !== null && owned.has(id),
     transcribe: async (input: { requestId: string; mimeType: string; bytes: Uint8Array }) => { if (!state.agent || !client.conversation) throw new Error('语音输入尚不可用'); const opened = await client.conversation.open({ agentHandle: state.agent.agentHandle }); const result = await client.conversation.transcribeVoice({ agentHandle: state.agent.agentHandle, conversationAnchorId: opened.conversationAnchorId, requestId: input.requestId, mimeType: input.mimeType, audioBytes: input.bytes }); return result.text; },
-    dispose: async () => { closed = true; epoch++; if (timer) clearInterval(timer); const own = active; active = null; void subscription?.cancel().catch(() => {}); subscription = undefined; if (own) await client.agentWork.cancel(own).catch(() => {}); },
+    dispose: async () => { closed = true; epoch++; if (timer) clearInterval(timer); const own = active; active = null; void subscription?.cancel().catch(() => {}); subscription = undefined; if (own) { await client.agentWork.cancel(own).catch(() => {}); options.onExecutionEnded?.(own); } },
   };
 }

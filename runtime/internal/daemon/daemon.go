@@ -36,6 +36,7 @@ type Daemon struct {
 	logger                  *slog.Logger
 	state                   *health.State
 	grpc                    *grpcserver.Server
+	maintenance             *grpcserver.MaintenanceServer
 	http                    *httpserver.Server
 	protected               bool
 	protectedStateClose     func() error
@@ -148,6 +149,13 @@ func NewProtectedWithResources(cfg config.Config, logger *slog.Logger, version s
 	var err error
 	d, err = NewProtected(cfg, logger, version, resources.Bindings)
 	if err != nil {
+		var maintenance *grpcserver.MaintenanceRequiredError
+		if errors.As(err, &maintenance) && maintenance.Maintenance != nil {
+			// The verified security state stays owned: the maintenance surface
+			// is served on the same Desktop transport until restart.
+			d = newMaintenanceDaemon(cfg, logger, maintenance.Maintenance, resources.Close)
+			return d, nil
+		}
 		if closeErr := resources.Close(); closeErr != nil {
 			return nil, errors.Join(err, fmt.Errorf("close protected Runtime security state after construction failure: %w", closeErr))
 		}
@@ -231,6 +239,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 			LocalAppLaunches:                 state.LocalAppLaunches(),
 			LocalDevelopmentVerifier:         localDevelopmentVerifier,
 			RuntimeRestartRequester:          requestRestart,
+			PeerRejections:                   state,
 		},
 		Close: state.Close,
 	})
@@ -375,6 +384,9 @@ func (d *Daemon) RunProtected(ctx context.Context, listener net.Listener) error 
 	if listener == nil {
 		return fmt.Errorf("%s: protected Runtime requires a verified native Desktop listener", protectedlocal.ReasonProtectedLocalTransportUnsupported)
 	}
+	if d.maintenance != nil {
+		return d.runMaintenance(ctx, listener, nil)
+	}
 	return d.run(ctx, 1, func(errCh chan<- error) {
 		go func() { errCh <- d.grpc.ServeVerifiedNativeDesktop(listener) }()
 	}, func() { _ = listener.Close() }, "verified-native-desktop")
@@ -390,6 +402,9 @@ func (d *Daemon) RunProtectedWithLocalApp(ctx context.Context, desktopListener, 
 	}
 	if !d.protected || desktopListener == nil || localAppListener == nil {
 		return fmt.Errorf("%s: protected Runtime requires verified Desktop and local-app listeners", protectedlocal.ReasonProtectedLocalTransportUnsupported)
+	}
+	if d.maintenance != nil {
+		return d.runMaintenance(ctx, desktopListener, localAppListener)
 	}
 	return d.run(ctx, 2, func(errCh chan<- error) {
 		go func() { errCh <- d.grpc.ServeVerifiedNativeDesktop(desktopListener) }()
@@ -538,10 +553,13 @@ func (d *Daemon) shutdown() error {
 		d.logger.Warn("canceling active runtime RPCs for shutdown", "count", len(activeAtStart))
 	}
 	waitForShutdownDrain(ctx, d.cfg.ShutdownTimeout)
-	d.stopSupervisedEngines("stopping supervised engines")
+	d.stopSupervisedEngines(ctx, "stopping supervised engines")
 	httpErr := d.http.Shutdown(ctx)
-	grpcResult := d.grpc.Stop(ctx)
-	appendShutdownAudit(d.auditStore, grpcResult.Shutdown)
+	// The lifecycle record is written before the server releases the Runtime
+	// persistence backend that holds the audit plane.
+	grpcResult := d.grpc.StopWithShutdownRecord(ctx, func(result grpcserver.StopResult) {
+		appendShutdownAudit(d.auditStore, result.Shutdown)
+	})
 	logShutdownSummary(d.logger, grpcResult.Shutdown)
 	protectedStateErr := d.closeProtectedState()
 	d.state.SetStatus(health.StatusStopped, "stopped")
@@ -563,39 +581,73 @@ func (d *Daemon) closeProtectedState() error {
 	return d.protectedStateCloseErr
 }
 func (d *Daemon) EmergencyStopSupervisedEngines() {
-	d.stopSupervisedEngines("forcing supervised engines to stop after repeated shutdown signal")
+	forced, cancel := context.WithCancel(context.Background())
+	cancel()
+	d.stopSupervisedEngines(forced, "forcing supervised engines to stop after repeated shutdown signal")
 }
-func (d *Daemon) stopSupervisedEngines(reason string) {
+
+// stopSupervisedEngines stops every private host within the daemon's shutdown
+// deadline. The hosts stop in parallel; the engine manager kills what is still
+// running at the deadline, and a host that has not returned by then no longer
+// holds shutdown, since its engines end with this Runtime's owner guard.
+//
+// @nimi-authority: rule.nimi.runtime.service-operations.r057
+func (d *Daemon) stopSupervisedEngines(ctx context.Context, reason string) {
 	d.stopSupervisedOnce.Do(func() {
 		d.logger.Info(reason)
 		if stopFn := d.stopSupervisedFn; stopFn != nil {
 			stopFn()
 		}
+		var wg sync.WaitGroup
+		stopHost := func(name string, stop func() error) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if err := stop(); err != nil {
+					d.logger.Warn("stop "+name+" failed", "error", err)
+				}
+			}()
+		}
 		if d.imageExecutionHost != nil {
-			if err := d.imageExecutionHost.Stop(); err != nil {
-				d.logger.Warn("stop image execution host failed", "error", err)
-			}
+			stopHost("image execution host", d.imageExecutionHost.Stop)
 		}
 		if d.audioCppExecutionHost != nil {
-			if err := d.audioCppExecutionHost.Stop(); err != nil {
-				d.logger.Warn("stop audio.cpp execution host failed", "error", err)
-			}
+			stopHost("audio.cpp execution host", d.audioCppExecutionHost.Stop)
 		}
 		if d.audioCppSpeechHost != nil {
-			if err := d.audioCppSpeechHost.Stop(); err != nil {
-				d.logger.Warn("stop audio.cpp speech execution host failed", "error", err)
-			}
+			stopHost("audio.cpp speech execution host", d.audioCppSpeechHost.Stop)
 		}
 		if d.videoExecutionHost != nil {
-			if err := d.videoExecutionHost.Stop(); err != nil {
-				d.logger.Warn("stop video execution host failed", "error", err)
-			}
+			stopHost("video execution host", d.videoExecutionHost.Stop)
 		}
 		if d.engineMgr != nil {
-			d.engineMgr.StopAll()
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				d.engineMgr.StopAll(ctx)
+			}()
+		}
+		stopped := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(stopped)
+		}()
+		select {
+		case <-stopped:
+		case <-ctx.Done():
+			select {
+			case <-stopped:
+			case <-time.After(supervisorHostsStopGrace):
+				d.logger.Warn("supervised hosts still stopping at the shutdown deadline")
+			}
 		}
 	})
 }
+
+// supervisorHostsStopGrace lets the engine manager finish killing what ran past
+// the deadline before shutdown moves on.
+const supervisorHostsStopGrace = 2 * time.Second
+
 func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
@@ -705,8 +757,7 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 	// The llama flag requests only private manager setup used later by
 	// ExecutionHost; it never materializes a package, bootstraps a model, or
 	// creates an ambient provider route.
-	engineWorkRequested := d.cfg.EngineLlamaEnabled ||
-		d.cfg.EngineMediaEnabled || d.cfg.EngineSpeechEnabled
+	engineWorkRequested := d.cfg.EngineLlamaEnabled || d.cfg.EngineSpeechEnabled
 	mgr, err := managerFactory(d.logger, engineRoots, onState)
 	if err != nil {
 		// Runtime core readiness is independent from local environment
@@ -776,20 +827,11 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 			}
 			svc.SetModelAssetHostRetirers(modelAssetHosts...)
 		}
-		if codec, probe, err := videomedia.ManagedCodecExecutablePaths(engineRoots.Dependencies); err == nil {
-			if processor, err := audiomedia.New(codec, probe); err == nil {
-				aiSvc.SetCanonicalAudioPreparation(processor, filepath.Join(filepath.Dir(d.cfg.LocalStatePath), "audio-preparation-staging"))
-			} else {
-				d.logger.Warn("pinned audio codec dependency unavailable; canonical audio preparation not wired", "error", err)
-			}
-		}
-		if videoMedia, err := videomedia.NewFromDependenciesRoot(engineRoots.Dependencies); err != nil {
-			// Local video submits fail closed with a typed unavailable reason
-			// until the pinned codec dependency is materialized.
-			d.logger.Warn("pinned video codec dependency unavailable; local video media pipeline not wired", "error", err)
-		} else {
-			aiSvc.SetLocalVideoMediaPipeline(videoMedia)
-		}
+		// The dependency owner materializes exact codec supply through an
+		// explicit dependency job; requests only resolve verified supply.
+		aiSvc.SetCanonicalAudioPreparation(audiomedia.NewManaged(svc.ResolveMediaCodecDependency), filepath.Join(filepath.Dir(d.cfg.LocalStatePath), "audio-preparation-staging"))
+		aiSvc.SetLocalVideoMediaPipeline(videomedia.NewManaged(svc.ResolveMediaCodecDependency))
+
 	}
 	if svc != nil {
 		llamaVersion := strings.TrimSpace(d.cfg.EngineLlamaVersion)

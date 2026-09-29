@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
@@ -16,6 +17,7 @@ func composeVerifiedAppPackages(
 	ctx context.Context,
 	logger *slog.Logger,
 	kernel *localappkernel.Kernel,
+	audit *auditlog.Store,
 ) (*publicappregistry.Client, *nimiappinstall.Coordinator) {
 	_, _, _, platformErr := publicappregistry.CurrentPlatformTarget()
 	if platformErr != nil || kernel == nil {
@@ -27,7 +29,7 @@ func composeVerifiedAppPackages(
 		return nil, nil
 	}
 	catalog := publicappregistry.NewCanonicalClient()
-	coordinator, err := nimiappinstall.NewCoordinator(catalog, kernel, logger)
+	coordinator, err := nimiappinstall.NewCoordinator(catalog, kernel, logger, audit)
 	if err != nil {
 		logger.Error("public App package coordinator unavailable",
 			"reason_code", runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE.String(), "error", err)

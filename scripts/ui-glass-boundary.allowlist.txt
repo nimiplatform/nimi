@@ -40,26 +40,26 @@
 # resolve to a concrete canonical `.nimi/spec/**` authority artifact.
 
 # --- 2026-07-25 pinned WIP glass debt (user ruling: allowlist, do not delete) ---
+apps/prototype2/src/styles/panes.css:383  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/panes.css:384  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:385  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:406  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/panes.css:407  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:408  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:550  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/panes.css:551  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:552  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:636  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/panes.css:637  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:638  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:924  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/panes.css:925  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:926  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:1290  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/panes.css:1291  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:1292  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:1348  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/panes.css:1349  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:1350  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:1375  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/panes.css:1376  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:1377  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:1938  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/panes.css:1939  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:1940  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:2308  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
-apps/prototype2/src/styles/panes.css:2309  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:2261  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
+apps/prototype2/src/styles/panes.css:2262  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/spatial-tide.css:21  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/spatial-tide.css:22  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt
 apps/prototype2/src/styles/spatial-tide.css:34  # segment-B | authority: .nimi/spec/platform/ui-design-system.authority.yaml | prototype/simulator WIP glass debt

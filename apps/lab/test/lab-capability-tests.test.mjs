@@ -555,6 +555,20 @@ test('unsupported media settings offer parameter correction instead of a blind r
   assert.notEqual(t('NonSuccess.action.mediaOptionUnsupported'), t('NonSuccess.action.runtimeCallFailed'));
 });
 
+test('missing media codec points to the Desktop component setup before retry', async () => {
+  const {
+    studioNonSuccessReasonUserMessage,
+    studioNonSuccessReasonUserAction,
+    studioNonSuccessNeedsTargetReselection,
+  } = await load('ai-studio-core/non-success-presentation.js');
+  const { t } = await load('shell/i18n/index.js');
+  const diagnostics = { reasonCode: 'AI_MEDIA_CODEC_UNAVAILABLE' };
+  assert.equal(studioNonSuccessReasonUserMessage('runtime-call-failed', t, 'audio.separate', diagnostics), t('NonSuccess.message.mediaCodecUnavailable'));
+  assert.equal(studioNonSuccessReasonUserAction('runtime-call-failed', t, 'audio.separate', diagnostics), t('NonSuccess.action.mediaCodecUnavailable'));
+  assert.equal(studioNonSuccessNeedsTargetReselection(diagnostics), false);
+  assert.notEqual(t('NonSuccess.action.mediaCodecUnavailable'), t('NonSuccess.action.runtimeCallFailed'));
+});
+
 test('text.decide history records the exact spec, restores the form and the answers', async () => {
   const { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult, getStudioRunMetricSummary, getStudioRunResultTags } = await load('ai-studio-core/history.js');
   const { labTextDecideParameters, encodeLabTextDecideRequest, decodeLabTextDecideRequest } = await load('lab/lab-only/text-decide.js');

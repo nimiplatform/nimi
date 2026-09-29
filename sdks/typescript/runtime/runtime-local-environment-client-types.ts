@@ -330,11 +330,10 @@ export interface NimiRuntimeLocalResolveInstallPlanInput {
   readonly engineConfig?: JsonObject;
 }
 
-export interface NimiRuntimeLocalEnvironmentPlanInput {
-  readonly capabilityContract: string;
+export type NimiRuntimeLocalEnvironmentPlanInput = {
   readonly runtimeDataRoot?: string;
-  readonly candidateLoadoutId?: string;
-}
+} & ({ readonly capabilityContract: string; readonly candidateLoadoutId?: string; readonly mediaCodec?: never }
+  | { readonly mediaCodec: true; readonly capabilityContract?: never; readonly candidateLoadoutId?: never });
 
 export interface NimiRuntimeLocalEnvironmentPlanApplyInput {
   readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;

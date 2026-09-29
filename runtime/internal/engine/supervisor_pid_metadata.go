@@ -12,6 +12,10 @@ type supervisorPIDMetadata struct {
 	PID                    int        `json:"pid"`
 	EngineKind             EngineKind `json:"engine_kind"`
 	ExpectedExecutablePath string     `json:"expected_executable_path"`
+	// ProcessStartTime names this process instance: a later process that
+	// reuses the pid has another start time. Records without it are never
+	// reclaimed.
+	ProcessStartTime string `json:"process_start_time,omitempty"`
 }
 
 func (s *Supervisor) pidMetadataPath() string {
@@ -29,10 +33,12 @@ func (s *Supervisor) currentPIDMetadata() supervisorPIDMetadata {
 	binaryPath := s.cfg.BinaryPath
 	s.mu.RUnlock()
 	expectedPath := resolveSupervisorExpectedExecutablePath(pid, binaryPath)
+	startTime, _ := supervisorProcessStartTime(pid)
 	return supervisorPIDMetadata{
 		PID:                    pid,
 		EngineKind:             kind,
 		ExpectedExecutablePath: expectedPath,
+		ProcessStartTime:       startTime,
 	}
 }
 
@@ -51,22 +57,16 @@ func canonicalSupervisorProcessPath(path string) string {
 	return filepath.Clean(trimmed)
 }
 
+// shouldRetryObservedExecutablePath reports a shell still standing in for the
+// engine: the owner guard or a wrapper script that has not yet exec'd it.
 func shouldRetryObservedExecutablePath(actualPath string, fallbackPath string) bool {
 	actualBase := strings.ToLower(filepath.Base(strings.TrimSpace(actualPath)))
-	if actualBase == "" {
-		return false
-	}
-	switch strings.ToLower(filepath.Ext(strings.TrimSpace(fallbackPath))) {
-	case ".sh", ".bash", ".zsh":
-	default:
-		return false
-	}
 	switch actualBase {
 	case "sh", "bash", "zsh", "dash", "env":
-		return true
 	default:
 		return false
 	}
+	return canonicalSupervisorProcessPath(actualPath) != canonicalSupervisorProcessPath(fallbackPath)
 }
 
 func encodeSupervisorPIDMetadata(metadata supervisorPIDMetadata) ([]byte, error) {

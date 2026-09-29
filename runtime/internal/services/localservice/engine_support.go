@@ -13,8 +13,6 @@ const (
 	localEngineSupportSupportedSupervised = "supported_supervised"
 	localEngineSupportAttachedOnly        = "attached_only"
 	localEngineSupportUnsupported         = "unsupported"
-	warnMediaUnsupported                  = "WARN_NIMI_MEDIA_UNSUPPORTED"
-	warnCUDARequired                      = "WARN_CUDA_REQUIRED"
 )
 
 func classifyManagedEngineSupport(engineName string, profile *runtimev1.LocalDeviceProfile) (string, string) {
@@ -53,8 +51,6 @@ func classifyManagedEngineSupportForAsset(
 
 	managedEngine := managedRuntimeEngineForAsset(engineName, capabilities, kind)
 	switch managedEngine {
-	case "media":
-		return classifyMediaHostSupport(profile)
 	case "llama":
 		if profile == nil {
 			return localEngineSupportUnsupported, "device profile unavailable"
@@ -135,33 +131,6 @@ func managedRuntimeEngineForAsset(
 		}
 	}
 	switch strings.ToLower(strings.TrimSpace(engineName)) {
-	case "media":
-		return "media"
-	case "llama":
-		return "llama"
-	case "speech", "audio-cpp":
-		return "speech"
-	case "sidecar":
-		return "sidecar"
-	default:
-		return strings.ToLower(strings.TrimSpace(engineName))
-	}
-}
-
-func executionRuntimeEngineForAsset(
-	engineName string,
-	capabilities []string,
-	kind runtimev1.LocalAssetKind,
-) string {
-	if isCanonicalSupervisedImageAsset(engineName, capabilities, kind) {
-		selection := canonicalSupervisedImageSelectionForAsset(engineName, capabilities, kind, collectDeviceProfile())
-		if resolved := executionRuntimeEngineForSelection(selection); strings.TrimSpace(resolved) != "" {
-			return resolved
-		}
-	}
-	switch strings.ToLower(strings.TrimSpace(engineName)) {
-	case "media":
-		return "media"
 	case "llama":
 		return "llama"
 	case "speech", "audio-cpp":
@@ -180,64 +149,16 @@ func managedRuntimeEngineForSelection(selection engine.ImageSupervisedMatrixSele
 	return strings.ToLower(strings.TrimSpace(string(selection.ExecutionPlane)))
 }
 
-func executionRuntimeEngineForSelection(selection engine.ImageSupervisedMatrixSelection) string {
-	if selection.Entry == nil {
-		return ""
-	}
-	return strings.ToLower(strings.TrimSpace(string(selection.ExecutionPlane)))
-}
-
 func requiresGPU(engineName string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(engineName))
-	return normalized == "media" || normalized == "media.diffusers" || strings.Contains(normalized, "cuda") || strings.Contains(normalized, "nvidia") || strings.Contains(normalized, "gpu")
+	return strings.Contains(normalized, "cuda") || strings.Contains(normalized, "nvidia") || strings.Contains(normalized, "gpu")
 }
 
 func requiresPython(engineName string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(engineName))
-	return normalized == "media" || normalized == "media.diffusers" || strings.Contains(normalized, "python") || strings.Contains(normalized, "py")
+	return strings.Contains(normalized, "python") || strings.Contains(normalized, "py")
 }
 
 func requiresNPU(engineName string) bool {
 	return strings.Contains(strings.ToLower(strings.TrimSpace(engineName)), "npu")
-}
-
-func classifyMediaHostSupport(profile *runtimev1.LocalDeviceProfile) (string, string) {
-	driverVisible := profile != nil && profile.GetGpu().GetAvailable()
-	return classifyMediaHostSupportWithDriver(profile, driverVisible)
-}
-
-func classifyMediaHostSupportWithDriver(profile *runtimev1.LocalDeviceProfile, driverVisible bool) (string, string) {
-	if profile == nil {
-		return localEngineSupportUnsupported, "device profile unavailable"
-	}
-	support := engine.ClassifyMediaHost(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), driverVisible)
-	switch support {
-	case engine.MediaHostSupportSupportedSupervised:
-		return localEngineSupportSupportedSupervised, ""
-	default:
-		return localEngineSupportUnsupported, engine.MediaHostSupportDetail(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), driverVisible)
-	}
-}
-
-func managedEngineSupportWarningsForAsset(
-	engineName string,
-	capabilities []string,
-	kind runtimev1.LocalAssetKind,
-	profile *runtimev1.LocalDeviceProfile,
-) []string {
-	classification, detail := classifyManagedEngineSupportForAsset(engineName, capabilities, kind, profile)
-	if isCanonicalSupervisedImageAsset(engineName, capabilities, kind) {
-		return nil
-	}
-	if !strings.EqualFold(executionRuntimeEngineForAsset(engineName, capabilities, kind), "media") {
-		return nil
-	}
-	if classification == localEngineSupportSupportedSupervised {
-		return nil
-	}
-	warnings := []string{warnMediaUnsupported}
-	if strings.Contains(strings.ToLower(detail), "cuda") {
-		warnings = append(warnings, warnCUDARequired)
-	}
-	return warnings
 }

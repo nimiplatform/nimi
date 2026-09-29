@@ -68,6 +68,13 @@ test('Lab Electron lifecycle has no protected-session termination coupling', () 
   assert.match(electronMain, /await createMainWindow\(\)/u);
 });
 
+test('Lab Electron Host installs the Kit standard application menu', () => {
+  const electronMain = readFileSync(path.join(root, 'src-electron/main.ts'), 'utf8');
+  // macOS edit shortcuts and Quit need application menu roles.
+  assert.doesNotMatch(electronMain, /setApplicationMenu\(null\)/u);
+  assert.match(electronMain, /Menu\.setApplicationMenu\(Menu\.buildFromTemplate\(\n  createNimiElectronStandardApplicationMenuTemplate\(\{ appName: 'Nimi Lab' \}\),\n\)\);/u);
+});
+
 test('Lab local-app projection fails closed before a protected carrier is available', async () => {
   const runtimePlatform = await importRuntimePlatform();
 
@@ -1068,7 +1075,7 @@ test('Lab voice.create submits reference audio, waits for the Job, and verifies 
   assert.deepEqual(calls[0], ['submit', {
     type: 'voice-create',
     creationSource: source,
-    referenceAudio: { type: 'bytes', bytes: [1, 2, 3] },
+    referenceAudio: { type: 'bytes', bytes: new Uint8Array([1, 2, 3]) },
     referenceAudioMime: 'audio/wav',
     languageHints: ['zh', 'en'],
     preferredName: 'Nimi reference voice',

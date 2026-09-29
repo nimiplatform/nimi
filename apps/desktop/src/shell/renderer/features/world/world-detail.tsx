@@ -1,5 +1,6 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { WorldMaterializationContext, type WorldMaterializationState } from './world-materialization-context.js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
 
@@ -265,10 +266,22 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
     }
   };
 
+  const [materializingKeys, setMaterializingKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const materializingRef = useRef(new Set<string>());
+  const isMaterializing = useCallback((character: WorldCharacter) => materializingKeys.has(characterSourceRefKey(character.sourceRef)), [materializingKeys]);
+  const materialization = useMemo<WorldMaterializationState>(() => ({
+    ready: worldCharactersLocalAgentsQuery.isSuccess,
+    isPending: isMaterializing,
+  }), [isMaterializing, worldCharactersLocalAgentsQuery.isSuccess]);
+
   const handleMaterializeSource = async (character: WorldCharacter) => {
     const auth = appStore.getState().auth;
     const isCurrent = () => mounted.current && currentWorld.current === world.id && auth.status === 'authenticated' && appStore.getState().auth === auth;
-    if (!isCurrent()) return;
+    if (!isCurrent() || !worldCharactersLocalAgentsQuery.isSuccess) return;
+    const sourceKey = characterSourceRefKey(character.sourceRef);
+    if (materializingRef.current.has(sourceKey)) return;
+    materializingRef.current.add(sourceKey);
+    setMaterializingKeys(new Set(materializingRef.current));
     try {
       await ensureCharacterSourceMaterialized({
         ...character,
@@ -291,6 +304,9 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
       if (!isCurrent()) return;
       const message = characterSourceMaterializationFailureMessage(error, i18n.t);
       setFeedback({ kind: 'error', message });
+    } finally {
+      materializingRef.current.delete(sourceKey);
+      if (mounted.current) setMaterializingKeys(new Set(materializingRef.current));
     }
   };
 
@@ -330,6 +346,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   };
 
   return (
+    <WorldMaterializationContext.Provider value={materialization}>
     <ScrollArea
       className="h-full bg-transparent"
       viewportClassName="bg-transparent"
@@ -385,5 +402,6 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         />
       )}
     </ScrollArea>
+    </WorldMaterializationContext.Provider>
   );
 }

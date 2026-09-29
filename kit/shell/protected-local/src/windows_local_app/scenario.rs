@@ -45,7 +45,7 @@ use crate::{
     LocalAppScenarioUploadArtifactRequest, LocalAppArtifactUploadSource, LocalAppTextTurnRequest,
 };
 
-use super::{invalid_payload, text_behavior, untrusted};
+use super::{base64_bytes_input, base64_bytes_output, invalid_payload, text_behavior, untrusted};
 
 const UNARY_TIMEOUT_SECONDS: u64 = 120;
 const MAX_ARTIFACT_BYTES: usize = crate::RUNTIME_MAX_INLINE_PAYLOAD_BYTES;
@@ -360,7 +360,7 @@ pub(super) async fn read_artifact(
         return Err(untrusted());
     }
     Ok(
-        json!({"bytes": response.bytes, "mimeType": response.mime_type, "sizeBytes": response.size_bytes}),
+        json!({"bytes": base64_bytes_output(&response.bytes), "mimeType": response.mime_type, "sizeBytes": response.size_bytes}),
     )
 }
 
@@ -1010,7 +1010,7 @@ fn parse_speech_transcribe_spec(
         "bytes" => {
             exact_keys(audio_object, &["type", "bytes"])?;
             (
-                AudioSource::AudioBytes(byte_array(
+                AudioSource::AudioBytes(base64_bytes_input(
                     field(audio_object, "bytes")?,
                     MAX_ARTIFACT_BYTES,
                 )?),
@@ -1083,7 +1083,7 @@ fn parse_voice_reference_audio_source(
         "bytes" => {
             exact_keys(reference, &["type", "bytes"])?;
             (
-                byte_array(field(reference, "bytes")?, MAX_REFERENCE_AUDIO_BYTES)?,
+                base64_bytes_input(field(reference, "bytes")?, MAX_REFERENCE_AUDIO_BYTES)?,
                 String::new(),
             )
         }
@@ -1348,7 +1348,7 @@ fn project_artifacts(
             let mut projected = json!({
                 "artifactId": artifact.artifact_id,
                 "mimeType": artifact.mime_type,
-                "bytes": artifact.bytes,
+                "bytes": base64_bytes_output(&artifact.bytes),
                 "sizeBytes": artifact.size_bytes,
                 "sha256": artifact.sha256,
                 "durationMs": artifact.duration_ms,
@@ -1748,23 +1748,6 @@ fn string_array(
         .collect()
 }
 
-fn byte_array(value: &JsonValue, maximum: usize) -> Result<Vec<u8>, LocalAppOperationError> {
-    let values = value.as_array().ok_or_else(invalid_payload)?;
-    if values.is_empty() || values.len() > maximum {
-        return Err(invalid_payload());
-    }
-    values
-        .iter()
-        .map(|value| {
-            value
-                .as_u64()
-                .filter(|byte| *byte <= 255)
-                .map(|byte| byte as u8)
-                .ok_or_else(invalid_payload)
-        })
-        .collect()
-}
-
 fn https_url_field(
     object: &Map<String, JsonValue>,
     key: &str,
@@ -2041,7 +2024,8 @@ mod tests {
         let mut injected = image.as_object().unwrap().clone();
         injected.insert("provider".to_string(), json!("private"));
         assert!(parse_job_spec(JsonValue::Object(injected)).is_err());
-        assert!(byte_array(&json!(vec![0u8; 32]), 16).is_err());
+        assert!(base64_bytes_input(&json!(base64_bytes_output(&[0u8; 32])), 16).is_err());
+        assert!(base64_bytes_input(&json!(vec![0u8; 8]), 16).is_err());
     }
 
     #[test]
@@ -2480,9 +2464,48 @@ fn project_transcription(
 #[cfg(test)]
 mod transcription_tests {
     use super::*;
+
+    #[test]
+    fn inline_media_bytes_cross_as_bounded_standard_base64() {
+        // The supported upper bound decodes byte-for-byte; one more byte and
+        // any other shape (array, object, non-canonical base64) is rejected.
+        let audio: Vec<u8> = (0..MAX_ARTIFACT_BYTES).map(|index| (index % 251) as u8).collect();
+        let spec = json!({"type": "speech-transcribe", "mimeType": "audio/wav", "language": "", "prompt": "",
+            "audioSource": {"type": "bytes", "bytes": base64_bytes_output(&audio)}, "responseFormat": ""});
+        match parse_job_spec(spec).unwrap() {
+            JobSpec::SpeechTranscribe(value) => match value.audio_source.unwrap().source.unwrap() {
+                AudioSource::AudioBytes(bytes) => assert!(bytes == audio),
+                _ => panic!("inline audio lost its bytes source"),
+            },
+            _ => panic!("speech-transcribe spec changed type"),
+        }
+        let over = vec![1u8; MAX_ARTIFACT_BYTES + 1];
+        assert!(base64_bytes_input(&base64_bytes_output(&over), MAX_ARTIFACT_BYTES).is_err());
+        for invalid in [json!(""), json!("AQID="), json!("AQ!D"), json!([1, 2, 3]), json!({"0": 1})] {
+            assert!(base64_bytes_input(&invalid, MAX_ARTIFACT_BYTES).is_err(), "{invalid}");
+        }
+        let reference = json!({"type": "voice-create", "creationSource": "reference-audio",
+            "referenceAudio": {"type": "bytes", "bytes": base64_bytes_output(&vec![1u8; MAX_REFERENCE_AUDIO_BYTES + 1])},
+            "referenceAudioMime": "audio/wav", "languageHints": [], "preferredName": "", "text": ""});
+        assert!(parse_job_spec(reference).is_err());
+    }
+
+    #[test]
+    fn artifact_bytes_project_as_standard_base64() {
+        let artifact = LocalAppScenarioArtifact {
+            artifact_id: "artifact-audio".to_string(),
+            mime_type: "audio/wav".to_string(),
+            bytes: vec![0, 1, 254, 255],
+            size_bytes: 4,
+            sha256: "abc".to_string(),
+            ..Default::default()
+        };
+        let projected = project_artifacts(vec![artifact]).unwrap();
+        assert_eq!(projected[0]["bytes"], json!("AAH+/w=="));
+    }
     #[test]
     fn separation_input_and_pair_keep_only_their_admitted_shape() {
-        let input = json!({"type": "audio-separate", "mimeType": "audio/wav", "audioSource": {"type": "bytes", "bytes": [1, 2, 3]}});
+        let input = json!({"type": "audio-separate", "mimeType": "audio/wav", "audioSource": {"type": "bytes", "bytes": "AQID"}});
         assert!(matches!(parse_job_spec(input.clone()).unwrap(), JobSpec::AudioSeparate(_)));
         let mut invalid_input = input;
         invalid_input["provider"] = json!("private-provider");

@@ -83,6 +83,7 @@
     "readFailed": "现在无法读取应用目录，请稍后再试。"
   },
   "catalogNotImplemented": "公共 App 目录搜索尚未实现。",
+  "actionFailed": "这个操作没有完成，可以稍后重试。",
   "installedAccess": {
     "ready": "Nimi Access 已就绪",
     "unavailable": "Nimi Access 不可用"
@@ -106,6 +107,8 @@
   "emptyTitle": "库存中暂无 App",
   "empty": "安装账号 App，或接入一个本地 App。",
   "error": "无法加载 Apps：{{detail}}",
+  "lifecycleReadFailed": "暂时无法读取已安装 App 的运行状态，请稍后重试。",
+  "chooseSource": "「{{app}}」有多个来源，请在下面选择要打开的那一个。",
   "loading": "正在加载 Apps...",
   "sourceManager": {
     "title": "App 来源",

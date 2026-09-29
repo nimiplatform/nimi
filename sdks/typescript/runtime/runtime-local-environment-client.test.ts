@@ -219,6 +219,11 @@ test('environment plan resolution forwards the saved candidate selector and proj
   assert.equal(requests[1]?.candidateLoadoutId, '');
   assert.equal(machinePlan.candidateLoadoutId, undefined);
   assert.equal(machinePlan.candidateRevision, undefined);
+  await client.resolveEnvironmentPlan({ mediaCodec: true });
+  assert.equal(requests[2]?.mediaCodec, true);
+  assert.equal(requests[2]?.capabilityContract, '');
+  assert.equal(requests[2]?.candidateLoadoutId, '');
+  await assert.rejects(client.resolveEnvironmentPlan({ mediaCodec: true, capabilityContract: 'music.generate' } as never), /cannot select/);
 });
 
 test('transfer projections carry plan identity and install returns its transfer session', async () => {

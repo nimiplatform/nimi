@@ -1,5 +1,86 @@
 # SDK migration notes
 
+These package-local notes cover the App-facing changes relevant to the current
+published baseline. They are not a complete reconstruction of older releases.
+
+## 0.19.0: upgrading from 0.15.0
+
+0.15.0 is the last SDK published before 0.19.0. SDK 0.16.0, 0.17.0, 0.18.0 and
+0.18.1 were development numbers that never reached npm, so every section above
+"0.15.0" applies when upgrading from 0.15.0, including those marked "next
+minor". Use SDK 0.19.0 with Kit and its native package 0.16.0, Vercel adapter
+0.3.0, Rust shell crates 0.8.0 and the matching Runtime. The Conversation work
+fields and `conversation.listToolCalls` / `submitToolResult` described under
+0.17.0 were replaced before 0.19.0 and need no migration from 0.15.0.
+
+Account and Connector mutation replies can carry `auditDiagnostic` while the effect remains committed. Preserve that result and do not retry the mutation because its audit record failed. Connector inventory consumers can receive these diagnostics through `onAuditDiagnostic`. Local environment plans additionally accept `{ mediaCodec: true }` for the shared audio/video component; this selector excludes capability and candidate selectors and still requires explicit plan confirmation.
+
+Required changes from 0.15.0:
+
+- A custom standard-shell carrier implements the exact `activity` namespace,
+  `agentWork`, `integration` and `agents.getIntroduction`, carries Integration
+  call `targetDisplayName` and `accountLabel`, and carries Local-App media bytes
+  as `Uint8Array` (0.16.0, 0.19.0 and next-minor sections). Kit 0.16.0 is the
+  carrier that does this.
+- Pass and read Local-App media bytes as `Uint8Array`; JSON `number[]`,
+  `Float64Array` and `DataView` are rejected (Local-App media bytes).
+- Adopt the typed `musicGeneration` result; the old prior-audio extension is
+  rejected (0.16.0).
+- LocalAgent references carry the required `agentBinding` and
+  `activityAgentRef`. Persist a binding only to match a fresh
+  `agents.listReferences()` result and use its fresh `agentHandle` (0.17.0,
+  0.19.0).
+- Declare `app.activity` before using `client.activity`, and register the
+  `agent.work` declaration before using `agentWork` (0.16.0, 0.19.0).
+
+## Runtime maintenance mode (next minor, development)
+
+- `ReasonCode.RUNTIME_STORED_DATA_UNSUPPORTED` (767) is new. Runtime returns
+  it when an owner refused the stored data in the selected data root. In that
+  state Runtime serves only its maintenance surface and leaves that root
+  unchanged.
+- The host-only `RuntimeServiceControlService.GetRuntimeServiceState` is new.
+  It reports `RUNTIME_SERVICE_MODE_ORDINARY` or
+  `RUNTIME_SERVICE_MODE_MAINTENANCE` with that reason. Ordinary Apps never
+  reach it.
+- `NimiProductControlActivation` adds `reasonCode: 'DATA_ROOT_NOT_EMPTY'` and
+  `actionHint: 'choose_new_empty_root'`. Only the maintenance replacement
+  returns them, because it accepts only an absent or empty folder. Exhaustive
+  switches over these unions need the new cases.
+
+## Loadout recipe context fit (next minor, development)
+
+- `NimiLoadoutRecipe.recommendedOptions` is new and always present. It holds
+  the options of the device recommendation: `defaultOptions`, plus the
+  Driver's explicit context size when the model's own context capacity does
+  not fit this device's memory.
+- Recipe slots add optional `recommendedContextFit` for the recommended
+  model, and offers add optional `contextFit`
+  (`authoredContextSize`, `recommendedContextSize`, `recommendedOptions`).
+  They are absent when a model has no context evidence or does not fit.
+  Write `recommendedOptions` as given; do not build Driver option keys.
+- Omitted context size still means the model's automatic capacity, and saved
+  Loadouts are unchanged. Recipe fixtures typed as `NimiLoadoutRecipe` need
+  the new `recommendedOptions` field.
+
+## Local-App media bytes (next minor, development)
+
+- Local-App media bytes are exact `Uint8Array` views on the standard shell:
+  inline Job audio (`speech-transcribe` and `audio-separate` `audioSource`,
+  `voice-create` `referenceAudio`), `NimiLocalAppScenarioArtifact.bytes`,
+  artifact upload and read, Conversation attachment upload, artifact read and
+  voice transcription. JSON `number[]` bytes, `Float64Array`, `DataView` and
+  other views are rejected; there is no compatibility path. Pass the audio
+  you already hold as a `Uint8Array` and read artifact bytes as one.
+- The SDK sends a detached copy of the view's own byte range, so a view into a
+  larger buffer does not carry that buffer across IPC and later writes do not
+  change a submitted request. Size limits are unchanged.
+- Custom standard-shell carriers must accept and return these fields as
+  `Uint8Array`. `isNimiLocalAppByteView`, `copyNimiLocalAppBytes` and
+  `exactNimiLocalAppBytes` are exported for that check. Realtime audio frames
+  (up to 64 KiB) and text continuity carriers keep their current shape.
+- Rebuild SDK, Kit and the native carrier together.
+
 ## Embedding space identity (next minor, development)
 
 - Direct `embedText` now returns the required Runtime-issued `spaceId` beside
@@ -59,9 +140,6 @@
   recorded turn ID and refresh the snapshot on rejection. Omitting the field
   retains explicit current-Conversation interruption. Upgrade SDK 0.18, Kit and
   matching native 0.15 together before using the field.
-
-These package-local notes cover the App-facing changes relevant to the current
-published baseline. They are not a complete reconstruction of older releases.
 
 ## 0.17.0 (development)
 
@@ -174,7 +252,11 @@ published baseline. They are not a complete reconstruction of older releases.
 - Declare `app.activity` in `nimi.app.yaml` `app_access` before using the
   client; undeclared calls fail closed.
 
-## 0.14.0 (development)
+## 0.15.0
+
+Published as SDK 0.15.0 with Kit and its native packages 0.11.0 and Rust shell
+crates 0.6.0. These notes were drafted as 0.14.0; SDK 0.14.0, Kit/native 0.10.0
+and Vercel adapter 0.2.0 named below were never published.
 
 - Preserve multiline transcription text through Local App Job projections,
   including empty pending/no-speech content, without relaxing metadata or NUL

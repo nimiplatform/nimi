@@ -7,7 +7,7 @@ use crate::core_generated::typed_clients::{
     RealmCheckHandleOperationPath, RealmCheckHandleOperationQuery,
     RealmCheckHandleOperationRequest, RealmGetMutualFriendsCountOperationRequest,
     RealmGetMyTiersOperationRequest, RealmTypedClient, RealmTypedClientError, RuntimeTypedClient,
-    RuntimeTypedClientError,
+    RuntimeTypedClientError, ReasonCode,
 };
 use crate::types::{CoreErrorShape, CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
 
@@ -121,8 +121,11 @@ impl CoreTransport for FakeTransport {
         if request.metadata.get("x-runtime-decode-case").map(String::as_str) == Some("wrong-field-type") {
             return Ok(br#"{"accepted":true,"login_attempt_id":17}"#.to_vec());
         }
+        if request.metadata.get("x-runtime-decode-case").map(String::as_str) == Some("bad-diagnostic") {
+            return Ok(br#"{"accepted":true,"audit_diagnostic":{"message":17}}"#.to_vec());
+        }
         Ok(
-            br#"{"accepted":true,"login_attempt_id":"login-conformance","callback_origin":"https://app.example"}"#
+            br#"{"accepted":true,"login_attempt_id":"login-conformance","callback_origin":"https://app.example","audit_diagnostic":{"reason_code":"AUDIT_RESULT_UNRECORDED","action_hint":"inspect_runtime_audit","message":"Change committed."}}"#
                 .to_vec(),
         )
     }
@@ -189,6 +192,7 @@ fn typed_runtime_clients_preserve_requests_and_transport_behavior() {
         )
         .expect("typed runtime call");
     assert_eq!(response.accepted, Some(true));
+    assert_eq!(response.audit_diagnostic.as_ref().unwrap().reason_code, Some(ReasonCode::AUDITRESULTUNRECORDED));
     assert_eq!(
         response.login_attempt_id.as_deref(),
         Some("login-conformance")
@@ -333,7 +337,7 @@ fn typed_runtime_clients_preserve_requests_and_transport_behavior() {
         other => panic!("expected transport error, got {other:?}"),
     }
 
-    for (case, expected_field) in [("invalid-json", "<body>"), ("wrong-field-type", "login_attempt_id")] {
+    for (case, expected_type, expected_field) in [("invalid-json", "BeginLoginResponse", "<body>"), ("wrong-field-type", "BeginLoginResponse", "login_attempt_id"), ("bad-diagnostic", "ErrorInfo", "message")] {
         let mut decode_metadata = BTreeMap::new();
         decode_metadata.insert("x-nimi-caller".to_string(), "sdks-conformance".to_string());
         decode_metadata.insert("x-runtime-decode-case".to_string(), case.to_string());
@@ -355,9 +359,9 @@ fn typed_runtime_clients_preserve_requests_and_transport_behavior() {
                 decode_error,
                 RuntimeTypedClientError::ResponseDecode {
                     method_id: "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
-                    type_name: "BeginLoginResponse",
+                    type_name,
                     field,
-                } if field == expected_field
+                } if field == expected_field && type_name == expected_type
             ),
             "runtime decode case {case} must surface ResponseDecode for {expected_field}, got {decode_error:?}"
         );

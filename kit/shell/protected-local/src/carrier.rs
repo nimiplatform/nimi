@@ -81,6 +81,7 @@ pub enum LocalAppReasonCode {
     AiVideoEncodeFailed,
     AiVideoSessionOverloaded,
     AiVideoSessionGenerationInvalid,
+    AiMediaCodecUnavailable,
     AiLocalExecutionLoadFailed,
     AiLocalExecutionInferenceFailed,
     AiLocalExecutionCanceled,
@@ -206,6 +207,7 @@ impl LocalAppReasonCode {
             Self::AiVideoEncodeFailed => "ai-video-encode-failed",
             Self::AiVideoSessionOverloaded => "ai-video-session-overloaded",
             Self::AiVideoSessionGenerationInvalid => "ai-video-session-generation-invalid",
+            Self::AiMediaCodecUnavailable => "ai-media-codec-unavailable",
             Self::AiLocalExecutionLoadFailed => "ai-local-execution-load-failed",
             Self::AiLocalExecutionInferenceFailed => "ai-local-execution-inference-failed",
             Self::AiLocalExecutionCanceled => "ai-local-execution-canceled",
@@ -1278,6 +1280,22 @@ pub trait NimiDesktopControl: Send + Sync {
     /// cache may keep the default no-op.
     fn invalidate_cached_transport(&self) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
         Box::pin(async {})
+    }
+
+    /// The typed service mode read when this control's verified channel
+    /// opened (runtime.protected-session r034).
+    fn runtime_service_mode(&self) -> crate::RuntimeServiceMode {
+        crate::RuntimeServiceMode::Ordinary
+    }
+
+    /// Confirms the Runtime behind a cached control still serves. Ordinary
+    /// controls use the bounded developer-mode roundtrip; a maintenance
+    /// control answers only its maintenance surface and re-reads the typed
+    /// service mode instead.
+    fn verify_runtime_serving(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
+        Box::pin(async move { self.get_developer_mode_status().await.map(|_| ()) })
     }
 
     fn invoke_bundled_avatar(

@@ -92,6 +92,7 @@ func (s *Service) snapshotLocked(sequence uint64, reason runtimev1.AccountReason
 		ReasonCode:        commonReason(reason),
 		AccountReasonCode: reason,
 		AccountProjection: cloneProjection(s.projection),
+		AuditDiagnostic:   s.auditDiagnostic,
 	}
 }
 

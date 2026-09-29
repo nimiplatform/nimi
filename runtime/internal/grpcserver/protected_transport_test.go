@@ -15,6 +15,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
@@ -306,7 +307,7 @@ func TestProtectedDesktopRPCTransportRejectsOrdinaryConnection(t *testing.T) {
 	serverSide, clientSide := net.Pipe()
 	defer func() { _ = serverSide.Close() }()
 	defer func() { _ = clientSide.Close() }()
-	if _, _, err := newProtectedDesktopTransportCredentials().ServerHandshake(serverSide); err == nil {
+	if _, _, err := newProtectedDesktopTransportCredentials(nil).ServerHandshake(serverSide); err == nil {
 		t.Fatal("ordinary net.Conn passed protected Desktop transport handshake")
 	}
 }
@@ -344,7 +345,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	manager, connection := newProtectedRPCFixture(t)
 	authService := authservice.NewWithDependencies(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		nil,
+		auditlog.New(64, 64),
 		60,
 		86400,
 		authservice.WithDesktopSessionManager(manager),
@@ -375,6 +376,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		nil,
 		formalAdmission,
 		rpcRegistry,
+		nil,
 	)
 	for _, serviceName := range []string{
 		"nimi.runtime.v1.RuntimeAuditService",

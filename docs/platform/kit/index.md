@@ -13,12 +13,31 @@ primitives without moving product truth into the package.
 | `auth` | Reusable authentication presentation and adapters |
 | `core` | Host-neutral utility and capability helpers |
 | `telemetry` | Renderer telemetry and error-boundary helpers |
-| `shell/tauri` | Bounded native-host glue |
+| `shell/tauri` | Rust host glue for Tauri Apps; carries a subset of the standard shell |
 
 Kit is demand driven. A reusable surface is added when a real App or
 host needs the same behavior and the product owner is already clear.
 Kit does not prebuild a public feature catalog merely to make the
 ecosystem look complete.
+
+## Tauri Hosts
+
+Nimi App development runs in the Desktop-supervised Electron Host, and the
+default build packages that Electron Host; it carries the complete standard
+shell. Tauri remains an explicitly configured build alternative, and the
+shared Tauri crate carries a subset. On a Tauri Host, an App has its
+session status, App AIConfig, one-shot text generation (`generateCandidate`),
+artifact upload, App storage (JSON documents and assets), Realm World and
+PersonaCharacter operations, shared Agent AIConfig, Agent manager, autonomy,
+presentation and memory controls, embodiment, and App activity.
+
+Streamed text turns, Scenario execution and Jobs, artifact reads, voice
+assets, Realm chat and realtime, Agent introduction, references and work,
+Integrations, Agent Conversation, AI and Agent realtime, video sessions, App
+media playback handles, Avatar host handoff, and Resource Pack import are not
+carried by Tauri. Calling them on a Tauri Host fails with
+`capability-unavailable` (reason `tauri-standard-shell-operation-unsupported`)
+before any Tauri command runs. App-owned Tauri commands are unaffected.
 
 ## Owner Boundary
 

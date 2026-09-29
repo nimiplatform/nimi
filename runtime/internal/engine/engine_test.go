@@ -16,11 +16,11 @@ import (
 	"time"
 )
 
-func setMediaHostGPUProbeForTest(t *testing.T, vendor string, driverVisible bool) {
+func setHostGPUProbeForTest(t *testing.T, vendor string, driverVisible bool) {
 	t.Helper()
-	previous := mediaHostGPUProbe
-	mediaHostGPUProbe = func() (string, bool) { return vendor, driverVisible }
-	t.Cleanup(func() { mediaHostGPUProbe = previous })
+	previous := hostGPUProbe
+	hostGPUProbe = func() (string, bool) { return vendor, driverVisible }
+	t.Cleanup(func() { hostGPUProbe = previous })
 }
 
 func TestManagerDataRootQuiesceWaitsForInFlightStartAndAbortResumesAdmission(t *testing.T) {
@@ -28,7 +28,7 @@ func TestManagerDataRootQuiesceWaitsForInFlightStartAndAbortResumesAdmission(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := mgr.beginEngineStart(EngineMedia); err != nil {
+	if err := mgr.beginEngineStart(EngineSpeech); err != nil {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -53,18 +53,18 @@ func TestManagerDataRootQuiesceWaitsForInFlightStartAndAbortResumesAdmission(t *
 		t.Fatalf("quiesce returned before in-flight start drained: %v", err)
 	default:
 	}
-	mgr.finishEngineStart(EngineMedia)
+	mgr.finishEngineStart(EngineSpeech)
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
-	if err := mgr.beginEngineStart(EngineMedia); !errors.Is(err, ErrEngineManagerDataRootQuiesced) {
+	if err := mgr.beginEngineStart(EngineSpeech); !errors.Is(err, ErrEngineManagerDataRootQuiesced) {
 		t.Fatalf("closed data-root admission accepted start: %v", err)
 	}
 	mgr.ResumeDataRootAfterAbort()
-	if err := mgr.beginEngineStart(EngineMedia); err != nil {
+	if err := mgr.beginEngineStart(EngineSpeech); err != nil {
 		t.Fatalf("abort did not reopen data-root admission: %v", err)
 	}
-	mgr.finishEngineStart(EngineMedia)
+	mgr.finishEngineStart(EngineSpeech)
 }
 
 // --- Download URL tests ---
@@ -152,7 +152,7 @@ func TestLlamaReleaseAssetRequiresWindowsNvidiaCUDAWithoutCPUFallback(t *testing
 	if currentGOOS() != "windows" || currentGOARCH() != "amd64" {
 		t.Skip("Windows NVIDIA CUDA release selection is host-gated")
 	}
-	setMediaHostGPUProbeForTest(t, "nvidia", true)
+	setHostGPUProbeForTest(t, "nvidia", true)
 	const version = "b8712"
 	const cudaAsset = "llama-b8712-bin-win-cuda-12.4-x64.zip"
 	const cpuAsset = "llama-b8712-bin-win-cpu-x64.zip"
@@ -280,87 +280,6 @@ func TestManagedImageSupervisedPlatformSupportedFor(t *testing.T) {
 	}
 }
 
-func TestMediaSupervisedPlatformSupportedFor(t *testing.T) {
-	tests := []struct {
-		goos   string
-		goarch string
-		want   bool
-	}{
-		{goos: "windows", goarch: "amd64", want: true},
-		{goos: "windows", goarch: "arm64", want: false},
-		{goos: "linux", goarch: "amd64", want: false},
-		{goos: "darwin", goarch: "arm64", want: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.goos+"-"+tt.goarch, func(t *testing.T) {
-			if got := MediaSupervisedPlatformSupportedFor(tt.goos, tt.goarch); got != tt.want {
-				t.Fatalf("MediaSupervisedPlatformSupportedFor(%q, %q) = %v, want %v", tt.goos, tt.goarch, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestClassifyMediaHost(t *testing.T) {
-	tests := []struct {
-		name      string
-		goos      string
-		goarch    string
-		gpuVendor string
-		cudaReady bool
-		want      MediaHostSupport
-	}{
-		{
-			name:      "supported supervised",
-			goos:      "windows",
-			goarch:    "amd64",
-			gpuVendor: "nvidia",
-			cudaReady: true,
-			want:      MediaHostSupportSupportedSupervised,
-		},
-		{
-			name:      "windows non nvidia unsupported",
-			goos:      "windows",
-			goarch:    "amd64",
-			gpuVendor: "intel",
-			cudaReady: false,
-			want:      MediaHostSupportUnsupported,
-		},
-		{
-			name:      "windows nvidia without cuda unsupported",
-			goos:      "windows",
-			goarch:    "amd64",
-			gpuVendor: "nvidia",
-			cudaReady: false,
-			want:      MediaHostSupportUnsupported,
-		},
-		{
-			name:      "macOS Apple Metal supported without CUDA",
-			goos:      "darwin",
-			goarch:    "arm64",
-			gpuVendor: "apple",
-			cudaReady: false,
-			want:      MediaHostSupportSupportedSupervised,
-		},
-		{
-			name:      "non windows unsupported",
-			goos:      "linux",
-			goarch:    "amd64",
-			gpuVendor: "nvidia",
-			cudaReady: true,
-			want:      MediaHostSupportUnsupported,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ClassifyMediaHost(tt.goos, tt.goarch, tt.gpuVendor, tt.cudaReady); got != tt.want {
-				t.Fatalf("ClassifyMediaHost(%q, %q, %q, %t) = %q, want %q", tt.goos, tt.goarch, tt.gpuVendor, tt.cudaReady, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestLlamaExpectedSHA256(t *testing.T) {
 	const version = "b8575"
 	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00" // pragma: allowlist secret
@@ -479,7 +398,7 @@ func TestProbeHealthUnreachable(t *testing.T) {
 	}
 }
 
-func TestProbeMediaHealthSuccess(t *testing.T) {
+func TestProbeSpeechHealthSuccessWithReadyCatalogModel(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
@@ -487,19 +406,19 @@ func TestProbeMediaHealthSuccess(t *testing.T) {
 			_, _ = w.Write([]byte(`{"ready":true}`))
 		case "/v1/catalog":
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"flux.1-schnell","ready":true}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech-default","ready":true}]}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
 	defer func() { server.Close() }()
 
-	if err := ProbeMediaHealth(context.Background(), server.URL); err != nil {
-		t.Fatalf("expected media healthy, got %v", err)
+	if err := ProbeSpeechHealth(context.Background(), server.URL); err != nil {
+		t.Fatalf("expected speech healthy, got %v", err)
 	}
 }
 
-func TestProbeMediaHealthRequiresCatalog(t *testing.T) {
+func TestProbeSpeechHealthRequiresReadyCatalogModels(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
@@ -514,45 +433,25 @@ func TestProbeMediaHealthRequiresCatalog(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
-		t.Fatal("expected media health probe to fail without ready catalog models")
+	if err := ProbeSpeechHealth(context.Background(), server.URL); err == nil {
+		t.Fatal("expected speech health probe to fail without ready catalog models")
 	}
 }
 
-func TestProbeMediaHealthProxyExecutionRequiresExecutionReadyCatalog(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/healthz":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"ready":true,"checks":{"proxy_mode":true}}`))
-		case "/v1/catalog":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"ready":true,"models":[]}`))
-		default:
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
-	defer func() { server.Close() }()
-
-	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
-		t.Fatal("expected proxy_execution media health to fail without ready catalog models")
-	}
-}
-
-func TestProbeMediaHealthRejectsImageDriverPartialHealth(t *testing.T) {
+func TestProbeSpeechHealthRejectsUnavailableHealthz(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
 			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte(`{"ready":false,"image_driver":"stablediffusion-ggml"}`))
+			_, _ = w.Write([]byte(`{"ready":false}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
 	defer func() { server.Close() }()
 
-	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
-		t.Fatal("expected media health to fail when healthz is not execution-ready")
+	if err := ProbeSpeechHealth(context.Background(), server.URL); err == nil {
+		t.Fatal("expected speech health to fail when healthz is not execution-ready")
 	}
 }
 
@@ -646,7 +545,7 @@ func TestProbeSpeechHealthPreservesBoundedOwnerDetail(t *testing.T) {
 	}
 }
 
-func TestProbeMediaHealthRejectsOversizedCatalogPayload(t *testing.T) {
+func TestProbeSpeechHealthRejectsOversizedCatalogPayload(t *testing.T) {
 	oversizedModelID := strings.Repeat("m", canonicalCatalogProbeBodyLimitBytes)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -662,8 +561,8 @@ func TestProbeMediaHealthRejectsOversizedCatalogPayload(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
-		t.Fatal("expected media health probe to fail on oversized catalog payload")
+	if err := ProbeSpeechHealth(context.Background(), server.URL); err == nil {
+		t.Fatal("expected speech health probe to fail on oversized catalog payload")
 	}
 }
 
@@ -766,7 +665,7 @@ func TestWaitHealthyCancelled(t *testing.T) {
 	}
 }
 
-func TestWaitMediaHealthySuccess(t *testing.T) {
+func TestWaitSpeechHealthySuccess(t *testing.T) {
 	var callCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -780,15 +679,15 @@ func TestWaitMediaHealthySuccess(t *testing.T) {
 			_, _ = w.Write([]byte(`{"ready":true}`))
 		case "/v1/catalog":
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"flux.1-schnell","ready":true}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech-default","ready":true}]}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
 	defer func() { server.Close() }()
 
-	if err := WaitMediaHealthy(context.Background(), server.URL, 50*time.Millisecond, 5*time.Second); err != nil {
-		t.Fatalf("expected media healthy after retries, got %v", err)
+	if err := WaitSpeechHealthy(context.Background(), server.URL, 50*time.Millisecond, 5*time.Second); err != nil {
+		t.Fatalf("expected speech healthy after retries, got %v", err)
 	}
 }
 

@@ -100,7 +100,7 @@ func resolveManagedImageBackendPackageSpecForCurrentHost(backendName string) (ma
 }
 
 func resolveManagedImageBackendPackageSpecForCurrentHostWithSource(backendName string, source string) (managedImageBackendPackageSpec, bool) {
-	gpuVendor, driverVisible := detectMediaHostGPU()
+	gpuVendor, driverVisible := detectHostGPU()
 	spec, ok := resolveManagedImageBackendPackageSpecForHostWithSource(
 		backendName,
 		source,
@@ -225,7 +225,7 @@ func managedImageBackendPackageSupportsFamily(spec managedImageBackendPackageSpe
 }
 
 func admitManagedImageRecipeForCurrentHost(recipeFamily string, packageSource string) error {
-	gpuVendor, driverVisible := detectMediaHostGPU()
+	gpuVendor, driverVisible := detectHostGPU()
 	if err := admitManagedImageRecipeForHost(
 		recipeFamily,
 		packageSource,

@@ -10,6 +10,14 @@ import (
 	"sync"
 )
 
+// SetPeerRejectionObserver installs the Runtime owner that records processes
+// the verified native listeners refuse.
+func (state *MacOSRuntimeSecurityState) SetPeerRejectionObserver(observer PeerRejectionObserver) {
+	if state != nil {
+		state.peerRejections.set(observer)
+	}
+}
+
 type MacOSVerifiedDesktopListener struct {
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -99,25 +107,25 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 		}
 		audit, err := macOSPeerIdentityFromUnixConn(raw)
 		if err != nil {
-			reportMacOSDesktopPeerRejection("peer-identity", err)
+			listener.rejectPeer("peer-identity", err)
 			_ = raw.Close()
 			continue
 		}
 		client, process, err := verifyConnectedMacOSDesktop(audit, listener.state.expectedDesktopExecutable)
 		if err != nil {
-			reportMacOSDesktopPeerRejection("desktop-process", err)
+			listener.rejectPeer("desktop-process", err)
 			_ = raw.Close()
 			continue
 		}
 		if err := listener.state.BindInteractiveIdentity(audit); err != nil {
-			reportMacOSDesktopPeerRejection("interactive-identity", err)
+			listener.rejectPeer("interactive-identity", err)
 			_ = raw.Close()
 			_ = listener.Close()
 			return nil, err
 		}
 		desktopConnection, err := newDirectDesktopConnectionWithClient(client, process, nil)
 		if err != nil {
-			reportMacOSDesktopPeerRejection("desktop-connection", err)
+			listener.rejectPeer("desktop-connection", err)
 			_ = raw.Close()
 			continue
 		}
@@ -140,6 +148,7 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 		verified := &macOSVerifiedDesktopNetConn{Conn: raw, connection: desktopConnection, listener: listener}
 		replaced, activated := listener.activate(verified)
 		if !activated {
+			listener.state.peerRejections.report(PeerRejectionTransportDesktop, "competing-desktop", nil)
 			desktopConnection.Revoke()
 			_ = raw.Close()
 			continue
@@ -151,6 +160,13 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 		desktopConnection.onRevoke(func() { _ = verified.closeTransport() })
 		return verified, nil
 	}
+}
+
+// rejectPeer reports a refused Desktop peer to the native diagnostics and to
+// the Runtime audit owner.
+func (listener *MacOSVerifiedDesktopListener) rejectPeer(stage string, err error) {
+	reportMacOSDesktopPeerRejection(stage, err)
+	listener.state.peerRejections.report(PeerRejectionTransportDesktop, stage, err)
 }
 
 func (listener *MacOSVerifiedDesktopListener) activate(connection *macOSVerifiedDesktopNetConn) (*macOSVerifiedDesktopNetConn, bool) {
@@ -305,21 +321,25 @@ func (listener *MacOSVerifiedLocalAppListener) Accept() (net.Conn, error) {
 		}
 		audit, err := macOSPeerIdentityFromUnixConn(raw)
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "peer-identity", err)
 			_ = raw.Close()
 			continue
 		}
 		euid, session, _, boundIdentity := listener.state.InteractiveIdentity()
 		if !boundIdentity || audit.euid != euid || audit.auditSession != session {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "interactive-identity", nil)
 			_ = raw.Close()
 			continue
 		}
 		launch, err := listener.state.localAppLaunches.Consume(audit.pid, audit.euid)
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "launch-lease", err)
 			_ = raw.Close()
 			continue
 		}
 		peer, err := verifyConnectedMacOSLocalApp(audit, launch)
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "app-process", err)
 			_ = raw.Close()
 			continue
 		}
@@ -329,6 +349,7 @@ func (listener *MacOSVerifiedLocalAppListener) Accept() (net.Conn, error) {
 			listener.state.desktopSessions.OperationSessionID(),
 		)
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "app-connection", err)
 			_ = raw.Close()
 			continue
 		}

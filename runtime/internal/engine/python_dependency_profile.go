@@ -16,7 +16,6 @@ const (
 	ManagedPythonVersion        = "3.12.13"
 	ManagedPythonABI            = "cp312"
 	speechDriverProtocolVersion = "speech-http-v3"
-	mediaDriverProtocolVersion  = "nimi-media/0.2"
 )
 
 //go:embed assets/python-profiles/*/pyproject.toml assets/python-profiles/*/uv.lock
@@ -88,12 +87,6 @@ func PythonDependencyProfileStaticFiles(consumer string, identity PythonDependen
 		return append(files, textDecisionDriverStaticFiles()...), nil
 	}
 	driverFiles := speechPipelineFilesForConsumer(consumer)
-	if len(driverFiles) == 0 && strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
-		driverFiles = []struct {
-			Name   string
-			Script *string
-		}{{Name: "media_server.py", Script: &mediaServerScript}}
-	}
 	if len(driverFiles) == 0 {
 		return nil, fmt.Errorf("python dependency profile Driver bundle is not admitted for consumer %s", consumer)
 	}
@@ -269,19 +262,12 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 		default:
 			return "", fmt.Errorf("VoxCPM dependency profile is not admitted for platform %s", platformTuple)
 		}
-	case "media.diffusers.cpu", "media.diffusers.cuda",
-		"media.video-python.cpu", "media.video-python.cuda":
-		line = "media-pipeline"
 	default:
 		return "", fmt.Errorf("python dependency profile is not admitted for consumer %s", consumer)
 	}
 	sourceSuffix := acceleratorPlane
 	if acceleratorPlane == "cuda" {
-		if strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
-			sourceSuffix = "cu126"
-		} else {
-			sourceSuffix = "cu128"
-		}
+		sourceSuffix = "cu128"
 	}
 	return line + "-" + sourceSuffix, nil
 }
@@ -325,9 +311,6 @@ func pythonDependencyProfileDriverProtocol(consumer string) string {
 	if strings.TrimSpace(consumer) == GroundingDinoConsumerID {
 		return capabilitydriver.GroundingDinoProtocol
 	}
-	if strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
-		return mediaDriverProtocolVersion
-	}
 	return speechDriverProtocolVersion
 }
 
@@ -365,12 +348,6 @@ func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol s
 		return sha256Hex([]byte(strings.Join(lines, "\n") + "\n")), nil
 	}
 	files := speechPipelineFilesForConsumer(consumer)
-	if len(files) == 0 && (strings.HasPrefix(strings.TrimSpace(consumer), "media.") || strings.HasPrefix(strings.TrimSpace(consumer), "stable-diffusion.cpp.")) {
-		files = []struct {
-			Name   string
-			Script *string
-		}{{Name: "media_server.py", Script: &mediaServerScript}}
-	}
 	if len(files) == 0 {
 		return "", fmt.Errorf("Python dependency profile Driver bundle is not admitted for consumer %s", consumer)
 	}
@@ -378,9 +355,6 @@ func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol s
 		return "", fmt.Errorf("python dependency profile Driver protocol is required for consumer %s", consumer)
 	}
 	lines := []string{"driver_protocol=" + strings.TrimSpace(driverProtocol)}
-	if strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
-		lines = append(lines, "image_driver=flux", "video_driver=wan")
-	}
 	for _, file := range files {
 		lines = append(lines, "file="+file.Name, *file.Script)
 	}

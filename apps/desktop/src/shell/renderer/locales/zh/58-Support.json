@@ -63,6 +63,7 @@
   "diagnosticsResourcesTitle": "系统资源",
   "diagnosticsResourcesCpu": "CPU",
   "diagnosticsResourcesMemory": "内存",
+  "diagnosticsResourcesMemoryPressure": "内存压力",
   "diagnosticsResourcesDisk": "磁盘",
   "diagnosticsResourcesSource": "来源",
   "diagnosticsResourcesUnavailable": "当前环境不提供系统资源快照。",

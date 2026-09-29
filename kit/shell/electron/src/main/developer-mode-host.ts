@@ -125,7 +125,7 @@ function validateBinding(value: unknown): NimiElectronDeveloperModeBinding {
 function developerModeError(reasonCode: string, retryable: boolean, command: string): NimiElectronShellHostError {
   const code = reasonCode === 'protected-carrier-required'
     ? 'protected-carrier-required'
-    : reasonCode === 'runtime-service-unavailable'
+    : reasonCode === 'runtime-service-unavailable' || reasonCode === 'runtime-stored-data-unsupported'
       ? 'runtime-service-unavailable'
       : reasonCode === 'runtime-service-repair-required'
         ? 'runtime-service-repair-required'

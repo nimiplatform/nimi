@@ -7,7 +7,9 @@ import {
   parseOptionalNumber,
   parseRequiredString,
 } from './shared.js';
-import type { SystemResourceSnapshot } from './runtime-types';
+import type { SystemMemoryPressure, SystemResourceSnapshot } from './runtime-types';
+
+const MEMORY_PRESSURES: ReadonlySet<string> = new Set<SystemMemoryPressure>(['normal', 'warning', 'critical', 'unknown']);
 
 export const parseRuntimeDefaults = parseSharedRuntimeDefaults;
 export const parseRuntimeBridgeDaemonStatus = parseSharedRuntimeBridgeDaemonStatus;
@@ -17,16 +19,22 @@ export function parseSystemResourceSnapshot(value: unknown): SystemResourceSnaps
   const cpuPercent = Number(record.cpuPercent);
   const memoryUsedBytes = Number(record.memoryUsedBytes);
   const memoryTotalBytes = Number(record.memoryTotalBytes);
-  const diskUsedBytes = Number(record.diskUsedBytes);
-  const diskTotalBytes = Number(record.diskTotalBytes);
+  const diskUsedBytes = record.diskUsedBytes === null ? null : Number(record.diskUsedBytes);
+  const diskTotalBytes = record.diskTotalBytes === null ? null : Number(record.diskTotalBytes);
   const capturedAtMs = Number(record.capturedAtMs);
+  const memoryPressure = record.memoryPressure;
   if (!Number.isFinite(cpuPercent)) {
     throw new Error('get_system_resource_snapshot: cpuPercent is required');
   }
   if (!Number.isFinite(memoryUsedBytes) || !Number.isFinite(memoryTotalBytes)) {
     throw new Error('get_system_resource_snapshot: memory bytes are required');
   }
-  if (!Number.isFinite(diskUsedBytes) || !Number.isFinite(diskTotalBytes)) {
+  if (typeof memoryPressure !== 'string' || !MEMORY_PRESSURES.has(memoryPressure)) {
+    throw new Error('get_system_resource_snapshot: memoryPressure is invalid');
+  }
+  if (!((diskUsedBytes === null && diskTotalBytes === null)
+    || (diskUsedBytes !== null && diskTotalBytes !== null && Number.isSafeInteger(diskUsedBytes) && Number.isSafeInteger(diskTotalBytes)
+      && diskUsedBytes >= 0 && diskTotalBytes > 0 && diskUsedBytes <= diskTotalBytes))) {
     throw new Error('get_system_resource_snapshot: disk bytes are required');
   }
   if (!Number.isFinite(capturedAtMs)) {
@@ -36,6 +44,7 @@ export function parseSystemResourceSnapshot(value: unknown): SystemResourceSnaps
     cpuPercent,
     memoryUsedBytes,
     memoryTotalBytes,
+    memoryPressure: memoryPressure as SystemMemoryPressure,
     diskUsedBytes,
     diskTotalBytes,
     temperatureCelsius: record.temperatureCelsius == null

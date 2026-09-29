@@ -2607,6 +2607,15 @@
           "response_type": "RequestRuntimeRestartResponse",
           "request_stream": false,
           "response_stream": false
+        },
+        {
+          "name": "GetRuntimeServiceState",
+          "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
+          "kind": "unary",
+          "request_type": "GetRuntimeServiceStateRequest",
+          "response_type": "GetRuntimeServiceStateResponse",
+          "request_stream": false,
+          "response_stream": false
         }
       ]
     }
@@ -2884,6 +2893,7 @@
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats",
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
+    "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
     "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
   ],
   "codec_maps": [
@@ -5062,6 +5072,14 @@
       "kind": "server_stream",
       "request_type": "SubscribeRealmRealtimeEventsRequest",
       "response_type": "SubscribeRealmRealtimeEventsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
+      "service": "RuntimeServiceControlService",
+      "method": "GetRuntimeServiceState",
+      "kind": "unary",
+      "request_type": "GetRuntimeServiceStateRequest",
+      "response_type": "GetRuntimeServiceStateResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
@@ -7250,6 +7268,14 @@
       "response_type": "SubscribeRealmRealtimeEventsResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
+      "service": "RuntimeServiceControlService",
+      "method": "GetRuntimeServiceState",
+      "kind": "unary",
+      "request_type": "GetRuntimeServiceStateRequest",
+      "response_type": "GetRuntimeServiceStateResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
       "service": "RuntimeServiceControlService",
       "method": "RequestRuntimeRestart",
@@ -7619,6 +7645,8 @@
       "GetPublicChatSessionSnapshotResponse",
       "GetRuntimeHealthRequest",
       "GetRuntimeHealthResponse",
+      "GetRuntimeServiceStateRequest",
+      "GetRuntimeServiceStateResponse",
       "GetScenarioArtifactsRequest",
       "GetScenarioArtifactsResponse",
       "GetScenarioJobRequest",
@@ -7760,6 +7788,7 @@
       "LoadoutImpactProjection",
       "LoadoutModelAxis",
       "LoadoutModelAxisInput",
+      "LoadoutRecipeContextFit",
       "LoadoutRecipeCustodyDescriptor",
       "LoadoutRecipeCustodyReference",
       "LoadoutRecipeDescriptor",
@@ -8448,6 +8477,7 @@
       "ResponseFormatKind",
       "RoutePolicy",
       "RuntimeHealthStatus",
+      "RuntimeServiceMode",
       "ScenarioJobEventType",
       "ScenarioJobStatus",
       "ScenarioType",
@@ -8666,6 +8696,13 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -13925,6 +13962,13 @@
             "repeated": false,
             "optional": false,
             "number": 11
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 12
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -16942,6 +16986,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -17393,6 +17444,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -18107,6 +18165,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -20434,6 +20499,31 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "GetRuntimeServiceStateRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/runtime_service_control.proto"
+      },
+      {
+        "name": "GetRuntimeServiceStateResponse",
+        "fields": [
+          {
+            "name": "mode",
+            "type": "RuntimeServiceMode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/runtime_service_control.proto"
       },
       {
         "name": "GetScenarioArtifactsRequest",
@@ -24174,6 +24264,33 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "LoadoutRecipeContextFit",
+        "fields": [
+          {
+            "name": "authored_context_size",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "recommended_context_size",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "recommended_options",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "LoadoutRecipeCustodyDescriptor",
         "fields": [
           {
@@ -24306,6 +24423,13 @@
             "repeated": true,
             "optional": false,
             "number": 12
+          },
+          {
+            "name": "recommended_options",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 13
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -24340,6 +24464,13 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "context_fit",
+            "type": "LoadoutRecipeContextFit",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -24416,6 +24547,13 @@
             "repeated": true,
             "optional": false,
             "number": 10
+          },
+          {
+            "name": "recommended_context_fit",
+            "type": "LoadoutRecipeContextFit",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -30582,6 +30720,13 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -35804,6 +35949,13 @@
             "repeated": false,
             "optional": false,
             "number": 10
+          },
+          {
+            "name": "media_codec",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -39689,6 +39841,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -41051,6 +41210,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -45166,6 +45332,10 @@
           "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED",
           "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED",
           "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED",
+          "AI_MEDIA_CODEC_UNAVAILABLE",
+          "RUNTIME_STORED_DATA_UNSUPPORTED",
+          "AUDIT_RECORD_UNAVAILABLE",
+          "AUDIT_RESULT_UNRECORDED",
           "AGENT_BUSY",
           "AGENT_TURN_NOT_ACTIVE",
           "APP_ACTIVITY_INPUT_INVALID",
@@ -45241,6 +45411,15 @@
           "RUNTIME_HEALTH_STATUS_STOPPING"
         ],
         "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "RuntimeServiceMode",
+        "values": [
+          "RUNTIME_SERVICE_MODE_UNSPECIFIED",
+          "RUNTIME_SERVICE_MODE_ORDINARY",
+          "RUNTIME_SERVICE_MODE_MAINTENANCE"
+        ],
+        "source_file": "proto/runtime/v1/runtime_service_control.proto"
       },
       {
         "name": "ScenarioJobEventType",

@@ -5,7 +5,8 @@ This standalone App was generated as an identity-neutral base plus the explicitl
 Profile: `standalone`.
 
 - App-owned product code: `src/workbench-core/**`, selected `src/capabilities/**`, and subsequent product edits.
-- Scaffold-managed code: carrier/auth wiring, identity, manifests, build/release inputs, managed workflow and generated composition glue.
+- App-owned license: `LICENSE` starts as an MIT license naming the package author, or the App title when no author was given. Replace it with the App's own terms as needed and declare the matching `license` identifier in `package.json` before packaging; `sync` never rewrites it.
+- Scaffold-managed code: carrier/auth wiring, identity, manifests, build/release inputs, managed workflow, generated composition glue, and the template's own license notice in `licenses/nimi-app-template.txt`.
 - Package-owned projections: `.nimi/{config,contracts,methodology}/**`, materialized by the pinned local `nimicoding` package during `init`.
 
 `sync` refreshes scaffold-managed files without overwriting App-owned code. `check` is non-mutating. Changing identity, profile or direct feature selection requires a fresh scaffold.

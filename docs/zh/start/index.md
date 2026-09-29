@@ -15,7 +15,7 @@
 
 Nimi App 有三条独立路径：Registry 批准的安装包、用户明确选择的不可变本地包导入，以及不使用安装包的 Developer Mode 项目。本指南从本地开发开始；创建项目或打开窗口本身不会授予 Nimi Access，也不会发布 App。
 
-当前预发布允许已明确配置的试点 App 仓库通过受保护 tag 触发 GitHub Actions，并发布不可变 GitHub Release；静态 Registry 的接入和描述符准入需要人工批准。Windows x86_64 已支持验证目录发现、安装、启动/聚焦/停止、受保护会话 Access 和卸载。本地包导入入口、其他平台的包生命周期、普通更新与修复仍不可用；内置或平台 App 另有规则。
+当前预发布允许已明确配置的试点 App 仓库通过受保护 tag 触发 GitHub Actions，并发布不可变 GitHub Release；静态 Registry 的接入和描述符准入需要人工批准。Windows x86_64 与 macOS arm64 已支持验证目录发现、安装、更新、启动/聚焦/停止、受保护会话 Access 和卸载。本地包导入入口、其他平台的包生命周期与普通修复仍不可用；内置或平台 App 另有规则。
 
 准备分发前，请阅读 [App Tools 发布说明](https://github.com/nimiplatform/nimi/tree/main/app-tools#canonical-release-boundary)。本地运行、发布制品、Registry 准入、安装状态和访问能力各自独立，不能相互代替。
 
@@ -26,7 +26,7 @@ Nimi App 有三条独立路径：Registry 批准的安装包、用户明确选�
 - [平台](/zh/platform/)与[术语表](/zh/reference/glossary)：产品概念。
 - [Nimi Coding](/zh/nimicoding/)：直接使用规范管理工具。生成 App 的初始化已经处理工具链所需的集成。
 
-想了解个人 AI 产品或普通用户下载状态，请访问[官网](https://nimi.ai)和[下载页](https://nimi.ai/download)。
+想了解个人 AI 产品或普通用户下载状态，请访问[官网](https://nimi.ai)和[下载页](https://nimi.ai/download)。使用 Nimi Home 需要 Nimi 账号，并在浏览器中登录。
 
 ## 来源依据
 

@@ -93,7 +93,7 @@ function InformationalShell({
       <a href="#main-content" className="skip-link">
         {copy.shared.skipToContent}
       </a>
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]">
         <div className="container-nimi flex flex-wrap items-center gap-3 py-3">
           <Link
             to={withLocaleQuery('/', locale)}

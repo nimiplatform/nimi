@@ -1684,3 +1684,33 @@ describe('Desktop local-development project icon', () => {
     );
   });
 });
+
+describe('Desktop local-development caller boundary', () => {
+  it('answers only a caller that presents the owner-only presence token', async () => {
+    const home = await (await import('node:fs/promises')).realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-dev-caller-')));
+    const host = new ElectronLocalDevelopmentHost(control(), home);
+    try {
+      await host.start();
+      const presencePath = path.join(home, '.nimi', 'run', 'desktop', 'local-development', 'presence.v1.json');
+      const presence = JSON.parse(await (await import('node:fs/promises')).readFile(presencePath, 'utf8')) as { endpoint: string; callerToken: string };
+      assert.match(presence.callerToken, /^[0-9a-f]{64}$/u);
+      const post = (headers: Record<string, string>) => fetch(`${presence.endpoint}/v1/registrations`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...headers },
+        body: JSON.stringify({ schemaVersion: 1, appId: 'acme.widget', projectRoot: '/tmp/not-a-project', shell: 'electron' }),
+      });
+      const refusedHeaders: Record<string, string>[] = [{}, { authorization: `Bearer ${'0'.repeat(64)}` }, { authorization: presence.callerToken }];
+      for (const headers of refusedHeaders) {
+        const refused = await post(headers);
+        assert.equal(refused.status, 401, JSON.stringify(headers));
+        assert.equal((await refused.json() as { reasonCode: string }).reasonCode, 'local-development-caller-unverified');
+      }
+      const admitted = await post({ authorization: `Bearer ${presence.callerToken}` });
+      assert.notEqual(admitted.status, 401);
+      await admitted.body?.cancel();
+    } finally {
+      await host.shutdown();
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+});

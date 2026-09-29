@@ -1283,9 +1283,25 @@ export function validateAppInitialization(targetDir, versions) {
   for (const target of Object.keys(current.buildProfile.targets)) selectBuildOwner(current.buildProfile, target);
 }
 
+function ownershipHandoverMessage(handover) {
+  if (handover.file === 'missing') {
+    return `${handover.path} now belongs to the App and is missing; add the App's own ${handover.path} before packaging.`;
+  }
+  const kept = `${handover.path} now belongs to the App; sync keeps it unchanged and will not rewrite it.`;
+  return handover.earlierScaffoldContent
+    ? `${kept} It still holds the text the earlier scaffold wrote: replace it with the App's own license and copyright holder.`
+    : kept;
+}
+
+function emitOwnershipHandovers(handovers, options) {
+  if (options.json) return;
+  for (const handover of handovers) process.stdout.write(`[nimi-app] ${ownershipHandoverMessage(handover)}\n`);
+}
+
 function executeProjectPlan(targetDir, options, versions, runners, plan, scaffold, toolVersions = versions) {
   if (scaffold) validateManagedAppFiles(targetDir, scaffold.snapshot.lock, planSources(targetDir, plan.planned));
   validateProjectPlan(targetDir, versions, plan.planned, Boolean(scaffold));
+  const handovers = scaffold?.handovers ?? [];
   const preview = {
     ok: true, command: options.adopt ? 'init' : 'sync', dir: targetDir,
     managed: Boolean(scaffold), appId: plan.descriptor.appId,
@@ -1293,8 +1309,12 @@ function executeProjectPlan(targetDir, options, versions, runners, plan, scaffol
     changes: describeChanges(targetDir, plan.planned), ownerSteps: lifecycleOwnerSteps(versions),
     nextSteps: lifecycleNextSteps(plan.buildProfileRef, plan.combination),
     dependencyCombination: describeCombination(plan.combination, toolVersions),
+    ...(scaffold ? { ownershipHandover: handovers } : {}),
   };
-  if (options.dryRun) return emitResult(preview, options, `${preview.command} preview: ${preview.changes.map((file) => `${file.action} ${file.path}`).join(', ') || 'no app-tools changes'}`);
+  if (options.dryRun) {
+    emitOwnershipHandovers(handovers, options);
+    return emitResult(preview, options, `${preview.command} preview: ${preview.changes.map((file) => `${file.action} ${file.path}`).join(', ') || 'no app-tools changes'}`);
+  }
   const nimicoding = runNimicodingSync(targetDir, 'apply', runners);
   const lockPath = path.join(targetDir, SCAFFOLD_LOCK_PATH);
   const lockFile = plan.planned.find((file) => file.path === lockPath);
@@ -1308,6 +1328,7 @@ function executeProjectPlan(targetDir, options, versions, runners, plan, scaffol
     synchronizedFiles.push(...applyProjectFiles(targetDir, [lockFile]));
   }
   validateAppProject(targetDir, { silent: true }, versions, runners);
+  emitOwnershipHandovers(handovers, options);
   return emitResult({ ...preview, synchronizedFiles, nimicodingSync: nimicoding?.summary || null }, options, `${preview.command} completed for ${targetDir}`);
 }
 

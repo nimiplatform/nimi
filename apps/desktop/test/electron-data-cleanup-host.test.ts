@@ -237,7 +237,7 @@ test('Electron data cleanup waits for in-flight data-root work before removing l
       resolveReadyDataRoot: async () => dataRoot,
       operationGate,
     });
-    const inFlightWrite = operationGate.runExclusive(async () => {
+    const inFlightWrite = operationGate.runShared(async () => {
       await writeBarrier;
       await writeFile(path.join(gatedDirectory, 'pending.db'), 'committed');
     });
@@ -279,6 +279,45 @@ test('data-root operation gate keeps queued work closed after a committed handof
   assert.equal(gate.isClosed(), true);
   gate.open();
   assert.equal(await gate.runExclusive(async () => 'reopened'), 'reopened');
+});
+
+test('data-root operation gate runs short work beside a long call and switches roots after admitted work', async () => {
+  const gate = createDesktopDataRootOperationGate();
+  const events: string[] = [];
+  let finishLongCall: (() => void) | undefined;
+  const longCallStarted = new Promise<void>((started) => {
+    void gate.runShared(async () => {
+      events.push('long-start');
+      await new Promise<void>((resolve) => {
+        finishLongCall = resolve;
+        started();
+      });
+      events.push('long-end');
+    });
+  });
+  await longCallStarted;
+  assert.equal(await gate.runShared(async () => 'short read'), 'short read');
+  assert.equal(await gate.runSharedDiagnostic(async () => 'log export'), 'log export');
+  const rootSwitch = gate.runExclusive(async () => {
+    events.push('switch');
+  });
+  const afterSwitch = gate.runShared(async () => {
+    events.push('after-switch');
+  });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(events, ['long-start']);
+  finishLongCall?.();
+  await Promise.all([rootSwitch, afterSwitch]);
+  assert.deepEqual(events, ['long-start', 'long-end', 'switch', 'after-switch']);
+});
+
+test('data-root operation gate admits only diagnostics while a handoff is closed', async () => {
+  const gate = createDesktopDataRootOperationGate();
+  gate.close('desktop-data-root-handoff-repair-required');
+  await assert.rejects(gate.runShared(async () => 'work'), /desktop-data-root-handoff-repair-required/u);
+  await assert.rejects(gate.runExclusive(async () => 'work'), /desktop-data-root-handoff-repair-required/u);
+  assert.equal(await gate.runSharedDiagnostic(async () => 'logs'), 'logs');
+  assert.equal(await gate.runDiagnostic(async () => 'check'), 'check');
 });
 
 async function writeProfileFile(filePath: string, content: string): Promise<void> {
@@ -340,6 +379,62 @@ test('standard App cache clears only fixed cache classes of stopped App profiles
       host.commandHandlers.nimi_app_host_cache_plan({ payload: { scope: '/' } }),
       /desktop-app-host-cache-payload-invalid/u,
     );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('standard App cache check and deletion never interleave with a managed Host launch', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-app-host-cache-launch-'));
+  const dataRoot = path.join(root, 'nimi_data');
+  const scope = path.join(dataRoot, 'app-hosts', '0123456789abcdef0123456789abcdef');
+  const cached = path.join(scope, 'apps', 'fedcba9876543210fedcba9876543210', 'session-data', 'Cache', 'Cache_Data', 'f_000001');
+  const operationGate = createDesktopDataRootOperationGate();
+  let running = false;
+  let requestLaunchOnCheck = false;
+  let launch: Promise<void> | undefined;
+  let cacheSeenByLaunch: string | undefined;
+  // The Prepare -> profile -> spawn/bind section of a development or installed Host.
+  const launchHost = () => operationGate.runExclusive(async () => {
+    cacheSeenByLaunch = await readFile(cached, 'utf8').catch(() => 'removed');
+    running = true;
+  });
+  const host = createDesktopElectronDataCleanupHost({
+    resolveReadyDataRoot: async () => dataRoot,
+    resolveHostProfileScope: async () => scope,
+    hasActiveManagedApps: async () => {
+      if (requestLaunchOnCheck) launch ??= launchHost();
+      return running;
+    },
+    operationGate,
+  });
+  try {
+    // Check finds no Host -> a launch is requested -> the deletion completes first.
+    await writeProfileFile(cached, 'bytes');
+    requestLaunchOnCheck = true;
+    const outcome = await host.commandHandlers.nimi_app_host_cache_execute({ payload: {} });
+    assert.equal(outcome.complete, true);
+    assert.equal(outcome.removedFiles, 1);
+    await launch;
+    assert.equal(cacheSeenByLaunch, 'removed');
+    assert.equal(running, true);
+
+    // A launch already in Prepare finishes before the check, which then refuses.
+    requestLaunchOnCheck = false;
+    running = false;
+    await writeProfileFile(cached, 'bytes');
+    let finishPrepare: (() => void) | undefined;
+    const preparing = operationGate.runExclusive(async () => {
+      await new Promise<void>((resolve) => { finishPrepare = resolve; });
+      running = true;
+    });
+    const cleanup = host.commandHandlers.nimi_app_host_cache_execute({ payload: {} });
+    const cleanupRejected = assert.rejects(cleanup, /desktop-app-host-cache-hosts-running/u);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    finishPrepare?.();
+    await preparing;
+    await cleanupRejected;
+    assert.equal(await readFile(cached, 'utf8'), 'bytes');
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -18,10 +18,35 @@ message RequestRuntimeRestartResponse {
   ReasonCode reason_code = 2;
 }
 
+// RuntimeServiceMode is the protected surface this Runtime process serves on
+// the verified Desktop transport. It is process-operational truth only; it
+// proves no product readiness, App access, account, or owner success.
+enum RuntimeServiceMode {
+  RUNTIME_SERVICE_MODE_UNSPECIFIED = 0;
+  // The ordinary protected owners were constructed and serve their operations.
+  RUNTIME_SERVICE_MODE_ORDINARY = 1;
+  // An owner refused the stored data in the selected data root. Only the
+  // bounded maintenance surface is served and the refused root is unchanged.
+  RUNTIME_SERVICE_MODE_MAINTENANCE = 2;
+}
+
+// GetRuntimeServiceStateRequest is intentionally empty; the verified
+// desktop_control connection is the complete authority input.
+message GetRuntimeServiceStateRequest {
+}
+
+message GetRuntimeServiceStateResponse {
+  RuntimeServiceMode mode = 1;
+  // Set only in maintenance mode: the owner-classified refusal reason.
+  ReasonCode reason_code = 2;
+}
+
 // RuntimeServiceControlService is registered only for the protected Runtime
 // host. RequestRuntimeRestart initiates graceful Runtime self-exit; callers
 // determine success only after SCM recovery and a new verified PID, creation
-// marker, boot epoch, and Desktop handshake.
+// marker, boot epoch, and Desktop handshake. GetRuntimeServiceState is read
+// by the Home host carrier before any other protected call on a new channel.
 service RuntimeServiceControlService {
   rpc RequestRuntimeRestart(RequestRuntimeRestartRequest) returns (RequestRuntimeRestartResponse);
+  rpc GetRuntimeServiceState(GetRuntimeServiceStateRequest) returns (GetRuntimeServiceStateResponse);
 }

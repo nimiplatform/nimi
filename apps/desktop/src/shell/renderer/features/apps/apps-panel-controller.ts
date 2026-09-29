@@ -35,7 +35,7 @@ export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly detailEntryKey: string | null;
   readonly searchQuery: string;
-  readonly actionError: string | null;
+  readonly actionError: AppsActionError | null;
   readonly pendingActions: readonly AppsPendingAction[];
   readonly installConfirmation: AppsInstallIntentSnapshot | null;
 }
@@ -223,6 +223,16 @@ export function createAppsPanelProjectionReloader(input: {
   });
 }
 
+/** A failed App action: user copy, with the raw reason kept for technical details. */
+export type AppsActionError = { readonly message: string; readonly detail: string | null };
+export type AppsActionFailure = { readonly entryKey: string | null; readonly error: AppsActionError };
+
+/** A failure shows in the list, or in the detail of the App it happened on. */
+export function visibleAppsActionError(failure: AppsActionFailure | null, detailEntryKey: string | null): AppsActionError | null {
+  if (!failure) return null;
+  return failure.entryKey === null || detailEntryKey === null || failure.entryKey === detailEntryKey ? failure.error : null;
+}
+
 export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanelController {
   const { t } = useTranslation();
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
@@ -231,7 +241,15 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   const projectionRef = useRef<DesktopAppsPanelProjection | null>(null);
   const [detailEntryKey, setDetailEntryKey] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [actionError, setActionError] = useState<string | null>(null);
+  // A failure belongs to the entry it happened on. Opening or polling details
+  // never clears it; only the next action or a retry does.
+  const [actionFailure, setActionFailure] = useState<AppsActionFailure | null>(null);
+  const failAction = useCallback((entryKey: string | null, message: string | null, detail: string | null = null) => {
+    setActionFailure(message ? { entryKey, error: { message, detail } } : null);
+  }, []);
+  const failActionWith = useCallback((entryKey: string | null, cause: unknown) => {
+    failAction(entryKey, t('Apps.actionFailed'), cause instanceof Error ? cause.message : String(cause));
+  }, [failAction, t]);
   // The ref is the synchronous single-flight guard; state drives rendering.
   const pendingActionsRef = useRef<readonly AppsPendingAction[]>([]);
   const [pendingActions, setPendingActions] = useState<readonly AppsPendingAction[]>([]);
@@ -332,7 +350,6 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   }, [installIntentController, installConfirmation, projection]);
 
   const runCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
-    setActionError(null);
     if (action === 'details' || action === 'open-ai-config') {
       // 'open-ai-config' is detail navigation with an AI-models section
       // request; the section itself is store-level and set by the dispatch
@@ -340,10 +357,11 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       setDetailEntryKey(entryKey);
       return;
     }
+    setActionFailure(null);
     if (projection?.status !== 'loaded') return;
     const entry = projection.entries.find((candidate) => candidate.identity.entryKey === entryKey);
     if (!entry) {
-      setActionError(`App source is no longer available: ${entryKey}`);
+      failAction(entryKey, t('Apps.actionFailed'), `App source is no longer available: ${entryKey}`);
       return;
     }
     if (appsActionsLocked(pendingActionsRef.current, entry.identity.appId)) return;
@@ -358,7 +376,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
           if (result.kind === 'confirmation-required') {
             setInstallConfirmation(result.intent);
           } else {
-            setActionError(appsInstallIntentFailure(result, t));
+            failAction(entryKey, appsInstallIntentFailure(result, t));
           }
         } else if (action === 'uninstall') {
           if (!entry.committedRelease || !deps.uninstall) throw new Error('App uninstall is unavailable');
@@ -367,7 +385,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
           if (entry.localDevelopment) await liveBridge.startRegistration(entry.localDevelopment.selector);
           else if (entry.committedRelease && liveBridge.launchInstalled) {
             const run = await liveBridge.launchInstalled(entry.committedRelease.launchSelector.slice());
-            if (run.state === 'crashed') setActionError(installedLaunchFailureMessage(run, t));
+            if (run.state === 'crashed') failAction(entryKey, installedLaunchFailureMessage(run, t));
           } else throw new Error('Installed App launch is unavailable');
         } else if (action === 'stop') {
           if (entry.localDevelopment) await liveBridge.stopRun(entry.localDevelopment.selector);
@@ -384,16 +402,16 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
         }
         await reload(false);
       } catch (error) {
-        setActionError(error instanceof Error ? error.message : String(error));
+        failActionWith(entryKey, error);
       } finally {
         endPendingAction();
       }
     })();
-  }, [beginPendingAction, deps.cancelPackageJob, deps.uninstall, installIntentController, liveBridge, projection, reload, t]);
+  }, [beginPendingAction, deps.cancelPackageJob, deps.uninstall, failAction, failActionWith, installIntentController, liveBridge, projection, reload, t]);
 
   const retryProjection = useCallback((): void => {
     setProjection(null);
-    setActionError(null);
+    setActionFailure(null);
     void reload(true);
     void reloader.refreshCatalog();
   }, [reload, reloader]);
@@ -416,25 +434,26 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     if (appsActionsLocked(pendingActionsRef.current, installConfirmation.appId)) return;
     const entryKey = desktopAppsEntryKey(installConfirmation.appId, 'verified');
     setInstallConfirmation(null);
-    setActionError(null);
+    setActionFailure(null);
     const endPendingAction = beginPendingAction({
       entryKey,
       appId: installConfirmation.appId,
       action: installConfirmation.update ? 'update' : 'install',
     });
     void installIntentController.confirm().then(async (result) => {
-      setActionError(appsInstallIntentFailure(result, t));
+      failAction(entryKey, appsInstallIntentFailure(result, t));
       await reload(false);
     }).catch((error: unknown) => {
-      setActionError(error instanceof Error ? error.message : String(error));
+      failActionWith(entryKey, error);
     }).finally(endPendingAction);
-  }, [beginPendingAction, installIntentController, installConfirmation, reload, t]);
+  }, [beginPendingAction, failAction, failActionWith, installIntentController, installConfirmation, reload, t]);
 
   const cancelInstall = useCallback((): void => {
     installIntentController?.cancel();
     setInstallConfirmation(null);
   }, [installIntentController]);
 
+  const actionError = visibleAppsActionError(actionFailure, detailEntryKey);
   return {
     projection,
     detailEntryKey,

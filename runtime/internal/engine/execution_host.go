@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -30,6 +31,17 @@ const maxLlamaInvocationErrorBody = 64 << 10
 type llamaInvocationSubstrate interface {
 	Ensure(context.Context, string, []string, func() error, localexecution.TextProgressFunc) (string, bool, error)
 	Healthy() bool
+	// AccessKey is the current worker's private key; empty when none runs.
+	AccessKey() string
+}
+
+// authorizeLlamaRequest presents the running worker's private key; without it
+// llama-server refuses every inference request (only its health and model
+// listing stay open).
+func authorizeLlamaRequest(request *http.Request, substrate llamaInvocationSubstrate) {
+	if key := substrate.AccessKey(); key != "" {
+		request.Header.Set("Authorization", "Bearer "+key)
+	}
 }
 
 // ExecutionHost owns llama-server process and HTTP substrate execution. It
@@ -46,6 +58,8 @@ type ExecutionHost struct {
 	// underneath an earlier captured job. The channel makes queued acquisition
 	// cancelable without stopping the reusable resident worker.
 	lease chan struct{}
+	// idle releases the worker after its last request; Runtime-private.
+	idle residentIdleRelease
 }
 
 func newExecutionLease() chan struct{} {
@@ -146,7 +160,7 @@ func (h *ExecutionHost) ExecuteEmbed(
 		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
 	case <-h.lease:
 	}
-	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle() }()
+	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle(); h.armIdleRelease() }()
 	h.residentModelAssets.capture(plan.ModelFiles())
 
 	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
@@ -174,6 +188,7 @@ func (h *ExecutionHost) ExecuteEmbed(
 		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureInference, fmt.Errorf("create llama embedding request: %w", err))
 	}
 	request.Header.Set("Content-Type", "application/json")
+	authorizeLlamaRequest(request, h.substrate)
 	response, err := h.client.Do(request)
 	if err != nil {
 		return localexecution.EmbedResult{}, h.embedInferenceFailure(ctx, err)
@@ -249,7 +264,7 @@ func (h *ExecutionHost) execute(
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
 	case <-h.lease:
 	}
-	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle() }()
+	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle(); h.armIdleRelease() }()
 	h.residentModelAssets.capture(plan.ModelFiles())
 
 	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
@@ -273,6 +288,7 @@ func (h *ExecutionHost) execute(
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureInference, fmt.Errorf("create llama inference request: %w", err))
 	}
 	request.Header.Set("Content-Type", plan.RequestContentType())
+	authorizeLlamaRequest(request, h.substrate)
 	if plan.Stream() {
 		request.Header.Set("Accept", "text/event-stream")
 	}
@@ -734,7 +750,10 @@ type managerLlamaInvocationSubstrate struct {
 
 	mu         sync.Mutex
 	currentKey string
-	loading    *managerLlamaInvocationLoad
+	// accessKey is the running worker's private key, fresh for each start and
+	// handed to it only through its environment (never argv or logs).
+	accessKey string
+	loading   *managerLlamaInvocationLoad
 }
 
 type managerLlamaInvocationLoad struct {
@@ -848,17 +867,17 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 
 func (s *managerLlamaInvocationSubstrate) runLoad(load *managerLlamaInvocationLoad) {
 	if err := load.ctx.Err(); err != nil {
-		s.finishLoad(load, "", err)
+		s.finishLoad(load, "", "", err)
 		return
 	}
 	if info, err := s.manager.EngineStatus(EngineLlama); err == nil && info.Status != StatusStopped {
 		if err := s.manager.StopEngine(EngineLlama); err != nil {
-			s.finishLoad(load, "", fmt.Errorf("stop prior llama process: %w", err))
+			s.finishLoad(load, "", "", fmt.Errorf("stop prior llama process: %w", err))
 			return
 		}
 	}
 	if err := load.ctx.Err(); err != nil {
-		s.finishLoad(load, "", err)
+		s.finishLoad(load, "", "", err)
 		return
 	}
 	// Revalidate only after the prior worker has stopped and immediately before
@@ -866,29 +885,55 @@ func (s *managerLlamaInvocationSubstrate) runLoad(load *managerLlamaInvocationLo
 	// check earlier would leave process shutdown as a replacement window.
 	if load.validateContent != nil {
 		if err := load.validateContent(); err != nil {
-			s.finishLoad(load, "", err)
+			s.finishLoad(load, "", "", err)
 			return
 		}
 	}
+	accessKey, err := newLlamaAccessKey()
+	if err != nil {
+		s.finishLoad(load, "", "", err)
+		return
+	}
 	cfg := s.config
 	cfg.CommandArgs = append([]string(nil), load.args...)
+	cfg.CommandEnv = make(map[string]string, len(s.config.CommandEnv)+1)
+	for key, value := range s.config.CommandEnv {
+		cfg.CommandEnv[key] = value
+	}
+	cfg.CommandEnv["LLAMA_API_KEY"] = accessKey
 	if err := s.manager.StartEngine(load.ctx, cfg); err != nil {
-		s.finishLoad(load, "", err)
+		s.finishLoad(load, "", "", err)
 		return
 	}
 	endpoint, err := s.manager.EngineEndpoint(EngineLlama)
-	s.finishLoad(load, endpoint, err)
+	s.finishLoad(load, endpoint, accessKey, err)
 }
 
-func (s *managerLlamaInvocationSubstrate) finishLoad(load *managerLlamaInvocationLoad, endpoint string, err error) {
+func newLlamaAccessKey() (string, error) {
+	secret := make([]byte, 32)
+	if _, err := rand.Read(secret); err != nil {
+		return "", fmt.Errorf("create llama access key: %w", err)
+	}
+	return hex.EncodeToString(secret), nil
+}
+
+func (s *managerLlamaInvocationSubstrate) AccessKey() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.accessKey
+}
+
+func (s *managerLlamaInvocationSubstrate) finishLoad(load *managerLlamaInvocationLoad, endpoint string, accessKey string, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	load.endpoint = endpoint
 	load.err = err
 	if err != nil {
 		s.currentKey = ""
+		s.accessKey = ""
 	} else {
 		s.currentKey = load.processKey
+		s.accessKey = accessKey
 	}
 	if s.loading == load {
 		s.loading = nil

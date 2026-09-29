@@ -54,9 +54,19 @@ overlay. Do not redefine Kit token names in app CSS.
 Renderer app code uses renderer-safe shell exports:
 
 ```ts
-import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { resolveBootstrapAuthSession } from '@nimiplatform/kit/shell/renderer/bootstrap';
+import {
+  createNimiLocalAppStandardShellSurface,
+  installNimiShellRuntimeBridge,
+} from '@nimiplatform/kit/shell/renderer/bridge';
+import { createRendererEntryModuleLoader } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
+
+A generated renderer entry calls `installNimiShellRuntimeBridge()` once.
+`createNimiLocalAppStandardShellSurface()` supplies the `standardShell` for
+the App's host-bound SDK client, created with
+`createNimiClient({ localApp: { standardShell } })`. The lower-level
+`invokeShell` and `invokeTauri` helpers are host glue for shell integrations,
+not an App's call path.
 
 Electron main/preload code uses Electron-only exports:
 
@@ -71,21 +81,22 @@ capability boundary.
 
 ## AI Capability Configuration
 
-Agent Center presents owner-scoped AIConfig intent through its public feature:
+A generated App renders its AI settings with the model-config feature and
+backs it with the App's host-bound client:
 
 ```ts
-import {
-  AgentCenter,
-  AgentCenterAIConfigSection,
-} from '@nimiplatform/kit/features/agent-center/ui';
-import { createNimiAppAIConfigClient } from '@nimiplatform/sdk/ai';
+import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';
 ```
 
-The owning session supplies the current whole-object AIConfig projection and
-its overwrite action. The section lets the owner express Local or Cloud
-capability intent. It does not select a model, machine route, connector, or
-execution binding. Runtime owns implementation selection, readiness, and
-execution evidence.
+The generated settings panel passes `client.aiConfig.get()`,
+`client.aiConfig.listOptions(query)`, and `client.aiConfig.overwrite(input)` to
+the surface; keep that wiring when you move it. The surface lets the owner
+express Local or Cloud capability intent. It does not select a model, machine
+route, connector, or execution binding. Runtime owns implementation selection,
+readiness, and execution evidence. See [AI Config](/sdk/ai-config-surface).
+
+Agent Center presents the same kind of owner-scoped intent through
+`AgentCenterAIConfigSection` from `@nimiplatform/kit/features/agent-center/ui`.
 
 ## Reuse Rules
 
@@ -110,8 +121,8 @@ pnpm check:nimi-kit
 For generated app repositories:
 
 ```bash
-pnpm run validate
-pnpm run doctor
+pnpm run check
+pnpm run test
 ```
 
 ## Source Basis

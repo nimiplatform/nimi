@@ -10,12 +10,15 @@ type PresenceDescriptor = {
   readonly desktopAppId: 'nimi.desktop';
   readonly desktopPid: number;
   readonly endpoint: string;
+  // Proof that a caller could read this owner-only file: the official launcher
+  // sends it with every request. It grants no App access.
+  readonly callerToken: string;
   readonly startedAt: string;
   readonly lastHeartbeatAt: string;
 };
 
 export type DesktopElectronLocalDevelopmentPresencePublisher = {
-  readonly start: (endpoint: string) => Promise<void>;
+  readonly start: (endpoint: string, callerToken: string) => Promise<void>;
   readonly heartbeat: () => Promise<void>;
   readonly shutdown: () => Promise<void>;
 };
@@ -38,6 +41,7 @@ class ElectronLocalDevelopmentPresencePublisher implements DesktopElectronLocalD
   private readonly presencePath: string;
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   private endpoint = '';
+  private callerToken = '';
   private startedAt = '';
 
   constructor(
@@ -59,9 +63,11 @@ class ElectronLocalDevelopmentPresencePublisher implements DesktopElectronLocalD
     );
   }
 
-  async start(endpoint: string): Promise<void> {
+  async start(endpoint: string, callerToken: string): Promise<void> {
     if (this.heartbeatTimer || this.endpoint) throw new Error('local-development-supervisor-required');
+    if (!/^[0-9a-f]{64}$/u.test(callerToken)) throw new Error('local-development-presence-untrusted');
     this.endpoint = endpoint;
+    this.callerToken = callerToken;
     this.startedAt = this.now().toISOString();
     await this.writePresence();
     this.heartbeatTimer = setInterval(() => void this.heartbeat(), LOCAL_DEVELOPMENT_HEARTBEAT_INTERVAL_MS);
@@ -91,6 +97,7 @@ class ElectronLocalDevelopmentPresencePublisher implements DesktopElectronLocalD
       desktopAppId: 'nimi.desktop',
       desktopPid: this.processId,
       endpoint: this.endpoint,
+      callerToken: this.callerToken,
       startedAt: this.startedAt,
       lastHeartbeatAt: this.now().toISOString(),
     };

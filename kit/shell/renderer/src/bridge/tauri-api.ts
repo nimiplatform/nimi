@@ -1,4 +1,5 @@
-import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
+import { NIMI_STANDARD_SHELL_COMMANDS, createNimiStandardShellError } from '@nimiplatform/kit/shell/capabilities';
+import { isNimiLocalAppByteView } from '@nimiplatform/kit/core/sdk-contract';
 
 export type ShellInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 export type ShellEventUnsubscribe = () => void;
@@ -132,7 +133,6 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']]: 'file_reveal_reveal',
   [NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']]: 'export_save_file',
   [NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']]: 'artifacts_write',
-  [NIMI_STANDARD_SHELL_COMMANDS['artifacts.readRuntimeBytes']]: 'artifacts_read_runtime_bytes',
   [NIMI_STANDARD_SHELL_COMMANDS['floating-window.setBounds']]: 'floating_window_set_bounds',
   [NIMI_STANDARD_SHELL_COMMANDS['floating-window.setIgnoreCursorEvents']]: 'floating_window_set_ignore_cursor_events',
   [NIMI_STANDARD_SHELL_COMMANDS['floating-window.setAlwaysOnTop']]: 'floating_window_set_always_on_top',
@@ -147,6 +147,33 @@ export function resolveTauriStandardCommand(command: string): string {
   return TAURI_STANDARD_COMMAND_ALIASES[command] ?? command;
 }
 
+const STANDARD_SHELL_COMMANDS: ReadonlySet<string> = new Set(Object.values(NIMI_STANDARD_SHELL_COMMANDS));
+
+/**
+ * The aliases above are the standard shell operations the shared Tauri crate
+ * carries. Any other standard operation has no Tauri command, so it fails as
+ * capability-unavailable here instead of reaching Tauri as an unknown command.
+ * App-owned and native Tauri commands sit outside the standard namespace and
+ * pass through unchanged.
+ */
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-041c
+export function resolveTauriInvokeCommand(command: string): string {
+  const alias = TAURI_STANDARD_COMMAND_ALIASES[command];
+  if (alias) {
+    return alias;
+  }
+  if (STANDARD_SHELL_COMMANDS.has(command)) {
+    throw createNimiStandardShellError({
+      code: 'capability-unavailable',
+      reasonCode: 'tauri-standard-shell-operation-unsupported',
+      actionHint: 'use_electron_standard_shell_host',
+      source: 'tauri',
+      details: { command },
+    });
+  }
+  return command;
+}
+
 const TAURI_STRUCT_PAYLOAD_COMMANDS = new Set([
   'runtime_account_session_events_open',
   'runtime_account_session_events_close',
@@ -159,7 +186,32 @@ const TAURI_STRUCT_PAYLOAD_COMMANDS = new Set([
  * decoder still rejects caller or authority injection.
  */
 export function resolveTauriInvokePayload(command: string, payload: unknown): unknown {
-  return TAURI_STRUCT_PAYLOAD_COMMANDS.has(command) ? { payload } : payload;
+  const json = tauriJsonValue(payload);
+  return TAURI_STRUCT_PAYLOAD_COMMANDS.has(command) ? { payload: json } : json;
+}
+
+// Tauri command IPC is JSON. Exact byte views travel as JSON byte arrays on
+// that carrier only, and the byte fields it returns are restored to views.
+const TAURI_BYTE_RESULT_FIELDS: Readonly<Record<string, string>> = {
+  local_app_agent_presentation_read_asset: 'content',
+  local_app_asset_read_next: 'bodyChunk',
+};
+
+export function resolveTauriInvokeResult(command: string, result: unknown): unknown {
+  const field = TAURI_BYTE_RESULT_FIELDS[command];
+  if (!field || !result || typeof result !== 'object' || Array.isArray(result)) return result;
+  const value = (result as Record<string, unknown>)[field];
+  if (!Array.isArray(value) || !value.every((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 255)) return result;
+  return { ...(result as Record<string, unknown>), [field]: Uint8Array.from(value as number[]) };
+}
+
+function tauriJsonValue(value: unknown): unknown {
+  if (isNimiLocalAppByteView(value)) return Array.from(value);
+  if (Array.isArray(value)) return value.map(tauriJsonValue);
+  if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, tauriJsonValue(entry)]));
+  }
+  return value;
 }
 
 function shellGlobal(): TauriRuntimeGlobal {

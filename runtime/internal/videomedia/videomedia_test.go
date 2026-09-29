@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -30,50 +31,10 @@ func TestNewFailsClosedForUnavailableExecutables(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			processor, err := New(test.ffmpeg, test.probe)
-			if err == nil || processor != nil || FailureKindOf(err) != FailureUnavailable {
+			if err == nil || processor != nil || FailureKindOf(err) != FailureCodecUnavailable {
 				t.Fatalf("New() = processor=%v error=%v kind=%q", processor, err, FailureKindOf(err))
 			}
 		})
-	}
-}
-
-func TestCodecExecutablePathsArePinnedPerAdmittedPlatform(t *testing.T) {
-	root := filepath.Join(t.TempDir(), "dependencies")
-	tests := []struct {
-		name        string
-		goos        string
-		goarch      string
-		dependency  string
-		ffmpegName  string
-		ffprobeName string
-	}{
-		{
-			name: "Windows amd64", goos: "windows", goarch: "amd64",
-			dependency: PinnedWindowsCodecDependencyDir, ffmpegName: "ffmpeg.exe", ffprobeName: "ffprobe.exe",
-		},
-		{
-			name: "macOS arm64", goos: "darwin", goarch: "arm64",
-			dependency: PinnedDarwinARM64CodecDependencyDir, ffmpegName: "ffmpeg", ffprobeName: "ffprobe",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ffmpeg, ffprobe, err := codecExecutablePaths(root, test.goos, test.goarch)
-			if err != nil {
-				t.Fatalf("codecExecutablePaths: %v", err)
-			}
-			base := filepath.Join(root, filepath.FromSlash(test.dependency))
-			if ffmpeg != filepath.Join(base, test.ffmpegName) || ffprobe != filepath.Join(base, test.ffprobeName) {
-				t.Fatalf("paths = %q, %q", ffmpeg, ffprobe)
-			}
-		})
-	}
-}
-
-func TestCodecExecutablePathsRejectUnsupportedPlatform(t *testing.T) {
-	ffmpeg, ffprobe, err := codecExecutablePaths(t.TempDir(), "linux", "amd64")
-	if err == nil || ffmpeg != "" || ffprobe != "" || FailureKindOf(err) != FailureUnavailable {
-		t.Fatalf("codecExecutablePaths() = ffmpeg=%q ffprobe=%q error=%v kind=%q", ffmpeg, ffprobe, err, FailureKindOf(err))
 	}
 }
 
@@ -236,4 +197,26 @@ func cloneRawCandidate(value localexecution.RawAVCandidate) localexecution.RawAV
 	}
 	out.Audio.PCMSamples = append([]float32(nil), value.Audio.PCMSamples...)
 	return out
+}
+
+func TestVerifyCodecRunsFindsACodecThatExistsButCannotStart(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX script codec")
+	}
+	dir := t.TempDir()
+	working := filepath.Join(dir, "ffmpeg")
+	broken := filepath.Join(dir, "ffprobe")
+	if err := os.WriteFile(working, []byte("#!/bin/sh\necho ffmpeg version test\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(broken, []byte("#!/bin/sh\necho 'dyld: Library not loaded' >&2\nkill -ABRT $$\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyCodecRuns(context.Background(), working, working); err != nil {
+		t.Fatalf("a codec that runs must pass: %v", err)
+	}
+	err := VerifyCodecRuns(context.Background(), working, broken)
+	if FailureKindOf(err) != FailureCodecUnavailable || !strings.Contains(err.Error(), "Library not loaded") {
+		t.Fatalf("VerifyCodecRuns = %v kind=%q, want codec_unavailable with its diagnostic", err, FailureKindOf(err))
+	}
 }

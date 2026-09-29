@@ -41,7 +41,7 @@ export function createDesktopElectronChatAiStoreHost(input: {
   return {
     commandHandlers: Object.fromEntries(CHAT_AI_COMMANDS.map((command) => [
       command,
-      (context: ChatAiCommandContext) => operationGate.runExclusive(
+      (context: ChatAiCommandContext) => operationGate.runShared(
         () => store.invoke(command, context.payload),
       ),
     ])) as DesktopElectronChatAiStoreHost['commandHandlers'],
@@ -54,6 +54,7 @@ class ElectronChatAiStoreWorkerClient {
   private readonly worker: Worker;
   private nextId = 1;
   private closed = false;
+  private tail: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly resolveSelectedDataRoot: () => Promise<string> | string,
@@ -77,9 +78,11 @@ class ElectronChatAiStoreWorkerClient {
     command: ChatAiCommand,
     payload: Readonly<Record<string, unknown>>,
   ): Promise<unknown> {
-    // The shared data-root operation gate admits calls in order and waits for
-    // each Worker result, including asynchronous root resolution.
-    return this.invokeInOrder(command, payload);
+    // Calls reach the Worker in arrival order, each after the previous result,
+    // including its asynchronous root resolution.
+    const result = this.tail.then(() => this.invokeInOrder(command, payload));
+    this.tail = result.then(() => undefined, () => undefined);
+    return result;
   }
 
   private async invokeInOrder(

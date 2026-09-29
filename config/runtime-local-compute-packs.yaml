@@ -12,8 +12,6 @@ entries:
   - packs_4
   - packs_5
   - packs_6
-  - packs_7
-  - packs_8
   - pack selection may be explicit or derived from an admitted capability
     consumer
   - pack selection must resolve a Runtime-owned local environment plan before
@@ -69,58 +67,12 @@ packs:
     capabilities:
       - image.generate
     required_dependency_families:
-      - python.tool.uv
-      - python.runtime
-      - python.venv
-      - python.package-set
       - native-engine-package.stablediffusion-ggml
     optional_dependency_families:
       - accelerator.cuda.runtime
     consumers:
       - stable-diffusion.cpp.metal
       - stable-diffusion.cpp.cuda
-    cloud_only_impact: none
-
-  - pack_id: local-image-python
-    product_label: Local image Python workflows
-    owner: runtime_local_environment_plan
-    user_entrypoints:
-      - local_model_install
-      - local_compute_setup
-    capabilities:
-      - image.generate
-    required_dependency_families:
-      - python.tool.uv
-      - python.runtime
-      - python.venv
-      - python.package-set
-      - python.torch-wheel
-    optional_dependency_families:
-      - accelerator.cuda.runtime
-    consumers:
-      - media.diffusers.cpu
-      - media.diffusers.cuda
-    cloud_only_impact: none
-
-  - pack_id: local-video-python
-    product_label: Local video Python workflows
-    owner: runtime_local_environment_plan
-    user_entrypoints:
-      - local_model_install
-      - local_compute_setup
-    capabilities:
-      - video.generate
-    required_dependency_families:
-      - python.tool.uv
-      - python.runtime
-      - python.venv
-      - python.package-set
-      - python.torch-wheel
-    optional_dependency_families:
-      - accelerator.cuda.runtime
-    consumers:
-      - media.video-python.cpu
-      - media.video-python.cuda
     cloud_only_impact: none
 
   - pack_id: local-music-native
@@ -247,8 +199,6 @@ packs:
     consumers:
       - llama.cpp.cuda
       - stable-diffusion.cpp.cuda
-      - media.diffusers.cuda
-      - media.video-python.cuda
     cloud_only_impact: none
 
 pack_rules:

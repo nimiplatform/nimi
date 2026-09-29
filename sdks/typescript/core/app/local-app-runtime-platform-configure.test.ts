@@ -235,7 +235,7 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
           backendKind: 'vrm',
           fileName: 'avatar.vrm',
           mediaType: 'model/gltf-binary',
-          content: [1, 2, 3],
+          content: new Uint8Array([1, 2, 3]),
           sha256: 'a'.repeat(64),
         };
       },
@@ -920,6 +920,23 @@ test('presentation asset read carries only current handle and committed asset re
   assert.equal(asset.backendKind, 'vrm');
   assert.deepEqual([...asset.content], [1, 2, 3]);
   assert.equal(Object.isFrozen(asset), true);
+});
+
+test('presentation asset read rejects the retired JSON byte array and non-byte views', async () => {
+  for (const content of [[1, 2, 3], new Float64Array([1, 2, 3]), new DataView(new ArrayBuffer(3))]) {
+    const base = shell([]);
+    const client = createNimiLocalAppAgentConfigureClient({
+      ...base,
+      presentation: {
+        ...base.presentation,
+        readAsset: async () => ({
+          assetRef: 'vrm_0123456789ab', role: 'avatar', backendKind: 'vrm', fileName: 'avatar.vrm',
+          mediaType: 'model/gltf-binary', content, sha256: 'a'.repeat(64),
+        }),
+      },
+    });
+    await assert.rejects(client.presentation.readAsset({ agentHandle: HANDLE, assetRef: 'vrm_0123456789ab' }));
+  }
 });
 
 test('presentation voice-only patch preserves top-level voice and autoplay without an Avatar backend', async () => {

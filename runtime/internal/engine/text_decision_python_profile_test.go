@@ -12,8 +12,8 @@ func TestTextDecisionProfilesBindExactTorchPlanes(t *testing.T) {
 		platform, plane, label, index, cudaABI string
 	}{
 		{"windows/amd64", "cuda", "text-laya-cu128", defaultSpeechTorchCUDAIndexURL, "cu128"},
-		{"windows/amd64", "cpu", "text-laya-cpu", defaultMediaTorchCPUIndexURL, "none"},
-		{"darwin/arm64", "cpu", "text-laya-cpu", defaultMediaTorchCPUIndexURL, "none"},
+		{"windows/amd64", "cpu", "text-laya-cpu", defaultTorchCPUIndexURL, "none"},
+		{"darwin/arm64", "cpu", "text-laya-cpu", defaultTorchCPUIndexURL, "none"},
 	} {
 		identity, err := ResolvePythonDependencyProfileIdentity(TextDecisionConsumerID, test.platform, test.plane)
 		if err != nil {

@@ -1,3 +1,5 @@
+import { runtimeStatusIsMaintenance } from './runtime-maintenance.js';
+
 type RegistrationOperation = 'status' | 'register' | 'reregister' | 'unregister' | 'open-settings';
 type CommandNames = { readonly status: string; readonly start: string; readonly restart: string };
 type LifecycleHost = { invoke(command: string, names: CommandNames): Promise<unknown> };
@@ -52,7 +54,12 @@ export function createDesktopMacOSRuntimeServiceHost(base: LifecycleHost, ports:
       : registration === 3 ? 'runtime-service-repair-required' : 'runtime-service-unavailable',
   });
   return {
-    async prepare(names: CommandNames): Promise<boolean> {
+    /**
+     * Registers and starts the service. 'approval-pending' means Home must stop
+     * for administrator approval; 'maintenance' means the Runtime is reachable
+     * but refused its stored data and Home continues to its recovery page.
+     */
+    async prepare(names: CommandNames): Promise<'ready' | 'maintenance' | 'approval-pending'> {
       const registration = await prepare();
       if (registration === 1) {
         // Registration precedes Runtime launch and protected connection
@@ -63,7 +70,8 @@ export function createDesktopMacOSRuntimeServiceHost(base: LifecycleHost, ports:
         for (;;) {
           try {
             const state = await base.invoke(command, names) as { running?: boolean; lastError?: string } | null;
-            if (state?.running === true) return true;
+            if (state?.running === true) return 'ready';
+            if (runtimeStatusIsMaintenance(state)) return 'maintenance';
             if (Date.now() >= deadline) throw new Error(state?.lastError || 'runtime-service-unavailable');
           } catch (error) {
             const failure = error as { reasonCode?: unknown; details?: { retryable?: unknown } } | null;
@@ -79,7 +87,7 @@ export function createDesktopMacOSRuntimeServiceHost(base: LifecycleHost, ports:
       if (await ports.showApproval()) await ports.registration('open-settings');
       // Home must stop bootstrap until the administrator approves. Continuing
       // into renderer auto-start would immediately repeat a dismissed prompt.
-      return false;
+      return 'approval-pending';
     },
     async unregister(): Promise<void> {
       if (await ports.registration('unregister') !== 0) {

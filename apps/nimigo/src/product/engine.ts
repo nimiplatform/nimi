@@ -2,7 +2,7 @@ import type { NimiLocalAppClient, NimiLocalAppAgentReference, NimiAppActivityRec
 import { GoStore } from './store';
 import { visibleActivities } from './workbench-view';
 import { withWorkExchanges } from './work-context';
-import { attachMaterial, createWork, deliveredWorkStatus, errorText, nextQueuedWork, nextRoutineTime, now, projectDeliverables, reviseMaterial, reviseWorkDetails, uuid, workCanEdit, workSources, type Work, type WorkMessage, type Workspace, type Material, type Skill, type Routine, type Attempt } from './model';
+import { attachMaterial, createWork, deliveredWorkStatus, errorReasonOf, errorText, nextQueuedWork, nextRoutineTime, now, projectDeliverables, restorablePendingRequest, reviseMaterial, reviseWorkDetails, uuid, workCanEdit, workSources, type Work, type WorkMessage, type Workspace, type Material, type Skill, type Routine, type Attempt, type PendingRequest } from './model';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const text = (value: unknown, name: string, max = 16384): string => {
@@ -26,7 +26,20 @@ export const workTools = [
 
 export type GoClient = Pick<NimiLocalAppClient, 'agentWork' | 'activity' | 'storage' | 'integration'> & { realm: Pick<NimiLocalAppClient['realm'], 'worldCore'> };
 type WorkCall = Awaited<ReturnType<GoClient['agentWork']['listToolCalls']>>[number];
-export type Pending = { workId: string; question: string; change?: { world: RealmModel<'WorldCoreDto'>; summary: string } };
+export type Pending = { workId: string; question: string; request: PendingRequest; change?: { world: RealmModel<'WorldCoreDto'>; summary: string } };
+
+// Runtime answers every agent-work Start refusal before admitting the work, so a
+// typed refusal proves nothing was started. Only a lost transport, an
+// unclassified failure or a changed session leaves admission unknown.
+const ADMISSION_UNKNOWN = new Set([
+  'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'canceled',
+  'session-invalid', 'process-replaced', 'account-changed', 'runtime-restarted', 'revoked', 'project-changed',
+  'local-app-snapshot-unavailable',
+]);
+export function startRefusedBeforeAdmission(error: unknown): boolean {
+  const reason = (error as { reasonCode?: unknown } | null)?.reasonCode;
+  return typeof reason === 'string' && reason !== '' && !ADMISSION_UNKNOWN.has(reason);
+}
 // @nimi-authority: rule.nimi.nimigo.workbench.delivery
 // @nimi-authority: rule.nimi.nimigo.workbench.assignment
 export class GoEngine {
@@ -79,7 +92,10 @@ export class GoEngine {
     check?.();
     await this.serialize(async () => {
       check?.();
-      const work = structuredClone(this.getWork(id)); update(work); work.updatedAt = now();
+      const previous = this.getWork(id);
+      const work = structuredClone(previous); update(work); work.updatedAt = now();
+      // A reason belongs to the error it came with; a new or cleared error drops it.
+      if (work.error !== previous.error && work.errorReason === previous.errorReason) work.errorReason = undefined;
       await this.store.saveWork(work, check); check?.();
       this.works = this.works.map(w => w.id === id ? work : w); this.changed();
     });
@@ -98,9 +114,12 @@ export class GoEngine {
           // run persists an attempt before sending. A queue entry does not create one.
           // Earlier terminal attempts are history, not the result of the new queued request.
           if (!attempt || (work.status === 'queued' && !['running', 'uncertain'].includes(attempt.status))) {
-            await this.modifyWork(work.id, w => { w.status = 'draft'; w.question = undefined; w.error = undefined; });
+            await this.modifyWork(work.id, w => { w.status = 'draft'; w.question = undefined; w.pendingRequest = undefined; w.error = undefined; });
             continue;
           }
+          // An answered-question stop point needs no execution lookup: the
+          // execution ended when the question was recorded.
+          if (work.status === 'needs-input') { await this.restoreQuestion(work); continue; }
           const reference = this.agents.find(a => a.agentBinding === attempt?.agentBinding);
           let restored: 'complete' | 'review' | 'failed' | 'stopped' | 'uncertain' = 'uncertain';
           if (attempt?.executionId && reference) {
@@ -109,9 +128,15 @@ export class GoEngine {
               restored = execution.state === 'succeeded' ? deliveredWorkStatus(work, execution.executionId) : execution.state === 'failed' ? 'failed' : execution.state === 'cancelled' ? 'stopped' : 'uncertain';
             } catch { /* The work remains explicitly uncertain until the owner can be observed. */ }
           }
+          if (work.question && (restored === 'complete' || restored === 'review')) {
+            await this.modifyWork(work.id, w => { w.attempts.at(-1)!.status = 'complete'; });
+            await this.restoreQuestion(this.getWork(work.id));
+            continue;
+          }
           await this.modifyWork(work.id, w => {
             w.status = work.status === 'queued' && restored !== 'uncertain' ? 'draft' : restored;
-            w.question = undefined;
+            // An unconfirmed round keeps its typed question until it is checked.
+            if (restored !== 'uncertain') { w.question = undefined; w.pendingRequest = undefined; }
             w.error = restored === 'uncertain' ? '本次委托可能已经提交。请先核对执行结果与已保存成果，不会自动重新执行。' : undefined;
             w.attempts.at(-1)!.status = restored;
           });
@@ -129,8 +154,31 @@ export class GoEngine {
         if (this.disposed) return;
         this.ready = true; this.changed();
         void this.serveDeliverables();
-      } catch (error) { this.report(error); }
+      } catch (error) {
+        // A transient failure must not stay cached for this Host's lifetime.
+        this.init = null;
+        this.report(error);
+      }
     })();
+  }
+  /**
+   * Reopens a question the user still owes. Only a typed request with its exact
+   * facts comes back as a decision; an untyped or incomplete one keeps its text,
+   * explains that it cannot be restored and lets the user ask again.
+   */
+  private async restoreQuestion(work: Work) {
+    const request = restorablePendingRequest(work);
+    if (request) {
+      await this.modifyWork(work.id, w => { w.status = 'needs-input'; w.error = undefined; });
+      this.pending.set(work.id, { workId: work.id, question: request.question, request });
+      return;
+    }
+    const question = work.question || '';
+    await this.modifyWork(work.id, w => {
+      w.status = 'stopped'; w.question = undefined; w.pendingRequest = undefined;
+      w.error = `重新打开后无法确定这个待办的类型，未作答也未应用任何修改。原问题：「${question}」。可以补充说明后重新推进，请搭档重新提出。`;
+      w.history.push({ id: uuid(), at: now(), text: `重新打开后保留了无法恢复的待办原文：「${question}」` });
+    });
   }
   dispose() {
     this.disposed = true; this.ready = false; this.runEpoch++; this.active = null; this.pending.clear(); this.store.close();
@@ -256,7 +304,8 @@ export class GoEngine {
     this.messages.set(workId, this.getWork(workId).messages || []); this.changed();
   }
   // @nimi-authority: rule.nimi.nimigo.workbench.background-delivery
-  async run(workId: string, followup?: string, routineName?: string) {
+  /** `onRecorded` fires once the request is durable: queued or started as an attempt. */
+  async run(workId: string, followup?: string, routineName?: string, onRecorded?: () => void) {
     if (!this.ready || !this.workspace || !this.agent) throw new Error('请先任命一位现有 Agent');
     if (this.importing.has(workId)) throw new Error('资料仍在读取保存，请稍后开始分析');
     const requested = this.getWork(workId);
@@ -269,6 +318,7 @@ export class GoEngine {
         if (w.status === 'queued') throw new Error('这项工作已在队列中');
         w.status = 'queued'; w.queuedInput = { sequence, followup, routineName }; w.error = undefined;
       });
+      onRecorded?.();
       return;
     }
     this.active = workId; const epoch = ++this.runEpoch; this.handled.clear(); this.error = ''; this.changed();
@@ -281,11 +331,13 @@ export class GoEngine {
       const status = await this.client.agentWork.status({ agentHandle: agent.agentHandle }); check();
       if (status.busy) {
         await this.modifyWork(workId, w => { w.status = 'queued'; w.queuedInput = { sequence: queuedSequence ?? ++this.queueSequence, followup, routineName }; }, check);
+        onRecorded?.();
         return;
       }
       const attempt = { id: uuid(), agentBinding: agent.agentBinding, executionId: null as string | null, startedAt: now(), status: 'running' as const, input: followup || work.brief };
       attemptId = attempt.id;
-      await this.modifyWork(workId, w => { w.status = 'running'; w.queuedInput = undefined; w.error = undefined; w.question = undefined; w.attempts.push(attempt); }, check);
+      await this.modifyWork(workId, w => { w.status = 'running'; w.queuedInput = undefined; w.error = undefined; w.question = undefined; w.pendingRequest = undefined; w.attempts.push(attempt); }, check);
+      onRecorded?.();
       const skill = this.workspace.skills.find(s => s.id === work.skillId);
       const integrationTools = await this.integrationTools(work); check();
       const input = withWorkExchanges(work, agent.agentBinding, {
@@ -316,13 +368,20 @@ export class GoEngine {
             if (this.getWork(workId).question) throw new Error('本轮正在等待用户决定；请结束本次执行。');
             if (call.name === 'request_input' || call.name === 'update_world_summary') {
               const args = JSON.parse(call.argumentsJson) as Record<string, unknown>;
-              if (call.name === 'request_input') this.pending.set(workId, { workId, question: text(args.question, '问题', 4096) });
-              else {
+              if (call.name === 'request_input') {
+                const question = text(args.question, '问题', 4096);
+                this.pending.set(workId, { workId, question, request: { kind: 'input', question } });
+              } else {
                 const world = await this.client.realm.worldCore.get(text(args.worldId, 'World ID', 256)); check();
                 if (!world.lorebookDeclaration) throw new Error('源 World 缺少正式 lorebook 声明');
-                this.pending.set(workId, { workId, question: `审核对「${world.core.identity.name}」的摘要修改`, change: { world, summary: text(args.summary, '摘要', 8192) } });
+                const summary = text(args.summary, '摘要', 8192);
+                const question = `审核对「${world.core.identity.name}」的摘要修改`;
+                this.pending.set(workId, {
+                  workId, question, change: { world, summary },
+                  request: { kind: 'world-review', question, worldId: world.id, worldName: world.core.identity.name, baseContentHash: world.contentHash, beforeSummary: world.core.identity.summary ?? '', afterSummary: summary },
+                });
               }
-              await this.modifyWork(workId, w => { w.question = this.pending.get(workId)!.question; }, check);
+              await this.modifyWork(workId, w => { const pending = this.pending.get(workId)!; w.question = pending.question; w.pendingRequest = pending.request; }, check);
               result = { status: 'awaiting-user', question: this.pending.get(workId)!.question, instruction: 'End this execution. The App will submit a new request after the user decides.' };
             } else result = await this.executeTool(workId, call, check, input.sources.find(source => source.sourceId === 'work-exchanges'));
           } catch (error) { result = { error: errorText(error) }; isError = true; }
@@ -337,6 +396,7 @@ export class GoEngine {
             w.attempts.find(a => a.id === attempt.id)!.status = execution.state === 'succeeded' ? 'complete' : status;
             if (execution.state === 'succeeded' && execution.outputText) w.messages = [...(w.messages || []), { messageId: `${execution.executionId}:result`, executionId: execution.executionId, role: 'assistant', parts: [{ kind: 'text', text: execution.outputText }] }];
             w.error = execution.state === 'failed' ? errorText({ message: execution.message, reasonCode: execution.reasonCode }) : status === 'review' ? '本轮已结束，但尚未保存满足目标的新成果。' : undefined;
+            if (execution.state === 'failed') w.errorReason = errorReasonOf(execution);
           }, check);
           await this.hydrate(workId);
           if (status === 'complete' && this.workspace.notifyHome) await this.publish(workId, check);
@@ -359,8 +419,15 @@ export class GoEngine {
       if (!accepted && reason.replaceAll('_', '-').toLowerCase() === 'agent-busy') {
         await this.modifyWork(workId, w => { w.status = 'queued'; w.queuedInput = { sequence: queuedSequence ?? ++this.queueSequence, followup, routineName }; if (attemptId) w.attempts = w.attempts.filter(a => a.id !== attemptId); }, check);
       } else {
-        const status = accepted || submitting ? 'uncertain' : 'failed';
-        await this.modifyWork(workId, w => { w.status = status; w.error = errorText(error); const attempt = w.attempts.find(a => a.id === attemptId); if (attempt) attempt.status = status; }, check).catch(e => this.report(e));
+        // A refusal Runtime returned before admission is a plain failure and the
+        // attempt keeps its input; only an unknown admission stays unconfirmed.
+        const status = accepted || (submitting && !startRefusedBeforeAdmission(error)) ? 'uncertain' : 'failed';
+        await this.modifyWork(workId, w => {
+          w.error = errorText(error); w.errorReason = errorReasonOf(error);
+          // Nothing was recorded yet: a question the user still owes stays open.
+          if (!attemptId && w.status === 'needs-input') return;
+          w.status = status; const attempt = w.attempts.find(a => a.id === attemptId); if (attempt) attempt.status = status;
+        }, check).catch(e => this.report(e));
         this.report(error);
       }
     } finally {
@@ -379,24 +446,37 @@ export class GoEngine {
       if (next) void this.run(next.id, next.queuedInput?.followup, next.queuedInput?.routineName).catch(error => this.report(error));
     } catch (error) { this.report(error); }
   }
-  async answer(workId: string, answer: string) {
+  /** `onRecorded` fires once the answer is durable as the next round's input. */
+  async answer(workId: string, answer: string, onRecorded?: () => void) {
     const pending = this.pending.get(workId);
-    if (!pending || this.active || this.getWork(pending.workId).status !== 'needs-input') throw new Error('请等待本轮结束后再补充。');
+    if (!pending || pending.request.kind !== 'input' || this.active || this.getWork(pending.workId).status !== 'needs-input') throw new Error('请等待本轮结束后再补充。');
     const reply = text(answer, '回答', 12000);
-    this.pending.delete(workId);
-    await this.run(pending.workId, `对问题「${pending.question}」的回答：${reply}`);
+    let recorded = false;
+    await this.run(pending.workId, `对问题「${pending.question}」的回答：${reply}`, undefined, () => {
+      recorded = true;
+      if (this.pending.get(workId) === pending) this.pending.delete(workId);
+      onRecorded?.();
+    });
+    if (!recorded) throw new Error(this.error || '回答尚未被记录，请重试。');
   }
   // @nimi-authority: rule.nimi.nimigo.workbench.ecosystem
   async decideWorldChange(workId: string, apply: boolean) {
     const pending = this.pending.get(workId);
-    if (!this.ready || !pending?.change || this.active) throw new Error('来源修改请求尚未就绪或已结束');
+    const review = pending?.request.kind === 'world-review' ? pending.request : null;
+    if (!this.ready || !pending || !review || this.active) throw new Error('来源修改请求尚未就绪或已结束');
     const epoch = this.runEpoch;
     const check = () => { if (!this.ready || epoch !== this.runEpoch || this.pending.get(workId) !== pending) throw new Error('执行范围已失效'); };
     check();
     let result = '用户拒绝修改来源。';
     if (apply) {
-      const { world, summary } = pending.change;
-      const changed = await this.client.realm.worldCore.replace(world.id, { baseContentHash: world.contentHash, core: { ...world.core, identity: { ...world.core.identity, summary } }, lorebookDeclaration: world.lorebookDeclaration!, origin: world.origin, visibility: world.visibility }); check();
+      // Apply only the exact reviewed difference to the exact reviewed version.
+      const world = pending.change?.world ?? await this.client.realm.worldCore.get(review.worldId); check();
+      if (world.id !== review.worldId || world.contentHash !== review.baseContentHash || (world.core.identity.summary ?? '') !== review.beforeSummary) {
+        throw new Error('来源 World 已经变化，这份修改不能按审核时的差异应用。可以选择不修改来源，或请搭档重新提出。');
+      }
+      if (!world.lorebookDeclaration) throw new Error('源 World 缺少正式 lorebook 声明');
+      const summary = review.afterSummary;
+      const changed = await this.client.realm.worldCore.replace(world.id, { baseContentHash: review.baseContentHash, core: { ...world.core, identity: { ...world.core.identity, summary } }, lorebookDeclaration: world.lorebookDeclaration, origin: world.origin, visibility: world.visibility }); check();
       result = `已提交来源修改，名称：${changed.core.identity.name}，版本：${changed.contentHash}。`;
       await this.modifyWork(pending.workId, w => { w.history.push({ id: uuid(), at: now(), text: result, kind: 'source-update' }); }, check);
     }
@@ -410,8 +490,13 @@ export class GoEngine {
     if (!attempt?.executionId || !ref) throw new Error('无法定位这项工作的独立执行记录；资料和成果仍保留。');
     const execution = await this.client.agentWork.get({ agentHandle: ref.agentHandle, executionId: attempt.executionId });
     if (execution.state === 'running' || execution.state === 'waiting_tool') return false;
+    if (execution.state === 'succeeded' && work.question) {
+      await this.modifyWork(workId, w => { w.attempts.find(a => a.id === attempt.id)!.status = 'complete'; });
+      await this.restoreQuestion(this.getWork(workId));
+      return true;
+    }
     const status = execution.state === 'succeeded' ? deliveredWorkStatus(work, execution.executionId) : execution.state === 'cancelled' ? 'stopped' : 'failed';
-    await this.modifyWork(workId, w => { w.status = status; w.question = undefined; w.attempts.find(a => a.id === attempt.id)!.status = status; w.error = execution.state === 'failed' ? execution.message || execution.reasonCode : undefined; });
+    await this.modifyWork(workId, w => { w.status = status; w.question = undefined; w.pendingRequest = undefined; w.attempts.find(a => a.id === attempt.id)!.status = status; w.error = execution.state === 'failed' ? execution.message || execution.reasonCode : undefined; if (execution.state === 'failed') w.errorReason = errorReasonOf(execution); });
     return true;
   }
   async stop(workId: string) {
@@ -424,7 +509,7 @@ export class GoEngine {
     this.pending.delete(workId);
     await this.modifyWork(workId, w => {
       if (w.attempts.at(-1)?.id !== attempt?.id) return;
-      w.status = unresolved ? 'uncertain' : 'stopped'; w.queuedInput = undefined; w.question = undefined;
+      w.status = unresolved ? 'uncertain' : 'stopped'; w.queuedInput = undefined; w.question = undefined; w.pendingRequest = undefined;
       w.error = unresolved ? attempt?.executionId ? '已停止本地推进，正在确认这轮执行已结束。' : '已停止本地推进，但尚未取得本轮执行记录；不会重发，请稍后核对。' : undefined;
       if (unresolved) w.attempts.at(-1)!.status = 'uncertain';
     });

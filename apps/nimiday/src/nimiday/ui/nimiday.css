@@ -30,9 +30,10 @@
   gap: var(--nimi-space-4);
   min-height: 0;
   padding: 22px 14px 16px;
-  border-right: 1px solid var(--nimi-border-subtle);
-  background: color-mix(in srgb, var(--nimi-surface-panel) 72%, transparent);
-  backdrop-filter: blur(var(--nimi-backdrop-blur-regular));
+  /* Structural chrome: fill, border color, blur and saturation come from the
+   * Kit glass-thick material classes in shell.tsx. */
+  border-right-width: 1px;
+  border-right-style: solid;
 }
 
 .nd-brand {
@@ -266,6 +267,12 @@
 .nd-faint {
   color: var(--nimi-text-muted);
   font-size: 12px;
+}
+
+.nd-field-error {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--nimi-status-danger);
 }
 
 .nd-empty {

@@ -5,6 +5,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
   buildAppScaffoldSnapshotFromIntent,
   managedAppReleaseWorkflowSource,
+  SCAFFOLD_APP_OWNED_HANDOVER_PATHS,
   SCAFFOLD_INTENT_PATH,
   SCAFFOLD_LOCK_VERSION,
   SCAFFOLD_LOCK_PATH,
@@ -628,6 +629,7 @@ function validateAppProjectState(targetDir, versions, runners = {}) {
   const lock = readLock(targetDir);
   const intent = readIntent(targetDir);
   const snapshot = expectedSnapshotFromLock(lock, versions, intent, targetDir);
+  assertNoPendingAppOwnedHandover(lock, snapshot);
   ensureLockMatchesCurrentGenerator(lock, snapshot);
   assertRequiredSupportFiles(targetDir, snapshot);
   assertProjectConfiguration(targetDir);
@@ -763,11 +765,49 @@ function collectExpectedClasses(snapshot) {
   return entries;
 }
 
-function assertNoClassificationConflict(lock, snapshot) {
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
+// A lock written by an earlier scaffold version can still list a file that the
+// current generator creates once for the App to own. Only the declared paths
+// may change owner, and only from managed glue to App-owned product code.
+function isAppOwnedHandover(relativePath, lockedEntry, current) {
+  return SCAFFOLD_APP_OWNED_HANDOVER_PATHS.includes(relativePath)
+    && lockedEntry?.class === 'scaffold-managed glue'
+    && current?.owner === 'app-owned'
+    && current.class === 'app-owned product code';
+}
+
+function assertNoPendingAppOwnedHandover(lock, snapshot) {
   const currentClasses = collectExpectedClasses(snapshot);
+  const pending = Object.entries(lock.managedFileHashes || {})
+    .filter(([relativePath, entry]) => isAppOwnedHandover(relativePath, entry, currentClasses.get(relativePath)))
+    .map(([relativePath]) => relativePath);
+  if (pending.length > 0) {
+    throw new Error(`${pending.join(', ')} now belongs to the App and is no longer scaffold-managed. Run nimi-app sync to record the new owner; sync leaves the file unchanged.`);
+  }
+}
+
+function describeAppOwnedHandover(targetDir, relativePath, lockedEntry) {
+  const filePath = path.join(targetDir, relativePath);
+  if (!existsSync(filePath)) return { path: relativePath, owner: 'app', file: 'missing' };
+  return {
+    path: relativePath,
+    owner: 'app',
+    file: 'kept',
+    // True when the file still holds exactly what the earlier scaffold managed.
+    earlierScaffoldContent: hashScaffoldManagedContent(relativePath, readContentForHash(filePath)) === lockedEntry.sha256,
+  };
+}
+
+function assertNoClassificationConflict(lock, snapshot, targetDir) {
+  const currentClasses = collectExpectedClasses(snapshot);
+  const handovers = [];
   for (const [relativePath, entry] of Object.entries(lock.managedFileHashes || {})) {
     const current = currentClasses.get(relativePath);
     if (current?.owner === 'managed' && current.class === entry.class) {
+      continue;
+    }
+    if (isAppOwnedHandover(relativePath, entry, current)) {
+      handovers.push(describeAppOwnedHandover(targetDir, relativePath, entry));
       continue;
     }
     throw new Error(`Scaffold classification conflict: ${relativePath}`);
@@ -779,6 +819,7 @@ function assertNoClassificationConflict(lock, snapshot) {
     }
     throw new Error(`Scaffold classification conflict: ${relativePath}`);
   }
+  return handovers;
 }
 
 function readCurrentAppManifest(targetDir) {
@@ -808,7 +849,8 @@ export function planManagedAppSync(cwd, options = {}, versions) {
     },
   };
   const snapshot = expectedSnapshotFromLock(lock, versions, versionedIntent, targetDir, { refreshDerived: true });
-  assertNoClassificationConflict(lock, snapshot);
+  // Handed-over files are App-owned now: they are reported, never planned.
+  const handovers = assertNoClassificationConflict(lock, snapshot, targetDir);
   const planned = snapshot.filesWithoutLock.filter((file) => snapshot.lock.managedFileHashes[file.path]).map((file) => {
     let content = file.content;
     if (file.path === 'nimi.app.yaml' && currentManifest) {
@@ -819,5 +861,5 @@ export function planManagedAppSync(cwd, options = {}, versions) {
     return plannedFile(targetDir, file.path, content);
   });
   planned.push(...planLifecycleGuidance(targetDir), plannedFile(targetDir, SCAFFOLD_LOCK_PATH, `${JSON.stringify(snapshot.lock, null, 2)}\n`));
-  return { targetDir, snapshot, planned };
+  return { targetDir, snapshot, planned, handovers };
 }

@@ -453,6 +453,7 @@ export { validateNimiLocalAppSpeechTranscript } from './local-app-transcription.
 export type { NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
 export { validateNimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
 export { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult } from './local-app-runtime-platform-ai.js';
+export { isNimiLocalAppByteView, copyNimiLocalAppBytes, exactNimiLocalAppBytes } from './local-app-bytes.js';
 export {
   nimiLocalAppTextDecideSpecFromShell,
   validateNimiLocalAppTextDecideOutput,

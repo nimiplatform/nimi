@@ -88,6 +88,7 @@ function runtimeConnectorAuthOptionToApiOption(
 
 export function createRuntimeConfigConnectorSdkService(
   getConnectors: () => ReturnType<DesktopRendererSdkPort['connectorAdmin']>,
+  onAuditDiagnostic?: () => void,
 ): RuntimeConfigConnectorSdkService {
   const runtimeConnectors: NimiRuntimeConnectorClient = Object.freeze({
     listProviderCatalog: (request, options) => getConnectors().listProviderCatalog(request, options),
@@ -100,6 +101,7 @@ export function createRuntimeConfigConnectorSdkService(
   });
   const inventory = createNimiRuntimeConnectorInventoryClient({
     connectors: runtimeConnectors,
+    onAuditDiagnostic,
     callOptions: CONNECTOR_CALL_OPTIONS,
   });
 

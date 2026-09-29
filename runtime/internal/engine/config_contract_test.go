@@ -5,22 +5,6 @@ import (
 	"time"
 )
 
-func TestDefaultMediaConfig(t *testing.T) {
-	cfg := DefaultMediaConfig()
-	if cfg.Kind != EngineMedia {
-		t.Errorf("expected kind %s, got %s", EngineMedia, cfg.Kind)
-	}
-	if cfg.HealthPath != "/healthz" {
-		t.Errorf("expected health path /healthz, got %s", cfg.HealthPath)
-	}
-	if cfg.HealthResponse != "\"ready\": true" {
-		t.Errorf("expected readiness response matcher, got %s", cfg.HealthResponse)
-	}
-	if cfg.StartupTimeout != 300*time.Second {
-		t.Errorf("expected media pipeline warmup timeout 300s, got %s", cfg.StartupTimeout)
-	}
-}
-
 func TestDefaultSpeechConfigUsesProfilePipelineWarmupBudget(t *testing.T) {
 	cfg := DefaultSpeechConfig()
 	if cfg.Kind != EngineSpeech {

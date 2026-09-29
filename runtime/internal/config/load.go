@@ -28,8 +28,6 @@ func Load() (Config, error) {
 
 	llamaEnabledFromFile := fileConfigEngineBool(fileCfg, "llama")
 	llamaPortFromFile := fileConfigEngineInt(fileCfg, "llama", "port")
-	mediaEnabledFromFile := fileConfigEngineBool(fileCfg, "media")
-	mediaPortFromFile := fileConfigEngineInt(fileCfg, "media", "port")
 	speechEnabledFromFile := fileConfigEngineBool(fileCfg, "speech")
 	speechPortFromFile := fileConfigEngineInt(fileCfg, "speech", "port")
 
@@ -77,10 +75,6 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	engineMediaPort, err := readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_PORT", mediaPortFromFile, 8321)
-	if err != nil {
-		return Config{}, err
-	}
 	engineSpeechPort, err := readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_PORT", speechPortFromFile, 8330)
 	if err != nil {
 		return Config{}, err
@@ -119,8 +113,6 @@ func Load() (Config, error) {
 		Providers:                       resolvedProviders,
 		EngineLlamaVersion:              readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_VERSION", fileConfigEngineString(fileCfg, "llama", "version"), engine.DefaultLlamaConfig().Version),
 		EngineLlamaPort:                 engineLlamaPort,
-		EngineMediaVersion:              readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_VERSION", fileConfigEngineString(fileCfg, "media", "version"), "0.1.0"),
-		EngineMediaPort:                 engineMediaPort,
 		EngineManagedImageBackendSource: readString("NIMI_RUNTIME_ENGINE_MANAGED_IMAGE_BACKEND_SOURCE", ""),
 		EngineSpeechVersion:             readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_VERSION", fileConfigEngineString(fileCfg, "speech", "version"), "0.1.0"),
 		EngineSpeechPort:                engineSpeechPort,
@@ -133,19 +125,12 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	cfg.EngineMediaEnabled, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_ENABLED", mediaEnabledFromFile, false)
-	if err != nil {
-		return Config{}, err
-	}
 	cfg.EngineSpeechEnabled, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_ENABLED", speechEnabledFromFile, false)
 	if err != nil {
 		return Config{}, err
 	}
 	if cfg.EngineLlamaEnabled && !llamaSupervisedPlatformSupported() {
 		return Config{}, fmt.Errorf("supervised llama is unsupported on the exact host platform")
-	}
-	if cfg.EngineMediaEnabled && !mediaSupervisedPlatformSupported() {
-		return Config{}, fmt.Errorf("supervised media is unsupported on the exact host platform")
 	}
 
 	shutdownTimeoutRaw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_SHUTDOWN_TIMEOUT"))
@@ -310,9 +295,12 @@ func rejectLegacyLocalRuntimeEnv() error {
 		"NIMI_RUNTIME_ENGINE_NEXA_ENABLED":                      "Nexa engine support was removed; clear this variable",
 		"NIMI_RUNTIME_ENGINE_NEXA_VERSION":                      "Nexa engine support was removed; clear this variable",
 		"NIMI_RUNTIME_ENGINE_NEXA_PORT":                         "Nexa engine support was removed; clear this variable",
-		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED":                "use NIMI_RUNTIME_ENGINE_MEDIA_ENABLED instead",
-		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION":                "use NIMI_RUNTIME_ENGINE_MEDIA_VERSION instead",
-		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT":                   "use NIMI_RUNTIME_ENGINE_MEDIA_PORT instead",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED":                "the supervised media engine was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION":                "the supervised media engine was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT":                   "the supervised media engine was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_MEDIA_ENABLED":                     "the supervised media engine was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_MEDIA_VERSION":                     "the supervised media engine was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_MEDIA_PORT":                        "the supervised media engine was removed; clear this variable",
 	}
 	for key, hint := range legacyMessages {
 		if value, ok := os.LookupEnv(key); ok && strings.TrimSpace(value) != "" {

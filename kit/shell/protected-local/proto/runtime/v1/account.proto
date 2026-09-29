@@ -154,6 +154,7 @@ message AccountSessionSnapshot {
   ReasonCode reason_code = 3;
   AccountReasonCode account_reason_code = 4;
   AccountProjection account_projection = 5;
+  ErrorInfo audit_diagnostic = 6;
 }
 
 message AccountCaller {
@@ -217,6 +218,7 @@ message BeginLoginResponse {
   ReasonCode reason_code = 9;
   AccountReasonCode account_reason_code = 10;
   bool production_inert = 11;
+  ErrorInfo audit_diagnostic = 12;
 }
 
 message CompleteLoginRequest {
@@ -239,6 +241,7 @@ message CompleteLoginResponse {
   ReasonCode reason_code = 4;
   AccountReasonCode account_reason_code = 5;
   bool production_inert = 6;
+  ErrorInfo audit_diagnostic = 7;
 }
 
 message RequestPresenceVerificationRequest {
@@ -288,6 +291,7 @@ message LogoutResponse {
   ReasonCode reason_code = 3;
   AccountReasonCode account_reason_code = 4;
   bool production_inert = 5;
+  ErrorInfo audit_diagnostic = 6;
 }
 
 message SwitchAccountRequest {
@@ -302,6 +306,7 @@ message SwitchAccountResponse {
   ReasonCode reason_code = 4;
   AccountReasonCode account_reason_code = 5;
   bool production_inert = 6;
+  ErrorInfo audit_diagnostic = 7;
 }
 
 service RuntimeAccountService {

@@ -56,6 +56,26 @@ func supervisorProcessMatchesExpectedPath(pid int, expectedPath string) (bool, b
 	return strings.EqualFold(actual, expected), true
 }
 
+// supervisorProcessStartTime is when pid was created; a later process given
+// the same pid has another creation time.
+func supervisorProcessStartTime(pid int) (string, bool) {
+	if pid <= 0 {
+		return "", false
+	}
+	handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
+	if err != nil {
+		return "", false
+	}
+	defer func() {
+		_ = windows.CloseHandle(handle)
+	}()
+	var creation, exit, kernel, user windows.Filetime
+	if err := windows.GetProcessTimes(handle, &creation, &exit, &kernel, &user); err != nil {
+		return "", false
+	}
+	return fmt.Sprintf("windows:%d", creation.Nanoseconds()), true
+}
+
 func supervisorProcessIdentityValidationDetail(pid int, expectedPath string) string {
 	return fmt.Sprintf("pid=%d expected=%s", pid, canonicalSupervisorProcessPath(expectedPath))
 }

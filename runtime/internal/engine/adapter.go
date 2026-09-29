@@ -218,8 +218,6 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 	switch kind {
 	case EngineLlama:
 		cfg = DefaultLlamaConfig()
-	case EngineMedia:
-		cfg = DefaultMediaConfig()
 	case EngineSpeech:
 		cfg = DefaultSpeechConfig()
 	case EngineKind("sidecar"):
@@ -233,9 +231,6 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 	}
 	if port > 0 {
 		cfg.Port = port
-	}
-	if cfg.Kind == EngineMedia {
-		cfg.MediaMode = MediaModePipelineSupervised
 	}
 	return cfg, nil
 }
@@ -260,9 +255,7 @@ func parseEngineKind(name string) (EngineKind, error) {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "llama":
 		return EngineLlama, nil
-	case "media":
-		return EngineMedia, nil
-	case "managed-image-backend", "media-diffusers-backend":
+	case "managed-image-backend":
 		return engineManagedImageBackend, nil
 	case "speech":
 		return EngineSpeech, nil
@@ -277,8 +270,6 @@ func publicEngineName(kind EngineKind) string {
 	switch kind {
 	case EngineLlama:
 		return "llama"
-	case EngineMedia:
-		return "media"
 	case engineManagedImageBackend:
 		return "managed-image-backend"
 	case EngineSpeech:
@@ -290,4 +281,11 @@ func publicEngineName(kind EngineKind) string {
 	default:
 		return string(kind)
 	}
+}
+
+func (a *ServiceAdapter) EnsureMediaCodecDependency(ctx context.Context) (MediaCodecDependencyStatus, error) {
+	return a.mgr.EnsureMediaCodecDependency(ctx)
+}
+func (a *ServiceAdapter) ResolveMediaCodecDependency(ctx context.Context) (string, string, error) {
+	return a.mgr.ResolveMediaCodecDependency(ctx)
 }

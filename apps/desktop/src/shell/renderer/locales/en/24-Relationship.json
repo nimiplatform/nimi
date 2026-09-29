@@ -10,6 +10,8 @@
   "bio": "Bio",
   "blockUserFailed": "Failed to block user",
   "blockUserSuccess": "User blocked.",
+  "unblockUserSuccess": "User unblocked.",
+  "unblockUserFailed": "Couldn't unblock this user. Try again later.",
   "blockUserConfirmMessage": "Block {{name}}? They will be moved to your Blocked list and won't be able to contact you.",
   "changePhoto": "Change Photo",
   "chat": "Chat",

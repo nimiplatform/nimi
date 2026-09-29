@@ -235,7 +235,7 @@ func rootHandoffControlPlaneMethod(method string) bool {
 		// aborts the replacement request that is performing this handoff.
 		"/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
 		"/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
-		"/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeStatus":
+		"/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState":
 		return true
 	default:
 		return false

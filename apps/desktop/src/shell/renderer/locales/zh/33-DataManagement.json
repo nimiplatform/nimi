@@ -14,12 +14,34 @@
   "dataRootLabel": "数据根",
   "dataDirHelp": "替换后只激活所选目录。Nimi 不会复制、合并、删除旧数据根，也不会继续读写旧根。",
   "replaceDataRootButton": "替换数据根",
+  "replaceDataRootConfirmTitle": "切换到这个数据位置？",
+  "replaceDataRootConfirmBody": "Nimi 会停止所有正在运行的 App 并重启，之后只使用「{{target}}」。当前位置「{{current}}」里的数据原样保留，不会被复制、合并或删除。",
+  "replaceDataRootConfirm": "停止 App 并切换",
+  "replaceDataRootCancel": "取消",
+  "replaceDataRootProgress": "正在切换数据位置：停止 App、重启 Nimi 并检查新位置…",
   "dataRootReplaced": "新数据根已激活，Check & Sync 正在协调各 owner 状态。",
   "dataRootUnchanged": "该目录已经是当前数据根，可手动运行 Check & Sync 再次检查。",
   "dataRootReplaceFailed": "替换数据根失败",
   "checkSyncButton": "Check & Sync",
   "checkSyncState": "Check & Sync：{{state}}",
   "checkSyncFailed": "无法启动 Check & Sync",
+  "checkSyncRerun": "再次运行 Check & Sync",
+  "checkSyncModelOfflineConversion": "这个模型的本地数据需要离线转换后才能使用。转换完成前本地模型功能受限，其他功能照常可用。",
+  "checkSyncTechnicalDetails": "技术详情",
+  "checkSyncOwnerState": {
+    "pending": "等待中",
+    "running": "检查中",
+    "completed": "已完成",
+    "failed": "失败"
+  },
+  "checkSyncResourceStatus": {
+    "available": "可用",
+    "unavailable": "暂不可用",
+    "incompatible": "与当前版本不兼容",
+    "unknown": "未识别",
+    "conflict": "需要处理",
+    "failed": "检查失败"
+  },
   "openDataDir": "打开 Data Dir",
   "openDataDirFailed": "打开 data dir 失败",
   "clearCacheTitle": "清理缓存",
@@ -27,5 +49,6 @@
   "clearCacheButton": "清理缓存",
   "sessionTitle": "会话",
   "sessionBody": "在当前设备退出你的账户。",
-  "logOut": "退出登录"
+  "logOut": "退出登录",
+  "dataRootReplacedAuditUnrecorded": "新数据目录已启用，但本次变更未能写入审计记录。请勿重复更换目录。重新打开 Nimi 继续使用；若记录持续失败，请联系支持。"
 }

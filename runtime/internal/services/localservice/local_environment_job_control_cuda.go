@@ -39,8 +39,6 @@ func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job l
 func cudaSelectedConsumer(environmentKey string) string {
 	consumers := []string{
 		"stable-diffusion.cpp.cuda",
-		"media.diffusers.cuda",
-		"media.video-python.cuda",
 		"llama.cpp.cuda",
 		audioCppCUDAConsumerID,
 		audioCppQwen3TTSCUDAConsumerID,

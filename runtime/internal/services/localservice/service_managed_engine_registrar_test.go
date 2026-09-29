@@ -187,3 +187,10 @@ func TestWaitForManagedEnginePortReleaseTimesOutWhenPortStaysOccupied(t *testing
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func (m *registrarTestEngineManager) EnsureMediaCodecDependency(context.Context) (engine.MediaCodecDependencyStatus, error) {
+	return engine.MediaCodecDependencyStatus{}, nil
+}
+func (m *registrarTestEngineManager) ResolveMediaCodecDependency(context.Context) (string, string, error) {
+	return "", "", nil
+}

@@ -91,6 +91,7 @@ func (m *fakeLlamaExecutionManager) ValidateLlamaDependencySources(EngineConfig,
 type fakeLlamaInvocationSubstrate struct {
 	mu         sync.Mutex
 	endpoint   string
+	accessKey  string
 	currentKey string
 	starts     int
 	args       [][]string
@@ -132,6 +133,12 @@ func (f *fakeLlamaInvocationSubstrate) Ensure(
 		progress(localexecution.TextExecutionProgressReady)
 	}
 	return f.endpoint, false, nil
+}
+
+func (f *fakeLlamaInvocationSubstrate) AccessKey() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.accessKey
 }
 
 func (f *fakeLlamaInvocationSubstrate) Healthy() bool {

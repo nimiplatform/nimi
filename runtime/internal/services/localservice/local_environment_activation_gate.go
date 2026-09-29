@@ -277,10 +277,6 @@ func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmen
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-music-native"}, true
 	case audioCppQwen3TTSCUDAConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-speech-native"}, true
-	case "media.diffusers.cpu", "media.diffusers.cuda":
-		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-image-python"}, true
-	case "media.video-python.cpu", "media.video-python.cuda":
-		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-video-python"}, true
 	case "speech.qwen3-asr.python", "speech.qwen3-asr-transformers.python", "speech.qwen3-tts.python", "speech.voxcpm.python", "speech.demucs.python", "speech.faster-whisper.python":
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-speech"}, true
 	default:

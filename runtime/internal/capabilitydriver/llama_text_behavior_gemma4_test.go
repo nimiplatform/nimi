@@ -3,6 +3,7 @@ package capabilitydriver
 import (
 	"encoding/json"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -332,7 +333,7 @@ func TestGemma4StructuredOutputValidatesCapturedSchema(t *testing.T) {
 	}
 }
 
-func TestGemma4ReasoningChangesLlamaProcessIdentityAndHidesRawOnlyExhaustion(t *testing.T) {
+func TestGemma4ThinkingIsARequestFieldSoEveryModeSharesOneProcessAndHidesRawOnlyExhaustion(t *testing.T) {
 	templateIdentity := "sha256:" + strings.Repeat("c", 64)
 	main := InvocationExactBinding{
 		RequirementID: MainGGUFRequirementID, ModelAssetID: "main", AbsolutePath: filepath.Join(t.TempDir(), "main.gguf"),
@@ -340,7 +341,7 @@ func TestGemma4ReasoningChangesLlamaProcessIdentityAndHidesRawOnlyExhaustion(t *
 	}
 	adapter, err := textbehavior.NewAdapter(textbehavior.AdapterCapture{
 		AdapterID: "gemma4", Version: "1", RequestSerializerID: "request/v1", NonStreamParserID: "sync/v1", StreamAssemblerID: "stream/v1",
-		RequiredTemplateIdentity: templateIdentity, ProcessIdentityImpact: textbehavior.ProcessIdentityAdapterAndTemplate,
+		RequiredTemplateIdentity: templateIdentity, ProcessIdentityImpact: textbehavior.ProcessIdentityUnaffected,
 	}, Gemma4TextBehaviorRequestSerializer, Gemma4TextBehaviorNonStreamParser, Gemma4TextBehaviorStreamAssembler)
 	if err != nil {
 		t.Fatal(err)
@@ -355,14 +356,42 @@ func TestGemma4ReasoningChangesLlamaProcessIdentityAndHidesRawOnlyExhaustion(t *
 		}
 		return plan
 	}
+	plainPlan, err := (LlamaTextDriver{}).PlanTextInvocation(TextInvocationInput{
+		ModelContextWindowTokens: 32768, ExactBindings: []InvocationExactBinding{main}, BehaviorMatch: llamaBehaviorMatchFactsForTest(main),
+		Request: &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "plain"}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	toolPlan := planFor(&runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "tool"}}, Tools: []*runtimev1.ToolSpec{gemma4ToolForTest(t, "weather")}})
 	reasoningSpec := &runtimev1.TextGenerateScenarioSpec{
 		Input:     []*runtimev1.ChatMessage{{Role: "user", Content: "reason"}},
 		Reasoning: &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED, Intensity: &runtimev1.ReasoningConfig_ExactBudgetTokens{ExactBudgetTokens: 8}, Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN},
 	}
 	reasoningPlan := planFor(reasoningSpec)
-	if strings.Contains(strings.Join(toolPlan.ProcessArgs(), " "), "--reasoning on") || !strings.Contains(strings.Join(reasoningPlan.ProcessArgs(), " "), "--reasoning on --reasoning-format deepseek") || toolPlan.ProcessKey() == reasoningPlan.ProcessKey() {
-		t.Fatalf("process args/identity tool=%q reasoning=%q", toolPlan.ProcessArgs(), reasoningPlan.ProcessArgs())
+	for name, plan := range map[string]*TextInvocationPlan{"tool": toolPlan, "reasoning": reasoningPlan} {
+		if plan.ProcessKey() != plainPlan.ProcessKey() || !slices.Equal(plan.ProcessArgs(), plainPlan.ProcessArgs()) {
+			t.Fatalf("%s request needs its own process: args=%q plain=%q", name, plan.ProcessArgs(), plainPlan.ProcessArgs())
+		}
+	}
+	if !strings.HasPrefix(strings.Join(plainPlan.ProcessArgs(), " "), "--reasoning off ") {
+		t.Fatalf("launch default must be thinking off: %q", plainPlan.ProcessArgs())
+	}
+	for name, want := range map[string]struct {
+		plan     *TextInvocationPlan
+		thinking bool
+	}{"tool": {toolPlan, false}, "reasoning": {reasoningPlan, true}} {
+		var body struct {
+			Kwargs struct {
+				EnableThinking *bool `json:"enable_thinking"`
+			} `json:"chat_template_kwargs"`
+		}
+		if err := json.Unmarshal(want.plan.RequestBody(), &body); err != nil {
+			t.Fatal(err)
+		}
+		if body.Kwargs.EnableThinking == nil || *body.Kwargs.EnableThinking != want.thinking {
+			t.Fatalf("%s request must state enable_thinking=%v, got %s", name, want.thinking, want.plan.RequestBody())
+		}
 	}
 	invocation, err := adapter.Bind(reasoningSpec)
 	if err != nil {

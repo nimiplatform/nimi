@@ -3220,6 +3220,14 @@ pub enum ReasonCode {
     AILOCALMODELINVENTORYRECONCILIATIONREQUIRED,
     #[serde(rename = "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED")]
     AIMUSICRECOVERYCAPACITYEXCEEDED,
+    #[serde(rename = "AI_MEDIA_CODEC_UNAVAILABLE")]
+    AIMEDIACODECUNAVAILABLE,
+    #[serde(rename = "RUNTIME_STORED_DATA_UNSUPPORTED")]
+    RUNTIMESTOREDDATAUNSUPPORTED,
+    #[serde(rename = "AUDIT_RECORD_UNAVAILABLE")]
+    AUDITRECORDUNAVAILABLE,
+    #[serde(rename = "AUDIT_RESULT_UNRECORDED")]
+    AUDITRESULTUNRECORDED,
     #[serde(rename = "AGENT_BUSY")]
     AGENTBUSY,
     #[serde(rename = "AGENT_TURN_NOT_ACTIVE")]
@@ -3839,6 +3847,14 @@ impl ReasonCode {
             "AILOCALMODELINVENTORYRECONCILIATIONREQUIRED" => Some(Self::AILOCALMODELINVENTORYRECONCILIATIONREQUIRED),
             "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => Some(Self::AIMUSICRECOVERYCAPACITYEXCEEDED),
             "AIMUSICRECOVERYCAPACITYEXCEEDED" => Some(Self::AIMUSICRECOVERYCAPACITYEXCEEDED),
+            "AI_MEDIA_CODEC_UNAVAILABLE" => Some(Self::AIMEDIACODECUNAVAILABLE),
+            "AIMEDIACODECUNAVAILABLE" => Some(Self::AIMEDIACODECUNAVAILABLE),
+            "RUNTIME_STORED_DATA_UNSUPPORTED" => Some(Self::RUNTIMESTOREDDATAUNSUPPORTED),
+            "RUNTIMESTOREDDATAUNSUPPORTED" => Some(Self::RUNTIMESTOREDDATAUNSUPPORTED),
+            "AUDIT_RECORD_UNAVAILABLE" => Some(Self::AUDITRECORDUNAVAILABLE),
+            "AUDITRECORDUNAVAILABLE" => Some(Self::AUDITRECORDUNAVAILABLE),
+            "AUDIT_RESULT_UNRECORDED" => Some(Self::AUDITRESULTUNRECORDED),
+            "AUDITRESULTUNRECORDED" => Some(Self::AUDITRESULTUNRECORDED),
             "AGENT_BUSY" => Some(Self::AGENTBUSY),
             "AGENTBUSY" => Some(Self::AGENTBUSY),
             "AGENT_TURN_NOT_ACTIVE" => Some(Self::AGENTTURNNOTACTIVE),
@@ -3973,6 +3989,36 @@ impl RuntimeHealthStatus {
             "RUNTIMEHEALTHSTATUSDEGRADED" => Some(Self::RUNTIMEHEALTHSTATUSDEGRADED),
             "RUNTIME_HEALTH_STATUS_STOPPING" => Some(Self::RUNTIMEHEALTHSTATUSSTOPPING),
             "RUNTIMEHEALTHSTATUSSTOPPING" => Some(Self::RUNTIMEHEALTHSTATUSSTOPPING),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub enum RuntimeServiceMode {
+    #[serde(rename = "RUNTIME_SERVICE_MODE_UNSPECIFIED")]
+    RUNTIMESERVICEMODEUNSPECIFIED,
+    #[serde(rename = "RUNTIME_SERVICE_MODE_ORDINARY")]
+    RUNTIMESERVICEMODEORDINARY,
+    #[serde(rename = "RUNTIME_SERVICE_MODE_MAINTENANCE")]
+    RUNTIMESERVICEMODEMAINTENANCE,
+}
+
+impl Default for RuntimeServiceMode {
+    fn default() -> Self {
+        Self::RUNTIMESERVICEMODEUNSPECIFIED
+    }
+}
+
+impl RuntimeServiceMode {
+    fn from_transport(value: &str) -> Option<Self> {
+        match value {
+            "RUNTIME_SERVICE_MODE_UNSPECIFIED" => Some(Self::RUNTIMESERVICEMODEUNSPECIFIED),
+            "RUNTIMESERVICEMODEUNSPECIFIED" => Some(Self::RUNTIMESERVICEMODEUNSPECIFIED),
+            "RUNTIME_SERVICE_MODE_ORDINARY" => Some(Self::RUNTIMESERVICEMODEORDINARY),
+            "RUNTIMESERVICEMODEORDINARY" => Some(Self::RUNTIMESERVICEMODEORDINARY),
+            "RUNTIME_SERVICE_MODE_MAINTENANCE" => Some(Self::RUNTIMESERVICEMODEMAINTENANCE),
+            "RUNTIMESERVICEMODEMAINTENANCE" => Some(Self::RUNTIMESERVICEMODEMAINTENANCE),
             _ => None,
         }
     }
@@ -4644,6 +4690,7 @@ pub struct AccountSessionSnapshot {
     pub reason_code: Option<ReasonCode>,
     pub account_reason_code: Option<AccountReasonCode>,
     pub account_projection: Option<Box<AccountProjection>>,
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -5776,6 +5823,8 @@ pub struct BeginLoginResponse {
     pub account_reason_code: Option<AccountReasonCode>,
     #[serde(rename = "production_inert", skip_serializing_if = "Option::is_none")]
     pub production_inert: Option<bool>,
+    #[serde(rename = "audit_diagnostic", skip_serializing_if = "Option::is_none")]
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
 }
 
 impl BeginLoginResponse {
@@ -5853,6 +5902,14 @@ impl BeginLoginResponse {
         out.production_inert = match object.get("production_inert") {
             Some(value) if value.is_null() => None,
             Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("production_inert"))?),
+            None => None,
+        };
+        out.audit_diagnostic = match object.get("audit_diagnostic") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let nested = value.as_object().ok_or_else(|| Self::decode_error("audit_diagnostic"))?;
+                Some(Box::new(ErrorInfo::from_json_object(nested)?))
+            }
             None => None,
         };
         Ok(out)
@@ -6899,6 +6956,7 @@ pub struct CompleteLoginResponse {
     pub reason_code: Option<ReasonCode>,
     pub account_reason_code: Option<AccountReasonCode>,
     pub production_inert: Option<bool>,
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -7011,6 +7069,7 @@ pub struct CreateConnectorRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateConnectorResponse {
     pub connector: Option<Box<Connector>>,
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7157,6 +7216,7 @@ pub struct DeleteConnectorRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DeleteConnectorResponse {
     pub ack: Option<Box<Ack>>,
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -7329,11 +7389,52 @@ impl EnsureProductControlRecordCreatedRequest {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ErrorInfo {
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
+    #[serde(rename = "action_hint", skip_serializing_if = "Option::is_none")]
     pub action_hint: Option<String>,
+    #[serde(rename = "message", skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+}
+
+impl ErrorInfo {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "ErrorInfo", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        out.action_hint = match object.get("action_hint") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("action_hint"))?),
+            None => None,
+        };
+        out.message = match object.get("message") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("message"))?),
+            None => None,
+        };
+        Ok(out)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8323,6 +8424,70 @@ impl GetRuntimeHealthResponse {
         out.sampled_at = match object.get("sampled_at") {
             Some(value) if value.is_null() => None,
             Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("sampled_at"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct GetRuntimeServiceStateRequest {
+
+}
+
+impl GetRuntimeServiceStateRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetRuntimeServiceStateRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct GetRuntimeServiceStateResponse {
+    #[serde(rename = "mode", skip_serializing_if = "Option::is_none")]
+    pub mode: Option<RuntimeServiceMode>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl GetRuntimeServiceStateResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetRuntimeServiceStateResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.mode = match object.get("mode") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("mode"))?;
+                Some(RuntimeServiceMode::from_transport(raw).ok_or_else(|| Self::decode_error("mode"))?)
+            }
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
             None => None,
         };
         Ok(out)
@@ -9528,6 +9693,13 @@ pub struct LoadoutModelAxisInput {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LoadoutRecipeContextFit {
+    pub authored_context_size: Option<u64>,
+    pub recommended_context_size: Option<u64>,
+    pub recommended_options: Option<BTreeMap<String, String>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LoadoutRecipeCustodyDescriptor {
     pub file: Option<String>,
     pub sha256: Option<String>,
@@ -9554,6 +9726,7 @@ pub struct LoadoutRecipeDescriptor {
     pub implementation_supported_features: Vec<String>,
     pub applicability: Option<LocalRecommendationApplicability>,
     pub reasons: Vec<ReasonCode>,
+    pub recommended_options: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9562,6 +9735,7 @@ pub struct LoadoutRecipeOfferDescriptor {
     pub applicability: Option<LocalRecommendationApplicability>,
     pub reasons: Vec<ReasonCode>,
     pub installed_model_asset_id: Option<String>,
+    pub context_fit: Option<Box<LoadoutRecipeContextFit>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9576,6 +9750,7 @@ pub struct LoadoutRecipeSlotDescriptor {
     pub offers: Vec<Box<LoadoutRecipeOfferDescriptor>>,
     pub applicability: Option<LocalRecommendationApplicability>,
     pub reasons: Vec<ReasonCode>,
+    pub recommended_context_fit: Option<Box<LoadoutRecipeContextFit>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10889,6 +11064,8 @@ pub struct LogoutResponse {
     pub account_reason_code: Option<AccountReasonCode>,
     #[serde(rename = "production_inert", skip_serializing_if = "Option::is_none")]
     pub production_inert: Option<bool>,
+    #[serde(rename = "audit_diagnostic", skip_serializing_if = "Option::is_none")]
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
 }
 
 impl LogoutResponse {
@@ -10939,6 +11116,14 @@ impl LogoutResponse {
         out.production_inert = match object.get("production_inert") {
             Some(value) if value.is_null() => None,
             Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("production_inert"))?),
+            None => None,
+        };
+        out.audit_diagnostic = match object.get("audit_diagnostic") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let nested = value.as_object().ok_or_else(|| Self::decode_error("audit_diagnostic"))?;
+                Some(Box::new(ErrorInfo::from_json_object(nested)?))
+            }
             None => None,
         };
         Ok(out)
@@ -12772,6 +12957,7 @@ pub struct ResolveLocalEnvironmentPlanRequest {
     pub host_profile: Option<Box<LocalDeviceProfile>>,
     pub runtime_data_root: Option<String>,
     pub candidate_loadout_id: Option<String>,
+    pub media_codec: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14102,6 +14288,7 @@ pub struct SwitchAccountResponse {
     pub reason_code: Option<ReasonCode>,
     pub account_reason_code: Option<AccountReasonCode>,
     pub production_inert: Option<bool>,
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14490,6 +14677,7 @@ pub struct UpdateConnectorRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateConnectorResponse {
     pub connector: Option<Box<Connector>>,
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15229,6 +15417,14 @@ impl TryFrom<Vec<u8>> for CheckSyncProjectionJson {
     }
 }
 
+impl TryFrom<Vec<u8>> for GetRuntimeServiceStateResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
 impl TryFrom<Vec<u8>> for RequestRuntimeRestartResponse {
     type Error = RuntimeResponseDecodeError;
 
@@ -15793,6 +15989,20 @@ where
         }).map_err(RuntimeTypedClientError::Transport)?;
         CheckSyncProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
+    pub fn get_runtime_service_state(&self, request: GetRuntimeServiceStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetRuntimeServiceStateResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        GetRuntimeServiceStateResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
             type_name: error.type_name,
             field: error.field,
         })

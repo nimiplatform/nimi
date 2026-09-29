@@ -21,6 +21,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// RuntimeServiceMode is the protected surface this Runtime process serves on
+// the verified Desktop transport. It is process-operational truth only; it
+// proves no product readiness, App access, account, or owner success.
+type RuntimeServiceMode int32
+
+const (
+	RuntimeServiceMode_RUNTIME_SERVICE_MODE_UNSPECIFIED RuntimeServiceMode = 0
+	// The ordinary protected owners were constructed and serve their operations.
+	RuntimeServiceMode_RUNTIME_SERVICE_MODE_ORDINARY RuntimeServiceMode = 1
+	// An owner refused the stored data in the selected data root. Only the
+	// bounded maintenance surface is served and the refused root is unchanged.
+	RuntimeServiceMode_RUNTIME_SERVICE_MODE_MAINTENANCE RuntimeServiceMode = 2
+)
+
+// Enum value maps for RuntimeServiceMode.
+var (
+	RuntimeServiceMode_name = map[int32]string{
+		0: "RUNTIME_SERVICE_MODE_UNSPECIFIED",
+		1: "RUNTIME_SERVICE_MODE_ORDINARY",
+		2: "RUNTIME_SERVICE_MODE_MAINTENANCE",
+	}
+	RuntimeServiceMode_value = map[string]int32{
+		"RUNTIME_SERVICE_MODE_UNSPECIFIED": 0,
+		"RUNTIME_SERVICE_MODE_ORDINARY":    1,
+		"RUNTIME_SERVICE_MODE_MAINTENANCE": 2,
+	}
+)
+
+func (x RuntimeServiceMode) Enum() *RuntimeServiceMode {
+	p := new(RuntimeServiceMode)
+	*p = x
+	return p
+}
+
+func (x RuntimeServiceMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RuntimeServiceMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_runtime_service_control_proto_enumTypes[0].Descriptor()
+}
+
+func (RuntimeServiceMode) Type() protoreflect.EnumType {
+	return &file_runtime_v1_runtime_service_control_proto_enumTypes[0]
+}
+
+func (x RuntimeServiceMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RuntimeServiceMode.Descriptor instead.
+func (RuntimeServiceMode) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_runtime_service_control_proto_rawDescGZIP(), []int{0}
+}
+
 // RequestRuntimeRestartRequest is intentionally empty. The mutually verified
 // desktop_control connection and its live boot-scoped Desktop session are the
 // complete authority input; service name, path, endpoint, timeout, recovery
@@ -113,6 +168,97 @@ func (x *RequestRuntimeRestartResponse) GetReasonCode() ReasonCode {
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
+// GetRuntimeServiceStateRequest is intentionally empty; the verified
+// desktop_control connection is the complete authority input.
+type GetRuntimeServiceStateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRuntimeServiceStateRequest) Reset() {
+	*x = GetRuntimeServiceStateRequest{}
+	mi := &file_runtime_v1_runtime_service_control_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRuntimeServiceStateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRuntimeServiceStateRequest) ProtoMessage() {}
+
+func (x *GetRuntimeServiceStateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_runtime_service_control_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRuntimeServiceStateRequest.ProtoReflect.Descriptor instead.
+func (*GetRuntimeServiceStateRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_runtime_service_control_proto_rawDescGZIP(), []int{2}
+}
+
+type GetRuntimeServiceStateResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Mode  RuntimeServiceMode     `protobuf:"varint,1,opt,name=mode,proto3,enum=nimi.runtime.v1.RuntimeServiceMode" json:"mode,omitempty"`
+	// Set only in maintenance mode: the owner-classified refusal reason.
+	ReasonCode    ReasonCode `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRuntimeServiceStateResponse) Reset() {
+	*x = GetRuntimeServiceStateResponse{}
+	mi := &file_runtime_v1_runtime_service_control_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRuntimeServiceStateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRuntimeServiceStateResponse) ProtoMessage() {}
+
+func (x *GetRuntimeServiceStateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_runtime_service_control_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRuntimeServiceStateResponse.ProtoReflect.Descriptor instead.
+func (*GetRuntimeServiceStateResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_runtime_service_control_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetRuntimeServiceStateResponse) GetMode() RuntimeServiceMode {
+	if x != nil {
+		return x.Mode
+	}
+	return RuntimeServiceMode_RUNTIME_SERVICE_MODE_UNSPECIFIED
+}
+
+func (x *GetRuntimeServiceStateResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
 var File_runtime_v1_runtime_service_control_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_runtime_service_control_proto_rawDesc = "" +
@@ -122,9 +268,19 @@ const file_runtime_v1_runtime_service_control_proto_rawDesc = "" +
 	"\x1dRequestRuntimeRestartResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12<\n" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode2\x96\x01\n" +
+	"reasonCode\"\x1f\n" +
+	"\x1dGetRuntimeServiceStateRequest\"\x97\x01\n" +
+	"\x1eGetRuntimeServiceStateResponse\x127\n" +
+	"\x04mode\x18\x01 \x01(\x0e2#.nimi.runtime.v1.RuntimeServiceModeR\x04mode\x12<\n" +
+	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode*\x83\x01\n" +
+	"\x12RuntimeServiceMode\x12$\n" +
+	" RUNTIME_SERVICE_MODE_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dRUNTIME_SERVICE_MODE_ORDINARY\x10\x01\x12$\n" +
+	" RUNTIME_SERVICE_MODE_MAINTENANCE\x10\x022\x91\x02\n" +
 	"\x1cRuntimeServiceControlService\x12v\n" +
-	"\x15RequestRuntimeRestart\x12-.nimi.runtime.v1.RequestRuntimeRestartRequest\x1a..nimi.runtime.v1.RequestRuntimeRestartResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x15RequestRuntimeRestart\x12-.nimi.runtime.v1.RequestRuntimeRestartRequest\x1a..nimi.runtime.v1.RequestRuntimeRestartResponse\x12y\n" +
+	"\x16GetRuntimeServiceState\x12..nimi.runtime.v1.GetRuntimeServiceStateRequest\x1a/.nimi.runtime.v1.GetRuntimeServiceStateResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_runtime_service_control_proto_rawDescOnce sync.Once
@@ -138,21 +294,29 @@ func file_runtime_v1_runtime_service_control_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_runtime_service_control_proto_rawDescData
 }
 
-var file_runtime_v1_runtime_service_control_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_runtime_v1_runtime_service_control_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_runtime_v1_runtime_service_control_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_runtime_v1_runtime_service_control_proto_goTypes = []any{
-	(*RequestRuntimeRestartRequest)(nil),  // 0: nimi.runtime.v1.RequestRuntimeRestartRequest
-	(*RequestRuntimeRestartResponse)(nil), // 1: nimi.runtime.v1.RequestRuntimeRestartResponse
-	(ReasonCode)(0),                       // 2: nimi.runtime.v1.ReasonCode
+	(RuntimeServiceMode)(0),                // 0: nimi.runtime.v1.RuntimeServiceMode
+	(*RequestRuntimeRestartRequest)(nil),   // 1: nimi.runtime.v1.RequestRuntimeRestartRequest
+	(*RequestRuntimeRestartResponse)(nil),  // 2: nimi.runtime.v1.RequestRuntimeRestartResponse
+	(*GetRuntimeServiceStateRequest)(nil),  // 3: nimi.runtime.v1.GetRuntimeServiceStateRequest
+	(*GetRuntimeServiceStateResponse)(nil), // 4: nimi.runtime.v1.GetRuntimeServiceStateResponse
+	(ReasonCode)(0),                        // 5: nimi.runtime.v1.ReasonCode
 }
 var file_runtime_v1_runtime_service_control_proto_depIdxs = []int32{
-	2, // 0: nimi.runtime.v1.RequestRuntimeRestartResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0, // 1: nimi.runtime.v1.RuntimeServiceControlService.RequestRuntimeRestart:input_type -> nimi.runtime.v1.RequestRuntimeRestartRequest
-	1, // 2: nimi.runtime.v1.RuntimeServiceControlService.RequestRuntimeRestart:output_type -> nimi.runtime.v1.RequestRuntimeRestartResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	5, // 0: nimi.runtime.v1.RequestRuntimeRestartResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	0, // 1: nimi.runtime.v1.GetRuntimeServiceStateResponse.mode:type_name -> nimi.runtime.v1.RuntimeServiceMode
+	5, // 2: nimi.runtime.v1.GetRuntimeServiceStateResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	1, // 3: nimi.runtime.v1.RuntimeServiceControlService.RequestRuntimeRestart:input_type -> nimi.runtime.v1.RequestRuntimeRestartRequest
+	3, // 4: nimi.runtime.v1.RuntimeServiceControlService.GetRuntimeServiceState:input_type -> nimi.runtime.v1.GetRuntimeServiceStateRequest
+	2, // 5: nimi.runtime.v1.RuntimeServiceControlService.RequestRuntimeRestart:output_type -> nimi.runtime.v1.RequestRuntimeRestartResponse
+	4, // 6: nimi.runtime.v1.RuntimeServiceControlService.GetRuntimeServiceState:output_type -> nimi.runtime.v1.GetRuntimeServiceStateResponse
+	5, // [5:7] is the sub-list for method output_type
+	3, // [3:5] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_runtime_service_control_proto_init() }
@@ -166,13 +330,14 @@ func file_runtime_v1_runtime_service_control_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_runtime_service_control_proto_rawDesc), len(file_runtime_v1_runtime_service_control_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   2,
+			NumEnums:      1,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_runtime_v1_runtime_service_control_proto_goTypes,
 		DependencyIndexes: file_runtime_v1_runtime_service_control_proto_depIdxs,
+		EnumInfos:         file_runtime_v1_runtime_service_control_proto_enumTypes,
 		MessageInfos:      file_runtime_v1_runtime_service_control_proto_msgTypes,
 	}.Build()
 	File_runtime_v1_runtime_service_control_proto = out.File

@@ -267,10 +267,9 @@ export async function projectAppsPanel(
       right.identity.updatedAtUnixMs - left.identity.updatedAtUnixMs
       || left.identity.appId.localeCompare(right.identity.appId)
     ));
-    const runtimeError = [
-      runtimeResult.ok ? null : `Runtime Apps lifecycle list failed: ${errorMessage(runtimeResult.error)}`,
-      catalogResult.status === 'unavailable' ? `Runtime Apps Catalog list failed: ${errorMessage(catalogResult.error)}` : null,
-    ].filter((message): message is string => message !== null).join('; ') || null;
+    // A catalog that cannot be read is shown as catalog status; it never marks
+    // installed Apps as failed.
+    const runtimeError = runtimeResult.ok ? null : `Runtime Apps lifecycle list failed: ${errorMessage(runtimeResult.error)}`;
     options.onInventory?.({
       status: 'loaded',
       entries: reconcileAppsEntries(previousEntries, mergedEntries),

@@ -236,9 +236,14 @@ type LocalPlaneInstall struct {
 }
 
 // LocalPlaneFitness is the K-MCAT-032 main-model fitness metadata.
+// ContextLength is the reference context at which variant host requirements
+// are authored. AuthoredContextLength and KVCacheBytesPerToken are optional
+// model-content context evidence from the GGUF metadata, declared together.
 type LocalPlaneFitness struct {
-	ParamCount    int64 `yaml:"param_count" json:"param_count"`
-	ContextLength int64 `yaml:"context_length" json:"context_length"`
+	ParamCount            int64 `yaml:"param_count" json:"param_count"`
+	ContextLength         int64 `yaml:"context_length" json:"context_length"`
+	AuthoredContextLength int64 `yaml:"authored_context_length,omitempty" json:"authored_context_length,omitempty"`
+	KVCacheBytesPerToken  int64 `yaml:"kv_cache_bytes_per_token,omitempty" json:"kv_cache_bytes_per_token,omitempty"`
 }
 
 // LocalLoadoutRecipe is catalog recommendation and Model Contract metadata.

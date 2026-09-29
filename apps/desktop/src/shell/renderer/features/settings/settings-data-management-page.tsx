@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ import {
 } from './settings-layout-components.js';
 import { LogOutIcon, TrashIcon } from './settings-assets.js';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { isExecutableCheckSyncNextAction } from '../../../shared/check-sync-next-action.js';
 
 type StorageSnapshot = {
   queryCacheBytes: number;
@@ -60,6 +62,7 @@ export function DataManagementPage() {
   const [resolvedDataRoot, setResolvedDataRoot] = useState('');
   const [checkSync, setCheckSync] = useState<DesktopRendererCheckSyncProjection | null>(null);
   const [dataRootBusy, setDataRootBusy] = useState(false);
+  const [pendingDataRoot, setPendingDataRoot] = useState<string | null>(null);
   const [storage, setStorage] = useState<StorageSnapshot>({
     queryCacheBytes: 0,
     localStorageBytes: 0,
@@ -121,18 +124,38 @@ export function DataManagementPage() {
     return () => window.clearTimeout(timeout);
   }, [checkSync?.run?.state, refreshCheckSync]);
 
-  const handleReplaceDataRoot = useCallback(async () => {
-    setDataRootBusy(true);
+  // Choosing a directory only proposes it; the switch stops apps and restarts
+  // Nimi, so it runs after the user confirms those consequences.
+  const handlePickDataRoot = useCallback(async () => {
     setFeedback(null);
     try {
       const targetRoot = await bindings.app.commands.settings.pickDataRootDirectory();
-      if (!targetRoot) return;
+      if (targetRoot) setPendingDataRoot(targetRoot);
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: t('DataManagement.dataRootReplaceFailed'),
+        technicalDetail: error instanceof Error ? error.message : String(error || ''),
+      });
+    }
+  }, [bindings.app.commands.settings, t]);
+
+  const handleReplaceDataRoot = useCallback(async (targetRoot: string) => {
+    setPendingDataRoot(null);
+    setDataRootBusy(true);
+    setFeedback(null);
+    try {
       const projection = await bindings.app.commands.settings.replaceDataRoot(targetRoot);
-      const storageDirs = await bindings.app.commands.settings.loadStorageDirs();
-      applyStorageDirs(storageDirs);
-      await refreshCheckSync().catch(() => undefined);
-      if (projection.error) {
-        setFeedback({ kind: 'error', message: projection.error });
+      let refreshError: string | null = null;
+      try {
+        const storageDirs = await bindings.app.commands.settings.loadStorageDirs();
+        applyStorageDirs(storageDirs);
+        await refreshCheckSync();
+      } catch (error) { refreshError = error instanceof Error ? error.message : String(error); }
+      if (projection.auditDiagnostic) {
+        setFeedback({ kind: 'warning', message: t('DataManagement.dataRootReplacedAuditUnrecorded'), technicalDetail: projection.auditDiagnostic.reasonCode });
+      } else if (projection.error || refreshError) {
+        setFeedback({ kind: projection.activation?.activated ? 'warning' : 'error', message: t(projection.activation?.activated ? 'DataManagement.dataRootReplaced' : 'DataManagement.dataRootReplaceFailed'), technicalDetail: projection.error ?? refreshError ?? undefined });
       } else if (projection.activation?.activated) {
         setFeedback({ kind: 'success', message: t('DataManagement.dataRootReplaced') });
       } else {
@@ -141,7 +164,8 @@ export function DataManagementPage() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: error instanceof Error ? error.message : t('DataManagement.dataRootReplaceFailed'),
+        message: t('DataManagement.dataRootReplaceFailed'),
+        technicalDetail: error instanceof Error ? error.message : String(error || ''),
       });
     } finally {
       setDataRootBusy(false);
@@ -224,7 +248,7 @@ export function DataManagementPage() {
               <Button
                 variant="secondary"
                 disabled={dataRootBusy}
-                onClick={() => { void handleReplaceDataRoot(); }}
+                onClick={() => { void handlePickDataRoot(); }}
               >
                 {t('DataManagement.replaceDataRootButton')}
               </Button>
@@ -236,6 +260,21 @@ export function DataManagementPage() {
                 {t('DataManagement.checkSyncButton')}
               </Button>
             </div>
+            {dataRootBusy ? (
+              <p role="status" className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
+                {t('DataManagement.replaceDataRootProgress')}
+              </p>
+            ) : null}
+            <ConfirmDialog
+              open={pendingDataRoot !== null}
+              title={t('DataManagement.replaceDataRootConfirmTitle')}
+              message={t('DataManagement.replaceDataRootConfirmBody', { target: pendingDataRoot ?? '', current: resolvedDataRoot || '-' })}
+              confirmLabel={t('DataManagement.replaceDataRootConfirm')}
+              cancelLabel={t('DataManagement.replaceDataRootCancel')}
+              confirmTone="danger"
+              onConfirm={() => { if (pendingDataRoot) void handleReplaceDataRoot(pendingDataRoot); }}
+              onClose={() => setPendingDataRoot(null)}
+            />
             {checkSync?.run ? (
               <div className="space-y-3 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] p-4" data-testid="data-management-check-sync">
                 <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
@@ -244,20 +283,34 @@ export function DataManagementPage() {
                 {checkSync.run.owners.map((owner) => (
                   <div key={owner.ownerId} className="space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2">
                     <p className="text-xs font-medium text-[var(--nimi-text-primary)]">
-                      {owner.ownerId} · {owner.state}
+                      {owner.ownerId} · {t(`DataManagement.checkSyncOwnerState.${owner.state}`)}
                     </p>
                     {owner.resources.map((resource, index) => (
-                      <div key={`${resource.kind}-${resource.reference ?? resource.locator ?? index}`} className="space-y-1">
-                        <p className="break-all text-xs text-[var(--nimi-text-muted)]">
-                          {resource.kind}: {resource.status} · {resource.reason}
+                      <div
+                        key={`${resource.kind}-${resource.reference ?? resource.locator ?? index}`}
+                        className="space-y-1"
+                        data-check-sync-next-action={resource.nextAction}
+                      >
+                        <p className="text-xs text-[var(--nimi-text-secondary)]">
+                          {resource.nextAction === 'run_local_model_offline_conversion'
+                            ? t('DataManagement.checkSyncModelOfflineConversion')
+                            : t(`DataManagement.checkSyncResourceStatus.${resource.status}`)}
                         </p>
-                        {resource.nextAction === 'rerun_check_sync' ? (
+                        <details className="text-xs text-[var(--nimi-text-muted)]">
+                          <summary className="cursor-pointer">{t('DataManagement.checkSyncTechnicalDetails')}</summary>
+                          <p className="mt-1 break-all">
+                            {[resource.kind, resource.reference ?? resource.locator, resource.status, resource.reason, resource.nextAction]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </p>
+                        </details>
+                        {resource.nextAction && isExecutableCheckSyncNextAction(resource.nextAction) ? (
                           <Button
                             variant="secondary"
                             disabled={dataRootBusy}
                             onClick={() => { void handleCheckSync(); }}
                           >
-                            {t('DataManagement.checkSyncButton')}
+                            {t('DataManagement.checkSyncRerun')}
                           </Button>
                         ) : null}
                       </div>

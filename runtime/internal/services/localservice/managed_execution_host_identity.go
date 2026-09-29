@@ -42,12 +42,3 @@ func speechExecutionHostIdentity(capabilityContract string, driverID string, cfg
 		driverIdentity,
 	)
 }
-
-func mediaExecutionHostIdentity(cfg engine.EngineConfig) string {
-	driverIdentity := "media:media_server.py:" + strings.TrimSpace(string(cfg.MediaMode))
-	return dependencyProfileExecutionHostIdentity(
-		cfg.MediaHostPackageSetRoot,
-		cfg.MediaHostAcceleratorPlane,
-		driverIdentity,
-	)
-}

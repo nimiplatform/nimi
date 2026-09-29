@@ -58,6 +58,30 @@ func supervisorProcessIdentityValidationDetail(pid int, expectedPath string) str
 	return fmt.Sprintf("pid=%d expected=%s", pid, canonicalSupervisorProcessPath(expectedPath))
 }
 
+// supervisorProcessStartTime is when pid started, in clock ticks since boot.
+// It survives exec, so it names this process instance and no later process
+// given the same pid.
+func supervisorProcessStartTime(pid int) (string, bool) {
+	if pid <= 0 {
+		return "", false
+	}
+	raw, err := os.ReadFile(filepath.Join("/proc", strconv.Itoa(pid), "stat"))
+	if err != nil {
+		return "", false
+	}
+	contents := string(raw)
+	closing := strings.LastIndex(contents, ")")
+	if closing == -1 {
+		return "", false
+	}
+	// Fields after the command name start at field 3 (state); starttime is 22.
+	fields := strings.Fields(contents[closing+1:])
+	if len(fields) < 20 || fields[19] == "" {
+		return "", false
+	}
+	return "linux:" + fields[19], true
+}
+
 func linuxSupervisorProcessState(pid int) (string, error) {
 	statPath := filepath.Join("/proc", strconv.Itoa(pid), "stat")
 	raw, err := os.ReadFile(statPath)

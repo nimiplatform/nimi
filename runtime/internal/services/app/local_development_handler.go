@@ -44,16 +44,34 @@ func (s *Service) GetDeveloperModeStatus(ctx context.Context, _ *runtimev1.GetDe
 	return &runtimev1.GetDeveloperModeStatusResponse{State: state, Revision: mode.Revision, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
-func (s *Service) SetDeveloperMode(ctx context.Context, req *runtimev1.SetDeveloperModeRequest) (*runtimev1.SetDeveloperModeResponse, error) {
+func (s *Service) SetDeveloperMode(ctx context.Context, req *runtimev1.SetDeveloperModeRequest) (_ *runtimev1.SetDeveloperModeResponse, err error) {
+	defer func() {
+		if err != nil {
+			s.recordDeveloperModeRefusal(ctx, req, err)
+		}
+	}()
 	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
 		return nil, err
 	}
 	if s == nil || s.localDevelopment == nil || req == nil {
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	mode, err := s.localDevelopment.SetDeveloperMode(ctx, req.GetEnabled())
-	if err != nil {
-		return nil, localDevelopmentStoreError(err)
+	// The mode lives in the separate local-development store, so its write runs
+	// inside the audit transaction that records it: an unrecordable change
+	// never happens. Only when that audit commit fails after the write did
+	// commit is the new mode reported truthfully, with the unrecorded result
+	// surfaced separately. An unchanged request commits nothing and records
+	// nothing.
+	mode, changed, commitErr := s.commitDeveloperMode(ctx, req.GetEnabled())
+	switch {
+	case commitErr == nil:
+	case changed:
+		s.ownerLogger().Error("developer mode changed without a durable audit record",
+			"enabled", mode.Enabled, "revision", mode.Revision, "audit_disposition", "unrecorded", "error", commitErr)
+	case isUnrecordedAudit(commitErr):
+		return nil, developerModeAuditFailure(commitErr)
+	default:
+		return nil, localDevelopmentStoreError(commitErr)
 	}
 	state := runtimev1.DeveloperModeState_DEVELOPER_MODE_STATE_DISABLED
 	if mode.Enabled {

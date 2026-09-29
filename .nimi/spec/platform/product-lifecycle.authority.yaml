@@ -729,6 +729,18 @@ units:
         target: definition.nimi.platform.product-lifecycle.data-root-replacement
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.host-technical-profile
+  - id: rule.nimi.platform.product-lifecycle.p-mig-007i
+    kind: rule
+    title: P-MIG-007 maintenance replacement to a new empty root
+    modality: must
+    statement: While Runtime serves its maintenance surface for owner-classified refused stored data under a valid ready canonical selection, the normal Product Control UI may request user-explicit replacement only to an absent or empty path-disjoint target, where operating-system folder-view metadata and Nimi's own empty minimum layout left by an uncommitted attempt do not make a directory non-empty; Product Control validates only the canonical path relation and the target's emptiness, creates the minimum layout, atomically commits the selected root and a new rootActivationId inside the maintenance audit transaction that records it, writes the derived service configuration, and keeps root-bound admission closed until Runtime restarts on the committed activation, while the refused root is never read, converted, moved, copied, cleaned, or deleted and replacement from refused data never becomes broken-configuration recovery.
+    condition: When a user recovers from a Runtime maintenance refusal by choosing a new data location.
+    failure: Reject a non-empty, overlapping, or equal target and a missing or non-ready canonical selection before any mutation and keep the current selection; after commit keep the new root selected, expose typed repair when the derived configuration write fails, and never fall back to the refused root.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.data-root-replacement
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-mig-008a
     kind: rule
     title: P-MIG-008 destructive cleanup confirmation floor

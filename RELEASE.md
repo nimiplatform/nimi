@@ -19,14 +19,16 @@ Production publication is tag-only. Manual workflow dispatch is dry-run only.
 | Component | Production tag | Workflow | Destination |
 | --- | --- | --- | --- |
 | `@nimiplatform/sdk` | `sdk/v<version>` | `release.yml` | npm |
-| `@nimiplatform/kit` | `kit/v<version>` | `release-kit.yml` | npm |
+| `@nimiplatform/kit` and `@nimiplatform/kit-protected-local-*` | `kit/v<version>` | `release-kit.yml` | npm |
+| `@nimiplatform/sdk-adapter-vercel-ai` | `sdk-adapter-vercel-ai/v<version>` | `release-sdk-adapter-vercel-ai.yml` | npm |
 | `nimi-shell-protected-local` | `nimi-shell-protected-local/v<version>` | `release-nimi-shell-protected-local.yml` | crates.io |
 | `nimi-shell-tauri` | `nimi-shell-tauri/v<version>` | `release-nimi-shell-tauri.yml` | crates.io |
 | `@nimiplatform/app-tools` | `app-tools/v<version>` | `release-app-tools.yml` | npm |
 
-For SDK, Kit, and App Tools, the tag version must equal the exact package.json
-version. They remain independently versioned; no root `vX.Y.Z` tag, aggregate
-manifest, RC bundle, or global promotion workflow identifies those packages.
+For SDK, Kit, the Vercel adapter, and App Tools, the tag version must equal the
+exact package.json version. They remain independently versioned; no root
+`vX.Y.Z` tag, aggregate manifest, RC bundle, or global promotion workflow
+identifies those packages.
 
 The npm workflows retain their historical filenames because npm Trusted
 Publisher configuration binds the repository and exact workflow identity. They
@@ -49,10 +51,12 @@ After merge, a maintainer may run a component workflow manually for another
 dry-run. A manual dispatch cannot publish. Production publication starts only by
 pushing the exact component tag at a commit already contained in `origin/main`.
 
-Every npm package is packed before publication. The Kit tarball is the current
-JS-only public package: it rewrites the workspace SDK dependency to its public
-caret range and omits deferred native carrier optional dependencies. Runtime and
-Kit native carriers do not enter these component releases.
+Every npm package is packed before publication. The Kit tarball rewrites the
+workspace SDK dependency to its public caret range and declares the two Kit
+native packages (`win32-x64`, `darwin-arm64`) as `^<Kit version>` optional
+dependencies. `release-kit.yml` builds those native packages on their own
+platforms and publishes them before Kit under the same `kit/v` tag. Runtime
+binaries do not enter these component releases.
 
 ## Dependency order
 
@@ -65,22 +69,36 @@ The two independent roots may begin separately:
 Then publish dependants:
 
 3. Kit waits for its declared SDK version to be visible on npm.
-4. Tauri reads the protected-local version declared by its own Cargo dependency
+4. The Vercel adapter waits for its SDK peer version to be visible on npm.
+5. Tauri reads the protected-local version declared by its own Cargo dependency
    and waits for that version to be visible on crates.io; it does not reuse the
    Tauri component version as protected-local identity.
-5. App Tools waits for the SDK, Kit, and Tauri versions embedded in its packed
+6. App Tools waits for the SDK, Kit, and Tauri versions embedded in its packed
    scaffold contract to be visible in their public registries. The Tauri
    publisher has already closed its protected-local dependency.
 
-For the current prepared versions, the intended tags are:
+Each tag takes its version from that component's own manifest at the tagged
+commit: `sdks/typescript/package.json`, `kit/package.json`,
+`app-tools/package.json`, `kit/shell/protected-local/Cargo.toml`, and
+`kit/shell/tauri/Cargo.toml`. A manifest version on `main` is a prepared
+candidate, not a publication; npm and crates.io show which versions are public.
+
+The current candidate combination is unpublished, and publishing it needs
+explicit authorization. Its intended tags, with the upgrade notes in the SDK,
+Kit, and adapter packages, are:
 
 ```text
-sdk/v0.7.0
-kit/v0.3.0
-nimi-shell-protected-local/v0.2.0
-nimi-shell-tauri/v0.2.1
-app-tools/v0.2.1
+sdk/v0.19.0
+nimi-shell-protected-local/v0.8.0
+kit/v0.16.0
+sdk-adapter-vercel-ai/v0.3.0
+nimi-shell-tauri/v0.8.0
 ```
+
+App Tools 0.11.4 is not part of this candidate: its fresh-scaffold default still
+names SDK `^0.18.1`, Kit `^0.15.3` and `nimi-shell-tauri` 0.7.0, which were never
+published, so its registry preflight rejects it until that default names a
+published combination.
 
 `nimi-shell-tauri/v0.2.0` is an immutable failed publication attempt. Its
 crates.io dependency preflight was rejected before package upload, so the tag
@@ -154,3 +172,9 @@ For each published component, verify:
 These checks establish component publication only. They do not establish a Nimi
 product release, third-party App admission, installation, running process, or
 Nimi Access readiness.
+
+When the published SDK, Kit native packages, or shell crates carry a newer
+Runtime wire, refresh the proto breaking-change baseline to that component tag
+with `pnpm proto:baseline:refresh`, recording its published artifacts and the
+adjudication of every difference from the previous baseline. Until then the gate
+protects only the older published wire.

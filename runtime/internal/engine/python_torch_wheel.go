@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultMediaTorchCPUIndexURL   = "https://download.pytorch.org/whl/cpu"
+	defaultTorchCPUIndexURL        = "https://download.pytorch.org/whl/cpu"
 	defaultSpeechTorchCUDAIndexURL = "https://download.pytorch.org/whl/cu128"
 	pythonTorchPackageSource       = "pytorch-official-wheel-index"
 	speechTorchVersion             = "2.11.0"
@@ -66,7 +66,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 		return pythonTorchWheelManifest{
 			Packages: []string{"torch==" + speechTorchVersion}, ImportProbes: []string{"torch"},
 			AcceleratorPlane: "cpu", CUDAABI: "none",
-			WheelIndex: defaultMediaTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
+			WheelIndex: defaultTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
 		}, nil
 	case trimmed == VisionLocateConsumerID+".cuda" || trimmed == GroundingDinoConsumerID+".cuda":
 		return pythonTorchWheelManifest{
@@ -79,7 +79,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 		return pythonTorchWheelManifest{
 			Packages: []string{"torch==2.11.0"}, ImportProbes: []string{"torch"},
 			AcceleratorPlane: "cpu", CUDAABI: "none",
-			WheelIndex: defaultMediaTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
+			WheelIndex: defaultTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
 		}, nil
 	case trimmed == TextDecisionConsumerID+".cuda":
 		return pythonTorchWheelManifest{
@@ -91,25 +91,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 		return pythonTorchWheelManifest{
 			Packages: []string{"torch==" + speechTorchVersion}, ImportProbes: []string{"torch"},
 			AcceleratorPlane: "cpu", CUDAABI: "none",
-			WheelIndex: defaultMediaTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
-		}, nil
-	case strings.HasPrefix(trimmed, "media.") && strings.HasSuffix(trimmed, ".cuda"):
-		return pythonTorchWheelManifest{
-			Packages:         append([]string{}, mediaPackages[:2]...),
-			ImportProbes:     []string{"torch", "torchvision"},
-			AcceleratorPlane: "cuda",
-			CUDAABI:          "cu126",
-			WheelIndex:       defaultMediaTorchIndexURL,
-			PackageSource:    pythonTorchPackageSource,
-		}, nil
-	case strings.HasPrefix(trimmed, "media.") && strings.HasSuffix(trimmed, ".cpu"):
-		return pythonTorchWheelManifest{
-			Packages:         append([]string{}, mediaPackages[:2]...),
-			ImportProbes:     []string{"torch", "torchvision"},
-			AcceleratorPlane: "cpu",
-			CUDAABI:          "none",
-			WheelIndex:       defaultMediaTorchCPUIndexURL,
-			PackageSource:    pythonTorchPackageSource,
+			WheelIndex: defaultTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
 		}, nil
 	case strings.HasPrefix(trimmed, "speech.") && strings.HasSuffix(trimmed, ".cuda"):
 		packages := []string{"torch==" + speechTorchVersion}
@@ -138,7 +120,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 			ImportProbes:     probes,
 			AcceleratorPlane: "cpu",
 			CUDAABI:          "none",
-			WheelIndex:       defaultMediaTorchCPUIndexURL,
+			WheelIndex:       defaultTorchCPUIndexURL,
 			PackageSource:    pythonTorchPackageSource,
 		}, nil
 	default:

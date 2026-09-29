@@ -1,6 +1,12 @@
 import path from 'node:path';
 import { readFile, realpath } from 'node:fs/promises';
 import type { Protocol } from 'electron';
+import { AVATAR_APP_CONTENT_SECURITY_POLICY, DESKTOP_APP_CONTENT_SECURITY_POLICY } from './app-origin-csp.js';
+
+const CONTENT_SECURITY_POLICY: Readonly<Record<'desktop' | 'avatar', string>> = {
+  desktop: DESKTOP_APP_CONTENT_SECURITY_POLICY,
+  avatar: AVATAR_APP_CONTENT_SECURITY_POLICY,
+};
 
 export const NIMI_DESKTOP_APP_PROTOCOL_SCHEME = 'nimi-app';
 export const NIMI_DESKTOP_APP_PROTOCOL_PRIVILEGES = {
@@ -48,8 +54,14 @@ export function createDesktopAppOriginProtocol(input: {
         const canonical = await realpath(candidate);
         const boundary = path.relative(root, canonical);
         if (boundary.startsWith('..') || path.isAbsolute(boundary)) return new Response('path not admitted', { status: 403 });
+        const type = contentType(canonical);
         return new Response(Uint8Array.from(await readFile(canonical)), {
-          headers: { 'content-type': contentType(canonical), 'cache-control': 'no-store' },
+          headers: {
+            'content-type': type,
+            'cache-control': 'no-store',
+            'x-content-type-options': 'nosniff',
+            ...(type.startsWith('text/html') ? { 'content-security-policy': CONTENT_SECURITY_POLICY[host] } : {}),
+          },
         });
       } catch {
         return new Response('app asset not found', { status: 404 });

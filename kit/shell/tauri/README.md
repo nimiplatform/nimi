@@ -61,3 +61,27 @@ Available macros:
 The command catalog is also exposed through
 `nimi_shell_tauri::command_registration` for tests, audits, and apps that need
 to keep registration fully explicit.
+
+## Standard Shell Coverage
+
+This crate carries a subset of the standard shell. The renderer bridge maps a
+standard operation to a Tauri command only when this crate registers one
+(`TAURI_STANDARD_COMMAND_ALIASES` in
+`kit/shell/renderer/src/bridge/tauri-api.ts`; a Kit test checks every alias
+target against `command_registration.rs`).
+
+Standard operations without a command here fail in the renderer with
+`capability-unavailable` (reason `tauri-standard-shell-operation-unsupported`,
+source `tauri`) before any Tauri command runs. They include streamed text
+turns, Scenario execution and Jobs, artifact reads, voice assets, Realm chat
+and realtime, Agent introduction, references and work, Integrations, Agent
+Conversation, AI and Agent realtime, video sessions, App media handles, Avatar
+host handoff, Resource Pack import, generic Runtime config, AI profile reads,
+and direct Runtime artifact reads. App-owned commands and this crate's native
+commands (for example `runtime_account_*` and `log_renderer_event`) keep their
+own names and pass through unchanged.
+
+The Local App macro registers only the Local App set above. Agent Center
+material imports and Desktop Open are registered by the Runtime bridge macros;
+a Local App Host that needs them lists those commands explicitly in its own
+`tauri::generate_handler!` registration.

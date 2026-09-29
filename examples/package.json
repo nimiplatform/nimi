@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "pnpm --dir .. --filter @nimiplatform/sdk-adapter-vercel-ai build && tsc -p tsconfig.json --noEmit"
+    "check": "pnpm --dir .. --filter @nimiplatform/sdk-adapter-vercel-ai build && tsc -p tsconfig.json --noEmit",
+    "test": "pnpm run check"
   },
   "dependencies": {
     "@nimiplatform/sdk-adapter-vercel-ai": "workspace:*",

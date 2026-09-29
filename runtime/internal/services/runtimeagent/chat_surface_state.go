@@ -502,7 +502,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		}
 	}
 	if err := validatePersistedPublicChatConversationSingletons(persisted.Anchors); err != nil {
-		return fmt.Errorf("public chat surface state requires explicit offline repair with runtime:repair-local-agent-chat while Runtime is stopped: %w", err)
+		return conversationStateRepairRefusal(err)
 	}
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()

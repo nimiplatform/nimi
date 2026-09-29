@@ -556,12 +556,6 @@
   --rijing-accent: var(--nimi-action-primary-bg, #4ECCA3);
   --rijing-accent-hover: var(--nimi-action-primary-bg-hover, #3DBB96);
   --rijing-accent-ink: var(--nimi-accent-ink, #157a5b);
-  --rijing-glass-thick-bg: var(--nimi-material-glass-thick-bg, rgba(255, 255, 255, 0.70));
-  --rijing-glass-thick-border: var(--nimi-material-glass-thick-border, rgba(226, 232, 240, 0.40));
-  --rijing-glass-regular-bg: var(--nimi-material-glass-regular-bg, rgba(255, 255, 255, 0.45));
-  --rijing-glass-regular-border: var(--nimi-material-glass-regular-border, rgba(226, 232, 240, 0.30));
-  --rijing-blur: var(--nimi-backdrop-blur-regular, 18px);
-  --rijing-blur-chrome: var(--nimi-backdrop-blur-chrome, 28px);
   --rijing-elev-base: var(--nimi-elevation-base, 0 6px 18px rgba(15, 23, 42, 0.08));
   --rijing-elev-raised: var(--nimi-elevation-raised, 0 12px 28px rgba(15, 23, 42, 0.12));
   --rijing-font-sans: "PingFang SC", "HarmonyOS Sans SC", "HarmonyOS Sans", "Noto Sans SC", "Inter", "Microsoft YaHei", system-ui, sans-serif;
@@ -607,6 +601,10 @@
 
 /* ----- 今日总览 hero (rijing-hero.css + day-rite flip) ----- */
 
+/* Content-role Kit glass-regular: fill, border color, blur and saturation are
+ * the Kit material classes on the element (demo-shijing-preview.tsx). The
+ * hero is a `.shijing-tab > article`, so the generic tab-card fill and border
+ * color are rolled back to the layered Kit utilities here. */
 .shijing-rijing .shijing-rijing__hero {
   position: relative;
   display: flex;
@@ -616,11 +614,11 @@
   gap: 16px;
   padding: clamp(28px, 4vw, 44px) clamp(22px, 5vw, 56px) 30px;
   border-radius: var(--shijing-radius-3xl);
-  background: var(--rijing-glass-thick-bg);
-  border: 1px solid var(--rijing-glass-thick-border);
+  background: revert-layer;
+  border-width: 1px;
+  border-style: solid;
+  border-color: revert-layer;
   box-shadow: var(--rijing-elev-raised);
-  backdrop-filter: blur(var(--rijing-blur-chrome)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--rijing-blur-chrome)) saturate(140%);
   overflow: hidden;
 }
 
@@ -1116,13 +1114,13 @@
   gap: 12px;
 }
 
+/* Content-role Kit glass-regular: fill, border color, blur and saturation are
+ * the Kit material classes on each frame (demo-shijing-preview.tsx). */
 .shijing-rijing__frame {
-  background: var(--rijing-glass-regular-bg);
-  border: 1px solid var(--rijing-glass-regular-border);
+  border-width: 1px;
+  border-style: solid;
   border-radius: var(--shijing-radius-lg);
   box-shadow: var(--rijing-elev-base);
-  backdrop-filter: blur(var(--rijing-blur)) saturate(135%);
-  -webkit-backdrop-filter: blur(var(--rijing-blur)) saturate(135%);
   overflow: hidden;
 }
 
@@ -1246,8 +1244,6 @@
   background: var(--rijing-card-bg);
   border: 1px solid var(--rijing-card-border);
   box-shadow: var(--rijing-card-shadow);
-  backdrop-filter: blur(var(--rijing-blur)) saturate(120%);
-  -webkit-backdrop-filter: blur(var(--rijing-blur)) saturate(120%);
 }
 
 .shijing-rijing__event-input-head {
@@ -1425,8 +1421,6 @@
   border: 1px solid var(--rijing-card-border);
   border-radius: var(--shijing-radius-2xl);
   box-shadow: var(--rijing-card-shadow);
-  backdrop-filter: blur(var(--rijing-blur)) saturate(120%);
-  -webkit-backdrop-filter: blur(var(--rijing-blur)) saturate(120%);
 }
 
 .shijing-rijing__action-head {
@@ -1591,7 +1585,6 @@
   --yuejing-turning-soft:    color-mix(in srgb, var(--yuejing-turning)    62%, white);
   --yuejing-glass-bg: rgba(255, 255, 255, 0.55);
   --yuejing-glass-border: rgba(255, 255, 255, 0.55);
-  --yuejing-glass-blur: blur(16px) saturate(140%);
   --yuejing-glass-shadow: 0 8px 28px -16px rgba(15, 23, 38, 0.12);
   gap: 18px;
 }
@@ -1726,8 +1719,6 @@
   gap: 14px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 2px 12px -6px rgba(15, 23, 38, 0.10);
   align-self: center;
@@ -1851,8 +1842,6 @@
   gap: 16px;
   padding: 8px 16px;
   background: var(--yuejing-glass-bg);
-  backdrop-filter: var(--yuejing-glass-blur);
-  -webkit-backdrop-filter: var(--yuejing-glass-blur);
   border: 1px solid var(--yuejing-glass-border);
   border-radius: 999px;
   box-shadow: var(--yuejing-glass-shadow);
@@ -1987,8 +1976,6 @@
   max-width: 380px;
   padding: 16px 18px 14px;
   background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: var(--shijing-radius-2xl, 20px);
   box-shadow:
@@ -2162,8 +2149,6 @@
   gap: 10px;
   padding: 20px;
   background: var(--yuejing-glass-bg);
-  backdrop-filter: var(--yuejing-glass-blur);
-  -webkit-backdrop-filter: var(--yuejing-glass-blur);
   border: 1px solid var(--yuejing-glass-border);
   border-radius: var(--shijing-radius-2xl, 20px);
   box-shadow: var(--yuejing-glass-shadow);
@@ -2253,8 +2238,6 @@
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0) 55%),
     rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.55);
   box-shadow: 0 4px 14px -10px rgba(15, 23, 38, 0.10);
 }
@@ -2363,8 +2346,6 @@
   align-self: end;
   justify-self: end;
   font-weight: 500;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
 }
 
 .shijing-yuejing__day-today-badge {
@@ -2403,8 +2384,6 @@
 .shijing-yuejing > .shijing-yuejing__details {
   padding: 14px 18px;
   background: var(--yuejing-glass-bg);
-  backdrop-filter: var(--yuejing-glass-blur);
-  -webkit-backdrop-filter: var(--yuejing-glass-blur);
   border: 1px solid var(--yuejing-glass-border);
   border-radius: var(--shijing-radius-lg);
   box-shadow: var(--yuejing-glass-shadow);
@@ -2453,8 +2432,6 @@
   inset: 0;
   z-index: 200;
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(4px) saturate(105%);
-  -webkit-backdrop-filter: blur(4px) saturate(105%);
   animation: shijing-yuejing__panel-fade-in 160ms ease both;
 }
 
@@ -2466,8 +2443,6 @@
   width: min(440px, 100%);
   z-index: 201;
   background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
   border-left: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: -22px 0 56px -28px rgba(15, 23, 38, 0.22);
   overflow-y: auto;
@@ -4056,8 +4031,6 @@
   --mingjing-glass-regular-border: var(--nimi-material-glass-regular-border, rgba(226, 232, 240, 0.30));
   --mingjing-glass-thin-bg: var(--nimi-material-glass-thin-bg, rgba(255, 255, 255, 0.25));
   --mingjing-glass-thin-border: var(--nimi-material-glass-thin-border, rgba(226, 232, 240, 0.20));
-  --mingjing-blur: var(--nimi-backdrop-blur-regular, 18px);
-  --mingjing-blur-chrome: var(--nimi-backdrop-blur-chrome, 28px);
   --mingjing-elev-base: var(--nimi-elevation-base, 0 6px 18px rgba(15, 23, 42, 0.08));
   --mingjing-elev-raised: var(--nimi-elevation-raised, 0 12px 28px rgba(15, 23, 42, 0.12));
   --mingjing-font-sans: "PingFang SC", "HarmonyOS Sans SC", "HarmonyOS Sans",
@@ -4140,8 +4113,6 @@
   border: 1px solid var(--mingjing-card-border);
   border-radius: var(--mingjing-panel-radius);
   box-shadow: var(--mingjing-card-shadow);
-  backdrop-filter: blur(var(--mingjing-blur)) saturate(120%);
-  -webkit-backdrop-filter: blur(var(--mingjing-blur)) saturate(120%);
 }
 
 .shijing-mingjing-panel__head {
@@ -4290,8 +4261,6 @@
   color: var(--mingjing-ink-strong);
   background: rgba(255, 255, 255, 0.68);
   box-shadow: 0 10px 26px -20px rgba(23, 32, 42, 0.28);
-  backdrop-filter: blur(16px) saturate(128%);
-  -webkit-backdrop-filter: blur(16px) saturate(128%);
   font-family: var(--mingjing-font-sans);
   font-size: 13px;
   font-weight: 600;
@@ -4393,8 +4362,6 @@
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.13);
   border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 
 .shijing-mingjing .shijing-mj-hero__favor-title {
@@ -4548,8 +4515,6 @@
   border: 1px solid var(--mingjing-glass-thick-border);
   border-radius: var(--shijing-radius-2xl);
   box-shadow: var(--mingjing-elev-raised);
-  backdrop-filter: blur(var(--mingjing-blur-chrome)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--mingjing-blur-chrome)) saturate(140%);
 }
 
 .shijing-mingjing__readiness-title {
@@ -4616,8 +4581,6 @@
   background: var(--mingjing-card-bg);
   box-shadow: var(--mingjing-card-shadow);
   box-sizing: border-box;
-  backdrop-filter: blur(var(--mingjing-blur)) saturate(120%);
-  -webkit-backdrop-filter: blur(var(--mingjing-blur)) saturate(120%);
 }
 
 .shijing-paipan__head {
@@ -5991,8 +5954,6 @@
   border-color: var(--zw-card-border);
   border-radius: var(--zw-card-radius);
   box-shadow: var(--zw-card-shadow);
-  -webkit-backdrop-filter: blur(24px) saturate(130%);
-  backdrop-filter: blur(24px) saturate(130%);
 }
 
 .shijing-mingjing__panels--ziwei .shijing-mingjing-panel__title {
@@ -6024,8 +5985,6 @@
   background: var(--zw-card-bg);
   border: 1px solid var(--zw-card-border);
   box-shadow: var(--zw-card-shadow);
-  -webkit-backdrop-filter: blur(24px) saturate(130%);
-  backdrop-filter: blur(24px) saturate(130%);
 }
 
 .shijing-ziwei-persona__mark {
@@ -6592,8 +6551,6 @@
   border: 1px solid var(--qz-border);
   border-radius: 20px;
   box-shadow: var(--mingjing-elev-base);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
   padding: 24px 26px;
 }
 
@@ -7550,8 +7507,6 @@
 }
 .shijing-qz-pop__bubble {
   background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--qz-border-strong, rgba(148, 163, 184, 0.4));
   border-radius: 14px;
   box-shadow: var(--mingjing-elev-raised);
@@ -7895,8 +7850,6 @@
 
 .shijing-shell[data-active-tab="hejing"] .shijing-topbar {
   background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
   border-bottom-color: rgba(40, 92, 68, 0.12);
 }
 
@@ -8286,8 +8239,6 @@
   background: rgba(9, 20, 14, 0.46);
   border-color: rgba(255, 255, 255, 0.18);
   color: #ecefe2;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .shijing-shell:has(.shijing-intake-hero) .shijing-topbar__avatar-button {
@@ -8335,7 +8286,6 @@
 .shijing-tab.shijing-ask {
   --shijing-shared-glass-bg: rgba(255, 255, 255, 0.55);
   --shijing-shared-glass-border: rgba(255, 255, 255, 0.55);
-  --shijing-shared-glass-blur: blur(16px) saturate(140%);
   --shijing-shared-glass-shadow: 0 8px 28px -16px rgba(15, 23, 38, 0.12);
 }
 
@@ -8380,11 +8330,9 @@
 .shijing-tab.shijing-ask {
   --shijing-ask-glass-bg: var(--shijing-shared-glass-bg);
   --shijing-ask-glass-border: var(--shijing-shared-glass-border);
-  --shijing-ask-glass-blur: var(--shijing-shared-glass-blur);
   --shijing-ask-glass-shadow: var(--shijing-shared-glass-shadow);
-  /* Frosted-glass card: a translucent white wash over the aurora, so the
-   * composer picks up the page's mint/lavender tint instead of reading as a
-   * hard white slab. */
+  /* Translucent card: a white wash over the aurora, so the composer picks up
+   * the page's mint/lavender tint instead of reading as a hard white slab. */
   --shijing-ask-card-bg: linear-gradient(
     158deg,
     rgba(255, 255, 255, 0.68) 0%,
@@ -8392,7 +8340,6 @@
     rgba(248, 252, 250, 0.44) 100%
   );
   --shijing-ask-card-border: rgba(255, 255, 255, 0.6);
-  --shijing-ask-card-blur: blur(24px) saturate(160%);
   --shijing-ask-card-shadow:
     0 32px 80px -36px rgba(15, 23, 42, 0.18),
     0 4px 18px -10px rgba(15, 23, 42, 0.06);
@@ -8489,8 +8436,6 @@
   min-height: 0;
   padding: 22px 18px;
   background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-right: 1px solid rgba(15, 23, 42, 0.07);
 }
 
@@ -8620,8 +8565,6 @@
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
   box-shadow: 0 18px 40px -16px rgba(15, 23, 38, 0.22);
 }
 
@@ -8807,8 +8750,6 @@
   min-height: 0;
   padding: 14px 20px 12px;
   background: var(--shijing-ask-card-bg);
-  backdrop-filter: var(--shijing-ask-card-blur);
-  -webkit-backdrop-filter: var(--shijing-ask-card-blur);
   border: 1px solid var(--shijing-ask-card-border);
   border-radius: var(--shijing-radius-3xl);
   box-shadow: var(--shijing-ask-card-shadow);
@@ -8836,7 +8777,7 @@
   box-shadow: 0 0 0 3px rgba(67, 198, 165, 0.15);
 }
 
-/* ----- Composer card (welcome mode: centered frosted-glass card) ----- */
+/* ----- Composer card (welcome mode: centered translucent card) ----- */
 
 .shijing-ask .shijing-ask__composer[data-chat-composer="false"] {
   width: 100%;
@@ -8844,8 +8785,6 @@
   margin: 0 auto;
   padding: 30px 34px 18px;
   background: var(--shijing-ask-card-bg);
-  backdrop-filter: var(--shijing-ask-card-blur);
-  -webkit-backdrop-filter: var(--shijing-ask-card-blur);
   border: 1px solid var(--shijing-ask-card-border);
   border-radius: 28px;
   box-shadow: var(--shijing-ask-card-shadow);
@@ -9375,8 +9314,6 @@
   max-width: 380px;
   padding: 16px 18px 14px;
   background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: var(--shijing-radius-2xl, 20px);
   box-shadow:

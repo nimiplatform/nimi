@@ -30,6 +30,7 @@ const (
 	localEnvironmentFamilyNativeSDCPP      = "native-engine-package.stablediffusion-ggml"
 	localEnvironmentFamilyNativeAudioCPP   = "native-engine-package.audio-cpp"
 	localEnvironmentFamilyESpeakNG         = "native-library.espeak-ng"
+	localEnvironmentFamilyMediaCodec       = "native-tool.media-codec"
 	localEnvironmentFamilyPythonUV         = "python.tool.uv"
 	localEnvironmentFamilyPythonRuntime    = "python.runtime"
 	localEnvironmentFamilyPythonVenv       = "python.venv"
@@ -345,7 +346,7 @@ func localEnvironmentPlanConfirmationProjection(dependencies []localEnvironmentP
 
 func localEnvironmentDependencyStorageCategory(family string) string {
 	switch family {
-	case localEnvironmentFamilyCUDA, localEnvironmentFamilyESpeakNG, localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonTorchWheel:
+	case localEnvironmentFamilyCUDA, localEnvironmentFamilyMediaCodec, localEnvironmentFamilyESpeakNG, localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonTorchWheel:
 		return "dependencies"
 	case localEnvironmentFamilyNativeLlama, localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyNativeAudioCPP,
 		localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet:
@@ -416,17 +417,6 @@ func localEnvironmentPlanState(dependencies []localEnvironmentPlanDependency) (s
 
 func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) localEnvironmentPlanDependency {
 	dependencyID := defaultLocalEnvironmentDependencyID(def.PackID, family)
-	if (family == localEnvironmentFamilyPythonVenv || family == localEnvironmentFamilyPythonPackageSet) && strings.HasPrefix(strings.TrimSpace(consumerScope), "media.") {
-		plane := "cpu"
-		if localEnvironmentHostSupportsCUDA(hostState) {
-			plane = "cuda"
-		}
-		identity, err := engine.ResolvePythonDependencyProfileIdentity(consumerScope, platformTuple, plane)
-		if err != nil {
-			return localEnvironmentUnsupportedPythonProfileDependency(family, required, consumerScope, runtimeDataRoot, err)
-		}
-		dependencyID = identity.DependencyID
-	}
 	return s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, consumerScope)
 }
 
@@ -493,6 +483,11 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 			return dep
 		}
 	}
+	if family == localEnvironmentFamilyMediaCodec && !engine.MediaCodecSupported(hostState.OS, hostState.Arch) {
+		dep.State, dep.SourceKind, dep.ReasonCode = localEnvironmentStateUnsupported, localEnvironmentSourceUnavailable, "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
+		dep.ConfirmationRequired = false
+		return dep
+	}
 	if family == localEnvironmentFamilyESpeakNG && (!strings.EqualFold(strings.TrimSpace(hostState.OS), "windows") || !strings.EqualFold(strings.TrimSpace(hostState.Arch), "amd64")) {
 		dep.State = localEnvironmentStateUnsupported
 		dep.SourceKind = localEnvironmentSourceUnavailable
@@ -505,6 +500,10 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 		dep.SourceKind = record.SourceKind
 		dep.SelectedSourceRecordID = record.RecordID
 		dep.CanonicalRoot = record.CanonicalRoot
+		if family == localEnvironmentFamilyMediaCodec && !engine.MediaCodecVersionMatches(hostState.OS, hostState.Arch, record.Version) {
+			dep.State, dep.ReasonCode = localEnvironmentStateRepairRequired, "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
+			return dep
+		}
 		if err := validateLocalEnvironmentSelectedSourceRecord(record); err != nil {
 			dep.State = localEnvironmentStateRepairRequired
 			dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
@@ -734,7 +733,7 @@ func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool
 	switch trimmed {
 	case engine.VisionLocateConsumerID + ".cuda", engine.GroundingDinoConsumerID + ".cuda", engine.TextDecisionConsumerID + ".cuda":
 		return true
-	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID, "media.diffusers.cuda", "media.video-python.cuda":
+	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID:
 		return true
 	default:
 		return audioCppConsumerIDKnown(trimmed) || strings.HasPrefix(trimmed, "speech.") && strings.HasSuffix(trimmed, ".cuda")
@@ -819,32 +818,6 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			CloudOnlyImpact:            "none",
 		},
 		{
-			PackID:       "local-image-python",
-			ProductLabel: "Local image Python workflows",
-			RequiredDependencyFamilies: []string{
-				localEnvironmentFamilyPythonUV,
-				localEnvironmentFamilyPythonRuntime,
-				localEnvironmentFamilyPythonVenv,
-				localEnvironmentFamilyPythonPackageSet,
-				localEnvironmentFamilyPythonTorchWheel,
-			},
-			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
-			CloudOnlyImpact:            "none",
-		},
-		{
-			PackID:       "local-video-python",
-			ProductLabel: "Local video Python workflows",
-			RequiredDependencyFamilies: []string{
-				localEnvironmentFamilyPythonUV,
-				localEnvironmentFamilyPythonRuntime,
-				localEnvironmentFamilyPythonVenv,
-				localEnvironmentFamilyPythonPackageSet,
-				localEnvironmentFamilyPythonTorchWheel,
-			},
-			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
-			CloudOnlyImpact:            "none",
-		},
-		{
 			PackID:                     "local-speech",
 			ProductLabel:               "Local speech",
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyPythonTorchWheel},
@@ -865,6 +838,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			OptionalDependencyFamilies: []string{},
 			CloudOnlyImpact:            "none",
 		},
+		{PackID: "media-codec", ProductLabel: "Audio and video tools", RequiredDependencyFamilies: []string{localEnvironmentFamilyMediaCodec}, CloudOnlyImpact: "canonical_media_only"},
 		localDecisionPackDefinition(),
 	}
 }
@@ -882,6 +856,8 @@ func defaultLocalEnvironmentDependencyID(packID string, family string) string {
 		return "stable-diffusion.cpp.package"
 	case localEnvironmentFamilyNativeAudioCPP:
 		return "audio.cpp.package"
+	case localEnvironmentFamilyMediaCodec:
+		return engine.MediaCodecDependencyID
 	case localEnvironmentFamilyESpeakNG:
 		return engine.ESpeakNGDependencyID
 	case localEnvironmentFamilyPythonUV:

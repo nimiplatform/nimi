@@ -60,6 +60,7 @@ struct AccountEventProjection {
     account_reason_code: i32,
     account_projection: Option<AccountProjection>,
     replay_truncated: bool,
+    pub audit_diagnostic: Option<nimi_shell_protected_local::DesktopAccountAuditDiagnostic>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -209,6 +210,7 @@ fn project_event(event: DesktopAccountSessionEvent) -> AccountEventProjection {
         account_reason_code: event.account_reason_code,
         account_projection: event.account_projection.map(project_account),
         replay_truncated: event.replay_truncated,
+        audit_diagnostic: event.audit_diagnostic,
     }
 }
 

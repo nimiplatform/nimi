@@ -28,6 +28,12 @@ func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLo
 	}
 	capabilityContract := strings.TrimSpace(req.GetCapabilityContract())
 	candidateLoadoutID := strings.TrimSpace(req.GetCandidateLoadoutId())
+	if req.GetMediaCodec() {
+		if capabilityContract != "" || candidateLoadoutID != "" {
+			return localEnvironmentPlan{}, localEnvironmentJobControlError(codes.InvalidArgument, "media codec resolution cannot select a capability or Loadout", "choose_one_environment_target")
+		}
+		return s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "media-codec", ConsumerScope: "media-codec", HostProfile: req.GetHostProfile(), RuntimeDataRoot: runtimeDataRoot}), nil
+	}
 
 	var loadout *runtimev1.Loadout
 	candidateRevision := ""

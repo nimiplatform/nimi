@@ -28,7 +28,7 @@ func startupCompatibilityWarningsForAsset(
 	if requiresNPU(normalizedEngine) && (!profile.GetNpu().GetAvailable() || !profile.GetNpu().GetReady()) {
 		warnings = append(warnings, "WARN_NPU_REQUIRED")
 	}
-	return append(warnings, managedEngineSupportWarningsForAsset(engine, capabilities, kind, profile)...)
+	return warnings
 }
 
 func (s *Service) engineManagerOrNil() EngineManager {

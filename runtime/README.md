@@ -151,15 +151,20 @@ pnpm test:runtime:live
 
 ## Proto baseline
 
-```bash
-cd runtime
-make proto-baseline
-```
+`pnpm proto:breaking` 对照的是已发布的 wire：
+`runtime/proto/runtime-v1.baseline.json` 记录其来源（携带 wire 的组件
+tag、提交与已发布制品），`runtime/proto/runtime-v1.baseline.binpb` 必须能从该
+tag 的 `proto/` 逐字节重建。门禁不接受从未发布源码刷新的快照。
 
-`make proto-baseline` 会把当前 proto contract 快照写入
-`runtime/proto/runtime-v1.baseline.binpb`。当前 AI baseline 已采用 typed
-`ScenarioOutput` 和 typed `ScenarioStreamDelta` delta oneof；如果这些 wire
-contract 发生有意变化，必须先完成 runtime / sdk 对齐，再重建 baseline。
+- 有意的破坏性 wire 变化：在记录的 `declaredBreaking` 中写明 buf 的规则、路径、
+  消息、原因，以及新 0.x minor 在 CHANGELOG 中的迁移说明标题。
+- 携带 wire 的组件发布后，从该 tag 刷新基线，并记录与上一基线的差异裁决：
+
+```bash
+pnpm proto:baseline:refresh -- --tag sdk/v<SemVer> \
+  --published npm:@nimiplatform/sdk@<SemVer>,... \
+  --adjudication "<对差异的审阅结论>"
+```
 
 ## References
 

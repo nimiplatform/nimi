@@ -58,7 +58,10 @@ func TestRecipeSlotOfferCarriesRuntimeOwnedInstalledModelAssetID(t *testing.T) {
 		Entry:        offer.entryPath,
 		Files:        files,
 	}
-	projected := svc.projectRecipeSlotOffers([]string{variantID}, collectDeviceProfile())
+	projected, err := svc.projectRecipeSlotOffers([]string{variantID}, collectDeviceProfile(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(projected) != 1 || !projected[0].GetCandidate().GetInstalled() || projected[0].GetInstalledModelAssetId() != "model_installed" {
 		t.Fatalf("slot offer installed projection=%+v", projected)
 	}
@@ -151,7 +154,10 @@ func TestCUDAOnlyImageRecipeSlotsRemainVisibleAsUnsupportedOnAppleSilicon(t *tes
 		}
 		for _, slot := range recipe.SlotMetadata {
 			ranked := svc.localProviderCatalog.RankVariantsForHost(slot.RecommendedVariantIDs, host)
-			offers := svc.projectRecipeSlotOffers(slot.RecommendedVariantIDs, host)
+			offers, err := svc.projectRecipeSlotOffers(slot.RecommendedVariantIDs, host, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if len(ranked) == 0 || len(offers) != len(ranked) {
 				t.Fatalf("recipe %q slot %q ranked=%d offers=%d", recipeID, slot.SlotID, len(ranked), len(offers))
 			}
@@ -183,6 +189,7 @@ func TestCUDAOnlyImageRecipeSlotsRemainVisibleAsUnsupportedOnAppleSilicon(t *tes
 			implementationFeatures,
 			host,
 			runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED,
+			nil,
 			nil,
 		)
 		if err != nil {

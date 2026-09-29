@@ -24,6 +24,7 @@
     "AI_MEDIA_IDEMPOTENCY_CONFLICT": "媒体任务发生幂等冲突。",
     "AI_MEDIA_JOB_NOT_FOUND": "未找到媒体任务。",
     "AI_MEDIA_SPEC_INVALID": "媒体规格无效。",
+    "AI_MEDIA_CODEC_UNAVAILABLE": "此设备上缺少 Nimi 使用的音视频转换组件，无法处理这段音频或视频。",
     "AI_MEDIA_OPTION_UNSUPPORTED": "当前不支持该媒体选项。",
     "AI_MEDIA_JOB_NOT_CANCELLABLE": "媒体任务不可取消。",
     "AI_LOCAL_MODEL_UNAVAILABLE": "Runtime 本地执行不可用。",

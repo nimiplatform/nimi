@@ -17,8 +17,6 @@ func engineAuditTargetName(kind engine.EngineKind) (string, bool) {
 	switch kind {
 	case engineManagedImageBackend:
 		return localImageEngineAuditKey, true
-	case engine.EngineMedia:
-		return "local-media", true
 	case engine.EngineSpeech:
 		return "local-speech", true
 	case engineSidecar:
@@ -30,12 +28,8 @@ func engineAuditTargetName(kind engine.EngineKind) (string, bool) {
 
 func engineKindForName(engineName string) (engine.EngineKind, bool) {
 	switch strings.TrimSpace(strings.ToLower(engineName)) {
-	case string(engine.EngineMedia):
-		return engine.EngineMedia, true
 	case string(engine.EngineSpeech):
 		return engine.EngineSpeech, true
-	case "media-diffusers-backend":
-		return engineManagedImageBackend, true
 	case string(engineManagedImageBackend):
 		return engineManagedImageBackend, true
 	case string(engineSidecar):
@@ -48,7 +42,7 @@ func engineKindForName(engineName string) (engine.EngineKind, bool) {
 // isImageRelatedEngine returns true for engine kinds that participate in the
 // image supervised matrix (K-PROV-002).
 func isImageRelatedEngine(kind engine.EngineKind) bool {
-	return kind == engine.EngineMedia || kind == engineManagedImageBackend
+	return kind == engineManagedImageBackend
 }
 
 // resolveInternalReasonKey maps an engine state detail to an internal_reason_key

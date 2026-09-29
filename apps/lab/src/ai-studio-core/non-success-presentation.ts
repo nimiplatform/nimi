@@ -43,6 +43,7 @@ export function studioNonSuccessReasonTitle(reason: StudioNonSuccessReason, tran
 const INPUT_LIMIT_EXCEEDED_REASON_CODE = 'AI_INPUT_LIMIT_EXCEEDED';
 const TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE = 'AI_TEXT_BEHAVIOR_UNSUPPORTED';
 const MEDIA_OPTION_UNSUPPORTED_REASON_CODE = 'AI_MEDIA_OPTION_UNSUPPORTED';
+const MEDIA_CODEC_UNAVAILABLE_REASON_CODE = 'AI_MEDIA_CODEC_UNAVAILABLE';
 
 // A committed target that Runtime can no longer run is recovered by choosing a
 // target again (or repairing its Connector in Desktop), never by retrying the
@@ -69,6 +70,7 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
   if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.message.stoppedDirectCall');
   if (diagnostics?.reasonCode === INPUT_LIMIT_EXCEEDED_REASON_CODE) return translate('NonSuccess.message.inputLimitExceeded');
   if (diagnostics?.reasonCode === TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.textBehaviorUnsupported');
+  if (diagnostics?.reasonCode === MEDIA_CODEC_UNAVAILABLE_REASON_CODE) return translate('NonSuccess.message.mediaCodecUnavailable');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.geometryUnsupported');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.mediaOptionUnsupported');
   const reselection = targetReselectionKeySegment(diagnostics);
@@ -83,6 +85,7 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.action.stoppedDirectCall');
   if (diagnostics?.reasonCode === INPUT_LIMIT_EXCEEDED_REASON_CODE) return translate('NonSuccess.action.inputLimitExceeded');
   if (diagnostics?.reasonCode === TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.textBehaviorUnsupported');
+  if (diagnostics?.reasonCode === MEDIA_CODEC_UNAVAILABLE_REASON_CODE) return translate('NonSuccess.action.mediaCodecUnavailable');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.chooseSupportedGeometry');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.mediaOptionUnsupported');
   const reselection = targetReselectionKeySegment(diagnostics);

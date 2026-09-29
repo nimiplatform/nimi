@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import { APP_ACCESS_DOMAINS, resolveAppAccessDeclaration } from '../lib/app-access-declaration.mjs';
@@ -18,9 +18,13 @@ import {
   buildAppScaffoldSnapshotFromIntent,
   createAppScaffold,
   createAppScaffoldCandidate,
+  hashScaffoldContent,
   renderCargoDependencyValue,
+  renderInitialAppLicense,
   resolveAppScaffoldCreateInput,
+  SCAFFOLD_APP_OWNED_HANDOVER_PATHS,
   SCAFFOLD_INTENT_PATH,
+  SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH,
   SCAFFOLD_INTENT_VERSION,
   SCAFFOLD_LOCK_PATH,
   SCAFFOLD_LOCK_VERSION,
@@ -483,6 +487,9 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronMain, /isAllowedElectronRendererUrl\(url, allowedRendererUrls\)/);
     assert.equal(electronMain.match(/\[rendererUrl\]/g)?.length, 1);
     assert.match(electronMain, /registerNimiElectronAppAssetProtocolScheme\(protocol\)/);
+    // The Host installs Kit's standard menu so macOS edit shortcuts and Quit work.
+    assert.doesNotMatch(electronMain, /setApplicationMenu\(null\)/u);
+    assert.match(electronMain, /Menu\.setApplicationMenu\(Menu\.buildFromTemplate\(\n  createNimiElectronStandardApplicationMenuTemplate\(\{ appName: "Acme Widget" \}\),\n\)\);/u);
     assert.match(electronMain, /app\.setAppUserModelId\(NATIVE_BUNDLE_IDENTIFIER\)/);
     assert.match(electronMain, /declare const __NIMI_ELECTRON_PRODUCTION__: boolean/);
     assert.match(electronMain, /IS_PRODUCTION_BUNDLE && hasDevelopmentRendererArgument/);
@@ -2852,6 +2859,142 @@ test('sync fails closed on unsupported locks and classification conflicts', () =
   }
 });
 
+const TEMPLATE_LICENSE = readFileSync(path.join(testDir, '..', 'templates', 'default-starter', 'LICENSE'), 'utf8');
+const withoutCopyrightLine = (license) => license.replace(/^Copyright \(c\) .*$/mu, '');
+
+test('create gives the App its own initial LICENSE and keeps the template notice scaffold-managed', () => {
+  const titled = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'acme.license', appTitle: 'Acme License', packageName: 'acme-license' });
+  const authored = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'acme.license', appTitle: 'Acme License', packageName: 'acme-license', author: 'Jane $& Doe <jane@example.test>' });
+  const titledLicense = titled.filesByPath.get('LICENSE').content;
+  assert.match(titledLicense, /^Copyright \(c\) \d{4} Acme License$/mu, 'without an author the App title holds the copyright');
+  assert.equal(titledLicense.match(/^Copyright /gmu).length, 1);
+  assert.equal(withoutCopyrightLine(titledLicense), withoutCopyrightLine(TEMPLATE_LICENSE), 'the initial App license keeps the complete template license terms');
+  assert.match(authored.filesByPath.get('LICENSE').content, /^Copyright \(c\) \d{4} Jane \$& Doe <jane@example\.test>$/mu, 'the package author holds the copyright verbatim');
+  assert.throws(() => renderInitialAppLicense('MIT License\n', 'Acme'), /exactly one copyright line/u);
+
+  for (const snapshot of [titled, authored]) {
+    assert.equal(snapshot.lock.appOwnedInitialHashes.LICENSE.class, 'app-owned product code');
+    assert.equal(Object.hasOwn(snapshot.lock.managedFileHashes, 'LICENSE'), false, 'the App LICENSE is never hash-locked');
+    assert.ok(snapshot.lock.managedFileTaxonomy.appOwnedProductCode.includes('LICENSE'));
+    const notice = snapshot.filesByPath.get(SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH).content;
+    assert.ok(notice.endsWith(TEMPLATE_LICENSE), 'the template notice keeps the template license verbatim');
+    assert.match(notice, /The App's own license is the LICENSE file at the project root\./u);
+    assert.equal(snapshot.lock.managedFileHashes[SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH].class, 'scaffold-managed glue');
+  }
+  assert.deepEqual([...SCAFFOLD_APP_OWNED_HANDOVER_PATHS], ['LICENSE']);
+});
+
+test('the App edits its LICENSE while sync and check keep the edit and still guard the template notice', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    const licensePath = path.join(generated.target, 'LICENSE');
+    const edited = 'Copyright (c) 2026 Example Publisher\n\nLicensed under the Example Public License.\n';
+    writeFileSync(licensePath, edited);
+    let result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    result = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /now belongs to the App/u, 'a current lock reports no ownership handover');
+    assert.equal(readFileSync(licensePath, 'utf8'), edited);
+    result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+
+    writeFileSync(path.join(generated.target, SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH), 'edited notice\n');
+    result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /licenses\/nimi-app-template\.txt: sha256 drift/u);
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('sync hands a LICENSE that an earlier scaffold managed to the App without rewriting it', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    // Reproduce the lock and files an earlier app-tools version wrote: LICENSE
+    // was the template license under a managed hash and no notice existed.
+    const lockPath = path.join(generated.target, SCAFFOLD_LOCK_PATH);
+    const lock = JSON.parse(generated.read(SCAFFOLD_LOCK_PATH));
+    const licensePath = path.join(generated.target, 'LICENSE');
+    const noticePath = path.join(generated.target, SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH);
+    writeFileSync(licensePath, TEMPLATE_LICENSE);
+    rmSync(path.dirname(noticePath), { recursive: true, force: true });
+    delete lock.appOwnedInitialHashes.LICENSE;
+    delete lock.managedFileHashes[SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH];
+    lock.managedFileHashes.LICENSE = { class: 'scaffold-managed glue', sha256: hashScaffoldContent(TEMPLATE_LICENSE) };
+    const taxonomy = lock.managedFileTaxonomy;
+    taxonomy.appOwnedProductCode = taxonomy.appOwnedProductCode.filter((file) => file !== 'LICENSE');
+    taxonomy.scaffoldManagedGlue = [...taxonomy.scaffoldManagedGlue.filter((file) => file !== SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH), 'LICENSE']
+      .sort((left, right) => left.localeCompare(right));
+    writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+    const earlierLock = generated.read(SCAFFOLD_LOCK_PATH);
+
+    let result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /LICENSE now belongs to the App and is no longer scaffold-managed\. Run nimi-app sync/u);
+
+    result = runNimiApp(['sync', '--dir', generated.target, '--dry-run', '--json'], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    const preview = JSON.parse(result.stdout);
+    assert.deepEqual(preview.ownershipHandover, [{ path: 'LICENSE', owner: 'app', file: 'kept', earlierScaffoldContent: true }]);
+    assert.equal(preview.changes.some((change) => change.path === 'LICENSE'), false, 'sync never plans a write to the handed-over file');
+    assert.deepEqual(preview.changes.find((change) => change.path === SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH)?.action, 'create');
+    assert.equal(generated.read(SCAFFOLD_LOCK_PATH), earlierLock, 'dry-run writes nothing');
+
+    result = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /LICENSE now belongs to the App; sync keeps it unchanged and will not rewrite it\. It still holds the text the earlier scaffold wrote/u);
+    assert.equal(readFileSync(licensePath, 'utf8'), TEMPLATE_LICENSE, 'the handed-over LICENSE keeps its exact bytes');
+    assert.ok(readFileSync(noticePath, 'utf8').endsWith(TEMPLATE_LICENSE));
+    const handedOver = JSON.parse(generated.read(SCAFFOLD_LOCK_PATH));
+    assert.equal(Object.hasOwn(handedOver.managedFileHashes, 'LICENSE'), false);
+    assert.equal(handedOver.appOwnedInitialHashes.LICENSE.class, 'app-owned product code');
+    result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+
+    const edited = 'Copyright (c) 2026 Example Publisher\n\nPermission is granted under the Example terms.\n';
+    writeFileSync(licensePath, edited);
+    result = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /now belongs to the App/u, 'the handover is reported once');
+    assert.equal(readFileSync(licensePath, 'utf8'), edited);
+    result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('sync reports an edited or missing earlier managed LICENSE without creating one', () => {
+  for (const variant of ['edited', 'missing']) {
+    const generated = cliScaffold('standalone');
+    try {
+      const lockPath = path.join(generated.target, SCAFFOLD_LOCK_PATH);
+      const lock = JSON.parse(generated.read(SCAFFOLD_LOCK_PATH));
+      const licensePath = path.join(generated.target, 'LICENSE');
+      delete lock.appOwnedInitialHashes.LICENSE;
+      lock.managedFileHashes.LICENSE = { class: 'scaffold-managed glue', sha256: hashScaffoldContent(TEMPLATE_LICENSE) };
+      const taxonomy = lock.managedFileTaxonomy;
+      taxonomy.appOwnedProductCode = taxonomy.appOwnedProductCode.filter((file) => file !== 'LICENSE');
+      taxonomy.scaffoldManagedGlue = [...taxonomy.scaffoldManagedGlue, 'LICENSE'].sort((left, right) => left.localeCompare(right));
+      writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+      if (variant === 'edited') writeFileSync(licensePath, 'Copyright (c) 2026 Example Publisher\n');
+      else rmSync(licensePath);
+
+      const result = runNimiApp(['sync', '--dir', generated.target, '--json'], generated.tempRoot, { env: generated.env });
+      assert.equal(result.status, 0, result.stderr);
+      const payload = JSON.parse(result.stdout);
+      assert.deepEqual(payload.ownershipHandover, variant === 'edited'
+        ? [{ path: 'LICENSE', owner: 'app', file: 'kept', earlierScaffoldContent: false }]
+        : [{ path: 'LICENSE', owner: 'app', file: 'missing' }]);
+      if (variant === 'edited') assert.equal(readFileSync(licensePath, 'utf8'), 'Copyright (c) 2026 Example Publisher\n');
+      else assert.equal(existsSync(licensePath), false, 'sync never creates an App-owned file');
+    } finally {
+      generated.cleanup();
+    }
+  }
+});
+
 test('app source resolves only scaffoldable slices: neutral skeleton and admitted roots from live Nimi Lab and packaged prepack', () => {
   const packageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
   // The version projection and snapshot are release artifacts refreshed at pack.
@@ -3017,6 +3160,93 @@ test('default profiles generate local-app carrier boundaries without Lab-only or
 });
 
 
+test('generated connection gate shows plain guidance, opens Nimi and folds reason codes into technical details', async () => {
+  const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'acme.gate', appTitle: 'Gate App', packageName: 'gate-app' });
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-gate-adapter-'));
+  try {
+    writeFileSync(path.join(tempRoot, 'bridge.mjs'), 'export const openDesktopIntent = (request) => globalThis.__gateTest.openDesktopIntent(request);\n');
+    writeFileSync(path.join(tempRoot, 'runtime-platform.mjs'), [
+      "export const appId = 'acme.gate';",
+      "export const appTitle = 'Gate App';",
+      'export const getRuntimePlatformProjection = () => globalThis.__gateTest.projection();',
+      'export const clearRuntimePlatformProjection = () => { globalThis.__gateTest.cleared += 1; };',
+      '',
+    ].join('\n'));
+    const source = stripTypeScriptTypes(snapshot.filesByPath.get('src/shell/workbench-target-adapter.ts').content, { mode: 'strip' })
+      .replace("'@nimiplatform/kit/shell/renderer/bridge'", "'./bridge.mjs'")
+      .replace("'./auth/runtime-platform.js'", "'./runtime-platform.mjs'");
+    assert.doesNotMatch(source, /from '(?!\.\/(?:bridge|runtime-platform)\.mjs')/u, 'the adapter reaches only the Kit bridge and its runtime platform');
+    writeFileSync(path.join(tempRoot, 'adapter.mjs'), source);
+    const openRequests = [];
+    let openResult;
+    globalThis.__gateTest = {
+      cleared: 0,
+      projection: async () => ({ status: 'ready', mode: 'local-app' }),
+      openDesktopIntent: async (request) => { openRequests.push(request); return openResult(); },
+    };
+    const adapter = await import(pathToFileURL(path.join(tempRoot, 'adapter.mjs')).href);
+
+    const copyText = Object.values(adapter.targetRuntimeGateCopy).filter((value) => typeof value === 'string');
+    assert.deepEqual(copyText, ['Connecting to Nimi…', 'Not connected', 'Sign in to Nimi to continue', 'This App needs Nimi', 'Try again', 'Technical details']);
+    assert.equal(adapter.targetRuntimeGateCopy.nextAction('Plain step.'), 'Plain step.');
+    assert.doesNotMatch(adapter.targetRuntimeGateErrorMessage(new Error('socket hang up')), /socket|Error/u);
+    assert.deepEqual(await adapter.resolveTargetRuntimeGate(), { status: 'ready' });
+    adapter.clearTargetRuntimeGate();
+    assert.equal(globalThis.__gateTest.cleared, 1);
+
+    const cases = [
+      { reasonCode: 'runtime-unauthenticated', actionHint: 'establish_fresh_app_access_session', signIn: true, next: /sign in/u },
+      { reasonCode: 'renderer-standard-shell-host-unavailable', actionHint: 'start_fixed_runtime_service', signIn: false, next: /Make sure Nimi is open/u },
+      { reasonCode: 'runtime-service-unavailable', actionHint: 'open_nimi_desktop_and_retry', signIn: false, next: /Make sure Nimi is open/u },
+      { reasonCode: 'local-app-denied', actionHint: 'establish_fresh_app_access_session', signIn: false, next: /Wait a moment/u },
+      { reasonCode: 'runtime-restarted', actionHint: 'reopen_local_app_session', signIn: false, next: /open it again from Nimi/u },
+      { reasonCode: 'account-changed', actionHint: 'establish_session_for_current_account', signIn: false, next: /open it again from Nimi/u },
+      { reasonCode: 'local-development-project-changed', actionHint: 'restore_registered_project_identity', signIn: false, next: /pnpm dev/u },
+      { reasonCode: 'unlisted-reason', actionHint: 'unlisted_hint', signIn: false, next: /Make sure Nimi is open/u },
+    ];
+    for (const testCase of cases) {
+      globalThis.__gateTest.projection = async () => ({
+        status: 'action-required', mode: 'local-app', reasonCode: testCase.reasonCode, actionHint: testCase.actionHint,
+        message: 'The protected Nimi local-app carrier is unavailable.',
+      });
+      const gate = await adapter.resolveTargetRuntimeGate();
+      assert.equal(gate.status, 'unavailable');
+      assert.equal(gate.signInRequired, testCase.signIn, testCase.reasonCode);
+      assert.match(gate.nextAction, testCase.next, testCase.reasonCode);
+      for (const primary of [gate.body, gate.nextAction]) {
+        // Primary text names no reason code, hint slug, carrier or Runtime term.
+        assert.doesNotMatch(primary, /_|carrier|Runtime|local-app/u, `${testCase.reasonCode}: ${primary}`);
+        assert.equal(primary.includes(testCase.reasonCode), false);
+      }
+      assert.deepEqual(gate.technicalDetails, [
+        { label: 'Reason', value: testCase.reasonCode },
+        { label: 'Suggested action', value: testCase.actionHint },
+        { label: 'Details', value: 'The protected Nimi local-app carrier is unavailable.' },
+      ]);
+      assert.equal(gate.recoveryAction.label, 'Open Nimi');
+    }
+
+    const { recoveryAction } = await adapter.resolveTargetRuntimeGate();
+    const outcomes = [
+      [() => ({ status: 'accepted', confirmation: 'desktop-accepted', bridgeId: 'bridge', requestId: 'desktop-open-1', appliedTarget: 'open-apps' }), /^Nimi is open\./u],
+      [() => ({ status: 'rejected', reasonCode: 'desktop-open-desktop-not-running', actionHint: 'open_desktop_first' }), /^Nimi isn't running\. Start Nimi/u],
+      [() => ({ status: 'rejected', reasonCode: 'desktop-open-desktop-not-ready', actionHint: 'wait_for_desktop_ready' }), /^Nimi is still starting\./u],
+      [() => ({ status: 'rejected', reasonCode: 'desktop-open-target-unsupported', actionHint: 'fix_desktop_open_intent' }), /^This App couldn't open Nimi\./u],
+      [() => { throw Object.assign(new Error('bridge missing'), { reasonCode: 'renderer-standard-shell-host-unavailable' }); }, /^This App couldn't open Nimi\./u],
+    ];
+    for (const [result, message] of outcomes) {
+      openResult = result;
+      const text = await recoveryAction.run();
+      assert.match(text, message);
+      assert.doesNotMatch(text, /_|desktop-open|bridge/u);
+    }
+    assert.deepEqual(openRequests.map((request) => JSON.stringify(request)), Array(outcomes.length).fill('{"intent":{"kind":"open-apps","appId":"acme.gate"}}'));
+  } finally {
+    delete globalThis.__gateTest;
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test('generated Host destroys old renderer state on invalidation before creating a fresh renderer', async () => {
   const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'acme.scope', appTitle: 'Scope App', packageName: 'scope-app' });
   let source = stripTypeScriptTypes(snapshot.filesByPath.get('src-electron/main.ts').content, { mode: 'strip' });
@@ -3032,13 +3262,26 @@ test('generated Host destroys old renderer state on invalidation before creating
     destroy() { this.oldBusinessState = null; windows.splice(windows.indexOf(this), 1); order.push('destroy'); this.abortLoad?.(new Error('ERR_ABORTED')); if (!windows.length) events.get('window-all-closed')?.(); }
   }
   const app = { setName() {}, setAppUserModelId() {}, exit() {}, quit() { quits++; }, whenReady: async () => {}, on: (name, listener) => events.set(name, listener) };
+  const standardMenuTemplate = [{ label: 'Edit', submenu: [{ role: 'copy' }, { role: 'paste' }] }];
+  const menuRequests = []; const builtTemplates = []; const installedMenus = [];
+  const Menu = {
+    buildFromTemplate(template) { builtTemplates.push(template); return { template }; },
+    setApplicationMenu(menu) { installedMenus.push(menu); },
+  };
   await vm.runInNewContext(`(async () => {${source}})()`, {
-    path, fileURLToPath, app, BrowserWindow: Window, ipcMain: {}, Menu: { setApplicationMenu() {} }, protocol: {}, session: { defaultSession: { webRequest: {} } }, webContents: {},
+    path, fileURLToPath, app, BrowserWindow: Window, ipcMain: {}, Menu, protocol: {}, session: { defaultSession: { webRequest: {} } }, webContents: {},
     configureNimiElectronAppHostProfile() {}, URL, process: { platform: 'win32', argv: [], stderr: { write() {} } },
     pathToFileURL: value => new URL(`file://${value}`),
-    kitMain: { isAllowedElectronRendererUrl: () => true, registerNimiElectronAppAssetProtocolScheme() {}, registerNimiElectronAppBridge(input) { invalidated = input.onSessionInvalidated; } },
+    kitMain: {
+      createNimiElectronStandardApplicationMenuTemplate(options) { menuRequests.push(options); return standardMenuTemplate; },
+      isAllowedElectronRendererUrl: () => true, registerNimiElectronAppAssetProtocolScheme() {}, registerNimiElectronAppBridge(input) { invalidated = input.onSessionInvalidated; },
+    },
   });
   await new Promise(resolve => setImmediate(resolve));
+  // Options are created inside the vm realm; compare their plain fields.
+  assert.deepEqual(menuRequests.map((options) => JSON.stringify(options)), ['{"appName":"Scope App"}'], 'the Host asks Kit for its standard menu once, named for the App');
+  assert.deepEqual(builtTemplates, [standardMenuTemplate]);
+  assert.deepEqual(installedMenus, [{ template: standardMenuTemplate }], 'the Kit menu, not null, becomes the application menu');
   assert.equal(windows.length, 1); const old = windows[0]; old.oldBusinessState = { dirty: 'account A private' };
   assert.equal(typeof invalidated, 'function'); invalidated();
   assert.equal(old.oldBusinessState, null); assert.notEqual(windows[0], old);

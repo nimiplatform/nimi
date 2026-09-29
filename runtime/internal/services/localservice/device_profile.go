@@ -17,14 +17,13 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
-// defaultEngineProbePorts returns the K-LENG-005 engine default ports used as
-// the baseline CollectDeviceProfile probe set (K-DEV-006). The values come from
-// the runtime engine default configs so the probe set stays aligned with the
-// authoritative engine catalog rather than a divergent hardcoded list.
+// defaultEngineProbePorts returns the bounded Runtime-private diagnostic probe
+// candidates for CollectDeviceProfile. The values come from the supervised
+// engine default configs that still bind a configured port, so the probe set
+// never drifts into a divergent hardcoded list.
 func defaultEngineProbePorts() []int32 {
 	return []int32{
 		int32(engine.DefaultLlamaConfig().Port),
-		int32(engine.DefaultMediaConfig().Port),
 		int32(engine.DefaultSpeechConfig().Port),
 	}
 }

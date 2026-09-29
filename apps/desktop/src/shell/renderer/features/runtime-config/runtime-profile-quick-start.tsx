@@ -19,7 +19,13 @@ import { IdentityTile } from '../../components/identity-tile.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { findDesktopNimiTextIntent, useDesktopNimiAppAIConfig } from '../chat/chat-nimi-app-ai-config.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
-import { modelDisplayTitle, recipeResourceSummary } from './runtime-capability-presentation.js';
+import {
+  contextFitReduced,
+  formatContextTokens,
+  modelDisplayTitle,
+  recipeRecommendedContextFit,
+  recipeResourceSummary,
+} from './runtime-capability-presentation.js';
 import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
 import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 
@@ -87,7 +93,10 @@ export function recommendedPortableProfile(
             ...recipe.implementation,
             supportedFeatures: [...recipe.implementationSupportedFeatures],
           },
-          loadout: { recipeId: recipe.recipeId, axes, options: recipe.defaultOptions },
+          // Runtime's options for this device recommendation: its default
+          // options, with an explicit context size only when the automatic
+          // capacity does not fit this device.
+          loadout: { recipeId: recipe.recipeId, axes, options: recipe.recommendedOptions },
         },
       },
     }),
@@ -363,6 +372,7 @@ function RecommendationQuickStart(props: {
           ? t('runtimeConfig.quickStart.use')
           : t('runtimeConfig.quickStart.useDownload', { size: formatBytes(summary.bytes) });
   const modelTitle = selected ? modelDisplayTitle(selected.title) : '';
+  const contextFit = selected ? recipeRecommendedContextFit(selected) : undefined;
   return (
     <QuickStartShell icon={MessageSquare} state="unset">
       <QuickStartTitle>{t('runtimeConfig.quickStart.setupTitle')}</QuickStartTitle>
@@ -418,6 +428,13 @@ function RecommendationQuickStart(props: {
               : t('Common.loading')}
           </span>
         </div>
+      ) : null}
+      {contextFit ? (
+        <p className="text-xs text-[var(--nimi-text-secondary)]" data-testid="ai-profile-quick-start-context">
+          {contextFitReduced(contextFit)
+            ? `${t('runtimeConfig.product.contextReduced', { size: formatContextTokens(contextFit.recommendedContextSize) })} · ${t('runtimeConfig.product.contextReducedReason', { full: formatContextTokens(contextFit.authoredContextSize) })}`
+            : t('runtimeConfig.product.contextAutomatic', { size: formatContextTokens(contextFit.recommendedContextSize) })}
+        </p>
       ) : null}
       <Button
         tone="primary"

@@ -48,12 +48,16 @@ function invoke(
 
 test('electron chat ai store persists the existing thread/message/draft schema', async (t) => {
   const dataRoot = await temporaryDataRoot('roundtrip');
-  t.after(() => rm(dataRoot, { recursive: true, force: true }));
   const firstHost = createDesktopElectronChatAiStoreHost({
     resolveSelectedDataRoot: () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
-  t.after(() => firstHost.close());
+  let secondHost: DesktopElectronChatAiStoreHost | undefined;
+  t.after(async () => {
+    await secondHost?.close();
+    await firstHost.close();
+    await rm(dataRoot, { recursive: true, force: true });
+  });
   const thread = await invoke(firstHost, 'chat_ai_create_thread', {
     payload: {
       id: 'thread-1',
@@ -106,11 +110,10 @@ test('electron chat ai store persists the existing thread/message/draft schema',
     },
   });
 
-  const secondHost = createDesktopElectronChatAiStoreHost({
+  secondHost = createDesktopElectronChatAiStoreHost({
     resolveSelectedDataRoot: async () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
-  t.after(() => secondHost.close());
   const bundle = await invoke(secondHost, 'chat_ai_get_thread_bundle', {
     payload: { threadId: 'thread-1' },
   }) as {
@@ -239,7 +242,6 @@ test('electron chat ai store fails closed on malformed payloads and orphan messa
 
 test('electron chat ai store preserves invocation order across data-root resolution', async (t) => {
   const dataRoot = await temporaryDataRoot('ordered');
-  t.after(() => rm(dataRoot, { recursive: true, force: true }));
   let resolveFirstDataRoot: (() => void) | undefined;
   let resolverCalls = 0;
   const host = createDesktopElectronChatAiStoreHost({
@@ -252,7 +254,10 @@ test('electron chat ai store preserves invocation order across data-root resolut
     },
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
-  t.after(() => host.close());
+  t.after(async () => {
+    await host.close();
+    await rm(dataRoot, { recursive: true, force: true });
+  });
 
   const createThread = invoke(host, 'chat_ai_create_thread', {
     payload: {

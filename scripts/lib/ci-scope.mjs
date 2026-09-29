@@ -3,6 +3,7 @@ export const CI_LANES = {
   'core-static': 'core_changed',
   'workspace-regression': 'workspace_changed',
   'kit-native-tests': 'kit_native_changed',
+  'windows-runtime-tests': ['windows_runtime_changed', 'windows_app_tools_changed'],
   'macos-platform-tests': 'macos_platform_changed',
   'sdk-quality': 'sdk_changed',
   'runtime-quality': 'runtime_changed',
@@ -24,7 +25,7 @@ export function selectCiScope(files, { full = false } = {}) {
     && /^(?:\.nimi\/(?:spec|config)\/)/u.test(file));
   const config = touches(/^config\//u);
   const authority = touches(/^\.nimi\/(?:spec\/|config\/|methodology\/)/u);
-  const proto = shared || touches(/^(?:proto\/|runtime\/(?:gen|proto)\/|scripts\/(?:proto-breaking|check-proto-drift|run-buf)[^/]*\.mjs$)/u);
+  const proto = shared || touches(/^(?:proto\/|runtime\/(?:gen|proto)\/|scripts\/(?:proto-breaking|proto-baseline|check-proto-drift|run-buf)[^/]*\.mjs$|scripts\/lib\/proto-wire-baseline\.mjs$)/u);
   const sdk = shared || config || proto || touches(/^(?:sdks\/|\.nimi\/spec\/sdks\/)/u);
   const kit = shared || config || sdk || touches(/^(?:kit\/|\.nimi\/spec\/platform\/ui-design-system\.authority\.)/u);
   const cognition = shared || touches(/^(?:nimi-cognition\/|go\.work(?:\.sum)?$)/u);
@@ -33,6 +34,8 @@ export function selectCiScope(files, { full = false } = {}) {
   const desktopNative = shared || proto || touches(/^(?:apps\/desktop\/product-control-|kit\/shell\/protected-local\/)/u);
   const desktop = desktopNative || touches(/^apps\/desktop\/(?!AGENTS\.md$)/u);
   const macosPlatform = runtime || kitNative || desktopNative || touches(/^(?:kit\/shell\/electron\/|apps\/(?:desktop|avatar|lab|zhiyu|nimigo|nimiday)\/(?:src-electron\/|scripts\/|package\.json$|tsconfig\.electron\.json$|nimi\.app\.yaml$)|scripts\/(?:dev-app|dev-runtime|doctor-dev|macos-dev-runtime-service|build-supervised-app-electron)[^/]*\.mjs$|scripts\/lib\/(?:dev-app-launch|electron-carrier-processes|supervised-app-electron-production|ci-scope)\.mjs$)/u);
+  const windowsRuntime = runtime || touches(/^(?:scripts\/(?:install-windows-runtime-service\.ps1|accept-runtime-fixed-service(?:\.test)?\.mjs|windows-runtime-service-installer-contract\.test\.mjs|build-windows-runtime-service-installer\.mjs)|scripts\/lib\/windows-powershell\.mjs)$/u);
+  const windowsAppTools = shared || touches(/^app-tools\//u);
   const filters = new Set();
 
   // pnpm resolves transitive workspace consumers; only source-copy dependencies
@@ -71,15 +74,21 @@ export function selectCiScope(files, { full = false } = {}) {
     desktop_native_changed: desktopNative,
     kit_native_changed: kitNative,
     macos_platform_changed: macosPlatform,
+    windows_runtime_changed: windowsRuntime,
+    windows_app_tools_changed: windowsAppTools,
   };
 }
 
 export function assertCiResults(needs) {
   if (needs.changes?.result !== 'success') throw new Error('CI path selection did not pass');
   const failures = [];
-  for (const [lane, flag] of Object.entries(CI_LANES)) {
-    const selected = needs.changes.outputs[flag];
-    if (!['true', 'false'].includes(selected)) throw new Error(`missing CI selection: ${flag}`);
+  for (const [lane, flags] of Object.entries(CI_LANES)) {
+    const selections = [flags].flat().map((flag) => {
+      const selected = needs.changes.outputs[flag];
+      if (!['true', 'false'].includes(selected)) throw new Error(`missing CI selection: ${flag}`);
+      return selected;
+    });
+    const selected = selections.includes('true') ? 'true' : 'false';
     const result = needs[lane]?.result;
     const expected = selected === 'true' ? ['success'] : ['skipped'];
     if (!expected.includes(result)) failures.push(`${lane}=${result} (selected=${selected})`);

@@ -1,5 +1,6 @@
 import type {
   NimiLoadoutRecipe,
+  NimiLoadoutRecipeContextFit,
   NimiMachineLoadout,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
@@ -21,7 +22,12 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { loadoutModelPresentation } from './runtime-config-loadout-model-display.js';
-import { loadoutCompositionKey, type RuntimeSetupPreparationPlan } from './runtime-setup-task-runner.js';
+import {
+  loadoutCompositionKey,
+  runtimeSetupContextApplication,
+  runtimeSetupPlanContextFit,
+  type RuntimeSetupPreparationPlan,
+} from './runtime-setup-task-runner.js';
 
 export function setupPlanNeedsPreparation(plan: RuntimeSetupPreparationPlan, choices: Readonly<Record<string, string>>): boolean {
   return plan.components.some(item => item.required)
@@ -285,16 +291,41 @@ export function recipeOfferSummary(recipe: NimiLoadoutRecipe): RecipeOfferSummar
   return { required: required.length, installed, missing, withoutOffer, downloadBytes, installedBytes };
 }
 
+/** A context size the way model capacity is usually read: 262144 is "256K". */
+export function formatContextTokens(tokens: number): string {
+  return tokens > 0 && tokens % 1024 === 0 ? `${tokens / 1024}K` : tokens.toLocaleString();
+}
+
+/** True when Runtime recommends less than the model's own context capacity on this device. */
+export function contextFitReduced(fit: NimiLoadoutRecipeContextFit): boolean {
+  return fit.recommendedContextSize < fit.authoredContextSize;
+}
+
+/** Runtime's context fit of a recipe's device recommendation: the one required slot that carries it. */
+export function recipeRecommendedContextFit(recipe: NimiLoadoutRecipe): NimiLoadoutRecipeContextFit | undefined {
+  const fits = recipe.slots.flatMap((slot) => (
+    slot.presence === 'required' && slot.recommendedContextFit ? [slot.recommendedContextFit] : []
+  ));
+  return fits.length === 1 ? fits[0] : undefined;
+}
+
 /**
  * True when a preparation plan has nothing left to acquire, install or choose:
  * every required component is present, every acquisition already maps to an
  * installed asset and no slot is waiting on a choice. Only such a plan may be
  * confirmed for use without showing the review screen; any plan that would
- * download, install or ask still goes through the explicit review.
+ * download, install or ask still goes through the explicit review, and so
+ * does one that would write a reduced context the person has not seen.
  */
-export function setupPlanAllowsDirectUse(plan: RuntimeSetupPreparationPlan): boolean {
+export function setupPlanAllowsDirectUse(
+  plan: RuntimeSetupPreparationPlan,
+  explicitOptions: Readonly<Record<string, unknown>> | undefined,
+): boolean {
+  const context = runtimeSetupContextApplication(explicitOptions, runtimeSetupPlanContextFit(plan));
+  const adoptsReducedContext = context.options !== undefined && context.preview !== undefined
+    && context.preview.recommendedContextSize < context.preview.authoredContextSize;
   return plan.unavailable.length === 0 && plan.awaitingChoice.length === 0 && !plan.environmentUnavailable
-    && !setupPlanNeedsPreparation(plan, {});
+    && !setupPlanNeedsPreparation(plan, {}) && !adoptsReducedContext;
 }
 
 /**

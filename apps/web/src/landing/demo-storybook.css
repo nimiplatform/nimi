@@ -729,7 +729,6 @@
 }
 .sb-dialog::backdrop {
   background: #17291fa1;
-  backdrop-filter: blur(5px);
 }
 .sb-dialog-heading {
   display: flex;
@@ -1555,7 +1554,6 @@
   gap: 20px;
   padding: 20px 38px;
   background: #f8f6eff2;
-  backdrop-filter: blur(15px);
   border-bottom: 1px solid #e1e4d6;
 }
 .sb-reader-book {
@@ -2679,8 +2677,6 @@
   background: #fffef9f0;
   color: #5f6a5c;
   box-shadow: 0 14px 40px #2f383222;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
   font-size: 12px;
   line-height: 1.4;
 }

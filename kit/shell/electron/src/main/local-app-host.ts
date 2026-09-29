@@ -6,6 +6,7 @@ import { validateNimiLocalAppSpeechTranscript, validateNimiLocalAppAudioSeparati
 import { validateNimiLocalAppMusicGeneration, validateNimiLocalAppMusicTranscription, validateNimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult,
   type NimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
+import { exactNimiLocalAppBytes, isNimiLocalAppByteView } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextDecideOutput, validateNimiLocalAppTextDecideShellSpec,
   type NimiLocalAppTextDecideShellSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
@@ -219,6 +220,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-video-encode-failed',
   'ai-video-session-overloaded',
   'ai-video-session-generation-invalid',
+  'ai-media-codec-unavailable',
   'ai-local-execution-load-failed',
   'ai-local-execution-inference-failed',
   'ai-local-execution-canceled',
@@ -327,11 +329,13 @@ const FORBIDDEN_PROJECTION_KEYS: ReadonlySet<string> = new Set([
   'operationId',
 ] as const);
 
+// Media bytes are exact Uint8Array leaves; everything else is JSON.
 export type NimiElectronLocalAppJson =
   | null
   | boolean
   | number
   | string
+  | Uint8Array
   | readonly NimiElectronLocalAppJson[]
   | { readonly [key: string]: NimiElectronLocalAppJson };
 
@@ -1052,7 +1056,9 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   scenarioJobSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeScenarioJobSubmit(() => this.binding.localAppScenarioJobSubmit(input));
+    let nativeInput: NimiElectronLocalAppRecord;
+    try { nativeInput = nativeScenarioJobSubmitInput(input); } catch (error) { return Promise.reject(error); }
+    return invokeScenarioJobSubmit(() => this.binding.localAppScenarioJobSubmit(nativeInput));
   }
 
   scenarioJobGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1085,7 +1091,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     catch { throw untrustedRuntimeError(); }
     return invokeArtifactUpload(
       () => this.binding.localAppArtifactUpload({ mimeType: prepared.mimeType,
-        ...(prepared.bytes ? { bytes: Buffer.from(prepared.bytes) } : {}),
+        ...(prepared.bytes ? { bytes: nativeByteBuffer(prepared.bytes) } : {}),
         ...(prepared.source ? { source: prepared.source } : {}),
         ...(prepared.audioPreparation ? { audioPreparation: prepared.audioPreparation } : {}) }),
       prepared,
@@ -1306,8 +1312,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   conversationAttachmentUpload(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    const bytes = validateByteArray(input.bytes);
-    if (bytes.length === 0 || bytes.length > 4 * 1024 * 1024) throw untrustedRuntimeError();
+    const bytes = validateInputByteView(input.bytes, 4 * 1024 * 1024);
     const displayName = input.displayName === undefined
       ? undefined
       : boundedExactText(input.displayName, 255, false);
@@ -1316,7 +1321,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
       conversationAnchorId: boundedExactText(input.conversationAnchorId, 256, false),
       mimeType: boundedImageMime(input.mimeType),
       ...(displayName ? { displayName } : {}),
-      bytes: Buffer.from(bytes),
+      bytes: nativeByteBuffer(bytes),
     }));
   }
 
@@ -1330,17 +1335,15 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
         requestId: boundedExactText(input.requestId, 256, false),
       }), 'canceled');
     }
-    const audioBytes = validateByteArray(input.audioBytes);
+    const audioBytes = validateInputByteView(input.audioBytes, 6 * 1024 * 1024);
     const mimeType = boundedMime(input.mimeType);
-    if (audioBytes.length === 0 || audioBytes.length > 6 * 1024 * 1024 || !mimeType.startsWith('audio/')) {
-      throw untrustedRuntimeError();
-    }
+    if (!mimeType.startsWith('audio/')) throw untrustedRuntimeError();
     return invokeExactTextRecord(() => this.binding.localAppConversationVoiceTranscribe({
       agentHandle: boundedExactText(input.agentHandle, 256, false),
       conversationAnchorId: boundedExactText(input.conversationAnchorId, 256, false),
       requestId: boundedExactText(input.requestId, 256, false),
       mimeType,
-      audioBytes: Buffer.from(audioBytes),
+      audioBytes: nativeByteBuffer(audioBytes),
     }), ['text']);
   }
 
@@ -1600,7 +1603,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   agentPresentationReadAsset(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentPresentationReadAsset(input));
+    return invokePresentationAssetRead(() => this.binding.localAppAgentPresentationReadAsset(input));
   }
 
   agentCommitPresentation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -2354,9 +2357,9 @@ async function invokeArtifactRead(
   if (!isPlainRecord(value) || !hasExactKeys(value, ['bytes', 'mimeType', 'sizeBytes'])) {
     throw untrustedRuntimeError();
   }
-  const bytes = validateByteArray(value.bytes);
+  const bytes = decodeNativeBytes(value.bytes, 32 * 1024 * 1024);
   const sizeBytes = boundedInteger(value.sizeBytes, 0, 32 * 1024 * 1024);
-  if (sizeBytes !== bytes.length) throw untrustedRuntimeError();
+  if (sizeBytes !== bytes.byteLength) throw untrustedRuntimeError();
   return Object.freeze({ bytes, mimeType: boundedMime(value.mimeType), sizeBytes });
 }
 
@@ -2391,9 +2394,9 @@ async function invokeConversationArtifactRead(
   if (!isPlainRecord(value) || !hasExactKeys(value, ['artifactId', 'bytes', 'mimeType', 'byteLength'])) {
     throw untrustedRuntimeError();
   }
-  const bytes = validateByteArray(value.bytes);
+  const bytes = decodeNativeBytes(value.bytes, 32 * 1024 * 1024);
   const byteLength = boundedInteger(value.byteLength, 1, 32 * 1024 * 1024);
-  if (bytes.length !== byteLength) throw untrustedRuntimeError();
+  if (bytes.byteLength !== byteLength) throw untrustedRuntimeError();
   return Object.freeze({
     artifactId: boundedExactText(value.artifactId, 256, false),
     bytes,
@@ -2545,9 +2548,9 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
       'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
       'width', 'height', 'sampleRateHz', 'channels', ...(Object.hasOwn(entry, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []),
     ])) throw untrustedRuntimeError();
-    const bytes = validateByteArray(entry.bytes);
+    const bytes = decodeNativeBytes(entry.bytes, 32 * 1024 * 1024);
     const sizeBytes = boundedInteger(entry.sizeBytes, 0, Number.MAX_SAFE_INTEGER);
-    if (bytes.length > 0 && sizeBytes !== bytes.length) throw untrustedRuntimeError();
+    if (bytes.byteLength > 0 && sizeBytes !== bytes.byteLength) throw untrustedRuntimeError();
     const mimeType = boundedMime(entry.mimeType);
     const seed = hasSeed ? boundedInteger(entry.seed, -2_147_483_648, 2_147_483_647) : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) throw untrustedRuntimeError();
@@ -2674,12 +2677,57 @@ function validateTimestamp(value: unknown): NimiElectronLocalAppRecord | null {
   return Object.freeze({ seconds: value.seconds, nanos: boundedInteger(value.nanos, 0, 999_999_999) });
 }
 
-function validateByteArray(value: unknown): readonly number[] {
-  if (!Array.isArray(value) || value.length > 32 * 1024 * 1024
-    || value.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)) {
+// Inline Job audio crosses the JSON-only native Scenario boundary as standard
+// padded base64. Each Job spec has at most one inline audio field.
+function nativeScenarioJobSubmitInput(input: NimiElectronLocalAppRecord): NimiElectronLocalAppRecord {
+  const spec = input.spec;
+  if (!isPlainRecord(spec)) return input;
+  for (const key of ['audioSource', 'referenceAudio'] as const) {
+    const source = spec[key];
+    if (isPlainRecord(source) && source.type === 'bytes') {
+      const limit = spec.type === 'voice-create' ? 20 * 1024 * 1024 : 32 * 1024 * 1024;
+      const bytes = validateInputByteView(source.bytes, limit);
+      return { ...input, spec: { ...spec, [key]: { type: 'bytes', bytes: nativeByteBuffer(bytes).toString('base64') } } };
+    }
+  }
+  return input;
+}
+
+function validateInputByteView(value: unknown, maximum: number): Uint8Array {
+  if (!isNimiLocalAppByteView(value) || value.byteLength === 0 || value.byteLength > maximum) {
+    throw new NimiElectronLocalAppHostError('invalid-payload', false);
+  }
+  return value;
+}
+
+// A Buffer over exactly the view's own byte range, without copying.
+function nativeByteBuffer(view: Uint8Array): Buffer {
+  return Buffer.from(view.buffer, view.byteOffset, view.byteLength);
+}
+
+// Native media bytes arrive as canonical standard base64. Buffer decoding
+// skips characters outside the alphabet, so only an input equal to the
+// canonical encoding of its decoded bytes is accepted; this stays linear for
+// a 32 MiB payload. The result owns an exact buffer, so IPC never carries
+// neighbouring pooled memory.
+function decodeNativeBytes(value: unknown, maximum: number): Uint8Array {
+  if (typeof value !== 'string' || value.length % 4 !== 0 || value.length > 4 * Math.ceil(maximum / 3)) {
     throw untrustedRuntimeError();
   }
-  return Object.freeze([...value] as number[]);
+  const decoded = Buffer.from(value, 'base64');
+  if (decoded.byteLength > maximum || decoded.toString('base64') !== value) throw untrustedRuntimeError();
+  return exactNimiLocalAppBytes(new Uint8Array(decoded.buffer, decoded.byteOffset, decoded.byteLength));
+}
+
+async function invokePresentationAssetRead(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  const record = validateProjection(value);
+  const limit = record.role === 'resource-pack' ? 2 * 1024 * 1024 : 64 * 1024 * 1024;
+  const content = decodeNativeBytes(record.content, limit);
+  if (content.byteLength === 0) throw untrustedRuntimeError();
+  return Object.freeze({ ...record, content });
 }
 
 function boundedInteger(value: unknown, minimum: number, maximum: number): number {

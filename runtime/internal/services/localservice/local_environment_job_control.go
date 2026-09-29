@@ -307,6 +307,7 @@ func localEnvironmentDependencyFamilyHasMaterializer(family string) bool {
 		localEnvironmentFamilyNativeSDCPP,
 		localEnvironmentFamilyNativeAudioCPP,
 		localEnvironmentFamilyESpeakNG,
+		localEnvironmentFamilyMediaCodec,
 		localEnvironmentFamilyPythonUV,
 		localEnvironmentFamilyPythonRuntime,
 		localEnvironmentFamilyPythonVenv,
@@ -482,6 +483,8 @@ func (s *Service) localEnvironmentDependencyJobExecutor(family string) localEnvi
 		return s.executeNativeSDCPPEnvironmentDependencyJob
 	case localEnvironmentFamilyNativeAudioCPP:
 		return s.executeNativeAudioCPPEnvironmentDependencyJob
+	case localEnvironmentFamilyMediaCodec:
+		return s.executeMediaCodecEnvironmentDependencyJob
 	case localEnvironmentFamilyESpeakNG:
 		return s.executeESpeakNGEnvironmentDependencyJob
 	case localEnvironmentFamilyPythonUV:

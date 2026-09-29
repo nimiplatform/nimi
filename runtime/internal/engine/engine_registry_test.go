@@ -324,7 +324,7 @@ func TestRegistryAtomicWrite(t *testing.T) {
 	}
 
 	if err := reg.Put(&RegistryEntry{
-		Engine:  EngineMedia,
+		Engine:  EngineSpeech,
 		Version: "sys",
 	}); err != nil {
 		t.Fatalf("Put: %v", err)

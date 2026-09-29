@@ -4,24 +4,24 @@
 
 ## 创建并检查项目
 
-使用 Node.js 24 或更新版本以及 pnpm，然后按[创建 Nimi App](/zh/start/create-an-app)操作。该指南固定使用 App Tools 0.2.7，便于把命令与生成依赖对应到同一发布版本。
+使用 Node.js 24 或更新版本以及 pnpm，然后按[创建 Nimi App](/zh/start/create-an-app)操作。该指南固定使用 App Tools 0.7.5，便于把命令与生成依赖对应到同一发布版本。
 
-| 组件 | App Tools 0.2.7 的生成声明 | 用途 |
+| 组件 | App Tools 0.7.5 的生成声明 | 用途 |
 | --- | --- | --- |
-| `@nimiplatform/app-tools` | `^0.2.7` | 创建、初始化、同步、检查、运行、测试、构建与打包 App |
-| `@nimiplatform/sdk` | `^0.9.0` | Nimi 公开能力接口 |
-| `@nimiplatform/nimi-coding` | `0.6.1` | 供项目初始化与检查使用的受管投影工具 |
-| `@nimiplatform/kit` | 以生成项目的声明为准 | 共享 App UI 与宿主集成 |
+| `@nimiplatform/app-tools` | `^0.7.5` | 创建、初始化、同步、检查、运行、测试、构建与打包 App |
+| `@nimiplatform/sdk` | `^0.15.0` | Nimi 公开能力接口 |
+| `@nimiplatform/kit` | `^0.11.0` | 共享 App UI 与宿主集成 |
+| `@nimiplatform/nimi-coding` | `0.6.3` | 供项目初始化与检查使用的受管投影工具 |
 
-这张表说明已发布脚手架的依赖，不表示各个依赖都应独立升级到最新版本。选择其他 App Tools 版本时，以该版本生成的 manifest 和帮助为准。当前 Nimi workspace 中的 App Tools 0.2.8 声明 SDK `^0.10.0` 和 nimicoding `0.6.2`，不能把这些 workspace 值写成 0.2.7 发布包的输出。
+这张表说明已发布脚手架的依赖，不表示各个依赖都应独立升级到最新版本。SDK 与 Kit 的版本是一组受支持的组合；选择其他 App Tools 版本时，以该版本生成的 manifest 和帮助为准。
 
-Standalone 项目使用公开包；`workspace:*`、源码别名和 Nimi 内部的 workspace 验证不是第三方安装路径。以上对应 [App Tools 0.2.7](https://www.npmjs.com/package/@nimiplatform/app-tools/v/0.2.7)。
+Standalone 项目使用公开包；`workspace:*`、源码别名和 Nimi 内部的 workspace 验证不是第三方安装路径。以上对应 [App Tools 0.7.5](https://www.npmjs.com/package/@nimiplatform/app-tools/v/0.7.5)。
 
 ## 通过 Nimi Home 运行
 
 开发命令会请求 Desktop（当前的 Nimi Home 宿主）启动受监督的 Electron App。通过 Developer Mode 登记本地项目，并配置 App 所需访问。看见窗口不等于 Runtime 访问或 AI 能力已经准备完成。
 
-当前尚未发布面向普通用户的 Nimi 稳定版安装器。[官方下载页](https://nimi.ai/download)列出各平台的真实可用范围与开发构建要求。Windows Runtime bootstrap 是便携的开发组件，不包含 Nimi Home、安装器或受保护产品环境，不能代替 Home 开发环境。
+目前没有发布任何 Nimi Home 或 Runtime 下载，开发构建也没有；早期的开发者预览和便携 Windows Runtime bootstrap 都已撤下。当前状态以[官方下载页](https://nimi.ai/download)为准。使用 Nimi Home 还需要 Nimi 账号：使用前要先在浏览器中登录。
 
 尚无兼容的 Home/Runtime 开发实例时，可以先准备项目并完成静态检查；受管启动与能力执行仍需等该前提具备后验证。根据宿主实际错误查[故障排查](/zh/start/troubleshooting)，不要直接打开 renderer 绕过访问要求。
 
@@ -44,7 +44,7 @@ Standalone 项目使用公开包；`workspace:*`、源码别名和 Nimi 内部�
 
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
 - [`app-tools/package.json`](https://github.com/nimiplatform/nimi/blob/main/app-tools/package.json)
+- [`app-tools/lib/app-dependency-combinations.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-dependency-combinations.mjs)
 - [`app-tools/lib/app-scaffold.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-scaffold.mjs)
-- [`app-tools/lib/app-doctor-update.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-doctor-update.mjs)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

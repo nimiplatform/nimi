@@ -139,8 +139,12 @@ export function SupportDiagnosticsSection() {
               value={`${formatBytes(resources.memoryUsedBytes)} / ${formatBytes(resources.memoryTotalBytes)}`}
             />
             <SupportInfoRow
+              label={t('Support.diagnosticsResourcesMemoryPressure')}
+              value={t(`runtimeConfig.overview.memoryPressureState.${resources.memoryPressure}`)}
+            />
+            <SupportInfoRow
               label={t('Support.diagnosticsResourcesDisk')}
-              value={`${formatBytes(resources.diskUsedBytes)} / ${formatBytes(resources.diskTotalBytes)}`}
+              value={resources.diskUsedBytes === null || resources.diskTotalBytes === null ? t('runtimeConfig.overview.diskUnavailable') : `${formatBytes(resources.diskUsedBytes)} / ${formatBytes(resources.diskTotalBytes)}`}
             />
             <SupportInfoRow
               label={t('Support.diagnosticsResourcesSource')}

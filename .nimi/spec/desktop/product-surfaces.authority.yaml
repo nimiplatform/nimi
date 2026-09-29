@@ -27,7 +27,7 @@ units:
   - id: definition.nimi.desktop.product-surfaces.data-root-management
     kind: definition
     title: Desktop data-root management surface
-    meaning: Desktop data-root management is the Settings-owned presentation for the current Product Control data root, user-explicit replacement, automatic and manual owner-aware Check and Sync status, typed owner repair actions, and lifecycle handoff state without owning Product Control, Runtime, cognition, owner storage, data movement, or readiness truth.
+    meaning: Desktop data-root management is the Settings-owned presentation for the current Product Control data root, user-explicit replacement, automatic and manual owner-aware Check and Sync status, typed owner repair actions, and lifecycle handoff state, plus the startup recovery page's maintenance replacement while Runtime refuses its stored data, without owning Product Control, Runtime, cognition, owner storage, data movement, or readiness truth.
   - id: definition.nimi.desktop.product-surfaces.relationship-profile
     kind: definition
     title: Desktop contextual relationship and profile surface
@@ -433,6 +433,18 @@ units:
         target: definition.nimi.desktop.product-surfaces.home-message-preferences
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-overview
+  - id: rule.nimi.desktop.product-surfaces.r038
+    kind: rule
+    title: Startup recovery presents the maintenance replacement
+    modality: must
+    statement: The startup recovery page is the Product Control surface for refused stored data; it shows the current data location as unchanged, explains that choosing a new empty folder starts Nimi there while the current folder stays in place, obtains the folder from the native picker and an explicit confirmation, invokes only the protected Product Control maintenance replacement, presents typed non-activation such as a non-empty or overlapping folder with a way to choose again, and after activation restarts Runtime and relaunches Home or, for the source Runtime, asks the developer to restart it; Support stays reachable from the page and never performs the replacement.
+    condition: Whenever Desktop presents or invokes recovery for a Runtime maintenance refusal.
+    failure: Reject renderer path authority, unconfirmed replacement, Support-performed replacement, reading or cleaning the current folder, and success shown before the typed activation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.data-root-management
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.support
   - id: rule.nimi.desktop.product-surfaces.execution-notice
     kind: rule
     title: Home distinguishes technical interruption from App business state

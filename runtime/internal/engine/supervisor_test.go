@@ -49,7 +49,7 @@ func testSupervisedRoot() string {
 
 func testSupervisorCfg(scriptPath string) EngineConfig {
 	return EngineConfig{
-		Kind:             EngineMedia,
+		Kind:             EngineSpeech,
 		BinaryPath:       scriptPath,
 		Port:             mustAllocateTestPort(),
 		Version:          "test",
@@ -558,7 +558,7 @@ func TestSupervisorMaxRestartsExhausted(t *testing.T) {
 
 func TestSupervisorRestartSpawnFailureContinuesUntilBudgetExhausted(t *testing.T) {
 	cfg := testSupervisorCfg(filepath.Join(t.TempDir(), "missing-engine-binary"))
-	cfg.Kind = EngineMedia
+	cfg.Kind = EngineSpeech
 	cfg.CommandArgs = []string{"--version"}
 	cfg.MaxRestarts = 3
 	cfg.RestartBaseDelay = time.Millisecond
@@ -694,7 +694,7 @@ func TestSupervisorStateCallback(t *testing.T) {
 
 func TestSupervisorHealthFailuresDoNotConsumeCrashRestartCounter(t *testing.T) {
 	sup := NewSupervisor(EngineConfig{
-		Kind:           EngineMedia,
+		Kind:           EngineSpeech,
 		HealthMode:     HealthModeTCP,
 		Address:        "127.0.0.1:1",
 		HealthInterval: 10 * time.Millisecond,
@@ -737,7 +737,7 @@ func TestSupervisorUnhealthyProcessRecoversAfterThreeConsecutiveProbes(t *testin
 	}
 
 	sup := NewSupervisor(EngineConfig{
-		Kind:           EngineMedia,
+		Kind:           EngineSpeech,
 		HealthMode:     HealthModeTCP,
 		Address:        address,
 		HealthInterval: 10 * time.Millisecond,
@@ -792,7 +792,7 @@ func TestSupervisorUnhealthyProcessRecoversAfterThreeConsecutiveProbes(t *testin
 }
 
 func TestSupervisorRecoveryProbeIntervalDecaysExactly(t *testing.T) {
-	sup := NewSupervisor(EngineConfig{Kind: EngineMedia, HealthInterval: 30 * time.Second}, testLogger(), nil)
+	sup := NewSupervisor(EngineConfig{Kind: EngineSpeech, HealthInterval: 30 * time.Second}, testLogger(), nil)
 	sup.mu.Lock()
 	sup.status = StatusUnhealthy
 	sup.unhealthySince = time.Now()
@@ -972,10 +972,15 @@ func TestCleanStalePIDKillsOnlyMatchingProcessIdentity(t *testing.T) {
 	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(helperCmd.Process.Pid)), 0o644); err != nil {
 		t.Fatalf("write pid file: %v", err)
 	}
+	startTime, ok := supervisorProcessStartTime(helperCmd.Process.Pid)
+	if !ok {
+		t.Fatalf("read helper start time")
+	}
 	encodedMetadata, err := encodeSupervisorPIDMetadata(supervisorPIDMetadata{
 		PID:                    helperCmd.Process.Pid,
 		EngineKind:             EngineLlama,
 		ExpectedExecutablePath: canonicalSupervisorProcessPath(executablePath),
+		ProcessStartTime:       startTime,
 	})
 	if err != nil {
 		t.Fatalf("encode metadata: %v", err)
@@ -1208,7 +1213,7 @@ func TestSupervisorStartReclaimsStalePortFromPriorInstance(t *testing.T) {
 		t.Fatalf("os.Executable: %v", err)
 	}
 	prior := NewSupervisor(EngineConfig{
-		Kind:           EngineMedia,
+		Kind:           EngineSpeech,
 		BinaryPath:     executablePath,
 		Port:           port,
 		SupervisedRoot: testSupervisedRoot(),

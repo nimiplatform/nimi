@@ -535,6 +535,17 @@ pub enum ReasonCode {
     AiLocalModelInventoryReconciliationRequired = 752,
     /// Protected music recovery slots, resident bytes or disk headroom exhausted.
     AiMusicRecoveryCapacityExceeded = 754,
+    /// The Runtime-managed media codec (ffmpeg/ffprobe) is absent or cannot run
+    /// on this device, so canonical audio or local video preparation cannot
+    /// happen. It is not a provider, model, or input fault.
+    AiMediaCodecUnavailable = 766,
+    /// An owner's read-only startup classification refused Runtime-owned stored
+    /// data in the selected data root (for example conversation storage that
+    /// needs explicit offline conversion). Runtime serves only its maintenance
+    /// surface and leaves that root unchanged.
+    RuntimeStoredDataUnsupported = 767,
+    AuditRecordUnavailable = 768,
+    AuditResultUnrecorded = 769,
     /// App activity publication, query, read-state, and source open. Conflict
     /// covers same-revision content differences and stale revisions; cursor
     /// expired requires relisting instead of claiming a complete replay; open
@@ -929,6 +940,10 @@ impl ReasonCode {
             Self::AiMusicRecoveryCapacityExceeded => {
                 "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
             }
+            Self::AiMediaCodecUnavailable => "AI_MEDIA_CODEC_UNAVAILABLE",
+            Self::RuntimeStoredDataUnsupported => "RUNTIME_STORED_DATA_UNSUPPORTED",
+            Self::AuditRecordUnavailable => "AUDIT_RECORD_UNAVAILABLE",
+            Self::AuditResultUnrecorded => "AUDIT_RESULT_UNRECORDED",
             Self::AgentBusy => "AGENT_BUSY",
             Self::AgentTurnNotActive => "AGENT_TURN_NOT_ACTIVE",
             Self::AppActivityInputInvalid => "APP_ACTIVITY_INPUT_INVALID",
@@ -1390,6 +1405,10 @@ impl ReasonCode {
             "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => {
                 Some(Self::AiMusicRecoveryCapacityExceeded)
             }
+            "AI_MEDIA_CODEC_UNAVAILABLE" => Some(Self::AiMediaCodecUnavailable),
+            "RUNTIME_STORED_DATA_UNSUPPORTED" => Some(Self::RuntimeStoredDataUnsupported),
+            "AUDIT_RECORD_UNAVAILABLE" => Some(Self::AuditRecordUnavailable),
+            "AUDIT_RESULT_UNRECORDED" => Some(Self::AuditResultUnrecorded),
             "AGENT_BUSY" => Some(Self::AgentBusy),
             "AGENT_TURN_NOT_ACTIVE" => Some(Self::AgentTurnNotActive),
             "APP_ACTIVITY_INPUT_INVALID" => Some(Self::AppActivityInputInvalid),
@@ -1983,6 +2002,53 @@ pub struct RequestRuntimeRestartResponse {
     #[prost(enumeration = "ReasonCode", tag = "2")]
     pub reason_code: i32,
 }
+/// GetRuntimeServiceStateRequest is intentionally empty; the verified
+/// desktop_control connection is the complete authority input.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetRuntimeServiceStateRequest {}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetRuntimeServiceStateResponse {
+    #[prost(enumeration = "RuntimeServiceMode", tag = "1")]
+    pub mode: i32,
+    /// Set only in maintenance mode: the owner-classified refusal reason.
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+/// RuntimeServiceMode is the protected surface this Runtime process serves on
+/// the verified Desktop transport. It is process-operational truth only; it
+/// proves no product readiness, App access, account, or owner success.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RuntimeServiceMode {
+    Unspecified = 0,
+    /// The ordinary protected owners were constructed and serve their operations.
+    Ordinary = 1,
+    /// An owner refused the stored data in the selected data root. Only the
+    /// bounded maintenance surface is served and the refused root is unchanged.
+    Maintenance = 2,
+}
+impl RuntimeServiceMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "RUNTIME_SERVICE_MODE_UNSPECIFIED",
+            Self::Ordinary => "RUNTIME_SERVICE_MODE_ORDINARY",
+            Self::Maintenance => "RUNTIME_SERVICE_MODE_MAINTENANCE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "RUNTIME_SERVICE_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "RUNTIME_SERVICE_MODE_ORDINARY" => Some(Self::Ordinary),
+            "RUNTIME_SERVICE_MODE_MAINTENANCE" => Some(Self::Maintenance),
+            _ => None,
+        }
+    }
+}
 /// Generated client implementations.
 pub mod runtime_service_control_service_client {
     #![allow(
@@ -1997,7 +2063,8 @@ pub mod runtime_service_control_service_client {
     /// RuntimeServiceControlService is registered only for the protected Runtime
     /// host. RequestRuntimeRestart initiates graceful Runtime self-exit; callers
     /// determine success only after SCM recovery and a new verified PID, creation
-    /// marker, boot epoch, and Desktop handshake.
+    /// marker, boot epoch, and Desktop handshake. GetRuntimeServiceState is read
+    /// by the Home host carrier before any other protected call on a new channel.
     #[derive(Debug, Clone)]
     pub struct RuntimeServiceControlServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -2109,6 +2176,35 @@ pub mod runtime_service_control_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn get_runtime_service_state(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetRuntimeServiceStateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetRuntimeServiceStateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeServiceControlService",
+                        "GetRuntimeServiceState",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -2150,6 +2246,8 @@ pub struct AccountSessionSnapshot {
     pub account_reason_code: i32,
     #[prost(message, optional, tag = "5")]
     pub account_projection: ::core::option::Option<AccountProjection>,
+    #[prost(message, optional, tag = "6")]
+    pub audit_diagnostic: ::core::option::Option<ErrorInfo>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AccountCaller {
@@ -2247,6 +2345,8 @@ pub struct BeginLoginResponse {
     pub account_reason_code: i32,
     #[prost(bool, tag = "11")]
     pub production_inert: bool,
+    #[prost(message, optional, tag = "12")]
+    pub audit_diagnostic: ::core::option::Option<ErrorInfo>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CompleteLoginRequest {
@@ -2285,6 +2385,8 @@ pub struct CompleteLoginResponse {
     pub account_reason_code: i32,
     #[prost(bool, tag = "6")]
     pub production_inert: bool,
+    #[prost(message, optional, tag = "7")]
+    pub audit_diagnostic: ::core::option::Option<ErrorInfo>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RequestPresenceVerificationRequest {
@@ -2353,7 +2455,7 @@ pub struct LogoutRequest {
     #[prost(string, tag = "2")]
     pub reason: ::prost::alloc::string::String,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LogoutResponse {
     #[prost(bool, tag = "1")]
     pub accepted: bool,
@@ -2365,6 +2467,8 @@ pub struct LogoutResponse {
     pub account_reason_code: i32,
     #[prost(bool, tag = "5")]
     pub production_inert: bool,
+    #[prost(message, optional, tag = "6")]
+    pub audit_diagnostic: ::core::option::Option<ErrorInfo>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SwitchAccountRequest {
@@ -2387,6 +2491,8 @@ pub struct SwitchAccountResponse {
     pub account_reason_code: i32,
     #[prost(bool, tag = "6")]
     pub production_inert: bool,
+    #[prost(message, optional, tag = "7")]
+    pub audit_diagnostic: ::core::option::Option<ErrorInfo>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -3737,7 +3843,26 @@ pub struct LoadoutImpactProjection {
     #[prost(bool, tag = "4")]
     pub confirmation_required: bool,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+/// Runtime's evaluation of one model's context against this host's memory
+/// budget, under the tiers that choose variants at the catalog reference
+/// context.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LoadoutRecipeContextFit {
+    /// Context capacity authored by the model, in tokens: what the Driver uses
+    /// when a Loadout omits its context-size option.
+    #[prost(uint64, tag = "1")]
+    pub authored_context_size: u64,
+    /// Context the recommended options run with, in tokens: the authored
+    /// capacity when it fits this host, otherwise a smaller size that fits.
+    #[prost(uint64, tag = "2")]
+    pub recommended_context_size: u64,
+    /// Complete Loadout options for a configuration that binds this model: the
+    /// recipe default options, plus the Driver's explicit context-size option
+    /// when recommended_context_size is below authored_context_size.
+    #[prost(message, optional, tag = "3")]
+    pub recommended_options: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutRecipeOfferDescriptor {
     #[prost(message, optional, tag = "1")]
     pub candidate: ::core::option::Option<ModelAssetMarketCandidate>,
@@ -3747,6 +3872,10 @@ pub struct LoadoutRecipeOfferDescriptor {
     pub reasons: ::prost::alloc::vec::Vec<i32>,
     #[prost(string, tag = "5")]
     pub installed_model_asset_id: ::prost::alloc::string::String,
+    /// Absent when the model carries no context evidence or the offer does not
+    /// fit this host at the reference context.
+    #[prost(message, optional, tag = "6")]
+    pub context_fit: ::core::option::Option<LoadoutRecipeContextFit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutRecipeSlotDescriptor {
@@ -3774,6 +3903,9 @@ pub struct LoadoutRecipeSlotDescriptor {
     pub applicability: i32,
     #[prost(enumeration = "ReasonCode", repeated, tag = "10")]
     pub reasons: ::prost::alloc::vec::Vec<i32>,
+    /// Context fit of the host-recommended variant in recommended_variant_ids.
+    #[prost(message, optional, tag = "11")]
+    pub recommended_context_fit: ::core::option::Option<LoadoutRecipeContextFit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutRecipeDescriptor {
@@ -3801,6 +3933,11 @@ pub struct LoadoutRecipeDescriptor {
     pub applicability: i32,
     #[prost(enumeration = "ReasonCode", repeated, tag = "12")]
     pub reasons: ::prost::alloc::vec::Vec<i32>,
+    /// Options of the host-recommended configuration: default_options, plus the
+    /// Driver's explicit context-size option when a recommended slot's context
+    /// fit is reduced.
+    #[prost(message, optional, tag = "13")]
+    pub recommended_options: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLoadoutRecipesRequest {
@@ -11067,6 +11204,9 @@ pub struct ResolveLocalEnvironmentPlanRequest {
     /// material candidate change invalidates it.
     #[prost(string, tag = "10")]
     pub candidate_loadout_id: ::prost::alloc::string::String,
+    /// Exact shared codec component; exclusive with capability/candidate selectors.
+    #[prost(bool, tag = "11")]
+    pub media_codec: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveLocalEnvironmentPlanResponse {

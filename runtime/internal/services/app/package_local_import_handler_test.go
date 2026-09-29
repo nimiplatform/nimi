@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"image"
 	"image/color"
 	"image/png"
@@ -44,7 +45,7 @@ func packageHandlerFixture(t *testing.T) (context.Context, *Service, *localappke
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = kernel.Close() })
-	coordinator, err := nimiappinstall.NewCoordinator(publicappregistry.NewCanonicalClient(), kernel, slog.Default())
+	coordinator, err := nimiappinstall.NewCoordinator(publicappregistry.NewCanonicalClient(), kernel, slog.Default(), auditlog.New(64, 16))
 	if err != nil {
 		t.Fatal(err)
 	}

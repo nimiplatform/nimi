@@ -124,6 +124,8 @@ type videoMediaPipelineStub struct {
 	omitLastFrame bool
 }
 
+func (p *videoMediaPipelineStub) Ensure(context.Context) error { return nil }
+
 func (p *videoMediaPipelineStub) EncodeAndInspect(ctx context.Context, plan *capabilitydriver.VideoInvocationPlan, candidate localexecution.RawAVCandidate) (videomedia.Result, error) {
 	p.mu.Lock()
 	p.calls++
@@ -835,11 +837,14 @@ func TestLocalVideoSelectionFailureDoesNotFallbackOrResolveTwice(t *testing.T) {
 
 func TestLocalVideoSubmitFailsClosedWhenHostOrMediaIsUnavailable(t *testing.T) {
 	tests := []struct {
-		name string
-		wire func(*Service)
+		name   string
+		wire   func(*Service)
+		reason runtimev1.ReasonCode
+		code   codes.Code
 	}{
-		{name: "host", wire: func(svc *Service) { svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{}) }},
-		{name: "media", wire: func(svc *Service) { svc.SetLocalVideoExecutionHost(&localVideoHostStub{}) }},
+		{name: "host", wire: func(svc *Service) { svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{}) }, reason: runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED, code: codes.Unavailable},
+		// Without the managed codec the media pipeline is never wired.
+		{name: "media", wire: func(svc *Service) { svc.SetLocalVideoExecutionHost(&localVideoHostStub{}) }, reason: runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE, code: codes.FailedPrecondition},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -847,7 +852,7 @@ func TestLocalVideoSubmitFailsClosedWhenHostOrMediaIsUnavailable(t *testing.T) {
 			svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "unavailable-"+test.name)})
 			test.wire(svc)
 			_, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), localVideoJobRequestForTest(64, 64, 5))
-			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED || statusCode(err) != codes.Unavailable {
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != test.reason || statusCode(err) != test.code {
 				t.Fatalf("unavailable submit=%v reason=%v ok=%v", err, reason, ok)
 			}
 			if len(svc.scenarioJobs.jobs) != 0 {

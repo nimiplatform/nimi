@@ -226,7 +226,7 @@ create -> dependency install -> init -> sync -> check
 
 - `create` writes a standalone private App project with a dotted App ID, exact version, public dependency declarations, developer build/submission inputs and one managed workflow. It does not install dependencies or create admission truth.
 - `init` materializes package-owned projections and lifecycle guidance after dependencies are installed. Fresh scaffolds also receive their scaffold lock; `init --adopt` preserves an existing App without creating scaffold intent or lock.
-- `sync` refreshes only scaffold-managed dependencies, configuration, workflow and glue. App-owned product code is preserved.
+- `sync` refreshes only scaffold-managed dependencies, configuration, workflow and glue. App-owned product code and the project `LICENSE` are preserved.
 - `check` is non-mutating and incorporates the former scaffold validation behavior.
 - `dev` requests the official Desktop-supervised Electron development Host.
 - `test` and `build` execute the real owner commands declared in `.nimi/config/build-profile.yaml`; there is no fallback success.
@@ -417,6 +417,16 @@ supported when its repository-access list includes this App. Keep the value
 out of source files, `.env`, and release notes.
 
 ### 4. Check, build, and publish a version
+
+The project `LICENSE` belongs to the App. `create` writes it once as an MIT
+license naming `--author`, or the App title when no author is given; replace it
+with the App's own terms and set the matching `package.json.license`
+identifier. `sync` never rewrites it and `check` does not lock it. The
+template's own MIT notice stays in the scaffold-managed
+`licenses/nimi-app-template.txt`. A project created by an app-tools version
+that still managed `LICENSE` keeps its file byte for byte: `sync` records the
+App as its owner, reports the handover, and adds the template notice, while
+`check` asks for that sync first.
 
 Keep the packaged `LICENSE` identical to the reviewed Git source. New scaffolds
 include `LICENSE -text` in `.gitattributes`. Add the same rule to an existing

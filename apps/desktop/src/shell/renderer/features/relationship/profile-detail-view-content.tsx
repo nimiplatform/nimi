@@ -324,12 +324,16 @@ export function ProfileDetailViewContent(input: {
                                     canAddFriend={input.canAddFriend}
                                     addFriendHint={input.addFriendHint}
                                     showMessageButton={showMessageButton}
-                                    showMoreButton={Boolean(input.onBlock || input.onRemove)}
+                                    showMoreButton={Boolean(input.onBlock || input.onUnblock || input.onRemove)}
                                     showMenu={showMenu}
                                     onShowMenuChange={setShowMenu}
                                     onBlock={input.onBlock ? () => {
                                       setShowMenu(false);
                                       input.onBlock?.();
+                                    } : undefined}
+                                    onUnblock={input.onUnblock ? () => {
+                                      setShowMenu(false);
+                                      input.onUnblock?.();
                                     } : undefined}
                                     onRemove={input.onRemove ? () => {
                                       setShowMenu(false);
@@ -433,12 +437,16 @@ export function ProfileDetailViewContent(input: {
                               canAddFriend={input.canAddFriend}
                               addFriendHint={input.addFriendHint}
                               showMessageButton={showMessageButton}
-                              showMoreButton={Boolean(input.onBlock || input.onRemove)}
+                              showMoreButton={Boolean(input.onBlock || input.onUnblock || input.onRemove)}
                               showMenu={showMenu}
                               onShowMenuChange={setShowMenu}
                               onBlock={input.onBlock ? () => {
                                 setShowMenu(false);
                                 input.onBlock?.();
+                              } : undefined}
+                              onUnblock={input.onUnblock ? () => {
+                                setShowMenu(false);
+                                input.onUnblock?.();
                               } : undefined}
                               onRemove={input.onRemove ? () => {
                                 setShowMenu(false);

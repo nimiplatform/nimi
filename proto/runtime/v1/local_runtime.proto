@@ -309,6 +309,8 @@ message ResolveLocalEnvironmentPlanRequest {
   // execution-relevant identity and revision bind the resulting plan, so a
   // material candidate change invalidates it.
   string candidate_loadout_id = 10;
+  // Exact shared codec component; exclusive with capability/candidate selectors.
+  bool media_codec = 11;
 }
 
 message ResolveLocalEnvironmentPlanResponse {

@@ -399,6 +399,26 @@ func TestRunRuntimeConfigSetRejectsRetiredDeveloperRegistrationKey(t *testing.T)
 	}
 }
 
+func TestRunRuntimeConfigSetRejectsRetiredMediaEngineKeys(t *testing.T) {
+	homeDir := t.TempDir()
+	setCmdTestHome(t, homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	for _, assignment := range []string{"engines.media.enabled=true", "engines.media.version=0.1.0", "engines.media.port=8321"} {
+		_, err := captureStdoutFromRun(func() error {
+			return runRuntimeConfig([]string{"set", "--set", assignment, "--json"})
+		})
+		if err == nil || !strings.Contains(err.Error(), "unsupported config key") {
+			t.Fatalf("retired media engine key %q must be rejected, got %v", assignment, err)
+		}
+	}
+}
+
 func TestRunRuntimeConfigSetRejectsInvalidJwksURL(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)

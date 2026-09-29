@@ -18,6 +18,8 @@ export type ProfileDetailViewProps = {
   canAddFriend?: boolean;
   addFriendHint?: string | null;
   onBlock?: () => void;
+  /** Offered while the profile is blocked; unblocking restores the relationship controls. */
+  onUnblock?: () => void;
   onRemove?: () => void;
   showMessageButton?: boolean;
   fullBleed?: boolean;

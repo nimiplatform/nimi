@@ -258,7 +258,7 @@ export const parentosPreviewContent: HeroDemoParentosPreview = {
     title: '设置',
     general: '通用',
     other: '其他',
-    account: { name: 'Halliday', note: '登录和账户切换由 Nimi Desktop 统一管理。' },
+    account: { name: 'Halliday', note: '登录和账户切换由 Nimi 统一管理。' },
     languageTitle: '界面语言',
     languageDesc: '切换 ParentOS 的全局界面文案。',
     sections: [

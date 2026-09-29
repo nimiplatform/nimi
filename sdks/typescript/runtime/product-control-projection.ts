@@ -4,6 +4,7 @@ import {
 import { createNimiError, ReasonCode } from '../types';
 import type {
   NimiFirstRunScreen,
+  NimiProductControlActivation,
   NimiProductControlAdmissionProjection,
   NimiProductControlRecord,
   NimiProductControlRecordProjection,
@@ -178,6 +179,12 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
 
 export function parseNimiProductControlRecordProjection(value: unknown): NimiProductControlRecordProjection {
   const record = asRecord(value, 'product_control_record_get');
+  const auditDiagnostic = record.auditDiagnostic == null ? null : asRecord(record.auditDiagnostic, 'product control auditDiagnostic');
+  if (auditDiagnostic && (auditDiagnostic.reasonCode !== 'AUDIT_RESULT_UNRECORDED'
+    || auditDiagnostic.actionHint !== 'inspect_runtime_audit')) {
+    throw productControlError({ reasonCode: 'SDK_PRODUCT_CONTROL_AUDIT_DIAGNOSTIC_INVALID',
+      message: 'Runtime product-control audit diagnostic is invalid.', actionHint: 'inspect_runtime_product_control_response' });
+  }
   const configMutation = record.configMutation == null
     ? null
     : asRecord(record.configMutation, 'product control configMutation');
@@ -203,8 +210,8 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
   }
 	if (activation && !(
 		typeof activation.activated === 'boolean'
-		&& ['DATA_ROOT_REPLACED', 'DATA_ROOT_UNCHANGED', 'DATA_ROOT_OVERLAPS_CURRENT'].includes(String(activation.reasonCode))
-		&& ['restart_runtime_and_check_sync', 'run_check_sync', 'choose_path_disjoint_root'].includes(String(activation.actionHint))
+		&& ['DATA_ROOT_REPLACED', 'DATA_ROOT_UNCHANGED', 'DATA_ROOT_OVERLAPS_CURRENT', 'DATA_ROOT_NOT_EMPTY'].includes(String(activation.reasonCode))
+		&& ['restart_runtime_and_check_sync', 'run_check_sync', 'choose_path_disjoint_root', 'choose_new_empty_root'].includes(String(activation.actionHint))
 	)) {
 		throw productControlError({
 			reasonCode: 'SDK_PRODUCT_CONTROL_ACTIVATION_INVALID',
@@ -218,6 +225,7 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
     state: parseNimiProductControlState(record.state),
     record: parseNimiProductControlRecord(record.record),
     error: parseOptionalString(record.error),
+    ...(auditDiagnostic ? { auditDiagnostic: { reasonCode: 'AUDIT_RESULT_UNRECORDED' as const, actionHint: 'inspect_runtime_audit' as const } } : {}),
     configMutation: configMutation
       ? {
 			disposition: configMutation.disposition as 'applied' | 'restart_required' | 'repair_required',
@@ -228,8 +236,8 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
 		activation: activation
 			? {
 				activated: activation.activated as boolean,
-				reasonCode: activation.reasonCode as 'DATA_ROOT_REPLACED' | 'DATA_ROOT_UNCHANGED' | 'DATA_ROOT_OVERLAPS_CURRENT',
-				actionHint: activation.actionHint as 'restart_runtime_and_check_sync' | 'run_check_sync' | 'choose_path_disjoint_root',
+				reasonCode: activation.reasonCode as NimiProductControlActivation['reasonCode'],
+				actionHint: activation.actionHint as NimiProductControlActivation['actionHint'],
 			}
 			: null,
   };

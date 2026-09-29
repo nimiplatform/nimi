@@ -30,6 +30,11 @@ const repoRoot = process.cwd();
 const TARGET_BODY = 4.5;
 const TARGET_LARGE = 3.0;
 const TARGET_ACTION_TEXT = 4.5;
+// WCAG 1.4.11: a focus indicator is a non-text UI component (3:1); soft
+// status badges carry caption text (4.5:1).
+const TARGET_FOCUS_RING = 3.0;
+const TARGET_BADGE_TEXT = 4.5;
+const STATUSES = ['neutral', 'success', 'warning', 'danger', 'info'];
 
 function readYaml(rel) {
   return YAML.parse(fs.readFileSync(path.join(repoRoot, rel), 'utf8'));
@@ -194,6 +199,47 @@ for (const [state, background] of primaryActionStates) {
   }
 }
 
+// Focus ring: the accent pack's ring over every opaque surface of each theme.
+const focusFailures = [];
+const focusRows = [];
+const focusRing = resolvePackToken('nimi-accent', 'focus.ring_color');
+if (!focusRing || focusRing.a !== 1) {
+  focusFailures.push({ themeId: 'nimi-accent', tone: 'focus.ring_color', ratio: 0, target: TARGET_FOCUS_RING, note: 'must be an opaque color' });
+} else {
+  for (const themeId of THEMES) {
+    for (const tone of TONES) {
+      const toneBg = resolveToneBg(themeId, tone);
+      if (!toneBg || toneBg.a !== 1) continue;
+      const ratio = contrast(focusRing, toneBg);
+      focusRows.push({ themeId, tone, ratio });
+      if (ratio < TARGET_FOCUS_RING) focusFailures.push({ themeId, tone, ratio, target: TARGET_FOCUS_RING });
+    }
+  }
+}
+
+// Soft badges: soft_text over the status color mixed at its soft_bg share
+// into the card surface. A soft_text that stays a var() reference resolves
+// to the status color itself.
+const badgeFailures = [];
+const badgeRows = [];
+for (const themeId of THEMES) {
+  const values = packValues(themeId);
+  const card = resolveToneBg(themeId, 'card');
+  for (const status of STATUSES) {
+    const base = parseColor(values[`status.${status}`]);
+    const share = Number(String(values[`status.${status}.soft_bg`] ?? '').match(/(\d+(?:\.\d+)?)%/)?.[1]) / 100;
+    const rawText = String(values[`status.${status}.soft_text`] ?? '');
+    const text = rawText === `var(--nimi-status-${status})` ? base : parseColor(rawText);
+    if (!base || !card || !text || !Number.isFinite(share)) {
+      badgeFailures.push({ themeId, status, ratio: 0, target: TARGET_BADGE_TEXT, note: 'unresolvable soft badge tokens' });
+      continue;
+    }
+    const ratio = contrast(text, composite({ ...base, a: share }, card));
+    badgeRows.push({ themeId, status, ratio });
+    if (ratio < TARGET_BADGE_TEXT) badgeFailures.push({ themeId, status, ratio, target: TARGET_BADGE_TEXT });
+  }
+}
+
 // ---------- Output ----------
 
 function fmt(n) {
@@ -224,13 +270,24 @@ for (const row of actionRows) {
 }
 console.log('');
 
-if (failures.length === 0 && actionFailures.length === 0) {
-  console.log(`ui-contrast-matrix: OK (${rows.length} surface/glass combinations and ${actionRows.length} action combinations all ≥ target)`);
+console.log(`Focus ring targets: focus.ring_color >= ${TARGET_FOCUS_RING}:1 on every surface`);
+for (const row of focusRows) {
+  console.log(row.themeId.padEnd(12) + row.tone.padEnd(10) + `${fmt(row.ratio)}:1${row.ratio >= TARGET_FOCUS_RING ? ' ' : '!'}`);
+}
+console.log('');
+console.log(`Soft badge targets: status soft_text >= ${TARGET_BADGE_TEXT}:1 on its soft_bg`);
+for (const row of badgeRows) {
+  console.log(row.themeId.padEnd(12) + row.status.padEnd(10) + `${fmt(row.ratio)}:1${row.ratio >= TARGET_BADGE_TEXT ? ' ' : '!'}`);
+}
+console.log('');
+
+if (failures.length === 0 && actionFailures.length === 0 && focusFailures.length === 0 && badgeFailures.length === 0) {
+  console.log(`ui-contrast-matrix: OK (${rows.length} surface/glass, ${actionRows.length} action, ${focusRows.length} focus and ${badgeRows.length} badge combinations all ≥ target)`);
   process.exit(0);
 }
 
 console.error('');
-console.error(`FAIL: ${failures.length + actionFailures.length} combination(s) below target:`);
+console.error(`FAIL: ${failures.length + actionFailures.length + focusFailures.length + badgeFailures.length} combination(s) below target:`);
 for (const f of failures) {
   console.error(
     `  ${f.themeId} × tone=${f.tone} × tier=${f.tier} × ${f.kind}: ${fmt(f.ratio)}:1 (target ≥ ${f.target}:1)`,
@@ -240,6 +297,12 @@ for (const f of actionFailures) {
   console.error(
     `  nimi-accent × ${f.token} × state=${f.state} × text: ${fmt(f.ratio)}:1 (target ≥ ${f.target}:1)`,
   );
+}
+for (const f of focusFailures) {
+  console.error(`  ${f.themeId} × focus.ring_color × ${f.tone}: ${fmt(f.ratio)}:1 (target ≥ ${f.target}:1)${f.note ? ` — ${f.note}` : ''}`);
+}
+for (const f of badgeFailures) {
+  console.error(`  ${f.themeId} × status.${f.status}.soft_text: ${fmt(f.ratio)}:1 (target ≥ ${f.target}:1)${f.note ? ` — ${f.note}` : ''}`);
 }
 console.error('');
 console.error('Per nimi-ui-material-contract.md §stop_line: if < 2 combinations fail, each must be filed as an admitted exception in §4. If ≥ 2 fail, escalate to Phase 2 for tier-value revision.');

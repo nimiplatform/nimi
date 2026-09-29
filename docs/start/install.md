@@ -4,24 +4,24 @@ For a third-party Nimi App, prepare the project toolchain first. Running the App
 
 ## Create And Check An App Project
 
-Use Node.js 24 or newer and pnpm, then follow [Create a Nimi App](/start/create-an-app). That guide pins App Tools 0.2.7 so its commands and generated dependencies can be checked against the same release.
+Use Node.js 24 or newer and pnpm, then follow [Create a Nimi App](/start/create-an-app). That guide pins App Tools 0.7.5 so its commands and generated dependencies can be checked against the same release.
 
-| Component | App Tools 0.2.7 generates | What you use it for |
+| Component | App Tools 0.7.5 generates | What you use it for |
 | --- | --- | --- |
-| `@nimiplatform/app-tools` | `^0.2.7` | Create, initialize, synchronize, check, run, test, build, and package the App |
-| `@nimiplatform/sdk` | `^0.9.0` | Public Nimi capability interfaces |
-| `@nimiplatform/nimi-coding` | `0.6.1` | The managed projections checked and synchronized by App initialization/tooling |
-| `@nimiplatform/kit` | The version declared by the generated project | Shared App UI and host integration |
+| `@nimiplatform/app-tools` | `^0.7.5` | Create, initialize, synchronize, check, run, test, build, and package the App |
+| `@nimiplatform/sdk` | `^0.15.0` | Public Nimi capability interfaces |
+| `@nimiplatform/kit` | `^0.11.0` | Shared App UI and host integration |
+| `@nimiplatform/nimi-coding` | `0.6.3` | The managed projections checked and synchronized by App initialization/tooling |
 
-These are the published scaffold's declarations, not a recommendation to upgrade each dependency independently. If you choose a different App Tools release, follow that release's generated manifest and help. The Nimi workspace currently has App Tools 0.2.8 with SDK `^0.10.0` and nimicoding `0.6.2`; those workspace values must not be presented as the 0.2.7 package's output.
+These are the published scaffold's declarations, not a recommendation to upgrade each dependency independently. The SDK and Kit versions form one supported combination; if you choose a different App Tools release, follow that release's generated manifest and help.
 
-Standalone projects use public packages. `workspace:*`, source aliases, and Nimi's internal workspace validation are not a third-party installation path. [App Tools 0.2.7](https://www.npmjs.com/package/@nimiplatform/app-tools/v/0.2.7) is the version addressed above.
+Standalone projects use public packages. `workspace:*`, source aliases, and Nimi's internal workspace validation are not a third-party installation path. [App Tools 0.7.5](https://www.npmjs.com/package/@nimiplatform/app-tools/v/0.7.5) is the version addressed above.
 
 ## Run Through Nimi Home
 
 The development command asks Desktop, the current Nimi Home host, to launch a supervised Electron App. Use Developer Mode for local project registration and the access required by your App. A visible window does not prove that Runtime access or an AI capability is configured.
 
-No ordinary-user stable Nimi installer is currently published. Check the [official Download page](https://nimi.ai/download) for the actual platform and development-build availability. The Windows Runtime bootstrap is a portable developer component; it does not include Nimi Home, an installer, or the protected product environment needed to stand in for a Home development setup.
+No Nimi Home or Runtime download is published yet, including development builds; the earlier developer previews and the portable Windows Runtime bootstrap were withdrawn. The [Download page](https://nimi.ai/download) carries the current status. Nimi Home also requires a Nimi account: you sign in through your browser before using it.
 
 If you do not yet have a compatible Home/Runtime development instance, you can prepare the project and its static checks, but supervised launch and capability execution remain unverified until that prerequisite is available. Follow the host's actual errors and [Troubleshooting](/start/troubleshooting); do not launch a renderer directly as an access bypass.
 
@@ -44,7 +44,7 @@ If you want to use Nimi Coding's authority tools directly in your own work, read
 
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
 - [`app-tools/package.json`](https://github.com/nimiplatform/nimi/blob/main/app-tools/package.json)
+- [`app-tools/lib/app-dependency-combinations.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-dependency-combinations.mjs)
 - [`app-tools/lib/app-scaffold.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-scaffold.mjs)
-- [`app-tools/lib/app-doctor-update.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-doctor-update.mjs)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

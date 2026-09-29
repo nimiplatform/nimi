@@ -45,6 +45,11 @@ function isRustRuntimeRequestFieldSupported(field, runtime) {
 function isRustRuntimeResponseFieldSupported(field, runtime) {
   if (field.type === 'map') return false;
   if (field.repeated) return field.type === 'string';
+  if (field.type === 'ErrorInfo') {
+    const diagnostic = runtimeMessageSchemas(runtime).find((schema) => schema.name === 'ErrorInfo');
+    return Boolean(diagnostic && diagnostic.fields.every((item) => item.type !== 'ErrorInfo'
+      && isRustRuntimeResponseFieldSupported(item, runtime)));
+  }
   return RUST_RUNTIME_SCALAR_TYPES.has(field.type) || protoTypeKind(field.type, runtime) === 'enum';
 }
 
@@ -254,6 +259,8 @@ export function writeRustTypedClients(runtime, realm) {
     ...runtimeAdmissions.flatMap((method) => [method.request_type, method.response_type]),
     'AccountCaller',
   ]);
+  if (runtimeSchemas.some((schema) => runtimeResponseTypes.includes(schema.name)
+    && schema.fields.some((field) => field.type === 'ErrorInfo'))) runtimeCodecTypes.add('ErrorInfo');
   const runtimeCodecEnumTypes = new Set(
     runtimeSchemas
       .filter((schema) => runtimeCodecTypes.has(schema.name))
@@ -355,9 +362,9 @@ ${fields}
                 let raw = value.as_str().ok_or_else(|| ${decodeError})?;
                 Some(${field.type}::from_transport(raw).ok_or_else(|| ${decodeError})?)
             }`);
-        if (kind === 'message' && field.type === 'AccountCaller') return scalarDecode(`Some(value) => {
+        if (kind === 'message' && ['AccountCaller', 'ErrorInfo'].includes(field.type)) return scalarDecode(`Some(value) => {
                 let nested = value.as_object().ok_or_else(|| ${decodeError})?;
-                Some(Box::new(AccountCaller::from_json_object(nested)?))
+                Some(Box::new(${field.type}::from_json_object(nested)?))
             }`);
         return '';
       }).map((code, index) => ({ field: schema.fields[index], code }));

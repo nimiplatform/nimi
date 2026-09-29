@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 )
 
 const (
@@ -21,10 +22,19 @@ const (
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007a
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007b
-func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtimev1.ReplaceProductControlDataRootRequest) (*runtimev1.ProductControlProjectionJson, error) {
+func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtimev1.ReplaceProductControlDataRootRequest) (_ *runtimev1.ProductControlProjectionJson, err error) {
 	if s == nil {
 		return nil, errors.New("local service is nil")
 	}
+	// Exactly one result record per replacement request: the activation is
+	// recorded with its commit below; every refusal is recorded here unless a
+	// specific disposition was already recorded.
+	resultRecorded := false
+	defer func() {
+		if err != nil && !resultRecorded {
+			s.recordDataRootReplacementRefusal(ctx, "refused", err)
+		}
+	}()
 	s.productControlReplacementMu.Lock()
 	defer s.productControlReplacementMu.Unlock()
 
@@ -67,6 +77,8 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 	}
 	if productControlPathsOverlap(current, target) {
 		message := "replacement target must be path-disjoint from the current data root"
+		resultRecorded = true
+		s.recordDataRootReplacementRefusal(ctx, productControlActivationOverlappingReason, nil)
 		return productControlJSON(productControlRecordProjection{
 			Path: path, Exists: true, State: record.State, Record: record, Error: &message,
 			Activation: &productControlActivation{
@@ -101,6 +113,8 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 		// Candidate access/layout failure does not invalidate the authenticated
 		// Desktop transport or the current root. Keep it in the owner projection
 		// so Settings can display the failure without losing its mounted state.
+		resultRecorded = true
+		s.recordDataRootReplacementRefusal(ctx, "DATA_ROOT_LAYOUT_FAILED", nil)
 		return productControlJSON(productControlRecordProjection{
 			Path: path, Exists: true, State: record.State, Record: record,
 			Error: stringPtr(err.Error()),
@@ -131,22 +145,26 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 		return nil, err
 	}
 
-	now := nowProductControlUnixMS()
-	nowISO := nowProductControlISO()
-	record.SchemaVersion = productControlSchemaVersion
-	record.State = productControlStateReadyForUse
-	record.DataRoot = &productDataRootRecord{
-		Path:             target,
-		Status:           productDataRootStatusReady,
-		RootActivationID: mintProductControlRootActivationID(),
-		SelectedAt:       nowISO,
-		VerifiedAt:       nowISO,
-		SelectedAtUnixMs: now,
-		VerifiedAtUnixMs: now,
+	mintProductControlActivation(record, target)
+	// The activation record is a file outside the audit backend, so its write
+	// runs inside the audit transaction that records the replacement: an
+	// unrecordable replacement is never activated and a failed write leaves no
+	// record. If only that audit commit fails after the file commit, the
+	// activation stands and is reported truthfully below, while the unrecorded
+	// result is surfaced separately; it is never reported as not activated.
+	committed, commitErr := s.commitRecordedDataRootReplacement(ctx, previousActivationID, record.DataRoot.RootActivationID, func() error {
+		return writeProductControlRecord(path, record)
+	})
+	if !committed {
+		if errors.Is(commitErr, auditlog.ErrUnrecorded) {
+			return nil, fmt.Errorf("record Product Control data-root replacement: %w", commitErr)
+		}
+		return nil, fmt.Errorf("commit Product Control data-root activation: %w", commitErr)
 	}
-	record.Repair = productRepairRecord{}
-	if err := writeProductControlRecord(path, record); err != nil {
-		return nil, fmt.Errorf("commit Product Control data-root activation: %w", err)
+	resultRecorded = true
+	if commitErr != nil && s.logger != nil {
+		s.logger.Error("Product Control data-root replacement committed without a durable audit record",
+			"root_activation_id", record.DataRoot.RootActivationID, "audit_disposition", "unrecorded", "error", commitErr)
 	}
 	// From this point the replacement is committed and cannot be aborted. Mark
 	// the process disposition before the remaining post-commit operations, so a
@@ -161,6 +179,32 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 	s.commitProductControlCheckSyncHandoff(previousActivationID)
 	handoff.CommitRootHandoff()
 
+	return productControlJSON(committedProductControlActivationProjection(path, record, target, configWriter, commitErr), nil)
+}
+
+// mintProductControlActivation prepares record for a new activation of
+// target. Nothing is written; the caller commits the record.
+func mintProductControlActivation(record *productControlRecord, target string) {
+	now := nowProductControlUnixMS()
+	nowISO := nowProductControlISO()
+	record.SchemaVersion = productControlSchemaVersion
+	record.State = productControlStateReadyForUse
+	record.DataRoot = &productDataRootRecord{
+		Path:             target,
+		Status:           productDataRootStatusReady,
+		RootActivationID: mintProductControlRootActivationID(),
+		SelectedAt:       nowISO,
+		VerifiedAt:       nowISO,
+		SelectedAtUnixMs: now,
+		VerifiedAtUnixMs: now,
+	}
+	record.Repair = productRepairRecord{}
+}
+
+// committedProductControlActivationProjection writes the derived service
+// configuration for a committed activation and projects it; a failed derived
+// write keeps the new selection and moves the record to typed repair.
+func committedProductControlActivationProjection(path string, record *productControlRecord, target string, configWriter func(string) (bool, error), auditErr error) productControlRecordProjection {
 	_, configErr := configWriter(target)
 	projection := productControlRecordProjection{
 		Path: path, Exists: true, State: record.State, Record: record,
@@ -172,6 +216,11 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 			Disposition: "restart_required", ReasonCode: "CONFIG_RESTART_REQUIRED",
 			ActionHint: "request_typed_runtime_restart",
 		},
+	}
+	if auditErr != nil {
+		projection.AuditDiagnostic = &productControlAuditDiagnostic{
+			ReasonCode: "AUDIT_RESULT_UNRECORDED", ActionHint: "inspect_runtime_audit",
+		}
 	}
 	if configErr != nil {
 		detail := fmt.Sprintf("Runtime derived data-root configuration failed after activation: %v", configErr)
@@ -189,7 +238,7 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 			ActionHint: "repair_runtime_config",
 		}
 	}
-	return productControlJSON(projection, nil)
+	return projection
 }
 
 func productControlPathsOverlap(left string, right string) bool {

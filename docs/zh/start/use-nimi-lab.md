@@ -23,7 +23,7 @@ pnpm run update
 pnpm run test
 ```
 
-`dev:shell` 进入官方 `nimi-app dev` launcher；在 Windows 和 macOS 上，Nimi Lab 以 Desktop-supervised Electron App 运行。`build:shell` 仍是有边界的 Tauri native build 路径，不是第二条本地开发 carrier。尚未准入的本地项目必须先由 Developer Mode 授权，再以隔离的 `local_development` build 启动。Nimi Lab 不拥有 principal、grant 或 session，也不授予公开 App 准入。
+`dev:shell` 进入官方 `nimi-app dev` launcher；在 Windows 和 macOS 上，Nimi Lab 以 Desktop-supervised Electron App 运行，没有 Tauri 构建或开发路径。尚未准入的本地项目必须先由 Developer Mode 授权，再以隔离的 `local_development` build 启动。Nimi Lab 不拥有 principal、grant 或 session，也不授予公开 App 准入。
 
 Realm-backed settings 当前作为已集成的 Lab 表面保留，但 local-app carrier 会返回 typed unavailable。其真实 owner journey 仍为 `NOT-VERIFIED`，不能由可见 UI 推断 Realm access 已可运行。
 

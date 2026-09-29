@@ -33,6 +33,22 @@ export const SCAFFOLD_VERSION = '2026-08-31.app-lifecycle-v1';
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
+// The template's own license notice, kept for the template-derived portions of
+// a generated project. The project root LICENSE is the App's own file.
+export const SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH = 'licenses/nimi-app-template.txt';
+// Files that earlier scaffold versions managed and that now belong to the App.
+// Sync records the new owner and leaves the existing file exactly as it is.
+export const SCAFFOLD_APP_OWNED_HANDOVER_PATHS = Object.freeze(['LICENSE']);
+const TEMPLATE_LICENSE_COPYRIGHT_LINE = /^Copyright \(c\) (\d{4}) \S.*$/gmu;
+const TEMPLATE_LICENSE_NOTICE_HEADER = [
+  'Nimi App template notice',
+  '',
+  'This project was created from the Nimi App template in @nimiplatform/app-tools.',
+  'Portions that come from the template are provided under the license below.',
+  "The App's own license is the LICENSE file at the project root.",
+  '',
+  '',
+].join('\n');
 const LOCKFILE_POLICY = 'author-install-generates-lockfile';
 const GENERATED_GITIGNORE = [
   'node_modules/',
@@ -1098,6 +1114,25 @@ export function renderAppSubmissionInput(identity, options = {}) {
   }, { lineWidth: 0 });
 }
 
+// The App's initial license keeps the template's license text and names the
+// package author, or the App title when no author was given, as the holder.
+export function renderInitialAppLicense(templateLicense, holder) {
+  const copyrightLines = [...templateLicense.matchAll(TEMPLATE_LICENSE_COPYRIGHT_LINE)];
+  if (copyrightLines.length !== 1) {
+    throw new Error('Template LICENSE must contain exactly one copyright line');
+  }
+  return templateLicense.replace(TEMPLATE_LICENSE_COPYRIGHT_LINE, (_line, year) => `Copyright (c) ${year} ${holder}`);
+}
+
+export function renderTemplateLicenseNotice(templateLicense) {
+  return `${TEMPLATE_LICENSE_NOTICE_HEADER}${templateLicense}`;
+}
+
+function readTemplateLicense() {
+  const { baseDir } = loadDefaultStarterSource();
+  return readDefaultStarterSourceFile(baseDir, 'LICENSE');
+}
+
 export function renderScaffoldBoundary() {
   return YAML.stringify({
     scaffold_contract: 'P-SCAF',
@@ -1108,10 +1143,22 @@ export function renderScaffoldBoundary() {
 }
 
 function buildStructuredFiles(identity, profile, versions) {
+  const templateLicense = readTemplateLicense();
   const files = [
     {
       path: '.gitignore',
       content: GENERATED_GITIGNORE,
+      mutationClass: 'scaffold-managed glue',
+    },
+    {
+      // Created once for the App to own; sync never rewrites it.
+      path: 'LICENSE',
+      content: renderInitialAppLicense(templateLicense, identity.author || identity.appTitle),
+      mutationClass: 'app-owned product code',
+    },
+    {
+      path: SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH,
+      content: renderTemplateLicenseNotice(templateLicense),
       mutationClass: 'scaffold-managed glue',
     },
     {

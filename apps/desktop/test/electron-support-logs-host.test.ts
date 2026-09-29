@@ -70,7 +70,7 @@ test('Electron support logs uses fixed native zip commands on macOS and Windows'
   );
 });
 
-test('Electron support logs remains serialized and reachable while ordinary root operations are closed', async () => {
+test('Electron support logs stays reachable while ordinary root operations are closed', async () => {
   const operationGate = createDesktopDataRootOperationGate();
   operationGate.close('desktop-data-root-handoff-repair-required');
   let resolverCalls = 0;
@@ -90,6 +90,46 @@ test('Electron support logs remains serialized and reachable while ordinary root
   );
   assert.equal(resolverCalls, 1);
   assert.equal(operationGate.isClosed(), true);
+});
+
+test('Electron support logs export runs beside a long call but waits for exclusive root work', async () => {
+  const operationGate = createDesktopDataRootOperationGate();
+  let finishLongCall: (() => void) | undefined;
+  await new Promise<void>((started) => {
+    void operationGate.runShared(async () => {
+      await new Promise<void>((resolve) => {
+        finishLongCall = resolve;
+        started();
+      });
+    });
+  });
+  let resolverCalls = 0;
+  const host = createDesktopElectronSupportLogsHost({
+    resolveSelectedDataRoot: async () => {
+      resolverCalls += 1;
+      throw new Error('support-root-resolver-reached');
+    },
+    downloadsDirectory: path.resolve(os.tmpdir()),
+    operationGate,
+    revealFile: () => undefined,
+  });
+
+  await assert.rejects(
+    host.commandHandlers.desktop_logs_export({ payload: {} }),
+    /support-root-resolver-reached/u,
+  );
+  assert.equal(resolverCalls, 1);
+  const cleanup = operationGate.runExclusive(async () => resolverCalls);
+  const afterCleanup = assert.rejects(
+    host.commandHandlers.desktop_logs_export({ payload: {} }),
+    /support-root-resolver-reached/u,
+  );
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(resolverCalls, 1);
+  finishLongCall?.();
+  assert.equal(await cleanup, 1);
+  await afterCleanup;
+  assert.equal(resolverCalls, 2);
 });
 
 test('macOS Electron support logs exports real log files and excludes symlinks', {

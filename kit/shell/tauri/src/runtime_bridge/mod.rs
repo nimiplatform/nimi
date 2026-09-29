@@ -80,6 +80,7 @@ pub struct RuntimeBridgeDesktopAccountSessionStatus {
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub account_projection: Option<RuntimeBridgeDesktopAccountProjection>,
+    pub audit_diagnostic: Option<nimi_shell_protected_local::DesktopAccountAuditDiagnostic>,
 }
 
 #[allow(clippy::all, dead_code)]
@@ -530,6 +531,7 @@ pub async fn runtime_account_session_status(
                 realm_environment_id: projection.realm_environment_id,
             }
         }),
+        audit_diagnostic: status.audit_diagnostic,
     })
 }
 

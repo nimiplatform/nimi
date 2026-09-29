@@ -119,6 +119,7 @@ func (s *managerLlamaInvocationSubstrate) Stop() error {
 	}
 	s.mu.Lock()
 	s.currentKey = ""
+	s.accessKey = ""
 	s.mu.Unlock()
 	return nil
 }

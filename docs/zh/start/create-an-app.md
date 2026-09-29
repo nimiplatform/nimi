@@ -1,19 +1,19 @@
 # 创建 Nimi App
 
-使用公开的 App Tools CLI 创建第三方 App 项目。本页命令以 `@nimiplatform/app-tools@0.2.7` 为基准。
+使用公开的 App Tools CLI 创建第三方 App 项目。本页命令以 `@nimiplatform/app-tools@0.7.5` 为基准。
 
 ## 开始前准备
 
 - 使用 Node.js 24 或更新版本，以及 pnpm。生成项目会声明所用的包管理器版本。
 - 为项目选择一个空目录和 App ID。
-- 通过 Nimi 运行 App 时，需要兼容的 Nimi Home 开发实例、Developer Mode 和可用的 Runtime。先看[开发环境与可用性](/zh/start/install)。创建项目不会安装 Nimi Home；公开的 Windows Runtime bootstrap 也不是 Home 安装包。
+- 通过 Nimi 运行 App 时，需要兼容的 Nimi Home 开发实例、Developer Mode 和可用的 Runtime。先看[开发环境与可用性](/zh/start/install)。创建项目不会安装 Nimi Home，目前也没有发布 Nimi Home 下载。
 
 ## 创建并初始化
 
 本例包含文本生成功能，便于接着完成第一次 AI 调用。`studio-create` 会加入 Create 功能、它依赖的 AI Studio 基础模块，并生成 `runtime.consume` 声明。它会带入功能代码和界面，不是单独的权限开关。
 
 ```bash
-pnpm dlx --package @nimiplatform/app-tools@0.2.7 nimi-app create --dir my-nimi-app --profile standalone --features studio-create --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app
+pnpm dlx --package @nimiplatform/app-tools@0.7.5 nimi-app create --dir my-nimi-app --profile standalone --features studio-create --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app
 cd my-nimi-app
 pnpm install
 pnpm run init
@@ -21,7 +21,7 @@ pnpm run init
 
 将目录、身份和标题换成你的项目值。Standalone 项目使用公开依赖；`init` 会显式同步随工具链提供的 nimicoding 投影，并初始化 App 的受管配置。使用这一入口前，无需先单独学习或执行 Nimi 主仓的治理流程。
 
-如果只需要空白 App，可省略 `--features studio-create`。此时生成的 `app_access: []` 不包含文本生成示例所需的权限声明。在受管脚手架中，`nimi.app.yaml` 按所选功能生成；手改其中的权限会导致 `check` 失败，`sync` 会恢复生成的声明。App Tools 0.2.7 的 `sync` 不接受 `--features`。如果已经创建空白项目，想继续本例，请保留原项目，将上面的命令指向另一个空目录。
+如果只需要空白 App，可省略 `--features studio-create`。此时生成的 `app_access: []` 不包含文本生成示例所需的权限声明。在受管脚手架中，`nimi.app.yaml` 按所选功能生成；手改其中的权限会导致 `check` 失败，`sync` 会恢复生成的声明。App Tools 0.7.5 的 `sync` 不接受 `--features`。如果已经创建空白项目，想继续本例，请保留原项目，将上面的命令指向另一个空目录。
 
 ## 检查并运行
 
@@ -35,7 +35,7 @@ pnpm dev
 
 按开发宿主的要求，在 Nimi Home 的 Developer Mode 中登记并授权本地项目。窗口正在运行和拥有 Nimi Access 是两种状态；访问不可用时，根据实际原因处理项目登记、授权、Runtime 或能力配置，再重试。不要绕过宿主伪造成功。
 
-Tauri 仍可作为明确配置的生产构建选项，但它不是默认开发宿主。
+Tauri 仍可作为明确配置的生产构建选项，但它不是默认开发宿主。Tauri 宿主只承载标准 shell 的一部分，不承载的操作会以 `capability-unavailable` 失败（见 [Tauri 宿主](/zh/platform/kit/#tauri-宿主)）。
 
 ## 项目命令
 

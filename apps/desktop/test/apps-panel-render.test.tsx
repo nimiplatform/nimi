@@ -644,12 +644,27 @@ test('installed App detail keeps action and Runtime lifecycle failures visible',
       runtimeError: 'package lifecycle unavailable',
     },
     selectedEntryKey: installed.identity.entryKey,
-    actionError: 'package job phase changed',
+    actionError: { message: 'This action did not complete.', detail: 'package job phase changed' },
   }));
   assert.ok(markup.includes('data-testid="apps-runtime-error"'));
-  assert.ok(markup.includes('package lifecycle unavailable'));
+  assert.ok(markup.includes("Installed apps&#x27; run state can&#x27;t be read right now."));
+  assert.ok(markup.includes('package lifecycle unavailable'), 'raw lifecycle reason stays in technical details');
   assert.ok(markup.includes('data-testid="apps-action-error"'));
-  assert.ok(markup.includes('package job phase changed'));
+  assert.ok(markup.includes('This action did not complete.'));
+  assert.ok(markup.includes('package job phase changed'), 'raw action reason stays in technical details');
+  await changeLocale('zh');
+});
+
+test('an unreadable catalog is an informational note and never marks installed Apps as failed', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const installed = installedRuntimeEntry();
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [installed], catalogStatus: 'unavailable', runtimeError: null },
+  }));
+  assert.ok(markup.includes('data-testid="apps-catalog-read-failed"'));
+  assert.ok(!markup.includes('data-testid="apps-runtime-error"'));
+  assert.ok(!markup.includes('Catalog list failed'));
   await changeLocale('zh');
 });
 

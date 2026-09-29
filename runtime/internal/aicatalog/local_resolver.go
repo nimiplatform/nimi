@@ -84,33 +84,35 @@ func resolveHostBudget(profile *runtimev1.LocalDeviceProfile) hostBudget {
 	return budget
 }
 
+// variantFootprint resolves the accelerator budget a variant is measured
+// against and its authored footprint there.
+func variantFootprint(variant LocalPlaneVariant, budget hostBudget) (available bool, hostBudgetBytes int64, footprintBytes int64) {
+	switch strings.ToLower(strings.TrimSpace(variant.HostRequirement.Accelerator)) {
+	case "cpu":
+		return budget.cpuAvailable, budget.ramBytes, variant.HostRequirement.MinRAMBytes
+	case "metal":
+		return budget.metalAvailable, budget.vramBytes, variant.HostRequirement.MinVRAMBytes
+	case "cuda":
+		return budget.cudaAvailable, budget.vramBytes, variant.HostRequirement.MinVRAMBytes
+	default:
+		return false, 0, 0
+	}
+}
+
 // classifyVariant returns the K-MCAT-035 fit tier for one variant against the
 // host budget. A variant whose accelerator is unavailable, or whose budget
 // evidence is missing, is tierIneligible (never auto-selected).
 func classifyVariant(variant LocalPlaneVariant, budget hostBudget) variantFitTier {
-	accelerator := strings.ToLower(strings.TrimSpace(variant.HostRequirement.Accelerator))
-	var available bool
-	var hostBudgetBytes int64
-	var footprintBytes int64
-	switch accelerator {
-	case "cpu":
-		available = budget.cpuAvailable
-		hostBudgetBytes = budget.ramBytes
-		footprintBytes = variant.HostRequirement.MinRAMBytes
-	case "metal":
-		available = budget.metalAvailable
-		hostBudgetBytes = budget.vramBytes
-		footprintBytes = variant.HostRequirement.MinVRAMBytes
-	case "cuda":
-		available = budget.cudaAvailable
-		hostBudgetBytes = budget.vramBytes
-		footprintBytes = variant.HostRequirement.MinVRAMBytes
-	default:
-		return tierIneligible
-	}
+	available, hostBudgetBytes, footprintBytes := variantFootprint(variant, budget)
 	if !available {
 		return tierIneligible
 	}
+	return classifyFootprint(footprintBytes, hostBudgetBytes)
+}
+
+// classifyFootprint places one memory requirement in the fixed head-room
+// tiers of one host budget.
+func classifyFootprint(footprintBytes int64, hostBudgetBytes int64) variantFitTier {
 	// Missing budget evidence or footprint must fail closed to ineligible —
 	// the resolver never selects a variant on unverified head-room.
 	if hostBudgetBytes <= 0 || footprintBytes <= 0 {
@@ -189,6 +191,72 @@ func (c *LocalProviderCatalog) RecommendVariantForHost(variantIDs []string, prof
 		return "", false
 	}
 	return strings.TrimSpace(selected.VariantID), true
+}
+
+// contextFitGranularityTokens is the step of a reduced recommended context.
+const contextFitGranularityTokens int64 = 8192
+
+// LocalContextFit is the Runtime evaluation of one variant's model context
+// against captured host facts (model-catalog r061). RecommendedContextSize
+// equals AuthoredContextSize when the automatic capacity fits the host.
+type LocalContextFit struct {
+	AuthoredContextSize    uint64
+	RecommendedContextSize uint64
+}
+
+// Reduced reports whether the recommendation needs an explicit Driver
+// context size below the automatic authored capacity.
+func (fit LocalContextFit) Reduced() bool {
+	return fit.RecommendedContextSize < fit.AuthoredContextSize
+}
+
+// ContextFitForHost evaluates the context a configuration binding this
+// variant would execute with, under the same budget and tiers that choose
+// variants at the reference context. It returns false when the variant's
+// model carries no context evidence or the variant does not reach the
+// runnable tier at the reference context.
+// @nimi-authority: rule.nimi.runtime.model-catalog.r061
+func (c *LocalProviderCatalog) ContextFitForHost(variantID string, profile *runtimev1.LocalDeviceProfile) (LocalContextFit, bool) {
+	if c == nil {
+		return LocalContextFit{}, false
+	}
+	wanted := strings.TrimSpace(variantID)
+	for _, model := range c.models {
+		for _, variant := range model.Variants {
+			if strings.TrimSpace(variant.VariantID) == wanted {
+				return contextFitForHost(model.Fitness, variant, resolveHostBudget(profile))
+			}
+		}
+	}
+	return LocalContextFit{}, false
+}
+
+func contextFitForHost(fitness *LocalPlaneFitness, variant LocalPlaneVariant, budget hostBudget) (LocalContextFit, bool) {
+	if fitness == nil || fitness.KVCacheBytesPerToken <= 0 || fitness.ContextLength <= 0 || fitness.AuthoredContextLength < fitness.ContextLength {
+		return LocalContextFit{}, false
+	}
+	available, hostBudgetBytes, footprintBytes := variantFootprint(variant, budget)
+	if !available || classifyFootprint(footprintBytes, hostBudgetBytes) < tierRunnable {
+		return LocalContextFit{}, false
+	}
+	reference, authored := fitness.ContextLength, fitness.AuthoredContextLength
+	fits := func(context int64) bool {
+		return classifyFootprint(footprintBytes+fitness.KVCacheBytesPerToken*(context-reference), hostBudgetBytes) >= tierRunnable
+	}
+	fit := LocalContextFit{AuthoredContextSize: uint64(authored), RecommendedContextSize: uint64(authored)}
+	if fits(authored) {
+		return fit, true
+	}
+	// The largest runnable context among the whole multiples of the
+	// granularity above the reference; the reference itself is runnable.
+	fit.RecommendedContextSize = uint64(reference)
+	for context := (authored - 1) / contextFitGranularityTokens * contextFitGranularityTokens; context > reference; context -= contextFitGranularityTokens {
+		if fits(context) {
+			fit.RecommendedContextSize = uint64(context)
+			break
+		}
+	}
+	return fit, true
 }
 
 // RankVariantsForHost preserves the recipe-authored ordinal inside each

@@ -13,6 +13,10 @@ import {
   createDesktopDataRootOperationGate,
   type DesktopDataRootOperationGate,
 } from './data-root-operation-gate.js';
+import {
+  CHECK_SYNC_NEXT_ACTIONS,
+  type CheckSyncNextAction,
+} from '../src/shell/shared/check-sync-next-action.js';
 const DIRECT_COMMANDS = [
   'product_control_record_get',
   'product_control_selected_data_root_get',
@@ -20,6 +24,7 @@ const DIRECT_COMMANDS = [
   'product_control_record_select_data_root',
   'product_control_root_activation_initialize',
   'product_control_data_root_replace',
+  'product_control_maintenance_data_root_replace',
   'product_control_check_sync_start',
   'product_control_check_sync_get',
   'product_control_record_admit_ready_for_use',
@@ -43,9 +48,16 @@ type ProductCommand = typeof COMMANDS[number];
 
 type ProductControlHostActivation = {
   readonly activated: boolean;
-  readonly reasonCode: 'DATA_ROOT_REPLACED' | 'DATA_ROOT_UNCHANGED' | 'DATA_ROOT_OVERLAPS_CURRENT';
-  readonly actionHint: 'restart_runtime_and_check_sync' | 'run_check_sync' | 'choose_path_disjoint_root';
+  readonly reasonCode: 'DATA_ROOT_REPLACED' | 'DATA_ROOT_UNCHANGED' | 'DATA_ROOT_OVERLAPS_CURRENT' | 'DATA_ROOT_NOT_EMPTY';
+  readonly actionHint: 'restart_runtime_and_check_sync' | 'run_check_sync' | 'choose_path_disjoint_root' | 'choose_new_empty_root';
 };
+
+/**
+ * What Home does after a maintenance replacement commits: a managed Runtime is
+ * restarted and Home relaunches into it; a source Runtime is restarted by the
+ * developer; a failed restart leaves the committed selection for next start.
+ */
+export type MaintenanceReplacementRestart = 'relaunching' | 'source_runtime_restart_required' | 'restart_failed';
 
 type ProductControlHostProjection = Omit<NimiProductControlRecordProjection, 'record' | 'configMutation'> & {
   readonly record: null | (NonNullable<NimiProductControlRecordProjection['record']> & {
@@ -106,7 +118,7 @@ export type DesktopCheckSyncResourceResult = {
   readonly status: 'available' | 'unavailable' | 'incompatible' | 'unknown' | 'conflict' | 'failed';
   readonly change?: 'rebased' | 'adopted' | 'rebuilt';
   readonly reason: string;
-  readonly nextAction?: 'rerun_check_sync';
+  readonly nextAction?: CheckSyncNextAction;
 };
 
 export type DesktopCheckSyncProjection = {
@@ -137,6 +149,10 @@ export function createDesktopElectronProductControlHost(input: {
   readonly abortHostDataRoot?: () => void;
   readonly commitHostDataRoot?: () => void;
   readonly activateHostDataRoot?: () => boolean | Promise<boolean>;
+  /** True while Runtime serves only its maintenance surface. */
+  readonly runtimeMaintenance?: () => boolean;
+  /** Relaunches Home after a committed maintenance replacement. */
+  readonly relaunchHome?: () => void;
 } = {}): DesktopElectronProductControlHost {
   const host = new ElectronProductControlHost(
     input.control ?? createNimiElectronDesktopControlHost(),
@@ -147,6 +163,8 @@ export function createDesktopElectronProductControlHost(input: {
     input.abortHostDataRoot ?? (() => undefined),
     input.commitHostDataRoot ?? (() => undefined),
     input.activateHostDataRoot ?? (() => true),
+    input.runtimeMaintenance ?? (() => false),
+    input.relaunchHome ?? (() => undefined),
   );
   return {
     commandHandlers: Object.fromEntries(COMMANDS.map((command) => [
@@ -175,6 +193,8 @@ class ElectronProductControlHost {
     private readonly abortHostDataRoot: () => void,
     private readonly commitHostDataRoot: () => void,
     private readonly activateHostDataRoot: () => boolean | Promise<boolean>,
+    private readonly runtimeMaintenance: () => boolean,
+    private readonly relaunchHome: () => void,
   ) {}
 
   async invoke(command: ProductCommand, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
@@ -203,6 +223,10 @@ class ElectronProductControlHost {
     if (command === 'product_control_data_root_replace') {
       const nested = exactPayload(payload, ['targetRoot']);
       return this.replaceDataRoot(payloadText(nested.targetRoot, 32_768));
+    }
+    if (command === 'product_control_maintenance_data_root_replace') {
+      const nested = exactPayload(payload, ['targetRoot']);
+      return this.replaceDataRootInMaintenance(payloadText(nested.targetRoot, 32_768));
     }
     if (command === 'product_control_check_sync_start') {
       requireEmptyPayload(payload);
@@ -374,6 +398,37 @@ class ElectronProductControlHost {
     return projection;
   }
 
+  // @nimi-authority: rule.nimi.desktop.product-surfaces.r038
+  // The maintenance Runtime has no ordinary owner or Host lifecycle to hand
+  // off: the replacement goes straight to its owner, and after activation a
+  // managed Runtime restarts and Home relaunches to start from the new root.
+  private async replaceDataRootInMaintenance(targetRoot: string): Promise<
+    ProductControlHostProjection & { readonly maintenanceRestart?: MaintenanceReplacementRestart }
+  > {
+    if (!this.runtimeMaintenance()) {
+      throw new Error('desktop-runtime-not-in-maintenance');
+    }
+    const projection = await this.projection(METHOD.replaceDataRoot, { targetRoot }, 30_000);
+    if (!projection.activation?.activated) return projection;
+    if (this.runtimeLifecycleProfile !== 'fixed') {
+      return { ...projection, maintenanceRestart: 'source_runtime_restart_required' };
+    }
+    try {
+      await this.restartRuntime();
+    } catch (error) {
+      return {
+        ...projection,
+        maintenanceRestart: 'restart_failed',
+        error: projection.error ?? (error instanceof Error ? error.message : 'DESKTOP_RUNTIME_RESTART_FAILED_AFTER_MAINTENANCE_REPLACEMENT'),
+      };
+    }
+    // Keep the diagnostic visible before an explicit reopen; automatic relaunch
+    // would discard the only response that carries the committed audit failure.
+    if (projection.auditDiagnostic) return projection;
+    this.relaunchHome();
+    return { ...projection, maintenanceRestart: 'relaunching' };
+  }
+
   // @nimi-authority: rule.nimi.desktop.product-surfaces.r034
   private async replaceDataRoot(targetRoot: string): Promise<ProductControlHostProjection> {
     return this.operationGate.runExclusive(async () => {
@@ -491,6 +546,7 @@ class ElectronProductControlHost {
       const rebound = await this.recoverDataRootHandoff();
       return {
         ...rebound,
+        auditDiagnostic: projection.auditDiagnostic,
         activation: response.activation,
         configMutation: response.configMutation,
         error: response.transportLost
@@ -670,8 +726,8 @@ function extendProductControlProjection(
   }
   const activation = rawActivation ? {
     activated: rawActivation.activated === true,
-    reasonCode: oneOf(rawActivation.reasonCode, ['DATA_ROOT_REPLACED', 'DATA_ROOT_UNCHANGED', 'DATA_ROOT_OVERLAPS_CURRENT'] as const),
-    actionHint: oneOf(rawActivation.actionHint, ['restart_runtime_and_check_sync', 'run_check_sync', 'choose_path_disjoint_root'] as const),
+    reasonCode: oneOf(rawActivation.reasonCode, ['DATA_ROOT_REPLACED', 'DATA_ROOT_UNCHANGED', 'DATA_ROOT_OVERLAPS_CURRENT', 'DATA_ROOT_NOT_EMPTY'] as const),
+    actionHint: oneOf(rawActivation.actionHint, ['restart_runtime_and_check_sync', 'run_check_sync', 'choose_path_disjoint_root', 'choose_new_empty_root'] as const),
   } : null;
   const configMutation = rawConfig ? {
     disposition: oneOf(rawConfig.disposition, ['applied', 'restart_required', 'repair_required'] as const),
@@ -778,7 +834,7 @@ function parseDesktopCheckSyncResource(value: unknown): DesktopCheckSyncResource
     status: oneOf(resource.status, ['available', 'unavailable', 'incompatible', 'unknown', 'conflict', 'failed'] as const),
     change: resource.change == null ? undefined : oneOf(resource.change, ['rebased', 'adopted', 'rebuilt'] as const),
     reason: boundedText(resource.reason),
-    nextAction: resource.nextAction == null ? undefined : oneOf(resource.nextAction, ['rerun_check_sync'] as const),
+    nextAction: resource.nextAction == null ? undefined : oneOf(resource.nextAction, CHECK_SYNC_NEXT_ACTIONS),
   };
 }
 

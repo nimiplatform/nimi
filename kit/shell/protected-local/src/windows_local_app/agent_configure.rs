@@ -32,7 +32,7 @@ use crate::{
     LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError, LocalAppReasonCode,
 };
 
-use super::{invalid_payload, untrusted};
+use super::{base64_bytes_output, invalid_payload, untrusted};
 
 const AGENT_HANDLE_PREFIX: &str = "agent_ref_";
 const AGENT_HANDLE_SUFFIX_BYTES: usize = 43;
@@ -532,7 +532,7 @@ fn project_presentation_asset(
             "role": "resource-pack",
             "fileName": response.file_name,
             "mediaType": response.media_type,
-            "content": response.content,
+            "content": base64_bytes_output(&response.content),
             "sha256": response.sha256,
         }));
     }
@@ -542,7 +542,7 @@ fn project_presentation_asset(
         "backendKind": project_backend_kind(response.backend_kind)?,
         "fileName": response.file_name,
         "mediaType": response.media_type,
-        "content": response.content,
+        "content": base64_bytes_output(&response.content),
         "sha256": response.sha256,
     }))
 }
@@ -1483,7 +1483,7 @@ mod tests {
         .expect("Resource Pack asset projection");
         assert_eq!(asset["role"], "resource-pack");
         assert!(asset.get("backendKind").is_none());
-        assert_eq!(asset["content"], json!([0x50, 0x4b, 0x03, 0x04]));
+        assert_eq!(asset["content"], json!("UEsDBA=="));
     }
 
     #[test]

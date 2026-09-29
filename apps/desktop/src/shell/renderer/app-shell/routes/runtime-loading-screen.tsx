@@ -1,8 +1,9 @@
-import { type MouseEvent } from 'react';
+import { type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererCommands } from '../../renderer/binding-context';
 import bootstrapLogoImage from '../../assets/logo.png';
+import { useSlowStart } from './use-slow-start.js';
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
 
@@ -20,9 +21,15 @@ function WindowDragRegion() {
   return <div aria-hidden className="absolute inset-x-0 top-0 z-30 h-8" onMouseDown={onMouseDown} />;
 }
 
-export function RuntimeLoadingScreen() {
+/**
+ * `slowAfterMs` marks a start that is taking longer than usual: the screen
+ * keeps waiting (a slow start is not a failure) and offers a reload and the
+ * degraded Support entry through `slowActions`.
+ */
+export function RuntimeLoadingScreen(props: { slowAfterMs?: number; slowActions?: ReactNode } = {}) {
   const { t } = useTranslation();
-  const statusText = t('Bootstrap.initializingRuntime');
+  const slow = useSlowStart(props.slowAfterMs);
+  const statusText = slow ? t('Bootstrap.stillStarting') : t('Bootstrap.initializingRuntime');
 
   return (
     <div className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
@@ -52,6 +59,12 @@ export function RuntimeLoadingScreen() {
             </div>
             <p className="text-xs text-[var(--nimi-text-muted)]">{statusText}</p>
           </div>
+          {slow ? (
+            <div data-testid="runtime-loading-slow" className="mt-6 flex max-w-[28rem] flex-col items-center gap-4">
+              <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">{t('Bootstrap.stillStartingDescription')}</p>
+              {props.slowActions}
+            </div>
+          ) : null}
         </section>
       </main>
     </div>

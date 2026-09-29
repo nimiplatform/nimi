@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeServiceControlService_RequestRuntimeRestart_FullMethodName = "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
+	RuntimeServiceControlService_RequestRuntimeRestart_FullMethodName  = "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
+	RuntimeServiceControlService_GetRuntimeServiceState_FullMethodName = "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState"
 )
 
 // RuntimeServiceControlServiceClient is the client API for RuntimeServiceControlService service.
@@ -29,9 +30,11 @@ const (
 // RuntimeServiceControlService is registered only for the protected Runtime
 // host. RequestRuntimeRestart initiates graceful Runtime self-exit; callers
 // determine success only after SCM recovery and a new verified PID, creation
-// marker, boot epoch, and Desktop handshake.
+// marker, boot epoch, and Desktop handshake. GetRuntimeServiceState is read
+// by the Home host carrier before any other protected call on a new channel.
 type RuntimeServiceControlServiceClient interface {
 	RequestRuntimeRestart(ctx context.Context, in *RequestRuntimeRestartRequest, opts ...grpc.CallOption) (*RequestRuntimeRestartResponse, error)
+	GetRuntimeServiceState(ctx context.Context, in *GetRuntimeServiceStateRequest, opts ...grpc.CallOption) (*GetRuntimeServiceStateResponse, error)
 }
 
 type runtimeServiceControlServiceClient struct {
@@ -52,6 +55,16 @@ func (c *runtimeServiceControlServiceClient) RequestRuntimeRestart(ctx context.C
 	return out, nil
 }
 
+func (c *runtimeServiceControlServiceClient) GetRuntimeServiceState(ctx context.Context, in *GetRuntimeServiceStateRequest, opts ...grpc.CallOption) (*GetRuntimeServiceStateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRuntimeServiceStateResponse)
+	err := c.cc.Invoke(ctx, RuntimeServiceControlService_GetRuntimeServiceState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeServiceControlServiceServer is the server API for RuntimeServiceControlService service.
 // All implementations should embed UnimplementedRuntimeServiceControlServiceServer
 // for forward compatibility.
@@ -59,9 +72,11 @@ func (c *runtimeServiceControlServiceClient) RequestRuntimeRestart(ctx context.C
 // RuntimeServiceControlService is registered only for the protected Runtime
 // host. RequestRuntimeRestart initiates graceful Runtime self-exit; callers
 // determine success only after SCM recovery and a new verified PID, creation
-// marker, boot epoch, and Desktop handshake.
+// marker, boot epoch, and Desktop handshake. GetRuntimeServiceState is read
+// by the Home host carrier before any other protected call on a new channel.
 type RuntimeServiceControlServiceServer interface {
 	RequestRuntimeRestart(context.Context, *RequestRuntimeRestartRequest) (*RequestRuntimeRestartResponse, error)
+	GetRuntimeServiceState(context.Context, *GetRuntimeServiceStateRequest) (*GetRuntimeServiceStateResponse, error)
 }
 
 // UnimplementedRuntimeServiceControlServiceServer should be embedded to have
@@ -73,6 +88,9 @@ type UnimplementedRuntimeServiceControlServiceServer struct{}
 
 func (UnimplementedRuntimeServiceControlServiceServer) RequestRuntimeRestart(context.Context, *RequestRuntimeRestartRequest) (*RequestRuntimeRestartResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RequestRuntimeRestart not implemented")
+}
+func (UnimplementedRuntimeServiceControlServiceServer) GetRuntimeServiceState(context.Context, *GetRuntimeServiceStateRequest) (*GetRuntimeServiceStateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRuntimeServiceState not implemented")
 }
 func (UnimplementedRuntimeServiceControlServiceServer) testEmbeddedByValue() {}
 
@@ -112,6 +130,24 @@ func _RuntimeServiceControlService_RequestRuntimeRestart_Handler(srv interface{}
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeServiceControlService_GetRuntimeServiceState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRuntimeServiceStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeServiceControlServiceServer).GetRuntimeServiceState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeServiceControlService_GetRuntimeServiceState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeServiceControlServiceServer).GetRuntimeServiceState(ctx, req.(*GetRuntimeServiceStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeServiceControlService_ServiceDesc is the grpc.ServiceDesc for RuntimeServiceControlService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -122,6 +158,10 @@ var RuntimeServiceControlService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestRuntimeRestart",
 			Handler:    _RuntimeServiceControlService_RequestRuntimeRestart_Handler,
+		},
+		{
+			MethodName: "GetRuntimeServiceState",
+			Handler:    _RuntimeServiceControlService_GetRuntimeServiceState_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

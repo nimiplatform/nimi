@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -26,7 +27,7 @@ func newTestService(t *testing.T) *Service {
 	testRuntimeRoot := t.TempDir()
 	svc, err := NewWithProductControlDataRoot(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		nil,
+		auditlog.New(64, 16),
 		statePath,
 		0,
 		filepath.Join(testRuntimeRoot, "models"),

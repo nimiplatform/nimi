@@ -251,7 +251,7 @@ func TestLocalEnvironmentRPCProjectsReadySourcesAndGate(t *testing.T) {
 
 func TestListLocalEnvironmentDependencyJobsProjectsTerminalStates(t *testing.T) {
 	svc := newTestService(t)
-	environmentKey := "python.runtime|python.runtime|host-test|windows/amd64|" + filepath.Join(t.TempDir(), "runtime") + "|media.diffusers.cpu"
+	environmentKey := "python.runtime|python.runtime|host-test|windows/amd64|" + filepath.Join(t.TempDir(), "runtime") + "|speech.qwen3-tts.python"
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["job-cancelled"] = localEnvironmentDependencyJobState{
 		JobID:               "job-cancelled",

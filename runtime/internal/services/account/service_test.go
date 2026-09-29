@@ -12,6 +12,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 )
@@ -52,6 +53,7 @@ func newProductionHarnessService(t *testing.T, custody *memoryCustody, opts ...O
 		custody = &memoryCustody{}
 	}
 	allOpts := []Option{
+		WithAuditStore(auditlog.New(128, 128)),
 		WithProductionActivation(),
 		WithCustody(custody),
 		WithLoginExchanger(staticExchanger{material: testMaterial("acct-1", "access-1", "refresh-1")}),
@@ -149,6 +151,7 @@ func newHarnessService(t *testing.T, custody *memoryCustody, opts ...Option) *Se
 		custody = &memoryCustody{}
 	}
 	allOpts := []Option{
+		WithAuditStore(auditlog.New(128, 128)),
 		WithNonProductionHarnessMode(),
 		WithCustody(custody),
 		WithLoginExchanger(staticExchanger{material: testMaterial("acct-1", "access-1", "refresh-1")}),

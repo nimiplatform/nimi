@@ -11,5 +11,9 @@ export function createDesktopProductionFirstRunPort(): DesktopRendererFirstRunPo
     selectDataRoot: desktopBridge.selectProductDataRoot,
     getRecord: desktopBridge.getProductControlRecord,
     admitReadyForUse: desktopBridge.admitProductReadyForUse,
+    getSelectedDataRoot: desktopBridge.getProductControlSelectedDataRoot,
+    pickNewEmptyDataRootDirectory: desktopBridge.pickNewEmptyDataRootDirectory,
+    replaceDataRootInMaintenance: desktopBridge.replaceProductDataRootInMaintenance,
+    relaunchFromMaintenance: desktopBridge.relaunchHomeFromRuntimeMaintenance,
   });
 }

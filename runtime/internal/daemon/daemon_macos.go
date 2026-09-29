@@ -81,6 +81,7 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 			ConnectorSecrets: connectorSecrets, DesktopSessions: sessions,
 			DirectLocalAppLaunches:  state.DirectLocalAppLaunches(),
 			RuntimeRestartRequester: requestRestart,
+			PeerRejections:          state,
 		},
 		Close: state.Close,
 	})

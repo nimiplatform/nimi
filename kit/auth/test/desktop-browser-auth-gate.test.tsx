@@ -8,6 +8,7 @@ const { performDesktopBrowserAuth } = vi.hoisted(() => ({
 
 vi.mock('../src/logic/desktop-browser-auth.js', () => ({
   performDesktopBrowserAuth,
+  isDesktopBrowserAuthWaitEnded: (error: unknown) => (error as { name?: string } | null)?.name === 'DesktopBrowserAuthWaitEndedError',
 }));
 
 import { DesktopBrowserAuthGate } from '../src/components/desktop-browser-auth-gate.js';
@@ -41,24 +42,35 @@ function renderGate(notice?: string) {
 }
 
 describe('DesktopBrowserAuthGate presentation', () => {
-  it('renders the clean launch surface with compact logo, brand title, and animated dots', () => {
+  it('offers the visible action as the one keyboard-reachable button and shows no loading dots while idle', () => {
     const { container, root } = renderGate();
     const action = container.querySelector<HTMLButtonElement>('[data-testid="login-action"]');
-    const hint = Array.from(container.querySelectorAll('p')).find((element) => element.textContent === '继续登录');
 
     expect(container.querySelector('.nimi-shell-auth-clean-surface')).not.toBeNull();
-    expect(container.querySelector('.nimi-shell-auth-brand-surface')).toBeNull();
     expect(container.querySelector('h1')?.textContent).toBe('Nimi Ecosystem');
-    expect(action?.querySelector('.h-24.w-24')).not.toBeNull();
-    expect(container.querySelectorAll('.nimi-shell-auth-dot')).toHaveLength(3);
-    expect(hint).toBeDefined();
+    expect(action?.tagName).toBe('BUTTON');
+    expect(action?.textContent).toBe('继续登录');
+    expect(container.querySelectorAll('button')).toHaveLength(1);
+    expect(container.querySelectorAll('.nimi-shell-auth-dot')).toHaveLength(0);
 
     act(() => root.unmount());
     container.remove();
   });
 
-  it('keeps the browser handoff on the logo and projects pending state in place', async () => {
-    performDesktopBrowserAuth.mockReturnValue(new Promise(() => undefined));
+  it('waits with dots, can reopen the same authorization URL, and ends the local wait without an error', async () => {
+    let options: { signal?: AbortSignal; onBrowserOpened?: (reopen: () => Promise<boolean>) => void } = {};
+    const reopen = vi.fn(async () => true);
+    performDesktopBrowserAuth.mockImplementation((_bridge: unknown, received: typeof options) => {
+      options = received;
+      received.onBrowserOpened?.(reopen);
+      return new Promise((_resolve, reject) => {
+        received.signal?.addEventListener('abort', () => {
+          const ended = new Error('ended');
+          ended.name = 'DesktopBrowserAuthWaitEndedError';
+          reject(ended);
+        });
+      });
+    });
     const { container, root, onEntryAction } = renderGate('请在浏览器中完成登录，本窗口会自动继续。');
     const action = container.querySelector<HTMLButtonElement>('[data-testid="login-action"]');
 
@@ -68,9 +80,19 @@ describe('DesktopBrowserAuthGate presentation', () => {
     });
 
     expect(onEntryAction).toHaveBeenCalledTimes(1);
-    expect(action?.disabled).toBe(true);
     expect(container.querySelector('[role="status"]')?.textContent).toContain('请在浏览器中完成登录');
+    expect(container.querySelectorAll('.nimi-shell-auth-dot')).toHaveLength(3);
     expect(container.textContent).not.toContain('本窗口会自动继续');
+    const reopenButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === '重新打开浏览器');
+    await act(async () => { reopenButton?.click(); await Promise.resolve(); });
+    expect(reopen).toHaveBeenCalledTimes(1);
+
+    const endButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === '结束等待');
+    await act(async () => { endButton?.click(); await Promise.resolve(); await Promise.resolve(); });
+    expect(options.signal?.aborted).toBe(true);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('[data-testid="login-action"]')?.textContent).toBe('继续登录');
+    expect(container.textContent).toContain('已结束等待');
 
     act(() => root.unmount());
     container.remove();

@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -45,6 +46,10 @@ type runtimeAccountSecurityContextProvider interface {
 type LocalAppSessionProjection struct {
 	CurrentUser           *runtimev1.CurrentUserDisplayProjection
 	CurrentUserReasonCode runtimev1.ReasonCode
+	// AppID and AccountID attribute the session's audit record. They never
+	// enter the App-facing response.
+	AppID     string
+	AccountID string
 }
 
 type localAppSessionOpener interface {
@@ -116,7 +121,13 @@ func (s *Service) SetLocalAppSessionOpener(opener localAppSessionOpener) {
 // OpenDesktopSession establishes non-portable Desktop authority from the
 // protected connection attached by the native transport. The empty request and
 // response projections never participate in authorization.
-func (s *Service) OpenDesktopSession(ctx context.Context, _ *runtimev1.OpenDesktopSessionRequest) (*runtimev1.OpenDesktopSessionResponse, error) {
+func (s *Service) OpenDesktopSession(ctx context.Context, _ *runtimev1.OpenDesktopSessionRequest) (_ *runtimev1.OpenDesktopSessionResponse, err error) {
+	const operation = "OpenDesktopSession"
+	defer func() {
+		if err != nil {
+			s.recordSessionRefusal(ctx, operation, envelope.ProtectedDesktopAppID, err, nil)
+		}
+	}()
 	if s.desktopSessions == nil {
 		retryable := false
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, grpcerr.ReasonOptions{
@@ -129,8 +140,24 @@ func (s *Service) OpenDesktopSession(ctx context.Context, _ *runtimev1.OpenDeskt
 		return nil, protectedDesktopSessionError(err)
 	}
 	if len(projection.DesktopSessionID) != protectedlocal.IdentifierBytes || len(projection.RuntimeBootEpoch) != protectedlocal.IdentifierBytes {
+		s.desktopSessions.RevokeContextSession(ctx)
 		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, grpcerr.ReasonOptions{
 			ActionHint: "restart_runtime_service",
+		})
+	}
+	// The session authority is live only in process memory. It is handed out
+	// only after its result is durably recorded; otherwise it is revoked and
+	// the open fails closed, so no unaudited Desktop session exists.
+	if auditErr := s.recordSessionEstablished(ctx, operation, envelope.ProtectedDesktopAppID, "", map[string]any{
+		"session_ref": sessionReference("dsr", projection.DesktopSessionID),
+	}); auditErr != nil {
+		s.desktopSessions.RevokeContextSession(ctx)
+		retryable := true
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, auditErr, grpcerr.ReasonOptions{
+			ActionHint: "restart_runtime_service",
+			Retryable:  &retryable,
+			Message:    "protected desktop session could not be recorded",
+			Metadata:   map[string]string{"audit_disposition": "unrecorded"},
 		})
 	}
 	return &runtimev1.OpenDesktopSessionResponse{

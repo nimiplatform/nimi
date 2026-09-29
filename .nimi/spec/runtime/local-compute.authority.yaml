@@ -480,7 +480,7 @@ units:
   - id: definition.nimi.runtime.local-compute.topology-resolver-plane
     kind: definition
     title: Runtime local topology validation plane
-    meaning: The Runtime local topology validation plane owns exact Driver and ExecutionHost compatibility validation for a committed Loadout and Job-captured ResolvedAssembly, including matrix matching, typed conflicts, private media modes, lifecycle, and error attribution without interpreting ModelAsset inventory or selecting implementation, slots, bindings, route, or fallback.
+    meaning: The Runtime local topology validation plane owns exact Driver and ExecutionHost compatibility validation for a committed Loadout and Job-captured ResolvedAssembly, including matrix matching, typed conflicts, lifecycle, and error attribution without interpreting ModelAsset inventory or selecting implementation, slots, bindings, route, or fallback.
   - id: definition.nimi.runtime.local-compute.runtime-environment-plane
     kind: definition
     title: Runtime local engine runtime environment plane
@@ -646,14 +646,9 @@ units:
     reason: Removed because media uses the explicit Machine Local AI Configuration selection relation and never re-arbitrates after removal, health change, repair, or import.
   - id: rule.nimi.runtime.local-compute.r060
     kind: rule
-    title: Media supervised modes share one HTTP surface
-    modality: must
-    statement: The media ExecutionHost may privately distinguish native proxy and Python pipeline supervised modes behind one canonical Host protocol, but the exact committed CapabilityImplementationDriver maps execution to that Host and no Host mode, environment variable, endpoint, catalog row, or process state selects the implementation, Loadout, machine relation, or route.
-    condition: Whenever a media Driver invokes a supervised Host mode or its private protocol.
-    failure: Reject undeclared modes, protocol divergence, Host-owned product selection, and legacy control-plane fabrication.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.local-compute.topology-resolver-plane
+    lifecycle: removed
+    title: Retired media supervised Host modes
+    reason: Removed because the Python media server Host and its native-proxy and Python-pipeline supervised modes were retired without a consumer; media Jobs execute only through the exact Driver's Runtime-private image, video, or face-replacement ExecutionHost.
   - id: rule.nimi.runtime.local-compute.r061
     kind: rule
     title: Internal media lifecycle is a closed ladder
@@ -888,7 +883,7 @@ units:
     kind: rule
     title: Materializers are the only dependency and custody materialization path
     modality: must
-    statement: Runtime materializers are the only admitted product path for the CUDA accelerator runtime, native llama engine package, native stablediffusion-ggml engine package, native audio.cpp engine package, pinned eSpeak-ng native library, uv tool, Python runtime, venv, Python package set, Torch wheel, and RecipeCustody families; a Python dependency profile remains an immutable composition of existing families rather than a new selected-source owner. A ModelAsset is acquired only by explicit catalog install or ImportModelAsset, every model formerly described as a companion is another ordinary ModelAsset acquisition, and no Loadout action invokes either acquisition. Each materializer remains a RuntimeLocalService job executor that stages, verifies, and atomically promotes only its own selected-source evidence under Runtime-owned roots and is never a Desktop workflow, engine-local installer, script, package-manager command, PATH helper, transfer record, endpoint probe, or model row.
+    statement: Runtime materializers are the only admitted product path for the CUDA accelerator runtime, native llama engine package, native stablediffusion-ggml engine package, native audio.cpp engine package, pinned eSpeak-ng native library, pinned media codec, uv tool, Python runtime, venv, Python package set, Torch wheel, and RecipeCustody families; a Python dependency profile remains an immutable composition of existing families rather than a new selected-source owner. A ModelAsset is acquired only by explicit catalog install or ImportModelAsset, every model formerly described as a companion is another ordinary ModelAsset acquisition, and no Loadout action invokes either acquisition. Each materializer remains a RuntimeLocalService job executor that stages, verifies, and atomically promotes only its own selected-source evidence under Runtime-owned roots and is never a Desktop workflow, engine-local installer, script, package-manager command, PATH helper, transfer record, endpoint probe, or model row.
     condition: Whenever a local dependency or RecipeCustody family is materialized or a Python profile is composed, verified, or promoted.
     failure: Reject materialization outside admitted Runtime executors, ModelAsset or companion ownership in a dependency family, Loadout-triggered download, or a dependency profile treated as a new selected-source family.
     relations:
@@ -1260,3 +1255,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
+  - id: rule.nimi.runtime.local-compute.media-codec-dependency
+    kind: rule
+    title: Media codec supply uses the existing dependency job
+    modality: must
+    statement: An explicit media_codec=true plan resolution, exclusive with capability and candidate selectors, resolves the media-codec pack and consumer which expose the native-tool.media-codec family with dependency ffmpeg.codec through the existing RuntimeLocalService plan, explicit confirmation, dependency job and selected-source record. Supported tuples are darwin arm64 and windows amd64; each tuple pins a distributable FFmpeg and FFprobe release with source URLs, archive bytes and SHA256, executable hashes and license notices. Materialization stages and verifies both tools before atomic promotion under dependencies/media-codec. Audio and video consumers resolve only verified selected supply; request composition, decoding and ordinary startup never download it, and missing or damaged supply remains AI_MEDIA_CODEC_UNAVAILABLE with the existing Home component repair surface.
+    condition: Whenever canonical audio or local video requires managed media codec supply.
+    failure: Refuse unsupported tuples, missing selected-source evidence, archive or executable identity mismatch, incomplete promotion, PATH substitution and implicit materialization.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.environment-materializer-plane

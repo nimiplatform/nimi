@@ -43,7 +43,7 @@ export async function runDevShell(cwd, options = {}) {
     throw new DevShellError('local-development-launcher-unavailable', 'This Node.js runtime does not provide fetch.');
   }
   if (options.listRegistrations) {
-    const listed = await postJson(fetchImpl, descriptor.endpoint, '/v1/registrations', {
+    const listed = await postJson(fetchImpl, descriptor, '/v1/registrations', {
       schemaVersion: 1, appId, projectRoot, shell,
     });
     if (listed?.status !== 'ok' || !Array.isArray(listed.registrations)) {
@@ -72,7 +72,7 @@ export async function runDevShell(cwd, options = {}) {
     ...(cdpPort === undefined ? {} : { cdpPort }),
     ...(options.resume ? { registrationSelector: options.resume } : {}),
   };
-  const start = await postJson(fetchImpl, descriptor.endpoint, '/v1/start', startIntent);
+  const start = await postJson(fetchImpl, descriptor, '/v1/start', startIntent);
   const initial = parseBridgeRun(start);
   if (!initial.runId) {
     throw bridgeError(start, initial);
@@ -88,7 +88,7 @@ export async function runDevShell(cwd, options = {}) {
     if (cancelling) return;
     cancelling = true;
     try {
-      await postJson(fetchImpl, descriptor.endpoint, '/v1/cancel', {
+      await postJson(fetchImpl, descriptor, '/v1/cancel', {
         schemaVersion: 1,
         runId: initial.runId,
       });
@@ -117,7 +117,7 @@ export async function runDevShell(cwd, options = {}) {
         return current;
       }
       await delay(STATUS_POLL_MS, signal);
-      const response = await postJson(fetchImpl, descriptor.endpoint, '/v1/status', {
+      const response = await postJson(fetchImpl, descriptor, '/v1/status', {
         schemaVersion: 1,
         runId: initial.runId,
       });
@@ -212,6 +212,7 @@ async function readPresenceDescriptor(descriptorPath, now) {
     await assertRegularFileWithoutSymlinkAncestry(descriptorPath);
     const raw = JSON.parse(await readFile(descriptorPath, 'utf8'));
     if (!isPlainObject(raw) || Object.keys(raw).sort().join(',') !== [
+      'callerToken',
       'desktopAppId',
       'desktopPid',
       'endpoint',
@@ -227,7 +228,8 @@ async function readPresenceDescriptor(descriptorPath, now) {
     if (!Number.isFinite(heartbeat) || now - heartbeat > MAX_HEARTBEAT_AGE_MS || heartbeat - now > 5_000) {
       throw new Error('heartbeat');
     }
-    return { endpoint: normalizeLoopbackEndpoint(raw.endpoint) };
+    if (typeof raw.callerToken !== 'string' || !/^[0-9a-f]{64}$/u.test(raw.callerToken)) throw new Error('caller-token');
+    return { endpoint: normalizeLoopbackEndpoint(raw.endpoint), callerToken: raw.callerToken };
   } catch {
     throw new DevShellError(
       'local-development-desktop-not-running',
@@ -250,12 +252,14 @@ async function assertRegularFileWithoutSymlinkAncestry(filePath) {
   if (!metadata.isFile()) throw new Error('not-file');
 }
 
-async function postJson(fetchImpl, endpoint, route, body) {
+async function postJson(fetchImpl, desktop, route, body) {
   let response;
   try {
-    response = await fetchImpl(`${endpoint}${route}`, {
+    response = await fetchImpl(`${desktop.endpoint}${route}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // The token read from the owner-only presence file proves this caller
+      // is the official launcher running as the same OS user.
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${desktop.callerToken}` },
       body: JSON.stringify(body),
       redirect: 'error',
       signal: AbortSignal.timeout(route === '/v1/start' || route === '/v1/registrations'

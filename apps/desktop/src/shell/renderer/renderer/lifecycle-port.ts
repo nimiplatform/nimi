@@ -28,6 +28,7 @@ export interface DesktopRendererLifecyclePort {
   setStatusBanner(banner: InlineFeedbackState | null): void;
   setBootstrapReady(ready: boolean): void;
   setBootstrapError(message: string | null): void;
+  setRuntimeMaintenance(reasonCode: string | null): void;
   invalidateQueries(keys: readonly (readonly unknown[])[]): Promise<void>;
   cancelAndClearQueries(): Promise<void>;
   clearAgentConversationAnchorBindings(): void;
@@ -78,6 +79,7 @@ export function createDesktopRendererLifecyclePort(
     setStatusBanner: (banner) => store.getState().setStatusBanner(banner),
     setBootstrapReady: (ready) => store.getState().setBootstrapReady(ready),
     setBootstrapError: (message) => store.getState().setBootstrapError(message),
+    setRuntimeMaintenance: (reasonCode) => store.getState().setRuntimeMaintenance(reasonCode),
     async invalidateQueries(keys) {
       await Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
     },

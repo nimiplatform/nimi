@@ -48,7 +48,7 @@ export const RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES = [
   readonly capabilityContract: RuntimeConfigLocalCapabilityContract;
 }[];
 
-type LocalCapabilitySlice = (typeof RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES)[number]['slice'];
+type LocalCapabilitySlice = (typeof RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES)[number]['slice'] | 'mediaCodec';
 
 type PendingCapabilityAction = {
   readonly slice: LocalCapabilitySlice;
@@ -208,6 +208,12 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
         }
         nextErrors.push(capabilityError(result.reason, slice));
       });
+      // This shared media component has no model or Loadout prerequisite.
+      const mediaResolution = { mediaCodec: true } as const;
+      try {
+        const plan = await localEnvironment.resolveEnvironmentPlan(mediaResolution);
+        nextPlans.push({ slice: 'mediaCodec', plan, resolution: mediaResolution });
+      } catch (error) { nextErrors.push(capabilityError(error, 'mediaCodec')); }
       const environmentKeys = new Set(
         nextPlans.flatMap(({ plan: nextPlan }) => nextPlan.dependencies.map((dependency) => dependency.environmentKey)),
       );
@@ -279,7 +285,7 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
     presentation: projectRuntimeConfigLocalCapabilityEnvironmentState(item.plan, jobs),
   }));
   const readyCount = planPresentations.filter((item) => item.presentation.state === 'ready').length;
-  const capabilityCount = RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES.length;
+  const capabilityCount = RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES.length + 1;
   const textReady = planPresentations.some((item) => item.slice === 'text' && item.presentation.state === 'ready');
 
   return (

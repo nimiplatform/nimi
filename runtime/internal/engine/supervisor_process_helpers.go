@@ -13,19 +13,15 @@ func waitSupervisorProcess(process *supervisedProcess) {
 		return
 	}
 	process.setWaitErr(process.cmd.Wait())
-
-	// A parent can exit while descendants continue running. Unexpected parent
-	// exit therefore force-cleans the tracked tree before publishing done; an
-	// explicit Stop owns its graceful/force phases and the waiter only observes
-	// the resulting tree exit.
-	if !process.isStopping() {
-		exited, err := supervisorProcessLifecycleExited(process.lifecycle)
-		if err != nil {
-			process.recordLifecycleError(fmt.Errorf("query supervised process tree: %w", err))
-		} else if !exited {
-			if err := signalSupervisorProcessLifecycle(process.lifecycle, syscall.SIGKILL); err != nil {
-				process.recordLifecycleError(fmt.Errorf("clean process tree after parent exit: %w", err))
-			}
+	// Once the engine has exited, no descendant should outlive it. Keep the
+	// owner guard armed until this tree-wide kill has been delivered, including
+	// during Stop: Runtime may disappear anywhere in the graceful wait.
+	exited, err := supervisorProcessLifecycleExited(process.lifecycle)
+	if err != nil {
+		process.recordLifecycleError(fmt.Errorf("query supervised process tree: %w", err))
+	} else if !exited {
+		if err := signalTrackedSupervisorProcess(process, process.cmd.Process.Pid, syscall.SIGKILL); err != nil {
+			process.recordLifecycleError(fmt.Errorf("clean process tree after parent exit: %w", err))
 		}
 	}
 
@@ -45,7 +41,7 @@ func waitSupervisorProcess(process *supervisedProcess) {
 		}
 		if time.Now().After(deadline) {
 			process.recordLifecycleError(fmt.Errorf("timed out after %s waiting for supervised process tree exit", waitTimeout))
-			if err := signalSupervisorProcessLifecycle(process.lifecycle, syscall.SIGKILL); err != nil {
+			if err := signalTrackedSupervisorProcess(process, process.cmd.Process.Pid, syscall.SIGKILL); err != nil {
 				process.recordLifecycleError(fmt.Errorf("force process tree after lifecycle wait timeout: %w", err))
 			}
 			break
@@ -54,6 +50,9 @@ func waitSupervisorProcess(process *supervisedProcess) {
 	}
 	if err := releaseSupervisorProcessLifecycle(process.lifecycle); err != nil {
 		process.recordLifecycleError(fmt.Errorf("release supervised process lifecycle: %w", err))
+	}
+	if process.lifecycleError() == nil {
+		process.releaseOwner()
 	}
 	close(process.done)
 }
@@ -92,6 +91,18 @@ func supervisedProcessBlocksStart(process *supervisedProcess) bool {
 
 func signalTrackedSupervisorProcess(process *supervisedProcess, pid int, sig syscall.Signal) error {
 	if process != nil && process.lifecycle != nil {
+		if sig == syscall.SIGKILL {
+			process.mu.Lock()
+			defer process.mu.Unlock()
+			if process.forceKillSent {
+				return nil
+			}
+			err := signalSupervisorProcessLifecycle(process.lifecycle, sig)
+			if err == nil {
+				process.forceKillSent = true
+			}
+			return err
+		}
 		return signalSupervisorProcessLifecycle(process.lifecycle, sig)
 	}
 	if err := signalSupervisorProcess(pid, sig); err != nil {
@@ -100,22 +111,11 @@ func signalTrackedSupervisorProcess(process *supervisedProcess, pid int, sig sys
 	return nil
 }
 
-func (process *supervisedProcess) markStopping() {
+func (process *supervisedProcess) releaseOwner() {
 	if process == nil {
 		return
 	}
-	process.mu.Lock()
-	process.stopping = true
-	process.mu.Unlock()
-}
-
-func (process *supervisedProcess) isStopping() bool {
-	if process == nil {
-		return false
-	}
-	process.mu.Lock()
-	defer process.mu.Unlock()
-	return process.stopping
+	process.releaseOnce.Do(process.ownerRelease.release)
 }
 
 func (process *supervisedProcess) setWaitErr(err error) {

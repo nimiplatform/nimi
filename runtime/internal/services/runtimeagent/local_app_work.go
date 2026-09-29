@@ -12,6 +12,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -146,7 +147,7 @@ func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.Sta
 	if len(s.localAppWorkExecutions) >= localAppWorkMaxRetained {
 		s.chatSurfaceMu.Unlock()
 		cancel()
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+		return nil, localAppWorkCapacityExhausted()
 	}
 	if s.localAppWorkExecutions == nil {
 		s.localAppWorkExecutions = map[string]*localAppWorkExecution{}
@@ -429,6 +430,15 @@ func (s *Service) terminalizeLocalAppWorkLocked(work *localAppWorkExecution, sta
 	work.terminalAt = time.Now()
 	s.publishLocalAppWorkSnapshotLocked(work)
 }
+
+// localAppWorkCapacityExhausted rejects Start before acceptance while the shared
+// retained-execution bound is full. It is a capacity result, not owner loss:
+// retained results stay readable, a slot frees once an execution ends and its
+// result retention elapses, and the caller keeps its unaccepted work to retry.
+func localAppWorkCapacityExhausted() error {
+	return status.Error(codes.ResourceExhausted, "LOCAL_APP_WORK_CAPACITY_EXHAUSTED")
+}
+
 func (s *Service) pruneLocalAppWorkLocked() {
 	for id, work := range s.localAppWorkExecutions {
 		if !work.terminalAt.IsZero() && time.Since(work.terminalAt) > localAppWorkResultRetention && s.localAppWorkActiveByAgent[work.owner.identity.LocalAgentRef] != id {
@@ -479,6 +489,12 @@ func (s *Service) runLocalAppWork(work *localAppWorkExecution, binding publicCha
 	text, err := s.executeLocalAppWork(work, binding)
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
+	// Execution has ended. Free the Agent in the same critical section that
+	// publishes the terminal state, so a caller that observes the terminal
+	// result never meets AGENT_BUSY from this execution on its next Start.
+	if s.localAppWorkActiveByAgent[work.owner.identity.LocalAgentRef] == work.snapshot.ExecutionId {
+		delete(s.localAppWorkActiveByAgent, work.owner.identity.LocalAgentRef)
+	}
 	if localAppWorkTerminal(work.snapshot.State) {
 		return
 	}

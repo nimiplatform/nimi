@@ -97,7 +97,7 @@ export function assertRuntimeOfflineRepair(repair) {
       || (status === 'not-applicable'
         && changeCount === 0
         && repair.backupPath == null
-        && ['runtime_database_absent', 'public_chat_state_uninitialized'].includes(repair.skipReason))
+        && ['runtime_database_absent', 'public_chat_state_uninitialized', 'conversation_row_storage'].includes(repair.skipReason))
     );
   if (!valid) {
     throw workflowError(

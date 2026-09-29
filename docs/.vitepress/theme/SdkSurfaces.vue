@@ -41,35 +41,11 @@ const surfaces: Surface[] = [
     tier: 'buildout',
     zh: {
       title: 'AI 配置',
-      desc: '一个配置面统管模型选择、能力路由与 provider 偏好。',
+      desc: 'App 需要哪些能力、在本地还是云端运行；由 Runtime 选择实现。',
     },
     en: {
       title: 'AI Config',
-      desc: 'One config surface for model selection, capability routing, and provider preference.',
-    },
-  },
-  {
-    slug: 'wee-projection',
-    tier: 'direction',
-    zh: {
-      title: 'WEE 呈现',
-      desc: '把世界执行事件作为强类型事件流式输出，供任意消费者使用。',
-    },
-    en: {
-      title: 'WEE Projection',
-      desc: 'Stream world execution events as typed events for any consumer.',
-    },
-  },
-  {
-    slug: 'wee-consumer',
-    tier: 'direction',
-    zh: {
-      title: 'WEE 消费',
-      desc: '订阅世界执行事件，带回压安全的消费机制。',
-    },
-    en: {
-      title: 'WEE Consumer',
-      desc: 'Subscribe to world execution events with backpressure-safe consumption.',
+      desc: 'Which capabilities an App needs and whether they run locally or in the cloud; Runtime selects the implementation.',
     },
   },
   {

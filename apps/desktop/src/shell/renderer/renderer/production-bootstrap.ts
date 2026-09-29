@@ -36,8 +36,8 @@ export function connectProductionBootstrap(
     if (!active || settled) return;
     timeoutId = setTimeout(() => {
       if (!active || settled) return;
-      settled = true;
       if (shellMode === 'web') {
+        settled = true;
         lifecycle.setBootstrapReady(true);
         lifecycle.setBootstrapError(null);
         lifecycle.setStatusBanner({
@@ -53,14 +53,12 @@ export function connectProductionBootstrap(
         });
         return;
       }
-      const message = lifecycle.translate('Bootstrap.runtimeInitTimeout');
-      lifecycle.setBootstrapReady(false);
-      lifecycle.setBootstrapError(message);
-      lifecycle.setStatusBanner({ kind: 'error', message });
+      // A slow start is not a failure: the loading screen says it is still
+      // starting, and the real completion or failure still settles startup.
       logRendererEvent({
-        level: 'error',
+        level: 'warn',
         area: 'renderer-bootstrap',
-        message: 'phase:bootstrap:timeout-failed',
+        message: 'phase:bootstrap:slow',
         flowId,
         details: { timeoutMs, shellMode },
       });

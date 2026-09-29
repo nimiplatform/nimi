@@ -4,6 +4,7 @@ import {
   ConnectorOwnerType,
   ConnectorStatus,
   type Connector,
+  type ErrorInfo,
   type ConnectorModelDescriptor,
   type ProviderCatalogEntry,
   type RuntimeTypedCallOptions,
@@ -76,6 +77,8 @@ export type NimiRuntimeConnectorClient = Pick<
 >;
 
 export interface NimiRuntimeConnectorInventoryClientOptions {
+  /** Receives a committed mutation whose audit record could not be saved. */
+  readonly onAuditDiagnostic?: (diagnostic: ErrorInfo) => void;
   readonly connectors: NimiRuntimeConnectorClient | (() => NimiRuntimeConnectorClient);
   readonly callOptions?: RuntimeTypedCallOptions;
   readonly modelPageSize?: number;
@@ -422,6 +425,7 @@ export function createNimiRuntimeConnectorInventoryClient(
       credentialJson: '',
     }, options.callOptions);
     invalidateConnectorInventoryCache();
+    if (response.auditDiagnostic) options.onAuditDiagnostic?.(response.auditDiagnostic);
     if (!response.connector) return null;
     const providerCatalog = await listProviderCatalog();
     return nimiRuntimeConnectorToProjection(response.connector, providerCatalog);
@@ -450,14 +454,16 @@ export function createNimiRuntimeConnectorInventoryClient(
       credentialJson: undefined,
     }, options.callOptions);
     invalidateConnectorInventoryCache();
+    if (response.auditDiagnostic) options.onAuditDiagnostic?.(response.auditDiagnostic);
     if (!response.connector) return null;
     const providerCatalog = await listProviderCatalog();
     return nimiRuntimeConnectorToProjection(response.connector, providerCatalog);
   }
 
   async function deleteConnector(connectorId: string): Promise<void> {
-    await connectors().deleteConnector({ connectorId }, options.callOptions);
+    const response = await connectors().deleteConnector({ connectorId }, options.callOptions);
     invalidateConnectorInventoryCache();
+    if (response?.auditDiagnostic) options.onAuditDiagnostic?.(response.auditDiagnostic);
   }
 
   async function testConnector(connectorId: string): Promise<void> {

@@ -46,7 +46,16 @@ export function NimiDayProvider({ children }: { readonly children: ReactNode }) 
     let languageRef: Language = resolveLanguage('auto');
     const store = createDayStore(runtimeDocumentStore(client.storage), { language: () => languageRef });
     const actions = dayActions(store);
-    const desk = createAgentDesk(client, { history: () => store.getSnapshot().state.runs });
+    const desk = createAgentDesk(client, {
+      history: () => store.getSnapshot().state.runs,
+      startWork: async input => {
+        const result = await invoke('nimiday.desk.start', { input });
+        if (!result || typeof result !== 'object' || !('executionId' in result)
+          || typeof result.executionId !== 'string' || !result.executionId) throw new Error('执行受理结果无效');
+        return { executionId: result.executionId };
+      },
+      onExecutionEnded: scope => { void invoke('nimiday.desk.release', { executionId: scope.executionId }).catch(() => {}); },
+    });
     const activity = createActivityBridge(client.activity);
     const engine = createDayEngine({
       store,

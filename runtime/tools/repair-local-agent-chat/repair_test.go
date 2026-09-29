@@ -793,3 +793,37 @@ func TestRepairDatabaseSkipsCurrentConversationRows(t *testing.T) {
 		t.Fatal("retired repair rewrote current storage")
 	}
 }
+
+// The Windows installer consumes this exact preinstall result for current v2
+// conversation rows (scripts/windows-runtime-service-installer-contract.test.mjs).
+func TestInstallerPreinstallReportsCurrentConversationRowsAsNotApplicable(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "memory.db")
+	original := `{"storageVersion":2,"version":4,"savedAt":"2026-09-26T00:00:00Z","anchors":null,"followUps":null}`
+	createRepairTestDatabase(t, dbPath, original)
+	backupPath := dbPath + ".pre-local-agent-chat-repair-20260928T000000.0000000Z-00000000000000000000000000000000.sqlite"
+
+	var stdout strings.Builder
+	var stderr strings.Builder
+	exitCode := run([]string{
+		"--db", dbPath,
+		"--backup", backupPath,
+		"--confirm-runtime-stopped",
+		"--apply",
+		"--installer-preinstall",
+		"--json",
+	}, &stdout, &stderr)
+	if exitCode != 0 {
+		t.Fatalf("installer preinstall exit=%d stderr=%s", exitCode, stderr.String())
+	}
+	const want = `{"schemaVersion":1,"status":"not-applicable","skipReason":"conversation_row_storage","duplicateGroups":0,"reactivatedAnchors":0,"originalVersion":0,"repairedVersion":0,"rewrittenAnchorRefs":0,"rewrittenTargetRefs":0,"removedLegacyIdentityFields":0,"rewrittenFollowUpRefs":0,"rewrittenAvatarRefs":0}`
+	if got := strings.TrimSpace(stdout.String()); got != want {
+		t.Fatalf("installer preinstall result:\n got %s\nwant %s", got, want)
+	}
+	if _, err := os.Stat(backupPath); !os.IsNotExist(err) {
+		t.Fatalf("current storage created a repair backup: %v", err)
+	}
+	if got := storedStateValue(t, dbPath); got != original {
+		t.Fatal("installer preinstall rewrote current storage")
+	}
+}

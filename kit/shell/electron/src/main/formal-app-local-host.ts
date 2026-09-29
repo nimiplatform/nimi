@@ -1,5 +1,6 @@
 import { createNimiLocalAppAgentWorkRuntimeClient, createNimiLocalAppIntegrationRuntimeShell } from '@nimiplatform/kit/core/sdk-contract';
 import { nimiLocalAppTextDecideSpecFromShell, validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
+import { exactNimiLocalAppBytes, isNimiLocalAppByteView } from '@nimiplatform/kit/core/sdk-contract';
 import {
   createNimiAgentRealtimeRuntimeClient,
   createNimiAiRealtimeRuntimeClient,
@@ -53,6 +54,7 @@ type FormalStreamTracker = (stream: NimiElectronDesktopControlStream) => void;
 type PullStream = Readonly<{
   iterator: AsyncIterator<unknown>;
   cancel: () => Promise<void>;
+  project: (value: unknown) => NimiElectronLocalAppRecord[string];
 }>;
 type FormalAssetRead = Readonly<{
   iterator: AsyncIterator<ReadLocalAppAssetResponse>;
@@ -174,9 +176,12 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   const openFormalSession = (): Promise<NimiElectronLocalAppRecord> =>
     runtime.openLocalAppSession({}).then(projectFormalSession);
 
-  const openPullStream = (source: AsyncIterable<unknown> & { readonly cancel: () => Promise<void> }) => {
+  const openPullStream = (
+    source: AsyncIterable<unknown> & { readonly cancel: () => Promise<void> },
+    project: (value: unknown) => NimiElectronLocalAppRecord[string] = jsonProjection,
+  ) => {
     const streamId = `formal-app-stream-${++streamSequence}`;
-    pullStreams.set(streamId, { iterator: source[Symbol.asyncIterator](), cancel: source.cancel });
+    pullStreams.set(streamId, { iterator: source[Symbol.asyncIterator](), cancel: source.cancel, project });
     return { streamId };
   };
   const nextPullStream = async (record: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> => {
@@ -188,7 +193,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       pullStreams.delete(streamId);
       return { completed: true };
     }
-    return { completed: false, event: jsonProjection(next.value) };
+    return { completed: false, event: stream.project(next.value) };
   };
   const closePullStream = async (record: NimiElectronLocalAppRecord) => {
     const streamId = requiredText(record.streamId);
@@ -292,7 +297,10 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       }
       return ai.scenarioJobs.get(requiredText(record.jobId)) as Promise<NimiElectronLocalAppRecord>;
     },
-    scenarioJobSubscribe: async (record) => openPullStream(await ai.scenarioJobs.subscribe(requiredText(record.jobId))),
+    scenarioJobSubscribe: async (record) => openPullStream(
+      await ai.scenarioJobs.subscribe(requiredText(record.jobId)),
+      mediaByteProjection,
+    ),
     scenarioJobStreamNext: nextPullStream,
     scenarioJobStreamClose: closePullStream,
     scenarioJobCancel: (record) => ai.scenarioJobs.cancel(
@@ -301,13 +309,13 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     ) as Promise<NimiElectronLocalAppRecord>,
     artifactRead: async (record) => {
       const result = await ai.artifacts.read(requiredText(record.artifactId));
-      return { ...result, bytes: Array.from(result.bytes) };
+      return { ...result, bytes: exactNimiLocalAppBytes(result.bytes) };
     },
     artifactUpload: (record) => {
       const prepared = validateNimiLocalAppArtifactUploadShellInput(record);
       return ai.artifacts.upload(prepared.source
         ? { source: prepared.source, mimeType: prepared.mimeType, audioPreparation: prepared.audioPreparation! }
-        : { bytes: Uint8Array.from(prepared.bytes!), mimeType: prepared.mimeType, ...(prepared.audioPreparation ? { audioPreparation: prepared.audioPreparation } : {}) }
+        : { bytes: prepared.bytes!, mimeType: prepared.mimeType, ...(prepared.audioPreparation ? { audioPreparation: prepared.audioPreparation } : {}) }
       ) as Promise<NimiElectronLocalAppRecord>;
     },
     voiceAssetsList: (record) => voiceAssets.list(record as never) as Promise<NimiElectronLocalAppRecord>,
@@ -641,11 +649,11 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     conversationSendTurn: (record) => conversation.send(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationAttachmentUpload: (record) => conversation.uploadAttachment({
       ...record,
-      bytes: Uint8Array.from(record.bytes as readonly number[]),
+      bytes: record.bytes,
     } as never) as Promise<NimiElectronLocalAppRecord>,
     conversationArtifactRead: async (record) => {
       const result = await conversation.readArtifact(record as never);
-      return { ...result, bytes: Array.from(result.bytes) };
+      return { ...result, bytes: exactNimiLocalAppBytes(result.bytes) };
     },
     async conversationVoiceTranscribe(record) {
       const requestId = requiredText(record.requestId);
@@ -661,7 +669,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       try {
         return await conversation.transcribeVoice({
           ...record,
-          audioBytes: Uint8Array.from(record.audioBytes as readonly number[]),
+          audioBytes: record.audioBytes,
         } as never, { signal: controller.signal }) as NimiElectronLocalAppRecord;
       } finally {
         voiceTranscriptions.delete(requestId);
@@ -1622,6 +1630,19 @@ function exactFormalText(value: unknown): string {
 
 function formalExactKeys(record: NimiElectronLocalAppRecord, keys: readonly string[]): boolean {
   return JSON.stringify(Object.keys(record).sort()) === JSON.stringify([...keys].sort());
+}
+
+// Media artifacts keep exact byte views on the carrier. Small bounded protocol
+// bytes on other streams (realtime frames, continuity) stay JSON arrays.
+function mediaByteProjection(value: unknown): NimiElectronLocalAppRecord[string] {
+  if (isNimiLocalAppByteView(value)) return exactNimiLocalAppBytes(value);
+  if (Array.isArray(value)) return value.map(mediaByteProjection);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, mediaByteProjection(entry)]),
+    );
+  }
+  return jsonProjection(value);
 }
 
 function jsonProjection(value: unknown): NimiElectronLocalAppRecord[string] {

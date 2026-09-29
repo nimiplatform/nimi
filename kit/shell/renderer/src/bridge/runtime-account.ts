@@ -48,7 +48,19 @@ export type DesktopAccountProjection = {
   realmEnvironmentId: string;
 };
 
+export type DesktopAccountAuditDiagnostic = { reasonCode: RuntimeReasonCode; actionHint: string; message: string };
+
+function parseAccountAuditDiagnostic(value: unknown): DesktopAccountAuditDiagnostic | undefined {
+  if (value == null) return undefined;
+  const record = assertRecord(value, 'account audit diagnostic is invalid');
+  assertExactKeys(record, ['reasonCode', 'actionHint', 'message'], 'account audit diagnostic');
+  if (record.reasonCode !== RuntimeReasonCode.AUDIT_RESULT_UNRECORDED || record.actionHint !== 'inspect_runtime_audit'
+    || typeof record.message !== 'string' || record.message.length > 1024) throw new Error('account audit diagnostic is invalid');
+  return { reasonCode: RuntimeReasonCode.AUDIT_RESULT_UNRECORDED, actionHint: record.actionHint, message: record.message };
+}
+
 export type DesktopAccountSessionStatus = {
+  auditDiagnostic?: DesktopAccountAuditDiagnostic;
   sequence: string;
   state: DesktopAccountSessionState;
   reasonCode: RuntimeReasonCode;
@@ -187,6 +199,7 @@ export function parseDesktopAccountSessionStatus(value: unknown): DesktopAccount
     'sequence',
     'state',
     'reasonCode',
+    'auditDiagnostic',
     'accountReasonCode',
     'accountProjection',
   ], 'runtime_account_session_status');
@@ -208,6 +221,7 @@ export function parseDesktopAccountSessionStatus(value: unknown): DesktopAccount
     throw new Error('runtime_account_session_status authenticated state requires accountProjection');
   }
   return {
+    ...(record.auditDiagnostic == null ? {} : { auditDiagnostic: parseAccountAuditDiagnostic(record.auditDiagnostic) }),
     sequence,
     state,
     reasonCode: parseKnownEnumInteger(
@@ -234,6 +248,7 @@ export function parseDesktopAccountSessionEvent(value: unknown): DesktopAccountS
     'deliveryKind',
     'state',
     'reasonCode',
+    'auditDiagnostic',
     'accountReasonCode',
     'accountProjection',
     'replayTruncated',
@@ -252,6 +267,7 @@ export function parseDesktopAccountSessionEvent(value: unknown): DesktopAccountS
     state: record.state,
     reasonCode: record.reasonCode,
     accountReasonCode: record.accountReasonCode,
+    auditDiagnostic: record.auditDiagnostic,
     accountProjection: record.accountProjection,
   });
   return {
@@ -507,6 +523,7 @@ export function parseDesktopAccountBeginLoginResponse(value: unknown): BeginLogi
     'state',
     'nonce',
     'reasonCode',
+    'auditDiagnostic',
     'accountReasonCode',
     'productionInert',
   ], label);
@@ -579,6 +596,7 @@ export function parseDesktopAccountBeginLoginResponse(value: unknown): BeginLogi
     throw new Error(`${label}: rejected login response contains authorization material`);
   }
   return {
+    ...(record.auditDiagnostic == null ? {} : { auditDiagnostic: parseAccountAuditDiagnostic(record.auditDiagnostic) }),
     accepted,
     loginAttemptId,
     oauthAuthorizationUrl,
@@ -604,6 +622,7 @@ function parseDesktopAccountMutationResponse(
     'state',
     'accountProjection',
     'reasonCode',
+    'auditDiagnostic',
     'accountReasonCode',
     'productionInert',
   ], label);
@@ -639,6 +658,7 @@ function parseDesktopAccountMutationResponse(
     throw new Error(`${label}: accepted mutation response violates the protected contract`);
   }
   return {
+    ...(record.auditDiagnostic == null ? {} : { auditDiagnostic: parseAccountAuditDiagnostic(record.auditDiagnostic) }),
     accepted,
     state,
     accountProjection,
@@ -753,6 +773,7 @@ export async function logoutRuntimeAccount(reason: string): Promise<LogoutRespon
   );
   return {
     accepted: response.accepted,
+    auditDiagnostic: response.auditDiagnostic,
     state: response.state,
     reasonCode: response.reasonCode,
     accountReasonCode: response.accountReasonCode,

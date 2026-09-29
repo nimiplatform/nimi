@@ -3,6 +3,7 @@ package ai
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -88,6 +89,9 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 	}
 	prepared, err := s.canonicalAudio.Prepare(ctx, audiomedia.Input{Path: input.Name(), MIMEType: artifact.GetMimeType()}, directory)
 	if err != nil {
+		if ctx.Err() == nil && errors.Is(err, audiomedia.ErrCodecUnavailable) {
+			return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+		}
 		return err
 	}
 	defer func() { _ = os.Remove(prepared.Path) }()

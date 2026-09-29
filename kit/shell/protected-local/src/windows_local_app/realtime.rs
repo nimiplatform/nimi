@@ -437,6 +437,7 @@ fn project_ai_event(
             json!({"type":"text-output","requestId":value.request_id,"outputTrackId":value.output_track_id,"text":value.text,"final":value.r#final})
         }
         AiEvent::AudioFrame(value) => {
+            require_audio_frame_bounds(&value.frame)?;
             json!({"type":"audio-frame","requestId":value.request_id,"outputTrackId":value.output_track_id,"frameSequence":value.frame_sequence.to_string(),"frame":value.frame,"format":project_audio_format(value.format)?})
         }
         AiEvent::OutputTrack(value) => {
@@ -474,6 +475,7 @@ fn project_agent_event(
             json!({"type":"text-output","requestId":value.request_id,"outputTrackId":value.output_track_id,"text":value.text,"final":value.r#final})
         }
         AgentEvent::AudioFrame(value) => {
+            require_audio_frame_bounds(&value.frame)?;
             json!({"type":"audio-frame","requestId":value.request_id,"outputTrackId":value.output_track_id,"frameSequence":value.frame_sequence.to_string(),"frame":value.frame,"format":project_audio_format(value.format)?})
         }
         AgentEvent::OutputTrack(value) => {
@@ -726,6 +728,14 @@ fn json_u64_string(
         .filter(|value| *value > 0)
         .ok_or_else(invalid_payload)
 }
+// Output frames keep the same upper bound as input frames before projection.
+fn require_audio_frame_bounds(frame: &[u8]) -> Result<(), LocalAppOperationError> {
+    if frame.len() > MAX_AUDIO_FRAME_BYTES {
+        return Err(untrusted());
+    }
+    Ok(())
+}
+
 fn json_bytes(
     record: &Map<String, JsonValue>,
     key: &str,

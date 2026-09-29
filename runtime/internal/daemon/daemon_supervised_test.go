@@ -71,7 +71,7 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 	daemon := newTestDaemon(t, logger)
 	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLlama, 1234)
-	daemon.state.SetStatus(health.StatusDegraded, "engine:media unhealthy (probe failed)")
+	daemon.state.SetStatus(health.StatusDegraded, "engine:speech unhealthy (probe failed)")
 
 	daemon.onEngineStateChange("llama", "healthy", "ready")
 
@@ -80,7 +80,7 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 		t.Fatalf("did not expect endpoint reinjection while another engine is degraded, got:\n%s", logs)
 	}
 	snapshot := daemon.state.Snapshot()
-	if snapshot.Status != health.StatusDegraded || snapshot.Reason != "engine:media unhealthy (probe failed)" {
+	if snapshot.Status != health.StatusDegraded || snapshot.Reason != "engine:speech unhealthy (probe failed)" {
 		t.Fatalf("expected unrelated degraded state to remain untouched, got %s (%s)", snapshot.Status, snapshot.Reason)
 	}
 }
@@ -95,11 +95,11 @@ func TestOnEngineStateChangeHealthyWaitsForEveryUnhealthyEngine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create engine manager: %v", err)
 	}
-	media := engine.NewSupervisor(engine.EngineConfig{Kind: engine.EngineMedia}, logger, nil)
-	media.SetStateForTesting(engine.StatusUnhealthy, time.Time{})
+	imageBackend := engine.NewSupervisor(engine.EngineConfig{Kind: engineManagedImageBackend}, logger, nil)
+	imageBackend.SetStateForTesting(engine.StatusUnhealthy, time.Time{})
 	speech := engine.NewSupervisor(engine.EngineConfig{Kind: engine.EngineSpeech}, logger, nil)
 	speech.SetStateForTesting(engine.StatusHealthy, time.Now())
-	manager.SetSupervisorForTesting(engine.EngineMedia, media)
+	manager.SetSupervisorForTesting(engineManagedImageBackend, imageBackend)
 	manager.SetSupervisorForTesting(engine.EngineSpeech, speech)
 	daemon.engineMgr = manager
 	daemon.state.SetStatus(health.StatusDegraded, "engine:speech unhealthy (probe failed)")
@@ -107,12 +107,12 @@ func TestOnEngineStateChangeHealthyWaitsForEveryUnhealthyEngine(t *testing.T) {
 	daemon.onEngineStateChange("speech", "healthy", "probe recovered")
 
 	snapshot := daemon.state.Snapshot()
-	if snapshot.Status != health.StatusDegraded || !engineUnhealthyReasonMatches(snapshot.Reason, "media") {
-		t.Fatalf("remaining unhealthy media engine must keep Runtime degraded, got %s (%s)", snapshot.Status, snapshot.Reason)
+	if snapshot.Status != health.StatusDegraded || !engineUnhealthyReasonMatches(snapshot.Reason, string(engineManagedImageBackend)) {
+		t.Fatalf("remaining unhealthy image backend must keep Runtime degraded, got %s (%s)", snapshot.Status, snapshot.Reason)
 	}
 
-	media.SetStateForTesting(engine.StatusHealthy, time.Now())
-	daemon.onEngineStateChange("media", "healthy", "probe recovered")
+	imageBackend.SetStateForTesting(engine.StatusHealthy, time.Now())
+	daemon.onEngineStateChange(string(engineManagedImageBackend), "healthy", "probe recovered")
 
 	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusReady || snapshot.Reason != "ready" {
 		t.Fatalf("last recovered engine must restore Runtime readiness, got %s (%s)", snapshot.Status, snapshot.Reason)

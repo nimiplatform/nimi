@@ -9,6 +9,7 @@ import {
   type NimiLocalAppTextDecideSpec, type NimiLocalAppTextDecideShellSpec, type NimiLocalAppTextDecideOutput,
 } from './local-app-text-decision.js';
 import { ReasonCode, createNimiError } from '../../types/index.js';
+import { copyNimiLocalAppBytes, exactNimiLocalAppBytes, isNimiLocalAppByteView } from './local-app-bytes.js';
 import {
   CanonicalChannelMode,
   ChatContentPartType,
@@ -204,7 +205,7 @@ export type NimiLocalAppScenarioJobSpec =
       readonly prompt: string;
       readonly responseFormat: string;
       readonly audioSource:
-        | { readonly type: 'bytes'; readonly bytes: readonly number[] }
+        | { readonly type: 'bytes'; readonly bytes: Uint8Array }
         | { readonly type: 'uri'; readonly uri: string };
     }
   | {
@@ -214,7 +215,7 @@ export type NimiLocalAppScenarioJobSpec =
       readonly type: 'audio-separate';
       readonly mimeType: string;
       readonly audioSource?:
-        | { readonly type: 'bytes'; readonly bytes: readonly number[] }
+        | { readonly type: 'bytes'; readonly bytes: Uint8Array }
         | { readonly type: 'uri'; readonly uri: string };
       readonly sourceAudio?: { readonly artifactId: string; readonly range?: { readonly startFrame: number; readonly endFrame: number } };
       readonly includeInstrumentParts?: boolean;
@@ -223,7 +224,7 @@ export type NimiLocalAppScenarioJobSpec =
       readonly type: 'voice-create';
       readonly creationSource: 'reference-audio';
       readonly referenceAudio:
-        | { readonly type: 'bytes'; readonly bytes: readonly number[] }
+        | { readonly type: 'bytes'; readonly bytes: Uint8Array }
         | { readonly type: 'uri'; readonly uri: string };
       readonly referenceAudioMime: string;
       readonly languageHints: readonly string[];
@@ -255,7 +256,7 @@ export type NimiLocalAppScenarioTimestamp = {
 export type NimiLocalAppScenarioArtifact = {
   readonly artifactId: string;
   readonly mimeType: string;
-  readonly bytes: readonly number[];
+  readonly bytes: Uint8Array;
   readonly sizeBytes: number;
   readonly sha256: string;
   readonly durationMs: number;
@@ -354,7 +355,7 @@ export type NimiLocalAppArtifactUploadInput = {
   | { readonly source: NimiLocalAppArtifactUploadSource; readonly bytes?: never; readonly audioPreparation: NimiLocalAppCanonicalAudioPreparation }
 );
 export type NimiLocalAppArtifactUploadShellInput = {
-  readonly bytes?: readonly number[];
+  readonly bytes?: Uint8Array;
   readonly source?: NimiLocalAppArtifactUploadSource;
   readonly mimeType: NimiLocalAppArtifactUploadMime;
   readonly audioPreparation?: NimiLocalAppCanonicalAudioPreparation;
@@ -565,7 +566,7 @@ export function createNimiLocalAppAIConsumptionClient(
     scenarioJobs: Object.freeze({
       submit: async (spec, options = {}) => projectScenarioJobSubmit(
         await shell.scenarioJobs.submit(
-          validateScenarioSpec(spec, false),
+          detachScenarioJobSpecBytes(validateScenarioSpec(spec, false)),
           validateScenarioJobSubmitOptions(options, spec),
         ),
       ),
@@ -686,14 +687,14 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
       async read(artifactId) {
         const response = await runtime.readLocalAppArtifact({ artifactId });
         return {
-          bytes: Array.from(response.bytes),
+          bytes: response.bytes,
           mimeType: response.mimeType,
           sizeBytes: runtimeSafeInteger(response.sizeBytes, 'artifact size'),
         };
       },
       async upload(input) {
         const response = await runtime.uploadLocalAppArtifact({
-          bytes: Uint8Array.from(input.bytes ?? []),
+          bytes: input.bytes ?? new Uint8Array(),
           mimeType: input.mimeType,
           appAssetRelativePath: input.source?.kind === 'app-asset' ? input.source.relativePath : '',
           sourceArtifactId: input.source?.kind === 'artifact' ? input.source.artifactId : '',
@@ -829,6 +830,20 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
     },
   };
   return Object.freeze(client);
+}
+
+// The shell receives a detached exact byte range, so IPC carries neither a
+// larger backing buffer nor later caller writes. Each Job spec has at most one
+// inline audio field.
+function detachScenarioJobSpecBytes<T extends NimiLocalAppScenarioJobSpec>(spec: T): T {
+  const record = spec as unknown as Record<string, unknown>;
+  for (const key of ['audioSource', 'referenceAudio'] as const) {
+    const source = asRecord(record[key]);
+    if (source?.type === 'bytes' && isNimiLocalAppByteView(source.bytes)) {
+      return { ...record, [key]: { type: 'bytes', bytes: copyNimiLocalAppBytes(source.bytes) } } as unknown as T;
+    }
+  }
+  return spec;
 }
 
 function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLocalAppScenarioJobSpec>(
@@ -1220,7 +1235,7 @@ function validateAudioSource(value: unknown, maxBytes: number, field: string): v
   if (!source) invalidAIInput(`${field} is invalid`);
   if (source.type === 'bytes') {
     assertExactKeys(source, ['type', 'bytes'], field);
-    validateByteArray(source.bytes, field, maxBytes, false);
+    validateInputBytes(source.bytes, field, maxBytes, false);
   } else if (source.type === 'uri') {
     assertExactKeys(source, ['type', 'uri'], field);
     boundedHttpsUrl(source.uri, `${field} uri`);
@@ -1434,7 +1449,7 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
     ], 'scenario artifact');
     const bytes = validateProjectionBytes(record.bytes, 'scenario artifact bytes');
     const sizeBytes = projectionInteger(record.sizeBytes, 'scenario artifact sizeBytes', 0, Number.MAX_SAFE_INTEGER);
-    if (bytes.length > 0 && bytes.length !== sizeBytes) localAppProjectionError('scenario artifact byte size');
+    if (bytes.byteLength > 0 && bytes.byteLength !== sizeBytes) localAppProjectionError('scenario artifact byte size');
     const mimeType = mimeProjection(record.mimeType);
     const seed = hasSeed
       ? projectionInteger(record.seed, 'scenario artifact seed', -2_147_483_648, 2_147_483_647)
@@ -1524,7 +1539,7 @@ function prepareArtifactUploadInput(input: NimiLocalAppArtifactUploadInput): Nim
       assertExactKeys(input.source, ['kind', 'artifactId'], 'artifact source');
       source = { kind: 'artifact', artifactId: boundedIdentifier(input.source.artifactId, 'artifactId') };
     } else invalidAIInput('artifact source kind is invalid');
-  } else if (!(input.bytes instanceof Uint8Array) || input.bytes.byteLength === 0 || input.bytes.byteLength > MAX_ARTIFACT_BYTES) {
+  } else if (!isNimiLocalAppByteView(input.bytes) || input.bytes.byteLength === 0 || input.bytes.byteLength > MAX_ARTIFACT_BYTES) {
     invalidAIInput('artifact upload bytes are invalid');
   }
   if (input.mimeType === 'text/vnd.abc' && (!input.bytes || input.bytes.byteLength > 1048576 || source || input.audioPreparation)) invalidAIInput('ABC requires inline bytes up to 1 MiB');
@@ -1544,28 +1559,19 @@ function prepareArtifactUploadInput(input: NimiLocalAppArtifactUploadInput): Nim
   }
   if ((source || input.mimeType === 'audio/flac') && !audioPreparation) invalidAIInput('this source requires canonical audio preparation');
   if (source?.kind === 'artifact' && input.mimeType !== 'audio/wav') invalidAIInput('artifact source must already be canonical WAV');
-  return { mimeType: input.mimeType, ...(source ? { source } : { bytes: [...input.bytes!] }), ...(audioPreparation ? { audioPreparation } : {}) };
+  return { mimeType: input.mimeType, ...(source ? { source } : { bytes: copyNimiLocalAppBytes(input.bytes!) }), ...(audioPreparation ? { audioPreparation } : {}) };
 }
 
 // Shared protected-carrier validation; this projects no ownership or readiness.
 export function validateNimiLocalAppArtifactUploadShellInput(value: unknown): NimiLocalAppArtifactUploadShellInput {
   if (!value || typeof value !== 'object' || Array.isArray(value)) invalidAIInput('artifact upload input is invalid');
   const record = value as Record<string, unknown>;
-  let copied: Uint8Array | undefined;
-  if (record.bytes !== undefined) {
-    if (!Array.isArray(record.bytes) || record.bytes.length === 0 || record.bytes.length > MAX_ARTIFACT_BYTES) invalidAIInput('artifact upload bytes are invalid');
-    copied = new Uint8Array(record.bytes.length);
-    for (let index = 0; index < record.bytes.length; index += 1) {
-      const byte = record.bytes[index];
-      if (!Number.isInteger(byte) || byte < 0 || byte > 255) invalidAIInput('artifact upload bytes are invalid');
-      copied[index] = byte;
-    }
-  }
-  return prepareArtifactUploadInput({ ...record, ...(copied ? { bytes: copied } : {}) } as NimiLocalAppArtifactUploadInput);
+  if (record.bytes !== undefined && !isNimiLocalAppByteView(record.bytes)) invalidAIInput('artifact upload bytes are invalid');
+  return prepareArtifactUploadInput(record as NimiLocalAppArtifactUploadInput);
 }
 
 export function validateNimiLocalAppArtifactUploadResult(value: unknown, input: NimiLocalAppArtifactUploadShellInput): NimiLocalAppArtifactUploadResult {
-  return projectArtifactUpload(value, input.bytes?.length, input.mimeType, input.audioPreparation);
+  return projectArtifactUpload(value, input.bytes?.byteLength, input.mimeType, input.audioPreparation);
 }
 
 function isArtifactUploadMime(value: unknown): value is NimiLocalAppArtifactUploadMime {
@@ -1577,8 +1583,8 @@ function projectArtifactRead(value: unknown): { readonly bytes: Uint8Array; read
   assertExactProjectionKeys(record, ['bytes', 'mimeType', 'sizeBytes'], 'artifact read');
   const bytes = validateProjectionBytes(record.bytes, 'artifact read bytes');
   const sizeBytes = projectionInteger(record.sizeBytes, 'artifact read sizeBytes', 0, MAX_ARTIFACT_BYTES);
-  if (bytes.length !== sizeBytes) localAppProjectionError('artifact read byte size');
-  return Object.freeze({ bytes: Uint8Array.from(bytes), mimeType: mimeProjection(record.mimeType), sizeBytes });
+  if (bytes.byteLength !== sizeBytes) localAppProjectionError('artifact read byte size');
+  return Object.freeze({ bytes, mimeType: mimeProjection(record.mimeType), sizeBytes });
 }
 
 function projectScenarioJobEvent(value: unknown): NimiLocalAppScenarioJobEvent {
@@ -1759,7 +1765,7 @@ function runtimeLocalJobSpec(
     case 'audio-separate':
       return { oneofKind: 'audioSeparate', audioSeparate: { mimeType: spec.mimeType,
         audioSource: spec.audioSource ? { source: spec.audioSource.type === 'bytes'
-          ? { oneofKind: 'audioBytes', audioBytes: Uint8Array.from(spec.audioSource.bytes) }
+          ? { oneofKind: 'audioBytes', audioBytes: spec.audioSource.bytes }
           : { oneofKind: 'audioUri', audioUri: spec.audioSource.uri } } : undefined,
         sourceAudio: spec.sourceAudio ? { artifactId: spec.sourceAudio.artifactId,
           range: spec.sourceAudio.range ? { startFrame: String(spec.sourceAudio.range.startFrame), endFrame: String(spec.sourceAudio.range.endFrame) } : undefined } : undefined,
@@ -1777,7 +1783,7 @@ function runtimeLocalJobSpec(
           responseFormat: spec.responseFormat,
           audioSource: {
             source: spec.audioSource.type === 'bytes'
-              ? { oneofKind: 'audioBytes', audioBytes: Uint8Array.from(spec.audioSource.bytes) }
+              ? { oneofKind: 'audioBytes', audioBytes: spec.audioSource.bytes }
               : { oneofKind: 'audioUri', audioUri: spec.audioSource.uri },
           },
         },
@@ -1791,7 +1797,7 @@ function runtimeLocalJobSpec(
               oneofKind: 'referenceAudio',
               referenceAudio: {
                 referenceAudioBytes: spec.referenceAudio.type === 'bytes'
-                  ? Uint8Array.from(spec.referenceAudio.bytes)
+                  ? spec.referenceAudio.bytes
                   : new Uint8Array(),
                 referenceAudioUri: spec.referenceAudio.type === 'uri' ? spec.referenceAudio.uri : '',
                 referenceAudioMime: spec.referenceAudioMime,
@@ -1993,7 +1999,7 @@ function projectRuntimeLocalArtifact(
   return {
     artifactId: artifact.artifactId,
     mimeType: artifact.mimeType,
-    bytes: Array.from(artifact.bytes),
+    bytes: artifact.bytes,
     sizeBytes: runtimeSafeInteger(artifact.sizeBytes, 'scenario artifact size'),
     sha256: artifact.sha256,
     durationMs: runtimeSafeInteger(artifact.durationMs, 'scenario artifact duration'),
@@ -2176,7 +2182,7 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
       if (inline && (inline.oneofKind === undefined || inline.oneofKind === 'audioChunks')) adapterInputError('Local App separation requires bytes or URI audio');
       return validateScenarioSpec({ type: 'audio-separate', mimeType: spec.audioSeparate.mimeType,
         ...(inline ? { audioSource: inline.oneofKind === 'audioBytes'
-          ? { type: 'bytes', bytes: Array.from(inline.audioBytes) } : { type: 'uri', uri: inline.audioUri } } : {}),
+          ? { type: 'bytes', bytes: exactNimiLocalAppBytes(inline.audioBytes) } : { type: 'uri', uri: inline.audioUri } } : {}),
         ...(owned ? { sourceAudio: { artifactId: owned.artifactId,
           ...(owned.range ? { range: { startFrame: Number(owned.range.startFrame), endFrame: Number(owned.range.endFrame) } } : {}) } } : {}),
         ...(spec.audioSeparate.includeInstrumentParts ? { includeInstrumentParts: true } : {}) }, false);
@@ -2284,14 +2290,14 @@ function runtimeSpeechTranscribeSpec(spec: Extract<ScenarioSpec['spec'], { oneof
     ...(spec.speakerCount !== undefined ? { speakerCount: spec.speakerCount } : {}),
     prompt: spec.prompt, responseFormat: spec.responseFormat,
     audioSource: source.oneofKind === 'audioBytes'
-      ? { type: 'bytes', bytes: [...source.audioBytes] }
+      ? { type: 'bytes', bytes: exactNimiLocalAppBytes(source.audioBytes) }
       : { type: 'uri', uri: source.audioUri },
   };
 }
 
 function runtimeVoiceAudio(bytes: Uint8Array, uri: string): Extract<NimiLocalAppScenarioJobSpec, { creationSource: 'reference-audio' }>['referenceAudio'] {
   if (bytes.length > 0 === Boolean(uri)) adapterInputError('voice reference audio must select exactly one source');
-  return bytes.length > 0 ? { type: 'bytes', bytes: [...bytes] } : { type: 'uri', uri };
+  return bytes.length > 0 ? { type: 'bytes', bytes: exactNimiLocalAppBytes(bytes) } : { type: 'uri', uri };
 }
 
 function runtimeJobFromLocal(job: NimiLocalAppScenarioJob): ScenarioJob {
@@ -2327,7 +2333,7 @@ function runtimeVoiceAssetFromLocal(asset: NimiLocalAppVoiceAsset): NimiProtecte
   };
 }
 
-function runtimeArtifactFromLocal(artifact: NimiLocalAppScenarioArtifact, bytes: Uint8Array = Uint8Array.from(artifact.bytes), mimeType = artifact.mimeType, sizeBytes = artifact.sizeBytes): ScenarioArtifact {
+function runtimeArtifactFromLocal(artifact: NimiLocalAppScenarioArtifact, bytes: Uint8Array = artifact.bytes, mimeType = artifact.mimeType, sizeBytes = artifact.sizeBytes): ScenarioArtifact {
   return { artifactId: artifact.artifactId, mimeType, bytes, uri: '', sha256: artifact.sha256, sizeBytes: String(sizeBytes), durationMs: String(artifact.durationMs), fps: 0, width: artifact.width, height: artifact.height, sampleRateHz: artifact.sampleRateHz, channels: artifact.channels, frameCount: String(artifact.frameCount ?? 0), speechAlignment: undefined, metadata: undefined, seed: artifact.seed };
 }
 
@@ -2495,16 +2501,14 @@ function optionalBoundedNumber(value: unknown, field: string, minimum: number, m
   return value === undefined ? undefined : boundedNumber(value, field, minimum, maximum);
 }
 
-function validateByteArray(value: unknown, field: string, maximum: number, allowEmpty: boolean): readonly number[] {
-  if (!Array.isArray(value) || (!allowEmpty && value.length === 0) || value.length > maximum
-    || value.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) invalidAIInput(`${field} is invalid`);
+function validateInputBytes(value: unknown, field: string, maximum: number, allowEmpty: boolean): Uint8Array {
+  if (!isNimiLocalAppByteView(value) || (!allowEmpty && value.byteLength === 0) || value.byteLength > maximum) invalidAIInput(`${field} is invalid`);
   return value;
 }
 
-function validateProjectionBytes(value: unknown, field: string): readonly number[] {
-  if (!Array.isArray(value) || value.length > MAX_ARTIFACT_BYTES
-    || value.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) localAppProjectionError(field);
-  return Object.freeze([...value] as number[]);
+function validateProjectionBytes(value: unknown, field: string): Uint8Array {
+  if (!isNimiLocalAppByteView(value) || value.byteLength > MAX_ARTIFACT_BYTES) localAppProjectionError(field);
+  return exactNimiLocalAppBytes(value);
 }
 
 function projectionInteger(value: unknown, field: string, minimum: number, maximum: number): number {

@@ -52,6 +52,7 @@ const EXT_CSS = new Set(['.css', '.scss']);
 const SKIP_DIRS = new Set([
   'node_modules', 'dist', 'build', '.next', '.turbo', 'target',
   '__generated__', 'generated', 'gen', 'e2e-results', 'playwright-report',
+  'storybook-static', // generated Storybook build output
   'src-tauri', // Rust layer — not in scope
   '_archive', 'archive',
   'test', 'tests', '__tests__', 'e2e', 'fixtures',

@@ -98,9 +98,9 @@ apps:
     development_integration_profile:
       trust_class: local_development
       shipped_identity_inheritance: forbidden
-    native_shell: tauri
-    native_bundle_identifier: ai.nimi.apps.nimi.lab
-    native_bundle_identifier_required: true
+    native_shell: none
+    native_bundle_identifier: null
+    native_bundle_identifier_required: false
     npm_package: "@nimiplatform/lab"
     product_status: local-development-nimi-app
     source_rule: P-NAPP-012

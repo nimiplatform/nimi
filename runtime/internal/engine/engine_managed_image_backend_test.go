@@ -486,7 +486,7 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigInjectsManagedCUDAPathP
 }
 
 func TestResolveInstalledManagedImageBackendRequiresMaterializerWithoutCreatingRoot(t *testing.T) {
-	setMediaHostGPUProbeForTest(t, "nvidia", true)
+	setHostGPUProbeForTest(t, "nvidia", true)
 	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
 	if !ok || !spec.Supported {
 		t.Skip("current host has no supported managed image backend package spec")
@@ -506,7 +506,7 @@ func TestResolveInstalledManagedImageBackendRequiresMaterializerWithoutCreatingR
 }
 
 func TestEnsureManagedImageBackendRequiresMaterializerWithoutInstalling(t *testing.T) {
-	setMediaHostGPUProbeForTest(t, "nvidia", true)
+	setHostGPUProbeForTest(t, "nvidia", true)
 	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
 	if !ok || !spec.Supported {
 		t.Skip("current host has no supported managed image backend package spec")
@@ -537,7 +537,7 @@ func TestEnsureManagedImageBackendRequiresMaterializerWithoutInstalling(t *testi
 }
 
 func TestEnsureManagedImageBackendDependencyStopsRunningBackendBeforeInstall(t *testing.T) {
-	setMediaHostGPUProbeForTest(t, "test", false)
+	setHostGPUProbeForTest(t, "test", false)
 	archive := makeFakeArchiveAsset(t, "payload.zip", "sd.exe", []byte("fake-windows-backend"))
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

@@ -364,3 +364,13 @@ units:
         target: definition.nimi.runtime.protected-session.account-terminal-owner-plane
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.external-authority-plane
+  - id: rule.nimi.runtime.protected-session.r034
+    kind: rule
+    title: Service status carries the typed Runtime service mode
+    modality: must
+    statement: After the verified Desktop transport opens, the Home host carrier reads the Runtime's typed service mode before any development-process rebind or readiness roundtrip, projects ordinary mode as running and maintenance mode as not running with the exact Runtime reason, and keeps only the maintenance operations reachable on a maintenance Runtime; process presence, a transport handshake, or service registration never reports a maintenance Runtime as running.
+    condition: Whenever a production or D2 Home host opens or reuses its protected Runtime control or projects Runtime service status.
+    failure: Reject a running projection for a maintenance Runtime, reason substitution, and ordinary rebind or product calls against it.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.protected-local-session-plane

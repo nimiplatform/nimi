@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/oklog/ulid/v2"
@@ -29,13 +31,24 @@ func (s *Service) loadTarget(ctx context.Context, account, id string) (target, e
 	}
 	return t, nil
 }
-func (s *Service) saveTarget(ctx context.Context, t target) error {
+
+// saveTargetRecorded commits the target row and its owner audit result in one
+// Runtime persistence transaction: neither exists without the other.
+func (s *Service) saveTargetRecorded(ctx context.Context, t target, record *operationAudit) error {
 	raw, err := json.Marshal(t)
 	if err != nil {
 		return err
 	}
-	_, err = s.backend.DB().ExecContext(ctx, `INSERT INTO runtime_integration_target(account_id,target_ref,config_json) VALUES(?,?,?) ON CONFLICT(account_id,target_ref) DO UPDATE SET config_json=excluded.config_json`, t.Account, t.Public.TargetRef, string(raw))
-	return err
+	if err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO runtime_integration_target(account_id,target_ref,config_json) VALUES(?,?,?) ON CONFLICT(account_id,target_ref) DO UPDATE SET config_json=excluded.config_json`, t.Account, t.Public.TargetRef, string(raw)); err != nil {
+			return err
+		}
+		return record.commitTx(ctx, tx)
+	}); err != nil {
+		return err
+	}
+	record.committed()
+	return nil
 }
 func (s *Service) targets(ctx context.Context, d accountservice.LocalAppCallerDecision) ([]*runtimev1.IntegrationTarget, error) {
 	rows, err := s.backend.DB().QueryContext(ctx, `SELECT config_json FROM runtime_integration_target WHERE account_id=? ORDER BY target_ref`, d.AccountID)
@@ -127,14 +140,20 @@ func (s *Service) permitted(ctx context.Context, account, subject, targetID, ope
 	}
 	return false
 }
-func (s *Service) saveFact(ctx context.Context, d accountservice.LocalAppCallerDecision, c *runtimev1.IntegrationCall) error {
+
+// saveFact persists one call fact. A provider completion passes its audit
+// result so the terminal fact and its record commit together.
+func (s *Service) saveFact(ctx context.Context, d accountservice.LocalAppCallerDecision, c *runtimev1.IntegrationCall, record *operationAudit) error {
 	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `INSERT INTO runtime_integration_call(call_id,account_id,consumer_subject,target_ref,operation,status,error_code,consumer_display_name,created_ms,updated_ms,target_display_name,account_label) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(call_id) DO UPDATE SET status=excluded.status,error_code=excluded.error_code,updated_ms=excluded.updated_ms`, c.CallId, d.AccountID, d.RegisteredAppSubject, c.TargetRef, c.Operation, c.Status, c.ErrorCode, c.ConsumerDisplayName, c.CreatedAt.AsTime().UnixMilli(), c.UpdatedAt.AsTime().UnixMilli(), c.TargetDisplayName, c.AccountLabel)
 		if err != nil {
 			return err
 		}
 		_, err = tx.ExecContext(ctx, `DELETE FROM runtime_integration_call WHERE account_id=? AND status!='accepted' AND (created_ms<? OR call_id IN (SELECT call_id FROM runtime_integration_call WHERE account_id=? ORDER BY created_ms DESC LIMIT -1 OFFSET 10000))`, d.AccountID, time.Now().Add(-retention).UnixMilli(), d.AccountID)
-		return err
+		if err != nil || record == nil {
+			return err
+		}
+		return record.commitTx(ctx, tx)
 	})
 }
 
@@ -341,16 +360,22 @@ func (s *Service) GetIntegrationManagement(ctx context.Context, _ *runtimev1.Get
 	}
 	return &runtimev1.GetIntegrationManagementResponse{Targets: targets, Consumers: consumers, Permissions: permissions, Calls: calls}, nil
 }
-func (s *Service) SetIntegrationPermission(ctx context.Context, req *runtimev1.SetIntegrationPermissionRequest) (*runtimev1.SetIntegrationPermissionResponse, error) {
+func (s *Service) SetIntegrationPermission(ctx context.Context, req *runtimev1.SetIntegrationPermissionRequest) (_ *runtimev1.SetIntegrationPermissionResponse, err error) {
+	record := s.beginAudit(ctx, "integration.permission.set")
+	defer func() { record.finish(err) }()
 	d, err := s.management(ctx, localappop.OperationIntegrationPermissionSet)
 	if err != nil {
 		return nil, err
 	}
+	record.bind(d)
 	if req == nil {
 		return nil, failure(codes.InvalidArgument, "INTEGRATION_INPUT_INVALID")
 	}
+	record.set("target_ref", req.TargetRef)
+	record.set("consumer_ref", req.ConsumerRef)
 	if len(req.Operations) == 0 {
-		return s.revokeIntegrationPermission(ctx, d, req)
+		record.operation = "integration.permission.revoke"
+		return s.revokeIntegrationPermission(ctx, d, req, record)
 	}
 	t, err := s.loadTarget(ctx, d.AccountID, req.TargetRef)
 	if err != nil {
@@ -382,6 +407,7 @@ func (s *Service) SetIntegrationPermission(ctx context.Context, req *runtimev1.S
 	ops := append([]string{}, req.Operations...)
 	sort.Strings(ops)
 	raw, _ := json.Marshal(ops)
+	record.set("operations", auditStrings(ops))
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed || s.quiesced.Load() {
@@ -390,10 +416,17 @@ func (s *Service) SetIntegrationPermission(ctx context.Context, req *runtimev1.S
 	if _, err := s.loadTarget(ctx, d.AccountID, req.TargetRef); err != nil {
 		return nil, err
 	}
-	_, err = s.backend.DB().ExecContext(ctx, `INSERT INTO runtime_integration_permission(account_id,consumer_subject,target_ref,operations_json) VALUES(?,?,?,?) ON CONFLICT(account_id,consumer_subject,target_ref) DO UPDATE SET operations_json=excluded.operations_json`, d.AccountID, subject, req.TargetRef, string(raw))
+	// The grant row and its audit result commit in one transaction.
+	err = s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO runtime_integration_permission(account_id,consumer_subject,target_ref,operations_json) VALUES(?,?,?,?) ON CONFLICT(account_id,consumer_subject,target_ref) DO UPDATE SET operations_json=excluded.operations_json`, d.AccountID, subject, req.TargetRef, string(raw)); err != nil {
+			return err
+		}
+		return record.commitTx(ctx, tx)
+	})
 	if err != nil {
-		return nil, failure(codes.Unavailable, "INTEGRATION_PERMISSION_UNAVAILABLE")
+		return nil, s.permissionCommitFailure(err)
 	}
+	record.committed()
 	for _, c := range s.calls {
 		if c.decision.AccountID == d.AccountID && c.decision.RegisteredAppSubject == subject && c.target.Public.TargetRef == req.TargetRef && !seen[c.op.Name] {
 			s.cancelInvocationLocked(c)
@@ -402,9 +435,24 @@ func (s *Service) SetIntegrationPermission(ctx context.Context, req *runtimev1.S
 	return &runtimev1.SetIntegrationPermissionResponse{Permission: &runtimev1.IntegrationPermission{ConsumerRef: req.ConsumerRef, TargetRef: req.TargetRef, Operations: ops, Consumer: consumer}}, nil
 }
 
+func (s *Service) permissionCommitFailure(err error) error {
+	if errors.Is(err, auditlog.ErrUnrecorded) {
+		return s.auditUnavailable(err)
+	}
+	return failure(codes.Unavailable, "INTEGRATION_PERMISSION_UNAVAILABLE")
+}
+
+func auditStrings(values []string) []any {
+	result := make([]any, 0, len(values))
+	for _, value := range values {
+		result = append(result, value)
+	}
+	return result
+}
+
 // Revocation follows an existing account-owned permission, even when its App
 // is no longer eligible or its target is unavailable. It cannot create a grant.
-func (s *Service) revokeIntegrationPermission(ctx context.Context, d accountservice.LocalAppCallerDecision, req *runtimev1.SetIntegrationPermissionRequest) (*runtimev1.SetIntegrationPermissionResponse, error) {
+func (s *Service) revokeIntegrationPermission(ctx context.Context, d accountservice.LocalAppCallerDecision, req *runtimev1.SetIntegrationPermissionRequest, record *operationAudit) (*runtimev1.SetIntegrationPermissionResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed || s.quiesced.Load() {
@@ -433,9 +481,16 @@ func (s *Service) revokeIntegrationPermission(ctx context.Context, d accountserv
 	if subject == "" {
 		return nil, failure(codes.NotFound, "INTEGRATION_PERMISSION_NOT_FOUND")
 	}
-	if _, err := s.backend.DB().ExecContext(ctx, `UPDATE runtime_integration_permission SET operations_json='[]' WHERE account_id=? AND consumer_subject=? AND target_ref=?`, d.AccountID, subject, req.TargetRef); err != nil {
-		return nil, failure(codes.Unavailable, "INTEGRATION_PERMISSION_UNAVAILABLE")
+	// The revocation and its audit result commit in one transaction.
+	if err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `UPDATE runtime_integration_permission SET operations_json='[]' WHERE account_id=? AND consumer_subject=? AND target_ref=?`, d.AccountID, subject, req.TargetRef); err != nil {
+			return err
+		}
+		return record.commitTx(ctx, tx)
+	}); err != nil {
+		return nil, s.permissionCommitFailure(err)
 	}
+	record.committed()
 	for _, c := range s.calls {
 		if c.decision.AccountID == d.AccountID && c.decision.RegisteredAppSubject == subject && c.target.Public.TargetRef == req.TargetRef {
 			s.cancelInvocationLocked(c)
@@ -445,19 +500,25 @@ func (s *Service) revokeIntegrationPermission(ctx context.Context, d accountserv
 }
 
 // @nimi-authority: rule.nimi.runtime.integration.custody
-func (s *Service) PutIntegrationConnection(ctx context.Context, req *runtimev1.PutIntegrationConnectionRequest) (*runtimev1.PutIntegrationConnectionResponse, error) {
+func (s *Service) PutIntegrationConnection(ctx context.Context, req *runtimev1.PutIntegrationConnectionRequest) (_ *runtimev1.PutIntegrationConnectionResponse, err error) {
+	record := s.beginAudit(ctx, "integration.connection.put")
+	defer func() { record.finish(err) }()
 	d, err := s.management(ctx, localappop.OperationIntegrationConnectionPut)
 	if err != nil {
 		return nil, err
 	}
+	record.bind(d)
 	if req == nil || len(strings.TrimSpace(req.DisplayName)) == 0 || len(req.DisplayName) > 256 || len(req.AccountLabel) > 256 || len(req.Secret) > 16384 {
 		return nil, failure(codes.InvalidArgument, "INTEGRATION_INPUT_INVALID")
 	}
+	record.set("adapter", req.Adapter)
 	id := req.TargetRef
 	var previous *target
 	if id == "" {
 		id = "icon_" + ulid.Make().String()
+		record.set("disposition", "created")
 	} else {
+		record.set("disposition", "updated")
 		old, err := s.loadTarget(ctx, d.AccountID, id)
 		if err != nil {
 			return nil, err
@@ -481,6 +542,7 @@ func (s *Service) PutIntegrationConnection(ctx context.Context, req *runtimev1.P
 		}
 		secret = storedSecret
 	}
+	record.set("target_ref", id)
 	t, err := s.configure(ctx, d.AccountID, id, req, secret)
 	if err != nil {
 		return nil, err
@@ -517,19 +579,28 @@ func (s *Service) PutIntegrationConnection(ctx context.Context, req *runtimev1.P
 			return nil, failure(codes.Unavailable, "INTEGRATION_CUSTODY_UNAVAILABLE")
 		}
 	}
-	if err := s.saveTarget(ctx, t); err != nil {
+	// The connection row and its audit result commit together; a failed commit
+	// withdraws the newly stored credential as before.
+	if err := s.saveTargetRecorded(ctx, t, record); err != nil {
 		if previous == nil && secret != "" && s.secrets != nil {
 			_ = s.secrets.DeleteSecret("integration:" + id)
+		}
+		if errors.Is(err, auditlog.ErrUnrecorded) {
+			return nil, s.auditUnavailable(err)
 		}
 		return nil, fmt.Errorf("integration save connection: %w", err)
 	}
 	return &runtimev1.PutIntegrationConnectionResponse{Connection: t.Public}, nil
 }
-func (s *Service) RemoveIntegrationConnection(ctx context.Context, req *runtimev1.RemoveIntegrationConnectionRequest) (*runtimev1.RemoveIntegrationConnectionResponse, error) {
+func (s *Service) RemoveIntegrationConnection(ctx context.Context, req *runtimev1.RemoveIntegrationConnectionRequest) (_ *runtimev1.RemoveIntegrationConnectionResponse, err error) {
+	record := s.beginAudit(ctx, "integration.connection.remove")
+	defer func() { record.finish(err) }()
 	d, err := s.management(ctx, localappop.OperationIntegrationConnectionRemove)
 	if err != nil {
 		return nil, err
 	}
+	record.bind(d)
+	record.set("target_ref", req.GetTargetRef())
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed || s.quiesced.Load() {
@@ -542,6 +613,7 @@ func (s *Service) RemoveIntegrationConnection(ctx context.Context, req *runtimev
 	if t.Public.Kind == "app" {
 		return nil, failure(codes.InvalidArgument, "INTEGRATION_PROVIDER_TARGET")
 	}
+	record.set("adapter", t.Public.Kind)
 	for _, c := range s.calls {
 		if c.decision.AccountID == d.AccountID && c.target.Public.TargetRef == t.Public.TargetRef {
 			s.cancelInvocationLocked(c)
@@ -560,20 +632,29 @@ func (s *Service) RemoveIntegrationConnection(ctx context.Context, req *runtimev
 		}
 		delete(s.receivers, t.Public.TargetRef)
 	}
+	// The removal and its audit result commit in one transaction.
 	err = s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		for _, table := range []string{"runtime_integration_permission", "runtime_integration_update", "runtime_integration_receiver", "runtime_integration_target"} {
 			if _, err := tx.ExecContext(ctx, `DELETE FROM `+table+` WHERE account_id=? AND target_ref=?`, d.AccountID, t.Public.TargetRef); err != nil {
 				return err
 			}
 		}
-		return nil
+		return record.commitTx(ctx, tx)
 	})
 	if err != nil {
+		if errors.Is(err, auditlog.ErrUnrecorded) {
+			return nil, s.auditUnavailable(err)
+		}
 		return nil, err
 	}
+	record.committed()
 	if s.secrets != nil {
 		if err := s.secrets.DeleteSecret("integration:" + t.Public.TargetRef); err != nil {
-			return nil, failure(codes.Unavailable, "INTEGRATION_CUSTODY_UNAVAILABLE")
+			// The removal already committed; the orphaned custody entry is a
+			// separate typed failure, never a rewrite of the removal.
+			cleanupErr := failure(codes.Unavailable, "INTEGRATION_CUSTODY_UNAVAILABLE")
+			record.recordFailure("integration.connection.credential_cleanup", cleanupErr)
+			return nil, cleanupErr
 		}
 	}
 	return &runtimev1.RemoveIntegrationConnectionResponse{Removed: true}, nil

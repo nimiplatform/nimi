@@ -29,6 +29,8 @@ export type UseAgentConversationPresentationInput = {
   activeConversationAnchorId: string | null;
   bundle: AgentLocalThreadBundle | null;
   bundleError: unknown;
+  /** Re-reads the conversation history after `bundleError`. */
+  onRetryBundle?: () => void;
   composerPrefillRequestId: number | null;
   composerReady: boolean;
   currentComposerTextRef: { current: string };

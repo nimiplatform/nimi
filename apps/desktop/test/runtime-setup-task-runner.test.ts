@@ -4,6 +4,7 @@ import { isRuntimeProfileRunning, runRuntimeProfileTasks } from '../src/shell/re
 
 import type {
   NimiLoadoutRecipe,
+  NimiLoadoutRecipeContextFit,
   NimiMachineLoadout,
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlan,
@@ -26,6 +27,8 @@ import {
   resumeRuntimeSetupOwnerRoute,
   reuseRuntimeSetupCurrent,
   runRuntimeSetupPreparation,
+  runtimeSetupContextApplication,
+  runtimeSetupPlanContextFit,
   saveRuntimeSetupOwnerIntents,
   updateRuntimeSetupCandidate,
   stopRuntimeSetupTask,
@@ -340,10 +343,12 @@ function createPorts(state: PortState, calls: CallLog): RuntimeSetupRunnerPorts 
     environment: {
       async resolveEnvironmentPlan(input) {
         calls.push({ method: 'environment.resolveEnvironmentPlan', args: input });
+        if (input.mediaCodec) throw new Error('this fixture expects a Loadout plan');
         return state.resolvePlan ? state.resolvePlan(input) : state.plan;
       },
       async applyEnvironmentPlan(input) {
         calls.push({ method: 'environment.applyEnvironmentPlan', args: input });
+        if (input.resolution.mediaCodec) throw new Error('this fixture expects a Loadout plan');
         return {
           plan: state.resolvePlan ? state.resolvePlan(input.resolution) : state.plan,
           jobs: state.appliedJobs,
@@ -2538,4 +2543,81 @@ test('a download row states the source transfer size and upstream terms, never t
   assert.equal(plan.acquire[0]?.offer.license, 'MIT');
   assert.equal(plan.acquire[0]?.offer.publisher, 'explosion');
   assert.equal(plan.componentsDownloadBytes, null);
+});
+
+const REDUCED_CONTEXT = { authoredContextSize: 262144, recommendedContextSize: 98304, recommendedOptions: { steps: 20, contextSize: 98304 } };
+const AUTOMATIC_CONTEXT = { authoredContextSize: 131072, recommendedContextSize: 131072, recommendedOptions: { steps: 20 } };
+const SECOND_ASSET = { modelAssetId: 'asset-2', contentId: 'sha256:small-content', displayName: 'Image Model (small)' } as NimiRuntimeModelAssetRecord;
+
+function contextRecipe(fits: readonly (NimiLoadoutRecipeContextFit | undefined)[]): NimiLoadoutRecipe {
+  const base = recipe();
+  const [slot] = base.slots;
+  const assets = [INSTALLED_ASSET, SECOND_ASSET];
+  return {
+    ...base,
+    slots: [{
+      ...slot!,
+      offers: fits.map((contextFit, index) => ({
+        ...slot!.offers[0]!,
+        candidate: { ...slot!.offers[0]!.candidate, offerRef: `offer:${index}`, installed: true },
+        installedModelAssetId: assets[index]!.modelAssetId,
+        ...(contextFit ? { contextFit } : {}),
+      })),
+    }],
+  } as NimiLoadoutRecipe;
+}
+
+test('a fresh setup writes the chosen model\'s Runtime context and its review states the same context', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const state = baseState({ recipes: [contextRecipe([REDUCED_CONTEXT, AUTOMATIC_CONTEXT])], assets: [INSTALLED_ASSET, SECOND_ASSET] });
+  const ports = createPorts(state, calls);
+  const taskId = await createAppTask(store);
+  const plan = await reachReview(store, taskId, ports);
+  assert.equal(plan.awaitingChoice.length, 1);
+  const choices = { 'main.diffusion': 'offer:0' };
+  const fit = runtimeSetupPlanContextFit(plan, choices);
+  assert.deepEqual(fit, REDUCED_CONTEXT);
+  assert.deepEqual(runtimeSetupContextApplication(store.getTask(taskId)?.draft?.options, fit), { options: REDUCED_CONTEXT.recommendedOptions, preview: REDUCED_CONTEXT });
+  // The other version has its own fit: automatic capacity, context option omitted.
+  assert.deepEqual(runtimeSetupPlanContextFit(plan, { 'main.diffusion': 'offer:1' }), AUTOMATIC_CONTEXT);
+  const result = await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-only', reviewedPlan: plan, choices });
+  assert.equal(result.status, 'ok');
+  const written = calls.filter((call) => call.method === 'loadouts.prepare').at(-1)!.args as { options: unknown; modelAxes: { modelAssetId: string }[] };
+  assert.deepEqual(written.options, { steps: 20, contextSize: 98304 });
+  assert.equal(written.modelAxes[0]!.modelAssetId, INSTALLED_ASSET.modelAssetId);
+});
+
+test('explicit options are written unchanged and are not described by a context they do not carry', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const state = baseState({ recipes: [contextRecipe([REDUCED_CONTEXT])] });
+  const ports = createPorts(state, calls);
+  const taskId = await createAppTask(store);
+  const created = await createRuntimeSetupCandidate(store, taskId, ports, { recipeId: 'image.recipe', options: { steps: 20 } });
+  assert.equal(created.status, 'ok');
+  const resolved = await resolveRuntimeSetupPreparation(store, taskId, ports);
+  const plan = resolved.status === 'ok' ? resolved.value : assert.fail('plan');
+  const fit = runtimeSetupPlanContextFit(plan);
+  assert.deepEqual(fit, REDUCED_CONTEXT);
+  assert.deepEqual(runtimeSetupContextApplication(store.getTask(taskId)?.draft?.options, fit), {});
+  assert.deepEqual(runtimeSetupContextApplication(REDUCED_CONTEXT.recommendedOptions, fit), { preview: REDUCED_CONTEXT });
+  assert.equal((await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-only', reviewedPlan: plan })).status, 'ok');
+  const written = calls.filter((call) => call.method === 'loadouts.prepare').at(-1)!.args as { options: unknown };
+  assert.deepEqual(written.options, { steps: 20 });
+});
+
+test('a context that changed after review is a plan change and nothing is written', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const state = baseState({ recipes: [contextRecipe([REDUCED_CONTEXT])] });
+  const ports = createPorts(state, calls);
+  const taskId = await createAppTask(store);
+  const plan = await reachReview(store, taskId, ports);
+  state.recipes = [contextRecipe([{ ...REDUCED_CONTEXT, recommendedContextSize: 90112, recommendedOptions: { steps: 20, contextSize: 90112 } }])];
+  const before = calls.filter((call) => call.method === 'loadouts.prepare').length;
+  const result = await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-only', reviewedPlan: plan });
+  assert.equal(result.status, 'needs-attention');
+  assert.equal(store.getTask(taskId)?.failure?.reasonCode, 'RUNTIME_SETUP_PLAN_CHANGED');
+  assert.equal(calls.filter((call) => call.method === 'loadouts.prepare').length, before);
 });

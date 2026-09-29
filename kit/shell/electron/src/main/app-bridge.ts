@@ -12,6 +12,7 @@ import {
   createNimiElectronLocalAppAssetMediaHost,
   type NimiElectronAppAssetMediaPlatform,
 } from './app-asset-protocol.js';
+import { NIMI_APP_HOST_PROFILE_ENVIRONMENT_KEY } from './app-host-profile.js';
 import {
   NimiElectronShellHostError,
   type NimiElectronCommandHandler,
@@ -24,7 +25,10 @@ const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
 const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'assetMediaPlatform', 'ipcMain'] as const;
 const OPTIONAL_INPUT_KEYS = ['agentCenterOpenFileDialog', 'appCommandHandlers', 'onSessionInvalidated', 'onSessionReady'] as const;
 const RESERVED_COMMAND_PREFIX = 'nimi.shell.';
-let sourceLocalDevelopmentParentMonitor: NodeJS.Timeout | undefined;
+const DESKTOP_PARENT_POLL_MS = 250;
+/** Mirrors the 2 s a Desktop stop gives a Host between SIGTERM and SIGKILL. */
+export const DESKTOP_PARENT_LOSS_EXIT_BUDGET_MS = 2_000;
+let desktopParentMonitor: NodeJS.Timeout | undefined;
 
 export type RegisterNimiElectronAppBridgeInput = {
   readonly appId: string;
@@ -70,7 +74,7 @@ export function registerNimiElectronAppBridge(
   input: RegisterNimiElectronAppBridgeInput,
 ): RegisteredNimiElectronAppBridge {
   assertExactAppBridgeInput(input);
-  startSourceLocalDevelopmentParentMonitor();
+  startDesktopParentMonitor();
   const allowedRendererUrls = input.allowedRendererUrls.map(normalizeRendererUrl);
   if (allowedRendererUrls.length === 0) {
     throw appBridgeInputError(
@@ -160,43 +164,63 @@ export function registerNimiElectronAppBridge(
   };
 }
 
-function startSourceLocalDevelopmentParentMonitor(): void {
+/** @internal The process facts the Desktop parent monitor reads; `process` in production. */
+export type DesktopParentMonitorProcess = {
+  readonly platform: NodeJS.Platform;
+  readonly env: Readonly<Record<string, string | undefined>>;
+  readonly defaultApp?: boolean;
+  readonly pid: number;
+  readonly ppid: number;
+  kill(pid: number, signal: NodeJS.Signals | 0): unknown;
+  exit(code: number): unknown;
+};
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
+/**
+ * @internal A Host that Desktop launched lives only while that Desktop does:
+ * Desktop owns its launch and supervision, and no later Desktop adopts it.
+ * When the parent is gone the Host quits and, should a quit handler hold on,
+ * leaves after the same budget a Desktop stop allows.
+ */
+export function startDesktopParentMonitor(
+  host: DesktopParentMonitorProcess = process as DesktopParentMonitorProcess,
+): void {
   const sourceProfile = (
-    process.platform === 'darwin'
-    && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1'
+    host.platform === 'darwin'
+    && host.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1'
   ) || (
-    process.platform === 'win32'
-    && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
+    host.platform === 'win32'
+    && host.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
   );
-  if (!sourceProfile) return;
-  const sourceDefaultApp = (process as NodeJS.Process & { readonly defaultApp?: boolean }).defaultApp === true;
-  const desktopPid = process.ppid;
+  const desktopLaunched = Boolean(host.env[NIMI_APP_HOST_PROFILE_ENVIRONMENT_KEY]);
+  if (!sourceProfile && !desktopLaunched) return;
+  const desktopPid = host.ppid;
   // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-037a
-  if ((process.platform === 'darwin' && !sourceDefaultApp)
+  if ((sourceProfile && host.platform === 'darwin' && host.defaultApp !== true)
     || !Number.isSafeInteger(desktopPid) || desktopPid <= 1) {
     throw appBridgeInputError(
-      'A D2 App requires one live Desktop parent',
+      'A Desktop-launched App Host requires its live Desktop parent',
       'electron-local-app-parent-required',
       'relaunch_local_app_from_desktop',
     );
   }
-  if (sourceLocalDevelopmentParentMonitor) return;
-  sourceLocalDevelopmentParentMonitor = setInterval(() => {
-    let parentAlive = process.ppid === desktopPid;
+  if (desktopParentMonitor) return;
+  desktopParentMonitor = setInterval(() => {
+    let parentAlive = host.ppid === desktopPid;
     if (parentAlive) {
       try {
-        process.kill(desktopPid, 0);
+        host.kill(desktopPid, 0);
       } catch {
         parentAlive = false;
       }
     }
-    if (!parentAlive) {
-      clearInterval(sourceLocalDevelopmentParentMonitor);
-      sourceLocalDevelopmentParentMonitor = undefined;
-      process.kill(process.pid, 'SIGTERM');
-    }
-  }, 250);
-  sourceLocalDevelopmentParentMonitor.unref();
+    if (parentAlive) return;
+    clearInterval(desktopParentMonitor);
+    desktopParentMonitor = undefined;
+    setTimeout(() => host.exit(1), DESKTOP_PARENT_LOSS_EXIT_BUDGET_MS);
+    host.kill(host.pid, 'SIGTERM');
+  }, DESKTOP_PARENT_POLL_MS);
+  desktopParentMonitor.unref();
 }
 
 function assertExactAppBridgeInput(input: RegisterNimiElectronAppBridgeInput): void {

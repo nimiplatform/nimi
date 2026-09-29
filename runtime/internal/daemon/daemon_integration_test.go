@@ -216,9 +216,9 @@ func TestDaemonStopSupervisedEnginesRunsOnlyOnce(t *testing.T) {
 		stops++
 	}
 
-	daemon.stopSupervisedEngines("first stop")
+	daemon.stopSupervisedEngines(context.Background(), "first stop")
 	daemon.EmergencyStopSupervisedEngines()
-	daemon.stopSupervisedEngines("third stop")
+	daemon.stopSupervisedEngines(context.Background(), "third stop")
 
 	if stops != 1 {
 		t.Fatalf("expected supervised engines to stop once, got %d", stops)

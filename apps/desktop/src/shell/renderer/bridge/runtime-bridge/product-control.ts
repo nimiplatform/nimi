@@ -5,6 +5,10 @@ import {
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import {
+  CHECK_SYNC_NEXT_ACTIONS,
+  type CheckSyncNextAction,
+} from '../../../shared/check-sync-next-action.js';
+import {
   parseNimiProductControlRecordProjection,
   parseNimiProductControlSelectedDataRootProjection,
   projectUnavailableNimiProductControlRecord,
@@ -29,7 +33,7 @@ export type ProductControlCheckSyncResource = {
   readonly status: 'available' | 'unavailable' | 'incompatible' | 'unknown' | 'conflict' | 'failed';
   readonly change?: 'rebased' | 'adopted' | 'rebuilt';
   readonly reason: string;
-  readonly nextAction?: 'rerun_check_sync';
+  readonly nextAction?: CheckSyncNextAction;
 };
 
 export type ProductControlCheckSyncProjection = {
@@ -52,8 +56,8 @@ export type ProductControlCheckSyncProjection = {
 export type ProductControlReplacementProjection = Omit<NimiProductControlRecordProjection, 'configMutation'> & {
   readonly activation?: null | {
     readonly activated: boolean;
-    readonly reasonCode: 'DATA_ROOT_REPLACED' | 'DATA_ROOT_UNCHANGED' | 'DATA_ROOT_OVERLAPS_CURRENT';
-    readonly actionHint: 'restart_runtime_and_check_sync' | 'run_check_sync' | 'choose_path_disjoint_root';
+    readonly reasonCode: 'DATA_ROOT_REPLACED' | 'DATA_ROOT_UNCHANGED' | 'DATA_ROOT_OVERLAPS_CURRENT' | 'DATA_ROOT_NOT_EMPTY';
+    readonly actionHint: 'restart_runtime_and_check_sync' | 'run_check_sync' | 'choose_path_disjoint_root' | 'choose_new_empty_root';
   };
   readonly configMutation?: null | {
     readonly disposition: 'applied' | 'restart_required' | 'repair_required';
@@ -130,6 +134,56 @@ export async function replaceProductDataRoot(targetRoot: string): Promise<Produc
   }, parseProductControlReplacementProjection);
 }
 
+/** Home's disposition after a committed maintenance replacement. */
+export type MaintenanceReplacementRestart = 'relaunching' | 'source_runtime_restart_required' | 'restart_failed';
+
+export type ProductControlMaintenanceReplacementProjection = ProductControlReplacementProjection & {
+  readonly maintenanceRestart: MaintenanceReplacementRestart | null;
+};
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r038
+/**
+ * Replaces a refused data root with a new, empty folder while Runtime serves
+ * only its maintenance surface. The folder comes from the native picker; the
+ * Runtime owner validates it and commits the selection.
+ */
+export async function replaceProductDataRootInMaintenance(
+  targetRoot: string,
+): Promise<ProductControlMaintenanceReplacementProjection> {
+  if (!hasElectronInvoke()) {
+    throw new Error('product_control_maintenance_data_root_replace requires standard shell Runtime');
+  }
+  return invokeChecked('product_control_maintenance_data_root_replace', {
+    payload: { targetRoot },
+  }, (value) => {
+    const restart = checkSyncRecord(value).maintenanceRestart;
+    return {
+      ...parseProductControlReplacementProjection(value),
+      maintenanceRestart: restart == null
+        ? null
+        : checkSyncOneOf(restart, ['relaunching', 'source_runtime_restart_required', 'restart_failed'] as const),
+    };
+  });
+}
+
+/** Opens the native picker for a new, empty data folder. */
+export async function pickNewEmptyDataRootDirectory(title: string): Promise<string | null> {
+  if (!hasElectronInvoke()) {
+    throw new Error('Product data-root picker requires standard shell file dialog');
+  }
+  return firstDialogPath(await openShellFileDialog({ kind: 'directory', title }));
+}
+
+/** Relaunches Home while Runtime is in maintenance, to start from its current root. */
+export function relaunchHomeFromRuntimeMaintenance(): Promise<{ readonly requested: boolean }> {
+  return invokeChecked('desktop_runtime_maintenance_relaunch', {}, (value) => {
+    if (!value || typeof value !== 'object' || (value as { requested?: unknown }).requested !== true) {
+      throw new Error('runtime-maintenance-relaunch-invalid');
+    }
+    return { requested: true };
+  });
+}
+
 export async function startProductControlCheckSync(): Promise<ProductControlCheckSyncProjection> {
   if (!hasElectronInvoke()) {
     throw new Error('product_control_check_sync_start requires standard shell Runtime');
@@ -200,7 +254,7 @@ function parseProductControlCheckSyncProjection(value: unknown): ProductControlC
               status: checkSyncOneOf(resource.status, ['available', 'unavailable', 'incompatible', 'unknown', 'conflict', 'failed'] as const),
               change: resource.change == null ? undefined : checkSyncOneOf(resource.change, ['rebased', 'adopted', 'rebuilt'] as const),
               reason: checkSyncText(resource.reason),
-              nextAction: resource.nextAction == null ? undefined : checkSyncOneOf(resource.nextAction, ['rerun_check_sync'] as const),
+              nextAction: resource.nextAction == null ? undefined : checkSyncOneOf(resource.nextAction, CHECK_SYNC_NEXT_ACTIONS),
             };
           }),
         };
@@ -237,8 +291,8 @@ function parseProductControlReplacementProjection(value: unknown): ProductContro
 		...parsed,
 		activation: activation ? {
 			activated: activation.activated === true,
-			reasonCode: checkSyncOneOf(activation.reasonCode, ['DATA_ROOT_REPLACED', 'DATA_ROOT_UNCHANGED', 'DATA_ROOT_OVERLAPS_CURRENT'] as const),
-			actionHint: checkSyncOneOf(activation.actionHint, ['restart_runtime_and_check_sync', 'run_check_sync', 'choose_path_disjoint_root'] as const),
+			reasonCode: checkSyncOneOf(activation.reasonCode, ['DATA_ROOT_REPLACED', 'DATA_ROOT_UNCHANGED', 'DATA_ROOT_OVERLAPS_CURRENT', 'DATA_ROOT_NOT_EMPTY'] as const),
+			actionHint: checkSyncOneOf(activation.actionHint, ['restart_runtime_and_check_sync', 'run_check_sync', 'choose_path_disjoint_root', 'choose_new_empty_root'] as const),
 		} : null,
 		configMutation: config ? {
 			disposition: checkSyncOneOf(config.disposition, ['applied', 'restart_required', 'repair_required'] as const),
@@ -290,6 +344,7 @@ export type DesktopHomeProfileStatus = {
   readonly mode: 'root' | 'bootstrap';
   readonly workAllowed: boolean;
   readonly relaunchRequested: boolean;
+  readonly startupFailure?: string | null;
 };
 
 export function getDesktopHomeProfileStatus(): Promise<DesktopHomeProfileStatus> {
@@ -300,7 +355,9 @@ export function getDesktopHomeProfileStatus(): Promise<DesktopHomeProfileStatus>
       || typeof item.workAllowed !== 'boolean' || typeof item.relaunchRequested !== 'boolean') {
       throw new Error('home-profile-status-invalid');
     }
-    return { mode: item.mode, workAllowed: item.workAllowed, relaunchRequested: item.relaunchRequested };
+    if (item.startupFailure != null && typeof item.startupFailure !== 'string') throw new Error('home-profile-status-invalid');
+    return { mode: item.mode, workAllowed: item.workAllowed, relaunchRequested: item.relaunchRequested,
+      startupFailure: item.startupFailure as string | null | undefined };
   });
 }
 

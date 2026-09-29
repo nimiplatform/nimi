@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
 )
@@ -46,6 +47,7 @@ func TestLocalPackageCommitsPrivateCopyUpdatesAndRevalidatesInstalledLaunch(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
+	owner.audit = auditlog.New(128, 128)
 	t.Cleanup(func() { _ = owner.Close() })
 
 	install := func(version string, previous *localappkernel.CommittedRelease) localappkernel.CommittedRelease {

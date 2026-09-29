@@ -245,8 +245,6 @@
   background: color-mix(in srgb, var(--nimi-surface-card) 92%, transparent);
   color: var(--nimi-text-secondary);
   box-shadow: var(--nimi-elevation-base);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
   font-size: 12px;
   line-height: 1.4;
 }

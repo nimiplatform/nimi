@@ -324,15 +324,18 @@ type protectedLocalAppAuthInfo struct {
 
 func (*protectedLocalAppAuthInfo) AuthType() string { return "nimi-protected-local-app-v1" }
 
-type protectedLocalAppTransportCredentials struct{}
+type protectedLocalAppTransportCredentials struct {
+	refusals *transportRefusalAudit
+}
 
 func (protectedLocalAppTransportCredentials) ClientHandshake(context.Context, string, net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	return nil, nil, fmt.Errorf("protected local-app transport credentials are server-only")
 }
 
-func (protectedLocalAppTransportCredentials) ServerHandshake(raw net.Conn) (net.Conn, credentials.AuthInfo, error) {
+func (creds protectedLocalAppTransportCredentials) ServerHandshake(raw net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	connection, ok := raw.(*protectedLocalAppNetConn)
 	if !ok || connection == nil || connection.Conn == nil || connection.connection == nil || !connection.connection.Live() {
+		creds.refusals.recordHandshake(runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
 		return nil, nil, fmt.Errorf("protected local-app transport requires a live native verified connection")
 	}
 	return raw, &protectedLocalAppAuthInfo{connection: connection.connection}, nil
@@ -341,19 +344,21 @@ func (protectedLocalAppTransportCredentials) ServerHandshake(raw net.Conn) (net.
 func (protectedLocalAppTransportCredentials) Info() credentials.ProtocolInfo {
 	return credentials.ProtocolInfo{SecurityProtocol: "nimi-protected-local-app", SecurityVersion: "1"}
 }
-func (protectedLocalAppTransportCredentials) Clone() credentials.TransportCredentials {
-	return protectedLocalAppTransportCredentials{}
+func (creds protectedLocalAppTransportCredentials) Clone() credentials.TransportCredentials {
+	return protectedLocalAppTransportCredentials{refusals: creds.refusals}
 }
 func (protectedLocalAppTransportCredentials) OverrideServerName(string) error {
 	return fmt.Errorf("protected local-app transport has no portable server name")
 }
 
-func newProtectedLocalAppRPCServer(runtimeControlService runtimev1.RuntimeServiceControlServiceServer, authService runtimev1.RuntimeAuthServiceServer, accountService runtimev1.RuntimeAccountServiceServer, realmRealtimeService runtimev1.RuntimeRealmRealtimeServiceServer, localService runtimev1.RuntimeLocalServiceServer, aiService runtimev1.RuntimeAiServiceServer, agentService runtimev1.RuntimeAgentServiceServer, appService runtimev1.RuntimeAppServiceServer, rpcRegistry *activeRPCRegistry) *grpc.Server {
+func newProtectedLocalAppRPCServer(runtimeControlService runtimev1.RuntimeServiceControlServiceServer, authService runtimev1.RuntimeAuthServiceServer, accountService runtimev1.RuntimeAccountServiceServer, realmRealtimeService runtimev1.RuntimeRealmRealtimeServiceServer, localService runtimev1.RuntimeLocalServiceServer, aiService runtimev1.RuntimeAiServiceServer, agentService runtimev1.RuntimeAgentServiceServer, appService runtimev1.RuntimeAppServiceServer, rpcRegistry *activeRPCRegistry, refusals *transportRefusalAudit) *grpc.Server {
 	admission, _ := appService.(protectedLocalAppAdmission)
-	transportUnary := newUnaryProtectedLocalAppTransportInterceptor(admission)
-	transportStream := newStreamProtectedLocalAppTransportInterceptor(admission)
+	// Refusals decided by this chain are recorded; admitted calls are recorded
+	// only by their owners.
+	transportUnary := refusals.unary(newUnaryProtectedLocalAppTransportInterceptor(admission))
+	transportStream := refusals.stream(newStreamProtectedLocalAppTransportInterceptor(admission))
 	server := grpc.NewServer(
-		grpc.Creds(protectedLocalAppTransportCredentials{}),
+		grpc.Creds(protectedLocalAppTransportCredentials{refusals: refusals}),
 		grpc.KeepaliveEnforcementPolicy(protectedGRPCKeepalivePolicy()),
 		grpc.MaxRecvMsgSize(maxProtectedLocalAppRecvMessageBytes),
 		grpc.MaxSendMsgSize(maxGRPCSendMessageBytes), grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),

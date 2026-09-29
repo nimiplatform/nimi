@@ -92,23 +92,27 @@ func (listener *windowsVerifiedLocalAppListener) Accept() (net.Conn, error) {
 		}
 		if err != nil {
 			reportWindowsPeerRejection(err)
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "app-process", err)
 			_ = native.Close()
 			continue
 		}
 		raw, err := native.NetConn()
 		if err != nil {
 			reportWindowsPeerRejection(err)
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "app-pipe", err)
 			_ = pipeLiveness.Close()
 			_ = native.Close()
 			continue
 		}
 		promoted, err := listener.state.localAppLaunches.Promote(peer, pipeLiveness)
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "launch-lease", err)
 			_ = raw.Close()
 			continue
 		}
 		connection, err := EstablishLocalAppConnection(listener.ctx, staticLocalAppPeerVerifier{peer: promoted})
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "app-connection", err)
 			_ = raw.Close()
 			continue
 		}

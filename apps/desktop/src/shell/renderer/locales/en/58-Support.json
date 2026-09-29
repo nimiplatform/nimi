@@ -63,6 +63,7 @@
   "diagnosticsResourcesTitle": "System resources",
   "diagnosticsResourcesCpu": "CPU",
   "diagnosticsResourcesMemory": "Memory",
+  "diagnosticsResourcesMemoryPressure": "Memory pressure",
   "diagnosticsResourcesDisk": "Disk",
   "diagnosticsResourcesSource": "Source",
   "diagnosticsResourcesUnavailable": "The system resource snapshot is unavailable in this environment.",

@@ -4,10 +4,8 @@ import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
-import {
-  isPendingSentRequestInContacts,
-  type SocialContactSnapshot,
-} from '../social/data/social-snapshot';
+import { type SocialContactSnapshot } from '../social/data/social-snapshot';
+import { loadHumanProfileWithRelationship } from './profile-loader.js';
 
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { ProfileDetailView, type EditableProfileDraft } from '../relationship/profile-detail-view.js';
@@ -62,7 +60,7 @@ export function ProfilePanel() {
 
   const isOwnProfile = !selectedProfileId;
 
-  // Try to get contact info from cache for fallback
+  // Relationship hint from the owner's contact list; never a profile substitute.
   const getContactFromCache = (id: string): ContactRecord | null => {
     const contactsData = queryClient.getQueryData<SocialContactSnapshot>(['contacts', 'authenticated']);
     if (contactsData?.friends) {
@@ -73,40 +71,11 @@ export function ProfilePanel() {
 
   const profileQuery = useQuery({
     queryKey: ['user-profile', selectedProfileId],
-    queryFn: async () => {
-      const profileId = requireHumanAccountId(selectedProfileId);
-      try {
-        const result = await realmSocialData.loadUserProfile(profileId);
-        const data: HumanProfileSource = result;
-        // API may not return isFriend - check local contacts
-        if (data.isFriend !== true && (realmSocialData.isFriend(profileId) || Boolean(getContactFromCache(profileId)))) {
-          return { ...data, isFriend: true };
-        }
-        // Check if a pending sent request exists in local cache
-        if (data.isPendingFriendRequest !== true && isPendingSentRequestInContacts(realmSocialData.contacts(), profileId)) {
-          return { ...data, isPendingFriendRequest: true };
-        }
-        return data;
-      } catch (error) {
-        // If API fails, try to get from contacts cache
-        const contact = getContactFromCache(profileId);
-        if (contact) {
-          // Convert contact to profile format
-          return {
-            id: contact.id,
-            displayName: contact.displayName,
-            handle: contact.handle,
-            avatarUrl: contact.avatarUrl,
-            bio: contact.bio,
-            createdAt: contact.friendsSince,
-            isFriend: true,
-            tags: contact.tags || [],
-          } satisfies HumanProfileSource;
-        }
-        // Re-throw if not in cache
-        throw error;
-      }
-    },
+    queryFn: () => loadHumanProfileWithRelationship(requireHumanAccountId(selectedProfileId), {
+      loadUserProfile: (id) => realmSocialData.loadUserProfile(id) as Promise<HumanProfileSource>,
+      isFriend: (id) => realmSocialData.isFriend(id) || Boolean(getContactFromCache(id)),
+      contacts: realmSocialData.contacts,
+    }),
     enabled: authStatus === 'authenticated' && !!selectedProfileId,
     retry: 1,
   });
@@ -205,6 +174,23 @@ export function ProfilePanel() {
         kind: 'error',
         message: toErrorMessage(error, i18n.t('Relationship.blockUserFailed', { defaultValue: 'Failed to block user' })),
       });
+    } finally {
+      setBlockMutationPending(false);
+    }
+  };
+
+  const onUnblockProfile = async () => {
+    if (!profile || blockMutationPending) return;
+    try {
+      setBlockMutationPending(true);
+      await realmSocialData.unblockUser({ id: profile.id, displayName: profile.displayName, handle: profile.handle, avatarUrl: profile.avatarUrl });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
+      ]);
+      setFeedback({ kind: 'success', message: i18n.t('Relationship.unblockUserSuccess', { defaultValue: 'User unblocked.' }) });
+    } catch (error) {
+      setFeedback({ kind: 'error', message: toErrorMessage(error, i18n.t('Relationship.unblockUserFailed', { defaultValue: 'Failed to unblock user' })) });
     } finally {
       setBlockMutationPending(false);
     }
@@ -310,6 +296,8 @@ export function ProfilePanel() {
             backLabel={i18n.t('Common.back')}
             label={i18n.t('ProfileView.error')}
             onClose={navigateBack}
+            retryLabel={i18n.t('Common.retry', { defaultValue: 'Retry' })}
+            onRetry={() => { void profileQuery.refetch(); }}
           />
         </Surface>
       </div>
@@ -361,6 +349,7 @@ export function ProfilePanel() {
               void onAddFriend();
             } : undefined}
             onBlock={!isOwnProfile && !isBlockedProfile ? () => setBlockConfirmOpen(true) : undefined}
+            onUnblock={!isOwnProfile && isBlockedProfile ? () => { void onUnblockProfile(); } : undefined}
             onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
             showMessageButton={!isOwnProfile && !isBlockedProfile}
             onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}

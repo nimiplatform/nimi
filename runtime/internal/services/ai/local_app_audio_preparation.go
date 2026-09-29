@@ -61,7 +61,10 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 	if req.GetSourceArtifactId() != "" && !localAppBoundedIdentifier(req.GetSourceArtifactId()) {
 		return invalid()
 	}
-	if s.canonicalAudio == nil || s.runtimeArtifacts == nil || s.scenarioJobs == nil || !filepath.IsAbs(s.canonicalAudioStagingRoot) {
+	if s.canonicalAudio == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE)
+	}
+	if s.runtimeArtifacts == nil || s.scenarioJobs == nil || !filepath.IsAbs(s.canonicalAudioStagingRoot) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	ctx, cancel := context.WithTimeout(ctx, audiomedia.PreparationTimeout)
@@ -140,7 +143,7 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 			return nil, ctx.Err()
 		}
 		if errors.Is(err, audiomedia.ErrCodecUnavailable) {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE)
 		}
 		return invalid()
 	}

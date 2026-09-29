@@ -8,6 +8,31 @@ The format follows Keep a Changelog and Semantic Versioning.
 
 ### Fixed
 
+- `@nimiplatform/app-tools` scaffolds give the project `LICENSE` to the App:
+  `nimi-app create` writes it once as an MIT license naming `--author`, or the
+  App title when no author is given, and `nimi-app sync` never rewrites it
+  while `nimi-app check` no longer hash-locks it. The template's own MIT
+  notice moves to the scaffold-managed `licenses/nimi-app-template.txt`.
+  Projects created while app-tools still managed `LICENSE` keep the file byte
+  for byte: the next `sync` records the App as its owner, reports the
+  handover (and whether the file still holds the earlier template text) and
+  adds the notice, and `check` asks for that sync first. Replace a license
+  that still names the template holder with the App's own terms.
+- Scaffolded Electron Hosts and the Nimi Lab Host install Kit's standard
+  application menu instead of clearing it, so macOS text editing shortcuts
+  (Cmd+C/V/X/A/Z) and Cmd+Q work. `nimi-app sync` refreshes the managed
+  `src-electron/main.ts`; Apps with their own Host keep it.
+- The scaffold's connection gate uses plain copy with real recovery: Try
+  again re-checks the Nimi session and Open Nimi asks a running Nimi, through
+  the existing Desktop Open bridge, to show the App's page and reports the
+  result in plain words. Reason codes, Runtime hints and the offline tier move
+  into a collapsed Technical details area, and the gate uses the information
+  tone instead of the warning tone. New scaffolds receive the updated
+  App-owned `src/workbench-core/runtime-gate.tsx` and
+  `src/workbench-core/workbench-core.css`; `nimi-app sync` updates the
+  managed `src/shell/workbench-target-adapter.ts`, whose plain copy also
+  reaches an earlier App-owned gate. That gate keeps its own layout, including
+  its offline-tier line, until those two App-owned files are ported by hand.
 - Component npm release workflows treat a missing registry version as
   unpublished without mistaking npm's JSON error output for a published digest.
 - Nimi Lab and scaffolded AI Studio media parameter fields (music generation,

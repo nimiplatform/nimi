@@ -167,7 +167,7 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
       {refreshed && !generating ? <p className="shijing-rijing__refreshed" role="status">{content.refreshedHint}</p> : null}
 
       <article
-        className="shijing-rijing__hero"
+        className="shijing-rijing__hero nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
         aria-labelledby="shijing-rijing__hero-headline"
         data-rite-open={riteOpen}
       >
@@ -316,7 +316,10 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
           {visibleRows.map((row) => {
             const open = expanded[row.id] ?? false;
             return (
-              <li key={row.id} className="shijing-rijing__frame">
+              <li
+                key={row.id}
+                className="shijing-rijing__frame nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
+              >
                 <button
                   type="button"
                   className="shijing-rijing__frame-row"

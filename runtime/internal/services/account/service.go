@@ -7,6 +7,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -163,29 +165,34 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		return s.loginExchangeUnavailableResponse(), nil
 	}
 
-	s.mu.Lock()
-	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
-		for id, record := range s.loginAttempts {
-			if record.consumed ||
-				!record.attempt.ExpiresAt.After(now) ||
-				!loginAttemptMatchesRequest(record.attempt, requestRedirectURI, requestCallbackOrigin) {
-				delete(s.loginAttempts, id)
+	committed, auditErr := s.commitRecorded(ctx, "account.login.begin", "", map[string]any{"login_attempt_id": attempt.LoginAttemptID}, func() error {
+		s.mu.Lock()
+		if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
+			for id, record := range s.loginAttempts {
+				if record.consumed ||
+					!record.attempt.ExpiresAt.After(now) ||
+					!loginAttemptMatchesRequest(record.attempt, requestRedirectURI, requestCallbackOrigin) {
+					delete(s.loginAttempts, id)
+				}
 			}
 		}
-	}
-	s.loginAttempts[attempt.LoginAttemptID] = loginAttemptRecord{attempt: attempt}
-	if attempt.PromptLogin {
-		s.freshAccountSelection = false
-	}
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
-	s.mu.Unlock()
+		s.loginAttempts[attempt.LoginAttemptID] = loginAttemptRecord{attempt: attempt}
+		if attempt.PromptLogin {
+			s.freshAccountSelection = false
+		}
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+		s.mu.Unlock()
 
-	s.emitAudit(ctx, "account.login.begin", "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
-		"login_attempt_id": attempt.LoginAttemptID,
+		return nil
 	})
+	if !committed {
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AUDIT_RECORD_UNAVAILABLE)
+	}
+
 	return &runtimev1.BeginLoginResponse{
+		AuditDiagnostic:       auditlog.CommittedDiagnostic(auditErr),
 		Accepted:              true,
 		LoginAttemptId:        attempt.LoginAttemptID,
 		OauthAuthorizationUrl: authorizationURL,
@@ -321,27 +328,41 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 		return &runtimev1.CompleteLoginResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE}, nil
 	}
 	auditSubjectID = normalized.AccountID
-	if err := s.custody.Store(ctx, s.partition, normalized); err != nil {
-		s.markCustodyUnavailable()
-		return &runtimev1.CompleteLoginResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE}, nil
-	}
+	var projection *runtimev1.AccountProjection
+	var failureReason runtimev1.AccountReasonCode
+	committed, auditErr := s.commitRecorded(ctx, "account.login.complete", normalized.AccountID, nil, func() error {
+		if err := s.custody.Store(ctx, s.partition, normalized); err != nil {
+			s.markCustodyUnavailable()
+			failureReason = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE
+			return ErrCustodyUnavailable
+		}
 
-	s.mu.Lock()
-	if !s.installAuthenticatedRuntimeIdentityLocked(normalized) {
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+		s.mu.Lock()
+		if !s.installAuthenticatedRuntimeIdentityLocked(normalized) {
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+			s.mu.Unlock()
+			_ = s.custody.Clear(ctx, s.partition)
+			failureReason = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE
+			return errors.New("account identity unavailable")
+		}
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+		projection = cloneProjection(s.projection)
 		s.mu.Unlock()
-		_ = s.custody.Clear(ctx, s.partition)
-		return &runtimev1.CompleteLoginResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
-	}
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
-	projection := cloneProjection(s.projection)
-	s.mu.Unlock()
 
-	s.emitAudit(ctx, "account.login.complete", normalized.AccountID, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
+		return nil
+	})
+	if !committed {
+		if errors.Is(auditErr, auditlog.ErrUnrecorded) {
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AUDIT_RECORD_UNAVAILABLE)
+		}
+		return &runtimev1.CompleteLoginResponse{State: s.currentState(), ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
+	}
+
 	return &runtimev1.CompleteLoginResponse{
+		AuditDiagnostic:   auditlog.CommittedDiagnostic(auditErr),
 		Accepted:          true,
 		State:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED,
 		AccountProjection: projection,
@@ -393,30 +414,42 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 		s.mu.Unlock()
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: state, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING
 	accountID := strings.TrimSpace(s.material.AccountID)
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
-	failureReason := s.clearCustody(ctx)
-	s.mu.Lock()
-	s.clearAuthenticatedRuntimeIdentityLocked()
-	if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_FAILED, failureReason)
-		if failureReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
-			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason)
-		}
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason)
+	var failureReason runtimev1.AccountReasonCode
+	committed, auditErr := s.commitRecorded(ctx, "account.switch", accountID, nil, func() error {
+		s.mu.Lock()
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 		s.mu.Unlock()
-		return &runtimev1.SwitchAccountResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
+		failureReason = s.clearCustody(ctx)
+		s.mu.Lock()
+		s.clearAuthenticatedRuntimeIdentityLocked()
+		if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_FAILED, failureReason)
+			if failureReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
+				s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason)
+			}
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason)
+			s.mu.Unlock()
+			return ErrCustodyUnavailable
+		}
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
+		s.freshAccountSelection = true
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+		s.mu.Unlock()
+		return nil
+	})
+	if !committed {
+		if errors.Is(auditErr, auditlog.ErrUnrecorded) {
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AUDIT_RECORD_UNAVAILABLE)
+		}
+		return &runtimev1.SwitchAccountResponse{State: s.currentState(), ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
 	}
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
-	s.freshAccountSelection = true
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
-	s.mu.Unlock()
-	s.emitAudit(ctx, "account.switch", accountID, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
-	return &runtimev1.SwitchAccountResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
+
+	return &runtimev1.SwitchAccountResponse{AuditDiagnostic: auditlog.CommittedDiagnostic(auditErr), Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 }
 
 func (s *Service) accountMaterialExpiredLocked() bool {
@@ -554,29 +587,41 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 		s.mu.Unlock()
 		return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 	}
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT
 	accountID := strings.TrimSpace(s.material.AccountID)
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason)
 	s.mu.Unlock()
-	failureReason := s.clearCustody(ctx)
-	s.mu.Lock()
-	s.clearAuthenticatedRuntimeIdentityLocked()
-	if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_FAILED, failureReason)
-		if failureReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
-			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason)
-		}
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason)
+	var failureReason runtimev1.AccountReasonCode
+	committed, auditErr := s.commitRecorded(ctx, "account.logout", accountID, nil, func() error {
+		s.mu.Lock()
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason)
 		s.mu.Unlock()
-		return &runtimev1.LogoutResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
+		failureReason = s.clearCustody(ctx)
+		s.mu.Lock()
+		s.clearAuthenticatedRuntimeIdentityLocked()
+		if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_FAILED, failureReason)
+			if failureReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
+				s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason)
+			}
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason)
+			s.mu.Unlock()
+			return ErrCustodyUnavailable
+		}
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED, reason)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason)
+		s.mu.Unlock()
+		return nil
+	})
+	if !committed {
+		if errors.Is(auditErr, auditlog.ErrUnrecorded) {
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AUDIT_RECORD_UNAVAILABLE)
+		}
+		return &runtimev1.LogoutResponse{State: s.currentState(), ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
 	}
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED, reason)
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason)
-	s.mu.Unlock()
-	s.emitAudit(ctx, "account.logout", accountID, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
-	return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: reason}, nil
+
+	return &runtimev1.LogoutResponse{AuditDiagnostic: auditlog.CommittedDiagnostic(auditErr), Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: reason}, nil
 }
 
 func (s *Service) clearCustody(ctx context.Context) runtimev1.AccountReasonCode {

@@ -144,8 +144,7 @@ func fileConfigEnginesEqual(before, after *config.FileConfigEngines) bool {
 	if before == nil || after == nil {
 		return before == nil && after == nil
 	}
-	return fileConfigEngineEqual(before.Llama, after.Llama) &&
-		fileConfigEngineEqual(before.Media, after.Media)
+	return fileConfigEngineEqual(before.Llama, after.Llama)
 }
 
 func fileConfigEngineEqual(before, after *config.FileConfigEngine) bool {

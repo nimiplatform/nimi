@@ -1,0 +1,29 @@
+{
+  "schema": "nimi.proto-wire-baseline/v1",
+  "image": {
+    "path": "runtime/proto/runtime-v1.baseline.binpb",
+    "format": "file-descriptor-set-without-source-info",
+    "sha256": "aa05159f6ca40b05b4bf7dacb2f52fe52ca28505cf8ef5a88644989275cc2f5d"
+  },
+  "source": {
+    "tag": "sdk/v0.15.0",
+    "commit": "13cd898b748e419f07647a7d44f96ae078b1e19e",
+    "publishedArtifacts": [
+      "npm:@nimiplatform/sdk@0.15.0",
+      "npm:@nimiplatform/kit@0.11.0",
+      "npm:@nimiplatform/kit-protected-local-darwin-arm64@0.11.0",
+      "npm:@nimiplatform/kit-protected-local-win32-x64@0.11.0",
+      "crates:nimi-shell-protected-local@0.6.0",
+      "crates:nimi-shell-tauri@0.6.0"
+    ]
+  },
+  "refresh": {
+    "previous": {
+      "source": "unrecorded snapshot written by a81725b42 on 2026-09-04; not a published tag",
+      "imageSha256": "30c20def5a15a96ed3450fafc3ff2b891f07f3a25be9489724b5f0e580716e0e"
+    },
+    "breakingFromPrevious": [],
+    "adjudication": "No breaking difference from the replaced snapshot under the PACKAGE rules. Every definition published at sdk/v0.15.0 but absent from that snapshot (including SCENARIO_TYPE_AUDIO_SEPARATE, SCENARIO_TYPE_TEXT_ANNOTATE and reference_audio_input) is now protected. npm provenance of every listed npm artifact and crates.io trusted publishing of both crates name this commit; it is the current npm latest SDK/Kit wire."
+  },
+  "declaredBreaking": []
+}

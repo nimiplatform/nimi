@@ -22,6 +22,7 @@ import {
 } from './chat-agent-shell-view-model';
 import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 import { AgentIntroduction } from '@nimiplatform/kit/features/chat/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentConversationSettingsContent } from './chat-agent-shell-presentation-settings';
@@ -178,7 +179,26 @@ export function useAgentConversationPresentation(
     threads: targetSummaries,
     selectedTargetId,
     loading: input.isBundleLoading,
-    error: input.bundleError instanceof Error ? input.bundleError.message : input.bundleError ? String(input.bundleError) : null,
+    error: input.bundleError
+      ? input.t('Chat.agentTranscriptLoadFailed', { defaultValue: 'This conversation could not be loaded.' })
+      : null,
+    errorAction: input.bundleError ? (
+      <div className="flex flex-col items-center gap-2">
+        {input.onRetryBundle ? (
+          <Button tone="secondary" size="sm" onClick={input.onRetryBundle}>
+            {input.t('Chat.agentTranscriptRetry', { defaultValue: 'Try again' })}
+          </Button>
+        ) : null}
+        <details className="text-xs text-[var(--nimi-text-secondary)]">
+          <summary className="cursor-pointer font-semibold">
+            {input.t('Feedback.technicalDetails', { defaultValue: 'Technical details' })}
+          </summary>
+          <pre className="mt-1 whitespace-pre-wrap break-words text-left font-mono text-[11px]">
+            {input.bundleError instanceof Error ? input.bundleError.message : String(input.bundleError)}
+          </pre>
+        </details>
+      </div>
+    ) : null,
     footerViewState: surfaceState.footer,
     footerContent: input.activeThreadId && surfaceState.footer.shouldRender
       ? (
@@ -228,6 +248,7 @@ export function useAgentConversationPresentation(
     input.activeThreadId,
     input.bundleError,
     input.isBundleLoading,
+    input.onRetryBundle,
     input.reasoningLabel,
     input.renderMessageAccessory,
     input.renderMessageContent,
@@ -293,7 +314,7 @@ export function useAgentConversationPresentation(
         <div className="space-y-3">
           {hostFeedbackNode}
           <AgentCanonicalComposer
-            composerKey={`${input.activeThreadId || 'none'}:${input.composerPrefillRequestId ?? 0}`}
+            composerKey={`${input.activeTarget?.agentHandle || 'none'}:${input.activeThreadId || 'none'}:${input.composerPrefillRequestId ?? 0}`}
             initialText={input.currentComposerTextRef.current}
             disabled={Boolean(surfaceState.composer?.disabled) || input.voiceInput.opening === true}
             runtimeHint={input.voiceInput.opening

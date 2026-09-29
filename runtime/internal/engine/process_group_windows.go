@@ -8,10 +8,21 @@ import (
 	"os/exec"
 	"sync"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
+
+// Windows binds every supervised tree to a Job Object that closes with this
+// Runtime, so no owner guard is needed.
+type supervisorOwnerRelease struct{}
+
+func guardSupervisorProcessOwner(_ *exec.Cmd, _ time.Duration) (*os.File, *supervisorOwnerRelease, error) {
+	return nil, nil, nil
+}
+
+func (*supervisorOwnerRelease) release() {}
 
 type supervisorProcessLifecycle struct {
 	mu     sync.Mutex

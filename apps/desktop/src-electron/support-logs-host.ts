@@ -57,7 +57,7 @@ export function createDesktopElectronSupportLogsHost(input: {
         if (Object.keys(payload).length !== 0) {
           throw new Error('desktop-logs-export-payload-invalid');
         }
-        return input.operationGate.runDiagnostic(async () => exportDesktopElectronSupportLogs({
+        return input.operationGate.runSharedDiagnostic(async () => exportDesktopElectronSupportLogs({
           dataRoot: await input.resolveSelectedDataRoot(),
           downloadsDirectory: input.downloadsDirectory,
           revealFile: input.revealFile,

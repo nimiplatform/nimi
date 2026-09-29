@@ -31,6 +31,7 @@ pub struct RuntimeBridgeDesktopAccountBeginLoginResponse {
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub production_inert: bool,
+    pub audit_diagnostic: Option<nimi_shell_protected_local::DesktopAccountAuditDiagnostic>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,6 +54,7 @@ pub struct RuntimeBridgeDesktopAccountMutationResponse {
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub production_inert: bool,
+    pub audit_diagnostic: Option<nimi_shell_protected_local::DesktopAccountAuditDiagnostic>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -154,6 +156,7 @@ pub async fn begin_login(
         reason_code: response.reason_code,
         account_reason_code: response.account_reason_code,
         production_inert: response.production_inert,
+        audit_diagnostic: response.audit_diagnostic,
     })
 }
 
@@ -177,6 +180,7 @@ pub async fn complete_login(
         reason_code: response.reason_code,
         account_reason_code: response.account_reason_code,
         production_inert: response.production_inert,
+        audit_diagnostic: response.audit_diagnostic,
     })
 }
 
@@ -230,6 +234,7 @@ pub async fn logout(
         reason_code: response.reason_code,
         account_reason_code: response.account_reason_code,
         production_inert: response.production_inert,
+        audit_diagnostic: response.audit_diagnostic,
     })
 }
 
@@ -248,6 +253,7 @@ pub async fn switch_account(
         reason_code: response.reason_code,
         account_reason_code: response.account_reason_code,
         production_inert: response.production_inert,
+        audit_diagnostic: response.audit_diagnostic,
     })
 }
 

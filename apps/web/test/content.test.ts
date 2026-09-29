@@ -116,3 +116,14 @@ test('navigation and menu labels support keyboard-accessible section routing', a
     assert.ok(content.nav.closeMenu.length > 0);
   }
 });
+
+test('landing copy states download availability and the account requirement without unpublished adapters', async () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const content = await loadLandingContent(locale);
+    const serialized = JSON.stringify(content);
+    assert.doesNotMatch(content.hero.downloadNote, /Available for macOS and Windows|支持 macOS 与 Windows/u);
+    assert.match(content.hero.downloadNote, locale === 'zh' ? /Nimi 账号/u : /Nimi account/);
+    assert.match(content.getStarted.availability, locale === 'zh' ? /Nimi 账号/u : /Nimi account/);
+    assert.doesNotMatch(serialized, /Mastra/);
+  }
+});

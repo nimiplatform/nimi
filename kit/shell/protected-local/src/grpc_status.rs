@@ -272,6 +272,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_VIDEO_SESSION_GENERATION_INVALID" => {
             LocalAppReasonCode::AiVideoSessionGenerationInvalid
         }
+        "AI_MEDIA_CODEC_UNAVAILABLE" => LocalAppReasonCode::AiMediaCodecUnavailable,
         "AI_LOCAL_EXECUTION_LOAD_FAILED" => LocalAppReasonCode::AiLocalExecutionLoadFailed,
         "AI_LOCAL_EXECUTION_INFERENCE_FAILED" => {
             LocalAppReasonCode::AiLocalExecutionInferenceFailed
@@ -363,6 +364,7 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
             NimiHostErrorReasonCode::PrincipalUnauthorized
         }
         "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH" => NimiHostErrorReasonCode::RuntimeRestarted,
+        "RUNTIME_STORED_DATA_UNSUPPORTED" => NimiHostErrorReasonCode::RuntimeStoredDataUnsupported,
         "LOCAL_APP_RECORD_NOT_FOUND"
         | "LOCAL_APP_RECORD_TOMBSTONED"
         | "LOCAL_APP_PROVENANCE_UNAVAILABLE" => {
@@ -782,6 +784,7 @@ mod tests {
                 "AI_VIDEO_SESSION_GENERATION_INVALID",
                 "ai-video-session-generation-invalid",
             ),
+            ("AI_MEDIA_CODEC_UNAVAILABLE", "ai-media-codec-unavailable"),
             (
                 "AI_LOCAL_EXECUTION_LOAD_FAILED",
                 "ai-local-execution-load-failed",

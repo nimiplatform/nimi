@@ -683,7 +683,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-018",
           "values": {
-            "nimi-accent": "rgba(20,118,212,0.28)"
+            "nimi-accent": "#1476D4"
           }
         },
         "focus.ring_offset": {
@@ -1528,7 +1528,7 @@
           "sourceRule": "P-DESIGN-003",
           "values": {
             "nimi-dark": "var(--nimi-status-danger)",
-            "nimi-light": "var(--nimi-status-danger)"
+            "nimi-light": "#b91c1c"
           }
         },
         "status.info": {
@@ -1568,7 +1568,7 @@
           "sourceRule": "P-DESIGN-003",
           "values": {
             "nimi-dark": "var(--nimi-status-info)",
-            "nimi-light": "var(--nimi-status-info)"
+            "nimi-light": "#1d4ed8"
           }
         },
         "status.neutral": {
@@ -1648,7 +1648,7 @@
           "sourceRule": "P-DESIGN-003",
           "values": {
             "nimi-dark": "var(--nimi-status-success)",
-            "nimi-light": "var(--nimi-status-success)"
+            "nimi-light": "#166534"
           }
         },
         "status.warning": {
@@ -1688,7 +1688,7 @@
           "sourceRule": "P-DESIGN-003",
           "values": {
             "nimi-dark": "var(--nimi-status-warning)",
-            "nimi-light": "var(--nimi-status-warning)"
+            "nimi-light": "#92400e"
           }
         }
       },

@@ -83,6 +83,7 @@
     "readFailed": "The App Catalog could not be read right now. Try again later."
   },
   "catalogNotImplemented": "Public App catalog search is not implemented yet.",
+  "actionFailed": "This action didn't complete. You can try again later.",
   "installedAccess": {
     "ready": "Nimi Access ready",
     "unavailable": "Nimi Access unavailable"
@@ -106,6 +107,8 @@
   "emptyTitle": "No apps in inventory",
   "empty": "Install an account app or connect a local app.",
   "error": "Unable to load Apps: {{detail}}",
+  "lifecycleReadFailed": "Installed apps' run state can't be read right now. Try again in a moment.",
+  "chooseSource": "\"{{app}}\" has more than one source. Choose the one to open below.",
   "loading": "Loading apps...",
   "sourceManager": {
     "title": "App sources",

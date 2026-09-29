@@ -6,7 +6,7 @@ Nimi is an installable, open-source, local-first personal AI product: use AI app
 
 [Download status](https://nimi.ai/download) · [Website](https://nimi.ai) · [Documentation](https://docs.nimi.ai) · [Releases](https://github.com/nimiplatform/nimi/releases) · [Discord](https://discord.gg/BQwHJvPn)
 
-A stable public installer is not available yet. The earlier developer previews were withdrawn; the source remains available for development. The [Download page](https://nimi.ai/download) always carries the current per-platform status.
+Nimi is not available to install yet: no installer or developer preview is published, and the earlier developer previews were withdrawn. The source remains available for development. Using Nimi requires a Nimi account; you sign in through your browser. The [Download page](https://nimi.ai/download) always carries the current per-platform status.
 
 ## What you can do with Nimi
 
@@ -42,7 +42,7 @@ Verified Catalog discovery, installation, update, launch, focus, stop, access ma
 Build something new, or adapt an existing project.
 
 - **Nimi SDK** — one typed interface to local and cloud AI capabilities.
-- **Adapters** — `@nimiplatform/sdk-adapter-vercel-ai` and `@nimiplatform/sdk-adapter-mastra` connect existing frameworks.
+- **Adapter** — `@nimiplatform/sdk-adapter-vercel-ai` connects Vercel AI SDK 6 projects; install a release whose SDK peer range covers the SDK version you use.
 - **Scaffold** — create a local app project:
 
 ```bash
@@ -56,7 +56,7 @@ Start with the [Create a Nimi App guide](https://docs.nimi.ai/start/create-an-ap
 - **Source** — the platform core (runtime, SDK, Kit, Proto) is open; the Realm implementation is not part of the public distribution. See [LICENSE](LICENSE) for the per-component map.
 - **Security** — report vulnerabilities through [GitHub Security Advisories](https://github.com/nimiplatform/nimi/security/advisories/new) or `security@nimi.ai`. See [SECURITY.md](SECURITY.md).
 - **Code signing** — the current signing scope and status are recorded in the [Code signing policy](https://nimi.ai/code-signing).
-- **Local-first** — conversations and AI work can run on your own machine with local models; cloud capabilities are used only when you choose them.
+- **Local-first** — conversations and AI work can run on your own machine with local models; cloud capabilities are used only when you choose them. Nimi still requires a Nimi account: signing in, account features, and Realm content such as worlds and characters use Nimi's online services.
 
 ## Platform
 

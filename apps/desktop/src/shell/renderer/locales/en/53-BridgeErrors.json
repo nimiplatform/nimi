@@ -24,6 +24,7 @@
     "AI_MEDIA_IDEMPOTENCY_CONFLICT": "Media task idempotency conflict occurred.",
     "AI_MEDIA_JOB_NOT_FOUND": "Media task was not found.",
     "AI_MEDIA_SPEC_INVALID": "Media specification is invalid.",
+    "AI_MEDIA_CODEC_UNAVAILABLE": "The audio and video converter Nimi uses isn't available on this device, so this audio or video can't be prepared.",
     "AI_MEDIA_OPTION_UNSUPPORTED": "Media option is not supported.",
     "AI_MEDIA_JOB_NOT_CANCELLABLE": "Media task cannot be canceled.",
     "AI_LOCAL_MODEL_UNAVAILABLE": "Runtime local execution is unavailable.",

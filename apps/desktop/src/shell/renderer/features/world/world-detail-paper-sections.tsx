@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
+import { useWorldMaterialization } from './world-materialization-context.js';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, NimiText, Statistic, Surface, cn } from '@nimiplatform/kit/ui';
 import type { WorldAssetExternalRef, WorldCharacter, WorldHistoryBundle, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
@@ -293,7 +294,8 @@ function PaperCharacterAction({
       </span>
     );
   }
-  const connectable = state === 'connectable';
+  const materialization = useWorldMaterialization();
+  const connectable = state === 'connectable' && materialization.ready && !materialization.isPending(character);
   const label = t('WorldDetail.paper.characters.connect');
   return (
     <button

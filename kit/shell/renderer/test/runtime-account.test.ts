@@ -509,3 +509,11 @@ describe('protected Desktop account status', () => {
     await expect(switchRuntimeAccount('desktop_switch_account')).rejects.toThrow(/accepted mutation response/);
   });
 });
+
+it('preserves an unrecorded audit diagnostic without changing the committed account state', () => {
+  const auditDiagnostic = { reasonCode: 769, actionHint: 'inspect_runtime_audit', message: 'The change committed.' };
+  const parsed = parseDesktopAccountSessionStatus({ sequence: '1', state: 'anonymous', reasonCode: 1, accountReasonCode: 1, accountProjection: null, auditDiagnostic });
+  expect(parsed.state).toBe('anonymous');
+  expect(parsed.auditDiagnostic).toEqual(auditDiagnostic);
+  expect(() => parseDesktopAccountSessionStatus({ ...parsed, auditDiagnostic: { ...auditDiagnostic, reasonCode: 100 } })).toThrow();
+});

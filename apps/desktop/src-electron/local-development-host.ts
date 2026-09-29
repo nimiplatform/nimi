@@ -1,7 +1,7 @@
 import type { DesktopExecutorObservation } from './execution-notices-host.js';
 import { PNG } from 'pngjs';
 import { parse as parseYaml } from 'yaml';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
 import { open, readFile, readdir } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
@@ -194,6 +194,9 @@ export class ElectronLocalDevelopmentHost {
   private shutdownPromise: Promise<void> | undefined;
   private shutdownComplete = false;
   private readonly presencePublisher: DesktopElectronLocalDevelopmentPresencePublisher;
+  // Only a caller that can read the owner-only presence file (the official
+  // launcher, as this OS user) can present it; other local callers get 401.
+  private readonly callerToken = randomBytes(32).toString('hex');
 
   constructor(
     private readonly control: NimiElectronLocalDevelopmentControl,
@@ -215,7 +218,7 @@ export class ElectronLocalDevelopmentHost {
     if (!address || typeof address === 'string') throw new Error('local-development-supervisor-required');
     this.endpoint = `http://127.0.0.1:${address.port}`;
     try {
-      await this.presencePublisher.start(this.endpoint);
+      await this.presencePublisher.start(this.endpoint, this.callerToken);
     } catch (error) {
       const server = this.server;
       this.server = undefined;
@@ -346,7 +349,22 @@ export class ElectronLocalDevelopmentHost {
     if (failures.length > 0) throw new AggregateError(failures, 'local-development-supervisor-shutdown-failed');
   }
 
+  private callerPresentedToken(header: string | undefined): boolean {
+    const presented = /^Bearer ([0-9a-f]{64})$/u.exec(header ?? '')?.[1];
+    return presented !== undefined
+      && timingSafeEqual(Buffer.from(presented, 'utf8'), Buffer.from(this.callerToken, 'utf8'));
+  }
+
   private async handleHttp(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    if (!this.callerPresentedToken(request.headers.authorization)) {
+      response.writeHead(401, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({
+        status: 'error',
+        reasonCode: 'local-development-caller-unverified',
+        actionHint: 'use_official_nimi_app_dev_launcher',
+      }));
+      return;
+    }
     try {
       if (request.method !== 'POST'
         || request.headers.origin !== undefined

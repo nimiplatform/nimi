@@ -50,16 +50,16 @@ packs:
       status.neutral.soft_text: var(--nimi-status-neutral)
       status.success.soft_bg: color-mix(in srgb, var(--nimi-status-success) 15%, transparent)
       status.success.soft_border: color-mix(in srgb, var(--nimi-status-success) 26%, transparent)
-      status.success.soft_text: var(--nimi-status-success)
+      status.success.soft_text: "#166534"
       status.warning.soft_bg: color-mix(in srgb, var(--nimi-status-warning) 15%, transparent)
       status.warning.soft_border: color-mix(in srgb, var(--nimi-status-warning) 26%, transparent)
-      status.warning.soft_text: var(--nimi-status-warning)
+      status.warning.soft_text: "#92400e"
       status.danger.soft_bg: color-mix(in srgb, var(--nimi-status-danger) 15%, transparent)
       status.danger.soft_border: color-mix(in srgb, var(--nimi-status-danger) 26%, transparent)
-      status.danger.soft_text: var(--nimi-status-danger)
+      status.danger.soft_text: "#b91c1c"
       status.info.soft_bg: color-mix(in srgb, var(--nimi-status-info) 15%, transparent)
       status.info.soft_border: color-mix(in srgb, var(--nimi-status-info) 26%, transparent)
-      status.info.soft_text: var(--nimi-status-info)
+      status.info.soft_text: "#1d4ed8"
       color.indigo: "#6366f1"
       radius.sm: 8px
       radius.md: 12px
@@ -414,7 +414,7 @@ packs:
       sidebar.item_active: rgba(20,118,212,0.16)
       sidebar.item_hover: rgba(20,118,212,0.08)
       field.focus: "#1476D4"
-      focus.ring_color: rgba(20,118,212,0.28)
+      focus.ring_color: "#1476D4"
   - theme_id: nimi-density-compact
     pack_kind: density
     source_rule: P-DESIGN-028

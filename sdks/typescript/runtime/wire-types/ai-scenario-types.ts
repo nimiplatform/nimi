@@ -508,6 +508,7 @@ import type {
   LoadoutImpactProjection,
   LoadoutModelAxis,
   LoadoutModelAxisInput,
+  LoadoutRecipeContextFit,
   LoadoutRecipeCustodyDescriptor,
   LoadoutRecipeCustodyReference,
   LoadoutRecipeDescriptor,
@@ -577,6 +578,7 @@ export type {
   LoadoutImpactProjection,
   LoadoutModelAxis,
   LoadoutModelAxisInput,
+  LoadoutRecipeContextFit,
   LoadoutRecipeCustodyDescriptor,
   LoadoutRecipeCustodyReference,
   LoadoutRecipeDescriptor,
@@ -872,11 +874,15 @@ export type {
 };
 
 import type {
+  GetRuntimeServiceStateRequest,
+  GetRuntimeServiceStateResponse,
   RequestRuntimeRestartRequest,
   RequestRuntimeRestartResponse,
 } from "../../core-generated/runtime-protobuf/runtime/v1/runtime_service_control";
 
 export type {
+  GetRuntimeServiceStateRequest,
+  GetRuntimeServiceStateResponse,
   RequestRuntimeRestartRequest,
   RequestRuntimeRestartResponse,
 };

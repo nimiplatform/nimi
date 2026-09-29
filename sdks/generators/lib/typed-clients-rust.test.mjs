@@ -152,6 +152,13 @@ test('Rust Runtime typed admission excludes unsupported fields and streaming kin
   };
 
   assert.deepEqual(rustRuntimeTypedAdmittedMethodIds(runtime), ['/runtime/Ready']);
+  runtime.schema_types.messages.push('ErrorInfo');
+  const diagnostic = { name: 'ErrorInfo', fields: [{ name: 'message', type: 'string', repeated: false }] };
+  runtime.schema_types.message_schemas.push(diagnostic);
+  runtime.schema_types.message_schemas[1].fields.push({ name: 'audit_diagnostic', type: 'ErrorInfo', repeated: false });
+  assert.deepEqual(rustRuntimeTypedAdmittedMethodIds(runtime), ['/runtime/Ready']);
+  diagnostic.fields.push({ name: 'unsupported', type: 'map', repeated: false });
+  assert.deepEqual(rustRuntimeTypedAdmittedMethodIds(runtime), []);
 });
 
 test('Rust field identifiers escape active, reserved, and non-raw keywords', () => {

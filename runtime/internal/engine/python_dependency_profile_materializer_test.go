@@ -225,53 +225,6 @@ func TestVerifyPythonDependencyProfileInterpreterProbeRejectsIdentityDrift(t *te
 	}
 }
 
-func TestEnsurePythonDependencyProfileReusesConsumerIndependentMediaProfile(t *testing.T) {
-	platform := currentGOOS() + "/" + currentGOARCH()
-	imageIdentity, err := ResolvePythonDependencyProfileIdentity("media.diffusers.cpu", platform, "cpu")
-	if err != nil {
-		t.Skipf("current host has no admitted CPU dependency profile: %v", err)
-	}
-	videoIdentity, err := ResolvePythonDependencyProfileIdentity("media.video-python.cpu", platform, "cpu")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if imageIdentity.ProfileDigest != videoIdentity.ProfileDigest {
-		t.Fatalf("media consumers with equal complete inputs do not share a profile: image=%s video=%s", imageIdentity.ProfileDigest, videoIdentity.ProfileDigest)
-	}
-	manager, uvPath, runtimePath := newPythonDependencyProfileTestManager(t)
-	runner := &pythonDependencyProfileTestRunner{
-		t:            t,
-		uvPath:       uvPath,
-		runtimePath:  runtimePath,
-		torchVersion: "2.7.1+cpu",
-	}
-	imageStatus, err := manager.ensurePythonDependencyProfile(
-		context.Background(), uvPath, runtimePath, "media.diffusers.cpu", platform, "cpu", runner.run,
-	)
-	if err != nil {
-		t.Fatalf("materialize shared media profile: %v", err)
-	}
-	uvCalls := countPythonDependencyProfileCommands(runner.commands, uvPath)
-	videoStatus, err := manager.ensurePythonDependencyProfile(
-		context.Background(), uvPath, runtimePath, "media.video-python.cpu", platform, "cpu", runner.run,
-	)
-	if err != nil {
-		t.Fatalf("reuse shared media profile: %v", err)
-	}
-	if !videoStatus.Reused || videoStatus.ProfileRoot != imageStatus.ProfileRoot {
-		t.Fatalf("shared media profile reuse = %+v", videoStatus)
-	}
-	if got := countPythonDependencyProfileCommands(runner.commands, uvPath); got != uvCalls {
-		t.Fatalf("second media consumer reverified shared generation: before=%d after=%d", uvCalls, got)
-	}
-	if len(videoStatus.DriverScripts) != 1 || filepath.Base(videoStatus.DriverScripts[0]) != "media_server.py" {
-		t.Fatalf("media Driver scripts = %v", videoStatus.DriverScripts)
-	}
-	if err := verifyRegularEmbeddedFile(videoStatus.DriverScripts[0], []byte(mediaServerScript), "media pipeline script"); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestEnsurePythonDependencyProfileStagesPromotesAndReusesReadOnly(t *testing.T) {
 	platform := currentGOOS() + "/" + currentGOARCH()
 	identity, err := ResolvePythonDependencyProfileIdentity("speech.qwen3-tts.python", platform, "cpu")

@@ -73,9 +73,12 @@ const loadout = {
   revision: 'rev_loadout_1',
 };
 
+const reducedContextOptions = { fields: { contextSize: { kind: { oneofKind: 'numberValue' as const, numberValue: 98304 } } } };
+const reducedContextFit = { authoredContextSize: '262144', recommendedContextSize: '98304', recommendedOptions: reducedContextOptions };
+
 const recipe = {
   recipeId: loadout.recipeId, revision: '1', title: 'Gemma 4 E2B text generation', capabilityContract: 'text.generate',
-  implementation: loadout.implementation, defaultOptions: undefined, implementationSupportedFeatures: [],
+  implementation: loadout.implementation, defaultOptions: undefined, recommendedOptions: reducedContextOptions, implementationSupportedFeatures: [],
   applicability: LocalRecommendationApplicability.SUPPORTED,
   reasons: [],
   slots: [
@@ -90,8 +93,8 @@ const recipe = {
           lastModified: '', verified: true, installed: true, installable: true,
         },
         applicability: LocalRecommendationApplicability.SUPPORTED,
-        reasons: [], installedModelAssetId: 'model_1',
-      }], applicability: LocalRecommendationApplicability.SUPPORTED, reasons: [],
+        reasons: [], installedModelAssetId: 'model_1', contextFit: reducedContextFit,
+      }], recommendedContextFit: reducedContextFit, applicability: LocalRecommendationApplicability.SUPPORTED, reasons: [],
       presence: LocalCapabilityRequirementPresence.REQUIRED,
       conditionalFeatures: [],
     },
@@ -123,6 +126,9 @@ test('Loadout SDK exposes only prepare/commit/update/select/delete mutation sema
   const listedRecipe = (await client.listRecipes('text.generate'))[0];
   assert.equal(listedRecipe?.recipeId, recipe.recipeId);
   assert.equal(listedRecipe?.applicability, 'supported');
+  assert.deepEqual(listedRecipe?.defaultOptions, {});
+  assert.deepEqual(listedRecipe?.recommendedOptions, { contextSize: 98304 });
+  const projectedContextFit = { authoredContextSize: 262144, recommendedContextSize: 98304, recommendedOptions: { contextSize: 98304 } };
   assert.deepEqual(listedRecipe?.slots[0], {
     slotId: 'main.gguf',
     displayLabel: 'Main model',
@@ -150,7 +156,9 @@ test('Loadout SDK exposes only prepare/commit/update/select/delete mutation sema
       applicability: 'supported',
       reasons: [],
       installedModelAssetId: 'model_1',
+      contextFit: projectedContextFit,
     }],
+    recommendedContextFit: projectedContextFit,
     applicability: 'supported',
     reasons: [],
     modelContract: {},
@@ -255,6 +263,26 @@ test('Loadout SDK exposes only prepare/commit/update/select/delete mutation sema
   const clearedRequest = calls.filter((call) => call.method === 'selectLoadout')[1]?.request;
   assert.equal(clearedRequest?.expectedSelectionRevision, '');
   assert.equal(clearedRequest?.expectedCandidateRevision, '');
+});
+
+test('Loadout SDK fails closed on an incomplete or impossible context fit', async () => {
+  const listWith = async (patch: (value: typeof recipe) => unknown) => {
+    const rpc = { async listLoadoutRecipes() { return { recipes: [patch(structuredClone(recipe))] }; } } as unknown as NimiMachineLoadoutRpcClient;
+    return createNimiMachineLoadoutClient({ runtime: rpc }).listRecipes('text.generate');
+  };
+  await assert.rejects(listWith((value) => ({ ...value, recommendedOptions: undefined })), /recommended_options is missing/u);
+  await assert.rejects(listWith((value) => {
+    value.slots[0]!.recommendedContextFit = { ...reducedContextFit, recommendedContextSize: '524288' };
+    return value;
+  }), /exceeds the authored context capacity/u);
+  await assert.rejects(listWith((value) => {
+    value.slots[0]!.offers[0]!.contextFit = { ...reducedContextFit, authoredContextSize: '0' };
+    return value;
+  }), /authored_context_size is invalid/u);
+  await assert.rejects(listWith((value) => {
+    value.slots[0]!.recommendedContextFit = { ...reducedContextFit, recommendedOptions: undefined as never };
+    return value;
+  }), /context fit recommended_options is missing/u);
 });
 
 test('Loadout SDK forwards expected revisions and projects condition conflicts without an RPC error', async () => {

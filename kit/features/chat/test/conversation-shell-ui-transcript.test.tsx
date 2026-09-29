@@ -383,6 +383,31 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.querySelector('[role="status"]')?.getAttribute('aria-label')).toBe('伙伴正在回复');
   });
 
+  it('renders a host recovery control under a transcript error instead of the empty state', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const retry = vi.fn();
+
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          messages={[]}
+          error="This conversation could not be loaded."
+          errorAction={<button type="button" onClick={retry}>Try again</button>}
+          emptyTitle="Start a conversation"
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.textContent).toContain('This conversation could not be loaded.');
+    expect(container.textContent).not.toContain('Start a conversation');
+    const button = [...container.querySelectorAll('button')].find((element) => element.textContent === 'Try again');
+    await act(async () => { button?.click(); });
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
   it('localizes relationship state through shared chat copy', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

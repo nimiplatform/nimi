@@ -5,6 +5,7 @@ import {
   localAppProjectionError,
   nonNegativeInteger,
 } from './local-app-runtime-platform-validation';
+import { isNimiLocalAppByteView } from './local-app-bytes.js';
 
 const MAX_PATH_BYTES = 1024;
 const MAX_PATH_COMPONENTS = 32;
@@ -154,7 +155,7 @@ function projectAssetRead(value: unknown): NimiLocalAppAssetReadResult {
             const next = await upstream.next();
             if (next.done) break;
             const chunk = next.value;
-            if (!(chunk instanceof Uint8Array) || chunk.byteLength === 0 || chunk.byteLength > MAX_CHUNK_BYTES) return localAppProjectionError('asset read chunk');
+            if (!isNimiLocalAppByteView(chunk) || chunk.byteLength === 0 || chunk.byteLength > MAX_CHUNK_BYTES) return localAppProjectionError('asset read chunk');
             observed += chunk.byteLength;
             if (!Number.isSafeInteger(observed) || observed > length) return localAppProjectionError('asset read length');
             yield new Uint8Array(chunk);

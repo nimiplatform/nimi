@@ -1,4 +1,5 @@
 {
   "dismiss": "Dismiss feedback",
-  "technicalDetails": "Technical details"
+  "technicalDetails": "Technical details",
+  "auditResultUnrecorded": "The change took effect, but its audit record could not be saved. Do not repeat the change. Contact support if recording keeps failing."
 }

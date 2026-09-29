@@ -284,3 +284,44 @@ func nativeSDCPPEnvironmentHostOS(environmentKey string) string {
 	}
 	return strings.ToLower(platform)
 }
+
+// @nimi-authority: rule.nimi.runtime.local-compute.media-codec-dependency
+func (s *Service) executeMediaCodecEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+	if job.DependencyID != engine.MediaCodecDependencyID || job.ConsumerScope != "media-codec" {
+		return localEnvironmentDependencyJobResult{State: localEnvironmentStateUnsupported, SourceKind: localEnvironmentSourceUnavailable, AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"}, nil
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return localEnvironmentDependencyJobResult{}, errors.New("runtime dependency manager unavailable")
+	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
+	supply, err := mgr.EnsureMediaCodecDependency(localEnvironmentEngineDownloadProgressContext(ctx, report))
+	if err != nil {
+		return localEnvironmentDependencyJobResult{}, err
+	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateVerifying)
+	return localEnvironmentDependencyJobResult{State: localEnvironmentStateReadyManaged, SourceKind: localEnvironmentSourceManaged, CanonicalRoot: supply.CanonicalRoot, Version: supply.Version, VerifiedArtifacts: supply.VerifiedArtifacts, Hashes: supply.Hashes, CompatibilityEvidence: []string{"ffmpeg_ffprobe_verified", "license=GPL-3.0-or-later"}, SelectedConsumers: []string{"media-codec"}, AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED"}, nil
+}
+
+// ResolveMediaCodecDependency observes selected supply without starting work.
+func (s *Service) ResolveMediaCodecDependency(ctx context.Context) (string, string, error) {
+	if s == nil {
+		return "", "", errors.New("media codec owner unavailable")
+	}
+	record, ready, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyMediaCodec, "media-codec")
+	if !ready {
+		return "", "", errors.New("media codec needs explicit component preparation")
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return "", "", errors.New("media codec manager unavailable")
+	}
+	ffmpeg, probe, err := mgr.ResolveMediaCodecDependency(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	if filepath.Dir(filepath.Dir(ffmpeg)) != record.CanonicalRoot {
+		return "", "", errors.New("media codec selected source differs from current supply")
+	}
+	return ffmpeg, probe, nil
+}

@@ -15,6 +15,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/apphostprofile"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -31,13 +32,13 @@ type ProductControlCheckSyncInput struct {
 }
 
 type ProductControlCheckSyncResourceResult struct {
-	Kind       string  `json:"kind"`
-	Reference  *string `json:"reference,omitempty"`
-	Locator    *string `json:"locator,omitempty"`
-	Status     string  `json:"status"`
-	Change     *string `json:"change,omitempty"`
-	Reason     string  `json:"reason"`
-	NextAction *string `json:"nextAction,omitempty"`
+	Kind       string                      `json:"kind"`
+	Reference  *string                     `json:"reference,omitempty"`
+	Locator    *string                     `json:"locator,omitempty"`
+	Status     string                      `json:"status"`
+	Change     *string                     `json:"change,omitempty"`
+	Reason     string                      `json:"reason"`
+	NextAction *engine.CheckSyncNextAction `json:"nextAction,omitempty"`
 }
 
 type ProductControlCheckSyncOwnerResult struct {

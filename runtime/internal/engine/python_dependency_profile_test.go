@@ -159,20 +159,13 @@ func containsStringValue(values []string, target string) bool {
 	return false
 }
 
-func TestResolvePythonDependencyProfileIdentityReusesCompleteMediaFingerprintAcrossConsumers(t *testing.T) {
-	image, err := ResolvePythonDependencyProfileIdentity("media.diffusers.cuda", "windows/amd64", "cuda")
-	if err != nil {
-		t.Fatalf("resolve image dependency profile: %v", err)
-	}
-	video, err := ResolvePythonDependencyProfileIdentity("media.video-python.cuda", "windows/amd64", "cuda")
-	if err != nil {
-		t.Fatalf("resolve video dependency profile: %v", err)
-	}
-	if image.DependencyID != video.DependencyID || image.ProfileDigest != video.ProfileDigest {
-		t.Fatalf("equal media dependency/Driver inputs did not reuse one profile: image=%+v video=%+v", image, video)
-	}
-	if image.TorchVersion != "2.7.1" || image.CUDAABI != "cu126" || image.DriverProtocol != mediaDriverProtocolVersion || !strings.Contains(image.PackageSource, "/cu126") {
-		t.Fatalf("media profile identity is incomplete: %+v", image)
+func TestResolvePythonDependencyProfileIdentityRejectsRetiredMediaPipelineConsumers(t *testing.T) {
+	for _, consumer := range []string{"media.diffusers.cpu", "media.diffusers.cuda", "media.video-python.cpu", "media.video-python.cuda"} {
+		for _, plane := range []string{"cpu", "cuda"} {
+			if identity, err := ResolvePythonDependencyProfileIdentity(consumer, "windows/amd64", plane); err == nil {
+				t.Fatalf("retired media pipeline consumer %s resolved a %s dependency profile: %+v", consumer, plane, identity)
+			}
+		}
 	}
 }
 
@@ -244,9 +237,7 @@ func TestPythonDependencyProfileLocksBindTorchToDeclaredIndex(t *testing.T) {
 		companionWheel string
 	}{
 		{label: "speech-tts-cu128", index: defaultSpeechTorchCUDAIndexURL, companionWheel: "torchaudio"},
-		{label: "speech-tts-cpu", index: defaultMediaTorchCPUIndexURL, companionWheel: "torchaudio"},
-		{label: "media-pipeline-cu126", index: defaultMediaTorchIndexURL, companionWheel: "torchvision"},
-		{label: "media-pipeline-cpu", index: defaultMediaTorchCPUIndexURL, companionWheel: "torchvision"},
+		{label: "speech-tts-cpu", index: defaultTorchCPUIndexURL, companionWheel: "torchaudio"},
 	} {
 		project, err := pythonDependencyProfileInput(test.label, "pyproject.toml")
 		if err != nil {

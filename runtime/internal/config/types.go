@@ -146,18 +146,6 @@ type Config struct {
 	// Default: 1234. (K-LENG-004)
 	EngineLlamaPort int
 
-	// EngineMediaEnabled enables the supervised media engine.
-	// Default: false. (K-LENG-004)
-	EngineMediaEnabled bool
-
-	// EngineMediaVersion is the managed media engine version.
-	// Default: "0.1.0". (K-LENG-004)
-	EngineMediaVersion string
-
-	// EngineMediaPort is the port for the supervised media engine.
-	// Default: 8321. (K-LENG-004)
-	EngineMediaPort int
-
 	// EngineManagedImageBackendSource is a runtime-private selector for the
 	// managed image backend package source. Empty means canonical source.
 	EngineManagedImageBackendSource string
@@ -275,7 +263,6 @@ type FileConfigScheduling struct {
 // FileConfigEngines holds supervised engine configuration in the config file.
 type FileConfigEngines struct {
 	Llama  *FileConfigEngine `json:"llama,omitempty"`
-	Media  *FileConfigEngine `json:"media,omitempty"`
 	Speech *FileConfigEngine `json:"speech,omitempty"`
 }
 

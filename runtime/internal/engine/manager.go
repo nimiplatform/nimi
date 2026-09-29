@@ -70,6 +70,7 @@ type Manager struct {
 	mu                         sync.RWMutex
 	uvToolMu                   sync.Mutex
 	espeakNGMu                 sync.Mutex
+	mediaCodecMu               sync.Mutex
 	pythonRuntimeMu            sync.Mutex
 	pythonProfileMu            sync.Mutex
 	pythonProfileLocks         map[string]chan struct{}
@@ -79,6 +80,9 @@ type Manager struct {
 	stopped                    bool
 	dataRootAdmissionClosed    bool
 	startStateChanged          chan struct{}
+	// lifetime ends when StopAll begins and cancels engine starts in flight.
+	lifetime    context.Context
+	endLifetime context.CancelFunc
 }
 
 // NewManager creates a new engine manager.
@@ -120,8 +124,13 @@ func NewManager(logger *slog.Logger, roots ManagedRoots, onState StateChangeFunc
 	if err != nil {
 		return nil, fmt.Errorf("load engine registry: %w", err)
 	}
+	// Engines a previous instance left running end before any engine starts.
+	reclaimStaleSupervisedProcesses(logger, baseDir)
 
+	lifetime, endLifetime := context.WithCancel(context.Background())
 	return &Manager{
+		lifetime:                          lifetime,
+		endLifetime:                       endLifetime,
 		logger:                            logger,
 		baseDir:                           baseDir,
 		depsDir:                           depsDir,
@@ -207,11 +216,6 @@ func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineCon
 	switch cfg.Kind {
 	case EngineLlama:
 		return m.requireLlamaBinaryDependency(cfg)
-	case EngineMedia:
-		m.mu.RLock()
-		runtimeWorkRoot := strings.TrimSpace(m.runtimeWorkRoot)
-		m.mu.RUnlock()
-		return ensureMedia(ctx, runtimeWorkRoot, cfg)
 	case EngineSpeech:
 		return ensureSpeech(ctx, m.baseDir, cfg)
 	default:
@@ -381,6 +385,12 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 		return err
 	}
 	defer m.finishEngineStart(cfg.Kind)
+	// A start still in flight when StopAll begins is canceled, not awaited.
+	ctx, cancelStart := context.WithCancel(ctx)
+	defer cancelStart()
+	if m.lifetime != nil {
+		defer context.AfterFunc(m.lifetime, cancelStart)()
+	}
 	cfg = m.applySpeechPaths(cfg)
 	cfg.SupervisedRoot = m.baseDir
 	if cfg.Kind == EngineLlama {
@@ -474,21 +484,35 @@ func (m *Manager) StopEngine(kind EngineKind) error {
 	return nil
 }
 
-// StopAll stops all running engines.
-func (m *Manager) StopAll() {
+// StopAll ends every engine within ctx: starts in flight are canceled,
+// running engines stop in parallel, and whatever still runs when ctx ends is
+// killed as a process tree.
+func (m *Manager) StopAll(ctx context.Context) {
 	type managedSupervisor struct {
 		kind EngineKind
 		sup  *Supervisor
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
 	m.mu.Lock()
 	m.stopped = true
 	m.dataRootAdmissionClosed = true
 	m.signalStartStateChangedLocked()
-	for len(m.starting) > 0 {
+	m.mu.Unlock()
+	if m.endLifetime != nil {
+		m.endLifetime()
+	}
+
+	m.mu.Lock()
+	for len(m.starting) > 0 && ctx.Err() == nil {
 		changed := m.startStateChanged
 		m.mu.Unlock()
-		<-changed
+		select {
+		case <-ctx.Done():
+		case <-changed:
+		}
 		m.mu.Lock()
 	}
 	sups := make([]managedSupervisor, 0, len(m.supervisors))
@@ -497,21 +521,53 @@ func (m *Manager) StopAll() {
 	}
 	m.mu.Unlock()
 
+	var wg sync.WaitGroup
 	for _, entry := range sups {
 		if entry.sup == nil {
 			m.removeSupervisorIfCurrent(entry.kind, nil)
 			continue
 		}
-		if err := entry.sup.Stop(); err != nil {
-			m.logger.Warn("stop engine failed",
-				"engine", entry.sup.cfg.Kind,
-				"error", err,
-			)
-			continue
+		wg.Add(1)
+		go func(entry managedSupervisor) {
+			defer wg.Done()
+			if err := entry.sup.Stop(); err != nil {
+				m.logger.Warn("stop engine failed",
+					"engine", entry.sup.cfg.Kind,
+					"error", err,
+				)
+				return
+			}
+			m.removeSupervisorIfCurrent(entry.kind, entry.sup)
+		}(entry)
+	}
+	stopped := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(stopped)
+	}()
+	select {
+	case <-stopped:
+		return
+	case <-ctx.Done():
+	}
+	if m.logger != nil {
+		m.logger.Warn("engine shutdown deadline reached; killing remaining engine process trees")
+	}
+	for _, entry := range sups {
+		if entry.sup != nil {
+			entry.sup.ForceStop()
 		}
-		m.removeSupervisorIfCurrent(entry.kind, entry.sup)
+	}
+	select {
+	case <-stopped:
+	case <-time.After(supervisorStopAllForceWait):
 	}
 }
+
+// supervisorStopAllForceWait bounds how long StopAll waits for trees it
+// killed after its deadline; a tree still present then ends with its owner
+// guard once this Runtime exits.
+const supervisorStopAllForceWait = time.Second
 
 func (m *Manager) QuiesceDataRoot(ctx context.Context) error {
 	if m == nil {
@@ -640,7 +696,7 @@ func (m *Manager) ListEngines() []SupervisorInfo {
 	}
 	m.mu.RUnlock()
 
-	knownKinds := []EngineKind{EngineLlama, EngineMedia, EngineSpeech}
+	knownKinds := []EngineKind{EngineLlama, EngineSpeech}
 	result := make([]SupervisorInfo, 0, len(running)+len(knownKinds))
 	seen := make(map[EngineKind]bool, len(running)+len(knownKinds))
 
@@ -676,8 +732,6 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 	switch kind {
 	case EngineLlama:
 		cfg = DefaultLlamaConfig()
-	case EngineMedia:
-		cfg = DefaultMediaConfig()
 	case EngineSpeech:
 		cfg = DefaultSpeechConfig()
 	default:

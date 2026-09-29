@@ -33,6 +33,9 @@ export function DesktopBrowserAuthGateSurface(props: { notice?: string | null; a
       continueLabel={t('Auth.browserSignInContinue', { defaultValue: '继续登录' })}
       pendingMessage={t('Auth.browserSignInPending', { defaultValue: '请在浏览器中完成登录' })}
       retryLabel={t('Auth.browserSignInRetry', { defaultValue: '重试' })}
+      reopenLabel={t('Auth.browserSignInReopen', { defaultValue: '重新打开浏览器' })}
+      endWaitLabel={t('Auth.browserSignInEndWait', { defaultValue: '结束等待' })}
+      waitEndedMessage={t('Auth.browserSignInWaitEnded', { defaultValue: '已结束等待。如果已在浏览器中完成登录，Nimi 会以账户状态为准自动继续。' })}
       onRootPointerDown={handleRootMouseDown}
       onAuthenticated={(user) => setAuthSession(user)}
       onActionableReady={reportActionableReadiness}

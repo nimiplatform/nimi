@@ -19,6 +19,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
       body,
       signInRequired: projection.reasonCode === 'runtime-unauthenticated',
       nextAction: userAction(t, projection.actionHint),
+      technicalDetails: [
+        { label: t('Auth.runtime.details.reason'), value: projection.reasonCode },
+        ...(projection.actionHint ? [{ label: t('Auth.runtime.details.actionHint'), value: projection.actionHint }] : []),
+      ],
     };
   }, [t]);
   const toErrorMessage = useCallback((error: unknown) => (
@@ -32,6 +36,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     retry: t('Auth.runtime.retryCheck'),
     offlineTier: (tier: string) => t('Auth.runtime.offlineTier', { tier }),
     nextAction: (action: string) => t('Auth.runtime.next', { action }),
+    technicalDetails: t('Auth.runtime.details.title'),
   }), [t]);
   return (
     <WorkbenchRuntimeGate

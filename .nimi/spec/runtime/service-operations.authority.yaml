@@ -709,7 +709,7 @@ units:
     kind: rule
     title: Protected configuration mutation has two results
     modality: must
-    statement: Typed protected config mutation returns CONFIG_RESTART_REQUIRED when any admitted Runtime-private Connector-custody or ExecutionHost operational field in providers.*, engines.llama.*, or engines.media.* changes and CONFIG_APPLIED for only hot changes or no material change; these namespaces never carry an AIConfig route, provider-model target choice, default model or provider, local binding, or machine selection, engines.localai.*, engines.nexa.*, and engines.nimi_media.* are rejected, and Desktop may request typed restart but never stop or select binary or config paths.
+    statement: Typed protected config mutation returns CONFIG_RESTART_REQUIRED when any admitted Runtime-private Connector-custody or ExecutionHost operational field in providers.* or engines.llama.* changes and CONFIG_APPLIED for only hot changes or no material change; these namespaces never carry an AIConfig route, provider-model target choice, default model or provider, local binding, or machine selection, engines.localai.*, engines.nexa.*, engines.nimi_media.*, and the retired engines.media.* are rejected, and Desktop may request typed restart but never stop or select binary or config paths.
     condition: Whenever Desktop requests a Runtime configuration mutation.
     failure: Reject an unknown result, wrong restart classification, retired engine field, direct stop, document write, or path selection.
     relations:
@@ -919,6 +919,16 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.memory-world.memory-delivery-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r092
+    kind: rule
+    title: Refused stored data keeps a bounded maintenance surface
+    modality: must
+    statement: When a Runtime owner's read-only startup classification finds that Runtime-owned stored data in the selected data root is in a format or state this Runtime refuses to open, a production or D2 Runtime makes that classification before any owner opens, reconciles, converts, or repairs the root, constructs no ordinary owner, keeps the local-app transport closed, and serves on the already verified Desktop transport only its typed service mode with the owner reason, the canonical Product Control record and selected-root reads, the Product Control maintenance replacement, the Desktop session open its topology requires, and the typed restart request, while every other protected operation returns the same typed refusal; session, transport-refusal, and replacement results are recorded in a bounded maintenance audit plane under the Runtime service state root, never in a data root; an unclassified startup failure keeps the existing fail-closed stop and is never reported with this reason.
+    condition: Whenever production or D2 Runtime startup evaluates the stored data in its selected data root.
+    failure: Reject reading beyond the owner classification, converting, repairing, migrating, cleaning, or deleting the refused root, ordinary readiness or App access in maintenance, an extra repair service, and misattribution of an unclassified failure.
+    relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
   - id: definition.nimi.runtime.service-operations.memory-derived-payload

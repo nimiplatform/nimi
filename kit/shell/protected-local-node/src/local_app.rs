@@ -1,4 +1,5 @@
 use super::*;
+use base64::Engine;
 use nimi_shell_protected_local::{
     LocalAppVideoSessionFrameRequest, LocalAppVideoSessionOpenRequest,
     LocalAppVideoSessionScopeRequest,
@@ -1754,9 +1755,10 @@ pub async fn local_app_conversation_artifact_read(
             })
             .await
             .map(|result| {
+                // Media bytes cross this JSON outcome as standard base64.
                 json!({
                     "artifactId": result.artifact_id,
-                    "bytes": result.bytes,
+                    "bytes": base64::engine::general_purpose::STANDARD.encode(&result.bytes),
                     "mimeType": result.mime_type,
                     "byteLength": result.byte_length,
                 })

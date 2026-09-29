@@ -2,7 +2,7 @@
 
 使用 App 已绑定宿主的 SDK client，发起一次真实文本生成。Nimi Home 建立 App 会话，Runtime 在执行时读取该 App 已保存的 AI 配置并选择实现。
 
-本页承接[创建 Nimi App](/zh/start/create-an-app)中的 `--features studio-create` 示例，使用公开 App Tools 0.2.7。保留生成的 SDK/Kit 绑定；App 渲染进程不需要自行取得 gRPC 地址、账号 ID、会话 token 或指定调用者身份。
+本页承接[创建 Nimi App](/zh/start/create-an-app)中的 `--features studio-create` 示例，使用公开 App Tools 0.7.5。保留生成的 SDK/Kit 绑定；App 渲染进程不需要自行取得 gRPC 地址、账号 ID、会话 token 或指定调用者身份。
 
 ## 调用前准备
 
@@ -19,7 +19,7 @@
 默认模板已在 `src/shell/auth/local-app-client.ts` 中导出 `getNimiLocalAppClient()`，直接复用即可。已有 App 的文件布局不同时，使用该项目对应的、已绑定宿主的 client。
 
 ```ts
-// src/first-ai-call.ts in the default App Tools 0.2.7 starter
+// src/first-ai-call.ts in the default App Tools 0.7.5 starter
 import { getNimiLocalAppClient } from './shell/auth/local-app-client.js';
 
 export async function generateText(prompt: string) {
@@ -39,7 +39,7 @@ export async function generateText(prompt: string) {
 | 失败情况 | 下一步 |
 | --- | --- |
 | App 会话未建立或访问被拒绝 | 回到受管启动与宿主授权流程，不要换成直连 Node/gRPC client，也不要自行传入身份。 |
-| `AI_CONFIG_NOT_FOUND` 或缺少 `text.generate` 意图 | 在该 App 的 AI 设置中保存能力意图，再重试实际调用。 |
+| `not-found`（原因 `ai-config-not-found`）或缺少 `text.generate` 意图 | 在该 App 的 AI 设置中保存能力意图，再重试实际调用。 |
 | 本地模型或云端配置不可用 | 检查该 App 当前设置，以及 Runtime 所选模型或连接器状态。保留真实错误；路线已配置不能证明执行成功。 |
 | Runtime 已断开 | 恢复原有 Nimi Home／Runtime 开发实例，必要时重新打开受管 App，再重试同一操作。 |
 | 请求发出后执行失败 | 查看 typed error 及其可用的原因、行动提示，不在客户端伪造 fallback 或悄悄切换提供商。 |

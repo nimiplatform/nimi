@@ -58,14 +58,18 @@ export function Shell() {
         : desk.awaitingConfirmation ? copy.agent.awaitingConfirm : copy.agent.none)
     : desk.connection === 'lost'
       ? copy.agent.connectionLost
-      : desk.activeTurnId ? (deskApi.ownsTurn(desk.activeTurnId) ? copy.agent.replying : copy.agent.busyElsewhere) : copy.agent.idle;
+      : desk.activeTurnId ? (deskApi.ownsTurn(desk.activeTurnId) ? copy.agent.replying : copy.agent.busyElsewhere)
+        : desk.resourceBusy ? (desk.busyWithinDay ? copy.agent.busyWithinDay : copy.agent.busyElsewhere) : copy.agent.idle;
   const tone = desk.phase === 'unavailable' && appointed
     ? 'lost'
     : desk.phase !== 'ready' ? 'off' : desk.connection === 'lost' ? 'lost' : desk.activeTurnId ? 'busy' : undefined;
 
   return (
     <div className="nd-shell" data-testid="nd-shell">
-      <aside className="nd-sidebar" aria-label={copy.nav.label}>
+      <aside
+        className="nd-sidebar nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
+        aria-label={copy.nav.label}
+      >
         <div className="nd-brand">
           <span className="nd-brand-mark"><CalendarHeart size={16} aria-hidden="true" /></span>
           <span className="nd-brand-name">{copy.app.name}</span>

@@ -14,12 +14,34 @@
   "dataRootLabel": "Data root",
   "dataDirHelp": "Replacing the root activates only the selected directory. Nimi does not copy, merge, delete, or keep using the previous root.",
   "replaceDataRootButton": "Replace Data Root",
+  "replaceDataRootConfirmTitle": "Switch to this data location?",
+  "replaceDataRootConfirmBody": "Nimi stops every running app and restarts, then uses only \"{{target}}\". The data in the current location \"{{current}}\" stays as it is; it is not copied, merged or deleted.",
+  "replaceDataRootConfirm": "Stop apps and switch",
+  "replaceDataRootCancel": "Cancel",
+  "replaceDataRootProgress": "Switching data location: stopping apps, restarting Nimi and checking the new location…",
   "dataRootReplaced": "The new data root is active. Check & Sync is reconciling owner state.",
   "dataRootUnchanged": "This directory is already active. Run Check & Sync to verify it again.",
   "dataRootReplaceFailed": "Data-root replacement failed",
   "checkSyncButton": "Check & Sync",
   "checkSyncState": "Check & Sync: {{state}}",
   "checkSyncFailed": "Check & Sync could not start",
+  "checkSyncRerun": "Run Check & Sync again",
+  "checkSyncModelOfflineConversion": "This model's local data needs offline conversion before it can be used. Local models stay limited until then; everything else keeps working.",
+  "checkSyncTechnicalDetails": "Technical details",
+  "checkSyncOwnerState": {
+    "pending": "Waiting",
+    "running": "Checking",
+    "completed": "Done",
+    "failed": "Failed"
+  },
+  "checkSyncResourceStatus": {
+    "available": "Available",
+    "unavailable": "Unavailable for now",
+    "incompatible": "Not compatible with this version",
+    "unknown": "Not recognized",
+    "conflict": "Needs attention",
+    "failed": "Check failed"
+  },
   "openDataDir": "Open Data Dir",
   "openDataDirFailed": "Failed to open data directory",
   "clearCacheTitle": "Clear Cache",
@@ -27,5 +49,6 @@
   "clearCacheButton": "Clear Cache",
   "sessionTitle": "Session",
   "sessionBody": "Sign out of your account on this device.",
-  "logOut": "Log Out"
+  "logOut": "Log Out",
+  "dataRootReplacedAuditUnrecorded": "The new data folder is active, but this change could not be saved to the audit log. Do not repeat the replacement. Reopen Nimi to continue; contact support if recording keeps failing."
 }

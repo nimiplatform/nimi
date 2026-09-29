@@ -1,5 +1,6 @@
 import type {
   NimiLoadoutRecipe,
+  NimiLoadoutRecipeContextFit,
   NimiMachineLoadout,
   NimiMachineLoadoutClient,
   NimiPrepareLoadoutInput,
@@ -114,11 +115,14 @@ export type RuntimeSetupAcquireOption = {
   readonly templateId?: string;
   /** Acquisition goes through the portable-source install plan, not an offer. */
   readonly portableSource?: RuntimeSetupPortableSource;
+  /** Runtime's context fit of this model on this device, when it has context evidence. */
+  readonly contextFit?: NimiLoadoutRecipeContextFit;
 };
 
 export type RuntimeSetupPreparationPlan = {
   readonly reuse: readonly { readonly slotId: string; readonly label: string; readonly modelAssetId: string;
     readonly expectedContentId?: string;
+    readonly contextFit?: NimiLoadoutRecipeContextFit;
   }[];
   readonly acquire: readonly { readonly slotId: string; readonly label: string; readonly offer: RuntimeSetupAcquireOption;
   }[];
@@ -461,7 +465,47 @@ function acquireOptionFromOffer(offer: RecipeSlotOffer): RuntimeSetupAcquireOpti
     ...(offer.candidate.license ? { license: offer.candidate.license } : {}),
     ...(offer.candidate.author ? { publisher: offer.candidate.author } : {}),
     ...(offer.installedModelAssetId ? { installedModelAssetId: offer.installedModelAssetId } : {}),
+    ...(offer.contextFit ? { contextFit: offer.contextFit } : {}),
   };
+}
+
+/** Runtime's context fit of an installed model, read from the slot offer that installed it. */
+function installedContextFit(slot: RecipeSlot, modelAssetId: string): { readonly contextFit?: NimiLoadoutRecipeContextFit } {
+  const contextFit = slot.offers.find((offer) => offer.installedModelAssetId === modelAssetId)?.contextFit;
+  return contextFit ? { contextFit } : {};
+}
+
+/**
+ * Runtime's context fit of the model a plan binds with the current choices;
+ * undefined when no planned model carries one, or more than one does.
+ */
+export function runtimeSetupPlanContextFit(
+  plan: Pick<RuntimeSetupPreparationPlan, 'reuse' | 'acquire' | 'awaitingChoice'>,
+  choices: Readonly<Record<string, string>> = {},
+): NimiLoadoutRecipeContextFit | undefined {
+  const fits = [
+    ...plan.reuse.map((item) => item.contextFit),
+    ...plan.acquire.map((item) => item.offer.contextFit),
+    ...plan.awaitingChoice.map((choice) => choice.options.find((option) => option.offerRef === choices[choice.slotId])?.contextFit),
+  ].filter((fit): fit is NimiLoadoutRecipeContextFit => fit !== undefined);
+  return fits.length === 1 ? fits[0] : undefined;
+}
+
+/**
+ * The options a setup writes and the context its review states. A fresh
+ * candidate (no explicit draft options) adopts Runtime's recommended options
+ * for the bound model; explicit options (a saved configuration, a profile, a
+ * customization) are written unchanged and are described only when they are
+ * exactly those recommended options.
+ */
+// @nimi-authority: rule.nimi.runtime.model-catalog.r061
+export function runtimeSetupContextApplication(
+  explicitOptions: Readonly<Record<string, unknown>> | undefined,
+  fit: NimiLoadoutRecipeContextFit | undefined,
+): { readonly options?: NimiLoadoutRecipeContextFit['recommendedOptions']; readonly preview?: NimiLoadoutRecipeContextFit } {
+  if (!fit) return {};
+  if (explicitOptions === undefined) return { options: fit.recommendedOptions, preview: fit };
+  return canonicalJson(explicitOptions) === canonicalJson(fit.recommendedOptions) ? { preview: fit } : {};
 }
 
 /**
@@ -502,7 +546,7 @@ function planSlot(
   candidate: NimiMachineLoadout,
   preferredOfferRef?: string,
 ): (
-  | { readonly kind: 'reuse'; readonly slotId: string; readonly label: string; readonly modelAssetId: string }
+  | { readonly kind: 'reuse'; readonly slotId: string; readonly label: string; readonly modelAssetId: string; readonly contextFit?: NimiLoadoutRecipeContextFit }
   | { readonly kind: 'acquire'; readonly slotId: string; readonly label: string; readonly offer: RuntimeSetupAcquireOption }
   | { readonly kind: 'choice'; readonly slotId: string; readonly label: string; readonly options: readonly RuntimeSetupAcquireOption[] }
   | { readonly kind: 'unavailable'; readonly slotId: string; readonly label: string; readonly reasonCode?: string }
@@ -513,7 +557,7 @@ function planSlot(
     : undefined;
   if (preferred?.installedModelAssetId) {
     if (bound && bound.modelAssetId === preferred.installedModelAssetId) {
-      return { kind: 'reuse', slotId: slot.slotId, label: slot.displayLabel || slot.slotId, modelAssetId: bound.modelAssetId };
+      return { kind: 'reuse', slotId: slot.slotId, label: slot.displayLabel || slot.slotId, modelAssetId: bound.modelAssetId, ...installedContextFit(slot, bound.modelAssetId) };
     }
     // Installed on this machine but not the current binding: rebind to the
     // chosen variant without downloading again.
@@ -525,7 +569,7 @@ function planSlot(
     return { kind: 'acquire', slotId: slot.slotId, label: slot.displayLabel || slot.slotId, offer: acquireOptionFromOffer(preferred) };
   }
   if (bound) {
-    return { kind: 'reuse', slotId: slot.slotId, label: slot.displayLabel || slot.slotId, modelAssetId: bound.modelAssetId };
+    return { kind: 'reuse', slotId: slot.slotId, label: slot.displayLabel || slot.slotId, modelAssetId: bound.modelAssetId, ...installedContextFit(slot, bound.modelAssetId) };
   }
   const installedOffers = slot.offers.filter(
     (offer) => offer.installedModelAssetId && offer.applicability !== 'unsupported',
@@ -536,6 +580,7 @@ function planSlot(
       slotId: slot.slotId,
       label: slot.displayLabel || slot.slotId,
       modelAssetId: installedOffers[0]!.installedModelAssetId!,
+      ...(installedOffers[0]!.contextFit ? { contextFit: installedOffers[0]!.contextFit } : {}),
     };
   }
   if (installedOffers.length > 1) {
@@ -619,14 +664,14 @@ function planPendingSlot(
   candidate: NimiMachineLoadout,
   installedAssets: readonly NimiRuntimeModelAssetRecord[],
 ): (
-  | { readonly kind: 'reuse'; readonly slotId: string; readonly label: string; readonly modelAssetId: string }
+  | { readonly kind: 'reuse'; readonly slotId: string; readonly label: string; readonly modelAssetId: string; readonly contextFit?: NimiLoadoutRecipeContextFit }
   | { readonly kind: 'acquire'; readonly slotId: string; readonly label: string; readonly offer: RuntimeSetupAcquireOption }
   | { readonly kind: 'unavailable'; readonly slotId: string; readonly label: string; readonly reasonCode?: string }
 ) {
   const label = slot.displayLabel || slot.slotId;
   const bound = candidate.modelAxes.find((axis) => axis.slotId === slot.slotId && axis.modelAssetId);
   if (bound && bound.expectedContentId === pending.contentId) {
-    return { kind: 'reuse', slotId: slot.slotId, label, modelAssetId: bound.modelAssetId };
+    return { kind: 'reuse', slotId: slot.slotId, label, modelAssetId: bound.modelAssetId, ...installedContextFit(slot, bound.modelAssetId) };
   }
   const installed = installedAssets.find((asset) => asset.contentId === pending.contentId);
   if (installed) {
@@ -636,10 +681,14 @@ function planPendingSlot(
         offerRef: `profile-content:${pending.contentId}`,
         title: installed.displayName, variantLabel: '', sizeBytes: installed.totalSizeBytes,
         installedModelAssetId: installed.modelAssetId, expectedContentId: pending.contentId,
+        ...installedContextFit(slot, installed.modelAssetId),
       },
     };
   }
   if (pending.templateId) {
+    // Only the device-recommended template has a Runtime fit keyed to it.
+    const contextFit = slot.recommendedVariantIds.length === 1 && slot.recommendedVariantIds[0] === pending.templateId
+      ? slot.recommendedContextFit : undefined;
     return {
       kind: 'acquire', slotId: slot.slotId, label,
       offer: {
@@ -647,6 +696,7 @@ function planPendingSlot(
         title: pending.source?.repo ?? pending.templateId, variantLabel: '',
         sizeBytes: pending.source?.sizeBytes ?? null,
         expectedContentId: pending.contentId, templateId: pending.templateId,
+        ...(contextFit ? { contextFit } : {}),
       },
     };
   }
@@ -730,7 +780,7 @@ async function computePreparation(
     if (slot.presence === 'optional-conditional') {
       const boundAxis = candidate.modelAxes.find((axis) => axis.slotId === slot.slotId && axis.modelAssetId);
       if (boundAxis) {
-        reuse.push({ slotId: slot.slotId, label: slot.displayLabel || slot.slotId, modelAssetId: boundAxis.modelAssetId });
+        reuse.push({ slotId: slot.slotId, label: slot.displayLabel || slot.slotId, modelAssetId: boundAxis.modelAssetId, ...installedContextFit(slot, boundAxis.modelAssetId) });
       } else {
         options.push({ slotId: slot.slotId, label: slot.displayLabel || slot.slotId });
       }
@@ -838,9 +888,11 @@ function samePlan(left: RuntimeSetupPreparationPlan, right: RuntimeSetupPreparat
     return !reviewed || Boolean(reviewed.offer.installedModelAssetId)
       || acquisitionIdentity(reviewed.offer) !== acquisitionIdentity(item.offer);
   })) return false;
+  // The context a review states is part of what was reviewed.
+  const context = (fit?: NimiLoadoutRecipeContextFit) => (fit ? [fit.authoredContextSize, fit.recommendedContextSize, canonicalJson(fit.recommendedOptions)] : null);
   const normalize = (plan: RuntimeSetupPreparationPlan) => JSON.stringify({
-    reuse: plan.reuse.map((item) => [item.slotId, item.modelAssetId, item.expectedContentId]),
-    acquire: plan.acquire.map((item) => [item.slotId, acquisitionIdentity(item.offer), item.offer.installedModelAssetId]),
+    reuse: plan.reuse.map((item) => [item.slotId, item.modelAssetId, item.expectedContentId, context(item.contextFit)]),
+    acquire: plan.acquire.map((item) => [item.slotId, acquisitionIdentity(item.offer), item.offer.installedModelAssetId, context(item.offer.contextFit)]),
     awaitingChoice: plan.awaitingChoice.map((item) => [item.slotId, item.options.map((option) => option.offerRef)]),
     unavailable: plan.unavailable.map((item) => item.slotId),
     components: plan.components.map((item) => [item.dependencyFamily, item.dependencyId, item.state]),
@@ -869,10 +921,11 @@ function samePlan(left: RuntimeSetupPreparationPlan, right: RuntimeSetupPreparat
   const resources = (plan: RuntimeSetupPreparationPlan) =>
     JSON.stringify({
       targets: [
-        ...plan.reuse.map((item) => [item.slotId, item.expectedContentId || `asset:${item.modelAssetId}`]),
+        ...plan.reuse.map((item) => [item.slotId, item.expectedContentId || `asset:${item.modelAssetId}`, JSON.stringify(context(item.contextFit))]),
         ...plan.acquire.map((item) => [
           item.slotId,
           item.offer.expectedContentId || `offer:${item.offer.offerRef}`,
+          JSON.stringify(context(item.offer.contextFit)),
         ]),
       ].sort((a, b) => a[0]!.localeCompare(b[0]!)),
       choices: plan.awaitingChoice,
@@ -1503,11 +1556,12 @@ export async function runRuntimeSetupPreparation(
     for (const [slotId, binding] of bindings) {
       modelAxes.push({ slotId, modelAssetId: binding.modelAssetId, expectedContentId: binding.expectedContentId });
     }
+    const context = runtimeSetupContextApplication(task.draft?.options, runtimeSetupPlanContextFit(freshPlan));
     const prepared = await ports.loadouts.prepare({
       loadoutId: candidate.loadoutId,
       capabilityContract: task.capabilityContract,
       recipeId: candidate.recipeId,
-      options: candidate.options,
+      options: context.options ?? candidate.options,
       modelAxes,
       displayName: candidate.displayName,
       provenance: candidate.provenance,

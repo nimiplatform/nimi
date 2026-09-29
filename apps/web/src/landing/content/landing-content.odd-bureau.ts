@@ -222,7 +222,7 @@ export const oddBureauPreviewContent: HeroDemoOddBureauPreview = {
   ],
   mysteries: [missing, strike, party],
   demo: {
-    hostOnly: '这一步需要 Nimi Desktop 中的奇物局本体：照片定位、玩法创作与语音由 Runtime 执行；网页演示只展示界面与玩法。',
+    hostOnly: '这一步需要本机 Nimi 中的奇物局本体：照片定位、玩法创作与语音由 Runtime 执行；网页演示只展示界面与玩法。',
     voice: '朗读需要 Nimi 中配置的语音合成能力；网页演示不发声。',
     dismiss: '知道了',
   },
