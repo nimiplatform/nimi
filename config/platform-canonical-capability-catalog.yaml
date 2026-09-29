@@ -144,9 +144,6 @@ capabilities:
     sourceRef:
       table: local-adapter-routing
       capability: audio.separate
-    additionalRuntimeTables:
-      - table: provider-capabilities
-        capability: audio.separate
     i18nKeys:
       title: AIConfig.capability.audioSeparate.title
       subtitle: AIConfig.capability.audioSeparate.subtitle

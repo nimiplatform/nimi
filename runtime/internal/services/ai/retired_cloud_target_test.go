@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -49,6 +49,7 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 	}{
 		// OpenAI keeps no video row, so its Driver no longer implements video.generate.
 		{name: "openai sora-2", provider: "openai", activeModel: "gpt-image-1.5", retiredModel: "sora-2", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_CONFIG_INVALID, activeListed: false},
+		{name: "codex gpt-image-2", provider: "openai_codex", activeModel: "gpt-6-astra", retiredModel: "gpt-image-2", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_CONFIG_INVALID, activeListed: false},
 		{name: "google veo 3.0", provider: "google_veo", activeModel: "veo-3.1-fast-generate-preview", retiredModel: "veo-3.0-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "google veo 3.0 fast", provider: "google_veo", activeModel: "veo-3.1-fast-generate-preview", retiredModel: "veo-3.0-fast-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "gemini image preview", provider: "gemini", activeModel: "gemini-3.1-flash-image", retiredModel: "gemini-3.1-flash-image-preview", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},

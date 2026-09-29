@@ -16,7 +16,6 @@ import (
 
 const (
 	codexResponsesPath       = "/responses"
-	codexImageInstructions   = "You are an assistant that must fulfill image generation requests by using the image_generation tool when provided."
 	codexDefaultInstructions = "You are helpful, knowledgeable, and direct."
 	codexTextMaxStreamBuffer = 1024 * 1024
 )
@@ -175,69 +174,6 @@ func (b *Backend) streamGenerateTextCodexResponses(
 		usage = EstimateUsage(ComposeInputText(systemPrompt, input), outputText)
 	}
 	return usage, codexFinishReasonFromResponse(finalResponse), nil
-}
-
-func (b *Backend) generateImageCodexResponses(
-	ctx context.Context,
-	modelID string,
-	spec *runtimev1.ImageGenerateScenarioSpec,
-) ([]byte, *runtimev1.UsageStats, error) {
-	if spec == nil {
-		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	hostModel := strings.TrimSpace(modelID)
-	if hostModel == "" {
-		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	requestBody := map[string]any{
-		"model":        hostModel,
-		"store":        false,
-		"instructions": codexImageInstructions,
-		"input": []map[string]any{
-			{
-				"type": "message",
-				"role": "user",
-				"content": []map[string]any{
-					{
-						"type": "input_text",
-						"text": strings.TrimSpace(spec.GetPrompt()),
-					},
-				},
-			},
-		},
-		"tools": []map[string]any{
-			{
-				"type":           "image_generation",
-				"model":          strings.TrimSpace(modelID),
-				"size":           codexImageSize(spec),
-				"quality":        codexImageQuality(spec),
-				"output_format":  "png",
-				"background":     "opaque",
-				"partial_images": 1,
-			},
-		},
-		"tool_choice": map[string]any{
-			"type": "allowed_tools",
-			"mode": "required",
-			"tools": []map[string]any{
-				{"type": "image_generation"},
-			},
-		},
-	}
-
-	var response map[string]any
-	if err := b.postJSON(ctx, codexResponsesPath, requestBody, &response); err != nil {
-		return nil, nil, err
-	}
-	imageB64 := strings.TrimSpace(extractCodexImageResult(response))
-	if imageB64 == "" {
-		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-	payload, ok := DecodeBase64ArtifactPayload(imageB64)
-	if !ok || len(payload) == 0 {
-		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-	return payload, ArtifactUsage(strings.TrimSpace(spec.GetPrompt()), payload, 180), nil
 }
 
 func (b *Backend) buildCodexTextRequest(
@@ -407,23 +343,6 @@ func extractCodexResponseText(response map[string]any) string {
 	return strings.Join(lines, "\n")
 }
 
-func extractCodexImageResult(response map[string]any) string {
-	if response == nil {
-		return ""
-	}
-	output, _ := response["output"].([]any)
-	for _, item := range output {
-		itemMap, _ := item.(map[string]any)
-		if strings.TrimSpace(ValueAsString(itemMap["type"])) != "image_generation_call" {
-			continue
-		}
-		if result := strings.TrimSpace(ValueAsString(itemMap["result"])); result != "" {
-			return result
-		}
-	}
-	return ""
-}
-
 func codexUsageFromResponse(response map[string]any) *runtimev1.UsageStats {
 	if response == nil {
 		return nil
@@ -449,33 +368,4 @@ func codexFinishReasonFromResponse(response map[string]any) runtimev1.FinishReas
 		return runtimev1.FinishReason_FINISH_REASON_LENGTH
 	}
 	return runtimev1.FinishReason_FINISH_REASON_STOP
-}
-
-func codexImageQuality(spec *runtimev1.ImageGenerateScenarioSpec) string {
-	if spec == nil {
-		return "medium"
-	}
-	switch strings.ToLower(strings.TrimSpace(spec.GetQuality())) {
-	case "low", "medium", "high":
-		return strings.ToLower(strings.TrimSpace(spec.GetQuality()))
-	default:
-		return "medium"
-	}
-}
-
-func codexImageSize(spec *runtimev1.ImageGenerateScenarioSpec) string {
-	if spec == nil {
-		return "1024x1024"
-	}
-	if size := strings.TrimSpace(spec.GetSize()); size != "" {
-		return size
-	}
-	switch strings.TrimSpace(spec.GetAspectRatio()) {
-	case "16:9", "4:3", "3:2":
-		return "1536x1024"
-	case "9:16", "3:4", "2:3":
-		return "1024x1536"
-	default:
-		return "1024x1024"
-	}
 }

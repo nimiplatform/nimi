@@ -259,11 +259,13 @@ func normalizeImageResponseFormat(raw string) (string, error) {
 
 // GenerateImage sends an image generation request.
 func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
-	if b.supportsCodexResponses() {
-		return b.generateImageCodexResponses(ctx, modelID, spec)
-	}
 	if spec == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if b.supportsCodexResponses() {
+		// The ChatGPT-plan-usage Responses flow does not admit image generation.
+		// A Codex text model is not a hidden substitute for an image target.
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 
 	type imageRequest struct {

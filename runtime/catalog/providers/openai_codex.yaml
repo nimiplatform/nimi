@@ -1,6 +1,6 @@
 version: 1
 provider: openai_codex
-catalog_version: 2026-08-11-openai-codex-provenance-review
+catalog_version: 2026-09-30-openai-codex-image-hold
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
@@ -100,35 +100,6 @@ models:
       retrieved_at: 2026-07-18
       note: Official GPT-5.3 Codex model page.
     context_window_tokens: 8192
-  - model_id: gpt-image-2
-    provider: openai_codex
-    model_type: image
-    updated_at: 2026-04-23
-    capabilities:
-      - image.generate
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-23
-      notes: Image generation pricing for Codex subscription-backed consumption is not published as API request pricing.
-    source_ref:
-      url: https://developers.openai.com/codex/cli/features
-      retrieved_at: 2026-04-23
-      note: Codex CLI features page documenting direct image generation/edit support.
-    image_request_options:
-      response_formats:
-        - b64_json
-      max_images_per_request: 1
-      supports_negative_prompt: false
-      supports_reference_images: false
-      supports_mask: false
-      supports_seed: false
-      supports_size: true
-      supports_aspect_ratio: false
-      supports_quality: true
-      supports_style: false
 voices: []
 selection_profiles:
   - provider: openai_codex
@@ -138,10 +109,3 @@ selection_profiles:
     reviewed_at: 2026-09-28
     freshness_sla_days: 14
     rationale: Existing Codex Responses behavior target observed in Nimi's authenticated inventory on 2026-09-12 and the signed-in official CLI inventory on 2026-09-28; account availability remains conditional and the current Nimi Connector path is not live-verified.
-  - provider: openai_codex
-    profile_id: image.general
-    capability: image.generate
-    model_id: gpt-image-2
-    reviewed_at: 2026-09-28
-    freshness_sla_days: 14
-    rationale: Codex built-in image generation uses gpt-image-2, which OpenAI lists only as a replacement target rather than a deprecated model.

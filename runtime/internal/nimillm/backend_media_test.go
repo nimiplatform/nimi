@@ -165,112 +165,17 @@ func TestBackendGenerateImageRejectsNilSpec(t *testing.T) {
 	}
 }
 
-func TestBackendGenerateImageUsesCodexResponsesTool(t *testing.T) {
-	var captured map[string]any
-
+func TestBackendGenerateImageCodexFailsBeforeDispatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/backend-api/codex/responses" {
-			http.NotFound(w, r)
-			return
-		}
-		captured = decodeJSONBodyForBackendMediaTest(t, r)
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"output": []map[string]any{
-				{
-					"type":   "image_generation_call",
-					"result": base64.StdEncoding.EncodeToString([]byte("image-codex")),
-				},
-			},
-		})
+		t.Errorf("unsupported Codex image request reached provider: %s %s", r.Method, r.URL.Path)
+		http.Error(w, "unexpected request", http.StatusBadRequest)
 	}))
-	defer func() { server.Close() }()
+	defer server.Close()
 
-	backend := NewBackendWithHeaders("cloud-openai_codex", server.URL+"/backend-api/codex", "token-123", map[string]string{
-		"originator": "codex_cli_rs",
-	}, time.Second)
-	payload, _, err := backend.GenerateImage(context.Background(), "gpt-image-2", &runtimev1.ImageGenerateScenarioSpec{
-		Prompt:  "make a skyline",
-		Quality: "high",
-	}, nil)
-	if err != nil {
-		t.Fatalf("GenerateImage failed: %v", err)
-	}
-	if string(payload) != "image-codex" {
-		t.Fatalf("unexpected payload: %q", string(payload))
-	}
-	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-image-2" {
-		t.Fatalf("expected caller-bound codex host model, got=%q", got)
-	}
-	tools, ok := captured["tools"].([]any)
-	if !ok || len(tools) != 1 {
-		t.Fatalf("expected image tool payload, got=%T", captured["tools"])
-	}
-	tool, _ := tools[0].(map[string]any)
-	if got := strings.TrimSpace(ValueAsString(tool["type"])); got != "image_generation" {
-		t.Fatalf("expected image_generation tool, got=%q", got)
-	}
-	if got := strings.TrimSpace(ValueAsString(tool["model"])); got != "gpt-image-2" {
-		t.Fatalf("expected gpt-image-2 tool model, got=%q", got)
-	}
-	if got := strings.TrimSpace(ValueAsString(tool["quality"])); got != "high" {
-		t.Fatalf("expected forwarded image quality, got=%q", got)
-	}
-}
-
-func TestBackendGenerateImageUsesConfiguredCodexHostModel(t *testing.T) {
-	var captured map[string]any
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/backend-api/codex/responses" {
-			http.NotFound(w, r)
-			return
-		}
-		captured = decodeJSONBodyForBackendMediaTest(t, r)
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"output": []map[string]any{
-				{
-					"type":   "image_generation_call",
-					"result": base64.StdEncoding.EncodeToString([]byte("image-codex")),
-				},
-			},
-		})
-	}))
-	defer func() { server.Close() }()
-
-	provider := NewCloudProvider(CloudConfig{
-		Providers: map[string]ProviderCredentials{
-			"openai_codex": {
-				BaseURL: server.URL + "/backend-api/codex",
-				APIKey:  "token-123",
-				Headers: map[string]string{"originator": "codex_cli_rs"},
-			},
-		},
-		AllowLoopbackEndpoint: true,
-	})
-	backend, toolModel := provider.ResolveMediaBackendWithTarget("gpt-image-2", &RemoteTarget{
-		ProviderType:    "openai_codex",
-		Endpoint:        server.URL + "/backend-api/codex",
-		APIKey:          "token-123",
-		Headers:         map[string]string{"originator": "codex_cli_rs"},
-		ProviderModelID: "gpt-image-2",
-		AllowLoopback:   true,
-	})
-	if backend == nil {
-		t.Fatal("expected codex backend")
-	}
-	if toolModel != "gpt-image-2" {
-		t.Fatalf("tool model mismatch: %q", toolModel)
-	}
-	_, _, err := backend.GenerateImage(context.Background(), toolModel, &runtimev1.ImageGenerateScenarioSpec{
-		Prompt: "make a skyline",
-	}, nil)
-	if err != nil {
-		t.Fatalf("GenerateImage failed: %v", err)
-	}
-	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-image-2" {
-		t.Fatalf("expected caller-bound codex model, got=%q", got)
+	backend := NewBackendWithHeaders("cloud-openai_codex", server.URL+"/backend-api/codex", "token-123", nil, time.Second)
+	payload, _, err := backend.GenerateImage(context.Background(), "gpt-image-2", &runtimev1.ImageGenerateScenarioSpec{Prompt: "make a skyline"}, nil)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || payload != nil {
+		t.Fatalf("unsupported Codex image target did not fail typed before dispatch: payload=%d reason=%v present=%v err=%v", len(payload), reason, ok, err)
 	}
 }
 
