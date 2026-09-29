@@ -43,7 +43,16 @@ func validateGeminiLyriaClipRequest(request *runtimev1.SubmitScenarioJobRequest,
 }
 
 func CloudMusicInputCapabilities(provider, model, capability string) *runtimev1.MusicInputCapabilities {
-	if provider != "gemini" || model != geminiLyriaClipModel || capability != "music.generate" {
+	if provider != "gemini" || capability != "music.generate" {
+		return nil
+	}
+	if model == geminiLyria35Model {
+		return &runtimev1.MusicInputCapabilities{Generation: []*runtimev1.MusicGenerationInputProfile{{
+			LyricsMode: "unsupported", ScoreMode: "unsupported", MaxDurationSeconds: geminiLyria35MaxBudgetSeconds,
+			DefaultDurationSeconds: geminiLyria35MaxBudgetSeconds, MaxPromptBytes: geminiLyria35MaxPromptBytes,
+		}}}
+	}
+	if model != geminiLyriaClipModel {
 		return nil
 	}
 	return &runtimev1.MusicInputCapabilities{Generation: []*runtimev1.MusicGenerationInputProfile{{

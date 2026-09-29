@@ -13,7 +13,7 @@ import (
 )
 
 const geminiLyriaClipModel = "lyria-3-clip-preview"
-const maxGeminiLyriaClipBase64Bytes = 24 * 1024 * 1024
+const maxGeminiLyriaInlineBase64Bytes = 24 * 1024 * 1024
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 // The native GenerateContent request returns inline media and creates no Files
@@ -48,14 +48,14 @@ func ExecuteGeminiLyriaClipGenerateContent(
 		}
 		return nil, nil, "", err
 	}
-	audio, err := geminiLyriaClipMP3(response)
+	audio, err := geminiLyriaInlineMP3(response)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	return []*runtimev1.ScenarioArtifact{BinaryArtifact("audio/mpeg", audio, map[string]any{"adapter": "gemini_lyria_clip_generate_content_adapter"})}, nil, "", nil
 }
 
-func geminiLyriaClipMP3(response map[string]any) ([]byte, error) {
+func geminiLyriaInlineMP3(response map[string]any) ([]byte, error) {
 	invalid := func() error { return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID) }
 	candidates, ok := response["candidates"].([]any)
 	if !ok || len(candidates) != 1 {
@@ -79,7 +79,7 @@ func geminiLyriaClipMP3(response map[string]any) ([]byte, error) {
 			mime = strings.ToLower(strings.TrimSpace(ValueAsString(MapField(part, "mime_type"))))
 		}
 		encoded := ValueAsString(MapField(part, "data"))
-		if (mime != "audio/mpeg" && mime != "audio/mp3") || len(encoded) == 0 || len(encoded) > maxGeminiLyriaClipBase64Bytes || len(audio) > 0 {
+		if (mime != "audio/mpeg" && mime != "audio/mp3") || len(encoded) == 0 || len(encoded) > maxGeminiLyriaInlineBase64Bytes || len(audio) > 0 {
 			return nil, invalid()
 		}
 		decoded, err := base64.StdEncoding.DecodeString(encoded)

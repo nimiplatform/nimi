@@ -46,7 +46,7 @@ func TestGeminiLyriaClipUsesNativeTextAndInlineMP3(t *testing.T) {
 
 func TestGeminiLyriaClipRejectsMultipleAudioParts(t *testing.T) {
 	part := map[string]any{"inlineData": map[string]any{"mimeType": "audio/mpeg", "data": base64.StdEncoding.EncodeToString([]byte("audio"))}}
-	_, err := geminiLyriaClipMP3(map[string]any{"candidates": []any{map[string]any{"content": map[string]any{"parts": []any{part, part}}}}})
+	_, err := geminiLyriaInlineMP3(map[string]any{"candidates": []any{map[string]any{"content": map[string]any{"parts": []any{part, part}}}}})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
 		t.Fatalf("ambiguous Lyria output reason=%v present=%v err=%v", reason, ok, err)
 	}

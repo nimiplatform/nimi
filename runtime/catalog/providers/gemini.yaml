@@ -388,6 +388,23 @@ models:
       url: https://ai.google.dev/gemini-api/docs/models/lyria-3-clip-preview
       retrieved_at: 2026-09-29
       note: Exact legacy-preview model ID with text input and nominal 30-second MP3 stereo output.
+  - model_id: lyria-3.5
+    provider: gemini
+    model_type: music
+    updated_at: 2026-09-29
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: "0.08"
+      currency: USD
+      as_of: 2026-09-29
+      notes: Stable full-song Lyria 3.5 paid-tier target at $0.08 per request. Nimi's selected mode is prompt-only native GenerateContent MP3; duration can be steered by prompt but has no numeric provider guarantee. A captured output budget up to five minutes is checked against measured audio length before publishing the canonical WAV mix; independent lyrics, score and prior-audio controls are not admitted.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/lyria-3.5
+      retrieved_at: 2026-09-29
+      note: Stable Lyria 3.5 model ID with text input, full-song MP3 and generated-lyrics text output; no numeric duration API control.
   - model_id: gemini-3.1-pro-preview
     provider: gemini
     model_type: chat
