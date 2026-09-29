@@ -538,7 +538,7 @@ func (d *Daemon) shutdown() error {
 		d.logger.Warn("canceling active runtime RPCs for shutdown", "count", len(activeAtStart))
 	}
 	waitForShutdownDrain(ctx, d.cfg.ShutdownTimeout)
-	d.stopSupervisedEngines("stopping supervised engines")
+	d.stopSupervisedEngines(ctx, "stopping supervised engines")
 	httpErr := d.http.Shutdown(ctx)
 	grpcResult := d.grpc.Stop(ctx)
 	appendShutdownAudit(d.auditStore, grpcResult.Shutdown)
@@ -563,39 +563,73 @@ func (d *Daemon) closeProtectedState() error {
 	return d.protectedStateCloseErr
 }
 func (d *Daemon) EmergencyStopSupervisedEngines() {
-	d.stopSupervisedEngines("forcing supervised engines to stop after repeated shutdown signal")
+	forced, cancel := context.WithCancel(context.Background())
+	cancel()
+	d.stopSupervisedEngines(forced, "forcing supervised engines to stop after repeated shutdown signal")
 }
-func (d *Daemon) stopSupervisedEngines(reason string) {
+
+// stopSupervisedEngines stops every private host within the daemon's shutdown
+// deadline. The hosts stop in parallel; the engine manager kills what is still
+// running at the deadline, and a host that has not returned by then no longer
+// holds shutdown, since its engines end with this Runtime's owner guard.
+//
+// @nimi-authority: rule.nimi.runtime.service-operations.r057
+func (d *Daemon) stopSupervisedEngines(ctx context.Context, reason string) {
 	d.stopSupervisedOnce.Do(func() {
 		d.logger.Info(reason)
 		if stopFn := d.stopSupervisedFn; stopFn != nil {
 			stopFn()
 		}
+		var wg sync.WaitGroup
+		stopHost := func(name string, stop func() error) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if err := stop(); err != nil {
+					d.logger.Warn("stop "+name+" failed", "error", err)
+				}
+			}()
+		}
 		if d.imageExecutionHost != nil {
-			if err := d.imageExecutionHost.Stop(); err != nil {
-				d.logger.Warn("stop image execution host failed", "error", err)
-			}
+			stopHost("image execution host", d.imageExecutionHost.Stop)
 		}
 		if d.audioCppExecutionHost != nil {
-			if err := d.audioCppExecutionHost.Stop(); err != nil {
-				d.logger.Warn("stop audio.cpp execution host failed", "error", err)
-			}
+			stopHost("audio.cpp execution host", d.audioCppExecutionHost.Stop)
 		}
 		if d.audioCppSpeechHost != nil {
-			if err := d.audioCppSpeechHost.Stop(); err != nil {
-				d.logger.Warn("stop audio.cpp speech execution host failed", "error", err)
-			}
+			stopHost("audio.cpp speech execution host", d.audioCppSpeechHost.Stop)
 		}
 		if d.videoExecutionHost != nil {
-			if err := d.videoExecutionHost.Stop(); err != nil {
-				d.logger.Warn("stop video execution host failed", "error", err)
-			}
+			stopHost("video execution host", d.videoExecutionHost.Stop)
 		}
 		if d.engineMgr != nil {
-			d.engineMgr.StopAll()
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				d.engineMgr.StopAll(ctx)
+			}()
+		}
+		stopped := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(stopped)
+		}()
+		select {
+		case <-stopped:
+		case <-ctx.Done():
+			select {
+			case <-stopped:
+			case <-time.After(supervisorHostsStopGrace):
+				d.logger.Warn("supervised hosts still stopping at the shutdown deadline")
+			}
 		}
 	})
 }
+
+// supervisorHostsStopGrace lets the engine manager finish killing what ran past
+// the deadline before shutdown moves on.
+const supervisorHostsStopGrace = 2 * time.Second
+
 func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()

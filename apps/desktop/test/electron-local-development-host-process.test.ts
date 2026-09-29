@@ -10,6 +10,8 @@ import {
   assertLocalDevelopmentRendererOriginAvailable,
   probeLocalDevelopmentRenderer,
   resolveLocalDevelopmentPackageScriptInvocation,
+  spawnPosixOwnerGuardedProcess,
+  terminateLocalDevelopmentProcessTree,
 } from '../src-electron/local-development-host-process.js';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -146,7 +148,85 @@ describe('Desktop local-development process ownership', () => {
     assert.equal(exitCode, 0);
     await waitForPort(port, false);
   });
+
+  const posix = { skip: process.platform === 'win32', timeout: 20_000 };
+
+  it('ends a POSIX tool process and its children when the Desktop owner pipe closes', posix, async (context) => {
+    const port = await reservePort();
+    const child = spawnPosixOwnerGuardedProcess(nodeTarget(port, { spawnChild: true }), appRoot, process.env);
+    context.after(() => killGroup(child.pid));
+    await waitForPort(port, true);
+    const exited = exitOf(child);
+    child.stdin.end();
+    assert.deepEqual(await exited, { code: null, signal: 'SIGTERM' });
+    await waitForPort(port, false);
+    await waitForGroupGone(child.pid!, 8_000);
+  });
+
+  it('kills a POSIX tool process that ignores the stop request once the grace ends', posix, async (context) => {
+    const port = await reservePort();
+    const child = spawnPosixOwnerGuardedProcess(nodeTarget(port, { ignoreTerm: true }), appRoot, process.env);
+    context.after(() => killGroup(child.pid));
+    await waitForPort(port, true);
+    const started = Date.now();
+    const exited = exitOf(child);
+    child.stdin.end();
+    assert.deepEqual(await exited, { code: null, signal: 'SIGKILL' });
+    assert.ok(Date.now() - started >= 4_000, 'the owner-loss grace is honoured before SIGKILL');
+    await waitForGroupGone(child.pid!, 3_000);
+  });
+
+  it('keeps the POSIX target as the direct child so its own exit status is reported', posix, async () => {
+    const child = spawnPosixOwnerGuardedProcess({ command: process.execPath, args: ['-e', 'process.exit(7)'] }, appRoot, process.env);
+    assert.deepEqual(await exitOf(child), { code: 7, signal: null });
+  });
+
+  it('an ordinary Desktop stop still ends the POSIX target within the stop budget', posix, async (context) => {
+    const port = await reservePort();
+    const child = spawnPosixOwnerGuardedProcess(nodeTarget(port, {}), appRoot, process.env);
+    context.after(() => killGroup(child.pid));
+    await waitForPort(port, true);
+    await terminateLocalDevelopmentProcessTree(child);
+    await waitForPort(port, false);
+    await waitForGroupGone(child.pid!, 8_000);
+  });
 });
+
+function nodeTarget(port: number, options: { readonly ignoreTerm?: boolean; readonly spawnChild?: boolean }) {
+  const source = [
+    "const { createServer } = require('node:net');",
+    options.ignoreTerm ? "process.on('SIGTERM', () => {});" : '',
+    options.spawnChild ? "require('node:child_process').spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });" : '',
+    `createServer().listen(${port}, '127.0.0.1');`,
+    'setInterval(() => {}, 1000);',
+  ].join('');
+  return { command: process.execPath, args: ['-e', source] };
+}
+
+function exitOf(child: ReturnType<typeof spawn>): Promise<{ code: number | null; signal: NodeJS.Signals | null }> {
+  return new Promise((resolve, reject) => {
+    child.once('error', reject);
+    child.once('exit', (code, signal) => resolve({ code, signal }));
+  });
+}
+
+function killGroup(pid: number | undefined): void {
+  if (!pid) return;
+  try { process.kill(-pid, 'SIGKILL'); } catch { /* already gone */ }
+}
+
+async function waitForGroupGone(pgid: number, timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      process.kill(-pgid, 0);
+    } catch {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`process group ${pgid} still has members`);
+}
 
 async function reservePort(): Promise<number> {
   const server = createServer();

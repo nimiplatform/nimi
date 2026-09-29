@@ -82,7 +82,9 @@ func gemma4TextBehaviorRegistration(entry capabilitydriver.Gemma4BehaviorCohortE
 		},
 		ExecutionSemantics: textBehaviorExecutionSemantics{
 			RequiredTemplateIdentity: entry.TemplateIdentity,
-			ProcessIdentityImpact:    textBehaviorProcessIdentityAdapterAndTemplate,
+			// Thinking travels in each request and the verified template is the
+			// bound model's own, so this adapter changes no process launch.
+			ProcessIdentityImpact: textBehaviorProcessIdentityUnaffected,
 		},
 		RequestSerializerID: "llama.cpp/gemma4/openai-chat/request/v1",
 		RequestSerializer:   capabilitydriver.Gemma4TextBehaviorRequestSerializer,

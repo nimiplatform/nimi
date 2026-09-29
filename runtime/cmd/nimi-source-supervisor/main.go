@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
-	"time"
 )
 
 const sourceRuntimeRealmURL = "http://127.0.0.1:3002"
@@ -131,9 +130,9 @@ func run(args []string) error {
 		}
 		return fmt.Errorf("workspace source Runtime exited unexpectedly with code %d: %w", outcome.code, outcome.err)
 	case <-shutdown:
-		return stopOwnedRuntime(command, exited)
+		return stopOwnedRuntime(command, exited, shutdown)
 	case <-stdinClosed:
-		return stopOwnedRuntime(command, exited)
+		return stopOwnedRuntime(command, exited, shutdown)
 	}
 }
 
@@ -289,7 +288,10 @@ func samePlatformPath(left, right string) bool {
 	return filepath.Clean(left) == filepath.Clean(right)
 }
 
-func stopOwnedRuntime(command *exec.Cmd, exited <-chan runtimeExit) error {
+// The Runtime bounds its own shutdown by its configured timeout and stops its
+// engines within it; the supervisor never cuts that short. Another interrupt
+// from the developer forces the stop.
+func stopOwnedRuntime(command *exec.Cmd, exited <-chan runtimeExit, force <-chan os.Signal) error {
 	if command == nil || command.Process == nil {
 		return nil
 	}
@@ -297,7 +299,7 @@ func stopOwnedRuntime(command *exec.Cmd, exited <-chan runtimeExit) error {
 	select {
 	case <-exited:
 		return nil
-	case <-time.After(5 * time.Second):
+	case <-force:
 		_ = command.Process.Kill()
 		<-exited
 		return nil

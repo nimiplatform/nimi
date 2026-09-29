@@ -3,11 +3,13 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -74,86 +76,120 @@ func (s *Supervisor) cleanStalePID() {
 	if pidPath == "" || metadataPath == "" {
 		return
 	}
+	reclaimStaleSupervisedProcess(s.logger, s.cfg.Kind, pidPath, metadataPath)
+}
+
+// reclaimStaleSupervisedProcesses ends engines a previous Runtime instance
+// left behind under root, for every kind at once, before any engine starts.
+func reclaimStaleSupervisedProcesses(logger *slog.Logger, root string) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		pidPath := filepath.Join(root, entry.Name(), "supervised.pid")
+		if _, err := os.Stat(pidPath); err != nil {
+			continue
+		}
+		wg.Add(1)
+		go func(kind EngineKind) {
+			defer wg.Done()
+			reclaimStaleSupervisedProcess(logger, kind, pidPath, pidPath+".meta.json")
+		}(EngineKind(entry.Name()))
+	}
+	wg.Wait()
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.r035
+// reclaimStaleSupervisedProcess ends the process a pid record names only when
+// the record proves it is that engine's process instance: same kind, same
+// executable and the same kernel start time. Anything less is left alone and
+// the record dropped; a pid, a parent of 1, a name or a port never suffice.
+func reclaimStaleSupervisedProcess(logger *slog.Logger, kind EngineKind, pidPath string, metadataPath string) {
+	removeRecord := func() {
+		_ = os.Remove(pidPath)
+		_ = os.Remove(metadataPath)
+	}
 	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		return
 	}
 	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil || pid <= 0 {
-		s.removePIDFile()
+		removeRecord()
 		return
+	}
+	refuse := func(message string, attrs ...any) {
+		logger.Warn(message, append([]any{"engine", kind, "pid", pid}, attrs...)...)
+		removeRecord()
 	}
 
 	metadata, err := readSupervisorPIDMetadata(metadataPath)
 	if err != nil {
-		s.logger.Warn("supervised engine pid metadata missing or invalid; refusing stale kill",
-			"engine", s.cfg.Kind,
-			"pid", pid,
-			"path", metadataPath,
-			"error", err,
-		)
-		s.removePIDFile()
+		refuse("supervised engine pid metadata missing or invalid; refusing stale kill", "path", metadataPath, "error", err)
 		return
 	}
 	if metadata.PID != pid {
-		s.logger.Warn("supervised engine pid metadata mismatch; refusing stale kill",
-			"engine", s.cfg.Kind,
-			"pid", pid,
-			"metadata_pid", metadata.PID,
-			"path", metadataPath,
-		)
-		s.removePIDFile()
+		refuse("supervised engine pid metadata mismatch; refusing stale kill", "metadata_pid", metadata.PID, "path", metadataPath)
+		return
+	}
+	if metadata.EngineKind != kind {
+		refuse("supervised engine pid record belongs to another engine; refusing stale kill", "metadata_engine", metadata.EngineKind)
 		return
 	}
 
 	if !supervisorProcessAlive(pid) {
-		s.removePIDFile()
+		removeRecord()
 		return
 	}
 
 	matchesIdentity, validatedIdentity := supervisorProcessMatchesExpectedPath(pid, metadata.ExpectedExecutablePath)
 	if !validatedIdentity {
-		s.logger.Warn("supervised engine identity could not be validated; refusing stale kill",
-			"engine", s.cfg.Kind,
-			"pid", pid,
-			"detail", supervisorProcessIdentityValidationDetail(pid, metadata.ExpectedExecutablePath),
-		)
-		s.removePIDFile()
+		refuse("supervised engine identity could not be validated; refusing stale kill",
+			"detail", supervisorProcessIdentityValidationDetail(pid, metadata.ExpectedExecutablePath))
 		return
 	}
 	if !matchesIdentity {
-		s.logger.Warn("supervised engine identity mismatch; refusing stale kill",
-			"engine", s.cfg.Kind,
-			"pid", pid,
-			"detail", supervisorProcessIdentityValidationDetail(pid, metadata.ExpectedExecutablePath),
-		)
-		s.removePIDFile()
+		refuse("supervised engine identity mismatch; refusing stale kill",
+			"detail", supervisorProcessIdentityValidationDetail(pid, metadata.ExpectedExecutablePath))
+		return
+	}
+	if metadata.ProcessStartTime == "" {
+		refuse("supervised engine pid record has no process instance evidence; refusing stale kill")
+		return
+	}
+	if startTime, ok := supervisorProcessStartTime(pid); !ok || startTime != metadata.ProcessStartTime {
+		refuse("supervised engine pid now names another process instance; refusing stale kill",
+			"recorded_start", metadata.ProcessStartTime, "observed_start", startTime)
 		return
 	}
 
-	s.logger.Warn("killing stale engine process",
-		"engine", s.cfg.Kind,
+	logger.Warn("killing stale engine process",
+		"engine", kind,
 		"pid", pid,
 	)
 	if err := signalSupervisorProcess(pid, syscall.SIGTERM); err != nil {
 		_ = signalSupervisorProcessDirect(pid, syscall.SIGTERM)
 	}
 	if waitSupervisorProcessExit(nil, pid, 2*time.Second) {
-		s.removePIDFile()
+		removeRecord()
 		return
 	}
 	if err := signalSupervisorProcess(pid, syscall.SIGKILL); err != nil {
 		_ = signalSupervisorProcessDirect(pid, syscall.SIGKILL)
 	}
 	if waitSupervisorProcessExit(nil, pid, time.Second) {
-		s.removePIDFile()
+		removeRecord()
 		return
 	}
-	s.logger.Warn("stale engine process remained alive after SIGKILL",
-		"engine", s.cfg.Kind,
+	logger.Warn("stale engine process remained alive after SIGKILL",
+		"engine", kind,
 		"pid", pid,
 	)
-	return
 }
 
 func resolvePort(desired int) (int, error) {

@@ -67,7 +67,19 @@ if (process.platform === 'win32') {
 }
 const localAssetRoot = path.join(profileRoot, 'local-assets');
 const children = new Set();
+// Desktop quits in bounded steps of its own: each supervised dev App stops its
+// build tool and renderer (TERM, 5 s, KILL, 5 s each), its Host (2 s) and its
+// Runtime registration, then Desktop releases formal resources (5 s) and its
+// remaining hosts (avatar handoff 2.5 s, profile slot 1 s). The launcher sends
+// Desktop one SIGTERM and never cuts that short: a second signal forces, and
+// this backstop only ends a quit that is stuck, whose App Hosts and tool
+// processes then leave with their Desktop owner.
+const DESKTOP_QUIT_BACKSTOP_MS = 60_000;
+const CHILD_STOP_GRACE_MS = 2_000;
+const desktopChildren = new WeakSet();
 let shuttingDown = false;
+let forceShutdown;
+const forceRequested = new Promise((resolve) => { forceShutdown = resolve; });
 const SIGNAL_EXIT_CODES = new Map([
   ['SIGINT', 130],
   ['SIGTERM', 143],
@@ -75,6 +87,10 @@ const SIGNAL_EXIT_CODES = new Map([
 ]);
 for (const signal of SIGNAL_EXIT_CODES.keys()) {
   process.on(signal, () => {
+    if (shuttingDown) {
+      forceShutdown();
+      return;
+    }
     void shutdownFromSignal(signal);
   });
 }
@@ -110,7 +126,7 @@ async function runWindowsDesktopDev() {
       spawnRenderer();
       await waitForUrl(rendererUrl, 45_000);
     }
-    const exitCode = await runDesktopElectronUntilExit((relaunch) => spawnTracked(electronBin, [
+    const exitCode = await runDesktopElectronUntilExit((relaunch) => spawnDesktopTracked(electronBin, [
       ...desktopDevObservationArguments,
       `--user-data-dir=${profileRoot}`,
       'dist-electron/main.js',
@@ -177,7 +193,7 @@ async function runMacOSDesktopDev() {
     })}\n`);
     spawnRenderer();
     await waitForUrl(rendererUrl, 45_000);
-    const exitCode = await runDesktopElectronUntilExit((relaunch) => spawnTracked(electronBin, [
+    const exitCode = await runDesktopElectronUntilExit((relaunch) => spawnDesktopTracked(electronBin, [
       ...desktopDevObservationArguments,
       `--user-data-dir=${macOSProfileRoot}`,
       'dist-electron/main.js',
@@ -383,6 +399,14 @@ function spawnRenderer() {
   });
 }
 
+// Desktop gets its own process group on POSIX so a terminal Ctrl-C reaches
+// only this launcher, which then asks Desktop to quit exactly once.
+function spawnDesktopTracked(command, args, options) {
+  const child = spawnTracked(command, args, { ...options, detached: process.platform !== 'win32' });
+  desktopChildren.add(child);
+  return child;
+}
+
 function spawnTracked(command, args, options) {
   const { cwd = appRoot, ...spawnOptions } = options;
   const child = spawn(command, args, {
@@ -411,12 +435,18 @@ async function requestProcessTreeShutdown(child, signal) {
   if (!child?.pid || child.exitCode !== null) {
     return;
   }
+  const desktop = desktopChildren.has(child);
   if (process.platform === 'win32') {
     spawn('taskkill.exe', ['/pid', String(child.pid), '/t'], { stdio: 'ignore', windowsHide: true });
   } else {
-    child.kill(signal);
+    // Electron treats a repeated signal as an immediate kill, so Desktop gets
+    // exactly one, and only from here (it runs in its own process group).
+    child.kill(desktop ? 'SIGTERM' : signal);
   }
-  const stopped = await waitForExitOrTimeout(child, 2_000);
+  const stopped = await Promise.race([
+    waitForExitOrTimeout(child, desktop ? DESKTOP_QUIT_BACKSTOP_MS : CHILD_STOP_GRACE_MS),
+    forceRequested.then(() => false),
+  ]);
   if (!stopped) {
     forceKillProcessTree(child);
     await waitForExitOrTimeout(child, 1_000);

@@ -32,6 +32,7 @@ func Gemma4TextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpe
 	if err := gemma4ApplyResponseFormat(body, spec); err != nil {
 		return textbehavior.SerializedRequest{}, err
 	}
+	thinking := false
 	if reasoning := spec.GetReasoning(); reasoning != nil && llamaBehaviorReasoningEnabled(spec) {
 		budget, ok := reasoning.GetIntensity().(*runtimev1.ReasoningConfig_ExactBudgetTokens)
 		if !ok || budget.ExactBudgetTokens == 0 {
@@ -39,7 +40,10 @@ func Gemma4TextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpe
 		}
 		body["thinking_budget_tokens"] = budget.ExactBudgetTokens
 		body["reasoning_format"] = "deepseek"
+		thinking = true
 	}
+	// The resident process starts with thinking off; every request states its own.
+	body["chat_template_kwargs"] = map[string]any{"enable_thinking": thinking}
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return textbehavior.SerializedRequest{}, fmt.Errorf("encode Gemma 4 behavior request: %w", err)

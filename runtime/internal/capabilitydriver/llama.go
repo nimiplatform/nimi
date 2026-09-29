@@ -359,11 +359,11 @@ func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*Te
 	}
 
 	const modelAlias = "nimi-selected-local"
-	reasoningArgs := []string{"--reasoning", "off"}
-	if input.BehaviorAdapter != nil && llamaBehaviorReasoningEnabled(input.Request) {
-		reasoningArgs = []string{"--reasoning", "on", "--reasoning-format", "deepseek"}
-	}
-	processArgs := append(reasoningArgs,
+	// Thinking is a request field (chat_template_kwargs.enable_thinking, with
+	// its budget and format): the pinned llama-server honours it over this
+	// launch default in both directions, so plain, tool, structured and
+	// thinking requests to one model share one resident process.
+	processArgs := append([]string{"--reasoning", "off"},
 		// @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
 		// Assistant input is completed transcript, not an unfinished response.
 		// llama.cpp otherwise reinterprets a final assistant message as prefill.

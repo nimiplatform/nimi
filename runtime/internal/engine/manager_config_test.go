@@ -63,7 +63,7 @@ func TestManagerStopAllFencesLateEngineStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
-	mgr.StopAll()
+	mgr.StopAll(context.Background())
 	err = mgr.StartEngine(context.Background(), EngineConfig{Kind: EngineMedia})
 	if !errors.Is(err, ErrEngineManagerStopped) {
 		t.Fatalf("StartEngine after StopAll error = %v, want ErrEngineManagerStopped", err)
@@ -154,7 +154,7 @@ func TestManagerStopAllEmpty(t *testing.T) {
 	}
 
 	// StopAll on empty manager should not panic.
-	mgr.StopAll()
+	mgr.StopAll(context.Background())
 }
 
 func TestManagerBeginEngineStartGuardsConcurrentStarts(t *testing.T) {
@@ -185,7 +185,7 @@ func TestManagerStopAllRemovesStoppedSupervisors(t *testing.T) {
 	mgr.supervisors[EngineMedia] = NewSupervisor(EngineConfig{Kind: EngineMedia, ShutdownTimeout: time.Second}, nil, nil)
 	mgr.supervisors[engineManagedImageBackend] = NewSupervisor(EngineConfig{Kind: engineManagedImageBackend, ShutdownTimeout: time.Second}, nil, nil)
 
-	mgr.StopAll()
+	mgr.StopAll(context.Background())
 
 	if len(mgr.supervisors) != 0 {
 		t.Fatalf("expected StopAll to clear stopped supervisors, got %d entries", len(mgr.supervisors))

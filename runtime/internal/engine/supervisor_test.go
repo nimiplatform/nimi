@@ -972,10 +972,15 @@ func TestCleanStalePIDKillsOnlyMatchingProcessIdentity(t *testing.T) {
 	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(helperCmd.Process.Pid)), 0o644); err != nil {
 		t.Fatalf("write pid file: %v", err)
 	}
+	startTime, ok := supervisorProcessStartTime(helperCmd.Process.Pid)
+	if !ok {
+		t.Fatalf("read helper start time")
+	}
 	encodedMetadata, err := encodeSupervisorPIDMetadata(supervisorPIDMetadata{
 		PID:                    helperCmd.Process.Pid,
 		EngineKind:             EngineLlama,
 		ExpectedExecutablePath: canonicalSupervisorProcessPath(executablePath),
+		ProcessStartTime:       startTime,
 	})
 	if err != nil {
 		t.Fatalf("encode metadata: %v", err)

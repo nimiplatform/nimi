@@ -3,12 +3,16 @@
 package engine
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
-	"os/exec"
-	"strconv"
-	"strings"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
+
+// darwinProcessZombie is SZOMB from <sys/proc.h>.
+const darwinProcessZombie = 5
 
 func supervisorProcessAlive(pid int) bool {
 	if pid <= 0 {
@@ -17,12 +21,43 @@ func supervisorProcessAlive(pid int) bool {
 	if syscall.Kill(pid, syscall.Signal(0)) != nil {
 		return false
 	}
-	output, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "stat=").Output()
+	info, err := unix.SysctlKinfoProc("kern.proc.pid", pid)
 	if err != nil {
 		return true
 	}
-	stat := strings.TrimSpace(string(output))
-	return !strings.Contains(stat, "Z")
+	return info.Proc.P_stat != darwinProcessZombie
+}
+
+// darwinProcessArguments reads the executable path and argv of pid from
+// KERN_PROCARGS2. Its entries are NUL-separated, so a path with spaces such as
+// ~/Library/Application Support/... stays whole.
+func darwinProcessArguments(pid int) (string, []string, error) {
+	raw, err := unix.SysctlRaw("kern.procargs2", pid)
+	if err != nil {
+		return "", nil, err
+	}
+	if len(raw) < 4 {
+		return "", nil, fmt.Errorf("process %d arguments are truncated", pid)
+	}
+	argc := int(binary.LittleEndian.Uint32(raw[:4]))
+	rest := raw[4:]
+	end := bytes.IndexByte(rest, 0)
+	if end <= 0 {
+		return "", nil, fmt.Errorf("process %d has no executable path", pid)
+	}
+	executable := string(rest[:end])
+	rest = bytes.TrimLeft(rest[end:], "\x00")
+	args := make([]string, 0, argc)
+	for len(args) < argc && len(rest) > 0 {
+		end = bytes.IndexByte(rest, 0)
+		if end < 0 {
+			args = append(args, string(rest))
+			break
+		}
+		args = append(args, string(rest[:end]))
+		rest = rest[end+1:]
+	}
+	return executable, args, nil
 }
 
 func supervisorProcessMatchesExpectedPath(pid int, expectedPath string) (bool, bool) {
@@ -30,17 +65,15 @@ func supervisorProcessMatchesExpectedPath(pid int, expectedPath string) (bool, b
 	if expected == "" || pid <= 0 {
 		return false, false
 	}
-
-	output, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "command=").Output()
+	executable, args, err := darwinProcessArguments(pid)
 	if err != nil {
 		return false, false
 	}
-	commandLine := strings.TrimSpace(string(output))
-	if commandLine == "" {
-		return false, false
+	if canonicalSupervisorProcessPath(executable) == expected {
+		return true, true
 	}
-	for _, part := range strings.Fields(commandLine) {
-		if canonicalSupervisorProcessPath(part) == expected {
+	for _, arg := range args {
+		if canonicalSupervisorProcessPath(arg) == expected {
 			return true, true
 		}
 	}
@@ -55,17 +88,22 @@ func observedSupervisorExecutablePath(pid int) string {
 	if pid <= 0 {
 		return ""
 	}
-	output, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "command=").Output()
+	executable, _, err := darwinProcessArguments(pid)
 	if err != nil {
 		return ""
 	}
-	commandLine := strings.TrimSpace(string(output))
-	if commandLine == "" {
-		return ""
+	return canonicalSupervisorProcessPath(executable)
+}
+
+// supervisorProcessStartTime is when the kernel created pid. It survives exec,
+// so it names this process instance and no later process given the same pid.
+func supervisorProcessStartTime(pid int) (string, bool) {
+	if pid <= 0 {
+		return "", false
 	}
-	parts := strings.Fields(commandLine)
-	if len(parts) == 0 {
-		return ""
+	info, err := unix.SysctlKinfoProc("kern.proc.pid", pid)
+	if err != nil || info.Proc.P_starttime.Sec <= 0 {
+		return "", false
 	}
-	return canonicalSupervisorProcessPath(parts[0])
+	return fmt.Sprintf("darwin:%d.%06d", info.Proc.P_starttime.Sec, info.Proc.P_starttime.Usec), true
 }

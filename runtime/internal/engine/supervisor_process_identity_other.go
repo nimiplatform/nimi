@@ -12,6 +12,10 @@ func supervisorProcessMatchesExpectedPath(pid int, expectedPath string) (bool, b
 	return false, false
 }
 
+func supervisorProcessStartTime(int) (string, bool) {
+	return "", false
+}
+
 func supervisorProcessIdentityValidationDetail(pid int, expectedPath string) string {
 	return fmt.Sprintf("pid=%d expected=%s", pid, canonicalSupervisorProcessPath(expectedPath))
 }

@@ -3,9 +3,67 @@
 package engine
 
 import (
+	"math"
+	"os"
 	"os/exec"
+	"strconv"
 	"syscall"
+	"time"
 )
+
+const supervisorOwnerGuardShell = "/bin/sh"
+
+// supervisorOwnerGuardScript lets a supervised engine end with this Runtime.
+// A watcher reads a pipe only the Runtime writes (stdin must be given to it
+// explicitly: a background list would otherwise read /dev/null), then the
+// script execs the engine, which keeps this pid and process group. When the
+// Runtime has finished ending the tree it writes one byte and closes the
+// pipe. End of input without that byte means the Runtime is gone
+// (a crash, a kill, a stop that ran out of time): the watcher stops its own
+// group and escalates after the engine's shutdown budget. A group id is never
+// reused while its members live, so nothing outside the group is signalled.
+const supervisorOwnerGuardScript = "(trap '' TERM; [ -n \"$(head -c 1)\" ] || { kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null; }) <&0 &\n" +
+	"exec \"$@\" </dev/null"
+
+// supervisorOwnerRelease is the Runtime's end of an engine's owner pipe.
+type supervisorOwnerRelease struct {
+	writer *os.File
+}
+
+// guardSupervisorProcessOwner runs cmd under the owner guard. The returned
+// reader must be closed once the process started; the release is the
+// Runtime's end of the pipe and lives as long as the process does.
+func guardSupervisorProcessOwner(cmd *exec.Cmd, grace time.Duration) (*os.File, *supervisorOwnerRelease, error) {
+	if cmd.Err != nil {
+		return nil, nil, cmd.Err
+	}
+	if _, err := os.Stat(cmd.Path); err != nil {
+		return nil, nil, err
+	}
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		return nil, nil, err
+	}
+	seconds := int(math.Ceil(grace.Seconds()))
+	if seconds < 1 {
+		seconds = 1
+	}
+	cmd.Args = append([]string{
+		supervisorOwnerGuardShell, "-c", supervisorOwnerGuardScript, strconv.Itoa(seconds), cmd.Path,
+	}, cmd.Args[1:]...)
+	cmd.Path = supervisorOwnerGuardShell
+	cmd.Stdin = reader
+	return reader, &supervisorOwnerRelease{writer: writer}, nil
+}
+
+// release closes the owner pipe after the tracked tree has ended.
+func (r *supervisorOwnerRelease) release() {
+	if r == nil || r.writer == nil {
+		return
+	}
+	_, _ = r.writer.Write([]byte{1})
+	_ = r.writer.Close()
+}
 
 type supervisorProcessLifecycle struct {
 	processGroupID int

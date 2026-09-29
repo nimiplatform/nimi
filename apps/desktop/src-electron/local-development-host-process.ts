@@ -29,6 +29,40 @@ export function localDevelopmentToolEnvironment(
   return output;
 }
 
+// POSIX owner guard. A watcher reads the stdin pipe only Desktop can write
+// (explicitly: a background list would otherwise read /dev/null);
+// the script then execs the target, which keeps this pid and process group.
+// When Desktop is gone the pipe ends and the watcher stops its own group,
+// escalating after the budget a Desktop stop gives the tree; a group id is
+// never reused while its members live, so nothing outside it is signalled.
+// After an ordinary stop the watcher only outlives the target by that budget.
+const POSIX_OWNER_GUARD_SCRIPT = [
+  "(trap '' TERM; cat >/dev/null 2>&1; kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null) <&0 &",
+  'exec "$@" </dev/null',
+].join('\n');
+const POSIX_OWNER_LOSS_GRACE_SECONDS = 5;
+
+/** @internal Starts an invocation that ends with its Desktop owner on POSIX. */
+export function spawnPosixOwnerGuardedProcess(
+  invocation: { readonly command: string; readonly args: readonly string[] },
+  cwd: string,
+  environment: NodeJS.ProcessEnv,
+): ChildProcessWithoutNullStreams {
+  return spawn('/bin/sh', [
+    '-c',
+    POSIX_OWNER_GUARD_SCRIPT,
+    String(POSIX_OWNER_LOSS_GRACE_SECONDS),
+    invocation.command,
+    ...invocation.args,
+  ], {
+    cwd,
+    env: environment,
+    detached: true,
+    windowsHide: true,
+    stdio: 'pipe',
+  });
+}
+
 export function spawnLocalDevelopmentPackageScript(
   script: LocalDevelopmentPackageScript,
   cwd: string,
@@ -43,14 +77,7 @@ export function spawnLocalDevelopmentPackageScript(
   const invocation = resolveLocalDevelopmentPackageScriptInvocation(script, platform);
   const environment = localDevelopmentToolEnvironment(options.sourceEnvironment ?? process.env);
   if (platform !== 'win32') {
-    return spawn(invocation.command, invocation.args, {
-      cwd,
-      env: environment,
-      shell: invocation.shell,
-      detached: true,
-      windowsHide: true,
-      stdio: 'pipe',
-    });
+    return spawnPosixOwnerGuardedProcess(invocation, cwd, environment);
   }
   const guardianPath = options.guardianPath
     ?? fileURLToPath(new URL('./local-development-process-guardian.js', import.meta.url));
