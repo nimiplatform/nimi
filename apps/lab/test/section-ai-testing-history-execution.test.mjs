@@ -25,6 +25,7 @@ await build({
   stdin: {
     contents: `export { SectionAITesting } from './src/ai-studio-core/section-ai-testing.tsx';
       export { TextStudioComposer } from './src/ai-studio-core/section-ai-testing-composer.tsx';
+      export { textStudioImageInputAvailable } from './src/ai-studio-core/section-ai-testing-input.ts';
       export { AIStudioHostProvider } from './src/ai-studio-core/host-context.tsx';
       export { StudioCapabilityParameterContext } from './src/ai-studio-core/contexts.tsx';
       export { labStudioComposition } from './src/lab/lab-studio-composition.ts';
@@ -34,11 +35,56 @@ await build({
   outfile:path.join(buildDir,'studio.mjs'), bundle:true, packages:'external',
   platform:'node', format:'esm', target:'es2022', jsx:'automatic', logLevel:'silent',
 });
-const { SectionAITesting, TextStudioComposer, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
+const { SectionAITesting, TextStudioComposer, textStudioImageInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 
 test.after(async () => {
   dom.window.close();
   await rm(buildDir, { recursive:true, force:true });
+});
+
+test('text image action follows the effective configured feature and retains a blocked draft image', async () => {
+  const selected = {
+    capabilityContract:'text.generate',state:'ready',resource:{oneofKind:'cloud',cloud:{
+      target:{state:'ready',supportedFeatures:['input.image']},
+    }},
+  };
+  assert.equal(textStudioImageInputAvailable({effectiveSelections:[selected]}),true);
+  assert.equal(textStudioImageInputAvailable({effectiveSelections:[{
+    ...selected,resource:{oneofKind:'cloud',cloud:{target:{state:'ready',supportedFeatures:[]}}},
+  }]}),false);
+  assert.equal(textStudioImageInputAvailable({effectiveSelections:[{
+    ...selected,resource:{oneofKind:'local',local:{state:'ready',configuredFeatures:[],implementationSupportedFeatures:['input.image']}},
+  }]}),false);
+  assert.equal(textStudioImageInputAvailable({effectiveSelections:[{
+    ...selected,resource:{oneofKind:'local',local:{state:'ready',configuredFeatures:['input.image'],implementationSupportedFeatures:['input.image']}},
+  }]}),true);
+
+  const registration = labStudioComposition.getCapability('text.generate');
+  const container = document.getElementById('root');
+  const renderer = createRoot(container);
+  const image = {id:'draft-image',kind:'image',name:'cats.jpg',mimeType:'image/jpeg',dataUrl:'data:image/jpeg;base64,AQID'};
+  const props = {
+    registration,prompt:'Describe the image',context:'',intentLabel:'Cloud',running:false,
+    attachments:[image],attachmentPickerEnabled:false,attachmentWarning:'Remove the image or choose a model that supports image input.',
+    canDispatch:true,canConfigureIntent:false,onOpenAttachmentPicker:()=>{},onRemoveAttachment:()=>{},
+    onPromptChange:()=>{},onContextChange:()=>{},onSubmit:()=>{},
+  };
+  const render = () => renderer.render(createElement(TooltipProvider,null,
+    createElement(AIStudioHostProvider,{value:{translate:key=>key}},createElement(TextStudioComposer,props))));
+  try {
+    await act(async()=>{render();});
+    assert.equal(container.querySelector('button[aria-label="Studio.composer.attachContext"]'),null);
+    assert.equal(container.querySelector('.studio-attachment-chip__name')?.textContent,'cats.jpg');
+    assert.match(container.textContent,/Remove the image/u);
+    assert.equal(container.querySelector('button[aria-label="Studio.profiles.textGenerate.primaryLabel"]').disabled,true);
+    props.attachmentPickerEnabled=true;
+    props.attachmentWarning=undefined;
+    await act(async()=>{render();});
+    assert.ok(container.querySelector('button[aria-label="Studio.composer.attachContext"]'));
+    assert.equal(container.querySelector('button[aria-label="Studio.profiles.textGenerate.primaryLabel"]').disabled,false);
+  } finally {
+    await act(async()=>{renderer.unmount();});
+  }
 });
 
 test('history previews do not inherit another run status or cancellation target', async () => {

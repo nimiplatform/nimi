@@ -14,6 +14,7 @@ import { ScenarioJobStatus } from '@nimiplatform/sdk/runtime/generated';
 import {
   canCancelStudioCapabilityRun,
   hasStudioCapabilityRunInput,
+  textStudioImageInputAvailable,
   usesVerbatimStudioPrompt,
 } from './section-ai-testing-input.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
@@ -76,6 +77,7 @@ function TextStudioShell({
   const [executingRun, setExecutingRun] = useState<TextStudioActiveRun | null>(null);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
+  const [imageInputState, setImageInputState] = useState<'checking' | 'supported' | 'unsupported' | 'unavailable'>('checking');
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
   const [sessionRuns, setSessionRuns] = useState<Record<string, TextStudioActiveRun>>({});
   const historyPanel = useContext(StudioHistoryPanelContext);
@@ -87,7 +89,7 @@ function TextStudioShell({
   const displayedRun = displayingExecution ? executingRun : activeRun;
   const expandedHistoryErrorRef = useRef<string | null>(null);
   const attachmentAdapter = useMemo(
-		() => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment', ...((capability.id === 'vision.locate' || capability.id === 'text.generate') ? { maxAttachments: 1, accept: ['image/png','image/jpeg','image/webp','image/gif'] } : {}) }),
+    () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment', ...((capability.id === 'vision.locate') ? { maxAttachments: 1, accept: ['image/png','image/jpeg','image/webp','image/gif'] } : capability.id === 'text.generate' ? { maxAttachments: 1, accept: ['image/jpeg'] } : {}) }),
     [capability.id],
   );
   const composerState = useChatComposer<BrowserDataUrlAttachment>({
@@ -97,6 +99,25 @@ function TextStudioShell({
     onTextChange: updatePrompt,
     disabled: running,
   });
+  useEffect(() => {
+    if (capability.id !== 'text.generate') return;
+    let disposed = false;
+    let generation = 0;
+    const refresh = () => {
+      const current = ++generation;
+      setImageInputState('checking');
+      void rendererHost.sdk.aiConfig.getSnapshot().then((snapshot) => {
+        if (!disposed && generation === current) {
+          setImageInputState(textStudioImageInputAvailable(snapshot) ? 'supported' : 'unsupported');
+        }
+      }, () => {
+        if (!disposed && generation === current) setImageInputState('unavailable');
+      });
+    };
+    refresh();
+    const unsubscribe = rendererHost.app.events.subscribeAIConfigRefresh(refresh);
+    return () => { disposed = true; generation += 1; unsubscribe(); };
+  }, [capability.id, rendererHost]);
   const hasRequiredImage = capability.id !== 'vision.locate'
     || (composerState.attachments.length === 1 && composerState.attachments[0]?.kind === 'image');
   const hasActiveRun = Boolean(displayedRun);
@@ -112,6 +133,7 @@ function TextStudioShell({
   const admission = statusForCapability(registration, runTarget, headerResult, t);
   const requiresPrompt = profile.inputKind !== 'none';
   const supportsMedia = profile.supportsAttachments;
+  const attachmentBlocked = capability.id === 'text.generate' && composerState.attachments.length > 0 && imageInputState !== 'supported';
   const capabilityParameters = parameterStore?.state[capability.id] ?? registration.parameters.initial();
   const effectiveCapabilityParameters = useMemo(() => registration.parameters.project(
     runTarget.source,
@@ -214,7 +236,15 @@ function TextStudioShell({
         const isStreaming = capability.id === 'chat.stream';
         if (isStreaming) setStreamingText('');
         const directive = textStudioDirectiveForTarget(runTarget, profile);
-        result = await rendererHost.sdk.runCapability({
+        if (capability.id === 'text.generate' && composerState.attachments.length > 0 &&
+            !textStudioImageInputAvailable(await rendererHost.sdk.aiConfig.getSnapshot())) {
+          result = {
+            ok: false, capabilityId: capability.id, reason: 'input-invalid',
+            message: t('Studio.profiles.textGenerate.imageTargetUnsupported'),
+            actionHint: t('Studio.profiles.textGenerate.imageTargetUnsupported'),
+            missingSurface: capability.missingSurface,
+          };
+        } else result = await rendererHost.sdk.runCapability({
           capabilityId: capability.id,
           prompt: usesVerbatimStudioPrompt(capability.id) || profile.rawPrompt || recordedInput
             ? displayPrompt
@@ -362,6 +392,12 @@ function TextStudioShell({
       intentLabel={textStudioRunTargetIntentSummary(runTarget, t)}
       running={running}
       attachments={composerState.attachments}
+      attachmentPickerEnabled={capability.id !== 'text.generate' || imageInputState === 'supported'}
+      attachmentWarning={attachmentBlocked ? t(imageInputState === 'checking'
+        ? 'Studio.profiles.textGenerate.imageTargetChecking'
+        : imageInputState === 'unavailable'
+          ? 'Studio.profiles.textGenerate.imageTargetUnknown'
+          : 'Studio.profiles.textGenerate.imageTargetUnsupported') : undefined}
       onOpenAttachmentPicker={composerState.openAttachmentPicker}
       onRemoveAttachment={composerState.removeAttachment}
       canDispatch={runTarget.canDispatch}

@@ -1,4 +1,19 @@
 import type { StudioResultKind } from './module-registration.js';
+import type { NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
+
+export function textStudioImageInputAvailable(snapshot: NimiAIConfigSnapshot): boolean {
+  const selection = snapshot.effectiveSelections.find((item) => item.capabilityContract === 'text.generate');
+  if (selection?.state !== 'ready') return false;
+  const resource = selection.resource;
+  if (resource?.oneofKind === 'cloud') {
+    return resource.cloud.target.state === 'ready' && resource.cloud.target.supportedFeatures.includes('input.image');
+  }
+  if (resource?.oneofKind === 'local') {
+    return resource.local.state === 'ready' && resource.local.configuredFeatures.includes('input.image')
+      && resource.local.implementationSupportedFeatures.includes('input.image');
+  }
+  return false;
+}
 
 export function usesVerbatimStudioPrompt(capabilityId: string): boolean {
   return capabilityId === 'audio.synthesize'

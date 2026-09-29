@@ -884,6 +884,19 @@ test('Lab preserves actual image-generated text when saving the source image fai
   assert.match(result.message, /source image|原图/u);
 });
 
+test('Lab text.generate rejects unverified image formats before upload', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  let uploads = 0;
+  const client = fakeLocalAppClient({ async uploadArtifact() { uploads += 1; throw new Error('unreachable'); } });
+  const result = await runLabCapability({
+    capabilityId: 'text.generate', prompt: 'Describe the image.',
+    attachments: [{ id: 'image', kind: 'image', name: 'image.png', mimeType: 'image/png', dataUrl: 'data:image/png;base64,AQID' }],
+  }, readyRuntimeDependencies(client));
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'input-invalid');
+  assert.equal(uploads, 0);
+});
+
 test('Lab text.generate preserves only the exact foreground parameter set including explicit zero values', async () => {
   const { runLabCapability } = await importLabRuntime();
   const calls = [];

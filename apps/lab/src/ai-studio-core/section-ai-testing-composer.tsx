@@ -1,5 +1,5 @@
 import { useId, useState, type ChangeEvent, type ReactNode } from 'react';
-import { Button, IconButton, NimiText, TextareaField, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, IconButton, InlineAlert, NimiText, TextareaField, Tooltip } from '@nimiplatform/kit/ui';
 import { ArrowUp, Paperclip, Play, Plus, RefreshCw, ScanSearch, SlidersHorizontal, X } from 'lucide-react';
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { useAIStudioHost } from './host-context.js';
@@ -50,6 +50,8 @@ export function TextStudioComposer({
   intentLabel,
   running,
   attachments,
+  attachmentPickerEnabled = true,
+  attachmentWarning,
   onOpenAttachmentPicker,
   onRemoveAttachment,
   canDispatch,
@@ -70,6 +72,8 @@ export function TextStudioComposer({
   intentLabel: string;
   running: boolean;
   attachments: readonly BrowserDataUrlAttachment[];
+  attachmentPickerEnabled?: boolean;
+  attachmentWarning?: string;
   onOpenAttachmentPicker: () => void;
   onRemoveAttachment: (index: number) => void;
   canDispatch: boolean;
@@ -102,7 +106,7 @@ export function TextStudioComposer({
   const intentConfigAction = Boolean(onOpenIntentConfig) && !canDispatch && canConfigureIntent;
   const generateDisabled = isVisionLocate
     ? running || (!intentConfigAction && (!promptReady || !canDispatch))
-    : running || !promptReady || (!canDispatch && !intentConfigAction);
+    : running || !promptReady || Boolean(attachmentWarning) || (!canDispatch && !intentConfigAction);
   const generateLabel = running
     ? t(profile.primaryRunningLabelKey)
     : intentConfigAction
@@ -144,9 +148,9 @@ export function TextStudioComposer({
           onOpen={onOpenIntentConfig}
           configurable={intentConfigurable && Boolean(onOpenIntentConfig)}
         />
-        {profile.supportsAttachments && !isVisionLocate ? (
+        {profile.supportsAttachments && !isVisionLocate && (attachmentPickerEnabled || attachments.length > 0) ? (
           <div className="studio-attachment-strip studio-attachment-strip--icon">
-            <Tooltip content={t('Studio.composer.attachContext')} placement="top">
+            {attachmentPickerEnabled ? <Tooltip content={t('Studio.composer.attachContext')} placement="top">
               <Button
                 type="button"
                 className="h-8 w-8 rounded-full px-0"
@@ -158,7 +162,7 @@ export function TextStudioComposer({
               >
                 <Paperclip size={15} aria-hidden="true" />
               </Button>
-            </Tooltip>
+            </Tooltip> : null}
             {attachments.map((item, index) => (
               <span key={item.id} className="studio-attachment-chip">
                 {item.kind === 'image' ? (
@@ -210,6 +214,7 @@ export function TextStudioComposer({
   );
   return (
     <div className={`studio-composer${compact ? ' studio-composer--compact' : ''}${isVisionLocate ? ' studio-composer--vision' : ''}`}>
+      {attachmentWarning ? <InlineAlert tone="warning">{attachmentWarning}</InlineAlert> : null}
       {isVisionLocate ? <VisionLocateImageInput
         image={attachments[0]?.kind === 'image' ? attachments[0] : undefined}
         disabled={running}

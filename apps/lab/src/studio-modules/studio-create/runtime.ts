@@ -33,9 +33,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
   const attachments = context.input.attachments ?? [];
   if (attachments.length > 0) {
     const image = attachments[0];
-    const allowedMime = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
-    if (attachments.length !== 1 || !image || image.kind !== 'image' ||
-      !allowedMime.some((mime) => mime === image.mimeType)) {
+    if (attachments.length !== 1 || !image || image.kind !== 'image' || image.mimeType !== 'image/jpeg') {
       return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.profiles.textGenerate.imageInvalid'));
     }
     const prefix = `data:${image.mimeType};base64,`;
@@ -68,7 +66,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
         text: '',
         parts: [
           { type: 'text', text: context.prompt },
-          { type: 'artifact-ref', artifactId: upload.artifactId, mediaType: image.mimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif', displayName: image.name },
+          { type: 'artifact-ref', artifactId: upload.artifactId, mediaType: 'image/jpeg', displayName: image.name },
         ],
       }],
       ...textCandidateParameters(parameters),
@@ -78,8 +76,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
       !response.output.items[0].text.trim()) {
       return context.host.nonSuccess(context.capability, 'runtime-call-failed', context.host.translate('Studio.profiles.textGenerate.imageOutputInvalid'));
     }
-    const suffix = image.mimeType === 'image/png' ? 'png' : image.mimeType === 'image/webp' ? 'webp' : image.mimeType === 'image/gif' ? 'gif' : 'jpg';
-    const relativePath = `studio/text-generate-inputs/${crypto.randomUUID()}.${suffix}`;
+    const relativePath = `studio/text-generate-inputs/${crypto.randomUUID()}.jpg`;
     let sourceImage;
     let message = context.host.translate('Studio.profiles.textGenerate.imageCompleted');
     try {
