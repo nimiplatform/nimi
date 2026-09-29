@@ -1036,7 +1036,9 @@ func productControlCheckSyncEnvironmentMaterialSupportsRecord(record localEnviro
 		expected := filepath.ToSlash(filepath.Join("environments", "python-profiles", digest))
 		return ok && locator == expected && match("python_profile", digest, expected, "PYTHON_PROFILE_OWNER_MATERIAL_VERIFIED_SELECTION_REQUIRED", false)
 	case localEnvironmentFamilyPythonTorchWheel:
-		return false
+		return productControlCheckSyncTorchMaterialSupportsRecord(record, ownerMaterial, dataRoot, match)
+	case localEnvironmentFamilyMediaCodec, localEnvironmentFamilyNativeSDCPP:
+		return productControlCheckSyncFixedMaterialSupportsRecord(record, ownerMaterial, dataRoot, match)
 	default:
 		// Other fixed owners retain their intent, but this pass has no direct
 		// owner verifier capable of atomically adopting them. Existence alone

@@ -291,6 +291,7 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigRuntimeWrapper(t *testi
 	if err := os.WriteFile(filepath.Join(backendDir, "metadata.json"), []byte(`{"name":"sd-win-cuda12-x64-stablediffusion-ggml","alias":"stablediffusion-ggml"}`), 0o644); err != nil {
 		t.Fatalf("write metadata.json: %v", err)
 	}
+	writeManagedImageBackendCustodyForTest(t, backendDir)
 
 	originalExecutable := managedImageBackendCurrentExecutable
 	managedImageBackendCurrentExecutable = func() (string, error) {
@@ -301,6 +302,7 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigRuntimeWrapper(t *testi
 	})
 
 	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, t.TempDir(), "stablediffusion-ggml", managedImageBackendPackageSpec{
+		ArchiveSHA256:        strings.Repeat("a", 64),
 		BackendName:          "stablediffusion-ggml",
 		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
 		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
@@ -394,6 +396,7 @@ func TestDiscoverInstalledManagedImageBackendRejectsAliasOnlyStaleRuntimeWrapper
 	}
 
 	_, _, err := discoverInstalledManagedImageBackendExecutablePath(backendsPath, "stablediffusion-ggml", managedImageBackendPackageSpec{
+		ArchiveSHA256:        strings.Repeat("a", 64),
 		BackendName:          "stablediffusion-ggml",
 		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml-8caa3f9",
 		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
@@ -403,7 +406,7 @@ func TestDiscoverInstalledManagedImageBackendRejectsAliasOnlyStaleRuntimeWrapper
 	if err == nil {
 		t.Fatal("expected stale alias-only runtime wrapper package to be rejected")
 	}
-	if !strings.Contains(err.Error(), `managed image backend "stablediffusion-ggml" not installed`) {
+	if !strings.Contains(err.Error(), "managed image package custody unavailable") {
 		t.Fatalf("unexpected stale package error: %v", err)
 	}
 }
@@ -462,8 +465,10 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigInjectsManagedCUDAPathP
 		managedImageBackendCurrentExecutable = originalExecutable
 	})
 	t.Setenv("PATH", `C:\Windows\System32`)
+	writeManagedImageBackendCustodyForTest(t, backendDir)
 
 	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, dependenciesPath, "stablediffusion-ggml", managedImageBackendPackageSpec{
+		ArchiveSHA256:        strings.Repeat("a", 64),
 		BackendName:          "stablediffusion-ggml",
 		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
 		PackageSource:        managedImageBackendPackageSourceCanonicalRuntimeWrapper,

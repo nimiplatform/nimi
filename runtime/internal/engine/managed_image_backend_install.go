@@ -44,10 +44,12 @@ type ociImageReference struct {
 }
 
 type managedImageBackendMetadata struct {
-	Name                   string   `json:"name,omitempty"`
-	Alias                  string   `json:"alias,omitempty"`
-	MetaBackendFor         string   `json:"meta_backend_for,omitempty"`
-	SupportedModelFamilies []string `json:"supported_model_families,omitempty"`
+	Name                   string            `json:"name,omitempty"`
+	Alias                  string            `json:"alias,omitempty"`
+	MetaBackendFor         string            `json:"meta_backend_for,omitempty"`
+	SupportedModelFamilies []string          `json:"supported_model_families,omitempty"`
+	ArchiveSHA256          string            `json:"archive_sha256,omitempty"`
+	PayloadHashes          map[string]string `json:"payload_hashes,omitempty"`
 }
 
 type managedImageBackendLaunchConfig struct {
@@ -433,10 +435,19 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 	if _, _, err := discoverManagedImageBackendExecutablePathInDir(stagedDir, spec.ExecutableCandidates); err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
+	// The archive has passed its pinned SHA above. Retain its extracted file
+	// identities in the existing owner metadata so later checks detect modified
+	// binaries/DLLs instead of restating the archive pin for unverified files.
+	payloadHashes, err := managedImageBackendPayloadHashes(stagedDir)
+	if err != nil {
+		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
+	}
 	if err := writeManagedImageBackendMetadata(filepath.Join(stagedDir, "metadata.json"), managedImageBackendMetadata{
 		Name:                   spec.InstallDirName,
 		Alias:                  backendName,
 		SupportedModelFamilies: append([]string(nil), spec.SupportedModelFamilies...),
+		ArchiveSHA256:          strings.ToLower(expectedArchiveSHA256),
+		PayloadHashes:          payloadHashes,
 	}); err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
@@ -611,68 +622,7 @@ func managedImageBackendRuntimeWrapperCUDARuntimeDir(sharedDependenciesPath stri
 }
 
 func discoverInstalledManagedImageBackendExecutablePath(backendsPath string, backendName string, spec managedImageBackendPackageSpec) (string, string, error) {
-	entries, err := os.ReadDir(backendsPath)
-	if err != nil {
-		return "", "", fmt.Errorf("read managed image backends path: %w", err)
-	}
-	type candidate struct {
-		dir        string
-		executable string
-		score      int
-	}
-	candidates := make([]candidate, 0, len(entries))
-	trimmedBackend := strings.TrimSpace(backendName)
-	trimmedInstallDir := strings.TrimSpace(spec.InstallDirName)
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		dir := entry.Name()
-		dirPath := filepath.Join(backendsPath, dir)
-		metadata, metadataErr := readManagedImageBackendMetadata(filepath.Join(dirPath, "metadata.json"))
-		if metadataErr != nil {
-			return "", "", metadataErr
-		}
-		var score int
-		if trimmedInstallDir != "" {
-			switch {
-			case strings.EqualFold(dir, trimmedInstallDir):
-				score = 0
-			case metadata != nil && strings.EqualFold(strings.TrimSpace(metadata.Name), trimmedInstallDir):
-				score = 1
-			default:
-				continue
-			}
-		} else {
-			switch {
-			case metadata != nil && strings.EqualFold(strings.TrimSpace(metadata.Alias), trimmedBackend):
-				score = 1
-			case metadata != nil && strings.EqualFold(strings.TrimSpace(metadata.Name), trimmedBackend):
-				score = 2
-			default:
-				continue
-			}
-		}
-		executablePath, _, execErr := discoverManagedImageBackendExecutablePathInDir(dirPath, spec.ExecutableCandidates)
-		if execErr != nil {
-			continue
-		}
-		candidates = append(candidates, candidate{
-			dir:        dir,
-			executable: executablePath,
-			score:      score,
-		})
-	}
-	if len(candidates) == 0 {
-		return "", "", fmt.Errorf("managed image backend %q not installed in %s", backendName, backendsPath)
-	}
-	sort.Slice(candidates, func(i, j int) bool {
-		if candidates[i].score != candidates[j].score {
-			return candidates[i].score < candidates[j].score
-		}
-		return candidates[i].dir < candidates[j].dir
-	})
-	return candidates[0].executable, filepath.Dir(candidates[0].executable), nil
+	return verifyManagedImageBackendPackage(backendsPath, backendName, spec)
 }
 
 func discoverManagedImageBackendExecutablePathInDir(root string, candidates []string) (string, string, error) {

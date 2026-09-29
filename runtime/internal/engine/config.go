@@ -132,6 +132,11 @@ type ManagedEnvironmentCheckResult struct {
 	Change     string
 	Reason     string
 	NextAction CheckSyncNextAction
+	// Ephemeral owner verification, consumed in-process by selected-source
+	// reconciliation; these are not a second persisted custody store.
+	MediaCodec    *MediaCodecDependencyStatus
+	ImageBackend  *ManagedImageBackendDependencyStatus
+	PythonProfile *PythonDependencyProfileManifest
 }
 
 type UVToolDependencyStatus struct {

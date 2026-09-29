@@ -36,7 +36,7 @@ func (m *Manager) checkSyncManagedEnvironment(ctx context.Context, dataRoot stri
 		})
 	}
 	platform = strings.ToLower(strings.TrimSpace(platform))
-	claimedEnvironmentEntries := map[string]struct{}{"registry.json": {}, "python-profiles": {}, "python": {}}
+	claimedEnvironmentEntries := map[string]struct{}{"registry.json": {}, "python-profiles": {}, "python": {}, "managed-image-backends": {}}
 	for _, entry := range m.registry.List() {
 		if ctx.Err() != nil {
 			return append(results, ManagedEnvironmentCheckResult{Kind: "engine_registry", Status: "failed", Reason: "RUN_INTERRUPTED"})
@@ -177,6 +177,7 @@ func (m *Manager) checkSyncManagedEnvironment(ctx context.Context, dataRoot stri
 			} else {
 				result.Status = "unavailable"
 				result.Reason = "PYTHON_PROFILE_OWNER_MATERIAL_VERIFIED_SELECTION_REQUIRED"
+				result.PythonProfile = &manifest
 			}
 			results = append(results, result)
 		}
@@ -210,12 +211,13 @@ func (m *Manager) checkSyncManagedEnvironment(ctx context.Context, dataRoot stri
 		}
 		results = append(results, result)
 	}
+	results = append(results, checkSyncFixedDependencies(ctx, dataRoot)...)
 	results = append(results, unclaimedManagedRootEntries(m.baseDir, "environments", claimedEnvironmentEntries)...)
 	results = append(results, unclaimedManagedRootEntries(filepath.Join(m.depsDir, "accelerator-dependencies"), "dependencies/accelerator-dependencies", map[string]struct{}{
 		NVIDIACUDAUserSpaceRuntimeDependencyID: {}, NVIDIACUDA13UserSpaceRuntimeDependencyID: {},
 	})...)
 	results = append(results, unclaimedManagedRootEntries(m.depsDir, "dependencies", map[string]struct{}{
-		"uv": {}, "python-package-cache": {}, "accelerator-dependencies": {},
+		"uv": {}, "python-package-cache": {}, "accelerator-dependencies": {}, "media-codec": {},
 	})...)
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Kind+"|"+results[i].Reference+"|"+results[i].Locator < results[j].Kind+"|"+results[j].Reference+"|"+results[j].Locator
