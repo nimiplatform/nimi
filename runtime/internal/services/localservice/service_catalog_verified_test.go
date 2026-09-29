@@ -19,7 +19,7 @@ func TestDefaultCatalogPreservesVerifiedSourceProvenance(t *testing.T) {
 	}
 }
 
-func TestVerifiedCatalogDoesNotExposeUnspecifiedAssetKinds(t *testing.T) {
+func TestVerifiedCatalogDoesNotExposeUnspecifiedAssetKindsOrUnclearedDemucsOffers(t *testing.T) {
 	local, err := catalog.LoadBuiltInLocalProviderCatalog()
 	if err != nil {
 		t.Fatal(err)
@@ -28,20 +28,28 @@ func TestVerifiedCatalogDoesNotExposeUnspecifiedAssetKinds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	foundSeparation := false
 	for _, descriptor := range descriptors {
 		if descriptor.GetKind() == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 			t.Fatalf("verified catalog exposes an unusable kind for %s", descriptor.GetTemplateId())
 		}
-		if descriptor.GetTemplateId() == "local.music.htdemucs.pytorch" {
-			foundSeparation = true
-			if descriptor.GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC {
-				t.Fatalf("separation kind=%v", descriptor.GetKind())
+		if descriptor.GetTemplateId() == "local.music.htdemucs.pytorch" || descriptor.GetTemplateId() == "local.audio.separate.htdemucs.audio-cpp.q8.cuda" {
+			t.Fatalf("unconfirmed HTDemucs weight rights became a curated offer: %s", descriptor.GetTemplateId())
+		}
+	}
+	seen := map[string]bool{}
+	for _, recipe := range local.LoadoutRecipes() {
+		if recipe.RecipeID != "demucs-vocals-background" && recipe.RecipeID != "htdemucs.audio-cpp.v1" {
+			continue
+		}
+		seen[recipe.RecipeID] = true
+		for _, slot := range recipe.SlotMetadata {
+			if len(slot.RecommendedVariantIDs) != 0 {
+				t.Fatalf("%s must retain explicit import without recommending weights of unconfirmed license", recipe.RecipeID)
 			}
 		}
 	}
-	if !foundSeparation {
-		t.Fatal("separation offer is missing from the actual catalog")
+	if !seen["demucs-vocals-background"] || !seen["htdemucs.audio-cpp.v1"] {
+		t.Fatalf("explicit-import separation recipes are missing: %+v", seen)
 	}
 }
 

@@ -180,7 +180,7 @@ loadout_recipes:
           artifact_role: text_analysis_model
   - recipe_id: demucs-vocals-background
     revision: "1"
-    title: Demucs vocals and background separation
+    title: Demucs separation (weight terms unconfirmed)
     capability_contract: audio.separate
     implementation_id: local.audio.separate.demucs
     driver_id: nimi.runtime.driver.demucs
@@ -190,8 +190,8 @@ loadout_recipes:
     custody: []
     slot_metadata:
       - slot_id: separation.model
-        display_label: Source separation model
-        recommended_variant_ids: [local.music.htdemucs.pytorch]
+        display_label: Demucs checkpoint (explicit research import)
+        recommended_variant_ids: []
         model_contract:
           format: pytorch
           artifact_role: audio_separation_model
@@ -734,7 +734,7 @@ loadout_recipes:
           artifact_role: music_model
   - recipe_id: htdemucs.audio-cpp.v1
     revision: "1"
-    title: HTDemucs native source separation
+    title: HTDemucs separation (weight terms unconfirmed)
     capability_contract: audio.separate
     implementation_id: local.audio.separate.htdemucs.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.htdemucs
@@ -743,8 +743,8 @@ loadout_recipes:
     supported_features: []
     slot_metadata:
       - slot_id: separation.model
-        display_label: HTDemucs q8 (MIT)
-        recommended_variant_ids: [local.audio.separate.htdemucs.audio-cpp.q8.cuda]
+        display_label: HTDemucs checkpoint (explicit research import)
+        recommended_variant_ids: []
         model_contract:
           format: gguf
           model_family: htdemucs

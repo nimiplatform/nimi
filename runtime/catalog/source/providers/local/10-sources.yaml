@@ -205,8 +205,8 @@ sources:
     note: Exact Transformers-native forced aligner companion for captured Qwen3 ASR and alignment execution.
   - source_id: demucs_official_checkpoint
     url: https://github.com/facebookresearch/demucs/blob/main/demucs/remote/htdemucs.yaml
-    retrieved_at: 2026-09-15
-    note: The official HTDemucs single model. The mirrored checkpoint SHA256 matches the complete official download.
+    retrieved_at: 2026-09-29
+    note: The official HTDemucs single checkpoint identity. The mirrored file SHA256 matches the complete official download, but the original pretrained-weight license grant for commercial redistribution remains unconfirmed; Nimi keeps explicit-import research execution without a curated offer or release claim.
   - source_id: faster_whisper_turbo_modelcard
     url: https://huggingface.co/dropbox-dash/faster-whisper-large-v3-turbo/blob/0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf/README.md
     retrieved_at: 2026-09-16
@@ -233,8 +233,8 @@ sources:
     note: VeVo2 style-preserved singing voice conversion q8 GGUF inside the audio-cpp GGUF collection. Upstream RMSnow/VeVo2 model card is CC-BY-NC-ND-4.0; non-commercial research use only, commercial and distribution rights are not cleared.
   - source_id: htdemucs_audio_cpp_gguf_modelcard
     url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/406756ee8e3b16e902ce40112986c1010775f888/HTDemucs-GGUF
-    retrieved_at: 2026-09-22
-    note: HTDemucs native music source separation q8 GGUF inside the audio-cpp GGUF collection. Upstream HTDemucs is MIT; produces vocals, drums, bass and other stems and requires a fixed 44100 Hz input rate.
+    retrieved_at: 2026-09-29
+    note: HTDemucs native music source separation q8 GGUF inside the audio-cpp GGUF collection. The original Demucs code repository says MIT, but the license grant for its pretrained checkpoint weights and their commercial redistribution is not confirmed by the original rights holder. Nimi keeps this exact weight as an explicit-import research path with no curated offer or release claim; the Driver requires fixed 44100 Hz input and returns actual stems.
   - source_id: spacy_models_en_core_web_md_3_8_0_release
     url: https://github.com/explosion/spacy-models/releases/tag/en_core_web_md-3.8.0
     retrieved_at: 2026-09-24
