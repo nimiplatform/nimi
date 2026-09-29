@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
@@ -754,7 +754,13 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     setConflictCurrent(null);
   }, [currentChoice, currentDefaults, draftChoice, syncKey]);
 
+  // Read the latest host bindings when opening or changing the picker scope.
+  // Background snapshot updates must not replace an open list with loading UI.
+  const choicesProps = useRef(props);
+  useLayoutEffect(() => { choicesProps.current = props; });
+  const allowedRoutesKey = props.allowedRoutes.join(',');
   const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
+    const props = choicesProps.current;
     let localSelection: ModelConfigEffectiveSelectionProjection | undefined;
     if (props.allowedRoutes.includes('local')) {
       try {
@@ -806,7 +812,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       setCloudError(props.copy.cloudLoadFailed);
       return locals;
     }
-  }, [pickerConnectorRef, props.allowedRoutes, props.capabilityContract, props.copy, props.currentIntent, props.listOptions, props.selection]);
+  }, [pickerConnectorRef, allowedRoutesKey, props.capabilityContract]);
 
   const pickerAdapter = useMemo<ModelPickerCandidateAdapter<ModelConfigRouteChoice>>(() => ({
     listCandidates: listChoices,

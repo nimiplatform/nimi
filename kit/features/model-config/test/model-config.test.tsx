@@ -897,7 +897,7 @@ describe('public Model Config contract', () => {
       });
       return {
         kind: query.kind,
-        options: [target('qwen3-tts-flash'), target('qwen3-tts-flash-2025-11-27')],
+        options: [target('qwen3-tts-flash'), target('qwen3-tts-flash-2025-11-27'), target('qwen3-tts-next')],
         truncated: false,
       };
     });
@@ -921,6 +921,7 @@ describe('public Model Config contract', () => {
     )).find((entry) => entry.textContent?.includes('qwen3-tts-flash-2025-11-27')) as HTMLButtonElement;
     expect(selectedTarget).toBeTruthy();
     act(() => { selectedTarget.click(); });
+    expect(document.body.querySelectorAll('[data-nimi-model-picker-source="cloud"][aria-pressed="true"]')).toHaveLength(1);
     const confirm = Array.from(document.body.querySelectorAll('button'))
       .find((button) => button.textContent?.trim() === 'Use selection') as HTMLButtonElement;
     expect(confirm).toBeTruthy();
@@ -944,6 +945,53 @@ describe('public Model Config contract', () => {
       providerModelId: 'qwen3-tts-flash-2025-11-27',
       remoteModelCatalogId: 'remote-model-catalog-dashscope',
     });
+  });
+
+  it('keeps an open picker stable across host snapshot and callback updates', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
+      if (query.kind === 'cloud-connectors') return {
+        kind: query.kind, options: [{ connectorRef: 'connector-test', label: 'Test account', provider: 'test', state: 'ready', reasons: [] }], truncated: false,
+      };
+      if (query.kind === 'cloud-targets') return {
+        kind: query.kind, options: ['model-a', 'model-b', 'model-c'].map((model) => ({
+          connectorRef: query.connectorRef, label: model, capabilityContract: query.capabilityContract,
+          implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'test' },
+          providerModelTarget: { provider: 'test', providerModelId: model, remoteModelCatalogId: 'shared-catalog' },
+          supportedFeatures: [], state: 'ready' as const, reasons: [],
+        })), truncated: false,
+      };
+      throw new Error('Unexpected query');
+    });
+    const render = async () => {
+      await act(async () => root?.render(<ModelConfigAIConfigSurface
+        context={{ owner: 'shared-local-agent-ai-config' }}
+        capabilityContracts={['text.generate']}
+        initialCapabilityContract="text.generate"
+        allowedRoutes={['cloud']}
+        capabilities={[]}
+        effectiveSelections={[]}
+        revision="1"
+        listOptions={(query) => listOptions(query)}
+        onOverwrite={committedOverwrite()}
+      />));
+      await flush();
+    };
+    await render();
+    act(() => (container!.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement).click());
+    await flush();
+    await selectField(document.body, 'Cloud Connector', 'Test account');
+    const row = document.body.querySelectorAll<HTMLButtonElement>('[data-nimi-model-picker-source="cloud"]')[1]!;
+    act(() => row.click());
+    const callsBeforeRefresh = listOptions.mock.calls.length;
+    await render();
+    await render();
+    expect(listOptions).toHaveBeenCalledTimes(callsBeforeRefresh);
+    expect(row.isConnected).toBe(true);
+    expect(row.getAttribute('aria-pressed')).toBe('true');
+    expect(document.body.querySelectorAll('[data-nimi-model-picker-source="cloud"][aria-pressed="true"]')).toHaveLength(1);
   });
 
   it('keeps a persisted Cloud intent configured without inventing Connector ownership', async () => {

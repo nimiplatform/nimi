@@ -2,6 +2,8 @@ import type { NimiLocalAppAgentIntroduction } from '@nimiplatform/kit/core/sdk-c
 import { simplifyChineseDisplayText } from './introduction-text.js';
 
 const DYNASTIES: Record<string, string> = { qin: '秦代', han: '汉代', sui: '隋代', tang: '唐代', song: '宋代', liao: '辽代', jin: '金代', yuan: '元代', ming: '明代', qing: '清代' };
+// Machine identifiers such as world ids or topic slugs are never display prose.
+const MACHINE_IDENTIFIER = /^[a-z0-9]+(?:[-_][a-z0-9]+)+$/u;
 const STYLE_LABELS: Record<string, readonly [string, string]> = {
   "CARING": [
     "照护型",
@@ -92,7 +94,8 @@ export function agentIntroductionSubtitle(value: NimiLocalAppAgentIntroduction |
   // Only interpret the authored era field. Never infer a dynasty from IDs.
   const eraKey = era?.toLowerCase().replace(/[-_\s]?dynasty$/u, '');
   const location = era && locale.startsWith('zh') ? DYNASTIES[eraKey ?? ''] ?? era : era;
-  return [...new Set([location || value.worldName, value.role].filter((text): text is string => Boolean(text)).map(text => agentIntroductionDisplayText(text, locale)))].join(' · ') || null;
+  const displayable = (text: string | null | undefined): text is string => Boolean(text) && !MACHINE_IDENTIFIER.test(text as string);
+  return [...new Set([[location, value.worldName].find(displayable), value.role].filter(displayable).map(text => agentIntroductionDisplayText(text, locale)))].join(' · ') || null;
 }
 
 export function agentIntroductionQuestions(value: NimiLocalAppAgentIntroduction | null, locale: string): readonly string[] {
@@ -100,7 +103,7 @@ export function agentIntroductionQuestions(value: NimiLocalAppAgentIntroduction 
   const result: string[] = [];
   for (const topic of value?.questionTopics ?? []) {
     const text = agentIntroductionDisplayText(topic.text, locale).replace(/[。.!！?？]+$/u, '').trim();
-    if (!text || text.length > 80 || /^[a-z0-9]+(?:[-_][a-z0-9]+)+$/u.test(text)
+    if (!text || text.length > 80 || MACHINE_IDENTIFIER.test(text)
       || /^[A-Za-z][A-Za-z0-9]*[:：]/u.test(text) || /[()（）]/u.test(text)
       || (topic.kind === 'work' && text === '著述线索')) continue;
     const question = topic.kind === 'role'

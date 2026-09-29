@@ -8,6 +8,7 @@ import type {
   NimiCapabilityAIConfig,
 } from '../ai/capability-configuration.js';
 import { validateCapabilityIntents } from './local-app-runtime-platform-ai-config.js';
+import { Struct as RuntimeStruct } from '../../core-generated/runtime-protobuf/google/protobuf/struct.js';
 import {
   AIConfigEffectiveState,
   AgentContextProjectionReasonCode,
@@ -1297,7 +1298,7 @@ function runtimeCloudTargetOption(value: {
   readonly label: string;
   readonly capabilityContract: string;
   readonly implementation?: { readonly implementationId: string; readonly driverId: string; readonly driverDialect: string };
-  readonly providerModelTarget?: unknown;
+  readonly providerModelTarget?: RuntimeStruct;
   readonly supportedFeatures: readonly string[];
   readonly state: AIConfigEffectiveState;
   readonly reasons: readonly string[];
@@ -1307,7 +1308,7 @@ function runtimeCloudTargetOption(value: {
     label: value.label,
     capabilityContract: value.capabilityContract,
     implementation: runtimeImplementation(value.implementation, 'shared LocalAgent Cloud target implementation'),
-    providerModelTarget: runtimePlainValue(requireWireProjection(value.providerModelTarget, 'shared LocalAgent Cloud target')),
+    providerModelTarget: RuntimeStruct.toJson(requireWireProjection(value.providerModelTarget, 'shared LocalAgent Cloud target')),
     supportedFeatures: [...value.supportedFeatures],
     state: runtimeEffectiveState(value.state) === 'ready' ? 'ready' : 'blocked',
     reasons: [...value.reasons],

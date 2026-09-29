@@ -26,6 +26,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type {
+  NimiRuntimeFeaturedModelAssets,
   NimiRuntimeLocalInstallPlanDescriptor,
   NimiRuntimeModelAssetCatalogSearchResult,
   NimiRuntimeModelAssetMarketCandidate,
@@ -57,7 +58,12 @@ import {
   type ModelLibraryCategory,
   type NimiCollectionItem,
 } from './runtime-config-model-library-collection';
-import { NimiCollectionDetail, NimiCollectionSection } from './runtime-config-model-library-collection-view';
+import {
+  MarketSectionHeader,
+  NimiCollectionDetail,
+  NimiCollectionList,
+  NimiCollectionSection,
+} from './runtime-config-model-library-collection-view';
 import type {
   RuntimeConfigModelMarketContext,
   RuntimeConfigModelMarketSlotContext,
@@ -93,6 +99,12 @@ export function filterModelMarketRows<T extends { title: string; author?: string
   });
 }
 
+/**
+ * Discovery opens on the collection preview above every community pick;
+ * "View all" and the companion files entry open a full collection list.
+ */
+type DiscoveryView = 'previews' | 'nimi' | 'parts';
+
 type RecommendPageProps = {
   readonly model: RuntimeConfigPanelControllerModel;
   readonly context: RuntimeConfigModelMarketContext | null;
@@ -115,16 +127,19 @@ export function RecommendPage(props: RecommendPageProps) {
   const [sort, setSort] = useState('default');
   const [selectedSearchResult, setSelectedSearchResult] = useState<NimiRuntimeModelAssetCatalogSearchResult | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<NimiRuntimeModelAssetMarketCandidate | null>(null);
-  const [selectedCollectionItem, setSelectedCollectionItem] = useState<NimiCollectionItem | null>(null);
+  const [view, setView] = useState<DiscoveryView>('previews');
+  // Collection details opened from one another; back returns to the previous one.
+  const [openedItems, setOpenedItems] = useState<readonly NimiCollectionItem[]>([]);
   const normalizedQuery = query.trim();
   const feedCategories = communityFeedCategories(category);
   // Runtime search narrows only by the community feed categories.
   const searchCategory = category !== 'all' ? feedCategories[0] : undefined;
 
+  // A full list stays open across categories; details and filters belong to the category they came from.
   useEffect(() => {
     setSelectedSearchResult(null);
     setSelectedCandidate(null);
-    setSelectedCollectionItem(null);
+    setOpenedItems([]);
     setAuthor('all');
     setLicense('all');
   }, [category]);
@@ -164,7 +179,15 @@ export function RecommendPage(props: RecommendPageProps) {
     () => buildNimiCollection({ catalog: catalogQuery.data ?? [], recipes: recipesQuery.data ?? [] }),
     [catalogQuery.data, recipesQuery.data],
   );
+  const categoryCollection = useMemo(() => nimiCollectionForCategory(collection, category), [collection, category]);
+  const collectionItems = useMemo(
+    () => new Map([...collection.models, ...collection.parts].map((item) => [item.key, item])),
+    [collection],
+  );
   const onDevice = useMemo(() => onDeviceContentIds(assetsQuery.data ?? []), [assetsQuery.data]);
+  const collectionLoading = catalogQuery.isPending || recipesQuery.isPending;
+  const collectionFailed = catalogQuery.isError || recipesQuery.isError;
+  const openCollectionItem = (item: NimiCollectionItem) => setOpenedItems((items) => [...items, item]);
 
   const installFromCollection = async (templateId: string) => {
     const plan = await client.resolveInstallPlan({ source: 'verified', templateId });
@@ -190,13 +213,17 @@ export function RecommendPage(props: RecommendPageProps) {
       />
     );
   }
-  if (selectedCollectionItem) {
+  const openedItem = openedItems.at(-1);
+  if (openedItem) {
     return (
       <NimiCollectionDetail
-        item={selectedCollectionItem}
+        key={openedItem.key}
+        item={openedItem}
         onDevice={onDevice}
         runtimeWritesDisabled={props.model.runtimeWritesDisabled}
-        onBack={() => setSelectedCollectionItem(null)}
+        resolveItem={(key) => collectionItems.get(key)}
+        onBack={() => setOpenedItems((items) => items.slice(0, -1))}
+        onOpenItem={openCollectionItem}
         onInstall={installFromCollection}
       />
     );
@@ -233,7 +260,9 @@ export function RecommendPage(props: RecommendPageProps) {
     ? 0
     : new Set((rows as readonly NimiRuntimeModelAssetMarketCandidate[]).map((candidate) => candidate.sourceLabel)).size;
   const filtersActive = author !== 'all' || license !== 'all';
-  const totalCount = showSearch ? rows.length : collection.models.length + rows.length;
+  // Filter and sort act on community and search rows only, so a collection list leaves them out.
+  const rowControls = showSearch || view === 'previews';
+  const totalCount = showSearch ? rows.length : categoryCollection.models.length + rows.length;
 
   return (
     <div className="space-y-5">
@@ -245,38 +274,42 @@ export function RecommendPage(props: RecommendPageProps) {
             placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search models' })}
             className="min-h-9 min-w-56 flex-1"
           />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                size="sm"
-                tone="secondary"
-                active={filtersActive}
-                className="min-h-9"
-                leadingIcon={<Filter className="h-3.5 w-3.5" aria-hidden="true" />}
-              >
-                {t('runtimeConfig.recommend.filterButton', { defaultValue: 'Filter' })}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64">
-              <div className="space-y-3">
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.recommend.filterAuthor')}</span>
-                  <SelectField aria-label={t('runtimeConfig.recommend.filterAuthor')} value={author} onValueChange={setAuthor}
-                    className="w-full"
-                    options={[{ value: 'all', label: t('runtimeConfig.recommend.allAuthors') }, ...authors.map((value) => ({ value: `author:${value}`, label: value }))]} />
-                </label>
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.recommend.filterLicense')}</span>
-                  <SelectField aria-label={t('runtimeConfig.recommend.filterLicense')} value={license} onValueChange={setLicense}
-                    className="w-full"
-                    options={[{ value: 'all', label: t('runtimeConfig.recommend.allLicenses') }, ...licenses.map((value) => ({ value: `license:${value}`, label: value }))]} />
-                </label>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <SelectField aria-label={t('runtimeConfig.recommend.sortResults')} value={sort} onValueChange={setSort}
-            className="w-auto min-w-36" selectClassName={MARKET_FILTER_TRIGGER_CLASS}
-            options={['default', 'title', 'downloads', ...(rawRows.some((row) => 'totalSizeBytes' in row && row.totalSizeBytes) ? ['size'] : [])].map((value) => ({ value, label: t(`runtimeConfig.recommend.resultSort.${value}`) }))} />
+          {rowControls ? (
+            <>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="sm"
+                    tone="secondary"
+                    active={filtersActive}
+                    className="min-h-9"
+                    leadingIcon={<Filter className="h-3.5 w-3.5" aria-hidden="true" />}
+                  >
+                    {t('runtimeConfig.recommend.filterButton', { defaultValue: 'Filter' })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-64">
+                  <div className="space-y-3">
+                    <label className="block space-y-1.5">
+                      <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.recommend.filterAuthor')}</span>
+                      <SelectField aria-label={t('runtimeConfig.recommend.filterAuthor')} value={author} onValueChange={setAuthor}
+                        className="w-full"
+                        options={[{ value: 'all', label: t('runtimeConfig.recommend.allAuthors') }, ...authors.map((value) => ({ value: `author:${value}`, label: value }))]} />
+                    </label>
+                    <label className="block space-y-1.5">
+                      <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.recommend.filterLicense')}</span>
+                      <SelectField aria-label={t('runtimeConfig.recommend.filterLicense')} value={license} onValueChange={setLicense}
+                        className="w-full"
+                        options={[{ value: 'all', label: t('runtimeConfig.recommend.allLicenses') }, ...licenses.map((value) => ({ value: `license:${value}`, label: value }))]} />
+                    </label>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <SelectField aria-label={t('runtimeConfig.recommend.sortResults')} value={sort} onValueChange={setSort}
+                className="w-auto min-w-36" selectClassName={MARKET_FILTER_TRIGGER_CLASS}
+                options={['default', 'title', 'downloads', ...(rawRows.some((row) => 'totalSizeBytes' in row && row.totalSizeBytes) ? ['size'] : [])].map((value) => ({ value, label: t(`runtimeConfig.recommend.resultSort.${value}`) }))} />
+            </>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {MODEL_LIBRARY_CATEGORIES.map((value) => {
@@ -297,7 +330,7 @@ export function RecommendPage(props: RecommendPageProps) {
               </button>
             );
           })}
-          {totalCount > 0 ? (
+          {(showSearch || view === 'previews') && totalCount > 0 ? (
             <span className="ml-auto text-xs text-[var(--nimi-text-muted)]">
               {t('runtimeConfig.recommend.totalCount', { count: totalCount, defaultValue: '{{count}} models' })}
             </span>
@@ -333,65 +366,37 @@ export function RecommendPage(props: RecommendPageProps) {
             </div>
           )}
         </div>
+      ) : view === 'nimi' || view === 'parts' ? (
+        <NimiCollectionList
+          kind={view === 'nimi' ? 'models' : 'parts'}
+          items={view === 'nimi' ? categoryCollection.models : categoryCollection.parts}
+          category={category}
+          loading={collectionLoading}
+          failed={collectionFailed}
+          onOpen={openCollectionItem}
+          onBack={() => setView('previews')}
+        />
       ) : (
         <>
           <NimiCollectionSection
-            collection={nimiCollectionForCategory(collection, category)}
-            loading={catalogQuery.isPending || recipesQuery.isPending}
-            failed={catalogQuery.isError || recipesQuery.isError}
-            onOpen={setSelectedCollectionItem}
+            collection={categoryCollection}
+            category={category}
+            loading={collectionLoading}
+            failed={collectionFailed}
+            onOpen={openCollectionItem}
+            onViewAll={() => setView('nimi')}
+            onViewParts={() => setView('parts')}
           />
-          {feedCategories.length > 0 ? (
-            <section data-testid="model-library-community" className="space-y-3" aria-labelledby="model-library-community-title">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 id="model-library-community-title" className="flex items-baseline gap-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
-                    {t('runtimeConfig.modelLibrary.community.title')}
-                    {featured ? <span className="text-xs font-normal text-[var(--nimi-text-muted)]">{featured.items.length}</span> : null}
-                  </h3>
-                  <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.modelLibrary.community.description')}</p>
-                </div>
-                {showStaleSnapshot ? (
-                  <StatusBadge
-                    tone="warning"
-                    shape="soft"
-                    title={t('runtimeConfig.recommend.staleNotice', { defaultValue: 'Showing the last successful model recommendation snapshot.' })}
-                  >
-                    {t('runtimeConfig.recommend.staleBadge', { defaultValue: 'Snapshot' })}
-                  </StatusBadge>
-                ) : null}
-              </div>
-              {featured?.source.availability === 'unavailable' ? (
-                <InlineAlert tone="warning">
-                  {t('runtimeConfig.recommend.recommendationsUnavailable', {
-                    defaultValue: 'Model recommendations are unavailable. Full catalog search is still available.',
-                  })}
-                </InlineAlert>
-              ) : null}
-              {featuredQuery.isError ? (
-                <InlineAlert tone="danger">{t('runtimeConfig.recommend.loadFailed', { defaultValue: 'Model recommendations could not be loaded.' })}</InlineAlert>
-              ) : null}
-              {featuredQuery.isPending ? (
-                <ModelMarketLoadingState />
-              ) : rows.length === 0 ? (
-                featuredQuery.isError ? null : (
-                  <Surface tone="card" className="border-dashed p-6 text-sm text-[var(--nimi-text-muted)]">
-                    {featured?.source.availability === 'available'
-                      ? t('runtimeConfig.recommend.recommendationsEmpty', { defaultValue: 'This recommendation snapshot contains no models in the selected category.' })
-                      : t('runtimeConfig.recommend.searchInstead', { defaultValue: 'Search the catalog to find a model.' })}
-                  </Surface>
-                )
-              ) : (
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {(rows as readonly NimiRuntimeModelAssetMarketCandidate[]).map((candidate) => (
-                    <CandidateCard key={candidate.offerRef} candidate={candidate} showSource={candidateSourceCount > 1} onOpen={() => setSelectedCandidate(candidate)} />
-                  ))}
-                </div>
-              )}
-            </section>
-          ) : (
-            <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.modelLibrary.community.notInCategory')}</p>
-          )}
+          <CommunitySection
+            inCategory={feedCategories.length > 0}
+            featured={featured}
+            pending={featuredQuery.isPending}
+            failed={featuredQuery.isError}
+            rows={rows as readonly NimiRuntimeModelAssetMarketCandidate[]}
+            showSource={candidateSourceCount > 1}
+            staleSnapshot={showStaleSnapshot}
+            onOpen={setSelectedCandidate}
+          />
         </>
       )}
     </div>
@@ -427,6 +432,71 @@ function ModelMarketLoadingState() {
         ))}
       </div>
     </div>
+  );
+}
+
+/** Community picks, every card laid out below the collection preview. */
+function CommunitySection(props: {
+  /** The community feeds serve the selected category. */
+  readonly inCategory: boolean;
+  readonly featured: NimiRuntimeFeaturedModelAssets | undefined;
+  readonly pending: boolean;
+  readonly failed: boolean;
+  /** Candidates after the filter and sort. */
+  readonly rows: readonly NimiRuntimeModelAssetMarketCandidate[];
+  readonly showSource: boolean;
+  readonly staleSnapshot: boolean;
+  readonly onOpen: (candidate: NimiRuntimeModelAssetMarketCandidate) => void;
+}) {
+  const { t } = useTranslation();
+  if (!props.inCategory) {
+    return <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.modelLibrary.community.notInCategory')}</p>;
+  }
+  return (
+    <section data-testid="model-library-community" className="space-y-3" aria-labelledby="model-library-community-title">
+      <MarketSectionHeader
+        titleId="model-library-community-title"
+        title={t('runtimeConfig.modelLibrary.community.title')}
+        count={props.featured ? props.featured.items.length : undefined}
+        description={t('runtimeConfig.modelLibrary.community.description')}
+        aside={props.staleSnapshot ? (
+          <StatusBadge
+            tone="warning"
+            shape="soft"
+            title={t('runtimeConfig.recommend.staleNotice', { defaultValue: 'Showing the last successful model recommendation snapshot.' })}
+          >
+            {t('runtimeConfig.recommend.staleBadge', { defaultValue: 'Snapshot' })}
+          </StatusBadge>
+        ) : null}
+      />
+      {props.featured?.source.availability === 'unavailable' ? (
+        <InlineAlert tone="warning">
+          {t('runtimeConfig.recommend.recommendationsUnavailable', {
+            defaultValue: 'Model recommendations are unavailable. Full catalog search is still available.',
+          })}
+        </InlineAlert>
+      ) : null}
+      {props.failed ? (
+        <InlineAlert tone="danger">{t('runtimeConfig.recommend.loadFailed', { defaultValue: 'Model recommendations could not be loaded.' })}</InlineAlert>
+      ) : null}
+      {props.pending ? (
+        <ModelMarketLoadingState />
+      ) : props.rows.length === 0 ? (
+        props.failed ? null : (
+          <Surface tone="card" className="border-dashed p-6 text-sm text-[var(--nimi-text-muted)]">
+            {props.featured?.source.availability === 'available'
+              ? t('runtimeConfig.recommend.recommendationsEmpty', { defaultValue: 'This recommendation snapshot contains no models in the selected category.' })
+              : t('runtimeConfig.recommend.searchInstead', { defaultValue: 'Search the catalog to find a model.' })}
+          </Surface>
+        )
+      ) : (
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          {props.rows.map((candidate) => (
+            <CandidateCard key={candidate.offerRef} candidate={candidate} showSource={props.showSource} onOpen={() => props.onOpen(candidate)} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -469,7 +539,7 @@ function CandidateCard(props: {
   // wrapped line instead of tail-truncating the quant suffix away.
   const variantTitle = candidate.variantLabel || candidate.title;
   return (
-    <button type="button" onClick={props.onOpen} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-left shadow-[var(--nimi-elevation-base)] hover:border-[var(--nimi-border-strong)]">
+    <button type="button" data-community-candidate={candidate.offerRef} onClick={props.onOpen} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-left shadow-[var(--nimi-elevation-base)] hover:border-[var(--nimi-border-strong)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">

@@ -117,6 +117,8 @@ function createAgentTargetSdkStub(input: {
   conversationAnchorId: string;
   summariesByLocalAgentRef: Record<string, Array<{ conversationAnchorId: string }>>;
   onOpen?: () => void;
+  handlesByLocalAgentRef?: Record<string, string | Error>;
+  onResolveReference?: (localAgentRef: string) => void;
 }) {
   const base = createSdkStub({ summariesByLocalAgentRef: input.summariesByLocalAgentRef });
   return {
@@ -127,6 +129,14 @@ function createAgentTargetSdkStub(input: {
         return { conversationAnchorId: input.conversationAnchorId, activeTurnId: null };
       },
     }),
+    appProduct: () => ({ agents: { listReferences: async () => { throw new Error('must not enumerate App references'); } } }),
+    resolveDesktopAgentReference: async ({ localAgentRef }: { localAgentRef: string }) => {
+      input.onResolveReference?.(localAgentRef);
+      const handle = input.handlesByLocalAgentRef?.[localAgentRef];
+      if (handle instanceof Error) throw handle;
+      if (!handle) throw new Error('Desktop Agent reference is unavailable.');
+      return { reference: { agentHandle: handle, displayName: localAgentRef } };
+    },
     runtimeAgentDiscovery: () => ({
       listLocalAgents: async () => [
         {
@@ -156,13 +166,17 @@ function createAgentTargetSdkStub(input: {
   } as unknown as DesktopRendererSdkPort;
 }
 
-test('agent target source resolution opens the canonical conversation and joins the owning LocalAgent source', async () => {
+const HANDLE_A = `agent_ref_${'A'.repeat(43)}`;
+const HANDLE_B = `agent_ref_${'B'.repeat(43)}`;
+
+test('agent target source resolution matches the handle through read-only Desktop references without opening a conversation', async () => {
   let opened = 0;
   const sdk = createAgentTargetSdkStub({
     conversationAnchorId: 'anchor-b',
-    summariesByLocalAgentRef: {
-      'local-agent:agent-a': [{ conversationAnchorId: 'anchor-a' }],
-      'local-agent:agent-b': [{ conversationAnchorId: 'anchor-b' }],
+    summariesByLocalAgentRef: {},
+    handlesByLocalAgentRef: {
+      'local-agent:agent-a': HANDLE_A,
+      'local-agent:agent-b': HANDLE_B,
     },
     onOpen: () => {
       opened += 1;
@@ -170,41 +184,63 @@ test('agent target source resolution opens the canonical conversation and joins 
   });
 
   const resolved = await resolveAgentTargetSourceRef({
-    agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+    agentHandle: HANDLE_B,
     ownerUserId: 'owner-1',
     sdk,
   });
 
   assert.deepEqual(resolved, sourceRefB);
-  assert.equal(opened, 1);
+  assert.equal(opened, 0);
 });
 
-test('agent target source resolution fails closed when the anchor matches no summary', async () => {
-  const sdk = createAgentTargetSdkStub({
-    conversationAnchorId: 'anchor-unknown',
-    summariesByLocalAgentRef: {
-      'local-agent:agent-a': [{ conversationAnchorId: 'anchor-a' }],
-    },
-  });
-
-  const resolved = await resolveAgentTargetSourceRef({
-    agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-    ownerUserId: 'owner-1',
-    sdk,
-  });
-
-  assert.equal(resolved, null);
-});
-
-test('agent target source resolution fails closed without a canonical handle and never opens a conversation', async () => {
-  let opened = 0;
+test('agent target source resolution skips a LocalAgent whose reference cannot be resolved', async () => {
   const sdk = createAgentTargetSdkStub({
     conversationAnchorId: 'anchor-b',
-    summariesByLocalAgentRef: {
-      'local-agent:agent-b': [{ conversationAnchorId: 'anchor-b' }],
+    summariesByLocalAgentRef: {},
+    handlesByLocalAgentRef: {
+      'local-agent:agent-a': new Error('Desktop Agent reference is unavailable.'),
+      'local-agent:agent-b': HANDLE_B,
     },
+  });
+
+  assert.deepEqual(await resolveAgentTargetSourceRef({
+    agentHandle: HANDLE_B,
+    ownerUserId: 'owner-1',
+    sdk,
+  }), sourceRefB);
+});
+
+test('agent target source resolution fails closed when no current reference or more than one matches', async () => {
+  const unmatched = createAgentTargetSdkStub({
+    conversationAnchorId: 'anchor-b',
+    summariesByLocalAgentRef: {},
+    handlesByLocalAgentRef: { 'local-agent:agent-a': HANDLE_A },
+  });
+  assert.equal(await resolveAgentTargetSourceRef({ agentHandle: HANDLE_B, ownerUserId: 'owner-1', sdk: unmatched }), null);
+
+  const ambiguous = createAgentTargetSdkStub({
+    conversationAnchorId: 'anchor-b',
+    summariesByLocalAgentRef: {},
+    handlesByLocalAgentRef: {
+      'local-agent:agent-a': HANDLE_B,
+      'local-agent:agent-b': HANDLE_B,
+    },
+  });
+  assert.equal(await resolveAgentTargetSourceRef({ agentHandle: HANDLE_B, ownerUserId: 'owner-1', sdk: ambiguous }), null);
+});
+
+test('agent target source resolution fails closed without a canonical handle or owner and resolves nothing', async () => {
+  let opened = 0;
+  const resolvedRefs: string[] = [];
+  const sdk = createAgentTargetSdkStub({
+    conversationAnchorId: 'anchor-b',
+    summariesByLocalAgentRef: {},
+    handlesByLocalAgentRef: { 'local-agent:agent-b': HANDLE_B },
     onOpen: () => {
       opened += 1;
+    },
+    onResolveReference: (localAgentRef) => {
+      resolvedRefs.push(localAgentRef);
     },
   });
 
@@ -214,11 +250,12 @@ test('agent target source resolution fails closed without a canonical handle and
     sdk,
   }), null);
   assert.equal(await resolveAgentTargetSourceRef({
-    agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+    agentHandle: HANDLE_B,
     ownerUserId: '',
     sdk,
   }), null);
   assert.equal(opened, 0);
+  assert.deepEqual(resolvedRefs, []);
 });
 
 

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  AIConfigEffectiveState,
   AgentExecutionState,
   AgentLifecycleStatus,
   CognitionMemoryEpistemicStatus,
@@ -14,6 +15,7 @@ import {
   LocalAppAgentAutonomyMode,
   ReasonCode,
 } from '../core-generated/runtime-typed-client.js';
+import { Struct as RuntimeStruct } from '../core-generated/runtime-protobuf/google/protobuf/struct.js';
 import {
   createNimiLocalAppAgentConfigureClient,
 } from '../core/app/local-app-runtime-platform-configure.js';
@@ -140,6 +142,26 @@ test('Runtime configure adapter carries all canonical Agent Product operations w
     },
     async listLocalAppSharedLocalAgentAIConfigOptions(request) {
       calls.push(['shared.listOptions', request]);
+      if (request.query.oneofKind === 'cloudTargets') {
+        return {
+          result: {
+            oneofKind: 'cloudTargets',
+            cloudTargets: { options: ['model-a', 'model-b', 'model-c'].map((model) => ({
+              connectorRef: 'connector-test',
+              capabilityContract: 'text.generate',
+              label: model,
+              implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'test' },
+              providerModelTarget: RuntimeStruct.fromJson({
+                provider: 'test', providerModelId: model, remoteModelCatalogId: 'shared-catalog',
+              }),
+              supportedFeatures: [],
+              state: AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY,
+              reasons: [],
+            })) },
+          },
+          truncated: false,
+        };
+      }
       if (request.query.oneofKind === 'voiceAssets') {
         return {
           result: {
@@ -260,12 +282,22 @@ test('Runtime configure adapter carries all canonical Agent Product operations w
   assert.equal((await client.memory.setEnabled({ agentHandle: HANDLE, enabled: false })).outcome, 'committed');
   assert.equal((await client.memory.deleteAll({ agentHandle: HANDLE, confirmed: true })).outcome, 'deleted');
 
-  assert.equal(calls.length, 14);
+  const targets = await client.sharedAIConfig.listOptions({
+    kind: 'cloud-targets', capabilityContract: 'text.generate', connectorRef: 'connector-test',
+  });
+  assert.equal(targets.kind, 'cloud-targets');
+  if (targets.kind !== 'cloud-targets') throw new Error('Expected Cloud targets');
+  assert.deepEqual(targets.options.map((target) => target.providerModelTarget),
+    ['model-a', 'model-b', 'model-c'].map((model) => ({
+      provider: 'test', providerModelId: model, remoteModelCatalogId: 'shared-catalog',
+    })));
+
+  assert.equal(calls.length, 15);
   assert.deepEqual(
     calls
       .filter(([method]) => method === 'shared.listOptions')
       .map(([, request]) => (request as { query: { oneofKind: string } }).query.oneofKind),
-    ['presetVoices', 'voiceAssets'],
+    ['presetVoices', 'voiceAssets', 'cloudTargets'],
   );
   for (const [, request] of calls) {
     assert.equal(hasForbiddenIdentity(request), false);

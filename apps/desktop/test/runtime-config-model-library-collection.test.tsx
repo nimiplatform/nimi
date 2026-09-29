@@ -18,6 +18,7 @@ import type {
   NimiLoadoutRecipe,
   NimiRuntimeFeaturedModelAssets,
   NimiRuntimeLocalVerifiedAssetDescriptor,
+  NimiRuntimeModelAssetMarketCandidate,
 } from '@nimiplatform/sdk/runtime';
 import {
   buildNimiCollection,
@@ -25,10 +26,15 @@ import {
   initialModelLibraryCategory,
   mergeCommunityFeeds,
   nimiCollectionForCategory,
+  nimiCollectionPreview,
+  type ModelLibraryCategory,
+  type NimiCollection,
+  type NimiCollectionItem,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-model-library-collection';
 import {
   formatByteRange,
   NimiCollectionDetail,
+  NimiCollectionList,
   NimiCollectionSection,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-model-library-collection-view';
 import { modelFamilyLogoKey } from '../src/shell/renderer/components/provider-logo-tile';
@@ -79,6 +85,8 @@ function recipe(input: {
     /** Every catalog variant the slot offers, projected the way Runtime does. */
     readonly offers?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
     readonly label?: string;
+    /** Whether a setup needs the slot; required unless stated. */
+    readonly presence?: 'required' | 'optional-conditional';
   }[];
 }): NimiLoadoutRecipe {
   return {
@@ -100,6 +108,8 @@ function recipe(input: {
       })),
       applicability: 'supported',
       reasons: [],
+      presence: slot.presence ?? 'required',
+      conditionalFeatures: slot.presence === 'optional-conditional' ? ['input.image'] : [],
     })),
   } as unknown as NimiLoadoutRecipe;
 }
@@ -289,45 +299,146 @@ test('model family logos credit the maker named by the model, not the repackaged
   assert.equal(modelFamilyLogoKey('MOSS-TTS-Local audio.cpp'), null);
 });
 
-test('the collection section lists model tiles and keeps companion files folded', async () => {
+test('the preview takes each category in turn, recommended models first', () => {
   const collection = buildNimiCollection({ catalog, recipes });
-  const markup = await render(<NimiCollectionSection collection={collection} loading={false} failed={false} onOpen={() => {}} />);
+  // Whisper is recommended and the 1.7B Qwen3 ASR is not, so Whisper leads transcription.
+  assert.deepEqual(
+    collection.models.filter((item) => item.capability === 'audio.transcribe').map((item) => item.title),
+    ['Whisper Large V3 Turbo', 'Qwen3 Asr Transformers 1.7B'],
+  );
+  assert.deepEqual(nimiCollectionPreview(collection.models, 'all', 6).map((item) => item.title), [
+    'Gemma 4 2B', 'Ideogram4', 'Chatterbox audio.cpp', 'Gemma 4 26B', 'Z-Image Turbo', 'Whisper Large V3 Turbo',
+  ]);
+  // Inside one category the preview alternates capabilities instead.
+  const voice = nimiCollectionForCategory(collection, 'voice').models;
+  assert.deepEqual(nimiCollectionPreview(voice, 'voice', 2).map((item) => item.title), ['Chatterbox audio.cpp', 'Whisper Large V3 Turbo']);
+  assert.equal(nimiCollectionPreview(voice, 'voice', 10).length, voice.length);
+});
+
+test('a model lists what setting up its capability also prepares', () => {
+  const { models, parts } = buildNimiCollection({ catalog, recipes });
+  const byTitle = new Map(models.map((item) => [item.title, item]));
+  const zImage = byTitle.get('Z-Image Turbo')!;
+  assert.deepEqual(zImage.requirements.map((requirement) => requirement.capability), ['image.generate']);
+  assert.deepEqual(zImage.requirements[0]!.items.map((item) => item.key), ['part:sha256:z-vae']);
+  // The CUDA and Metal templates of the VAE carry one content, so one version.
+  assert.equal(zImage.requirements[0]!.items[0]!.versions.length, 1);
+  assert.deepEqual(byTitle.get('Ideogram4')!.requirements[0]!.items.map((item) => item.key), ['part:sha256:encoder']);
+  assert.deepEqual(byTitle.get('Whisper Large V3 Turbo')!.requirements[0]!.items.map((item) => item.key), ['part:sha256:silero']);
+  assert.deepEqual(byTitle.get('Chatterbox audio.cpp')!.requirements, []);
+  assert.ok(parts.every((item) => item.requirements.length === 0));
+});
+
+test('optional slots, disagreeing recipes and slots without one named item claim nothing', () => {
+  const byTemplate = new Map(catalog.map((item) => [item.templateId, item]));
+  const gemma = byTemplate.get('chat.gemma-e2b.q4')!;
+  const asr = byTemplate.get('stt.qwen3-asr-1.7b')!;
+  const zImage = byTemplate.get('image.z.q4.cuda')!;
+  const ideogram = byTemplate.get('image.ideogram4')!;
+  const mmproj = descriptor({ templateId: 'aux.gemma.mmproj', title: 'gemma-4-e2b-it-mmproj-local (F16)', contentId: 'sha256:mmproj', artifactRoles: ['mmproj'] });
+  const aligner = descriptor({ templateId: 'aux.aligner', title: 'asset-forced-aligner (F16)', contentId: 'sha256:aligner' });
+  const vaeA = descriptor({ templateId: 'vae.a', title: 'asset-image-vae-a (F16)', contentId: 'sha256:vae-a' });
+  const vaeB = descriptor({ templateId: 'vae.b', title: 'asset-image-vae-b (F16)', contentId: 'sha256:vae-b' });
+  const { models } = buildNimiCollection({
+    catalog: [gemma, mmproj, asr, aligner, zImage, vaeA, vaeB, ideogram],
+    recipes: [
+      // Only image input needs the projector.
+      recipe({ recipeId: 'gemma', title: 'Gemma 4 text generation', capabilityContract: 'text.generate', slots: [
+        { slotId: 'main.gguf', variants: [gemma.templateId] },
+        { slotId: 'companion.mmproj', variants: [mmproj.templateId], presence: 'optional-conditional' },
+      ] }),
+      // One transcription recipe needs the aligner and the other does not.
+      recipe({ recipeId: 'asr', title: 'Qwen3 ASR transcription', capabilityContract: 'audio.transcribe', slots: [
+        { slotId: 'stt.model', variants: [asr.templateId] },
+      ] }),
+      recipe({ recipeId: 'asr-aligned', title: 'Qwen3 ASR with word alignment', capabilityContract: 'audio.transcribe', slots: [
+        { slotId: 'stt.model', variants: [asr.templateId] },
+        { slotId: 'stt.aligner', variants: [aligner.templateId] },
+      ] }),
+      // The VAE slot offers two different files.
+      recipe({ recipeId: 'z-image', title: 'Z-Image Turbo generation', capabilityContract: 'image.generate', slots: [
+        { slotId: 'main.diffusion', variants: [zImage.templateId] },
+        { slotId: 'companion.vae', variants: [vaeA.templateId, vaeB.templateId] },
+      ] }),
+      // The encoder slot recommends a template the catalog does not list.
+      recipe({ recipeId: 'ideogram', title: 'Ideogram4 generation', capabilityContract: 'image.generate', slots: [
+        { slotId: 'main.diffusion', variants: [ideogram.templateId] },
+        { slotId: 'companion.text-encoder', variants: ['image-textenc.missing'] },
+      ] }),
+    ],
+  });
+  assert.equal(models.length, 4);
+  for (const model of models) assert.deepEqual(model.requirements, [], model.title);
+});
+
+test('a setup that needs two models lists each on the other', () => {
+  const fl2va = descriptor({ templateId: 'video.fl2va', title: 'minimax-h3-fl2va-local (Q4_K_M)', contentId: 'sha256:fl2va', capabilities: ['video.generate'], logicalModelId: 'minimax-h3-fl2va-local', entry: 'fl2va.gguf' });
+  const ref2va = descriptor({ templateId: 'video.ref2va', title: 'minimax-h3-ref2va-local (Q4_K_M)', contentId: 'sha256:ref2va', capabilities: ['video.generate'], logicalModelId: 'minimax-h3-ref2va-local', entry: 'ref2va.gguf' });
+  const vae = descriptor({ templateId: 'video.vae', title: 'minimax-h3-video-vae-local (F16)', contentId: 'sha256:h3-vae', entry: 'vae.safetensors' });
+  const { models } = buildNimiCollection({
+    catalog: [fl2va, ref2va, vae],
+    recipes: [recipe({ recipeId: 'h3', title: 'MiniMax-H3 video generation', capabilityContract: 'video.generate', slots: [
+      { slotId: 'diffusion.fl2va', variants: [], offers: [fl2va] },
+      { slotId: 'diffusion.ref2va', variants: [], offers: [ref2va] },
+      { slotId: 'vae.video', variants: [], offers: [vae], label: 'MiniMax-H3 video VAE' },
+    ] })],
+  });
+  const needs = (key: string) => models.find((item) => item.key === key)!.requirements[0]!.items.map((item) => item.key);
+  assert.deepEqual(needs('model:minimax-h3-fl2va-local'), ['model:minimax-h3-ref2va-local', 'part:sha256:h3-vae']);
+  assert.deepEqual(needs('model:minimax-h3-ref2va-local'), ['model:minimax-h3-fl2va-local', 'part:sha256:h3-vae']);
+});
+
+test('the collection preview shows two rows, View all and one quiet companion files entry', async () => {
+  const collection = buildNimiCollection({ catalog, recipes });
+  const section = (value: NimiCollection, category: ModelLibraryCategory, failed = false) => render(
+    <NimiCollectionSection collection={value} category={category} loading={false} failed={failed} onOpen={() => {}} onViewAll={() => {}} onViewParts={() => {}} />,
+  );
+  const markup = await section(collection, 'all');
   assert.match(markup, /data-testid="model-library-nimi-collection"/);
-  // The grid folds to its first row: three tiles when no viewport reports the column count.
-  assert.equal((markup.match(/data-collection-item="model:/g) ?? []).length, 3);
-  assert.match(markup, /Gemma 4 2B/);
+  // Without a viewport the grid assumes three columns, so two rows hold six of the seven models.
+  assert.equal((markup.match(/data-collection-item="model:/g) ?? []).length, 6);
+  assert.doesNotMatch(markup, /data-collection-item="model:qwen3-asr-transformers-1.7b-local"/);
+  assert.match(markup, /data-testid="model-library-nimi-view-all"/);
+  assert.match(markup, /runtimeConfig\.modelLibrary\.viewAll/);
   assert.match(markup, /data-testid="model-library-nimi-parts"/);
-  assert.match(markup, /aria-expanded="false"/);
+  assert.match(markup, /runtimeConfig\.modelLibrary\.collection\.partsEntry/);
   assert.doesNotMatch(markup, /data-collection-item="part:/);
   // Makers with a bundled mark show their brand logo instead of a monogram.
   assert.match(markup, /data-model-family-logo="google-color"/);
-  const failed = await render(<NimiCollectionSection collection={{ models: [], parts: [] }} loading={false} failed onOpen={() => {}} />);
+
+  const chat = await section(nimiCollectionForCategory(collection, 'chat'), 'chat');
+  assert.equal((chat.match(/data-collection-item="model:/g) ?? []).length, 2);
+  assert.doesNotMatch(chat, /model-library-nimi-view-all/);
+  assert.doesNotMatch(chat, /model-library-nimi-parts/);
+
+  const failed = await section({ models: [], parts: [] }, 'all', true);
   assert.match(failed, /runtimeConfig\.modelLibrary\.collection\.loadFailed/);
   assert.doesNotMatch(failed, /runtimeConfig\.modelLibrary\.collection\.empty/);
+  assert.doesNotMatch(failed, /model-library-nimi-view-all/);
 });
 
-test('the collection section folds the rows past the first behind a toggle', async () => {
+test('the full list groups All under category headings and the companion list explains itself', async () => {
   const collection = buildNimiCollection({ catalog, recipes });
-  // Without a viewport the grid assumes the widest layout of three columns.
-  assert.ok(collection.models.length > 3);
-  const markup = await render(<NimiCollectionSection collection={collection} loading={false} failed={false} onOpen={() => {}} />);
-  assert.equal((markup.match(/data-collection-item="model:/g) ?? []).length, 3);
-  assert.match(markup, /data-collection-item="model:gemma-4-e2b-it-local"/);
-  // The fourth model waits behind the toggle.
-  assert.doesNotMatch(markup, /data-collection-item="model:z-image-turbo-local"/);
-  assert.match(markup, /data-testid="model-library-nimi-collection-toggle"/);
-  assert.match(markup, /runtimeConfig\.modelLibrary\.collection\.expandAll/);
+  const models = await render(
+    <NimiCollectionList kind="models" items={collection.models} category="all" loading={false} failed={false} onOpen={() => {}} onBack={() => {}} />,
+  );
+  assert.equal((models.match(/data-collection-item="model:/g) ?? []).length, collection.models.length);
+  assert.deepEqual([...models.matchAll(/data-collection-group="(\w+)"/g)].map((match) => match[1]), ['chat', 'image', 'voice']);
+  assert.match(models, /runtimeConfig\.recommend\.category\.voice/);
+  assert.match(models, /data-testid="model-library-list-back"/);
+  const image = nimiCollectionForCategory(collection, 'image');
+  const parts = await render(
+    <NimiCollectionList kind="parts" items={image.parts} category="image" loading={false} failed={false} onOpen={() => {}} onBack={() => {}} />,
+  );
+  assert.match(parts, /data-testid="model-library-nimi-parts-list"/);
+  assert.match(parts, /runtimeConfig\.modelLibrary\.collection\.partsHint/);
+  assert.equal((parts.match(/data-collection-item="part:/g) ?? []).length, image.parts.length);
+  // One category needs no headings.
+  assert.doesNotMatch(parts, /<h4/);
 });
 
-test('a collection that fits the first row has no expand toggle', async () => {
-  const chat = nimiCollectionForCategory(buildNimiCollection({ catalog, recipes }), 'chat');
-  assert.ok(chat.models.length > 0 && chat.models.length <= 3);
-  const markup = await render(<NimiCollectionSection collection={chat} loading={false} failed={false} onOpen={() => {}} />);
-  assert.equal((markup.match(/data-collection-item="model:/g) ?? []).length, chat.models.length);
-  assert.doesNotMatch(markup, /model-library-nimi-collection-toggle/);
-});
-
-test('the expand toggle reveals every model and folds back to the first row', async () => {
+/** Renders into jsdom inside React's act environment and restores the globals afterwards. */
+async function withDom(run: (document: Document, mount: (node: React.ReactElement) => Promise<void>) => Promise<void>) {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
   const values: Record<string, unknown> = {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
@@ -344,29 +455,10 @@ test('the expand toggle reveals every model and folds back to the first row', as
   for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   try {
     const { createRoot } = await import('react-dom/client');
-    const i18n = createInstance();
-    await i18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: {} } } });
-    const collection = buildNimiCollection({ catalog, recipes });
     const root = createRoot(dom.window.document.getElementById('root')!);
-    await act(async () => root.render(
-      <I18nextProvider i18n={i18n}>
-        <NimiCollectionSection collection={collection} loading={false} failed={false} onOpen={() => {}} />
-      </I18nextProvider>,
-    ));
-    const document = dom.window.document;
-    // jsdom has no matchMedia, so the grid keeps its three-column fallback.
-    const tileCount = () => document.querySelectorAll('[data-collection-item^="model:"]').length;
-    const toggle = () => document.querySelector<HTMLElement>('[data-testid="model-library-nimi-collection-toggle"]')!;
-    assert.equal(tileCount(), 3);
-    assert.ok(toggle().textContent?.includes('runtimeConfig.modelLibrary.collection.expandAll'));
-    await act(async () => toggle().click());
-    assert.equal(tileCount(), collection.models.length);
-    assert.ok(toggle().textContent?.includes('runtimeConfig.modelLibrary.collection.collapse'));
-    // Folded rows render their brand logos once expanded.
-    assert.ok(document.querySelector('[data-model-family-logo="alibabacloud-color"]'));
-    assert.ok(document.querySelector('[data-model-family-logo="qwen-color"]'));
-    await act(async () => toggle().click());
-    assert.equal(tileCount(), 3);
+    await run(dom.window.document, async (node) => {
+      await act(async () => root.render(node));
+    });
     await act(async () => root.unmount());
   } finally {
     for (const [key, descriptor] of previous) {
@@ -374,12 +466,15 @@ test('the expand toggle reveals every model and folds back to the first row', as
       else Reflect.deleteProperty(globalThis, key);
     }
   }
-});
+}
 
-async function renderDiscovery(context: RuntimeConfigModelMarketContext | null, prepare?: (client: QueryClient) => void) {
+async function click(element: Element | null | undefined) {
+  assert.ok(element, 'element to click');
+  await act(async () => (element as HTMLElement).click());
+}
+
+function discoveryTree(context: RuntimeConfigModelMarketContext | null, queryClient: QueryClient) {
   const refuse = () => { throw new Error('rendering must not call Runtime'); };
-  const queryClient = new QueryClient();
-  prepare?.(queryClient);
   const bindings = {
     app: { commands: {}, events: { subscribeDocumentMouseDown: () => () => undefined } },
     sdk: { localEnvironmentRpc: refuse, machineProduct: refuse },
@@ -388,16 +483,110 @@ async function renderDiscovery(context: RuntimeConfigModelMarketContext | null, 
     runtimeWritesDisabled: false,
     installResolvedModelPlan: async () => { throw new Error('rendering must not install'); },
   } as unknown as RuntimeConfigPanelControllerModel;
-  return render(
+  return (
     <QueryClientProvider client={queryClient}>
       <DesktopI18nResourceProvider resource={{ instance: { t: (key: string) => key } } as never}>
         <DesktopRendererBindingProvider bindings={bindings}>
           <RecommendPage model={model} context={context} onModelInstalled={async () => {}} onReturnToLoadout={() => {}} onOpenDownloaded={() => {}} />
         </DesktopRendererBindingProvider>
       </DesktopI18nResourceProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
+
+async function renderDiscovery(context: RuntimeConfigModelMarketContext | null, prepare?: (client: QueryClient) => void) {
+  const queryClient = new QueryClient();
+  prepare?.(queryClient);
+  return render(discoveryTree(context, queryClient));
+}
+
+function communityCandidate(offerRef: string, category: string): NimiRuntimeModelAssetMarketCandidate {
+  return {
+    offerRef,
+    title: `community/${offerRef}`,
+    variantLabel: `${offerRef}-Q4_K_M.gguf`,
+    author: 'community',
+    tags: [],
+    categories: [category],
+    license: 'apache-2.0',
+    downloads: 1,
+    likes: 1,
+    totalSizeBytes: GB,
+    sourceLabel: 'Hugging Face',
+  } as unknown as NimiRuntimeModelAssetMarketCandidate;
+}
+
+/** The collection plus five chat picks, with nothing left for discovery to fetch. */
+function seededDiscoveryClient() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+  const feed = (items: NimiRuntimeModelAssetMarketCandidate[]) => ({ source: { availability: 'available', freshness: 'fresh' }, items });
+  queryClient.setQueryData(['model-market', 'collection-catalog'], catalog);
+  queryClient.setQueryData(['model-market', 'collection-recipes'], recipes);
+  queryClient.setQueryData(['model-market', 'collection-assets'], []);
+  queryClient.setQueryData(['model-market', 'featured', 'all'], feed(['a', 'b', 'c', 'd', 'e'].map((offerRef) => communityCandidate(offerRef, 'chat'))));
+  queryClient.setQueryData(['model-market', 'featured', 'image'], feed([]));
+  return queryClient;
+}
+
+async function mountDiscovery(run: (document: Document) => Promise<void>) {
+  const i18n = createInstance();
+  await i18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: {} } } });
+  await withDom(async (document, mount) => {
+    await mount(<I18nextProvider i18n={i18n}>{discoveryTree(null, seededDiscoveryClient())}</I18nextProvider>);
+    await run(document);
+  });
+}
+
+test('View all opens the collection list, and back returns to the preview above every community pick', async () => {
+  await mountDiscovery(async (document) => {
+    const count = (selector: string) => document.querySelectorAll(selector).length;
+    const byTestId = (id: string) => document.querySelector(`[data-testid="${id}"]`);
+    const buttonNamed = (name: string) => [...document.querySelectorAll('button')].find((button) => button.textContent === name);
+    // Two rows of three collection tiles without a viewport; every community pick lies below.
+    assert.equal(count('[data-collection-item^="model:"]'), 6);
+    assert.equal(count('[data-community-candidate]'), 5);
+    assert.equal(count('[data-testid="model-library-community"] [data-testid="model-library-list-back"]'), 0);
+    assert.equal(byTestId('model-library-community-view-all'), null);
+
+    await click(byTestId('model-library-nimi-view-all'));
+    assert.ok(byTestId('model-library-nimi-list'));
+    assert.equal(count('[data-collection-item^="model:"]'), 7);
+    assert.equal(byTestId('model-library-community'), null);
+    // Filter and sort only act on community rows, so the collection list leaves them out.
+    assert.equal(buttonNamed('Filter'), undefined);
+
+    // A requirement row opens that item, and back retraces each step.
+    await click(document.querySelector('[data-collection-item="model:z-image-turbo-local"]'));
+    const heading = () => document.querySelector('[data-testid="model-library-nimi-detail"] h1')?.textContent;
+    assert.equal(heading(), 'Z-Image Turbo');
+    await click(document.querySelector('[data-requirement-item="part:sha256:z-vae"]'));
+    assert.equal(heading(), 'VAE');
+    await click(buttonNamed('Back'));
+    assert.equal(heading(), 'Z-Image Turbo');
+    await click(buttonNamed('Back'));
+    assert.ok(byTestId('model-library-nimi-list'));
+    await click(byTestId('model-library-list-back'));
+    assert.ok(byTestId('model-library-nimi-collection'));
+    assert.ok(buttonNamed('Filter'));
+
+    await click(byTestId('model-library-nimi-parts'));
+    assert.ok(byTestId('model-library-nimi-parts-list'));
+    assert.equal(count('[data-collection-item^="part:"]'), 3);
+    assert.equal(byTestId('model-library-community'), null);
+    await click(byTestId('model-library-list-back'));
+    assert.equal(count('[data-community-candidate]'), 5);
+  });
+});
+
+test('the model total counts only the selected category', async () => {
+  await mountDiscovery(async (document) => {
+    const total = () => [...document.querySelectorAll('span')].find((span) => /^\d+ models$/u.test(span.textContent ?? ''))?.textContent;
+    // Seven collection models and five community picks.
+    assert.equal(total(), '12 models');
+    await click([...document.querySelectorAll('button[aria-pressed]')].find((button) => button.textContent === 'Image'));
+    assert.equal(total(), '2 models');
+  });
+});
 
 function pressedCategoryHtml(markup: string) {
   return /<button[^>]*aria-pressed="true"[^>]*>([\s\S]*?)<\/button>/u.exec(markup)?.[1] ?? '';
@@ -440,7 +629,9 @@ test('the detail page offers one download per version and marks versions already
       item={gemma}
       onDevice={new Set(['sha256:e2b-q8'])}
       runtimeWritesDisabled={false}
+      resolveItem={() => undefined}
       onBack={() => {}}
+      onOpenItem={() => {}}
       onInstall={async () => { throw new Error('render must not install'); }}
     />,
   );
@@ -448,4 +639,30 @@ test('the detail page offers one download per version and marks versions already
   assert.match(markup, /data-collection-version="chat.gemma-e2b.q8"/);
   assert.equal((markup.match(/runtimeConfig\.modelLibrary\.collection\.download/g) ?? []).length, 1);
   assert.equal((markup.match(/runtimeConfig\.modelLibrary\.collection\.onDevice/g) ?? []).length, 1);
+});
+
+test('the detail page lists what its setup also prepares, and hides the list when an item is unknown', async () => {
+  const collection = buildNimiCollection({ catalog, recipes });
+  const items = new Map([...collection.models, ...collection.parts].map((item) => [item.key, item]));
+  const zImage = collection.models.find((item) => item.title === 'Z-Image Turbo')!;
+  const detail = (resolveItem: (key: string) => NimiCollectionItem | undefined) => render(
+    <NimiCollectionDetail
+      item={zImage}
+      onDevice={new Set()}
+      runtimeWritesDisabled={false}
+      resolveItem={resolveItem}
+      onBack={() => {}}
+      onOpenItem={() => {}}
+      onInstall={async () => { throw new Error('render must not install'); }}
+    />,
+  );
+  const markup = await detail((key) => items.get(key));
+  assert.match(markup, /data-testid="model-library-nimi-requirements"/);
+  assert.match(markup, /data-capability="image.generate"/);
+  assert.match(markup, /data-requirement-item="part:sha256:z-vae"/);
+  assert.match(markup, /runtimeConfig\.modelLibrary\.collection\.alsoPrepared/);
+  // The 0.3 GB VAE shows its own size.
+  assert.match(markup, /307\.2 MB/);
+  // A partial list would understate the setup.
+  assert.doesNotMatch(await detail(() => undefined), /model-library-nimi-requirements/);
 });
