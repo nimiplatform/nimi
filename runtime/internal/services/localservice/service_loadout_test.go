@@ -726,7 +726,7 @@ func TestLocalJobAdmissionProbesTheHostOncePerDependencyLookup(t *testing.T) {
 	defer svc.Close()
 	for _, driver := range []capabilitydriver.Driver{
 		capabilitydriver.LayaDriver{}, capabilitydriver.SpacyDriver{},
-		capabilitydriver.InsightFaceImageDriver{}, capabilitydriver.LocateAnythingDriver{},
+		capabilitydriver.InsightFaceImageDriver{}, capabilitydriver.LocateAnythingDriver{}, capabilitydriver.GroundingDinoDriver{},
 	} {
 		gpuProbes = 0
 		// The environment is not prepared here; only the host probing matters.
@@ -1599,8 +1599,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 97 {
-		t.Fatalf("all Loadout recipes = %d, want 97", len(all))
+	if len(all) != 98 {
+		t.Fatalf("all Loadout recipes = %d, want 98", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {

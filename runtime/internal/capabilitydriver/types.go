@@ -1608,6 +1608,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: ImageFaceSwapContract, Identity: Identity{ImplementationID: InsightFaceImplementationID, DriverID: InsightFaceDriverID, DriverDialect: InsightFaceDriverDialect}}:           InsightFaceImageDriver{},
 		{CapabilityContract: VideoFaceSwapContract, Identity: Identity{ImplementationID: InsightFaceVideoImplementationID, DriverID: InsightFaceDriverID, DriverDialect: InsightFaceVideoDriverDialect}}: InsightFaceVideoDriver{},
 		{CapabilityContract: VisionLocateContract, Identity: Identity{ImplementationID: LocateAnythingImplementationID, DriverID: LocateAnythingDriverID, DriverDialect: LocateAnythingDriverDialect}}:   LocateAnythingDriver{},
+		{CapabilityContract: VisionLocateContract, Identity: Identity{ImplementationID: GroundingDinoImplementationID, DriverID: GroundingDinoDriverID, DriverDialect: GroundingDinoDriverDialect}}:      GroundingDinoDriver{},
 		// @nimi-authority: rule.nimi.runtime.local-compute.r112
 		{CapabilityContract: LlamaCapabilityContract, Identity: Identity{ImplementationID: LlamaImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaDriverDialect}}:                                                             LlamaTextDriver{},
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbedDriverDialect}}:                                               LlamaEmbedDriver{},

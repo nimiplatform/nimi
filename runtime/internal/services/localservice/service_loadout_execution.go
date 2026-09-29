@@ -352,14 +352,18 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 		return []localexecution.ExactDependencySource{{DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID,
 			ConsumerScope: engine.FaceSwapConsumerID, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version,
 			VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}}, nil
-	case capabilitydriver.LocateAnythingDriver:
-		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.VisionLocateConsumerID, func(root string) string { return filepath.Join(root, "vision_server.py") }, profile)
+	case capabilitydriver.LocateAnythingDriver, capabilitydriver.GroundingDinoDriver:
+		visionConsumer := engine.VisionLocateConsumerID
+		if _, groundingDino := typed.(capabilitydriver.GroundingDinoDriver); groundingDino {
+			visionConsumer = engine.GroundingDinoConsumerID
+		}
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(visionConsumer, func(root string) string { return filepath.Join(root, "vision_server.py") }, profile)
 		if !ok {
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Locate managed profile is not ready", map[string]string{"detail": detail})
 		}
 		return []localexecution.ExactDependencySource{{
 			DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID,
-			ConsumerScope: engine.VisionLocateConsumerID, SelectedSourceRecordID: record.RecordID,
+			ConsumerScope: visionConsumer, SelectedSourceRecordID: record.RecordID,
 			CanonicalRoot: record.CanonicalRoot, Version: record.Version,
 			VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes),
 		}}, nil

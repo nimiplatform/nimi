@@ -550,6 +550,8 @@ test('unsupported media settings offer parameter correction instead of a blind r
   const diagnostics = { reasonCode: 'AI_MEDIA_OPTION_UNSUPPORTED' };
   assert.equal(studioNonSuccessReasonUserMessage('runtime-call-failed', t, 'image.generate', diagnostics), t('NonSuccess.message.mediaOptionUnsupported'));
   assert.equal(studioNonSuccessReasonUserAction('runtime-call-failed', t, 'image.generate', diagnostics), t('NonSuccess.action.mediaOptionUnsupported'));
+  assert.equal(studioNonSuccessReasonUserMessage('runtime-call-failed', t, 'vision.locate', diagnostics), t('VisionLocate.geometryUnsupported'));
+  assert.equal(studioNonSuccessReasonUserAction('runtime-call-failed', t, 'vision.locate', diagnostics), t('VisionLocate.chooseSupportedGeometry'));
   assert.notEqual(t('NonSuccess.action.mediaOptionUnsupported'), t('NonSuccess.action.runtimeCallFailed'));
 });
 

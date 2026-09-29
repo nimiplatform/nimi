@@ -84,6 +84,8 @@
     "selectModelAction": "In Nimi Desktop, open Runtime → Model configuration and select a visual localization configuration, then locate again.",
     "invalidInput": "The image or target description does not meet the localization requirements.",
     "correctInput": "Use one readable, static JPEG, PNG, WebP or GIF (multi-frame images are unsupported), up to 32 MiB and about 67 million pixels. Enter a nonempty target description of at most 8 KiB in UTF-8, then locate again.",
+    "geometryUnsupported": "The selected localization model does not support the chosen result shape.",
+    "chooseSupportedGeometry": "Choose Bounding boxes under Result shape and locate again, or select a model that supports Points in App AI configuration.",
     "historySummaryOnly": "This large result's history keeps its summary and Job ID. Export full coordinates during the original run.",
     "stoppedBeforeSubmit": "Stopped before submitting a Locate job.",
     "geometry": "Result shape",

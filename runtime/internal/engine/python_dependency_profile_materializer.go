@@ -814,15 +814,17 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 	if strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == TextAnnotationTrfConsumerID {
 		return append(packageManifest.ImportProbes, "spacy_text_annotation"), nil
 	}
-	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
-		backend, err := visionPythonBackend(identity.PlatformTuple, identity.AcceleratorPlane)
+	if strings.TrimSpace(consumer) == VisionLocateConsumerID || strings.TrimSpace(consumer) == GroundingDinoConsumerID {
+		backend, err := visionPythonBackendForConsumer(consumer, identity.PlatformTuple, identity.AcceleratorPlane)
 		if err != nil {
 			return nil, err
 		}
 		if backend == "mlx" {
 			packageManifest.ImportProbes = append(packageManifest.ImportProbes, "mlx", "mlx_vlm")
-		} else {
+		} else if backend == "transformers" {
 			packageManifest.ImportProbes = append(packageManifest.ImportProbes, "peft", "cv2", "decord", "lmdb", "locateanything_loader.modeling_locateanything", "locateanything_loader.processing_locateanything")
+		} else {
+			packageManifest.ImportProbes = append(packageManifest.ImportProbes, "grounding_dino_locator")
 		}
 	}
 	if strings.TrimSpace(consumer) == "speech.voxcpm.python" {
@@ -865,7 +867,7 @@ func verifyPythonDependencyProfileDriverBundle(root string, consumer string) err
 	if trimmedConsumer == FaceSwapConsumerID {
 		return verifyFaceSwapDriverBundle(root)
 	}
-	if trimmedConsumer == VisionLocateConsumerID {
+	if trimmedConsumer == VisionLocateConsumerID || trimmedConsumer == GroundingDinoConsumerID {
 		return verifyVisionDriverBundle(root)
 	}
 	if strings.HasPrefix(trimmedConsumer, "speech.") {
@@ -895,7 +897,7 @@ func pythonDependencyProfileDriverScripts(root string, consumer string) []string
 	if trimmedConsumer == FaceSwapConsumerID {
 		return []string{filepath.Join(root, "face_swap_server.py")}
 	}
-	if trimmedConsumer == VisionLocateConsumerID {
+	if trimmedConsumer == VisionLocateConsumerID || trimmedConsumer == GroundingDinoConsumerID {
 		return []string{filepath.Join(strings.TrimSpace(root), "vision_server.py")}
 	}
 	if strings.HasPrefix(trimmedConsumer, "speech.") {

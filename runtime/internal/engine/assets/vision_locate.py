@@ -15,6 +15,7 @@ import time
 from typing import Any
 
 PROTOCOL = "nimi-vision-locate/1"
+GROUNDING_DINO_PROTOCOL = "nimi-vision-grounding-dino/1"
 MAX_IMAGE_BYTES = 32 * 1024 * 1024
 MAX_QUERY_BYTES = 8 * 1024
 # Private JSON budget: up to six bytes per escaped label byte plus geometry
@@ -217,7 +218,14 @@ class LocateWorker:
 
     def run(self, request: dict[str, Any]) -> dict[str, Any]:
         geometry = request["geometry"]
-        prompt = locate_prompt(request["query"], geometry)
+        if request["backend"] == "grounding-dino-transformers":
+            if geometry != "BOX":
+                raise LocateError("AI_INPUT_INVALID", "Grounding DINO supports box geometry only")
+            if not isinstance(request["query"], str) or not request["query"].strip() or len(request["query"].encode("utf-8")) > MAX_QUERY_BYTES:
+                raise LocateError("AI_INPUT_INVALID", "Locate query is empty or exceeds the text bound")
+            prompt = ""
+        else:
+            prompt = locate_prompt(request["query"], geometry)
         image = decode_image(request["image_base64"])
         if image.size != (request["width"], request["height"]):
             raise LocateError("AI_INPUT_INVALID", "Locate image does not match its captured dimensions")
@@ -236,6 +244,13 @@ class LocateWorker:
             started = time.monotonic()
             if request["backend"] == "transformers" and sys.platform == "win32":
                 locator = TransformersLocator(model_dir)
+            elif request["backend"] == "grounding-dino-transformers" and sys.platform == "win32":
+                from grounding_dino_locator import GroundingDinoLocator
+
+                try:
+                    locator = GroundingDinoLocator(model_dir)
+                except ValueError as error:
+                    raise LocateError("AI_LOCAL_EXECUTION_LOAD_FAILED", str(error)) from error
             elif request["backend"] == "mlx" and sys.platform == "darwin":
                 locator = MLXLocator(model_dir)
             else:
@@ -243,8 +258,14 @@ class LocateWorker:
             self.locator = locator
             self.identity = identity
             print(f"[vision] loaded backend={request['backend']} seconds={time.monotonic() - started:.3f}", file=sys.stderr, flush=True)
-        text, complete = self.locator.predict(image, prompt)
-        locations = parse_locations(text, geometry, complete=complete)
+        if request["backend"] == "grounding-dino-transformers":
+            try:
+                locations = self.locator.predict(image, request["query"])
+            except ValueError as error:
+                raise LocateError("AI_OUTPUT_INVALID", str(error)) from error
+        else:
+            text, complete = self.locator.predict(image, prompt)
+            locations = parse_locations(text, geometry, complete=complete)
         return {
             "image_artifact_id": request["image_artifact_id"],
             "width": image.width, "height": image.height, "locations": locations,

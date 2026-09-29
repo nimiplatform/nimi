@@ -210,6 +210,7 @@ type VisionLocateInvocationInput struct {
 
 type VisionLocateInvocationPlan struct {
 	Backend            string
+	ConsumerID         string
 	ProfileRoot        string
 	ProfileDigest      string
 	DriverBundleDigest string
@@ -221,20 +222,35 @@ type VisionLocateInvocationPlan struct {
 	DependencySources  []InvocationExactDependencySource
 }
 
+type VisionLocateDriver interface {
+	PlanVisionLocateInvocation(VisionLocateInvocationInput) (*VisionLocateInvocationPlan, error)
+	SupportsGeometry(runtimev1.VisionLocateGeometry) bool
+}
+
+func (LocateAnythingDriver) SupportsGeometry(geometry runtimev1.VisionLocateGeometry) bool {
+	return geometry == runtimev1.VisionLocateGeometry_VISION_LOCATE_GEOMETRY_BOX || geometry == runtimev1.VisionLocateGeometry_VISION_LOCATE_GEOMETRY_POINT
+}
+
 func (LocateAnythingDriver) PlanVisionLocateInvocation(input VisionLocateInvocationInput) (*VisionLocateInvocationPlan, error) {
 	if input.RecipeID != LocateAnythingRecipeID || len(input.Bindings) != 1 ||
-		input.Bindings[0].RequirementID != LocateAnythingModelSlot || input.Request == nil ||
-		len(input.ImageBytes) == 0 || input.Width == 0 || input.Height == 0 {
+		input.Bindings[0].RequirementID != LocateAnythingModelSlot || input.Request == nil {
 		return nil, fmt.Errorf("Locate invocation has incomplete captured input")
 	}
 	backend, err := LocateAnythingBackendForPlatform(input.PlatformTuple)
 	if err != nil {
 		return nil, err
 	}
+	return planVisionLocateInvocation(input, backend, LocateAnythingConsumerID, LocateAnythingProtocol)
+}
+
+func planVisionLocateInvocation(input VisionLocateInvocationInput, backend string, consumerID string, protocol string) (*VisionLocateInvocationPlan, error) {
+	if input.Request == nil || len(input.ImageBytes) == 0 || input.Width == 0 || input.Height == 0 || len(input.Bindings) != 1 {
+		return nil, fmt.Errorf("Locate invocation has incomplete captured input")
+	}
 	var profile *InvocationExactDependencySource
 	for index := range input.DependencySources {
 		source := &input.DependencySources[index]
-		if source.DependencyFamily == "python.package-set" && source.ConsumerScope == LocateAnythingConsumerID {
+		if source.DependencyFamily == "python.package-set" && source.ConsumerScope == consumerID {
 			if profile != nil {
 				return nil, fmt.Errorf("Locate profile capture is ambiguous")
 			}
@@ -247,9 +263,9 @@ func (LocateAnythingDriver) PlanVisionLocateInvocation(input VisionLocateInvocat
 		return nil, fmt.Errorf("Locate invocation has no exact managed profile")
 	}
 	return &VisionLocateInvocationPlan{
-		Backend: backend, Request: proto.Clone(input.Request).(*runtimev1.VisionLocateScenarioSpec),
+		Backend: backend, ConsumerID: consumerID, Request: proto.Clone(input.Request).(*runtimev1.VisionLocateScenarioSpec),
 		ProfileRoot: profile.CanonicalRoot, ProfileDigest: profile.Version,
-		DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], DriverProtocol: LocateAnythingProtocol,
+		DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], DriverProtocol: protocol,
 		ImageBytes: append([]byte(nil), input.ImageBytes...), Width: input.Width, Height: input.Height,
 		Binding:           cloneInvocationExactBindings(input.Bindings)[0],
 		DependencySources: cloneInvocationExactDependencySources(input.DependencySources),

@@ -4432,6 +4432,59 @@ models:
           accelerator: metal
         repo: mlx-community/LocateAnything-3B-4bit
         revision: e4517cd171dfa6c5a376a50c5ef8b73949aea0b7
+  - model_id: grounding-dino-tiny-local
+    provider: local
+    model_type: vision
+    updated_at: 2026-09-29
+    capabilities:
+      - vision.locate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/IDEA-Research/grounding-dino-tiny
+      retrieved_at: 2026-09-29
+      note: Official Transformers safetensors checkpoint and box-only object detection example; Apache-2.0 model tag.
+    family: grounding-dino-tiny
+    install:
+      repo: IDEA-Research/grounding-dino-tiny
+      revision: a2bb814dd30d776dcf7e30523b00659f4f141c71
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles:
+        - vision_model
+      license: Apache-2.0
+    variants:
+      - variant_id: local.vision.grounding-dino-tiny.f32.cuda
+        quant: F32
+        entry: model.safetensors
+        files:
+          - added_tokens.json
+          - config.json
+          - model.safetensors
+          - preprocessor_config.json
+          - README.md
+          - special_tokens_map.json
+          - tokenizer_config.json
+          - tokenizer.json
+          - vocab.txt
+        hashes:
+          added_tokens.json: sha256:909e96cb32d92ce728a01bc99850cbba26196d74115c17ebeb019275412588f2
+          config.json: sha256:eec82c5ab66e16df12a9a212e68ac011779927c2536cf9078658e35d85f0c67a
+          model.safetensors: sha256:1a2412ef99bd74bcd3c2a246fa1e48581f8889a1300c9051974741314fc042f3
+          preprocessor_config.json: sha256:8454179ba95e2ad22947835aad7b45862a601fc0055ab88bf1ee70892d3aea60
+          README.md: sha256:cf46f74c7b6850f1d5cbe406028324d8798148726016d46a69a365b4a2d3e89f
+          special_tokens_map.json: sha256:b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3
+          tokenizer_config.json: sha256:d40ab645b68211910b9170d22433d43186a6ec8ee6fd10ba170524b25bf4fb56
+          tokenizer.json: sha256:d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66
+          vocab.txt: sha256:07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3
+        total_size_bytes: 690308125
+        host_requirement:
+          accelerator: cuda
   - model_id: asset-silero-vad-onnx
     provider: local
     model_type: auxiliary
@@ -9822,6 +9875,27 @@ loadout_recipes:
         model_contract:
           format: safetensors
           model_type: locateanything
+          artifact_role: vision_model
+  - recipe_id: grounding-dino-tiny.vision-locate.box-v1
+    revision: "1"
+    title: Grounding DINO Tiny box localization
+    capability_contract: vision.locate
+    implementation_id: local.vision.locate.grounding-dino-tiny
+    driver_id: nimi.runtime.driver.grounding-dino
+    driver_dialect: grounding-dino/vision-locate/box-v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: vision.model
+        display_label: Grounding DINO Tiny model
+        recommended_variant_ids:
+          - local.vision.grounding-dino-tiny.f32.cuda
+        recommended_content_ids:
+          - sha256:0520bb2cf126ccce50c951f4413d2e799e2a0ad9fd711338a5eb5af4c9f5a0f5
+        model_contract:
+          format: safetensors
+          model_type: grounding-dino
           artifact_role: vision_model
   - recipe_id: llama.text-generate.gemma4.v1
     revision: "1"

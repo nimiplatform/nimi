@@ -69,6 +69,7 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
   if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.message.stoppedDirectCall');
   if (diagnostics?.reasonCode === INPUT_LIMIT_EXCEEDED_REASON_CODE) return translate('NonSuccess.message.inputLimitExceeded');
   if (diagnostics?.reasonCode === TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.textBehaviorUnsupported');
+  if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.geometryUnsupported');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.mediaOptionUnsupported');
   const reselection = targetReselectionKeySegment(diagnostics);
   if (reselection) return translate(`NonSuccess.message.${reselection}`);
@@ -82,6 +83,7 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.action.stoppedDirectCall');
   if (diagnostics?.reasonCode === INPUT_LIMIT_EXCEEDED_REASON_CODE) return translate('NonSuccess.action.inputLimitExceeded');
   if (diagnostics?.reasonCode === TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.textBehaviorUnsupported');
+  if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.chooseSupportedGeometry');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.mediaOptionUnsupported');
   const reselection = targetReselectionKeySegment(diagnostics);
   if (reselection) return translate(`NonSuccess.action.${reselection}`);

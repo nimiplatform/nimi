@@ -29,6 +29,11 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 			ID:           "vision-locateanything-python-core",
 			ImportProbes: []string{"fastapi", "uvicorn", "PIL", "transformers"},
 		}, nil
+	case trimmed == GroundingDinoConsumerID:
+		return pythonPackageSetManifest{
+			ID:           "vision-grounding-dino-python-core",
+			ImportProbes: []string{"fastapi", "uvicorn", "PIL", "transformers", "torch", "safetensors"},
+		}, nil
 	case strings.HasPrefix(trimmed, "stable-diffusion.cpp."):
 		return pythonPackageSetManifest{
 			ID:           "media-proxy-execution-core",
@@ -299,7 +304,7 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 			}
 		}
 		return nil
-	case strings.TrimSpace(consumer) == VisionLocateConsumerID:
+	case strings.TrimSpace(consumer) == VisionLocateConsumerID || strings.TrimSpace(consumer) == GroundingDinoConsumerID:
 		return materializeVisionDriverBundle(trimmedRoot)
 	case strings.TrimSpace(consumer) == TextDecisionConsumerID:
 		return materializeTextDecisionDriverBundle(trimmedRoot)

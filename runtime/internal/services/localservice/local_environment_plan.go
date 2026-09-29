@@ -105,6 +105,11 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			return "local-vision", engine.VisionLocateConsumerID, true
 		}
 		return "", "", false
+	case capabilitydriver.GroundingDinoDriver:
+		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") && localEnvironmentHostSupportsCUDA(host) {
+			return "local-vision", engine.GroundingDinoConsumerID, true
+		}
+		return "", "", false
 	case capabilitydriver.LlamaTextDriver, capabilitydriver.LlamaEmbedDriver:
 		if strings.EqualFold(strings.TrimSpace(host.OS), "windows") &&
 			strings.EqualFold(strings.TrimSpace(host.Arch), "amd64") &&
@@ -596,7 +601,11 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 		consumers = []string{engine.TextAnnotationTrfConsumerID}
 	}
 	if def.PackID == "local-vision" {
-		consumers = []string{engine.VisionLocateConsumerID}
+		visionConsumer := engine.VisionLocateConsumerID
+		if consumerScope == engine.GroundingDinoConsumerID {
+			visionConsumer = engine.GroundingDinoConsumerID
+		}
+		consumers = []string{visionConsumer}
 	}
 	if def.PackID == "local-face-swap" {
 		consumers = []string{engine.FaceSwapConsumerID}
@@ -723,7 +732,7 @@ func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, fam
 func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool {
 	trimmed := strings.TrimSpace(consumerScope)
 	switch trimmed {
-	case engine.VisionLocateConsumerID + ".cuda", engine.TextDecisionConsumerID + ".cuda":
+	case engine.VisionLocateConsumerID + ".cuda", engine.GroundingDinoConsumerID + ".cuda", engine.TextDecisionConsumerID + ".cuda":
 		return true
 	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID, "media.diffusers.cuda", "media.video-python.cuda":
 		return true

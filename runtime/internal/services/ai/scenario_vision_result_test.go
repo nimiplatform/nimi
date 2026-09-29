@@ -36,6 +36,45 @@ func TestVisionJobTimeoutAdmission(t *testing.T) {
 	}
 }
 
+func TestGroundingDinoBoxResolvedAssemblyRetainsItsExactDriverAndProfile(t *testing.T) {
+	root := t.TempDir()
+	driver := capabilitydriver.GroundingDinoDriver{}
+	requirements, reason := driver.ProjectRecipe(capabilitydriver.GroundingDinoRecipeID, nil, nil)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		t.Fatalf("Grounding DINO recipe: %v", reason)
+	}
+	profile := strings.Repeat("a", 64)
+	selected := &localexecution.SelectedLocalExecution{
+		LoadoutID: "grounding-dino-loadout", CapabilityContract: capabilitydriver.VisionLocateContract, RecipeID: capabilitydriver.GroundingDinoRecipeID, RecipeRevision: "1",
+		DriverIdentity:         &runtimev1.CapabilityImplementationIdentity{ImplementationId: capabilitydriver.GroundingDinoImplementationID, DriverId: capabilitydriver.GroundingDinoDriverID, DriverDialect: capabilitydriver.GroundingDinoDriverDialect},
+		Requirements:           requirements,
+		ExactBindings:          []localexecution.ExactBinding{{RequirementID: capabilitydriver.GroundingDinoModelSlot, RequirementRole: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, ModelAssetID: "grounding-dino-model", AbsolutePath: filepath.Join(root, "model.safetensors"), BundleDir: root, DeclaredFiles: []string{"model.safetensors"}, VerifiedContentID: "sha256:" + strings.Repeat("b", 64), EntrySHA256: strings.Repeat("c", 64)}},
+		ExactDependencySources: []localexecution.ExactDependencySource{{DependencyFamily: "python.package-set", DependencyID: "python-profile." + profile, ConsumerScope: capabilitydriver.GroundingDinoConsumerID, SelectedSourceRecordID: "grounding-dino-profile", CanonicalRoot: filepath.Join(root, profile), Version: profile, Hashes: map[string]string{"profile_digest": profile, "driver_bundle_sha256": strings.Repeat("d", 64)}}},
+	}
+	var imageBuffer bytes.Buffer
+	if err := png.Encode(&imageBuffer, image.NewRGBA(image.Rect(0, 0, 3, 2))); err != nil {
+		t.Fatal(err)
+	}
+	spec := &runtimev1.VisionLocateScenarioSpec{ImageArtifactId: "owned-image", Query: "a cat", Geometry: runtimev1.VisionLocateGeometry_VISION_LOCATE_GEOMETRY_BOX}
+	input := capabilitydriver.VisionLocateInvocationInput{RecipeID: selected.RecipeID, PlatformTuple: "windows/amd64", Request: spec, ImageBytes: imageBuffer.Bytes(), Width: 3, Height: 2, Bindings: projectInvocationExactBindings(selected.ExactBindings), DependencySources: invocationExactDependencySources(selected.ExactDependencySources)}
+	plan, err := driver.PlanVisionLocateInvocation(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assembly, err := localResolvedAssemblyForVision(selected, plan, "windows/amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := visionPlanFromResolvedAssembly(assembly)
+	if err != nil || restored.Backend != capabilitydriver.GroundingDinoBackend || restored.ConsumerID != capabilitydriver.GroundingDinoConsumerID || restored.Request.GetGeometry() != spec.GetGeometry() {
+		t.Fatalf("Grounding DINO captured plan did not round trip: %+v, %v", restored, err)
+	}
+	input.Request = &runtimev1.VisionLocateScenarioSpec{ImageArtifactId: "owned-image", Query: "a cat", Geometry: runtimev1.VisionLocateGeometry_VISION_LOCATE_GEOMETRY_POINT}
+	if _, err := driver.PlanVisionLocateInvocation(input); err == nil {
+		t.Fatal("Grounding DINO POINT invocation was accepted")
+	}
+}
+
 func createVisionStoreJob(t *testing.T, store *scenarioJobStore, root, id string) *runtimev1.VisionLocateResult {
 	t.Helper()
 	requirements, _ := (capabilitydriver.LocateAnythingDriver{}).ProjectRecipe(capabilitydriver.LocateAnythingRecipeID, nil, nil)

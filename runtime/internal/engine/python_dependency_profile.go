@@ -71,7 +71,7 @@ func PythonDependencyProfileStaticFiles(consumer string, identity PythonDependen
 			Content:      append([]byte(nil), content...),
 		})
 	}
-	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
+	if strings.TrimSpace(consumer) == VisionLocateConsumerID || strings.TrimSpace(consumer) == GroundingDinoConsumerID {
 		driverFiles, err := visionDriverStaticFiles()
 		if err != nil {
 			return nil, err
@@ -242,6 +242,11 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 			return "vision-locateanything-mlx-cpu", nil
 		}
 		return "vision-locateanything-transformers-cu128", nil
+	case GroundingDinoConsumerID:
+		if _, err := visionPythonBackendForConsumer(consumer, platformTuple, acceleratorPlane); err != nil {
+			return "", err
+		}
+		return "vision-locateanything-transformers-cu128", nil
 	case "speech.qwen3-tts.python":
 		line = "speech-tts"
 	case "speech.qwen3-asr.python":
@@ -317,6 +322,9 @@ func pythonDependencyProfileDriverProtocol(consumer string) string {
 	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
 		return visionDriverProtocolVersion
 	}
+	if strings.TrimSpace(consumer) == GroundingDinoConsumerID {
+		return capabilitydriver.GroundingDinoProtocol
+	}
 	if strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
 		return mediaDriverProtocolVersion
 	}
@@ -345,7 +353,7 @@ func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol s
 		}
 		return sha256Hex([]byte(strings.Join(lines, "\n") + "\n")), nil
 	}
-	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
+	if strings.TrimSpace(consumer) == VisionLocateConsumerID || strings.TrimSpace(consumer) == GroundingDinoConsumerID {
 		files, err := visionDriverStaticFiles()
 		if err != nil {
 			return "", err

@@ -68,7 +68,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 			AcceleratorPlane: "cpu", CUDAABI: "none",
 			WheelIndex: defaultMediaTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
 		}, nil
-	case trimmed == VisionLocateConsumerID+".cuda":
+	case trimmed == VisionLocateConsumerID+".cuda" || trimmed == GroundingDinoConsumerID+".cuda":
 		return pythonTorchWheelManifest{
 			Packages:         []string{"torch==2.11.0", "torchvision==0.26.0"},
 			ImportProbes:     []string{"torch", "torchvision"},

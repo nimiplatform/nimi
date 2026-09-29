@@ -70,9 +70,12 @@ func (s *Service) captureLocalVisionEffectiveInputs(ctx context.Context, head *r
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
 	driver, reason := s.capabilityDrivers.Resolve(capabilitydriver.VisionLocateContract, capabilitydriver.IdentityFromProto(selected.DriverIdentity))
-	visionDriver, ok := driver.(capabilitydriver.LocateAnythingDriver)
+	visionDriver, ok := driver.(capabilitydriver.VisionLocateDriver)
 	if !ok || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+	}
+	if !visionDriver.SupportsGeometry(spec.Geometry) {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{Message: "The selected Locate model does not support this geometry"})
 	}
 	input, err := s.resolveLocalImageArtifactInput(ctx, head, spec.ImageArtifactId, capabilitydriver.ImageResolvedInputRoleSource)
 	if err != nil {
@@ -125,8 +128,7 @@ func visionResolvedLoadPlan(plan *capabilitydriver.VisionLocateInvocationPlan, p
 
 func visionPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabilitydriver.VisionLocateInvocationPlan, error) {
 	if assembly == nil || assembly.LoadPlan.Kind != "vision" || assembly.LoadPlan.Vision == nil || assembly.CapabilityContract != capabilitydriver.VisionLocateContract ||
-		assembly.Request.Kind != capabilitydriver.VisionLocateContract || assembly.DriverIdentity.DriverID != capabilitydriver.LocateAnythingDriverID ||
-		assembly.DriverIdentity.ImplementationID != capabilitydriver.LocateAnythingImplementationID || assembly.DriverIdentity.DriverDialect != capabilitydriver.LocateAnythingDriverDialect ||
+		assembly.Request.Kind != capabilitydriver.VisionLocateContract ||
 		len(assembly.RecipeCustody) != 0 || len(assembly.Request.BinaryInput) == 0 || len(assembly.Request.BinaryInput) > localexecution.MaxVisionLocateImageBytes {
 		return nil, fmt.Errorf("captured Locate assembly is incomplete")
 	}
@@ -137,8 +139,17 @@ func visionPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabilit
 	if err := validateVisionLocateSpec(request); err != nil {
 		return nil, err
 	}
+	driver, reason := capabilitydriver.NewProductionRegistry().Resolve(capabilitydriver.VisionLocateContract, capabilitydriver.Identity{
+		ImplementationID: assembly.DriverIdentity.ImplementationID,
+		DriverID:         assembly.DriverIdentity.DriverID,
+		DriverDialect:    assembly.DriverIdentity.DriverDialect,
+	})
+	visionDriver, ok := driver.(capabilitydriver.VisionLocateDriver)
+	if !ok || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || !visionDriver.SupportsGeometry(request.Geometry) {
+		return nil, fmt.Errorf("captured Locate Driver or geometry is unsupported")
+	}
 	load := assembly.LoadPlan.Vision
-	plan, err := (capabilitydriver.LocateAnythingDriver{}).PlanVisionLocateInvocation(capabilitydriver.VisionLocateInvocationInput{
+	plan, err := visionDriver.PlanVisionLocateInvocation(capabilitydriver.VisionLocateInvocationInput{
 		RecipeID: assembly.RecipeID, PlatformTuple: load.PlatformTuple, Request: request, ImageBytes: assembly.Request.BinaryInput,
 		Width: load.Width, Height: load.Height, Bindings: resolvedAssemblyExactBindings(assembly), DependencySources: resolvedAssemblyExactDependencySources(assembly),
 	})

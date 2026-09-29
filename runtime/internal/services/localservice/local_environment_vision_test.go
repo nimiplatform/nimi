@@ -43,3 +43,21 @@ func TestResolveLocalVisionPlanUsesOneExactProfile(t *testing.T) {
 		})
 	}
 }
+
+func TestGroundingDinoVisionPlanKeepsItsOwnProfileAndCUDAConsumer(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer svc.Close()
+	svc.SetEngineManager(&mockEngineManager{})
+	host := localEnvironmentNvidiaProfile()
+	grounding := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-vision", ConsumerScope: engine.GroundingDinoConsumerID, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
+	locate := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-vision", ConsumerScope: engine.VisionLocateConsumerID, HostProfile: host, RuntimeDataRoot: svc.runtimeDataRoot})
+	groundingProfile := findLocalEnvironmentDependency(t, grounding, localEnvironmentFamilyPythonPackageSet)
+	locateProfile := findLocalEnvironmentDependency(t, locate, localEnvironmentFamilyPythonPackageSet)
+	if groundingProfile.ConsumerScope != engine.GroundingDinoConsumerID || groundingProfile.DependencyID == locateProfile.DependencyID {
+		t.Fatalf("different Vision models shared the same profile: grounding=%+v locate=%+v", groundingProfile, locateProfile)
+	}
+	torch := findLocalEnvironmentDependency(t, grounding, localEnvironmentFamilyPythonTorchWheel)
+	if torch.ConsumerScope != engine.GroundingDinoConsumerID+".cuda" || !torch.Required {
+		t.Fatalf("Grounding DINO CUDA Torch source is not captured: %+v", torch)
+	}
+}

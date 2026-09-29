@@ -84,6 +84,8 @@
     "selectModelAction": "在 Nimi Desktop 的“运行时 → 模型配置”中选择图像定位配置，然后重新定位。",
     "invalidInput": "图片或目标描述不符合定位要求。",
     "correctInput": "请使用一张能正常打开的静态 JPEG、PNG、WebP 或 GIF（不支持多帧图片），不超过 32 MiB、约 6700 万像素。填写非空的目标描述，UTF-8 编码不超过 8 KiB，然后重新定位。",
+    "geometryUnsupported": "当前图像定位模型不支持所选的结果形态。",
+    "chooseSupportedGeometry": "请在「结果形态」中选择「边界框」后重新定位，或在 App AI 配置中选择支持「定位点」的模型。",
     "historySummaryOnly": "此定位结果较大，历史仅保留摘要和任务编号。完整坐标请在当次运行中导出。",
     "stoppedBeforeSubmit": "定位请求已停止，尚未提交任务。",
     "geometry": "结果形态",

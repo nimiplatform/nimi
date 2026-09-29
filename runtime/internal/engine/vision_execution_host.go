@@ -155,15 +155,15 @@ func (host *VisionExecutionHost) start(ctx context.Context, plan *capabilitydriv
 		return executionFailure(localexecution.FailureLoad, err)
 	}
 	profile := manifest.Identity
-	backend, err := visionPythonBackend(profile.PlatformTuple, profile.AcceleratorPlane)
-	if err != nil || profile.PlatformTuple != runtime.GOOS+"/"+runtime.GOARCH || backend != plan.Backend || manifest.ValidationConsumer != VisionLocateConsumerID ||
+	backend, err := visionPythonBackendForConsumer(plan.ConsumerID, profile.PlatformTuple, profile.AcceleratorPlane)
+	if err != nil || profile.PlatformTuple != runtime.GOOS+"/"+runtime.GOARCH || backend != plan.Backend || manifest.ValidationConsumer != plan.ConsumerID ||
 		profile.ProfileDigest != plan.ProfileDigest || profile.DriverBundleDigest != plan.DriverBundleDigest || profile.DriverProtocol != plan.DriverProtocol {
 		return executionFailure(localexecution.FailureLoad, fmt.Errorf("captured Locate profile does not match the Worker"))
 	}
-	if err := VerifyPythonDependencyProfileStaticContent(plan.ProfileRoot, VisionLocateConsumerID, profile); err != nil {
+	if err := VerifyPythonDependencyProfileStaticContent(plan.ProfileRoot, plan.ConsumerID, profile); err != nil {
 		return err
 	}
-	identity := plan.ProfileRoot + "\n" + plan.ProfileDigest + "\n" + plan.DriverBundleDigest + "\n" + plan.DriverProtocol + "\n" + plan.Backend + "\n" + plan.Binding.BundleDir + "\n" + plan.Binding.VerifiedContentID
+	identity := plan.ProfileRoot + "\n" + plan.ProfileDigest + "\n" + plan.DriverBundleDigest + "\n" + plan.DriverProtocol + "\n" + plan.ConsumerID + "\n" + plan.Backend + "\n" + plan.Binding.BundleDir + "\n" + plan.Binding.VerifiedContentID
 	info, statusErr := host.manager.EngineStatus(engineVisionExecutionHost)
 	if statusErr == nil && info.Status == StatusHealthy && info.PID > 0 && host.identity == identity && host.token != "" {
 		return nil
@@ -190,9 +190,9 @@ func (host *VisionExecutionHost) start(ctx context.Context, plan *capabilitydriv
 	env["TRANSFORMERS_OFFLINE"] = "1"
 	cfg := EngineConfig{
 		Kind: engineVisionExecutionHost, Port: port, BinaryPath: managedPythonPath(plan.ProfileRoot),
-		CommandArgs: []string{filepath.Join(plan.ProfileRoot, "vision_server.py"), "--port", strconv.Itoa(port)},
+		CommandArgs: []string{filepath.Join(plan.ProfileRoot, "vision_server.py"), "--port", strconv.Itoa(port), "--protocol", plan.DriverProtocol},
 		CommandEnv:  env, WorkingDir: plan.ProfileRoot, ExecutionHostIdentity: identity,
-		HealthMode: HealthModeHTTP, HealthPath: "/health", HealthResponse: visionDriverProtocolVersion,
+		HealthMode: HealthModeHTTP, HealthPath: "/health", HealthResponse: plan.DriverProtocol,
 		StartupTimeout: 60 * time.Second, HealthInterval: 30 * time.Second, ShutdownTimeout: 3 * time.Second, MaxRestarts: 0,
 	}
 	if err := host.manager.StartEngine(ctx, cfg); err != nil {

@@ -265,6 +265,24 @@ loadout_recipes:
           format: safetensors
           model_type: locateanything
           artifact_role: vision_model
+  - recipe_id: grounding-dino-tiny.vision-locate.box-v1
+    revision: "1"
+    title: Grounding DINO Tiny box localization
+    capability_contract: vision.locate
+    implementation_id: local.vision.locate.grounding-dino-tiny
+    driver_id: nimi.runtime.driver.grounding-dino
+    driver_dialect: grounding-dino/vision-locate/box-v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: vision.model
+        display_label: Grounding DINO Tiny model
+        recommended_variant_ids: [local.vision.grounding-dino-tiny.f32.cuda]
+        model_contract:
+          format: safetensors
+          model_type: grounding-dino
+          artifact_role: vision_model
   - recipe_id: llama.text-generate.gemma4.v1
     revision: "1"
     title: Gemma 4 text generation

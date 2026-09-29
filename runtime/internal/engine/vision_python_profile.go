@@ -12,9 +12,10 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r116
 const VisionLocateConsumerID = capabilitydriver.LocateAnythingConsumerID
+const GroundingDinoConsumerID = capabilitydriver.GroundingDinoConsumerID
 const visionDriverProtocolVersion = capabilitydriver.LocateAnythingProtocol
 
-//go:embed assets/vision_server.py assets/vision_locate.py assets/locateanything_loader/*
+//go:embed assets/vision_server.py assets/vision_locate.py assets/grounding_dino_locator.py assets/locateanything_loader/*
 var visionDriverBundle embed.FS
 
 func visionPythonBackend(platformTuple, acceleratorPlane string) (string, error) {
@@ -29,6 +30,19 @@ func visionPythonBackend(platformTuple, acceleratorPlane string) (string, error)
 		}
 	}
 	return "", fmt.Errorf("Locate profile is not admitted for %s/%s", platformTuple, acceleratorPlane)
+}
+
+func visionPythonBackendForConsumer(consumerID, platformTuple, acceleratorPlane string) (string, error) {
+	if consumerID == GroundingDinoConsumerID {
+		if platformTuple == "windows/amd64" && acceleratorPlane == "cuda" {
+			return capabilitydriver.GroundingDinoBackend, nil
+		}
+		return "", fmt.Errorf("Grounding DINO profile is not admitted for %s/%s", platformTuple, acceleratorPlane)
+	}
+	if consumerID != VisionLocateConsumerID {
+		return "", fmt.Errorf("Vision profile consumer is not admitted: %s", consumerID)
+	}
+	return visionPythonBackend(platformTuple, acceleratorPlane)
 }
 
 func visionDriverStaticFiles() ([]PythonDependencyProfileStaticFile, error) {
