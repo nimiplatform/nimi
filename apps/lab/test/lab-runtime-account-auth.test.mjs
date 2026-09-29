@@ -971,7 +971,10 @@ test('Lab audio.transcribe supplies inferred MIME and projects the Kit transcrip
           ok: true,
           capabilityId: 'audio.transcribe',
           message: 'transcribed',
-          output: { kind: 'transcript', text: 'hello audio', jobId: 'job-stt', jobStatus: 'COMPLETED', artifactCount: 1 },
+          output: { kind: 'transcript', text: 'hello audio', jobId: 'job-stt', jobStatus: 'COMPLETED', artifactCount: 1,
+            transcription: { status: 'transcribed', text: 'hello audio', language: 'en', words: [
+              { text: 'hello', startSeconds: 0.1, endSeconds: 0.6 }, { text: 'audio', startSeconds: 0.7, endSeconds: 1.2 },
+            ] } },
           trace: { traceId: 'trace-stt' },
         };
       },
@@ -980,7 +983,10 @@ test('Lab audio.transcribe supplies inferred MIME and projects the Kit transcrip
   assert.equal(calls[0].runtime.ai, jobClient);
   assert.equal(calls[0].audioUrl, 'https://example.test/sample.wav');
   assert.equal(calls[0].mimeType, 'audio/wav');
-  assert.deepEqual(result.output, { kind: 'transcript', text: 'hello audio', jobId: 'job-stt', jobState: 'COMPLETED', artifactCount: 1 });
+  assert.deepEqual(result.output, { kind: 'transcript', text: 'hello audio', jobId: 'job-stt', jobState: 'COMPLETED', artifactCount: 1,
+    transcription: { status: 'transcribed', text: 'hello audio', language: 'en', words: [
+      { text: 'hello', startSeconds: 0.1, endSeconds: 0.6 }, { text: 'audio', startSeconds: 0.7, endSeconds: 1.2 },
+    ] } });
 });
 
 test('Lab audio.transcribe forwards local bytes and the complete transcription parameters', async () => {

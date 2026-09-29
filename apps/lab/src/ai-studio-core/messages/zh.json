@@ -352,6 +352,16 @@
       "steps": "步骤",
       "questions": "问题"
     },
+    "transcript": {
+      "title": "语音转写",
+      "words": "带时间的词",
+      "wordTimes": "词级时间 · {{count}} 个词",
+      "timeHint": "时间以输入音频起点为零，单位为秒。",
+      "word": "词",
+      "start": "开始（秒）",
+      "end": "结束（秒）",
+      "truncatedView": "此视图显示 {{total}} 个词中的前 {{shown}} 个。"
+    },
     "annotation": {
       "title": "文本注释",
       "summary": "{{language}} · {{documents}} 个文档 · {{tokens}} 个词元 · {{sentences}} 个句子",

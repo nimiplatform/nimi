@@ -1,4 +1,5 @@
 import { isJsonObject } from '@nimiplatform/sdk/types';
+import { validateNimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
 
 import type { AIStudioHistoryPanelPreferences } from './workspace.js';
 import type { StudioRunHistory, StudioRunHistoryRecord } from './history.js';
@@ -444,6 +445,14 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
     requiredString(value.jobId, `${path}.jobId`);
     requiredString(value.jobState, `${path}.jobState`);
     nonNegativeNumber(value.artifactCount, `${path}.artifactCount`);
+    if (value.transcription !== undefined) {
+      try {
+        const transcript = validateNimiLocalAppSpeechTranscript(value.transcription);
+        if (transcript.text !== value.body) historyError(`${path}.transcription`, 'does not match the displayed text');
+      } catch {
+        historyError(`${path}.transcription`, 'does not retain a valid typed transcript');
+      }
+    }
     return;
   }
   if (kind === 'voice-asset') {

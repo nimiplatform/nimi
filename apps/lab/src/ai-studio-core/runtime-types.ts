@@ -1,6 +1,6 @@
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import type { StudioParameterValue } from './parameters.js';
-import type { NimiLocalAppAudioInstrumentPartKind, NimiLocalAppVisionLocateResult, NimiLocalAppMusicGeneration, NimiLocalAppMusicTranscription, NimiLocalAppTextAnnotationResult, NimiLocalAppVideoFaceSwapSummary, NimiLocalAppVoiceConversion } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppAudioInstrumentPartKind, NimiLocalAppVisionLocateResult, NimiLocalAppMusicGeneration, NimiLocalAppMusicTranscription, NimiLocalAppSpeechTranscript, NimiLocalAppTextAnnotationResult, NimiLocalAppVideoFaceSwapSummary, NimiLocalAppVoiceConversion } from '@nimiplatform/sdk/app';
 import type { NimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
 
 export type StudioRuntimeCapabilityDescriptor = {
@@ -124,7 +124,7 @@ export type StudioTypedOutput =
   | { readonly kind: 'text-exchange'; readonly scenario: 'tool-call' | 'structured-output'; readonly steps: readonly StudioTextExchangeStep[]; readonly text: string; readonly structured?: StudioJsonValue }
   | { readonly kind: 'text-decision'; readonly answers: readonly StudioTextDecisionAnswer[] }
   | ({ readonly kind: 'session' } & StudioSessionSummary)
-  | { readonly kind: 'transcript'; readonly text: string; readonly jobId: string; readonly jobState: string; readonly artifactCount: number }
+  | { readonly kind: 'transcript'; readonly text: string; readonly jobId: string; readonly jobState: string; readonly artifactCount: number; readonly transcription?: NimiLocalAppSpeechTranscript }
   | { readonly kind: 'voice-asset'; readonly jobId: string; readonly jobState: string; readonly voiceAssetId: string; readonly creationSource: 'reference-audio' | 'text-description'; readonly assetStatus: string; readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } }
   | { readonly kind: 'voice-catalog'; readonly voiceCount: number; readonly sample: Array<{ readonly voiceId: string; readonly creationSource: string; readonly status: string }> };
 

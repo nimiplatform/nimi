@@ -78,7 +78,9 @@ export function formatTypedOutput(
     }, null, 2);
   }
   if (output.kind === 'transcript') {
-    return output.text || translate('StudioShell.emptyTranscript');
+    return output.transcription
+      ? JSON.stringify({ jobId: output.jobId, jobState: output.jobState, transcription: output.transcription }, null, 2)
+      : output.text || translate('StudioShell.emptyTranscript');
   }
   if (output.kind === 'voice-asset') {
     return JSON.stringify({

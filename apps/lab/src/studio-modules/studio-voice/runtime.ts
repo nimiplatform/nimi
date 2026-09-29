@@ -116,6 +116,7 @@ async function runSpeechTranscribe(context: StudioCapabilityRuntimeContext) {
       jobId: result.output.jobId,
       jobState: result.output.jobStatus,
       artifactCount: result.output.artifactCount,
+      ...(result.output.transcription ? { transcription: result.output.transcription } : {}),
     },
     ...(result.trace?.traceId ? { trace: { traceId: result.trace.traceId } } : {}),
   };

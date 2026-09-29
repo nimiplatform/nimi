@@ -3,6 +3,7 @@ import { MusicTranscriptionNotice } from './section-ai-testing-transcription-res
 import { VoiceConversionNotice } from './section-ai-testing-voice-conversion-result.js';
 import { AudioSeparationNotice } from './section-ai-testing-audio-separation-result.js';
 import { TextAnnotationResultView } from './section-ai-testing-annotation-result.js';
+import { SpeechTranscriptResultView } from './section-ai-testing-transcript-result.js';
 import { TextExchangeResultView } from './section-ai-testing-exchange-result.js';
 import { TextDecisionResultView } from './section-ai-testing-decision-result.js';
 import { FaceSwapNotice, SessionSummaryView } from './section-ai-testing-session-result.js';
@@ -301,8 +302,11 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioR
   if (snapshot.kind === 'vision-locate') return snapshot.result
     ? <VisionLocateResultView output={{kind:'vision-locate', jobId:snapshot.jobId, result:snapshot.result}} />
     : <><p>{snapshot.summary}</p><p className="studio-result__hint">{t('VisionLocate.historySummaryOnly')}</p><pre>{JSON.stringify({ jobId: snapshot.jobId }, null, 2)}</pre></>;
-  if (snapshot.kind === 'text' || snapshot.kind === 'transcript') {
+  if (snapshot.kind === 'text') {
     return <TextStudioOutputBody text={snapshot.body} />;
+  }
+  if (snapshot.kind === 'transcript') {
+    return <SpeechTranscriptResultView text={snapshot.body} transcription={snapshot.transcription} />;
   }
   if (snapshot.kind === 'embedding') {
     return <EmbeddingResultBody spaceId={snapshot.spaceId} />;

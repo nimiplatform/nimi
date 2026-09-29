@@ -3,6 +3,7 @@ import { MusicTranscriptionNotice } from './section-ai-testing-transcription-res
 import { VoiceConversionNotice } from './section-ai-testing-voice-conversion-result.js';
 import { AudioSeparationNotice } from './section-ai-testing-audio-separation-result.js';
 import { TextAnnotationResultView } from './section-ai-testing-annotation-result.js';
+import { SpeechTranscriptResultView } from './section-ai-testing-transcript-result.js';
 import { TextExchangeResultView } from './section-ai-testing-exchange-result.js';
 import { TextDecisionResultView } from './section-ai-testing-decision-result.js';
 import { FaceSwapNotice, SessionSummaryView } from './section-ai-testing-session-result.js';
@@ -26,8 +27,11 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
   const { translate: t } = useAIStudioHost();
   const output = result.output;
   if (output.kind === 'vision-locate') return <VisionLocateResultView output={output} />;
-  if (output.kind === 'text' || output.kind === 'transcript') {
+  if (output.kind === 'text') {
     return <TextStudioOutputBody text={output.text} />;
+  }
+  if (output.kind === 'transcript') {
+    return <SpeechTranscriptResultView text={output.text} transcription={output.transcription} />;
   }
   if (output.kind === 'text-annotation') return <TextAnnotationResultView output={output} />;
   if (output.kind === 'text-exchange') return <TextExchangeResultView output={output} />;
@@ -280,6 +284,7 @@ export function StudioResult({
     if (output.kind === 'transcript') {
       return [
         { label: t('Studio.result.statCharacters'), value: String(output.text.length) },
+        ...(output.transcription?.words.length ? [{ label: t('StudioResults.transcript.words'), value: String(output.transcription.words.length) }] : []),
         { label: t('Studio.result.statArtifacts'), value: String(output.artifactCount) },
       ];
     }

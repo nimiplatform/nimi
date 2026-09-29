@@ -15,6 +15,7 @@ const jsonTypesModuleUrl = `data:text/javascript;base64,${Buffer.from(`
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   }
 `).toString('base64')}`;
+const sdkAppModuleUrl = import.meta.resolve('@nimiplatform/sdk/app');
 
 function compileModule(relativePath, replacements) {
   const source = readFileSync(path.join(root, relativePath), 'utf8');
@@ -39,6 +40,7 @@ const standardStorageModuleUrl = compileModule('src/lab/lab-standard-storage.ts'
 ]);
 const historyPolicyModuleUrl = compileModule('src/ai-studio-core/history-policy.ts', [
   ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
+  ['@nimiplatform/sdk/app', sdkAppModuleUrl],
 ]);
 const historyStorageModuleUrl = compileModule('src/lab/lab-history-storage.ts', [
   ['../ai-studio-core/history-policy.js', historyPolicyModuleUrl],
@@ -245,6 +247,28 @@ test('shared history codec rejects malformed nested result and run config', () =
     }),
     /diagnostics\.reasonCode/,
   );
+});
+
+test('speech word timing survives history reload and rejects invalid stored spans', () => {
+  const base = runRecord('run-stt-words', '2026-09-29T10:24:00.000Z');
+  const record = {
+    ...base,
+    capabilityId: 'audio.transcribe',
+    result: {
+      ok: true, kind: 'transcript', summary: 'hello audio', body: 'hello audio', charCount: 11,
+      jobId: 'job-stt-words', jobState: 'COMPLETED', artifactCount: 1,
+      transcription: { status: 'transcribed', text: 'hello audio', language: 'en', words: [
+        { text: 'hello', startSeconds: 0.1, endSeconds: 0.6 },
+        { text: 'audio', startSeconds: 0.7, endSeconds: 1.2 },
+      ] },
+    },
+    runConfig: { ...base.runConfig, target: { ...base.runConfig.target, capabilityId: 'audio.transcribe', capabilityContract: 'audio.transcribe', section: 'voice' } },
+  };
+  const stored = { 'audio.transcribe': [record] };
+  assert.deepEqual(historyPolicyModule.parseStudioRunHistory(structuredClone(stored)), stored);
+  const corrupt = structuredClone(stored);
+  corrupt['audio.transcribe'][0].result.transcription.words[1].endSeconds = 0.5;
+  assert.throws(() => historyPolicyModule.parseStudioRunHistory(corrupt), /result\.transcription/u);
 });
 
 test('shared history grouping does not inherit object prototype capability entries', () => {

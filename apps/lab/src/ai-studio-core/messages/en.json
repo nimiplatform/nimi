@@ -352,6 +352,16 @@
       "steps": "Steps",
       "questions": "Questions"
     },
+    "transcript": {
+      "title": "Speech transcription",
+      "words": "Timed words",
+      "wordTimes": "Word timing · {{count}} words",
+      "timeHint": "Times are measured in seconds from the start of the input audio.",
+      "word": "Word",
+      "start": "Start (s)",
+      "end": "End (s)",
+      "truncatedView": "Showing the first {{shown}} of {{total}} words in this view."
+    },
     "annotation": {
       "title": "Text annotation",
       "summary": "{{language}} · {{documents}} document(s) · {{tokens}} tokens · {{sentences}} sentences",

@@ -1,6 +1,6 @@
 import type { StudioAudioSeparation, StudioFaceSwap, StudioJsonValue, StudioMusicGeneration, StudioMusicTranscription, StudioSessionSummary, StudioTextDecisionAnswer, StudioTextExchangeStep, StudioVoiceConversion } from './runtime-types.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
-import type { NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppSpeechTranscript, NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
 import type {
   StudioCapabilityRunResult,
   StudioManagedArtifact,
@@ -102,6 +102,7 @@ export type StudioRunHistoryResultSnapshot =
       jobId: string;
       jobState: string;
       artifactCount: number;
+      transcription?: NimiLocalAppSpeechTranscript;
       traceId?: string;
     }
   | {
@@ -644,6 +645,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
       jobId: output.jobId,
       jobState: output.jobState,
       artifactCount: output.artifactCount,
+      ...(output.transcription ? { transcription: output.transcription } : {}),
       ...trace,
     };
   }
@@ -809,6 +811,7 @@ export function restoreStudioCapabilityRunResult(
         jobId: snapshot.jobId,
         jobState: snapshot.jobState,
         artifactCount: snapshot.artifactCount,
+        ...(snapshot.transcription ? { transcription: snapshot.transcription } : {}),
       },
     };
   }

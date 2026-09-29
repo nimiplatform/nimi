@@ -31,6 +31,7 @@ const promptDraftOutput = ts.transpileModule(promptDraftSource, {
 }).outputText;
 const promptDraftModuleUrl = `data:text/javascript;base64,${Buffer.from(promptDraftOutput).toString('base64')}`;
 const sdkTypesStubUrl = `data:text/javascript;base64,${Buffer.from('export const isJsonObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);').toString('base64')}`;
+const sdkAppModuleUrl = import.meta.resolve('@nimiplatform/sdk/app');
 const historyPolicySource = read('src/ai-studio-core/history-policy.ts');
 const historyPolicyOutput = ts.transpileModule(historyPolicySource, {
   compilerOptions: {
@@ -40,6 +41,9 @@ const historyPolicyOutput = ts.transpileModule(historyPolicySource, {
 }).outputText.replace(
   /from\s+['"]@nimiplatform\/sdk\/types['"]/g,
   `from ${JSON.stringify(sdkTypesStubUrl)}`,
+).replace(
+  /from\s+['"]@nimiplatform\/sdk\/app['"]/g,
+  `from ${JSON.stringify(sdkAppModuleUrl)}`,
 );
 const historyPolicyModuleUrl = `data:text/javascript;base64,${Buffer.from(historyPolicyOutput).toString('base64')}`;
 const { outputText } = ts.transpileModule(source, {
