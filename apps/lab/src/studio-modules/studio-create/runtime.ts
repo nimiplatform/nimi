@@ -70,7 +70,10 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
         ],
       }],
       ...textCandidateParameters(parameters),
-    });
+    }, { signal: context.input.signal });
+    if (context.input.signal?.aborted) {
+      return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
+    }
     if (response.output.type !== 'text-generate' || response.output.finishReason !== 'stop' ||
       response.output.items.length !== 1 || response.output.items[0]?.type !== 'text' ||
       !response.output.items[0].text.trim()) {
@@ -83,6 +86,10 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
       const saved = await context.host.client.storage.assets.write({
         relativePath, body: bytes, mediaType: image.mimeType, overwrite: false,
       });
+      if (context.input.signal?.aborted) {
+        await context.host.client.storage.assets.remove(relativePath).catch(() => undefined);
+        return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
+      }
       if (saved.relativePath !== relativePath || saved.sizeBytes !== bytes.byteLength ||
         !/^sha256:[0-9a-f]{64}$/u.test(saved.sha256)) {
         await context.host.client.storage.assets.remove(relativePath).catch(() => undefined);
@@ -93,6 +100,9 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
         sha256: saved.sha256, displayName: image.name, previewSource: 'managed-asset' as const,
       };
     } catch {
+      if (context.input.signal?.aborted) {
+        return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
+      }
       message = context.host.translate('Studio.profiles.textGenerate.imageCompletedWithoutSource');
     }
     return {

@@ -166,6 +166,7 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"candidates": []map[string]any{
 				{
+					"finishReason": "STOP",
 					"content": map[string]any{
 						"parts": []map[string]any{
 							{
@@ -286,12 +287,12 @@ func TestGeminiFinalInlineImageSkipsThoughtAndRejectsMultipleFinalImages(t *test
 	part := func(data string, thought bool) map[string]any {
 		return map[string]any{"thought": thought, "inlineData": map[string]any{"mimeType": "image/png", "data": base64.StdEncoding.EncodeToString([]byte(data))}}
 	}
-	response := []any{map[string]any{"content": map[string]any{"parts": []any{part("intermediate", true), part("final", false)}}}}
+	response := []any{map[string]any{"finishReason": "STOP", "content": map[string]any{"parts": []any{part("intermediate", true), part("final", false)}}}}
 	image, mime, _ := geminiFinalInlineImage(context.Background(), response)
 	if string(image) != "final" || mime != "image/png" {
 		t.Fatalf("final image=%q mime=%q", image, mime)
 	}
-	response = []any{map[string]any{"content": map[string]any{"parts": []any{part("one", false), part("two", false)}}}}
+	response = []any{map[string]any{"finishReason": "STOP", "content": map[string]any{"parts": []any{part("one", false), part("two", false)}}}}
 	image, _, _ = geminiFinalInlineImage(context.Background(), response)
 	if len(image) != 0 {
 		t.Fatalf("multiple final images must not collapse to one: %q", image)

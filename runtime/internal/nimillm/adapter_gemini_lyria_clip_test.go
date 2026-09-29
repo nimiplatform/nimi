@@ -30,7 +30,7 @@ func TestGeminiLyriaClipUsesNativeTextAndInlineMP3(t *testing.T) {
 		if len(contents) != 1 || len(parts) != 1 || ValueAsString(MapField(parts[0], "text")) != "A short melodic loop." || body["generationConfig"] != nil {
 			t.Errorf("Lyria prompt or request shape changed: %+v", body)
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"candidates": []any{map[string]any{"content": map[string]any{"parts": []any{
+		_ = json.NewEncoder(w).Encode(map[string]any{"candidates": []any{map[string]any{"finishReason": "STOP", "content": map[string]any{"parts": []any{
 			map[string]any{"text": "Generated lyrics"},
 			map[string]any{"inlineData": map[string]any{"mimeType": "audio/mpeg", "data": base64.StdEncoding.EncodeToString(providerAudio)}},
 		}}}}})
@@ -46,7 +46,7 @@ func TestGeminiLyriaClipUsesNativeTextAndInlineMP3(t *testing.T) {
 
 func TestGeminiLyriaClipRejectsMultipleAudioParts(t *testing.T) {
 	part := map[string]any{"inlineData": map[string]any{"mimeType": "audio/mpeg", "data": base64.StdEncoding.EncodeToString([]byte("audio"))}}
-	_, err := geminiLyriaInlineMP3(map[string]any{"candidates": []any{map[string]any{"content": map[string]any{"parts": []any{part, part}}}}})
+	_, err := geminiLyriaInlineMP3(map[string]any{"candidates": []any{map[string]any{"finishReason": "STOP", "content": map[string]any{"parts": []any{part, part}}}}})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
 		t.Fatalf("ambiguous Lyria output reason=%v present=%v err=%v", reason, ok, err)
 	}

@@ -27,7 +27,7 @@ func gemini38OutputInvalid() error {
 // The exact Chat Completions function call is stateless. Gemini 3 requires the
 // signature on that call to be returned unchanged beside the matching result.
 func Gemini38FlashToolRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
-	if stream || spec == nil || len(spec.GetTools()) != 1 ||
+	if stream || spec == nil || spec.GetIncludeRawChunks() || len(spec.GetTools()) != 1 ||
 		(spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO &&
 			spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED) ||
 		spec.GetToolChoiceName() != "" || llamaBehaviorReasoningEnabled(spec) ||

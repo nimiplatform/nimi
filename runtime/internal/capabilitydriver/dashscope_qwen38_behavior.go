@@ -20,7 +20,7 @@ func DashscopeQwen38RequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, 
 	unsupported := func() (textbehavior.SerializedRequest, error) {
 		return textbehavior.SerializedRequest{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
-	if spec == nil || spec.GetToolChoice() == runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_NONE || spec.GetToolChoice() == runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED ||
+	if spec == nil || spec.GetIncludeRawChunks() || spec.GetToolChoice() == runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_NONE || spec.GetToolChoice() == runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED ||
 		spec.GetToolChoice() == runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_TOOL || spec.GetToolChoiceName() != "" ||
 		spec.Temperature != nil || spec.TopP != nil || spec.MaxTokens != nil || spec.PresencePenalty != nil ||
 		spec.FrequencyPenalty != nil || len(spec.GetStop()) != 0 {

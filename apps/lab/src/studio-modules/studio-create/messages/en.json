@@ -28,7 +28,7 @@
         "imageTargetUnknown": "Could not check the selected model's image support. Keep the image attached and reopen model settings or try again.",
         "imageTargetUnsupported": "The selected model does not accept image input. Remove the image or choose a model that supports image input.",
         "imageTooLarge": "The selected image must be a non-empty image of at most 32 MiB.",
-        "imageStopped": "The image request stopped before model execution.",
+        "imageStopped": "The image request was stopped. Any late result will be discarded.",
         "imageOutputInvalid": "Runtime did not return one complete text result for this image.",
         "imageCompleted": "Runtime completed the protected image-and-text request.",
         "imageCompletedWithoutSource": "Runtime returned the image description, but Lab could not save the source image for History."

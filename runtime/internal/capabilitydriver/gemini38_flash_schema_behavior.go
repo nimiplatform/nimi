@@ -32,7 +32,7 @@ func Gemini38FlashNonStreamParser(payload []byte, spec *runtimev1.TextGenerateSc
 // No tool, reasoning, stream, media, or sampling mode is inferred from the
 // model card. Unsupported schema keywords fail before provider dispatch.
 func Gemini38FlashSchemaRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
-	if stream || spec == nil || len(spec.GetTools()) != 0 ||
+	if stream || spec == nil || spec.GetIncludeRawChunks() || len(spec.GetTools()) != 0 ||
 		spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED ||
 		spec.GetToolChoiceName() != "" || llamaBehaviorReasoningEnabled(spec) ||
 		spec.Temperature != nil || spec.TopP != nil || spec.TopK != nil ||

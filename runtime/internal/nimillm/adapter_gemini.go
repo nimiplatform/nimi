@@ -331,11 +331,7 @@ func ExecuteGeminiImageGenerateContent(
 // Gemini image models may include intermediate thought images. Only one final
 // inline image is a committed image.generate result.
 func geminiFinalInlineImage(ctx context.Context, candidates any) ([]byte, string, string) {
-	items, ok := candidates.([]any)
-	if !ok || len(items) != 1 {
-		return nil, "", ""
-	}
-	parts, ok := MapField(MapField(items[0], "content"), "parts").([]any)
+	parts, ok := geminiCompletedCandidateParts(candidates)
 	if !ok {
 		return nil, "", ""
 	}

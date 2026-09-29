@@ -33,7 +33,7 @@ func TestGeminiLyria35UsesNativeStatelessPromptAndInlineMP3(t *testing.T) {
 		if len(contents) != 1 || len(parts) != 1 || ValueAsString(MapField(parts[0], "text")) != "A piano song." || body["generationConfig"] != nil || body["durationSeconds"] != nil {
 			t.Errorf("Lyria 3.5 invented provider duration control: %+v", body)
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"candidates": []any{map[string]any{"content": map[string]any{"parts": []any{
+		_ = json.NewEncoder(w).Encode(map[string]any{"candidates": []any{map[string]any{"finishReason": "STOP", "content": map[string]any{"parts": []any{
 			map[string]any{"text": "Generated lyrics"},
 			map[string]any{"inlineData": map[string]any{"mimeType": "audio/mpeg", "data": base64.StdEncoding.EncodeToString(providerAudio)}},
 		}}}}})

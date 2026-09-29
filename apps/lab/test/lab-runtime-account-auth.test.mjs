@@ -864,6 +864,39 @@ test('Lab text.generate uploads one image and sends ordered text plus owned arti
   assert.equal(result.trace.traceId, 'trace-image-text');
 });
 
+test('Lab image-assisted text forwards cancellation and never saves a late result', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  for (const abortDuring of ['execution', 'storage']) {
+    const controller = new AbortController();
+    let receivedSignal;
+    let writes = 0;
+    const removed = [];
+    const client = fakeLocalAppClient({
+      async uploadArtifact() { return { artifactId: 'owned-image-cancel' }; },
+      async executeScenario(_input, options) {
+        receivedSignal = options?.signal;
+        if (abortDuring === 'execution') controller.abort();
+        return { output: { type: 'text-generate', finishReason: 'stop', items: [{ type: 'text', text: 'Late answer.' }] } };
+      },
+      async writeAsset(input) {
+        writes += 1;
+        controller.abort();
+        return { relativePath: input.relativePath, sizeBytes: 4, sha256: `sha256:${'a'.repeat(64)}` };
+      },
+      async removeAsset(relativePath) { removed.push(relativePath); return { removed: true }; },
+    });
+    const result = await runLabCapability({
+      capabilityId: 'text.generate', prompt: 'Describe the image.', signal: controller.signal,
+      attachments: [{ id: 'image', kind: 'image', name: 'cats.jpg', mimeType: 'image/jpeg', dataUrl: 'data:image/jpeg;base64,/9j/2Q==' }],
+    }, readyRuntimeDependencies(client));
+    assert.equal(receivedSignal, controller.signal, 'the real owner call must receive cancellation');
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'operation-aborted');
+    assert.equal(writes, abortDuring === 'storage' ? 1 : 0);
+    assert.equal(removed.length, writes, 'a source saved across cancellation must be removed');
+  }
+});
+
 test('Lab preserves actual image-generated text when saving the source image fails', async () => {
   const { runLabCapability } = await importLabRuntime();
   const bytes = Uint8Array.from([0xff, 0xd8, 0xff, 0xd9]);

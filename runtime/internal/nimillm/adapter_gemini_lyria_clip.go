@@ -57,11 +57,7 @@ func ExecuteGeminiLyriaClipGenerateContent(
 
 func geminiLyriaInlineMP3(response map[string]any) ([]byte, error) {
 	invalid := func() error { return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID) }
-	candidates, ok := response["candidates"].([]any)
-	if !ok || len(candidates) != 1 {
-		return nil, invalid()
-	}
-	parts, ok := MapField(MapField(candidates[0], "content"), "parts").([]any)
+	parts, ok := geminiCompletedCandidateParts(response["candidates"])
 	if !ok {
 		return nil, invalid()
 	}

@@ -77,11 +77,7 @@ func geminiTTSAudioResult(payload map[string]any) ([]byte, int64, error) {
 	invalid := func() error {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	candidates, ok := payload["candidates"].([]any)
-	if !ok || len(candidates) != 1 {
-		return nil, 0, invalid()
-	}
-	parts, ok := MapField(MapField(candidates[0], "content"), "parts").([]any)
+	parts, ok := geminiCompletedCandidateParts(payload["candidates"])
 	if !ok || len(parts) != 1 {
 		return nil, 0, invalid()
 	}
