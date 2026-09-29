@@ -36,10 +36,6 @@
       "class": "scaffold-managed glue"
     },
     {
-      "path": "LICENSE",
-      "class": "scaffold-managed glue"
-    },
-    {
       "path": "README.md",
       "class": "scaffold-managed glue"
     },

@@ -16,6 +16,7 @@ try {
 }
 
 const {
+  createNimiElectronStandardApplicationMenuTemplate,
   isAllowedElectronRendererUrl,
   registerNimiElectronAppAssetProtocolScheme,
   registerNimiElectronAppBridge,
@@ -35,7 +36,10 @@ const rendererUrl = readDevelopmentRendererUrl()
   || normalizeText(process.env.NIMI_LAB_ELECTRON_RENDERER_URL);
 
 app.setName('Nimi Lab');
-Menu.setApplicationMenu(null);
+// macOS routes Cmd+C/V/X/A/Z and Cmd+Q through application menu roles.
+Menu.setApplicationMenu(Menu.buildFromTemplate(
+  createNimiElectronStandardApplicationMenuTemplate({ appName: 'Nimi Lab' }),
+));
 configureLabElectronChromiumRuntime();
 registerNimiElectronAppAssetProtocolScheme(protocol);
 

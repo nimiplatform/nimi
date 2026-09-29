@@ -10,6 +10,8 @@ export {
   type WorkbenchRuntimeGateCopy,
   type WorkbenchRuntimeGateProjection,
   type WorkbenchRuntimeGateProps,
+  type WorkbenchRuntimeGateRecoveryAction,
+  type WorkbenchRuntimeGateTechnicalDetail,
 } from './runtime-gate.js';
 export {
   WorkbenchEmptyState,

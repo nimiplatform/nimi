@@ -68,6 +68,13 @@ test('Lab Electron lifecycle has no protected-session termination coupling', () 
   assert.match(electronMain, /await createMainWindow\(\)/u);
 });
 
+test('Lab Electron Host installs the Kit standard application menu', () => {
+  const electronMain = readFileSync(path.join(root, 'src-electron/main.ts'), 'utf8');
+  // macOS edit shortcuts and Quit need application menu roles.
+  assert.doesNotMatch(electronMain, /setApplicationMenu\(null\)/u);
+  assert.match(electronMain, /Menu\.setApplicationMenu\(Menu\.buildFromTemplate\(\n  createNimiElectronStandardApplicationMenuTemplate\(\{ appName: 'Nimi Lab' \}\),\n\)\);/u);
+});
+
 test('Lab local-app projection fails closed before a protected carrier is available', async () => {
   const runtimePlatform = await importRuntimePlatform();
 
