@@ -1,135 +1,9 @@
 version: 1
 provider: volcengine
-catalog_version: 2026-09-28-volcengine-ark-v6
+catalog_version: 2026-09-30-volcengine-retired-targets
 inventory_mode: static_source
 default_text_model: doubao-seed-2-1-pro-260915
 models:
-  - model_id: seedance-1-5-pro
-    provider: volcengine
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities:
-      - video.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-28
-      notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
-    source_ref:
-      url: https://www.volcengine.com/docs/82379/1366799?lang=zh
-      retrieved_at: 2026-03-05
-      note: Volcengine Seedance video generation overview (t2v and i2v).
-    features:
-      - input.image
-    video_generation: &a1
-      modes:
-        - t2v
-        - i2v_first_frame
-        - i2v_first_last
-        - i2v_reference
-      input_roles:
-        t2v:
-          - prompt
-        i2v_first_frame:
-          - prompt
-          - first_frame
-        i2v_first_last:
-          - prompt
-          - first_frame
-          - last_frame
-        i2v_reference:
-          - prompt
-          - reference_image
-      limits:
-        reference_images:
-          min: 1
-          max: 4
-        resolution:
-          - 480p
-          - 720p
-          - 1080p
-        seed:
-          min: -1
-          max: 4294967295
-        duration_sec:
-          min: 4
-          max: 12
-        fps:
-          min: 1
-          max: 60
-        ratio:
-          - 16:9
-          - 4:3
-          - 1:1
-          - 3:4
-          - 9:16
-          - 21:9
-          - adaptive
-      options:
-        supports:
-          - resolution
-          - ratio
-          - duration_sec
-          - frames
-          - fps
-          - seed
-          - camera_fixed
-          - watermark
-          - generate_audio
-          - draft
-          - service_tier
-          - execution_expires_after_sec
-          - return_last_frame
-        constraints:
-          frames_overrides_duration: true
-          camera_fixed_disallowed_in_i2v_reference: true
-      outputs:
-        video_url: true
-        last_frame_url: true
-  - model_id: seedance-1.5-pro
-    provider: volcengine
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities:
-      - video.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-28
-      notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
-    source_ref:
-      url: https://www.volcengine.com/docs/82379/1366799?lang=zh
-      retrieved_at: 2026-03-05
-      note: Volcengine Seedance video generation overview (t2v and i2v).
-    api_model_id: seedance-1-5-pro
-    features:
-      - input.image
-    video_generation: *a1
-  - model_id: seedance_v1_5_pro
-    provider: volcengine
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities:
-      - video.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-28
-      notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
-    source_ref:
-      url: https://www.volcengine.com/docs/82379/1366799?lang=zh
-      retrieved_at: 2026-03-05
-      note: Volcengine Seedance video generation overview (t2v and i2v).
-    api_model_id: seedance-1-5-pro
-    features:
-      - input.image
-    video_generation: *a1
   - model_id: doubao-seedance-2-0-260128
     provider: volcengine
     model_type: video
@@ -149,7 +23,7 @@ models:
       note: Volcengine Seedance video generation overview (t2v and i2v).
     features:
       - input.image
-    video_generation: &a2
+    video_generation: &a1
       modes:
         - t2v
         - i2v_first_frame
@@ -238,7 +112,7 @@ models:
     api_model_id: doubao-seedance-2-0-260128
     features:
       - input.image
-    video_generation: *a2
+    video_generation: *a1
   - model_id: doubao-seed-2-1-pro-260915
     provider: volcengine
     model_type: chat
@@ -589,7 +463,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: &a3
+    image_request_options: &a2
       response_formats:
         - b64_json
         - url
@@ -623,7 +497,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a3
+    image_request_options: *a2
   - model_id: doubao-seedream-4-5-251128
     provider: volcengine
     model_type: image

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: volcengine
-catalog_version: 2026-09-28-volcengine-ark-v6
+catalog_version: 2026-09-30-volcengine-retired-targets
 generated_target: runtime/catalog/providers/volcengine.yaml
 runtime:
   inventory_mode: static_source
@@ -24,6 +24,10 @@ defaults:
     notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
 
 sources:
+  - source_id: volcengine_retirement_audit_doc
+    url: https://docs.volcengine.com/docs/ark/model-deprecation-notice?lang=zh
+    retrieved_at: 2026-09-30
+    note: Official lifecycle evidence for retired targets removed by the 2026-09-30 review.
   - source_id: volcengine_seedance_video_doc
     url: https://www.volcengine.com/docs/82379/1366799?lang=zh
     retrieved_at: 2026-03-05
@@ -68,59 +72,6 @@ selection_profiles:
     rationale: Ark's recommended low-cost, low-latency Doubao-Seed 2.1 Turbo snapshot, verified through Ark chat completions.
 
 models:
-  - model_id: seedance-1-5-pro
-    updated_at: 2026-03-05
-    model_type: video
-    aliases:
-      - seedance-1.5-pro
-      - seedance_v1_5_pro
-    capabilities: [video.generate]
-    features: [input.image]
-    source_ids: [volcengine_seedance_video_doc, volcengine_seedance_create_task_api, volcengine_seedance_query_task_api]
-    video_generation:
-      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
-      input_roles:
-        t2v: [prompt]
-        i2v_first_frame: [prompt, first_frame]
-        i2v_first_last: [prompt, first_frame, last_frame]
-        i2v_reference: [prompt, reference_image]
-      limits:
-        reference_images:
-          min: 1
-          max: 4
-        resolution: ["480p", "720p", "1080p"]
-        seed:
-          min: -1
-          max: 4294967295
-        duration_sec:
-          min: 4
-          max: 12
-        fps:
-          min: 1
-          max: 60
-        ratio: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", adaptive]
-      options:
-        supports:
-          - resolution
-          - ratio
-          - duration_sec
-          - frames
-          - fps
-          - seed
-          - camera_fixed
-          - watermark
-          - generate_audio
-          - draft
-          - service_tier
-          - execution_expires_after_sec
-          - return_last_frame
-        constraints:
-          frames_overrides_duration: true
-          camera_fixed_disallowed_in_i2v_reference: true
-      outputs:
-        video_url: true
-        last_frame_url: true
-
   - model_id: doubao-seedance-2-0-260128
     model_type: video
     updated_at: 2026-04-03

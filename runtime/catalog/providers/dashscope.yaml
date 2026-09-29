@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-09-16-dashscope-qwen-audio-v3
+catalog_version: 2026-09-30-dashscope-retired-targets
 inventory_mode: static_source
 default_text_model: qwen3.7-plus
 models:
@@ -981,26 +981,6 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
-    context_window_tokens: 8192
-  - model_id: qwen-vl-max-latest
-    provider: dashscope
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Vision-language model pricing varies by account plan and token class.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-06-06
-      note: DashScope official model pricing and current model listing overview.
-    features:
-      - input.image
     context_window_tokens: 8192
   - model_id: qwen3-vl-plus
     provider: dashscope

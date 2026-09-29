@@ -25,14 +25,28 @@ import (
 // retired model and its old catalog identity. After the catalog row is removed
 // it projects as a typed blocked selection and fails admission before dispatch,
 // without substituting another model.
-func TestCommittedRetiredQianfanTextTargetsFailBeforeDispatch(t *testing.T) {
+func TestCommittedRetiredCloudTextTargetsFailBeforeDispatch(t *testing.T) {
+	for _, tc := range []struct {
+		provider string
+		active   string
+		retired  []string
+	}{
+		{"qianfan", "ernie-5.1", []string{"ernie-x1.1", "ernie-x1.1-preview"}},
+		{"stepfun", "step-3.7-flash", []string{"step-1-8k", "step-1-32k", "step-1v-8k", "step-1v-32k", "step-2-mini", "step-1o-vision-32k", "step-2-16k", "step-3"}},
+		{"dashscope", "qwen3-vl-plus", []string{"qwen-vl-max-latest"}},
+	} {
+		t.Run(tc.provider, func(t *testing.T) { assertRetiredTextTargetsFailBeforeDispatch(t, tc.provider, tc.active, tc.retired) })
+	}
+}
+
+func assertRetiredTextTargetsFailBeforeDispatch(t *testing.T, providerID, activeModel string, retiredModels []string) {
 	var requests atomic.Int32
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requests.Add(1)
 		http.Error(w, "retired target must never dispatch", http.StatusInternalServerError)
 	}))
 	defer provider.Close()
-	fixture := newManagedCloudScenarioTestFixture(t, "qianfan", "ernie-5.1", provider.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, providerID, activeModel, provider.URL, Config{AllowLoopbackEndpoint: true})
 	options, _, err := connector.ListAIConfigCloudTargetOptions(fixture.service.connStore, fixture.service.speechCatalog, "user-001", "text.generate", fixture.connectorID, "", 500)
 	if err != nil {
 		t.Fatal(err)
@@ -40,10 +54,10 @@ func TestCommittedRetiredQianfanTextTargetsFailBeforeDispatch(t *testing.T) {
 	activeListed := false
 	for _, option := range options {
 		model := option.ProviderTarget.GetFields()["providerModelId"].GetStringValue()
-		if model == "ernie-x1.1" || model == "ernie-x1.1-preview" {
+		if slices.Contains(retiredModels, model) {
 			t.Fatalf("retired target remains selectable: %s", model)
 		}
-		if model == "ernie-5.1" {
+		if model == activeModel {
 			activeListed = true
 			selected := fixture.service.projectCloudEffectiveSelection("user-001", "text.generate", &runtimev1.AIConfigCloudIntent{
 				ConnectorRef: option.ConnectorRef, Implementation: option.Implementation, ProviderModelTarget: option.ProviderTarget,
@@ -56,18 +70,18 @@ func TestCommittedRetiredQianfanTextTargetsFailBeforeDispatch(t *testing.T) {
 	if !activeListed {
 		t.Fatal("successor missing from text options")
 	}
-	for _, model := range []string{"ernie-x1.1", "ernie-x1.1-preview"} {
+	for _, model := range retiredModels {
 		t.Run(model, func(t *testing.T) {
 			const oldCatalogID = "remote-model-catalog-before-2026-09-29-retirement"
 			target, err := structpb.NewStruct(map[string]any{
-				"provider": "qianfan", "providerModelId": model, "remoteModelCatalogId": oldCatalogID,
+				"provider": providerID, "providerModelId": model, "remoteModelCatalogId": oldCatalogID,
 			})
 			if err != nil {
 				t.Fatal(err)
 			}
 			selection := fixture.service.projectCloudEffectiveSelection("user-001", "text.generate", &runtimev1.AIConfigCloudIntent{
 				ConnectorRef:        fixture.connectorID,
-				Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: "qianfan", DriverId: "nimillm", DriverDialect: "qianfan"},
+				Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: providerID, DriverId: "nimillm", DriverDialect: providerID},
 				ProviderModelTarget: target,
 			})
 			if selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
@@ -75,7 +89,7 @@ func TestCommittedRetiredQianfanTextTargetsFailBeforeDispatch(t *testing.T) {
 				t.Fatalf("retired text target is not blocked/stale: %+v", selection)
 			}
 			ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "text.generate",
-				cloudScenarioTargetRef(fixture.connectorID, oldCatalogID, model, "qianfan"))
+				cloudScenarioTargetRef(fixture.connectorID, oldCatalogID, model, providerID))
 			_, err = fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 				Head:          &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
 				ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
@@ -122,6 +136,8 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 		{name: "google veo 3.0", provider: "google_veo", activeModel: "veo-3.1-fast-generate-preview", retiredModel: "veo-3.0-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "google veo 3.0 fast", provider: "google_veo", activeModel: "veo-3.1-fast-generate-preview", retiredModel: "veo-3.0-fast-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "gemini image preview", provider: "gemini", activeModel: "gemini-3.1-flash-image", retiredModel: "gemini-3.1-flash-image-preview", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
+		{name: "stepfun retired image", provider: "stepfun", activeModel: "step-2x-large", retiredModel: "step-1x-medium", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
+		{name: "volcengine seedance 1.5", provider: "volcengine", activeModel: "doubao-seedance-2-0-260128", retiredModel: "seedance-1-5-pro", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		// Removed with its stable successor ahead of the announced 2026-10-02 shutdown.
 		{name: "gemini 2.5 flash image", provider: "gemini", activeModel: "gemini-3.1-flash-image", retiredModel: "gemini-2.5-flash-image", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 	} {

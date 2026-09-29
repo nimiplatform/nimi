@@ -1,0 +1,40 @@
+provider: stepfun
+report_date: 2026-09-30
+audit_mode: family_scoped
+families_in_scope: ["text", "image"]
+taxonomy_axes:
+  product_family: [stepfun]
+  capability_family: ["text", "image"]
+  lineage_or_track: [retired_targets]
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/stepfun.source.yaml
+evidence_urls:
+  official:
+    - https://platform.stepfun.ai/docs/en/guides/model-migration
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  reviewed_targets: ["step-1-8k", "step-1-32k", "step-1v-8k", "step-1v-32k", "step-2-mini", "step-1o-vision-32k", "step-2-16k", "step-3", "step-1x-medium"]
+official_current_inventory:
+  disposition: "The nine exact models are listed as retired on 2026-07-08. Existing recommendations stay unchanged; step-2x-large has a separate future 2026-10-10 deadline."
+gap_summary:
+  missing_in_source: []
+  stale_in_source: ["step-1-8k", "step-1-32k", "step-1v-8k", "step-1v-32k", "step-2-mini", "step-1o-vision-32k", "step-2-16k", "step-3", "step-1x-medium"]
+  extra_legacy_in_source: []
+  uncertain_items: []
+curation_decision:
+  keep: []
+  add: []
+  remove: ["step-1-8k", "step-1-32k", "step-1v-8k", "step-1v-32k", "step-2-mini", "step-1o-vision-32k", "step-2-16k", "step-3", "step-1x-medium"]
+  defer: []
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: false
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - Bounded execution-audit follow-up to previously recorded lifecycle debt; no new model or behavior admission.
+  - Bumping catalog_version invalidates every committed Cloud target for this provider. Explicit reselection is required; no automatic target migration.
+  - Official documentation rechecked on 2026-09-30; no real provider execution claimed.
+confidence: high

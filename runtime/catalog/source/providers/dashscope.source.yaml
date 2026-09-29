@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-09-16-dashscope-qwen-audio-v3
+catalog_version: 2026-09-30-dashscope-retired-targets
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -25,6 +25,10 @@ defaults:
     notes: Official document does not provide stable public pricing in a unified schema.
 
 sources:
+  - source_id: dashscope_retirement_audit_doc
+    url: https://help.aliyun.com/zh/model-studio/rate-limit
+    retrieved_at: 2026-09-30
+    note: Official lifecycle evidence for retired targets removed by the 2026-09-30 review.
   - source_id: dashscope_doc
     url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
     retrieved_at: 2026-03-05
@@ -737,20 +741,6 @@ models:
       currency: CNY
       as_of: 2026-03-05
       notes: Chat token pricing varies by account plan and model revision.
-    source_ids: [dashscope_models_pricing_doc]
-
-  - model_id: qwen-vl-max-latest
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate]
-    features: [input.image]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Vision-language model pricing varies by account plan and token class.
     source_ids: [dashscope_models_pricing_doc]
 
   - model_id: qwen3-vl-plus

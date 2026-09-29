@@ -1,6 +1,6 @@
 schema_version: 3
 provider: stepfun
-catalog_version: 2026-07-20-stepfun-multifamily-v5
+catalog_version: 2026-09-30-stepfun-retired-targets
 generated_target: runtime/catalog/providers/stepfun.yaml
 runtime:
   inventory_mode: static_source
@@ -25,6 +25,10 @@ defaults:
     notes: StepFun pricing is published per family; current public rates are explicit for reasoning and speech, while other admitted rows remain usage-described without row-level public pricing.
 
 sources:
+  - source_id: stepfun_retirement_audit_doc
+    url: https://platform.stepfun.ai/docs/en/guides/model-migration
+    retrieved_at: 2026-09-30
+    note: Official lifecycle evidence for retired targets removed by the 2026-09-30 review.
   - source_id: stepfun_3_7_product_doc
     url: https://platform.stepfun.com/
     retrieved_at: 2026-07-20
@@ -209,20 +213,6 @@ models:
       notes: Current flagship general-purpose reasoning model with 256K context. Cache-hit input pricing is $0.02 per 1M tokens.
     source_ids: [stepfun_reasoning_models_doc, stepfun_model_overview, stepfun_pricing_doc]
 
-  - model_id: step-3
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    features: [input.image]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Multimodal reasoning model with 64K context.
-    source_ids: [stepfun_model_overview]
-
   - model_id: step-r1-v-mini
     model_type: chat
     updated_at: 2026-04-18
@@ -236,61 +226,6 @@ models:
       as_of: 2026-04-18
       notes: Visual reasoning model with 100K context.
     source_ids: [stepfun_model_overview]
-
-  - model_id: step-2-mini
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Ultra-fast cost-effective model with 32K context.
-    source_ids: [stepfun_text_models_doc, stepfun_model_overview]
-
-  - model_id: step-2-16k
-    context_window_tokens: 16384
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Production step-2 text model with stronger overall quality and planning capability.
-    source_ids: [stepfun_text_models_doc, stepfun_model_overview]
-
-  - model_id: step-1-8k
-    context_window_tokens: 8192
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Short-context step-1 text model for general generation, Q&A, and tool-oriented workflows.
-    source_ids: [stepfun_text_models_doc, stepfun_model_overview]
-
-  - model_id: step-1-32k
-    context_window_tokens: 32768
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Mid-context step-1 text model for longer conversations and document-heavy tasks.
-    source_ids: [stepfun_text_models_doc, stepfun_model_overview]
 
   - model_id: step-1-256k
     context_window_tokens: 262144
@@ -320,48 +255,6 @@ models:
       notes: Recommended StepFun vision model for image and video understanding with lighter footprint and faster output.
     source_ids: [stepfun_vision_models_doc, stepfun_video_guide, stepfun_model_overview]
 
-  - model_id: step-1o-vision-32k
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    features: [input.image]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Strong image-understanding model positioned above the step-1v series in visual quality.
-    source_ids: [stepfun_vision_models_doc, stepfun_model_overview]
-
-  - model_id: step-1v-8k
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    features: [input.image]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Short-context step-1v vision model for image Q&A and visual analysis.
-    source_ids: [stepfun_vision_models_doc, stepfun_model_overview]
-
-  - model_id: step-1v-32k
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    features: [input.image]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Longer-context step-1v vision model for more images and longer histories.
-    source_ids: [stepfun_vision_models_doc, stepfun_model_overview]
-
   # --- TTS Models ---
   - model_id: step-tts-2
     model_type: tts
@@ -387,30 +280,6 @@ models:
     source_ids: [stepfun_basic_concepts_doc, stepfun_tts_doc, stepfun_tts_voice_guide, stepfun_pricing_doc]
 
   # --- Image Models ---
-  - model_id: step-1x-medium
-    model_type: image
-    updated_at: 2026-04-18
-    capabilities: [image.generate]
-    image_request_options:
-      response_formats: [b64_json, url]
-      max_images_per_request: 1
-      supports_negative_prompt: true
-      supports_reference_images: false
-      supports_mask: false
-      supports_seed: false
-      supports_size: true
-      supports_aspect_ratio: false
-      supports_quality: false
-      supports_style: false
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Text-to-image and image-to-image, up to 1280x800.
-    source_ids: [stepfun_image_doc]
-
   - model_id: step-1x-edit
     model_type: image
     updated_at: 2026-04-18

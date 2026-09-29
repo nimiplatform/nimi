@@ -100,8 +100,8 @@ func TestResolveTextContextMetadataPreservesSourceModelOverrides(t *testing.T) {
 		model    string
 		want     uint64
 	}{
-		{provider: "stepfun", model: "step-1-8k", want: 8192},
-		{provider: "stepfun", model: "step-2-16k", want: 16384},
+		{provider: "stepfun", model: "step-1-256k", want: 262144},
+		{provider: "qianfan", model: "ernie-4.5-turbo-128k", want: 131072},
 		{provider: "qianfan", model: "ernie-4.5-turbo-32k", want: 32768},
 		{provider: "volcengine", model: "doubao-1.5-pro", want: 262144},
 	}

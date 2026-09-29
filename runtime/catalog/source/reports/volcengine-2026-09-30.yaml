@@ -1,0 +1,40 @@
+provider: volcengine
+report_date: 2026-09-30
+audit_mode: family_scoped
+families_in_scope: ["video"]
+taxonomy_axes:
+  product_family: [volcengine]
+  capability_family: ["video"]
+  lineage_or_track: [retired_targets]
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/volcengine.source.yaml
+evidence_urls:
+  official:
+    - https://docs.volcengine.com/docs/ark/model-deprecation-notice?lang=zh
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  reviewed_targets: ["seedance-1-5-pro"]
+official_current_inventory:
+  disposition: "The represented Seedance 1.5 Pro version doubao-seedance-1-5-pro-251215 shut down without migration on 2026-09-21. Remove the old abbreviated catalog row and both aliases. Do not infer retirement of doubao-1.5-pro-256k from a different 32K model ID."
+gap_summary:
+  missing_in_source: []
+  stale_in_source: ["seedance-1-5-pro"]
+  extra_legacy_in_source: []
+  uncertain_items: []
+curation_decision:
+  keep: []
+  add: []
+  remove: ["seedance-1-5-pro"]
+  defer: []
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: false
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - Bounded execution-audit follow-up to previously recorded lifecycle debt; no new model or behavior admission.
+  - Bumping catalog_version invalidates every committed Cloud target for this provider. Explicit reselection is required; no automatic target migration.
+  - Official documentation rechecked on 2026-09-30; no real provider execution claimed.
+confidence: high
