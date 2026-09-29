@@ -26,7 +26,7 @@ func TestLocalSpeechJobsPersistCompleteEffectiveInputIdentity(t *testing.T) {
 			contract: capabilitydriver.AudioSynthesizeContract,
 			typeID:   runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 			spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "persist exact synthesis assembly"},
+				SpeechSynthesize: localQwen3SpeechSpecForTest("persist exact synthesis assembly"),
 			}},
 		},
 		{

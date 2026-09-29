@@ -264,7 +264,7 @@ func TestLocalSpeechIdempotencyBindingPersistenceFailureLeavesNoOrphan(t *testin
 		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		IdempotencyKey: "speech-idempotency-persist-failure",
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "must not execute"},
+			SpeechSynthesize: localQwen3SpeechSpecForTest("must not execute"),
 		}},
 	})
 	if response != nil || statusCode(err) != codes.Internal {
@@ -369,7 +369,7 @@ func TestLocalSpeechRunningPersistenceFailureStopsModelAndTerminalizes(t *testin
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "must not execute"},
+			SpeechSynthesize: localQwen3SpeechSpecForTest("must not execute"),
 		}},
 	})
 	if err != nil {
@@ -467,7 +467,7 @@ func TestLocalSpeechTerminalPersistenceExhaustionForcesObservableFailure(t *test
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "force terminal fallback"},
+			SpeechSynthesize: localQwen3SpeechSpecForTest("force terminal fallback"),
 		}},
 	})
 	if err != nil {

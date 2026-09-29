@@ -834,20 +834,19 @@ func validateQwen3TTSRequest(value *runtimev1.SpeechSynthesizeScenarioSpec) (*ru
 		request.GetVoiceRenderHints() != nil {
 		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("qwen3-tts request contains unsupported synthesis options"))
 	}
-	if ref := request.GetVoiceRef(); ref != nil {
-		switch ref.GetKind() {
-		case runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_UNSPECIFIED:
-		case runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET:
-			if strings.TrimSpace(ref.GetPresetVoiceId()) == "" {
-				return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("qwen3-tts preset voice is empty"))
-			}
-		case runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF:
-			if strings.TrimSpace(ref.GetProviderVoiceRef()) == "" {
-				return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("qwen3-tts provider voice ref is empty"))
-			}
-		default:
-			return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("qwen3-tts voice reference kind is unsupported"))
+	ref := request.GetVoiceRef()
+	if ref == nil || ref.GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_UNSPECIFIED {
+		return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("qwen3-tts Base synthesis requires an explicit compatible voice reference"))
+	}
+	switch ref.GetKind() {
+	case runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET:
+		return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("qwen3-tts Base synthesis requires a voice workflow reference, not a preset voice"))
+	case runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF:
+		if strings.TrimSpace(ref.GetProviderVoiceRef()) == "" {
+			return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("qwen3-tts provider voice reference is empty"))
 		}
+	default:
+		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("qwen3-tts voice reference kind is unsupported"))
 	}
 	return request, nil
 }

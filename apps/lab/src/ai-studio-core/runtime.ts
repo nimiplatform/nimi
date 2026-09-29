@@ -339,11 +339,12 @@ export function projectStudioRunnerNonSuccess(
   context: StudioCapabilityRuntimeContext,
   result: { readonly ok: false; readonly reason: string; readonly message: string; readonly error?: unknown },
 ): StudioNonSuccess {
+  const diagnostics = studioNonSuccessDiagnostics(result.error);
   return context.host.nonSuccess(
     context.capability,
-    studioNonSuccessReason(result.reason),
+    studioNonSuccessReasonFromRuntime(result.reason, diagnostics),
     result.message,
-    studioNonSuccessDiagnostics(result.error),
+    diagnostics,
   );
 }
 
@@ -352,19 +353,23 @@ export function projectStudioRuntimeError(
   error: unknown,
 ): StudioNonSuccess {
   const diagnostics = studioNonSuccessDiagnostics(error);
-  const reasonCode = diagnostics?.reasonCode.replaceAll('-', '_').toUpperCase();
   // An input the configured implementation cannot encode completely is an
   // input outcome too; it is never retried or presented as a call failure.
   // @nimi-authority: rule.nimi.runtime.ai-provider.r126
-  const reason = reasonCode === 'AI_INPUT_INVALID' || reasonCode === 'AI_INPUT_LIMIT_EXCEEDED'
-    ? 'input-invalid'
-    : studioNonSuccessReason(runtimeScenarioJobNonSuccessReasonFromError(error));
+  const reason = studioNonSuccessReasonFromRuntime(runtimeScenarioJobNonSuccessReasonFromError(error), diagnostics);
   return context.host.nonSuccess(
     context.capability,
     reason,
     studioRuntimeErrorMessage(error),
     diagnostics,
   );
+}
+
+function studioNonSuccessReasonFromRuntime(reason: string, diagnostics?: StudioNonSuccessDiagnostics): StudioNonSuccessReason {
+  if (diagnostics && ['AI_INPUT_INVALID', 'AI_INPUT_LIMIT_EXCEEDED', 'AI_VOICE_INPUT_INVALID', 'AI_VOICE_TARGET_MODEL_MISMATCH'].includes(diagnostics.reasonCode)) {
+    return 'input-invalid';
+  }
+  return studioNonSuccessReason(reason);
 }
 
 export function studioNonSuccessReason(reason: string): StudioNonSuccessReason {

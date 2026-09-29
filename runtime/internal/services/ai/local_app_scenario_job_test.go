@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -204,14 +205,26 @@ func TestSubmitLocalAppScenarioJobFailsClosedWithoutAIConfig(t *testing.T) {
 	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
 }
 
-func TestSubmitLocalAppSpeechJobAcceptsMinimalTypedSpecAndBindsOwner(t *testing.T) {
+func TestSubmitLocalAppSpeechJobAcceptsTypedVoiceSpecAndBindsOwner(t *testing.T) {
 	svc := newTestService(nil)
 	host := &localSpeechHostStub{entered: make(chan struct{}), release: make(chan struct{})}
-	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedSpeechExecutionForTest(
+	selected := selectedSpeechExecutionForTest(
 		t,
 		capabilitydriver.AudioSynthesizeContract,
 		"speech-tts",
-	)})
+	)
+	selected.ExecutionTarget = &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "model-asset://speech-tts"}}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
+	const voiceAssetID = "voice-asset-for-selected-tts"
+	svc.voiceAssets.assets[voiceAssetID] = &runtimev1.VoiceAsset{
+		VoiceAssetId: voiceAssetID, AppId: "nimi.realm-persona-studio", SubjectUserId: "account-1",
+		CreationSource: runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO,
+		Provider:       "local", TargetModelId: selected.ExactBindings[0].ModelAssetID,
+		ProviderVoiceRef: "captured-test-voice-workflow-handle",
+		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL,
+		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+	}
+	svc.voiceAssets.targets[voiceAssetID] = selected.ExecutionTarget.Clone()
 	svc.SetLocalSpeechExecutionHost(host)
 	ctx := executionintent.WithIntent(
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit),
@@ -226,6 +239,10 @@ func TestSubmitLocalAppSpeechJobAcceptsMinimalTypedSpecAndBindsOwner(t *testing.
 			SpeechSynthesize: &runtimev1.LocalAppSpeechSynthesizeJobSpec{
 				Text:       "Synthesize a short Runtime acceptance sentence.",
 				TimingMode: runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_NONE,
+				VoiceRef: &runtimev1.VoiceReference{
+					Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
+					Reference: &runtimev1.VoiceReference_VoiceAssetId{VoiceAssetId: voiceAssetID},
+				},
 			},
 		},
 	})

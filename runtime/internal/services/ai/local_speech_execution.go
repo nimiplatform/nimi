@@ -714,6 +714,8 @@ func localSpeechInvocationError(err error) error {
 		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE, err, grpcerr.ReasonOptions{})
 	}
 	switch invocationErr.Kind {
+	case capabilitydriver.InvocationFailureVoiceInput:
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID, err, grpcerr.ReasonOptions{ActionHint: "select_or_create_compatible_voice_asset"})
 	case capabilitydriver.InvocationFailureInvalidRequest:
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
 	case capabilitydriver.InvocationFailureUnsupported:

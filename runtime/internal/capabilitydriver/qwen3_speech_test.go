@@ -149,6 +149,10 @@ func TestQwen3SpeechPlansCaptureExactModelAndAudio(t *testing.T) {
 		ExactBindings: []InvocationExactBinding{ttsBinding},
 		Request: &runtimev1.SpeechSynthesizeScenarioSpec{
 			Text: "hello", AudioFormat: "wav", TimingMode: runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_NONE,
+			VoiceRef: &runtimev1.VoiceReference{
+				Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+				Reference: &runtimev1.VoiceReference_ProviderVoiceRef{ProviderVoiceRef: "captured-voice-workflow-handle"},
+			},
 		},
 	})
 	if err != nil || ttsPlan.ModelAssetID() != "catalog/tts-model" || ttsPlan.Request().GetText() != "hello" ||
@@ -212,6 +216,24 @@ func TestQwen3SpeechDriversFailClosedOnUnimplementedOptions(t *testing.T) {
 	})
 	if invocation, ok := err.(*InvocationError); !ok || invocation.Kind != InvocationFailureUnsupported {
 		t.Fatalf("ASR option error=%T %v", err, err)
+	}
+}
+
+func TestQwen3BaseSynthesisRequiresExplicitWorkflowVoiceBeforeHostDispatch(t *testing.T) {
+	digest := strings.Repeat("d", 64)
+	binding := InvocationExactBinding{RequirementID: Qwen3TTSModelRequirementID, ModelAssetID: "catalog/tts", AbsolutePath: filepath.Join(t.TempDir(), "tts.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
+	for _, voiceRef := range []*runtimev1.VoiceReference{
+		nil,
+		{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_UNSPECIFIED},
+		{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "vivian"}},
+	} {
+		_, err := (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
+			ExactBindings: []InvocationExactBinding{binding},
+			Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", VoiceRef: voiceRef},
+		})
+		if invocation, ok := err.(*InvocationError); !ok || invocation.Kind != InvocationFailureVoiceInput {
+			t.Fatalf("voice_ref=%+v error=%T %v, want voice-input failure", voiceRef, err, err)
+		}
 	}
 }
 

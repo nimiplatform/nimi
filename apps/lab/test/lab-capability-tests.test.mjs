@@ -583,6 +583,29 @@ test('unsupported media settings offer parameter correction instead of a blind r
   assert.notEqual(t('NonSuccess.action.mediaOptionUnsupported'), t('NonSuccess.action.runtimeCallFailed'));
 });
 
+test('speech synthesis voice failures explain the prerequisite without naming a model', async () => {
+  const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
+  const { projectStudioRunnerNonSuccess } = await load('ai-studio-core/runtime.js');
+  const { t } = await load('shell/i18n/index.js');
+  for (const [reasonCode, key] of [
+    ['AI_VOICE_INPUT_INVALID', 'voiceInputRequired'],
+    ['AI_VOICE_TARGET_MODEL_MISMATCH', 'voiceTargetMismatch'],
+  ]) {
+    const diagnostics = { reasonCode };
+    const message = studioNonSuccessReasonUserMessage('input-invalid', t, 'audio.synthesize', diagnostics);
+    const action = studioNonSuccessReasonUserAction('input-invalid', t, 'audio.synthesize', diagnostics);
+    assert.equal(message, t(`NonSuccess.message.${key}`));
+    assert.equal(action, t(`NonSuccess.action.${key}`));
+    assert.notEqual(action, t('NonSuccess.action.runtimeCallFailed'));
+    const projected = projectStudioRunnerNonSuccess({
+      capability: { id: 'audio.synthesize' },
+      host: { nonSuccess: (_capability, reason, _message, returnedDiagnostics) => ({ reason, diagnostics: returnedDiagnostics }) },
+    }, { ok: false, reason: 'runtime-call-failed', message: 'voice prerequisite', error: { reasonCode } });
+    assert.equal(projected.reason, 'input-invalid');
+    assert.equal(projected.diagnostics.reasonCode, reasonCode);
+  }
+});
+
 test('image-assisted text history keeps and verifies the saved source image', async () => {
   const { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult, projectStudioManagedHistory } = await load('ai-studio-core/history.js');
   const sourceImage = {

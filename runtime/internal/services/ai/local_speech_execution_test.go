@@ -49,6 +49,29 @@ type localSpeechHostStub struct {
 	preStartErr            error
 }
 
+func TestLocalSpeechVoiceInputFailsWithTypedReasonBeforeHostDispatch(t *testing.T) {
+	err := localSpeechInvocationError(&capabilitydriver.InvocationError{
+		Kind: capabilitydriver.InvocationFailureVoiceInput,
+		Err:  errors.New("selected synthesis requires a compatible voice"),
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("voice input status = %s", status.Code(err))
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID {
+		t.Fatalf("voice input reason = %v ok=%t err=%v", reason, ok, err)
+	}
+}
+
+func localQwen3SpeechSpecForTest(text string) *runtimev1.SpeechSynthesizeScenarioSpec {
+	return &runtimev1.SpeechSynthesizeScenarioSpec{
+		Text: text,
+		VoiceRef: &runtimev1.VoiceReference{
+			Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+			Reference: &runtimev1.VoiceReference_ProviderVoiceRef{ProviderVoiceRef: "captured-test-voice-workflow-handle"},
+		},
+	}
+}
+
 func (host *localSpeechHostStub) ExecuteVoiceCreate(ctx context.Context, plan *capabilitydriver.VoiceCreateInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.VoiceCreateResult, error) {
 	if host.preStartErr != nil {
 		return localexecution.VoiceCreateResult{}, host.preStartErr
@@ -139,7 +162,7 @@ func TestLocalSpeechMaterializationFailureNeverPublishesRunning(t *testing.T) {
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "materialization failure"},
+			SpeechSynthesize: localQwen3SpeechSpecForTest("materialization failure"),
 		}},
 	})
 	if err != nil {
@@ -187,7 +210,7 @@ func TestLocalSpeechJobRejectsPublicTimeoutAboveServerMaximumBeforePublication(t
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "reject timeout"},
+			SpeechSynthesize: localQwen3SpeechSpecForTest("reject timeout"),
 		}},
 	})
 	if response != nil {
@@ -233,7 +256,7 @@ func TestLocalSpeechRunningCancelRetainsSchedulerLeaseUntilHostExits(t *testing.
 			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 			Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: text},
+				SpeechSynthesize: localQwen3SpeechSpecForTest(text),
 			}},
 		})
 		if err != nil {
@@ -309,7 +332,7 @@ func TestLocalSpeechJobRemainsQueuedUntilSchedulerLeaseAndCancelsWithoutEntering
 			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 			Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: text},
+				SpeechSynthesize: localQwen3SpeechSpecForTest(text),
 			}},
 		})
 		if err != nil {
@@ -674,7 +697,7 @@ func TestLocalSpeechWithoutMachineSelectionFailsClosed(t *testing.T) {
 			capabilityContract: "audio.synthesize",
 			scenarioType:       runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 			spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello"},
+				SpeechSynthesize: localQwen3SpeechSpecForTest("hello"),
 			}},
 		},
 		{
@@ -734,7 +757,7 @@ func TestLocalSpeechJobsExecuteExactCapturedDriverPlans(t *testing.T) {
 				return selectedSpeechExecutionForTest(t, capabilitydriver.AudioSynthesizeContract, "speech-tts")
 			},
 			spec: func() *runtimev1.ScenarioSpec {
-				return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello"}}}
+				return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: localQwen3SpeechSpecForTest("hello")}}
 			},
 			assert: func(t *testing.T, svc *Service, host *localSpeechHostStub, job *runtimev1.ScenarioJob) {
 				t.Helper()
@@ -845,7 +868,7 @@ func TestLocalSpeechJobStreamsHostBodyIntoRuntimeCustody(t *testing.T) {
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "stream into custody"},
+			SpeechSynthesize: localQwen3SpeechSpecForTest("stream into custody"),
 		}},
 	})
 	if err != nil {
@@ -897,7 +920,7 @@ func TestLocalSpeechSynthesisStreamUsesDeclaredSimulatedMode(t *testing.T) {
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello stream"},
+			SpeechSynthesize: localQwen3SpeechSpecForTest("hello stream"),
 		}},
 	}, stream)
 	if err != nil {
@@ -937,7 +960,7 @@ func TestLocalSpeechStartedSendFailurePersistsStreamBroken(t *testing.T) {
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello stream"},
+			SpeechSynthesize: localQwen3SpeechSpecForTest("hello stream"),
 		}},
 	}, &mockScenarioEventStream{ctx: ctx, failSendAt: 1, sendErr: sendErr})
 	if status.Code(err) != codes.Unavailable {
@@ -978,7 +1001,7 @@ func TestLocalSpeechSynthesisStreamFirstPacketTimeoutStartsAfterHostLease(t *tes
 			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
 			Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "queued stream"},
+				SpeechSynthesize: localQwen3SpeechSpecForTest("queued stream"),
 			}},
 		}, stream)
 	}()

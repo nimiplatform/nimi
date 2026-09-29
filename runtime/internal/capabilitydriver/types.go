@@ -535,6 +535,7 @@ const (
 	InvocationFailureInvalidConfig           InvocationFailureKind = "invalid_config"
 	InvocationFailureInvalidBinding          InvocationFailureKind = "invalid_binding"
 	InvocationFailureInvalidRequest          InvocationFailureKind = "invalid_request"
+	InvocationFailureVoiceInput              InvocationFailureKind = "voice_input"
 	InvocationFailureInvalidOption           InvocationFailureKind = "invalid_option"
 	InvocationFailureUnsupported             InvocationFailureKind = "unsupported"
 	InvocationFailureTextBehaviorUnsupported InvocationFailureKind = "text_behavior_unsupported"
