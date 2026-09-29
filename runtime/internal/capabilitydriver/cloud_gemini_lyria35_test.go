@@ -16,10 +16,10 @@ func TestGeminiLyria35CapturesOutputBudgetWithoutInventingDurationControl(t *tes
 		mapped.Request().GetSpec().GetMusicGenerate().GetDurationSeconds() != geminiLyria35MaxBudgetSeconds || request.GetSpec().GetMusicGenerate().GetDurationSeconds() != 0 {
 		t.Fatalf("Lyria 3.5 default output budget capture: %+v %v", mapped, err)
 	}
-	explicit := geminiLyriaClipRequest(&runtimev1.MusicGenerateScenarioSpec{Prompt: "A short piano song.", DurationSeconds: 120})
+	explicit := geminiLyriaClipRequest(&runtimev1.MusicGenerateScenarioSpec{Prompt: "A short piano song.", DurationSeconds: 300})
 	mapped, err = driver.MapRequest(target, explicit, nil, CloudMediaStreamNone)
-	if err != nil || mapped.Request().GetSpec().GetMusicGenerate().GetDurationSeconds() != 120 {
-		t.Fatalf("Lyria 3.5 explicit output budget was lost: %+v %v", mapped, err)
+	if err != nil || mapped.Request().GetSpec().GetMusicGenerate().GetDurationSeconds() != 300 {
+		t.Fatalf("Lyria 3.5 exact explicit output ceiling was lost: %+v %v", mapped, err)
 	}
 	profile := CloudMusicInputCapabilities("gemini", geminiLyria35Model, "music.generate")
 	if len(profile.GetGeneration()) != 1 || profile.GetGeneration()[0].GetMaxDurationSeconds() != 300 || profile.GetGeneration()[0].GetDefaultDurationSeconds() != 300 ||
@@ -34,6 +34,7 @@ func TestGeminiLyria35CapturesOutputBudgetWithoutInventingDurationControl(t *tes
 		"score request":     {Prompt: "song", ReturnGeneratedScore: true},
 		"seed":              {Prompt: "song", Seed: &seed},
 		"oversized budget":  {Prompt: "song", DurationSeconds: 301},
+		"shorter budget":    {Prompt: "song", DurationSeconds: 120},
 		"oversized prompt":  {Prompt: strings.Repeat("é", geminiLyria35MaxPromptBytes/2+1)},
 	} {
 		t.Run(name, func(t *testing.T) {

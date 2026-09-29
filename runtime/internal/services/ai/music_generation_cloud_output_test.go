@@ -32,13 +32,13 @@ func TestLyria35ChecksMeasuredSongAgainstCapturedUpperBudget(t *testing.T) {
 	if err := validateCloudMusicMeasuredDuration(adapter, 300, 125000); err != nil {
 		t.Fatalf("two-minute song inside five-minute captured budget: %v", err)
 	}
-	if err := validateCloudMusicMeasuredDuration(adapter, 120, 120000); err != nil {
-		t.Fatalf("exact 120-second measured song at explicit budget: %v", err)
+	if err := validateCloudMusicMeasuredDuration(adapter, 300, 300000); err != nil {
+		t.Fatalf("song exactly at captured 300-second ceiling: %v", err)
 	}
 	for _, sample := range []struct {
 		budget   int32
 		duration int64
-	}{{120, 120001}, {300, 300001}, {0, 1000}} {
+	}{{120, 120000}, {300, 300001}, {0, 1000}} {
 		err := validateCloudMusicMeasuredDuration(adapter, sample.budget, sample.duration)
 		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
 			t.Fatalf("song budget=%d measured=%d reason=%v present=%v err=%v", sample.budget, sample.duration, reason, ok, err)

@@ -19,7 +19,7 @@ const geminiLyria35MaxBudgetSeconds = 300
 func validateGeminiLyria35Request(request *runtimev1.SubmitScenarioJobRequest, model string) error {
 	unsupported := func() error {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-			Message:    "Lyria 3.5 accepts one text prompt and a whole-song output budget up to 300 seconds; separate lyrics, instrumental control, prior audio, score and seed are unavailable",
+			Message:    "Lyria 3.5 accepts one text prompt with an omitted or 300-second output ceiling; shorter duration budgets, separate lyrics, instrumental control, prior audio, score and seed are unavailable",
 			ActionHint: "use_lyria35_text_and_output_budget",
 		})
 	}
@@ -31,7 +31,7 @@ func validateGeminiLyria35Request(request *runtimev1.SubmitScenarioJobRequest, m
 		strings.TrimSpace(spec.GetNegativePrompt()) != "" || strings.TrimSpace(spec.GetStyle()) != "" || strings.TrimSpace(spec.GetTitle()) != "" ||
 		spec.GetInstrumental() || spec.GetScore() != nil || spec.GetScoreConditioning() != runtimev1.MusicScoreConditioning_MUSIC_SCORE_CONDITIONING_UNSPECIFIED ||
 		spec.Seed != nil || spec.GetReturnGeneratedScore() || spec.GetAudioReference() != nil ||
-		spec.GetDurationSeconds() < 0 || spec.GetDurationSeconds() > geminiLyria35MaxBudgetSeconds {
+		(spec.GetDurationSeconds() != 0 && spec.GetDurationSeconds() != geminiLyria35MaxBudgetSeconds) {
 		return unsupported()
 	}
 	if spec.GetDurationSeconds() == 0 {

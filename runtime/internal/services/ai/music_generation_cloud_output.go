@@ -111,7 +111,7 @@ func validateCloudMusicMeasuredDuration(adapter string, budgetSeconds int32, dur
 			})
 		}
 	case capabilitydriver.CloudMediaAdapterGeminiLyria35GenerateContent:
-		if budgetSeconds <= 0 || budgetSeconds > 300 || durationMS <= 0 || durationMS > int64(budgetSeconds)*1000 {
+		if budgetSeconds != 300 || durationMS <= 0 || durationMS > int64(budgetSeconds)*1000 {
 			return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, grpcerr.ReasonOptions{
 				Message: "Lyria 3.5 exceeded the captured song output budget", ActionHint: "review_lyria35_duration_and_model",
 			})

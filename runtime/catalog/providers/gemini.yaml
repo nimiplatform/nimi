@@ -400,7 +400,7 @@ models:
       output: "0.08"
       currency: USD
       as_of: 2026-09-29
-      notes: Stable full-song Lyria 3.5 paid-tier target at $0.08 per request. Nimi's selected mode is prompt-only native GenerateContent MP3; duration can be steered by prompt but has no numeric provider guarantee. A captured output budget up to five minutes is checked against measured audio length before publishing the canonical WAV mix; independent lyrics, score and prior-audio controls are not admitted.
+      notes: Stable full-song Lyria 3.5 paid-tier target at $0.08 per request. Nimi's selected mode is prompt-only native GenerateContent MP3; duration can be steered by prompt but has no numeric provider guarantee. Only an omitted or exact 300-second output ceiling is admitted, and measured audio length is checked before publishing the canonical WAV mix; shorter budgets, independent lyrics, score and prior-audio controls are not admitted.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/lyria-3.5
       retrieved_at: 2026-09-29

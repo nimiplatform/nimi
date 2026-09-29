@@ -6,14 +6,18 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func TestGeminiLyria35UsesNativeStatelessPromptAndInlineMP3(t *testing.T) {
 	providerAudio := []byte("ID3-lyria35-test-body")
+	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
 		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/models/lyria-3.5:generateContent" ||
 			r.Header.Get("x-goog-api-key") != "gemini-key" || r.Header.Get("Authorization") != "" {
 			t.Errorf("unexpected Lyria 3.5 native call: %s %s", r.Method, r.URL.Path)
@@ -40,5 +44,10 @@ func TestGeminiLyria35UsesNativeStatelessPromptAndInlineMP3(t *testing.T) {
 	artifacts, usage, providerJobID, err := ExecuteGeminiLyria35GenerateContent(context.Background(), MediaAdapterConfig{BaseURL: server.URL + "/v1beta/openai", APIKey: "gemini-key", AllowLoopbackEndpoint: true}, req, geminiLyria35Model)
 	if err != nil || usage != nil || providerJobID != "" || len(artifacts) != 1 || string(artifacts[0].GetBytes()) != string(providerAudio) || artifacts[0].GetMimeType() != "audio/mpeg" {
 		t.Fatalf("Lyria 3.5 native result artifacts=%+v usage=%+v providerJob=%q err=%v", artifacts, usage, providerJobID, err)
+	}
+	req.GetSpec().GetMusicGenerate().DurationSeconds = 120
+	_, _, _, err = ExecuteGeminiLyria35GenerateContent(context.Background(), MediaAdapterConfig{BaseURL: server.URL + "/v1beta/openai", APIKey: "gemini-key", AllowLoopbackEndpoint: true}, req, geminiLyria35Model)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || requests.Load() != 1 {
+		t.Fatalf("shorter Lyria 3.5 budget reached provider: reason=%v present=%v requests=%d err=%v", reason, ok, requests.Load(), err)
 	}
 }

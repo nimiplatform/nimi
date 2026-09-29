@@ -34,7 +34,7 @@ func ExecuteGeminiLyria35GenerateContent(
 	}
 	spec := req.GetSpec().GetMusicGenerate()
 	if model != geminiLyria35Model || spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" ||
-		spec.GetDurationSeconds() <= 0 || spec.GetDurationSeconds() > geminiLyria35OutputBudgetSeconds {
+		spec.GetDurationSeconds() != geminiLyria35OutputBudgetSeconds {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	payload := map[string]any{"contents": []map[string]any{{"parts": []map[string]any{{"text": spec.GetPrompt()}}}}}
