@@ -2393,6 +2393,12 @@
       "visual": "图像与视频",
       "audio": "语音与音乐",
       "other": "其他"
+    },
+    "attentionReason": {
+      "setup-task": "上次设置没有完成",
+      "configuration": "所选配置未通过检查",
+      "unsupported": "这台设备不支持所选实现",
+      "environment": "所需运行组件尚未准备好"
     }
   },
   "quickStart": {
@@ -2470,6 +2476,10 @@
     "showAttempts": "之前的尝试（{{count}}）",
     "retryDownload": "重新下载",
     "retryCleanup": "重试清理",
+    "cancelTitle": "取消这项下载？",
+    "cancelMessage": "将丢弃「{{name}}」已下载的 {{size}}，之后需要从头重新下载。已安装的模型和运行组件不受影响。",
+    "confirmCancel": "丢弃并取消",
+    "keepTask": "继续下载",
     "reimportHint": "请重新导入来源以继续。",
     "viewRelatedTransfer": "查看关联任务",
     "relatedTransferUnavailable": "关联任务已不可用，请刷新下载列表查看最新状态。",

@@ -242,6 +242,23 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     }
   }, [profile, props, queryClient, blockMutationPending, t]);
 
+  const handleUnblock = useCallback(async () => {
+    if (!profile || blockMutationPending) return;
+    try {
+      setBlockMutationPending(true);
+      await realmSocialData.unblockUser({ id: profile.id, displayName: profile.displayName, handle: profile.handle, avatarUrl: profile.avatarUrl });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['human-profile-detail'], exact: false }),
+      ]);
+      setFeedback({ kind: 'success', message: t('Relationship.unblockUserSuccess', { defaultValue: 'User unblocked.' }) });
+    } catch {
+      setFeedback({ kind: 'error', message: t('Relationship.unblockUserFailed', { defaultValue: 'Failed to unblock user' }) });
+    } finally {
+      setBlockMutationPending(false);
+    }
+  }, [profile, queryClient, blockMutationPending, t]);
+
   const handleRemove = useCallback(async () => {
     if (!profile) {
       return;
@@ -321,6 +338,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
                 void handleAddFriend();
               } : undefined}
               onBlock={!isBlockedProfile ? () => setBlockConfirmOpen(true) : undefined}
+              onUnblock={isBlockedProfile ? () => { void handleUnblock(); } : undefined}
               onRemove={!isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
               showMessageButton={
                 !isBlockedProfile

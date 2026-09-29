@@ -9,6 +9,8 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
+import { AppsActionErrorAlert } from './apps-action-error.js';
+import type { AppsActionError } from './apps-panel-controller.js';
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
   Box,
@@ -110,7 +112,8 @@ export interface AppsPanelViewProps {
   readonly onImportLocal: () => void;
   readonly onRetry: () => void;
   readonly onAIConfigChanged: (entryKey: string, result: NimiAIConfigOverwriteResult) => void;
-  readonly actionError: string | null;
+  readonly actionError: AppsActionError | null;
+  readonly sourceChoiceNotice?: string | null;
   readonly pendingActions: readonly AppsPendingAction[];
   readonly installConfirmation: AppsInstallIntentSnapshot | null;
   readonly onConfirmInstall: () => void;
@@ -147,6 +150,7 @@ export function AppsPanelView({
   onRetry,
   onAIConfigChanged,
   actionError,
+  sourceChoiceNotice,
   pendingActions,
   installConfirmation,
   onConfirmInstall,
@@ -292,9 +296,7 @@ export function AppsPanelView({
           <>
             {projection?.status === 'loaded' && projection.runtimeError ? (
               <div className="shrink-0 px-5 pt-4 sm:px-7">
-                <InlineAlert tone="danger" data-testid="apps-runtime-error">
-                  {t('Apps.error', { detail: projection.runtimeError })}
-                </InlineAlert>
+                <AppsActionErrorAlert testId="apps-runtime-error" error={{ message: t('Apps.lifecycleReadFailed'), detail: projection.runtimeError }} />
               </div>
             ) : null}
             <AppsDetailView
@@ -325,6 +327,7 @@ export function AppsPanelView({
             onImportLocal={onImportLocal}
             onFocusRailSearch={() => railSearchRef.current?.focus()}
             actionError={actionError}
+            sourceChoiceNotice={sourceChoiceNotice}
           />
         )}
       </Surface>
@@ -748,6 +751,7 @@ function AppsHome({
   onImportLocal,
   onFocusRailSearch,
   actionError,
+  sourceChoiceNotice,
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly attentionEntries: readonly DesktopAppsEntry[];
@@ -759,7 +763,8 @@ function AppsHome({
   readonly onOpenDeveloperMode: () => void;
   readonly onImportLocal: () => void;
   readonly onFocusRailSearch: () => void;
-  readonly actionError: string | null;
+  readonly actionError: AppsActionError | null;
+  readonly sourceChoiceNotice?: string | null;
 }): ReactElement {
   const { t } = useTranslation();
   return (
@@ -782,17 +787,18 @@ function AppsHome({
 
       {actionError ? (
         <div className="shrink-0 px-5 pt-4 sm:px-7">
-          <InlineAlert tone="danger" data-testid="apps-action-error">
-            {actionError}
-          </InlineAlert>
+          <AppsActionErrorAlert error={actionError} />
+        </div>
+      ) : null}
+      {sourceChoiceNotice ? (
+        <div className="shrink-0 px-5 pt-4 sm:px-7">
+          <InlineAlert tone="info" data-testid="apps-choose-source">{sourceChoiceNotice}</InlineAlert>
         </div>
       ) : null}
 
       {projection?.status === 'loaded' && projection.runtimeError ? (
         <div className="shrink-0 px-5 pt-4 sm:px-7">
-          <InlineAlert tone="danger" data-testid="apps-runtime-error">
-            {t('Apps.error', { detail: projection.runtimeError })}
-          </InlineAlert>
+          <AppsActionErrorAlert testId="apps-runtime-error" error={{ message: t('Apps.lifecycleReadFailed'), detail: projection.runtimeError }} />
         </div>
       ) : null}
 
@@ -887,7 +893,7 @@ function AppsHomeBody({
             <AppsAddMenu onImport={onImportLocal} onDeveloper={onOpenDeveloperMode} onBrowse={onFocusRailSearch} />
           )}
         />
-        <CatalogStatusNote status={projection.catalogStatus} />
+        <CatalogStatusNote status={projection.catalogStatus} onRetry={onRetry} />
       </div>
     );
   }
@@ -958,15 +964,25 @@ function AppsHomeBody({
         </div>
       </section>
 
-      <CatalogStatusNote status={projection.catalogStatus} />
+      <CatalogStatusNote status={projection.catalogStatus} onRetry={onRetry} />
     </div>
   );
 }
 
-function CatalogStatusNote({ status }: {
+function CatalogStatusNote({ status, onRetry }: {
   readonly status: DesktopAppsCatalogProjection['status'];
+  readonly onRetry?: () => void;
 }): ReactElement | null {
   const { t } = useTranslation();
+  if (status === 'unavailable') {
+    return (
+      <p role="status" data-testid="apps-catalog-read-failed" className="mt-4 flex flex-wrap items-center gap-1.5 px-1 text-xs text-[var(--nimi-text-muted)]">
+        <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        {t('Apps.catalog.readFailed')}
+        {onRetry ? <Button tone="ghost" size="sm" onClick={onRetry}>{t('Apps.action.retry')}</Button> : null}
+      </p>
+    );
+  }
   if (status === 'loading') {
     return (
       <p role="status" className="mt-4 flex items-center gap-1.5 px-1 text-xs text-[var(--nimi-text-muted)]">

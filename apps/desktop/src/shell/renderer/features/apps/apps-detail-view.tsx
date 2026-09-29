@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
+import { AppsActionErrorAlert } from './apps-action-error.js';
+import type { AppsActionError } from './apps-panel-controller.js';
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
   Activity,
@@ -100,7 +102,7 @@ export interface AppsDetailViewProps {
   readonly onAction: (action: AppCardActionId) => void;
   readonly activeAction: AppCardActionId | null;
   readonly actionsDisabled: boolean;
-  readonly actionError: string | null;
+  readonly actionError: AppsActionError | null;
   readonly onAIConfigChanged: (result: NimiAIConfigOverwriteResult) => void;
   readonly readPackageInfo?: DesktopAppsProjectionSource['readPackageInfo'];
 }
@@ -350,11 +352,7 @@ function LocalDevelopmentAppsDetailView({
 
       <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent">
         <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-7">
-          {actionError ? (
-            <InlineAlert tone="danger" data-testid="apps-action-error" className="mb-5">
-              {actionError}
-            </InlineAlert>
-          ) : null}
+          {actionError ? <AppsActionErrorAlert error={actionError} className="mb-5" /> : null}
 
           {activeTab === 'overview' ? (
             <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="space-y-7 outline-none">
@@ -744,11 +742,7 @@ function InstalledAppsDetailView({
 
       <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent">
         <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-7">
-          {actionError ? (
-            <InlineAlert tone="danger" data-testid="apps-action-error" className="mb-5">
-              {actionError}
-            </InlineAlert>
-          ) : null}
+          {actionError ? <AppsActionErrorAlert error={actionError} className="mb-5" /> : null}
           {activeTab === 'overview' ? (
             <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="space-y-7 outline-none">
               <AppsOverviewTab

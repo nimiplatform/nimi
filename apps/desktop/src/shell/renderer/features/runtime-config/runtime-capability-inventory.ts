@@ -43,7 +43,7 @@ export function capabilityPreparationState(input: {
   readonly inventory: CapabilityInventory | undefined;
   readonly tasks: readonly RuntimeSetupTask[];
   readonly unavailable?: boolean;
-}): { state: CapabilityPreparationState; task?: RuntimeSetupTask; replacement: boolean } {
+}): { state: CapabilityPreparationState; task?: RuntimeSetupTask; replacement: boolean; reason?: CapabilityAttentionReason } {
   // Only a setup the person confirmed is in flight for the capability. A draft
   // or review they left without confirming is not surfaced on the rail, the
   // detail page or the quick start.
@@ -74,11 +74,17 @@ export function capabilityPreparationState(input: {
   if (task?.status === 'preparing' || task?.status === 'committing')
     return { state: 'preparing', task, replacement: false };
   if (task?.status === 'failed' || task?.status === 'needs-attention')
-    return { state: 'attention', task, replacement: false };
+    return { state: 'attention', task, replacement: false, reason: 'setup-task' };
   if (!selectedId) return { state: 'unset', task, replacement: false };
   if (configured && !environment) return { state: 'unknown', task, replacement: false };
-  return { state: 'attention', task, replacement: false };
+  // Attention always says why: the hover and accessible label carry it.
+  const reason: CapabilityAttentionReason = !configured
+    ? 'configuration'
+    : environment?.state === 'unsupported' ? 'unsupported' : 'environment';
+  return { state: 'attention', task, replacement: false, reason };
 }
+
+export type CapabilityAttentionReason = 'setup-task' | 'configuration' | 'unsupported' | 'environment';
 
 export function useCapabilityInventory() {
   const sdk = useDesktopRendererSdk();

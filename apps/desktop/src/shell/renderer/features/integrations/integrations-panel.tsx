@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
 import type { NimiIntegrationConsumer, NimiIntegrationManagement } from '@nimiplatform/sdk/app';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { integrationErrorCode } from './integration-error.js';
@@ -24,6 +24,11 @@ export function IntegrationsPanel({ onBack }: { onBack: () => void }) {
   const [targetRef, setTargetRef] = useState('');
   const [consumers, setConsumers] = useState<string[]>([]);
   const [operations, setOperations] = useState<string[]>([]);
+  const [confirming, setConfirming] = useState<
+    | { readonly kind: 'remove'; readonly targetRef: string; readonly name: string }
+    | { readonly kind: 'narrow'; readonly changes: readonly { readonly app: string; readonly removed: readonly string[] }[] }
+    | null
+  >(null);
   const active = useRef(true);
   const load = useCallback(async () => {
     const data = await sdk.appProduct().integration.getManagement();
@@ -49,6 +54,32 @@ export function IntegrationsPanel({ onBack }: { onBack: () => void }) {
   const describeInstance = (app: NimiIntegrationConsumer | undefined, consumerRef: string) =>
     `${t(`Integrations.sourceKinds.${app?.sourceKind || 'unknown'}`)} · ${t('Integrations.instance', { id: consumerRef.slice(-8) })}`;
   const toggle = (values: string[], value: string) => values.includes(value) ? values.filter(item => item !== value) : [...values, value];
+  // Saving replaces a consumer's allowed set, so the form starts from what is allowed now.
+  const allowedFor = (consumerRef: string) => snapshot?.permissions.find(item => item.consumerRef === consumerRef && item.targetRef === targetRef)?.operations ?? [];
+  const toggleConsumer = (consumerRef: string) => {
+    const next = toggle(consumers, consumerRef);
+    setConsumers(next);
+    if (operations.length === 0 && next.length === 1) setOperations([...allowedFor(next[0]!)]);
+  };
+  const appName = (consumerRef: string) => {
+    const app = snapshot?.consumers.find(item => item.consumerRef === consumerRef);
+    return app?.displayName || app?.appId || t('Integrations.unavailableApp');
+  };
+  const savePermissions = () => run(async () => {
+    for (const consumerRef of consumers) await sdk.appProduct().integration.setPermission({ consumerRef, targetRef, operations });
+    setNotice(t('Integrations.allowed'));
+  });
+  const requestSave = () => {
+    const changes = consumers
+      .map(consumerRef => ({ app: appName(consumerRef), removed: allowedFor(consumerRef).filter(op => !operations.includes(op)) }))
+      .filter(change => change.removed.length > 0);
+    if (changes.length > 0) setConfirming({ kind: 'narrow', changes });
+    else void savePermissions();
+  };
+  const removeConnection = (removeRef: string) => run(async () => {
+    await sdk.appProduct().integration.removeConnection({ targetRef: removeRef });
+    if (active.current) { setTargetRef(''); setConsumers([]); setOperations([]); setNotice(t('Integrations.removed')); }
+  });
   const callTime = (value: string | null) => value ? new Date(value).toLocaleString(i18n.language) : t('Integrations.unknownTime');
   const connect = async () => {
     const credential = secret.current?.value ?? '';
@@ -86,6 +117,7 @@ export function IntegrationsPanel({ onBack }: { onBack: () => void }) {
           <label className="mt-4 flex flex-col gap-1.5 text-sm">{t('Integrations.target')}<select className={fieldClass} value={targetRef} onChange={event => { setTargetRef(event.target.value); setConsumers([]); setOperations([]); }} disabled={busy}><option value="">{t('Integrations.selectTarget')}</option>{snapshot?.targets.map(item => <option key={item.targetRef} value={item.targetRef}>{item.displayName}{item.accountLabel ? ` · ${item.accountLabel}` : ''}</option>)}</select></label>
           {target ? <>
             <p className="mt-3 text-sm text-[var(--nimi-text-secondary)]">{t(target.available ? 'Integrations.available' : target.kind === 'telegram' ? 'Integrations.verificationRequired' : 'Integrations.providerOffline')}</p>
+            {target.kind !== 'app' ? <Button className="mt-3" tone="danger" size="sm" disabled={busy} onClick={() => setConfirming({ kind: 'remove', targetRef: target.targetRef, name: target.displayName })}>{t('Integrations.removeConnection')}</Button> : null}
             {target.kind === 'telegram' && !target.available ? <Button className="mt-3" tone="secondary" size="sm" disabled={busy} onClick={() => void run(async () => {
               await sdk.appProduct().integration.putConnection({ targetRef: target.targetRef, adapter: 'telegram', endpoint: '', displayName: target.displayName, accountLabel: target.accountLabel, secret: '' });
               setNotice(t('Integrations.verified'));
@@ -103,11 +135,12 @@ export function IntegrationsPanel({ onBack }: { onBack: () => void }) {
             <fieldset className="mt-4 flex flex-col gap-2">
               <legend className="mb-2 text-sm font-medium">{t('Integrations.apps')}</legend>
               {snapshot?.consumers.map(app => <label key={app.consumerRef} className="flex items-center gap-2 rounded-lg py-1 text-sm">
-                <input type="checkbox" checked={consumers.includes(app.consumerRef)} disabled={busy} onChange={() => setConsumers(current => toggle(current, app.consumerRef))} />
-                <span><span className="block">{app.displayName || app.appId}</span><span className="mt-0.5 block text-xs text-[var(--nimi-text-secondary)]">{describeInstance(app, app.consumerRef)}</span></span>
+                <input type="checkbox" checked={consumers.includes(app.consumerRef)} disabled={busy} onChange={() => toggleConsumer(app.consumerRef)} />
+                <span><span className="block">{app.displayName || app.appId}</span><span className="mt-0.5 block text-xs text-[var(--nimi-text-secondary)]">{describeInstance(app, app.consumerRef)}</span>
+                  <span className="mt-0.5 block break-words text-xs text-[var(--nimi-text-secondary)]">{allowedFor(app.consumerRef).length ? t('Integrations.currentOperations', { operations: allowedFor(app.consumerRef).join(', ') }) : t('Integrations.noCurrentOperations')}</span></span>
               </label>)}
             </fieldset>
-            <Button className="mt-5" tone="primary" disabled={busy || !consumers.length || !operations.length} onClick={() => void run(async () => { for (const consumerRef of consumers) await sdk.appProduct().integration.setPermission({ consumerRef, targetRef, operations }); setNotice(t('Integrations.allowed')); })}>{t('Integrations.allowSelected')}</Button>
+            <Button className="mt-5" tone="primary" disabled={busy || !consumers.length || !operations.length} onClick={requestSave}>{t('Integrations.allowSelected')}</Button>
           </> : <p className="mt-4 text-sm text-[var(--nimi-text-secondary)]">{t('Integrations.empty')}</p>}
         </Surface>
       </div>
@@ -130,6 +163,24 @@ export function IntegrationsPanel({ onBack }: { onBack: () => void }) {
         })}</div>
         {snapshot && !snapshot.permissions.some(permission => permission.operations.length) ? <p className="mt-3 text-sm text-[var(--nimi-text-secondary)]">{t('Integrations.noPermissions')}</p> : null}
       </Surface>
+      <ConfirmDialog
+        open={confirming !== null}
+        title={confirming?.kind === 'remove' ? t('Integrations.removeTitle', { name: confirming.name }) : t('Integrations.narrowTitle')}
+        message={confirming?.kind === 'remove' ? t('Integrations.removeBody') : confirming?.kind === 'narrow' ? <div className="flex flex-col gap-2">
+          <p>{t('Integrations.narrowBody')}</p>
+          <ul className="list-disc pl-5">{confirming.changes.map(change => <li key={change.app}>{t('Integrations.narrowChange', { app: change.app, operations: change.removed.join(', ') })}</li>)}</ul>
+        </div> : null}
+        confirmLabel={confirming?.kind === 'remove' ? t('Integrations.removeConfirm') : t('Integrations.narrowConfirm')}
+        cancelLabel={t('Integrations.cancel')}
+        confirmTone="danger"
+        loading={busy}
+        onConfirm={() => {
+          const current = confirming; setConfirming(null);
+          if (current?.kind === 'remove') void removeConnection(current.targetRef);
+          else if (current?.kind === 'narrow') void savePermissions();
+        }}
+        onClose={() => setConfirming(null)}
+      />
       <Surface tone="panel" padding="none" className="rounded-2xl p-5">
         <h2 className="font-semibold">{t('Integrations.calls')}</h2><p className="mt-2 text-xs text-[var(--nimi-text-secondary)]">{t('Integrations.recordsHelp')}</p>
         <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm">

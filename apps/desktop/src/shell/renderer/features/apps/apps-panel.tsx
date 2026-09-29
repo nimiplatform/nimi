@@ -1,5 +1,6 @@
 import type { GetAppPackageInfoRequest } from '@nimiplatform/sdk/runtime/wire-types';
-import { useCallback, useEffect, type ReactElement } from 'react';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -64,6 +65,7 @@ export function dispatchAppsPanelCardAction(input: {
 export function AppsPanel({
   downloadsOnly = false,
 }: { readonly downloadsOnly?: boolean } = {}): ReactElement {
+  const { t } = useTranslation();
   const downloads = useAppsDownloads();
   if (!downloads) throw new Error('APPS_DOWNLOADS_PROVIDER_MISSING');
   const settings = useDesktopRendererCommands().settings;
@@ -193,11 +195,20 @@ export function AppsPanel({
     });
   }, [downloads.showLibrary, projection, runCardAction, setAppsDetailAppId, localImport.choose]);
 
+  // A link that names an App with several sources lists those sources for the
+  // user to choose; it never guesses one.
+  const [sourceChoice, setSourceChoice] = useState<string | null>(null);
   useEffect(() => {
     if (!requestedDetailAppId || projection?.status !== 'loaded') return;
     const entry = resolveRequestedAppDetailEntry(projection.entries, requestedDetailAppId, requestedDetailEntryKey);
-    if (entry) runCardAction(entry.identity.entryKey, 'details');
-  }, [projection, requestedDetailAppId, requestedDetailEntryKey, requestedDetailNavigationRevision, runCardAction]);
+    if (entry) { setSourceChoice(null); runCardAction(entry.identity.entryKey, 'details'); return; }
+    const sources = projection.entries.filter((candidate) => candidate.identity.appId === requestedDetailAppId);
+    if (!requestedDetailEntryKey && sources.length > 1) {
+      closeDetail();
+      setSearchQuery(requestedDetailAppId);
+      setSourceChoice(sources[0]!.identity.displayName || requestedDetailAppId);
+    }
+  }, [closeDetail, projection, requestedDetailAppId, requestedDetailEntryKey, requestedDetailNavigationRevision, runCardAction, setSearchQuery]);
 
   const selectedEntry = projection?.status === 'loaded'
     ? projection.entries.find((entry) => entry.identity.entryKey === detailEntryKey) ?? null
@@ -234,7 +245,8 @@ export function AppsPanel({
         }}
         projection={projection}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={(value) => { setSourceChoice(null); setSearchQuery(value); }}
+        sourceChoiceNotice={sourceChoice && !detailEntryKey ? t('Apps.chooseSource', { app: sourceChoice }) : null}
         selectedEntryKey={detailEntryKey}
         requestedDetailSection={
           requestedDetailAppId === selectedEntry?.identity.appId ? requestedDetailSection : null

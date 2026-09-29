@@ -190,3 +190,30 @@ test('the overview names the downloaded recipe and a direct enable only when not
   assert.equal(setupPlanAllowsDirectUse(plan({ unavailable: [{ slotId: 's', label: '' }] }) as never), false);
   assert.equal(setupPlanAllowsDirectUse(plan({ environmentUnavailable: { reasonCode: 'AI_LOADOUT_DRIVER_UNAVAILABLE' } }) as never), false);
 });
+
+test('needs attention always carries its reason', () => {
+  const unsupported = inventory();
+  (unsupported.environments[capability] as { state: string }).state = 'unsupported';
+  const unconfigured = inventory();
+  (unconfigured.aggregate.loadouts[0] as { validationState: string }).validationState = 'invalid';
+  assert.equal(capabilityPreparationState({ capability, inventory: inventory(true, false), tasks: [] }).reason, 'environment');
+  assert.equal(capabilityPreparationState({ capability, inventory: unsupported, tasks: [] }).reason, 'unsupported');
+  assert.equal(capabilityPreparationState({ capability, inventory: unconfigured, tasks: [] }).reason, 'configuration');
+  assert.equal(capabilityPreparationState({ capability, inventory: inventory(false), tasks: [task('failed', 'A')] }).reason, 'setup-task');
+  assert.equal(capabilityPreparationState({ capability, inventory: inventory(), tasks: [] }).reason, undefined);
+});
+
+test('the capability rail marks each state with one labeled mark and no badge text', async () => {
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const React = await import('react');
+  const { RailStatusMark } = await import('../src/shell/renderer/features/runtime-config/runtime-config-page-ai-settings.js');
+  for (const state of ['ready', 'preparing', 'attention', 'unset', 'unknown'] as const) {
+    const markup = renderToStaticMarkup(React.createElement(RailStatusMark, { state, label: `label-${state}` }));
+    assert.match(markup, /role="img"/u, state);
+    assert.match(markup, new RegExp(`aria-label="label-${state}"`, 'u'), state);
+    assert.match(markup, new RegExp(`title="label-${state}"`, 'u'), state);
+    assert.doesNotMatch(markup, />label-/u, `${state} shows no visible state text inside the mark`);
+  }
+  assert.match(renderToStaticMarkup(React.createElement(RailStatusMark, { state: 'attention', label: 'x' })), /status-warning/u);
+  assert.match(renderToStaticMarkup(React.createElement(RailStatusMark, { state: 'preparing', label: 'x' })), /animate-spin/u);
+});

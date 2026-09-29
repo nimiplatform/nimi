@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
@@ -61,6 +62,7 @@ export function DataManagementPage() {
   const [resolvedDataRoot, setResolvedDataRoot] = useState('');
   const [checkSync, setCheckSync] = useState<DesktopRendererCheckSyncProjection | null>(null);
   const [dataRootBusy, setDataRootBusy] = useState(false);
+  const [pendingDataRoot, setPendingDataRoot] = useState<string | null>(null);
   const [storage, setStorage] = useState<StorageSnapshot>({
     queryCacheBytes: 0,
     localStorageBytes: 0,
@@ -122,18 +124,33 @@ export function DataManagementPage() {
     return () => window.clearTimeout(timeout);
   }, [checkSync?.run?.state, refreshCheckSync]);
 
-  const handleReplaceDataRoot = useCallback(async () => {
-    setDataRootBusy(true);
+  // Choosing a directory only proposes it; the switch stops apps and restarts
+  // Nimi, so it runs after the user confirms those consequences.
+  const handlePickDataRoot = useCallback(async () => {
     setFeedback(null);
     try {
       const targetRoot = await bindings.app.commands.settings.pickDataRootDirectory();
-      if (!targetRoot) return;
+      if (targetRoot) setPendingDataRoot(targetRoot);
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: t('DataManagement.dataRootReplaceFailed'),
+        technicalDetail: error instanceof Error ? error.message : String(error || ''),
+      });
+    }
+  }, [bindings.app.commands.settings, t]);
+
+  const handleReplaceDataRoot = useCallback(async (targetRoot: string) => {
+    setPendingDataRoot(null);
+    setDataRootBusy(true);
+    setFeedback(null);
+    try {
       const projection = await bindings.app.commands.settings.replaceDataRoot(targetRoot);
       const storageDirs = await bindings.app.commands.settings.loadStorageDirs();
       applyStorageDirs(storageDirs);
       await refreshCheckSync().catch(() => undefined);
       if (projection.error) {
-        setFeedback({ kind: 'error', message: projection.error });
+        setFeedback({ kind: 'error', message: t('DataManagement.dataRootReplaceFailed'), technicalDetail: projection.error });
       } else if (projection.activation?.activated) {
         setFeedback({ kind: 'success', message: t('DataManagement.dataRootReplaced') });
       } else {
@@ -142,7 +159,8 @@ export function DataManagementPage() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: error instanceof Error ? error.message : t('DataManagement.dataRootReplaceFailed'),
+        message: t('DataManagement.dataRootReplaceFailed'),
+        technicalDetail: error instanceof Error ? error.message : String(error || ''),
       });
     } finally {
       setDataRootBusy(false);
@@ -225,7 +243,7 @@ export function DataManagementPage() {
               <Button
                 variant="secondary"
                 disabled={dataRootBusy}
-                onClick={() => { void handleReplaceDataRoot(); }}
+                onClick={() => { void handlePickDataRoot(); }}
               >
                 {t('DataManagement.replaceDataRootButton')}
               </Button>
@@ -237,6 +255,21 @@ export function DataManagementPage() {
                 {t('DataManagement.checkSyncButton')}
               </Button>
             </div>
+            {dataRootBusy ? (
+              <p role="status" className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
+                {t('DataManagement.replaceDataRootProgress')}
+              </p>
+            ) : null}
+            <ConfirmDialog
+              open={pendingDataRoot !== null}
+              title={t('DataManagement.replaceDataRootConfirmTitle')}
+              message={t('DataManagement.replaceDataRootConfirmBody', { target: pendingDataRoot ?? '', current: resolvedDataRoot || '-' })}
+              confirmLabel={t('DataManagement.replaceDataRootConfirm')}
+              cancelLabel={t('DataManagement.replaceDataRootCancel')}
+              confirmTone="danger"
+              onConfirm={() => { if (pendingDataRoot) void handleReplaceDataRoot(pendingDataRoot); }}
+              onClose={() => setPendingDataRoot(null)}
+            />
             {checkSync?.run ? (
               <div className="space-y-3 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] p-4" data-testid="data-management-check-sync">
                 <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">

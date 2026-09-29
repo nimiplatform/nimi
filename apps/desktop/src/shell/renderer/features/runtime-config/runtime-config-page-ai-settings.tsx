@@ -3,15 +3,12 @@ import {
   InlineAlert,
   ScrollArea,
   SelectField,
-  SidebarAffordanceStatusDot,
   SidebarShell,
-  StatusBadge,
   Surface,
-  type StatusTone,
 } from '@nimiplatform/kit/ui';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
 import { useQueryClient } from '@tanstack/react-query';
-import { CircleAlert, CircleDashed, LoaderCircle, SlidersHorizontal } from 'lucide-react';
+import { CircleDashed, LoaderCircle, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -89,28 +86,23 @@ export type AiSettingsPageProps = {
   readonly onCloseSavedConfigs: () => void;
 };
 
-// Each rail row is a single line: icon + name on the left, a status mark plus
-// state text on the right. Only preparing and needs-attention earn a badge;
-// every other state is a quiet status dot so a dozen unset capabilities do
-// not read as a dozen problems. A prepared capability shows its default model
-// name beside the dot (selection), never a running or in-use claim.
-const RAIL_BADGE_TONE: Partial<Record<CapabilityPreparationState, StatusTone>> = {
-  preparing: 'info',
-  attention: 'warning',
-};
-
-function RailStatusMark(props: { readonly state: CapabilityPreparationState }) {
-  if (props.state === 'ready') {
-    return <SidebarAffordanceStatusDot className="text-[var(--nimi-status-success)]" />;
-  }
-  if (props.state === 'unknown') {
-    return <CircleDashed size={10} className="shrink-0 text-[var(--nimi-text-muted)]" aria-hidden="true" />;
-  }
+// Each rail row is a single line: icon + name on the left and one status mark
+// on the right, never a badge. Prepared is a success dot with its default model
+// name beside it (selection, never a running claim); preparing is an info dot
+// with a spinning mark; needs attention is a warning dot without visible text;
+// not set up is a hollow ring that shows text only when recommended files are
+// on the device; unknown is a dashed ring with its text. Every mark carries its
+// state text, and for attention its reason, as hover and accessible label.
+export function RailStatusMark(props: { readonly state: CapabilityPreparationState; readonly label: string }) {
+  const dot = (color: string) => <span className={`inline-flex h-2 w-2 shrink-0 rounded-full ${color}`} aria-hidden="true" />;
   return (
-    <span
-      className="inline-flex h-2 w-2 shrink-0 rounded-full border border-current opacity-60"
-      aria-hidden="true"
-    />
+    <span role="img" aria-label={props.label} title={props.label} data-rail-state={props.state} className="inline-flex shrink-0 items-center gap-1">
+      {props.state === 'ready' ? dot('bg-[var(--nimi-status-success)]') : null}
+      {props.state === 'preparing' ? <>{dot('bg-[var(--nimi-status-info)]')}<LoaderCircle size={11} className="shrink-0 animate-spin text-[var(--nimi-status-info)]" aria-hidden="true" /></> : null}
+      {props.state === 'attention' ? dot('bg-[var(--nimi-status-warning)]') : null}
+      {props.state === 'unknown' ? <CircleDashed size={10} className="shrink-0 text-[var(--nimi-text-muted)]" aria-hidden="true" /> : null}
+      {props.state === 'unset' ? <span className="inline-flex h-2 w-2 shrink-0 rounded-full border border-current opacity-60" aria-hidden="true" /> : null}
+    </span>
   );
 }
 
@@ -186,7 +178,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   );
   const railStateLabel = (entry: { state: { state: CapabilityPreparationState }; downloaded: boolean }) =>
     t(
-      entry.downloaded
+      entry.downloaded && entry.state.state === 'unset'
         ? 'runtimeConfig.capabilities.state.downloaded'
         : `runtimeConfig.capabilities.state.${entry.state.state}`,
     );
@@ -518,8 +510,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   entry.state.replacement && entry.state.task
                     ? ` · ${t(`runtimeConfig.setupTask.status.${entry.state.task.status}`)}`
                     : '';
-                const badgeTone = RAIL_BADGE_TONE[state];
-                const hideStateText = state === 'unset' && !entry.downloaded;
+                const reason = state === 'attention' && entry.state.reason
+                  ? ` · ${t(`runtimeConfig.capabilities.attentionReason.${entry.state.reason}`)}`
+                  : '';
+                const markLabel = `${state === 'ready' ? railStateLabel(entry) : stateText}${reason}${stateSuffix}`;
+                const visibleText = state === 'ready' || state === 'unknown' || (state === 'unset' && entry.downloaded);
                 return (
                   <button
                     key={id}
@@ -534,44 +529,23 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                       className={`shrink-0 ${state === 'unset' ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}
                       aria-hidden="true"
                     />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--nimi-text-primary)]">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--nimi-text-primary)]" title={label(id)}>
                       {label(id)}
                     </span>
-                    {badgeTone ? (
-                      <StatusBadge
-                        tone={badgeTone}
-                        className="min-w-0 max-w-[min(9rem,50%)] shrink-0 whitespace-nowrap px-2 py-0"
-                        title={`${stateText}${stateSuffix}`}
-                        data-rail-state={state}
-                      >
-                        {state === 'preparing' ? (
-                          <LoaderCircle size={11} className="shrink-0 animate-spin" aria-hidden="true" />
-                        ) : (
-                          <CircleAlert size={11} className="shrink-0" aria-hidden="true" />
-                        )}
-                        <span className="min-w-0 truncate">
+                    <span
+                      className={`flex min-w-0 max-w-[min(9rem,50%)] shrink-0 items-center gap-1.5 whitespace-nowrap text-xs ${state === 'ready' ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-text-muted)]'}`}
+                    >
+                      <RailStatusMark state={state} label={markLabel} />
+                      {visibleText ? (
+                        <span className="min-w-0 truncate" title={`${stateText}${stateSuffix}`}>
                           {stateText}
                           {stateSuffix}
                         </span>
-                      </StatusBadge>
-                    ) : (
-                      <span
-                        className={`flex min-w-0 max-w-[min(9rem,50%)] shrink-0 items-center gap-1.5 whitespace-nowrap text-xs ${state === 'ready' ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-text-muted)]'}`}
-                        title={`${stateText}${stateSuffix}`}
-                        data-rail-state={state}
-                      >
-                        <RailStatusMark state={state} />
-                        {!hideStateText ? (
-                          <span className="min-w-0 truncate">
-                            {stateText}
-                            {stateSuffix}
-                          </span>
-                        ) : null}
-                        {entry.state.replacement ? (
-                          <LoaderCircle size={11} className="shrink-0 animate-spin" aria-hidden="true" />
-                        ) : null}
-                      </span>
-                    )}
+                      ) : null}
+                      {entry.state.replacement ? (
+                        <LoaderCircle size={11} className="shrink-0 animate-spin" aria-hidden="true" />
+                      ) : null}
+                    </span>
                   </button>
                 );
               })}

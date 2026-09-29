@@ -154,6 +154,8 @@ export function PrivacyPage() {
   const [feedback, setFeedback] = useState<{
     kind: 'error';
     message: string;
+    actionLabel?: string;
+    onAction?: () => void;
   } | null>(null);
   const autosaveTimerRef = useRef<(() => void) | null>(null);
   // Edit-version race guard: every user edit bumps editVersionRef; a save
@@ -162,6 +164,10 @@ export function PrivacyPage() {
   // snapshot — otherwise newer local edits win and only the baseline moves.
   const editVersionRef = useRef(0);
   const saveStartVersionRef = useRef<number | null>(null);
+  // A failed save pins the edit version it tried to persist. Autosave does not
+  // retry that same version; an explicit retry or a new edit schedules again,
+  // and the unsaved form stays in place meanwhile.
+  const failedEditVersionRef = useRef<number | null>(null);
 
   const saving = saveState === 'saving';
 
@@ -182,6 +188,7 @@ export function PrivacyPage() {
   const applyUserEdit = (patch: Partial<PrivacyForm>) => {
     editVersionRef.current += 1;
     setSaveState('idle');
+    setFeedback(null);
     setForm((previous) => ({ ...previous, ...patch }));
   };
 
@@ -224,6 +231,7 @@ export function PrivacyPage() {
     }
     const persistedForm = form;
     saveStartVersionRef.current = editVersionRef.current;
+    failedEditVersionRef.current = null;
     setSaveState('saving');
     setFeedback(null);
     try {
@@ -235,16 +243,24 @@ export function PrivacyPage() {
       setBaseline(persistedForm);
       setSaveState('saved');
     } catch (error) {
+      failedEditVersionRef.current = saveStartVersionRef.current;
       setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('PrivacySettings.updateError')),
+        actionLabel: t('Common.retry', { defaultValue: 'Retry' }),
+        onAction: () => { void handleSaveRef.current(); },
       });
       setSaveState('error');
     }
   };
 
+  // The retry action always saves the current form, not the failed render's.
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
   useEffect(() => {
-    if (saving || !hasChanges || settingsQuery.isPending || settingsQuery.isError) {
+    const failedThisEdit = saveState === 'error' && failedEditVersionRef.current === editVersionRef.current;
+    if (saving || !hasChanges || failedThisEdit || settingsQuery.isPending || settingsQuery.isError) {
       autosaveTimerRef.current?.();
       autosaveTimerRef.current = null;
       return;
@@ -264,7 +280,7 @@ export function PrivacyPage() {
       autosaveTimerRef.current?.();
       autosaveTimerRef.current = null;
     };
-  }, [bindings.clock, form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
+  }, [bindings.clock, form, hasChanges, saveState, saving, settingsQuery.isError, settingsQuery.isPending]);
 
   const saveStatus = saveState === 'saving'
     ? <StatusBadge status="info" text={t('Settings.statusSaving')} />

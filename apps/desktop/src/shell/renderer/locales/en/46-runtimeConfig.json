@@ -2393,6 +2393,12 @@
       "visual": "Image & video",
       "audio": "Voice & music",
       "other": "Other"
+    },
+    "attentionReason": {
+      "setup-task": "the last setup did not finish",
+      "configuration": "the selected configuration did not pass its check",
+      "unsupported": "this device does not support the selected implementation",
+      "environment": "required components are not ready yet"
     }
   },
   "quickStart": {
@@ -2470,6 +2476,10 @@
     "showAttempts": "Earlier attempts ({{count}})",
     "retryDownload": "Download again",
     "retryCleanup": "Retry cleanup",
+    "cancelTitle": "Cancel this download?",
+    "cancelMessage": "The {{size}} already downloaded for \"{{name}}\" is discarded, and the download would have to start over. Installed models and components are not affected.",
+    "confirmCancel": "Discard and cancel",
+    "keepTask": "Keep downloading",
     "reimportHint": "Import the source again to continue.",
     "viewRelatedTransfer": "View related task",
     "relatedTransferUnavailable": "The related task is no longer available. Refresh downloads to check its current state.",

@@ -53,7 +53,8 @@ function collectFiles(input) {
 
 function extractCandidatesFromLine(line, isTsxFile) {
   const candidates = [];
-  const jsxTextRegex = />\s*([^<>{]+?)\s*</g;
+  // JSX text cannot contain a bare `}`, so a run with one is expression code, not copy.
+  const jsxTextRegex = />\s*([^<>{}]+?)\s*</g;
   const attrRegex = /\b(?:aria-label|placeholder|title|label|description)\s*=\s*["'`]([^"'`]+)["'`]/g;
 
   const regexes = isTsxFile

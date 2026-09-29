@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useWorldMaterialization } from './world-materialization-context.js';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, ScrollArea } from '@nimiplatform/kit/ui';
@@ -56,6 +57,7 @@ function PeopleCardAction({
   onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
 }) {
   const { t } = useTranslation();
+  const materialization = useWorldMaterialization();
   const state = character.relation?.state;
   if (state === 'connected') {
     return (
@@ -75,9 +77,12 @@ function PeopleCardAction({
     );
   }
   if (state === 'connectable') {
+    const blocked = !materialization.ready || materialization.isPending(character);
     return (
       <button
         type="button"
+        disabled={blocked}
+        aria-busy={materialization.isPending(character) || undefined}
         onClick={() => onMaterializeSource?.(character)}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,

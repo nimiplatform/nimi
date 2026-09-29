@@ -27,6 +27,8 @@ import {
   resolveCharacterSourceState,
 } from './character-source-materialization';
 import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
+import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
+import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import { localAgentListQueryKey } from '../agents/local-agent-list-model';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
@@ -66,6 +68,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<
     Extract<PostCardAuthorProfileTarget, { kind: 'human' }> | null
@@ -192,7 +196,25 @@ export function ExplorePanel(props: ExplorePanelProps) {
       await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
       await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
       await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false });
       if (!isCurrent()) return;
+      // Open the partner's own conversation; the list is only the fallback.
+      const target = source.sourceRef
+        ? await resolveAgentTargetSnapshotForSourceRef({ sourceRef: source.sourceRef, ownerUserId, sdk: bindings.sdk, isCurrent }).catch(() => null)
+        : null;
+      if (!isCurrent()) return;
+      if (target) {
+        await launchAgentConversationFromDisplay({
+          target,
+          setActiveTab,
+          setChatMode,
+          setSelectedTargetForSource,
+          setAgentConversationSelection,
+          setAgentConversationTargetSnapshot,
+        });
+        logRendererEvent({ level: 'info', area: 'explore', message: 'action:realm-source-materialization:partner-ready' });
+        return;
+      }
       setSelectedTargetForSource('agent', null);
       setChatMode('agent');
       setActiveTab('chat');
@@ -220,6 +242,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
     ownerUserId,
     queryClient,
     setActiveTab,
+    setAgentConversationSelection,
+    setAgentConversationTargetSnapshot,
     setChatMode,
     setSelectedTargetForSource,
   ]);

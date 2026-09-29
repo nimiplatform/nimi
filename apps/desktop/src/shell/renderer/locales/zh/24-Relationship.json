@@ -10,6 +10,8 @@
   "bio": "简介",
   "blockUserFailed": "屏蔽用户失败",
   "blockUserSuccess": "已屏蔽该用户。",
+  "unblockUserSuccess": "已解除屏蔽。",
+  "unblockUserFailed": "没能解除屏蔽，请稍后重试。",
   "blockUserConfirmMessage": "确定要屏蔽 {{name}} 吗？对方会被移入你的黑名单，并且无法再联系你。",
   "changePhoto": "更换头像",
   "chat": "聊天",

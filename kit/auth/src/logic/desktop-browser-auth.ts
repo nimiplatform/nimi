@@ -16,6 +16,36 @@ export type DesktopBrowserAuthResult = {
   user: Record<string, unknown> | null;
 };
 
+/**
+ * The person stopped waiting on this device. This is not a Runtime login
+ * cancellation: an attempt that was never completed expires with its owner,
+ * and a completion already submitted is decided by the Runtime account
+ * projection.
+ */
+export class DesktopBrowserAuthWaitEndedError extends Error {
+  constructor() {
+    super('The local wait for browser sign-in ended.');
+    this.name = 'DesktopBrowserAuthWaitEndedError';
+  }
+}
+
+export function isDesktopBrowserAuthWaitEnded(error: unknown): boolean {
+  return error instanceof DesktopBrowserAuthWaitEndedError;
+}
+
+function untilCallbackOrEnd<T>(task: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (!signal) return task;
+  if (signal.aborted) return Promise.reject(new DesktopBrowserAuthWaitEndedError());
+  return new Promise<T>((resolve, reject) => {
+    const end = () => reject(new DesktopBrowserAuthWaitEndedError());
+    signal.addEventListener('abort', end, { once: true });
+    task.then(
+      (value) => { signal.removeEventListener('abort', end); resolve(value); },
+      (error: unknown) => { signal.removeEventListener('abort', end); reject(error); },
+    );
+  });
+}
+
 function isSecureOrLoopbackAuthorizationUrl(url: URL): boolean {
   if (url.protocol === 'https:') return true;
   if (url.protocol !== 'http:') return false;
@@ -78,6 +108,10 @@ export async function performDesktopBrowserAuth(
   options: {
     timeoutMs?: number;
     onOpened?: () => void;
+    /** Receives a way to open the same, still-valid authorization URL again. */
+    onBrowserOpened?: (reopen: () => Promise<boolean>) => void;
+    /** Ends the local wait; a late callback then never reaches complete. */
+    signal?: AbortSignal;
     runtimeAccountBroker: {
       begin: (input: {
         callbackUrl: string;
@@ -132,8 +166,11 @@ export async function performDesktopBrowserAuth(
     throw new Error(AUTH_COPY.desktopBrowserOpenFailed);
   }
   options.onOpened?.();
+  options.onBrowserOpened?.(async () => (await bridge.openExternalUrl(launchUrl)).opened);
 
-  const callback = await listenTask;
+  const callback = await untilCallbackOrEnd(listenTask, options.signal);
+  // Once the wait ended, a callback arriving later is never completed here.
+  if (options.signal?.aborted) throw new DesktopBrowserAuthWaitEndedError();
   try {
     if (callback.error) {
       throw new Error(`网页授权失败：${callback.error}`);

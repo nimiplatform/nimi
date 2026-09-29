@@ -1,5 +1,6 @@
 import {
   Button,
+  ConfirmDialog,
   IconButton,
   InlineAlert,
   LoadingSkeleton,
@@ -148,6 +149,12 @@ export function GlobalDownloadsView() {
   const snapshot = useRuntimeSetupTasks(store);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // Cancelling a transfer with received bytes discards them; confirm that first.
+  const [pendingCancel, setPendingCancel] = useState<{ readonly name: string; readonly bytes: number; readonly cancel: () => Promise<unknown> } | null>(null);
+  const requestCancel = (name: string, bytes: number, cancel: () => Promise<unknown>) => {
+    if (bytes > 0) setPendingCancel({ name, bytes, cancel });
+    else void action(cancel);
+  };
   const [lane, setLane] = useState<DownloadsLane>('active');
   const [appDetails, setAppDetails] = useState(false);
   const handledSelection = useRef(0);
@@ -267,7 +274,9 @@ export function GlobalDownloadsView() {
               tone="ghost"
               disabled={busy}
               onClick={() => {
-                void action(() => local.cancelTransfer(item.installSessionId, { caller: 'core' }));
+                const cancel = () => local.cancelTransfer(item.installSessionId, { caller: 'core' });
+                if (item.cleanupPending) void action(cancel);
+                else requestCancel(item.sourceLabel || item.modelAssetId || item.installSessionId, item.bytesReceived, cancel);
               }}
             >
               {item.cleanupPending ? t('runtimeConfig.downloads.retryCleanup') : t('Common.cancel')}
@@ -321,7 +330,7 @@ export function GlobalDownloadsView() {
               tone="ghost"
               disabled={busy}
               onClick={() => {
-                void action(() =>
+                requestCancel(item.dependencyFamily, item.bytesReceived, () =>
                   local.cancelEnvironmentDependencyJob({ jobId: item.jobId }, { caller: 'core' }),
                 );
               }}
@@ -367,6 +376,21 @@ export function GlobalDownloadsView() {
         : t('runtimeConfig.downloads.summaryIdle');
   return (
     <div className="flex min-h-0 flex-1 px-3 pb-5 pt-4">
+      <ConfirmDialog
+        open={pendingCancel !== null}
+        title={t('runtimeConfig.downloads.cancelTitle')}
+        message={pendingCancel ? t('runtimeConfig.downloads.cancelMessage', { name: pendingCancel.name, size: formatBytes(pendingCancel.bytes) }) : ''}
+        confirmLabel={t('runtimeConfig.downloads.confirmCancel')}
+        cancelLabel={t('runtimeConfig.downloads.keepTask')}
+        confirmTone="danger"
+        loading={busy}
+        onClose={() => setPendingCancel(null)}
+        onConfirm={() => {
+          const pending = pendingCancel;
+          if (!pending) return;
+          void action(pending.cancel).finally(() => setPendingCancel(null));
+        }}
+      />
       <div className={`flex min-h-0 flex-1 ${SHELL_PAGE_WIDTH_CLASS}`}>
         <Surface
           tone="panel"

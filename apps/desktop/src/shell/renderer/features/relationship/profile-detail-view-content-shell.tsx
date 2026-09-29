@@ -118,6 +118,8 @@ export function ProfileDetailErrorState(input: {
   backLabel: string;
   label: string;
   onClose: () => void;
+  retryLabel?: string;
+  onRetry?: () => void;
 }) {
   return (
     <div className="flex flex-1 items-center justify-center bg-[var(--nimi-surface-canvas)]">
@@ -126,13 +128,24 @@ export function ProfileDetailErrorState(input: {
           <AlertIcon className="h-5 w-5" />
         </div>
         <p className="mt-4 text-sm font-medium text-[var(--nimi-status-danger)]">{input.label}</p>
-        <button
-          type="button"
-          onClick={input.onClose}
-          className="mt-5 rounded-full border border-[var(--nimi-border-subtle)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)]"
-        >
-          {input.backLabel}
-        </button>
+        <div className="mt-5 flex justify-center gap-2">
+          {input.onRetry ? (
+            <button
+              type="button"
+              onClick={input.onRetry}
+              className="rounded-full border border-[var(--nimi-border-subtle)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-action-ghost-hover)]"
+            >
+              {input.retryLabel}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={input.onClose}
+            className="rounded-full border border-[var(--nimi-border-subtle)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)]"
+          >
+            {input.backLabel}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -162,6 +175,7 @@ export function ProfileDetailActionButtons(input: {
   showMenu?: boolean;
   onShowMenuChange?: (open: boolean) => void;
   onBlock?: () => void;
+  onUnblock?: () => void;
   onRemove?: () => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
@@ -173,6 +187,12 @@ export function ProfileDetailActionButtons(input: {
       label: i18n.t('Common.block', { defaultValue: 'Block' }),
       icon: <AlertIcon className="h-4 w-4" />,
       onSelect: input.onBlock,
+    }] : []),
+    ...(input.onUnblock ? [{
+      id: 'unblock',
+      label: i18n.t('Profile.unblock', { defaultValue: 'Unblock' }),
+      icon: <AlertIcon className="h-4 w-4" />,
+      onSelect: input.onUnblock,
     }] : []),
     ...(input.onRemove ? [{
       id: 'remove',
@@ -303,6 +323,7 @@ export function ProfileDetailStatsActionsBlock(input: {
   showMenu?: boolean;
   onShowMenuChange?: (open: boolean) => void;
   onBlock?: () => void;
+  onUnblock?: () => void;
   onRemove?: () => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
@@ -358,6 +379,7 @@ export function ProfileDetailDesktopStatsActions(input: {
   showMenu?: boolean;
   onShowMenuChange?: (open: boolean) => void;
   onBlock?: () => void;
+  onUnblock?: () => void;
   onRemove?: () => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
