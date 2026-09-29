@@ -41,12 +41,15 @@ func (driver GroundingDinoDriver) ProjectRecipe(recipeID string, options *struct
 	return driver.ProjectRecipeForHost(recipeID, options, features, "windows/amd64")
 }
 
-func (GroundingDinoDriver) ProjectRecipeForHost(recipeID string, options *structpb.Struct, features []string, _ string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+func (GroundingDinoDriver) ProjectRecipeForHost(recipeID string, options *structpb.Struct, features []string, platformTuple string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	if recipeID != GroundingDinoRecipeID || len(options.GetFields()) != 0 {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
 	if len(features) != 0 {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
+	}
+	if platformTuple != "windows/amd64" {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
 	constraints, _ := structpb.NewStruct(map[string]any{
 		"format": "safetensors", "model_type": "grounding-dino", "driver_backend": GroundingDinoBackend,

@@ -1606,6 +1606,10 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
 	}
+	groundingDino := byID[capabilitydriver.GroundingDinoRecipeID]
+	if groundingDino == nil || groundingDino.GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED || len(groundingDino.GetSlots()) != 1 {
+		t.Fatalf("Windows-only Grounding DINO must remain visible but unsupported on macOS: %+v", groundingDino)
+	}
 	transformer := byID[capabilitydriver.SpacyTrfRecipeID]
 	if transformer == nil || len(transformer.GetSlots()) != 1 || transformer.GetSlots()[0].GetSlotId() != capabilitydriver.SpacyModelSlot ||
 		transformer.GetImplementation().GetDriverDialect() != capabilitydriver.SpacyTrfDriverDialect {

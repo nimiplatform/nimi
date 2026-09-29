@@ -17,8 +17,8 @@ func TestGroundingDinoTinyAdmitsOnlyItsBoxModelContract(t *testing.T) {
 	if driver.SupportsGeometry(runtimev1.VisionLocateGeometry_VISION_LOCATE_GEOMETRY_POINT) || !driver.SupportsGeometry(runtimev1.VisionLocateGeometry_VISION_LOCATE_GEOMETRY_BOX) {
 		t.Fatal("Grounding DINO must admit only actual box output")
 	}
-	if _, reason := driver.ProjectRecipeForHost(GroundingDinoRecipeID, nil, nil, "darwin/arm64"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		t.Fatalf("catalog recipe schema must remain visible while host execution is blocked: %v", reason)
+	if _, reason := driver.ProjectRecipeForHost(GroundingDinoRecipeID, nil, nil, "darwin/arm64"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
+		t.Fatalf("unverified host admitted: %v", reason)
 	}
 	probe := safetensorsProbeForTest([]byte(`{
 		"model.backbone.conv_encoder.model.embeddings.patch_embeddings.projection.weight":{"dtype":"F32","shape":[96,3,4,4],"data_offsets":[0,16]},

@@ -170,15 +170,39 @@ func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListL
 			applicability = runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN
 			reasons = append(reasons, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE)
 		}
-		_, requirements, implementationFeatures, err := s.projectRecipe(
-			recipe.RecipeID,
-			recipe.CapabilityContract,
-			identity.Proto(),
-			options,
-			authoringFeatures,
-		)
-		if err != nil {
-			return nil, err
+		var requirements []*runtimev1.LocalCapabilityRequirement
+		var implementationFeatures []string
+		if applicability == runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
+			// An unsupported host still lists the recipe and its authored slots.
+			// The host-neutral projection is display-only; Prepare keeps the exact
+			// host gate in projectRecipe.
+			driver, _ := s.capabilityDrivers.Resolve(recipe.CapabilityContract, identity)
+			recipeDriver, ok := driver.(capabilitydriver.RecipeDriver)
+			if !ok {
+				return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout Driver does not support recipe projection", nil)
+			}
+			var reason runtimev1.LocalCapabilityReason
+			implementationFeatures, reason = recipeDriver.ImplementationSupportedFeatures(recipe.RecipeID)
+			implementationFeatures = normalizeStableStringSet(implementationFeatures)
+			if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || !stableStringSetsEqual(authoringFeatures, implementationFeatures) {
+				return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout recipe feature metadata does not match its exact Driver declaration", nil)
+			}
+			requirements, reason = recipeDriver.ProjectRecipe(recipe.RecipeID, options, implementationFeatures)
+			if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) == 0 {
+				return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout recipe has no displayable slot projection", nil)
+			}
+			requirements = cloneLocalCapabilityRequirements(requirements)
+		} else {
+			_, requirements, implementationFeatures, err = s.projectRecipe(
+				recipe.RecipeID,
+				recipe.CapabilityContract,
+				identity.Proto(),
+				options,
+				authoringFeatures,
+			)
+			if err != nil {
+				return nil, err
+			}
 		}
 		projected, err := s.projectLoadoutRecipeDescriptor(recipe, hostRecommendedRecipe, requirements, implementationFeatures, hostProfile, applicability, reasons)
 		if err != nil {
