@@ -83,3 +83,30 @@ func TestTextAnnotationProfileRequiresCPUExecution(t *testing.T) {
 		t.Fatal("profile accepted an unsuccessful CPU allocation")
 	}
 }
+
+func TestTransformerAnnotationProfileOwnsWindowsCPUContract(t *testing.T) {
+	identity, err := ResolvePythonDependencyProfileIdentity(TextAnnotationTrfConsumerID, "windows/amd64", "cpu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	medium, err := ResolvePythonDependencyProfileIdentity(TextAnnotationConsumerID, "windows/amd64", "cpu")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if identity.ProfileDigest == medium.ProfileDigest || identity.SourceLabel != "text-spacy-curated-cpu" || identity.TorchVersion != "2.11.0" || identity.AcceleratorPlane != "cpu" {
+		t.Fatalf("transformer did not capture an independent CPU Torch profile: %+v", identity)
+	}
+	probes, err := pythonDependencyProfileImportProbes(TextAnnotationTrfConsumerID, identity)
+	if err != nil || !slices.Contains(probes, "spacy_curated_transformers") || !slices.Contains(probes, "torch") {
+		t.Fatalf("transformer dependencies are incomplete: %v, %v", probes, err)
+	}
+	files, err := PythonDependencyProfileStaticFiles(TextAnnotationTrfConsumerID, identity)
+	if err != nil || len(files) != 4 {
+		t.Fatalf("transformer profile static contents are incomplete: %v, %v", len(files), err)
+	}
+	for _, request := range []struct{ platform, plane string }{{"windows/amd64", "cuda"}, {"darwin/arm64", "cpu"}} {
+		if _, err := ResolvePythonDependencyProfileIdentity(TextAnnotationTrfConsumerID, request.platform, request.plane); err == nil {
+			t.Fatalf("unverified transformer host was admitted: %+v", request)
+		}
+	}
+}

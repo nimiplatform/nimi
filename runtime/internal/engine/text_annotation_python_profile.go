@@ -9,7 +9,10 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.spacy-local-annotation
-const TextAnnotationConsumerID = capabilitydriver.SpacyConsumerID
+const (
+	TextAnnotationConsumerID    = capabilitydriver.SpacyConsumerID
+	TextAnnotationTrfConsumerID = capabilitydriver.SpacyTrfConsumerID
+)
 
 //go:embed assets/spacy_text_annotation.py
 var textAnnotationScript string

@@ -67,3 +67,28 @@ func TestSpacyBindingRejectsWrongLanguageOrVersion(t *testing.T) {
 		t.Fatalf("3.7.1 pipeline was admitted: %v", reason)
 	}
 }
+
+func TestSpacyTransformerKeepsMediumModelOutOfItsLoadout(t *testing.T) {
+	driver := SpacyTrfDriver{}
+	requirements, reason := driver.ProjectRecipe(SpacyTrfRecipeID, nil, nil)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) != 1 {
+		t.Fatalf("project transformer recipe: %v", reason)
+	}
+	if requirements[0].GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT {
+		t.Fatal("exact transformer model slot must be strict")
+	}
+	asset := ModelAssetDescriptor{
+		ModelAssetID: "medium", VerifiedContentID: "sha256:medium", EntrySHA256: "medium-config",
+		Kind:   runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY,
+		Family: "spacy", ArtifactRoles: []string{"text_analysis_model"}, FormatProbe: []byte("en"),
+	}
+	binding := &runtimev1.ModelAssetExactBinding{RequirementId: SpacyModelSlot, ModelAssetId: asset.ModelAssetID, VerifiedContentId: asset.VerifiedContentID, EntrySha256: asset.EntrySHA256}
+	if got := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{binding}, []ModelAssetDescriptor{asset}); got != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
+		t.Fatalf("medium model entered transformer loadout: %v", got)
+	}
+	asset.ModelAssetID, asset.VerifiedContentID, asset.EntrySHA256 = "transformer", spacyTrfModelContentID, spacyTrfConfigSHA256
+	binding.ModelAssetId, binding.VerifiedContentId, binding.EntrySha256 = asset.ModelAssetID, asset.VerifiedContentID, asset.EntrySHA256
+	if got := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{binding}, []ModelAssetDescriptor{asset}); got != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		t.Fatalf("exact transformer model rejected: %v", got)
+	}
+}

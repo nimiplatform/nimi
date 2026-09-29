@@ -25,6 +25,18 @@ MODEL_CONFIGS: dict[str, tuple[str, str]] = {
     'zh': ('core_web_md', '93bd171ad59dba9100f085ef5855c1069e0d09c042b01f52cf748cc5f9e4a5c5'),  # pragma: allowlist secret - pinned model configuration digest
 }
 
+TRANSFORMER_MODEL_CONFIGS: dict[str, tuple[str, str]] = {
+    'en': ('core_web_trf', 'ec6d73663a9a137377402267eaff233e24aa06ed5079af80caf01566e56e858e'),  # pragma: allowlist secret - pinned official model configuration digest
+}
+
+
+def admitted_model_configs(model_kind: str) -> dict[str, tuple[str, str]]:
+    if model_kind == 'md':
+        return MODEL_CONFIGS
+    if model_kind == 'curated-trf':
+        return TRANSFORMER_MODEL_CONFIGS
+    raise AnnotationError("AI_LOCAL_EXECUTION_LOAD_FAILED", "Annotation model kind is unsupported")
+
 
 class AnnotationError(ValueError):
     def __init__(self, reason: str, detail: str):
@@ -32,8 +44,8 @@ class AnnotationError(ValueError):
         self.reason = reason
 
 
-def validate_input(language: str, texts: list[str]) -> None:
-    if language not in MODEL_CONFIGS:
+def validate_input(language: str, texts: list[str], model_kind: str = 'md') -> None:
+    if language not in admitted_model_configs(model_kind):
         raise AnnotationError("AI_INPUT_INVALID", "Unsupported annotation language")
     if not isinstance(texts, list) or not 1 <= len(texts) <= MAX_DOCUMENTS:
         raise AnnotationError("AI_INPUT_INVALID", "Annotation requires 1 to 64 documents")
@@ -47,10 +59,11 @@ def validate_input(language: str, texts: list[str]) -> None:
         raise AnnotationError("AI_INPUT_INVALID", "Annotation input exceeds 512 KiB")
 
 
-def load_pipeline(model_dir: Path, language: str):
-    if language not in MODEL_CONFIGS:
+def load_pipeline(model_dir: Path, language: str, model_kind: str = 'md'):
+    configs = admitted_model_configs(model_kind)
+    if language not in configs:
         raise AnnotationError("AI_INPUT_INVALID", "Unsupported annotation language")
-    name, config_hash = MODEL_CONFIGS[language]
+    name, config_hash = configs[language]
     try:
         config = (model_dir / "config.cfg").read_bytes()
         meta = json.loads((model_dir / "meta.json").read_text(encoding="utf-8"))
@@ -90,20 +103,22 @@ def project_document(doc) -> dict:
 class AnnotationWorker:
     """Resident model state; the supervising Host owns admission and leases."""
 
-    def __init__(self):
+    def __init__(self, model_kind: str = 'md'):
+        admitted_model_configs(model_kind)
+        self._model_kind = model_kind
         self._identity = None
         self._pipeline = None
 
     def run(self, model_dir: str, model_content_id: str, language: str, texts: list[str]) -> dict:
-        validate_input(language, texts)
+        validate_input(language, texts, self._model_kind)
         root = Path(model_dir)
         if not root.is_absolute() or not model_content_id:
             raise AnnotationError("AI_LOCAL_EXECUTION_LOAD_FAILED", "Captured model identity is required")
-        identity = (str(root), model_content_id, language)
+        identity = (str(root), model_content_id, language, self._model_kind)
         if identity != self._identity:
             self._pipeline = None
             self._identity = None
-            pipeline = load_pipeline(root, language)
+            pipeline = load_pipeline(root, language, self._model_kind)
             self._pipeline = pipeline
             self._identity = identity
         results = []

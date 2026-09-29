@@ -62,6 +62,12 @@ func ResolvePythonTorchWheelDependencyIdentity(consumer string) (PythonTorchWhee
 func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest, error) {
 	trimmed := strings.TrimSpace(consumer)
 	switch {
+	case trimmed == TextAnnotationTrfConsumerID+".cpu":
+		return pythonTorchWheelManifest{
+			Packages: []string{"torch==" + speechTorchVersion}, ImportProbes: []string{"torch"},
+			AcceleratorPlane: "cpu", CUDAABI: "none",
+			WheelIndex: defaultMediaTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
+		}, nil
 	case trimmed == VisionLocateConsumerID+".cuda":
 		return pythonTorchWheelManifest{
 			Packages:         []string{"torch==2.11.0", "torchvision==0.26.0"},

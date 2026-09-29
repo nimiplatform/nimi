@@ -16,6 +16,7 @@ import (
 )
 
 type localResolvedAssemblyAnnotationPlan struct {
+	ProfileConsumerID  string `json:"profile_consumer_id"`
 	ProfileRoot        string `json:"profile_root"`
 	ProfileDigest      string `json:"profile_digest"`
 	DriverBundleDigest string `json:"driver_bundle_digest"`
@@ -59,7 +60,9 @@ func (s *Service) captureLocalAnnotationEffectiveInputs(ctx context.Context, hea
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
 	driver, reason := s.capabilityDrivers.Resolve(capabilitydriver.TextAnnotateContract, capabilitydriver.IdentityFromProto(selected.DriverIdentity))
-	annotationDriver, ok := driver.(capabilitydriver.SpacyDriver)
+	annotationDriver, ok := driver.(interface {
+		PlanTextAnnotationInvocation(capabilitydriver.TextAnnotationInvocationInput) (*capabilitydriver.TextAnnotationInvocationPlan, error)
+	})
 	if !ok || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
@@ -99,13 +102,14 @@ func localResolvedAssemblyForAnnotation(selected *localexecution.SelectedLocalEx
 }
 
 func annotationResolvedLoadPlan(plan *capabilitydriver.TextAnnotationInvocationPlan) *localResolvedAssemblyAnnotationPlan {
-	return &localResolvedAssemblyAnnotationPlan{ProfileRoot: plan.ProfileRoot, ProfileDigest: plan.ProfileDigest, DriverBundleDigest: plan.DriverBundleDigest, DriverProtocol: plan.DriverProtocol}
+	return &localResolvedAssemblyAnnotationPlan{ProfileConsumerID: plan.ProfileConsumerID, ProfileRoot: plan.ProfileRoot, ProfileDigest: plan.ProfileDigest, DriverBundleDigest: plan.DriverBundleDigest, DriverProtocol: plan.DriverProtocol}
 }
 
 func annotationPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabilitydriver.TextAnnotationInvocationPlan, error) {
 	if assembly == nil || assembly.LoadPlan.Kind != "annotation" || assembly.LoadPlan.Annotation == nil || assembly.CapabilityContract != capabilitydriver.TextAnnotateContract ||
 		assembly.Request.Kind != capabilitydriver.TextAnnotateContract || assembly.DriverIdentity.DriverID != capabilitydriver.SpacyDriverID ||
-		assembly.DriverIdentity.ImplementationID != capabilitydriver.SpacyImplementationID || assembly.DriverIdentity.DriverDialect != capabilitydriver.SpacyDriverDialect ||
+		assembly.DriverIdentity.ImplementationID != capabilitydriver.SpacyImplementationID ||
+		(assembly.DriverIdentity.DriverDialect != capabilitydriver.SpacyDriverDialect && assembly.DriverIdentity.DriverDialect != capabilitydriver.SpacyTrfDriverDialect) ||
 		len(assembly.RecipeCustody) != 0 || len(assembly.Request.BinaryInput) != 0 {
 		return nil, fmt.Errorf("captured annotation assembly is incomplete")
 	}
@@ -117,7 +121,13 @@ func annotationPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capab
 		return nil, err
 	}
 	load := assembly.LoadPlan.Annotation
-	plan, err := (capabilitydriver.SpacyDriver{}).PlanTextAnnotationInvocation(capabilitydriver.TextAnnotationInvocationInput{
+	var annotationDriver interface {
+		PlanTextAnnotationInvocation(capabilitydriver.TextAnnotationInvocationInput) (*capabilitydriver.TextAnnotationInvocationPlan, error)
+	} = capabilitydriver.SpacyDriver{}
+	if assembly.DriverIdentity.DriverDialect == capabilitydriver.SpacyTrfDriverDialect {
+		annotationDriver = capabilitydriver.SpacyTrfDriver{}
+	}
+	plan, err := annotationDriver.PlanTextAnnotationInvocation(capabilitydriver.TextAnnotationInvocationInput{
 		RecipeID: assembly.RecipeID, Request: request, Bindings: resolvedAssemblyExactBindings(assembly), DependencySources: resolvedAssemblyExactDependencySources(assembly),
 	})
 	if err != nil {

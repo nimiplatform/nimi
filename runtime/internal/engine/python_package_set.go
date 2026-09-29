@@ -18,6 +18,8 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 	switch {
 	case trimmed == TextAnnotationConsumerID:
 		return pythonPackageSetManifest{ID: "text-spacy-python-core", ImportProbes: []string{"spacy", "spacy_pkuseg", "sudachipy", "sudachidict_core", "pymorphy3", "fastapi", "uvicorn"}}, nil
+	case trimmed == TextAnnotationTrfConsumerID:
+		return pythonPackageSetManifest{ID: "text-spacy-curated-python-core", ImportProbes: []string{"spacy", "spacy_curated_transformers", "torch", "spacy_pkuseg", "sudachipy", "sudachidict_core", "pymorphy3", "fastapi", "uvicorn"}}, nil
 	case trimmed == TextDecisionConsumerID:
 		return pythonPackageSetManifest{ID: "text-laya-python-core", ImportProbes: textDecisionPythonImportProbes()}, nil
 	case trimmed == FaceSwapConsumerID:
@@ -301,7 +303,7 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 		return materializeVisionDriverBundle(trimmedRoot)
 	case strings.TrimSpace(consumer) == TextDecisionConsumerID:
 		return materializeTextDecisionDriverBundle(trimmedRoot)
-	case strings.TrimSpace(consumer) == TextAnnotationConsumerID:
+	case strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == TextAnnotationTrfConsumerID:
 		for _, file := range textAnnotationDriverStaticFiles() {
 			if err := os.WriteFile(filepath.Join(trimmedRoot, file.RelativePath), file.Content, 0o444); err != nil {
 				return fmt.Errorf("materialize annotation Driver: %w", err)

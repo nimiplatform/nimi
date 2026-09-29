@@ -1599,12 +1599,17 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 96 {
-		t.Fatalf("all Loadout recipes = %d, want 96", len(all))
+	if len(all) != 97 {
+		t.Fatalf("all Loadout recipes = %d, want 97", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
+	}
+	transformer := byID[capabilitydriver.SpacyTrfRecipeID]
+	if transformer == nil || len(transformer.GetSlots()) != 1 || transformer.GetSlots()[0].GetSlotId() != capabilitydriver.SpacyModelSlot ||
+		transformer.GetImplementation().GetDriverDialect() != capabilitydriver.SpacyTrfDriverDialect {
+		t.Fatalf("English transformer annotation must retain its own recipe and model slot: %+v", transformer)
 	}
 	qwen := byID[capabilitydriver.LlamaQwen35RecipeID]
 	if qwen == nil || len(qwen.GetSlots()) != 1 || qwen.GetSlots()[0].GetSlotId() != capabilitydriver.MainGGUFRequirementID ||

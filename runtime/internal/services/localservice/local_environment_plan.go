@@ -149,6 +149,11 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			return "local-nlp", engine.TextAnnotationConsumerID, true
 		}
 		return "", "", false
+	case capabilitydriver.SpacyTrfDriver:
+		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") {
+			return "local-nlp-transformer", engine.TextAnnotationTrfConsumerID, true
+		}
+		return "", "", false
 	case capabilitydriver.LayaDriver:
 		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") || strings.EqualFold(host.OS, "darwin") && strings.EqualFold(host.Arch, "arm64") {
 			return localDecisionPackID, engine.TextDecisionConsumerID, true
@@ -359,6 +364,12 @@ func (s *Service) resolveLocalEnvironmentPlanDependencyJobProjection(dep localEn
 	default:
 		return dep
 	}
+	// A previous materializer refusal must not permanently mask current
+	// admission. After a Runtime update, the supported dependency can be
+	// started again from this newly resolved plan.
+	if strings.TrimSpace(job.State) == localEnvironmentStateUnsupported && dep.State != localEnvironmentStateUnsupported {
+		return dep
+	}
 	dep.State = strings.TrimSpace(job.State)
 	dep.ConfirmationRequired = false
 	if sourceKind := strings.TrimSpace(job.SourceKind); sourceKind != "" {
@@ -563,7 +574,7 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 }
 
 func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) ([]localEnvironmentPlanDependency, bool) {
-	if def.PackID != "local-speech" && def.PackID != "local-vision" && def.PackID != "local-face-swap" && def.PackID != "local-nlp" && def.PackID != localDecisionPackID {
+	if def.PackID != "local-speech" && def.PackID != "local-vision" && def.PackID != "local-face-swap" && def.PackID != "local-nlp" && def.PackID != "local-nlp-transformer" && def.PackID != localDecisionPackID {
 		return nil, false
 	}
 	if family != localEnvironmentFamilyPythonUV &&
@@ -580,6 +591,9 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 	consumers := localSpeechPlanConsumers(consumerScope)
 	if def.PackID == "local-nlp" {
 		consumers = []string{engine.TextAnnotationConsumerID}
+	}
+	if def.PackID == "local-nlp-transformer" {
+		consumers = []string{engine.TextAnnotationTrfConsumerID}
 	}
 	if def.PackID == "local-vision" {
 		consumers = []string{engine.VisionLocateConsumerID}
@@ -760,6 +774,11 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			CloudOnlyImpact:            "none",
 		},
 		{
+			PackID: "local-nlp-transformer", ProductLabel: "English transformer analysis",
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyPythonTorchWheel},
+			CloudOnlyImpact:            "none",
+		},
+		{
 			PackID: "local-face-swap", ProductLabel: "Face replacement",
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet},
 			CloudOnlyImpact:            "none",
@@ -872,7 +891,7 @@ func defaultLocalEnvironmentDependencyID(packID string, family string) string {
 }
 
 func localPythonAcceleratorPlane(consumer string, host localEnvironmentHostProfileState) string {
-	if strings.TrimSpace(consumer) != engine.TextAnnotationConsumerID && localEnvironmentHostSupportsCUDA(host) {
+	if strings.TrimSpace(consumer) != engine.TextAnnotationConsumerID && strings.TrimSpace(consumer) != engine.TextAnnotationTrfConsumerID && localEnvironmentHostSupportsCUDA(host) {
 		return "cuda"
 	}
 	return "cpu"

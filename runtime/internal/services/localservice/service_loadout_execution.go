@@ -332,13 +332,17 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 	profile := collectDeviceProfile()
 	host := localEnvironmentHostProfileFromDeviceProfile(profile)
 	switch typed := driver.(type) {
-	case capabilitydriver.SpacyDriver:
-		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.TextAnnotationConsumerID, func(root string) string { return filepath.Join(root, "text_annotation_server.py") }, profile)
+	case capabilitydriver.SpacyDriver, capabilitydriver.SpacyTrfDriver:
+		annotationConsumer := engine.TextAnnotationConsumerID
+		if _, transformer := typed.(capabilitydriver.SpacyTrfDriver); transformer {
+			annotationConsumer = engine.TextAnnotationTrfConsumerID
+		}
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(annotationConsumer, func(root string) string { return filepath.Join(root, "text_annotation_server.py") }, profile)
 		if !ok {
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Language analysis environment is not ready", map[string]string{"detail": detail})
 		}
 		return []localexecution.ExactDependencySource{{DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID,
-			ConsumerScope: engine.TextAnnotationConsumerID, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version,
+			ConsumerScope: annotationConsumer, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version,
 			VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}}, nil
 	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver:
 		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.FaceSwapConsumerID, func(root string) string { return filepath.Join(root, "face_swap_server.py") }, profile)

@@ -811,7 +811,7 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		return append(packageManifest.ImportProbes, "face_swap"), nil
 	}
-	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+	if strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == TextAnnotationTrfConsumerID {
 		return append(packageManifest.ImportProbes, "spacy_text_annotation"), nil
 	}
 	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
@@ -856,7 +856,7 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 
 func verifyPythonDependencyProfileDriverBundle(root string, consumer string) error {
 	trimmedConsumer := strings.TrimSpace(consumer)
-	if trimmedConsumer == TextAnnotationConsumerID {
+	if trimmedConsumer == TextAnnotationConsumerID || trimmedConsumer == TextAnnotationTrfConsumerID {
 		return verifyTextAnnotationDriverBundle(root)
 	}
 	if trimmedConsumer == TextDecisionConsumerID {
@@ -886,7 +886,7 @@ func pythonDependencyProfileDriverCommands(root string, consumer string) map[str
 
 func pythonDependencyProfileDriverScripts(root string, consumer string) []string {
 	trimmedConsumer := strings.TrimSpace(consumer)
-	if trimmedConsumer == TextAnnotationConsumerID {
+	if trimmedConsumer == TextAnnotationConsumerID || trimmedConsumer == TextAnnotationTrfConsumerID {
 		return []string{filepath.Join(root, "text_annotation_server.py")}
 	}
 	if trimmedConsumer == TextDecisionConsumerID {

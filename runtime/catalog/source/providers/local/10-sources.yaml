@@ -239,6 +239,10 @@ sources:
     url: https://github.com/explosion/spacy-models/releases/tag/en_core_web_md-3.8.0
     retrieved_at: 2026-09-24
     note: Official spaCy en_core_web_md 3.8.0 release. The release notes publish the wheel SHA-256; its en_core_web_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed English analysis ModelAsset. Upstream license MIT. Its 2 GiB min_ram_bytes covers the 1069 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+  - source_id: spacy_models_en_core_web_trf_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/en_core_web_trf-3.8.0
+    retrieved_at: 2026-09-29
+    note: Official MIT spaCy English curated-transformer 3.8.0 release. The 457421864-byte wheel SHA-256 is 272a31e9d8530d1e075351d30a462d7e80e31da23574f1b274e200f3fff35bf5; its data directory is the ModelAsset. A standalone Windows CPU probe loaded it with spacy-curated-transformers 0.3.1 and Torch 2.11.0+cpu; peak working set was 2787602432 bytes.
   - source_id: spacy_models_de_core_news_md_3_8_0_release
     url: https://github.com/explosion/spacy-models/releases/tag/de_core_news_md-3.8.0
     retrieved_at: 2026-09-24

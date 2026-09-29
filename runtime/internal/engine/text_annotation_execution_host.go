@@ -123,14 +123,15 @@ func (host *TextAnnotationExecutionHost) start(ctx context.Context, plan *capabi
 		return executionFailure(localexecution.FailureLoad, err)
 	}
 	profile := manifest.Identity
-	if profile.PlatformTuple != runtime.GOOS+"/"+runtime.GOARCH || profile.AcceleratorPlane != "cpu" || manifest.ValidationConsumer != TextAnnotationConsumerID ||
+	if (plan.ProfileConsumerID != TextAnnotationConsumerID && plan.ProfileConsumerID != TextAnnotationTrfConsumerID) ||
+		profile.PlatformTuple != runtime.GOOS+"/"+runtime.GOARCH || profile.AcceleratorPlane != "cpu" || manifest.ValidationConsumer != plan.ProfileConsumerID ||
 		profile.ProfileDigest != plan.ProfileDigest || profile.DriverBundleDigest != plan.DriverBundleDigest || profile.DriverProtocol != plan.DriverProtocol {
 		return executionFailure(localexecution.FailureLoad, fmt.Errorf("captured annotation profile does not match the Worker"))
 	}
-	if err := VerifyPythonDependencyProfileStaticContent(plan.ProfileRoot, TextAnnotationConsumerID, profile); err != nil {
+	if err := VerifyPythonDependencyProfileStaticContent(plan.ProfileRoot, plan.ProfileConsumerID, profile); err != nil {
 		return err
 	}
-	identity := plan.ProfileRoot + "\n" + plan.ProfileDigest + "\n" + plan.DriverBundleDigest + "\n" + plan.DriverProtocol + "\n" + plan.Binding.BundleDir + "\n" + plan.Binding.VerifiedContentID
+	identity := plan.ProfileConsumerID + "\n" + plan.ProfileRoot + "\n" + plan.ProfileDigest + "\n" + plan.DriverBundleDigest + "\n" + plan.DriverProtocol + "\n" + plan.Binding.BundleDir + "\n" + plan.Binding.VerifiedContentID
 	info, statusErr := host.manager.EngineStatus(engineTextAnnotationHost)
 	if statusErr == nil && info.Status == StatusHealthy && info.PID > 0 && host.identity == identity && host.token != "" {
 		return nil
@@ -153,6 +154,9 @@ func (host *TextAnnotationExecutionHost) start(ctx context.Context, plan *capabi
 	token := hex.EncodeToString(secret)
 	env := pythonDependencyProfileReadOnlyEnv()
 	env["NIMI_RUNTIME_NLP_ADMISSION_TOKEN"] = token
+	if plan.ProfileConsumerID == TextAnnotationTrfConsumerID {
+		env["NIMI_RUNTIME_NLP_MODEL_KIND"] = "curated-trf"
+	}
 	cfg := EngineConfig{
 		Kind: engineTextAnnotationHost, Port: port, BinaryPath: managedPythonPath(plan.ProfileRoot),
 		CommandArgs: []string{filepath.Join(plan.ProfileRoot, "text_annotation_server.py"), "--port", strconv.Itoa(port)},

@@ -26,7 +26,7 @@ def create_app(token: str) -> FastAPI:
     if not token:
         raise ValueError("Runtime NLP admission token is required")
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
-    worker = AnnotationWorker()
+    worker = AnnotationWorker(os.environ.get("NIMI_RUNTIME_NLP_MODEL_KIND", "md"))
     lease = threading.Lock()
 
     @app.get("/health")

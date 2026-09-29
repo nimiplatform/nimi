@@ -18,6 +18,9 @@ const (
 	SpacyDriverID         = "nimi.runtime.driver.spacy"
 	SpacyDriverDialect    = "spacy/text-annotate/v1"
 	SpacyConsumerID       = "text.spacy.python"
+	SpacyTrfDriverDialect = "spacy/text-annotate/curated-trf/v1"
+	SpacyTrfConsumerID    = "text.spacy-curated.python"
+	SpacyTrfRecipeID      = "spacy-trf-en"
 	SpacyProtocol         = "nimi-text-annotate/1"
 	SpacyModelSlot        = "text.model"
 )
@@ -141,6 +144,7 @@ type TextAnnotationInvocationInput struct {
 type TextAnnotationInvocationPlan struct {
 	Request            *runtimev1.TextAnnotateScenarioSpec
 	Binding            InvocationExactBinding
+	ProfileConsumerID  string
 	ProfileRoot        string
 	ProfileDigest      string
 	DriverBundleDigest string
@@ -148,14 +152,17 @@ type TextAnnotationInvocationPlan struct {
 }
 
 func (SpacyDriver) PlanTextAnnotationInvocation(input TextAnnotationInvocationInput) (*TextAnnotationInvocationPlan, error) {
-	language := SpacyRecipeLanguage(input.RecipeID)
+	return planSpacyAnnotationInvocation(input, SpacyRecipeLanguage(input.RecipeID), SpacyConsumerID)
+}
+
+func planSpacyAnnotationInvocation(input TextAnnotationInvocationInput, language, consumerID string) (*TextAnnotationInvocationPlan, error) {
 	if language == "" || input.Request == nil || input.Request.Language != language || len(input.Bindings) != 1 || input.Bindings[0].RequirementID != SpacyModelSlot {
 		return nil, fmt.Errorf("annotation language must match its captured model recipe")
 	}
 	var profile *InvocationExactDependencySource
 	for index := range input.DependencySources {
 		source := &input.DependencySources[index]
-		if source.DependencyFamily == "python.package-set" && source.ConsumerScope == SpacyConsumerID {
+		if source.DependencyFamily == "python.package-set" && source.ConsumerScope == consumerID {
 			if profile != nil {
 				return nil, fmt.Errorf("annotation profile capture is ambiguous")
 			}
@@ -168,6 +175,7 @@ func (SpacyDriver) PlanTextAnnotationInvocation(input TextAnnotationInvocationIn
 	}
 	return &TextAnnotationInvocationPlan{
 		Request: proto.Clone(input.Request).(*runtimev1.TextAnnotateScenarioSpec), Binding: cloneInvocationExactBindings(input.Bindings)[0],
-		ProfileRoot: profile.CanonicalRoot, ProfileDigest: profile.Version, DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], DriverProtocol: SpacyProtocol,
+		ProfileConsumerID: consumerID,
+		ProfileRoot:       profile.CanonicalRoot, ProfileDigest: profile.Version, DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], DriverProtocol: SpacyProtocol,
 	}, nil
 }

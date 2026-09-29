@@ -81,7 +81,7 @@ func PythonDependencyProfileStaticFiles(consumer string, identity PythonDependen
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		return append(files, faceSwapDriverStaticFiles()...), nil
 	}
-	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+	if strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == TextAnnotationTrfConsumerID {
 		return append(files, textAnnotationDriverStaticFiles()...), nil
 	}
 	if strings.TrimSpace(consumer) == TextDecisionConsumerID {
@@ -221,6 +221,11 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 			return "", fmt.Errorf("text annotation profile requires CPU")
 		}
 		return "text-spacy-cpu", nil
+	case TextAnnotationTrfConsumerID:
+		if platformTuple != "windows/amd64" || acceleratorPlane != "cpu" {
+			return "", fmt.Errorf("text transformer annotation profile requires windows/amd64 CPU")
+		}
+		return "text-spacy-curated-cpu", nil
 	case TextDecisionConsumerID:
 		return textDecisionPythonSourceLabel(platformTuple, acceleratorPlane)
 	case FaceSwapConsumerID:
@@ -300,7 +305,7 @@ func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane stri
 }
 
 func pythonDependencyProfileDriverProtocol(consumer string) string {
-	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+	if strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == TextAnnotationTrfConsumerID {
 		return capabilitydriver.SpacyProtocol
 	}
 	if strings.TrimSpace(consumer) == TextDecisionConsumerID {
@@ -323,7 +328,7 @@ func speechDriverBundleDigest(consumer string) (string, error) {
 }
 
 func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol string) (string, error) {
-	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+	if strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == TextAnnotationTrfConsumerID {
 		lines := []string{"driver_protocol=" + driverProtocol}
 		for _, file := range textAnnotationDriverStaticFiles() {
 			lines = append(lines, "file="+file.RelativePath, string(file.Content))

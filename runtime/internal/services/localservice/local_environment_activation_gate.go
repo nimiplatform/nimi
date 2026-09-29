@@ -259,6 +259,8 @@ func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmen
 	switch strings.TrimSpace(consumerID) {
 	case engine.TextAnnotationConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: engine.TextAnnotationConsumerID, PackID: "local-nlp"}, true
+	case engine.TextAnnotationTrfConsumerID, engine.TextAnnotationTrfConsumerID + ".cpu":
+		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-nlp-transformer"}, true
 	case engine.FaceSwapConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: engine.FaceSwapConsumerID, PackID: "local-face-swap"}, true
 	case engine.VisionLocateConsumerID, engine.VisionLocateConsumerID + ".cuda", engine.VisionLocateConsumerID + ".cpu":
