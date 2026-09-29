@@ -312,12 +312,12 @@ models:
       output: "9.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi currently admits only single-speaker Kore WAV at 24 kHz.
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore WAV at 24 kHz.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
       retrieved_at: 2026-09-29
       note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
-    voice_set_id: gemini:gemini-3-8-kore-v1
+    voice_set_id: gemini:gemini-3-8-kore-v2
     voice_discovery_mode: static_catalog
     voice_request_options:
       timing_modes:
@@ -339,12 +339,12 @@ models:
       output: "6.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi currently admits only single-speaker Kore WAV at 24 kHz.
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore WAV at 24 kHz.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-lite-tts
       retrieved_at: 2026-09-29
       note: Stable Gemini 3.8 Flash-Lite TTS exact model code with the same native speech request schema and default WAV output.
-    voice_set_id: gemini:gemini-3-8-kore-v1
+    voice_set_id: gemini:gemini-3-8-kore-v2
     voice_discovery_mode: static_catalog
     voice_request_options:
       timing_modes:
@@ -447,11 +447,12 @@ models:
     context_window_tokens: 8192
 voices:
   - voice_id: Kore
-    voice_set_id: gemini:gemini-3-8-kore-v1
+    voice_set_id: gemini:gemini-3-8-kore-v2
     provider: gemini
     name: Kore
     langs:
       - en
+      - zh
     model_ids:
       - gemini-3.8-flash-tts
       - gemini-3.8-flash-lite-tts

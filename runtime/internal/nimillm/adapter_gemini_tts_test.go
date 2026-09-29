@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -33,6 +34,7 @@ func testGeminiTTSWAV() []byte {
 
 func TestGeminiTTSGenerateContentUsesNativeVoiceAndMeasuredWAV(t *testing.T) {
 	wav := testGeminiTTSWAV()
+	var submittedTexts []string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/models/gemini-3.8-flash-tts:generateContent" ||
 			r.Header.Get("x-goog-api-key") != "gemini-key" || r.Header.Get("Authorization") != "" {
@@ -43,6 +45,14 @@ func TestGeminiTTSGenerateContentUsesNativeVoiceAndMeasuredWAV(t *testing.T) {
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Errorf("decode request: %v", err)
+		}
+		contents, _ := body["contents"].([]any)
+		if len(contents) != 1 {
+			t.Errorf("Gemini TTS content count = %d", len(contents))
+		} else if parts, ok := MapField(contents[0], "parts").([]any); !ok || len(parts) != 1 {
+			t.Error("Gemini TTS text part is missing")
+		} else {
+			submittedTexts = append(submittedTexts, ValueAsString(MapField(parts[0], "text")))
 		}
 		config, _ := body["generationConfig"].(map[string]any)
 		voice := MapField(config["speechConfig"], "voiceConfig")
@@ -57,6 +67,26 @@ func TestGeminiTTSGenerateContentUsesNativeVoiceAndMeasuredWAV(t *testing.T) {
 	artifacts, usage, providerJobID, err := ExecuteGeminiTTSGenerateContent(context.Background(), MediaAdapterConfig{BaseURL: server.URL + "/v1beta/openai", APIKey: "gemini-key", AllowLoopbackEndpoint: true}, req, "gemini-3.8-flash-tts")
 	if err != nil || providerJobID != "" || usage != nil || len(artifacts) != 1 || artifacts[0].GetMimeType() != "audio/wav" || artifacts[0].GetSampleRateHz() != 24000 || artifacts[0].GetDurationMs() != 100 || len(artifacts[0].GetBytes()) != len(wav) {
 		t.Fatalf("Gemini TTS output artifacts=%+v usage=%+v providerJob=%q err=%v", artifacts, usage, providerJobID, err)
+	}
+	chinese := req.GetSpec().GetSpeechSynthesize()
+	chinese.Text = "你好，欢迎使用 Nimi。"
+	chinese.Language = "zh"
+	if _, _, _, err := ExecuteGeminiTTSGenerateContent(context.Background(), MediaAdapterConfig{BaseURL: server.URL + "/v1beta/openai", APIKey: "gemini-key", AllowLoopbackEndpoint: true}, req, "gemini-3.8-flash-tts"); err != nil {
+		t.Fatalf("Chinese Gemini TTS failed: %v", err)
+	}
+	if !reflect.DeepEqual(submittedTexts, []string{"Hello from Nimi.", "你好，欢迎使用 Nimi。"}) {
+		t.Fatalf("Gemini TTS transcript text changed: %q", submittedTexts)
+	}
+	chinese.Language = "ja"
+	if _, _, _, err := ExecuteGeminiTTSGenerateContent(context.Background(), MediaAdapterConfig{BaseURL: server.URL + "/v1beta/openai", APIKey: "gemini-key", AllowLoopbackEndpoint: true}, req, "gemini-3.8-flash-tts"); err != nil {
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("unsupported Host language reason=%v ok=%v err=%v", reason, ok, err)
+		}
+	} else {
+		t.Fatal("Gemini TTS Host accepted an unadmitted language")
+	}
+	if len(submittedTexts) != 2 {
+		t.Fatalf("unsupported language reached Gemini Host: %q", submittedTexts)
 	}
 }
 

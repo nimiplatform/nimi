@@ -154,11 +154,11 @@ sources:
     note: Gemini 3.1 Pro preview model card.
 
 language_profiles:
-  gemini_tts_english_v1: [en]
+  gemini_tts_en_zh_v2: [en, zh]
 
 voice_sets:
-  - voice_set_id: gemini-3-8-kore-v1
-    langs: [en]
+  - voice_set_id: gemini-3-8-kore-v2
+    langs: [en, zh]
     source_ids: [gemini_3_8_flash_tts_doc, gemini_3_8_flash_lite_tts_doc, gemini_tts_guide]
     voices:
       - voice_id: Kore
@@ -417,9 +417,9 @@ models:
     capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
-      voice_set_ref: gemini-3-8-kore-v1
+      voice_set_ref: gemini-3-8-kore-v2
       supports_voice_ref_kinds: [preset_voice_id]
-      langs_ref: gemini_tts_english_v1
+      langs_ref: gemini_tts_en_zh_v2
       request_options:
         timing_modes: [none]
         audio_formats: [wav]
@@ -430,7 +430,7 @@ models:
       output: "9.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi currently admits only single-speaker Kore WAV at 24 kHz.
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore WAV at 24 kHz.
     source_ids: [gemini_3_8_flash_tts_doc, gemini_tts_guide, gemini_pricing_doc]
 
   - model_id: gemini-3.8-flash-lite-tts
@@ -439,9 +439,9 @@ models:
     capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
-      voice_set_ref: gemini-3-8-kore-v1
+      voice_set_ref: gemini-3-8-kore-v2
       supports_voice_ref_kinds: [preset_voice_id]
-      langs_ref: gemini_tts_english_v1
+      langs_ref: gemini_tts_en_zh_v2
       request_options:
         timing_modes: [none]
         audio_formats: [wav]
@@ -452,7 +452,7 @@ models:
       output: "6.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi currently admits only single-speaker Kore WAV at 24 kHz.
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore WAV at 24 kHz.
     source_ids: [gemini_3_8_flash_lite_tts_doc, gemini_tts_guide, gemini_pricing_doc]
 
   - model_id: gemini-3.5-transcribe

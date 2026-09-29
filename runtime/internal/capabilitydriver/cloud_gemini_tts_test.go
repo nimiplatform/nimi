@@ -18,6 +18,13 @@ func TestGeminiTTSDriverAdmitsOnlyExactKoreWAV(t *testing.T) {
 	if err != nil || mapped.Adapter() != CloudMediaAdapterGeminiTTSGenerateContent {
 		t.Fatalf("exact Gemini TTS mapping=%+v err=%v", mapped, err)
 	}
+	chinese := *spec
+	chinese.Text = "你好，欢迎使用 Nimi。"
+	chinese.Language = "zh"
+	chineseRequest := &runtimev1.SubmitScenarioJobRequest{ScenarioType: request.ScenarioType, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &chinese}}}
+	if mapped, err := driver.MapRequest(target, chineseRequest, nil, CloudMediaStreamNone); err != nil || mapped.Adapter() != CloudMediaAdapterGeminiTTSGenerateContent {
+		t.Fatalf("Chinese Gemini TTS mapping=%+v err=%v", mapped, err)
+	}
 	cases := []struct {
 		name   string
 		mutate func(*runtimev1.SpeechSynthesizeScenarioSpec)
@@ -26,6 +33,7 @@ func TestGeminiTTSDriverAdmitsOnlyExactKoreWAV(t *testing.T) {
 			s.VoiceRef.Reference = &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "Puck"}
 		}},
 		{"mp3", func(s *runtimev1.SpeechSynthesizeScenarioSpec) { s.AudioFormat = "mp3" }},
+		{"other language", func(s *runtimev1.SpeechSynthesizeScenarioSpec) { s.Language = "ja" }},
 		{"rate", func(s *runtimev1.SpeechSynthesizeScenarioSpec) { s.SampleRateHz = testInt32(16000) }},
 		{"emotion", func(s *runtimev1.SpeechSynthesizeScenarioSpec) { s.Emotion = "cheerful" }},
 		{"word timing", func(s *runtimev1.SpeechSynthesizeScenarioSpec) {
@@ -62,5 +70,10 @@ func TestGeminiTTSLiteUsesSameExactDialect(t *testing.T) {
 	mapped, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone)
 	if err != nil || mapped.Adapter() != CloudMediaAdapterGeminiTTSGenerateContent {
 		t.Fatalf("Lite TTS mapping=%+v err=%v", mapped, err)
+	}
+	request.GetSpec().GetSpeechSynthesize().Text = "你好，欢迎使用 Nimi 轻量版。"
+	request.GetSpec().GetSpeechSynthesize().Language = "zh"
+	if mapped, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone); err != nil || mapped.Adapter() != CloudMediaAdapterGeminiTTSGenerateContent {
+		t.Fatalf("Lite Chinese TTS mapping=%+v err=%v", mapped, err)
 	}
 }

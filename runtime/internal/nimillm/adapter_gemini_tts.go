@@ -43,7 +43,8 @@ func ExecuteGeminiTTSGenerateContent(
 	}
 	spec := scenarioSpeechSynthesizeSpec(req)
 	if !geminiTTSModelAdmitted(model) || spec == nil || spec.GetVoiceRef().GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET ||
-		spec.GetVoiceRef().GetPresetVoiceId() != "Kore" || strings.TrimSpace(spec.GetText()) == "" {
+		spec.GetVoiceRef().GetPresetVoiceId() != "Kore" || strings.TrimSpace(spec.GetText()) == "" ||
+		(spec.GetLanguage() != "" && spec.GetLanguage() != "en" && spec.GetLanguage() != "zh") {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	payload := map[string]any{

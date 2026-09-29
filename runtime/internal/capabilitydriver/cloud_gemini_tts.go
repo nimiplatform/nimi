@@ -19,12 +19,12 @@ func geminiTTSModelAdmitted(model string) bool {
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r051
 // validateGeminiTTSRequest limits the native GenerateContent dialect to one
-// explicit prebuilt voice and complete WAV output. No requested control is
+// explicit prebuilt voice, English or Chinese text, and complete WAV output. No requested control is
 // silently converted into transcript text or ignored by the Host.
 func validateGeminiTTSRequest(request *runtimev1.SubmitScenarioJobRequest, model string, streamMode CloudMediaStreamMode) error {
 	unsupported := func() error {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-			Message:    "Gemini 3.8 Flash TTS currently supports single-speaker Kore as a complete 24 kHz WAV; other voices, speech controls, timing and streaming are unavailable",
+			Message:    "Gemini 3.8 Flash TTS currently supports English or Chinese single-speaker Kore as a complete 24 kHz WAV; other voices, speech controls, timing and streaming are unavailable",
 			ActionHint: "choose_gemini_kore_wav_single_speaker",
 		})
 	}
@@ -38,7 +38,7 @@ func validateGeminiTTSRequest(request *runtimev1.SubmitScenarioJobRequest, model
 		ref.GetPresetVoiceId() != "Kore" || strings.TrimSpace(spec.GetText()) == "" {
 		return unsupported()
 	}
-	if (spec.GetLanguage() != "" && spec.GetLanguage() != "en") ||
+	if (spec.GetLanguage() != "" && spec.GetLanguage() != "en" && spec.GetLanguage() != "zh") ||
 		(spec.GetAudioFormat() != "" && !strings.EqualFold(spec.GetAudioFormat(), "wav")) ||
 		(spec.SampleRateHz != nil && spec.GetSampleRateHz() != 24000) ||
 		spec.Speed != nil || spec.Pitch != nil || spec.Volume != nil ||
