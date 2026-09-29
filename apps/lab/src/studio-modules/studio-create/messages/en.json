@@ -22,7 +22,13 @@
         "primaryRunningLabel": "Generating…",
         "emptyTitle": "Waiting for generation",
         "emptyHint": "Your generated text will appear here.",
-        "footnote": "Your request will be sent to the runtime to generate content."
+        "footnote": "Your request will be sent to the runtime to generate content.",
+        "imageInvalid": "Attach one PNG, JPEG, WebP, or GIF image for this request.",
+        "imageTooLarge": "The selected image must be a non-empty image of at most 32 MiB.",
+        "imageStopped": "The image request stopped before model execution.",
+        "imageOutputInvalid": "Runtime did not return one complete text result for this image.",
+        "imageCompleted": "Runtime completed the protected image-and-text request.",
+        "imageCompletedWithoutSource": "Runtime returned the image description, but Lab could not save the source image for History."
       },
       "chatStream": {
         "inputTitle": "Test chat streaming",

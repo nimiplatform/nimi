@@ -22,7 +22,13 @@
         "primaryRunningLabel": "生成中…",
         "emptyTitle": "等待生成",
         "emptyHint": "生成的文本会显示在这里。",
-        "footnote": "你的请求会发送到 Runtime 以生成内容。"
+        "footnote": "你的请求会发送到 Runtime 以生成内容。",
+        "imageInvalid": "请为这次请求附上一张 PNG、JPEG、WebP 或 GIF 图片。",
+        "imageTooLarge": "所选图片必须非空，且不超过 32 MiB。",
+        "imageStopped": "图片请求已在模型执行前停止。",
+        "imageOutputInvalid": "Runtime 未为这张图片返回一条完整文本结果。",
+        "imageCompleted": "Runtime 已完成受保护的图文请求。",
+        "imageCompletedWithoutSource": "Runtime 已返回图片描述，但 Lab 未能把原图保存到历史记录。"
       },
       "chatStream": {
         "inputTitle": "测试聊天流式输出",

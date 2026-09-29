@@ -87,7 +87,7 @@ function TextStudioShell({
   const displayedRun = displayingExecution ? executingRun : activeRun;
   const expandedHistoryErrorRef = useRef<string | null>(null);
   const attachmentAdapter = useMemo(
-    () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment', ...(capability.id === 'vision.locate' ? { maxAttachments: 1, accept: ['image/png','image/jpeg','image/webp','image/gif'] } : {}) }),
+		() => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment', ...((capability.id === 'vision.locate' || capability.id === 'text.generate') ? { maxAttachments: 1, accept: ['image/png','image/jpeg','image/webp','image/gif'] } : {}) }),
     [capability.id],
   );
   const composerState = useChatComposer<BrowserDataUrlAttachment>({

@@ -6,7 +6,7 @@ export const studioCreateDescriptors = Object.freeze([
     section: 'chat',
     summary: 'Prompt → text.generate CapabilityContract → typed Runtime result.',
     summaryKey: 'Capabilities.textGenerate.summary',
-    surface: 'sdk.localApp.ai.text.generateCandidate → RuntimeAiService.GenerateLocalAppTextCandidate',
+		surface: 'sdk.localApp.ai.text.generateCandidate; image input uses artifacts.upload → scenario.execute:text-generate',
     execution: 'runtime-sdk', capabilityContract: 'text.generate',
   },
   {

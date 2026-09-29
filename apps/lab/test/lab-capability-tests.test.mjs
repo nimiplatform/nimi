@@ -555,6 +555,36 @@ test('unsupported media settings offer parameter correction instead of a blind r
   assert.notEqual(t('NonSuccess.action.mediaOptionUnsupported'), t('NonSuccess.action.runtimeCallFailed'));
 });
 
+test('image-assisted text history keeps and verifies the saved source image', async () => {
+  const { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult, projectStudioManagedHistory } = await load('ai-studio-core/history.js');
+  const sourceImage = {
+    relativePath: 'studio/text-generate-inputs/one.jpg', mediaType: 'image/jpeg', sizeBytes: 4,
+    sha256: `sha256:${'a'.repeat(64)}`, displayName: 'cats.jpg', previewSource: 'managed-asset',
+  };
+  const record = createStudioRunHistoryRecord({
+    result: {
+      ok: true, capabilityId: 'text.generate', capabilityLabel: 'Text Studio', message: 'Image described.',
+      output: { kind: 'text', text: 'Two cats and two remotes.', finishReason: 'stop', streamed: false, sourceImage },
+      trace: { traceId: 'trace-image-text' },
+    },
+    prompt: 'Describe the attached image.', runId: 'image-text-run',
+    createdAt: '2026-09-29T08:00:00.000Z',
+  });
+  assert.deepEqual(record.result.sourceImage, sourceImage);
+  const restored = restoreStudioCapabilityRunResult(record, () => 'Text Studio');
+  assert.deepEqual(restored.output.sourceImage, sourceImage);
+  const projected = await projectStudioManagedHistory({
+    runHistory: { 'text.generate': [record] },
+    statArtifact: async () => ({ sha256: sourceImage.sha256, sizeBytes: sourceImage.sizeBytes }),
+  });
+  assert.equal(projected.runHistory['text.generate'][0].status, 'ready');
+  const missing = await projectStudioManagedHistory({
+    runHistory: { 'text.generate': [record] },
+    statArtifact: async () => { throw new Error('saved image missing'); },
+  });
+  assert.equal(missing.runHistory['text.generate'][0].status, 'unavailable');
+});
+
 test('missing media codec points to the Desktop component setup before retry', async () => {
   const {
     studioNonSuccessReasonUserMessage,

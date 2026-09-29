@@ -30,6 +30,89 @@ export const studioCreateRuntimeHandlers: StudioCapabilityRuntimeHandlers = Obje
 async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
   if (!context.prompt) return inputRequired(context);
   const parameters = context.input.parameters as StudioTextCandidateParameters | undefined;
+  const attachments = context.input.attachments ?? [];
+  if (attachments.length > 0) {
+    const image = attachments[0];
+    const allowedMime = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
+    if (attachments.length !== 1 || !image || image.kind !== 'image' ||
+      !allowedMime.some((mime) => mime === image.mimeType)) {
+      return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.profiles.textGenerate.imageInvalid'));
+    }
+    const prefix = `data:${image.mimeType};base64,`;
+    if (!image.dataUrl.startsWith(prefix) || image.dataUrl.length > prefix.length + 4 * Math.ceil(32 * 1024 * 1024 / 3)) {
+      return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.profiles.textGenerate.imageTooLarge'));
+    }
+    if (context.input.signal?.aborted) {
+      return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
+    }
+    let bytes: Uint8Array;
+    try {
+      bytes = Uint8Array.from(atob(image.dataUrl.slice(prefix.length)), (char) => char.charCodeAt(0));
+    } catch {
+      return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.profiles.textGenerate.imageInvalid'));
+    }
+    if (bytes.byteLength === 0 || bytes.byteLength > 32 * 1024 * 1024) {
+      return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.profiles.textGenerate.imageTooLarge'));
+    }
+    const upload = await context.host.client.ai.artifacts.upload({
+      bytes,
+      mimeType: image.mimeType as Parameters<typeof context.host.client.ai.artifacts.upload>[0]['mimeType'],
+    });
+    if (context.input.signal?.aborted) {
+      return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
+    }
+    const response = await context.host.client.ai.scenario.execute({
+      type: 'text-generate',
+      messages: [{
+        role: 'user',
+        text: '',
+        parts: [
+          { type: 'text', text: context.prompt },
+          { type: 'artifact-ref', artifactId: upload.artifactId, mediaType: image.mimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif', displayName: image.name },
+        ],
+      }],
+      ...textCandidateParameters(parameters),
+    });
+    if (response.output.type !== 'text-generate' || response.output.finishReason !== 'stop' ||
+      response.output.items.length !== 1 || response.output.items[0]?.type !== 'text' ||
+      !response.output.items[0].text.trim()) {
+      return context.host.nonSuccess(context.capability, 'runtime-call-failed', context.host.translate('Studio.profiles.textGenerate.imageOutputInvalid'));
+    }
+    const suffix = image.mimeType === 'image/png' ? 'png' : image.mimeType === 'image/webp' ? 'webp' : image.mimeType === 'image/gif' ? 'gif' : 'jpg';
+    const relativePath = `studio/text-generate-inputs/${crypto.randomUUID()}.${suffix}`;
+    let sourceImage;
+    let message = context.host.translate('Studio.profiles.textGenerate.imageCompleted');
+    try {
+      const saved = await context.host.client.storage.assets.write({
+        relativePath, body: bytes, mediaType: image.mimeType, overwrite: false,
+      });
+      if (saved.relativePath !== relativePath || saved.sizeBytes !== bytes.byteLength ||
+        !/^sha256:[0-9a-f]{64}$/u.test(saved.sha256)) {
+        await context.host.client.storage.assets.remove(relativePath).catch(() => undefined);
+        throw new Error('saved image identity mismatch');
+      }
+      sourceImage = {
+        relativePath: saved.relativePath, mediaType: image.mimeType, sizeBytes: saved.sizeBytes,
+        sha256: saved.sha256, displayName: image.name, previewSource: 'managed-asset' as const,
+      };
+    } catch {
+      message = context.host.translate('Studio.profiles.textGenerate.imageCompletedWithoutSource');
+    }
+    return {
+      ok: true as const,
+      capabilityId: context.capability.id,
+      capabilityLabel: context.capability.label,
+      message,
+      output: {
+        kind: 'text' as const,
+        text: response.output.items[0].text,
+        finishReason: response.output.finishReason,
+        streamed: false,
+        ...(sourceImage ? { sourceImage } : {}),
+      },
+      trace: response.traceId ? { traceId: response.traceId } : undefined,
+    };
+  }
   const result = await context.host.client.ai.text.generateCandidate({
     messages: [{ role: 'user', text: context.prompt }],
     ...textCandidateParameters(parameters),

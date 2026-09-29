@@ -317,6 +317,7 @@ function fakeLocalAppClient(overrides = {}) {
     storage: {
       assets: {
         adoptArtifact: overrides.adoptArtifact ?? unavailable('storage.assets.adoptArtifact'),
+        write: overrides.writeAsset ?? unavailable('storage.assets.write'),
         remove: overrides.removeAsset ?? unavailable('storage.assets.remove'),
       },
     },
@@ -810,6 +811,77 @@ test('Lab text.generate projects the protected Local App candidate happy path wi
   assert.deepEqual(calls, [{ messages: [{ role: 'user', text: 'hello' }] }]);
   assert.deepEqual(result.output, { kind: 'text', text: 'generated text', finishReason: 'stop', streamed: false });
   assert.equal(result.trace.traceId, 'trace-text');
+});
+
+test('Lab text.generate uploads one image and sends ordered text plus owned artifact reference', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const calls = [];
+  const bytes = Uint8Array.from([0xff, 0xd8, 0xff, 0xd9]);
+  const dataUrl = `data:image/jpeg;base64,${Buffer.from(bytes).toString('base64')}`;
+  const client = fakeLocalAppClient({
+    async uploadArtifact(input) {
+      calls.push(['upload', input]);
+      return { artifactId: 'owned-image-1' };
+    },
+    async executeScenario(input) {
+      calls.push(['execute', input]);
+      return { traceId: 'trace-image-text', output: {
+        type: 'text-generate', finishReason: 'stop',
+        items: [{ type: 'text', text: 'Two cats are beside a remote control.' }],
+      } };
+    },
+    async writeAsset(input) {
+      calls.push(['write', input]);
+      return { relativePath: input.relativePath, sizeBytes: bytes.byteLength, sha256: `sha256:${'a'.repeat(64)}` };
+    },
+    async generateCandidate() { throw new Error('image request used the text-only candidate'); },
+  });
+  const result = await runLabCapability({
+    capabilityId: 'text.generate',
+    prompt: 'Describe the image.',
+    attachments: [{ id: 'selected-image', kind: 'image', name: 'cats.jpg', mimeType: 'image/jpeg', dataUrl }],
+  }, readyRuntimeDependencies(client));
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls[0], ['upload', { bytes, mimeType: 'image/jpeg' }]);
+  assert.deepEqual(calls[1], ['execute', {
+    type: 'text-generate',
+    messages: [{ role: 'user', text: '', parts: [
+      { type: 'text', text: 'Describe the image.' },
+      { type: 'artifact-ref', artifactId: 'owned-image-1', mediaType: 'image/jpeg', displayName: 'cats.jpg' },
+    ] }],
+  }]);
+  assert.match(calls[2][1].relativePath, /^studio\/text-generate-inputs\/[0-9a-f-]+\.jpg$/u);
+  assert.deepEqual(calls[2][1].body, bytes);
+  assert.equal(calls[2][1].mediaType, 'image/jpeg');
+  assert.equal(calls[2][1].overwrite, false);
+  assert.deepEqual(result.output, {
+    kind: 'text', text: 'Two cats are beside a remote control.', finishReason: 'stop', streamed: false,
+    sourceImage: {
+      relativePath: calls[2][1].relativePath, mediaType: 'image/jpeg', sizeBytes: bytes.byteLength,
+      sha256: `sha256:${'a'.repeat(64)}`, displayName: 'cats.jpg', previewSource: 'managed-asset',
+    },
+  });
+  assert.equal(result.trace.traceId, 'trace-image-text');
+});
+
+test('Lab preserves actual image-generated text when saving the source image fails', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const bytes = Uint8Array.from([0xff, 0xd8, 0xff, 0xd9]);
+  const client = fakeLocalAppClient({
+    async uploadArtifact() { return { artifactId: 'owned-image-2' }; },
+    async executeScenario() { return { traceId: 'trace-image-unsaved', output: {
+      type: 'text-generate', finishReason: 'stop', items: [{ type: 'text', text: 'Two cats.' }],
+    } }; },
+    async writeAsset() { throw new Error('storage unavailable'); },
+  });
+  const result = await runLabCapability({
+    capabilityId: 'text.generate', prompt: 'Describe the image.',
+    attachments: [{ id: 'selected-image', kind: 'image', name: 'cats.jpg', mimeType: 'image/jpeg',
+      dataUrl: `data:image/jpeg;base64,${Buffer.from(bytes).toString('base64')}` }],
+  }, readyRuntimeDependencies(client));
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.output, { kind: 'text', text: 'Two cats.', finishReason: 'stop', streamed: false });
+  assert.match(result.message, /source image|原图/u);
 });
 
 test('Lab text.generate preserves only the exact foreground parameter set including explicit zero values', async () => {

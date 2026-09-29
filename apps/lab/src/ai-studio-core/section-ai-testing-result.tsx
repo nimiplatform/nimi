@@ -15,7 +15,7 @@ import { VisionLocateResultView } from './section-ai-testing-vision-result.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import { formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunIntentLabel, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
 import { studioNonSuccessReasonTitle, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage } from './non-success-presentation.js';
-import { ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
+import { ArtifactMediaPreview, ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
 import { EmbeddingResultBody, KnownJobNotice } from './section-ai-testing-output.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 
@@ -303,7 +303,10 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioR
     ? <VisionLocateResultView output={{kind:'vision-locate', jobId:snapshot.jobId, result:snapshot.result}} />
     : <><p>{snapshot.summary}</p><p className="studio-result__hint">{t('VisionLocate.historySummaryOnly')}</p><pre>{JSON.stringify({ jobId: snapshot.jobId }, null, 2)}</pre></>;
   if (snapshot.kind === 'text') {
-    return <TextStudioOutputBody text={snapshot.body} />;
+    return <div className="studio-result__rich">
+      {snapshot.sourceImage ? <ArtifactMediaPreview artifact={snapshot.sourceImage} fallbackLabel={snapshot.sourceImage.displayName || snapshot.sourceImage.relativePath} /> : null}
+      <TextStudioOutputBody text={snapshot.body} />
+    </div>;
   }
   if (snapshot.kind === 'transcript') {
     return <SpeechTranscriptResultView text={snapshot.body} transcription={snapshot.transcription} />;

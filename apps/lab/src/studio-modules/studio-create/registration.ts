@@ -13,10 +13,10 @@ export const studioCreateModule = Object.freeze({
       descriptor: studioCreateDescriptors[0],
       icon: Sparkles,
       profile: {
-        studioTag: 'Text', inputTitleKey: 'Studio.profiles.textGenerate.inputTitle', inputPlaceholderKey: 'Studio.profiles.textGenerate.inputPlaceholder', inputKind: 'prompt', supportsAttachments: false, controls: ['tone', 'length'], primaryLabelKey: 'Studio.profiles.textGenerate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.textGenerate.primaryRunningLabel', resultTitle: 'Generated result', emptyTitleKey: 'Studio.profiles.textGenerate.emptyTitle', emptyHintKey: 'Studio.profiles.textGenerate.emptyHint', resultKind: 'text', footnoteKey: 'Studio.profiles.textGenerate.footnote',
+		studioTag: 'Text', inputTitleKey: 'Studio.profiles.textGenerate.inputTitle', inputPlaceholderKey: 'Studio.profiles.textGenerate.inputPlaceholder', inputKind: 'prompt', supportsAttachments: true, controls: ['tone', 'length'], primaryLabelKey: 'Studio.profiles.textGenerate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.textGenerate.primaryRunningLabel', resultTitle: 'Generated result', emptyTitleKey: 'Studio.profiles.textGenerate.emptyTitle', emptyHintKey: 'Studio.profiles.textGenerate.emptyHint', resultKind: 'text', footnoteKey: 'Studio.profiles.textGenerate.footnote',
       },
       preset: { id: 'acceptance-note', label: 'Acceptance note', prompt: 'Write a concise acceptance note for a Runtime-backed Nimi App that can generate helpful content.' },
-      runtimeMethod: 'sdk.localApp.ai.text.generateCandidate',
+		runtimeMethod: 'sdk.localApp.ai.text.generateCandidate / scenario.execute:text-generate with image',
       parameters: studioTextGenerateParameters,
       parameterPanel: StudioCreateParameterPanel,
     },

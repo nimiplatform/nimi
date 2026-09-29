@@ -18,7 +18,7 @@ import { formatStudioRunTimestamp } from './history.js';
 import { isStoppedDirectCall, studioNonSuccessNeedsTargetReselection, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage, type StudioTranslate } from './non-success-presentation.js';
 import { countStudioWords } from './studio-directives.js';
 import type { CapabilityStatus } from './section-ai-testing-admission.js';
-import { ArtifactMediaResult, EmbeddingResultBody, KnownJobNotice, RuntimeDiagnosticsActions, formatTypedOutput, formatNonSuccessOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
+import { ArtifactMediaPreview, ArtifactMediaResult, EmbeddingResultBody, KnownJobNotice, RuntimeDiagnosticsActions, formatTypedOutput, formatNonSuccessOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
 
 // Readable body for a successful typed result (light surface), with structured
 // summaries for embedding / voice-catalog rather than raw JSON (which moves to
@@ -28,7 +28,10 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
   const output = result.output;
   if (output.kind === 'vision-locate') return <VisionLocateResultView output={output} />;
   if (output.kind === 'text') {
-    return <TextStudioOutputBody text={output.text} />;
+    return <div className="studio-result__rich">
+      {output.sourceImage ? <ArtifactMediaPreview artifact={output.sourceImage} fallbackLabel={output.sourceImage.displayName || output.sourceImage.relativePath} /> : null}
+      <TextStudioOutputBody text={output.text} />
+    </div>;
   }
   if (output.kind === 'transcript') {
     return <SpeechTranscriptResultView text={output.text} transcription={output.transcription} />;

@@ -64,6 +64,7 @@ export type StudioRunHistoryResultSnapshot =
       inputTokens?: number;
       outputTokens?: number;
       totalTokens?: number;
+      sourceImage?: StudioManagedArtifact;
       traceId?: string;
     }
   | {
@@ -280,6 +281,10 @@ export async function projectStudioManagedHistory(input: {
         // The saved document is the only complete result; reopening never
         // presents a missing or altered document as saved.
         const verification = await verifyStudioManagedArtifact(input.statArtifact, result.document, record);
+        if (verification.status === 'unavailable') unavailableReason = verification.message;
+      }
+      if (result?.ok === true && result.kind === 'text' && result.sourceImage) {
+        const verification = await verifyStudioManagedArtifact(input.statArtifact, result.sourceImage, record);
         if (verification.status === 'unavailable') unavailableReason = verification.message;
       }
       if (unavailableReason && record.status === 'ready') {
@@ -548,6 +553,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
       inputTokens: output.inputTokens,
       outputTokens: output.outputTokens,
       totalTokens: output.totalTokens,
+      ...(output.sourceImage ? { sourceImage: { ...output.sourceImage } } : {}),
       ...trace,
     };
   }
@@ -720,6 +726,7 @@ export function restoreStudioCapabilityRunResult(
         inputTokens: snapshot.inputTokens,
         outputTokens: snapshot.outputTokens,
         totalTokens: snapshot.totalTokens,
+        ...(snapshot.sourceImage ? { sourceImage: { ...snapshot.sourceImage } } : {}),
       },
     };
   }

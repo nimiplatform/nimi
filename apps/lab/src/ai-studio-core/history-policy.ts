@@ -226,6 +226,12 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
   if (kind === 'text') {
     requiredString(value.body, `${path}.body`);
     nonNegativeNumber(value.charCount, `${path}.charCount`);
+    if (value.sourceImage !== undefined) {
+      validateManagedArtifact(value.sourceImage, `${path}.sourceImage`);
+      if (!isJsonObject(value.sourceImage) || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(String(value.sourceImage.mediaType))) {
+        historyError(`${path}.sourceImage`, 'requires a saved image');
+      }
+    }
     requiredString(value.finishReason, `${path}.finishReason`);
     if (typeof value.streamed !== 'boolean') historyError(`${path}.streamed`, 'requires a boolean');
     optionalNonNegativeNumber(value.inputTokens, `${path}.inputTokens`);
