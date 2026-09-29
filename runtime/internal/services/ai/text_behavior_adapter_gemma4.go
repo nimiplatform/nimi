@@ -24,6 +24,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	registrations = append(registrations, qwen35Q4TextBehaviorRegistration())
 	registrations = append(registrations, anthropicSonnet46TextBehaviorRegistration())
 	registrations = append(registrations, dashscopeQwen38FlashBehaviorRegistration())
+	registrations = append(registrations, dashscopeQwen38Max0902BehaviorRegistration())
 	registrations = append(registrations,
 		deepseekChatBehaviorRegistration("deepseek-flash", "deepseek.flash.chat"),
 		deepseekChatBehaviorRegistration("deepseek-v4-flash", "deepseek.v4-flash.chat"),

@@ -713,6 +713,24 @@ models:
       retrieved_at: 2026-09-29
       note: Exact Qwen3.8-Flash API ID, one-million-token context and base text/advanced behavior capabilities; prices vary by region.
     context_window_tokens: 8192
+  - model_id: qwen3.8-max-0902
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-09-02
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-29
+      notes: Fixed Qwen3.8-Max September 2 snapshot. Official Beijing input/output list prices are CNY 12/36 per million tokens; other regions and workspace terms differ. Nimi admits separately verified synchronous non-thinking Function Tool auto and strict JSON Schema combinations; reasoning, advanced streaming and other combinations are not inferred.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen3-8-max
+      retrieved_at: 2026-09-29
+      note: Exact Qwen3.8-Max-0902 snapshot API ID, one-million-token context and text/Function Calling/structured-output capabilities; prices vary by region.
+    context_window_tokens: 8192
   - model_id: qwen3.7-max
     provider: dashscope
     model_type: chat
