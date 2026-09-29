@@ -1024,10 +1024,12 @@ func selectedSpeechExecutionForTest(t *testing.T, contract string, configuration
 	t.Helper()
 	var driver capabilitydriver.Driver
 	var identity capabilitydriver.Identity
+	recipeID := fmt.Sprintf("recipe.%s.%s", contract, configurationID)
 	switch contract {
 	case capabilitydriver.AudioSynthesizeContract:
 		driver = capabilitydriver.Qwen3TTSDriver{}
 		identity = capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3TTSImplementationID, DriverID: capabilitydriver.Qwen3TTSDriverID, DriverDialect: capabilitydriver.Qwen3TTSDriverDialect}
+		recipeID = capabilitydriver.Qwen3TTSBaseRecipeID
 	case capabilitydriver.AudioTranscribeContract:
 		driver = capabilitydriver.Qwen3ASRDriver{}
 		identity = capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3ASRImplementationID, DriverID: capabilitydriver.Qwen3ASRDriverID, DriverDialect: capabilitydriver.Qwen3ASRDriverDialect}
@@ -1057,7 +1059,7 @@ func selectedSpeechExecutionForTest(t *testing.T, contract string, configuration
 		LoadoutID:          configurationID,
 		CapabilityContract: contract,
 		DisplayName:        configurationID,
-		RecipeID:           fmt.Sprintf("recipe.%s.%s", contract, configurationID),
+		RecipeID:           recipeID,
 		RecipeRevision:     "7",
 		DriverIdentity:     identity.Proto(),
 		PortableConfig:     options,

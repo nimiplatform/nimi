@@ -857,8 +857,11 @@ func TestQwen3SpeechLoadoutsResolveExecutableSelectedAssembly(t *testing.T) {
 			switch typed := driver.(type) {
 			case capabilitydriver.SpeechSynthesizeInvocationDriver:
 				plan, planErr := typed.PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
-					PortableConfig: resolved.PortableConfig, ExactBindings: []capabilitydriver.InvocationExactBinding{invocationBinding},
-					Request: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Qwen3 TTS reproduction"},
+					RecipeID: resolved.RecipeID, PortableConfig: resolved.PortableConfig, ExactBindings: []capabilitydriver.InvocationExactBinding{invocationBinding},
+					Request: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Qwen3 TTS reproduction", VoiceRef: &runtimev1.VoiceReference{
+						Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
+						Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "vivian"},
+					}},
 				})
 				if planErr != nil || plan == nil || plan.ModelAssetID() != asset.GetModelAssetId() {
 					t.Fatalf("PlanSpeechSynthesizeInvocation(%s): plan=%+v err=%v", test.recipeID, plan, planErr)

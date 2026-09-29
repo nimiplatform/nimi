@@ -127,8 +127,9 @@ func TestSpeechExecutionHostRejectsMissingExactRegistrationBeforeMaterialization
 	binding.BundleDir = ""
 	binding.DeclaredFiles = nil
 	plan, err := (capabilitydriver.Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
+		RecipeID:      capabilitydriver.Qwen3TTSCustomVoiceRecipeID,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{binding},
-		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "missing exact registration"},
+		Request:       customVoiceSpeechSpecForHostTest("missing exact registration"),
 	})
 	if err != nil {
 		t.Fatalf("plan synthesis: %v", err)
@@ -155,8 +156,9 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 	ttsBinding.RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
 	ttsBinding.ModelAssetID = ttsHostModelID
 	ttsPlan, err := (capabilitydriver.Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
+		RecipeID:      capabilitydriver.Qwen3TTSCustomVoiceRecipeID,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{ttsBinding},
-		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello"},
+		Request:       customVoiceSpeechSpecForHostTest("hello"),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -399,8 +401,9 @@ func TestSpeechExecutionHostStreamsSynthesisBeyondInlineLimit(t *testing.T) {
 	binding.RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
 	binding.ModelAssetID = modelID
 	plan, err := (capabilitydriver.Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
+		RecipeID:      capabilitydriver.Qwen3TTSCustomVoiceRecipeID,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{binding},
-		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "large local speech"},
+		Request:       customVoiceSpeechSpecForHostTest("large local speech"),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1168,13 +1171,24 @@ func speechSynthesisPlanForHostTest(t *testing.T, text string) *capabilitydriver
 	binding.RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
 	binding.ModelAssetID = "local-import/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 	plan, err := (capabilitydriver.Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
+		RecipeID:      capabilitydriver.Qwen3TTSCustomVoiceRecipeID,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{binding},
-		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: text},
+		Request:       customVoiceSpeechSpecForHostTest(text),
 	})
 	if err != nil {
 		t.Fatalf("plan %q: %v", text, err)
 	}
 	return plan
+}
+
+func customVoiceSpeechSpecForHostTest(text string) *runtimev1.SpeechSynthesizeScenarioSpec {
+	return &runtimev1.SpeechSynthesizeScenarioSpec{
+		Text: text,
+		VoiceRef: &runtimev1.VoiceReference{
+			Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
+			Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "vivian"},
+		},
+	}
 }
 
 func waitSpeechExecutionQueueLength(t *testing.T, host *SpeechExecutionHost, wanted int) {

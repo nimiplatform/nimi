@@ -159,7 +159,7 @@
       "textBehaviorUnsupported": "Choose a model that supports this behavior in Desktop AI Capabilities, then run the test again. For plain text, use Text Studio.",
       "mediaOptionUnsupported": "Open Parameters and reset the unsupported settings, then run again. You can also choose a model that supports those settings in App AI configuration.",
       "mediaCodecUnavailable": "In Nimi Desktop, open AI Capabilities → Advanced & Diagnostics → Audio and video tools. Install or repair it if needed, wait until the components are installed, then run this request again.",
-      "voiceInputRequired": "Open Parameters and select a compatible local voice asset. If none is listed, create a voice for the current speech model under Voice Creation, then return here.",
+      "voiceInputRequired": "Open Parameters and choose a supported preset or compatible local voice asset. If this model needs an asset and none is listed, create one under Voice Creation, then return here.",
       "voiceTargetMismatch": "Choose a voice asset compatible with the current speech model, or create one under Voice Creation before retrying.",
       "catalogStale": "Open App AI configuration, choose this capability's model again from the current list, then run it again.",
       "catalogMismatch": "Open App AI configuration and choose an embedding model with a verified output size, then run it again.",

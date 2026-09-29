@@ -159,7 +159,7 @@
       "textBehaviorUnsupported": "在 Desktop 的 AI 能力中选择支持此行为的模型，再重新测试；只需普通文本时可使用文本工作室。",
       "mediaOptionUnsupported": "打开「参数」重置不受支持的设置后重新运行，也可以在 App AI 配置中选择支持这些设置的模型。",
       "mediaCodecUnavailable": "在 Nimi Desktop 打开「AI 能力」→「高级与诊断」→「音频与视频组件」；如组件未就绪，选择「安装或修复」，等显示已安装后再运行此请求。",
-      "voiceInputRequired": "打开「参数」选择兼容的本地语音资产；如列表为空，先到「创建语音」为当前语音模型创建语音，再返回重试。",
+      "voiceInputRequired": "打开「参数」选择当前模型支持的预设语音或兼容的本地语音资产；如该模型需要资产而列表为空，先到「创建语音」创建，再返回重试。",
       "voiceTargetMismatch": "选择与当前语音模型兼容的资产，或先在「创建语音」中创建一个，再重试。",
       "catalogStale": "打开 App AI 配置，从当前列表为此能力重新选择模型，然后重新运行。",
       "catalogMismatch": "打开 App AI 配置，选择已验证输出维度的嵌入模型，然后重新运行。",

@@ -146,6 +146,7 @@ func TestQwen3SpeechPlansCaptureExactModelAndAudio(t *testing.T) {
 	root := t.TempDir()
 	ttsBinding := InvocationExactBinding{RequirementID: Qwen3TTSModelRequirementID, ModelAssetID: "catalog/tts-model", AbsolutePath: filepath.Join(root, "tts", "model.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
 	ttsPlan, err := (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
+		RecipeID:      Qwen3TTSBaseRecipeID,
 		ExactBindings: []InvocationExactBinding{ttsBinding},
 		Request: &runtimev1.SpeechSynthesizeScenarioSpec{
 			Text: "hello", AudioFormat: "wav", TimingMode: runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_NONE,
@@ -191,6 +192,7 @@ func TestQwen3SpeechDriversFailClosedOnUnimplementedOptions(t *testing.T) {
 	root := t.TempDir()
 	ttsBinding := InvocationExactBinding{RequirementID: Qwen3TTSModelRequirementID, ModelAssetID: "catalog/tts", AbsolutePath: filepath.Join(root, "tts.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
 	_, err := (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
+		RecipeID:      Qwen3TTSBaseRecipeID,
 		ExactBindings: []InvocationExactBinding{ttsBinding},
 		Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", Speed: testFloat32(1)},
 	})
@@ -198,6 +200,7 @@ func TestQwen3SpeechDriversFailClosedOnUnimplementedOptions(t *testing.T) {
 		t.Fatalf("TTS option error=%T %v", err, err)
 	}
 	_, err = (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
+		RecipeID:      Qwen3TTSBaseRecipeID,
 		ExactBindings: []InvocationExactBinding{ttsBinding},
 		Request: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", VoiceRef: &runtimev1.VoiceReference{
 			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
@@ -219,21 +222,43 @@ func TestQwen3SpeechDriversFailClosedOnUnimplementedOptions(t *testing.T) {
 	}
 }
 
-func TestQwen3BaseSynthesisRequiresExplicitWorkflowVoiceBeforeHostDispatch(t *testing.T) {
+func TestQwen3WorkflowRecipesRequireExplicitVoiceBeforeHostDispatch(t *testing.T) {
 	digest := strings.Repeat("d", 64)
 	binding := InvocationExactBinding{RequirementID: Qwen3TTSModelRequirementID, ModelAssetID: "catalog/tts", AbsolutePath: filepath.Join(t.TempDir(), "tts.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
-	for _, voiceRef := range []*runtimev1.VoiceReference{
-		nil,
-		{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_UNSPECIFIED},
-		{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "vivian"}},
-	} {
-		_, err := (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
-			ExactBindings: []InvocationExactBinding{binding},
-			Request:       &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", VoiceRef: voiceRef},
-		})
-		if invocation, ok := err.(*InvocationError); !ok || invocation.Kind != InvocationFailureVoiceInput {
-			t.Fatalf("voice_ref=%+v error=%T %v, want voice-input failure", voiceRef, err, err)
+	for _, recipeID := range []string{Qwen3TTSBaseRecipeID, Qwen3TTSVoiceDesignRecipeID} {
+		for _, voiceRef := range []*runtimev1.VoiceReference{
+			nil,
+			{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_UNSPECIFIED},
+			{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "vivian"}},
+		} {
+			_, err := (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
+				RecipeID: recipeID, ExactBindings: []InvocationExactBinding{binding},
+				Request: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", VoiceRef: voiceRef},
+			})
+			if invocation, ok := err.(*InvocationError); !ok || invocation.Kind != InvocationFailureVoiceInput {
+				t.Fatalf("recipe=%s voice_ref=%+v error=%T %v, want voice-input failure", recipeID, voiceRef, err, err)
+			}
 		}
+		plan, err := (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
+			RecipeID: recipeID, ExactBindings: []InvocationExactBinding{binding},
+			Request: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", VoiceRef: &runtimev1.VoiceReference{
+				Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+				Reference: &runtimev1.VoiceReference_ProviderVoiceRef{ProviderVoiceRef: "captured-voice-workflow-handle"},
+			}},
+		})
+		if err != nil || plan.Request().GetVoiceRef().GetProviderVoiceRef() == "" {
+			t.Fatalf("recipe=%s workflow voice plan=%+v err=%v", recipeID, plan, err)
+		}
+	}
+	plan, err := (Qwen3TTSDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{
+		RecipeID: Qwen3TTSCustomVoiceRecipeID, ExactBindings: []InvocationExactBinding{binding},
+		Request: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", VoiceRef: &runtimev1.VoiceReference{
+			Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
+			Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "vivian"},
+		}},
+	})
+	if err != nil || plan.Request().GetVoiceRef().GetPresetVoiceId() != "vivian" {
+		t.Fatalf("CustomVoice preset plan=%+v err=%v", plan, err)
 	}
 }
 

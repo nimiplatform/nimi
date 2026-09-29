@@ -48,6 +48,7 @@ const (
 // synthesis input. The selected asset occurrence is already verified and the
 // request contains no endpoint, process, route, or fallback facts.
 type SpeechSynthesizeInvocationInput struct {
+	RecipeID       string
 	PortableConfig *structpb.Struct
 	ExactBindings  []InvocationExactBinding
 	Request        *runtimev1.SpeechSynthesizeScenarioSpec
@@ -459,6 +460,10 @@ func (driver Qwen3TTSDriver) ValidateCombination(requirements []*runtimev1.Local
 }
 
 func (Qwen3TTSDriver) PlanSpeechSynthesizeInvocation(input SpeechSynthesizeInvocationInput) (*SpeechSynthesizeInvocationPlan, error) {
+	recipeID := strings.TrimSpace(input.RecipeID)
+	if recipeID != Qwen3TTSCustomVoiceRecipeID && recipeID != Qwen3TTSBaseRecipeID && recipeID != Qwen3TTSVoiceDesignRecipeID {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("qwen3-tts synthesis recipe is unsupported"))
+	}
 	if !emptySpeechPortableConfig(input.PortableConfig) {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("qwen3-tts portable config must be empty"))
 	}
@@ -466,7 +471,7 @@ func (Qwen3TTSDriver) PlanSpeechSynthesizeInvocation(input SpeechSynthesizeInvoc
 	if err != nil {
 		return nil, invocationError(InvocationFailureInvalidBinding, err)
 	}
-	request, err := validateQwen3TTSRequest(input.Request)
+	request, err := validateQwen3TTSRequest(recipeID, input.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -818,7 +823,7 @@ func validOptionalSpeechBundleBinding(binding InvocationExactBinding) bool {
 	return entryDeclared
 }
 
-func validateQwen3TTSRequest(value *runtimev1.SpeechSynthesizeScenarioSpec) (*runtimev1.SpeechSynthesizeScenarioSpec, error) {
+func validateQwen3TTSRequest(recipeID string, value *runtimev1.SpeechSynthesizeScenarioSpec) (*runtimev1.SpeechSynthesizeScenarioSpec, error) {
 	request, _ := proto.Clone(value).(*runtimev1.SpeechSynthesizeScenarioSpec)
 	if request == nil || strings.TrimSpace(request.GetText()) == "" {
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("qwen3-tts text is required"))
@@ -836,11 +841,16 @@ func validateQwen3TTSRequest(value *runtimev1.SpeechSynthesizeScenarioSpec) (*ru
 	}
 	ref := request.GetVoiceRef()
 	if ref == nil || ref.GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_UNSPECIFIED {
-		return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("qwen3-tts Base synthesis requires an explicit compatible voice reference"))
+		return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("qwen3-tts synthesis requires an explicit voice reference for the selected recipe"))
 	}
 	switch ref.GetKind() {
 	case runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET:
-		return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("qwen3-tts Base synthesis requires a voice workflow reference, not a preset voice"))
+		if recipeID != Qwen3TTSCustomVoiceRecipeID {
+			return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("qwen3-tts selected recipe requires a voice workflow reference, not a preset voice"))
+		}
+		if strings.TrimSpace(ref.GetPresetVoiceId()) == "" {
+			return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("qwen3-tts preset voice is empty"))
+		}
 	case runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF:
 		if strings.TrimSpace(ref.GetProviderVoiceRef()) == "" {
 			return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("qwen3-tts provider voice reference is empty"))
