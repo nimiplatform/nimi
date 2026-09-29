@@ -41,13 +41,13 @@ func TestGemini38SchemaTransportUsesCapturedConnectorAndChatPath(t *testing.T) {
 		ResponseFormat: &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA,
 			JsonSchema: schema, Strict: true}}
 	adapter, err := textbehavior.NewAdapter(textbehavior.AdapterCapture{
-		AdapterID: "gemini.38-flash.chat-schema", Version: "1",
-		RequestSerializerID:   "gemini/38-flash/chat-schema/request/v1",
-		NonStreamParserID:     "gemini/38-flash/chat-schema/response/v1",
-		StreamAssemblerID:     "gemini/38-flash/chat-schema/stream/v1",
+		AdapterID: "gemini.38-flash.chat", Version: "2",
+		RequestSerializerID:   "gemini/38-flash/chat/request/v2",
+		NonStreamParserID:     "gemini/38-flash/chat/response/v2",
+		StreamAssemblerID:     "gemini/38-flash/chat/stream/v2",
 		ProcessIdentityImpact: textbehavior.ProcessIdentityUnaffected,
-	}, capabilitydriver.Gemini38FlashSchemaRequestSerializer,
-		capabilitydriver.Gemini38FlashSchemaNonStreamParser, capabilitydriver.Gemini38FlashSchemaStreamAssembler)
+	}, capabilitydriver.Gemini38FlashRequestSerializer,
+		capabilitydriver.Gemini38FlashNonStreamParser, capabilitydriver.Gemini38FlashSchemaStreamAssembler)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -27,7 +27,7 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 		"deepseek/deepseek-v4-pro":    "deepseek.v4-pro.chat",
 		"dashscope/qwen3.8-flash":     "dashscope.qwen38-flash.chat",
 		"dashscope/qwen3.8-max-0902":  "dashscope.qwen38-max-0902.chat",
-		"gemini/gemini-3.8-flash":     "gemini.38-flash.chat-schema",
+		"gemini/gemini-3.8-flash":     "gemini.38-flash.chat",
 	}
 	seenContents := map[string]struct{}{}
 	for _, registration := range registrations {

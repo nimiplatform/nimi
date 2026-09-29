@@ -13,6 +13,20 @@ func geminiSchemaUnsupported() error {
 	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 }
 
+func Gemini38FlashRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
+	if spec != nil && len(spec.GetTools()) > 0 {
+		return Gemini38FlashToolRequestSerializer(spec, stream)
+	}
+	return Gemini38FlashSchemaRequestSerializer(spec, stream)
+}
+
+func Gemini38FlashNonStreamParser(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
+	if spec != nil && len(spec.GetTools()) > 0 {
+		return Gemini38FlashToolNonStreamParser(payload, spec)
+	}
+	return Gemini38FlashSchemaNonStreamParser(payload, spec)
+}
+
 // @nimi-authority: rule.nimi.runtime.ai-provider.r123
 // This captures the documented Chat Completions JSON Schema wire shape.
 // No tool, reasoning, stream, media, or sampling mode is inferred from the
