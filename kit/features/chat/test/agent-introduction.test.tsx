@@ -41,6 +41,15 @@ describe('shared Agent introduction', () => {
   expect(agentIntroductionQuestions({...intro, questionTopics:[{kind:'work',text:'著述线索'},{kind:'topic',text:'association：数据库线索'},{kind:'topic',text:'scene-grounded-greeting'}]},'zh')).toEqual(['介绍一下你自己','陪我随便聊聊','给我讲个有趣的故事']);
   expect(agentIntroductionQuestions({...intro, questionTopics:[{kind:'topic',text:'poetry'}]},'en')).toEqual(['How would you explain poetry?']);
  });
+ it('falls back to the world name when the era carries a machine identifier', () => {
+  const leaked = {...intro, era:'cbdb-yuan-literati-academy-world', worldName:'元代文人书院世界', role:'书画鉴赏家'};
+  const html = renderToStaticMarkup(<AgentIntroduction introduction={leaked} displayName="柯九思" locale="zh-CN" questionsEnabled={false} />);
+  expect(html).toContain('元代文人书院世界 · 书画鉴赏家');
+  expect(html).not.toContain('cbdb-yuan-literati-academy-world');
+  expect(agentIntroductionSubtitle(leaked,'en')).toBe('元代文人书院世界 · 书画鉴赏家');
+  expect(agentIntroductionSubtitle({...leaked, worldName:'cbdb-yuan-literati-academy-world'},'zh-CN')).toBe('书画鉴赏家');
+  expect(agentIntroductionSubtitle({...intro, era:'yuan-dynasty', worldName:null, role:null},'zh-CN')).toBe('元代');
+ });
  it('question clicks only prefill the controlled draft', async () => {
   const onPrefill = vi.fn(); const container = document.createElement('div'); const root = createRoot(container);
   try {

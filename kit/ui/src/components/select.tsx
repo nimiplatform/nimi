@@ -185,12 +185,14 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
           selectClassName,
         )}
       >
-        <SelectPrimitive.Value
-          placeholder={placeholder}
-          className="min-w-0 flex-1 truncate text-[length:var(--nimi-type-body-size)]"
-        >
-          {controlledValueLabel ?? null}
-        </SelectPrimitive.Value>
+        {/* Radix Value ignores className and style, so Kit's own span keeps a
+            long value inside the trigger. Type size stays inherited from the
+            trigger, where callers set it through selectClassName. */}
+        <span className="min-w-0 flex-1 truncate">
+          <SelectPrimitive.Value placeholder={placeholder}>
+            {controlledValueLabel ?? null}
+          </SelectPrimitive.Value>
+        </span>
         <SelectPrimitive.Icon asChild>
           <span className="shrink-0 text-[var(--nimi-text-muted)]">{CHEVRON_ICON}</span>
         </SelectPrimitive.Icon>

@@ -187,6 +187,16 @@ Required changes from 0.11.0:
 - Kit exports the shared introduction reader, display mapping and component.
   Home and Zhiyu now use the same projection; no Conversation is opened or
   generated to read the introduction.
+- The shared display mapping never renders a machine identifier (a lowercase
+  slug such as a world id) as subtitle text. An era in that shape falls back
+  to the world name, matching the rule that already filtered question topics.
+- Overlay panels (popover, dialog, drawer) end their spring settle once the
+  remaining change is under 2% of the travel, on the JavaScript and the
+  browser-animation path alike: about 440ms instead of roughly 860ms. The
+  spring and its symmetric path are unchanged. `SelectField`, which keeps
+  Radix open until that exit completes, therefore releases its trigger and
+  pointer gate as soon as the list has faded, so a follow-up click is no
+  longer swallowed.
 
 ## 0.16.0 — Integration and independent Agent work (development)
 

@@ -499,6 +499,19 @@ test('select field ignores empty option values reserved by Radix', () => {
   expect(html).toContain('enabled:hover:border-[var(--nimi-field-focus)]');
 });
 
+test('select field keeps a long value inside its trigger', () => {
+  const label = 'Gemma 4 2B · Q8_0 · gemma-4-E2B-it-Q8_0-complete.gguf';
+  const host = document.createElement('div');
+  host.innerHTML = renderToStaticMarkup(
+    <SelectField value="long" aria-label="Model" options={[{ value: 'long', label }]} />,
+  );
+  // Radix Value drops className, so the truncating element must be one Kit renders itself.
+  const value = host.querySelector('[role="combobox"] > .truncate');
+  expect(value?.classList.contains('min-w-0')).toBe(true);
+  expect(value?.classList.contains('flex-1')).toBe(true);
+  expect(value?.textContent).toBe(label);
+});
+
 test('select field retains content until its symmetric exit completes', async () => {
   container = document.createElement('div');
   document.body.appendChild(container);

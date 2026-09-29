@@ -104,7 +104,7 @@ function StatusLine({ status }: { readonly status: SlotStatus }) {
       ? 'text-[var(--nimi-status-info)]'
       : 'text-[var(--nimi-status-warning)]';
   return (
-    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
+    <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
       <Icon size={13} strokeWidth={2.2} className={`shrink-0 ${color}`} aria-hidden="true" />
       {status.text}
     </p>
@@ -497,7 +497,11 @@ export function RuntimeCapabilityCustomize(props: {
                     ) : null}
                   </div>
                   {row.help ? <p className="mt-0.5 text-xs text-[var(--nimi-text-secondary)]">{row.help}</p> : null}
-                  {row.status ? <StatusLine status={row.status} /> : null}
+                  {/* The state line keeps its height while empty, so picking or clearing a
+                      version never moves the field or the list still fading under it. */}
+                  <div className="mt-0.5 min-h-4" data-testid={`capability-customize-slot-status:${row.slot.slotId}`}>
+                    {row.status ? <StatusLine status={row.status} /> : null}
+                  </div>
                 </div>
                 <SelectField
                   aria-label={row.label}
@@ -505,7 +509,7 @@ export function RuntimeCapabilityCustomize(props: {
                   value={row.value}
                   options={row.selectOptions}
                   disabled={disabled}
-                  // The Kit value span drops its own type class, so the field carries the body size.
+                  // Kit select values inherit the trigger's type size, so the field carries the body size.
                   selectClassName="text-[length:var(--nimi-type-body-size)] [&_[data-choice-meta]]:hidden"
                   onValueChange={(next) => choose(row.slot, next)}
                 />

@@ -9,8 +9,9 @@ import { modelDisplayTitle, modelFamilySeed } from './runtime-capability-present
 
 // Projection of the Runtime verified catalog ("Nimi 收录") for Model Library
 // discovery. It only reads Runtime facts: catalog capabilities and content
-// identity, the catalog logical model id, and recipe slot recommendations.
-// Categories aid discovery and never assert compatibility.
+// identity, the catalog logical model id, and recipe slots (their offers, this
+// host's recommendations, and which slots a setup requires). Categories aid
+// discovery and never assert compatibility.
 
 export const MODEL_LIBRARY_CATEGORIES = ['all', 'chat', 'image', 'video', 'voice', 'music', 'other'] as const;
 export type ModelLibraryCategory = typeof MODEL_LIBRARY_CATEGORIES[number];
@@ -91,9 +92,28 @@ export type NimiCollectionVersion = {
   readonly entry: string;
 };
 
+/** Another collection item a setup needs, with the exact versions its slot offers. */
+export type NimiCollectionRequiredItem = {
+  readonly key: string;
+  readonly versions: readonly NimiCollectionVersion[];
+};
+
+/** What setting up one capability with this model also prepares. */
+export type NimiCollectionRequirement = {
+  readonly capability: string;
+  readonly items: readonly NimiCollectionRequiredItem[];
+};
+
 export type NimiCollectionItem = {
   readonly key: string;
   readonly kind: 'model' | 'part';
+  /** This host's Runtime recommends one of its versions. */
+  readonly recommended: boolean;
+  /**
+   * Model only: per capability, the other items every recipe for it requires.
+   * A capability whose required slots cannot each be named is left out.
+   */
+  readonly requirements: readonly NimiCollectionRequirement[];
   /** Model name; empty for a part, which is named by its role instead. */
   readonly title: string;
   /** Part role label key and the catalog's own slot label as fallback. */
@@ -182,6 +202,19 @@ function variantKey(title: string, entry: string): string {
   return `${title.trim()}\u0000${entry.trim()}`;
 }
 
+/** Content identity of a catalog variant; a template without one stands alone. */
+function contentKeyOf(descriptor: NimiRuntimeLocalVerifiedAssetDescriptor): string {
+  return descriptor.contentId || descriptor.templateId;
+}
+
+/** Smallest quantization first, then smallest download. */
+function sortVersions(versions: NimiCollectionVersion[]): NimiCollectionVersion[] {
+  return versions.sort(
+    (left, right) => (left.quantTier || Number.MAX_SAFE_INTEGER) - (right.quantTier || Number.MAX_SAFE_INTEGER)
+      || left.sizeBytes - right.sizeBytes,
+  );
+}
+
 function versionOf(descriptor: NimiRuntimeLocalVerifiedAssetDescriptor): NimiCollectionVersion {
   const quant = loadoutModelPresentation({ title: descriptor.title, variantLabel: descriptor.entry }).quant;
   return {
@@ -229,6 +262,14 @@ export function buildNimiCollection(input: {
     }
   }
 
+  const recommendedTemplates = new Set(input.recipes.flatMap((recipe) => recipe.slots.flatMap((slot) => slot.recommendedVariantIds)));
+  const descriptorByTemplate = new Map(input.catalog.map((descriptor) => [descriptor.templateId, descriptor]));
+  const descriptorsByVariant = new Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>();
+  for (const descriptor of input.catalog) {
+    const key = variantKey(descriptor.title, descriptor.entry);
+    descriptorsByVariant.set(key, [...(descriptorsByVariant.get(key) ?? []), descriptor]);
+  }
+
   const drafts = new Map<string, Draft>();
   for (const descriptor of input.catalog) {
     const capabilities = descriptor.capabilities ?? [];
@@ -244,7 +285,7 @@ export function buildNimiCollection(input: {
     const part = capabilities.length === 0
       || (references.length > 0 && !references.some((reference) => usesAsModel(reference, capabilities)));
     const key = part
-      ? `part:${descriptor.contentId || descriptor.templateId}`
+      ? `part:${contentKeyOf(descriptor)}`
       : descriptor.logicalModelId ? `model:${descriptor.logicalModelId}` : `template:${descriptor.templateId}`;
     const draft: Draft = drafts.get(key) ?? { kind: part ? 'part' : 'model', first: descriptor, references: [], versions: new Map() };
     for (const reference of references) {
@@ -252,7 +293,7 @@ export function buildNimiCollection(input: {
         draft.references.push(reference);
       }
     }
-    const contentKey = descriptor.contentId || descriptor.templateId;
+    const contentKey = contentKeyOf(descriptor);
     const known = draft.versions.get(contentKey);
     draft.versions.set(contentKey, known
       ? { ...known, templateIds: [...known.templateIds, descriptor.templateId] }
@@ -280,15 +321,78 @@ export function buildNimiCollection(input: {
     }
   }
 
+  // Each content belongs to one item; requirements point at that item and version.
+  const holderByContent = new Map<string, { readonly key: string; readonly version: NimiCollectionVersion }>();
+  for (const [key, draft] of drafts) {
+    for (const [contentKey, version] of draft.versions) {
+      if (!holderByContent.has(contentKey)) holderByContent.set(contentKey, { key, version });
+    }
+  }
+  /** Catalog contents a slot offers or recommends; null when one of them is not in the catalog. */
+  const slotContents = (slot: RecipeSlot): string[] | null => {
+    const contents = new Set<string>();
+    for (const templateId of slot.recommendedVariantIds) {
+      const descriptor = descriptorByTemplate.get(templateId);
+      if (!descriptor) return null;
+      contents.add(contentKeyOf(descriptor));
+    }
+    for (const offer of slot.offers) {
+      const matches = descriptorsByVariant.get(variantKey(offer.candidate.title, offer.candidate.variantLabel)) ?? [];
+      if (matches.length === 0) return null;
+      for (const descriptor of matches) contents.add(contentKeyOf(descriptor));
+    }
+    return [...contents];
+  };
+  /** Items the recipe's other required slots need; null when a slot cannot be named as exactly one item. */
+  const requiredItems = (recipe: NimiLoadoutRecipe, ownSlots: ReadonlySet<string>, self: string) => {
+    const needed = new Map<string, Set<NimiCollectionVersion>>();
+    for (const slot of recipe.slots) {
+      if (ownSlots.has(slot.slotId) || slot.presence !== 'required') continue;
+      const holders = (slotContents(slot) ?? []).map((content) => holderByContent.get(content));
+      const keys = new Set(holders.map((holder) => holder?.key));
+      const [key] = keys;
+      if (holders.length === 0 || keys.size !== 1 || !key) return null;
+      if (key === self) continue;
+      const versions = needed.get(key) ?? new Set<NimiCollectionVersion>();
+      for (const holder of holders) versions.add(holder!.version);
+      needed.set(key, versions);
+    }
+    return needed;
+  };
+  // Every recipe that uses the model for a capability must need an item before
+  // the capability claims it; one unnamed slot drops the whole capability.
+  const requirementsOf = (key: string, draft: Draft): NimiCollectionRequirement[] => {
+    const capabilities = draft.first.capabilities ?? [];
+    const ownSlots = new Map<string, { readonly recipe: NimiLoadoutRecipe; readonly slots: Set<string> }>();
+    for (const reference of draft.references) {
+      if (!usesAsModel(reference, capabilities)) continue;
+      const entry = ownSlots.get(reference.recipe.recipeId) ?? { recipe: reference.recipe, slots: new Set<string>() };
+      entry.slots.add(reference.slot.slotId);
+      ownSlots.set(reference.recipe.recipeId, entry);
+    }
+    return capabilities.flatMap((capability): NimiCollectionRequirement[] => {
+      const perRecipe = [...ownSlots.values()]
+        .filter((entry) => entry.recipe.capabilityContract === capability)
+        .map((entry) => requiredItems(entry.recipe, entry.slots, key));
+      const [first, ...rest] = perRecipe;
+      if (!first || rest.some((needed) => needed === null)) return [];
+      const items = [...first]
+        .filter(([itemKey]) => rest.every((needed) => needed!.has(itemKey)))
+        .map(([itemKey, versions]): NimiCollectionRequiredItem => ({
+          key: itemKey,
+          versions: sortVersions([...new Set([...versions, ...rest.flatMap((needed) => [...needed!.get(itemKey)!])])]),
+        }));
+      return items.length > 0 ? [{ capability, items }] : [];
+    });
+  };
+
   const items: NimiCollectionItem[] = [];
   for (const [key, draft] of drafts) {
     const { first } = draft;
-    const versions = [...draft.versions.values()].sort(
-      (left, right) => (left.quantTier || Number.MAX_SAFE_INTEGER) - (right.quantTier || Number.MAX_SAFE_INTEGER)
-        || left.sizeBytes - right.sizeBytes,
-    );
+    const versions = sortVersions([...draft.versions.values()]);
     const shared = {
       key,
+      recommended: versions.some((version) => version.templateIds.some((templateId) => recommendedTemplates.has(templateId))),
       repo: first.repo,
       revision: first.revision,
       license: first.license,
@@ -307,6 +411,7 @@ export function buildNimiCollection(input: {
       items.push({
         ...shared,
         kind: 'model',
+        requirements: requirementsOf(key, draft),
         title,
         roleLabelKey: null,
         roleLabel: '',
@@ -329,6 +434,7 @@ export function buildNimiCollection(input: {
     items.push({
       ...shared,
       kind: 'part',
+      requirements: [],
       title: '',
       roleLabelKey: partRoleLabelKey(reference, first),
       roleLabel,
@@ -340,9 +446,11 @@ export function buildNimiCollection(input: {
   }
 
   const byName = (left: string, right: string) => left.localeCompare(right, undefined, { numeric: true });
+  // Within a capability, the models this host's Runtime recommends lead.
   const order = (left: NimiCollectionItem, right: NimiCollectionItem) => (
     CATEGORY_RANK[left.category] - CATEGORY_RANK[right.category]
     || left.capability.localeCompare(right.capability)
+    || Number(right.recommended) - Number(left.recommended)
     || byName(left.title || left.usedBy, right.title || right.usedBy)
     || byName(left.roleLabel, right.roleLabel)
     || (left.versions[0]?.quantTier ?? 0) - (right.versions[0]?.quantTier ?? 0)
@@ -359,6 +467,40 @@ export function nimiCollectionForCategory(collection: NimiCollection, category: 
     models: collection.models.filter((item) => item.category === category),
     parts: collection.parts.filter((item) => item.category === category),
   };
+}
+
+/** Items grouped by a key; groups follow the first item of each in collection order. */
+export function groupNimiCollectionItems<K extends string>(
+  items: readonly NimiCollectionItem[],
+  keyOf: (item: NimiCollectionItem) => K,
+): { readonly key: K; readonly items: readonly NimiCollectionItem[] }[] {
+  const groups = new Map<K, NimiCollectionItem[]>();
+  for (const item of items) {
+    const key = keyOf(item);
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+  return [...groups].map(([key, grouped]) => ({ key, items: grouped }));
+}
+
+/**
+ * Up to `limit` items that show the range of a list: each category in turn
+ * under All, otherwise each capability in turn, taking every group's items in
+ * collection order so recommended models come first.
+ */
+export function nimiCollectionPreview(
+  items: readonly NimiCollectionItem[],
+  category: ModelLibraryCategory,
+  limit: number,
+): NimiCollectionItem[] {
+  const groups = groupNimiCollectionItems(items, (item) => (category === 'all' ? item.category : item.capability));
+  const preview: NimiCollectionItem[] = [];
+  for (let round = 0; preview.length < limit && groups.some((group) => group.items.length > round); round += 1) {
+    for (const group of groups) {
+      const item = group.items[round];
+      if (item && preview.length < limit) preview.push(item);
+    }
+  }
+  return preview;
 }
 
 /** Content ids whose files are on this device and match their registered content. */

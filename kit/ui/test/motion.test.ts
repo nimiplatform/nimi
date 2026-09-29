@@ -1,3 +1,4 @@
+import { spring, type GeneratorFactory } from 'motion/react';
 import { expect, test } from 'vitest';
 import {
   NIMI_SPRING_DEFAULT,
@@ -61,7 +62,9 @@ test('commit decision uses velocity sign before position', () => {
 
 test('overlay panel motion is spring-based and symmetric', () => {
   const dialog = nimiOverlayPanelMotion({ kind: 'dialog' });
-  expect(dialog.transition).toMatchObject({ type: 'spring' });
+  // The admitted spring, carried as a generator so its settle is perceptual (see below).
+  expect(dialog.transition).toMatchObject({ visualDuration: 0.4, bounce: 0 });
+  expect(typeof dialog.transition.type).toBe('function');
   expect(dialog.initial).toMatchObject({ opacity: 0, scale: 0.95 });
   expect(dialog.exit).toMatchObject({ opacity: 0, scale: 0.95 });
 
@@ -69,6 +72,43 @@ test('overlay panel motion is spring-based and symmetric', () => {
   expect(drawer.initial).toMatchObject({ x: '100%' });
   expect(drawer.exit).toMatchObject({ x: '100%' });
   expect(drawer.initial).not.toHaveProperty('scale');
+});
+
+test('panel motion ends its settle once the remaining change is imperceptible', () => {
+  const base = nimiSpring();
+  const { visualDuration, bounce } = base as { visualDuration: number; bounce: number };
+  const factories = (['popover', 'dialog', 'drawer'] as const).map((kind) => {
+    const { transition } = nimiOverlayPanelMotion({ kind });
+    // The same critically damped spring; only its completion is perceptual.
+    expect(transition).toMatchObject({ visualDuration, bounce });
+    expect(typeof transition.type).toBe('function');
+    return transition.type as GeneratorFactory;
+  });
+  expect(new Set(factories).size).toBe(1);
+  const settled = factories[0]!;
+
+  const settleMs = (factory: GeneratorFactory, from: number, to: number) => {
+    const generator = factory({ keyframes: [from, to], visualDuration, bounce });
+    for (let t = 0; t <= 5000; t += 5) {
+      if (generator.next(t).done) return t;
+    }
+    return Infinity;
+  };
+  // Motion's own thresholds let a unit fade run past twice its 400ms visual duration,
+  // which keeps an overlay's pointer and focus gates up after it has disappeared.
+  expect(settleMs(spring, 1, 0)).toBeGreaterThan(500);
+  // The settle ends at the same moment whatever the value's scale: a unit fade,
+  // the 0-100 scale a browser-run value is pre-sampled on, a 4px offset, a 4% scale.
+  for (const [from, to] of [[1, 0], [0, 100], [0, -4], [1, 0.96], [100, 0]]) {
+    expect(settleMs(settled, from!, to!)).toBeLessThanOrEqual(450);
+    expect(settleMs(settled, from!, to!)).toBeGreaterThan(250);
+  }
+  // The browser-run form carries that settle as its duration.
+  const browser = settled.applyToOptions!({ ...base, type: settled }) as { type: string; duration: number; ease: unknown };
+  expect(browser.type).toBe('keyframes');
+  expect(typeof browser.ease).toBe('function');
+  expect(browser.duration).toBeLessThanOrEqual(450);
+  expect(browser.duration).toBeGreaterThan(250);
 });
 
 test('popover motion anchors transform origin to the trigger side', () => {

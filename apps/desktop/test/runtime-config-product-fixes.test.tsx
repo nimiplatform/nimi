@@ -164,6 +164,8 @@ test('customization enables an optional model from its version selector and expl
     const text = () => ui.document.body.textContent ?? '';
     assert.match(text(), /customization\.slotHelp\.inputImage/, 'the optional model says what it adds');
     assert.match(text(), /customization\.optionsDefault/);
+    const statusSlot = () => ui.document.querySelector('[data-testid="capability-customize-slot-status:companion.mmproj"]');
+    assert.equal(statusSlot()?.textContent, '', 'an unused optional model shows no state but keeps its line');
     const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-customize-version:companion.mmproj"]')!;
     await act(async () => {
       trigger.dispatchEvent(new ui.document.defaultView!.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
@@ -172,6 +174,8 @@ test('customization enables an optional model from its version selector and expl
     assert.ok(choice, 'versions are named by model and exact quantization');
     assert.match(choice.textContent ?? '', /downloadSize 500\.0 MB/, 'transfer size is distinct from installed disk usage');
     await act(async () => choice.click());
+    // The state appears inside the reserved line, so the field and the list still fading under it stay put.
+    assert.match(statusSlot()?.textContent ?? '', /downloadSize 500\.0 MB/, 'the chosen version states its download in the reserved line');
     assert.match(ui.document.querySelector('[data-testid="capability-customize-apply-bar"]')?.textContent ?? '', /customization\.applyHintDownload 500\.0 MB/);
     assert.equal(submitted.length, 0, 'choosing a download is not an apply');
 

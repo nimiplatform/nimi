@@ -58,11 +58,14 @@ export async function resolveActiveConversationSourceRef(input: {
   return null;
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-participation.r197
 // Resolves the character source behind a sidebar agent target on demand. The
-// App-plane reference list deliberately carries no source identity, so the
-// click path opens the canonical Conversation (idempotent) to obtain the
-// shared anchor token, then runs the same owner-scope anchor join as the
-// active conversation resolution above. Any miss fails closed to null.
+// App-plane reference list deliberately carries no source identity, so each
+// owner-projected LocalAgent is resolved read-only to its current-session
+// reference and the single LocalAgent whose handle matches wins. This opens no
+// Conversation and stays off the serialized App-plane commands, where a slow
+// read such as a hover-card introduction would hold the click for seconds.
+// An unresolvable LocalAgent never matches; a miss or ambiguity fails closed.
 export async function resolveAgentTargetSourceRef(input: {
   agentHandle: string;
   ownerUserId: string;
@@ -73,23 +76,14 @@ export async function resolveAgentTargetSourceRef(input: {
   if (!agentHandle || !ownerUserId) {
     return null;
   }
-  const opened = await input.sdk.conversation().open({
-    agentHandle: agentHandle as NimiLocalAppAgentHandle,
-  });
-  const conversationAnchorId = normalizeText(opened.conversationAnchorId);
-  if (!conversationAnchorId) {
-    return null;
-  }
   const agents = await fetchLocalAgentList(ownerUserId, input.sdk);
-  if (agents.length === 0) {
-    return null;
-  }
-  return resolveActiveConversationSourceRef({
-    conversationAnchorId,
-    agents,
-    ownerUserId,
-    sdk: input.sdk,
-  });
+  const matches = (await Promise.all(agents.map(async (agent) => {
+    const resolved = await input.sdk.resolveDesktopAgentReference({
+      localAgentRef: agent.localAgentRef,
+    }).catch(() => null);
+    return normalizeText(resolved?.reference?.agentHandle) === agentHandle ? agent : null;
+  }))).filter((agent): agent is LocalAgentListItem => agent !== null);
+  return matches.length === 1 ? matches[0]!.sourceRef : null;
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-participation.r197
