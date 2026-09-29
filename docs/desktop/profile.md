@@ -50,8 +50,8 @@ You click into another user's profile from chat.
    resolves the user's public profile.
 2. **What you see.** Display name, avatar, public agents (owned
    agents the other user has set as visible), public worlds.
-3. **What you do not see.** Private profile fields, friend lists,
-   wallet balance — those are not part of the public detail.
+3. **What you do not see.** Private profile fields and friend lists
+   — those are not part of the public detail.
 
 The public profile is intentionally narrow. Privacy is enforced
 by the seam, not by client-side filtering.
@@ -67,7 +67,6 @@ doesn't change from here.
 | Profile avatar (visual) | yes |
 | Bio / description | yes |
 | User identity (canonical id) | no — fixed at account creation |
-| Wallet balance | no — economy events |
 | Owned agents (the agents themselves) | no — agent authority lives in Realm |
 
 You can edit how you appear; you cannot edit who you are.

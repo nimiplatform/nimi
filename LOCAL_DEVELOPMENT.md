@@ -21,8 +21,9 @@
 | `pnpm dev:desktop` | Windows/macOS 日常 Electron UI、main、preload 与默认 loopback CDP 迭代；先启动 source Runtime | 使用当前用户 source Runtime |
 | `pnpm dev:zhiyu` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 Zhiyu Electron App | 取决于当前受保护 Desktop/Runtime |
 | `pnpm dev:lab` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 Nimi Lab Electron App | 取决于当前受保护 Desktop/Runtime |
+| `pnpm dev:nimigo` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 NimiGo Electron App | 取决于当前受保护 Desktop/Runtime |
+| `pnpm dev:nimiday` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 NimiDay Electron App | 取决于当前受保护 Desktop/Runtime |
 | `pnpm dev:avatar` | 启动带默认 loopback CDP 的 avatar-only Desktop Electron carrier；与普通 Desktop dev 实例互斥 | 取决于 Avatar launch binding |
-| `pnpm dev:avatar --tauri` | 显式启动 Avatar Tauri carrier；不支持 CDP | 取决于 Avatar launch binding |
 | `pnpm dev:runtime` | Windows x64/macOS arm64 构建并启动独立的当前用户 source Runtime supervisor；终端必须保持运行 | source development |
 | `pnpm accept:runtime:fixed-service` | Windows/macOS 构建并验收 fixed-service candidate | fixed-service acceptance |
 | `pnpm accept:runtime:fixed-service -- --install` | macOS 首次安装固定 ad-hoc development candidate | fixed-service acceptance |
@@ -30,7 +31,7 @@
 | `nimi-app dev --shell electron` | 由 Desktop supervisor 启动第三方 Electron App，并默认分配独立的 ephemeral loopback CDP 端口 | 取决于当前受保护 Desktop/Runtime |
 
 根目录 `dev:<app>` 默认使用 Electron，并默认启用仅监听 `127.0.0.1` 的 CDP：
-Desktop `9333`、Zhiyu `9334`、Nimi Lab `9335`、Avatar `9336`。使用
+Desktop `9333`、Zhiyu `9334`、Nimi Lab `9335`、Avatar `9336`、NimiGo `9337`、NimiDay `9338`。使用
 `--cdp-port <port>` 覆盖默认端口，或使用 `--no-cdp` 显式关闭。端口被占用时启动会
 明确失败，不会自动选择另一个端口。例如：
 
@@ -40,10 +41,11 @@ pnpm dev:lab --cdp-port 19468
 pnpm dev:desktop --no-cdp
 ```
 
-Zhiyu 与 Nimi Lab 不会自行启动第二个 Desktop；先运行并登录 Desktop，再运行对应
-命令。Avatar Electron 使用 avatar-only Desktop carrier，不能与普通
-`pnpm dev:desktop` 并行。只有 Avatar 提供显式 `--tauri`；Tauri 不是 Desktop、
-Zhiyu 或 Nimi Lab 的本地开发载体，且 `--tauri` 不能与 `--cdp-port` 组合。
+Zhiyu、Nimi Lab、NimiGo 与 NimiDay 不会自行启动第二个 Desktop；先运行并登录
+Desktop，再运行对应命令。Avatar Electron 使用 avatar-only Desktop carrier，不能
+与普通 `pnpm dev:desktop` 并行；它另外接受 `--agent-handle <handle>` 与
+`--instance-id <id>`。Tauri 不是任何根 `dev:<app>` 命令的本地开发载体，
+`--tauri` 等未列出的参数会以 `dev-app-option-unsupported` 拒绝。
 
 Generic `nimi-app dev` 不共享固定 CDP 端口。Desktop supervisor 请求 Chromium 自动
 选择 ephemeral 端口，读取 App 私有 profile 中的实际端口，并由 CLI 输出

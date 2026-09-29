@@ -1,19 +1,19 @@
 # Create A Nimi App
 
-Create a third-party App project with the public App Tools CLI. The commands on this page target `@nimiplatform/app-tools@0.2.7`.
+Create a third-party App project with the public App Tools CLI. The commands on this page target `@nimiplatform/app-tools@0.7.5`.
 
 ## Before You Start
 
 - Use Node.js 24 or newer and pnpm. The generated project declares its package-manager version.
 - Choose an empty project directory and an App ID for your project.
-- To run the App through Nimi, have a compatible Nimi Home development instance with Developer Mode and its Runtime available. Check [development setup and availability](/start/install) first. Project creation does not install Nimi Home; the public Windows Runtime bootstrap is not a Home installer.
+- To run the App through Nimi, have a compatible Nimi Home development instance with Developer Mode and its Runtime available. Check [development setup and availability](/start/install) first. Project creation does not install Nimi Home, and no Nimi Home download is published yet.
 
 ## Create And Initialize
 
 This example includes text generation so you can continue to the first AI call. `studio-create` adds the Create feature, its AI Studio dependency, and the generated `runtime.consume` declaration. It includes feature code and UI; it is not a permission-only switch.
 
 ```bash
-pnpm dlx --package @nimiplatform/app-tools@0.2.7 nimi-app create --dir my-nimi-app --profile standalone --features studio-create --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app
+pnpm dlx --package @nimiplatform/app-tools@0.7.5 nimi-app create --dir my-nimi-app --profile standalone --features studio-create --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app
 cd my-nimi-app
 pnpm install
 pnpm run init
@@ -21,7 +21,7 @@ pnpm run init
 
 Replace the directory, identity, and title with your project's values. The standalone project uses public dependencies. `init` explicitly synchronizes the bundled nimicoding projections and initializes the App's managed configuration. You do not need to study or run Nimi's repository governance workflow separately before using this generated entry point.
 
-For an empty base App, omit `--features studio-create`. That produces `app_access: []`, which does not provide the declaration needed by this text-generation example. In a managed scaffold, `nimi.app.yaml` is generated from the selected features: hand-editing its permissions fails `check`, and `sync` restores the generated declaration. App Tools 0.2.7 does not accept `--features` on `sync`. If you already created an empty base and want to follow this example, use the command above with a different empty directory, preserving your existing project.
+For an empty base App, omit `--features studio-create`. That produces `app_access: []`, which does not provide the declaration needed by this text-generation example. In a managed scaffold, `nimi.app.yaml` is generated from the selected features: hand-editing its permissions fails `check`, and `sync` restores the generated declaration. App Tools 0.7.5 does not accept `--features` on `sync`. If you already created an empty base and want to follow this example, use the command above with a different empty directory, preserving your existing project.
 
 ## Check And Run
 
@@ -35,7 +35,7 @@ pnpm dev
 
 Register and authorize the local project through Nimi Home's Developer Mode as required by the development host. A running window and Nimi Access are separate states: if access is unavailable, use the reported reason to correct registration, authorization, Runtime, or capability configuration. Do not bypass the host to make a request appear successful.
 
-Tauri remains an explicitly configured production-build alternative, not the default development host.
+Tauri remains an explicitly configured production-build alternative, not the default development host. A Tauri Host carries only part of the standard shell; operations it does not carry fail with `capability-unavailable` (see [Tauri Hosts](/platform/kit/#tauri-hosts)).
 
 ## Project Commands
 

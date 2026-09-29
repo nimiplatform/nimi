@@ -138,7 +138,7 @@ const EN_COPY: PublicPageCopy = {
     switchEnglish: 'Switch language to English',
     switchChinese: 'Switch language to Chinese',
     currentStatus: 'Current status',
-    reviewed: 'Release status updated September 11, 2026',
+    reviewed: 'Release status updated September 29, 2026',
     securityAdvisoryDetail: 'Private vulnerability report',
     securityEmailDetail: 'Private security contact',
   },
@@ -152,26 +152,26 @@ const EN_COPY: PublicPageCopy = {
     kicker: 'Release status',
     title: 'Download Nimi',
     intro:
-      'Check what you can download today, which platforms it works on, and what to expect before you run it.',
-    statusTitle: 'Downloads by version on GitHub Releases',
+      'Check whether Nimi can be installed today, which platforms a release covers, and what to expect before you run anything.',
+    statusTitle: 'Nimi is not available to download yet',
     statusBody:
-      'Nimi product artifacts are published per version on GitHub Releases. Each release page lists its available artifacts for Windows x86_64 and macOS arm64 together with that release’s notes and verification material. Earlier mixed developer previews were withdrawn; cleanup guidance remains below.',
+      'No Nimi product or component release is published on GitHub Releases, and the earlier mixed developer previews were withdrawn. A release page, once published, lists the platforms it covers, its assets, and its verification material. Using Nimi Home requires a Nimi account; you sign in through your browser. Cleanup guidance for previous previews remains below.',
     releaseAction: 'Browse source code',
     versions: {
-      title: 'Download by version',
+      title: 'How releases are identified',
       paragraphs: [
-        'Release tags name their owner: nimi/v<version> for the complete Desktop + Runtime + Avatar product, desktop/v<version> for a Desktop-only delivery, and runtime/v<version> for a Runtime-only delivery. Open the release whose version and owner match what you want to install, then choose the asset for your platform.',
+        'Release tags name their owner: nimi/v<version> for the complete Desktop + Runtime + Avatar product, desktop/v<version> for a Desktop-only delivery, and runtime/v<version> for a Runtime-only delivery. Nothing is published under these tags yet.',
       ],
       items: [
-        'Windows x86_64: choose the matching Windows asset on the release page.',
-        'macOS arm64: choose the matching macOS asset on the release page.',
+        'Owner and version: match the release tag to the product or component you want.',
+        'Platform: choose only an asset the release page lists for your platform.',
         'Verify before running: compare the release-owned checksum material and signing status described on the release page and in the code signing policy.',
       ],
-      cta: 'Open GitHub Releases',
+      cta: 'Check GitHub Releases',
     },
     preview: {
       title: 'Developer preview downloads withdrawn',
-      scope: 'The earlier releases grouped different components under a repository-wide version. They are being withdrawn and are not replaced by a new product or component release.',
+      scope: 'The earlier releases grouped different components under a repository-wide version. They were withdrawn and have not been replaced by a new product or component release.',
       warning: 'A future preview will identify exactly what it contains and its signing status. Do not disable Windows security controls to run unsigned files.',
       usage: 'Developers can review and build the source. If you already installed a previous preview, its cleanup guidance remains below.',
       releaseLink: 'View GitHub Releases',
@@ -190,13 +190,13 @@ const EN_COPY: PublicPageCopy = {
     platforms: [
       {
         name: 'Windows',
-        status: 'See GitHub Releases',
-        detail: 'Windows x86_64 artifacts are listed per version on the matching release page; signing and verification material is release-owned.',
+        status: 'No download yet',
+        detail: 'No Windows x86_64 release is published. A release page lists its own assets and its signing and verification material.',
       },
       {
         name: 'macOS',
-        status: 'See GitHub Releases',
-        detail: 'macOS arm64 artifacts are listed per version on the matching release page; notarization and signing status is recorded per release.',
+        status: 'No download yet',
+        detail: 'No macOS arm64 release is published. A release page records its own notarization and signing status.',
       },
       {
         name: 'Linux',
@@ -431,7 +431,7 @@ const ZH_COPY: PublicPageCopy = {
     switchEnglish: '切换语言为英文',
     switchChinese: '切换语言为中文',
     currentStatus: '当前状态',
-    reviewed: '发布状态更新于 2026 年 9 月 11 日',
+    reviewed: '发布状态更新于 2026 年 9 月 29 日',
     securityAdvisoryDetail: '私下提交漏洞',
     securityEmailDetail: '私下安全联系',
   },
@@ -444,26 +444,26 @@ const ZH_COPY: PublicPageCopy = {
     kicker: '发布状态',
     title: '下载 Nimi',
     intro:
-      '查看今天能下载什么、适用哪些平台，以及运行前需要了解的限制。',
-    statusTitle: '按版本在 GitHub Releases 下载',
+      '查看今天能否安装 Nimi、一个版本适用哪些平台，以及运行任何文件前需要了解的限制。',
+    statusTitle: 'Nimi 目前还不能下载',
     statusBody:
-      'Nimi 产品制品按版本发布在 GitHub Releases；每个版本页列出该版本的 Windows x86_64 与 macOS arm64 制品、版本说明与校验材料。旧的混合开发者预览已撤下，清理说明保留在下方。',
+      'GitHub Releases 上目前没有任何 Nimi 产品或组件版本，旧的混合开发者预览也已撤下。版本发布后，版本页会列出适用平台、制品与校验材料。使用 Nimi Home 需要 Nimi 账号，并在浏览器中登录。旧预览的清理说明保留在下方。',
     releaseAction: '查看源代码',
     versions: {
-      title: '按版本下载',
+      title: '如何识别版本',
       paragraphs: [
-        'Release 标签标明归属：完整 Desktop + Runtime + Avatar 产品使用 nimi/v<版本>，仅 Desktop 使用 desktop/v<版本>，仅 Runtime 使用 runtime/v<版本>。打开与你想要安装的版本与归属一致的 Release，然后在版本页选择对应平台的制品。',
+        'Release 标签标明归属：完整 Desktop + Runtime + Avatar 产品使用 nimi/v<版本>，仅 Desktop 使用 desktop/v<版本>，仅 Runtime 使用 runtime/v<版本>。这些标签下目前还没有发布任何版本。',
       ],
       items: [
-        'Windows x86_64：在版本页选择对应的 Windows 制品。',
-        'macOS arm64：在版本页选择对应的 macOS 制品。',
+        '归属与版本：确认 Release 标签对应你需要的产品或组件。',
+        '平台：只选择版本页为你的平台列出的制品。',
         '运行前先验证：对照版本页与代码签名政策中的校验材料与签名状态。',
       ],
-      cta: '打开 GitHub Releases',
+      cta: '查看 GitHub Releases',
     },
     preview: {
       title: '开发者预览下载已撤下',
-      scope: '旧 Release 把不同组件放在同一个仓库整体版本下，目前正在撤回；尚未发布新的产品或组件版本来替代。',
+      scope: '旧 Release 把不同组件放在同一个仓库整体版本下，已经撤回，也没有发布新的产品或组件版本来替代。',
       warning: '后续预览会明确交付对象、所含组件与签名状态。不要为了运行未签名文件而关闭 Windows 安全能力。',
       usage: '开发者可以查看源码并本地构建。如果已经安装旧预览，下方保留了清理说明。',
       releaseLink: '查看 GitHub Releases',
@@ -482,13 +482,13 @@ const ZH_COPY: PublicPageCopy = {
     platforms: [
       {
         name: 'Windows',
-        status: '见 GitHub Releases',
-        detail: 'Windows x86_64 制品按版本列在对应 Release 页；签名与校验材料由该版本提供。',
+        status: '暂无下载',
+        detail: '目前没有发布 Windows x86_64 版本。版本页会列出该版本自己的制品、签名与校验材料。',
       },
       {
         name: 'macOS',
-        status: '见 GitHub Releases',
-        detail: 'macOS arm64 制品按版本列在对应 Release 页；公证与签名状态按版本记录。',
+        status: '暂无下载',
+        detail: '目前没有发布 macOS arm64 版本。版本页会记录该版本自己的公证与签名状态。',
       },
       {
         name: 'Linux',

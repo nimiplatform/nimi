@@ -23,8 +23,8 @@ export const landingContentZh: LandingContent = {
     sloganAccent: '由你定义',
     subSlogan: '本地或云端，模型由你选择。\n角色与世界，体验由你塑造。',
     subSloganNote: '应用随你切换，AI 与记忆始终如一。',
-    downloadCta: '下载 Nimi',
-    downloadNote: '支持 macOS 与 Windows。',
+    downloadCta: '查看下载状态',
+    downloadNote: '暂未开放安装。使用 Nimi 需要 Nimi 账号。',
     docsCta: '查看文档',
     demo: {
       windowTitle: 'Nimi',
@@ -250,7 +250,7 @@ export const landingContentZh: LandingContent = {
     body: '从接入方式、能力支持和示例开始，了解如何开发与运行 Nimi App。',
     points: [
       'Nimi SDK：一套接口连接本地与云端 AI 能力。',
-      '适配器：提供 Vercel AI SDK 与 Mastra 适配器，便于接入已有项目。',
+      '开发指南：从创建项目到第一次 AI 调用，说明每一步的前提条件。',
       '脚手架：使用 app-tools 创建本地 App 项目，并按自己的节奏迭代。',
     ],
     primaryCta: '阅读开发指南',
@@ -258,9 +258,9 @@ export const landingContentZh: LandingContent = {
   },
   getStarted: {
     title: '从今天起，用自己的方式使用 AI。',
-    subtitle: '下载 Nimi，找到需要的应用，或认识一个感兴趣的 AI 角色。选择合适的 AI，从你想做的事开始。',
+    subtitle: '查看下载状态，找到需要的应用，或认识一个感兴趣的 AI 角色。选择合适的 AI，从你想做的事开始。',
     primaryCta: '查看下载状态',
-    availability: '当前没有已发布的正式安装包；下载页会说明各平台的真实状态。',
+    availability: '目前还不能安装 Nimi，使用时需要 Nimi 账号；下载页会说明各平台的当前状态。',
     secondaryCta: '探索应用',
   },
   footer: {
@@ -273,7 +273,7 @@ export const landingContentZh: LandingContent = {
     developersLabel: '开发者',
     docsLabel: '文档',
     githubLabel: 'GitHub',
-    downloadLabel: '下载 Nimi',
+    downloadLabel: '下载状态',
     codeSigningLabel: '代码签名政策',
     securityLabel: '安全报告',
     termsLabel: '服务条款',

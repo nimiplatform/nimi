@@ -77,6 +77,12 @@ Then publish dependants:
    scaffold contract to be visible in their public registries. The Tauri
    publisher has already closed its protected-local dependency.
 
+Each tag takes its version from that component's own manifest at the tagged
+commit: `sdks/typescript/package.json`, `kit/package.json`,
+`app-tools/package.json`, `kit/shell/protected-local/Cargo.toml`, and
+`kit/shell/tauri/Cargo.toml`. A manifest version on `main` is a prepared
+candidate, not a publication; npm and crates.io show which versions are public.
+
 The current candidate combination is unpublished, and publishing it needs
 explicit authorization. Its intended tags, with the upgrade notes in the SDK,
 Kit, and adapter packages, are:

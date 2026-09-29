@@ -149,3 +149,20 @@ test('Windows Runtime and App Tools changes select the native Windows lane', () 
   const unselected = successfulResults(['apps/web/src/view.tsx']);
   assert.throws(() => assertCiResults({ ...unselected, 'windows-runtime-tests': { result: 'success' } }), /windows-runtime-tests/u);
 });
+
+test('SDK and adapter changes compile the SDK examples; example edits run the docs gate', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const examples = JSON.parse(await readFile(new URL('../examples/package.json', import.meta.url), 'utf8'));
+  // The workspace lane runs each selected package's `test`; SDK consumers
+  // include the examples package, whose test is its compile gate.
+  assert.equal(examples.dependencies['@nimiplatform/sdk'], 'workspace:*');
+  assert.match(examples.scripts.test, /\bpnpm run check\b/u);
+  assert.match(examples.scripts.check, /\btsc -p tsconfig\.json --noEmit\b/u);
+  for (const file of ['sdks/typescript/core/app/local-app-runtime-platform.ts', 'sdks/typescript/adapters/vercel-ai/index.ts']) {
+    const scope = selectCiScope([file]);
+    assert.equal(scope.workspace_changed, true, file);
+    assert.ok(scope.workspace_filters.includes('...@nimiplatform/sdk'), file);
+  }
+  const edited = selectCiScope(['examples/sdk/01-first-call.ts']);
+  assert.equal(edited.docs_changed, true);
+});

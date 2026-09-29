@@ -47,9 +47,14 @@ import { usePrefersReducedMotion } from '@nimiplatform/kit/ui/motion';
 Renderer app code 使用 renderer-safe shell exports：
 
 ```ts
-import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { resolveBootstrapAuthSession } from '@nimiplatform/kit/shell/renderer/bootstrap';
+import {
+  createNimiLocalAppStandardShellSurface,
+  installNimiShellRuntimeBridge,
+} from '@nimiplatform/kit/shell/renderer/bridge';
+import { createRendererEntryModuleLoader } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
+
+生成的 renderer 入口会先调用一次 `installNimiShellRuntimeBridge()`。`createNimiLocalAppStandardShellSurface()` 为 App 绑定宿主的 SDK client 提供 `standardShell`，client 通过 `createNimiClient({ localApp: { standardShell } })` 创建。更底层的 `invokeShell` 与 `invokeTauri` 是 shell 集成用的宿主 glue，不是 App 的调用路径。
 
 Electron main/preload code 使用 Electron-only exports：
 
@@ -62,17 +67,15 @@ import { installNimiElectronRuntimeBridge } from '@nimiplatform/kit/shell/electr
 
 ## AI Capability Configuration
 
-Agent Center 通过公开 feature 展示 owner-scoped AIConfig intent：
+生成的 App 用 model-config feature 渲染 AI 设置，并由 App 绑定宿主的 client 提供数据：
 
 ```ts
-import {
-  AgentCenter,
-  AgentCenterAIConfigSection,
-} from '@nimiplatform/kit/features/agent-center/ui';
-import { createNimiAppAIConfigClient } from '@nimiplatform/sdk/ai';
+import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';
 ```
 
-负责配置的 session 提供当前完整 AIConfig 和 overwrite action。这个 section 让 owner 表达 Local 或 Cloud capability intent，不选择 model、machine route、connector 或 execution binding。具体实现选择、readiness 和 execution evidence 归 Runtime 管理。
+生成的设置面板把 `client.aiConfig.get()`、`client.aiConfig.listOptions(query)` 和 `client.aiConfig.overwrite(input)` 接到这个 surface 上；移动代码时保留这套接线。它让 owner 表达 Local 或 Cloud capability intent，不选择 model、machine route、connector 或 execution binding。具体实现选择、readiness 和 execution evidence 归 Runtime 管理，见 [AI 配置](/zh/sdk/ai-config-surface)。
+
+Agent Center 通过 `@nimiplatform/kit/features/agent-center/ui` 中的 `AgentCenterAIConfigSection` 展示同类 owner-scoped 意图。
 
 ## 复用规则
 
@@ -94,8 +97,8 @@ pnpm check:nimi-kit
 在生成的 App 仓库：
 
 ```bash
-pnpm run validate
-pnpm run doctor
+pnpm run check
+pnpm run test
 ```
 
 ## 来源依据

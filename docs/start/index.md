@@ -15,7 +15,7 @@ For shared UI and host integration, read [Use Kit in an App](/platform/kit/use-k
 
 Nimi Apps have three distinct paths: Registry-approved packages, explicitly selected immutable local-package imports, and non-package Developer Mode projects. This guide starts with Developer Mode; creating a project or opening its window does not grant Nimi Access or publish it.
 
-The current pre-release supports protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding with human-approved descriptors, and verified Catalog discovery, installation, launch/focus/stop, protected-session Access, and uninstall on Windows x86_64. The local-package import entry, other-platform package lifecycle, ordinary update, and repair remain unavailable. Bundled/platform Apps follow their own rules.
+The current pre-release supports protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding with human-approved descriptors, and verified Catalog discovery, installation, update, launch/focus/stop, protected-session Access, and uninstall on Windows x86_64 and macOS arm64. The local-package import entry, other-platform package lifecycle, and ordinary repair remain unavailable. Bundled/platform Apps follow their own rules.
 
 Read the [App Tools release guidance](https://github.com/nimiplatform/nimi/tree/main/app-tools#canonical-release-boundary) before preparing distribution. Keep local execution, published assets, Registry admission, installed state, and access as separate results.
 
@@ -26,7 +26,7 @@ Read the [App Tools release guidance](https://github.com/nimiplatform/nimi/tree/
 - [Platform](/platform/) and [Glossary](/reference/glossary): product concepts and terminology.
 - [Nimi Coding](/nimicoding/): using the authority tooling directly. Generated App initialization already handles its required toolchain integration.
 
-For the personal AI product and ordinary-user download status, visit [nimi.ai](https://nimi.ai) and [Download](https://nimi.ai/download).
+For the personal AI product and ordinary-user download status, visit [nimi.ai](https://nimi.ai) and [Download](https://nimi.ai/download). Nimi Home requires a Nimi account; you sign in through your browser.
 
 ## Source Basis
 

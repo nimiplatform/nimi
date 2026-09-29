@@ -1,38 +1,46 @@
 /**
- * Local App Access posture for a renderer launched by `nimi-app dev`.
- * Pass the Kit `createNimiLocalAppStandardShellSurface()` result from the App
- * shell; registration and host-private identity never enter this module.
+ * Session posture and typed failures in a Nimi App.
+ *
+ * The Host and Runtime own the App session and its access; the App never
+ * supplies identity, tokens or an endpoint. Read the posture to decide what to
+ * show, and keep a protected operation's typed reason visible to the user.
  */
 
-import {
-  createNimiClient,
-  type NimiLocalAppStandardShell,
-} from '@nimiplatform/sdk';
+import type { NimiLocalAppClient } from '@nimiplatform/sdk';
 
-export type LocalAppAccessPosture = {
-  readonly sessionBound: boolean;
-  readonly accessAvailable: false;
-  readonly reasonCode: 'SDK_LOCAL_APP_ACCESS_UNAVAILABLE';
+export type AppSessionPosture =
+  | { readonly kind: 'bound' }
+  | {
+    readonly kind: 'unavailable';
+    readonly reasonCode: string;
+    readonly actionHint: string;
+    readonly retryable: boolean;
+  };
+
+export async function readAppSessionPosture(client: NimiLocalAppClient): Promise<AppSessionPosture> {
+  const session = await client.auth.status();
+  if (session.sessionBound) {
+    return { kind: 'bound' };
+  }
+  return {
+    kind: 'unavailable',
+    reasonCode: session.reasonCode,
+    actionHint: session.actionHint,
+    retryable: session.retryable,
+  };
+}
+
+export type AppOperationFailure = {
+  readonly reasonCode: string | null;
+  readonly actionHint: string | null;
+  readonly message: string;
 };
 
-export async function readLocalAppAccessPosture(
-  standardShell: NimiLocalAppStandardShell,
-): Promise<LocalAppAccessPosture> {
-  const app = createNimiClient({ localApp: { standardShell } });
-  const session = await app.auth.status();
-
-  try {
-    await app.storage.readJson('examples/posture.json');
-  } catch (error) {
-    if ((error as { reasonCode?: unknown }).reasonCode === 'SDK_LOCAL_APP_ACCESS_UNAVAILABLE') {
-      return {
-        sessionBound: session.sessionBound,
-        accessAvailable: false,
-        reasonCode: 'SDK_LOCAL_APP_ACCESS_UNAVAILABLE',
-      };
-    }
-    throw error;
-  }
-
-  throw new Error('Protected App operation returned success before App Access ingress is available.');
+export function describeAppOperationFailure(error: unknown): AppOperationFailure {
+  const fields = error !== null && typeof error === 'object' ? error as Record<string, unknown> : {};
+  return {
+    reasonCode: typeof fields.reasonCode === 'string' && fields.reasonCode ? fields.reasonCode : null,
+    actionHint: typeof fields.actionHint === 'string' && fields.actionHint ? fields.actionHint : null,
+    message: error instanceof Error ? error.message : String(error),
+  };
 }

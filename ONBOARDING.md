@@ -19,7 +19,7 @@
 | sdk | `sdks/typescript/` | TypeScript | 统一 SDK (`@nimiplatform/sdk`) |
 | kit | `kit/` | TypeScript + React | 跨 app 工具包：设计系统、auth、telemetry、feature 模块 |
 | proto | `proto/` | Protocol Buffers | gRPC 协议定义 |
-| spec | `spec/` | Markdown + YAML | 规范契约（normative） |
+| spec | `.nimi/spec/` | YAML + Markdown | 产品权威（canonical authority） |
 | docs | `docs/` | VitePress | 开发者文档站点 |
 
 ### 应用（Apps）
@@ -27,7 +27,7 @@
 | 应用 | 目录 | 技术栈 | 说明 |
 |---|---|---|---|
 | desktop | `apps/desktop/` | Electron + React | 主桌面 host、agent 交互、本地 AI |
-| avatar | `apps/avatar/` | Tauri + React | Avatar app / local carrier |
+| avatar | `apps/avatar/` | Electron + React | 由 Desktop 交接启动的桌面 Avatar 悬浮 carrier |
 | web | `apps/web/` | React | 浏览器客户端（Cloudflare Pages） |
 | install-gateway | `apps/install-gateway/` | Cloudflare Worker | 发行分发网关 |
 
@@ -35,8 +35,8 @@
 
 | 组件 | 目录 | 说明 |
 |---|---|---|
-| kit shell tauri | `kit/shell/tauri/` | 跨 Tauri app 共享 Rust host glue |
-| examples | `examples/` | SDK/runtime 示例 + app 脚手架模板 |
+| kit shell tauri | `kit/shell/tauri/` | Tauri 宿主共享的 Rust host glue，只承载标准 shell 的一部分；当前一方 App 均使用 Electron |
+| examples | `examples/` | App SDK 示例与 Runtime CLI 示例（脚手架由 `@nimiplatform/app-tools` 生成） |
 
 ## 2. 前置环境
 
@@ -49,7 +49,7 @@
 
 可选但常用：
 
-1. Rust toolchain（构建 Desktop 原生 Product Control 包或 Tauri App 时需要）
+1. Rust toolchain（构建 Kit 原生 carrier、Desktop 原生 Product Control 包或检查 Tauri shell crate 时需要）
 2. `buf`（开发 proto 时常用）
 
 快速检查：
@@ -140,34 +140,29 @@ CLI 配置不拥有 provider 凭据；AI 调用由已认证 App 通过 SDK 的 t
 
 ## 5. SDK 快速验证
 
-安装（在你自己的应用中）：
-
-```bash
-pnpm add @nimiplatform/sdk
-```
-
-最小示例（Runtime + Realm）：
+第三方 App 通过 Desktop 监督的宿主运行，并使用绑定宿主的 SDK client：
 
 ```ts
-import { createPlatformClient } from '@nimiplatform/sdk';
+import { createNimiClient, type NimiLocalAppClient } from '@nimiplatform/sdk';
+import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
 
-const { runtime, realm } = await createPlatformClient({
-  appId: 'my_app',
-  runtimeTransport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  realmBaseUrl: 'https://api.nimi.ai',
+const client: NimiLocalAppClient = createNimiClient({
+  localApp: { standardShell: createNimiLocalAppStandardShellSurface() },
 });
 ```
 
-当前 SDK 主入口是根导出的 `createPlatformClient()`。`Runtime` / `Realm` 子路径保留为 low-level escape hatch。不要使用 `createNimiClient`。
-
-Runtime 实例暴露以下模块：`auth`、`appAuth`、`ai`、`media`、`model`、`local`、`connector`、`knowledge`、`workflow`、`app`、`audit`、`scope`、`events`、`raw`。
+App 不传入 App ID、账号、token 或 Runtime 地址；Runtime 从受保护会话确定这些信息。
+用 `@nimiplatform/app-tools` 生成的项目已包含这个 client。完整路径见
+`docs/start/create-an-app.md` 与 `docs/sdk/first-ai-call.md`，可编译的示例在
+`examples/sdk/`。带 App ID 的直连 `createNimiClient({ appId, runtime })` 只用于
+Nimi App 之外的程序；通过普通 loopback gRPC 连接，Runtime 会拒绝 AI 执行、App
+存储等 App 范围操作。
 
 Kit 工具包（多数 app 均依赖）：
 
 ```ts
 import { Button } from '@nimiplatform/kit/ui';
-import { useAuth } from '@nimiplatform/kit/auth';
-import { ChatFeature } from '@nimiplatform/kit/features/chat';
+import { DesktopBrowserAuthGate } from '@nimiplatform/kit/auth/shell';
 ```
 
 ## 6. Desktop 与 Web 开发
@@ -180,15 +175,20 @@ import { ChatFeature } from '@nimiplatform/kit/features/chat';
 pnpm dev:desktop
 ```
 
-### 6.2 其他 Tauri 应用
+### 6.2 Desktop 监督的 App
 
-当前 active Tauri 应用遵循相同的开发模式：
+先运行并登录 Desktop，再从仓库根目录启动一方 App：
 
 ```bash
-pnpm -C apps/<app-name> run dev:shell
+pnpm dev:lab
+pnpm dev:zhiyu
+pnpm dev:nimigo
+pnpm dev:nimiday
 ```
 
-这些 Kit/Tauri 应用共享统一脚本接口：`dev:renderer`（仅前端）、`dev:shell`（含 Tauri）、`build`、`typecheck`、`lint`、`test`；该约定不适用于 Electron-only Desktop。
+这些 App 都由 Desktop supervisor 以 Electron 宿主启动。`pnpm dev:avatar` 单独启动
+avatar-only Desktop carrier，不能与普通 `pnpm dev:desktop` 并行。端口与参数见
+`LOCAL_DEVELOPMENT.md`。第三方 App 在自己的项目中运行 `pnpm dev`。
 
 ### 6.3 Web
 

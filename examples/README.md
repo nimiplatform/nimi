@@ -1,79 +1,49 @@
 # Nimi Examples
 
-These examples are organized by onboarding slope: start with one file that proves Nimi works, then move into streaming, capability intent, and deeper Runtime features.
+The SDK examples are App code for a Nimi App. Each module takes the App's
+host-bound `NimiLocalAppClient`: in a project created with
+`@nimiplatform/app-tools`, pass `getNimiLocalAppClient()` from
+`src/shell/auth/local-app-client.ts`.
 
-## Before You Run Anything
+They run inside the App's Desktop-supervised Host (`pnpm dev` in the App
+project), not as standalone Node scripts. Runtime accepts App operations only
+from a verified Host session; a direct gRPC client with an App ID is rejected
+for AI execution, App AIConfig and App storage.
 
-The public install channel is not open yet. Run examples from a source
-checkout with the runtime CLI built locally:
+## SDK Examples
 
-```bash
-pnpm install
-pnpm build:runtime
-export PATH="$PWD/dist:$PATH"
-nimi serve
-```
+| File | Shows |
+| --- | --- |
+| `sdk/01-first-call.ts` | One text answer with `client.ai.text.generateCandidate` |
+| `sdk/02-streaming.ts` | A streamed text turn with `client.ai.text.streamTurn`, including stop |
+| `sdk/03-ai-config.ts` | Saving a Local `text.generate` intent without dropping the App's other capabilities |
+| `sdk/04-vercel-ai-sdk.ts` | Vercel AI SDK 6 through `createNimiLocalAppVercelLanguageModel` |
+| `sdk/05-scenario-job.ts` | An asynchronous `text-annotate` Job and its typed result |
+| `sdk/advanced/app-access.ts` | Session posture from `client.auth.status()` and typed failure details |
 
-On a build with an admitted background/service controller, its bounded process
-proof is:
+Each call needs the App's matching App Access declaration (for example
+`runtime.consume`) and a saved capability intent (for example `text.generate`).
+The request carries content only; Runtime selects the Local or Cloud
+implementation from the App's AIConfig when the call runs.
 
-```bash
-nimi doctor
-nimi health --json
-```
+The Vercel example uses the separate `@nimiplatform/sdk-adapter-vercel-ai`
+package. Install a release whose `@nimiplatform/sdk` peer range covers the SDK
+version your App uses.
 
-Node.js is only needed when you run the TypeScript example files directly.
+## Runtime CLI
 
-## 30 Seconds
-
-```bash
-npx tsx examples/sdk/01-hello.ts
-```
-
-This is the shortest proof that:
-
-- `createNimiClient()` can attach to the local daemon with explicit app identity
-- `client.ai.createRuntimeModel(...).generateText(...)` is the vNext text path
-- local generation can happen without wiring app-specific transport code
-
-## Onboarding Ladder
-
-```bash
-npx tsx examples/sdk/01-hello.ts
-npx tsx examples/sdk/02-streaming.ts
-npx tsx examples/sdk/03-runtime-intent.ts
-npx tsx examples/sdk/04-vercel-ai-sdk.ts
-npx tsx examples/sdk/05-multimodal.ts
-```
-
-What each file demonstrates:
-
-- `01-hello.ts`: smallest possible text generation
-- `02-streaming.ts`: stream chunks from the same runtime surface
-- `03-runtime-intent.ts`: keep the request stable while Runtime follows the App's Local or Cloud intent
-- `04-vercel-ai-sdk.ts`: Nimi as a provider for the Vercel AI SDK
-- `05-multimodal.ts`: image and TTS flows through the runtime
+`runtime/cli-quickstart.sh` checks a local Runtime with the `nimi` CLI
+(`doctor`, `version`, `health --json`, `status`). It does not call AI
+capabilities.
 
 ## App Scaffolds
 
-Generate a fresh protected App with the current `@nimiplatform/app-tools` CLI; this
-examples package does not keep a hand-maintained scaffold copy or claim it as the
-current reference implementation.
+Generate a fresh App with the `@nimiplatform/app-tools` CLI; this package does
+not keep a hand-maintained scaffold copy.
 
 ```bash
 pnpm dlx --package @nimiplatform/app-tools nimi-app create --dir my-nimi-app --profile standalone
 ```
-
-## Advanced Paths
-
-Advanced examples live under `examples/sdk/advanced/`:
-
-- `app-access.ts`: session posture remains independent while protected App Access fails closed until ingress is available
-- `custom-runtime.ts`: explicit Runtime transport configuration
-
-The onboarding ladder keeps execution requests limited to App identity, scenario content,
-and supported parameters. Runtime reads the App's capability intent and chooses the
-implementation when execution starts.
 
 ## Compile Gate
 
@@ -81,8 +51,6 @@ implementation when execution starts.
 pnpm --filter @nimiplatform/examples run check
 ```
 
-## Layout
-
-- `sdk/`: app-facing SDK examples
-- `sdk/advanced/`: deeper runtime features
-- `runtime/`: CLI examples
+The gate type-checks these modules against the SDK and adapter sources in
+this repository. CI runs it when the SDK, the adapter, or these examples
+change.

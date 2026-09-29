@@ -2,7 +2,7 @@
 
 Use the App's host-bound SDK client to make one real text-generation request. Nimi Home establishes the App session; Runtime reads that App's saved AI configuration and chooses the implementation when execution starts.
 
-This guide continues the `--features studio-create` example in [Create a Nimi App](/start/create-an-app), using public App Tools 0.2.7. Keep the generated SDK/Kit binding. The App renderer does not need a gRPC endpoint, account ID, session token, or a caller-selected App identity.
+This guide continues the `--features studio-create` example in [Create a Nimi App](/start/create-an-app), using public App Tools 0.7.5. Keep the generated SDK/Kit binding. The App renderer does not need a gRPC endpoint, account ID, session token, or a caller-selected App identity.
 
 ## Before the Call
 
@@ -19,7 +19,7 @@ If the generated manifest has `app_access: []`, the project was created without 
 The default starter already exports `getNimiLocalAppClient()` from `src/shell/auth/local-app-client.ts`. Reuse it. In an existing App with a different file layout, use that App's equivalent host-bound client.
 
 ```ts
-// src/first-ai-call.ts in the default App Tools 0.2.7 starter
+// src/first-ai-call.ts in the default App Tools 0.7.5 starter
 import { getNimiLocalAppClient } from './shell/auth/local-app-client.js';
 
 export async function generateText(prompt: string) {
@@ -39,7 +39,7 @@ The request carries conversation content. It does not select a model, connector,
 | Failure | Next step |
 | --- | --- |
 | No bound App session or an access error | Return to the supervised App launch and its host access flow. Do not replace the binding with a direct Node/gRPC client or supply your own identity. |
-| `AI_CONFIG_NOT_FOUND` or missing `text.generate` intent | Save the capability intent for this App in its AI settings, then retry the actual call. |
+| `not-found` with reason `ai-config-not-found`, or a missing `text.generate` intent | Save the capability intent for this App in its AI settings, then retry the actual call. |
 | Local model or cloud configuration is unavailable | Inspect that App's current settings and the Runtime-selected model or connector state. Preserve the actual error; a configured route is not a successful execution. |
 | Runtime disconnected | Restore the existing Nimi Home/Runtime development instance, reopen the supervised App if needed, and retry the same action. |
 | Execution fails after dispatch | Inspect the typed error and its available reason/action fields. Do not synthesize a client-side fallback or switch providers silently. |

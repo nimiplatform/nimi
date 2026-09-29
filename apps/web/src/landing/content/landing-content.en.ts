@@ -23,8 +23,8 @@ export const landingContentEn: LandingContent = {
     sloganAccent: 'Your way.',
     subSlogan: 'Local or cloud, the model is yours to choose.\nThe character is yours to shape, the apps and worlds yours to open.',
     subSloganNote: 'Apps can change. Your AI and its memory stay the same.',
-    downloadCta: 'Download Nimi',
-    downloadNote: 'Available for macOS and Windows.',
+    downloadCta: 'Check download status',
+    downloadNote: 'Not available to install yet. Using Nimi requires a Nimi account.',
     docsCta: 'View docs',
     demo: {
       windowTitle: 'Nimi',
@@ -251,7 +251,7 @@ export const landingContentEn: LandingContent = {
     body: 'Start with the integration path, capability support, and examples to learn how Nimi Apps are developed and run.',
     points: [
       'Nimi SDK: one interface to local and cloud AI capabilities.',
-      'Adapters: Vercel AI SDK and Mastra adapters are available for existing projects.',
+      'Guides: from creating a project to its first AI call, with the requirements for each step.',
       'Scaffold: create a local app project with app-tools and iterate at your own pace.',
     ],
     primaryCta: 'Read the developer guide',
@@ -259,9 +259,9 @@ export const landingContentEn: LandingContent = {
   },
   getStarted: {
     title: 'Start using AI your way today.',
-    subtitle: 'Download Nimi, find the apps you need, or meet an AI character that interests you. Choose your AI and start with what you want to do.',
+    subtitle: 'Check the download status, find the apps you need, or meet an AI character that interests you. Choose your AI and start with what you want to do.',
     primaryCta: 'Check download status',
-    availability: 'There is no stable public installer yet; the download page describes the real status for each platform.',
+    availability: 'Nimi is not available to install yet, and using it requires a Nimi account. The download page has the current status for each platform.',
     secondaryCta: 'Explore apps',
   },
   footer: {
@@ -274,7 +274,7 @@ export const landingContentEn: LandingContent = {
     developersLabel: 'Developers',
     docsLabel: 'Docs',
     githubLabel: 'GitHub',
-    downloadLabel: 'Download Nimi',
+    downloadLabel: 'Download status',
     codeSigningLabel: 'Code signing policy',
     securityLabel: 'Security report',
     termsLabel: 'Terms of Service',

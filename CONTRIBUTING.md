@@ -7,7 +7,7 @@ Thanks for contributing to Nimi.
 - Node.js `>=24`
 - pnpm `>=10`
 - Go for Runtime, proto tooling, and Go SDK conformance (see `runtime/go.mod`)
-- Rust for native packages and Tauri apps
+- Rust for native packages and the Kit Tauri shell crate
 - Buf CLI (for proto work)
 
 ## Repository Setup
@@ -35,7 +35,7 @@ pnpm build
 - For proto changes, run `pnpm proto:generate` and ensure no generated drift is left.
 - For Runtime changes, start with the affected Go package test. Use all Runtime tests for Runtime-wide changes; add vet/build when the changed boundary requires them.
 - For kit changes, run `pnpm --filter @nimiplatform/kit build && pnpm --filter @nimiplatform/kit test`.
-- For Tauri app development, use the app-specific script documented by that active app.
+- For App development, use the Desktop-supervised `pnpm dev:<app>` commands in [LOCAL_DEVELOPMENT.md](./LOCAL_DEVELOPMENT.md); first-party Apps run on the Electron host, not a Tauri development shell.
 - For full onboarding flow and environment template details, follow [ONBOARDING.md](./ONBOARDING.md).
 - For test strategy details, follow [TESTING.md](./TESTING.md).
 

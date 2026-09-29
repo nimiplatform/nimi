@@ -29,9 +29,9 @@ test('public release pages retain platform status and required signing disclosur
 
 test('download copy identifies the complete product and independently released components', () => {
   const page = PUBLIC_PAGE_CONTENT.en.download;
-  assert.match(page.statusTitle, /GitHub Releases/);
-  assert.match(page.statusBody, /per version/i);
-  assert.match(page.versions.title, /by version/i);
+  assert.match(page.statusTitle, /not available to download yet/i);
+  assert.match(page.statusBody, /No Nimi product or component release is published/);
+  assert.match(page.versions.title, /identified/i);
   assert.match(page.versions.cta, /GitHub Releases/);
   assert.ok((page.versions.items?.length ?? 0) >= 3);
   assert.match(page.preview.title, /withdrawn/i);
@@ -45,11 +45,11 @@ test('download copy identifies the complete product and independently released c
   assert.match(page.sourceBuild.paragraphs.join('\n'), /never included in the GitHub unsigned-preview assets/);
 
   const windows = page.platforms.find((item) => item.name === 'Windows');
-  assert.match(windows?.status ?? '', /See GitHub Releases/);
-  assert.match(windows?.detail ?? '', /listed per version/);
+  assert.match(windows?.status ?? '', /No download yet/);
+  assert.match(windows?.detail ?? '', /No Windows x86_64 release is published/);
   const macos = page.platforms.find((item) => item.name === 'macOS');
-  assert.match(macos?.status ?? '', /See GitHub Releases/);
-  assert.match(macos?.detail ?? '', /listed per version/);
+  assert.match(macos?.status ?? '', /No download yet/);
+  assert.match(macos?.detail ?? '', /No macOS arm64 release is published/);
   const linux = page.platforms.find((item) => item.name === 'Linux');
   assert.match(linux?.detail ?? '', /no official Nimi product or developer-preview download/);
   assert.match(page.preview.warning, /Do not disable Windows security controls/);
@@ -168,5 +168,15 @@ test('download renders the withdrawal before its source action and retains clean
     assert.match(html, /Realm/);
     assert.match(html, /Developer Mode/);
     assert.match(html, /Registry/);
+  }
+});
+
+test('download status states current availability and the account requirement in both locales', () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const page = PUBLIC_PAGE_CONTENT[locale].download;
+    const current = [page.statusTitle, page.statusBody, ...page.platforms.map((platform) => platform.status)].join('\n');
+    // No published release exists, so the page must not describe release assets as available.
+    assert.doesNotMatch(current, /published per version|按版本发布|See GitHub Releases|见 GitHub Releases/u);
+    assert.match(page.statusBody, locale === 'zh' ? /Nimi 账号/u : /Nimi account/);
   }
 });

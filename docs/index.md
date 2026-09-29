@@ -27,7 +27,7 @@ features:
 
 Start with [Create a Nimi App](/start/create-an-app), then connect the capability your app needs. The [SDK reference](/sdk/) and [Runtime documentation](/runtime/) explain the interfaces, configuration, and execution behavior in detail.
 
-Looking to use Nimi rather than develop an app? Visit [nimi.ai](https://nimi.ai) and check the [current downloads](https://nimi.ai/download).
+Looking to use Nimi rather than develop an app? Visit [nimi.ai](https://nimi.ai) and check the [current download status](https://nimi.ai/download). Nimi Home requires a Nimi account; you sign in through your browser.
 
 ## Source Basis
 
