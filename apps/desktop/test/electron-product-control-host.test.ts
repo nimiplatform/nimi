@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 
 import {
   AdmitProductControlReadyForUseRequest,
@@ -13,6 +14,10 @@ import {
   type DesktopProductControlTransport,
 } from '../src-electron/product-control-host';
 import { createDesktopDataRootOperationGate } from '../src-electron/data-root-operation-gate';
+import {
+  CHECK_SYNC_NEXT_ACTIONS,
+  isExecutableCheckSyncNextAction,
+} from '../src/shell/shared/check-sync-next-action';
 
 const GET_RECORD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord';
 const GET_SELECTED_DATA_ROOT = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot';
@@ -718,7 +723,14 @@ test('Electron Product Control rejects an inconsistent Runtime root-handoff disp
   );
 });
 
-test('Electron Product Control admits only the executable Check & Sync owner action', async () => {
+test('Electron Product Control admits exactly the Runtime-owned Check & Sync next actions', async () => {
+  // Runtime asserts the same fixture against its closed set, so a value added
+  // on one side fails the other side's contract test.
+  const runtimeNextActions = JSON.parse(readFileSync(
+    new URL('../../../runtime/internal/engine/testdata/check-sync-next-actions.json', import.meta.url),
+    'utf8',
+  )) as string[];
+  assert.deepEqual([...CHECK_SYNC_NEXT_ACTIONS], runtimeNextActions);
   let nextAction = 'rerun_check_sync';
   const host = createDesktopElectronProductControlHost({
     control: {
@@ -739,10 +751,15 @@ test('Electron Product Control admits only the executable Check & Sync owner act
       })),
     },
   });
-  const projection = await host.commandHandlers.product_control_check_sync_get({
-    command: 'product_control_check_sync_get', payload: {},
-  }) as { run?: { owners?: Array<{ resources?: Array<{ nextAction?: string }> }> } };
-  assert.equal(projection.run?.owners?.[0]?.resources?.[0]?.nextAction, 'rerun_check_sync');
+  for (const known of runtimeNextActions) {
+    nextAction = known;
+    const projection = await host.commandHandlers.product_control_check_sync_get({
+      command: 'product_control_check_sync_get', payload: {},
+    }) as { run?: { owners?: Array<{ resources?: Array<{ nextAction?: string }> }> } };
+    assert.equal(projection.run?.owners?.[0]?.resources?.[0]?.nextAction, known);
+  }
+  assert.equal(isExecutableCheckSyncNextAction('rerun_check_sync'), true);
+  assert.equal(isExecutableCheckSyncNextAction('run_local_model_offline_conversion'), false);
 
   nextAction = 'rebuild_from_local_lock_cache';
   await assert.rejects(

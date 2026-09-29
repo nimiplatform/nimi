@@ -109,6 +109,22 @@ type EngineBinaryDependencyStatus struct {
 	Detail           string
 }
 
+// CheckSyncNextAction is the closed, Runtime-owned Check & Sync next-action
+// vocabulary. Rerun is an executable owner action; offline model conversion
+// names out-of-product maintenance for a restricted model domain and is never
+// a command. Consumers render only these values and reject any other.
+type CheckSyncNextAction string
+
+const (
+	CheckSyncNextActionRerunCheckSync              CheckSyncNextAction = "rerun_check_sync"
+	CheckSyncNextActionLocalModelOfflineConversion CheckSyncNextAction = "run_local_model_offline_conversion"
+)
+
+// CheckSyncNextActions returns every next action Runtime may project.
+func CheckSyncNextActions() []CheckSyncNextAction {
+	return []CheckSyncNextAction{CheckSyncNextActionRerunCheckSync, CheckSyncNextActionLocalModelOfflineConversion}
+}
+
 type ManagedEnvironmentCheckResult struct {
 	Kind       string
 	Reference  string
@@ -116,7 +132,7 @@ type ManagedEnvironmentCheckResult struct {
 	Status     string
 	Change     string
 	Reason     string
-	NextAction string
+	NextAction CheckSyncNextAction
 }
 
 type UVToolDependencyStatus struct {

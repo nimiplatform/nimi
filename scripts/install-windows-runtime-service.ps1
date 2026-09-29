@@ -877,7 +877,9 @@ function Invoke-LocalAgentChatOfflineRepair {
       }
     }
     'not-applicable' {
-      if ($skipReason -ne 'public_chat_state_uninitialized' -or
+      # Current conversation row storage (v2) is already in the supported
+      # format; like uninitialized chat state it needs no repair or backup.
+      if (@('public_chat_state_uninitialized', 'conversation_row_storage') -notcontains $skipReason -or
           $changeCount -ne 0 -or
           -not [string]::IsNullOrWhiteSpace($backupPath)) {
         throw 'LocalAgent chat offline repair reported an invalid not-applicable result.'

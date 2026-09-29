@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelassetintegrity"
@@ -136,7 +137,7 @@ func (err *modelAssetReconciliationError) Unwrap() error {
 
 func modelAssetRestrictionRPCError(restriction *modelAssetStoreRestriction) error {
 	return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED, grpcerr.ReasonOptions{
-		Message: "ModelAsset inventory requires explicit offline conversion before the model domain is available", ActionHint: "run_local_model_offline_conversion",
+		Message: "ModelAsset inventory requires explicit offline conversion before the model domain is available", ActionHint: string(engine.CheckSyncNextActionLocalModelOfflineConversion),
 		Metadata: map[string]string{"schema_version": fmt.Sprintf("%d", restriction.SchemaVersion)},
 	})
 }

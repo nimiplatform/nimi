@@ -20,6 +20,23 @@
   "checkSyncButton": "Check & Sync",
   "checkSyncState": "Check & Sync：{{state}}",
   "checkSyncFailed": "无法启动 Check & Sync",
+  "checkSyncRerun": "再次运行 Check & Sync",
+  "checkSyncModelOfflineConversion": "这个模型的本地数据需要离线转换后才能使用。转换完成前本地模型功能受限，其他功能照常可用。",
+  "checkSyncTechnicalDetails": "技术详情",
+  "checkSyncOwnerState": {
+    "pending": "等待中",
+    "running": "检查中",
+    "completed": "已完成",
+    "failed": "失败"
+  },
+  "checkSyncResourceStatus": {
+    "available": "可用",
+    "unavailable": "暂不可用",
+    "incompatible": "与当前版本不兼容",
+    "unknown": "未识别",
+    "conflict": "需要处理",
+    "failed": "检查失败"
+  },
   "openDataDir": "打开 Data Dir",
   "openDataDirFailed": "打开 data dir 失败",
   "clearCacheTitle": "清理缓存",

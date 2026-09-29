@@ -155,7 +155,7 @@ func (m *Manager) checkSyncManagedEnvironment(ctx context.Context, dataRoot stri
 			if !strings.EqualFold(manifest.Identity.PlatformTuple, platform) {
 				result.Status = "incompatible"
 				result.Reason = "PYTHON_PROFILE_PLATFORM_INCOMPATIBLE"
-				result.NextAction = "rerun_check_sync"
+				result.NextAction = CheckSyncNextActionRerunCheckSync
 				if rebuilt, ok := m.rebuildPythonDependencyProfileFromLocal(ctx, manifest); ok {
 					if _, duplicate := rebuiltProfiles[rebuilt.Identity.ProfileDigest]; !duplicate {
 						rebuiltProfiles[rebuilt.Identity.ProfileDigest] = struct{}{}

@@ -13,6 +13,10 @@ import {
   createDesktopDataRootOperationGate,
   type DesktopDataRootOperationGate,
 } from './data-root-operation-gate.js';
+import {
+  CHECK_SYNC_NEXT_ACTIONS,
+  type CheckSyncNextAction,
+} from '../src/shell/shared/check-sync-next-action.js';
 const DIRECT_COMMANDS = [
   'product_control_record_get',
   'product_control_selected_data_root_get',
@@ -106,7 +110,7 @@ export type DesktopCheckSyncResourceResult = {
   readonly status: 'available' | 'unavailable' | 'incompatible' | 'unknown' | 'conflict' | 'failed';
   readonly change?: 'rebased' | 'adopted' | 'rebuilt';
   readonly reason: string;
-  readonly nextAction?: 'rerun_check_sync';
+  readonly nextAction?: CheckSyncNextAction;
 };
 
 export type DesktopCheckSyncProjection = {
@@ -778,7 +782,7 @@ function parseDesktopCheckSyncResource(value: unknown): DesktopCheckSyncResource
     status: oneOf(resource.status, ['available', 'unavailable', 'incompatible', 'unknown', 'conflict', 'failed'] as const),
     change: resource.change == null ? undefined : oneOf(resource.change, ['rebased', 'adopted', 'rebuilt'] as const),
     reason: boundedText(resource.reason),
-    nextAction: resource.nextAction == null ? undefined : oneOf(resource.nextAction, ['rerun_check_sync'] as const),
+    nextAction: resource.nextAction == null ? undefined : oneOf(resource.nextAction, CHECK_SYNC_NEXT_ACTIONS),
   };
 }
 

@@ -5,6 +5,10 @@ import {
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import {
+  CHECK_SYNC_NEXT_ACTIONS,
+  type CheckSyncNextAction,
+} from '../../../shared/check-sync-next-action.js';
+import {
   parseNimiProductControlRecordProjection,
   parseNimiProductControlSelectedDataRootProjection,
   projectUnavailableNimiProductControlRecord,
@@ -29,7 +33,7 @@ export type ProductControlCheckSyncResource = {
   readonly status: 'available' | 'unavailable' | 'incompatible' | 'unknown' | 'conflict' | 'failed';
   readonly change?: 'rebased' | 'adopted' | 'rebuilt';
   readonly reason: string;
-  readonly nextAction?: 'rerun_check_sync';
+  readonly nextAction?: CheckSyncNextAction;
 };
 
 export type ProductControlCheckSyncProjection = {
@@ -200,7 +204,7 @@ function parseProductControlCheckSyncProjection(value: unknown): ProductControlC
               status: checkSyncOneOf(resource.status, ['available', 'unavailable', 'incompatible', 'unknown', 'conflict', 'failed'] as const),
               change: resource.change == null ? undefined : checkSyncOneOf(resource.change, ['rebased', 'adopted', 'rebuilt'] as const),
               reason: checkSyncText(resource.reason),
-              nextAction: resource.nextAction == null ? undefined : checkSyncOneOf(resource.nextAction, ['rerun_check_sync'] as const),
+              nextAction: resource.nextAction == null ? undefined : checkSyncOneOf(resource.nextAction, CHECK_SYNC_NEXT_ACTIONS),
             };
           }),
         };

@@ -638,3 +638,55 @@ test('uninstall is an explicit CLI mode with structured failure output', () => {
     /\[ordered\]@\{ status = 'failed'; mode = \$Mode; error = \$_\.Exception\.Message \} \| ConvertTo-Json -Compress/u,
   );
 });
+
+// Exact preinstall output of runtime/tools/repair-local-agent-chat for current
+// v2 conversation rows (pinned by its Go CLI test).
+const CURRENT_ROW_STORAGE_REPAIR = '{"schemaVersion":1,"status":"not-applicable","skipReason":"conversation_row_storage","duplicateGroups":0,"reactivatedAnchors":0,"originalVersion":0,"repairedVersion":0,"rewrittenAnchorRefs":0,"rewrittenTargetRefs":0,"removedLegacyIdentityFields":0,"rewrittenFollowUpRefs":0,"rewrittenAvatarRefs":0}';
+
+function invokeOfflineRepairWithOutput(stdout) {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-offline-repair-test-'));
+  try {
+    const installerPath = fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url));
+    const escapedInstallerPath = installerPath.replaceAll("'", "''");
+    const database = path.join(tempRoot, 'memory.db').replaceAll("'", "''");
+    const output = stdout.replaceAll("'", "''");
+    const command = [
+      `. '${escapedInstallerPath}'`,
+      `$RuntimeDatabase = '${database}'`,
+      `$InstalledLocalAgentChatRepairHelper = 'repair-local-agent-chat.exe'`,
+      `function Resolve-LocalAgentChatRepairBackupPath { param([string] $Path); return $Path }`,
+      `function Assert-LocalAgentChatRepairHelper { }`,
+      `function Invoke-NativeCommand { param([string] $FilePath, [string[]] $Arguments); [pscustomobject]@{ ExitCode = 0; StdOut = '${output}'; StdErr = '' } }`,
+      `try { Invoke-LocalAgentChatOfflineRepair -ExpectedSignerCertificateSha256 ('aa' * 32) -BackupPath ('${database}' + '.pre-local-agent-chat-repair-planned.sqlite') | ConvertTo-Json -Compress } catch { 'REJECTED: ' + $_.Exception.Message }`,
+    ].join('; ');
+    return spawnSync(resolveWindowsPowerShell7(), [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
+    ], { encoding: 'utf8', windowsHide: true });
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
+test('offline repair accepts the current v2 conversation row storage result without a backup', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const result = invokeOfflineRepairWithOutput(CURRENT_ROW_STORAGE_REPAIR);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const repair = JSON.parse(result.stdout.trim());
+  assert.equal(repair.status, 'not-applicable');
+  assert.equal(repair.skipReason, 'conversation_row_storage');
+  assert.equal(repair.backupPath ?? null, null);
+});
+
+test('offline repair still rejects an unknown not-applicable reason or a changed current result', {
+  skip: process.platform !== 'win32',
+}, () => {
+  for (const output of [
+    CURRENT_ROW_STORAGE_REPAIR.replace('conversation_row_storage', 'unknown_layout'),
+    CURRENT_ROW_STORAGE_REPAIR.replace('"duplicateGroups":0', '"duplicateGroups":1'),
+  ]) {
+    const result = invokeOfflineRepairWithOutput(output);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, /^REJECTED: LocalAgent chat offline repair reported an invalid not-applicable result\./mu);
+  }
+});

@@ -108,7 +108,7 @@ func (s *Service) reconcileProductControlCheckSyncModelAssets(ctx context.Contex
 			// A valid distribution of another manifest version: never orphan
 			// content, never adopted into the current layout automatically.
 			locator := filepath.ToSlash(filepath.Join("models", "resolved", entry.Name()))
-			nextAction := "run_local_model_offline_conversion"
+			nextAction := engine.CheckSyncNextActionLocalModelOfflineConversion
 			result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
 				Kind: "model_asset", Locator: &locator, Reference: optionalProductControlCheckSyncText(strings.TrimSpace(manifest.ModelAssetID)),
 				Status: "incompatible", Reason: "MODEL_MANIFEST_VERSION_INCOMPATIBLE", NextAction: &nextAction,
@@ -157,7 +157,7 @@ func (s *Service) reconcileProductControlCheckSyncModelAssets(ctx context.Contex
 				continue
 			}
 			if linkErr := verifyModelAssetViewLinks(modelsRoot, existing, directory); linkErr != nil {
-				nextAction := "run_local_model_offline_conversion"
+				nextAction := engine.CheckSyncNextActionLocalModelOfflineConversion
 				result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
 					Kind: "model_asset", Reference: &reference, Status: "conflict", Reason: "MODEL_VIEW_UNLINKED_OFFLINE_CONVERSION_REQUIRED", NextAction: &nextAction,
 				})
@@ -220,7 +220,7 @@ func (s *Service) reconcileProductControlCheckSyncModelAssets(ctx context.Contex
 					reason = "MODEL_VIEW_UNLINKED_OFFLINE_CONVERSION_REQUIRED"
 				}
 			}
-			nextAction := "run_local_model_offline_conversion"
+			nextAction := engine.CheckSyncNextActionLocalModelOfflineConversion
 			result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
 				Kind: "model_asset", Reference: &reference, Status: status, Reason: reason, NextAction: &nextAction,
 			})
@@ -753,7 +753,7 @@ func (s *Service) reconcileProductControlCheckSyncEnvironments(ctx context.Conte
 				Kind: ownerResult.Kind, Reference: optionalProductControlCheckSyncText(ownerResult.Reference),
 				Locator: optionalProductControlCheckSyncText(ownerResult.Locator), Status: ownerResult.Status,
 				Change: optionalProductControlCheckSyncText(ownerResult.Change), Reason: ownerResult.Reason,
-				NextAction: optionalProductControlCheckSyncText(ownerResult.NextAction),
+				NextAction: optionalProductControlCheckSyncNextAction(ownerResult.NextAction),
 			}
 			result.Resources = append(result.Resources, resource)
 		}
@@ -1025,6 +1025,17 @@ func optionalProductControlCheckSyncText(value string) *string {
 		return nil
 	}
 	return &value
+}
+
+// optionalProductControlCheckSyncNextAction projects only the Runtime-owned
+// closed set; an owner value outside it is never forwarded.
+func optionalProductControlCheckSyncNextAction(value engine.CheckSyncNextAction) *engine.CheckSyncNextAction {
+	for _, known := range engine.CheckSyncNextActions() {
+		if value == known {
+			return &value
+		}
+	}
+	return nil
 }
 
 func sortProductControlCheckSyncResources(resources []ProductControlCheckSyncResourceResult) {

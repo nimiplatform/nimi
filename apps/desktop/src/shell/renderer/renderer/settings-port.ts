@@ -1,5 +1,6 @@
 import type { AppearancePreferences } from '../features/settings/settings-device-preferences.js';
 import type { NimiProductControlRecordProjection } from '@nimiplatform/sdk/runtime';
+import type { CheckSyncNextAction } from '../../shared/check-sync-next-action.js';
 
 export type DesktopRendererCheckSyncProjection = {
   readonly run: null | {
@@ -17,7 +18,7 @@ export type DesktopRendererCheckSyncProjection = {
         readonly status: 'available' | 'unavailable' | 'incompatible' | 'unknown' | 'conflict' | 'failed';
         readonly change?: 'rebased' | 'adopted' | 'rebuilt';
         readonly reason: string;
-        readonly nextAction?: 'rerun_check_sync';
+        readonly nextAction?: CheckSyncNextAction;
       }[];
     }[];
     readonly unclaimed: readonly { readonly locator: string; readonly status: 'unknown'; readonly reason: string }[];

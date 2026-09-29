@@ -20,6 +20,23 @@
   "checkSyncButton": "Check & Sync",
   "checkSyncState": "Check & Sync: {{state}}",
   "checkSyncFailed": "Check & Sync could not start",
+  "checkSyncRerun": "Run Check & Sync again",
+  "checkSyncModelOfflineConversion": "This model's local data needs offline conversion before it can be used. Local models stay limited until then; everything else keeps working.",
+  "checkSyncTechnicalDetails": "Technical details",
+  "checkSyncOwnerState": {
+    "pending": "Waiting",
+    "running": "Checking",
+    "completed": "Done",
+    "failed": "Failed"
+  },
+  "checkSyncResourceStatus": {
+    "available": "Available",
+    "unavailable": "Unavailable for now",
+    "incompatible": "Not compatible with this version",
+    "unknown": "Not recognized",
+    "conflict": "Needs attention",
+    "failed": "Check failed"
+  },
   "openDataDir": "Open Data Dir",
   "openDataDirFailed": "Failed to open data directory",
   "clearCacheTitle": "Clear Cache",

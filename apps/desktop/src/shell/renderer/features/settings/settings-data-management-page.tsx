@@ -19,6 +19,7 @@ import {
 } from './settings-layout-components.js';
 import { LogOutIcon, TrashIcon } from './settings-assets.js';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { isExecutableCheckSyncNextAction } from '../../../shared/check-sync-next-action.js';
 
 type StorageSnapshot = {
   queryCacheBytes: number;
@@ -244,20 +245,34 @@ export function DataManagementPage() {
                 {checkSync.run.owners.map((owner) => (
                   <div key={owner.ownerId} className="space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2">
                     <p className="text-xs font-medium text-[var(--nimi-text-primary)]">
-                      {owner.ownerId} · {owner.state}
+                      {owner.ownerId} · {t(`DataManagement.checkSyncOwnerState.${owner.state}`)}
                     </p>
                     {owner.resources.map((resource, index) => (
-                      <div key={`${resource.kind}-${resource.reference ?? resource.locator ?? index}`} className="space-y-1">
-                        <p className="break-all text-xs text-[var(--nimi-text-muted)]">
-                          {resource.kind}: {resource.status} · {resource.reason}
+                      <div
+                        key={`${resource.kind}-${resource.reference ?? resource.locator ?? index}`}
+                        className="space-y-1"
+                        data-check-sync-next-action={resource.nextAction}
+                      >
+                        <p className="text-xs text-[var(--nimi-text-secondary)]">
+                          {resource.nextAction === 'run_local_model_offline_conversion'
+                            ? t('DataManagement.checkSyncModelOfflineConversion')
+                            : t(`DataManagement.checkSyncResourceStatus.${resource.status}`)}
                         </p>
-                        {resource.nextAction === 'rerun_check_sync' ? (
+                        <details className="text-xs text-[var(--nimi-text-muted)]">
+                          <summary className="cursor-pointer">{t('DataManagement.checkSyncTechnicalDetails')}</summary>
+                          <p className="mt-1 break-all">
+                            {[resource.kind, resource.reference ?? resource.locator, resource.status, resource.reason, resource.nextAction]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </p>
+                        </details>
+                        {resource.nextAction && isExecutableCheckSyncNextAction(resource.nextAction) ? (
                           <Button
                             variant="secondary"
                             disabled={dataRootBusy}
                             onClick={() => { void handleCheckSync(); }}
                           >
-                            {t('DataManagement.checkSyncButton')}
+                            {t('DataManagement.checkSyncRerun')}
                           </Button>
                         ) : null}
                       </div>
