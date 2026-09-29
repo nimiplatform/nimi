@@ -1,6 +1,6 @@
 version: 1
 provider: qianfan
-catalog_version: 2026-07-20-qianfan-ernie-v3
+catalog_version: 2026-09-30-qianfan-x11-retired
 inventory_mode: static_source
 default_text_model: ernie-5.1
 models:
@@ -35,42 +35,6 @@ models:
       currency: CNY
       as_of: 2026-04-18
       notes: Official pricing is tiered by input length. This row records the <=32k rate at 0.006 / 0.024 CNY per 1K tokens.
-    source_ref:
-      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
-      retrieved_at: 2026-07-20
-      note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
-    context_window_tokens: 8192
-  - model_id: ernie-x1.1
-    provider: qianfan
-    model_type: chat
-    updated_at: 2025-09-26
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: "1.00"
-      output: "4.00"
-      currency: CNY
-      as_of: 2026-07-20
-      notes: Stable ERNIE X1.1 reasoning route priced at 0.001 / 0.004 CNY per 1K tokens, with up to 55K input tokens and 65,536 completion tokens.
-    source_ref:
-      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
-      retrieved_at: 2026-07-20
-      note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
-    context_window_tokens: 121856
-  - model_id: ernie-x1.1-preview
-    provider: qianfan
-    model_type: chat
-    updated_at: 2026-06-03
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: "1.00"
-      output: "4.00"
-      currency: CNY
-      as_of: 2026-06-03
-      notes: Current ERNIE X1.1 preview reasoning route priced at 0.001 / 0.004 CNY per 1K tokens when the current pricing table keeps that family rate.
     source_ref:
       url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
       retrieved_at: 2026-07-20

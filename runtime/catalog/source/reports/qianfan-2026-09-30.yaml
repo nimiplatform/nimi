@@ -1,0 +1,42 @@
+provider: qianfan
+report_date: 2026-09-30
+audit_mode: family_scoped
+families_in_scope: [text]
+taxonomy_axes:
+  product_family: [ernie]
+  capability_family: [text]
+  lineage_or_track: [ernie_x1_1]
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/qianfan.source.yaml
+evidence_urls:
+  official:
+    - https://cloud.baidu.com/doc/qianfan/s/zmh4stou3
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  ernie_x1_1: [ernie-x1.1, ernie-x1.1-preview]
+  default_and_profiles: ernie-5.1
+official_current_inventory:
+  ernie_x1_1_shutdown: 2026-09-29
+  named_successor: ERNIE-5.1
+gap_summary:
+  missing_in_source: []
+  stale_in_source: [ernie-x1.1, ernie-x1.1-preview]
+  extra_legacy_in_source: []
+  uncertain_items: []
+curation_decision:
+  keep: [ernie-5.1]
+  add: []
+  remove: [ernie-x1.1, ernie-x1.1-preview]
+  defer: []
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: false
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - Bounded follow-up to the two 2026-09-29 shutdowns recorded in the Wave 0 report. No new provider or successor is admitted.
+  - The catalog version changes, making every previously committed Qianfan Cloud target stale. Users explicitly reselect; Runtime does not migrate targets.
+  - Official lifecycle page re-read on 2026-09-30. No real Qianfan provider call is claimed.
+confidence: high

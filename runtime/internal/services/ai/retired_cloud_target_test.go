@@ -25,6 +25,75 @@ import (
 // retired model and its old catalog identity. After the catalog row is removed
 // it projects as a typed blocked selection and fails admission before dispatch,
 // without substituting another model.
+func TestCommittedRetiredQianfanTextTargetsFailBeforeDispatch(t *testing.T) {
+	var requests atomic.Int32
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		http.Error(w, "retired target must never dispatch", http.StatusInternalServerError)
+	}))
+	defer provider.Close()
+	fixture := newManagedCloudScenarioTestFixture(t, "qianfan", "ernie-5.1", provider.URL, Config{AllowLoopbackEndpoint: true})
+	options, _, err := connector.ListAIConfigCloudTargetOptions(fixture.service.connStore, fixture.service.speechCatalog, "user-001", "text.generate", fixture.connectorID, "", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	activeListed := false
+	for _, option := range options {
+		model := option.ProviderTarget.GetFields()["providerModelId"].GetStringValue()
+		if model == "ernie-x1.1" || model == "ernie-x1.1-preview" {
+			t.Fatalf("retired target remains selectable: %s", model)
+		}
+		if model == "ernie-5.1" {
+			activeListed = true
+			selected := fixture.service.projectCloudEffectiveSelection("user-001", "text.generate", &runtimev1.AIConfigCloudIntent{
+				ConnectorRef: option.ConnectorRef, Implementation: option.Implementation, ProviderModelTarget: option.ProviderTarget,
+			})
+			if selected.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY {
+				t.Fatalf("explicitly reselected successor is not ready: %+v", selected)
+			}
+		}
+	}
+	if !activeListed {
+		t.Fatal("successor missing from text options")
+	}
+	for _, model := range []string{"ernie-x1.1", "ernie-x1.1-preview"} {
+		t.Run(model, func(t *testing.T) {
+			const oldCatalogID = "remote-model-catalog-before-2026-09-29-retirement"
+			target, err := structpb.NewStruct(map[string]any{
+				"provider": "qianfan", "providerModelId": model, "remoteModelCatalogId": oldCatalogID,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			selection := fixture.service.projectCloudEffectiveSelection("user-001", "text.generate", &runtimev1.AIConfigCloudIntent{
+				ConnectorRef:        fixture.connectorID,
+				Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: "qianfan", DriverId: "nimillm", DriverDialect: "qianfan"},
+				ProviderModelTarget: target,
+			})
+			if selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
+				!slices.Equal(selection.GetReasons(), []string{runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE.String()}) {
+				t.Fatalf("retired text target is not blocked/stale: %+v", selection)
+			}
+			ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "text.generate",
+				cloudScenarioTargetRef(fixture.connectorID, oldCatalogID, model, "qianfan"))
+			_, err = fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+				Head:          &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
+				ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+				ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+				Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+				}}},
+			})
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE {
+				t.Fatalf("retired text execution reason=%v ok=%v err=%v", reason, ok, err)
+			}
+		})
+	}
+	if requests.Load() != 0 {
+		t.Fatalf("retired targets dispatched %d requests", requests.Load())
+	}
+}
+
 func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T) {
 	videoSpec := &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
