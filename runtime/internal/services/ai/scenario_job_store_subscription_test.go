@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -150,6 +151,51 @@ func TestScenarioJobStoreDetachedVideoPollingHonorsJobDeadline(t *testing.T) {
 	}
 	if job.GetProviderJobId() != "" || job.GetNextPollAt() != nil || job.GetRetryCount() != 0 {
 		t.Fatalf("provider polling state escaped terminal Runtime job: %+v", job)
+	}
+}
+
+func TestGoogleVeoShorterExplicitDeadlineEndsSubmittedOperationTyped(t *testing.T) {
+	const model = "veo-3.1-generate-preview"
+	operation := "models/" + model + "/operations/slow_123"
+	var submissions atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("x-goog-api-key") != "test-key" || r.Header.Get("Authorization") != "" {
+			t.Errorf("Google Veo did not use the selected native credential")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/models/"+model+":predictLongRunning":
+			submissions.Add(1)
+			_ = json.NewEncoder(w).Encode(map[string]any{"name": operation})
+		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/"+operation:
+			_ = json.NewEncoder(w).Encode(map[string]any{"name": operation, "done": false})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	fixture := newManagedCloudScenarioTestFixture(t, "google_veo", model, server.URL, Config{AllowLoopbackEndpoint: true})
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "video.generate", fixture.targetRef)
+	response, err := fixture.service.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001", TimeoutMs: 1000},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+			Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
+			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short product shot."}},
+			Options: &runtimev1.VideoGenerationOptions{Resolution: "720p", Ratio: "16:9", DurationSec: testInt32(4)},
+		}}},
+	})
+	if err != nil {
+		t.Fatalf("submit exact Google Veo video Job: %v", err)
+	}
+	job := waitScenarioJobTerminal(t, fixture.service, response.GetJob().GetJobId(), 4*time.Second)
+	if submissions.Load() != 1 || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT ||
+		job.GetProviderJobId() != "" || job.GetNextPollAt() != nil || len(job.GetArtifacts()) != 0 {
+		t.Fatalf("explicit Veo timeout did not terminalize a submitted operation without publishing an artifact: submissions=%d job=%+v", submissions.Load(), job)
+	}
+	queried, err := fixture.service.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
+	if err != nil || queried.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT {
+		t.Fatalf("terminal Veo timeout was not observable from the public Job: %+v, %v", queried, err)
 	}
 }
 

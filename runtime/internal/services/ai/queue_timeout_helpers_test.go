@@ -182,6 +182,47 @@ func TestScenarioJobTimeoutDurationRejectsPublicOverrideAboveRuntimeCap(t *testi
 	}
 }
 
+func TestGoogleVeo31CloudVideoDeadlineCoversDocumentedPeakLatency(t *testing.T) {
+	for _, model := range []string{"veo-3.1-fast-generate-preview", "veo-3.1-generate-preview", "veo-3.1-lite-generate-preview"} {
+		req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, Head: &runtimev1.ScenarioRequestHead{}}
+		got, err := cloudMediaJobTimeoutDuration(req, "google_veo", model)
+		if err != nil || got != 8*time.Minute {
+			t.Fatalf("%s default deadline = %s, %v", model, got, err)
+		}
+		req.Head.TimeoutMs = int32((2 * time.Minute) / time.Millisecond)
+		got, err = cloudMediaJobTimeoutDuration(req, "google_veo", model)
+		if err != nil || got != 2*time.Minute {
+			t.Fatalf("%s explicit shorter deadline = %s, %v", model, got, err)
+		}
+		req.Head.TimeoutMs = int32((8 * time.Minute) / time.Millisecond)
+		got, err = cloudMediaJobTimeoutDuration(req, "google_veo", model)
+		if err != nil || got != 8*time.Minute {
+			t.Fatalf("%s maximum explicit deadline = %s, %v", model, got, err)
+		}
+		req.Head.TimeoutMs++
+		got, err = cloudMediaJobTimeoutDuration(req, "google_veo", model)
+		if reason, ok := grpcerr.ExtractReasonCode(err); got != 0 || !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("%s oversized explicit deadline = %s, %v", model, got, err)
+		}
+		req.Head.TimeoutMs = -1
+		got, err = cloudMediaJobTimeoutDuration(req, "google_veo", model)
+		if reason, ok := grpcerr.ExtractReasonCode(err); got != 0 || !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("%s nonpositive explicit deadline = %s, %v", model, got, err)
+		}
+	}
+	for _, target := range []struct{ provider, model string }{{"google_veo", "veo-3.1-unverified"}, {"volcengine", "veo-3.1-generate-preview"}} {
+		req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, Head: &runtimev1.ScenarioRequestHead{}}
+		got, err := cloudMediaJobTimeoutDuration(req, target.provider, target.model)
+		if err != nil || got != defaultGenerateVideoTimeout {
+			t.Fatalf("unrelated video deadline %+v = %s, %v", target, got, err)
+		}
+		req.Head.TimeoutMs = int32((6 * time.Minute) / time.Millisecond)
+		if got, err = cloudMediaJobTimeoutDuration(req, target.provider, target.model); got != 0 || err == nil {
+			t.Fatalf("unrelated video accepted extended deadline %+v: %s, %v", target, got, err)
+		}
+	}
+}
+
 func TestWorldJobTimeoutCoversGenerationAndAssetRetrieval(t *testing.T) {
 	scenarioType := runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE
 	req := &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{}, ScenarioType: scenarioType}

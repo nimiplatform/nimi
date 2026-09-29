@@ -61,8 +61,7 @@ func (s *Service) submitScenarioAsyncJob(
 		jobCtx = nimillm.WithProviderPollWait(jobCtx, s.config.providerPollWait)
 	}
 	var cancel context.CancelFunc
-	timeout, err := scenarioJobTimeoutDuration(effective.request, defaultCloudMediaJobTimeout(
-		effective.request.GetScenarioType(), effective.target.Provider(), effective.target.ProviderModelID()), false)
+	timeout, err := cloudMediaJobTimeoutDuration(effective.request, effective.target.Provider(), effective.target.ProviderModelID())
 	if err != nil {
 		return fail(err)
 	}
@@ -130,6 +129,37 @@ func (s *Service) submitScenarioAsyncJob(
 	effective.release()
 	go s.executeScenarioAsyncJob(jobCtx, jobID)
 	return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.service-operations.r066
+const googleVeo31CloudVideoJobTimeout = 8 * time.Minute
+
+func exactGoogleVeo31VideoJob(scenarioType runtimev1.ScenarioType, provider, model string) bool {
+	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE || provider != "google_veo" {
+		return false
+	}
+	switch model {
+	case "veo-3.1-fast-generate-preview", "veo-3.1-generate-preview", "veo-3.1-lite-generate-preview":
+		return true
+	default:
+		return false
+	}
+}
+
+// @nimi-authority: rule.nimi.runtime.service-operations.r066
+func cloudMediaJobTimeoutDuration(req *runtimev1.SubmitScenarioJobRequest, provider, model string) (time.Duration, error) {
+	scenarioType := req.GetScenarioType()
+	if exactGoogleVeo31VideoJob(scenarioType, provider, model) {
+		if timeoutMS := req.GetHead().GetTimeoutMs(); timeoutMS != 0 {
+			duration := time.Duration(timeoutMS) * time.Millisecond
+			if duration <= 0 || duration > googleVeo31CloudVideoJobTimeout {
+				return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+			}
+			return duration, nil
+		}
+		return googleVeo31CloudVideoJobTimeout, nil
+	}
+	return scenarioJobTimeoutDuration(req, defaultCloudMediaJobTimeout(scenarioType, provider, model), false)
 }
 
 // @nimi-authority: rule.nimi.runtime.service-operations.r066
