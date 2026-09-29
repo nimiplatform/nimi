@@ -21,6 +21,7 @@ import {
 import { LogOutIcon, TrashIcon } from './settings-assets.js';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { isExecutableCheckSyncNextAction } from '../../../shared/check-sync-next-action.js';
+import { useCheckSyncPolling } from './check-sync-polling.js';
 
 type StorageSnapshot = {
   queryCacheBytes: number;
@@ -116,13 +117,7 @@ export function DataManagementPage() {
     void refreshCheckSync().catch(() => undefined);
   }, [refreshCheckSync]);
 
-  useEffect(() => {
-    if (checkSync?.run?.state !== 'running') return undefined;
-    const timeout = window.setTimeout(() => {
-      void refreshCheckSync().catch(() => undefined);
-    }, 1_000);
-    return () => window.clearTimeout(timeout);
-  }, [checkSync?.run?.state, refreshCheckSync]);
+  useCheckSyncPolling(checkSync?.run?.state === 'running', refreshCheckSync);
 
   // Choosing a directory only proposes it; the switch stops apps and restarts
   // Nimi, so it runs after the user confirms those consequences.
