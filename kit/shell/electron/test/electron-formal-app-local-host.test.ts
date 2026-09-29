@@ -198,7 +198,7 @@ describe('Electron formal App local host', () => {
     try {
       const pending = scope.host.conversationVoiceTranscribe({
         agentHandle: `agent_ref_${'A'.repeat(43)}`, conversationAnchorId: 'anchor-1',
-        requestId: 'recording-1', mimeType: 'audio/webm', audioBytes: [1, 2, 3],
+        requestId: 'recording-1', mimeType: 'audio/webm', audioBytes: new Uint8Array([1, 2, 3]),
       });
       const rejected = expect(pending).rejects.toThrow();
       await started;
@@ -215,7 +215,7 @@ describe('Electron formal App local host', () => {
     }
   });
 
-  it.each(['desktop', 'avatar'] as const)('converts %s Conversation binary payloads from IPC arrays to SDK bytes', async (profile) => {
+  it.each(['desktop', 'avatar'] as const)('carries %s Conversation binary payloads as byte views to the SDK', async (profile) => {
     const handle = `agent_ref_${'A'.repeat(43)}`;
     const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {
       if (input.methodId.endsWith('/TranscribeLocalAppConversationVoice')) {
@@ -236,11 +236,15 @@ describe('Electron formal App local host', () => {
     try {
       await expect(owner.host.conversationVoiceTranscribe({
         agentHandle: handle, conversationAnchorId: 'anchor-1', requestId: 'recording-1',
-        mimeType: 'audio/webm;codecs=opus', audioBytes: [1, 2, 3],
+        mimeType: 'audio/webm;codecs=opus', audioBytes: new Uint8Array([1, 2, 3]),
       })).resolves.toEqual({ text: 'spoken input' });
       await expect(owner.host.conversationAttachmentUpload({
-        agentHandle: handle, conversationAnchorId: 'anchor-1', mimeType: 'image/png', bytes: [4, 5, 6],
+        agentHandle: handle, conversationAnchorId: 'anchor-1', mimeType: 'image/png', bytes: new Uint8Array([4, 5, 6]),
       })).resolves.toMatchObject({ artifactId: 'image-1' });
+      expect(unary).toHaveBeenCalledTimes(2);
+      await expect(owner.host.conversationAttachmentUpload({
+        agentHandle: handle, conversationAnchorId: 'anchor-1', mimeType: 'image/png', bytes: [4, 5, 6],
+      })).rejects.toBeDefined();
       expect(unary).toHaveBeenCalledTimes(2);
     } finally {
       await owner.dispose();

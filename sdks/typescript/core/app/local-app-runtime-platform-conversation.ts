@@ -9,6 +9,7 @@ import {
   projectionText,
   requireText,
 } from './local-app-runtime-platform-validation.js';
+import { copyNimiLocalAppBytes, exactNimiLocalAppBytes, isNimiLocalAppByteView } from './local-app-bytes.js';
 
 export type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
 
@@ -268,7 +269,7 @@ export type NimiLocalAppConversationShell = {
     readonly conversationAnchorId: string;
     readonly mimeType: string;
     readonly displayName?: string;
-    readonly bytes: readonly number[];
+    readonly bytes: Uint8Array;
   }) => Promise<unknown>;
   readonly readArtifact: (input: {
     readonly agentHandle: string;
@@ -280,7 +281,7 @@ export type NimiLocalAppConversationShell = {
     readonly conversationAnchorId: string;
     readonly requestId: string;
     readonly mimeType: string;
-    readonly audioBytes: readonly number[];
+    readonly audioBytes: Uint8Array;
   }, options?: NimiLocalAppConversationCallOptions) => Promise<unknown>;
   readonly renderVoice: (input: {
     readonly agentHandle: string;
@@ -353,7 +354,7 @@ export function createNimiLocalAppConversationClient(
         'local-app conversation attachment upload input',
       );
       assertNoAuthorityMaterial(input);
-      if (!(input.bytes instanceof Uint8Array) || input.bytes.byteLength === 0
+      if (!isNimiLocalAppByteView(input.bytes) || input.bytes.byteLength === 0
         || input.bytes.byteLength > 4 * 1024 * 1024
         || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(input.mimeType)) {
         return localAppError('Local-app conversation attachment is invalid.', 'SDK_LOCAL_APP_INPUT_INVALID', 'provide_valid_conversation_attachment');
@@ -366,7 +367,7 @@ export function createNimiLocalAppConversationClient(
         conversationAnchorId: boundedSelector(input.conversationAnchorId, 'conversationAnchorId'),
         mimeType: input.mimeType,
         ...(displayName ? { displayName } : {}),
-        bytes: Object.freeze(Array.from(input.bytes)),
+        bytes: copyNimiLocalAppBytes(input.bytes),
       });
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['artifactId', 'expiresAt'], 'conversation attachment upload');
@@ -385,16 +386,15 @@ export function createNimiLocalAppConversationClient(
       });
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['artifactId', 'bytes', 'mimeType', 'byteLength'], 'conversation artifact read');
-      if (!Array.isArray(record.bytes) || record.bytes.length === 0 || record.bytes.length > 32 * 1024 * 1024
-        || record.bytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
+      if (!isNimiLocalAppByteView(record.bytes) || record.bytes.byteLength === 0 || record.bytes.byteLength > 32 * 1024 * 1024
         || typeof record.byteLength !== 'number' || !Number.isSafeInteger(record.byteLength)
-        || record.byteLength !== record.bytes.length || typeof record.mimeType !== 'string'
+        || record.byteLength !== record.bytes.byteLength || typeof record.mimeType !== 'string'
         || !(record.mimeType.startsWith('audio/') || ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(record.mimeType))) {
         return localAppProjectionError('conversation artifact read');
       }
       return Object.freeze({
         artifactId: boundedProjectionSelector(record.artifactId, 'artifactId'),
-        bytes: Uint8Array.from(record.bytes as number[]),
+        bytes: exactNimiLocalAppBytes(record.bytes),
         mimeType: record.mimeType,
         byteLength: record.byteLength,
       });
@@ -406,7 +406,7 @@ export function createNimiLocalAppConversationClient(
         'local-app conversation voice transcription input',
       );
       assertNoAuthorityMaterial(input);
-      if (!(input.audioBytes instanceof Uint8Array) || input.audioBytes.byteLength === 0
+      if (!isNimiLocalAppByteView(input.audioBytes) || input.audioBytes.byteLength === 0
         || input.audioBytes.byteLength > 6 * 1024 * 1024
         || typeof input.mimeType !== 'string' || !input.mimeType.startsWith('audio/')
         || input.mimeType.trim() !== input.mimeType || /[\u0000-\u001f\u007f]/u.test(input.mimeType)) {
@@ -417,7 +417,7 @@ export function createNimiLocalAppConversationClient(
         conversationAnchorId: boundedSelector(input.conversationAnchorId, 'conversationAnchorId'),
         requestId: boundedSelector(input.requestId, 'requestId'),
         mimeType: input.mimeType,
-        audioBytes: Object.freeze(Array.from(input.audioBytes)),
+        audioBytes: copyNimiLocalAppBytes(input.audioBytes),
       }, options);
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['text'], 'conversation voice transcription');

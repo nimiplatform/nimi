@@ -82,6 +82,7 @@ import {
   localAppProjectionError,
   projectTimestamp,
 } from './local-app-runtime-platform-validation.js';
+import { copyNimiLocalAppBytes, isNimiLocalAppByteView } from './local-app-bytes.js';
 
 export type NimiLocalAppAgentAutonomyMode = 'off' | 'low' | 'medium' | 'high';
 export type NimiLocalAppAgentPresentationBackendKind = 'vrm' | 'live2d' | 'sprite2d' | 'canvas2d' | 'video';
@@ -1160,7 +1161,7 @@ function validatePresentationAssets(
     const contentLimit = asset.role === 'resource-pack'
       ? MAX_RESOURCE_PACK_CONTENT_BYTES
       : MAX_PRESENTATION_ASSET_CONTENT_BYTES;
-    if (!(content instanceof Uint8Array)
+    if (!isNimiLocalAppByteView(content)
       || content.byteLength === 0
       || content.byteLength > contentLimit) {
       return invalidPresentationInput(`importedAssets[${index}].content`);
@@ -1171,7 +1172,7 @@ function validatePresentationAssets(
     }
     const material = {
       fileName: requiredConfigureText(asset.fileName, `importedAssets[${index}].fileName`),
-      content: new Uint8Array(content),
+      content: copyNimiLocalAppBytes(content),
       sha256: requiredConfigureText(asset.sha256, `importedAssets[${index}].sha256`),
     };
     if (asset.role === 'resource-pack') {
@@ -2638,12 +2639,9 @@ function projectPresentationAsset(value: unknown): NimiLocalAppAgentPresentation
     || !PRESENTATION_BACKENDS.has(record.backendKind as NimiLocalAppAgentPresentationBackendKind))) {
     return localAppProjectionError('agent presentation asset role or backendKind');
   }
-  const content = record.content instanceof Uint8Array
-    ? new Uint8Array(record.content)
-    : Array.isArray(record.content)
-      && record.content.every((entry) => Number.isSafeInteger(entry) && entry >= 0 && entry <= 255)
-      ? Uint8Array.from(record.content as number[])
-      : localAppProjectionError('agent presentation asset content');
+  const content = isNimiLocalAppByteView(record.content)
+    ? copyNimiLocalAppBytes(record.content)
+    : localAppProjectionError('agent presentation asset content');
   const contentLimit = resourcePack ? MAX_RESOURCE_PACK_CONTENT_BYTES : MAX_PRESENTATION_ASSET_CONTENT_BYTES;
   if (content.byteLength === 0 || content.byteLength > contentLimit) {
     return localAppProjectionError('agent presentation asset content');

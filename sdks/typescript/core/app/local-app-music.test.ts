@@ -36,9 +36,10 @@ test('music result keeps the complete artifact set, score provenance and truncat
 });
 
 test('ABC import is bounded inline content with an explicit recovery expiry', () => {
-  const input = validateNimiLocalAppArtifactUploadShellInput({ bytes: [88, 58, 49], mimeType: 'text/vnd.abc' });
+  const input = validateNimiLocalAppArtifactUploadShellInput({ bytes: new Uint8Array([88, 58, 49]), mimeType: 'text/vnd.abc' });
   const result = { artifactId: 'score', sizeBytes: 3, mimeType: 'text/vnd.abc', expiresAt: { seconds: '2000000000', nanos: 0 } };
   assert.deepEqual(validateNimiLocalAppArtifactUploadResult(result, input), result);
   assert.throws(() => validateNimiLocalAppArtifactUploadResult({ ...result, expiresAt: undefined }, input));
-  assert.throws(() => validateNimiLocalAppArtifactUploadShellInput({ bytes: Array(1048577).fill(0), mimeType: 'text/vnd.abc' }));
+  assert.throws(() => validateNimiLocalAppArtifactUploadShellInput({ bytes: new Uint8Array(1048577), mimeType: 'text/vnd.abc' }));
+  assert.throws(() => validateNimiLocalAppArtifactUploadShellInput({ bytes: [88, 58, 49], mimeType: 'text/vnd.abc' }));
 });

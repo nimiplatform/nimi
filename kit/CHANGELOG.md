@@ -1,5 +1,28 @@
 # Changelog
 
+## Local-App media bytes (next minor, development)
+
+- Electron carries Local-App media bytes as exact `Uint8Array` views from the
+  renderer through main to the Host, and back. The JSON `number[]` shape is
+  rejected at every changed boundary, including Scenario inline audio, artifact
+  upload/read, Job and execute artifacts, Conversation attachment/voice/artifact
+  bytes and presentation asset reads. A 32 MiB supported input is no longer
+  expanded into a per-byte array.
+- The JSON-only native Scenario and read outcomes use standard padded base64
+  for these bytes, bounded before decoding; Buffer fields stay Buffers. Rebuild
+  the matching native package (`kit-protected-local` 0.16) with SDK 0.19.
+- Tauri keeps its JSON command wire: the renderer bridge encodes byte views as
+  JSON byte arrays for Tauri's existing byte commands and restores the byte
+  results they return.
+- Realtime output audio frames are bounded to 64 KiB in the native carrier.
+- The Electron Host keeps reads and writes of one standard storage document in
+  arrival order, on the Local-App Runtime path and the Host file path alike, so
+  a Host that admits standard-shell work concurrently cannot let an earlier
+  write land last. Other documents are unaffected.
+- Local-App cancels and closes (`action: 'cancel'`, including an in-flight
+  voice transcription) no longer pass through the Host's
+  `runDataRootOperation`; they end work that was already admitted.
+
 ## Shared Agent introduction (next minor, development)
 
 - Add `agents.getIntroduction({ agentHandle })` under `agent.local` for every

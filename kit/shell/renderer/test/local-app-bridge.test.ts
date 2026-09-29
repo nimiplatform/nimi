@@ -99,21 +99,22 @@ describe('renderer local-app standard-shell surface', () => {
     let calls = 0;
     const boundary = new Error('reached host transport');
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
-      invoke: async (_command: string, input: { payload: { spec: { audioSource: { bytes: number[] } } } }) => {
+      invoke: async (_command: string, input: { payload: { spec: { audioSource: { bytes: Uint8Array } } } }) => {
         calls++;
         expect(input.payload.spec.audioSource.bytes).toBe(bytes);
         throw boundary;
       },
     };
-    const bytes = new Array<number>(11 * 1024 * 1024).fill(255);
+    // The supported bound reaches the host as one byte view.
+    const bytes = new Uint8Array(32 * 1024 * 1024).fill(255);
     const spec = { type: 'speech-transcribe' as const, mimeType: 'audio/wav', language: 'en',
       prompt: '', responseFormat: '', audioSource: { type: 'bytes' as const, bytes } };
     await expect(submitNimiLocalAppScenarioJob(spec)).rejects.toThrow('reached host transport');
     expect(calls).toBe(1);
     // These inputs must still fail before transport, independently of JSON size.
-    expect(() => submitNimiLocalAppScenarioJob({ ...spec, audioSource: { type: 'bytes', bytes: [256] } })).toThrow('inline audio bytes');
-    const oversized = new Array<number>(32 * 1024 * 1024 + 1).fill(0);
-    expect(() => submitNimiLocalAppScenarioJob({ ...spec, audioSource: { type: 'bytes', bytes: oversized } })).toThrow('inline audio bytes');
+    for (const invalid of [[1, 2], new Float64Array(2), new DataView(new ArrayBuffer(2)), new Uint8Array(32 * 1024 * 1024 + 1)]) {
+      expect(() => submitNimiLocalAppScenarioJob({ ...spec, audioSource: { type: 'bytes', bytes: invalid as Uint8Array } })).toThrow('inline audio bytes');
+    }
     expect(() => submitNimiLocalAppScenarioJob({ type: 'text-annotate', language: 'en', texts: ['x'.repeat(40 * 1024 * 1024)] })).toThrow('scenario spec exceeds');
     expect(calls).toBe(1);
   }, 15_000);
@@ -726,11 +727,11 @@ describe('renderer local-app standard-shell surface', () => {
       listen: () => () => {},
     };
     await expect(createNimiLocalAppStandardShellSurface().ai.artifacts.upload({
-      bytes: [1, 2], mimeType,
+      bytes: new Uint8Array([1, 2]), mimeType,
     })).resolves.toEqual({ artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType });
     expect(invocations).toEqual([{
       command: 'nimi.shell.localApp.artifactUpload',
-      payload: { payload: { bytes: [1, 2], mimeType } },
+      payload: { payload: { bytes: new Uint8Array([1, 2]), mimeType } },
     }]);
   });
 
@@ -873,7 +874,7 @@ describe('renderer local-app standard-shell surface', () => {
       { eventType: 'completed', sequence: '3', traceId: 'trace-1', timestamp: null, job: {
         ...baseJob, status: 'completed', progressPercent: 100, progressCurrentStep: 4,
         artifacts: [{
-          artifactId: 'artifact-1', mimeType: 'video/mp4', bytes: [], sizeBytes: 1024,
+          artifactId: 'artifact-1', mimeType: 'video/mp4', bytes: new Uint8Array(), sizeBytes: 1024,
           sha256: 'abc123', durationMs: 3000, width: 1280, height: 720,
           sampleRateHz: 0, channels: 0,
         }],
@@ -1388,7 +1389,7 @@ describe('renderer local-app standard-shell surface', () => {
     const controller = new AbortController();
     const transcription = createNimiLocalAppStandardShellSurface().conversation.transcribeVoice({
       agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1',
-      mimeType: 'audio/webm', audioBytes: [1, 2, 3],
+      mimeType: 'audio/webm', audioBytes: new Uint8Array([1, 2, 3]),
     }, { signal: controller.signal });
     await Promise.resolve();
     controller.abort();
@@ -1399,7 +1400,7 @@ describe('renderer local-app standard-shell surface', () => {
         command: 'nimi.shell.localApp.conversationVoiceTranscribe',
         payload: { payload: {
           agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1',
-          mimeType: 'audio/webm', audioBytes: [1, 2, 3],
+          mimeType: 'audio/webm', audioBytes: new Uint8Array([1, 2, 3]),
         } },
       },
       {

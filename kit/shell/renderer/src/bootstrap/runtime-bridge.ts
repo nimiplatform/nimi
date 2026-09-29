@@ -5,6 +5,7 @@ import { listen as tauriEventListen } from '@tauri-apps/api/event';
 import {
   hasElectronRuntime,
   resolveTauriInvokePayload,
+  resolveTauriInvokeResult,
   resolveTauriStandardCommand,
   type NimiShellRuntimeBridgeResult,
   type NimiShellRuntimeHook,
@@ -41,10 +42,10 @@ function createNimiShellRuntimeHook(): NimiShellRuntimeHook {
   return {
     invoke: async (command, payload) => {
       const tauriCommand = resolveTauriStandardCommand(command);
-      return await tauriCoreInvoke(
+      return resolveTauriInvokeResult(tauriCommand, await tauriCoreInvoke(
         tauriCommand,
         resolveTauriInvokePayload(tauriCommand, payload) as InvokeArgs | undefined,
-      );
+      ));
     },
     listen: async (eventName, handler): Promise<ShellEventUnsubscribe> => {
       const unsubscribe = await tauriEventListen(eventName, (event) => handler(event));

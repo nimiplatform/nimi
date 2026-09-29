@@ -1,5 +1,6 @@
 import { createNimiError } from '../../types';
 import { projectMusicInputCapabilities } from '../ai/music-input.js';
+import { isNimiLocalAppByteView } from './local-app-bytes.js';
 
 const FORBIDDEN_AUTHORITY_FIELDS = new Set([
   'account',
@@ -154,7 +155,7 @@ export function assertSafeProjection(value: unknown, seen = new Set<object>(), p
   if (!value || typeof value !== 'object') localAppProjectionError('unsafe value');
   if (seen.has(value)) localAppProjectionError('cyclic value');
   seen.add(value);
-  if (value instanceof Uint8Array) return;
+  if (isNimiLocalAppByteView(value)) return;
   if (Array.isArray(value)) {
     for (const entry of value) assertSafeProjection(entry, seen, productContent);
     return;
@@ -183,7 +184,7 @@ export function assertNoAIConfigPrivateIdentity(
   input: boolean,
   seen = new Set<object>(),
 ): void {
-  if (value === null || typeof value !== 'object' || value instanceof Uint8Array) return;
+  if (value === null || typeof value !== 'object' || ArrayBuffer.isView(value)) return;
   if (seen.has(value)) return;
   seen.add(value);
   if (Array.isArray(value)) {
@@ -209,7 +210,8 @@ export function assertNoAIConfigPrivateIdentity(
 
 export function assertNoAuthorityMaterial(value: unknown, seen = new Set<object>()): void {
   if (!value || typeof value !== 'object') return;
-  if (value instanceof Uint8Array) return;
+  // Binary views are opaque data; their exact type is checked at their field.
+  if (ArrayBuffer.isView(value)) return;
   if (seen.has(value)) return;
   seen.add(value);
   if (Array.isArray(value)) {

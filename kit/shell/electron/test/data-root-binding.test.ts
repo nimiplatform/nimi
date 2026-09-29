@@ -121,6 +121,40 @@ describe('Electron standard data root binding', () => {
     });
   });
 
+  it('keeps one storage document in arrival order while other documents proceed', async () => {
+    await withTempDir('binding-storage-document-order', async (root) => {
+      const dataRoot = path.join(root, 'data');
+      let releaseFirstRoot: (() => void) | undefined;
+      const firstRoot = new Promise<void>((resolve) => { releaseFirstRoot = resolve; });
+      let resolverCalls = 0;
+      const ipcMain = registerBindingBridge({
+        standardShellHost: {
+          // A Host that admits standard work concurrently, as a shared gate does.
+          runDataRootOperation: (operation) => operation(),
+          standardDataRootBinding: {
+            source: 'product-control-projection',
+            resolveDataRoot: async () => {
+              resolverCalls += 1;
+              if (resolverCalls === 1) await firstRoot;
+              return dataRoot;
+            },
+          },
+        },
+      });
+      const write = (relativePath: string, value: unknown) => invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+        payload: { relativePath, value },
+      });
+      const first = write('settings/profile.json', { revision: 1 });
+      const second = write('settings/profile.json', { revision: 2 });
+      await write('settings/other.json', { unrelated: true });
+      expect(JSON.parse(await readFile(path.join(dataRoot, 'settings', 'other.json'), 'utf8'))).toEqual({ unrelated: true });
+      releaseFirstRoot?.();
+      await Promise.all([first, second]);
+      expect(JSON.parse(await readFile(path.join(dataRoot, 'settings', 'profile.json'), 'utf8'))).toEqual({ revision: 2 });
+    });
+  });
+
   it.each(['activity', 'agentWork'] as const)('keeps a %s pull wait outside the exclusive product Host root gate', async (kind) => {
     let chain = Promise.resolve();
     const exclusive = <T>(operation: () => Promise<T>): Promise<T> => {
@@ -165,6 +199,72 @@ describe('Electron standard data root binding', () => {
     })).resolves.toEqual({ records: [], nextPageToken: null, baselineChangeSeq: '0' });
     releaseNext?.();
     await expect(waiting).resolves.toMatchObject({ subscriptionId: 'changes-1', completed: true });
+  });
+
+  it('keeps Local-App storage writes of one document in arrival order at the Runtime', async () => {
+    let releaseFirstWrite: (() => void) | undefined;
+    const firstWrite = new Promise<void>((resolve) => { releaseFirstWrite = resolve; });
+    const runtimeDocuments = new Map<string, unknown>();
+    let runtimeWrites = 0;
+    const localAppHost = {
+      storageWriteJson: async (record: { relativePath: string; value: unknown }) => {
+        runtimeWrites += 1;
+        if (runtimeWrites === 1) await firstWrite;
+        runtimeDocuments.set(record.relativePath, record.value);
+        return { value: record.value, sizeBytes: JSON.stringify(record.value).length };
+      },
+    };
+    const ipcMain = registerBindingBridge({
+      standardShellHost: { localAppHost: localAppHost as never, runDataRootOperation: (operation) => operation() },
+    });
+    const write = (relativePath: string, value: unknown) => invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+      payload: { relativePath, value },
+    });
+    const writes = [1, 2, 3].map((revision) => write('settings/profile.json', { revision }));
+    await write('settings/other.json', { unrelated: true });
+    expect(runtimeDocuments.get('settings/other.json')).toEqual({ unrelated: true });
+    releaseFirstWrite?.();
+    await Promise.all(writes);
+    expect(runtimeDocuments.get('settings/profile.json')).toEqual({ revision: 3 });
+  });
+
+  it('reaches an admitted voice transcription with its cancel while the root gate is held', async () => {
+    let chain = Promise.resolve();
+    const exclusive = <T>(operation: () => Promise<T>): Promise<T> => {
+      const run = chain.then(operation);
+      chain = run.then(() => undefined, () => undefined);
+      return run;
+    };
+    let cancelTranscription: (() => void) | undefined;
+    const localAppHost = {
+      conversationVoiceTranscribe: (input: Record<string, unknown>) => {
+        if (input.action === 'cancel') {
+          cancelTranscription?.();
+          return Promise.resolve({ canceled: true });
+        }
+        return new Promise((_resolve, reject) => {
+          cancelTranscription = () => reject(new Error('transcription canceled'));
+        });
+      },
+    };
+    const ipcMain = registerBindingBridge({
+      standardShellHost: { localAppHost: localAppHost as never, runDataRootOperation: exclusive },
+    });
+    const event = createInvokeEvent().event;
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationVoiceTranscribe'];
+    const transcription = invokeBridge(ipcMain, event, {
+      command,
+      payload: { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'voice-1', mimeType: 'audio/webm', audioBytes: new Uint8Array([1]) },
+    });
+    const rejected = expect(transcription).rejects.toThrow();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(cancelTranscription).toBeDefined();
+    await expect(invokeBridge(ipcMain, event, {
+      command,
+      payload: { action: 'cancel', requestId: 'voice-1' },
+    })).resolves.toEqual({ canceled: true });
+    await rejected;
   });
 
   it('does not hold the root gate during a bounded provider poll', async () => {

@@ -1,4 +1,5 @@
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
+import { isNimiLocalAppByteView } from '@nimiplatform/kit/core/sdk-contract';
 
 export type ShellInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 export type ShellEventUnsubscribe = () => void;
@@ -159,7 +160,32 @@ const TAURI_STRUCT_PAYLOAD_COMMANDS = new Set([
  * decoder still rejects caller or authority injection.
  */
 export function resolveTauriInvokePayload(command: string, payload: unknown): unknown {
-  return TAURI_STRUCT_PAYLOAD_COMMANDS.has(command) ? { payload } : payload;
+  const json = tauriJsonValue(payload);
+  return TAURI_STRUCT_PAYLOAD_COMMANDS.has(command) ? { payload: json } : json;
+}
+
+// Tauri command IPC is JSON. Exact byte views travel as JSON byte arrays on
+// that carrier only, and the byte fields it returns are restored to views.
+const TAURI_BYTE_RESULT_FIELDS: Readonly<Record<string, string>> = {
+  local_app_agent_presentation_read_asset: 'content',
+  local_app_asset_read_next: 'bodyChunk',
+};
+
+export function resolveTauriInvokeResult(command: string, result: unknown): unknown {
+  const field = TAURI_BYTE_RESULT_FIELDS[command];
+  if (!field || !result || typeof result !== 'object' || Array.isArray(result)) return result;
+  const value = (result as Record<string, unknown>)[field];
+  if (!Array.isArray(value) || !value.every((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 255)) return result;
+  return { ...(result as Record<string, unknown>), [field]: Uint8Array.from(value as number[]) };
+}
+
+function tauriJsonValue(value: unknown): unknown {
+  if (isNimiLocalAppByteView(value)) return Array.from(value);
+  if (Array.isArray(value)) return value.map(tauriJsonValue);
+  if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, tauriJsonValue(entry)]));
+  }
+  return value;
 }
 
 function shellGlobal(): TauriRuntimeGlobal {

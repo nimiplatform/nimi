@@ -787,7 +787,7 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
       },
       async readArtifact(input) {
         calls.push(['readArtifact', input]);
-        return { artifactId: 'artifact_01J', bytes: [1, 2, 3], mimeType: 'image/png', byteLength: 3 };
+        return { artifactId: 'artifact_01J', bytes: Uint8Array.from([1, 2, 3]), mimeType: 'image/png', byteLength: 3 };
       },
       async transcribeVoice(input, options) {
 		calls.push(['transcribeVoice', input, options]);
@@ -1325,7 +1325,20 @@ test('local-app artifact upload validates the closed media input and exact custo
     await client.ai.artifacts.upload({ bytes: new Uint8Array([1, 2]), mimeType: 'image/png' }),
     { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' },
   );
-  assert.deepEqual(calls, [{ bytes: [1, 2], mimeType: 'image/png' }]);
+  // The carrier receives a detached exact byte range, never a JSON number array.
+  assert.deepEqual(calls, [{ bytes: new Uint8Array([1, 2]), mimeType: 'image/png' }]);
+  const window = new Uint8Array([9, 1, 2, 9]).subarray(1, 3);
+  await client.ai.artifacts.upload({ bytes: window, mimeType: 'image/png' });
+  const sent = (calls.at(-1) as { bytes: Uint8Array }).bytes;
+  assert.deepEqual([...sent], [1, 2]);
+  assert.equal(sent.byteOffset, 0);
+  assert.equal(sent.buffer.byteLength, 2);
+  for (const bytes of [[1, 2], new Float64Array([1, 2]), new DataView(new ArrayBuffer(2)), new Uint8ClampedArray([1, 2])]) {
+    await assert.rejects(
+      () => client.ai.artifacts.upload({ bytes: bytes as never, mimeType: 'image/png' }),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+    );
+  }
   for (const mimeType of ['audio/wav', 'audio/mpeg'] as const) {
     assert.deepEqual(await client.ai.artifacts.upload({ bytes: new Uint8Array([1, 2]), mimeType }),
       { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType });
@@ -1539,7 +1552,7 @@ test('local-app voice creation uses one canonical contract with typed source pro
   const referenceAudioSpec = {
     type: 'voice-create' as const,
     creationSource: 'reference-audio' as const,
-    referenceAudio: { type: 'bytes' as const, bytes: [1, 2, 3] },
+    referenceAudio: { type: 'bytes' as const, bytes: new Uint8Array([1, 2, 3]) },
     referenceAudioMime: 'audio/wav', languageHints: ['en'], preferredName: 'Nimi', text: 'Hello',
   };
   assert.deepEqual(await client.ai.scenarioJobs.submit(referenceAudioSpec), { job });
@@ -1586,7 +1599,7 @@ test('local-app voice creation uses one canonical contract with typed source pro
     referenceAudioSpec,
     {
       type: 'voice-create', creationSource: 'reference-audio',
-      referenceAudio: { type: 'bytes', bytes: [4, 5] }, referenceAudioMime: 'audio/wav',
+      referenceAudio: { type: 'bytes', bytes: new Uint8Array([4, 5]) }, referenceAudioMime: 'audio/wav',
       languageHints: ['zh'], preferredName: 'Reference', text: 'Preview',
     },
     {
@@ -1738,7 +1751,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
     progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1,
     reasonCode: '', reasonDetail: '', traceId: 'trace-1',
     artifacts: [{
-      artifactId: 'artifact-1', mimeType: 'image/png', bytes: [], sizeBytes: 2,
+      artifactId: 'artifact-1', mimeType: 'image/png', bytes: new Uint8Array(), sizeBytes: 2,
       sha256: 'sha256', durationMs: 0, width: 1, height: 1, sampleRateHz: 0, channels: 0,
       seed: 41,
     }],
@@ -1766,7 +1779,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
         ...base.ai.artifacts,
         async read(artifactId) {
           calls.push(['artifact.read', artifactId]);
-          return { bytes: [1, 2], mimeType: 'image/png', sizeBytes: 2 };
+          return { bytes: new Uint8Array([1, 2]), mimeType: 'image/png', sizeBytes: 2 };
         },
       },
     },
@@ -1834,15 +1847,23 @@ test('large separation input reaches the carrier at the declared 32 MiB limit', 
   const base = standardShell([]);
   const boundary = new Error('carrier intentionally refuses inference');
   let calls = 0;
+  let sent: Uint8Array | undefined;
   const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
-    async submit() { calls++; throw boundary; },
+    async submit(spec) { calls++; sent = (spec as { audioSource: { bytes: Uint8Array } }).audioSource.bytes; throw boundary; },
   } } } });
-  const bytes = new Array<number>(32 * 1024 * 1024).fill(255);
+  // The supported bound travels as one detached byte view, never a number array.
+  const backing = new Uint8Array(32 * 1024 * 1024 + 2).fill(255);
+  const bytes = backing.subarray(1, 1 + 32 * 1024 * 1024);
   const spec = { type: 'audio-separate' as const, mimeType: 'audio/wav', audioSource: { type: 'bytes' as const, bytes } };
   await assert.rejects(client.ai.scenarioJobs.submit(spec), error => error === boundary);
   assert.equal(calls, 1);
-  bytes.length += 1;
-  await assert.rejects(client.ai.scenarioJobs.submit(spec), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+  assert.equal(sent?.byteLength, 32 * 1024 * 1024);
+  assert.equal(sent?.byteOffset, 0);
+  assert.equal(sent?.buffer.byteLength, 32 * 1024 * 1024);
+  assert.notEqual(sent, bytes);
+  for (const invalid of [backing.subarray(0, 32 * 1024 * 1024 + 1), Array.from(bytes.subarray(0, 4)), new Float64Array(4), new DataView(new ArrayBuffer(4))]) {
+    await assert.rejects(client.ai.scenarioJobs.submit({ ...spec, audioSource: { type: 'bytes', bytes: invalid as Uint8Array } }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+  }
   assert.equal(calls, 1);
 });
 
@@ -1862,7 +1883,7 @@ test('array authority checks inspect indexed content instead of a caller supplie
 test('audio separation retains both owned artifacts through submit and Runtime projections', async () => {
   const base = standardShell([]);
   const calls: unknown[] = [];
-  const artifacts = ['vocals-1', 'background-1'].map((artifactId) => ({ artifactId, mimeType: 'audio/wav', bytes: [], sizeBytes: 384044,
+  const artifacts = ['vocals-1', 'background-1'].map((artifactId) => ({ artifactId, mimeType: 'audio/wav', bytes: new Uint8Array(), sizeBytes: 384044,
     sha256: 'a'.repeat(64), durationMs: 1000, width: 0, height: 0, sampleRateHz: 48000, channels: 2 }));
   let audioSeparation = { vocalsArtifactId: 'vocals-1', backgroundArtifactId: 'background-1' };
   const result = () => ({ job: { jobId: 'separation-1', scenarioType: 'audio-separate', status: 'completed', progressPercent: 100,
@@ -1871,8 +1892,8 @@ test('audio separation retains both owned artifacts through submit and Runtime p
   const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
     async submit(spec) { calls.push(spec); return { job: result().job }; }, async get() { return result(); },
   } } } });
-  await client.ai.scenarioJobs.submit({ type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: [1, 2] } });
-  assert.deepEqual(calls, [{ type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: [1, 2] } }]);
+  await client.ai.scenarioJobs.submit({ type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: new Uint8Array([1, 2]) } });
+  assert.deepEqual(calls, [{ type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: new Uint8Array([1, 2]) } }]);
   const output = await createNimiLocalAppRuntimeScenarioJobClient(client.ai).getScenarioArtifacts({ jobId: 'separation-1' });
   assert.equal(output.output?.output.oneofKind, 'audioSeparate');
   if (output.output?.output.oneofKind === 'audioSeparate') assert.deepEqual(output.output.output.audioSeparate.separation,

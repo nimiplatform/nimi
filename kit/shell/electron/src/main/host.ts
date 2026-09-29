@@ -21,6 +21,7 @@ import { dispatchElectronAgentCenterCommand, isElectronAgentCenterCommand } from
 import { resolveElectronAiProfile } from './ai-profile.js';
 import { assertElectronHostCommandPolicyAllowed } from './command-policy.js';
 import {
+  createElectronStandardStorageDocumentOrder,
   readElectronStandardStorageJson,
   removeElectronStandardStorageJson,
   resolveElectronStandardDataPath,
@@ -49,6 +50,7 @@ import { writeElectronShellArtifact } from './artifacts.js';
 import {
   dispatchElectronLocalAppCommand,
   isElectronLocalAppCommand,
+  isElectronLocalAppCancel,
   isElectronLocalAppPullWait,
   isElectronLocalAppScenarioExecute,
 } from './local-app-commands.js';
@@ -169,6 +171,12 @@ function classifyElectronHostCommand(
   return 'unknown';
 }
 
+const STANDARD_STORAGE_JSON_COMMANDS: ReadonlySet<string> = new Set([
+  NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
+  NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+  NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
+]);
+
 export function registerNimiElectronRuntimeBridge(
   input: RegisterNimiElectronRuntimeBridgeInput,
 ): RegisteredNimiElectronRuntimeBridge {
@@ -185,6 +193,7 @@ export function registerNimiElectronRuntimeBridge(
     });
   }
   const commandNames = createElectronRuntimeBridgeCommandNames(input.commandNamespace);
+  const storageDocumentOrder = createElectronStandardStorageDocumentOrder();
   const eventNamespace = normalizeText(input.eventNamespace) || 'nimi.shell.runtime';
   const invokeChannel = normalizeText(input.invokeChannel) || 'nimi:runtime:invoke';
   const eventChannelPrefix = normalizeText(input.eventChannelPrefix) || 'nimi:runtime:event:';
@@ -511,6 +520,11 @@ export function registerNimiElectronRuntimeBridge(
       throw createElectronExternalDaemonRequiredError(command);
     }
     const standardPayload = standardNestedPayload(payload, command);
+    // Reads and writes of one storage document keep their arrival order, on
+    // the Local-App Runtime path and the Host file path alike.
+    const inDocumentOrder = STANDARD_STORAGE_JSON_COMMANDS.has(command)
+      ? <T>(operation: () => Promise<T>) => storageDocumentOrder(effectiveAppId, standardPayload, command, operation)
+      : <T>(operation: () => Promise<T>) => operation();
     const runDataRootOperation = <T>(operation: () => Promise<T>): Promise<T> => (
       effectiveStandardShellHost?.runDataRootOperation
         ? effectiveStandardShellHost.runDataRootOperation(operation)
@@ -527,15 +541,17 @@ export function registerNimiElectronRuntimeBridge(
     if (effectiveStandardShellHost?.localAppHost && isElectronLocalAppCommand(command)) {
       const localHost = effectiveStandardShellHost.localAppHost;
       // A renderer pull waits for the next Runtime change. Like the Host-side
-      // pumps of other subscriptions it stays outside the exclusive data-root
-      // gate; a data-root change ends it through resource invalidation.
+      // pumps of other subscriptions it stays outside the data-root gate; a
+      // data-root change ends it through resource invalidation.
       // A synchronous Scenario call registers its cancel handle before it
       // enters the gate, so its cancel never waits behind the call itself.
+      // Cancels and closes end admitted work and never wait on the gate.
       const scenarioExecute = isElectronLocalAppScenarioExecute(command);
-      const gate = isElectronLocalAppPullWait(command, standardPayload) || scenarioExecute
+      const gate = isElectronLocalAppPullWait(command, standardPayload)
+        || isElectronLocalAppCancel(command, standardPayload) || scenarioExecute
         ? <T>(operation: () => Promise<T>) => operation()
         : runDataRootOperation;
-      return gate(async () => {
+      return gate(() => inDocumentOrder(async () => {
         const result = await rendererAssetStreams.run(assetOpening, localHost, command, standardPayload, () => dispatchElectronLocalAppCommand({
           host: localHost,
           payload: standardPayload,
@@ -559,12 +575,12 @@ export function registerNimiElectronRuntimeBridge(
           }
         }
         return result;
-      });
+      }));
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return runDataRootOperation(() => resolveElectronStandardDataPath(effectiveStandardShellHost, standardPayload, command));
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return runDataRootOperation(() => readElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command));
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return runDataRootOperation(() => writeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command));
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']) return runDataRootOperation(() => removeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command));
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return runDataRootOperation(() => inDocumentOrder(() => readElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command)));
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return runDataRootOperation(() => inDocumentOrder(() => writeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command)));
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']) return runDataRootOperation(() => inDocumentOrder(() => removeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command)));
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return openElectronExternalUrl(effectiveStandardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) return listenElectronOauthForCode(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent']) return openElectronDesktopIntent({ host: effectiveStandardShellHost, payload: standardPayload, command, appId: effectiveAppId });

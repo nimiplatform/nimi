@@ -1,5 +1,23 @@
 # SDK migration notes
 
+## Local-App media bytes (next minor, development)
+
+- Local-App media bytes are exact `Uint8Array` views on the standard shell:
+  inline Job audio (`speech-transcribe` and `audio-separate` `audioSource`,
+  `voice-create` `referenceAudio`), `NimiLocalAppScenarioArtifact.bytes`,
+  artifact upload and read, Conversation attachment upload, artifact read and
+  voice transcription. JSON `number[]` bytes, `Float64Array`, `DataView` and
+  other views are rejected; there is no compatibility path. Pass the audio
+  you already hold as a `Uint8Array` and read artifact bytes as one.
+- The SDK sends a detached copy of the view's own byte range, so a view into a
+  larger buffer does not carry that buffer across IPC and later writes do not
+  change a submitted request. Size limits are unchanged.
+- Custom standard-shell carriers must accept and return these fields as
+  `Uint8Array`. `isNimiLocalAppByteView`, `copyNimiLocalAppBytes` and
+  `exactNimiLocalAppBytes` are exported for that check. Realtime audio frames
+  (up to 64 KiB) and text continuity carriers keep their current shape.
+- Rebuild SDK, Kit and the native carrier together.
+
 ## Shared Agent introduction (next minor, development)
 
 - Add `agents.getIntroduction({ agentHandle })` under `agent.local` for every

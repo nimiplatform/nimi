@@ -56,7 +56,7 @@ describe('Electron protected local-app host', () => {
 
   it('preserves voice conversion source facts and the reported tail delta on Get and events', async () => {
     const artifacts = [{ artifactId: 'vocal-1', mimeType: 'audio/wav', sizeBytes: 963400 }]
-      .map(value => ({ ...value, bytes: [], sha256: 'a'.repeat(64), durationMs: 10034, width: 0, height: 0, sampleRateHz: 24000, channels: 1, frameCount: 240828 }));
+      .map(value => ({ ...value, bytes: new Uint8Array(), sha256: 'a'.repeat(64), durationMs: 10034, width: 0, height: 0, sampleRateHz: 24000, channels: 1, frameCount: 240828 }));
     const voiceConversion = { vocalArtifactId: 'vocal-1', sourceArtifactId: 'source-1',
       sourceInfo: { sampleRateHz: 48000, channels: 2, frameCount: 480000, durationMs: 10000 },
       inputRange: { startFrame: 0, endFrame: 480000 },
@@ -66,19 +66,19 @@ describe('Electron protected local-app host', () => {
       recoveryExpiresAt: { seconds: '1790086467', nanos: 0 } });
     const event = { eventType: 'completed', sequence: '3', traceId: 'trace-convert', timestamp: null, job };
     const candidate = { ...binding([]),
-      localAppScenarioJobGet: async () => ({ status: 'ok' as const, value: { job, asset: null, voiceReference: null } }),
-      localAppScenarioJobStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+      localAppScenarioJobGet: async () => ({ status: 'ok' as const, value: { job: nativeJob(job), asset: null, voiceReference: null } }),
+      localAppScenarioJobStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event: { ...event, job: nativeJob(job) } } }),
     };
     const host = createNimiElectronLocalAppHostForBinding(candidate);
     await expect(host.scenarioJobGet({ jobId: job.jobId })).resolves.toEqual({ job, asset: null, voiceReference: null });
     await expect(host.scenarioJobStreamNext({ streamId: 'convert-stream' })).resolves.toEqual({ completed: false, event });
-    candidate.localAppScenarioJobGet = async () => ({ status: 'ok', value: { job: { ...job, voiceConversion: { ...voiceConversion, durationDeltaMs: 0 } }, asset: null, voiceReference: null } });
+    candidate.localAppScenarioJobGet = async () => ({ status: 'ok', value: { job: nativeJob({ ...job, voiceConversion: { ...voiceConversion, durationDeltaMs: 0 } }), asset: null, voiceReference: null } });
     await expect(host.scenarioJobGet({ jobId: job.jobId })).rejects.toBeDefined();
   });
   it('preserves music transcription source facts and both output files on Get and events', async () => {
     const artifacts = [{ artifactId: 'score-1', mimeType: 'text/vnd.abc', sizeBytes: 512 },
       { artifactId: 'events-1', mimeType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 1024 }]
-      .map(value => ({ ...value, bytes: [], sha256: 'a'.repeat(64), durationMs: 0, width: 0, height: 0, sampleRateHz: 0, channels: 0 }));
+      .map(value => ({ ...value, bytes: new Uint8Array(), sha256: 'a'.repeat(64), durationMs: 0, width: 0, height: 0, sampleRateHz: 0, channels: 0 }));
     const musicTranscription = { sourceArtifactId: 'source-1', sourceInfo: { sampleRateHz: 48000, channels: 2, frameCount: 960000, durationMs: 20000 },
       inputRange: { startFrame: 48000, endFrame: 480000 }, origin: 'transcribed-estimate', completeness: 'unknown',
       scores: [{ artifactId: 'score-1', format: 'abc', part: 'lead-sheet' }], timelineArtifactId: 'events-1' };
@@ -86,17 +86,17 @@ describe('Electron protected local-app host', () => {
       recoveryExpiresAt: { seconds: '1790086467', nanos: 0 } });
     const event = { eventType: 'completed', sequence: '3', traceId: 'trace-music', timestamp: null, job };
     const candidate = { ...binding([]),
-      localAppScenarioJobGet: async () => ({ status: 'ok' as const, value: { job, asset: null, voiceReference: null } }),
-      localAppScenarioJobStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+      localAppScenarioJobGet: async () => ({ status: 'ok' as const, value: { job: nativeJob(job), asset: null, voiceReference: null } }),
+      localAppScenarioJobStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event: { ...event, job: nativeJob(job) } } }),
     };
     const host = createNimiElectronLocalAppHostForBinding(candidate);
     await expect(host.scenarioJobGet({ jobId: job.jobId })).resolves.toEqual({ job, asset: null, voiceReference: null });
     await expect(host.scenarioJobStreamNext({ streamId: 'music-stream' })).resolves.toEqual({ completed: false, event });
-    candidate.localAppScenarioJobGet = async () => ({ status: 'ok', value: { job: { ...job, artifacts: artifacts.slice(0, 1) }, asset: null, voiceReference: null } });
+    candidate.localAppScenarioJobGet = async () => ({ status: 'ok', value: { job: nativeJob({ ...job, artifacts: artifacts.slice(0, 1) }), asset: null, voiceReference: null } });
     await expect(host.scenarioJobGet({ jobId: job.jobId })).rejects.toBeDefined();
   });
   it('preserves complete real-format music results through Get and terminal events', async () => {
-    const artifact = { artifactId: '01M31XPDSR0XFQJVY8NSBQRVED', mimeType: 'audio/wav', bytes: [],
+    const artifact = { artifactId: '01M31XPDSR0XFQJVY8NSBQRVED', mimeType: 'audio/wav', bytes: new Uint8Array(),
       sizeBytes: 7049274, sha256: '4e848edd82bf57a886b92f566020703b9252fb5e583c4751326394e4f120a8ed', // pragma: allowlist secret -- audio fixture SHA-256
       durationMs: 19980, width: 0, height: 0, sampleRateHz: 44100, channels: 2, frameCount: 881152 };
     const musicGeneration = { mixArtifactId: artifact.artifactId, actualSeed: 42, termination: 'unknown',
@@ -105,14 +105,14 @@ describe('Electron protected local-app host', () => {
       recoveryExpiresAt: { seconds: '1790086467', nanos: 838649200 } });
     const event = { eventType: 'completed', sequence: '3', traceId: 'trace-music', timestamp: null, job };
     const candidate = { ...binding([]),
-      localAppScenarioJobGet: async () => ({ status: 'ok' as const, value: { job, asset: null, voiceReference: null } }),
-      localAppScenarioJobStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+      localAppScenarioJobGet: async () => ({ status: 'ok' as const, value: { job: nativeJob(job), asset: null, voiceReference: null } }),
+      localAppScenarioJobStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event: { ...event, job: nativeJob(job) } } }),
     };
     const host = createNimiElectronLocalAppHostForBinding(candidate);
     await expect(host.scenarioJobGet({ jobId: job.jobId })).resolves.toEqual({ job, asset: null, voiceReference: null });
     await expect(host.scenarioJobStreamNext({ streamId: 'music-stream' })).resolves.toEqual({ completed: false, event });
     const malformed = { ...job, musicGeneration: undefined };
-    candidate.localAppScenarioJobGet = async () => ({ status: 'ok', value: { job: malformed, asset: null, voiceReference: null } });
+    candidate.localAppScenarioJobGet = async () => ({ status: 'ok', value: { job: nativeJob(malformed), asset: null, voiceReference: null } });
     await expect(host.scenarioJobGet({ jobId: job.jobId })).rejects.toBeDefined();
   });
   it('preserves typed transcription through the native Host boundary', async () => {
@@ -452,11 +452,11 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null });
     await expect(host.conversationAttachmentUpload({
       agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', mimeType: 'image/png',
-      displayName: 'attachment.png', bytes: [1, 2, 3],
+      displayName: 'attachment.png', bytes: new Uint8Array([1, 2, 3]),
     })).resolves.toEqual({ artifactId: 'artifact-1', expiresAt: '2026-08-23T09:00:00Z' });
     await expect(host.conversationVoiceTranscribe({
       agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1',
-      mimeType: 'audio/webm', audioBytes: [1, 2, 3],
+      mimeType: 'audio/webm', audioBytes: new Uint8Array([1, 2, 3]),
     })).resolves.toEqual({ text: 'transcribed intent' });
     await expect(host.conversationVoiceTranscribe({ action: 'cancel', requestId: 'voice-request-1' }))
       .resolves.toEqual({ canceled: true });
@@ -558,7 +558,7 @@ describe('Electron protected local-app host', () => {
     await expect(host.agentPresentationSnapshot({ agentHandle: handle }))
       .resolves.toMatchObject({ presentationRevision: '1' });
     await expect(host.agentPresentationReadAsset({ agentHandle: handle, assetRef: 'vrm_0123456789ab' }))
-      .resolves.toMatchObject({ assetRef: 'vrm_0123456789ab', role: 'avatar', backendKind: 'vrm' });
+      .resolves.toMatchObject({ assetRef: 'vrm_0123456789ab', role: 'avatar', backendKind: 'vrm', content: new Uint8Array([1, 2, 3]) });
     await expect(host.agentCommitPresentation(presentationCommit)).resolves.toMatchObject({
       presentationRevision: '2',
       previousProfile: { backendKind: 'sprite2d', revision: '1' },
@@ -930,7 +930,7 @@ describe('Electron protected local-app host', () => {
         return { status: 'ok' as const, value: { artifactId: 'audio-import-1', mimeType, sizeBytes: 2 } };
       },
     });
-    await expect(host.artifactUpload({ bytes: [1, 2], mimeType })).resolves.toEqual({
+    await expect(host.artifactUpload({ bytes: new Uint8Array([1, 2]), mimeType })).resolves.toEqual({
       artifactId: 'audio-import-1', mimeType, sizeBytes: 2,
     });
     expect(calls).toEqual([{ bytes: Buffer.from([1, 2]), mimeType }]);
@@ -954,6 +954,37 @@ describe('Electron protected local-app host', () => {
     await expect(invalid.artifactUpload(input)).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
   });
 
+  it('decodes a supported-bound native artifact read byte for byte', async () => {
+    const maximum = 32 * 1024 * 1024;
+    const bytes = new Uint8Array(maximum);
+    for (let index = 0; index < maximum; index += 4093) bytes[index] = index % 251;
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppArtifactRead: async () => ({ status: 'ok' as const, value: { bytes: Buffer.from(bytes).toString('base64'), mimeType: 'audio/wav', sizeBytes: maximum } }) });
+    const started = Date.now();
+    const read = await host.artifactRead({ artifactId: 'artifact-large' }) as { bytes: Uint8Array; sizeBytes: number };
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(read.sizeBytes).toBe(maximum);
+    expect(Buffer.compare(Buffer.from(read.bytes.buffer, read.bytes.byteOffset, read.bytes.byteLength), Buffer.from(bytes))).toBe(0);
+    expect(read.bytes.byteOffset).toBe(0);
+    expect(read.bytes.buffer.byteLength).toBe(maximum);
+  }, 20_000);
+
+  it('sends inline Job audio to the JSON-only native boundary as exact-range base64', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const host = createNimiElectronLocalAppHostForBinding(binding(calls));
+    const backing = new Uint8Array([9, 0, 1, 254, 255, 9]);
+    const spec = { type: 'speech-transcribe', mimeType: 'audio/wav', language: '', prompt: '', responseFormat: '',
+      audioSource: { type: 'bytes', bytes: backing.subarray(1, 5) } };
+    await host.scenarioJobSubmit({ spec, timeoutMs: 0 });
+    expect(calls.find(({ method }) => method === 'localAppScenarioJobSubmit')?.input).toEqual({
+      spec: { ...spec, audioSource: { type: 'bytes', bytes: 'AAH+/w==' } }, timeoutMs: 0,
+    });
+    for (const bytes of [[0, 1], new Float64Array(2), new DataView(new ArrayBuffer(2))]) {
+      await expect(host.scenarioJobSubmit({ spec: { ...spec, audioSource: { type: 'bytes', bytes } } as never, timeoutMs: 0 }))
+        .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+  });
+
   it('strictly validates scenario Job and artifact projections', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));
@@ -961,9 +992,14 @@ describe('Electron protected local-app host', () => {
       job: scenarioJobProjection(), asset: null, voiceReference: null,
     });
     await expect(host.artifactRead({ artifactId: 'artifact-1' })).resolves.toEqual({
-      bytes: [1, 2], mimeType: 'image/png', sizeBytes: 2,
+      bytes: new Uint8Array([1, 2]), mimeType: 'image/png', sizeBytes: 2,
     });
-    await expect(host.artifactUpload({ bytes: [1, 2], mimeType: 'image/png' })).resolves.toEqual({
+    for (const bytes of [[1, 2], 'AQI', 'AQI==', 'AQ I=']) {
+      const strict = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+        localAppArtifactRead: async () => ({ status: 'ok' as const, value: { bytes, mimeType: 'image/png', sizeBytes: 2 } }) });
+      await expect(strict.artifactRead({ artifactId: 'artifact-1' })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    }
+    await expect(host.artifactUpload({ bytes: new Uint8Array([1, 2]), mimeType: 'image/png' })).resolves.toEqual({
       artifactId: 'artifact-upload-1', mimeType: 'image/png', sizeBytes: 2,
     });
     await expect(host.assetReveal({ relativePath: 'media/run.wav' })).resolves.toEqual({ revealed: true });
@@ -1047,7 +1083,7 @@ describe('Electron protected local-app host', () => {
       { eventType: 'completed', sequence: '3', traceId: 'trace-1', timestamp: null, job: {
         ...baseJob, status: 'completed', progressPercent: 100, progressCurrentStep: 4,
         artifacts: [{
-          artifactId: 'artifact-1', mimeType: 'video/mp4', bytes: [], sizeBytes: 1024,
+          artifactId: 'artifact-1', mimeType: 'video/mp4', bytes: new Uint8Array(), sizeBytes: 1024,
           sha256: 'abc123', durationMs: 3000, width: 1280, height: 720,
           sampleRateHz: 0, channels: 0,
         }],
@@ -1060,10 +1096,10 @@ describe('Electron protected local-app host', () => {
     let index = 0;
     const candidate = {
       ...binding([]),
-      localAppScenarioJobStreamNext: async () => ({
-        status: 'ok' as const,
-        value: { completed: false, event: events[index++] },
-      }),
+      localAppScenarioJobStreamNext: async () => {
+        const event = events[index++]!;
+        return { status: 'ok' as const, value: { completed: false, event: { ...event, job: nativeJob(event.job) } } };
+      },
     };
     const host = createNimiElectronLocalAppHostForBinding(candidate);
     for (const event of events) {
@@ -1217,6 +1253,16 @@ function statusProjection() {
   };
 }
 
+// Native Scenario outcomes carry media bytes as standard base64; the Host
+// projects them as exact byte views.
+function nativeJob<T>(job: T): T {
+  const record = job as Record<string, unknown>;
+  if (!Array.isArray(record.artifacts)) return job;
+  return { ...record, artifacts: record.artifacts.map((artifact: Record<string, unknown>) => ({
+    ...artifact, bytes: Buffer.from(artifact.bytes as Uint8Array).toString('base64'),
+  })) } as T;
+}
+
 function scenarioJobProjection(overrides: Record<string, unknown> = {}) {
   return {
     jobId: 'job-1', scenarioType: 'image-generate', status: 'running',
@@ -1276,7 +1322,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppScenarioJobStreamNext: record('localAppScenarioJobStreamNext', { completed: true }),
     localAppScenarioJobStreamClose: record('localAppScenarioJobStreamClose', { closed: true }),
     localAppScenarioJobCancel: record('localAppScenarioJobCancel', { job: scenarioJobProjection() }),
-    localAppArtifactRead: record('localAppArtifactRead', { bytes: [1, 2], mimeType: 'image/png', sizeBytes: 2 }),
+    localAppArtifactRead: record('localAppArtifactRead', { bytes: 'AQI=', mimeType: 'image/png', sizeBytes: 2 }),
     localAppArtifactUpload: record('localAppArtifactUpload', { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' }),
     localAppVoiceAssetsList: record('localAppVoiceAssetsList', { assets: [], nextPageToken: '' }),
     localAppRealmWorldCoreList: record('localAppRealmWorldCoreList', [{ id: 'world-1', visibility: 'private' }]),
@@ -1342,7 +1388,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     }),
     localAppAgentPresentationReadAsset: record('localAppAgentPresentationReadAsset', {
       assetRef: 'vrm_0123456789ab', role: 'avatar', backendKind: 'vrm',
-      fileName: 'avatar.vrm', mediaType: 'model/gltf-binary', content: [1, 2, 3], sha256: 'a'.repeat(64),
+      fileName: 'avatar.vrm', mediaType: 'model/gltf-binary', content: 'AQID', sha256: 'a'.repeat(64),
     }),
     localAppAgentCommitPresentation: record('localAppAgentCommitPresentation', {
       profile: null,
@@ -1418,7 +1464,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       artifactId: 'artifact-1', expiresAt: '2026-08-23T09:00:00Z',
     }),
     localAppConversationArtifactRead: record('localAppConversationArtifactRead', {
-      artifactId: 'artifact-1', bytes: [1, 2, 3], mimeType: 'image/png', byteLength: 3,
+      artifactId: 'artifact-1', bytes: 'AQID', mimeType: 'image/png', byteLength: 3,
     }),
     localAppConversationVoiceTranscribe: record('localAppConversationVoiceTranscribe', {
       text: 'transcribed intent',

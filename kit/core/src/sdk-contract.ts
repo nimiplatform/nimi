@@ -373,6 +373,7 @@ export { validateNimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
 export type { NimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppAudioSeparation } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult } from '@nimiplatform/sdk/app';
+export { isNimiLocalAppByteView, copyNimiLocalAppBytes, exactNimiLocalAppBytes } from '@nimiplatform/sdk/app';
 export type { NimiLocalAppArtifactUploadShellInput, NimiLocalAppArtifactUploadResult, NimiLocalAppCanonicalAudioPreparation, NimiLocalAppAudioInfo } from '@nimiplatform/sdk/app';
 export type { NimiLocalAppAudioSeparation, NimiLocalAppAudioInstrumentPart, NimiLocalAppAudioInstrumentPartKind } from '@nimiplatform/sdk/app';
 export { SpeechTranscriptStatus } from '@nimiplatform/sdk/runtime';

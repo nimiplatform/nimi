@@ -2045,6 +2045,32 @@ pub(super) fn untrusted() -> LocalAppOperationError {
     LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceUntrusted, false)
 }
 
+// Media bytes cross this JSON-only native boundary as standard padded base64,
+// the same encoding as video frames. The encoded length is bounded before
+// decoding, so an oversized field never allocates its decoded form.
+pub(super) fn base64_bytes_input(
+    value: &serde_json::Value,
+    maximum: usize,
+) -> Result<Vec<u8>, LocalAppOperationError> {
+    use base64::Engine;
+    let encoded = value.as_str().ok_or_else(invalid_payload)?;
+    if encoded.is_empty() || encoded.len() > 4 * maximum.div_ceil(3) {
+        return Err(invalid_payload());
+    }
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .map_err(|_| invalid_payload())?;
+    if bytes.is_empty() || bytes.len() > maximum {
+        return Err(invalid_payload());
+    }
+    Ok(bytes)
+}
+
+pub(super) fn base64_bytes_output(bytes: &[u8]) -> serde_json::Value {
+    use base64::Engine;
+    serde_json::Value::String(base64::engine::general_purpose::STANDARD.encode(bytes))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

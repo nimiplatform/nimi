@@ -71,17 +71,17 @@ export function createNimiLocalAppConversationRuntimeClient(
     },
     uploadAttachment: async ({ agentHandle, conversationAnchorId, mimeType, displayName, bytes }) => {
       const response = await runtime.uploadLocalAppConversationAttachment({
-        agentHandle, conversationAnchorId, mimeType, displayName, data: Uint8Array.from(bytes),
+        agentHandle, conversationAnchorId, mimeType, displayName, data: bytes,
       });
       return { artifactId: response.artifactId, expiresAt: response.expiresAt };
     },
     readArtifact: async ({ agentHandle, conversationAnchorId, artifactId }) => {
       const response = await runtime.readLocalAppConversationArtifact({ agentHandle, conversationAnchorId, artifactId });
-      return { artifactId: response.artifactId, bytes: Array.from(response.data), mimeType: response.mimeType, byteLength: Number(response.byteLength) };
+      return { artifactId: response.artifactId, bytes: response.data, mimeType: response.mimeType, byteLength: Number(response.byteLength) };
     },
     transcribeVoice: async ({ agentHandle, conversationAnchorId, requestId, mimeType, audioBytes }, options) => {
       const response = await runtime.transcribeLocalAppConversationVoice({
-        agentHandle, conversationAnchorId, requestId, mimeType, audioBytes: Uint8Array.from(audioBytes),
+        agentHandle, conversationAnchorId, requestId, mimeType, audioBytes,
       }, options);
       return { text: response.text };
     },

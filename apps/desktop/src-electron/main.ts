@@ -310,13 +310,17 @@ function normalHomeWorkAllowed(): boolean {
 }
 
 function desktopAppLaunchGate(gate: DesktopDataRootOperationGate): DesktopDataRootOperationGate {
+  const requireNormalHomeWork = <T>(operation: () => Promise<T>) => async (): Promise<T> => {
+    if (!normalHomeWorkAllowed()) throw new Error('desktop-home-profile-repair-required');
+    return operation();
+  };
   return Object.freeze({
     ...gate,
     runExclusive<T>(operation: () => Promise<T>): Promise<T> {
-      return gate.runExclusive(async () => {
-        if (!normalHomeWorkAllowed()) throw new Error('desktop-home-profile-repair-required');
-        return operation();
-      });
+      return gate.runExclusive(requireNormalHomeWork(operation));
+    },
+    runShared<T>(operation: () => Promise<T>): Promise<T> {
+      return gate.runShared(requireNormalHomeWork(operation));
     },
   });
 }
@@ -544,7 +548,9 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         await productControlHost.recoverDataRootHandoff();
         return status;
       }
-      return dataRootOperationGate.runExclusive(() => invokeRuntimeLifecycle(runtimeCommandNames.restart));
+      // Restart waits only for exclusive root, cleanup and launch work; a call
+      // stuck on the Runtime being restarted must not hold it back.
+      return dataRootOperationGate.runShared(() => invokeRuntimeLifecycle(runtimeCommandNames.restart));
     };
     menuBarHost = createDesktopElectronMenuBarHost({
       electron: { Menu, Tray },
@@ -627,7 +633,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         }
         return avatarHostTargetRef;
       },
-      runDataRootOperation: (operation) => appLaunchGate.runExclusive(operation),
+      runDataRootOperation: (operation) => appLaunchGate.runShared(operation),
       resolveFormalPresentationAsset: async ({ agentHandle, assetRef }) => {
         const localAppHost = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
         if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
@@ -724,7 +730,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       },
       standardShellHost: {
         allowAllStandardShellCommands: true,
-        runDataRootOperation: (operation) => dataRootOperationGate.runExclusive(operation),
+        runDataRootOperation: (operation) => dataRootOperationGate.runShared(operation),
         standardDataRootBinding: {
           source: 'product-control-projection',
           resolveDataRoot: resolveProductControlDataRoot,

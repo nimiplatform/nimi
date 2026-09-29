@@ -36,7 +36,7 @@ describe('Electron local-app standard-shell operations', () => {
     const host = localAppHost(calls);
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
     const annotation = { type: 'text-annotate', language: 'en', texts: [' annotation'.repeat(9000), '', ' 😀 '] };
-    const separation = { type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: Array(100001).fill(1) } };
+    const separation = { type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: new Uint8Array(100001).fill(1) } };
     for (const spec of [annotation, separation]) {
       await dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 0 } });
     }
@@ -572,7 +572,7 @@ describe('Electron local-app standard-shell operations', () => {
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
     const referenceAudio = {
       type: 'voice-create', creationSource: 'reference-audio',
-      referenceAudio: { type: 'bytes', bytes: [1, 2] }, referenceAudioMime: 'audio/wav',
+      referenceAudio: { type: 'bytes', bytes: new Uint8Array([1, 2]) }, referenceAudioMime: 'audio/wav',
       languageHints: ['en'], preferredName: 'Reference Voice', text: '',
     };
     const textDescription = {
@@ -603,11 +603,15 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toHaveLength(2);
   });
 
-  it('admits the exact typed inline transcription audio cap before generic JSON bounds', { timeout: 20_000 }, async () => {
+  it('admits the exact typed inline transcription audio cap as one byte view and rejects other shapes', async () => {
     const calls: unknown[] = [];
     const maximum = 32 * 1024 * 1024;
-    const bytes = Array.from({ length: maximum + 1 }, () => 0);
-    bytes.pop();
+    // A view with an offset into a larger buffer: the admitted range is exactly
+    // its own bytes and it reaches the host without a number[] expansion.
+    const backing = new Uint8Array(maximum + 2);
+    const bytes = backing.subarray(1, maximum + 1);
+    bytes[0] = 7;
+    bytes[maximum - 1] = 9;
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
     const spec = {
       type: 'speech-transcribe',
@@ -617,21 +621,32 @@ describe('Electron local-app standard-shell operations', () => {
       audioSource: { type: 'bytes', bytes },
       responseFormat: '',
     };
+    const started = Date.now();
     await expect(dispatchElectronLocalAppCommand({
       host: localAppHost(calls),
       command,
       payload: { spec, timeoutMs: 0 },
     })).resolves.toEqual({ job: null, asset: null });
+    expect(Date.now() - started).toBeLessThan(5_000);
     expect(calls).toHaveLength(1);
-    expect((calls[0] as [string, { spec: typeof spec }])[1].spec.audioSource.bytes).toBe(bytes);
+    const forwarded = (calls[0] as [string, { spec: typeof spec }])[1].spec.audioSource.bytes;
+    expect(forwarded).toBe(bytes);
+    expect(forwarded.byteLength).toBe(maximum);
 
-    bytes.push(0);
-    await expect(dispatchElectronLocalAppCommand({
-      host: localAppHost(calls), command, payload: { spec, timeoutMs: 0 },
-    })).rejects.toMatchObject({
-      reasonCode: 'invalid-payload',
-      message: expect.stringContaining('inline bytes are invalid'),
-    });
+    for (const invalid of [
+      backing.subarray(0, maximum + 1),
+      Array.from(bytes.subarray(0, 4)),
+      new Float64Array(4),
+      new DataView(new ArrayBuffer(4)),
+      new Uint8ClampedArray(4),
+      new Uint8Array(0),
+    ]) {
+      await expect(dispatchElectronLocalAppCommand({
+        host: localAppHost(calls), command, payload: { spec: { ...spec, audioSource: { type: 'bytes', bytes: invalid } }, timeoutMs: 0 },
+      })).rejects.toMatchObject({
+        reasonCode: 'invalid-payload',
+      });
+    }
     expect(calls).toHaveLength(1);
   });
 
@@ -640,14 +655,17 @@ describe('Electron local-app standard-shell operations', () => {
     const host = localAppHost(calls);
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactUpload'];
     await expect(dispatchElectronLocalAppCommand({
-      host, command, payload: { bytes: [1, 2], mimeType: 'image/png' },
+      host, command, payload: { bytes: new Uint8Array([1, 2]), mimeType: 'image/png' },
     })).resolves.toEqual({ artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' });
-    expect(calls).toEqual([['artifactUpload', { bytes: [1, 2], mimeType: 'image/png' }]]);
+    expect(calls).toEqual([['artifactUpload', { bytes: new Uint8Array([1, 2]), mimeType: 'image/png' }]]);
     await expect(dispatchElectronLocalAppCommand({
-      host, command, payload: { bytes: [1], mimeType: 'video/webm' },
+      host, command, payload: { bytes: [1, 2], mimeType: 'image/png' },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
     await expect(dispatchElectronLocalAppCommand({
-      host, command, payload: { bytes: [1], mimeType: 'image/png', appId: 'forged' },
+      host, command, payload: { bytes: new Uint8Array([1]), mimeType: 'video/webm' },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, payload: { bytes: new Uint8Array([1]), mimeType: 'image/png', appId: 'forged' },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
   });
 
@@ -818,9 +836,9 @@ describe('Electron local-app standard-shell operations', () => {
     const requests = [
       ['local-app.conversationOpen', { agentHandle: 'lash_one' }],
       ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', parts: [{ kind: 'text', text: 'hello' }] }],
-      ['local-app.conversationAttachmentUpload', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', mimeType: 'image/png', bytes: [1] }],
+      ['local-app.conversationAttachmentUpload', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', mimeType: 'image/png', bytes: new Uint8Array([1]) }],
       ['local-app.conversationArtifactRead', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', artifactId: 'artifact-1' }],
-      ['local-app.conversationVoiceTranscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1', mimeType: 'audio/webm', audioBytes: [1] }],
+      ['local-app.conversationVoiceTranscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1', mimeType: 'audio/webm', audioBytes: new Uint8Array([1]) }],
       ['local-app.conversationVoiceTranscribe', { action: 'cancel', requestId: 'voice-request-1' }],
       ['local-app.conversationVoiceRender', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', messageId: 'message-1', requestId: 'voice-render-request-1' }],
       ['local-app.conversationInterruptTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
@@ -1387,7 +1405,7 @@ function localAppHost(calls: unknown[]) {
     scenarioJobStreamNext: async () => ({ completed: true }),
     scenarioJobStreamClose: async () => ({ closed: true }),
     scenarioJobCancel: async () => ({ job: {} }),
-    artifactRead: async () => ({ bytes: [1], mimeType: 'image/png', sizeBytes: 1 }),
+    artifactRead: async () => ({ bytes: new Uint8Array([1]), mimeType: 'image/png', sizeBytes: 1 }),
     artifactUpload: async (input: unknown) => {
       calls.push(['artifactUpload', input]);
       return { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' };
@@ -1479,7 +1497,7 @@ function localAppHost(calls: unknown[]) {
       calls.push(['agentPresentationReadAsset', input]);
       return {
         assetRef: 'vrm_0123456789ab', role: 'avatar', backendKind: 'vrm',
-        fileName: 'avatar.vrm', mediaType: 'model/gltf-binary', content: [1], sha256: 'a'.repeat(64),
+        fileName: 'avatar.vrm', mediaType: 'model/gltf-binary', content: new Uint8Array([1]), sha256: 'a'.repeat(64),
       };
     },
     agentCommitPresentation: async (input: unknown) => {
