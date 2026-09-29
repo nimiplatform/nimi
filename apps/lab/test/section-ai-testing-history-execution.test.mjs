@@ -87,6 +87,69 @@ test('text image action follows the effective configured feature and retains a b
   }
 });
 
+test('image-assisted Text Studio exposes Stop and cancels its own running request', async () => {
+  const registration = labStudioComposition.getCapability('text.generate');
+  const calls = [];
+  const recorded = [];
+  const target = { capabilityId: 'text.generate', capabilityContract: 'text.generate', section: 'text',
+    source: 'cloud', status: 'configured', canDispatch: true, intentLabel: 'Cloud', detail: 'configured',
+    params: {}, paramsSummary: [], profileOrigin: null };
+  const host = {
+    appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
+    app: {
+      projection: { promptDraft: () => ({ prompt: 'Describe the image' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      events: { subscribeAIConfigRefresh: () => () => {} },
+      commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
+    },
+    sdk: {
+      aiConfig: { get: async () => null, getSnapshot: async () => ({ effectiveSelections: [{
+        capabilityContract: 'text.generate', state: 'ready', resource: { oneofKind: 'cloud', cloud: {
+          target: { state: 'ready', supportedFeatures: ['input.image'] },
+        } },
+      }] }) },
+      runCapability(input) { const deferred = Promise.withResolvers(); calls.push({ input, ...deferred }); return deferred.promise; },
+    },
+  };
+  const container = document.getElementById('root');
+  const renderer = createRoot(container);
+  const button = label => Array.from(container.querySelectorAll('button')).find(el => el.getAttribute('aria-label') === label || el.textContent.trim() === label);
+  const previousReader = globalThis.FileReader;
+  try {
+    await act(async () => renderer.render(createElement(TooltipProvider, null, createElement(AIStudioHostProvider, { value: host },
+      createElement(SectionAITesting, {
+        registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' },
+        lastResult: null, history: {}, historySelectionRequest: null, onSelectHistoryRun: () => {},
+        onResult: async result => { recorded.push(result); return null; }, verboseConsole: false, draftPersistence: false,
+      })))));
+    const readFinished = Promise.withResolvers();
+    globalThis.FileReader = class extends dom.window.FileReader {
+      constructor() { super(); this.addEventListener('loadend', readFinished.resolve, { once: true }); }
+    };
+    await act(async () => {
+      button('Studio.composer.attachContext').click();
+      const picker = document.querySelector('input[type="file"]');
+      Object.defineProperty(picker, 'files', { value: [new dom.window.File(['image input'], 'cats.jpg', { type: 'image/jpeg' })] });
+      picker.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+      await readFinished.promise;
+    });
+    await act(async () => { button('Studio.profiles.textGenerate.primaryLabel').click(); });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].input.attachments[0].name, 'cats.jpg');
+    const stop = button('StudioShell.cancelGeneration');
+    assert.ok(stop, 'the running image request needs a real Stop action');
+    await act(async () => { stop.click(); });
+    assert.equal(calls[0].input.signal.aborted, true);
+    await act(async () => { calls[0].resolve({ ok: false, capabilityId: 'text.generate', reason: 'operation-aborted', message: 'stopped', actionHint: '' }); });
+    assert.equal(recorded.length, 1);
+    assert.equal(recorded[0].reason, 'operation-aborted');
+    assert.ok(container.textContent.includes('Studio.result.status.stoppedDirectCall'));
+    assert.ok(!container.textContent.includes('Studio.result.status.operationAborted'));
+  } finally {
+    globalThis.FileReader = previousReader;
+    await act(async () => { renderer.unmount(); });
+  }
+});
+
 test('history previews do not inherit another run status or cancellation target', async () => {
   const registration = labStudioComposition.getCapability('vision.locate');
   const target = {

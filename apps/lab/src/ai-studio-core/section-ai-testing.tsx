@@ -506,6 +506,7 @@ function TextStudioShell({
                 onCancel={displayingExecution && canCancelStudioCapabilityRun({
                   capabilityId: capability.id,
                   resultKind: profile.resultKind,
+                  hasImageInput: composerState.attachments.some((attachment) => attachment.kind === 'image'),
                 })
                   ? handleCancel
                   : undefined}

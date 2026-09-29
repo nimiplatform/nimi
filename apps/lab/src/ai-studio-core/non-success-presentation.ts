@@ -27,7 +27,7 @@ function reasonKeySegment(reason: string): string {
 
 // A synchronous direct call has no Job whose final state could still arrive:
 // stopping it ends it, unlike a submitted Job whose cancellation may be pending.
-const DIRECT_CALL_CAPABILITIES: ReadonlySet<string> = new Set(['text.decide']);
+const DIRECT_CALL_CAPABILITIES: ReadonlySet<string> = new Set(['text.decide', 'text.generate']);
 
 export function isStoppedDirectCall(reason: string, capabilityId?: string): boolean {
   return reason === 'operation-aborted' && capabilityId !== undefined && DIRECT_CALL_CAPABILITIES.has(capabilityId);

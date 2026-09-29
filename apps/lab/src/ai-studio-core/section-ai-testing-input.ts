@@ -34,8 +34,10 @@ export function hasStudioCapabilityRunInput(input: {
 export function canCancelStudioCapabilityRun(input: {
   capabilityId: string;
   resultKind: StudioResultKind;
+  hasImageInput?: boolean;
 }): boolean {
   return input.capabilityId === 'chat.stream'
+    || (input.capabilityId === 'text.generate' && input.hasImageInput === true)
     || input.resultKind === 'artifacts'
     || input.resultKind === 'text-annotation'
     || input.resultKind === 'text-decision'
