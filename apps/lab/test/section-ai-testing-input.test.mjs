@@ -59,9 +59,10 @@ test('prompt-backed capability runs still require a real input', () => {
   }), true);
 });
 
-test('speech and music send the entered prompt verbatim', () => {
+test('speech, voice creation, and music send the entered prompt verbatim', () => {
   assert.equal(usesVerbatimStudioPrompt('audio.synthesize'), true);
   assert.equal(usesVerbatimStudioPrompt('audio.transcribe'), true);
+  assert.equal(usesVerbatimStudioPrompt('voice.create'), true);
   assert.equal(usesVerbatimStudioPrompt('music.generate'), true);
   assert.equal(usesVerbatimStudioPrompt('vision.locate'), true);
   assert.equal(usesVerbatimStudioPrompt('text.generate'), false);
