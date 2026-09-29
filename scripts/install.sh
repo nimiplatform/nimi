@@ -17,13 +17,19 @@ usage() {
 Install nimi CLI + runtime from an admitted release manifest.
 
 Usage:
-  NIMI_INSTALL_MANIFEST_URL=https://.../runtime/latest.json sh install.sh [--dry-run] [--version v0.2.0]
+  NIMI_INSTALL_MANIFEST_URL=https://.../runtime/latest.json sh install.sh [--dry-run] [--version 0.2.0|runtime/v0.2.0]
   sh install.sh --dry-run --target <darwin-amd64|darwin-arm64|linux-amd64|linux-arm64>
 EOF
 }
 
 log() {
   printf '%s\n' "$*"
+}
+
+# Errors go to stderr: several steps run inside command substitution.
+fail() {
+  printf '%s\n' "$*" >&2
+  exit 1
 }
 
 run_cmd() {
@@ -39,8 +45,7 @@ detect_platform_key() {
     Darwin) printf 'darwin' ;;
     Linux) printf 'linux' ;;
     *)
-      log "Unsupported platform: $(uname -s)"
-      exit 1
+      fail "Unsupported platform: $(uname -s)"
       ;;
   esac
 }
@@ -50,8 +55,7 @@ detect_archive_platform() {
     Darwin) printf 'macos' ;;
     Linux) printf 'linux' ;;
     *)
-      log "Unsupported platform: $(uname -s)"
-      exit 1
+      fail "Unsupported platform: $(uname -s)"
       ;;
   esac
 }
@@ -61,8 +65,7 @@ detect_arch() {
     x86_64|amd64) printf 'amd64' ;;
     arm64|aarch64) printf 'arm64' ;;
     *)
-      log "Unsupported architecture: $(uname -m)"
-      exit 1
+      fail "Unsupported architecture: $(uname -m)"
       ;;
   esac
 }
@@ -71,8 +74,7 @@ need_cmd() {
   if command -v "$1" >/dev/null 2>&1; then
     return 0
   fi
-  log "Missing required command: $1"
-  exit 1
+  fail "Missing required command: $1"
 }
 
 resolve_install_manifest_url() {
@@ -85,16 +87,14 @@ resolve_install_manifest_url() {
     printf '%s' "$INSTALL_MANIFEST_URL_DEFAULT"
     return 0
   fi
-  log "NIMI_INSTALL_MANIFEST_URL is required until the public runtime install channel is admitted."
-  exit 1
+  fail "NIMI_INSTALL_MANIFEST_URL is required until the public runtime install channel is admitted."
 }
 
 fetch_install_manifest() {
   manifest_url="$1"
   need_cmd curl
   if ! response="$(curl -fsSL "$manifest_url")"; then
-    log "Failed to resolve latest runtime manifest from ${manifest_url}"
-    exit 1
+    fail "Failed to resolve latest runtime manifest from ${manifest_url}"
   fi
   printf '%s' "$response" | tr -d '\n'
 }
@@ -124,8 +124,10 @@ resolve_runtime_release_from_manifest() {
   archive_url="$(extract_manifest_archive_field "$manifest_json" "$platform_key" url)"
 
   if [ -z "$tag" ] || [ -z "$version" ] || [ -z "$checksums_url" ] || [ -z "$archive" ] || [ -z "$archive_url" ]; then
-    log "Latest runtime manifest is missing required fields for ${platform_key}"
-    exit 1
+    fail "Latest runtime manifest is missing required fields for ${platform_key}"
+  fi
+  if ! runtime_tag="$(normalize_runtime_tag "$tag")" || [ "$runtime_tag" != "$tag" ] || [ "$(runtime_tag_version "$tag")" != "$version" ]; then
+    fail "Manifest ${manifest_url} does not describe a Runtime release (tag ${tag}, version ${version})"
   fi
 
   printf '%s\n' "$tag"
@@ -135,11 +137,23 @@ resolve_runtime_release_from_manifest() {
   printf '%s\n' "$checksums_url"
 }
 
-normalize_tag() {
+# Runtime-only releases are tagged runtime/v<SemVer>; a bare version names that
+# Runtime release, and another release owner's tag is refused.
+normalize_runtime_tag() {
   case "$1" in
-    v*) printf '%s' "$1" ;;
-    *) printf 'v%s' "$1" ;;
+    runtime/v*) candidate="$1" ;;
+    */*) return 1 ;;
+    v*) candidate="runtime/$1" ;;
+    *) candidate="runtime/v$1" ;;
   esac
+  printf '%s' "$candidate" | grep -Eq '^runtime/v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-rc\.[1-9][0-9]*)?$' || return 1
+  printf '%s' "$candidate"
+}
+
+# Archives carry the final Runtime version, also under a release-candidate tag.
+runtime_tag_version() {
+  version_value="${1#runtime/v}"
+  printf '%s' "${version_value%-rc.*}"
 }
 
 calc_sha256() {
@@ -152,8 +166,7 @@ calc_sha256() {
     sha256sum "$file" | awk '{print $1}'
     return 0
   fi
-  log "Missing checksum tool: install shasum or sha256sum"
-  exit 1
+  fail "Missing checksum tool: install shasum or sha256sum"
 }
 
 append_path_once() {
@@ -234,8 +247,7 @@ done
 
 if [ -n "$REQUESTED_TARGET" ]; then
   if [ "$DRY_RUN" -ne 1 ]; then
-    log "--target is admitted only for --dry-run inspection."
-    exit 1
+    fail "--target is admitted only for --dry-run inspection."
   fi
   case "$REQUESTED_TARGET" in
     darwin-amd64)
@@ -259,8 +271,7 @@ if [ -n "$REQUESTED_TARGET" ]; then
       arch="arm64"
       ;;
     *)
-      log "Unsupported dry-run target: ${REQUESTED_TARGET}"
-      exit 1
+      fail "Unsupported dry-run target: ${REQUESTED_TARGET}"
       ;;
   esac
 else
@@ -269,16 +280,17 @@ else
   arch="$(detect_arch)"
 fi
 if [ -n "$REQUESTED_VERSION" ]; then
-  tag="$(normalize_tag "$REQUESTED_VERSION")"
-  version="${tag#v}"
-  version="${version%-rc.*}"
+  if ! tag="$(normalize_runtime_tag "$REQUESTED_VERSION")"; then
+    fail "--version must name a Runtime release such as 0.2.0 or runtime/v0.2.0; ${REQUESTED_VERSION} is not one."
+  fi
+  version="$(runtime_tag_version "$tag")"
   archive="nimi-runtime_${version}_${archive_platform}_${arch}.tar.gz"
   base_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}"
   archive_url="${base_url}/${archive}"
   checksums_url="${base_url}/checksums.txt"
 elif [ "$DRY_RUN" -eq 1 ] && [ -z "${NIMI_INSTALL_MANIFEST_URL:-}" ]; then
-  tag="v0.0.0"
-  version="${tag#v}"
+  tag="runtime/v0.0.0"
+  version="$(runtime_tag_version "$tag")"
   archive="nimi-runtime_${version}_${archive_platform}_${arch}.tar.gz"
   base_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}"
   archive_url="${base_url}/${archive}"
@@ -313,15 +325,13 @@ fi
 
 expected_checksum="$(awk -v name="$archive" '$2 == name { print $1 }' "${tmp_dir}/checksums.txt" 2>/dev/null || true)"
 if [ "$DRY_RUN" -eq 0 ] && [ -z "$expected_checksum" ]; then
-  log "Failed to find checksum for ${archive}"
-  exit 1
+  fail "Failed to find checksum for ${archive}"
 fi
 
 if [ "$DRY_RUN" -eq 0 ]; then
   actual_checksum="$(calc_sha256 "${tmp_dir}/${archive}")"
   if [ "$actual_checksum" != "$expected_checksum" ]; then
-    log "Checksum mismatch for ${archive}"
-    exit 1
+    fail "Checksum mismatch for ${archive}"
   fi
 fi
 

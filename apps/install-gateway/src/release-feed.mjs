@@ -3,36 +3,53 @@ const ADMITTED_REPO_OWNER = 'nimiplatform';
 const ADMITTED_REPO_NAME = 'nimi';
 const DEFAULT_CACHE_MAX_AGE_SECONDS = 300;
 
-const REQUIRED_RUNTIME_ARCHIVES = [
-  'darwin-arm64',
-  'darwin-amd64',
-  'linux-arm64',
-  'linux-amd64',
-  'windows-arm64',
-  'windows-amd64',
+// A Runtime-only release is identified only by runtime/v<SemVer> (P-GOV-028).
+// The complete Nimi bundle (nimi/v), Desktop (desktop/v), component families
+// and bare v<SemVer> tags belong to other owners and never enter this feed.
+const RUNTIME_RELEASE_TAG = /^runtime\/v((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))(-rc\.[1-9]\d*)?$/u;
+
+// GoReleaser archives: the final Runtime version, macOS named macos, Windows zip.
+const RUNTIME_ARCHIVES = [
+  { platform: 'darwin-arm64', os: 'macos', arch: 'arm64', extension: 'tar.gz' },
+  { platform: 'darwin-amd64', os: 'macos', arch: 'amd64', extension: 'tar.gz' },
+  { platform: 'linux-arm64', os: 'linux', arch: 'arm64', extension: 'tar.gz' },
+  { platform: 'linux-amd64', os: 'linux', arch: 'amd64', extension: 'tar.gz' },
+  { platform: 'windows-arm64', os: 'windows', arch: 'arm64', extension: 'zip' },
+  { platform: 'windows-amd64', os: 'windows', arch: 'amd64', extension: 'zip' },
 ];
+const CHECKSUMS_ASSET_NAME = 'checksums.txt';
+const GITHUB_SHA256_DIGEST = /^sha256:([a-f0-9]{64})$/u;
+// sha256sum text mode, as GoReleaser writes it and install.sh reads it.
+const CHECKSUM_LINE = /^([a-f0-9]{64}) {2}([^\s/\\]+)$/u;
+
+// A release that exists but does not qualify for the feed.
+export class RuntimeReleaseInvalidError extends Error {
+  constructor(detail) {
+    super(`RUNTIME_RELEASE_INVALID: ${detail}`);
+    this.name = 'RuntimeReleaseInvalidError';
+  }
+}
 
 function normalizeText(value) {
   return String(value || '').trim();
 }
 
-function releasePublishedTimestamp(release) {
-  const raw = normalizeText(release?.published_at || release?.created_at);
-  const stamp = Date.parse(raw);
-  return Number.isFinite(stamp) ? stamp : 0;
+export function parseRuntimeReleaseTag(tagName) {
+  const tag = normalizeText(tagName);
+  const match = RUNTIME_RELEASE_TAG.exec(tag);
+  if (!match) {
+    return null;
+  }
+  return {
+    tag,
+    version: match[1],
+    core: [Number(match[2]), Number(match[3]), Number(match[4])],
+    releaseCandidate: Boolean(match[5]),
+  };
 }
 
-function isTruthyBoolean(value) {
-  return value === true;
-}
-
-function versionFromGlobalTag(tagName) {
-  const match = /^v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:-rc\.[1-9]\d*)?$/u.exec(normalizeText(tagName));
-  return match?.[1] || '';
-}
-
-function matchesStableGlobalRelease(release) {
-  return /^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u.test(normalizeText(release?.tag_name));
+export function matchesRuntimeRelease(release) {
+  return Boolean(parseRuntimeReleaseTag(release?.tag_name));
 }
 
 export function githubReleaseApiUrl(env = {}) {
@@ -52,25 +69,6 @@ export function githubApiHeaders(env = {}) {
   return headers;
 }
 
-export function matchesGlobalRelease(release) {
-  return Boolean(versionFromGlobalTag(release?.tag_name));
-}
-
-export function selectLatestRelease(releases) {
-  const candidates = Array.isArray(releases)
-    ? releases.filter((release) => (
-      !isTruthyBoolean(release?.draft)
-      && !isTruthyBoolean(release?.prerelease)
-      && matchesStableGlobalRelease(release)
-      && hasCompleteRuntimeAssetSet(release)
-    ))
-    : [];
-  if (candidates.length === 0) {
-    return null;
-  }
-  return candidates.sort((left, right) => releasePublishedTimestamp(right) - releasePublishedTimestamp(left))[0] || null;
-}
-
 export async function fetchRepositoryReleases(env = {}, fetchImpl = fetch) {
   const response = await fetchImpl(githubReleaseApiUrl(env), {
     headers: githubApiHeaders(env),
@@ -85,124 +83,158 @@ export async function fetchRepositoryReleases(env = {}, fetchImpl = fetch) {
   return payload;
 }
 
-function normalizeRuntimeArchivePlatform(os, arch) {
-  const osKey = os === 'macos' ? 'darwin' : os;
-  return `${osKey}-${arch}`;
+export function runtimeArchiveName(version, archive) {
+  return `nimi-runtime_${version}_${archive.os}_${archive.arch}.${archive.extension}`;
 }
 
-function parseRuntimeArchiveAsset(assetName) {
-  const match = /^nimi-runtime_((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))_(macos|linux|windows)_(amd64|arm64)\.(tar\.gz|zip)$/u.exec(normalizeText(assetName));
-  if (!match) {
+// A usable asset is fully uploaded and carries GitHub's own SHA-256 digest.
+function uploadedAsset(assets, name) {
+  const asset = assets.find((candidate) => normalizeText(candidate?.name) === name);
+  const url = normalizeText(asset?.browser_download_url);
+  const digest = GITHUB_SHA256_DIGEST.exec(normalizeText(asset?.digest));
+  if (!asset || !url || asset.state !== 'uploaded' || !digest) {
     return null;
   }
-  return {
-    version: match[1],
-    platform: normalizeRuntimeArchivePlatform(match[2], match[3]),
-  };
+  return { name, url, sha256: digest[1] };
 }
 
 function runtimeReleaseAssets(release) {
-  const version = versionFromGlobalTag(release?.tag_name);
+  const parsed = parseRuntimeReleaseTag(release?.tag_name);
   const assets = Array.isArray(release?.assets) ? release.assets : [];
-  const checksumsAsset = assets.find((asset) => (
-    normalizeText(asset?.name) === 'checksums.txt'
-    && Boolean(normalizeText(asset?.browser_download_url))
-  ));
-  const archives = {};
-  for (const asset of assets) {
-    const parsed = parseRuntimeArchiveAsset(asset?.name);
-    if (!parsed || parsed.version !== version || !normalizeText(asset?.browser_download_url)) {
-      continue;
-    }
-    archives[parsed.platform] = {
-      name: normalizeText(asset.name),
-      url: normalizeText(asset.browser_download_url),
-    };
+  if (!parsed) {
+    return { parsed: null, checksums: null, archives: {}, missing: ['runtime/v release tag'] };
   }
-  return { archives, checksumsAsset, version };
+  const checksums = uploadedAsset(assets, CHECKSUMS_ASSET_NAME);
+  const archives = {};
+  const missing = checksums ? [] : [CHECKSUMS_ASSET_NAME];
+  for (const archive of RUNTIME_ARCHIVES) {
+    const asset = uploadedAsset(assets, runtimeArchiveName(parsed.version, archive));
+    if (asset) {
+      archives[archive.platform] = asset;
+    } else {
+      missing.push(runtimeArchiveName(parsed.version, archive));
+    }
+  }
+  return { parsed, checksums, archives, missing };
 }
 
 export function hasCompleteRuntimeAssetSet(release) {
-  const { archives, checksumsAsset, version } = runtimeReleaseAssets(release);
-  return Boolean(version && checksumsAsset && REQUIRED_RUNTIME_ARCHIVES.every((platform) => (
-    Boolean(archives[platform]?.name && archives[platform]?.url)
-  )));
+  return runtimeReleaseAssets(release).missing.length === 0;
 }
 
-function parseRuntimeChecksumLine(line) {
-  const normalized = normalizeText(line);
-  if (!normalized || normalized.startsWith('#')) {
-    return null;
+function isStableRuntimeRelease(release) {
+  const parsed = parseRuntimeReleaseTag(release?.tag_name);
+  return Boolean(parsed && !parsed.releaseCandidate && release?.draft !== true && release?.prerelease !== true);
+}
+
+function compareVersionsDescending(left, right) {
+  for (let index = 0; index < 3; index += 1) {
+    if (left[index] !== right[index]) {
+      return right[index] - left[index];
+    }
   }
-  const plainMatch = /^([a-f0-9]{64})\s+\*?(.+)$/iu.exec(normalized);
-  if (plainMatch) {
-    return {
-      checksum: plainMatch[1].toLowerCase(),
-      fileName: normalizeText(plainMatch[2]),
-    };
+  return 0;
+}
+
+// Stable Runtime releases with a complete asset set, highest version first.
+export function runtimeReleaseCandidates(releases) {
+  if (!Array.isArray(releases)) {
+    return [];
   }
-  const taggedMatch = /^SHA256\s+\(([^)]+)\)\s*=\s*([a-f0-9]{64})$/iu.exec(normalized);
-  if (taggedMatch) {
-    return {
-      checksum: taggedMatch[2].toLowerCase(),
-      fileName: normalizeText(taggedMatch[1]),
-    };
-  }
-  return null;
+  return releases
+    .filter((release) => isStableRuntimeRelease(release) && hasCompleteRuntimeAssetSet(release))
+    .sort((left, right) => compareVersionsDescending(
+      parseRuntimeReleaseTag(left.tag_name).core,
+      parseRuntimeReleaseTag(right.tag_name).core,
+    ));
 }
 
 export function parseRuntimeChecksums(checksumsText) {
   const checksums = new Map();
-  for (const line of String(checksumsText || '').split(/\r?\n/u)) {
-    const parsed = parseRuntimeChecksumLine(line);
-    if (!parsed) {
-      continue;
+  String(checksumsText || '').split(/\r?\n/u).forEach((line, index) => {
+    if (!line.trim()) {
+      return;
     }
-    checksums.set(parsed.fileName, parsed.checksum);
+    const match = CHECKSUM_LINE.exec(line);
+    if (!match) {
+      throw new RuntimeReleaseInvalidError(`checksum line ${index + 1} is not "<sha256>  <file>"`);
+    }
+    if (checksums.has(match[2])) {
+      throw new RuntimeReleaseInvalidError(`checksum for ${match[2]} appears more than once`);
+    }
+    checksums.set(match[2], match[1]);
+  });
+  if (checksums.size === 0) {
+    throw new RuntimeReleaseInvalidError('checksum evidence is empty');
   }
   return checksums;
 }
 
-async function fetchRuntimeChecksums(url, fetchImpl) {
-  const response = await fetchImpl(url);
+async function sha256Hex(bytes) {
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// The checksum file must be the uploaded asset GitHub digested, and every
+// archive entry must equal GitHub's digest of that archive's uploaded bytes.
+async function fetchVerifiedChecksums(checksumsAsset, fetchImpl) {
+  const response = await fetchImpl(checksumsAsset.url);
   if (!response.ok) {
     throw new Error(`RUNTIME_CHECKSUM_FETCH_FAILED: status=${response.status}`);
   }
-  const checksums = parseRuntimeChecksums(await response.text());
-  if (checksums.size === 0) {
-    throw new Error('RUNTIME_RELEASE_INVALID: checksum evidence is empty');
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (await sha256Hex(bytes) !== checksumsAsset.sha256) {
+    throw new RuntimeReleaseInvalidError(`${CHECKSUMS_ASSET_NAME} does not match its GitHub asset digest`);
   }
-  return checksums;
+  let text;
+  try {
+    text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    throw new RuntimeReleaseInvalidError(`${CHECKSUMS_ASSET_NAME} is not UTF-8 text`);
+  }
+  return parseRuntimeChecksums(text);
 }
 
 export async function buildRuntimeManifest(release, fetchImpl = fetch) {
-  const { archives, checksumsAsset, version } = runtimeReleaseAssets(release);
-  if (!version) {
-    throw new Error('RUNTIME_RELEASE_INVALID: global release tag is invalid');
+  const { parsed, checksums, archives, missing } = runtimeReleaseAssets(release);
+  if (!parsed) {
+    throw new RuntimeReleaseInvalidError('release tag is not runtime/v<SemVer>');
   }
-  if (!checksumsAsset?.browser_download_url) {
-    throw new Error('RUNTIME_RELEASE_INVALID: checksums.txt asset is missing');
+  if (missing.length > 0) {
+    throw new RuntimeReleaseInvalidError(`uploaded asset with GitHub digest missing: ${missing.join(', ')}`);
   }
-  const checksumsUrl = normalizeText(checksumsAsset.browser_download_url);
-  const checksums = await fetchRuntimeChecksums(checksumsUrl, fetchImpl);
-
-  for (const platform of REQUIRED_RUNTIME_ARCHIVES) {
-    if (!archives[platform]?.name || !archives[platform]?.url) {
-      throw new Error(`RUNTIME_RELEASE_INVALID: archive missing for ${platform}`);
-    }
-    const checksum = checksums.get(archives[platform].name);
+  const recorded = await fetchVerifiedChecksums(checksums, fetchImpl);
+  for (const archive of RUNTIME_ARCHIVES) {
+    const asset = archives[archive.platform];
+    const checksum = recorded.get(asset.name);
     if (!checksum) {
-      throw new Error(`RUNTIME_RELEASE_INVALID: checksum missing for ${archives[platform].name}`);
+      throw new RuntimeReleaseInvalidError(`checksum missing for ${asset.name}`);
     }
-    archives[platform].sha256 = checksum;
+    if (checksum !== asset.sha256) {
+      throw new RuntimeReleaseInvalidError(`checksum for ${asset.name} does not match its GitHub asset digest`);
+    }
   }
-
   return {
-    tag: normalizeText(release?.tag_name),
-    version,
-    checksumsUrl,
+    tag: parsed.tag,
+    version: parsed.version,
+    checksumsUrl: checksums.url,
     archives,
   };
+}
+
+// The newest qualifying release wins; releases that fail verification are
+// skipped, while upstream fetch failures still fail the request.
+export async function resolveLatestRuntimeManifest(releases, fetchImpl = fetch) {
+  for (const release of runtimeReleaseCandidates(releases)) {
+    try {
+      return await buildRuntimeManifest(release, fetchImpl);
+    } catch (error) {
+      if (!(error instanceof RuntimeReleaseInvalidError)) {
+        throw error;
+      }
+    }
+  }
+  throw new Error('RUNTIME_RELEASE_NOT_FOUND');
 }
 
 export function cacheMaxAgeSeconds(env = {}) {

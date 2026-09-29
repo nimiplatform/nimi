@@ -2,9 +2,10 @@
 
 Use this adapter to retain Vercel's model, streaming and caller-owned tool-loop
 interfaces while Nimi owns execution configuration and protected access.
-Adapter 0.3.0 requires SDK 0.19.0, Kit/native npm 0.16.0 and a matching Runtime.
-Upgrade the protected carrier together; the adapter keeps its existing caller-owned
-tool-loop API. These are local candidate versions, not a publication claim.
+Adapter 0.3.0 requires SDK 0.19.0 with Kit and its native package 0.16.0 and
+the matching Runtime. Its API is unchanged from the published adapter 0.1.0
+(SDK peer `^0.13.0`): upgrading moves the SDK peer, so follow the SDK and Kit
+migration notes for the carrier upgrade. Adapter 0.2.0 was never published.
 
 ## Local App
 

@@ -21,7 +21,15 @@ function fixture(events: (step: number) => AsyncIterable<unknown>) {
   const ai = createNimiLocalAppAIConsumptionClient({
     text: { streamTurn: async (input) => { inputs.push(input); return { events: events(inputs.length), cancel: async () => {} }; } },
     scenario: { execute: unused }, scenarioJobs: { submit: unused, get: unused, subscribe: unused, cancel: unused },
-    artifacts: { read: unused, upload: async (input) => { uploads.push(input); return { artifactId: `uploaded-${uploads.length}`, mimeType: input.mimeType, sizeBytes: input.bytes.length }; } },
+    artifacts: {
+      read: unused,
+      upload: async (input) => {
+        // The adapter uploads inline image bytes; a source upload is a failure here.
+        if (!input.bytes) throw new Error('expected an inline byte upload');
+        uploads.push(input);
+        return { artifactId: `uploaded-${uploads.length}`, mimeType: input.mimeType, sizeBytes: input.bytes.length };
+      },
+    },
     voiceAssets: { list: unused },
   });
   return { model: createNimiLocalAppVercelLanguageModel({ ai }), inputs, uploads };

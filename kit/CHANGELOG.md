@@ -1,5 +1,80 @@
 # Changelog
 
+## 0.16.0: upgrading from 0.11.0
+
+0.11.0 is the last Kit published before 0.16.0; Kit 0.12.0 through 0.15.3 were
+development numbers that never reached npm. Every section above "0.11.0"
+applies when upgrading from 0.11.0, including those marked "next minor". Use
+Kit and its native packages 0.16.0 with SDK 0.19.0, Rust shell crates 0.8.0 and
+the matching Runtime.
+
+Protected Account status and mutation projections preserve the optional Runtime audit diagnostic alongside the actual account state. A missing audit record does not turn an already committed login, switch or logout into a failed operation.
+
+Required changes from 0.11.0:
+
+- A standard Electron App main calls `configureNimiElectronAppHostProfile` from
+  `@nimiplatform/kit/shell/electron/host-profile` before loading the rest of
+  Kit. Hosts built from earlier templates keep Electron's default profile, and
+  its browser-persistent state does not carry over (0.13.0).
+- A custom standard-shell carrier implements the App activity namespace and
+  commands, `agentWork`, `integration` and `agents.getIntroduction`, carries
+  `agentBinding` and Integration `targetDisplayName` / `accountLabel`, and
+  carries Local-App media bytes as `Uint8Array`; the JSON `number[]` shape is
+  rejected (0.13.0, 0.14.0, 0.16.0 and next-minor sections).
+- Adopt the typed `musicGeneration` result; the old prior-audio extension is
+  rejected (0.13.0).
+- Node business work takes fresh clients in `onSessionReady(services)`;
+  `bridge.services` captured before an invalidation stay retired (0.16.0).
+
+## Runtime maintenance mode (next minor, development)
+
+- Right after the verified Desktop channel opens, the protected carrier reads
+  the Runtime's typed service mode (`GetRuntimeServiceState`), before any
+  development rebind or readiness roundtrip. A Runtime that refused its stored
+  data answers `MAINTENANCE` with `RUNTIME_STORED_DATA_UNSUPPORTED`; an unknown
+  mode or reason fails closed as untrusted.
+- `fixedRuntimeServiceStatus` and `fixedRuntimeServiceStart` project such a
+  Runtime as `state: "maintenance"`, `running: false`, with
+  `reasonCode: "runtime-stored-data-unsupported"`, never as running. The
+  Electron fixed lifecycle host carries it as `lastError`. The source lifecycle
+  host now reports the same status instead of failing.
+- On a maintenance Runtime, the Product Control record and selected-root reads
+  and the data-root replacement keep working through the existing carrier
+  paths. Any other call fails with host reason
+  `runtime-stored-data-unsupported`. A cached source control stays alive
+  through the typed-mode roundtrip, because the developer-mode check is not
+  served in maintenance.
+- `NimiDesktopControl` gains `runtime_service_mode()` and
+  `verify_runtime_serving()`. Both have defaults, so existing controls keep
+  their behavior. Rebuild the matching native package with this Runtime; an
+  older Runtime without the method is refused as untrusted.
+
+## Tauri standard shell coverage (next minor, development)
+
+- On a Tauri Host, a standard shell operation that the shared
+  `nimi-shell-tauri` crate does not carry now fails in the renderer bridge with
+  `capability-unavailable` (reason `tauri-standard-shell-operation-unsupported`,
+  source `tauri`) before any Tauri command runs, instead of Tauri's untyped
+  unknown-command error. This covers streamed text turns, Scenario execution
+  and Jobs, artifact reads, voice assets, Realm chat and realtime, Agent
+  introduction, references and work, Integrations, Agent Conversation, AI and
+  Agent realtime, video sessions, App media handles, Avatar host handoff,
+  Resource Pack import, generic Runtime config, AI profile reads and direct
+  Runtime artifact reads. App-owned and native Tauri commands pass through
+  unchanged.
+- The `artifacts.readRuntimeBytes` Tauri alias is removed: the crate no longer
+  registers `artifacts_read_runtime_bytes`, so the operation fails typed on
+  Tauri like the others.
+- A Kit test checks every Tauri alias against the crate's command registration.
+
+## App Host lifetime (next minor, development)
+
+- A Host that Nimi Desktop launched (it carries `NIMI_APP_HOST_PROFILE_DIR`),
+  installed or in development, now ends when that Desktop does: it quits on its
+  own and, if a quit handler holds on, exits after 2 s, the budget a Desktop
+  stop gives it. Before, only source-development Hosts watched their Desktop,
+  and a `before-quit` handler could keep an orphaned Host open indefinitely.
+
 ## Local-App media bytes (next minor, development)
 
 - Electron carries Local-App media bytes as exact `Uint8Array` views from the
@@ -23,6 +98,24 @@
   voice transcription) no longer pass through the Host's
   `runDataRootOperation`; they end work that was already admitted.
 
+## Focus, badge contrast and browser sign-in wait (next minor, development)
+
+- The focus ring token is opaque accent (`#1476D4`, at least 3:1 on every
+  surface), and light-theme soft status badge text uses darker tokens so
+  caption text reaches 4.5:1; `check:ui-contrast-matrix` now covers both.
+- `DesktopBrowserAuthGate` offers the visible action as its one button, shows
+  the waiting dots only while waiting, and while waiting can reopen the same
+  authorization URL or stop waiting locally (`reopenLabel`, `endWaitLabel`,
+  `waitEndedMessage`). Stopping never cancels the Runtime attempt; a callback
+  after it is never completed. `performDesktopBrowserAuth` accepts `signal`
+  and `onBrowserOpened` for this.
+
+## Transcript error recovery (next minor, development)
+
+- `CanonicalTranscriptView` accepts an optional `errorAction` rendered under
+  `error`, so a host can offer a retry and technical details where a history
+  read failed instead of the empty state.
+
 ## Shared Agent introduction (next minor, development)
 
 - Add `agents.getIntroduction({ agentHandle })` under `agent.local` for every
@@ -41,8 +134,9 @@
   a recoverable configuration error and does not invalidate its protected session.
   Rebuild the matching native package when taking this correction.
 
-- The complete protected shell adds `agentWork` and `integration`; custom shell
-  implementations must carry their exact typed methods. Retired Conversation
+- The complete protected shell (the Electron Host and native carrier) adds
+  `agentWork` and `integration`; custom shell implementations must carry their
+  exact typed methods. The Tauri crate does not carry them. Retired Conversation
   work fields and tool-result commands are removed, with no compatibility path.
   Upgrade SDK 0.19, Runtime and native npm 0.16 / Rust 0.8 together.
 - Integration call carriers preserve `targetDisplayName` and `accountLabel`
@@ -277,6 +371,12 @@
   account change) reaches `onSessionInvalidated` before renewal installs a fresh
   session.
 
+## 0.11.0
+
+Published as Kit and its native packages 0.11.0 with SDK 0.15.0. Kit 0.10.0 and
+0.10.1 were development numbers that never reached npm; every note from here
+through "0.10.0" shipped in the 0.11.0 package.
+
 - CanonicalComposer accepts optional `sendLabel` and `copy` props and forwards
   them to the inner ChatComposer, so hosts can localize the send button's
   accessible label and composer copy through the canonical surface. Compatible
@@ -313,8 +413,6 @@
 - Electron OAuth callback completion no longer waits for unrelated active HTTP
   connections to close. POST bodies are limited to 16 KiB and 10 seconds;
   responses have a bounded one-second flush window before socket cleanup.
-
-## 0.11.0 (development)
 
 - Read the current Local resource through formal options when switching from
   Cloud. The picker and draft show that Local resource; saving still commits

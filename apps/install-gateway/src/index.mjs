@@ -1,8 +1,7 @@
 import {
-  buildRuntimeManifest,
   cacheMaxAgeSeconds,
   fetchRepositoryReleases,
-  selectLatestRelease,
+  resolveLatestRuntimeManifest,
 } from './release-feed.mjs';
 
 function jsonResponse(payload, maxAgeSeconds) {
@@ -23,6 +22,18 @@ function textResponse(body, maxAgeSeconds) {
   });
 }
 
+// No qualifying Runtime release is an honest unavailable result, distinct
+// from failing to read the admitted GitHub source.
+function errorStatus(message) {
+  if (message === 'RUNTIME_RELEASE_NOT_FOUND') {
+    return 404;
+  }
+  if (/^(?:GITHUB_RELEASE_FETCH_|RUNTIME_CHECKSUM_FETCH_)/u.test(message)) {
+    return 502;
+  }
+  return 500;
+}
+
 function errorResponse(message, status = 500) {
   return new Response(JSON.stringify({ error: message }), {
     status,
@@ -41,15 +52,6 @@ async function fetchInstallScriptAsset(request, env, maxAgeSeconds) {
   return textResponse(await assetResponse.text(), maxAgeSeconds);
 }
 
-async function resolveLatestRuntimeRelease(env, fetchImpl) {
-  const releases = await fetchRepositoryReleases(env, fetchImpl);
-  const release = selectLatestRelease(releases);
-  if (!release) {
-    throw new Error('RUNTIME_RELEASE_NOT_FOUND');
-  }
-  return release;
-}
-
 async function buildRouteResponse(request, env, fetchImpl) {
   const maxAgeSeconds = cacheMaxAgeSeconds(env);
   const url = new URL(request.url);
@@ -66,8 +68,8 @@ async function buildRouteResponse(request, env, fetchImpl) {
   }
 
   if (url.pathname === '/runtime/latest.json') {
-    const release = await resolveLatestRuntimeRelease(env, fetchImpl);
-    return jsonResponse(await buildRuntimeManifest(release, fetchImpl), maxAgeSeconds);
+    const releases = await fetchRepositoryReleases(env, fetchImpl);
+    return jsonResponse(await resolveLatestRuntimeManifest(releases, fetchImpl), maxAgeSeconds);
   }
 
   return errorResponse('NOT_FOUND', 404);
@@ -90,7 +92,8 @@ export async function handleInstallGatewayRequest(request, env, ctx, options = {
     }
     return response;
   } catch (error) {
-    return errorResponse(error instanceof Error ? error.message : 'UNKNOWN_ERROR');
+    const message = error instanceof Error ? error.message : 'UNKNOWN_ERROR';
+    return errorResponse(message, errorStatus(message));
   }
 }
 

@@ -40,18 +40,19 @@ and forwards cancellation. Preserve opaque `reasoning-continuity` bytes and
 order without decoding or displaying them. Only complete successful output
 can be treated as a finished result; partial JSON is not a validated object.
 
-SDK 0.14.0's Local App binding supports function tools, tool choice,
-structured `responseFormat` and user image parts with Kit/native 0.10.0 and a
-matching Runtime. HTTP(S) image file parts and owned image `artifact-ref` parts
-preserve their order with text. Upload local image bytes through
-`client.ai.artifacts.upload`; do not put file paths or data URLs in model
-requests. SDK 0.12.0 / Kit 0.8.0 retain their text-only binding. Other media
-methods have separate contracts, and each selected execution configuration
-must support the requested modality and controls.
+The Local App binding supports function tools, tool choice and structured
+`responseFormat` since SDK 0.12.0 / Kit 0.8.0, and user image parts since SDK
+0.13.0 / Kit/native 0.9.0, each with a matching Runtime. HTTP(S) image file
+parts and owned image `artifact-ref` parts preserve their order with text.
+Upload local image bytes through `client.ai.artifacts.upload`; do not put file
+paths or data URLs in model requests. SDK 0.12.0 / Kit 0.8.0 retain their
+text-only binding. Other media methods have separate contracts, and each
+selected execution configuration must support the requested modality and
+controls.
 
 ## Local App speech support boundaries
 
-SDK 0.14.0 with Kit/native 0.10.0 and the matching Runtime carries a typed
+Since SDK 0.15.0 with Kit/native 0.11.0, the matching Runtime carries a typed
 `job.transcription` on completed `speech-transcribe` jobs. It contains `status`
 (`transcribed` or `no-speech`), original `text`, model-reported `language` and
 ordered `words` with `text`, `startSeconds` and `endSeconds`. Plain transcription
@@ -415,11 +416,12 @@ The installed package's `exports` and `.d.ts` files define the exact callable
 surface. Framework adapters are separate packages; do not infer that an
 adapter is publicly available from a source-workspace directory.
 
-For Vercel AI SDK 6 Apps, `@nimiplatform/sdk-adapter-vercel-ai` 0.2.0 provides
+For Vercel AI SDK 6 Apps, `@nimiplatform/sdk-adapter-vercel-ai` provides
 `createNimiLocalAppVercelLanguageModel({ ai: client.ai })` for `streamText` and
 the existing UI/tool-loop protocol. Read its package README before mapping
 images or conversation history; preserve text/tool provider metadata for opaque
-continuity. It uses SDK 0.14.0 and the matched Kit/native carrier above.
+continuity. Adapter 0.3.0 pairs with SDK 0.19.0 and Kit/native 0.16.0; the
+earlier adapter 0.1.0 declares SDK `^0.13.0` and does not accept a later SDK minor.
 
 Source and issue reporting: [nimiplatform/nimi](https://github.com/nimiplatform/nimi).
 Include the selected SDK, Kit, App Tools and Runtime versions, the actual App
