@@ -240,7 +240,11 @@ export function App() {
       </a>
 
       <header className={scrolled ? 'landing-header landing-header--scrolled' : 'landing-header'}>
-        <div className="landing-header-inner">
+        <div
+          className={scrolled
+            ? 'landing-header-inner nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] backdrop-saturate-[var(--nimi-backdrop-saturate)]'
+            : 'landing-header-inner'}
+        >
           <div className="landing-header-bar relative flex items-center justify-start py-3.5">
             <a
               href="#top"

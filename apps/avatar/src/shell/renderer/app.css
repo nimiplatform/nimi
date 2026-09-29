@@ -61,14 +61,15 @@ button {
   gap: var(--nimi-space-1);
   max-width: calc(100% - (var(--nimi-space-3) * 2));
   padding: var(--nimi-space-1) var(--nimi-space-2);
-  border: 1px solid color-mix(in srgb, var(--nimi-border-subtle) 72%, transparent);
+  /* Fill, border color, blur and saturation come from the Kit glass-thick
+   * material classes on the element; only the border geometry lives here. */
+  border-width: 1px;
+  border-style: solid;
   border-radius: var(--nimi-radius-full);
-  background: color-mix(in srgb, var(--nimi-surface-overlay) 76%, transparent);
   color: var(--nimi-text-secondary);
   font-size: var(--nimi-type-caption-size);
   line-height: var(--nimi-type-caption-line-height);
   pointer-events: none;
-  backdrop-filter: blur(var(--nimi-backdrop-blur-thin));
 }
 
 .avatar-runtime-status__indicator {

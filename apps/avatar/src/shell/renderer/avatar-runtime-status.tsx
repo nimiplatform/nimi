@@ -50,6 +50,8 @@ export function AvatarRuntimeStatusRegion(props: { status: AvatarRuntimeStatus }
     <output
       className={[
         'avatar-runtime-status',
+        // Floating status chip: Kit glass-thick material (P-DESIGN-022 floating role).
+        'nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] backdrop-saturate-[var(--nimi-backdrop-saturate)]',
         `avatar-runtime-status--${props.status}`,
         props.status === 'ready' ? VISUALLY_HIDDEN_CLASS_NAME : '',
       ].filter(Boolean).join(' ')}

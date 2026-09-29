@@ -33,6 +33,8 @@ jobs:
       desktop_native_changed: ${{ steps.detect.outputs.desktop_native_changed }}
       kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
       macos_platform_changed: ${{ steps.detect.outputs.macos_platform_changed }}
+      windows_runtime_changed: ${{ steps.detect.outputs.windows_runtime_changed }}
+      windows_app_tools_changed: ${{ steps.detect.outputs.windows_app_tools_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -125,6 +127,12 @@ jobs:
         run: pnpm check:runtime-broker-operation-policy
       - name: gate.realm.no-app-rest-bypass
         run: pnpm check:no-app-realm-rest-bypass
+      - name: gate.app.identity-surfaces
+        run: pnpm check:app-identity-surfaces
+      - name: gate.product.no-desktop-as-user-facing-name
+        run: pnpm check:no-desktop-as-user-facing-name
+      - name: gate.ui.glass-boundary
+        run: pnpm check:ui-glass-boundary
       - name: Install Linux dependencies for Rust bridge generation
         if: needs.changes.outputs.kit_changed == 'true'
         run: |
@@ -203,6 +211,62 @@ jobs:
 
       - name: Test Kit native crates on the supported Windows host
         run: pnpm test:kit:native
+
+  windows-runtime-tests:
+    needs: changes
+    if: needs.changes.outputs.windows_runtime_changed == 'true' || needs.changes.outputs.windows_app_tools_changed == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        if: needs.changes.outputs.windows_app_tools_changed == 'true'
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+
+      - name: Setup Go
+        if: needs.changes.outputs.windows_runtime_changed == 'true'
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache-dependency-path: |
+            runtime/go.sum
+            nimi-cognition/go.sum
+
+      - name: Build and vet Runtime for Windows
+        if: needs.changes.outputs.windows_runtime_changed == 'true'
+        working-directory: runtime
+        run: |
+          go build ./...
+          go vet ./...
+
+      - name: Test Windows-specific Runtime owners
+        if: needs.changes.outputs.windows_runtime_changed == 'true'
+        working-directory: runtime
+        run: |
+          go test -count=1 -timeout=15m ./cmd/nimi ./internal/appstorage ./internal/daemon ./internal/daemonctl ./internal/engine ./internal/entrypoint ./internal/nimiappinstall ./internal/nimiappnative ./internal/nimiapppackage ./internal/protectedlocal ./internal/services/localservice ./tools/repair-local-agent-chat
+          go test -count=1 -timeout=10m ./internal/grpcserver -run 'Test(ResolveWindowsProfileImagePath|ProtectedProductControlRootReadsCurrentWindowsProfileMapping)'
+          go test -count=1 -timeout=10m ./internal/services/ai -run 'TestScenarioJob(PersistenceRecoversFromTransientWindowsReader|PersistenceFailsClosedForPersistentWindowsReader|AppendFailsClosedForReaderDenyingWrites|ReplacementPreservesOtherFileErrors)'
+
+      - name: Test Windows Runtime installer and acceptance scripts
+        if: needs.changes.outputs.windows_runtime_changed == 'true'
+        run: node --test scripts/windows-runtime-service-installer-contract.test.mjs scripts/accept-runtime-fixed-service.test.mjs
+
+      - name: Install dependencies for App Tools
+        if: needs.changes.outputs.windows_app_tools_changed == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Test App Tools on Windows
+        if: needs.changes.outputs.windows_app_tools_changed == 'true'
+        run: pnpm --filter @nimiplatform/app-tools test
 
   macos-platform-tests:
     needs: changes
@@ -361,6 +425,12 @@ jobs:
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
 
+      - name: gate.runtime.import-boundary
+        run: pnpm check:runtime-import-boundary
+
+      - name: gate.runtime.catalog-drift
+        run: pnpm check:runtime-catalog-drift
+
       - name: Runtime tests
         run: pnpm test:runtime:go && pnpm test:runtime:python
 
@@ -466,6 +536,7 @@ jobs:
       - core-static
       - workspace-regression
       - kit-native-tests
+      - windows-runtime-tests
       - macos-platform-tests
       - sdk-quality
       - runtime-quality

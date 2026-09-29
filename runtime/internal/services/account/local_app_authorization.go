@@ -159,9 +159,21 @@ type LocalAgentOwnershipResolver interface {
 	ListOwnedActiveLocalAgents(context.Context, string) ([]LocalAgentOwnerProjection, error)
 }
 
+// LocalAppSessionID identifies the exact protected App session of a decision.
+type LocalAppSessionID = protectedlocal.Identifier
+
+// VerifiedDesktopTransport reports whether ctx carries the connection attached
+// by the natively verified protected Desktop transport. Owners that restrict an
+// operation to the built-in Desktop receive this check by injection and combine
+// it with their admitted decision instead of importing the transport.
+func VerifiedDesktopTransport(ctx context.Context) bool {
+	connection, ok := protectedlocal.DesktopConnectionFromContext(ctx)
+	return ok && connection != nil && connection.VerifiedDesktopTransport()
+}
+
 type LocalAppCallerDecision struct {
 	LocalOSUserAnchor     string
-	SessionID             protectedlocal.Identifier
+	SessionID             LocalAppSessionID
 	AppID                 string
 	HostExecutableDigest  protectedlocal.Identifier
 	AccountID             string

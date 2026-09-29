@@ -365,6 +365,65 @@ func TestLocalAppWorkAndChatShareBusyWithoutContentOrCancellation(t *testing.T) 
 	}
 }
 
+// The shared retained-execution bound rejects before acceptance with a capacity
+// result, never owner loss; retained results stay readable and expiry lets any
+// App start again.
+func TestLocalAppWorkSharedCapacityIsTypedAndReleasedByExpiry(t *testing.T) {
+	f := newAppWorkFixture(t)
+	svc := f.svc
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+		return emitWorkText(emit, "Saved the brief.", runtimev1.FinishReason_FINISH_REASON_STOP)
+	}})
+	completed := func(x *runtimev1.LocalAppAgentWorkExecution) bool {
+		return x.State == runtimev1.LocalAppAgentWorkState_LOCAL_APP_AGENT_WORK_STATE_SUCCEEDED
+	}
+	first := ""
+	for i := 0; i < localAppWorkMaxRetained; i++ {
+		id := f.start(t)
+		f.wait(t, id, completed)
+		if first == "" {
+			first = id
+		}
+	}
+	other := f
+	other.decision.RegisteredAppSubject = "other-app"
+	other.handle = mintLocalAppAgentHandle(other.decision, testRuntimeAgentLocalRef("agent-alpha"))
+	otherRequest := other.request()
+	otherRequest.AgentHandle = other.handle
+	for _, caller := range []struct {
+		fixture appWorkFixture
+		request *runtimev1.StartLocalAppAgentWorkRequest
+	}{{f, f.request()}, {other, otherRequest}} {
+		_, err := svc.StartLocalAppAgentWork(caller.fixture.ctx(localappop.OperationAgentWorkStart), caller.request)
+		if status.Code(err) != codes.ResourceExhausted {
+			t.Fatalf("full shared capacity was not a capacity rejection: %v", err)
+		}
+		if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE {
+			t.Fatalf("capacity rejection claimed owner loss: %v", err)
+		}
+	}
+	statusOut, err := svc.GetLocalAppAgentWorkStatus(other.ctx(localappop.OperationAgentWorkStatusGet), &runtimev1.GetLocalAppAgentWorkStatusRequest{AgentHandle: other.handle})
+	if err != nil || statusOut.Busy {
+		t.Fatalf("capacity rejection changed Agent availability: %v %v", statusOut, err)
+	}
+	if retained := f.wait(t, first, completed); retained.OutputText != "Saved the brief." {
+		t.Fatalf("retained result lost at capacity: %v", retained)
+	}
+	svc.chatSurfaceMu.Lock()
+	for _, work := range svc.localAppWorkExecutions {
+		work.terminalAt = work.terminalAt.Add(-localAppWorkResultRetention - time.Second)
+	}
+	svc.chatSurfaceMu.Unlock()
+	started, err := svc.StartLocalAppAgentWork(other.ctx(localappop.OperationAgentWorkStart), otherRequest)
+	if err != nil {
+		t.Fatalf("expired results did not release shared capacity: %v", err)
+	}
+	other.wait(t, started.ExecutionId, completed)
+	if _, err := svc.GetLocalAppAgentWork(f.ctx(localappop.OperationAgentWorkGet), &runtimev1.GetLocalAppAgentWorkRequest{AgentHandle: f.handle, ExecutionId: first}); err == nil {
+		t.Fatal("expired result remained after release")
+	}
+}
+
 func TestLocalAppWorkRequiresCompleteValidatedFinalAndToolBatch(t *testing.T) {
 	for _, mode := range []string{"length", "open_item", "missing_completed", "failed", "invalid_second_tool", "late_event", "unknown_event"} {
 		t.Run(mode, func(t *testing.T) {

@@ -68,6 +68,16 @@ func testContext(d accountservice.LocalAppCallerDecision, op localappop.Operatio
 	d.Operation, d.OperationCapability = op, string(c.Domain)
 	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), d)
 }
+
+// verifiedDesktopTestKey stands in for the verified protected Desktop
+// transport that production injects from the account caller owner.
+type verifiedDesktopTestKey struct{}
+
+func testDesktopTransport(ctx context.Context) bool {
+	verified, _ := ctx.Value(verifiedDesktopTestKey{}).(bool)
+	return verified
+}
+
 func newIntegrationTestService(t *testing.T, transport http.RoundTripper) *Service {
 	t.Helper()
 	backend, err := runtimepersistence.Open(nil, filepath.Join(t.TempDir(), "state.json"))
@@ -75,7 +85,7 @@ func newIntegrationTestService(t *testing.T, transport http.RoundTripper) *Servi
 		t.Fatal(err)
 	}
 	client := &http.Client{Transport: transport, Timeout: 3 * time.Second}
-	s, err := New(Options{Backend: backend, Secrets: &testSecrets{values: map[string]string{}}, HTTPClient: client, Revalidator: testRevalidator(func(ctx context.Context, i localappop.Ingress) (context.Context, error) {
+	s, err := New(Options{Backend: backend, Secrets: &testSecrets{values: map[string]string{}}, HTTPClient: client, DesktopTransport: testDesktopTransport, Revalidator: testRevalidator(func(ctx context.Context, i localappop.Ingress) (context.Context, error) {
 		d, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 		if !ok || ctx.Err() != nil || closed(d.SessionInvalidated) {
 			return nil, failure(codes.PermissionDenied, "INTEGRATION_SCOPE_ENDED")
@@ -337,6 +347,65 @@ func TestIntegrationProviderStopFailsClosedAndRejectsLateCompletion(t *testing.T
 	result, err := s.CompleteIntegrationProvider(testContext(provider, localappop.OperationIntegrationProviderComplete), &runtimev1.CompleteIntegrationProviderRequest{CallId: id, ResultJson: `{"late":true}`})
 	if err != nil || result.Accepted {
 		t.Fatalf("late provider result accepted: %v %v", result, err)
+	}
+}
+
+// The provider can take an accepted call before its invocation worker performs
+// the first scope check. Pin that interleaving: a delivered write whose provider
+// stops keeps its uncertainty, while an undelivered write is canceled.
+func TestIntegrationProviderStopBeforeWorkerAdmissionKeepsDeliveredWriteUnconfirmed(t *testing.T) {
+	for _, delivered := range []bool{true, false} {
+		t.Run(fmt.Sprintf("delivered=%v", delivered), func(t *testing.T) {
+			entered, release := make(chan struct{}), make(chan struct{})
+			var held atomic.Bool
+			s := newIntegrationTestService(t, nil)
+			previous := s.revalidator
+			// Hold only the worker's first scope check; the provider poll checks
+			// the same ingress under s.mu and must pass through.
+			s.revalidator = testRevalidator(func(ctx context.Context, i localappop.Ingress) (context.Context, error) {
+				if i == localappop.IngressIntegrationCallInvoke && held.CompareAndSwap(false, true) {
+					close(entered)
+					<-release
+				}
+				return previous.AuthorizeLocalAppIngress(ctx, i)
+			})
+			provider, consumer := testDecision("provider", 1), testDecision("consumer", 2)
+			target := registerTestProvider(t, s, provider, "write")
+			grantTestTarget(t, s, consumer, target, "document.read")
+			id := invokeTestCall(t, s, consumer, target, "document.read", `{}`)
+			select {
+			case <-entered:
+			case <-time.After(time.Second):
+				close(release)
+				t.Fatal("invocation worker did not reach its first scope check")
+			}
+			if delivered {
+				if polled := pollTestProvider(t, s, provider); len(polled.Calls) != 1 || polled.Calls[0].CallId != id {
+					close(release)
+					t.Fatalf("provider did not take the call before the worker check: %v", polled)
+				}
+			}
+			if _, err := s.UnregisterIntegrationProvider(testContext(provider, localappop.OperationIntegrationProviderUnregister), &runtimev1.UnregisterIntegrationProviderRequest{TargetRef: target}); err != nil {
+				close(release)
+				t.Fatal(err)
+			}
+			close(release)
+			result := waitTestCall(t, s, consumer, id)
+			want := "canceled"
+			if delivered {
+				want = "unconfirmed"
+			}
+			if result.Status != want {
+				t.Fatalf("provider stop recorded %q, want %q: %v", result.Status, want, result)
+			}
+			notice, err := s.PollIntegrationProvider(testContext(provider, localappop.OperationIntegrationProviderPoll), &runtimev1.PollIntegrationProviderRequest{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(notice.Calls) != 0 || (len(notice.CanceledCallIds) == 1) != delivered {
+				t.Fatalf("stopped call delivery or cancel notice mismatch: %v", notice)
+			}
+		})
 	}
 }
 

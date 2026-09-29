@@ -86,14 +86,14 @@ test('authority and shared command changes retain complete checks, workflow-only
   assert.equal(selectCiScope(['scripts/lib/ci-scope.mjs']).scripts_changed, true);
   assert.equal(selectCiScope(['.github/workflows/security.yml']).core_changed, true);
   const full = selectCiScope([], { full: true });
-  for (const flag of Object.values(CI_LANES)) assert.equal(full[flag], true, flag);
+  for (const flag of Object.values(CI_LANES).flat()) assert.equal(full[flag], true, flag);
 });
 
 function successfulResults(files) {
   const scope = selectCiScope(files);
   return {
     changes: { result: 'success', outputs: Object.fromEntries(Object.entries(scope).map(([key, value]) => [key, JSON.stringify(value)])) },
-    ...Object.fromEntries(Object.entries(CI_LANES).map(([lane, flag]) => [lane, { result: scope[flag] ? 'success' : 'skipped' }])),
+    ...Object.fromEntries(Object.entries(CI_LANES).map(([lane, flags]) => [lane, { result: [flags].flat().some((flag) => scope[flag]) ? 'success' : 'skipped' }])),
   };
 }
 
@@ -116,4 +116,30 @@ test('known check-only and methodology changes do not rebuild product workspaces
   }
   assert(selectCiScope(['scripts/lib/unknown-build-helper.mjs']).workspace_filters.includes('*'));
   assert(selectCiScope(['.nimi/spec/nimiday/assistant.authority.yaml']).workspace_filters.includes('*'));
+});
+
+test('Windows Runtime and App Tools changes select the native Windows lane', () => {
+  for (const file of [
+    'runtime/internal/protectedlocal/windows_pipe.go',
+    'runtime/tools/repair-local-agent-chat/repair.go',
+    'scripts/install-windows-runtime-service.ps1',
+    'scripts/accept-runtime-fixed-service.mjs',
+    'scripts/lib/windows-powershell.mjs',
+  ]) {
+    const scope = selectCiScope([file]);
+    assert.equal(scope.windows_runtime_changed, true, file);
+    assert.equal(scope.windows_app_tools_changed, false, file);
+  }
+  const appTools = selectCiScope(['app-tools/lib/app-scaffold.mjs']);
+  assert.equal(appTools.windows_app_tools_changed, true);
+  assert.equal(appTools.windows_runtime_changed, false);
+  for (const file of ['apps/web/src/view.tsx', 'kit/features/chat/src/types.ts', 'docs/index.md']) {
+    const scope = selectCiScope([file]);
+    assert.equal(scope.windows_runtime_changed || scope.windows_app_tools_changed, false, file);
+  }
+  const needs = successfulResults(['scripts/install-windows-runtime-service.ps1']);
+  assert.doesNotThrow(() => assertCiResults(needs));
+  assert.throws(() => assertCiResults({ ...needs, 'windows-runtime-tests': { result: 'skipped' } }), /windows-runtime-tests/u);
+  const unselected = successfulResults(['apps/web/src/view.tsx']);
+  assert.throws(() => assertCiResults({ ...unselected, 'windows-runtime-tests': { result: 'success' } }), /windows-runtime-tests/u);
 });

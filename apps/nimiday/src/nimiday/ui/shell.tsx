@@ -65,7 +65,10 @@ export function Shell() {
 
   return (
     <div className="nd-shell" data-testid="nd-shell">
-      <aside className="nd-sidebar" aria-label={copy.nav.label}>
+      <aside
+        className="nd-sidebar nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
+        aria-label={copy.nav.label}
+      >
         <div className="nd-brand">
           <span className="nd-brand-mark"><CalendarHeart size={16} aria-hidden="true" /></span>
           <span className="nd-brand-name">{copy.app.name}</span>

@@ -385,7 +385,7 @@ function WorldCharacterVoicePlayButton({
 // The overview section owns the character summary, the works collection, and
 // the look-and-voice presence as one integrated part. Works sit under the
 // summary in the text column so the space beside the portrait stays filled.
-// With a portrait, the opening line sits on a dark frosted scrim inside the
+// With a portrait, the opening line sits on a dark gradient scrim inside the
 // portrait's lower edge and the voice sample is a round play button floating on
 // the portrait's top-right corner; without a portrait, the voice presence falls
 // back to an inline row inside the text column.
@@ -457,14 +457,14 @@ function WorldCharacterOverviewSection({
                   className="h-full w-full object-contain"
                 />
                 {hasOpeningLine ? (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-3.5 pb-3 pt-9 backdrop-blur-[2px]">
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-3.5 pb-3 pt-9">
                     <WorldCharacterOpeningLine source={source} onImage />
                   </div>
                 ) : null}
                 {voiceSample ? (
                   <WorldCharacterVoicePlayButton
                     src={voiceSample.url}
-                    className="absolute right-3 top-3 border border-white/35 bg-black/45 text-white shadow-[var(--nimi-elevation-raised)] backdrop-blur-md hover:bg-black/60"
+                    className="absolute right-3 top-3 border border-white/35 bg-black/55 text-white shadow-[var(--nimi-elevation-raised)] hover:bg-black/70"
                   />
                 ) : null}
               </div>

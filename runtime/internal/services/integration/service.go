@@ -19,7 +19,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/oklog/ulid/v2"
@@ -57,6 +56,9 @@ type Options struct {
 	Revalidator   Revalidator
 	Registrations Registrations
 	HTTPClient    *http.Client
+	// DesktopTransport reports the verified protected Desktop transport. When
+	// absent, Desktop-only management fails closed.
+	DesktopTransport func(context.Context) bool
 }
 type target struct {
 	Account       string                       `json:"account"`
@@ -75,7 +77,7 @@ type invocation struct {
 	credential      string
 	expiry          *time.Timer
 	fact            *runtimev1.IntegrationCall
-	providerSession protectedlocal.Identifier
+	providerSession accountservice.LocalAppSessionID
 	delivered       bool
 	cancelNotified  bool
 	cancelRequested bool
@@ -95,6 +97,7 @@ type Service struct {
 	secrets       connector.SecretStore
 	revalidator   Revalidator
 	registrations Registrations
+	desktop       func(context.Context) bool
 	http          *http.Client
 	ctx           context.Context
 	cancel        context.CancelFunc
@@ -119,7 +122,7 @@ func New(o Options) (*Service, error) {
 		client = &http.Client{Timeout: 90 * time.Second}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &Service{backend: o.Backend, secrets: o.Secrets, revalidator: o.Revalidator, registrations: o.Registrations, http: client, ctx: ctx, cancel: cancel, providers: map[string]*provider{}, calls: map[string]*invocation{}, receivers: map[string]*telegramReceiver{}, closeDone: make(chan struct{})}
+	s := &Service{backend: o.Backend, secrets: o.Secrets, revalidator: o.Revalidator, registrations: o.Registrations, desktop: o.DesktopTransport, http: client, ctx: ctx, cancel: cancel, providers: map[string]*provider{}, calls: map[string]*invocation{}, receivers: map[string]*telegramReceiver{}, closeDone: make(chan struct{})}
 	// A new Runtime does not resume any previously accepted operation.
 	if _, err := s.backend.DB().ExecContext(ctx, `UPDATE runtime_integration_call SET status='unconfirmed', error_code='EXECUTOR_RESTARTED' WHERE status='accepted'`); err != nil {
 		cancel()
@@ -162,7 +165,7 @@ func sameScope(a, b accountservice.LocalAppCallerDecision) bool {
 func (s *Service) decision(ctx context.Context, op localappop.Operation) (accountservice.LocalAppCallerDecision, error) {
 	d, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	classification, err := localappop.ClassifyOperation(op)
-	if !ok || err != nil || d.Operation != op || d.AuthorityClass != localappop.AuthorityClassAppAccess || d.OperationCapability != string(classification.Domain) || d.AccountID == "" || d.RegisteredAppSubject == "" || d.SessionID == (protectedlocal.Identifier{}) || !time.Now().Before(d.ExpiresAt) || closed(d.SessionInvalidated) || s.ctx.Err() != nil || s.quiesced.Load() {
+	if !ok || err != nil || d.Operation != op || d.AuthorityClass != localappop.AuthorityClassAppAccess || d.OperationCapability != string(classification.Domain) || d.AccountID == "" || d.RegisteredAppSubject == "" || d.SessionID == (accountservice.LocalAppSessionID{}) || !time.Now().Before(d.ExpiresAt) || closed(d.SessionInvalidated) || s.ctx.Err() != nil || s.quiesced.Load() {
 		return d, failure(codes.PermissionDenied, "INTEGRATION_ACCESS_DENIED")
 	}
 	return d, nil
@@ -172,8 +175,7 @@ func (s *Service) management(ctx context.Context, op localappop.Operation) (acco
 	if err != nil {
 		return d, err
 	}
-	connection, ok := protectedlocal.DesktopConnectionFromContext(ctx)
-	if !ok || !connection.VerifiedDesktopTransport() || d.TrustClass != accountservice.LocalAppTrustClassBuiltIn || d.AppID != "nimi.desktop" {
+	if s.desktop == nil || !s.desktop(ctx) || d.TrustClass != accountservice.LocalAppTrustClassBuiltIn || d.AppID != "nimi.desktop" {
 		return d, failure(codes.PermissionDenied, "INTEGRATION_MANAGEMENT_DENIED")
 	}
 	return d, nil
@@ -310,7 +312,7 @@ func (s *Service) InvokeIntegrationCall(ctx context.Context, req *runtimev1.Invo
 	if err != nil {
 		return nil, err
 	}
-	providerSession := protectedlocal.Identifier{}
+	providerSession := accountservice.LocalAppSessionID{}
 	if t.Public.Kind == "app" {
 		p := s.providers[t.Public.TargetRef]
 		if p == nil || !s.scopeLive(p.ctx, p.decision, localappop.IngressIntegrationProviderPoll) {
@@ -369,7 +371,8 @@ func (s *Service) run(c *invocation) {
 		}
 	}()
 	if !s.scopeLive(c.ctx, c.decision, localappop.IngressIntegrationCallInvoke) || !s.permitted(c.ctx, c.decision.AccountID, c.decision.RegisteredAppSubject, c.target.Public.TargetRef, c.op.Name) {
-		s.finish(c, "canceled", "", "INTEGRATION_SCOPE_ENDED")
+		// A provider may already have taken the call before this worker ran.
+		s.interrupt(c, "INTEGRATION_SCOPE_ENDED")
 		return
 	}
 	if c.target.Public.Kind == "app" {
@@ -377,15 +380,7 @@ func (s *Service) run(c *invocation) {
 		case <-c.done:
 			return
 		case <-c.ctx.Done():
-			s.mu.Lock()
-			c.cancelRequested = true
-			delivered := c.delivered
-			s.mu.Unlock()
-			state := "canceled"
-			if delivered && c.op.Effect == "write" {
-				state = "unconfirmed"
-			}
-			s.finish(c, state, "", "INTEGRATION_PROVIDER_INTERRUPTED")
+			s.interrupt(c, "INTEGRATION_PROVIDER_INTERRUPTED")
 			return
 		}
 	}
@@ -437,6 +432,22 @@ func (s *Service) finishLocked(c *invocation, state, result, reason string) bool
 	close(c.done)
 	s.scheduleCallExpiryLocked(c)
 	return accepted
+}
+
+// interrupt records the end of an invocation whose scope ended before its
+// owner reported a result. Delivery, cancellation and completion share s.mu:
+// a write already delivered to its provider may have taken effect and stays
+// unconfirmed, only an undelivered call or a read is canceled, and a recorded
+// terminal result is never replaced.
+func (s *Service) interrupt(c *invocation, reason string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.cancelInvocationLocked(c)
+	state := "canceled"
+	if c.delivered && c.op.Effect == "write" {
+		state = "unconfirmed"
+	}
+	s.finishLocked(c, state, "", reason)
 }
 
 func (s *Service) cancelInvocation(c *invocation) {

@@ -333,18 +333,26 @@ body {
 }
 
 /* The inner wrapper always carries the content width, so the scrolled "pill"
- * chrome can fade in around an unchanged layout. */
+ * chrome can fade in around an unchanged layout. The border keeps its width in
+ * both states; its color is transparent at rest and comes from the Kit
+ * material while scrolled. */
 .landing-header-inner {
   margin-inline: auto;
   width: min(var(--container-hero-max), calc(100% - var(--container-hero-gutter)));
-  border: 1px solid transparent;
+  border-width: 1px;
+  border-style: solid;
   border-radius: 2rem;
 }
 
+.landing-header:not(.landing-header--scrolled) .landing-header-inner {
+  border-color: transparent;
+}
+
 /* Scrolled (floating pill): the full-width header chrome fades out and the
- * inner bar floats as a rounded, frosted-glass pill. The float offset uses
- * transform so the sticky box height never changes and the toggle cannot feed
- * back into scroll position. */
+ * inner bar floats as a rounded pill on the Kit glass-thick material (fill,
+ * border color, blur and saturation are the Kit classes App.tsx adds while
+ * scrolled). The float offset uses transform so the sticky box height never
+ * changes and the toggle cannot feed back into scroll position. */
 .landing-header--scrolled {
   background: transparent;
   border-bottom-color: transparent;
@@ -354,10 +362,6 @@ body {
 .landing-header--scrolled .landing-header-inner {
   transform: translateY(0.75rem);
   padding-inline: 0.75rem;
-  background: rgba(255, 255, 255, 0.72);
-  -webkit-backdrop-filter: blur(16px) saturate(1.6);
-  backdrop-filter: blur(16px) saturate(1.6);
-  border-color: rgba(15, 23, 42, 0.08);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), 0 2px 8px rgba(15, 23, 42, 0.05);
   pointer-events: auto;
 }

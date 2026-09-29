@@ -208,3 +208,12 @@ func TestProtectedDesktopAccountControlDoesNotDependOnGenericAppRegistry(t *test
 		t.Fatalf("unprotected Desktop account control must remain rejected: %+v", rejected)
 	}
 }
+
+func TestVerifiedDesktopTransportRequiresTheVerifiedConnection(t *testing.T) {
+	if VerifiedDesktopTransport(context.Background()) {
+		t.Fatal("plain context reported a verified Desktop transport")
+	}
+	if !VerifiedDesktopTransport(protectedDesktopAccountContext(t)) {
+		t.Fatal("verified protected Desktop connection was not recognized")
+	}
+}

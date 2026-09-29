@@ -796,7 +796,7 @@ function PageShell(props: {
       onDragStart={(event) => event.preventDefault()}
     >
       <a href="#release-main" className="skip-link">{copy.skipToContent}</a>
-      <header className="release-header">
+      <header className="release-header nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]">
         <div className="release-container release-header-inner">
           <Link to={withLocaleQuery('/', props.locale)} className="release-brand">
             <img src="/logo.svg" alt="" width="32" height="32" />

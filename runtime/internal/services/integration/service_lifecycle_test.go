@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -16,7 +15,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,38 +22,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type integrationDesktopVerifier struct {
-	peers protectedlocal.VerifiedDesktopPeers
-}
-
-func (v integrationDesktopVerifier) VerifyDesktopPeers(context.Context) (protectedlocal.VerifiedDesktopPeers, error) {
-	return v.peers, nil
-}
-
-type integrationDesktopLiveness struct{ revoked chan struct{} }
-
-func (l *integrationDesktopLiveness) Revoked() <-chan struct{} { return l.revoked }
-func (l *integrationDesktopLiveness) Close() error             { return nil }
 func desktopIntegrationContext(t *testing.T, op localappop.Operation) context.Context {
 	t.Helper()
-	ident := func(seed byte) protectedlocal.Identifier {
-		var id protectedlocal.Identifier
-		for i := range id {
-			id[i] = seed
-		}
-		return id
-	}
-	process := func(pid uint32, name string, seed byte) protectedlocal.ProcessTuple {
-		return protectedlocal.ProcessTuple{OS: protectedlocal.OSWindows, PID: pid, CreationMarker: name + "-start", OSLoginSession: "login", SecurityPrincipal: name, CanonicalExecutableIdentity: name, ExecutableDigest: ident(seed), ExecutableTrustSetID: name + "-trust"}
-	}
-	connection, err := protectedlocal.EstablishDesktopConnection(context.Background(), integrationDesktopVerifier{peers: protectedlocal.VerifiedDesktopPeers{Client: process(101, "desktop", 1), Server: process(202, "runtime", 2), ClientLiveness: &integrationDesktopLiveness{revoked: make(chan struct{})}, RuntimeBootEpoch: ident(3), EndpointInstanceID: ident(4), TranscriptNonce: ident(5)}}, bytes.NewReader(bytes.Repeat([]byte{6}, protectedlocal.IdentifierBytes)))
-	if err != nil {
-		t.Fatal(err)
-	}
 	d := testDecision("desktop", 7)
 	d.AppID = "nimi.desktop"
 	d.TrustClass = accountservice.LocalAppTrustClassBuiltIn
-	return protectedlocal.ContextWithDesktopConnection(testContext(d, op), connection)
+	return context.WithValue(testContext(d, op), verifiedDesktopTestKey{}, true)
 }
 
 type integrationTestRegistrations []Consumer
