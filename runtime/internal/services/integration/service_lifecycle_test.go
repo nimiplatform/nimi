@@ -313,7 +313,7 @@ func TestIntegrationValidatedProviderResultCannotWinAfterCancellation(t *testing
 	c := s.calls[id]
 	s.cancelInvocationLocked(c)
 	s.mu.Unlock()
-	if s.finishProvider(c, "completed", `{"late":true}`, "") {
+	if s.finishProvider(c, "completed", `{"late":true}`, "", nil) {
 		t.Fatal("validated but canceled provider result was accepted at commit")
 	}
 	if result := waitTestCall(t, s, d, id); result.Status != "canceled" || result.ResultJson != "" {

@@ -2,7 +2,8 @@ package ai
 
 import (
 	"context"
-	"encoding/json"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -342,10 +343,13 @@ func (s *Service) auditCloudTextCapture(effective *cloudTextEffectiveInputs, str
 	if s == nil || s.audit == nil || effective == nil {
 		return nil
 	}
-	request, err := protoMessageMap(effective.request)
+	// The durable audit plane records the exact request identity, never the
+	// prompt content itself, matching the other Cloud execution captures.
+	requestRaw, err := proto.MarshalOptions{Deterministic: true}.Marshal(effective.request)
 	if err != nil {
 		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{})
 	}
+	requestDigest := sha256.Sum256(requestRaw)
 	defaults := map[string]any{}
 	if effective.defaults != nil {
 		defaults = effective.defaults.AsMap()
@@ -363,7 +367,8 @@ func (s *Service) auditCloudTextCapture(effective *cloudTextEffectiveInputs, str
 		"provider_model_target": target,
 		"connector_id":          effective.connector.ConnectorID,
 		"defaults":              defaults,
-		"request":               request,
+		"request_sha256":        "sha256:" + hex.EncodeToString(requestDigest[:]),
+		"request_size_bytes":    len(requestRaw),
 		"stream":                stream,
 		"remote_execution_host": remoteexecution.ProviderHTTPTextHostID,
 		"remote_dispatch_state": "captured",
@@ -384,19 +389,4 @@ func (s *Service) auditCloudTextCapture(effective *cloudTextEffectiveInputs, str
 		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, fmt.Errorf("write cloud composition audit: %w", err), grpcerr.ReasonOptions{})
 	}
 	return nil
-}
-
-func protoMessageMap(message proto.Message) (map[string]any, error) {
-	if message == nil {
-		return map[string]any{}, nil
-	}
-	raw, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(message)
-	if err != nil {
-		return nil, err
-	}
-	var result map[string]any
-	if err := json.Unmarshal(raw, &result); err != nil {
-		return nil, err
-	}
-	return result, nil
 }

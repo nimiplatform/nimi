@@ -24,6 +24,7 @@ use crate::macos_peer_trust::{
     local_app_runtime_socket_path, runtime_socket_path, verify_runtime_peer_once,
 };
 use crate::macos_supervised_process::SupervisedDevelopmentProcess;
+use crate::RuntimeServiceMode;
 use crate::{
     BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
     BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
@@ -96,6 +97,7 @@ type SupervisedDevelopmentRegistry = Arc<Mutex<HashMap<[u8; 32], SupervisedDevel
 
 struct MacOSDesktopControl {
     channel: Channel,
+    service_mode: RuntimeServiceMode,
     development_processes: SupervisedDevelopmentRegistry,
     #[cfg(feature = "macos-source-local-development")]
     development_rebind_gate: Arc<AsyncMutex<()>>,
@@ -141,6 +143,24 @@ impl MacOSDesktopControl {
 }
 
 impl NimiDesktopControl for MacOSDesktopControl {
+    fn runtime_service_mode(&self) -> RuntimeServiceMode {
+        self.service_mode
+    }
+
+    fn verify_runtime_serving(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
+        Box::pin(async move {
+            if self.service_mode == RuntimeServiceMode::Ordinary {
+                return self.get_developer_mode_status().await.map(|_| ());
+            }
+            crate::runtime_service_mode::read_runtime_service_mode(self.channel.clone())
+                .await
+                .map(|_| ())
+                .map_err(NimiHostError::from)
+        })
+    }
+
     fn launch_installed_app(
         &self,
         selector: Vec<u8>,
@@ -676,11 +696,15 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
                 .map_err(|_| repair_required())?;
             }
             let channel = open_verified_runtime_channel().await?;
+            // The typed mode comes first: a maintenance Runtime serves no
+            // development rebind or readiness roundtrip.
+            let service_mode =
+                crate::runtime_service_mode::read_runtime_service_mode(channel.clone()).await?;
             let development_processes = development_process_registry();
             #[cfg(feature = "macos-source-local-development")]
             let development_rebind_gate = development_rebind_gate();
             #[cfg(feature = "macos-source-local-development")]
-            {
+            if service_mode == RuntimeServiceMode::Ordinary {
                 rebind_supervised_development_processes(
                     channel.clone(),
                     development_processes.clone(),
@@ -691,6 +715,7 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
             }
             Ok(Box::new(MacOSDesktopControl {
                 channel,
+                service_mode,
                 development_processes,
                 #[cfg(feature = "macos-source-local-development")]
                 development_rebind_gate,

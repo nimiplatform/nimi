@@ -36,6 +36,7 @@ type Daemon struct {
 	logger                  *slog.Logger
 	state                   *health.State
 	grpc                    *grpcserver.Server
+	maintenance             *grpcserver.MaintenanceServer
 	http                    *httpserver.Server
 	protected               bool
 	protectedStateClose     func() error
@@ -148,6 +149,13 @@ func NewProtectedWithResources(cfg config.Config, logger *slog.Logger, version s
 	var err error
 	d, err = NewProtected(cfg, logger, version, resources.Bindings)
 	if err != nil {
+		var maintenance *grpcserver.MaintenanceRequiredError
+		if errors.As(err, &maintenance) && maintenance.Maintenance != nil {
+			// The verified security state stays owned: the maintenance surface
+			// is served on the same Desktop transport until restart.
+			d = newMaintenanceDaemon(cfg, logger, maintenance.Maintenance, resources.Close)
+			return d, nil
+		}
 		if closeErr := resources.Close(); closeErr != nil {
 			return nil, errors.Join(err, fmt.Errorf("close protected Runtime security state after construction failure: %w", closeErr))
 		}
@@ -231,6 +239,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 			LocalAppLaunches:                 state.LocalAppLaunches(),
 			LocalDevelopmentVerifier:         localDevelopmentVerifier,
 			RuntimeRestartRequester:          requestRestart,
+			PeerRejections:                   state,
 		},
 		Close: state.Close,
 	})
@@ -375,6 +384,9 @@ func (d *Daemon) RunProtected(ctx context.Context, listener net.Listener) error 
 	if listener == nil {
 		return fmt.Errorf("%s: protected Runtime requires a verified native Desktop listener", protectedlocal.ReasonProtectedLocalTransportUnsupported)
 	}
+	if d.maintenance != nil {
+		return d.runMaintenance(ctx, listener, nil)
+	}
 	return d.run(ctx, 1, func(errCh chan<- error) {
 		go func() { errCh <- d.grpc.ServeVerifiedNativeDesktop(listener) }()
 	}, func() { _ = listener.Close() }, "verified-native-desktop")
@@ -390,6 +402,9 @@ func (d *Daemon) RunProtectedWithLocalApp(ctx context.Context, desktopListener, 
 	}
 	if !d.protected || desktopListener == nil || localAppListener == nil {
 		return fmt.Errorf("%s: protected Runtime requires verified Desktop and local-app listeners", protectedlocal.ReasonProtectedLocalTransportUnsupported)
+	}
+	if d.maintenance != nil {
+		return d.runMaintenance(ctx, desktopListener, localAppListener)
 	}
 	return d.run(ctx, 2, func(errCh chan<- error) {
 		go func() { errCh <- d.grpc.ServeVerifiedNativeDesktop(desktopListener) }()
@@ -540,8 +555,11 @@ func (d *Daemon) shutdown() error {
 	waitForShutdownDrain(ctx, d.cfg.ShutdownTimeout)
 	d.stopSupervisedEngines(ctx, "stopping supervised engines")
 	httpErr := d.http.Shutdown(ctx)
-	grpcResult := d.grpc.Stop(ctx)
-	appendShutdownAudit(d.auditStore, grpcResult.Shutdown)
+	// The lifecycle record is written before the server releases the Runtime
+	// persistence backend that holds the audit plane.
+	grpcResult := d.grpc.StopWithShutdownRecord(ctx, func(result grpcserver.StopResult) {
+		appendShutdownAudit(d.auditStore, result.Shutdown)
+	})
 	logShutdownSummary(d.logger, grpcResult.Shutdown)
 	protectedStateErr := d.closeProtectedState()
 	d.state.SetStatus(health.StatusStopped, "stopped")

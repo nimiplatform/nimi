@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 )
 
@@ -15,7 +16,7 @@ func newTestService(t *testing.T) *Service {
 	t.Helper()
 	store := newTestStore(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return New(logger, store, nil)
+	return New(logger, store, auditlog.New(128, 128))
 }
 
 func newTestServiceWithModelCatalog(t *testing.T) *Service {

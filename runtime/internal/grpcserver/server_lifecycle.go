@@ -70,45 +70,63 @@ func (s *Server) BeginShutdown() []activeRPCSnapshot {
 	return s.rpcRegistry.BeginShutdown()
 }
 
+// Stop drains the transports and releases every owner.
 func (s *Server) Stop(ctx context.Context) StopResult {
-	defer func() {
-		if s.appInstallCoordinator != nil {
-			_ = s.appInstallCoordinator.Close()
-		}
-		if s.localService != nil {
-			s.localService.StopProductControlCheckSync()
-		}
-		if s.agentService != nil {
-			s.agentService.Close()
-		}
-		if s.integrationService != nil {
-			_ = s.integrationService.Close()
-		}
-		if s.appActivityService != nil {
-			_ = s.appActivityService.Close()
-		}
-		if s.cognitionV1Owner != nil {
-			_ = s.cognitionV1Owner.Close()
-		}
-		if s.persistenceBackend != nil {
-			_ = s.persistenceBackend.Close()
-		}
-		if s.aiSvc != nil {
-			s.aiSvc.ShutdownRealtime()
-		}
-		if s.realmRealtimeService != nil {
-			s.realmRealtimeService.Close()
-		}
-		if s.localService != nil {
-			s.localService.Close()
-		}
-		if s.localDevelopmentStore != nil {
-			_ = s.localDevelopmentStore.Close()
-		}
-		if s.localAppKernel != nil {
-			_ = s.localAppKernel.Close()
-		}
-	}()
+	return s.StopWithShutdownRecord(ctx, nil)
+}
+
+// StopWithShutdownRecord drains the transports and lets record observe the
+// drain summary while the durable owners, including the audit store, are still
+// open; only then are the owners released.
+func (s *Server) StopWithShutdownRecord(ctx context.Context, record func(StopResult)) StopResult {
+	defer s.releaseOwners()
+	result := s.drain(ctx)
+	if record != nil {
+		record(result)
+	}
+	return result
+}
+
+func (s *Server) releaseOwners() {
+	if s.appInstallCoordinator != nil {
+		_ = s.appInstallCoordinator.Close()
+	}
+	if s.localService != nil {
+		s.localService.StopProductControlCheckSync()
+	}
+	if s.agentService != nil {
+		s.agentService.Close()
+	}
+	if s.integrationService != nil {
+		_ = s.integrationService.Close()
+	}
+	if s.appActivityService != nil {
+		_ = s.appActivityService.Close()
+	}
+	if s.cognitionV1Owner != nil {
+		_ = s.cognitionV1Owner.Close()
+	}
+	if s.persistenceBackend != nil {
+		_ = s.persistenceBackend.Close()
+	}
+	if s.aiSvc != nil {
+		s.aiSvc.ShutdownRealtime()
+	}
+	if s.realmRealtimeService != nil {
+		s.realmRealtimeService.Close()
+	}
+	if s.localService != nil {
+		s.localService.Close()
+	}
+	if s.localDevelopmentStore != nil {
+		_ = s.localDevelopmentStore.Close()
+	}
+	if s.localAppKernel != nil {
+		_ = s.localAppKernel.Close()
+	}
+}
+
+func (s *Server) drain(ctx context.Context) StopResult {
 	if s.rpcRegistry != nil {
 		s.rpcRegistry.BeginShutdown()
 	}

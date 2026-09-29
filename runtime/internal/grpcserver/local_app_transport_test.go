@@ -32,6 +32,7 @@ func TestProtectedLocalAppRPCServerRegistersBoundedMachineLocalConfigurationOwne
 		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
 		&runtimev1.UnimplementedRuntimeAppServiceServer{},
 		newActiveRPCRegistry(nil),
+		nil,
 	)
 	if _, registered := server.GetServiceInfo()["nimi.runtime.v1.RuntimeLocalService"]; !registered {
 		t.Fatal("protected Local App server did not register RuntimeLocalService")
@@ -56,6 +57,7 @@ func TestProtectedLocalAppRPCServerSharesRootHandoffAdmission(t *testing.T) {
 		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
 		appService,
 		rpcRegistry,
+		nil,
 	)
 	baseListener := bufconn.Listen(1024 * 1024)
 	listener := &protectedLocalAppTestListener{Listener: baseListener, connection: connection}

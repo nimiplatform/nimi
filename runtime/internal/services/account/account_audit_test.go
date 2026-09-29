@@ -249,13 +249,15 @@ func TestAccountRefreshSuccessEmitsAuditEvent(t *testing.T) {
 	}
 }
 
-func TestAccountOperationsWithoutAuditStoreDoNotFail(t *testing.T) {
-	svc := newHarnessService(t, nil)
-
-	completeLogin(t, svc)
-	logout, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
-	if err != nil || !logout.GetAccepted() {
-		t.Fatalf("Logout without audit store: %+v err=%v", logout, err)
+func TestAccountMutationWithoutAuditStoreFailsBeforeLoginStarts(t *testing.T) {
+	svc := newHarnessService(t, nil, WithAuditStore(nil))
+	before := svc.currentState()
+	_, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
+	if err == nil || !strings.Contains(err.Error(), "AUDIT_RECORD_UNAVAILABLE") {
+		t.Fatalf("missing audit failure: %v", err)
+	}
+	if svc.currentState() != before || len(svc.loginAttempts) != 0 {
+		t.Fatal("unrecorded login changed owner state")
 	}
 }
 

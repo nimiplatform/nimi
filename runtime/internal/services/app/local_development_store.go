@@ -144,28 +144,49 @@ func (store *localDevelopmentStore) DeveloperMode(ctx context.Context) (localDev
 }
 
 func (store *localDevelopmentStore) SetDeveloperMode(ctx context.Context, enabled bool) (localDevelopmentMode, error) {
+	mode, _, err := store.SetDeveloperModeCommitted(ctx, enabled, func(_ localDevelopmentMode, write func() error) (bool, error) {
+		if err := write(); err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+	return mode, err
+}
+
+// developerModeCommit performs write, possibly inside a bracket such as the
+// owner's audit record, and reports whether write committed.
+type developerModeCommit func(next localDevelopmentMode, write func() error) (written bool, err error)
+
+// SetDeveloperModeCommitted switches developer mode through commit. When the
+// mode write committed it returns the new mode and changed=true, even if
+// commit also reports an error after the write (such as an unrecorded audit
+// result); an unchanged request returns changed=false without a write.
+func (store *localDevelopmentStore) SetDeveloperModeCommitted(ctx context.Context, enabled bool, commit developerModeCommit) (localDevelopmentMode, bool, error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	mode, err := store.DeveloperMode(ctx)
 	if err != nil {
-		return localDevelopmentMode{}, err
+		return localDevelopmentMode{}, false, err
 	}
 	if mode.Enabled == enabled {
-		return mode, nil
+		return mode, false, nil
 	}
-	mode.Enabled = enabled
-	mode.Revision++
+	next := localDevelopmentMode{Enabled: enabled, Revision: mode.Revision + 1}
 	value := 0
 	if enabled {
 		value = 1
 	}
-	if _, err := store.db.ExecContext(ctx, `UPDATE local_development_mode SET enabled = ?, revision = ?, updated_unix_nano = ? WHERE singleton = 1`, value, mode.Revision, store.now().UTC().UnixNano()); err != nil {
-		return localDevelopmentMode{}, err
+	written, err := commit(next, func() error {
+		_, err := store.db.ExecContext(ctx, `UPDATE local_development_mode SET enabled = ?, revision = ?, updated_unix_nano = ? WHERE singleton = 1`, value, next.Revision, store.now().UTC().UnixNano())
+		return err
+	})
+	if !written {
+		return localDevelopmentMode{}, false, err
 	}
 	if !enabled {
 		store.launches = make(map[protectedlocal.Identifier]localDevelopmentLaunchTicket)
 	}
-	return mode, nil
+	return next, true, err
 }
 
 func (store *localDevelopmentStore) RequireDeveloperMode(ctx context.Context) error {

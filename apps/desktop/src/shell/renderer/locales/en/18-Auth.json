@@ -12,11 +12,13 @@
   "hidePassword": "Hide",
   "loginPending": "Complete sign-in in your browser. This window will continue automatically.",
   "reauthenticationRequired": "Your Runtime account session can no longer be refreshed. Sign in again to continue.",
-  "runtimeAccountUnavailableTitle": "Account service unavailable",
-  "runtimeAccountUnavailableDescription": "Runtime is running, but account state cannot be confirmed. Retry after Runtime recovers.",
+  "runtimeAccountUnavailableTitle": "Nimi can't confirm your account",
+  "runtimeAccountUnavailableDescription": "Your partners and conversations stay hidden until Nimi can confirm who is signed in. Unsent drafts are kept.",
   "logoutRuntimeTransientFailure": "Sign out could not be completed because Runtime logout could not be confirmed. The account session may still be active: {{error}}",
   "logoutRuntimeFailure": "Sign out could not be completed because Runtime logout failed. The account session may still be active: {{error}}",
   "logoutSuccess": "Signed out",
   "switchAccountRuntimeFailure": "Account switch could not start because Runtime did not confirm the switch: {{error}}",
-  "switchAccountReady": "Choose another account to continue"
+  "switchAccountReady": "Choose another account to continue",
+  "runtimeAccountReconnecting": "Reconnecting automatically…",
+  "runtimeAccountRetryNow": "Retry now"
 }

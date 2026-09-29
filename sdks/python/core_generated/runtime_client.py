@@ -2184,6 +2184,14 @@ RUNTIME_METHODS = [
     "response_type": "SubscribeRealmRealtimeEventsResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
+    "service": "RuntimeServiceControlService",
+    "method": "GetRuntimeServiceState",
+    "kind": "unary",
+    "request_type": "GetRuntimeServiceStateRequest",
+    "response_type": "GetRuntimeServiceStateResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
     "service": "RuntimeServiceControlService",
     "method": "RequestRuntimeRestart",

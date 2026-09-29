@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/metadata"
@@ -142,7 +143,7 @@ func newDesktopSessionService(manager *protectedlocal.DesktopSessionManager) *Se
 	}
 	return NewWithDependencies(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		nil,
+		auditlog.New(64, 64),
 		60,
 		86400,
 		options...,

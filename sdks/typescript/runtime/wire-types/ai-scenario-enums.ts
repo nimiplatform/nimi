@@ -359,6 +359,12 @@ export enum RoutePolicy {
   CLOUD = 2,
 }
 
+export enum RuntimeServiceMode {
+  UNSPECIFIED = 0,
+  ORDINARY = 1,
+  MAINTENANCE = 2,
+}
+
 export enum ScenarioJobEventType {
   SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED = 0,
   SCENARIO_JOB_EVENT_SUBMITTED = 1,

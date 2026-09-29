@@ -102,6 +102,9 @@ export function createNimiElectronFixedRuntimeLifecycleHost(
   return new LazyElectronFixedRuntimeLifecycleHost(runtimeEndpoint);
 }
 
+/** The typed reason a maintenance Runtime reports (runtime.protected-session r034). */
+export const NIMI_RUNTIME_STORED_DATA_UNSUPPORTED = 'runtime-stored-data-unsupported';
+
 class ElectronSourceRuntimeLifecycleHost implements NimiElectronRuntimeLifecycleHost {
   constructor(
     private readonly statusProbe: NimiElectronDeveloperModeStatusProbe,
@@ -115,7 +118,23 @@ class ElectronSourceRuntimeLifecycleHost implements NimiElectronRuntimeLifecycle
     if (command !== commandNames.status) {
       throw lifecycleError('runtime-service-untrusted', false, command);
     }
-    await this.statusProbe.probe();
+    try {
+      await this.statusProbe.probe();
+    } catch (error) {
+      // A maintenance Runtime is reachable but refused its stored data: it is
+      // not running and reports its exact reason instead of failing status.
+      if (error instanceof NimiElectronShellHostError
+        && error.reasonCode === NIMI_RUNTIME_STORED_DATA_UNSUPPORTED) {
+        return {
+          running: false,
+          managed: false,
+          launchMode: 'SOURCE',
+          grpcAddr: this.runtimeEndpoint,
+          lastError: NIMI_RUNTIME_STORED_DATA_UNSUPPORTED,
+        };
+      }
+      throw error;
+    }
     return {
       running: true,
       managed: false,

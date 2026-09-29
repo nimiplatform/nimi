@@ -175,8 +175,17 @@ type ProtectedServiceBindings struct {
 	LocalDevelopmentVerifier         protectedlocal.LocalDevelopmentProcessVerifier
 	DirectLocalAppLaunches           *protectedlocal.DirectLocalAppLaunches
 	RuntimeRestartRequester          runtimecontrolservice.RestartRequester
-	serviceConfigPath                string
-	productControlInstallID          string
+	// PeerRejections is the verified security state whose native listeners
+	// report the processes they refuse; the Runtime records them as transport
+	// refusals once its audit plane is composed.
+	PeerRejections          PeerRejectionSource
+	serviceConfigPath       string
+	productControlInstallID string
+}
+
+// PeerRejectionSource is implemented by the verified platform security states.
+type PeerRejectionSource interface {
+	SetPeerRejectionObserver(protectedlocal.PeerRejectionObserver)
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
@@ -270,6 +279,16 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	bindings.serviceConfigPath = serviceConfigPath
 	bindings.productControlInstallID = productControlBinding.InstallID
 	bindRuntimeOwnerStateToProductControlRoot(&cfg)
+	// @nimi-authority: rule.nimi.runtime.service-operations.r092
+	// Owners classify their stored data read-only before any of them opens,
+	// reconciles, converts, or repairs the selected root.
+	if refusal := preflightProtectedStoredData(cfg); refusal != nil {
+		maintenance, err := newProtectedMaintenanceServer(logger, cfg, bindings, productControlRoot, productControlSecurity, serviceConfigPath, refusal)
+		if err != nil {
+			return nil, fmt.Errorf("serve maintenance for refused stored data: %w (refusal: %v)", err, refusal)
+		}
+		return nil, &MaintenanceRequiredError{Maintenance: maintenance}
+	}
 	return newServer(cfg, state, logger, version, &bindings, productControlRoot, productControlSecurity)
 }
 
@@ -488,11 +507,28 @@ func composeCognitionV1Owner(logger *slog.Logger, cfg config.Config) *cognitions
 
 func newServer(cfg config.Config, state *health.State, logger *slog.Logger, version string, protected *ProtectedServiceBindings, productControlRoot string, productControlSecurity localservice.ProductControlDataRootSecurityBinding) (*Server, error) {
 	addr := cfg.GRPCAddr
-	auditStore := auditlog.New(cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
 	idempotencyStore, err := idempotency.New(24*time.Hour, cfg.IdempotencyCapacity)
 	if err != nil {
 		return nil, fmt.Errorf("configure idempotency store: %w", err)
 	}
+	// The audit plane persists in the Runtime backend, so the backend opens
+	// before any owner that records audit is constructed.
+	backend, err := runtimepersistence.Open(logger, cfg.LocalStatePath)
+	if err != nil {
+		return nil, fmt.Errorf("init Runtime persistence: %w", err)
+	}
+	keepBackend := false
+	defer func() {
+		if !keepBackend {
+			_ = backend.Close()
+		}
+	}()
+	auditStore, err := auditlog.Open(backend, logger, cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
+	if err != nil {
+		return nil, fmt.Errorf("init Runtime audit store: %w", err)
+	}
+	desktopRefusals := newTransportRefusalAudit(auditStore, transportDesktop)
+	localAppRefusals := newTransportRefusalAudit(auditStore, transportLocalApp)
 	appRegistry := appregistry.New()
 	var localDevelopmentStore *appservice.LocalDevelopmentStore
 	var localAppKernel *localappkernel.Kernel
@@ -707,24 +743,17 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	localSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
-	backend, err := runtimepersistence.Open(logger, cfg.LocalStatePath)
-	if err != nil {
-		return nil, fmt.Errorf("init Runtime persistence: %w", err)
-	}
 	aiConfigStore, err := aiconfig.NewSQLiteStore(backend)
 	if err != nil {
-		_ = backend.Close()
 		return nil, fmt.Errorf("init AIConfig store: %w", err)
 	}
 	aiProfileStore, err := aiprofile.NewSQLiteStore(backend)
 	if err != nil {
-		_ = backend.Close()
 		return nil, fmt.Errorf("init AIProfile store: %w", err)
 	}
 	aiSvc.SetAIConfigStore(aiConfigStore)
 	agentSvc, err := runtimeagentservice.NewWithBackend(logger, cfg.LocalStatePath, backend)
 	if err != nil {
-		_ = backend.Close()
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
 	agentSvc.SetAIConfigStore(aiConfigStore)
@@ -887,9 +916,10 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	appOptions := []appservice.Option{
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
+		appservice.WithAuditStore(auditStore),
 	}
 	if protected != nil && localAppKernel != nil {
-		catalog, coordinator := composeVerifiedAppPackages(context.Background(), logger, localAppKernel)
+		catalog, coordinator := composeVerifiedAppPackages(context.Background(), logger, localAppKernel, auditStore)
 		if coordinator != nil {
 			appInstallCoordinator = coordinator
 			appOptions = append(appOptions,
@@ -959,7 +989,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if localAppKernel != nil {
 		integrationSources.store = localAppKernel.Registrations()
 	}
-	integrationSvc, err := integration.New(integration.Options{Backend: backend, Secrets: integrationSecrets, Revalidator: appSvc, Registrations: integrationSources, DesktopTransport: accountservice.VerifiedDesktopTransport})
+	integrationSvc, err := integration.New(integration.Options{Backend: backend, Audit: auditStore, Logger: logger, Secrets: integrationSecrets, Revalidator: appSvc, Registrations: integrationSources, DesktopTransport: accountservice.VerifiedDesktopTransport})
 	if err != nil {
 		return nil, fmt.Errorf("initialize Integration owner: %w", err)
 	}
@@ -986,9 +1016,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 				return false
 			}
 		}
-		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc, rpcRegistry)
+		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc, rpcRegistry, desktopRefusals)
 		runtimev1.RegisterRuntimeAppPackageServiceServer(protectedGRPCServer, appSvc)
-		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc, rpcRegistry)
+		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc, rpcRegistry, localAppRefusals)
 		runtimev1.RegisterRuntimeAppActivityServiceServer(protectedGRPCServer, activitySvc)
 		runtimev1.RegisterRuntimeAppActivityServiceServer(localAppGRPCServer, activitySvc)
 		runtimev1.RegisterRuntimeIntegrationServiceServer(protectedGRPCServer, integrationSvc)
@@ -1055,8 +1085,20 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		appInstallCoordinator: appInstallCoordinator,
 	}
 	s.SyncServingState()
+	if protected != nil && protected.PeerRejections != nil {
+		// Listener refusals reach the audit plane only once the Runtime is fully
+		// composed; earlier ones keep the platform's native diagnostics.
+		protected.PeerRejections.SetPeerRejectionObserver(func(rejection protectedlocal.PeerRejection) {
+			if rejection.Transport == protectedlocal.PeerRejectionTransportLocalApp {
+				localAppRefusals.recordPeerRejection(rejection)
+				return
+			}
+			desktopRefusals.recordPeerRejection(rejection)
+		})
+	}
 	keepLocalDevelopmentStore = true
 	keepLocalService = true
+	keepBackend = true
 	return s, nil
 }
 

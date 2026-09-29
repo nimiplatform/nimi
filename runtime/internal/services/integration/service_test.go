@@ -15,6 +15,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
@@ -78,14 +79,30 @@ func testDesktopTransport(ctx context.Context) bool {
 	return verified
 }
 
+// saveTarget seeds a target row directly; owner mutations go through the
+// recorded commit path under test.
+func (s *Service) saveTarget(ctx context.Context, t target) error {
+	raw, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	_, err = s.backend.DB().ExecContext(ctx, `INSERT INTO runtime_integration_target(account_id,target_ref,config_json) VALUES(?,?,?) ON CONFLICT(account_id,target_ref) DO UPDATE SET config_json=excluded.config_json`, t.Account, t.Public.TargetRef, string(raw))
+	return err
+}
+
 func newIntegrationTestService(t *testing.T, transport http.RoundTripper) *Service {
 	t.Helper()
 	backend, err := runtimepersistence.Open(nil, filepath.Join(t.TempDir(), "state.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	audit, err := auditlog.Open(backend, nil, 1000, 10)
+	if err != nil {
+		_ = backend.Close()
+		t.Fatal(err)
+	}
 	client := &http.Client{Transport: transport, Timeout: 3 * time.Second}
-	s, err := New(Options{Backend: backend, Secrets: &testSecrets{values: map[string]string{}}, HTTPClient: client, DesktopTransport: testDesktopTransport, Revalidator: testRevalidator(func(ctx context.Context, i localappop.Ingress) (context.Context, error) {
+	s, err := New(Options{Backend: backend, Audit: audit, Secrets: &testSecrets{values: map[string]string{}}, HTTPClient: client, DesktopTransport: testDesktopTransport, Revalidator: testRevalidator(func(ctx context.Context, i localappop.Ingress) (context.Context, error) {
 		d, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 		if !ok || ctx.Err() != nil || closed(d.SessionInvalidated) {
 			return nil, failure(codes.PermissionDenied, "INTEGRATION_SCOPE_ENDED")

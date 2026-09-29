@@ -270,3 +270,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.security-boundary
+  - id: rule.nimi.desktop.shell-runtime.r025
+    kind: rule
+    title: Refused stored data keeps Home open on startup recovery
+    modality: must
+    statement: When the Runtime service mode reports maintenance for refused stored data, Nimi Home stays open instead of quitting, starts no App Host, root-bound cleanup, or data-root handoff, routes to the startup recovery page, and returns to ordinary bootstrap only after Runtime restarts in ordinary mode; any other startup failure keeps its own presentation and is never shown with this reason.
+    condition: Whenever Nimi Home starts or rebuilds its composition while Runtime reports a maintenance service mode.
+    failure: Reject quitting to a native dead end, ordinary shell entry, root-bound Host work, and misattributing an unclassified failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
+      - type: applies_to
+        target: definition.nimi.desktop.shell-runtime.degradation-plane

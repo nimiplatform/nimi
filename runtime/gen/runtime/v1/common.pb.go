@@ -563,6 +563,13 @@ const (
 	ReasonCode_AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED ReasonCode = 752
 	// Protected music recovery slots, resident bytes or disk headroom exhausted.
 	ReasonCode_AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED ReasonCode = 754
+	// An owner's read-only startup classification refused Runtime-owned stored
+	// data in the selected data root (for example conversation storage that
+	// needs explicit offline conversion). Runtime serves only its maintenance
+	// surface and leaves that root unchanged.
+	ReasonCode_RUNTIME_STORED_DATA_UNSUPPORTED ReasonCode = 767
+	ReasonCode_AUDIT_RECORD_UNAVAILABLE        ReasonCode = 768
+	ReasonCode_AUDIT_RESULT_UNRECORDED         ReasonCode = 769
 	// App activity publication, query, read-state, and source open. Conflict
 	// covers same-revision content differences and stale revisions; cursor
 	// expired requires relisting instead of claiming a complete replay; open
@@ -876,6 +883,9 @@ var (
 		751: "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED",
 		752: "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED",
 		754: "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED",
+		767: "RUNTIME_STORED_DATA_UNSUPPORTED",
+		768: "AUDIT_RECORD_UNAVAILABLE",
+		769: "AUDIT_RESULT_UNRECORDED",
 		764: "AGENT_BUSY",
 		765: "AGENT_TURN_NOT_ACTIVE",
 		763: "APP_ACTIVITY_INPUT_INVALID",
@@ -1182,6 +1192,9 @@ var (
 		"AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED":              751,
 		"AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED":     752,
 		"AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED":                  754,
+		"RUNTIME_STORED_DATA_UNSUPPORTED":                      767,
+		"AUDIT_RECORD_UNAVAILABLE":                             768,
+		"AUDIT_RESULT_UNRECORDED":                              769,
 		"AGENT_BUSY":                                           764,
 		"AGENT_TURN_NOT_ACTIVE":                                765,
 		"APP_ACTIVITY_INPUT_INVALID":                           763,
@@ -1706,7 +1719,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x15TOOL_CHOICE_MODE_AUTO\x10\x01\x12\x19\n" +
 	"\x15TOOL_CHOICE_MODE_NONE\x10\x02\x12\x1d\n" +
 	"\x19TOOL_CHOICE_MODE_REQUIRED\x10\x03\x12\x19\n" +
-	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xf5^\n" +
+	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xd8_\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -2001,7 +2014,10 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"0AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED\x10\xee\x05\x12,\n" +
 	"'AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED\x10\xef\x05\x125\n" +
 	"0AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED\x10\xf0\x05\x12(\n" +
-	"#AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED\x10\xf2\x05\x12\x0f\n" +
+	"#AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED\x10\xf2\x05\x12$\n" +
+	"\x1fRUNTIME_STORED_DATA_UNSUPPORTED\x10\xff\x05\x12\x1d\n" +
+	"\x18AUDIT_RECORD_UNAVAILABLE\x10\x80\x06\x12\x1c\n" +
+	"\x17AUDIT_RESULT_UNRECORDED\x10\x81\x06\x12\x0f\n" +
 	"\n" +
 	"AGENT_BUSY\x10\xfc\x05\x12\x1a\n" +
 	"\x15AGENT_TURN_NOT_ACTIVE\x10\xfd\x05\x12\x1f\n" +

@@ -21,6 +21,25 @@ impl RuntimeServiceState {
     }
 }
 
+/// The typed protected surface a verified Runtime channel serves
+/// (runtime.protected-session r034). A maintenance Runtime refused ordinary
+/// startup and answers only its maintenance operations.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimeServiceMode {
+    Ordinary,
+    MaintenanceStoredDataUnsupported,
+}
+
+impl RuntimeServiceMode {
+    /// The bounded reason a maintenance Runtime reports; none when ordinary.
+    pub const fn maintenance_reason(self) -> Option<&'static str> {
+        match self {
+            Self::Ordinary => None,
+            Self::MaintenanceStoredDataUnsupported => Some("runtime-stored-data-unsupported"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuntimeServiceAction {
     Start,

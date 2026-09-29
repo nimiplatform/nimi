@@ -200,6 +200,7 @@ type Service struct {
 	localAgentOwnership         LocalAgentOwnershipResolver
 	realmAccountDeletedObserver RealmAccountDeletedObserver
 	auditStore                  *auditlog.Store
+	auditDiagnostic             *runtimev1.ErrorInfo
 
 	partition                string
 	productionActivated      bool

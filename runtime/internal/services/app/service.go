@@ -15,6 +15,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
@@ -118,6 +119,7 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeDevelopmentServiceServer
 	runtimev1.UnimplementedRuntimeAppPackageServiceServer
 	logger *slog.Logger
+	audit  *auditlog.Store
 
 	mu                         sync.RWMutex
 	nextSeq                    uint64
@@ -159,6 +161,14 @@ type Service struct {
 	installedLaunches          map[protectedlocal.Identifier]*installedAppLaunch
 	formalAppMu                sync.Mutex
 	formalApps                 map[formalAppConnectionKey]*formalAppBinding
+}
+
+// WithAuditStore binds the Runtime audit plane that records the App owner's
+// sensitive commits, such as developer-mode changes.
+func WithAuditStore(store *auditlog.Store) Option {
+	return func(s *Service) {
+		s.audit = store
+	}
 }
 
 func WithClock(now func() time.Time) Option {

@@ -49,5 +49,6 @@
   "clearCacheButton": "清理缓存",
   "sessionTitle": "会话",
   "sessionBody": "在当前设备退出你的账户。",
-  "logOut": "退出登录"
+  "logOut": "退出登录",
+  "dataRootReplacedAuditUnrecorded": "新数据目录已启用，但本次变更未能写入审计记录。请勿重复更换目录。重新打开 Nimi 继续使用；若记录持续失败，请联系支持。"
 }

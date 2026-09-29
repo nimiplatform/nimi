@@ -146,11 +146,16 @@ export function DataManagementPage() {
     setFeedback(null);
     try {
       const projection = await bindings.app.commands.settings.replaceDataRoot(targetRoot);
-      const storageDirs = await bindings.app.commands.settings.loadStorageDirs();
-      applyStorageDirs(storageDirs);
-      await refreshCheckSync().catch(() => undefined);
-      if (projection.error) {
-        setFeedback({ kind: 'error', message: t('DataManagement.dataRootReplaceFailed'), technicalDetail: projection.error });
+      let refreshError: string | null = null;
+      try {
+        const storageDirs = await bindings.app.commands.settings.loadStorageDirs();
+        applyStorageDirs(storageDirs);
+        await refreshCheckSync();
+      } catch (error) { refreshError = error instanceof Error ? error.message : String(error); }
+      if (projection.auditDiagnostic) {
+        setFeedback({ kind: 'warning', message: t('DataManagement.dataRootReplacedAuditUnrecorded'), technicalDetail: projection.auditDiagnostic.reasonCode });
+      } else if (projection.error || refreshError) {
+        setFeedback({ kind: projection.activation?.activated ? 'warning' : 'error', message: t(projection.activation?.activated ? 'DataManagement.dataRootReplaced' : 'DataManagement.dataRootReplaceFailed'), technicalDetail: projection.error ?? refreshError ?? undefined });
       } else if (projection.activation?.activated) {
         setFeedback({ kind: 'success', message: t('DataManagement.dataRootReplaced') });
       } else {

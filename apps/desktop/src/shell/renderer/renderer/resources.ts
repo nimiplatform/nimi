@@ -57,6 +57,7 @@ export function createDesktopRendererResources(
   );
   const runtimeConnectorSdk = createRuntimeConfigConnectorSdkService(
     bindings.sdk.connectorAdmin,
+    () => store.getState().setStatusBanner({ kind: 'warning', message: String(i18n.instance.t('Feedback.auditResultUnrecorded')) }),
   );
   const realmHumanChatData = createRealmHumanChatData(bindings.sdk);
   const worldFollowStore = createWorldFollowStore(bindings.app.commands.worldFollow);

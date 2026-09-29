@@ -874,11 +874,15 @@ export type {
 };
 
 import type {
+  GetRuntimeServiceStateRequest,
+  GetRuntimeServiceStateResponse,
   RequestRuntimeRestartRequest,
   RequestRuntimeRestartResponse,
 } from "../../core-generated/runtime-protobuf/runtime/v1/runtime_service_control";
 
 export type {
+  GetRuntimeServiceStateRequest,
+  GetRuntimeServiceStateResponse,
   RequestRuntimeRestartRequest,
   RequestRuntimeRestartResponse,
 };

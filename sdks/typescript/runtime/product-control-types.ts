@@ -74,12 +74,19 @@ export interface NimiProductControlRecordProjection {
   readonly error: string | null;
   readonly configMutation?: NimiProductControlConfigMutation | null;
   readonly activation?: NimiProductControlActivation | null;
+  /** The effect committed, but its audit result was not durably recorded. */
+  readonly auditDiagnostic?: {
+    readonly reasonCode: 'AUDIT_RESULT_UNRECORDED';
+    readonly actionHint: 'inspect_runtime_audit';
+  } | null;
 }
 
 export interface NimiProductControlActivation {
   readonly activated: boolean;
-  readonly reasonCode: 'DATA_ROOT_REPLACED' | 'DATA_ROOT_UNCHANGED' | 'DATA_ROOT_OVERLAPS_CURRENT';
-  readonly actionHint: 'restart_runtime_and_check_sync' | 'run_check_sync' | 'choose_path_disjoint_root';
+  // DATA_ROOT_NOT_EMPTY/choose_new_empty_root come only from the maintenance
+  // replacement, which accepts an absent or empty folder (p-mig-007i).
+  readonly reasonCode: 'DATA_ROOT_REPLACED' | 'DATA_ROOT_UNCHANGED' | 'DATA_ROOT_OVERLAPS_CURRENT' | 'DATA_ROOT_NOT_EMPTY';
+  readonly actionHint: 'restart_runtime_and_check_sync' | 'run_check_sync' | 'choose_path_disjoint_root' | 'choose_new_empty_root';
 }
 
 export interface NimiProductControlConfigMutation {

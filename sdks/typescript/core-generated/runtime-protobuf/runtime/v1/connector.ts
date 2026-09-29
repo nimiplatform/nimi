@@ -14,6 +14,7 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { Struct } from "../../google/protobuf/struct";
 import { Ack } from "./common";
 import { FieldMask } from "../../google/protobuf/field_mask";
+import { ErrorInfo } from "./common";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
  * @generated from protobuf message nimi.runtime.v1.Connector
@@ -113,6 +114,10 @@ export interface CreateConnectorResponse {
      * @generated from protobuf field: nimi.runtime.v1.Connector connector = 1
      */
     connector?: Connector;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ErrorInfo audit_diagnostic = 2
+     */
+    auditDiagnostic?: ErrorInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetConnectorRequest
@@ -219,6 +224,10 @@ export interface UpdateConnectorResponse {
      * @generated from protobuf field: nimi.runtime.v1.Connector connector = 1
      */
     connector?: Connector;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ErrorInfo audit_diagnostic = 2
+     */
+    auditDiagnostic?: ErrorInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.DeleteConnectorRequest
@@ -237,6 +246,10 @@ export interface DeleteConnectorResponse {
      * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
      */
     ack?: Ack;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ErrorInfo audit_diagnostic = 2
+     */
+    auditDiagnostic?: ErrorInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.TestConnectorRequest
@@ -1392,7 +1405,8 @@ export const CreateConnectorRequest = new CreateConnectorRequest$Type();
 class CreateConnectorResponse$Type extends MessageType<CreateConnectorResponse> {
     constructor() {
         super("nimi.runtime.v1.CreateConnectorResponse", [
-            { no: 1, name: "connector", kind: "message", T: () => Connector }
+            { no: 1, name: "connector", kind: "message", T: () => Connector },
+            { no: 2, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo }
         ]);
     }
     create(value?: PartialMessage<CreateConnectorResponse>): CreateConnectorResponse {
@@ -1409,6 +1423,9 @@ class CreateConnectorResponse$Type extends MessageType<CreateConnectorResponse> 
                 case /* nimi.runtime.v1.Connector connector */ 1:
                     message.connector = Connector.internalBinaryRead(reader, reader.uint32(), options, message.connector);
                     break;
+                case /* nimi.runtime.v1.ErrorInfo audit_diagnostic */ 2:
+                    message.auditDiagnostic = ErrorInfo.internalBinaryRead(reader, reader.uint32(), options, message.auditDiagnostic);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1424,6 +1441,9 @@ class CreateConnectorResponse$Type extends MessageType<CreateConnectorResponse> 
         /* nimi.runtime.v1.Connector connector = 1; */
         if (message.connector)
             Connector.internalBinaryWrite(message.connector, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ErrorInfo audit_diagnostic = 2; */
+        if (message.auditDiagnostic)
+            ErrorInfo.internalBinaryWrite(message.auditDiagnostic, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1769,7 +1789,8 @@ export const UpdateConnectorRequest = new UpdateConnectorRequest$Type();
 class UpdateConnectorResponse$Type extends MessageType<UpdateConnectorResponse> {
     constructor() {
         super("nimi.runtime.v1.UpdateConnectorResponse", [
-            { no: 1, name: "connector", kind: "message", T: () => Connector }
+            { no: 1, name: "connector", kind: "message", T: () => Connector },
+            { no: 2, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo }
         ]);
     }
     create(value?: PartialMessage<UpdateConnectorResponse>): UpdateConnectorResponse {
@@ -1786,6 +1807,9 @@ class UpdateConnectorResponse$Type extends MessageType<UpdateConnectorResponse> 
                 case /* nimi.runtime.v1.Connector connector */ 1:
                     message.connector = Connector.internalBinaryRead(reader, reader.uint32(), options, message.connector);
                     break;
+                case /* nimi.runtime.v1.ErrorInfo audit_diagnostic */ 2:
+                    message.auditDiagnostic = ErrorInfo.internalBinaryRead(reader, reader.uint32(), options, message.auditDiagnostic);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1801,6 +1825,9 @@ class UpdateConnectorResponse$Type extends MessageType<UpdateConnectorResponse> 
         /* nimi.runtime.v1.Connector connector = 1; */
         if (message.connector)
             Connector.internalBinaryWrite(message.connector, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ErrorInfo audit_diagnostic = 2; */
+        if (message.auditDiagnostic)
+            ErrorInfo.internalBinaryWrite(message.auditDiagnostic, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1862,7 +1889,8 @@ export const DeleteConnectorRequest = new DeleteConnectorRequest$Type();
 class DeleteConnectorResponse$Type extends MessageType<DeleteConnectorResponse> {
     constructor() {
         super("nimi.runtime.v1.DeleteConnectorResponse", [
-            { no: 1, name: "ack", kind: "message", T: () => Ack }
+            { no: 1, name: "ack", kind: "message", T: () => Ack },
+            { no: 2, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo }
         ]);
     }
     create(value?: PartialMessage<DeleteConnectorResponse>): DeleteConnectorResponse {
@@ -1879,6 +1907,9 @@ class DeleteConnectorResponse$Type extends MessageType<DeleteConnectorResponse> 
                 case /* nimi.runtime.v1.Ack ack */ 1:
                     message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
                     break;
+                case /* nimi.runtime.v1.ErrorInfo audit_diagnostic */ 2:
+                    message.auditDiagnostic = ErrorInfo.internalBinaryRead(reader, reader.uint32(), options, message.auditDiagnostic);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1894,6 +1925,9 @@ class DeleteConnectorResponse$Type extends MessageType<DeleteConnectorResponse> 
         /* nimi.runtime.v1.Ack ack = 1; */
         if (message.ack)
             Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ErrorInfo audit_diagnostic = 2; */
+        if (message.auditDiagnostic)
+            ErrorInfo.internalBinaryWrite(message.auditDiagnostic, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

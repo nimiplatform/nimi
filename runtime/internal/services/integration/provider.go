@@ -2,20 +2,25 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
 
 // @nimi-authority: rule.nimi.runtime.integration.provider-lifetime
-func (s *Service) RegisterIntegrationProvider(ctx context.Context, req *runtimev1.RegisterIntegrationProviderRequest) (*runtimev1.RegisterIntegrationProviderResponse, error) {
+func (s *Service) RegisterIntegrationProvider(ctx context.Context, req *runtimev1.RegisterIntegrationProviderRequest) (_ *runtimev1.RegisterIntegrationProviderResponse, err error) {
+	record := s.beginAudit(ctx, "integration.provider.register")
+	defer func() { record.finish(err) }()
 	d, err := s.decision(ctx, localappop.OperationIntegrationProviderRegister)
 	if err != nil {
 		return nil, err
 	}
+	record.bind(d)
 	if req == nil || len(req.IntegrationId) == 0 || len(req.IntegrationId) > 128 || len(req.DisplayName) == 0 || len(req.DisplayName) > 256 || len(req.Skill) > 16384 {
 		return nil, failure(codes.InvalidArgument, "INTEGRATION_PROVIDER_INPUT_INVALID")
 	}
@@ -30,6 +35,13 @@ func (s *Service) RegisterIntegrationProvider(ctx context.Context, req *runtimev
 		}
 	}
 	id := ref("iap_", d.AccountID, d.RegisteredAppSubject, req.IntegrationId)
+	record.set("target_ref", id)
+	record.set("integration_id", req.IntegrationId)
+	operationNames := make([]string, 0, len(req.Operations))
+	for _, op := range req.Operations {
+		operationNames = append(operationNames, op.Name)
+	}
+	record.set("operations", auditStrings(operationNames))
 	t := target{Account: d.AccountID, Subject: d.RegisteredAppSubject, Public: &runtimev1.IntegrationTarget{TargetRef: id, IntegrationId: req.IntegrationId, DisplayName: req.DisplayName, Kind: "app", Available: true, Operations: req.Operations, Skill: req.Skill}}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -45,7 +57,12 @@ func (s *Service) RegisterIntegrationProvider(ctx context.Context, req *runtimev
 		}
 
 	}
-	if err := s.saveTarget(ctx, t); err != nil {
+	// The provider target and its audit result commit together before the
+	// provider becomes reachable in memory.
+	if err := s.saveTargetRecorded(ctx, t, record); err != nil {
+		if errors.Is(err, auditlog.ErrUnrecorded) {
+			return nil, s.auditUnavailable(err)
+		}
 		return nil, err
 	}
 	if previous := s.providers[id]; previous != nil {
@@ -91,16 +108,26 @@ func (s *Service) removeProvider(id string, p *provider) {
 		}
 	}
 }
-func (s *Service) UnregisterIntegrationProvider(ctx context.Context, req *runtimev1.UnregisterIntegrationProviderRequest) (*runtimev1.UnregisterIntegrationProviderResponse, error) {
+func (s *Service) UnregisterIntegrationProvider(ctx context.Context, req *runtimev1.UnregisterIntegrationProviderRequest) (_ *runtimev1.UnregisterIntegrationProviderResponse, err error) {
+	record := s.beginAudit(ctx, "integration.provider.unregister")
+	defer func() { record.finish(err) }()
 	d, err := s.decision(ctx, localappop.OperationIntegrationProviderUnregister)
 	if err != nil {
 		return nil, err
 	}
+	record.bind(d)
+	record.set("target_ref", req.GetTargetRef())
 	s.mu.Lock()
 	p := s.providers[req.GetTargetRef()]
 	if p == nil || !sameScope(p.decision, d) {
 		s.mu.Unlock()
 		return nil, failure(codes.NotFound, "INTEGRATION_PROVIDER_NOT_FOUND")
+	}
+	// The removal is in-memory only: its result is durably recorded first, and
+	// an unrecordable removal leaves the provider registered.
+	if err := record.recordBeforeEffect(); err != nil {
+		s.mu.Unlock()
+		return nil, err
 	}
 	p.cancel()
 	s.mu.Unlock()
@@ -165,31 +192,37 @@ func (s *Service) PollIntegrationProvider(ctx context.Context, req *runtimev1.Po
 		}
 	}
 }
-func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev1.CompleteIntegrationProviderRequest) (*runtimev1.CompleteIntegrationProviderResponse, error) {
+func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev1.CompleteIntegrationProviderRequest) (_ *runtimev1.CompleteIntegrationProviderResponse, err error) {
+	record := s.beginAudit(ctx, "integration.provider.complete")
+	defer func() { record.finish(err) }()
 	d, err := s.decision(ctx, localappop.OperationIntegrationProviderComplete)
 	if err != nil {
 		return nil, err
 	}
+	record.bind(d)
 	if req == nil {
 		return nil, failure(codes.InvalidArgument, "INTEGRATION_INPUT_INVALID")
 	}
+	record.set("call_id", req.CallId)
 	s.mu.Lock()
 	c := s.calls[req.CallId]
 	if c == nil || c.target.Account != d.AccountID || c.target.Subject != d.RegisteredAppSubject || c.providerSession != d.SessionID || !c.delivered || c.fact.Status != "accepted" || c.ctx.Err() != nil {
 		s.mu.Unlock()
-		return &runtimev1.CompleteIntegrationProviderResponse{Accepted: false}, nil
+		return record.notAccepted(), nil
 	}
 	s.mu.Unlock()
+	record.set("target_ref", c.target.Public.TargetRef)
+	record.set("integration_operation", c.op.Name)
 	if !s.scopeLive(c.ctx, c.decision, localappop.IngressIntegrationCallInvoke) || !s.permitted(ctx, c.decision.AccountID, c.decision.RegisteredAppSubject, c.target.Public.TargetRef, c.op.Name) {
 		s.cancelInvocation(c)
-		return &runtimev1.CompleteIntegrationProviderResponse{Accepted: false}, nil
+		return record.notAccepted(), nil
 	}
 	if req.ErrorCode != "" {
 		if len(req.ErrorCode) > 128 {
 			return nil, failure(codes.InvalidArgument, "INTEGRATION_ERROR_BOUNDS")
 		}
-		accepted := s.finishProvider(c, "failed", "", "PROVIDER_FAILED")
-		return &runtimev1.CompleteIntegrationProviderResponse{Accepted: accepted}, nil
+		record.set("call_state", "failed")
+		return record.completion(s.finishProvider(c, "failed", "", "PROVIDER_FAILED", record)), nil
 	}
 	value, err := decodeJSON(req.ResultJson, maxOutput)
 	if err != nil {
@@ -198,13 +231,14 @@ func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev
 	if err := validateSchema(c.op.OutputSchemaJson, value); err != nil {
 		return nil, err
 	}
-	accepted := s.finishProvider(c, "completed", req.ResultJson, "")
-	return &runtimev1.CompleteIntegrationProviderResponse{Accepted: accepted}, nil
+	record.set("call_state", "completed")
+	return record.completion(s.finishProvider(c, "completed", req.ResultJson, "", record)), nil
 }
 
 // The final result acceptance and cancellation mutation share one boundary;
 // validation outside the mutex cannot grant a late result a second chance.
-func (s *Service) finishProvider(c *invocation, state, result, reason string) bool {
+// The accepted terminal fact and its audit result commit in one transaction.
+func (s *Service) finishProvider(c *invocation, state, result, reason string, record *operationAudit) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed || s.quiesced.Load() || c.ctx.Err() != nil || closed(c.decision.SessionInvalidated) || c.fact.Status != "accepted" {
@@ -214,5 +248,5 @@ func (s *Service) finishProvider(c *invocation, state, result, reason string) bo
 	if p == nil || p.decision.SessionID != c.providerSession || p.ctx.Err() != nil || closed(p.decision.SessionInvalidated) {
 		return false
 	}
-	return s.finishLocked(c, state, result, reason)
+	return s.finishLocked(c, state, result, reason, record)
 }

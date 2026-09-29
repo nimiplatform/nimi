@@ -15,18 +15,21 @@ let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let generation = 0;
 let retryAttempt = 0;
 let watcherRunning = false;
+let activeLifecycle: DesktopRendererLifecyclePort | null = null;
 
 export function applyRuntimeAccountStatusProjection(
   status: DesktopAccountSessionStatus | DesktopAccountSessionEvent,
   lifecycle: Pick<
     DesktopRendererLifecyclePort,
-    'applyRuntimeAccountProjection' | 'auth' | 'cancelAndClearQueries'
+    'applyRuntimeAccountProjection' | 'auth' | 'cancelAndClearQueries' | 'setStatusBanner' | 'translate'
   >,
 ): void {
   const current = lifecycle.auth();
   lifecycle.applyRuntimeAccountProjection(
     projectRuntimeAccountAuthState(status, current.user),
   );
+
+  if (status.auditDiagnostic) lifecycle.setStatusBanner({ kind: 'warning', message: lifecycle.translate('Feedback.auditResultUnrecorded') });
 
   const coordinator = getOfflineCoordinator();
   const connectivity = runtimeAccountConnectivityDisposition(status.state, current.status);
@@ -42,12 +45,29 @@ export function applyRuntimeAccountStatusProjection(
 export function startAuthStateWatcher(lifecycle: DesktopRendererLifecyclePort): void {
   if (watcherRunning) return;
   watcherRunning = true;
+  activeLifecycle = lifecycle;
   const runGeneration = ++generation;
   void resyncAndSubscribe(runGeneration, lifecycle);
 }
 
+/**
+ * Asks Runtime for the account now instead of waiting for the next automatic
+ * attempt. Any attempt already in flight is superseded, so only one stream is
+ * ever subscribed.
+ */
+export function retryRuntimeAccountConnectionNow(): void {
+  if (!watcherRunning || !activeLifecycle) return;
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+  const runGeneration = ++generation;
+  void resyncAndSubscribe(runGeneration, activeLifecycle);
+}
+
 export function stopAuthStateWatcher(): void {
   watcherRunning = false;
+  activeLifecycle = null;
   generation += 1;
   unsubscribe?.();
   unsubscribe = null;
@@ -75,7 +95,7 @@ async function resyncAndSubscribe(
     }
   } catch (error) {
     if (runGeneration !== generation) return;
-    applyRuntimeAccountUnavailableProjection(lifecycle);
+    applyRuntimeAccountUnavailableProjection(lifecycle, error instanceof Error ? error.message : String(error));
     getOfflineCoordinator().markRuntimeReachability('unreachable');
     logRendererEvent({
       level: 'warn',
@@ -108,7 +128,7 @@ async function openSubscription(
     // A missing or malformed stream segment means the renderer can no longer
     // prove which account owns cached product data. Hide the last projection
     // and clear account-scoped queries before asking Runtime for fresh truth.
-    applyRuntimeAccountUnavailableProjection(lifecycle);
+    applyRuntimeAccountUnavailableProjection(lifecycle, `account stream ${reason}`);
     scheduleRetry(runGeneration, lifecycle);
   };
 
@@ -149,6 +169,7 @@ async function openSubscription(
 
 export function applyRuntimeAccountUnavailableProjection(
   lifecycle: DesktopRendererLifecyclePort,
+  failureDetail?: string,
 ): void {
   const current = lifecycle.auth();
   lifecycle.applyRuntimeAccountProjection({
@@ -157,6 +178,7 @@ export function applyRuntimeAccountUnavailableProjection(
     reasonCode: current.reasonCode,
     accountReasonCode: current.accountReasonCode,
     user: null,
+    ...(failureDetail ? { failureDetail: failureDetail.slice(0, 400) } : {}),
   });
   lifecycle.clearAgentConversationAnchorBindings();
   void lifecycle.cancelAndClearQueries();

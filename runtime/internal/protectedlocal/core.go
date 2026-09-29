@@ -677,6 +677,25 @@ func (manager *DesktopSessionManager) Open(ctx context.Context) (DesktopSessionP
 	}, nil
 }
 
+// RevokeContextSession revokes the session authority this manager bound to
+// the context's exact connection. An owner that cannot complete a session
+// open (for example, cannot record it) uses it to fail closed; the Desktop
+// process may then open a new session.
+func (manager *DesktopSessionManager) RevokeContextSession(ctx context.Context) {
+	if manager == nil {
+		return
+	}
+	connection, ok := DesktopConnectionFromContext(ctx)
+	if !ok || connection == nil {
+		return
+	}
+	authority := connection.desktopSessionAuthority()
+	if authority == nil || authority.managerID != manager.managerID {
+		return
+	}
+	manager.revokeAuthority(authority)
+}
+
 // AuthorizeContext authorizes a role only for the live connection that owns
 // the manager-internal desktop session authority. Correlation projections and
 // metadata are never accepted as rebind proof.

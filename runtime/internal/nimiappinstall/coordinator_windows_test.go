@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
@@ -808,7 +809,7 @@ func newInstallFixture(t *testing.T, switchAfterAsset bool) (*Coordinator, *publ
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = kernel.Close() })
-	coordinator, err := NewCoordinator(client, kernel, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	coordinator, err := NewCoordinator(client, kernel, slog.New(slog.NewTextHandler(io.Discard, nil)), auditlog.New(64, 16))
 	if err != nil {
 		t.Fatal(err)
 	}

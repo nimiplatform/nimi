@@ -4,6 +4,8 @@ import {
   type SourceRuntimeRetryOptions,
 } from '../src/shell/shared/source-runtime-retry.js';
 
+import { NIMI_RUNTIME_STORED_DATA_UNSUPPORTED } from './runtime-maintenance.js';
+
 export const SOURCE_RUNTIME_START_COMMAND = 'pnpm dev:runtime';
 
 export type DesktopSourceRuntimeStatusProbe = {
@@ -22,13 +24,23 @@ export class DesktopSourceRuntimeUnavailableError extends Error {
   }
 }
 
+// @nimi-authority: rule.nimi.desktop.shell-runtime.r025
+/**
+ * Waits for the source Runtime. A Runtime that refused its stored data is
+ * reachable in maintenance: Home stays open on its recovery page instead of
+ * failing startup.
+ */
 export async function requireDesktopSourceRuntime(
   probe: DesktopSourceRuntimeStatusProbe,
   retryOptions: SourceRuntimeRetryOptions = {},
-): Promise<void> {
+): Promise<'ready' | 'maintenance'> {
   try {
     await retrySourceRuntimeTransport(() => probe.probe(), retryOptions);
+    return 'ready';
   } catch (error) {
+    if (sourceRuntimeFailureReason(error) === NIMI_RUNTIME_STORED_DATA_UNSUPPORTED) {
+      return 'maintenance';
+    }
     throw new DesktopSourceRuntimeUnavailableError(error);
   }
 }

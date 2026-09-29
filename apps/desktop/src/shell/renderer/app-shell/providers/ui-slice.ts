@@ -74,6 +74,7 @@ const DEFAULT_BACK_ROUTE: NavigationRouteSnapshot = {
 type UiSlice = Pick<AppStoreState,
   | 'bootstrapReady'
   | 'bootstrapError'
+  | 'runtimeMaintenance'
   | 'activeTab'
   | 'navigationBackStack'
   | 'chatMode'
@@ -110,6 +111,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setOfflineTier'
   | 'setBootstrapReady'
   | 'setBootstrapError'
+  | 'setRuntimeMaintenance'
   | 'setActiveTab'
   | 'setChatMode'
   | 'setChatThinkingPreference'
@@ -150,6 +152,7 @@ export function createUiSlice(
   return {
     bootstrapReady: false,
     bootstrapError: null,
+    runtimeMaintenance: null,
     activeTab: 'home',
     navigationBackStack: [],
     chatMode: 'ai',
@@ -186,6 +189,7 @@ export function createUiSlice(
     setOfflineTier: (tier) => set({ offlineTier: tier }),
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
+    setRuntimeMaintenance: (reasonCode) => set({ runtimeMaintenance: reasonCode }),
     setActiveTab: (tab) => {
       startTransition(() => {
         set((state) => ({

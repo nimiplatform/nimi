@@ -281,6 +281,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents": "protected_origin_required",
+  "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart": "protected_origin_required",
 };
 

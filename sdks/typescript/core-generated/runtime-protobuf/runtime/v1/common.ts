@@ -1490,6 +1490,23 @@ export enum ReasonCode {
      */
     AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED = 754,
     /**
+     * An owner's read-only startup classification refused Runtime-owned stored
+     * data in the selected data root (for example conversation storage that
+     * needs explicit offline conversion). Runtime serves only its maintenance
+     * surface and leaves that root unchanged.
+     *
+     * @generated from protobuf enum value: RUNTIME_STORED_DATA_UNSUPPORTED = 767;
+     */
+    RUNTIME_STORED_DATA_UNSUPPORTED = 767,
+    /**
+     * @generated from protobuf enum value: AUDIT_RECORD_UNAVAILABLE = 768;
+     */
+    AUDIT_RECORD_UNAVAILABLE = 768,
+    /**
+     * @generated from protobuf enum value: AUDIT_RESULT_UNRECORDED = 769;
+     */
+    AUDIT_RESULT_UNRECORDED = 769,
+    /**
      * App activity publication, query, read-state, and source open. Conflict
      * covers same-revision content differences and stale revisions; cursor
      * expired requires relisting instead of claiming a complete replay; open

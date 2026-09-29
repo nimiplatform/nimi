@@ -21,6 +21,7 @@ use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
 
 #[cfg(not(feature = "windows-source-local-development"))]
 use crate::generated::OpenDesktopSessionRequest;
+use crate::RuntimeServiceMode;
 #[cfg(feature = "windows-source-local-development")]
 use crate::local_development::local_development_rebind_candidate_is_stale;
 use crate::windows_peer_trust::{verify_runtime_peer, VerifiedRuntimePeer};
@@ -90,6 +91,7 @@ struct WindowsDesktopControl {
 
 struct VerifiedDesktopRuntimeSession {
     channel: Channel,
+    service_mode: RuntimeServiceMode,
     _runtime_peer: VerifiedRuntimePeer,
     #[cfg(not(feature = "windows-source-local-development"))]
     _desktop_session_id: [u8; 32],
@@ -248,6 +250,24 @@ impl WindowsDesktopControl {
 impl NimiDesktopControl for WindowsDesktopControl {
     fn invalidate_cached_transport(&self) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
         Box::pin(invalidate_exact_desktop_runtime_session(&self.session))
+    }
+
+    fn runtime_service_mode(&self) -> RuntimeServiceMode {
+        self.session.service_mode
+    }
+
+    fn verify_runtime_serving(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
+        Box::pin(async move {
+            if self.session.service_mode == RuntimeServiceMode::Ordinary {
+                return self.get_developer_mode_status().await.map(|_| ());
+            }
+            crate::runtime_service_mode::read_runtime_service_mode(self.channel())
+                .await
+                .map(|_| ())
+                .map_err(NimiHostError::from)
+        })
     }
 
     fn invoke_bundled_avatar(
@@ -976,14 +996,19 @@ async fn shared_verified_desktop_runtime_session(
                     }
                     None => open_source_desktop_runtime_session().await?,
                 };
-                let development_processes = development_process_registry();
-                rebind_supervised_development_processes(
-                    session.channel.clone(),
-                    development_processes,
-                    development_rebind_gate(),
-                )
-                .await?;
-                verify_source_local_development_runtime_readiness(session.channel.clone()).await?;
+                // A maintenance Runtime serves no development rebind or
+                // readiness roundtrip; its typed mode was read on open.
+                if session.service_mode == RuntimeServiceMode::Ordinary {
+                    let development_processes = development_process_registry();
+                    rebind_supervised_development_processes(
+                        session.channel.clone(),
+                        development_processes,
+                        development_rebind_gate(),
+                    )
+                    .await?;
+                    verify_source_local_development_runtime_readiness(session.channel.clone())
+                        .await?;
+                }
                 diagnose_desktop_session("source-session-validated");
                 Ok(session)
             },
@@ -1027,8 +1052,11 @@ async fn shared_verified_desktop_runtime_session(
             return Err(untrusted());
         }
         diagnose_desktop_session("opened");
+        let service_mode =
+            crate::runtime_service_mode::read_runtime_service_mode(channel.clone()).await?;
         let session = Arc::new(VerifiedDesktopRuntimeSession {
             channel,
+            service_mode,
             _runtime_peer: runtime_peer,
             _desktop_session_id: desktop_session_id,
             runtime_boot_epoch,
@@ -1044,8 +1072,11 @@ async fn open_source_desktop_runtime_session(
     let (channel, runtime_peer) =
         open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
     diagnose_desktop_session("opened-direct");
+    let service_mode =
+        crate::runtime_service_mode::read_runtime_service_mode(channel.clone()).await?;
     Ok(Arc::new(VerifiedDesktopRuntimeSession {
         channel,
+        service_mode,
         _runtime_peer: runtime_peer,
     }))
 }

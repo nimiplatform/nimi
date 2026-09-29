@@ -2192,6 +2192,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SubscribeRealmRealtimeEventsResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
+        service: "RuntimeServiceControlService",
+        method: "GetRuntimeServiceState",
+        kind: "unary",
+        request_type: "GetRuntimeServiceStateRequest",
+        response_type: "GetRuntimeServiceStateResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
         service: "RuntimeServiceControlService",
         method: "RequestRuntimeRestart",

@@ -35,6 +35,55 @@ export interface RequestRuntimeRestartResponse {
      */
     reasonCode: ReasonCode;
 }
+/**
+ * GetRuntimeServiceStateRequest is intentionally empty; the verified
+ * desktop_control connection is the complete authority input.
+ *
+ * @generated from protobuf message nimi.runtime.v1.GetRuntimeServiceStateRequest
+ */
+export interface GetRuntimeServiceStateRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetRuntimeServiceStateResponse
+ */
+export interface GetRuntimeServiceStateResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeServiceMode mode = 1
+     */
+    mode: RuntimeServiceMode;
+    /**
+     * Set only in maintenance mode: the owner-classified refusal reason.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * RuntimeServiceMode is the protected surface this Runtime process serves on
+ * the verified Desktop transport. It is process-operational truth only; it
+ * proves no product readiness, App access, account, or owner success.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.RuntimeServiceMode
+ */
+export enum RuntimeServiceMode {
+    /**
+     * @generated from protobuf enum value: RUNTIME_SERVICE_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * The ordinary protected owners were constructed and serve their operations.
+     *
+     * @generated from protobuf enum value: RUNTIME_SERVICE_MODE_ORDINARY = 1;
+     */
+    ORDINARY = 1,
+    /**
+     * An owner refused the stored data in the selected data root. Only the
+     * bounded maintenance surface is served and the refused root is unchanged.
+     *
+     * @generated from protobuf enum value: RUNTIME_SERVICE_MODE_MAINTENANCE = 2;
+     */
+    MAINTENANCE = 2
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class RequestRuntimeRestartRequest$Type extends MessageType<RequestRuntimeRestartRequest> {
     constructor() {
@@ -128,3 +177,96 @@ class RequestRuntimeRestartResponse$Type extends MessageType<RequestRuntimeResta
  * @generated MessageType for protobuf message nimi.runtime.v1.RequestRuntimeRestartResponse
  */
 export const RequestRuntimeRestartResponse = new RequestRuntimeRestartResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetRuntimeServiceStateRequest$Type extends MessageType<GetRuntimeServiceStateRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetRuntimeServiceStateRequest", []);
+    }
+    create(value?: PartialMessage<GetRuntimeServiceStateRequest>): GetRuntimeServiceStateRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetRuntimeServiceStateRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRuntimeServiceStateRequest): GetRuntimeServiceStateRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetRuntimeServiceStateRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetRuntimeServiceStateRequest
+ */
+export const GetRuntimeServiceStateRequest = new GetRuntimeServiceStateRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetRuntimeServiceStateResponse$Type extends MessageType<GetRuntimeServiceStateResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetRuntimeServiceStateResponse", [
+            { no: 1, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.RuntimeServiceMode", RuntimeServiceMode, "RUNTIME_SERVICE_MODE_"] },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<GetRuntimeServiceStateResponse>): GetRuntimeServiceStateResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.mode = 0;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<GetRuntimeServiceStateResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRuntimeServiceStateResponse): GetRuntimeServiceStateResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RuntimeServiceMode mode */ 1:
+                    message.mode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetRuntimeServiceStateResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeServiceMode mode = 1; */
+        if (message.mode !== 0)
+            writer.tag(1, WireType.Varint).int32(message.mode);
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetRuntimeServiceStateResponse
+ */
+export const GetRuntimeServiceStateResponse = new GetRuntimeServiceStateResponse$Type();

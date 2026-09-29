@@ -1,4 +1,5 @@
 {
   "dismiss": "关闭反馈",
-  "technicalDetails": "技术详情"
+  "technicalDetails": "技术详情",
+  "auditResultUnrecorded": "更改已生效，但未能保存审计记录。请勿重复操作；若记录持续失败，请联系支持。"
 }

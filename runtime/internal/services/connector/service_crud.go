@@ -10,8 +10,10 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
+	"github.com/oklog/ulid/v2"
 )
 
 func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConnectorRequest) (*runtimev1.CreateConnectorResponse, error) {
@@ -100,8 +102,17 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 		rec.Label = defaultManagedConnectorLabel(provider)
 	}
 
-	created, err := s.store.CreateWithOwnerLimit(rec, secretPayload, maxConnectorsPerUser)
-	if err != nil {
+	rec.ConnectorID = ulid.Make().String()
+	var created ConnectorRecord
+	committed, err := s.commitRecorded(ctx, "connector.create", map[string]any{"connector_id": rec.ConnectorID, "provider": provider}, func() error {
+		var writeErr error
+		created, writeErr = s.store.CreateWithOwnerLimit(rec, secretPayload, maxConnectorsPerUser)
+		return writeErr
+	})
+	if !committed {
+		if errors.Is(err, auditlog.ErrUnrecorded) {
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AUDIT_RECORD_UNAVAILABLE)
+		}
 		if errors.Is(err, errConnectorLimitExceeded) {
 			return nil, connectorLimitExceededError(err)
 		}
@@ -110,12 +121,9 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 		})
 		return nil, s.internalProviderError("create_connector.persist", err)
 	}
-	s.emitAudit(ctx, "connector.create", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
-		"connector_id": created.ConnectorID,
-		"provider":     provider,
-	})
+
 	return &runtimev1.CreateConnectorResponse{
-		Connector: recordToProto(created),
+		Connector: recordToProto(created), AuditDiagnostic: auditlog.CommittedDiagnostic(err),
 	}, nil
 }
 
@@ -432,19 +440,24 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
-	updated, err := s.store.Update(connectorID, mutations)
-	if err != nil {
+	var updated ConnectorRecord
+	committed, err := s.commitRecorded(ctx, "connector.update", map[string]any{"connector_id": connectorID}, func() error {
+		var writeErr error
+		updated, writeErr = s.store.Update(connectorID, mutations)
+		return writeErr
+	})
+	if !committed {
+		if errors.Is(err, auditlog.ErrUnrecorded) {
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AUDIT_RECORD_UNAVAILABLE)
+		}
 		s.emitAudit(ctx, "connector.update", runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, map[string]any{
 			"connector_id": connectorID,
 		})
 		return nil, s.internalProviderError("update_connector.persist", err)
 	}
 
-	s.emitAudit(ctx, "connector.update", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
-		"connector_id": connectorID,
-	})
 	return &runtimev1.UpdateConnectorResponse{
-		Connector: recordToProto(updated),
+		Connector: recordToProto(updated), AuditDiagnostic: auditlog.CommittedDiagnostic(err),
 	}, nil
 }
 
@@ -483,17 +496,18 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 		}
 	}
 
-	if err := s.store.Delete(connectorID); err != nil {
+	committed, err := s.commitRecorded(ctx, "connector.delete", map[string]any{"connector_id": connectorID}, func() error { return s.store.Delete(connectorID) })
+	if !committed {
+		if errors.Is(err, auditlog.ErrUnrecorded) {
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AUDIT_RECORD_UNAVAILABLE)
+		}
 		s.emitAudit(ctx, "connector.delete", runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, map[string]any{
 			"connector_id": connectorID,
 		})
 		return nil, s.internalProviderError("delete_connector.persist", err)
 	}
 
-	s.emitAudit(ctx, "connector.delete", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
-		"connector_id": connectorID,
-	})
 	return &runtimev1.DeleteConnectorResponse{
-		Ack: &runtimev1.Ack{Ok: true},
+		Ack: &runtimev1.Ack{Ok: true}, AuditDiagnostic: auditlog.CommittedDiagnostic(err),
 	}, nil
 }

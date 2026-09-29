@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { ErrorInfo } from "./common";
 import { ReasonCode } from "./common";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
@@ -85,6 +86,10 @@ export interface AccountSessionSnapshot {
      * @generated from protobuf field: nimi.runtime.v1.AccountProjection account_projection = 5
      */
     accountProjection?: AccountProjection;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ErrorInfo audit_diagnostic = 6
+     */
+    auditDiagnostic?: ErrorInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AccountCaller
@@ -272,6 +277,10 @@ export interface BeginLoginResponse {
      * @generated from protobuf field: bool production_inert = 11
      */
     productionInert: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ErrorInfo audit_diagnostic = 12
+     */
+    auditDiagnostic?: ErrorInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CompleteLoginRequest
@@ -346,6 +355,10 @@ export interface CompleteLoginResponse {
      * @generated from protobuf field: bool production_inert = 6
      */
     productionInert: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ErrorInfo audit_diagnostic = 7
+     */
+    auditDiagnostic?: ErrorInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RequestPresenceVerificationRequest
@@ -500,6 +513,10 @@ export interface LogoutResponse {
      * @generated from protobuf field: bool production_inert = 5
      */
     productionInert: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ErrorInfo audit_diagnostic = 6
+     */
+    auditDiagnostic?: ErrorInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SwitchAccountRequest
@@ -542,6 +559,10 @@ export interface SwitchAccountResponse {
      * @generated from protobuf field: bool production_inert = 6
      */
     productionInert: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ErrorInfo audit_diagnostic = 7
+     */
+    auditDiagnostic?: ErrorInfo;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AccountSessionState
@@ -1100,7 +1121,8 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
             { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AccountSessionState", AccountSessionState, "ACCOUNT_SESSION_STATE_"] },
             { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 4, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
-            { no: 5, name: "account_projection", kind: "message", T: () => AccountProjection }
+            { no: 5, name: "account_projection", kind: "message", T: () => AccountProjection },
+            { no: 6, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo }
         ]);
     }
     create(value?: PartialMessage<AccountSessionSnapshot>): AccountSessionSnapshot {
@@ -1133,6 +1155,9 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
                 case /* nimi.runtime.v1.AccountProjection account_projection */ 5:
                     message.accountProjection = AccountProjection.internalBinaryRead(reader, reader.uint32(), options, message.accountProjection);
                     break;
+                case /* nimi.runtime.v1.ErrorInfo audit_diagnostic */ 6:
+                    message.auditDiagnostic = ErrorInfo.internalBinaryRead(reader, reader.uint32(), options, message.auditDiagnostic);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1160,6 +1185,9 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
         /* nimi.runtime.v1.AccountProjection account_projection = 5; */
         if (message.accountProjection)
             AccountProjection.internalBinaryWrite(message.accountProjection, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ErrorInfo audit_diagnostic = 6; */
+        if (message.auditDiagnostic)
+            ErrorInfo.internalBinaryWrite(message.auditDiagnostic, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1628,7 +1656,8 @@ class BeginLoginResponse$Type extends MessageType<BeginLoginResponse> {
             { no: 8, name: "expires_at", kind: "message", T: () => Timestamp },
             { no: 9, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 10, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
-            { no: 11, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 11, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 12, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo }
         ]);
     }
     create(value?: PartialMessage<BeginLoginResponse>): BeginLoginResponse {
@@ -1685,6 +1714,9 @@ class BeginLoginResponse$Type extends MessageType<BeginLoginResponse> {
                 case /* bool production_inert */ 11:
                     message.productionInert = reader.bool();
                     break;
+                case /* nimi.runtime.v1.ErrorInfo audit_diagnostic */ 12:
+                    message.auditDiagnostic = ErrorInfo.internalBinaryRead(reader, reader.uint32(), options, message.auditDiagnostic);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1730,6 +1762,9 @@ class BeginLoginResponse$Type extends MessageType<BeginLoginResponse> {
         /* bool production_inert = 11; */
         if (message.productionInert !== false)
             writer.tag(11, WireType.Varint).bool(message.productionInert);
+        /* nimi.runtime.v1.ErrorInfo audit_diagnostic = 12; */
+        if (message.auditDiagnostic)
+            ErrorInfo.internalBinaryWrite(message.auditDiagnostic, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1867,7 +1902,8 @@ class CompleteLoginResponse$Type extends MessageType<CompleteLoginResponse> {
             { no: 3, name: "account_projection", kind: "message", T: () => AccountProjection },
             { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 5, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
-            { no: 6, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 6, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo }
         ]);
     }
     create(value?: PartialMessage<CompleteLoginResponse>): CompleteLoginResponse {
@@ -1904,6 +1940,9 @@ class CompleteLoginResponse$Type extends MessageType<CompleteLoginResponse> {
                 case /* bool production_inert */ 6:
                     message.productionInert = reader.bool();
                     break;
+                case /* nimi.runtime.v1.ErrorInfo audit_diagnostic */ 7:
+                    message.auditDiagnostic = ErrorInfo.internalBinaryRead(reader, reader.uint32(), options, message.auditDiagnostic);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1934,6 +1973,9 @@ class CompleteLoginResponse$Type extends MessageType<CompleteLoginResponse> {
         /* bool production_inert = 6; */
         if (message.productionInert !== false)
             writer.tag(6, WireType.Varint).bool(message.productionInert);
+        /* nimi.runtime.v1.ErrorInfo audit_diagnostic = 7; */
+        if (message.auditDiagnostic)
+            ErrorInfo.internalBinaryWrite(message.auditDiagnostic, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2350,7 +2392,8 @@ class LogoutResponse$Type extends MessageType<LogoutResponse> {
             { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AccountSessionState", AccountSessionState, "ACCOUNT_SESSION_STATE_"] },
             { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 4, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
-            { no: 5, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 5, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo }
         ]);
     }
     create(value?: PartialMessage<LogoutResponse>): LogoutResponse {
@@ -2384,6 +2427,9 @@ class LogoutResponse$Type extends MessageType<LogoutResponse> {
                 case /* bool production_inert */ 5:
                     message.productionInert = reader.bool();
                     break;
+                case /* nimi.runtime.v1.ErrorInfo audit_diagnostic */ 6:
+                    message.auditDiagnostic = ErrorInfo.internalBinaryRead(reader, reader.uint32(), options, message.auditDiagnostic);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2411,6 +2457,9 @@ class LogoutResponse$Type extends MessageType<LogoutResponse> {
         /* bool production_inert = 5; */
         if (message.productionInert !== false)
             writer.tag(5, WireType.Varint).bool(message.productionInert);
+        /* nimi.runtime.v1.ErrorInfo audit_diagnostic = 6; */
+        if (message.auditDiagnostic)
+            ErrorInfo.internalBinaryWrite(message.auditDiagnostic, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2484,7 +2533,8 @@ class SwitchAccountResponse$Type extends MessageType<SwitchAccountResponse> {
             { no: 3, name: "account_projection", kind: "message", T: () => AccountProjection },
             { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 5, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
-            { no: 6, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 6, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo }
         ]);
     }
     create(value?: PartialMessage<SwitchAccountResponse>): SwitchAccountResponse {
@@ -2521,6 +2571,9 @@ class SwitchAccountResponse$Type extends MessageType<SwitchAccountResponse> {
                 case /* bool production_inert */ 6:
                     message.productionInert = reader.bool();
                     break;
+                case /* nimi.runtime.v1.ErrorInfo audit_diagnostic */ 7:
+                    message.auditDiagnostic = ErrorInfo.internalBinaryRead(reader, reader.uint32(), options, message.auditDiagnostic);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2551,6 +2604,9 @@ class SwitchAccountResponse$Type extends MessageType<SwitchAccountResponse> {
         /* bool production_inert = 6; */
         if (message.productionInert !== false)
             writer.tag(6, WireType.Varint).bool(message.productionInert);
+        /* nimi.runtime.v1.ErrorInfo audit_diagnostic = 7; */
+        if (message.auditDiagnostic)
+            ErrorInfo.internalBinaryWrite(message.auditDiagnostic, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

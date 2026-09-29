@@ -800,3 +800,164 @@ test('Runtime activation does not reopen admission before Home finishes its prof
   await host.recoverDataRootHandoff();
   assert.equal(gate.isClosed(), false);
 });
+
+function maintenanceReplacementControl(
+  events: string[],
+  activation: { activated: boolean; reasonCode: string; actionHint: string },
+  auditUnrecorded = false,
+): DesktopProductControlTransport {
+  return {
+    machineProductUnary: async (input) => {
+      events.push(input.methodId);
+      const state = JSON.parse(projectionJson('ready_for_use')) as Record<string, unknown>;
+      if (input.methodId === REPLACE_DATA_ROOT) {
+        assert.equal(ReplaceProductControlDataRootRequest.fromBinary(input.requestBytes).targetRoot, '/Users/tester/NimiFresh');
+        state.activation = activation;
+        if (auditUnrecorded) state.auditDiagnostic = { reasonCode: 'AUDIT_RESULT_UNRECORDED', actionHint: 'inspect_runtime_audit' };
+        if (activation.activated) {
+          const dataRoot = (state.record as Record<string, unknown>).dataRoot as Record<string, unknown>;
+          dataRoot.path = '/Users/tester/NimiFresh';
+          dataRoot.rootActivationId = 'rootact_fresh';
+          state.configMutation = {
+            disposition: 'restart_required', reasonCode: 'CONFIG_RESTART_REQUIRED', actionHint: 'request_typed_runtime_restart',
+          };
+          state.rootHandoff = {
+            disposition: 'committed_restart_required', rootActivationId: 'rootact_fresh', actionHint: 'restart_runtime_and_check_sync',
+          };
+        }
+      }
+      return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json: JSON.stringify(state) }));
+    },
+  };
+}
+
+const MAINTENANCE_REPLACE = {
+  command: 'product_control_maintenance_data_root_replace',
+  payload: { payload: { targetRoot: '/Users/tester/NimiFresh' } },
+} as const;
+
+test('maintenance replacement goes straight to the Runtime owner, restarts it and relaunches Home', async () => {
+  const events: string[] = [];
+  const host = createDesktopElectronProductControlHost({
+    control: maintenanceReplacementControl(events, {
+      activated: true, reasonCode: 'DATA_ROOT_REPLACED', actionHint: 'restart_runtime_and_check_sync',
+    }),
+    runtimeLifecycleProfile: 'fixed',
+    runtimeMaintenance: () => true,
+    restartRuntime: async () => { events.push('restart'); },
+    relaunchHome: () => { events.push('relaunch'); },
+    quiesceHostDataRoot: async () => { events.push('quiesce'); },
+    commitHostDataRoot: () => { events.push('commit'); },
+  });
+  const result = await host.commandHandlers.product_control_maintenance_data_root_replace(MAINTENANCE_REPLACE) as {
+    activation?: { activated?: boolean }; maintenanceRestart?: string;
+  };
+  assert.equal(result.activation?.activated, true);
+  assert.equal(result.maintenanceRestart, 'relaunching');
+  // No ordinary handoff: no record pre-read, Host quiesce, or root commit.
+  assert.deepEqual(events, [REPLACE_DATA_ROOT, 'restart', 'relaunch']);
+});
+
+test('maintenance replacement leaves the source Runtime restart to the developer', async () => {
+  const events: string[] = [];
+  const host = createDesktopElectronProductControlHost({
+    control: maintenanceReplacementControl(events, {
+      activated: true, reasonCode: 'DATA_ROOT_REPLACED', actionHint: 'restart_runtime_and_check_sync',
+    }),
+    runtimeLifecycleProfile: 'source',
+    runtimeMaintenance: () => true,
+    restartRuntime: async () => { events.push('restart'); },
+    relaunchHome: () => { events.push('relaunch'); },
+  });
+  const result = await host.commandHandlers.product_control_maintenance_data_root_replace(MAINTENANCE_REPLACE) as {
+    maintenanceRestart?: string;
+  };
+  assert.equal(result.maintenanceRestart, 'source_runtime_restart_required');
+  assert.deepEqual(events, [REPLACE_DATA_ROOT]);
+});
+
+test('a refused maintenance target restarts nothing, and a failed restart keeps Home open', async () => {
+  const events: string[] = [];
+  const refusedHost = createDesktopElectronProductControlHost({
+    control: maintenanceReplacementControl(events, {
+      activated: false, reasonCode: 'DATA_ROOT_NOT_EMPTY', actionHint: 'choose_new_empty_root',
+    }),
+    runtimeLifecycleProfile: 'fixed',
+    runtimeMaintenance: () => true,
+    restartRuntime: async () => { events.push('restart'); },
+    relaunchHome: () => { events.push('relaunch'); },
+  });
+  const refused = await refusedHost.commandHandlers.product_control_maintenance_data_root_replace(MAINTENANCE_REPLACE) as {
+    activation?: { activated?: boolean; reasonCode?: string }; maintenanceRestart?: string;
+  };
+  assert.equal(refused.activation?.reasonCode, 'DATA_ROOT_NOT_EMPTY');
+  assert.equal(refused.maintenanceRestart, undefined);
+  assert.deepEqual(events, [REPLACE_DATA_ROOT]);
+
+  events.length = 0;
+  const failingHost = createDesktopElectronProductControlHost({
+    control: maintenanceReplacementControl(events, {
+      activated: true, reasonCode: 'DATA_ROOT_REPLACED', actionHint: 'restart_runtime_and_check_sync',
+    }),
+    runtimeLifecycleProfile: 'fixed',
+    runtimeMaintenance: () => true,
+    restartRuntime: async () => { events.push('restart'); throw new Error('runtime-service-unavailable'); },
+    relaunchHome: () => { events.push('relaunch'); },
+  });
+  const failed = await failingHost.commandHandlers.product_control_maintenance_data_root_replace(MAINTENANCE_REPLACE) as {
+    maintenanceRestart?: string; error?: string | null;
+  };
+  assert.equal(failed.maintenanceRestart, 'restart_failed');
+  assert.equal(failed.error, 'runtime-service-unavailable');
+  assert.deepEqual(events, [REPLACE_DATA_ROOT, 'restart']);
+});
+
+test('maintenance replacement is refused unless Runtime serves maintenance', async () => {
+  const events: string[] = [];
+  const host = createDesktopElectronProductControlHost({
+    control: maintenanceReplacementControl(events, {
+      activated: true, reasonCode: 'DATA_ROOT_REPLACED', actionHint: 'restart_runtime_and_check_sync',
+    }),
+    runtimeLifecycleProfile: 'fixed',
+    runtimeMaintenance: () => false,
+  });
+  await assert.rejects(
+    host.commandHandlers.product_control_maintenance_data_root_replace(MAINTENANCE_REPLACE),
+    /desktop-runtime-not-in-maintenance/,
+  );
+  assert.deepEqual(events, []);
+});
+
+test('maintenance replacement keeps the committed audit diagnostic visible before Home reopens', async () => {
+  const events: string[] = [];
+  const host = createDesktopElectronProductControlHost({
+    control: maintenanceReplacementControl(events, { activated: true, reasonCode: 'DATA_ROOT_REPLACED', actionHint: 'restart_runtime_and_check_sync' }, true),
+    runtimeLifecycleProfile: 'fixed', runtimeMaintenance: () => true,
+    restartRuntime: async () => { events.push('restart'); }, relaunchHome: () => { events.push('relaunch'); },
+  });
+  const result = await host.commandHandlers.product_control_maintenance_data_root_replace(MAINTENANCE_REPLACE) as { activation?: { activated: boolean }; auditDiagnostic?: { reasonCode: string } };
+  assert.equal(result.activation?.activated, true);
+  assert.equal(result.auditDiagnostic?.reasonCode, 'AUDIT_RESULT_UNRECORDED');
+  assert.deepEqual(events, [REPLACE_DATA_ROOT, 'restart']);
+});
+
+test('Runtime recovery bypasses queued exclusive work but waits for an active exclusive section', async () => {
+  const gate = createDesktopDataRootOperationGate();
+  let releaseLong!: () => void;
+  const long = gate.runShared(() => new Promise<void>(resolve => { releaseLong = resolve; }));
+  await new Promise(resolve => setImmediate(resolve));
+  const events: string[] = [];
+  const queued = gate.runExclusive(async () => { events.push('exclusive'); });
+  await gate.runRecovery(async () => { events.push('restart'); });
+  assert.deepEqual(events, ['restart']);
+  releaseLong(); await long; await queued;
+  let releaseExclusive!: () => void;
+  const exclusive = gate.runExclusive(() => new Promise<void>(resolve => { releaseExclusive = resolve; }));
+  await new Promise(resolve => setImmediate(resolve));
+  gate.close('repair');
+  const recovery = gate.runRecovery(async () => { events.push('recovery'); });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(events, ['restart', 'exclusive']);
+  releaseExclusive(); await exclusive; await recovery;
+  assert.deepEqual(events, ['restart', 'exclusive', 'recovery']);
+});

@@ -38,6 +38,7 @@ pub(super) fn project_account_projection(projection: DesktopAccountProjection) -
 
 pub(super) fn project_account_session_event(event: DesktopAccountSessionEvent) -> JsonValue {
     json!({
+        "auditDiagnostic": event.audit_diagnostic.map(project_account_audit),
         "sequence": event.sequence.to_string(),
         "deliveryKind": event.delivery_kind.as_str(),
         "state": event.state.as_str(),
@@ -50,6 +51,7 @@ pub(super) fn project_account_session_event(event: DesktopAccountSessionEvent) -
 
 pub(super) fn project_account_begin_login(response: DesktopAccountBeginLoginResponse) -> JsonValue {
     json!({
+        "auditDiagnostic": response.audit_diagnostic.map(project_account_audit),
         "accepted": response.accepted,
         "loginAttemptId": response.login_attempt_id,
         "oauthAuthorizationUrl": response.oauth_authorization_url,
@@ -64,6 +66,7 @@ pub(super) fn project_account_begin_login(response: DesktopAccountBeginLoginResp
 
 pub(super) fn project_account_mutation(response: DesktopAccountMutationResponse) -> JsonValue {
     json!({
+        "auditDiagnostic": response.audit_diagnostic.map(project_account_audit),
         "accepted": response.accepted,
         "state": response.state,
         "accountProjection": response.account_projection.map(project_account_projection),
@@ -101,16 +104,31 @@ pub(super) fn project_runtime_service_action(outcome: RuntimeServiceActionOutcom
     })
 }
 
-pub(super) fn project_verified_runtime_service_running() -> JsonValue {
-    json!({
-        "running": true,
-        "managed": true,
-        "state": "running",
-        "releaseVersion": JsonValue::Null,
-        "releasePosture": "non_release",
-        "reasonCode": JsonValue::Null,
-        "retryable": false,
-    })
+/// Projects the typed mode read on the verified channel. A maintenance Runtime
+/// is reachable but never running: it carries its exact refusal reason.
+pub(super) fn project_verified_runtime_service_mode(
+    mode: nimi_shell_protected_local::RuntimeServiceMode,
+) -> JsonValue {
+    match mode.maintenance_reason() {
+        None => json!({
+            "running": true,
+            "managed": true,
+            "state": "running",
+            "releaseVersion": JsonValue::Null,
+            "releasePosture": "non_release",
+            "reasonCode": JsonValue::Null,
+            "retryable": false,
+        }),
+        Some(reason) => json!({
+            "running": false,
+            "managed": true,
+            "state": "maintenance",
+            "releaseVersion": JsonValue::Null,
+            "releasePosture": "non_release",
+            "reasonCode": reason,
+            "retryable": false,
+        }),
+    }
 }
 
 pub(super) fn project_developer_mode_status(
@@ -307,6 +325,25 @@ mod tests {
     use nimi_shell_protected_local::{LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus};
 
     #[test]
+    fn verified_status_never_reports_a_maintenance_runtime_as_running() {
+        let ordinary = project_verified_runtime_service_mode(
+            nimi_shell_protected_local::RuntimeServiceMode::Ordinary,
+        );
+        assert_eq!(ordinary["running"], true);
+        assert_eq!(ordinary["state"], "running");
+        assert!(ordinary["reasonCode"].is_null());
+
+        let maintenance = project_verified_runtime_service_mode(
+            nimi_shell_protected_local::RuntimeServiceMode::MaintenanceStoredDataUnsupported,
+        );
+        assert_eq!(maintenance["running"], false);
+        assert_eq!(maintenance["managed"], true);
+        assert_eq!(maintenance["state"], "maintenance");
+        assert_eq!(maintenance["reasonCode"], "runtime-stored-data-unsupported");
+        assert_eq!(maintenance["retryable"], false);
+    }
+
+    #[test]
     pub(super) fn errors_project_only_admitted_reason_and_retryability() {
         let outcome = NativeJsonOutcome::error(LocalAppOperationError::new(
             LocalAppReasonCode::RuntimeServiceUnavailable,
@@ -389,4 +426,10 @@ mod tests {
         assert_eq!(decode_identifier(&"AB".repeat(32)), None);
         assert_eq!(decode_identifier("short"), None);
     }
+}
+
+pub(super) fn project_account_audit(
+    value: nimi_shell_protected_local::DesktopAccountAuditDiagnostic,
+) -> JsonValue {
+    json!({"reasonCode":value.reason_code,"actionHint":value.action_hint,"message":value.message})
 }

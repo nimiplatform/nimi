@@ -673,6 +673,7 @@ pub async fn desktop_account_session_status() -> NativeJsonOutcome {
             "reasonCode": status.reason_code,
             "accountReasonCode": status.account_reason_code,
             "accountProjection": status.account_projection.map(project_account_projection),
+            "auditDiagnostic": status.audit_diagnostic.map(project_account_audit),
         })),
         Err(error) => {
             clear_desktop_control_on_host_failure(&control, &error).await;
@@ -765,10 +766,13 @@ pub async fn desktop_account_switch_account(
     .await
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r034
 #[napi(js_name = "fixedRuntimeServiceStatus")]
 pub async fn fixed_runtime_service_status() -> NativeJsonOutcome {
     match current_or_open_desktop_control().await {
-        Ok(_) => NativeJsonOutcome::success(project_verified_runtime_service_running()),
+        Ok(control) => NativeJsonOutcome::success(project_verified_runtime_service_mode(
+            control.runtime_service_mode(),
+        )),
         Err(error) => NativeJsonOutcome::host_error(error),
     }
 }
@@ -802,8 +806,10 @@ pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
         feature = "macos-source-local-development",
         feature = "windows-source-local-development"
     )))]
-    if current_or_open_desktop_control().await.is_ok() {
-        return NativeJsonOutcome::success(project_verified_runtime_service_running());
+    if let Ok(control) = current_or_open_desktop_control().await {
+        return NativeJsonOutcome::success(project_verified_runtime_service_mode(
+            control.runtime_service_mode(),
+        ));
     }
     #[cfg(not(any(
         feature = "macos-source-local-development",
@@ -1254,8 +1260,8 @@ async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>
             current.as_ref().cloned()
         };
         if let Some(control) = cached {
-            match control.get_developer_mode_status().await {
-                Ok(_) => return Ok(control),
+            match control.verify_runtime_serving().await {
+                Ok(()) => return Ok(control),
                 Err(error) => {
                     let reconnect = reconnect_available
                         && invalidates_desktop_transport(error.reason_code().as_str());

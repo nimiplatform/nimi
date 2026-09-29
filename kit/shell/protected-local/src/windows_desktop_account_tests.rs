@@ -133,6 +133,7 @@ fn projects_the_initial_zero_sequence_snapshot() {
             reason_code: ACTION_EXECUTED,
             account_reason_code: ACTION_EXECUTED,
             account_projection: None,
+            audit_diagnostic: None,
         }),
         ..Default::default()
     })
@@ -158,6 +159,7 @@ fn rejects_unknown_account_event_enums() {
             reason_code: ACTION_EXECUTED,
             account_reason_code: ACTION_EXECUTED,
             account_projection: None,
+            audit_diagnostic: None,
         }),
         ..Default::default()
     };
@@ -183,6 +185,7 @@ fn rejects_unknown_account_event_enums() {
             reason_code: ACTION_EXECUTED,
             account_reason_code: ACTION_EXECUTED,
             account_projection: None,
+            audit_diagnostic: None,
         }),
         ..Default::default()
     };
@@ -210,6 +213,7 @@ fn projects_only_renderer_safe_account_fields() {
                 realm_environment_id: "realm-1".to_string(),
                 workspace_memberships: Vec::new(),
             }),
+            audit_diagnostic: None,
         }),
     })
     .expect("account projection");
@@ -249,9 +253,23 @@ fn rejects_inert_or_incomplete_account_responses() {
                 reason_code: ACTION_EXECUTED,
                 account_reason_code: ACTION_EXECUTED,
                 account_projection: None,
+                audit_diagnostic: None,
             }),
         },
     ] {
         assert!(project_response(response).is_err());
     }
+}
+
+#[test]
+fn audit_diagnostic_preserves_committed_account_state() {
+ let snapshot = AccountSessionSnapshot {
+  sequence: 1, state: AccountSessionState::Anonymous as i32,
+  reason_code: ACTION_EXECUTED, account_reason_code: ACTION_EXECUTED,
+  account_projection: None,
+  audit_diagnostic: Some(crate::generated::ErrorInfo { reason_code: ReasonCode::AuditResultUnrecorded as i32, action_hint:"inspect_runtime_audit".into(), message:"Change committed.".into() }),
+ };
+ let result = project_snapshot(snapshot).unwrap();
+ assert_eq!(result.state, DesktopAccountSessionState::Anonymous);
+ assert_eq!(result.audit_diagnostic.unwrap().reason_code, ReasonCode::AuditResultUnrecorded as i32);
 }

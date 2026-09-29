@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
@@ -116,10 +117,7 @@ func recordToProto(r ConnectorRecord) *runtimev1.Connector {
 }
 
 // emitAudit writes an audit event for connector operations.
-func (s *Service) emitAudit(ctx context.Context, operation string, reasonCode runtimev1.ReasonCode, payload map[string]any) {
-	if s.audit == nil {
-		return
-	}
+func (s *Service) auditEvent(ctx context.Context, operation string, reasonCode runtimev1.ReasonCode, payload map[string]any) *runtimev1.AuditEventRecord {
 	var payloadStruct *structpb.Struct
 	if len(payload) > 0 {
 		built, err := structpb.NewStruct(payload)
@@ -133,12 +131,36 @@ func (s *Service) emitAudit(ctx context.Context, operation string, reasonCode ru
 	}
 	traceID := strings.TrimSpace(envelope.ParseTraceIDFromContext(ctx))
 	subjectUserID, _ := subjectUserIDFromContext(ctx)
-	s.audit.AppendEvent(&runtimev1.AuditEventRecord{
+	return &runtimev1.AuditEventRecord{
 		Domain:        "runtime.connector",
+		Timestamp:     timestamppb.New(time.Now().UTC()),
 		Operation:     operation,
 		SubjectUserId: subjectUserID,
 		ReasonCode:    reasonCode,
 		TraceId:       traceID,
 		Payload:       payloadStruct,
-	})
+	}
+}
+
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.r001
+func (s *Service) commitRecorded(ctx context.Context, operation string, payload map[string]any, commit func() error) (bool, error) {
+	if s.audit == nil {
+		return false, auditlog.ErrUnrecorded
+	}
+	return s.audit.CommitRecorded(s.auditEvent(ctx, operation, runtimev1.ReasonCode_ACTION_EXECUTED, payload), commit)
+}
+func (s *Service) emitAudit(ctx context.Context, operation string, reason runtimev1.ReasonCode, payload map[string]any) {
+	if s.audit == nil {
+		return
+	}
+	var err error
+	event := s.auditEvent(ctx, operation, reason, payload)
+	if reason == runtimev1.ReasonCode_ACTION_EXECUTED {
+		err = s.audit.AppendEventChecked(event)
+	} else {
+		err = s.audit.AppendRefusal(event)
+	}
+	if err != nil {
+		s.audit.ReportUnrecorded("runtime.connector", operation, err)
+	}
 }

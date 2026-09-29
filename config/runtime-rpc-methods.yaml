@@ -350,6 +350,9 @@ services:
       - name: RequestRuntimeRestart
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart
+      - name: GetRuntimeServiceState
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState
   - name: RuntimeExternalAgentService
     source_rule: K-RPC-026
     methods:

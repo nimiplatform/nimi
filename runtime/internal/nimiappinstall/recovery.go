@@ -72,15 +72,22 @@ func (coordinator *Coordinator) failInstall(
 	if terminalPackagePhase(current.Phase) {
 		return cause
 	}
+	ownerFailure := false
 	if paused && job.SourceClass == localappkernel.SourceClassUserImported {
 		_, err = coordinator.lifecycle.Fail(cleanupContext, current.JobID, current.Phase, "runtime-interrupted")
 	} else if !invalidContent && callerContext != nil && (errors.Is(callerContext.Err(), context.Canceled) || errors.Is(callerContext.Err(), context.DeadlineExceeded)) && current.Cancelable {
 		_, err = coordinator.lifecycle.Cancel(cleanupContext, current.JobID, current.Phase, coordinator.workerCancellationReason(current.JobID))
 	} else {
 		_, err = coordinator.lifecycle.Fail(cleanupContext, current.JobID, current.Phase, installFailureReason(cause))
+		ownerFailure = true
 	}
 	if err != nil {
 		return errors.Join(cause, ErrInstallRecoveryRequired, err)
+	}
+	if ownerFailure {
+		// The owner's terminal refusal is recorded once; a cancellation is the
+		// requester's decision and changes no installed state.
+		coordinator.recordPackageResult(job, cause)
 	}
 	return cause
 }

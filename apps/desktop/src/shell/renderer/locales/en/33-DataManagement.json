@@ -49,5 +49,6 @@
   "clearCacheButton": "Clear Cache",
   "sessionTitle": "Session",
   "sessionBody": "Sign out of your account on this device.",
-  "logOut": "Log Out"
+  "logOut": "Log Out",
+  "dataRootReplacedAuditUnrecorded": "The new data folder is active, but this change could not be saved to the audit log. Do not repeat the replacement. Reopen Nimi to continue; contact support if recording keeps failing."
 }

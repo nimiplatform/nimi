@@ -359,6 +359,7 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
             NimiHostErrorReasonCode::PrincipalUnauthorized
         }
         "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH" => NimiHostErrorReasonCode::RuntimeRestarted,
+        "RUNTIME_STORED_DATA_UNSUPPORTED" => NimiHostErrorReasonCode::RuntimeStoredDataUnsupported,
         "LOCAL_APP_RECORD_NOT_FOUND"
         | "LOCAL_APP_RECORD_TOMBSTONED"
         | "LOCAL_APP_PROVENANCE_UNAVAILABLE" => {

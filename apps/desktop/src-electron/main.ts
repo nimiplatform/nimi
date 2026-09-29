@@ -44,6 +44,7 @@ import {
 } from './local-development-host.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
 import { createDesktopMacOSRuntimeServiceHost } from './macos-runtime-service.js';
+import { readDesktopRuntimeMaintenance, NIMI_RUNTIME_STORED_DATA_UNSUPPORTED } from './runtime-maintenance.js';
 import { createDesktopInstalledAppHost, type DesktopInstalledAppHost } from './installed-app-host.js';
 import {
   DesktopSourceRuntimeUnavailableError,
@@ -211,6 +212,11 @@ let homeRelaunchRequested = false;
 let homeProfileWorkBlocked = false;
 let homeDataRootOperationGate: DesktopDataRootOperationGate | undefined;
 let homeProfileCheckAt = 0;
+// While Runtime serves only its maintenance surface, Home runs no root-bound
+// work; a committed maintenance replacement relaunches Home into the new root.
+let runtimeMaintenance = false;
+let runtimeStartupFailure: string | null = null;
+let maintenanceRelaunchRequested = false;
 // Until startup finished constructing its hosts, a requested relaunch waits
 // for startup's own checkpoint so shutdown sees every host it must dispose.
 let desktopStartupSettled = false;
@@ -285,6 +291,13 @@ async function configureDesktopHomeHostProfile(): Promise<boolean> {
     );
     return false;
   }
+}
+
+function requestDesktopMaintenanceRelaunch(): void {
+  if (maintenanceRelaunchRequested) return;
+  maintenanceRelaunchRequested = true;
+  // Let the renderer receive the reply that started this before Home quits.
+  setTimeout(() => app.quit(), 250);
 }
 
 async function readDesktopHomeProfileScope(): Promise<string> {
@@ -368,7 +381,8 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
     if (SOURCE_PER_USER_RUNTIME_D2) {
-      await requireDesktopSourceRuntime(createNimiElectronDeveloperModeStatusProbe());
+      runtimeMaintenance = await requireDesktopSourceRuntime(createNimiElectronDeveloperModeStatusProbe())
+        === 'maintenance';
     }
     localAssetProtocolHost.registerProtocolHandler();
     appOriginProtocol.register();
@@ -429,16 +443,19 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     }
     if (macOSProductionService) {
       try {
-        if (!await macOSProductionService.prepare(runtimeCommandNames)) {
+        const prepared = await macOSProductionService.prepare(runtimeCommandNames);
+        if (prepared === 'approval-pending') {
           app.quit();
           return;
         }
+        runtimeMaintenance = prepared === 'maintenance';
       }
       catch (error) {
-        dialog.showErrorBox('Nimi Runtime needs repair',
-          `${error instanceof Error ? error.message : String(error)}\nReinstall Nimi, then open it again. Your retained data will be reused.`);
-        app.quit();
-        return;
+        // Home's bootstrap profile and repair UI remain usable. This failure
+        // says nothing about stored-data compatibility or ordinary readiness.
+        runtimeStartupFailure = desktopBootstrapFailureCode(error);
+        homeProfileWorkBlocked = true;
+        process.stderr.write(`[desktop-bootstrap] runtime-start-failed:${runtimeStartupFailure}\n`);
       }
     }
     const runtimeLifecycleHost = macOSProductionService ?? fixedRuntimeLifecycleHost;
@@ -447,6 +464,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     ): Promise<MenuBarRuntimeStatus> => (
       await runtimeLifecycleHost.invoke(command, runtimeCommandNames)
     ) as MenuBarRuntimeStatus;
+    if (!SOURCE_PER_USER_RUNTIME_D2 && !macOSProductionService) {
+      runtimeMaintenance = await readDesktopRuntimeMaintenance(
+        () => invokeRuntimeLifecycle(runtimeCommandNames.status),
+      );
+    }
     const productControlHost = createDesktopElectronProductControlHost({
       operationGate: dataRootOperationGate,
       runtimeLifecycleProfile,
@@ -475,10 +497,22 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         bundledAvatarHost?.resumeDataRoot();
         return true;
       },
+      runtimeMaintenance: () => runtimeMaintenance,
+      relaunchHome: requestDesktopMaintenanceRelaunch,
     });
-    await productControlHost.bootstrapDataRootHandoff();
-    if (homeHostProfile?.mode === 'bootstrap') {
-      await checkDesktopHomeProfileScope(() => productControlHost.resolveHostProfileScope(), 'startup');
+    if (runtimeStartupFailure) {
+      dataRootOperationGate.close(runtimeStartupFailure);
+    } else if (runtimeMaintenance) {
+      // @nimi-authority: rule.nimi.desktop.shell-runtime.r025
+      // The refused root is never handed to Hosts, cleanup, or a Home profile;
+      // only repair commands and the maintenance replacement stay reachable.
+      dataRootOperationGate.close(NIMI_RUNTIME_STORED_DATA_UNSUPPORTED);
+      process.stderr.write(`[desktop-bootstrap] runtime-maintenance:${NIMI_RUNTIME_STORED_DATA_UNSUPPORTED}\n`);
+    } else {
+      await productControlHost.bootstrapDataRootHandoff();
+      if (homeHostProfile?.mode === 'bootstrap') {
+        await checkDesktopHomeProfileScope(() => productControlHost.resolveHostProfileScope(), 'startup');
+      }
     }
     if (homeRelaunchRequested) {
       // Only the launch hosts exist yet; relaunch before building the rest.
@@ -490,7 +524,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         command,
         async (context: Parameters<typeof handler>[0]) => {
           const result = await handler(context);
-          if (homeHostProfile?.mode === 'bootstrap') {
+          if (homeHostProfile?.mode === 'bootstrap' && !runtimeMaintenance && !runtimeStartupFailure) {
             void checkDesktopHomeProfileScope(
               () => productControlHost.resolveHostProfileScope(),
               HOME_PROFILE_REPAIR_COMMANDS.has(command) ? 'user-action' : 'command',
@@ -551,14 +585,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     });
     const rendererLogHost = createDesktopElectronRendererLogHost();
     const restartRuntimeFromMenu = async (): Promise<MenuBarRuntimeStatus> => {
+      const status = await dataRootOperationGate.runRecovery(() => invokeRuntimeLifecycle(runtimeCommandNames.restart));
       if (dataRootOperationGate.isClosed()) {
-        const status = await invokeRuntimeLifecycle(runtimeCommandNames.restart);
         await productControlHost.recoverDataRootHandoff();
-        return status;
       }
-      // Restart waits only for exclusive root, cleanup and launch work; a call
-      // stuck on the Runtime being restarted must not hold it back.
-      return dataRootOperationGate.runShared(() => invokeRuntimeLifecycle(runtimeCommandNames.restart));
+      return status;
     };
     menuBarHost = createDesktopElectronMenuBarHost({
       electron: { Menu, Tray },
@@ -708,12 +739,26 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           if (!resolve) throw new Error('Desktop Agent reference resolution is unavailable.');
           return resolve({ localAgentRef: payload.localAgentRef });
         },
+        desktop_runtime_maintenance_relaunch: () => {
+          if (!runtimeMaintenance) throw new Error('desktop-runtime-not-in-maintenance');
+          requestDesktopMaintenanceRelaunch();
+          return { requested: true };
+        },
         desktop_home_profile_status_get: () => ({
           mode: homeHostProfile?.mode ?? 'bootstrap',
           workAllowed: normalHomeWorkAllowed(),
           relaunchRequested: homeRelaunchRequested,
+          startupFailure: runtimeStartupFailure,
         }),
         desktop_home_profile_retry: async () => {
+          if (runtimeStartupFailure && macOSProductionService) {
+            const prepared = await macOSProductionService.prepare(runtimeCommandNames);
+            if (prepared === 'approval-pending') { app.quit(); return { requested: true }; }
+            runtimeMaintenance = prepared === 'maintenance';
+            runtimeStartupFailure = null;
+            requestDesktopMaintenanceRelaunch();
+            return { requested: true };
+          }
           if (dataRootOperationGate.isClosed()) {
             await productControlHost.commandHandlers.product_control_check_sync_start({
               command: 'product_control_check_sync_start', payload: {},
@@ -896,6 +941,20 @@ async function finishDesktopHomeProfileBeforeExit(): Promise<void> {
       releaseDesktopHomeBootstrapSlot(homeHostProfile.profileRoot),
       new Promise((resolve) => setTimeout(resolve, 1_000)),
     ]);
+  }
+  if (maintenanceRelaunchRequested) {
+    // A fresh Home reads the committed root from Runtime like any other start,
+    // so this relaunch carries no Home-profile relaunch marker.
+    homeTemporaryEnvironment?.restore();
+    if (SOURCE_PER_USER_RUNTIME_D2) {
+      app.exit(HOME_PROFILE_RELAUNCH_EXIT_CODE);
+      return;
+    }
+    app.relaunch({
+      args: process.argv.slice(1).filter((argument) => argument !== HOME_PROFILE_RELAUNCH_ARGUMENT),
+    });
+    app.quit();
+    return;
   }
   if (!homeRelaunchRequested) {
     app.quit();

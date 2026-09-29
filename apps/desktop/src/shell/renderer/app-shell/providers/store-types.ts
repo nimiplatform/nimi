@@ -34,12 +34,21 @@ export type AuthStatus =
   | 'logging-out'
   | 'unavailable';
 
+export type SuspendedAgentSelection = {
+  readonly accountId: string;
+  readonly agentTarget: SelectedTargetBySource['agent'];
+  readonly agentThread: LastSelectedThreadByMode['agent'];
+  readonly conversationSelection: AgentConversationSelection;
+  readonly conversationTargetByHandle: Record<string, AgentLocalTargetSnapshot>;
+};
+
 export type RuntimeAccountAuthProjection = {
   status: Exclude<AuthStatus, 'bootstrapping'>;
   sequence: string;
   reasonCode: number;
   accountReasonCode: number;
   user: Record<string, unknown> | null;
+  failureDetail?: string;
 };
 export type AppTab =
   | 'home'
@@ -87,6 +96,9 @@ export type RuntimeFieldMap = {
 export type AppStoreState = {
   bootstrapReady: boolean;
   bootstrapError: string | null;
+  // The typed reason while Runtime serves only its maintenance surface
+  // because an owner refused the stored data in the selected root.
+  runtimeMaintenance: string | null;
   runtimeDefaults: RuntimeDefaults | null;
   auth: {
     status: AuthStatus;
@@ -94,6 +106,8 @@ export type AppStoreState = {
     sequence: string;
     reasonCode: number;
     accountReasonCode: number;
+    /** Why the account could not be confirmed, while it is unavailable. */
+    failureDetail?: string;
   };
   runtimeFields: RuntimeFieldMap;
   activeTab: AppTab;
@@ -107,6 +121,12 @@ export type AppStoreState = {
   nimiConversationSelection: NimiConversationSelection;
   agentConversationSelection: AgentConversationSelection;
   agentConversationTargetByHandle: Record<string, AgentLocalTargetSnapshot>;
+  /**
+   * The partner and conversation that were open when Runtime stopped proving
+   * the account. They stay hidden while it is unavailable and come back only
+   * when the same account is confirmed again.
+   */
+  suspendedAgentSelection: SuspendedAgentSelection | null;
   pendingAgentComposerPrefill: AgentComposerPrefill | null;
   agentComposerPrefillSerial: number;
   /**
@@ -139,6 +159,7 @@ export type AppStoreState = {
   setOfflineTier: (tier: OfflineTier) => void;
   setBootstrapReady: (ready: boolean) => void;
   setBootstrapError: (message: string | null) => void;
+  setRuntimeMaintenance: (reasonCode: string | null) => void;
   setRuntimeDefaults: (defaults: RuntimeDefaults) => void;
   setAuthBootstrapping: () => void;
   applyRuntimeAccountProjection: (projection: RuntimeAccountAuthProjection) => void;

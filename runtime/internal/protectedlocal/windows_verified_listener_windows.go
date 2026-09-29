@@ -61,6 +61,7 @@ func OpenWindowsVerifiedDesktopListener(ctx context.Context, state *WindowsRunti
 	}
 
 	listener, err := newWindowsVerifiedDesktopListener(ctx, windowsVerifiedDesktopListenerOptions{
+		rejections:                &state.peerRejections,
 		initialPipe:               state.desktopPipe,
 		runtimeProcess:            state.process,
 		bootEpoch:                 state.bootEpoch,
@@ -79,6 +80,7 @@ func OpenWindowsVerifiedDesktopListener(ctx context.Context, state *WindowsRunti
 }
 
 type windowsVerifiedDesktopListenerOptions struct {
+	rejections                *peerRejectionSink
 	initialPipe               *WindowsDesktopPipeInstance
 	runtimeProcess            WindowsRuntimeProcess
 	bootEpoch                 Identifier
@@ -93,6 +95,7 @@ type windowsVerifiedDesktopListener struct {
 	cancel context.CancelFunc
 
 	name                      string
+	rejections                *peerRejectionSink
 	runtimeProcess            ProcessTuple
 	bootEpoch                 Identifier
 	verifier                  WindowsExecutableTrustVerifier
@@ -145,6 +148,7 @@ func newWindowsVerifiedDesktopListener(ctx context.Context, options windowsVerif
 		ctx:                       listenerCtx,
 		cancel:                    cancel,
 		name:                      name,
+		rejections:                options.rejections,
 		runtimeProcess:            options.runtimeProcess.tuple,
 		bootEpoch:                 options.bootEpoch,
 		verifier:                  options.verifier,
@@ -176,6 +180,7 @@ func (listener *windowsVerifiedDesktopListener) Accept() (net.Conn, error) {
 		client, liveness, err := nativeConnection.verifyAndBindClientProcess(listener.ctx, listener.verifier, listener.expectedDesktopTrustSetID)
 		if err != nil {
 			reportWindowsPeerRejection(err)
+			listener.rejections.report(PeerRejectionTransportDesktop, "desktop-process", err)
 			_ = nativeConnection.Close()
 			listener.discardPipe(pipe)
 			if listener.isClosed() {
@@ -186,6 +191,7 @@ func (listener *windowsVerifiedDesktopListener) Accept() (net.Conn, error) {
 		raw, err := nativeConnection.NetConn()
 		if err != nil {
 			reportWindowsPeerRejection(err)
+			listener.rejections.report(PeerRejectionTransportDesktop, "desktop-pipe", err)
 			_ = liveness.Close()
 			_ = nativeConnection.Close()
 			listener.discardPipe(pipe)
@@ -217,6 +223,7 @@ func (listener *windowsVerifiedDesktopListener) Accept() (net.Conn, error) {
 			TranscriptNonce:    transcriptNonce,
 		}}, listener.random)
 		if err != nil {
+			listener.rejections.report(PeerRejectionTransportDesktop, "desktop-connection", err)
 			_ = raw.Close()
 			_ = nativeConnection.Close()
 			listener.discardPipe(pipe)

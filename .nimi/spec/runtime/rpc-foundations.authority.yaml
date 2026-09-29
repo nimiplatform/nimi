@@ -38,9 +38,9 @@ units:
     kind: rule
     title: Audit follows owner actions
     modality: must
-    statement: Security-relevant authentication, authorization, credential, lifecycle, execution, resource, and protected host actions record an owner-attributed result with correlation and time.
+    statement: Security-relevant authentication, authorization, credential, lifecycle, execution, resource, and protected host actions record an owner-attributed result with correlation and time, never more than one success result per action; a sensitive mutation committed in the Runtime persistence store records its result in the same transaction, and a sensitive mutation committed elsewhere records its result with that commit before the owner reports success.
     condition: Whenever an auditable Runtime action succeeds or fails.
-    failure: Reject unaudited sensitive mutation and do not replace the owner action with evidence-only success.
+    failure: Reject a sensitive mutation whose result cannot be recorded before its effect commits with AUDIT_RECORD_UNAVAILABLE and do not replace the owner action with evidence-only success; when only the record fails after the effect committed, report the committed effect truthfully and surface the unrecorded result as the typed owner diagnostic AUDIT_RESULT_UNRECORDED without changing the committed effect or inviting replay.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.audit-plane
@@ -58,7 +58,7 @@ units:
     kind: rule
     title: Audit stores are bounded
     modality: must
-    statement: Runtime audit and diagnostic storage applies owner-approved retention, access control, and resource bounds and never becomes an unbounded evidence-completeness system.
+    statement: Runtime audit and diagnostic storage applies owner-approved retention, access control, and resource bounds and never becomes an unbounded evidence-completeness system; the audit plane persists redacted records in the Runtime persistence store under a record-count bound and an encoded-size bound with oldest-first eviction, and identical refusals within a bounded window share one record that counts them.
     condition: Whenever audit or diagnostic records are retained or queried.
     failure: Enforce the bound and preserve the product operation's truthful result.
     relations:

@@ -283,3 +283,10 @@ function hasReasonCode(reasonCode: string): (error: unknown) => boolean {
     return true;
   };
 }
+
+test('committed replacement audit diagnostics survive projection parsing and reject unknown values', () => {
+  const raw = JSON.parse(productControlEnvelope('ready_for_use').json);
+  const auditDiagnostic = { reasonCode: 'AUDIT_RESULT_UNRECORDED', actionHint: 'inspect_runtime_audit' };
+  assert.deepEqual(parseNimiProductControlRecordProjection({ ...raw, auditDiagnostic }).auditDiagnostic, auditDiagnostic);
+  assert.throws(() => parseNimiProductControlRecordProjection({ ...raw, auditDiagnostic: { ...auditDiagnostic, reasonCode: 'OK' } }), /diagnostic is invalid/);
+});

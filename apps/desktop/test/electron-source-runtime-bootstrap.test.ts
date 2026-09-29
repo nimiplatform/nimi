@@ -69,3 +69,19 @@ test('Desktop source bootstrap fails closed and points only to the independent R
   assert.match(message, /pnpm dev:runtime/u);
   assert.doesNotMatch(message, /elevat|install|repair|service/iu);
 });
+
+test('Desktop source bootstrap continues to recovery when Runtime refused its stored data', async () => {
+  let probes = 0;
+  const outcome = await requireDesktopSourceRuntime({
+    probe: async () => {
+      probes += 1;
+      throw Object.assign(new Error('runtime-stored-data-unsupported'), {
+        reasonCode: 'runtime-stored-data-unsupported',
+        details: { retryable: false },
+      });
+    },
+  }, { retryDelaysMs: [10, 20], sleep: async () => undefined });
+  assert.equal(outcome, 'maintenance');
+  assert.equal(probes, 1, 'a typed refusal is not retried as a transport failure');
+  assert.equal(await requireDesktopSourceRuntime({ probe: async () => ({ enabled: true }) }), 'ready');
+});

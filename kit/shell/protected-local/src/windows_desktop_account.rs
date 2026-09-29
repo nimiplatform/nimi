@@ -11,13 +11,13 @@ use crate::generated::{
 };
 use crate::grpc_status::host_error_from_status;
 use crate::{
-    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
-    DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse, DesktopAccountProjection,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
-    DesktopAccountSessionDeliveryKind, DesktopAccountSessionEvent,
-    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
-    DesktopAccountSessionState, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
-    NimiHostError, NimiHostErrorReasonCode,
+    DesktopAccountActionRequest, DesktopAccountAuditDiagnostic, DesktopAccountBeginLoginRequest,
+    DesktopAccountBeginLoginResponse, DesktopAccountCompleteLoginRequest,
+    DesktopAccountMutationResponse, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
+    DesktopAccountRealmUnaryResponse, DesktopAccountSessionDeliveryKind,
+    DesktopAccountSessionEvent, DesktopAccountSessionEventReceiver,
+    DesktopAccountSessionEventsRequest, DesktopAccountSessionState, DesktopAccountSessionStatus,
+    DesktopAccountSessionStatusRequest, NimiHostError, NimiHostErrorReasonCode,
 };
 
 const DESKTOP_ACCOUNT_SOURCE_HOST: &str = "protected-local-desktop-account-host";
@@ -150,6 +150,7 @@ pub(crate) async fn begin_login(
         reason_code: response.reason_code,
         account_reason_code: response.account_reason_code,
         production_inert: response.production_inert,
+        audit_diagnostic: project_audit_diagnostic(response.audit_diagnostic)?,
     })
 }
 
@@ -184,6 +185,7 @@ pub(crate) async fn complete_login(
         response.reason_code,
         response.account_reason_code,
         response.production_inert,
+        response.audit_diagnostic,
     )?;
     if projected.accepted
         && (projected.state != AccountSessionState::Authenticated as i32
@@ -267,6 +269,7 @@ pub(crate) async fn logout(
         response.reason_code,
         response.account_reason_code,
         response.production_inert,
+        response.audit_diagnostic,
     )?;
     if projected.accepted && projected.state != AccountSessionState::Anonymous as i32 {
         return Err(untrusted());
@@ -295,6 +298,7 @@ pub(crate) async fn switch_account(
         response.reason_code,
         response.account_reason_code,
         response.production_inert,
+        response.audit_diagnostic,
     )?;
     if projected.accepted
         && (projected.state != AccountSessionState::Anonymous as i32
@@ -374,6 +378,7 @@ fn project_mutation(
     reason_code: i32,
     account_reason_code: i32,
     production_inert: bool,
+    audit_diagnostic: Option<crate::generated::ErrorInfo>,
 ) -> Result<DesktopAccountMutationResponse, NimiHostError> {
     validate_reason_codes(reason_code, account_reason_code)?;
     let state = validate_account_session_state(state)?;
@@ -393,6 +398,7 @@ fn project_mutation(
         reason_code,
         account_reason_code,
         production_inert,
+        audit_diagnostic: project_audit_diagnostic(audit_diagnostic)?,
     })
 }
 
@@ -491,6 +497,7 @@ fn project_snapshot(
         reason_code: snapshot.reason_code,
         account_reason_code: snapshot.account_reason_code,
         account_projection,
+        audit_diagnostic: project_audit_diagnostic(snapshot.audit_diagnostic)?,
     })
 }
 
@@ -524,6 +531,7 @@ fn project_event(event: AccountSessionEvent) -> Result<DesktopAccountSessionEven
         account_reason_code: status.account_reason_code,
         account_projection: status.account_projection,
         replay_truncated: event.replay_truncated,
+        audit_diagnostic: status.audit_diagnostic,
     })
 }
 
@@ -639,3 +647,23 @@ fn unavailable() -> NimiHostError {
 #[cfg(test)]
 #[path = "windows_desktop_account_tests.rs"]
 mod tests;
+
+fn project_audit_diagnostic(
+    value: Option<crate::generated::ErrorInfo>,
+) -> Result<Option<DesktopAccountAuditDiagnostic>, NimiHostError> {
+    value
+        .map(|value| {
+            if value.reason_code != crate::generated::ReasonCode::AuditResultUnrecorded as i32
+                || value.action_hint != "inspect_runtime_audit"
+                || value.message.len() > 1024
+            {
+                return Err(untrusted());
+            }
+            Ok(DesktopAccountAuditDiagnostic {
+                reason_code: value.reason_code,
+                action_hint: value.action_hint,
+                message: value.message,
+            })
+        })
+        .transpose()
+}

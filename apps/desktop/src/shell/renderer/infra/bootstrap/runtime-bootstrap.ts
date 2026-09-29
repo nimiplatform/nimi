@@ -33,6 +33,7 @@ import {
 } from '../sdk/desktop-nimi-client-session';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
 import { retrySourceRuntimeTransport } from '../../../shared/source-runtime-retry';
+import { RUNTIME_STORED_DATA_UNSUPPORTED } from '../../../shared/runtime-maintenance';
 
 
 let bootstrapPromise: Promise<void> | null = null;
@@ -208,6 +209,25 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
         },
       },
     );
+    // @nimi-authority: rule.nimi.desktop.shell-runtime.r025
+    // A Runtime that refused its stored data serves only its maintenance
+    // surface: Home shows the startup recovery page and opens no account,
+    // Realm session, or other owner work against it.
+    if (daemonStatus.lastError === RUNTIME_STORED_DATA_UNSUPPORTED) {
+      getOfflineCoordinator().markRuntimeReachability('unreachable');
+      lifecycle.setRuntimeMaintenance(RUNTIME_STORED_DATA_UNSUPPORTED);
+      lifecycle.setBootstrapError(null);
+      lifecycle.setBootstrapReady(true);
+      logRendererEvent({
+        level: 'warn',
+        area: 'renderer-bootstrap',
+        message: 'phase:runtime-maintenance',
+        flowId,
+        details: { reasonCode: RUNTIME_STORED_DATA_UNSUPPORTED },
+      });
+      return;
+    }
+    lifecycle.setRuntimeMaintenance(null);
     let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
     if (desktopBridge.hasElectronInvoke() && runtimeUnavailable) {
       try {
@@ -424,7 +444,7 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
     const message = safeBootstrapErrorMessage(failure);
     lifecycle.setBootstrapError(message);
     lifecycle.setBootstrapReady(false);
-    applyRuntimeAccountUnavailableProjection(lifecycle);
+    applyRuntimeAccountUnavailableProjection(lifecycle, message);
     logRendererEvent({
       level: 'error',
       area: 'renderer-bootstrap',

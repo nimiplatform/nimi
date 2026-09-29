@@ -28,6 +28,8 @@ type WindowsRuntimeSecurityState struct {
 	ownerIdentity          windowsSourceProcessIdentity
 	expectedDesktopPath    string
 
+	peerRejections peerRejectionSink
+
 	transportMu       sync.Mutex
 	desktopTransport  interface{ Close() error }
 	localAppTransport interface{ Close() error }
@@ -35,6 +37,14 @@ type WindowsRuntimeSecurityState struct {
 
 	closeOnce sync.Once
 	closeErr  error
+}
+
+// SetPeerRejectionObserver installs the Runtime owner that records processes
+// the verified native listeners refuse.
+func (state *WindowsRuntimeSecurityState) SetPeerRejectionObserver(observer PeerRejectionObserver) {
+	if state != nil {
+		state.peerRejections.set(observer)
+	}
 }
 
 type windowsSourceProcessIdentity struct {

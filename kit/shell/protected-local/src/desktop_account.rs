@@ -1,3 +1,11 @@
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopAccountAuditDiagnostic {
+    pub reason_code: i32,
+    pub action_hint: String,
+    pub message: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DesktopAccountSessionStatusRequest {
     pub app_id: String,
@@ -29,6 +37,7 @@ pub struct DesktopAccountBeginLoginResponse {
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub production_inert: bool,
+    pub audit_diagnostic: Option<DesktopAccountAuditDiagnostic>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -49,6 +58,7 @@ pub struct DesktopAccountMutationResponse {
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub production_inert: bool,
+    pub audit_diagnostic: Option<DesktopAccountAuditDiagnostic>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -135,6 +145,7 @@ pub struct DesktopAccountSessionStatus {
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub account_projection: Option<DesktopAccountProjection>,
+    pub audit_diagnostic: Option<DesktopAccountAuditDiagnostic>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -146,6 +157,7 @@ pub struct DesktopAccountSessionEvent {
     pub account_reason_code: i32,
     pub account_projection: Option<DesktopAccountProjection>,
     pub replay_truncated: bool,
+    pub audit_diagnostic: Option<DesktopAccountAuditDiagnostic>,
 }
 
 pub type DesktopAccountSessionEventReceiver =

@@ -1,16 +1,18 @@
-import { Suspense, lazy, useState, useEffect, type ReactNode, type MouseEvent } from 'react';
+import { Suspense, lazy, useState, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AmbientBackground, Surface } from '@nimiplatform/kit/ui';
 import { projectNimiProductControlAdmission, type NimiProductControlState } from '@nimiplatform/sdk/runtime';
 import { useAppStore, type AuthStatus } from '../providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { logoutAndClearSession, useLogoutSessionDependencies } from '../../features/auth/logout';
-import bootstrapLogoImage from '../../assets/logo.png';
 import { RuntimeLoadingScreen } from './runtime-loading-screen';
 import { SupportDegradedEntry } from '../../features/support/support-degraded-entry.js';
+import { AmbientBackground } from '@nimiplatform/kit/ui';
+import { DesktopRecoveryActions, SharedStatusShell } from './status-shell';
+import { RuntimeMaintenanceRecoveryScreen } from './runtime-maintenance-recovery';
+import { retryRuntimeAccountConnectionNow } from '../../infra/bootstrap/auth-state-watcher.js';
 import type { DesktopHomeProfileStatus } from '../../bridge/runtime-bridge/product-control.js';
 
 const LoginPage = lazy(async () => {
@@ -28,87 +30,33 @@ const FirstRunGatePanel = lazy(async () => {
   return { default: mod.FirstRunGatePanel };
 });
 
-function NimiLogoMark({ className = 'h-12 w-12' }: { className?: string }) {
-  return (
-    <img src={bootstrapLogoImage} alt="" className={`${className} object-contain`} aria-hidden="true" />
-  );
-}
-
-const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
-
-function SharedStatusShell(props: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-  children?: ReactNode;
-}) {
-  const bindings = useDesktopRendererBindings();
-
-  const onDragRegionMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    if (!bindings.app.projection.titlebarDragEnabled()) return;
-    if (event.button !== 0) return;
-    if (event.detail > 1) return;
-    if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;
-    void bindings.app.commands.startWindowDrag().catch(() => {
-      // no-op
-    });
-  };
-
-  return (
-    <AmbientBackground
-      variant="mesh"
-      className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]"
-    >
-      <div
-        aria-hidden
-        className="absolute inset-x-0 top-0 z-20 h-8"
-        onMouseDown={onDragRegionMouseDown}
-      />
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-6">
-        <Surface
-          as="section"
-          tone="panel"
-          material="glass-regular"
-          padding="none"
-          className="w-full max-w-[420px] rounded-2xl px-6 py-7 sm:px-7 sm:py-8"
-        >
-          <div className="flex flex-col items-center text-center">
-            <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)]">
-              <NimiLogoMark className="h-10 w-10" />
-            </div>
-            <div className="mb-3 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,var(--nimi-surface-card))] bg-[var(--nimi-surface-active)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--nimi-action-primary-bg-hover)]">
-              {props.eyebrow}
-            </div>
-            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[var(--nimi-text-primary)]">
-              {props.title}
-            </h1>
-            {props.description ? (
-              <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[var(--nimi-text-secondary)]">
-                {props.description}
-              </p>
-            ) : null}
-            {props.children}
-          </div>
-        </Surface>
-      </div>
-    </AmbientBackground>
-  );
-}
-
-function BootstrapErrorScreen({ message }: { message: string }) {
+function BootstrapErrorScreen({ message, retryRuntimeService = false }: { message: string; retryRuntimeService?: boolean }) {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const [retrying, setRetrying] = useState(false);
+  const [detail, setDetail] = useState(message);
+  const retry = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      if (retryRuntimeService) await bindings.app.commands.firstRun.retryHomeProfile();
+      else await bindings.app.commands.reloadApplication();
+    } catch (error) { setDetail(error instanceof Error ? error.message : String(error)); }
+    finally { setRetrying(false); }
+  };
   return (
     <SharedStatusShell
-      eyebrow="Nimi Runtime"
+      eyebrow="Nimi"
       title={t('Bootstrap.startFailedTitle')}
-      description={message}
+      description={t('Bootstrap.startFailedDescription')}
     >
-      <div
-        data-testid={E2E_IDS.appBootstrapErrorScreen}
-        className="mt-8 rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,white)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,white)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]"
-      >
-        {t('Bootstrap.rendererEntryFailed')}
-      </div>
+      <DesktopRecoveryActions
+        testId={E2E_IDS.appBootstrapErrorScreen}
+        retryLabel={t('Bootstrap.retryStart')}
+        onRetry={() => { void retry(); }}
+        retrying={retrying}
+        technicalDetail={detail}
+      />
     </SharedStatusShell>
   );
 }
@@ -454,34 +402,65 @@ function DesktopAdmissionFailedScreen(props: {
 
 function DesktopAccountUnavailableScreen() {
   const { t } = useTranslation();
-  const bindings = useDesktopRendererBindings();
+  const failureDetail = useAppStore((state) => state.auth.failureDetail);
   return (
     <SharedStatusShell
-      eyebrow="Nimi Runtime"
-      title={t('Auth.runtimeAccountUnavailableTitle', {
-        defaultValue: 'Account service is unavailable',
-      })}
-      description={t('Auth.runtimeAccountUnavailableDescription', {
-        defaultValue:
-          'Nimi Runtime is not providing a trusted account session. Repair or restart Runtime, then retry. Your account has not been treated as signed out.',
-      })}
+      eyebrow="Nimi"
+      title={t('Auth.runtimeAccountUnavailableTitle')}
+      description={t('Auth.runtimeAccountUnavailableDescription')}
     >
-      <button
-        type="button"
-        data-testid="desktop-account-unavailable-retry"
-        onClick={() => bindings.app.commands.reloadApplication()}
-        className="mt-8 inline-flex h-10 min-w-36 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
-      >
-        {t('Common.retry', { defaultValue: 'Retry' })}
-      </button>
+      <DesktopRecoveryActions
+        testId="desktop-account-unavailable"
+        status={t('Auth.runtimeAccountReconnecting')}
+        retryLabel={t('Auth.runtimeAccountRetryNow')}
+        onRetry={retryRuntimeAccountConnectionNow}
+        technicalDetail={failureDetail}
+      />
     </SharedStatusShell>
+  );
+}
+
+// Matches the bootstrap watchdog: past this, the loading screen says Nimi is
+// still starting and offers a reload and Support instead of reporting failure.
+const DESKTOP_SLOW_START_MS = 25_000;
+
+function DesktopBootstrapLoadingScreen() {
+  const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  return (
+    <RuntimeLoadingScreen
+      slowAfterMs={DESKTOP_SLOW_START_MS}
+      slowActions={(
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            data-testid="runtime-loading-slow-reload"
+            onClick={() => { void bindings.app.commands.reloadApplication(); }}
+            className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 text-xs font-semibold text-[var(--nimi-text-primary)] transition-colors hover:bg-[var(--nimi-surface-active)]"
+          >
+            {t('Bootstrap.retryStart')}
+          </button>
+          <SupportDegradedEntry />
+        </div>
+      )}
+    />
   );
 }
 
 export function AppRoutes() {
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
+  const runtimeMaintenance = useAppStore((state) => state.runtimeMaintenance);
   const authStatus = useAppStore((state) => state.auth.status);
+  const bindings = useDesktopRendererBindings();
+  const [startupFailure, setStartupFailure] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    void bindings.app.commands.firstRun.getHomeProfileStatus()
+      .then(status => { if (active) setStartupFailure(status.startupFailure ?? null); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [bindings]);
 
   // Single post-login handoff: the user-agent leaves /login exactly once when
   // the renderer-store flips to authenticated. Doing this here (instead of
@@ -497,8 +476,16 @@ export function AppRoutes() {
     }
   }, [authStatus, location.pathname, navigate]);
 
+  if (startupFailure) return <BootstrapErrorScreen message={startupFailure} retryRuntimeService />;
+
   if (!bootstrapReady && !bootstrapError) {
-    return <RuntimeLoadingScreen />;
+    return <DesktopBootstrapLoadingScreen />;
+  }
+
+  // The owner's typed refusal outranks every other start state: Runtime
+  // serves nothing else, and this page is the way forward (shell-runtime r025).
+  if (runtimeMaintenance) {
+    return <RuntimeMaintenanceRecoveryScreen reasonCode={runtimeMaintenance} />;
   }
 
   if (bootstrapError) {

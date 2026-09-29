@@ -5,6 +5,7 @@ import type { NimiElectronHostCommandPolicy } from '@nimiplatform/kit/shell/elec
 // relaunch. This is product availability, not an OS sandbox or new permission.
 const REPAIR_COMMANDS: ReadonlySet<string> = new Set([
   'desktop_home_profile_status_get', 'desktop_home_profile_retry',
+  'desktop_runtime_maintenance_relaunch',
   'runtime_account_session_status', 'runtime_account_session_events_open',
   'runtime_account_session_events_close', 'runtime_account_begin_login',
   'runtime_account_complete_login', 'runtime_account_logout', 'runtime_account_switch_account',

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -51,7 +53,11 @@ type Registrations interface {
 	DescribeConsumer(context.Context, string) (Consumer, bool, error)
 }
 type Options struct {
-	Backend       Backend
+	Backend Backend
+	// Audit must persist in Backend so committed mutations and their records
+	// share one transaction.
+	Audit         *auditlog.Store
+	Logger        *slog.Logger
 	Secrets       connector.SecretStore
 	Revalidator   Revalidator
 	Registrations Registrations
@@ -94,6 +100,8 @@ type provider struct {
 type Service struct {
 	runtimev1.UnimplementedRuntimeIntegrationServiceServer
 	backend       Backend
+	audit         *auditlog.Store
+	logger        *slog.Logger
 	secrets       connector.SecretStore
 	revalidator   Revalidator
 	registrations Registrations
@@ -117,12 +125,19 @@ func New(o Options) (*Service, error) {
 	if o.Backend == nil {
 		return nil, errors.New("integration: persistence required")
 	}
+	if o.Audit == nil || !o.Audit.PersistsIn(o.Backend) {
+		return nil, errors.New("integration: audit store must persist in the Integration backend")
+	}
+	logger := o.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
 	client := o.HTTPClient
 	if client == nil {
 		client = &http.Client{Timeout: 90 * time.Second}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &Service{backend: o.Backend, secrets: o.Secrets, revalidator: o.Revalidator, registrations: o.Registrations, desktop: o.DesktopTransport, http: client, ctx: ctx, cancel: cancel, providers: map[string]*provider{}, calls: map[string]*invocation{}, receivers: map[string]*telegramReceiver{}, closeDone: make(chan struct{})}
+	s := &Service{backend: o.Backend, audit: o.Audit, logger: logger, secrets: o.Secrets, revalidator: o.Revalidator, registrations: o.Registrations, desktop: o.DesktopTransport, http: client, ctx: ctx, cancel: cancel, providers: map[string]*provider{}, calls: map[string]*invocation{}, receivers: map[string]*telegramReceiver{}, closeDone: make(chan struct{})}
 	// A new Runtime does not resume any previously accepted operation.
 	if _, err := s.backend.DB().ExecContext(ctx, `UPDATE runtime_integration_call SET status='unconfirmed', error_code='EXECUTOR_RESTARTED' WHERE status='accepted'`); err != nil {
 		cancel()
@@ -334,7 +349,7 @@ func (s *Service) InvokeIntegrationCall(ctx context.Context, req *runtimev1.Invo
 	}
 	now := timestamppb.Now()
 	fact := &runtimev1.IntegrationCall{CallId: "ic_" + ulid.Make().String(), TargetRef: t.Public.TargetRef, Operation: op.Name, Status: "accepted", ConsumerDisplayName: consumerName, TargetDisplayName: t.Public.DisplayName, AccountLabel: t.Public.AccountLabel, CreatedAt: now, UpdatedAt: now}
-	if err := s.saveFact(ctx, d, fact); err != nil {
+	if err := s.saveFact(ctx, d, fact, nil); err != nil {
 		return nil, failure(codes.Unavailable, "INTEGRATION_CALL_RECORD_UNAVAILABLE")
 	}
 	execCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
@@ -412,10 +427,10 @@ func (s *Service) run(c *invocation) {
 func (s *Service) finish(c *invocation, state, result, reason string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.finishLocked(c, state, result, reason)
+	return s.finishLocked(c, state, result, reason, nil)
 }
 
-func (s *Service) finishLocked(c *invocation, state, result, reason string) bool {
+func (s *Service) finishLocked(c *invocation, state, result, reason string, record *operationAudit) bool {
 	if c.fact.Status != "accepted" {
 		return false
 	}
@@ -425,7 +440,7 @@ func (s *Service) finishLocked(c *invocation, state, result, reason string) bool
 	recordCtx, cancel := context.WithTimeout(context.Background(), terminalRecordTimeout)
 	defer cancel()
 	accepted := true
-	if err := s.saveFact(recordCtx, c.decision, c.fact); err != nil {
+	if err := s.saveFact(recordCtx, c.decision, c.fact, record); err != nil {
 		c.fact.Status, c.fact.ErrorCode, c.fact.ResultJson = "unconfirmed", "INTEGRATION_RESULT_RECORD_UNAVAILABLE", ""
 		accepted = false
 	}
@@ -447,7 +462,7 @@ func (s *Service) interrupt(c *invocation, reason string) {
 	if c.delivered && c.op.Effect == "write" {
 		state = "unconfirmed"
 	}
-	s.finishLocked(c, state, "", reason)
+	s.finishLocked(c, state, "", reason, nil)
 }
 
 func (s *Service) cancelInvocation(c *invocation) {

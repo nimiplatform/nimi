@@ -168,7 +168,8 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
       case AppPackageJobPhase.COMMITTING: return t('Apps.downloads.committingHint');
       case AppPackageJobPhase.FAILED: return t(job.reasonCode === 'verification-failed' ? 'Apps.downloads.verificationFailed'
         : job.reasonCode === 'stale-selection' ? 'Apps.downloads.staleSelection' : job.reasonCode === 'policy-blocked' ? 'Apps.downloads.policyBlocked' : 'Apps.downloads.failedHint');
-      case AppPackageJobPhase.COMPLETED: return t('Apps.downloads.completedHint', { version: job.targetVersion });
+      case AppPackageJobPhase.COMPLETED: return job.reasonCode === 'AUDIT_RESULT_UNRECORDED'
+        ? t('Feedback.auditResultUnrecorded') : t('Apps.downloads.completedHint', { version: job.targetVersion });
       case AppPackageJobPhase.CANCELED: return t(job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'Apps.localImport.canceledHint' : 'Apps.downloads.canceledHint');
       default: return null;
     }

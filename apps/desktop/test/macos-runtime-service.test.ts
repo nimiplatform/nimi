@@ -15,7 +15,7 @@ test('a newly installed service without a BTM record attempts native registratio
     showApproval: async () => false,
     runtimeEndpoint: 'protected-desktop-control',
   });
-  assert.equal(await host.prepare(names), false);
+  assert.equal(await host.prepare(names), 'approval-pending');
   assert.deepEqual(operations, ['status', 'register']);
 });
 
@@ -34,10 +34,10 @@ test('opening settings stops bootstrap until the native approval state changes',
     showApproval: async () => { prompts += 1; return true; },
     runtimeEndpoint: 'protected-desktop-control',
   });
-  assert.equal(await host.prepare(names), false);
+  assert.equal(await host.prepare(names), 'approval-pending');
   assert.deepEqual(operations, ['status', 'open-settings']);
   registrationStatus = 1;
-  assert.equal(await host.prepare(names), true);
+  assert.equal(await host.prepare(names), 'ready');
   assert.equal(prompts, 1);
 });
 
@@ -98,7 +98,7 @@ test('an update retries the temporary disabled BTM disposition after successful 
     showApproval: async () => { throw new Error('existing approval remains valid'); },
     runtimeEndpoint: 'protected-desktop-control',
   });
-  assert.equal(await host.prepare(names), true);
+  assert.equal(await host.prepare(names), 'ready');
   assert.deepEqual(operations, ['status', 'unregister', 'register', 'status', 'register']);
 });
 
@@ -131,7 +131,7 @@ test('bootstrap waits for protected Runtime running after registration', async (
     showApproval: async () => { throw new Error('already approved'); },
     runtimeEndpoint: 'protected-desktop-control',
   });
-  assert.equal(await host.prepare(names), true);
+  assert.equal(await host.prepare(names), 'ready');
   assert.deepEqual(commands, ['start', 'status']);
 });
 
@@ -166,7 +166,7 @@ test('bootstrap retries unavailable status from the formal lifecycle adapter', a
     showApproval: async () => { throw new Error('already approved'); },
     runtimeEndpoint: 'protected-desktop-control',
   });
-  assert.equal(await host.prepare(names), true);
+  assert.equal(await host.prepare(names), 'ready');
   assert.equal(statusCalls, 2);
 });
 
@@ -206,4 +206,32 @@ test('a running installation is not reregistered and uninstall errors propagate'
   await host.prepare(names);
   assert.deepEqual(operations, ['status']);
   await assert.rejects(host.unregister(), /could not be unregistered/);
+});
+
+test('a Runtime that refused its stored data lets Home continue to recovery instead of failing start', async () => {
+  const commands: string[] = [];
+  const host = createDesktopMacOSRuntimeServiceHost({
+    invoke: async (command) => {
+      commands.push(command);
+      return { running: false, lastError: 'runtime-stored-data-unsupported' };
+    },
+  }, {
+    registration: async () => 1,
+    socketExists: () => true,
+    showApproval: async () => { throw new Error('already approved'); },
+    runtimeEndpoint: 'protected-desktop-control',
+  });
+  assert.equal(await host.prepare(names), 'maintenance');
+  assert.deepEqual(commands, ['start']);
+});
+
+test('an unknown startup failure leaves the same owner available for an explicit retry', async () => {
+  let failed = true;
+  const host = createDesktopMacOSRuntimeServiceHost({ invoke: async () => {
+    if (failed) throw new Error('unclassified storage error');
+    return { running: true };
+  } }, { registration: async () => 1, socketExists: () => true, showApproval: async () => false, runtimeEndpoint: 'protected-desktop-control' });
+  await assert.rejects(host.prepare(names), /unclassified storage error/);
+  failed = false;
+  assert.equal(await host.prepare(names), 'ready');
 });

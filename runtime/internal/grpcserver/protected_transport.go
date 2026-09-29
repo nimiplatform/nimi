@@ -26,6 +26,7 @@ import (
 
 const protectedOpenDesktopSessionMethod = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession"
 const protectedRequestRuntimeRestartMethod = "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
+const protectedGetRuntimeServiceStateMethod = "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState"
 const protectedDesktopAuditProjectionMethod = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
 const protectedBundledProfileMetadata = "x-nimi-protected-bundled-profile"
 const protectedFirstPartyProfileMetadata = "x-nimi-protected-first-party-profile"
@@ -61,7 +62,7 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		return protectedlocal.RoleDesktopAccountHost, true
 	}
 	switch method {
-	case protectedOpenDesktopSessionMethod, protectedRequestRuntimeRestartMethod:
+	case protectedOpenDesktopSessionMethod, protectedRequestRuntimeRestartMethod, protectedGetRuntimeServiceStateMethod:
 		return protectedlocal.RoleVerifiedDesktopProcess, true
 	case "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
 		"/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
@@ -174,22 +175,26 @@ type protectedDesktopAuthInfo struct {
 
 func (*protectedDesktopAuthInfo) AuthType() string { return "nimi-protected-local-v1" }
 
-type protectedDesktopTransportCredentials struct{}
+type protectedDesktopTransportCredentials struct {
+	refusals *transportRefusalAudit
+}
 
-func newProtectedDesktopTransportCredentials() credentials.TransportCredentials {
-	return protectedDesktopTransportCredentials{}
+func newProtectedDesktopTransportCredentials(refusals *transportRefusalAudit) credentials.TransportCredentials {
+	return protectedDesktopTransportCredentials{refusals: refusals}
 }
 
 func (protectedDesktopTransportCredentials) ClientHandshake(context.Context, string, net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	return nil, nil, fmt.Errorf("protected Desktop transport credentials are server-only")
 }
 
-func (protectedDesktopTransportCredentials) ServerHandshake(raw net.Conn) (net.Conn, credentials.AuthInfo, error) {
+func (creds protectedDesktopTransportCredentials) ServerHandshake(raw net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	connection, ok := raw.(*protectedDesktopNetConn)
 	if !ok || connection == nil || connection.Conn == nil || connection.desktopConnection == nil {
+		creds.refusals.recordHandshake(runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED)
 		return nil, nil, fmt.Errorf("protected Desktop transport requires a native verified connection")
 	}
 	if !connection.desktopConnection.VerifiedDesktopTransport() {
+		creds.refusals.recordHandshake(runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		return nil, nil, fmt.Errorf("protected Desktop transport requires the verified Desktop role")
 	}
 	return raw, &protectedDesktopAuthInfo{connection: connection.desktopConnection}, nil
@@ -202,8 +207,8 @@ func (protectedDesktopTransportCredentials) Info() credentials.ProtocolInfo {
 	}
 }
 
-func (protectedDesktopTransportCredentials) Clone() credentials.TransportCredentials {
-	return protectedDesktopTransportCredentials{}
+func (creds protectedDesktopTransportCredentials) Clone() credentials.TransportCredentials {
+	return protectedDesktopTransportCredentials{refusals: creds.refusals}
 }
 
 func (protectedDesktopTransportCredentials) OverrideServerName(string) error {
@@ -233,11 +238,14 @@ func newProtectedDesktopRPCServer(
 	appOwnerAdmission protectedAppOwnerAdmission,
 	formalAppAdmission protectedFormalAppAdmission,
 	rpcRegistry *activeRPCRegistry,
+	refusals *transportRefusalAudit,
 ) *grpc.Server {
-	transportUnary := newUnaryProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, appOwnerAdmission, formalAppAdmission)
-	transportStream := newStreamProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, formalAppAdmission)
+	// Refusals decided by this chain are recorded; admitted calls are recorded
+	// only by their owners.
+	transportUnary := refusals.unary(newUnaryProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, appOwnerAdmission, formalAppAdmission))
+	transportStream := refusals.stream(newStreamProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, formalAppAdmission))
 	server := grpc.NewServer(
-		grpc.Creds(newProtectedDesktopTransportCredentials()),
+		grpc.Creds(newProtectedDesktopTransportCredentials(refusals)),
 		grpc.KeepaliveEnforcementPolicy(protectedGRPCKeepalivePolicy()),
 		grpc.MaxRecvMsgSize(maxGRPCRecvMessageBytes),
 		grpc.MaxSendMsgSize(maxGRPCSendMessageBytes),

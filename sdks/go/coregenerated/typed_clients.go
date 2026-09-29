@@ -1872,6 +1872,9 @@ const (
 	AILOCALMODELSTORAGELINKUNSUPPORTED              ReasonCode = "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED"
 	AILOCALMODELINVENTORYRECONCILIATIONREQUIRED     ReasonCode = "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
 	AIMUSICRECOVERYCAPACITYEXCEEDED                 ReasonCode = "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
+	RUNTIMESTOREDDATAUNSUPPORTED                    ReasonCode = "RUNTIME_STORED_DATA_UNSUPPORTED"
+	AUDITRECORDUNAVAILABLE                          ReasonCode = "AUDIT_RECORD_UNAVAILABLE"
+	AUDITRESULTUNRECORDED                           ReasonCode = "AUDIT_RESULT_UNRECORDED"
 	AGENTBUSY                                       ReasonCode = "AGENT_BUSY"
 	AGENTTURNNOTACTIVE                              ReasonCode = "AGENT_TURN_NOT_ACTIVE"
 	APPACTIVITYINPUTINVALID                         ReasonCode = "APP_ACTIVITY_INPUT_INVALID"
@@ -1939,6 +1942,14 @@ const (
 	RUNTIMEHEALTHSTATUSREADY       RuntimeHealthStatus = "RUNTIME_HEALTH_STATUS_READY"
 	RUNTIMEHEALTHSTATUSDEGRADED    RuntimeHealthStatus = "RUNTIME_HEALTH_STATUS_DEGRADED"
 	RUNTIMEHEALTHSTATUSSTOPPING    RuntimeHealthStatus = "RUNTIME_HEALTH_STATUS_STOPPING"
+)
+
+type RuntimeServiceMode string
+
+const (
+	RUNTIMESERVICEMODEUNSPECIFIED RuntimeServiceMode = "RUNTIME_SERVICE_MODE_UNSPECIFIED"
+	RUNTIMESERVICEMODEORDINARY    RuntimeServiceMode = "RUNTIME_SERVICE_MODE_ORDINARY"
+	RUNTIMESERVICEMODEMAINTENANCE RuntimeServiceMode = "RUNTIME_SERVICE_MODE_MAINTENANCE"
 )
 
 type ScenarioJobEventType string
@@ -2365,6 +2376,7 @@ type AccountSessionSnapshot struct {
 	ReasonCode        ReasonCode          `json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode   `json:"account_reason_code,omitempty"`
 	AccountProjection *AccountProjection  `json:"account_projection,omitempty"`
+	AuditDiagnostic   *ErrorInfo          `json:"audit_diagnostic,omitempty"`
 }
 
 type Ack struct {
@@ -3262,6 +3274,7 @@ type BeginLoginResponse struct {
 	ReasonCode            ReasonCode        `json:"reason_code,omitempty"`
 	AccountReasonCode     AccountReasonCode `json:"account_reason_code,omitempty"`
 	ProductionInert       bool              `json:"production_inert,omitempty"`
+	AuditDiagnostic       *ErrorInfo        `json:"audit_diagnostic,omitempty"`
 }
 
 type BindLocalAppProcessRequest struct {
@@ -3916,6 +3929,7 @@ type CompleteLoginResponse struct {
 	ReasonCode        ReasonCode          `json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode   `json:"account_reason_code,omitempty"`
 	ProductionInert   bool                `json:"production_inert,omitempty"`
+	AuditDiagnostic   *ErrorInfo          `json:"audit_diagnostic,omitempty"`
 }
 
 type CompleteProductControlFirstRunDeviceEnvironmentScanRequest struct {
@@ -4001,7 +4015,8 @@ type CreateConnectorRequest struct {
 }
 
 type CreateConnectorResponse struct {
-	Connector *Connector `json:"connector,omitempty"`
+	Connector       *Connector `json:"connector,omitempty"`
+	AuditDiagnostic *ErrorInfo `json:"audit_diagnostic,omitempty"`
 }
 
 type CurrentUserDisplayProjection struct {
@@ -4133,7 +4148,8 @@ type DeleteConnectorRequest struct {
 }
 
 type DeleteConnectorResponse struct {
-	Ack *Ack `json:"ack,omitempty"`
+	Ack             *Ack       `json:"ack,omitempty"`
+	AuditDiagnostic *ErrorInfo `json:"audit_diagnostic,omitempty"`
 }
 
 type DeleteLoadoutRequest struct {
@@ -4699,6 +4715,14 @@ type GetRuntimeHealthResponse struct {
 	MemoryBytes         int64               `json:"memory_bytes,omitempty"`
 	VramBytes           int64               `json:"vram_bytes,omitempty"`
 	SampledAt           string              `json:"sampled_at,omitempty"`
+}
+
+type GetRuntimeServiceStateRequest struct {
+}
+
+type GetRuntimeServiceStateResponse struct {
+	Mode       RuntimeServiceMode `json:"mode,omitempty"`
+	ReasonCode ReasonCode         `json:"reason_code,omitempty"`
 }
 
 type GetScenarioArtifactsRequest struct {
@@ -6740,6 +6764,7 @@ type LogoutResponse struct {
 	ReasonCode        ReasonCode          `json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode   `json:"account_reason_code,omitempty"`
 	ProductionInert   bool                `json:"production_inert,omitempty"`
+	AuditDiagnostic   *ErrorInfo          `json:"audit_diagnostic,omitempty"`
 }
 
 type MachineLoadouts struct {
@@ -8653,6 +8678,7 @@ type SwitchAccountResponse struct {
 	ReasonCode        ReasonCode          `json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode   `json:"account_reason_code,omitempty"`
 	ProductionInert   bool                `json:"production_inert,omitempty"`
+	AuditDiagnostic   *ErrorInfo          `json:"audit_diagnostic,omitempty"`
 }
 
 type TerminateAgentRequest struct {
@@ -8943,7 +8969,8 @@ type UpdateConnectorRequest struct {
 }
 
 type UpdateConnectorResponse struct {
-	Connector *Connector `json:"connector,omitempty"`
+	Connector       *Connector `json:"connector,omitempty"`
+	AuditDiagnostic *ErrorInfo `json:"audit_diagnostic,omitempty"`
 }
 
 type UpdateLoadoutRequest struct {
@@ -11610,6 +11637,14 @@ func (c RuntimeTypedClient) SubscribeRealmRealtimeEvents(ctx context.Context, re
 		return nil, err
 	}
 	return &RuntimeTypedStream[SubscribeRealmRealtimeEventsResponse]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) GetRuntimeServiceState(ctx context.Context, request GetRuntimeServiceStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRuntimeServiceStateResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState", request, metadata, timeoutMS)
+	if err != nil {
+		return GetRuntimeServiceStateResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetRuntimeServiceStateResponse](raw, "GetRuntimeServiceStateResponse")
 }
 
 func (c RuntimeTypedClient) RequestRuntimeRestart(ctx context.Context, request RequestRuntimeRestartRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestRuntimeRestartResponse, error) {

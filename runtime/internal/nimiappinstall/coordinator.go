@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappnative"
@@ -63,6 +64,7 @@ type targetDownloader interface {
 
 type Coordinator struct {
 	logger          *slog.Logger
+	audit           *auditlog.Store
 	operations      sync.RWMutex
 	launchMu        sync.Mutex
 	uninstalls      map[string]uninstallReservation
@@ -100,8 +102,9 @@ func NewCoordinator(
 	registryClient *publicappregistry.Client,
 	kernel *localappkernel.Kernel,
 	logger *slog.Logger,
+	audit *auditlog.Store,
 ) (*Coordinator, error) {
-	if registryClient == nil || logger == nil {
+	if registryClient == nil || logger == nil || audit == nil {
 		return nil, ErrInvalidCoordinator
 	}
 	coordinator, err := newCoordinator(registryClient, NewCanonicalDownloader(), kernel)
@@ -109,6 +112,7 @@ func NewCoordinator(
 		return nil, err
 	}
 	coordinator.logger = logger
+	coordinator.audit = audit
 	return coordinator, nil
 }
 
@@ -510,12 +514,23 @@ func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job lo
 		registration.ExistingRegistrationHandle = previous.RegistrationHandle
 		registration.ProvenanceRevision = previous.ProvenanceRevision + 1
 	}
-	commit, err := coordinator.lifecycle.CommitPackageRelease(commitContext, localappkernel.CommitPackageReleaseInput{
-		JobID: job.JobID, Version: packageExpected.Version, Registration: registration, AppInfoJSON: materialized.AppInfoJSON,
+	var commit localappkernel.CommitPackageReleaseResult
+	committed, err := coordinator.commitRecordedPackage(job, func() error {
+		var commitErr error
+		commit, commitErr = coordinator.lifecycle.CommitPackageRelease(commitContext, localappkernel.CommitPackageReleaseInput{
+			JobID: job.JobID, Version: packageExpected.Version, Registration: registration, AppInfoJSON: materialized.AppInfoJSON,
+		})
+		return commitErr
 	})
-	if err != nil {
-		return coordinator.resolveCommitError(ctx, job, registration, errors.Join(ErrInstallCommit, err))
+
+	if !committed {
+		result, resolveErr := coordinator.resolveCommitError(ctx, job, registration, errors.Join(ErrInstallCommit, err))
+		if resolveErr == nil {
+			result.Job = coordinator.recordPackageResult(result.Job, nil)
+		}
+		return result, resolveErr
 	}
+	commit.Job = coordinator.reportUnrecordedPackage(commit.Job, err)
 	_ = coordinator.packagesRoot.RemoveAll(filepath.Join(packageWorkDirectory, job.JobID))
 	if previous != nil {
 		oldRoot, err := filepath.Rel(filepath.Join(coordinator.packagesPath, packageReleaseDirectory), previous.ProjectRoot)

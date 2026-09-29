@@ -1699,7 +1699,8 @@ describe('Desktop local-development caller boundary', () => {
         headers: { 'content-type': 'application/json', ...headers },
         body: JSON.stringify({ schemaVersion: 1, appId: 'acme.widget', projectRoot: '/tmp/not-a-project', shell: 'electron' }),
       });
-      for (const headers of [{}, { authorization: `Bearer ${'0'.repeat(64)}` }, { authorization: presence.callerToken }]) {
+      const refusedHeaders: Record<string, string>[] = [{}, { authorization: `Bearer ${'0'.repeat(64)}` }, { authorization: presence.callerToken }];
+      for (const headers of refusedHeaders) {
         const refused = await post(headers);
         assert.equal(refused.status, 401, JSON.stringify(headers));
         assert.equal((await refused.json() as { reasonCode: string }).reasonCode, 'local-development-caller-unverified');

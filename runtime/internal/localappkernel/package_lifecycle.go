@@ -870,3 +870,21 @@ func (store *PackageLifecycleStore) ReadAppInfo(ctx context.Context, registratio
 	}
 	return raw, nil
 }
+
+// RecordCommittedAuditFailure preserves the successful job and stores an
+// additional diagnostic in its existing terminal reason field.
+func (store *PackageLifecycleStore) RecordCommittedAuditFailure(ctx context.Context, jobID string) (PackageJob, error) {
+	if store == nil || store.kernel == nil || requireExactText("job_id", jobID) != nil {
+		return PackageJob{}, ErrInvalidArgument
+	}
+	store.kernel.mu.Lock()
+	result, err := store.kernel.db.ExecContext(ctx, `UPDATE app_package_job SET reason_code = 'AUDIT_RESULT_UNRECORDED', updated_unix_nano = ? WHERE job_id = ? AND phase = 'completed'`, store.kernel.now().UnixNano(), jobID)
+	store.kernel.mu.Unlock()
+	if err != nil {
+		return PackageJob{}, err
+	}
+	if count, err := result.RowsAffected(); err != nil || count != 1 {
+		return PackageJob{}, ErrPackageJobPhase
+	}
+	return store.GetJob(ctx, jobID)
+}

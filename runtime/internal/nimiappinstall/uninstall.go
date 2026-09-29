@@ -146,8 +146,13 @@ func (coordinator *Coordinator) CompleteUninstall(ctx context.Context, jobID, ha
 	job = advanced
 	commitCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), installCommitTimeout)
 	defer cancel()
-	completed, commitErr := coordinator.lifecycle.CompleteUninstall(commitCtx, jobID, handle, expected.registration.SourceGeneration, expected.registration.DeclarationGeneration)
-	if commitErr != nil {
+	var completed localappkernel.PackageJob
+	committed, commitErr := coordinator.commitRecordedPackage(job, func() error {
+		var err error
+		completed, err = coordinator.lifecycle.CompleteUninstall(commitCtx, jobID, handle, expected.registration.SourceGeneration, expected.registration.DeclarationGeneration)
+		return err
+	})
+	if !committed {
 		observed, readErr := coordinator.lifecycle.GetJob(commitCtx, jobID)
 		if readErr != nil {
 			return localappkernel.PackageJob{}, errors.Join(ErrInstallRecoveryRequired, commitErr, readErr)
@@ -157,6 +162,7 @@ func (coordinator *Coordinator) CompleteUninstall(ctx context.Context, jobID, ha
 		}
 		completed = observed
 	}
+	completed = coordinator.reportUnrecordedPackage(completed, commitErr)
 	delete(coordinator.uninstalls, jobID)
 	if err := root.RemoveAll(quarantine); err != nil {
 		return localappkernel.PackageJob{}, errors.Join(ErrUninstall, err)
@@ -196,6 +202,9 @@ func (coordinator *Coordinator) rollbackUninstall(ctx context.Context, job local
 	}
 	if !terminalPackagePhase(current.Phase) {
 		_, err = coordinator.lifecycle.Fail(cleanup, job.JobID, current.Phase, "uninstall-failed")
+		if err == nil {
+			coordinator.recordPackageResult(job, cause)
+		}
 	}
 	if err == nil {
 		delete(coordinator.uninstalls, job.JobID)

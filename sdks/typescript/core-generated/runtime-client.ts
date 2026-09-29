@@ -2231,6 +2231,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SubscribeRealmRealtimeEventsResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
+    "service": "RuntimeServiceControlService",
+    "method": "GetRuntimeServiceState",
+    "kind": "unary",
+    "requestType": "GetRuntimeServiceStateRequest",
+    "responseType": "GetRuntimeServiceStateResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
     "service": "RuntimeServiceControlService",
     "method": "RequestRuntimeRestart",

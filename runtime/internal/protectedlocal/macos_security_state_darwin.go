@@ -28,6 +28,8 @@ type MacOSRuntimeSecurityState struct {
 	interactiveSession uint32
 	accountPartition   string
 
+	peerRejections peerRejectionSink
+
 	transportMu       sync.Mutex
 	desktopTransport  interface{ Close() error }
 	localAppTransport interface{ Close() error }

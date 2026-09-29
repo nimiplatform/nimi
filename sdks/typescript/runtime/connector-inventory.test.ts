@@ -228,3 +228,14 @@ test('Nimi Runtime connector inventory rejects managed OAuth credential carriers
   );
   assert.equal(createCalls, 0);
 });
+
+test('a committed connector deletion reports its audit diagnostic without becoming a failed delete', async () => {
+  const diagnostic = { reasonCode: 769, actionHint: 'inspect_runtime_audit', message: 'Change committed.' };
+  const reported: unknown[] = [];
+  const client = createNimiRuntimeConnectorInventoryClient({
+    connectors: { deleteConnector: async () => ({ ack: { ok: true }, auditDiagnostic: diagnostic }) } as never,
+    onAuditDiagnostic: value => reported.push(value),
+  });
+  await client.deleteConnector('connector-1');
+  assert.deepEqual(reported, [diagnostic]);
+});

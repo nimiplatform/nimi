@@ -66,6 +66,7 @@ message CreateConnectorRequest {
 
 message CreateConnectorResponse {
   Connector connector = 1;
+  ErrorInfo audit_diagnostic = 2;
 }
 
 message GetConnectorRequest {
@@ -109,6 +110,7 @@ message UpdateConnectorRequest {
 
 message UpdateConnectorResponse {
   Connector connector = 1;
+  ErrorInfo audit_diagnostic = 2;
 }
 
 message DeleteConnectorRequest {
@@ -119,6 +121,7 @@ message DeleteConnectorRequest {
 
 message DeleteConnectorResponse {
   Ack ack = 1;
+  ErrorInfo audit_diagnostic = 2;
 }
 
 message TestConnectorRequest {

@@ -12,6 +12,8 @@ export type DesktopDataRootOperationGate = {
   runDiagnostic<T>(operation: () => Promise<T>): Promise<T>;
   /** Read-only diagnostics admitted while closed and alongside shared work. */
   runSharedDiagnostic<T>(operation: () => Promise<T>): Promise<T>;
+  /** Recovery may bypass queued work, but never an active exclusive section. */
+  runRecovery<T>(operation: () => Promise<T>): Promise<T>;
   close(reason: string): void;
   open(): void;
   isClosed(): boolean;
@@ -39,9 +41,10 @@ export function createDesktopDataRootOperationGate(): DesktopDataRootOperationGa
       next.start();
     }
   };
-  const run = async <T>(exclusive: boolean, requireOpen: boolean, operation: () => Promise<T>): Promise<T> => {
+  const run = async <T>(exclusive: boolean, requireOpen: boolean, operation: () => Promise<T>, recovery = false): Promise<T> => {
     await new Promise<void>((start) => {
-      waiting.push({ exclusive, start });
+      if (recovery) waiting.unshift({ exclusive, start });
+      else waiting.push({ exclusive, start });
       pump();
     });
     try {
@@ -55,6 +58,9 @@ export function createDesktopDataRootOperationGate(): DesktopDataRootOperationGa
     }
   };
   return Object.freeze({
+    runRecovery<T>(operation: () => Promise<T>): Promise<T> {
+      return run(false, false, operation, true);
+    },
     runExclusive<T>(operation: () => Promise<T>): Promise<T> {
       return run(true, true, operation);
     },

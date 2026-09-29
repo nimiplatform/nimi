@@ -186,7 +186,7 @@ func readConversationRows(db *sql.DB, raw string) (persistedPublicChatSurfaceSta
 		return snapshot, err
 	}
 	if snapshot.StorageVersion != 2 {
-		return snapshot, fmt.Errorf("conversation storage requires explicit offline conversion: run runtime:convert-chat-storage with the stopped Runtime database")
+		return snapshot, conversationStorageConversionRefusal()
 	}
 	if len(snapshot.Anchors) > 0 || len(snapshot.FollowUps) > 0 {
 		return snapshot, fmt.Errorf("conversation storage marker contains inline history")
