@@ -91,6 +91,10 @@ func DashscopeQwen38NonStreamParser(payload []byte, spec *runtimev1.TextGenerate
 		}
 		return result, nil
 	}
+	return parseStrictChatJSONSchema(payload, spec)
+}
+
+func parseStrictChatJSONSchema(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
 	invalid := func() error { return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID) }
 	format := spec.GetResponseFormat()
 	if len(spec.GetTools()) != 0 || format.GetJsonSchema() == nil || !format.GetStrict() {

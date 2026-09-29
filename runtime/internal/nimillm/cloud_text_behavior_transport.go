@@ -34,6 +34,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "anthropic":
 	case "deepseek":
 	case "dashscope":
+	case "gemini":
 	case "openai_codex":
 		path, wireStream = codexResponsesPath, true
 	default:
@@ -43,7 +44,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if backend == nil {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" {
+	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
 	}
 	var body map[string]json.RawMessage
