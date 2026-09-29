@@ -32,11 +32,39 @@ function buildModules() {
     'src/ai-studio-core/text-annotation-document.ts',
     'src/lab/lab-only/video-face-swap-session.ts',
     'src/lab/lab-only/ai-realtime-session.ts',
+    'src/lab/lab-only/ai-realtime-recording.ts',
   ], { cwd: root, stdio: 'pipe' });
   return buildDir;
 }
 
 const load = (relativePath) => import(pathToFileURL(path.join(buildModules(), relativePath)).href);
+
+test('recorded realtime WAV uses exact PCM frames and rejects incompatible audio before the Session', async () => {
+  const { readLabRealtimeRecording } = await load('lab/lab-only/ai-realtime-recording.js');
+  const pcm = Uint8Array.from({ length: 800 }, (_, index) => index % 251);
+  const buffer = new ArrayBuffer(44 + pcm.length);
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  const fourCC = (offset, value) => bytes.set([...value].map((char) => char.charCodeAt(0)), offset);
+  fourCC(0, 'RIFF'); view.setUint32(4, buffer.byteLength - 8, true); fourCC(8, 'WAVE');
+  fourCC(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true); view.setUint32(24, 16000, true); view.setUint32(28, 32000, true);
+  view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+  fourCC(36, 'data'); view.setUint32(40, pcm.length, true); bytes.set(pcm, 44);
+  const frames = readLabRealtimeRecording(buffer);
+  assert.deepEqual(frames.map((frame) => frame.byteLength), [640, 640]);
+  assert.deepEqual(frames[0], pcm.slice(0, 640));
+  assert.deepEqual(frames[1].slice(0, 160), pcm.slice(640));
+  assert.deepEqual(frames[1].slice(160), new Uint8Array(480));
+  view.setUint32(24, 24000, true);
+  assert.throws(() => readLabRealtimeRecording(buffer));
+  view.setUint32(24, 16000, true);
+  const longBuffer = new ArrayBuffer(44 + 16_000 * 2 * 5);
+  new Uint8Array(longBuffer).set(bytes.slice(0, 44));
+  new DataView(longBuffer).setUint32(4, longBuffer.byteLength - 8, true);
+  new DataView(longBuffer).setUint32(40, longBuffer.byteLength - 44, true);
+  assert.throws(() => readLabRealtimeRecording(longBuffer));
+});
 
 test.after(() => {
   if (buildDir) rmSync(buildDir, { recursive: true, force: true });

@@ -33,6 +33,7 @@ import {
   type LabRealtimeOwnerControl,
   type LabRealtimeState,
 } from './ai-realtime-session.js';
+import { LAB_AI_REALTIME_MAX_RECORDING_BYTES, readLabRealtimeRecording } from './ai-realtime-recording.js';
 
 const LabAiConfigSettingsPanel = lazy(async () => ({
   default: (await import('../workbench/lab-ai-config-settings-panel.js')).LabAiConfigSettingsPanel,
@@ -69,6 +70,7 @@ function LabAiRealtimeSurface({
   const [text, setText] = useState('Say hello in one short sentence.');
   const [state, setState] = useState<LabRealtimeState>({ phase: 'idle', responsePending: false, tracks: [], transcripts: [], log: [], observed: {} });
   const [capture, setCapture] = useState<Capture | null>(null);
+  const [recording, setRecording] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [configOpen, setConfigOpen] = useState(false);
@@ -215,6 +217,34 @@ function LabAiRealtimeSurface({
     await active?.stop();
   }
 
+  async function sendRecording() {
+    const session = sessionRef.current;
+    if (!session || !recording || !open || captureRef.current || turnDetection !== 'manual') return;
+    if (recording.size > LAB_AI_REALTIME_MAX_RECORDING_BYTES + 4_096) {
+      throw new Error(t('CapabilityTests.aiRealtime.recordingFormatError'));
+    }
+    const frames = readLabRealtimeRecording(await recording.arrayBuffer());
+    const inputTrackId = createNimiClientId('lab-recording-track');
+    const utteranceId = createNimiClientId('lab-recording-utterance');
+    let sent = false;
+    try {
+      for (let index = 0; index < frames.length; index += 1) {
+        await session.appendAudioFrame({ inputTrackId, utteranceId, frameSequence: String(index + 1), frame: frames[index]! });
+        sent = true;
+      }
+      await session.ownerControl('commit-input');
+      await session.ownerControl('start-response');
+    } catch (error) {
+      // An incomplete audio buffer cannot be presented as a reusable turn.
+      if (sent) {
+        await session.close().catch(() => undefined);
+        record(capabilityNonSuccess(registration.descriptor, 'runtime-call-failed',
+          error instanceof Error ? error.message : String(error), studioNonSuccessDiagnostics(error)));
+      }
+      throw error;
+    }
+  }
+
   async function closeSession() {
     const session = sessionRef.current;
     if (!session) return;
@@ -295,6 +325,11 @@ function LabAiRealtimeSurface({
           <Button type="button" size="sm" tone="secondary" disabled={!open || busy} onClick={() => void (capture ? stopCapture() : startCapture()).catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))}>
             {t(capture ? 'CapabilityTests.aiRealtime.stopMic' : 'CapabilityTests.aiRealtime.startMic')}
           </Button>
+          <input type="file" accept=".wav,audio/wav" aria-label={t('CapabilityTests.aiRealtime.recordingFile')}
+            disabled={busy || !!capture} onChange={(event) => setRecording(event.currentTarget.files?.[0] ?? null)} />
+          <Button type="button" size="sm" tone="secondary"
+            disabled={!open || busy || !!capture || !recording || turnDetection !== 'manual' || state.responsePending || activeTracks.length > 0}
+            onClick={() => void run(sendRecording)}>{t('CapabilityTests.aiRealtime.sendRecording')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('commit-input')}>{t('CapabilityTests.aiRealtime.commitInput')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy || state.responsePending || activeTracks.length > 0} onClick={() => void control('start-response')}>{t('CapabilityTests.aiRealtime.startResponse')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('cancel-response')}>{t('CapabilityTests.aiRealtime.cancelResponse')}</Button>
@@ -305,6 +340,7 @@ function LabAiRealtimeSurface({
           ))}
         </div>
         <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.audioHint')}</p>
+        <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.recordingHint')}</p>
         {notice ? <InlineAlert tone="warning">{notice}</InlineAlert> : null}
       </section>
 
