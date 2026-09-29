@@ -1872,6 +1872,7 @@ const (
 	AILOCALMODELSTORAGELINKUNSUPPORTED              ReasonCode = "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED"
 	AILOCALMODELINVENTORYRECONCILIATIONREQUIRED     ReasonCode = "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
 	AIMUSICRECOVERYCAPACITYEXCEEDED                 ReasonCode = "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
+	AIMEDIACODECUNAVAILABLE                         ReasonCode = "AI_MEDIA_CODEC_UNAVAILABLE"
 	RUNTIMESTOREDDATAUNSUPPORTED                    ReasonCode = "RUNTIME_STORED_DATA_UNSUPPORTED"
 	AUDITRECORDUNAVAILABLE                          ReasonCode = "AUDIT_RECORD_UNAVAILABLE"
 	AUDITRESULTUNRECORDED                           ReasonCode = "AUDIT_RESULT_UNRECORDED"
@@ -7872,6 +7873,7 @@ type ResolveLocalEnvironmentPlanRequest struct {
 	HostProfile        *LocalDeviceProfile `json:"host_profile,omitempty"`
 	RuntimeDataRoot    string              `json:"runtime_data_root,omitempty"`
 	CandidateLoadoutId string              `json:"candidate_loadout_id,omitempty"`
+	MediaCodec         bool                `json:"media_codec,omitempty"`
 }
 
 type ResolveLocalEnvironmentPlanResponse struct {

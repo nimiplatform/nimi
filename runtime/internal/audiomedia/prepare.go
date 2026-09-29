@@ -34,6 +34,7 @@ const (
 // It never resolves programs from PATH or downloads an input or dependency.
 type Processor struct {
 	ffmpeg, ffprobe string
+	resolve         func(context.Context) (string, string, error)
 }
 
 type Input struct {
@@ -53,6 +54,25 @@ type Prepared struct {
 	Facts Facts
 }
 
+// NewManaged leaves acquisition with the Runtime dependency owner.
+func NewManaged(resolve func(context.Context) (string, string, error)) *Processor {
+	return &Processor{resolve: resolve}
+}
+func (p *Processor) Ensure(ctx context.Context) error {
+	if p == nil {
+		return ErrCodecUnavailable
+	}
+	if p.resolve != nil {
+		_, _, err := p.resolve(ctx)
+		if err != nil {
+			return errors.Join(ErrCodecUnavailable, err)
+		}
+		return nil
+	}
+	_, err := New(p.ffmpeg, p.ffprobe)
+	return err
+}
+
 func New(ffmpeg, ffprobe string) (*Processor, error) {
 	for _, path := range []string{ffmpeg, ffprobe} {
 		if !filepath.IsAbs(path) {
@@ -68,6 +88,18 @@ func New(ffmpeg, ffprobe string) (*Processor, error) {
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.canonical-audio-preparation
 func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory string) (result Prepared, err error) {
+	if p != nil && p.resolve != nil {
+		ffmpeg, probe, err := p.resolve(ctx)
+		if err != nil {
+			return Prepared{}, errors.Join(ErrCodecUnavailable, err)
+		}
+		concrete, err := New(ffmpeg, probe)
+		if err != nil {
+			return Prepared{}, err
+		}
+		return concrete.Prepare(ctx, input, stagingDirectory)
+	}
+
 	if p == nil || p.ffmpeg == "" || p.ffprobe == "" {
 		return Prepared{}, ErrCodecUnavailable
 	}
@@ -165,7 +197,7 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		}
 		if err := command.Start(); err != nil {
 			_ = stdout.Close()
-			return Prepared{}, fmt.Errorf("start managed audio decoder: %w", err)
+			return Prepared{}, fmt.Errorf("%w: start managed audio decoder: %w", ErrCodecUnavailable, err)
 		}
 		limit := int64(rate) * int64(outChannels) * 4 * MaxSeconds
 		count, copyErr := copyFinitePCM(decodeCtx, output, stdout, limit)
@@ -179,6 +211,9 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		}
 		if copyErr != nil {
 			return Prepared{}, copyErr
+		}
+		if CodecCouldNotRun(waitErr) {
+			return Prepared{}, fmt.Errorf("%w: managed audio decoder could not run: %w", ErrCodecUnavailable, waitErr)
 		}
 		if waitErr != nil {
 			return Prepared{}, fmt.Errorf("managed audio decoder failed: %w", waitErr)
@@ -239,6 +274,9 @@ func (p *Processor) probe(ctx context.Context, path, expectedFormat string) (uin
 	if err := command.Run(); err != nil {
 		if ctx.Err() != nil {
 			return 0, 0, ctx.Err()
+		}
+		if CodecCouldNotRun(err) {
+			return 0, 0, fmt.Errorf("%w: managed audio probe could not run: %w", ErrCodecUnavailable, err)
 		}
 		return 0, 0, fmt.Errorf("probe audio snapshot: %w", err)
 	}

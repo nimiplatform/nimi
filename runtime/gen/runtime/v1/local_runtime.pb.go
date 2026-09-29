@@ -2179,8 +2179,10 @@ type ResolveLocalEnvironmentPlanRequest struct {
 	// execution-relevant identity and revision bind the resulting plan, so a
 	// material candidate change invalidates it.
 	CandidateLoadoutId string `protobuf:"bytes,10,opt,name=candidate_loadout_id,json=candidateLoadoutId,proto3" json:"candidate_loadout_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Exact shared codec component; exclusive with capability/candidate selectors.
+	MediaCodec    bool `protobuf:"varint,11,opt,name=media_codec,json=mediaCodec,proto3" json:"media_codec,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ResolveLocalEnvironmentPlanRequest) Reset() {
@@ -2239,6 +2241,13 @@ func (x *ResolveLocalEnvironmentPlanRequest) GetCandidateLoadoutId() string {
 		return x.CandidateLoadoutId
 	}
 	return ""
+}
+
+func (x *ResolveLocalEnvironmentPlanRequest) GetMediaCodec() bool {
+	if x != nil {
+		return x.MediaCodec
+	}
+	return false
 }
 
 type ResolveLocalEnvironmentPlanResponse struct {
@@ -4330,13 +4339,15 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x12install_session_id\x18\x01 \x01(\tR\x10installSessionId\"g\n" +
 	"\x1bCancelLocalTransferResponse\x12H\n" +
 	"\btransfer\x18\x01 \x01(\v2,.nimi.runtime.v1.LocalTransferSessionSummaryR\btransfer\"\x1c\n" +
-	"\x1aWatchLocalTransfersRequest\"\x86\x03\n" +
+	"\x1aWatchLocalTransfersRequest\"\xa7\x03\n" +
 	"\"ResolveLocalEnvironmentPlanRequest\x12/\n" +
 	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12F\n" +
 	"\fhost_profile\x18\x03 \x01(\v2#.nimi.runtime.v1.LocalDeviceProfileR\vhostProfile\x12*\n" +
 	"\x11runtime_data_root\x18\x04 \x01(\tR\x0fruntimeDataRoot\x120\n" +
 	"\x14candidate_loadout_id\x18\n" +
-	" \x01(\tR\x12candidateLoadoutIdJ\x04\b\x02\x10\x03J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	" \x01(\tR\x12candidateLoadoutId\x12\x1f\n" +
+	"\vmedia_codec\x18\v \x01(\bR\n" +
+	"mediaCodecJ\x04\b\x02\x10\x03J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"R\apack_idR\x0econsumer_scopeR\basset_idR\x0elocal_asset_idR\x12companion_asset_idR\x0fparent_asset_idR\rinstall_level\"`\n" +
 	"#ResolveLocalEnvironmentPlanResponse\x129\n" +
 	"\x04plan\x18\x01 \x01(\v2%.nimi.runtime.v1.LocalEnvironmentPlanR\x04plan\"\xbf\x01\n" +

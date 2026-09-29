@@ -8,7 +8,9 @@ import (
 	"io"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -356,5 +358,44 @@ func TestPrepareChannelConversionIntegration(t *testing.T) {
 		if want := (pair[2*i] + pair[2*i+1]) / 2; math.Abs(float64(sample-want)) > 1e-6 {
 			t.Fatalf("frame %d = %v, want average %v", i, sample, want)
 		}
+	}
+}
+
+func TestCodecCouldNotRunSeparatesACodecThatNeverRanFromItsVerdict(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX signal semantics")
+	}
+	missing := exec.Command(filepath.Join(t.TempDir(), "absent-ffmpeg")).Run()
+	aborted := exec.Command("/bin/sh", "-c", "kill -ABRT $$").Run()
+	rejected := exec.Command("/bin/sh", "-c", "exit 1").Run()
+	if !CodecCouldNotRun(missing) || !CodecCouldNotRun(aborted) {
+		t.Fatalf("a codec that could not start or was aborted by the OS must count as unavailable: missing=%v aborted=%v", missing, aborted)
+	}
+	if CodecCouldNotRun(rejected) || CodecCouldNotRun(nil) {
+		t.Fatalf("an ordinary non-zero exit is the codec's verdict on the input")
+	}
+}
+
+func TestPrepareReportsACodecThatAbortsAsUnavailableNotAsBadInput(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX script codec")
+	}
+	dir := t.TempDir()
+	// A codec whose shared library is gone aborts before reading anything.
+	codec := filepath.Join(dir, "ffmpeg")
+	if err := os.WriteFile(codec, []byte("#!/bin/sh\nkill -ABRT $$\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	processor, err := New(codec, codec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(dir, "input.mp3")
+	if err := os.WriteFile(source, []byte("not really audio"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err = processor.Prepare(context.Background(), Input{Path: source, MIMEType: "audio/mpeg"}, dir)
+	if !errors.Is(err, ErrCodecUnavailable) {
+		t.Fatalf("Prepare error = %v, want the codec reported unavailable", err)
 	}
 }

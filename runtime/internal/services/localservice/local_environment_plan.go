@@ -30,6 +30,7 @@ const (
 	localEnvironmentFamilyNativeSDCPP      = "native-engine-package.stablediffusion-ggml"
 	localEnvironmentFamilyNativeAudioCPP   = "native-engine-package.audio-cpp"
 	localEnvironmentFamilyESpeakNG         = "native-library.espeak-ng"
+	localEnvironmentFamilyMediaCodec       = "native-tool.media-codec"
 	localEnvironmentFamilyPythonUV         = "python.tool.uv"
 	localEnvironmentFamilyPythonRuntime    = "python.runtime"
 	localEnvironmentFamilyPythonVenv       = "python.venv"
@@ -335,7 +336,7 @@ func localEnvironmentPlanConfirmationProjection(dependencies []localEnvironmentP
 
 func localEnvironmentDependencyStorageCategory(family string) string {
 	switch family {
-	case localEnvironmentFamilyCUDA, localEnvironmentFamilyESpeakNG, localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonTorchWheel:
+	case localEnvironmentFamilyCUDA, localEnvironmentFamilyMediaCodec, localEnvironmentFamilyESpeakNG, localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonTorchWheel:
 		return "dependencies"
 	case localEnvironmentFamilyNativeLlama, localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyNativeAudioCPP,
 		localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet:
@@ -466,6 +467,11 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 			return dep
 		}
 	}
+	if family == localEnvironmentFamilyMediaCodec && !engine.MediaCodecSupported(hostState.OS, hostState.Arch) {
+		dep.State, dep.SourceKind, dep.ReasonCode = localEnvironmentStateUnsupported, localEnvironmentSourceUnavailable, "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
+		dep.ConfirmationRequired = false
+		return dep
+	}
 	if family == localEnvironmentFamilyESpeakNG && (!strings.EqualFold(strings.TrimSpace(hostState.OS), "windows") || !strings.EqualFold(strings.TrimSpace(hostState.Arch), "amd64")) {
 		dep.State = localEnvironmentStateUnsupported
 		dep.SourceKind = localEnvironmentSourceUnavailable
@@ -478,6 +484,10 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 		dep.SourceKind = record.SourceKind
 		dep.SelectedSourceRecordID = record.RecordID
 		dep.CanonicalRoot = record.CanonicalRoot
+		if family == localEnvironmentFamilyMediaCodec && !engine.MediaCodecVersionMatches(hostState.OS, hostState.Arch, record.Version) {
+			dep.State, dep.ReasonCode = localEnvironmentStateRepairRequired, "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
+			return dep
+		}
 		if err := validateLocalEnvironmentSelectedSourceRecord(record); err != nil {
 			dep.State = localEnvironmentStateRepairRequired
 			dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
@@ -800,6 +810,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			OptionalDependencyFamilies: []string{},
 			CloudOnlyImpact:            "none",
 		},
+		{PackID: "media-codec", ProductLabel: "Audio and video tools", RequiredDependencyFamilies: []string{localEnvironmentFamilyMediaCodec}, CloudOnlyImpact: "canonical_media_only"},
 		localDecisionPackDefinition(),
 	}
 }
@@ -817,6 +828,8 @@ func defaultLocalEnvironmentDependencyID(packID string, family string) string {
 		return "stable-diffusion.cpp.package"
 	case localEnvironmentFamilyNativeAudioCPP:
 		return "audio.cpp.package"
+	case localEnvironmentFamilyMediaCodec:
+		return engine.MediaCodecDependencyID
 	case localEnvironmentFamilyESpeakNG:
 		return engine.ESpeakNGDependencyID
 	case localEnvironmentFamilyPythonUV:

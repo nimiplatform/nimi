@@ -72,8 +72,12 @@ export * from './runtime-local-environment-client-types';
 function toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(
   input: NimiRuntimeLocalEnvironmentPlanInput,
 ): ResolveLocalEnvironmentPlanRequest {
+  if (input.mediaCodec === true && (normalizeText(input.capabilityContract) || normalizeText(input.candidateLoadoutId))) {
+    throw new Error('Media codec resolution cannot select a capability or Loadout.');
+  }
   return {
-    capabilityContract: requireLocalText(input.capabilityContract, 'Runtime local environment capability contract is required', 'provide_local_environment_capability_contract'),
+    capabilityContract: input.mediaCodec === true ? '' : requireLocalText(input.capabilityContract, 'Runtime local environment capability contract is required', 'provide_local_environment_capability_contract'),
+    mediaCodec: input.mediaCodec === true,
     runtimeDataRoot: normalizeText(input.runtimeDataRoot),
     candidateLoadoutId: normalizeText(input.candidateLoadoutId),
   };

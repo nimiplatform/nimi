@@ -1180,3 +1180,23 @@ func findLocalEnvironmentDependency(t *testing.T, plan localEnvironmentPlan, fam
 	t.Fatalf("missing dependency family %s in plan %+v", family, plan)
 	return localEnvironmentPlanDependency{}
 }
+
+func TestMediaCodecPlanHasNoLoadoutAndRequiresExplicitConfirmation(t *testing.T) {
+	svc := newTestService(t)
+	resolution := &runtimev1.ResolveLocalEnvironmentPlanRequest{MediaCodec: true, HostProfile: localEnvironmentAppleSilicon128GBProfile()}
+	response, err := svc.ResolveLocalEnvironmentPlan(context.Background(), resolution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := response.GetPlan()
+	if plan.GetPackId() != "media-codec" || len(plan.GetDependencies()) != 1 || !plan.GetDependencies()[0].GetConfirmationRequired() {
+		t.Fatal(plan)
+	}
+	if _, err := svc.ApplyLocalEnvironmentPlan(context.Background(), &runtimev1.ApplyLocalEnvironmentPlanRequest{Resolution: resolution, ExpectedPlanId: plan.GetPlanId()}); err == nil {
+		t.Fatal("codec materialized without confirmation")
+	}
+	resolution.CapabilityContract = "music.generate"
+	if _, err := svc.ResolveLocalEnvironmentPlan(context.Background(), resolution); err == nil {
+		t.Fatal("codec accepted a second target")
+	}
+}

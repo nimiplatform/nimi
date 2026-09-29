@@ -726,6 +726,12 @@ export interface ResolveLocalEnvironmentPlanRequest {
      * @generated from protobuf field: string candidate_loadout_id = 10
      */
     candidateLoadoutId: string;
+    /**
+     * Exact shared codec component; exclusive with capability/candidate selectors.
+     *
+     * @generated from protobuf field: bool media_codec = 11
+     */
+    mediaCodec: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveLocalEnvironmentPlanResponse
@@ -3397,7 +3403,8 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
             { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "host_profile", kind: "message", T: () => LocalDeviceProfile },
             { no: 4, name: "runtime_data_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "candidate_loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "candidate_loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "media_codec", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ResolveLocalEnvironmentPlanRequest>): ResolveLocalEnvironmentPlanRequest {
@@ -3405,6 +3412,7 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
         message.capabilityContract = "";
         message.runtimeDataRoot = "";
         message.candidateLoadoutId = "";
+        message.mediaCodec = false;
         if (value !== undefined)
             reflectionMergePartial<ResolveLocalEnvironmentPlanRequest>(this, message, value);
         return message;
@@ -3425,6 +3433,9 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
                     break;
                 case /* string candidate_loadout_id */ 10:
                     message.candidateLoadoutId = reader.string();
+                    break;
+                case /* bool media_codec */ 11:
+                    message.mediaCodec = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3450,6 +3461,9 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
         /* string candidate_loadout_id = 10; */
         if (message.candidateLoadoutId !== "")
             writer.tag(10, WireType.LengthDelimited).string(message.candidateLoadoutId);
+        /* bool media_codec = 11; */
+        if (message.mediaCodec !== false)
+            writer.tag(11, WireType.Varint).bool(message.mediaCodec);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

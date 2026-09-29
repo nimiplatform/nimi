@@ -4,6 +4,7 @@
     "AI_PROVIDER_UNAVAILABLE": "AI 服务商当前不可用。",
     "AI_PROVIDER_RATE_LIMITED": "已触发 AI 服务商的速率限制。",
     "AI_PROVIDER_INTERNAL": "AI 服务商返回了内部错误。",
+    "AI_MEDIA_CODEC_UNAVAILABLE": "此设备上缺少 Nimi 使用的音视频转换组件。",
     "AI_STREAM_BROKEN": "AI 流式响应已中断。",
     "AI_CONNECTOR_CREDENTIAL_MISSING": "Runtime 缺少 Cloud 凭据。",
     "AI_CONNECTOR_DISABLED": "Runtime Cloud 配置已禁用。",
@@ -612,7 +613,8 @@
     "localCapabilitySystemMutationPolicyUnknown": "当前无法确认系统修改范围，因此已阻止安装。",
     "localCapabilityConfirm": "安装并继续",
     "localCapabilityANNOTATION": "语言分析",
-    "localCapabilitySEPARATION": "人声与背景分离"
+    "localCapabilitySEPARATION": "人声与背景分离",
+    "localCapabilityMEDIACODEC": "音频与视频组件"
   },
   "overview": {
     "vaultEntries": "凭证条目",

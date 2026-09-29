@@ -563,6 +563,10 @@ const (
 	ReasonCode_AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED ReasonCode = 752
 	// Protected music recovery slots, resident bytes or disk headroom exhausted.
 	ReasonCode_AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED ReasonCode = 754
+	// The Runtime-managed media codec (ffmpeg/ffprobe) is absent or cannot run
+	// on this device, so canonical audio or local video preparation cannot
+	// happen. It is not a provider, model, or input fault.
+	ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE ReasonCode = 766
 	// An owner's read-only startup classification refused Runtime-owned stored
 	// data in the selected data root (for example conversation storage that
 	// needs explicit offline conversion). Runtime serves only its maintenance
@@ -883,6 +887,7 @@ var (
 		751: "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED",
 		752: "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED",
 		754: "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED",
+		766: "AI_MEDIA_CODEC_UNAVAILABLE",
 		767: "RUNTIME_STORED_DATA_UNSUPPORTED",
 		768: "AUDIT_RECORD_UNAVAILABLE",
 		769: "AUDIT_RESULT_UNRECORDED",
@@ -1192,6 +1197,7 @@ var (
 		"AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED":              751,
 		"AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED":     752,
 		"AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED":                  754,
+		"AI_MEDIA_CODEC_UNAVAILABLE":                           766,
 		"RUNTIME_STORED_DATA_UNSUPPORTED":                      767,
 		"AUDIT_RECORD_UNAVAILABLE":                             768,
 		"AUDIT_RESULT_UNRECORDED":                              769,
@@ -1719,7 +1725,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x15TOOL_CHOICE_MODE_AUTO\x10\x01\x12\x19\n" +
 	"\x15TOOL_CHOICE_MODE_NONE\x10\x02\x12\x1d\n" +
 	"\x19TOOL_CHOICE_MODE_REQUIRED\x10\x03\x12\x19\n" +
-	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xd8_\n" +
+	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xf9_\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -2014,7 +2020,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"0AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED\x10\xee\x05\x12,\n" +
 	"'AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED\x10\xef\x05\x125\n" +
 	"0AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED\x10\xf0\x05\x12(\n" +
-	"#AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED\x10\xf2\x05\x12$\n" +
+	"#AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED\x10\xf2\x05\x12\x1f\n" +
+	"\x1aAI_MEDIA_CODEC_UNAVAILABLE\x10\xfe\x05\x12$\n" +
 	"\x1fRUNTIME_STORED_DATA_UNSUPPORTED\x10\xff\x05\x12\x1d\n" +
 	"\x18AUDIT_RECORD_UNAVAILABLE\x10\x80\x06\x12\x1c\n" +
 	"\x17AUDIT_RESULT_UNRECORDED\x10\x81\x06\x12\x0f\n" +

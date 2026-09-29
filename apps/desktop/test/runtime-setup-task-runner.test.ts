@@ -343,10 +343,12 @@ function createPorts(state: PortState, calls: CallLog): RuntimeSetupRunnerPorts 
     environment: {
       async resolveEnvironmentPlan(input) {
         calls.push({ method: 'environment.resolveEnvironmentPlan', args: input });
+        if (input.mediaCodec) throw new Error('this fixture expects a Loadout plan');
         return state.resolvePlan ? state.resolvePlan(input) : state.plan;
       },
       async applyEnvironmentPlan(input) {
         calls.push({ method: 'environment.applyEnvironmentPlan', args: input });
+        if (input.resolution.mediaCodec) throw new Error('this fixture expects a Loadout plan');
         return {
           plan: state.resolvePlan ? state.resolvePlan(input.resolution) : state.plan,
           jobs: state.appliedJobs,

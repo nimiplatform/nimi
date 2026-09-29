@@ -269,8 +269,21 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	if err := validateCloudMusicGenerationFields(effectiveRequest.GetSpec().GetMusicGenerate(), mapped.Adapter() == capabilitydriver.CloudMediaAdapterStabilityMusic); err != nil {
 		return nil, err
 	}
-	if effectiveRequest.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && (s.canonicalAudio == nil || !filepath.IsAbs(s.localMusicStagingRoot)) {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	if effectiveRequest.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
+		// Generated music is stored as canonical audio, so the codec is checked
+		// before the provider is paid for output that could not be kept.
+		if s.canonicalAudio == nil {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE)
+		}
+		if err := s.canonicalAudio.Ensure(ctx); err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE)
+		}
+		if !filepath.IsAbs(s.localMusicStagingRoot) {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		}
 	}
 	var musicReference *nimillm.MusicReferenceAudio
 	if music := effectiveRequest.GetSpec().GetMusicGenerate(); music != nil && music.GetAudioReference() != nil {

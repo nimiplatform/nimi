@@ -220,6 +220,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-video-encode-failed',
   'ai-video-session-overloaded',
   'ai-video-session-generation-invalid',
+  'ai-media-codec-unavailable',
   'ai-local-execution-load-failed',
   'ai-local-execution-inference-failed',
   'ai-local-execution-canceled',

@@ -4,6 +4,7 @@
     "AI_PROVIDER_UNAVAILABLE": "AI provider is unavailable.",
     "AI_PROVIDER_RATE_LIMITED": "AI provider rate limit was reached.",
     "AI_PROVIDER_INTERNAL": "AI provider returned an internal error.",
+    "AI_MEDIA_CODEC_UNAVAILABLE": "The audio and video converter Nimi uses isn't available on this device.",
     "AI_STREAM_BROKEN": "AI streaming response was interrupted.",
     "AI_CONNECTOR_CREDENTIAL_MISSING": "Runtime cloud credentials are missing.",
     "AI_CONNECTOR_DISABLED": "Runtime cloud configuration is disabled.",
@@ -612,7 +613,8 @@
     "localCapabilitySystemMutationPolicyUnknown": "The system-level impact cannot be confirmed, so installation is blocked.",
     "localCapabilityConfirm": "Install and continue",
     "localCapabilityANNOTATION": "Language analysis",
-    "localCapabilitySEPARATION": "Vocals and background"
+    "localCapabilitySEPARATION": "Vocals and background",
+    "localCapabilityMEDIACODEC": "Audio and video tools"
   },
   "overview": {
     "vaultEntries": "Vault Entries",

@@ -827,20 +827,11 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 			}
 			svc.SetModelAssetHostRetirers(modelAssetHosts...)
 		}
-		if codec, probe, err := videomedia.ManagedCodecExecutablePaths(engineRoots.Dependencies); err == nil {
-			if processor, err := audiomedia.New(codec, probe); err == nil {
-				aiSvc.SetCanonicalAudioPreparation(processor, filepath.Join(filepath.Dir(d.cfg.LocalStatePath), "audio-preparation-staging"))
-			} else {
-				d.logger.Warn("pinned audio codec dependency unavailable; canonical audio preparation not wired", "error", err)
-			}
-		}
-		if videoMedia, err := videomedia.NewFromDependenciesRoot(engineRoots.Dependencies); err != nil {
-			// Local video submits fail closed with a typed unavailable reason
-			// until the pinned codec dependency is materialized.
-			d.logger.Warn("pinned video codec dependency unavailable; local video media pipeline not wired", "error", err)
-		} else {
-			aiSvc.SetLocalVideoMediaPipeline(videoMedia)
-		}
+		// The dependency owner materializes exact codec supply through an
+		// explicit dependency job; requests only resolve verified supply.
+		aiSvc.SetCanonicalAudioPreparation(audiomedia.NewManaged(svc.ResolveMediaCodecDependency), filepath.Join(filepath.Dir(d.cfg.LocalStatePath), "audio-preparation-staging"))
+		aiSvc.SetLocalVideoMediaPipeline(videomedia.NewManaged(svc.ResolveMediaCodecDependency))
+
 	}
 	if svc != nil {
 		llamaVersion := strings.TrimSpace(d.cfg.EngineLlamaVersion)

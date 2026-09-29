@@ -298,3 +298,10 @@ func assertGRPCReasonCode(t *testing.T, err error, rpc string, want runtimev1.Re
 		t.Fatalf("%s: expected reason code %s, got %s", rpc, want, got)
 	}
 }
+
+func (m *mockEngineManager) EnsureMediaCodecDependency(context.Context) (engine.MediaCodecDependencyStatus, error) {
+	return engine.MediaCodecDependencyStatus{}, nil
+}
+func (m *mockEngineManager) ResolveMediaCodecDependency(context.Context) (string, string, error) {
+	return "", "", nil
+}

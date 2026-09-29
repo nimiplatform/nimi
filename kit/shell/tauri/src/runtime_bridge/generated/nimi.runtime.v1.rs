@@ -535,6 +535,10 @@ pub enum ReasonCode {
     AiLocalModelInventoryReconciliationRequired = 752,
     /// Protected music recovery slots, resident bytes or disk headroom exhausted.
     AiMusicRecoveryCapacityExceeded = 754,
+    /// The Runtime-managed media codec (ffmpeg/ffprobe) is absent or cannot run
+    /// on this device, so canonical audio or local video preparation cannot
+    /// happen. It is not a provider, model, or input fault.
+    AiMediaCodecUnavailable = 766,
     /// An owner's read-only startup classification refused Runtime-owned stored
     /// data in the selected data root (for example conversation storage that
     /// needs explicit offline conversion). Runtime serves only its maintenance
@@ -936,6 +940,7 @@ impl ReasonCode {
             Self::AiMusicRecoveryCapacityExceeded => {
                 "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
             }
+            Self::AiMediaCodecUnavailable => "AI_MEDIA_CODEC_UNAVAILABLE",
             Self::RuntimeStoredDataUnsupported => "RUNTIME_STORED_DATA_UNSUPPORTED",
             Self::AuditRecordUnavailable => "AUDIT_RECORD_UNAVAILABLE",
             Self::AuditResultUnrecorded => "AUDIT_RESULT_UNRECORDED",
@@ -1400,6 +1405,7 @@ impl ReasonCode {
             "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => {
                 Some(Self::AiMusicRecoveryCapacityExceeded)
             }
+            "AI_MEDIA_CODEC_UNAVAILABLE" => Some(Self::AiMediaCodecUnavailable),
             "RUNTIME_STORED_DATA_UNSUPPORTED" => Some(Self::RuntimeStoredDataUnsupported),
             "AUDIT_RECORD_UNAVAILABLE" => Some(Self::AuditRecordUnavailable),
             "AUDIT_RESULT_UNRECORDED" => Some(Self::AuditResultUnrecorded),
@@ -11198,6 +11204,9 @@ pub struct ResolveLocalEnvironmentPlanRequest {
     /// material candidate change invalidates it.
     #[prost(string, tag = "10")]
     pub candidate_loadout_id: ::prost::alloc::string::String,
+    /// Exact shared codec component; exclusive with capability/candidate selectors.
+    #[prost(bool, tag = "11")]
+    pub media_codec: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveLocalEnvironmentPlanResponse {

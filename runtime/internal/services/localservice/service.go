@@ -32,6 +32,8 @@ type EngineManager interface {
 	EnsureEngineBinaryDependency(ctx context.Context, engine string, version string) (engine.EngineBinaryDependencyStatus, error)
 	VerifyEngineBinaryDependency(engine string, version string, expectedBinaryPath string) error
 	EnsureESpeakNGDependency(ctx context.Context) (engine.ESpeakNGDependencyStatus, error)
+	EnsureMediaCodecDependency(ctx context.Context) (engine.MediaCodecDependencyStatus, error)
+	ResolveMediaCodecDependency(ctx context.Context) (string, string, error)
 	EnsureUVToolDependency(ctx context.Context) (engine.UVToolDependencyStatus, error)
 	EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engine string, version string, pythonVersion string) (engine.PythonRuntimeDependencyStatus, error)
 	EnsurePythonDependencyProfile(ctx context.Context, uvPath string, pythonRuntimePath string, consumer string, platformTuple string, acceleratorPlane string) (engine.PythonDependencyProfileStatus, error)

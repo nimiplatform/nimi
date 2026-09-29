@@ -397,6 +397,11 @@ func localVideoMediaError(err error) error {
 		return nil
 	}
 	kind := videomedia.FailureKindOf(err)
+	if kind == videomedia.FailureCodecUnavailable {
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE, err, grpcerr.ReasonOptions{
+			Metadata: map[string]string{"media_phase": string(kind)},
+		})
+	}
 	if kind == videomedia.FailureUnavailable {
 		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED, err, grpcerr.ReasonOptions{
 			Metadata: map[string]string{"media_phase": string(kind)},

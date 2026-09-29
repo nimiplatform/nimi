@@ -272,6 +272,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_VIDEO_SESSION_GENERATION_INVALID" => {
             LocalAppReasonCode::AiVideoSessionGenerationInvalid
         }
+        "AI_MEDIA_CODEC_UNAVAILABLE" => LocalAppReasonCode::AiMediaCodecUnavailable,
         "AI_LOCAL_EXECUTION_LOAD_FAILED" => LocalAppReasonCode::AiLocalExecutionLoadFailed,
         "AI_LOCAL_EXECUTION_INFERENCE_FAILED" => {
             LocalAppReasonCode::AiLocalExecutionInferenceFailed
@@ -779,6 +780,7 @@ mod tests {
                 "AI_VIDEO_SESSION_GENERATION_INVALID",
                 "ai-video-session-generation-invalid",
             ),
+            ("AI_MEDIA_CODEC_UNAVAILABLE", "ai-media-codec-unavailable"),
             (
                 "AI_LOCAL_EXECUTION_LOAD_FAILED",
                 "ai-local-execution-load-failed",

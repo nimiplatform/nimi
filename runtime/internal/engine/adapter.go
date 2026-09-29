@@ -282,3 +282,10 @@ func publicEngineName(kind EngineKind) string {
 		return string(kind)
 	}
 }
+
+func (a *ServiceAdapter) EnsureMediaCodecDependency(ctx context.Context) (MediaCodecDependencyStatus, error) {
+	return a.mgr.EnsureMediaCodecDependency(ctx)
+}
+func (a *ServiceAdapter) ResolveMediaCodecDependency(ctx context.Context) (string, string, error) {
+	return a.mgr.ResolveMediaCodecDependency(ctx)
+}

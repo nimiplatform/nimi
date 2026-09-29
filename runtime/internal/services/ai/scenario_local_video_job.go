@@ -46,9 +46,15 @@ func (s *Service) submitLocalVideoScenarioJob(
 		})
 	}
 	if s.localVideoMedia == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED, grpcerr.ReasonOptions{
-			Message: "local video media pipeline is unavailable",
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message: "the managed media codec is unavailable",
 		})
+	}
+	if err := s.localVideoMedia.Ensure(ctx); err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE)
 	}
 
 	jobCtx := newDetachedAsyncJobContext(ctx)

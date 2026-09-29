@@ -1490,6 +1490,14 @@ export enum ReasonCode {
      */
     AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED = 754,
     /**
+     * The Runtime-managed media codec (ffmpeg/ffprobe) is absent or cannot run
+     * on this device, so canonical audio or local video preparation cannot
+     * happen. It is not a provider, model, or input fault.
+     *
+     * @generated from protobuf enum value: AI_MEDIA_CODEC_UNAVAILABLE = 766;
+     */
+    AI_MEDIA_CODEC_UNAVAILABLE = 766,
+    /**
      * An owner's read-only startup classification refused Runtime-owned stored
      * data in the selected data root (for example conversation storage that
      * needs explicit offline conversion). Runtime serves only its maintenance
