@@ -67,7 +67,7 @@ function LabAiRealtimeSurface({
   const [turnDetection, setTurnDetection] = useState<'server-vad' | 'manual'>('manual');
   const [audioOutputEnabled, setAudioOutputEnabled] = useState(false);
   const [text, setText] = useState('Say hello in one short sentence.');
-  const [state, setState] = useState<LabRealtimeState>({ phase: 'idle', tracks: [], transcripts: [], log: [], observed: {} });
+  const [state, setState] = useState<LabRealtimeState>({ phase: 'idle', responsePending: false, tracks: [], transcripts: [], log: [], observed: {} });
   const [capture, setCapture] = useState<Capture | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
@@ -289,14 +289,14 @@ function LabAiRealtimeSurface({
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.inputSection')}>
         <TextareaField rows={2} value={text} disabled={!open} aria-label={t('CapabilityTests.aiRealtime.textInput')} onChange={(event) => setText(event.currentTarget.value)} />
         <div className="lab-realtime__row">
-          <Button type="button" size="sm" tone="primary" disabled={!open || busy || !text.trim()} onClick={() => void run(() => sessionRef.current!.sendText(text.trim()))}>
+          <Button type="button" size="sm" tone="primary" disabled={!open || busy || state.responsePending || !text.trim()} onClick={() => void run(() => sessionRef.current!.sendText(text.trim()))}>
             {t('CapabilityTests.aiRealtime.sendText')}
           </Button>
           <Button type="button" size="sm" tone="secondary" disabled={!open || busy} onClick={() => void (capture ? stopCapture() : startCapture()).catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))}>
             {t(capture ? 'CapabilityTests.aiRealtime.stopMic' : 'CapabilityTests.aiRealtime.startMic')}
           </Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('commit-input')}>{t('CapabilityTests.aiRealtime.commitInput')}</Button>
-          <Button type="button" size="sm" tone="ghost" disabled={!open || busy || activeTracks.length > 0} onClick={() => void control('start-response')}>{t('CapabilityTests.aiRealtime.startResponse')}</Button>
+          <Button type="button" size="sm" tone="ghost" disabled={!open || busy || state.responsePending || activeTracks.length > 0} onClick={() => void control('start-response')}>{t('CapabilityTests.aiRealtime.startResponse')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('cancel-response')}>{t('CapabilityTests.aiRealtime.cancelResponse')}</Button>
           {activeTracks.map((track) => (
             <Button key={track.outputTrackId} type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void run(() => sessionRef.current!.interrupt(track.outputTrackId))}>

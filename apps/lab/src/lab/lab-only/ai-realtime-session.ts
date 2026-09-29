@@ -33,6 +33,7 @@ export type LabRealtimeLogEntry = { readonly index: number; readonly kind: strin
 
 export type LabRealtimeState = {
   readonly phase: 'idle' | 'opening' | 'open' | 'closing' | 'closed' | 'terminated';
+  readonly responsePending: boolean;
   readonly scope?: Scope;
   readonly control?: NimiRealtimeControlStatus;
   readonly negotiatedInputAudio?: NimiRealtimeAudioFormat;
@@ -107,7 +108,7 @@ export function createLabRealtimeController(input: {
   readonly onState: (state: LabRealtimeState) => void;
   readonly playback?: LabRealtimePlayback;
 }) {
-  let state: LabRealtimeState = { phase: 'idle', tracks: [], transcripts: [], log: [], observed: {} };
+  let state: LabRealtimeState = { phase: 'idle', responsePending: false, tracks: [], transcripts: [], log: [], observed: {} };
   let logIndex = 0;
   let cancelSubscription: (() => Promise<void>) | null = null;
   // Close cannot cancel an Open already sent to the owner. A close requested
@@ -129,7 +130,7 @@ export function createLabRealtimeController(input: {
   };
   const finish = (phase: 'closed' | 'terminated', terminalReason: string, error?: string) => {
     if (state.phase === 'closed' || state.phase === 'terminated') return;
-    set({ phase, terminalReason, endedAt: input.now().toISOString(), ...(error ? { error } : {}) });
+    set({ phase, responsePending: false, terminalReason, endedAt: input.now().toISOString(), ...(error ? { error } : {}) });
   };
   const track = (outputTrackId: string, requestId: string, patch: (current: LabRealtimeOutputTrack) => Partial<LabRealtimeOutputTrack>) => {
     const existing = state.tracks.find((entry) => entry.outputTrackId === outputTrackId)
@@ -167,6 +168,8 @@ export function createLabRealtimeController(input: {
     } else if (event.type === 'transcript') {
       const transcripts = state.transcripts.filter((entry) => entry.utteranceId !== event.utteranceId || entry.final);
       set({ transcripts: [...transcripts, { utteranceId: event.utteranceId, text: event.text, final: event.final }] });
+    } else if (event.type === 'request-terminal' || event.type === 'failure') {
+      set({ responsePending: false });
     } else if (event.type === 'session-terminal' && state.phase !== 'closing') {
       finish('terminated', event.reasonCode || 'session-terminal');
     }
@@ -264,12 +267,19 @@ export function createLabRealtimeController(input: {
     // A text turn is one conversation input plus an explicit response start.
     async sendText(text: string): Promise<string> {
       const scope = requireScope();
+      if (state.responsePending) throw new Error(t('CapabilityTests.aiRealtime.responseAlreadyPending'));
       const requestId = input.createId('lab-text');
-      operation('append-text', await input.client.appendInput({ ...scope, input: { type: 'text', requestId, text } }));
-      count('text-input');
-      operation('start-response', await input.client.submitOwnerControl({ ...scope, requestId, control: 'start-response' }));
-      count('owner-control');
-      return requestId;
+      set({ responsePending: true });
+      try {
+        operation('append-text', await input.client.appendInput({ ...scope, input: { type: 'text', requestId, text } }));
+        count('text-input');
+        operation('start-response', await input.client.submitOwnerControl({ ...scope, requestId, control: 'start-response' }));
+        count('owner-control');
+        return requestId;
+      } catch (error) {
+        set({ responsePending: false });
+        throw error;
+      }
     },
     async appendAudioFrame(frame: { readonly inputTrackId: string; readonly utteranceId: string; readonly frameSequence: string; readonly frame: Uint8Array }): Promise<void> {
       const scope = requireScope();
@@ -280,8 +290,16 @@ export function createLabRealtimeController(input: {
     },
     async ownerControl(control: LabRealtimeOwnerControl): Promise<void> {
       const scope = requireScope();
-      operation(control, await input.client.submitOwnerControl({ ...scope, requestId: input.createId('lab-control'), control }));
-      count('owner-control');
+      const startsResponse = control === 'start-response';
+      if (startsResponse && state.responsePending) throw new Error(t('CapabilityTests.aiRealtime.responseAlreadyPending'));
+      if (startsResponse) set({ responsePending: true });
+      try {
+        operation(control, await input.client.submitOwnerControl({ ...scope, requestId: input.createId('lab-control'), control }));
+        count('owner-control');
+      } catch (error) {
+        if (startsResponse) set({ responsePending: false });
+        throw error;
+      }
     },
     async interrupt(outputTrackId: string): Promise<void> {
       const scope = requireScope();

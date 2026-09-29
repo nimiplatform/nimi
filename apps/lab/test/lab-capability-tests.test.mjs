@@ -776,6 +776,59 @@ test('direct AI Realtime opens without an Agent using the legal 16 kHz PCM forma
   assert.equal(summary.observed['text-output'], 3);
 });
 
+test('direct AI Realtime blocks another response before the first output track arrives and releases the control after terminal or Close', async () => {
+  const { createLabRealtimeController } = await load('lab/lab-only/ai-realtime-session.js');
+  const { t } = await load('shell/i18n/index.js');
+  const fake = fakeRealtime({ events: [
+    { type: 'request-terminal', requestId: 'lab-text-1', finishReason: 'stop', usage: null, reasonCode: '' },
+  ] });
+  const responseGate = gated(fake.client.submitOwnerControl);
+  let releaseEvents;
+  const eventsGate = new Promise((resolve) => { releaseEvents = resolve; });
+  const client = {
+    ...fake.client,
+    submitOwnerControl: responseGate.call,
+    async subscribe() {
+      const subscription = await fake.client.subscribe();
+      return {
+        async *[Symbol.asyncIterator]() { await eventsGate; yield* subscription; },
+        cancel: () => subscription.cancel(),
+      };
+    },
+  };
+  let id = 0;
+  const session = createLabRealtimeController({ client, now: () => new Date(), createId: (prefix) => `${prefix}-${++id}`, onState: () => {} });
+  await session.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: false });
+  const sending = session.sendText('Say hello');
+  assert.equal(session.getState().responsePending, true, 'the control locks before the provider ack or output-track event');
+  await assert.rejects(() => session.ownerControl('start-response'), { message: t('CapabilityTests.aiRealtime.responseAlreadyPending') });
+  await assert.rejects(() => session.sendText('Say it again'), { message: t('CapabilityTests.aiRealtime.responseAlreadyPending') });
+  assert.equal(fake.calls.append.length, 1);
+  assert.equal(fake.calls.control.length, 0, 'no duplicate owner start reaches the provider while the first ack is pending');
+  responseGate.release();
+  await sending;
+  assert.equal(session.getState().responsePending, true, 'the control stays locked between ack and provider terminal');
+  assert.equal(fake.calls.control.length, 1);
+  releaseEvents();
+  await waitFor(() => session.getState().responsePending === false, 'response terminal release');
+  assert.equal(session.getState().phase, 'open');
+  await session.ownerControl('commit-input');
+  assert.equal(session.getState().responsePending, false, 'manual microphone commit does not start a response');
+  await session.ownerControl('start-response');
+  assert.equal(session.getState().responsePending, true, 'the manual committed-input response uses the same pending guard');
+  await assert.rejects(() => session.ownerControl('start-response'), { message: t('CapabilityTests.aiRealtime.responseAlreadyPending') });
+  await session.close();
+  assert.equal(session.getState().responsePending, false);
+
+  const closingFake = fakeRealtime();
+  const closing = createLabRealtimeController({ client: closingFake.client, now: () => new Date(), createId: (prefix) => prefix, onState: () => {} });
+  await closing.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: false });
+  await closing.sendText('Say hello');
+  assert.equal(closing.getState().responsePending, true);
+  await closing.close();
+  assert.equal(closing.getState().responsePending, false);
+});
+
 test('direct AI Realtime reports the owner reason for a refused Local route, a rejected ack and an ended event stream', async () => {
   const { createLabRealtimeController, labRealtimeSessionSummary } = await load('lab/lab-only/ai-realtime-session.js');
   const local = fakeRealtime({ openError: Object.assign(new Error('Local driver unavailable'), { reasonCode: 'AI_LOCAL_DRIVER_UNAVAILABLE' }) });
@@ -790,6 +843,7 @@ test('direct AI Realtime reports the owner reason for a refused Local route, a r
   const { t } = await load('shell/i18n/index.js');
   await assert.rejects(() => session.sendText('hi'), { message: t('CapabilityTests.aiRealtime.notAcknowledged', { operation: 'append-text' }) });
   assert.equal(rejecting.calls.control.length, 0, 'no response starts after a rejected input');
+  assert.equal(session.getState().responsePending, false, 'a refused input releases the control');
   await session.close();
 
   const ending = fakeRealtime({ endStream: true, events: [{ type: 'session-terminal', reasonCode: 'AI_PROVIDER_UNAVAILABLE' }] });

@@ -256,6 +256,7 @@
       "stopMic": "停止麦克风",
       "commitInput": "提交输入",
       "startResponse": "开始回应",
+      "responseAlreadyPending": "已请求一次回应。请等待它结束，或关闭会话后再开始下一次。",
       "cancelResponse": "取消回应",
       "interrupt": "中断 {{track}}",
       "audioHint": "发送文本会自动开始回应。手动麦克风轮次需先提交录制的音频，再开始回应。麦克风仅在你选择时开启，并在会话关闭时停止。",
