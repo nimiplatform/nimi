@@ -87,6 +87,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
         },
         agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
         agentConversationTargetByHandle: {},
+        agentComposerDrafts: {},
         chatSetupState: {
           ...state.chatSetupState,
           human: null,

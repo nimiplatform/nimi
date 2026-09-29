@@ -70,6 +70,7 @@ import {
 import type { ReportAgentConversationHostError } from './chat-agent-shell-adapter-host-feedback.js';
 import { useAgentIntroduction } from '@nimiplatform/kit/features/chat/runtime';
 import type { NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
+import { createAgentComposerDraftRef } from './chat-agent-composer-draft.js';
 
 type UseAgentConversationModeHostInput = {
   authStatus: AuthStatus;
@@ -116,7 +117,6 @@ export function useAgentConversationModeHost(
       lifecycle: AgentTurnLifecycleState;
     }>
   >({});
-  const currentComposerTextRef = useRef('');
   const [composerPrefillRequestId, setComposerPrefillRequestId] = useState<number | null>(null);
   const [pendingImageRetry, setPendingImageRetry] = useState<{
     agentHandle: string;
@@ -184,8 +184,6 @@ export function useAgentConversationModeHost(
     activeThreadId,
     activeConversationAnchorId,
     bundle,
-    bundleError,
-    isBundleLoading,
     messages,
     selectedThreadRecord,
     streamState,
@@ -201,6 +199,11 @@ export function useAgentConversationModeHost(
   });
   const shellActiveTargetRef = useRef(shellActiveTarget);
   shellActiveTargetRef.current = shellActiveTarget;
+  const draftAgentHandle = normalizeText(shellActiveTarget?.agentHandle);
+  const currentComposerTextRef = useMemo(
+    () => createAgentComposerDraftRef(appStore, authUserId, draftAgentHandle),
+    [appStore, authUserId, draftAgentHandle],
+  );
   const recoverDesktopAgentSessionBinding = useCallback((error: unknown) => {
     if (!isDesktopAgentSessionBindingError(error)) return;
     const staleTarget = shellActiveTargetRef.current;
@@ -311,6 +314,7 @@ export function useAgentConversationModeHost(
     activeTarget?.agentHandle,
     activeTargetSourceKey,
     clearPendingAgentComposerPrefill,
+    currentComposerTextRef,
     pendingAgentComposerPrefill,
   ]);
   const handleComposerPrefillRequest = useCallback((text: string) => {
@@ -321,18 +325,20 @@ export function useAgentConversationModeHost(
     setPendingAgentComposerPrefill({ agentHandle, text });
   }, [activeTarget?.agentHandle, setPendingAgentComposerPrefill]);
 
-  useAgentRuntimeSessionSnapshotHydration({
+  const history = useAgentRuntimeSessionSnapshotHydration({
     activeAgentHandle: activeTarget?.agentHandle || null,
     activeConversationAnchorId,
     authStatus: input.authStatus,
     buildHostErrorDetails,
-    bundleError,
-    isBundleLoading,
     queryClient,
     onRuntimeError: recoverDesktopAgentSessionBinding,
     selectedThreadRecord,
     submittingThreadId,
   });
+  // Unread history is loading, not a first meeting; a visible projection may
+  // show while the authoritative read catches up.
+  const isBundleLoading = history.loading && !bundle;
+  const bundleError = history.error;
 
   const setupState = useMemo(() => {
     if (input.authStatus !== 'authenticated') {
@@ -500,6 +506,7 @@ export function useAgentConversationModeHost(
     void handleSubmit({ text: retry.prompt, attachments: [] }).catch(reportRuntimeProductError);
   }, [
     activeTarget?.agentHandle,
+    currentComposerTextRef,
     handleSubmit,
     pendingImageRetry,
     reportRuntimeProductError,
@@ -525,6 +532,7 @@ export function useAgentConversationModeHost(
     activeConversationAnchorId,
     bundle,
     bundleError,
+    onRetryBundle: history.retry,
     composerPrefillRequestId,
     composerReady,
     currentComposerTextRef,

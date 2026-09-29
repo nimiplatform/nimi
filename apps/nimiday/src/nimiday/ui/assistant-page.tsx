@@ -28,6 +28,7 @@ import { RunChanges } from './run-card.js';
 import { useUi } from './ui-context.js';
 import { VoicePanel } from './voice-panel.js';
 import { getNimiLocalAppClient } from '../../shell/auth/local-app-client.js';
+import { needsAiSetup, openNimiAiCapabilities } from '../platform/ai-setup.js';
 
 export function AssistantPage() {
   const { copy } = useNimiDay();
@@ -139,6 +140,7 @@ function Conversation() {
   const agent = desk.agent!;
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [setupRefused, setSetupRefused] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [recording, setRecording] = useState<'idle' | 'recording' | 'transcribing'>('idle');
   const [switchPrompt, setSwitchPrompt] = useState<((value: boolean) => void) | null>(null);
@@ -161,10 +163,12 @@ function Conversation() {
     setSending(true);
     const result = await engine.chat(text);
     setSending(false);
+    setSetupRefused(!result.ok && result.reason === 'failed' && needsAiSetup(result.reasonCode));
     if (result.ok) {
       setDraft('');
       return;
     }
+    if (!result.ok && result.reason === 'failed' && needsAiSetup(result.reasonCode)) return;
     const message = result.reason === 'busy'
       ? copy.assistant.busy(agent.displayName)
       : result.reason === 'not-ready' ? copy.assistant.notConnected(agent.displayName) : copy.assistant.sendFailed;
@@ -246,7 +250,7 @@ function Conversation() {
             <strong style={{ fontSize: 16 }}>{agent.displayName}</strong>
             <div className="nd-faint">
               <span className="nd-status-dot" data-tone={desk.connection === 'lost' ? 'lost' : replying ? 'busy' : undefined} aria-hidden="true" />
-              {desk.connection === 'lost' ? copy.agent.connectionLost : replying ? (ownTurn ? copy.agent.replying : copy.agent.busyElsewhere) : copy.agent.idle}
+              {desk.connection === 'lost' ? copy.agent.connectionLost : replying ? (ownTurn ? copy.agent.replying : desk.busyWithinDay ? copy.agent.busyWithinDay : copy.agent.busyElsewhere) : copy.agent.idle}
               {state.profile.appointment ? ` · ${copy.agent.since(formatInstant(copy, state.profile.appointment.appointedAt, toLocalDate(now)))}` : ''}
             </div>
           </div>
@@ -283,7 +287,12 @@ function Conversation() {
           {liveTools.length > 0 ? (
             <div className="nd-chat-notice">{copy.assistant.liveTool(liveTools.map((tool) => copy.skills.toolNames[tool.name] ?? tool.name).join('、'))}</div>
           ) : null}
-          {desk.lastOutcome && desk.lastOutcome.kind !== 'completed' && !replying ? (
+          {setupRefused || (desk.lastOutcome?.kind === 'failed' && needsAiSetup(desk.lastOutcome.reasonCode) && !replying) ? (
+            <div className="nd-chat-notice">
+              {copy.assistant.needsAiSetup(agent.displayName)}
+              <Button size="sm" tone="secondary" onClick={() => { void openNimiAiCapabilities().then((opened) => { if (!opened) nimiToast.show({ tone: 'warning', message: copy.assistant.openAiSetupFailed, durationMs: 6000 }); }).catch(() => nimiToast.show({ tone: 'warning', message: copy.assistant.openAiSetupFailed, durationMs: 6000 })); }}>{copy.assistant.openAiSetup}</Button>
+            </div>
+          ) : desk.lastOutcome && desk.lastOutcome.kind !== 'completed' && !replying ? (
             <div className="nd-chat-notice">
               {desk.lastOutcome.kind === 'failed' ? copy.assistant.failed(agent.displayName) : copy.assistant.interrupted}
               {desk.lastOutcome.detail ? (
@@ -321,7 +330,7 @@ function Conversation() {
             {replying && ownTurn ? (
               <Button tone="secondary" onClick={() => { void engine.stopActive(desk.activeTurnId!); }}>{copy.assistant.stop}</Button>
             ) : replying ? (
-              <Button tone="secondary" disabled>{copy.assistant.busyElsewhere(agent.displayName)}</Button>
+              <Button tone="secondary" disabled>{desk.busyWithinDay ? copy.assistant.busyWithinDay(agent.displayName) : copy.assistant.busyElsewhere(agent.displayName)}</Button>
             ) : (
               <Button tone="primary" leadingIcon={<Send size={15} aria-hidden="true" />} disabled={!draft.trim() || sending} loading={sending} onClick={() => { void send(); }}>{copy.assistant.send}</Button>
             )}

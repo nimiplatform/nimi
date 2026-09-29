@@ -12,6 +12,17 @@ import { safeLogRuntimeAgentEvent } from './chat-agent-runtime-agent-utils';
 // @nimi-authority: definition.nimi.desktop.agent-projection.agent-chat
 // @nimi-authority: rule.nimi.desktop.agent-projection.r001
 // @nimi-authority: rule.nimi.runtime.agent-participation.r175
+const turnAdmissions = new WeakMap<AbortSignal, 'unconfirmed' | 'admitted'>();
+
+/** True once Runtime accepted the turn started with this abort signal. */
+export function isAgentTurnAdmitted(signal: AbortSignal): boolean {
+  return turnAdmissions.get(signal) === 'admitted';
+}
+
+export function isAgentTurnAdmissionUnconfirmed(signal: AbortSignal): boolean {
+  return turnAdmissions.get(signal) === 'unconfirmed';
+}
+
 export async function streamChatAgentRuntimeAgentTurn(
   request: AgentRuntimeChatTurnRequest,
   sdk: DesktopRendererSdkPort,
@@ -60,7 +71,10 @@ async function* runCanonicalDesktopAgentTurn(input: {
 	if (input.signal?.aborted) {
 		throw new DOMException('Agent turn was canceled before admission.', 'AbortError');
 	}
+    // After submission begins, a lost reply cannot prove the owner rejected it.
+    if (input.signal) turnAdmissions.set(input.signal, 'unconfirmed');
     const accepted = await input.conversation.send({ ...scope, requestId: input.requestId, parts: input.parts });
+    if (input.signal) turnAdmissions.set(input.signal, 'admitted');
     const runtimeTurnId = accepted.turnId;
 	interrupt = () => {
 		interrupted = true;

@@ -62,10 +62,14 @@ export class FollowUpEngine {
         if (this.closed) return;
         // A new technical scope only reads old state. It never resumes an old send or wait.
         arrangements = arrangements.map(item => ACTIVE.has(item.state) ? { ...item, state: 'interrupted' as const, notificationUnconfirmed: item.notificationUnconfirmed || item.state === 'notifying', issue: 'interrupted' as const, error: '' } : item);
-        this.state = { ...this.state, arrangements, ready: true };
+        this.state = { ...this.state, arrangements, ready: true, error: '' };
         await this.save();
         await this.refresh();
-      } catch (error) { if (!this.closed) this.state = { ...this.state, error: reason(error) }; }
+      } catch (error) {
+        // A transient failure must not stay cached for this Host's lifetime.
+        this.loaded = undefined;
+        if (!this.closed) this.state = { ...this.state, error: reason(error) };
+      }
     })();
   }
   async refresh() {

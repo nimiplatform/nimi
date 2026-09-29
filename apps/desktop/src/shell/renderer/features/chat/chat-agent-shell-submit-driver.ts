@@ -115,6 +115,7 @@ export function resolveInterruptedAgentSubmitDriverCheckpoint(input: {
   runtimeError: AgentLocalMessageError;
   updatedAtMs: number;
   streamSnapshot: StreamState;
+  restoreSubmittedText?: boolean;
 }): AgentSubmitDriverEffectQueue {
   const interrupted = resolveInterruptedAgentSubmitSession({
     state: input.state,
@@ -122,6 +123,7 @@ export function resolveInterruptedAgentSubmitDriverCheckpoint(input: {
     runtimeError: input.runtimeError,
     updatedAtMs: input.updatedAtMs,
     streamSnapshot: input.streamSnapshot,
+    restoreSubmittedText: input.restoreSubmittedText,
   });
   return createEffectQueue({
     finalSession: interrupted.state,

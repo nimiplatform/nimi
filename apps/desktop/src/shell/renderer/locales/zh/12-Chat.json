@@ -162,6 +162,8 @@
   "agentEmptyVoicePlay": "播放开场语音",
   "agentEmptyVoiceStop": "停止开场语音",
   "agentTranscriptLoading": "正在加载伙伴会话...",
+  "agentTranscriptLoadFailed": "这段会话暂时无法加载。",
+  "agentTranscriptRetry": "重试",
   "agentTranscriptPendingRole": "伙伴正在回复",
   "agentTranscriptThinking": "正在思考...",
   "agentTranscriptStopGenerating": "停止生成",
@@ -680,5 +682,6 @@
   "assistant": "助手",
   "markdownCopy": "复制",
   "markdownCopied": "已复制！",
-  "dismissOverlay": "关闭浮层"
+  "dismissOverlay": "关闭浮层",
+  "agentAdmissionUnconfirmed": "消息可能已被接收，目前无法确认是否已停止。原文已保留在下方，请先查看会话，再决定是否重发。"
 }

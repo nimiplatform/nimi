@@ -13,6 +13,7 @@ import {
 import type { ChatThinkingPreference } from '../../features/chat/chat-shared-thinking';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { readCharacterSourceRefV3 } from '../../features/realm-source/realm-source-identity.js';
+import { agentComposerDraftKey } from '../../features/chat/chat-agent-composer-draft.js';
 import type {
   AppStoreSet,
   AppStoreState,
@@ -86,6 +87,7 @@ type UiSlice = Pick<AppStoreState,
   | 'agentConversationTargetByHandle'
   | 'pendingAgentComposerPrefill'
   | 'agentComposerPrefillSerial'
+  | 'agentComposerDrafts'
   | 'pendingNimiComposerPrefill'
   | 'chatSetupState'
   | 'selectedChatId'
@@ -120,6 +122,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setAgentConversationTargetSnapshot'
   | 'setPendingAgentComposerPrefill'
   | 'clearPendingAgentComposerPrefill'
+  | 'setAgentComposerDraft'
   | 'setPendingNimiComposerPrefill'
   | 'clearPendingNimiComposerPrefill'
   | 'setChatSetupState'
@@ -161,6 +164,7 @@ export function createUiSlice(
     pendingAgentComposerPrefill: null,
     pendingNimiComposerPrefill: null,
     agentComposerPrefillSerial: 0,
+    agentComposerDrafts: {},
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     selectedChatId: null,
     selectedProfileId: null,
@@ -309,6 +313,13 @@ export function createUiSlice(
           ? { pendingAgentComposerPrefill: null }
           : {},
       ),
+    setAgentComposerDraft: (accountId, agentHandle, text) =>
+      set((state) => {
+        const key = agentComposerDraftKey(accountId, agentHandle);
+        if (!key || (state.agentComposerDrafts[key] ?? '') === text) return {};
+        const { [key]: _previous, ...rest } = state.agentComposerDrafts;
+        return { agentComposerDrafts: text ? { ...rest, [key]: text } : rest };
+      }),
     setPendingNimiComposerPrefill: (input) =>
       set((state) => {
         const text = String(input || '').trim();

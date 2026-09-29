@@ -24,6 +24,7 @@ export function resolveAgentConversationHostView(input: {
   selectedTargetId: string | null;
   loading: boolean;
   error: string | null;
+  errorAction?: ReactNode;
   footerViewState: AgentFooterViewState;
   footerContent: ReactNode;
   labels: {
@@ -73,6 +74,7 @@ export function resolveAgentConversationHostView(input: {
     transcriptProps: {
       loading: input.loading,
       error: input.error,
+      errorAction: input.errorAction ?? null,
       emptyEyebrow: input.labels.emptyEyebrow,
       emptyTitle: input.labels.emptyTitle,
       emptyDescription: input.labels.emptyDescription,

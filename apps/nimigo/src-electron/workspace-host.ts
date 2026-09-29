@@ -53,7 +53,14 @@ export function createGoWorkspaceHost(options: { windowOpen: () => boolean; open
     'nimigo.sources.activity': command((value, a) => value.refreshActivities(a[0] as string | null, a[1] === true)),
     'nimigo.work.run': command((value, a) => { void value.run(text(a[0]), a[1] as string | undefined).catch(error => value.report(error)); return { requested: true }; }),
     'nimigo.work.stop': command((value, a) => value.stop(text(a[0]))),
-    'nimigo.work.answer': command((value, a) => { void value.answer(text(a[0]), text(a[1])).catch(error => value.report(error)); return { requested: true }; }),
+    // The renderer clears its answer only after the Host recorded it as the next
+    // round's input; a refusal before that keeps the question and the text.
+    'nimigo.work.answer': command((value, a) => new Promise((resolve, reject) => {
+      let recorded = false;
+      void value.answer(text(a[0]), text(a[1]), () => { recorded = true; resolve({ recorded: true }); })
+        .then(() => { if (!recorded) reject(new Error('回答尚未被记录，请重试。')); })
+        .catch(error => { if (recorded) value.report(error); else reject(error); });
+    })),
     'nimigo.work.decide-world': command((value, a) => { void value.decideWorldChange(text(a[0]), a[1] === true).catch(error => value.report(error)); return { requested: true }; }),
     'nimigo.work.status': command((value, a) => value.refreshWorkStatus(text(a[0]))),
     'nimigo.preferences.toggle-theme': command(value => value.modifyWorkspace(w => { w.theme = w.theme === 'light' ? 'dark' : 'light'; })),

@@ -540,6 +540,8 @@ export function resolveInterruptedAgentSubmitSession(input: {
   runtimeError: AgentLocalMessageError;
   updatedAtMs: number;
   streamSnapshot: StreamState;
+  /** False when the text reached Runtime, so the composer is not refilled for resending. */
+  restoreSubmittedText?: boolean;
 }): AgentSubmitSessionInterruptedResult {
   const traceId = resolveTraceId(input.state, input.streamSnapshot);
   const interruptedStreamSnapshot = (
@@ -575,7 +577,7 @@ export function resolveInterruptedAgentSubmitSession(input: {
     partialReasoningText: interruptedStreamSnapshot.partialReasoningText || input.state.streamedReasoningText,
     runtimeError: input.runtimeError,
     traceId,
-    submittedText: input.state.submittedText,
+    submittedText: input.restoreSubmittedText === false ? '' : input.state.submittedText,
     updatedAtMs: input.updatedAtMs,
     lifecycle: input.state.lifecycle,
     streamSnapshot: interruptedStreamSnapshot,

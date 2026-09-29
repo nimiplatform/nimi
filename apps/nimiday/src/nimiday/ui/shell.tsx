@@ -58,7 +58,8 @@ export function Shell() {
         : desk.awaitingConfirmation ? copy.agent.awaitingConfirm : copy.agent.none)
     : desk.connection === 'lost'
       ? copy.agent.connectionLost
-      : desk.activeTurnId ? (deskApi.ownsTurn(desk.activeTurnId) ? copy.agent.replying : copy.agent.busyElsewhere) : copy.agent.idle;
+      : desk.activeTurnId ? (deskApi.ownsTurn(desk.activeTurnId) ? copy.agent.replying : copy.agent.busyElsewhere)
+        : desk.resourceBusy ? (desk.busyWithinDay ? copy.agent.busyWithinDay : copy.agent.busyElsewhere) : copy.agent.idle;
   const tone = desk.phase === 'unavailable' && appointed
     ? 'lost'
     : desk.phase !== 'ready' ? 'off' : desk.connection === 'lost' ? 'lost' : desk.activeTurnId ? 'busy' : undefined;

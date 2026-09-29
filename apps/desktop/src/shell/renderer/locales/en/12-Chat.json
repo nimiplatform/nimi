@@ -162,6 +162,8 @@
   "agentEmptyVoicePlay": "Play the opening voice",
   "agentEmptyVoiceStop": "Stop the opening voice",
   "agentTranscriptLoading": "Loading partner conversation...",
+  "agentTranscriptLoadFailed": "This conversation could not be loaded.",
+  "agentTranscriptRetry": "Try again",
   "agentTranscriptPendingRole": "Partner is replying",
   "agentTranscriptThinking": "Thinking...",
   "agentTranscriptStopGenerating": "Stop generating",
@@ -680,5 +682,6 @@
   "assistant": "Assistant",
   "markdownCopy": "Copy",
   "markdownCopied": "Copied!",
-  "dismissOverlay": "Dismiss overlay"
+  "dismissOverlay": "Dismiss overlay",
+  "agentAdmissionUnconfirmed": "Your message may have been accepted, and stopping could not be confirmed. Your text is saved below. Check the conversation before sending it again."
 }

@@ -30,6 +30,8 @@ export type CanonicalTranscriptViewProps = {
   activeConversationId?: string | null;
   loading?: boolean;
   error?: string | null;
+  /** Recovery control rendered under `error`, such as a retry button. */
+  errorAction?: ReactNode;
   pendingFirstBeat?: boolean;
   pendingAgentRoleLabel?: string;
   pendingThinkingLabel?: string;
@@ -85,6 +87,7 @@ export function CanonicalTranscriptView({
   activeConversationId = null,
   loading = false,
   error = null,
+  errorAction = null,
   pendingFirstBeat = false,
   pendingAgentRoleLabel,
   pendingThinkingLabel,
@@ -326,8 +329,9 @@ export function CanonicalTranscriptView({
         ) : null}
 
         {error ? (
-          <div className="flex min-h-[320px] items-center justify-center rounded-[var(--nimi-radius-xl)] border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] px-6 py-7 text-center text-sm text-[var(--nimi-status-danger)] shadow-[0_20px_52px_color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)]">
-            {error}
+          <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-[var(--nimi-radius-xl)] border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] px-6 py-7 text-center text-sm text-[var(--nimi-status-danger)] shadow-[0_20px_52px_color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)]">
+            <p>{error}</p>
+            {errorAction}
           </div>
         ) : null}
 

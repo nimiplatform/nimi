@@ -109,6 +109,11 @@ export type AppStoreState = {
   agentConversationTargetByHandle: Record<string, AgentLocalTargetSnapshot>;
   pendingAgentComposerPrefill: AgentComposerPrefill | null;
   agentComposerPrefillSerial: number;
+  /**
+   * Unsent partner-chat text by account and Agent handle. It outlives route
+   * changes and a temporary Runtime/account outage; ending the session clears it.
+   */
+  agentComposerDrafts: Readonly<Record<string, string>>;
   /** Text typed on Home that Nimi Chat opens a new conversation with. */
   pendingNimiComposerPrefill: { text: string; requestId: number } | null;
   chatSetupState: ChatSetupStateByMode;
@@ -157,6 +162,7 @@ export type AppStoreState = {
   setAgentConversationTargetSnapshot: (target: AgentLocalTargetSnapshot) => void;
   setPendingAgentComposerPrefill: (input: { agentHandle?: string | null; sourceKey?: string | null; text: string }) => void;
   clearPendingAgentComposerPrefill: (requestId: number) => void;
+  setAgentComposerDraft: (accountId: string, agentHandle: string, text: string) => void;
   setPendingNimiComposerPrefill: (text: string) => void;
   clearPendingNimiComposerPrefill: (requestId: number) => void;
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;

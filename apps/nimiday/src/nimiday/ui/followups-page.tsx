@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Button, InlineAlert } from '@nimiplatform/kit/ui';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Button, ConfirmDialog, InlineAlert } from '@nimiplatform/kit/ui';
 import { invoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { useDayStore, useNimiDay } from '../app/context.js';
 import { parseGoVersionReference } from '../domain/integration-reference.js';
+import { parseRecipientLines } from '../domain/followup-recipients.js';
 import { canContinueFollowUp, notificationState, type FollowUpContinueInput, type FollowUpInput, type FollowUpSnapshot, type FollowUp } from '../followup/engine.js';
 import { Card, PageHead } from './common.js';
 import { IntegrationReferencePanel } from './integration-reference-panel.js';
@@ -59,17 +60,29 @@ export function FollowUpsPage({ focusId }: { focusId?: string }) {
   const [snapshot, setSnapshot] = useState<FollowUpSnapshot | null>(null);
   const [error, setError] = useState(''); const [sending, setSending] = useState(false);
   const [sourceRef, setSourceRef] = useState(''); const [sourceReference, setSourceReference] = useState('');
+  const [recipientText, setRecipientText] = useState('');
+  const [confirming, setConfirming] = useState<{ input: FollowUpInput; account: string } | null>(null);
+  const parsed = useMemo(() => parseRecipientLines(recipientText, text.recipientFallback), [recipientText, text]);
   const read = async () => { const value = await invoke('nimiday.followups.snapshot') as FollowUpSnapshot; setSnapshot(value); };
   useEffect(() => { void read().catch(failure => setError(errorText(failure))); const timer = setInterval(() => { void read().catch(failure => setError(errorText(failure))); }, 1000); return () => clearInterval(timer); }, []);
   useEffect(() => { if (focusId && snapshot) document.getElementById(`followup-${focusId}`)?.scrollIntoView({ block: 'center' }); }, [focusId, snapshot?.ready]);
-  const start = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); setSending(true); setError('');
+  // Nothing is sent until the parsed recipients and the exact notice are confirmed.
+  const start = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); setError('');
     const values = Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>;
+    if (parsed.problems.length > 0 || parsed.recipients.length === 0) { setError(text.recipientFix); return; }
     try {
-      const recipients = values.recipients!.split('\n').filter(line => line.trim()).map((line, index) => { const [chatId, ...label] = line.trim().split(/\s+/u); return { chatId: chatId!, label: label.join(' ') || text.recipientFallback(index + 1) }; });
+      const recipients = parsed.recipients.map(recipient => ({ chatId: recipient.chatId, label: recipient.label }));
       const input: FollowUpInput = { title: values.title!, when: values.when!, goal: values.goal!, notice: values.notice!, publishHome: values.publishHome === 'on', targetRef: values.targetRef!, agentBinding: values.agentBinding!, recipients, ...(sourceRef ? { source: { targetRef: sourceRef, reference: parseGoVersionReference(sourceReference, copy.references).reference } } : {}) };
-      await invoke('nimiday.followups.start', { input }); await read();
+      const target = snapshot?.targets.find(value => value.targetRef === input.targetRef);
+      setConfirming({ input, account: target ? `${target.displayName} · ${target.accountLabel}` : input.targetRef });
     } catch (failure) { setError(errorText(failure)); }
+  };
+  const send = async () => {
+    if (!confirming) return;
+    setSending(true); setError('');
+    try { await invoke('nimiday.followups.start', { input: confirming.input }); setConfirming(null); await read(); }
+    catch (failure) { setConfirming(null); setError(errorText(failure)); }
     finally { setSending(false); }
   };
   const sources = snapshot?.targets.filter(target => target.integrationId === 'nimi.go.deliverables' && target.permittedOperations.includes('deliverable.read')) || [];
@@ -78,14 +91,18 @@ export function FollowUpsPage({ focusId }: { focusId?: string }) {
     <PageHead title={text.title} /><p className="nd-muted">{text.intro}</p>
     {error || snapshot?.error ? <InlineAlert tone="warning">{error || snapshot?.error}</InlineAlert> : null}
     <IntegrationReferencePanel targets={snapshot?.targets || []} refresh={async () => { const value = await invoke('nimiday.followups.refresh') as FollowUpSnapshot; setSnapshot(value); }} />
-    <Card title={text.create}><form onSubmit={event => void start(event)} aria-label={text.create} className="nd-followup-form">
+    <Card title={text.create}><form onSubmit={start} aria-label={text.create} className="nd-followup-form">
       <label>{text.name}<input name="title" required maxLength={100} placeholder={text.nameHint} /></label>
       <label>{text.when}<input name="when" required maxLength={200} placeholder={text.whenHint} /></label>
       <label>{text.goal}<textarea name="goal" required maxLength={1500} rows={3} placeholder={text.goalHint} /></label>
       <label>{text.agent}<select name="agentBinding" required defaultValue={state.profile.appointment?.binding || ''}><option value="">{text.chooseAgent}</option>{snapshot?.agents.map(agent => <option value={agent.agentBinding} key={agent.agentBinding}>{agent.displayName}</option>)}</select></label>
       <label>{text.account}<select name="targetRef" required><option value="">{text.chooseAccount}</option>{targets.map(target => <option value={target.targetRef} key={target.targetRef}>{target.displayName} · {target.accountLabel}</option>)}</select></label>
       {targets.length === 0 && <p className="nd-faint">{text.noAccount}</p>}
-      <label>{text.recipients}<textarea name="recipients" required rows={3} placeholder={text.recipientsHint} /></label>
+      <label>{text.recipients}<textarea name="recipients" required rows={3} placeholder={text.recipientsHint} value={recipientText} onChange={event => setRecipientText(event.target.value)} aria-invalid={parsed.problems.length > 0} aria-describedby="nd-recipient-check" /></label>
+      <div id="nd-recipient-check" aria-live="polite">
+        {parsed.problems.map(problem => <p key={`${problem.line}:${problem.reason}`} className="nd-field-error" role="alert">{text.recipientProblems[problem.reason](problem.line, problem.value)}</p>)}
+        {parsed.recipients.length > 0 && <ul className="nd-faint" data-testid="nd-recipient-echo">{parsed.recipients.map(recipient => <li key={recipient.chatId}>{text.recipientEcho(recipient.line, recipient.named ? recipient.label : `${recipient.label}（${text.recipientUnnamed}）`, recipient.chatId)}</li>)}</ul>}
+      </div>
       <details><summary>{text.recipientHelp}</summary><ol>{text.recipientSteps.map(step => <li key={step}>{step}</li>)}</ol></details>
       <label>{text.notice}<textarea name="notice" required rows={4} maxLength={3000} placeholder={text.noticeHint} /></label>
       <label>{text.source}<select value={sourceRef} onChange={event => setSourceRef(event.target.value)}><option value="">{text.noSource}</option>{sources.map(target => <option value={target.targetRef} key={target.targetRef}>{target.displayName}</option>)}</select></label>
@@ -93,6 +110,21 @@ export function FollowUpsPage({ focusId }: { focusId?: string }) {
       <label><span><input name="publishHome" type="checkbox" defaultChecked={state.profile.homeMessages} style={{ width: 'auto' }} /> {text.publishHome}</span></label>
       <Button type="submit" tone="primary" loading={sending} disabled={!snapshot?.ready || targets.length === 0}>{text.start}</Button>
     </form></Card>
+    <ConfirmDialog
+      open={confirming !== null}
+      title={text.confirmTitle}
+      message={confirming ? <div>
+        <p>{text.confirmBody(confirming.input.recipients.length, confirming.account)}</p>
+        <ul>{parsed.recipients.map(recipient => <li key={recipient.chatId}>{text.recipientEcho(recipient.line, recipient.label, recipient.chatId)}</li>)}</ul>
+        <blockquote style={{ whiteSpace: 'pre-wrap' }}>{confirming.input.notice}</blockquote>
+      </div> : null}
+      confirmLabel={text.confirmSend}
+      cancelLabel={text.confirmCancel}
+      confirmTone="primary"
+      loading={sending}
+      onConfirm={() => { void send(); }}
+      onClose={() => setConfirming(null)}
+    />
     {snapshot?.arrangements.map(item => <FollowUpCard key={item.id} item={item} changed={read} />)}
   </div>;
 }

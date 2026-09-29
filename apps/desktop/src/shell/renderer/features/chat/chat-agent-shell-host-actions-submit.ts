@@ -30,6 +30,7 @@ import {
   uploadPendingAttachment,
 } from './chat-agent-shell-host-actions-helpers';
 import { runActiveAgentSubmit } from './chat-agent-shell-host-actions-submit-run';
+import { isAgentTurnAdmitted, isAgentTurnAdmissionUnconfirmed } from './chat-agent-runtime-agent';
 import {
   rollbackOptimisticUserProjection,
   toFallbackThreadRecord,
@@ -316,7 +317,11 @@ export async function submitAgentConversationTurn(input: {
       });
     } catch (error) {
       const streamSnapshot = input.hostInput.streamController.getStreamState(effectiveThreadId);
-      const runtimeError = streamSnapshot.cancelSource === 'user'
+      const stoppedByUser = streamSnapshot.cancelSource === 'user';
+      const admissionUnconfirmed = isAgentTurnAdmissionUnconfirmed(abortController.signal);
+      const runtimeError = stoppedByUser && admissionUnconfirmed
+        ? { code: 'AGENT_TURN_ADMISSION_UNCONFIRMED', message: input.hostInput.t('Chat.agentAdmissionUnconfirmed', { defaultValue: 'Your message may have been accepted, and stopping could not be confirmed. Your text is saved below. Check the conversation before sending it again.' }) }
+        : stoppedByUser
         ? {
           code: 'OPERATION_ABORTED',
           message: input.hostInput.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }),
@@ -337,14 +342,20 @@ export async function submitAgentConversationTurn(input: {
       if (activeSubmit.overrideRequested && runtimeError.code === 'OPERATION_ABORTED') {
         return;
       }
-      input.hostInput.currentComposerTextRef.current = submittedText;
+      // Text Runtime already accepted is not offered back after a stop, so
+      // Enter cannot send it twice; text stopped before admission stays.
+      const restoreSubmittedText = !(stoppedByUser && isAgentTurnAdmitted(abortController.signal));
+      if (restoreSubmittedText) input.hostInput.currentComposerTextRef.current = submittedText;
       submitSession = input.hostInput.applyDriverEffects(effectiveThreadId, resolveInterruptedAgentSubmitDriverCheckpoint({
         state: submitSession,
         refreshedBundle: null,
         runtimeError,
         updatedAtMs: input.hostInput.now(),
         streamSnapshot,
+        restoreSubmittedText,
       }));
+      // A stop the user asked for is the turn's end, not a failure to report.
+      if (stoppedByUser && !admissionUnconfirmed) return;
       throw new Error(runtimeError.message, { cause: error });
     } finally {
       if (input.activeSubmitsByThreadRef.current.get(effectiveThreadId) === activeSubmit) {

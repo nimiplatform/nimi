@@ -533,3 +533,24 @@ test('agent submit session preserves visible first-beat when the turn is cancele
   assert.equal(interrupted.hostInteractionPatch.footerViewState.displayState, 'interrupted');
   assert.equal(interrupted.errorStreamEvent, undefined);
 });
+
+test('agent submit session refills the composer after a failure but not after text Runtime accepted', () => {
+  const stopped = streamState({ phase: 'waiting', cancelSource: 'user' });
+  const failure = resolveInterruptedAgentSubmitSession({
+    state: createSession(),
+    refreshedBundle: null,
+    runtimeError: { code: 'RUNTIME_CALL_FAILED', message: 'runtime broke' },
+    updatedAtMs: 160,
+    streamSnapshot: streamState({ phase: 'waiting' }),
+  });
+  assert.equal(failure.hostInteractionPatch.composerText, 'retry this');
+  const acceptedThenStopped = resolveInterruptedAgentSubmitSession({
+    state: createSession(),
+    refreshedBundle: null,
+    runtimeError: { code: 'OPERATION_ABORTED', message: 'Generation stopped.' },
+    updatedAtMs: 160,
+    streamSnapshot: stopped,
+    restoreSubmittedText: false,
+  });
+  assert.equal(acceptedThenStopped.hostInteractionPatch.composerText, '');
+});

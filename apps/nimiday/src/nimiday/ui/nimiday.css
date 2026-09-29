@@ -269,6 +269,12 @@
   font-size: 12px;
 }
 
+.nd-field-error {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--nimi-status-danger);
+}
+
 .nd-empty {
   padding: 14px 0 6px;
   color: var(--nimi-text-muted);

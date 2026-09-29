@@ -8,7 +8,11 @@ export type WorkMessage = { messageId: string; executionId: string; role: 'user'
 export type Material = { id: string; title: string; content: string; createdAt: string; editedAt?: string; origin?: { activityId?: string; worldId?: string; integration?: { targetRef: string; operation: string; callId: string }; title: string; updatedAt: string } };
 export type Revision = { id: string; path: string; createdAt: string; by: 'agent' | 'user'; note: string; executionId?: string };
 export type Deliverable = { id: string; title: string; revisions: Revision[] };
-export type Work = { version: 1; id: string; projectId: string; title: string; brief: string; skillId: string; status: WorkStatus; createdAt: string; updatedAt: string; materials: Material[]; deliverables: Deliverable[]; steps: { id: string; title: string; done: boolean }[]; attempts: Attempt[]; history: { id: string; at: string; text: string; kind?: 'source-update'; executionId?: string }[]; messages?: WorkMessage[]; integrationReads?: { targetRef: string; operation: string }[]; error?: string; question?: string; queuedInput?: { sequence: number; followup?: string; routineName?: string }; archived: boolean };
+/** A decision the user owes, persisted with its type so a reopened Host restores it exactly. */
+export type PendingRequest =
+  | { kind: 'input'; question: string }
+  | { kind: 'world-review'; question: string; worldId: string; worldName: string; baseContentHash: string; beforeSummary: string; afterSummary: string };
+export type Work = { version: 1; id: string; projectId: string; title: string; brief: string; skillId: string; status: WorkStatus; createdAt: string; updatedAt: string; materials: Material[]; deliverables: Deliverable[]; steps: { id: string; title: string; done: boolean }[]; attempts: Attempt[]; history: { id: string; at: string; text: string; kind?: 'source-update'; executionId?: string }[]; messages?: WorkMessage[]; integrationReads?: { targetRef: string; operation: string }[]; error?: string; errorReason?: string; question?: string; pendingRequest?: PendingRequest; queuedInput?: { sequence: number; followup?: string; routineName?: string }; archived: boolean };
 export const statusLabel: Record<WorkStatus, string> = { draft: '待开始', review: '待交付', queued: '排队中', running: '进行中', 'needs-input': '需要你', complete: '已交付', failed: '遇到问题', stopped: '已停止', uncertain: '待确认' };
 export const uuid = () => crypto.randomUUID();
 export const now = () => new Date().toISOString();
@@ -39,6 +43,20 @@ export function errorText(error: unknown): string {
   const reason = record.reasonCode || record.code || '';
   const messages: Record<string, string> = { 'avatar-host-mechanic-failed': '这次未能在桌面上叫出搭档，请在 Nimi 检查这位 Agent 的形象配置后重试。', 'local-app-access-denied': '这次执行的访问已结束或失效。已有成果保留，请重新打开工作区确认状态。', 'runtime-unauthenticated': 'Nimi 连接已变化，请重新打开同一工作区后重试。', 'local-app-operation-unsupported': '当前 Nimi Runtime 尚不支持这项操作，请更新运行环境后重试。', 'agent-busy': '这位搭档正在别处工作，请稍后重试。', 'AI_STREAM_BROKEN': '这次执行没有完整返回。已保存的成果仍然保留，请查看后决定是否重试。', 'LOCAL_APP_ACCESS_DENIED': '当前授权不可用，请在 Nimi 检查此应用的 Agent 访问。', 'AGENT_TURN_ALREADY_ACTIVE': '这位 Agent 正在处理另一项工作，请稍后重试。', 'AI_PROVIDER_TIMEOUT': 'Agent 等待模型超时，已保存的成果仍然保留。', 'AI_OUTPUT_INVALID': 'Agent 本次返回不符合执行契约，请查看已有成果后重试。', 'agent-turn-already-active': '这位 Agent 正忙，请稍后重试。' };
   return messages[reason] || [...new Set([record.message || '操作未完成', reason].filter(Boolean))].join(' · ');
+}
+// Failures the user resolves in Nimi's AI settings; a retry alone cannot fix them.
+const AI_SETUP_REASONS = new Set([
+  'ai-config-invalid', 'ai-config-not-found', 'ai-connector-not-found', 'ai-model-not-found', 'ai-model-not-ready',
+  'ai-local-configuration-not-configured', 'ai-local-model-unavailable', 'ai-local-model-profile-missing',
+  'ai-local-selection-not-found', 'ai-provider-auth-failed', 'ai-route-unsupported',
+]);
+export function errorReasonOf(error: unknown): string {
+  const record = error as { reasonCode?: unknown; code?: unknown } | null;
+  const reason = typeof record?.reasonCode === 'string' ? record.reasonCode : typeof record?.code === 'string' ? record.code : '';
+  return reason.replaceAll('_', '-').toLowerCase();
+}
+export function needsAiSetup(reason: string | undefined): boolean {
+  return Boolean(reason) && AI_SETUP_REASONS.has(reason!.replaceAll('_', '-').toLowerCase());
 }
 export function isMissing(error: unknown): boolean {
   const e = error as { code?: string; reasonCode?: string };
@@ -75,7 +93,18 @@ export function reviseWorkDetails(work: Work, patch: Pick<Work, 'title' | 'brief
 }
 
 function resetWorkForChangedInputs(work: Work): void {
-  work.status = 'draft'; work.steps = []; work.error = undefined; work.question = undefined; work.queuedInput = undefined;
+  work.status = 'draft'; work.steps = []; work.error = undefined; work.question = undefined; work.pendingRequest = undefined; work.queuedInput = undefined;
+}
+
+/** Only a typed request with its exact facts can be restored; anything else is never guessed. */
+export function restorablePendingRequest(work: Pick<Work, 'question' | 'pendingRequest'>): PendingRequest | null {
+  const request = work.pendingRequest;
+  const filled = (value: unknown, allowEmpty = false) => typeof value === 'string' && (allowEmpty || value.trim() !== '');
+  if (!request || !filled(work.question) || request.question !== work.question) return null;
+  if (request.kind === 'input') return request;
+  if (request.kind === 'world-review' && filled(request.worldId) && filled(request.worldName) && filled(request.baseContentHash)
+    && filled(request.beforeSummary, true) && filled(request.afterSummary)) return request;
+  return null;
 }
 
 export function validateMaterials(materials: readonly Material[]): void {
