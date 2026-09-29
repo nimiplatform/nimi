@@ -14,8 +14,13 @@ import (
 )
 
 func TestGoogleVeoOperationUsesNativeAuthPollAndResultShape(t *testing.T) {
-	const model = "veo-3.1-fast-generate-preview"
-	const operation = "models/veo-3.1-fast-generate-preview/operations/abc_123"
+	for _, model := range []string{googleVeoFastModel, googleVeoStandardModel, googleVeoLiteModel} {
+		t.Run(model, func(t *testing.T) { testGoogleVeoOperationUsesNativeAuthPollAndResultShape(t, model) })
+	}
+}
+
+func testGoogleVeoOperationUsesNativeAuthPollAndResultShape(t *testing.T, model string) {
+	operation := "models/" + model + "/operations/abc_123"
 	const videoURL = "https://generativelanguage.googleapis.com/v1beta/files/video_123:download?alt=media"
 	var polls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -20,6 +20,15 @@ func TestGoogleVeoDriverAdmitsOnlyExactFastTextVideo(t *testing.T) {
 	if _, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone); err != nil {
 		t.Fatalf("exact Fast text-video request rejected: %v", err)
 	}
+	for _, model := range []string{googleVeoStandardTextVideoModel, googleVeoLiteTextVideoModel} {
+		driver, target := cloudMediaDriverTarget(t, "google_veo", model, "video.generate")
+		if _, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone); err != nil {
+			t.Fatalf("exact %s text-video request rejected: %v", model, err)
+		}
+	}
+	if admittedGoogleVeoTextVideoModel("veo-3.0-generate-001") || admittedGoogleVeoTextVideoModel("veo-3.1-generate") {
+		t.Fatal("retired or invented Veo model was admitted")
+	}
 	cases := []struct {
 		name   string
 		mutate func(*runtimev1.VideoGenerateScenarioSpec)

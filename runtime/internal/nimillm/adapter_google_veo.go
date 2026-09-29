@@ -14,10 +14,23 @@ import (
 )
 
 const AdapterGoogleVeoOperation = "google_veo_operation_adapter"
-const googleVeoFastModel = "veo-3.1-fast-generate-preview"
+const (
+	googleVeoFastModel     = "veo-3.1-fast-generate-preview"
+	googleVeoStandardModel = "veo-3.1-generate-preview"
+	googleVeoLiteModel     = "veo-3.1-lite-generate-preview"
+)
+
+func googleVeoOperationModelAllowed(model string) bool {
+	switch model {
+	case googleVeoFastModel, googleVeoStandardModel, googleVeoLiteModel:
+		return true
+	default:
+		return false
+	}
+}
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r049
-// ExecuteGoogleVeoOperation invokes one exact Google Fast text-to-video dialect.
+// ExecuteGoogleVeoOperation invokes the exact Google Veo 3.1 preview text-to-video dialect.
 // Operation identity and the protected file URI remain Host-private until the
 // artifact body is detached into Runtime custody.
 func ExecuteGoogleVeoOperation(
@@ -48,7 +61,7 @@ func ExecuteGoogleVeoOperation(
 	if model == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODEL_ID_REQUIRED)
 	}
-	if model != googleVeoFastModel || spec.GetMode() != runtimev1.VideoMode_VIDEO_MODE_T2V {
+	if !googleVeoOperationModelAllowed(model) || spec.GetMode() != runtimev1.VideoMode_VIDEO_MODE_T2V {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	prompt := VideoPrompt(spec)

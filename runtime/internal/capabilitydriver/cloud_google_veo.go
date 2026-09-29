@@ -8,20 +8,33 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-const googleVeoFastTextVideoModel = "veo-3.1-fast-generate-preview"
+const (
+	googleVeoFastTextVideoModel     = "veo-3.1-fast-generate-preview"
+	googleVeoStandardTextVideoModel = "veo-3.1-generate-preview"
+	googleVeoLiteTextVideoModel     = "veo-3.1-lite-generate-preview"
+)
+
+func admittedGoogleVeoTextVideoModel(model string) bool {
+	switch model {
+	case googleVeoFastTextVideoModel, googleVeoStandardTextVideoModel, googleVeoLiteTextVideoModel:
+		return true
+	default:
+		return false
+	}
+}
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r051
-// validateGoogleVeoVideoRequest admits exactly the Fast text-to-video cell the
-// native Host transport can execute. Every admitted option is sent to Google;
+// validateGoogleVeoVideoRequest admits only the three exact Veo 3.1 preview
+// text-to-video cells that the native Host transport can execute. Every admitted option is sent to Google;
 // there is no silent mode, media input, or option downgrade.
 func validateGoogleVeoVideoRequest(request *runtimev1.SubmitScenarioJobRequest, model string) error {
 	unsupported := func() error {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-			Message:    "Google Veo currently supports Fast text-to-video at 720p, 16:9, and four seconds; image inputs, other modes, durations, and controls are unavailable",
-			ActionHint: "select_veo_fast_text_to_video_4s",
+			Message:    "Google Veo 3.1 text-to-video currently supports 720p, 16:9, and four seconds; image inputs, other modes, durations, and controls are unavailable",
+			ActionHint: "select_veo_31_text_to_video_4s",
 		})
 	}
-	if model != googleVeoFastTextVideoModel || request == nil || request.GetSpec().GetVideoGenerate() == nil {
+	if !admittedGoogleVeoTextVideoModel(model) || request == nil || request.GetSpec().GetVideoGenerate() == nil {
 		return unsupported()
 	}
 	spec := request.GetSpec().GetVideoGenerate()

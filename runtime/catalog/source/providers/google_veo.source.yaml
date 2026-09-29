@@ -24,12 +24,16 @@ defaults:
 sources:
   - source_id: google_veo_doc
     url: https://ai.google.dev/gemini-api/docs/veo
-    retrieved_at: 2026-09-28
-    note: Google Veo 3.1 Fast exact model code, operation API, aspect ratio, duration and audio behavior.
+    retrieved_at: 2026-09-29
+    note: Google Veo 3.1 Standard, Fast and Lite exact model codes, operation API, aspect ratio, duration and native audio behavior.
   - source_id: google_veo_pricing_doc
     url: https://ai.google.dev/gemini-api/docs/pricing
-    retrieved_at: 2026-04-18
-    note: Google Gemini Developer API pricing page with Veo per-second pricing.
+    retrieved_at: 2026-09-29
+    note: Google Gemini Developer API paid-tier per-second prices for Veo 3.1 Standard, Fast and Lite at 720p with audio.
+  - source_id: google_veo_lifecycle_doc
+    url: https://ai.google.dev/gemini-api/docs/deprecations
+    retrieved_at: 2026-09-29
+    note: Veo 3.1 Standard, Fast and Lite preview IDs have no announced shutdown date; retired Veo 3.0 remains removed.
 
 models:
   - model_id: veo-3.1-fast-generate-preview
@@ -43,7 +47,59 @@ models:
       currency: USD
       as_of: 2026-09-28
       notes: Official Google price is $0.10 per generated second at 720p with native audio. This Nimi row admits only four-second 16:9 text-to-video; other provider modes are not yet a Nimi execution claim.
-    source_ids: [google_veo_doc, google_veo_pricing_doc]
+    source_ids: [google_veo_doc, google_veo_pricing_doc, google_veo_lifecycle_doc]
+    video_generation:
+      modes: [t2v]
+      input_roles:
+        t2v: [prompt]
+      limits:
+        resolution: [720p]
+        ratio: ["16:9"]
+        duration_sec: [4]
+      options:
+        supports: [resolution, ratio, duration_sec]
+        constraints: {}
+      outputs:
+        video_url: true
+
+  - model_id: veo-3.1-generate-preview
+    model_type: video
+    updated_at: 2026-09-29
+    capabilities: [video.generate]
+    pricing:
+      unit: second
+      input: "0"
+      output: 0.40
+      currency: USD
+      as_of: 2026-09-29
+      notes: Official Google Standard price is $0.40 per generated second at 720p with native audio. Nimi's first exact Standard cell is only four-second 16:9 text-to-video.
+    source_ids: [google_veo_doc, google_veo_pricing_doc, google_veo_lifecycle_doc]
+    video_generation:
+      modes: [t2v]
+      input_roles:
+        t2v: [prompt]
+      limits:
+        resolution: [720p]
+        ratio: ["16:9"]
+        duration_sec: [4]
+      options:
+        supports: [resolution, ratio, duration_sec]
+        constraints: {}
+      outputs:
+        video_url: true
+
+  - model_id: veo-3.1-lite-generate-preview
+    model_type: video
+    updated_at: 2026-09-29
+    capabilities: [video.generate]
+    pricing:
+      unit: second
+      input: "0"
+      output: 0.05
+      currency: USD
+      as_of: 2026-09-29
+      notes: Official Google Lite price is $0.05 per generated second at 720p with native audio. Nimi's first exact Lite cell is only four-second 16:9 text-to-video.
+    source_ids: [google_veo_doc, google_veo_pricing_doc, google_veo_lifecycle_doc]
     video_generation:
       modes: [t2v]
       input_roles:
