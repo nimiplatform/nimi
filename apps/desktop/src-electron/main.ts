@@ -1,5 +1,6 @@
 import { createDesktopExecutionNoticesHost } from './execution-notices-host.js';
 import { createDesktopHomeCommandPolicy } from './home-host-policy.js';
+import { installDesktopPermissionPolicy } from './desktop-permission-policy.js';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -13,6 +14,7 @@ import {
   Notification,
   nativeImage,
   protocol,
+  session,
   shell,
   Tray,
   type MessageBoxOptions,
@@ -370,6 +372,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     }
     localAssetProtocolHost.registerProtocolHandler();
     appOriginProtocol.register();
+    installDesktopPermissionPolicy(session.defaultSession, new Set([
+      ...allowedRendererOrigins(),
+      desktopRendererOrigin(bundledAvatarRendererUrl),
+    ]));
     const dataRootOperationGate = createDesktopDataRootOperationGate();
     homeDataRootOperationGate = dataRootOperationGate;
     const appLaunchGate = desktopAppLaunchGate(dataRootOperationGate);

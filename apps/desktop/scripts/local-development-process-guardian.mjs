@@ -4,7 +4,8 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 
-const invocation = readInvocation(process.argv[2]);
+// Home loads this bundled source and passes it to the developer's Node --eval.
+const invocation = readInvocation(process.argv[1]);
 let target;
 let ownerLost = false;
 let terminating = false;
@@ -15,7 +16,6 @@ process.stdin.once('close', handleOwnerLoss);
 process.stdin.once('error', handleOwnerLoss);
 
 const targetEnvironment = { ...process.env };
-delete targetEnvironment.ELECTRON_RUN_AS_NODE;
 
 target = spawn(invocation.command, invocation.args, {
   cwd: process.cwd(),

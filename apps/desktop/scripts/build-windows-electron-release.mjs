@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { extractFile, listPackage } from '@electron/asar';
 import { packager } from '@electron/packager';
 
+import { flipElectronFuses, HOME_WINDOWS_FUSES, requireElectronFuses } from '../../../scripts/lib/electron-fuses.mjs';
 import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import {
   requireWindowsDevSignedFiles,
@@ -81,14 +82,21 @@ try {
   }
   requireWindowsDevSignedFiles(stagedNativeCode, developmentIdentity.certificateSha256, { cwd: repoRoot });
 
-  const packagedPaths = await packager(windowsElectronPackagerOptions({
-    dir: sourceRoot,
-    electronVersion,
-    icon: path.join(desktopRoot, 'src', 'shell', 'renderer', 'assets', 'favicon.ico'),
-    out: packageRoot,
-    resource: path.join(desktopRoot, 'src', 'shell', 'renderer', 'assets', 'favicon-32x32.png'),
-    version,
-  }));
+  const packagedPaths = await packager({
+    ...windowsElectronPackagerOptions({
+      dir: sourceRoot,
+      electronVersion,
+      icon: path.join(desktopRoot, 'src', 'shell', 'renderer', 'assets', 'favicon.ico'),
+      out: packageRoot,
+      resource: path.join(desktopRoot, 'src', 'shell', 'renderer', 'assets', 'favicon-32x32.png'),
+      version,
+    }),
+    // Fuses are sealed by the Authenticode signature, so they are set on the
+    // extracted Electron before signing.
+    afterExtract: [async ({ buildPath }) => {
+      await flipElectronFuses(path.join(buildPath, 'electron.exe'), HOME_WINDOWS_FUSES);
+    }],
+  });
   if (!Array.isArray(packagedPaths) || packagedPaths.length !== 1) {
     throw new Error('Electron packager returned an ambiguous Windows application layout');
   }
@@ -97,6 +105,7 @@ try {
 
   const executable = path.join(packagedRoot, `${WINDOWS_ELECTRON_LAYOUT_APP_NAME}.exe`);
   await assertWindowsX64PeFile(executable, 'Nimi Desktop executable');
+  await requireElectronFuses(executable, HOME_WINDOWS_FUSES);
   const executableSigning = signWindowsDevFiles([executable], { cwd: repoRoot });
   if (executableSigning.certificateSha256 !== developmentIdentity.certificateSha256) {
     throw new Error('Windows Electron layout development signer changed while signing the application');

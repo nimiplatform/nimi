@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, realpathSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -55,6 +55,8 @@ test('resume rejects App IDs and raw owner handles as selectors before dispatch'
   }
 });
 
+const FIXTURE_CALLER_TOKEN = 'ab'.repeat(32);
+
 function fixture() {
   const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-app-dev-shell-')));
   const project = path.join(root, 'project');
@@ -69,6 +71,7 @@ function fixture() {
     desktopAppId: 'nimi.desktop',
     desktopPid: process.pid,
     endpoint: 'http://127.0.0.1:49111',
+    callerToken: FIXTURE_CALLER_TOKEN,
     startedAt: '2026-07-12T00:00:00.000Z',
     lastHeartbeatAt: '2026-07-12T00:00:01.000Z',
   }, null, 2)}\n`);
@@ -152,7 +155,10 @@ test('official dev launcher requests automatic loopback CDP by default', {
       shell: 'electron',
       cdpPort: 0,
     });
-    assert.deepEqual(Object.keys(requests[0].init.headers), ['Content-Type']);
+    // The only non-content header is Desktop's own local caller proof from the
+    // presence file; no App, Runtime or session credential travels.
+    assert.deepEqual(Object.keys(requests[0].init.headers), ['Content-Type', 'Authorization']);
+    assert.equal(requests[0].init.headers.Authorization, `Bearer ${FIXTURE_CALLER_TOKEN}`);
     assert.equal(JSON.stringify(requests).match(/token|ticket|session|credential|runtimeEndpoint/gi), null);
     assert.equal(requests.at(-1).url.endsWith('/v1/cancel'), true);
   } finally {
@@ -429,4 +435,42 @@ test('platform matrix admits only Electron on Windows and macOS', () => {
     () => assertLocalDevelopmentPlatform('linux', 'electron'),
     (error) => error?.reasonCode === 'local-development-platform-unsupported',
   );
+});
+
+test('official dev launcher proves itself to Desktop with the presence caller token', async () => {
+  const input = fixture();
+  const headers = [];
+  try {
+    await runDevShell(input.project, {
+      descriptorPath: input.descriptorPath,
+      now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+      fetch: async (_url, init) => { headers.push(init.headers); return response({ status: 'ok', registrations: [] }); },
+      output: { write() {} },
+      listRegistrations: true,
+      installSignalHandlers: false,
+    });
+    assert.equal(headers.length, 1);
+    assert.equal(headers[0].Authorization, `Bearer ${FIXTURE_CALLER_TOKEN}`);
+  } finally { rmSync(input.root, { recursive: true, force: true }); }
+});
+
+test('official dev launcher refuses a Desktop presence that carries no caller token', async () => {
+  const input = fixture();
+  const descriptor = JSON.parse(readFileSync(input.descriptorPath, 'utf8'));
+  delete descriptor.callerToken;
+  writeFileSync(input.descriptorPath, `${JSON.stringify(descriptor)}\n`);
+  let called = false;
+  try {
+    await assert.rejects(
+      runDevShell(input.project, {
+        descriptorPath: input.descriptorPath,
+        now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+        fetch: async () => { called = true; },
+        listRegistrations: true,
+        installSignalHandlers: false,
+      }),
+      (error) => error?.reasonCode === 'local-development-desktop-not-running',
+    );
+    assert.equal(called, false);
+  } finally { rmSync(input.root, { recursive: true, force: true }); }
 });

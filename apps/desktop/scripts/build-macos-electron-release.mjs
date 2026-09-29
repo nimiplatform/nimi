@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { sign } from '@electron/osx-sign';
 import { packager } from '@electron/packager';
 
+import { flipElectronFuses, HOME_MACOS_FUSES, requireElectronFuses } from '../../../scripts/lib/electron-fuses.mjs';
 import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import {
   requireMacOSSigningIdentity,
@@ -103,6 +104,7 @@ try {
         sourceRoot,
       });
     }
+    await requireCandidateFuses(path.join(candidateRoot, applicationName), localDevelopment);
     await chmod(candidateRoot, 0o700);
     await rename(candidateRoot, outputRoot);
     completed = true;
@@ -111,6 +113,7 @@ try {
     await signMacOSApplication(desktopApp, release, {
       ignore: (candidate) => candidate === embeddedLocalHost || candidate.startsWith(`${embeddedLocalHost}${path.sep}`),
     });
+    await requireCandidateFuses(desktopApp, false);
     await notarizeAndStaple(desktopApp, release);
     // The Home submission includes the nested Host and creates its ticket.
     // Both are stapled before pkgbuild, because Runtime verifies these bundles
@@ -281,6 +284,11 @@ async function packageElectronApplication(input) {
     appVersion: input.version,
     arch: 'arm64',
     asar: { unpack: '**/*.{node,dylib}' },
+    // Fuses are part of the binary the signature seals, so they are set on the
+    // extracted Electron before anything is signed.
+    afterExtract: [async ({ buildPath }) => {
+      await flipElectronFuses(path.join(buildPath, 'Electron.app'), HOME_MACOS_FUSES, { resetAdHocDarwinSignature: true });
+    }],
     buildVersion,
     dir: input.dir,
     electronVersion: input.electronVersion,
@@ -299,6 +307,7 @@ async function packageElectronApplication(input) {
   if (!Array.isArray(paths) || paths.length !== 1) throw new Error('Electron packager returned an ambiguous macOS application');
   const appPath = path.join(paths[0], `${input.name}.app`);
   await requireDirectory(appPath);
+  await requireElectronFuses(appPath, HOME_MACOS_FUSES);
   hardenElectronInfoPlist(appPath);
   return appPath;
 }
@@ -393,6 +402,16 @@ async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopment
     { force: false },
   );
   await chmod(path.join(launchDaemons, 'ai.nimi.runtime.plist'), 0o644);
+}
+
+// The final Home and its embedded Local App Host must still carry the fuse
+// wire after copying and signing; a mismatch fails the build.
+async function requireCandidateFuses(desktopApp, localDevelopment) {
+  await requireElectronFuses(desktopApp, HOME_MACOS_FUSES);
+  await requireElectronFuses(
+    path.join(desktopApp, 'Contents', 'Frameworks', localDevelopment ? 'Nimi Local App Host Dev.app' : 'Nimi Local App Host.app'),
+    HOME_MACOS_FUSES,
+  );
 }
 
 async function signMacOSApplication(appPath, releaseInput, options) {

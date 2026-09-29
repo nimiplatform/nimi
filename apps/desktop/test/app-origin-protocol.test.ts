@@ -67,3 +67,22 @@ test('packaged Desktop protocol publishes captured Avatar pixels at a controlled
   origin.clear();
   assert.equal((await handle(new Request(`nimi-app://desktop${pathname}`))).status, 404);
 });
+
+test('installed Home and Avatar pages carry their own content policy; other assets do not', async () => {
+  const roots = await fixture();
+  await writeFile(path.join(roots.desktop, 'app.js'), 'export {}');
+  const capture = protocolCapture();
+  const origin = createDesktopAppOriginProtocol({ protocol: capture.protocol as never, roots });
+  origin.register();
+  const handle = capture.handler();
+  const desktop = (await handle(new Request('nimi-app://desktop/'))).headers.get('content-security-policy') ?? '';
+  const avatar = (await handle(new Request('nimi-app://avatar/'))).headers.get('content-security-policy') ?? '';
+  const script = await handle(new Request('nimi-app://desktop/app.js'));
+  assert.match(desktop, /connect-src 'self' https: data: nimi-shell-file:(;|$)/);
+  assert.doesNotMatch(desktop, /127\.0\.0\.1|localhost|ws:/, 'an installed Home page reaches no loopback port');
+  assert.match(avatar, /default-src 'self'/);
+  assert.doesNotMatch(avatar, /https:|http:|ws:/, 'Avatar renders local packages only');
+  assert.match(avatar, /frame-ancestors 'none'/);
+  assert.equal(script.headers.get('content-security-policy'), null);
+  assert.equal(script.headers.get('x-content-type-options'), 'nosniff');
+});

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { createServer, createConnection } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
 import path from 'node:path';
@@ -124,7 +125,8 @@ describe('Desktop local-development process ownership', () => {
       shell: false,
     }), 'utf8').toString('base64url');
     const guardian = spawn(process.execPath, [
-      path.join(appRoot, 'scripts', 'local-development-process-guardian.mjs'),
+      '--input-type=module', '--eval',
+      await readFile(path.join(appRoot, 'scripts', 'local-development-process-guardian.mjs'), 'utf8'),
       invocation,
     ], {
       cwd: appRoot,
