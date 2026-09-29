@@ -191,9 +191,31 @@ func (m *Manager) checkSyncManagedEnvironment(ctx context.Context, dataRoot stri
 		}
 		results = append(results, ManagedEnvironmentCheckResult{Kind: "python_package_cache", Locator: "dependencies/python-package-cache", Status: status, Reason: reason})
 	}
+	for _, dependencyID := range []string{NVIDIACUDAUserSpaceRuntimeDependencyID, NVIDIACUDA13UserSpaceRuntimeDependencyID} {
+		if ctx.Err() != nil {
+			return append(results, ManagedEnvironmentCheckResult{Kind: "accelerator_dependency", Reference: dependencyID, Status: "failed", Reason: "RUN_INTERRUPTED"})
+		}
+		status := m.ResolveSharedAcceleratorDependency(dependencyID, "")
+		root := filepath.Join(m.depsDir, "accelerator-dependencies", dependencyID)
+		if _, err := os.Lstat(root); os.IsNotExist(err) {
+			continue
+		}
+		result := ManagedEnvironmentCheckResult{
+			Kind: "accelerator_dependency", Reference: dependencyID + "/" + status.Version,
+			Locator: filepath.ToSlash(filepath.Join("dependencies", "accelerator-dependencies", dependencyID)),
+			Status:  "unavailable", Reason: "ACCELERATOR_DEPENDENCY_OWNER_MATERIAL_UNAVAILABLE",
+		}
+		if status.State == SharedAcceleratorDependencyReadyManaged && sameManagedPath(status.CanonicalRoot, root) {
+			result.Reason = "ACCELERATOR_DEPENDENCY_OWNER_MATERIAL_VERIFIED_SELECTION_REQUIRED"
+		}
+		results = append(results, result)
+	}
 	results = append(results, unclaimedManagedRootEntries(m.baseDir, "environments", claimedEnvironmentEntries)...)
+	results = append(results, unclaimedManagedRootEntries(filepath.Join(m.depsDir, "accelerator-dependencies"), "dependencies/accelerator-dependencies", map[string]struct{}{
+		NVIDIACUDAUserSpaceRuntimeDependencyID: {}, NVIDIACUDA13UserSpaceRuntimeDependencyID: {},
+	})...)
 	results = append(results, unclaimedManagedRootEntries(m.depsDir, "dependencies", map[string]struct{}{
-		"uv": {}, "python-package-cache": {},
+		"uv": {}, "python-package-cache": {}, "accelerator-dependencies": {},
 	})...)
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Kind+"|"+results[i].Reference+"|"+results[i].Locator < results[j].Kind+"|"+results[j].Reference+"|"+results[j].Locator

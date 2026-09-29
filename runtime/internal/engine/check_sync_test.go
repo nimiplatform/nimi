@@ -77,6 +77,65 @@ func TestManagedEnvironmentCheckSyncDoesNotPromoteStaticOnlyProfileAndPreservesU
 	}
 }
 
+func TestManagedEnvironmentCheckSyncReportsBothManagedCUDAOwnerMaterials(t *testing.T) {
+	if currentGOOS() != "windows" || currentGOARCH() != "amd64" || detectLocalGPUVendor() != "nvidia" {
+		t.Skip("managed CUDA material requires a Windows NVIDIA host")
+	}
+	dataRoot := t.TempDir()
+	manager, err := NewManager(nil, ManagedRoots{
+		Environments: filepath.Join(dataRoot, "environments"),
+		Dependencies: filepath.Join(dataRoot, "dependencies"),
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, dependencyID := range []string{NVIDIACUDAUserSpaceRuntimeDependencyID, NVIDIACUDA13UserSpaceRuntimeDependencyID} {
+		spec, _ := sharedAcceleratorDependencySpecForID(dependencyID)
+		root := filepath.Join(dataRoot, "dependencies", "accelerator-dependencies", dependencyID)
+		if err := os.MkdirAll(root, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range spec.RequiredArtifacts {
+			if err := os.WriteFile(filepath.Join(root, name), []byte("fixture"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	check := func(dependencyID string, wantReason string) {
+		t.Helper()
+		spec, _ := sharedAcceleratorDependencySpecForID(dependencyID)
+		for _, result := range manager.CheckSyncManagedEnvironment(context.Background(), dataRoot) {
+			if result.Kind == "accelerator_dependency" && result.Reference == dependencyID+"/"+spec.Version {
+				if result.Reason != wantReason || result.Status != "unavailable" || result.Locator != filepath.ToSlash(filepath.Join("dependencies", "accelerator-dependencies", dependencyID)) {
+					t.Fatalf("CUDA owner result = %+v, want reason %s", result, wantReason)
+				}
+				return
+			}
+		}
+		t.Fatalf("missing CUDA owner result for %s", dependencyID)
+	}
+	check(NVIDIACUDAUserSpaceRuntimeDependencyID, "ACCELERATOR_DEPENDENCY_OWNER_MATERIAL_VERIFIED_SELECTION_REQUIRED")
+	check(NVIDIACUDA13UserSpaceRuntimeDependencyID, "ACCELERATOR_DEPENDENCY_OWNER_MATERIAL_VERIFIED_SELECTION_REQUIRED")
+	unknownRoot := filepath.Join(dataRoot, "dependencies", "accelerator-dependencies", "unrecognized-runtime")
+	if err := os.MkdirAll(unknownRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	unknownFound := false
+	for _, result := range manager.CheckSyncManagedEnvironment(context.Background(), dataRoot) {
+		if result.Locator == "dependencies/accelerator-dependencies" {
+			t.Fatalf("claimed accelerator container reported as unknown: %+v", result)
+		}
+		unknownFound = unknownFound || result.Locator == "dependencies/accelerator-dependencies/unrecognized-runtime" && result.Status == "unknown"
+	}
+	if !unknownFound {
+		t.Fatal("unrecognized accelerator child was not preserved")
+	}
+	if err := os.Remove(filepath.Join(dataRoot, "dependencies", "accelerator-dependencies", NVIDIACUDA13UserSpaceRuntimeDependencyID, "cufft64_12.dll")); err != nil {
+		t.Fatal(err)
+	}
+	check(NVIDIACUDA13UserSpaceRuntimeDependencyID, "ACCELERATOR_DEPENDENCY_OWNER_MATERIAL_UNAVAILABLE")
+}
+
 func TestManagedEnvironmentCheckSyncPersistsAndReportsLegacyRegistryRebase(t *testing.T) {
 	dataRoot := t.TempDir()
 	environmentsRoot := filepath.Join(dataRoot, "environments")

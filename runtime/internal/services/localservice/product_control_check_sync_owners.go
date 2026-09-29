@@ -553,6 +553,12 @@ func (s *Service) reconcileProductControlCheckSyncEnvironments(ctx context.Conte
 	if ctx.Err() != nil {
 		return failedProductControlCheckSyncOwner(result.OwnerID, "RUN_INTERRUPTED")
 	}
+	acceleratorMaterial := make(map[string]engine.SharedAcceleratorDependencyStatus)
+	if ownerAvailable {
+		for _, dependencyID := range []string{engine.NVIDIACUDAUserSpaceRuntimeDependencyID, engine.NVIDIACUDA13UserSpaceRuntimeDependencyID} {
+			acceleratorMaterial[dependencyID] = manager.ResolveSharedAcceleratorDependency(dependencyID, "")
+		}
+	}
 
 	s.mu.Lock()
 	previousSources := cloneLocalEnvironmentSelectedSourceRecords(s.localEnvironmentSelectedSources)
@@ -675,7 +681,7 @@ func (s *Service) reconcileProductControlCheckSyncEnvironments(ctx context.Conte
 		case validateLocalEnvironmentSelectedSourceLocalArtifacts(record) != nil:
 			markLocalEnvironmentCheckSyncRepair(&record, "CHECK_SYNC_OWNER_ARTIFACT_UNAVAILABLE")
 			status, reason = "unavailable", "ENVIRONMENT_OWNER_ARTIFACT_UNAVAILABLE"
-		case !productControlCheckSyncEnvironmentMaterialSupportsRecord(record, ownerMaterial, input.DataRoot):
+		case !productControlCheckSyncEnvironmentMaterialSupportsRecord(record, ownerMaterial, acceleratorMaterial, input.DataRoot):
 			markLocalEnvironmentCheckSyncRepair(&record, "CHECK_SYNC_OWNER_MATERIAL_VERIFICATION_REQUIRED")
 			status, reason = "unavailable", "ENVIRONMENT_OWNER_MATERIAL_VERIFICATION_REQUIRED"
 		case candidate.rebased:
@@ -963,7 +969,7 @@ func reconcileLocalEnvironmentPortableContracts(input map[string]localEnvironmen
 	return output, conflicts, changed
 }
 
-func productControlCheckSyncEnvironmentMaterialSupportsRecord(record localEnvironmentSelectedSourceRecordState, ownerMaterial []engine.ManagedEnvironmentCheckResult, dataRoot string) bool {
+func productControlCheckSyncEnvironmentMaterialSupportsRecord(record localEnvironmentSelectedSourceRecordState, ownerMaterial []engine.ManagedEnvironmentCheckResult, acceleratorMaterial map[string]engine.SharedAcceleratorDependencyStatus, dataRoot string) bool {
 	match := func(kind, reference, locator, reason string, requireAvailable bool) bool {
 		matched := 0
 		for _, resource := range ownerMaterial {
@@ -987,6 +993,26 @@ func productControlCheckSyncEnvironmentMaterialSupportsRecord(record localEnviro
 		return matched == 1
 	}
 	switch record.DependencyFamily {
+	case localEnvironmentFamilyCUDA:
+		status, ok := acceleratorMaterial[record.DependencyID]
+		if !ok || record.SourceKind != localEnvironmentSourceManaged ||
+			status.State != engine.SharedAcceleratorDependencyReadyManaged || status.Source != "runtime_managed" ||
+			status.DependencyID != record.DependencyID || status.Version != record.Version ||
+			status.HostProfileID != "windows-amd64-nvidia-cuda" ||
+			record.EnvironmentKey != localEnvironmentKey(localEnvironmentFamilyCUDA, record.DependencyID, status.HostProfileID, "windows/amd64", dataRoot) {
+			return false
+		}
+		expectedRoot := filepath.Join(dataRoot, "dependencies", "accelerator-dependencies", record.DependencyID)
+		if !productControlPathsEqual(record.CanonicalRoot, expectedRoot) || !productControlPathsEqual(status.CanonicalRoot, expectedRoot) ||
+			!reflect.DeepEqual(normalizeStringSlice(record.VerifiedArtifacts), normalizeStringSlice(status.RequiredArtifacts)) ||
+			record.Hashes["required_artifact_set"] != shortHash(strings.Join(normalizeStringSlice(status.RequiredArtifacts), "|")) ||
+			!stringSliceContains(record.CompatibilityEvidence, status.Detail) ||
+			!strings.HasPrefix(record.SourceManifestRef, "managed-cuda-runtime-source#") ||
+			!strings.HasPrefix(record.VerificationEvidenceRef, "accelerator-cuda-runtime-evidence#") {
+			return false
+		}
+		locator, ok := localEnvironmentOwnerRelativeLocator(dataRoot, expectedRoot)
+		return ok && match("accelerator_dependency", record.DependencyID+"/"+record.Version, locator, "ACCELERATOR_DEPENDENCY_OWNER_MATERIAL_VERIFIED_SELECTION_REQUIRED", false)
 	case localEnvironmentFamilyNativeLlama:
 		version := strings.TrimSpace(record.Version)
 		locator, ok := localEnvironmentOwnerRelativeLocator(dataRoot, record.CanonicalRoot)
