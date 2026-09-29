@@ -26,7 +26,7 @@ const inputImageFeature = "input.image"
 type LlamaTextDriver struct{}
 
 func (LlamaTextDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
-	if (strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID || strings.TrimSpace(input.RecipeID) == LlamaQwen35RecipeID) &&
+	if (strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID || qwen35Recipe(input.RecipeID)) &&
 		input.RequirementID == MainGGUFRequirementID && input.Entry &&
 		filepath.Ext(strings.ToLower(input.RelativePath)) == ".gguf" {
 		return MaxDriverAssetFormatProbeBytes
@@ -38,7 +38,7 @@ func (driver LlamaTextDriver) ImplementationSupportedFeatures(recipeID string) (
 	if len(driver.recipeModelArchitectures(recipeID, MainGGUFRequirementID)) == 0 {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
-	if strings.TrimSpace(recipeID) == LlamaGemma4RecipeID {
+	if strings.TrimSpace(recipeID) == LlamaGemma4RecipeID || strings.TrimSpace(recipeID) == LlamaQwen35VisionRecipeID {
 		return []string{inputImageFeature}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	}
 	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -185,6 +185,13 @@ func (driver LlamaTextDriver) ProjectRecipe(recipeID string, options *structpb.S
 	return driver.Interpret(InterpretInput{RecipeID: recipeID, PortableConfig: options, SupportedFeatures: supportedFeatures})
 }
 
+func (driver LlamaTextDriver) ProjectRecipeForHost(recipeID string, options *structpb.Struct, supportedFeatures []string, platform string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) == LlamaQwen35VisionRecipeID && strings.ToLower(strings.TrimSpace(platform)) != "windows/amd64" {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return driver.ProjectRecipe(recipeID, options, supportedFeatures)
+}
+
 func (LlamaTextDriver) recipeModelArchitectures(recipeID string, slotID string) []string {
 	if slotID != MainGGUFRequirementID {
 		return nil
@@ -192,7 +199,7 @@ func (LlamaTextDriver) recipeModelArchitectures(recipeID string, slotID string) 
 	switch strings.TrimSpace(recipeID) {
 	case LlamaGemma4RecipeID:
 		return []string{"gemma4"}
-	case LlamaQwen35RecipeID:
+	case LlamaQwen35RecipeID, LlamaQwen35VisionRecipeID:
 		return []string{"qwen35"}
 	default:
 		return nil
@@ -215,7 +222,7 @@ func (driver LlamaTextDriver) ProjectModelAssetBinding(input ModelAssetBindingIn
 	case MainGGUFRequirementID:
 		var summary ggufmeta.Summary
 		var err error
-		if strings.TrimSpace(input.RecipeID) == LlamaQwen35RecipeID {
+		if qwen35Recipe(input.RecipeID) {
 			summary, err = ggufmeta.Inspect(bytes.NewReader(probe))
 			if err == nil && !qwen35BaseTextModelContract(summary) {
 				err = fmt.Errorf("qwen35 4B Model Contract mismatch")
@@ -231,6 +238,12 @@ func (driver LlamaTextDriver) ProjectModelAssetBinding(input ModelAssetBindingIn
 		descriptor.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
 		descriptor.ArtifactRoles = []string{"llm"}
 	case CompanionMMProjRequirementID:
+		if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID {
+			summary, inspectErr := ggufmeta.Inspect(bytes.NewReader(probe))
+			if inspectErr != nil || !qwen35ProjectorModelContract(summary) {
+				return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+			}
+		}
 		descriptor.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY
 		descriptor.ArtifactRoles = []string{"mmproj"}
 	default:
@@ -248,6 +261,9 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
 	}
+	if strings.TrimSpace(input.RecipeID) == LlamaQwen35RecipeID && contains(features, inputImageFeature) {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
+	}
 	_, reason = parsePortableConfig(input.PortableConfig, contains(features, inputImageFeature))
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
@@ -262,7 +278,7 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 	)
 	if strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID {
 		main.CompatibilityConstraints.Fields["gemma4_contract"] = structpb.NewStringValue("v1")
-	} else if strings.TrimSpace(input.RecipeID) == LlamaQwen35RecipeID {
+	} else if qwen35Recipe(input.RecipeID) {
 		main.CompatibilityConstraints.Fields["qwen35_4b_contract"] = structpb.NewStringValue("v1")
 	}
 	requirements := []*runtimev1.LocalCapabilityRequirement{main}
@@ -274,10 +290,14 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 			"mmproj",
 			"Vision projector",
 		)
-		projector.Presence = runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL
-		projector.ConditionalFeatures = []string{inputImageFeature}
+		if strings.TrimSpace(input.RecipeID) != LlamaQwen35VisionRecipeID {
+			projector.Presence = runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL
+			projector.ConditionalFeatures = []string{inputImageFeature}
+		}
 		if strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID {
 			projector.CompatibilityConstraints.Fields["gemma4_contract"] = structpb.NewStringValue("v1")
+		} else if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID {
+			projector.CompatibilityConstraints.Fields["qwen35_4b_projector_contract"] = structpb.NewStringValue("v1")
 		}
 		requirements = append(requirements, projector)
 	}
@@ -361,7 +381,25 @@ func (driver LlamaTextDriver) ValidateCombination(requirements []*runtimev1.Loca
 			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 		}
 	}
+	if qwen35ProjectorCombinationContract(requirements) {
+		projectorIndex, configured := byBinding[CompanionMMProjRequirementID]
+		if configured {
+			mainIndex, ok := byBinding[MainGGUFRequirementID]
+			if !ok || !qwen35Q4VisionPair(bindings[mainIndex], bindings[projectorIndex]) {
+				return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+			}
+		}
+	}
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func qwen35ProjectorCombinationContract(requirements []*runtimev1.LocalCapabilityRequirement) bool {
+	for _, requirement := range requirements {
+		if requirement != nil && requirement.GetCompatibilityConstraints().GetFields()["qwen35_4b_projector_contract"].GetStringValue() == "v1" {
+			return true
+		}
+	}
+	return false
 }
 
 func gemma4CombinationContract(requirements []*runtimev1.LocalCapabilityRequirement) bool {

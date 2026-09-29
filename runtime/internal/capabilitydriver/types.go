@@ -39,10 +39,11 @@ const (
 	LlamaQwen3EmbedDialect     = "llama.cpp/text-embed/qwen3-last/v1"
 	LlamaCapabilityContract    = "text.generate"
 
-	LlamaGemma4RecipeID     = "llama.text-generate.gemma4.v1"
-	LlamaQwen35RecipeID     = "llama.text-generate.qwen35-4b.v1"
-	LlamaEmbedGGUFRecipeID  = "llama.text-embed.gguf.v1"
-	LlamaQwen3EmbedRecipeID = "llama.text-embed.qwen3-last.v1"
+	LlamaGemma4RecipeID       = "llama.text-generate.gemma4.v1"
+	LlamaQwen35RecipeID       = "llama.text-generate.qwen35-4b.v1"
+	LlamaQwen35VisionRecipeID = "llama.text-generate.qwen35-4b-vision.v1"
+	LlamaEmbedGGUFRecipeID    = "llama.text-embed.gguf.v1"
+	LlamaQwen3EmbedRecipeID   = "llama.text-embed.qwen3-last.v1"
 
 	MainGGUFRequirementID        = "main.gguf"
 	CompanionMMProjRequirementID = "companion.mmproj"

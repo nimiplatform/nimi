@@ -334,6 +334,28 @@ loadout_recipes:
         model_contract:
           format: gguf
           gguf_architectures: [qwen35]
+  - recipe_id: llama.text-generate.qwen35-4b-vision.v1
+    revision: "1"
+    title: Qwen3.5 4B image and text (Windows CUDA)
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v2
+    default_options: { contextSize: 8192, gpuLayers: 99 }
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Qwen3.5 4B main model
+        recommended_variant_ids: [local.chat.qwen3.5-4b.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [qwen35]
+      - slot_id: companion.mmproj
+        display_label: Qwen3.5 4B F16 vision projector
+        recommended_variant_ids: [local.aux.qwen3.5-4b.mmproj-f16.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: mmproj
   - recipe_id: llama.text-embed.gguf.v1
     revision: "1"
     title: llama.cpp GGUF embeddings

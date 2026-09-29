@@ -1599,8 +1599,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 98 {
-		t.Fatalf("all Loadout recipes = %d, want 98", len(all))
+	if len(all) != 99 {
+		t.Fatalf("all Loadout recipes = %d, want 99", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1619,6 +1619,13 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	if qwen == nil || len(qwen.GetSlots()) != 1 || qwen.GetSlots()[0].GetSlotId() != capabilitydriver.MainGGUFRequirementID ||
 		len(qwen.GetImplementationSupportedFeatures()) != 0 {
 		t.Fatalf("Qwen3.5 4B base-text recipe must project one exact main slot: %+v", qwen)
+	}
+	qwenVision := byID[capabilitydriver.LlamaQwen35VisionRecipeID]
+	if qwenVision == nil || qwenVision.GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED ||
+		len(qwenVision.GetSlots()) != 2 || qwenVision.GetSlots()[1].GetSlotId() != capabilitydriver.CompanionMMProjRequirementID ||
+		qwenVision.GetSlots()[1].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED ||
+		!slices.Equal(qwenVision.GetImplementationSupportedFeatures(), []string{"input.image"}) {
+		t.Fatalf("Qwen3.5 vision recipe must retain its image slot but be unsupported on macOS: %+v", qwenVision)
 	}
 	qwenEmbedding := byID[capabilitydriver.LlamaQwen3EmbedRecipeID]
 	if qwenEmbedding == nil || len(qwenEmbedding.GetSlots()) != 1 ||

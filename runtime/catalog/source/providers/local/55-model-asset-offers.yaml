@@ -423,6 +423,29 @@ models:
         host_requirement:
           accelerator: metal
 
+  - model_id: qwen3.5-4b-mmproj-local
+    model_type: auxiliary
+    family: qwen35
+    updated_at: 2026-09-29
+    capabilities: []
+    source_ids: [qwen35_4b_author_modelcard, qwen35_4b_unsloth_gguf_modelcard]
+    install:
+      repo: unsloth/Qwen3.5-4B-GGUF
+      revision: e87f176479d0855a907a41277aca2f8ee7a09523 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: mmproj-F16.gguf
+      artifact_roles: [mmproj]
+    variants:
+      - variant_id: local.aux.qwen3.5-4b.mmproj-f16.cuda
+        quant: F16
+        entry: mmproj-F16.gguf
+        files: [mmproj-F16.gguf]
+        hashes:
+          mmproj-F16.gguf: sha256:cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864
+        total_size_bytes: 672423616
+        host_requirement:
+          accelerator: cuda
+
   - model_id: asset-speech-aligner-qwen3-transformers-0.6b
     model_type: auxiliary
     updated_at: 2026-09-14

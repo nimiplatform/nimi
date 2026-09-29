@@ -5046,6 +5046,41 @@ models:
         total_size_bytes: 1193058784
         host_requirement:
           accelerator: metal
+  - model_id: qwen3.5-4b-mmproj-local
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-29
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3.5-4B
+      retrieved_at: 2026-09-28
+      note: Author Qwen3.5 4B model, architecture and Apache-2.0 terms.
+    family: qwen35
+    install:
+      repo: unsloth/Qwen3.5-4B-GGUF
+      revision: e87f176479d0855a907a41277aca2f8ee7a09523
+      install_kind: weights
+      entry: mmproj-F16.gguf
+      artifact_roles:
+        - mmproj
+    variants:
+      - variant_id: local.aux.qwen3.5-4b.mmproj-f16.cuda
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864
+        total_size_bytes: 672423616
+        host_requirement:
+          accelerator: cuda
   - model_id: asset-speech-aligner-qwen3-transformers-0.6b
     provider: local
     model_type: auxiliary
@@ -9882,6 +9917,38 @@ loadout_recipes:
           format: gguf
           gguf_architectures:
             - qwen35
+  - recipe_id: llama.text-generate.qwen35-4b-vision.v1
+    revision: "1"
+    title: Qwen3.5 4B image and text (Windows CUDA)
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v2
+    default_options:
+      contextSize: 8192
+      gpuLayers: 99
+    supported_features:
+      - input.image
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Qwen3.5 4B main model
+        recommended_variant_ids:
+          - local.chat.qwen3.5-4b.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - qwen35
+      - slot_id: companion.mmproj
+        display_label: Qwen3.5 4B F16 vision projector
+        recommended_variant_ids:
+          - local.aux.qwen3.5-4b.mmproj-f16.cuda
+        recommended_content_ids:
+          - sha256:cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864
+        model_contract:
+          format: gguf
+          artifact_role: mmproj
   - recipe_id: llama.text-embed.gguf.v1
     revision: "1"
     title: llama.cpp GGUF embeddings
