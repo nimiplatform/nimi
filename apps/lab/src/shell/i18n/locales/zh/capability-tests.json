@@ -258,7 +258,7 @@
       "startResponse": "开始回应",
       "cancelResponse": "取消回应",
       "interrupt": "中断 {{track}}",
-      "audioHint": "麦克风只在你选择时开启，并在会话关闭时停止。先提交输入，再开始回应。",
+      "audioHint": "发送文本会自动开始回应。手动麦克风轮次需先提交录制的音频，再开始回应。麦克风仅在你选择时开启，并在会话关闭时停止。",
       "outputSection": "输出",
       "noOutput": "暂无输出。",
       "transcript": "转写（{{final}}）",

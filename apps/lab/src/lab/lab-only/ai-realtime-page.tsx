@@ -296,7 +296,7 @@ function LabAiRealtimeSurface({
             {t(capture ? 'CapabilityTests.aiRealtime.stopMic' : 'CapabilityTests.aiRealtime.startMic')}
           </Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('commit-input')}>{t('CapabilityTests.aiRealtime.commitInput')}</Button>
-          <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('start-response')}>{t('CapabilityTests.aiRealtime.startResponse')}</Button>
+          <Button type="button" size="sm" tone="ghost" disabled={!open || busy || activeTracks.length > 0} onClick={() => void control('start-response')}>{t('CapabilityTests.aiRealtime.startResponse')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('cancel-response')}>{t('CapabilityTests.aiRealtime.cancelResponse')}</Button>
           {activeTracks.map((track) => (
             <Button key={track.outputTrackId} type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void run(() => sessionRef.current!.interrupt(track.outputTrackId))}>

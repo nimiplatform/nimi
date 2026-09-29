@@ -258,7 +258,7 @@
       "startResponse": "Start response",
       "cancelResponse": "Cancel response",
       "interrupt": "Interrupt {{track}}",
-      "audioHint": "The microphone starts only when you choose it and stops when the Session closes. Commit input, then start a response.",
+      "audioHint": "Sending text starts a response automatically. In manual microphone mode, commit captured audio and then start a response. The microphone starts only when you choose it and stops when the Session closes.",
       "outputSection": "Output",
       "noOutput": "No output yet.",
       "transcript": "Transcript ({{final}})",
