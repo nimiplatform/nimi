@@ -113,6 +113,14 @@ func TestProductControlCheckSyncFixedDependenciesRejectMismatchedCustody(t *test
 			if !productControlCheckSyncEnvironmentMaterialSupportsRecord(record, material, nil, root) {
 				t.Fatal("matching owner evidence rejected")
 			}
+			if len(record.VerifiedArtifacts) > 1 {
+				reordered := record
+				reordered.VerifiedArtifacts = append([]string(nil), record.VerifiedArtifacts...)
+				reordered.VerifiedArtifacts[0], reordered.VerifiedArtifacts[1] = reordered.VerifiedArtifacts[1], reordered.VerifiedArtifacts[0]
+				if !productControlCheckSyncEnvironmentMaterialSupportsRecord(reordered, material, nil, root) {
+					t.Fatal("same verified artifact set rejected after owner map iteration changed order")
+				}
+			}
 			for name, mutate := range map[string]func(*localEnvironmentSelectedSourceRecordState){
 				"root":    func(r *localEnvironmentSelectedSourceRecordState) { r.CanonicalRoot = filepath.Join(root, "foreign") },
 				"version": func(r *localEnvironmentSelectedSourceRecordState) { r.Version = "wrong" },

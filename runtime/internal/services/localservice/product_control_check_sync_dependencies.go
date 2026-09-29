@@ -3,6 +3,7 @@ package localservice
 import (
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -65,7 +66,7 @@ func productControlCheckSyncFixedMaterialSupportsRecord(record localEnvironmentS
 			if status == nil || record.DependencyID != engine.MediaCodecDependencyID || status.Version != record.Version ||
 				!productControlPathsEqual(record.CanonicalRoot, status.CanonicalRoot) ||
 				!reflect.DeepEqual(record.Hashes, status.Hashes) ||
-				!reflect.DeepEqual(normalizeStringSlice(record.VerifiedArtifacts), normalizeStringSlice(status.VerifiedArtifacts)) {
+				!checkSyncArtifactSetsEqual(record.VerifiedArtifacts, status.VerifiedArtifacts) {
 				continue
 			}
 			locator, ok := localEnvironmentOwnerRelativeLocator(dataRoot, status.CanonicalRoot)
@@ -76,7 +77,7 @@ func productControlCheckSyncFixedMaterialSupportsRecord(record localEnvironmentS
 			status := row.ImageBackend
 			if status == nil || record.DependencyID != "stable-diffusion.cpp.package" || status.BackendName != "stablediffusion-ggml" || status.ReleaseTag != record.Version ||
 				!productControlPathsEqual(record.CanonicalRoot, status.CanonicalRoot) || record.Hashes["archive_sha256"] != status.ArchiveSHA256 ||
-				!reflect.DeepEqual(normalizeStringSlice(record.VerifiedArtifacts), normalizeStringSlice(status.VerifiedArtifacts)) {
+				!checkSyncArtifactSetsEqual(record.VerifiedArtifacts, status.VerifiedArtifacts) {
 				continue
 			}
 			for _, consumer := range record.SelectedConsumers {
@@ -89,4 +90,12 @@ func productControlCheckSyncFixedMaterialSupportsRecord(record localEnvironmentS
 		}
 	}
 	return false
+}
+
+func checkSyncArtifactSetsEqual(left, right []string) bool {
+	left = normalizeStringSlice(left)
+	right = normalizeStringSlice(right)
+	sort.Strings(left)
+	sort.Strings(right)
+	return reflect.DeepEqual(left, right)
 }
