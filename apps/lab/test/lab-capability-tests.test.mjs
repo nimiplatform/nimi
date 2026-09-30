@@ -34,6 +34,7 @@ function buildModules() {
     'src/lab/lab-only/ai-realtime-session.ts',
     'src/lab/lab-only/ai-realtime-recording.ts',
     'src/lab/lab-only/text-conversation.ts',
+    'src/lab/lab-only/chat-session.ts',
   ], { cwd: root, stdio: 'pipe' });
   return buildDir;
 }
@@ -1589,4 +1590,41 @@ test('the request count follows the history Kit actually returned, not the saved
   // A route refusing the returned continuity is named as such.
   await session.send('Question 15');
   assert.deepEqual(session.getState().notices, [{ type: 'continuity-refused', code: 'AI_TEXT_BEHAVIOR_UNSUPPORTED' }]);
+});
+
+test('the session hook page returns completed exchanges with their recorded output and saves under its own path', async () => {
+  const session = await load('lab/lab-only/chat-session.js');
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const at = '2026-10-01T09:00:00.000Z';
+  const carrier = { type: 'reasoning-continuity', kind: 'anthropic.messages.thinking', version: 1, payloadBase64: 'AAECAw==' };
+  const messages = [
+    { id: 'a', role: 'user', content: 'one', timestamp: at, status: 'complete' },
+    { id: 'b', role: 'assistant', content: 'partial', timestamp: at, status: 'canceled' },
+    { id: 'c', role: 'user', content: 'two', timestamp: at, status: 'complete' },
+    { id: 'd', role: 'assistant', content: 'Error: overloaded', timestamp: at, status: 'error', error: 'overloaded' },
+    { id: 'e', role: 'user', content: 'three', timestamp: at, status: 'complete' },
+    { id: 'f', role: 'assistant', content: 'done', timestamp: at, status: 'complete', outputItems: [carrier, { type: 'text', text: 'done' }] },
+    { id: 'g', role: 'user', content: 'four', timestamp: at, status: 'complete' },
+  ];
+  // The hook passes the new prompt as the last message.
+  assert.deepEqual(session.labChatSessionInput(messages, 'four'), [
+    { role: 'user', content: 'three' },
+    { role: 'assistant', content: 'done', outputItems: [carrier, { type: 'text', text: 'done' }] },
+    { role: 'user', content: 'four' },
+  ]);
+
+  const document = session.toLabChatSessionDocument(messages.slice(0, 6));
+  assert.deepEqual(document.messages.map((message) => message.status ?? 'completed'), ['completed', 'stopped', 'completed', 'failed', 'completed', 'completed']);
+  assert.deepEqual(conversation.readLabTextConversationDocument(JSON.parse(JSON.stringify(document))), document);
+  assert.deepEqual(
+    session.fromLabChatSessionDocument(document).map((message) => [message.id, message.status, message.outputItems?.length ?? 0]),
+    [['a', 'complete', 0], ['b', 'canceled', 0], ['c', 'complete', 0], ['d', 'error', 0], ['e', 'complete', 0], ['f', 'complete', 2]],
+  );
+  assert.throws(() => session.toLabChatSessionDocument([{ ...messages[5], status: 'streaming' }]), /streaming/u);
+
+  const { files, storage } = conversationStorage();
+  await conversation.saveLabTextConversation(storage, document, session.LAB_CHAT_SESSION_PATH);
+  assert.deepEqual([...files.keys()], [session.LAB_CHAT_SESSION_PATH]);
+  assert.deepEqual(await conversation.loadLabTextConversation(storage, session.LAB_CHAT_SESSION_PATH), document);
+  assert.deepEqual((await conversation.loadLabTextConversation(storage)).messages, []);
 });

@@ -55,6 +55,9 @@ const LabAiRealtimePage = lazy(async () => ({
 const LabTextConversationPage = lazy(async () => ({
   default: (await import('./lab-only/text-conversation-page.js')).LabTextConversationPage,
 }));
+const LabChatSessionPage = lazy(async () => ({
+  default: (await import('./lab-only/chat-session-page.js')).LabChatSessionPage,
+}));
 const LabVideoFaceSwapSessionLauncher = lazy(async () => ({
   default: (await import('./lab-only/video-face-swap-session-panel.js')).LabVideoFaceSwapSessionLauncher,
 }));
@@ -233,6 +236,12 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
         <Suspense fallback={<LoadingFallback />}>
           <div className="h-full overflow-y-auto p-5">
             <LabTextConversationPage runtime={summary?.runtime ?? null} />
+          </div>
+        </Suspense>
+      ) : view.kind === 'capability' && view.capabilityId === 'text.chat-session' ? (
+        <Suspense fallback={<LoadingFallback />}>
+          <div className="h-full overflow-y-auto p-5">
+            <LabChatSessionPage runtime={summary?.runtime ?? null} />
           </div>
         </Suspense>
       ) : view.kind === 'ui-recipes' ? (

@@ -97,7 +97,7 @@ export async function runLabCapability(
             'sdk-method-unavailable',
             'AI Realtime runs as a Session on its own Lab page.',
           )
-        : context.capability.id === 'text.conversation'
+        : context.capability.id === 'text.conversation' || context.capability.id === 'text.chat-session'
           ? capabilityNonSuccess(
               context.capability,
               'sdk-method-unavailable',

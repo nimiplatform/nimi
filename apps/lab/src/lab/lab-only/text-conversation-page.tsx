@@ -16,6 +16,7 @@ import { useLabRendererHost } from '../../renderer/context.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { LabAIStudioAdapter } from '../lab-ai-studio-adapter.js';
 import { labTextConversationCapability } from './capability-test-registrations.js';
+import { LabConversationTranscript, type LabConversationDisplayMessage } from './conversation-transcript.js';
 import {
   INITIAL_LAB_TEXT_CONVERSATION_STATE,
   LAB_TEXT_CONVERSATION_MAX_BYTES,
@@ -72,6 +73,13 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
   const busy = !!pending || saving;
   const messages = conversation?.messages ?? [];
   const saved = labTextConversationContinuity(state.saved?.messages ?? []);
+  const displayed: readonly LabConversationDisplayMessage[] = [
+    ...messages,
+    ...(pending ? [
+      { id: 'pending:user', role: 'user' as const, text: pending.userText },
+      { id: 'pending:assistant', role: 'assistant' as const, text: pending.text, status: 'generating' as const },
+    ] : []),
+  ];
 
   const send = () => {
     if (!runTarget.canDispatch || !session?.send(draft)) return;
@@ -103,41 +111,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
       {!runTarget.canDispatch ? <InlineAlert tone="warning">{runTarget.detail}</InlineAlert> : null}
       {loadError ? <InlineAlert tone="danger">{t('CapabilityTests.textConversation.loadFailed', { detail: loadError })}</InlineAlert> : null}
 
-      <section className="lab-realtime__card" aria-label={t('CapabilityTests.textConversation.transcript')}>
-        {conversation === null ? <LoadingSkeleton lines={3} label={t('Common.loading')} /> : null}
-        {conversation !== null && messages.length === 0 && !pending ? <p className="lab-realtime__meta">{t('CapabilityTests.textConversation.empty')}</p> : null}
-        <ol className="lab-conversation__messages">
-          {messages.map((message) => (
-            <li key={message.id} className={`lab-conversation__message lab-conversation__message--${message.role}`}>
-              <span className="lab-conversation__role">
-                {t(message.role === 'user' ? 'CapabilityTests.textConversation.you' : 'CapabilityTests.textConversation.assistant')}
-                {message.status ? (
-                  <StatusBadge tone={message.status === 'failed' ? 'danger' : 'neutral'} shape="dot">
-                    {t(`CapabilityTests.textConversation.${message.status}`)}
-                    {message.reasonCode ? ` · ${message.reasonCode}` : ''}
-                  </StatusBadge>
-                ) : null}
-              </span>
-              <p className="lab-conversation__text">{message.text || '…'}</p>
-            </li>
-          ))}
-          {pending ? (
-            <>
-              <li className="lab-conversation__message lab-conversation__message--user">
-                <span className="lab-conversation__role">{t('CapabilityTests.textConversation.you')}</span>
-                <p className="lab-conversation__text">{pending.userText}</p>
-              </li>
-              <li className="lab-conversation__message lab-conversation__message--assistant">
-                <span className="lab-conversation__role">
-                  {t('CapabilityTests.textConversation.assistant')}
-                  <StatusBadge tone="info" shape="dot">{t('CapabilityTests.textConversation.generating')}</StatusBadge>
-                </span>
-                <p className="lab-conversation__text">{pending.text || '…'}</p>
-              </li>
-            </>
-          ) : null}
-        </ol>
-      </section>
+      <LabConversationTranscript messages={displayed} loading={conversation === null} />
 
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.textConversation.composer')}>
         <TextareaField

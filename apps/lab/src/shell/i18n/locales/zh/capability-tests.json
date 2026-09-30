@@ -171,6 +171,12 @@
       "windowOmitted": "Kit 的历史窗口没有交还更早的 {{omitted}} 条已完成消息。",
       "continuityNote": "失败或已停止的回复会保留显示，但不会交还模型。若切换到无法接受已保存延续数据的路线，下一轮会在发送前被拒绝；可开始新对话或切回原路线。"
     },
+    "chatSession": {
+      "label": "会话 Hook",
+      "summary": "经 Kit useAppAiChatSession 会话 Hook 进行多轮文本对话：由 App 组装每轮请求的历史，并交还 Hook 记录的延续数据。",
+      "title": "会话 Hook",
+      "intro": "同样的多轮对话，改用 Kit 的 useAppAiChatSession 会话 Hook 驱动 App 文本模型。Hook 保存消息并记录每条回复的延续数据；Nimi Lab 保存这段对话，并自行组装每轮请求的历史，不经过 Kit 的历史窗口。界面只显示文本。"
+    },
     "imageFaceSwap": {
       "label": "图片换脸",
       "summary": "用参考图中的人脸替换目标图片中的人脸。",

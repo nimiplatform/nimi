@@ -1,4 +1,4 @@
-import { AudioWaveform, Braces, Clapperboard, ListChecks, MessagesSquare, ScanFace, Wrench } from 'lucide-react';
+import { AudioWaveform, Braces, Clapperboard, ListChecks, MessageSquareText, MessagesSquare, ScanFace, Wrench } from 'lucide-react';
 import type { StudioCapabilityRegistration } from '../../ai-studio-core/module-registration.js';
 import { EMPTY_STUDIO_PARAMETERS } from '../../ai-studio-core/parameters.js';
 import {
@@ -9,6 +9,7 @@ import {
 } from './capability-test-panels.js';
 import {
   labAiRealtimeDescriptor,
+  labChatSessionDescriptor,
   labImageFaceSwapDescriptor,
   labTextAnnotateDescriptor,
   labTextConversationDescriptor,
@@ -77,6 +78,19 @@ export const labTextConversationCapability = Object.freeze({
   parameters: EMPTY_STUDIO_PARAMETERS,
 } as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
 
+// The session hook has its own Lab page as well, on the same text.generate
+// AIConfig.
+export const labChatSessionCapability = Object.freeze({
+  descriptor: labChatSessionDescriptor,
+  icon: MessageSquareText,
+  profile: {
+    studioTag: 'Session hook', inputTitleKey: k('chatSession', 'title'), inputPlaceholderKey: k('textConversation', 'placeholder'), inputKind: 'none', supportsAttachments: false, controls: [], primaryLabelKey: k('textConversation', 'send'), primaryRunningLabelKey: k('textConversation', 'generating'), resultTitle: 'Session hook', emptyTitleKey: k('chatSession', 'title'), emptyHintKey: k('chatSession', 'intro'), resultKind: 'text', footnoteKey: k('chatSession', 'intro'),
+  },
+  preset: { id: 'chat-session', label: 'Session hook', prompt: '' },
+  runtimeMethod: 'kit chat/runtime useAppAiChatSession({ model: createNimiLocalAppTextModel }) → sdk.localApp.ai.text.streamTurn',
+  parameters: EMPTY_STUDIO_PARAMETERS,
+} as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
+
 export const labImageFaceSwapCapability = Object.freeze({
   descriptor: labImageFaceSwapDescriptor,
   icon: ScanFace,
@@ -119,6 +133,7 @@ export const labCapabilityTestRegistrations = Object.freeze([
   labTextToolsCapability,
   labTextDecideCapability,
   labTextConversationCapability,
+  labChatSessionCapability,
   labImageFaceSwapCapability,
   labVideoFaceSwapCapability,
   labAiRealtimeCapability,

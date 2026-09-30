@@ -1,5 +1,5 @@
 import type { NimiLocalAppClient, NimiLocalAppTextTurnInput } from '@nimiplatform/sdk/app';
-import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
+import { createNimiLocalAppTextModel, type NimiAiModel } from '@nimiplatform/sdk/ai';
 import type {
   ConversationAssistantOutputItem,
   ConversationTurnHistoryMessage,
@@ -107,10 +107,13 @@ function inDocumentOrder<T>(storage: LabTextConversationStorage, task: () => Pro
   return result;
 }
 
-export function loadLabTextConversation(storage: LabTextConversationStorage): Promise<LabTextConversationDocument> {
+export function loadLabTextConversation(
+  storage: LabTextConversationStorage,
+  path: string = LAB_TEXT_CONVERSATION_PATH,
+): Promise<LabTextConversationDocument> {
   return inDocumentOrder(storage, async () => {
     try {
-      return readLabTextConversationDocument((await storage.readJson(LAB_TEXT_CONVERSATION_PATH)).value);
+      return readLabTextConversationDocument((await storage.readJson(path)).value);
     } catch (error) {
       if (isNotFound(error)) return EMPTY_LAB_TEXT_CONVERSATION;
       throw error;
@@ -149,10 +152,11 @@ export function boundLabTextConversation(document: LabTextConversationDocument):
 export function saveLabTextConversation(
   storage: LabTextConversationStorage,
   document: LabTextConversationDocument,
+  path: string = LAB_TEXT_CONVERSATION_PATH,
 ): Promise<LabTextConversationDocument> {
   return inDocumentOrder(storage, async () => {
     const bounded = boundLabTextConversation(document);
-    await storage.writeJson(LAB_TEXT_CONVERSATION_PATH, JSON.parse(JSON.stringify(bounded)));
+    await storage.writeJson(path, JSON.parse(JSON.stringify(bounded)));
     return bounded;
   });
 }
@@ -225,6 +229,44 @@ export function labTextConversationRequest(input: Pick<NimiLocalAppTextTurnInput
   return { messages: earlier.length, items, bytes };
 }
 
+/** The protected App text model, reporting what each call carries just before it is made. */
+export function createLabObservedTextModel(
+  ai: Pick<NimiLocalAppClient['ai'], 'text'>,
+  onRequest?: (request: LabTextConversationRequest) => void,
+): NimiAiModel {
+  const textClient = ai.text;
+  return createNimiLocalAppTextModel({
+    text: {
+      streamTurn: (turn) => {
+        onRequest?.(labTextConversationRequest(turn));
+        return textClient.streamTurn(turn);
+      },
+    },
+  });
+}
+
+/**
+ * Names a failed turn. Runtime refuses continuity the selected route cannot
+ * accept before anything is sent to a model.
+ */
+export function labTurnFailureNotice(
+  code: string,
+  detail: string,
+  request: LabTextConversationRequest | null,
+): LabTextConversationNotice {
+  const refusedContinuity = (request?.items ?? 0) > 0
+    && ['AI_TEXT_BEHAVIOR_UNSUPPORTED', 'AI_INPUT_INVALID'].includes(code.replaceAll('-', '_').toUpperCase());
+  return refusedContinuity ? { type: 'continuity-refused', code } : { type: 'turn-failed', code, detail };
+}
+
+/** The typed reason a failure carries, before a transport's generic code. */
+export function labErrorReason(error: unknown): string {
+  const record = error && typeof error === 'object' ? error as { reasonCode?: unknown; code?: unknown; cause?: unknown } : {};
+  const cause = record.cause && typeof record.cause === 'object' ? record.cause as { reasonCode?: unknown } : {};
+  return [record.reasonCode, cause.reasonCode, record.code]
+    .find((value): value is string => typeof value === 'string' && value.length > 0) ?? 'LAB_CONVERSATION_FAILED';
+}
+
 export async function runLabTextConversationTurn(input: {
   readonly ai: Pick<NimiLocalAppClient['ai'], 'text'>;
   readonly history: readonly ConversationTurnHistoryMessage[];
@@ -235,17 +277,8 @@ export async function runLabTextConversationTurn(input: {
   /** Called with what the protected call carries, just before it is made. */
   readonly onRequest?: (request: LabTextConversationRequest) => void;
 }): Promise<LabTextConversationTurn> {
-  const textClient = input.ai.text;
-  const model = createNimiLocalAppTextModel({
-    text: {
-      streamTurn: (turn) => {
-        input.onRequest?.(labTextConversationRequest(turn));
-        return textClient.streamTurn(turn);
-      },
-    },
-  });
   const provider = createSimpleAiConversationProvider({
-    runtimeAdapter: createModelConversationRuntimeAdapter({ model }),
+    runtimeAdapter: createModelConversationRuntimeAdapter({ model: createLabObservedTextModel(input.ai, input.onRequest) }),
   });
   let text = '';
   try {
@@ -270,9 +303,7 @@ export async function runLabTextConversationTurn(input: {
     }
   } catch (error) {
     if (input.signal.aborted) return { status: 'stopped', text };
-    const record = error && typeof error === 'object' ? error as { reasonCode?: unknown; code?: unknown; message?: unknown } : {};
-    const reasonCode = [record.reasonCode, record.code].find((value): value is string => typeof value === 'string') ?? 'LAB_CONVERSATION_FAILED';
-    return { status: 'failed', text, reasonCode, message: typeof record.message === 'string' ? record.message : String(error) };
+    return { status: 'failed', text, reasonCode: labErrorReason(error), message: labErrorText(error) };
   }
   return { status: 'failed', text, reasonCode: 'LAB_CONVERSATION_INCOMPLETE', message: 'The turn ended without a terminal event.' };
 }
@@ -301,8 +332,10 @@ export const INITIAL_LAB_TEXT_CONVERSATION_STATE: LabTextConversationState = Obj
   conversation: null, saved: null, loadError: '', pending: null, saving: false, lastRequest: null, notices: [],
 });
 
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+export function labErrorText(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  const message = error && typeof error === 'object' ? (error as { message?: unknown }).message : undefined;
+  return typeof message === 'string' ? message : String(error);
 }
 
 /**
@@ -345,7 +378,7 @@ export function createLabTextConversationController(input: {
         saving: false,
         notices: [...notices, error instanceof LabTextConversationTooLargeError
           ? { type: 'turn-too-large', bytes: error.bytes }
-          : { type: 'save-failed', detail: errorText(error) }],
+          : { type: 'save-failed', detail: labErrorText(error) }],
       });
     }
   };
@@ -381,16 +414,7 @@ export function createLabTextConversationController(input: {
         ? (result.outputItems ? { outputItems: result.outputItems } : {})
         : { status: result.status, ...(result.status === 'failed' ? { reasonCode: result.reasonCode } : {}) }),
     };
-    const notices: LabTextConversationNotice[] = [];
-    if (result.status === 'failed') {
-      // Runtime refuses continuity the selected route cannot accept before
-      // anything is sent to a model.
-      const refusedContinuity = (sent.request?.items ?? 0) > 0
-        && ['AI_TEXT_BEHAVIOR_UNSUPPORTED', 'AI_INPUT_INVALID'].includes(result.reasonCode.replaceAll('-', '_').toUpperCase());
-      notices.push(refusedContinuity
-        ? { type: 'continuity-refused', code: result.reasonCode }
-        : { type: 'turn-failed', code: result.reasonCode, detail: result.message });
-    }
+    const notices = result.status === 'failed' ? [labTurnFailureNotice(result.reasonCode, result.message, sent.request)] : [];
     await save(current, { version: 1, messages: [...conversation.messages, question, answer] }, notices, { pending: null });
   };
 
@@ -402,7 +426,7 @@ export function createLabTextConversationController(input: {
         const document = await loadLabTextConversation(input.storage);
         if (current === generation) set({ conversation: document, saved: document });
       } catch (error) {
-        if (current === generation) set({ conversation: EMPTY_LAB_TEXT_CONVERSATION, loadError: errorText(error) });
+        if (current === generation) set({ conversation: EMPTY_LAB_TEXT_CONVERSATION, loadError: labErrorText(error) });
       }
     },
     /** Starts a turn, or returns null while another turn runs or saves. */

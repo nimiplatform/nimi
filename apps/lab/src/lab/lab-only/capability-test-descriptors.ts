@@ -7,6 +7,7 @@ export type LabCapabilityTestId =
   | 'text.tools'
   | 'text.decide'
   | 'text.conversation'
+  | 'text.chat-session'
   | 'image.face_swap'
   | 'video.face_swap'
   | 'realtime.interact';
@@ -47,6 +48,15 @@ export const labTextConversationDescriptor = Object.freeze({
   execution: 'runtime-sdk', capabilityContract: 'text.generate',
 } as const);
 
+export const labChatSessionDescriptor = Object.freeze({
+  id: 'text.chat-session', label: 'Session hook', labelKey: 'CapabilityTests.chatSession.label', group: 'text',
+  section: 'chat',
+  summary: 'Multi-turn text through the Kit useAppAiChatSession hook: the App builds the history of each request and returns the continuity the hook recorded.',
+  summaryKey: 'CapabilityTests.chatSession.summary',
+  surface: 'kit chat/runtime useAppAiChatSession → sdk.localApp.ai.text.streamTurn + storage.writeJson',
+  execution: 'runtime-sdk', capabilityContract: 'text.generate',
+} as const);
+
 export const labImageFaceSwapDescriptor = Object.freeze({
   id: 'image.face_swap', label: 'Image face swap', labelKey: 'CapabilityTests.imageFaceSwap.label', group: 'media',
   section: 'image',
@@ -79,6 +89,7 @@ export const labCapabilityTestDescriptors = Object.freeze([
   labTextToolsDescriptor,
   labTextDecideDescriptor,
   labTextConversationDescriptor,
+  labChatSessionDescriptor,
   labImageFaceSwapDescriptor,
   labVideoFaceSwapDescriptor,
   labAiRealtimeDescriptor,

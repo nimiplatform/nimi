@@ -171,6 +171,12 @@
       "windowOmitted": "Kit's history window left out {{omitted}} older completed messages.",
       "continuityNote": "Failed or stopped replies stay visible here but are not returned to the model. A model on a route that cannot accept the saved continuity refuses the next turn before sending it; start a new conversation or switch back."
     },
+    "chatSession": {
+      "label": "Session hook",
+      "summary": "Multi-turn text through Kit's useAppAiChatSession hook: the App builds each request's history and returns the continuity the hook recorded.",
+      "title": "Session hook",
+      "intro": "The same kind of conversation through Kit's useAppAiChatSession hook on the App text model. The hook keeps the messages and records each reply's continuity data; Nimi Lab saves the conversation and builds every request's history itself, without Kit's history window. Only text is shown."
+    },
     "imageFaceSwap": {
       "label": "Image face swap",
       "summary": "Replace the face in a target image with the face from a reference image.",
