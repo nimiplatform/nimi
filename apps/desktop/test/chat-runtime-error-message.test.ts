@@ -42,7 +42,7 @@ test('Nimi Chat explains a stale saved model instead of showing its raw reason c
 
 test('ChatGPT plan usage limit points to usage management instead of a generic rate limit', () => {
   // App carriers deliver only the reason code; the committed route names the plan.
-  const carried = { reasonCode: 'AI_PROVIDER_RATE_LIMITED', actionHint: 'refresh_local_app_runtime_projection', message: 'rate limited' };
+  const carried = { reasonCode: 'AI_PROVIDER_RATE_LIMITED', actionHint: 'retry_later', message: 'rate limited' };
   const projected = toChatUserFacingRuntimeError(carried, 'Nimi Chat could not complete this request.', i18n.t, { chatGPTPlanRoute: true });
   assert.equal(projected.code, 'AI_PROVIDER_RATE_LIMITED');
   assert.equal(projected.chatGPTPlanUsageLimited, true);

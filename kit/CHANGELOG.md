@@ -78,13 +78,35 @@ Required changes from 0.11.0:
   `@nimiplatform/kit/features/chat/headless`; `@nimiplatform/kit/core/sdk-contract`
   re-exports the `NimiTextOutputItem` and `NimiTextTurnItem` types.
 
-## Retry hint for transient provider failures (next minor, development)
+## Local App carrier action hints (next minor, development)
 
-- The Electron standard shell carrier gives `ai-provider-unavailable`,
-  `ai-provider-timeout` and `ai-provider-rate-limited` the action hint
-  `retry_later`, as Runtime does. They previously fell through to
+- The Electron and Tauri standard shell carriers give the same action hint
+  for each Local App reason code.
+- Request-level failures, where only a corrected request can succeed, get
+  Runtime's own default hint `inspect_reason_code_and_retry_with_corrected_request`:
+  for example `ai-media-option-unsupported`, `ai-input-invalid`,
+  `ai-input-limit-exceeded`, `ai-media-spec-invalid`,
+  `ai-text-output-incomplete`, `ai-content-filter-blocked` and
+  `ai-output-invalid`. Every other reason without a more specific hint gets it
+  too. These reasons previously fell through to
   `refresh_local_app_runtime_projection`, which sent Apps to refresh a
-  projection that was not stale.
+  projection that was not stale. The carriers do not pass on Runtime's
+  per-error hint, such as one that names the unsupported option.
+- `refresh_local_app_runtime_projection` remains only where the App acted on a
+  session, App Access or owner projection that no longer holds:
+  `process-replaced`, `account-changed`, `runtime-restarted`, `revoked`,
+  `project-changed`, `presence-expired`, `session-invalid`,
+  `runtime-access-denied`, `access-denied`, `local-app-access-denied`,
+  `local-app-operation-unavailable`, `local-app-snapshot-unavailable`,
+  `local-app-owner-unavailable`, `owner-authority-missing` and
+  `current-user-display-unavailable`.
+- `ai-provider-unavailable`, `ai-provider-timeout`, `ai-provider-rate-limited`,
+  `agent-busy`, `realm-unavailable` and `rate-limited` get `retry_later`.
+  Electron already gave it to the three provider reasons.
+- `runtime-service-untrusted` gets `restart_fixed_runtime_service`, the hint
+  Electron already gave an untrusted carrier failure.
+- The Tauri carrier now also gives `runtime-service-repair-required` and the
+  Agent presentation reasons the hints Electron gave them.
 
 ## ChatGPT plan sign-in (next minor, development)
 

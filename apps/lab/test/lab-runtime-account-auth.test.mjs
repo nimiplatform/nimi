@@ -133,7 +133,7 @@ test('Lab names a signed-out account without reporting carrier distrust', async 
       throw Object.assign(new Error('Runtime account is not authenticated'), {
         code: 'runtime-unauthenticated',
         reasonCode: 'runtime-unauthenticated',
-        actionHint: 'refresh_local_app_runtime_projection',
+        actionHint: 'open_request_empty_local_app_session',
         source: 'runtime',
         details: { command, retryable: false },
       });

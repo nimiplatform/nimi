@@ -1,4 +1,6 @@
 import { Buffer } from 'node:buffer';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
@@ -312,6 +314,29 @@ describe('Electron local-app standard-shell operations', () => {
           },
         } as never,
       })).rejects.toMatchObject({ reasonCode, actionHint: 'retry_later', source: 'runtime', details: { retryable: true } });
+    }
+  });
+
+  it('gives each carrier reason the next step shared with the Tauri carrier', async () => {
+    const rows = JSON.parse(readFileSync(path.resolve(
+      process.cwd(),
+      'shell/capabilities/test/local-app-action-hint-fixtures.json',
+    ), 'utf8')) as Array<{ readonly reasonCode: string; readonly actionHint: string }>;
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const payload = { spec: { type: 'music-generate', prompt: 'ballad', lyrics: 'sing', durationSeconds: 20 }, timeoutMs: 0, clientSubmissionId: 'song-hint' };
+    for (const { reasonCode, actionHint } of [
+      ...rows,
+      { reasonCode: 'protected-carrier-required', actionHint: 'install_verified_electron_protected_carrier' },
+    ]) {
+      await expect(dispatchElectronLocalAppCommand({
+        command,
+        payload,
+        host: {
+          scenarioJobSubmit: async () => {
+            throw new NimiElectronLocalAppHostError(reasonCode, false);
+          },
+        } as never,
+      })).rejects.toMatchObject({ reasonCode, actionHint });
     }
   });
 

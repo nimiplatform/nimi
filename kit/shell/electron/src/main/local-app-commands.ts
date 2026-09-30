@@ -2426,24 +2426,47 @@ function validatePersonaCharacterWrite(
   validateJsonValue(payload, command, 2 * 1024 * 1024);
 }
 
+// Mirrors Tauri's `action_hint`; tests hold both to
+// shell/capabilities/test/local-app-action-hint-fixtures.json.
 function actionHint(reasonCode: string): string {
   switch (reasonCode) {
     case 'protected-carrier-required': return 'install_verified_electron_protected_carrier';
     case 'runtime-service-unavailable': return 'start_fixed_runtime_service';
+    case 'runtime-service-untrusted': return 'restart_fixed_runtime_service';
     case 'runtime-service-error-unclassified': return 'inspect_runtime_service_error';
     case 'runtime-service-repair-required': return 'repair_fixed_runtime_service';
     case 'runtime-unauthenticated': return 'open_request_empty_local_app_session';
+    // The App acted on a session, App Access or owner projection that no
+    // longer holds; reading that projection again shows the next step.
+    case 'process-replaced':
+    case 'account-changed':
+    case 'runtime-restarted':
+    case 'revoked':
+    case 'project-changed':
+    case 'presence-expired':
+    case 'session-invalid':
+    case 'runtime-access-denied':
+    case 'access-denied':
+    case 'local-app-access-denied':
+    case 'local-app-operation-unavailable':
+    case 'local-app-snapshot-unavailable':
+    case 'local-app-owner-unavailable':
+    case 'owner-authority-missing':
+    case 'current-user-display-unavailable': return 'refresh_local_app_runtime_projection';
     case 'ai-remote-model-catalog-stale':
     case 'capability-catalog-mismatch':
     case 'ai-config-invalid':
     case 'ai-connector-not-found': return 'reselect_app_ai_config_target';
     case 'ai-connector-disabled': return 'enable_cloud_connector_or_reselect_target';
     case 'ai-connector-credential-missing': return 'add_cloud_connector_credential_or_reselect_target';
-    // The provider, or the network path to it, failed or refused for now; the
-    // committed target stays valid, so the next step is a later retry.
+    // The provider, the network path to it, the Agent or Realm is busy or
+    // unreachable for now; the same request can succeed on a later retry.
     case 'ai-provider-unavailable':
     case 'ai-provider-timeout':
-    case 'ai-provider-rate-limited': return 'retry_later';
+    case 'ai-provider-rate-limited':
+    case 'agent-busy':
+    case 'realm-unavailable':
+    case 'rate-limited': return 'retry_later';
     case 'agent-presentation-revision-conflict': return 'refresh_presentation_snapshot';
     case 'agent-presentation-asset-type-invalid':
     case 'agent-presentation-asset-too-large':
@@ -2452,7 +2475,11 @@ function actionHint(reasonCode: string): string {
     case 'agent-presentation-asset-integrity-mismatch':
     case 'agent-presentation-backend-incompatible':
     case 'agent-presentation-asset-not-validated': return 'repair_agent_presentation_material';
-    default: return 'refresh_local_app_runtime_projection';
+    // Runtime's own default hint. The carrier does not pass on Runtime's
+    // per-error hint, so every other reason keeps this one; most are
+    // request-level, such as ai-media-option-unsupported or ai-input-invalid,
+    // and only a corrected request can succeed.
+    default: return 'inspect_reason_code_and_retry_with_corrected_request';
   }
 }
 

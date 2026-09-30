@@ -1990,18 +1990,60 @@ fn standard_code(reason: &str) -> &'static str {
     }
 }
 
+// Mirrors Electron's `actionHint`; tests hold both to
+// shell/capabilities/test/local-app-action-hint-fixtures.json.
 fn action_hint(reason: &str) -> &'static str {
     match reason {
         "protected-carrier-required" => "install_verified_tauri_protected_carrier",
         "runtime-service-unavailable" => "start_fixed_runtime_service",
+        "runtime-service-untrusted" => "restart_fixed_runtime_service",
         "runtime-service-error-unclassified" => "inspect_runtime_service_error",
+        "runtime-service-repair-required" => "repair_fixed_runtime_service",
         "runtime-unauthenticated" => "open_request_empty_local_app_session",
-        "ai-remote-model-catalog-stale" | "capability-catalog-mismatch" | "ai-config-invalid" | "ai-connector-not-found" => {
-            "reselect_app_ai_config_target"
-        }
+        // The App acted on a session, App Access or owner projection that no
+        // longer holds; reading that projection again shows the next step.
+        "process-replaced"
+        | "account-changed"
+        | "runtime-restarted"
+        | "revoked"
+        | "project-changed"
+        | "presence-expired"
+        | "session-invalid"
+        | "runtime-access-denied"
+        | "access-denied"
+        | "local-app-access-denied"
+        | "local-app-operation-unavailable"
+        | "local-app-snapshot-unavailable"
+        | "local-app-owner-unavailable"
+        | "owner-authority-missing"
+        | "current-user-display-unavailable" => "refresh_local_app_runtime_projection",
+        "ai-remote-model-catalog-stale"
+        | "capability-catalog-mismatch"
+        | "ai-config-invalid"
+        | "ai-connector-not-found" => "reselect_app_ai_config_target",
         "ai-connector-disabled" => "enable_cloud_connector_or_reselect_target",
         "ai-connector-credential-missing" => "add_cloud_connector_credential_or_reselect_target",
-        _ => "refresh_local_app_runtime_projection",
+        // The provider, the network path to it, the Agent or Realm is busy or
+        // unreachable for now; the same request can succeed on a later retry.
+        "ai-provider-unavailable"
+        | "ai-provider-timeout"
+        | "ai-provider-rate-limited"
+        | "agent-busy"
+        | "realm-unavailable"
+        | "rate-limited" => "retry_later",
+        "agent-presentation-revision-conflict" => "refresh_presentation_snapshot",
+        "agent-presentation-asset-type-invalid"
+        | "agent-presentation-asset-too-large"
+        | "agent-presentation-asset-structure-invalid"
+        | "agent-presentation-asset-dependency-missing"
+        | "agent-presentation-asset-integrity-mismatch"
+        | "agent-presentation-backend-incompatible"
+        | "agent-presentation-asset-not-validated" => "repair_agent_presentation_material",
+        // Runtime's own default hint. The carrier does not pass on Runtime's
+        // per-error hint, so every other reason keeps this one; most are
+        // request-level, such as ai-media-option-unsupported or ai-input-invalid,
+        // and only a corrected request can succeed.
+        _ => "inspect_reason_code_and_retry_with_corrected_request",
     }
 }
 
@@ -2317,6 +2359,85 @@ mod tests {
         assert_eq!(envelope["code"], "runtime-service-unavailable");
         assert_eq!(envelope["reasonCode"], "local-app-owner-unavailable");
         assert_eq!(envelope["details"]["retryable"], true);
+    }
+
+    #[test]
+    fn failure_envelopes_carry_the_action_hints_shared_with_electron() {
+        use LocalAppReasonCode as R;
+        let rows: Vec<Value> = serde_json::from_str(include_str!(
+            "../../capabilities/test/local-app-action-hint-fixtures.json"
+        ))
+        .expect("shared Local App action hint fixtures");
+        // One typed reason per fixture row, so every row names a real carrier reason.
+        let reasons = [
+            R::RuntimeServiceUnavailable,
+            R::RuntimeServiceUntrusted,
+            R::RuntimeServiceErrorUnclassified,
+            R::RuntimeServiceRepairRequired,
+            R::RuntimeUnauthenticated,
+            R::ProcessReplaced,
+            R::AccountChanged,
+            R::RuntimeRestarted,
+            R::Revoked,
+            R::ProjectChanged,
+            R::PresenceExpired,
+            R::SessionInvalid,
+            R::RuntimeAccessDenied,
+            R::PersonaAccessDenied,
+            R::AccessDenied,
+            R::OperationUnavailable,
+            R::SnapshotUnavailable,
+            R::OwnerUnavailable,
+            R::OwnerAuthorityMissing,
+            R::CurrentUserDisplayUnavailable,
+            R::AiRemoteModelCatalogStale,
+            R::CapabilityCatalogMismatch,
+            R::AiConfigInvalid,
+            R::AiConnectorNotFound,
+            R::AiConnectorDisabled,
+            R::AiConnectorCredentialMissing,
+            R::AiProviderUnavailable,
+            R::AiProviderTimeout,
+            R::AiProviderRateLimited,
+            R::AgentBusy,
+            R::RealmUnavailable,
+            R::RateLimited,
+            R::AgentPresentationRevisionConflict,
+            R::AgentPresentationAssetTypeInvalid,
+            R::AgentPresentationAssetTooLarge,
+            R::AgentPresentationAssetStructureInvalid,
+            R::AgentPresentationAssetDependencyMissing,
+            R::AgentPresentationAssetIntegrityMismatch,
+            R::AgentPresentationBackendIncompatible,
+            R::AgentPresentationAssetNotValidated,
+            R::AiMediaOptionUnsupported,
+            R::AiInputInvalid,
+            R::AiInputLimitExceeded,
+            R::AiMediaSpecInvalid,
+            R::AiTextOutputIncomplete,
+            R::AiContentFilterBlocked,
+            R::AiOutputInvalid,
+            R::AiTextBehaviorUnsupported,
+            R::AiToolCallInvalid,
+            R::AiReasoningContinuityInvalid,
+            R::AiMediaIdempotencyConflict,
+            R::AiVoiceInputInvalid,
+        ];
+        assert_eq!(rows.len(), reasons.len());
+        for (row, reason) in rows.iter().zip(reasons) {
+            assert_eq!(row["reasonCode"], reason.as_str());
+            let envelope: Value = serde_json::from_str(&map_local_app_error(
+                LocalAppOperationError::new(reason, false),
+            ))
+            .expect("standard shell error JSON");
+            assert_eq!(envelope["reasonCode"], reason.as_str());
+            assert_eq!(envelope["actionHint"], row["actionHint"], "{}", reason.as_str());
+            assert_eq!(envelope["source"], "runtime");
+        }
+        assert_eq!(
+            action_hint("protected-carrier-required"),
+            "install_verified_tauri_protected_carrier"
+        );
     }
 
     #[test]
