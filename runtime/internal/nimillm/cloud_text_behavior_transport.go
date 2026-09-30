@@ -15,9 +15,10 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
+// @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-messages-text-behaviors
 // @nimi-authority: rule.nimi.runtime.ai-provider.chatgpt-plan-text-behaviors
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
+// @nimi-authority: rule.nimi.runtime.ai-provider.openai-responses-text-behaviors
 // The Host supplies the exact credential-bearing target only for this call.
 // Hooks were selected and their request serialized before Job publication.
 func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
@@ -38,6 +39,9 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case chatGPTPlanProvider:
 		// The public ChatGPT-plan route admits only streaming Responses.
 		path, wireStream = chatGPTPlanResponsesPath, true
+	case "openai":
+		// Standard Responses steps collect the same SSE stream in both modes.
+		wireStream = true
 	default:
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
@@ -47,6 +51,9 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	}
 	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
+	}
+	if target.ProviderType == "openai" {
+		path = resolveOpenAICompatiblePath(backend.baseURL, "/responses")
 	}
 	if target.ProviderType == chatGPTPlanProvider {
 		// The usable set is the reviewed target intersected with the current

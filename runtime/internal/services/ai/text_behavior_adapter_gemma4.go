@@ -22,7 +22,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 		registrations = append(registrations, gemma4TextBehaviorRegistration(entry))
 	}
 	registrations = append(registrations, qwen35Q4TextBehaviorRegistration())
-	registrations = append(registrations, anthropicSonnet46TextBehaviorRegistration())
+	registrations = append(registrations, anthropicTextBehaviorRegistrations()...)
 	registrations = append(registrations, dashscopeQwen38FlashBehaviorRegistration())
 	registrations = append(registrations, dashscopeQwen38Max0902BehaviorRegistration())
 	registrations = append(registrations, gemini38FlashSchemaBehaviorRegistration())
@@ -33,6 +33,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	)
 	for _, modelID := range chatGPTPlanReviewedTextTargets {
 		registrations = append(registrations, chatGPTPlanTextBehaviorRegistration(modelID))
+	}
+	for _, modelID := range openAIResponsesReviewedTextTargets {
+		registrations = append(registrations, openAIResponsesTextBehaviorRegistration(modelID))
 	}
 	return registrations
 }

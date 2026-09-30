@@ -1,6 +1,6 @@
 schema_version: 3
 provider: anthropic
-catalog_version: 2026-07-20-anthropic-v5
+catalog_version: 2026-09-30-anthropic-current-adaptive
 generated_target: runtime/catalog/providers/anthropic.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: anthropic
-  default_text_model: claude-sonnet-5
+  default_text_model: claude-sonnet-5-5
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -26,8 +26,16 @@ defaults:
 sources:
   - source_id: anthropic_models_overview
     url: https://platform.claude.com/docs/en/about-claude/models/overview
-    retrieved_at: 2026-07-20
-    note: Claude model overview with API model IDs and aliases.
+    retrieved_at: 2026-09-30
+    note: Claude model overview with API model IDs, aliases, thinking mode, context, output limits and retirement commitments; current models are Claude Fable 5.1, Opus 5.5, Sonnet 5.5 and Haiku 4.5, and every current model supports text and image input and tool use.
+  - source_id: anthropic_thinking
+    url: https://platform.claude.com/docs/en/build-with-claude/thinking
+    retrieved_at: 2026-09-30
+    note: Per-model thinking configuration; Opus 5.5 and Fable 5.1 reject disabled thinking, Sonnet 5.5 thinks by default, display defaults to omitted, signed thinking and redacted_thinking blocks return unmodified with tool results, and these models reject non-default sampling and forced tool use on every request.
+  - source_id: anthropic_structured_outputs
+    url: https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+    retrieved_at: 2026-09-30
+    note: Structured outputs through output_config.format json_schema without a beta header on every current model, with the documented schema limits.
   - source_id: anthropic_sonnet_5
     url: https://platform.claude.com/docs/en/about-claude/models/whats-new-sonnet-5
     retrieved_at: 2026-07-20
@@ -72,10 +80,10 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: claude-sonnet-5
-    reviewed_at: 2026-09-28
+    model_id: claude-sonnet-5-5
+    reviewed_at: 2026-09-30
     freshness_sla_days: 21
-    rationale: Current Sonnet model, which Anthropic positions as its best balance of speed and intelligence; active with retirement not before 2027-06-30.
+    rationale: Current Sonnet model, which Anthropic positions as its best combination of speed and intelligence; retirement not before 2027-09-28.
   - profile_id: text.fast
     capability: text.generate
     model_id: claude-haiku-4-5
@@ -84,12 +92,54 @@ selection_profiles:
     rationale: Anthropic's fastest current model; no newer Haiku exists, and it is active with no announced deprecation.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: claude-fable-5
-    reviewed_at: 2026-09-28
+    model_id: claude-fable-5-1
+    reviewed_at: 2026-09-30
     freshness_sla_days: 21
-    rationale: Highest-capability admitted Anthropic model, active with retirement not before 2027-06-09; Anthropic now labels it legacy in favor of Claude Fable 5.1, which is not admitted in this catalog yet.
+    rationale: Anthropic's current model for demanding reasoning and long-horizon work; retirement not before 2027-09-01.
 
 models:
+  - model_id: claude-fable-5-1
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: "10.00"
+      output: "50.00"
+      currency: USD
+      as_of: 2026-09-30
+      notes: Per 1M tokens. Pinned dateless snapshot for demanding reasoning with a 1M-token context and 128K output; thinking is always adaptive, and non-default sampling and forced tool use are rejected.
+    source_ids: [anthropic_models_overview, anthropic_thinking, anthropic_structured_outputs, anthropic_pricing, anthropic_models_api]
+
+  - model_id: claude-opus-5-5
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: "4.00"
+      output: "20.00"
+      currency: USD
+      as_of: 2026-09-30
+      notes: Per 1M tokens. Pinned dateless snapshot with a 1M-token context and 128K output; thinking is always adaptive, and non-default sampling and forced tool use are rejected.
+    source_ids: [anthropic_models_overview, anthropic_thinking, anthropic_structured_outputs, anthropic_pricing, anthropic_models_api]
+
+  - model_id: claude-sonnet-5-5
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: "2.00"
+      output: "10.00"
+      currency: USD
+      as_of: 2026-09-30
+      notes: Per 1M tokens. Pinned dateless snapshot with a 1M-token context and 128K output; thinking is adaptive by default, and non-default sampling and forced tool use are rejected.
+    source_ids: [anthropic_models_overview, anthropic_thinking, anthropic_structured_outputs, anthropic_pricing, anthropic_models_api]
+
   - model_id: claude-fable-5
     model_type: chat
     updated_at: 2026-06-30

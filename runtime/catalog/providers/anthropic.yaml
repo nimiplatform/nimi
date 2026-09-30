@@ -1,9 +1,69 @@
 version: 1
 provider: anthropic
-catalog_version: 2026-07-20-anthropic-v5
+catalog_version: 2026-09-30-anthropic-current-adaptive
 inventory_mode: static_source
-default_text_model: claude-sonnet-5
+default_text_model: claude-sonnet-5-5
 models:
+  - model_id: claude-fable-5-1
+    provider: anthropic
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "10.00"
+      output: "50.00"
+      currency: USD
+      as_of: 2026-09-30
+      notes: Per 1M tokens. Pinned dateless snapshot for demanding reasoning with a 1M-token context and 128K output; thinking is always adaptive, and non-default sampling and forced tool use are rejected.
+    source_ref:
+      url: https://platform.claude.com/docs/en/about-claude/models/overview
+      retrieved_at: 2026-09-30
+      note: Claude model overview with API model IDs, aliases, thinking mode, context, output limits and retirement commitments; current models are Claude Fable 5.1, Opus 5.5, Sonnet 5.5 and Haiku 4.5, and every current model supports text and image input and tool use.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: claude-opus-5-5
+    provider: anthropic
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "4.00"
+      output: "20.00"
+      currency: USD
+      as_of: 2026-09-30
+      notes: Per 1M tokens. Pinned dateless snapshot with a 1M-token context and 128K output; thinking is always adaptive, and non-default sampling and forced tool use are rejected.
+    source_ref:
+      url: https://platform.claude.com/docs/en/about-claude/models/overview
+      retrieved_at: 2026-09-30
+      note: Claude model overview with API model IDs, aliases, thinking mode, context, output limits and retirement commitments; current models are Claude Fable 5.1, Opus 5.5, Sonnet 5.5 and Haiku 4.5, and every current model supports text and image input and tool use.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: claude-sonnet-5-5
+    provider: anthropic
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "2.00"
+      output: "10.00"
+      currency: USD
+      as_of: 2026-09-30
+      notes: Per 1M tokens. Pinned dateless snapshot with a 1M-token context and 128K output; thinking is adaptive by default, and non-default sampling and forced tool use are rejected.
+    source_ref:
+      url: https://platform.claude.com/docs/en/about-claude/models/overview
+      retrieved_at: 2026-09-30
+      note: Claude model overview with API model IDs, aliases, thinking mode, context, output limits and retirement commitments; current models are Claude Fable 5.1, Opus 5.5, Sonnet 5.5 and Haiku 4.5, and every current model supports text and image input and tool use.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: claude-fable-5
     provider: anthropic
     model_type: chat
@@ -180,8 +240,8 @@ models:
       notes: Fast and cost-efficient model. Per 1M tokens.
     source_ref:
       url: https://platform.claude.com/docs/en/about-claude/models/overview
-      retrieved_at: 2026-07-20
-      note: Claude model overview with API model IDs and aliases.
+      retrieved_at: 2026-09-30
+      note: Claude model overview with API model IDs, aliases, thinking mode, context, output limits and retirement commitments; current models are Claude Fable 5.1, Opus 5.5, Sonnet 5.5 and Haiku 4.5, and every current model supports text and image input and tool use.
     features:
       - input.image
     context_window_tokens: 8192
@@ -200,8 +260,8 @@ models:
       notes: Fast and cost-efficient model. Per 1M tokens.
     source_ref:
       url: https://platform.claude.com/docs/en/about-claude/models/overview
-      retrieved_at: 2026-07-20
-      note: Claude model overview with API model IDs and aliases.
+      retrieved_at: 2026-09-30
+      note: Claude model overview with API model IDs, aliases, thinking mode, context, output limits and retirement commitments; current models are Claude Fable 5.1, Opus 5.5, Sonnet 5.5 and Haiku 4.5, and every current model supports text and image input and tool use.
     api_model_id: claude-haiku-4-5
     features:
       - input.image
@@ -211,10 +271,10 @@ selection_profiles:
   - provider: anthropic
     profile_id: text.general
     capability: text.generate
-    model_id: claude-sonnet-5
-    reviewed_at: 2026-09-28
+    model_id: claude-sonnet-5-5
+    reviewed_at: 2026-09-30
     freshness_sla_days: 21
-    rationale: Current Sonnet model, which Anthropic positions as its best balance of speed and intelligence; active with retirement not before 2027-06-30.
+    rationale: Current Sonnet model, which Anthropic positions as its best combination of speed and intelligence; retirement not before 2027-09-28.
   - provider: anthropic
     profile_id: text.fast
     capability: text.generate
@@ -225,7 +285,7 @@ selection_profiles:
   - provider: anthropic
     profile_id: text.reasoning
     capability: text.generate
-    model_id: claude-fable-5
-    reviewed_at: 2026-09-28
+    model_id: claude-fable-5-1
+    reviewed_at: 2026-09-30
     freshness_sla_days: 21
-    rationale: Highest-capability admitted Anthropic model, active with retirement not before 2027-06-09; Anthropic now labels it legacy in favor of Claude Fable 5.1, which is not admitted in this catalog yet.
+    rationale: Anthropic's current model for demanding reasoning and long-horizon work; retirement not before 2027-09-01.

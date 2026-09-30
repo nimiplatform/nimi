@@ -42,7 +42,6 @@ func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
 		"moonshot",
 		"zhipu",
 		"bigmodel",
-		"anthropic",
 		"cloudnimillm",
 		"cloudbytedance",
 		"cloudalibaba",

@@ -3,6 +3,7 @@
 version: 1
 token_probe_provider_ids:
   - nimillm
+  - anthropic
   - dashscope
   - volcengine
   - volcengine_openspeech

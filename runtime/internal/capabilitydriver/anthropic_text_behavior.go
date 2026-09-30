@@ -1,8 +1,11 @@
 package capabilitydriver
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/url"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -11,15 +14,49 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
+const anthropicThinkingContinuityKind = "anthropic.messages.thinking"
+
+// anthropicMessagesProfile fixes what one reviewed Claude cohort admits on
+// the shared Messages adapter.
+type anthropicMessagesProfile struct {
+	// adaptiveThinking sends thinking {type adaptive, display omitted} and
+	// carries each signed thinking or redacted_thinking block as an opaque
+	// continuity carrier that is replayed verbatim; thinking text never
+	// leaves Runtime.
+	adaptiveThinking bool
+	// samplingControls admits temperature or top_p, never both, and top_k.
+	samplingControls bool
+	// forcedToolChoice admits required and named tool choice.
+	forcedToolChoice bool
+	defaultMaxTokens int32
+}
+
+// Claude models whose thinking stays off unless requested.
+var anthropicLegacyMessages = &anthropicMessagesProfile{samplingControls: true, forcedToolChoice: true, defaultMaxTokens: 4096}
+
+// Claude models that always think adaptively: they refuse non-default
+// sampling and forced tool use on every request, and thinking shares the
+// output budget, so the default limit leaves room for both.
+var anthropicAdaptiveMessages = &anthropicMessagesProfile{adaptiveThinking: true, defaultMaxTokens: 16384}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-messages-text-behaviors
 func AnthropicTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
+	return serializeAnthropicRequest(anthropicLegacyMessages, spec, stream)
+}
+
+func AnthropicAdaptiveTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
+	return serializeAnthropicRequest(anthropicAdaptiveMessages, spec, stream)
+}
+
+func serializeAnthropicRequest(profile *anthropicMessagesProfile, spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
 	if spec == nil {
 		return textbehavior.SerializedRequest{}, anthropicBehaviorInput("missing text request")
 	}
 	if spec.GetIncludeRawChunks() {
 		return textbehavior.SerializedRequest{}, anthropicBehaviorUnsupported("raw provider chunks")
 	}
-	if spec.Seed != nil || spec.PresencePenalty != nil || spec.FrequencyPenalty != nil || spec.Temperature != nil && spec.TopP != nil {
+	if spec.Seed != nil || spec.PresencePenalty != nil || spec.FrequencyPenalty != nil || spec.Temperature != nil && spec.TopP != nil ||
+		!profile.samplingControls && (spec.Temperature != nil || spec.TopP != nil || spec.TopK != nil) {
 		return textbehavior.SerializedRequest{}, anthropicBehaviorUnsupported("sampling controls")
 	}
 	messages := make([]map[string]any, 0, len(spec.GetInput()))
@@ -55,6 +92,12 @@ func AnthropicTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenario
 						return textbehavior.SerializedRequest{}, anthropicBehaviorInput("tool arguments JSON")
 					}
 					appendBlock("assistant", map[string]any{"type": "tool_use", "id": call.GetId(), "name": call.GetName(), "input": args})
+				} else if carrier := item.GetOutput().GetReasoningContinuity(); carrier != nil && profile.adaptiveThinking {
+					block, err := anthropicThinkingReplay(carrier)
+					if err != nil {
+						return textbehavior.SerializedRequest{}, err
+					}
+					appendBlock("assistant", block)
 				} else {
 					return textbehavior.SerializedRequest{}, anthropicBehaviorUnsupported("ordered content kind")
 				}
@@ -64,34 +107,54 @@ func AnthropicTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenario
 		if message.GetContent() != "" && len(message.GetParts()) > 0 {
 			return textbehavior.SerializedRequest{}, anthropicBehaviorInput("conflicting text representations")
 		}
-		text := message.GetContent()
-		if len(message.GetParts()) > 0 {
-			var content strings.Builder
-			for _, part := range message.GetParts() {
-				if part.GetType() != runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT {
-					return textbehavior.SerializedRequest{}, anthropicBehaviorUnsupported("non-text content")
-				}
-				content.WriteString(part.GetText())
-			}
-			text = content.String()
-		}
-		if role == "system" {
-			system = append(system, text)
-			continue
-		}
-		if role != "user" && role != "assistant" {
+		if role != "system" && role != "user" && role != "assistant" {
 			return textbehavior.SerializedRequest{}, anthropicBehaviorInput("message role")
 		}
-		appendBlock(role, map[string]any{"type": "text", "text": text})
+		if len(message.GetParts()) == 0 {
+			if role == "system" {
+				system = append(system, message.GetContent())
+			} else {
+				appendBlock(role, map[string]any{"type": "text", "text": message.GetContent()})
+			}
+			continue
+		}
+		var systemText strings.Builder
+		for _, part := range message.GetParts() {
+			switch part.GetType() {
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT:
+				if role == "system" {
+					systemText.WriteString(part.GetText())
+				} else {
+					appendBlock(role, map[string]any{"type": "text", "text": part.GetText()})
+				}
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+				if role != "user" || part.GetImageUrl() == nil {
+					return textbehavior.SerializedRequest{}, anthropicBehaviorInput("user image content part")
+				}
+				block, err := AnthropicImageBlock(part.GetImageUrl().GetUrl())
+				if err != nil {
+					return textbehavior.SerializedRequest{}, err
+				}
+				appendBlock(role, block)
+			default:
+				return textbehavior.SerializedRequest{}, anthropicBehaviorUnsupported("non-text content")
+			}
+		}
+		if role == "system" {
+			system = append(system, systemText.String())
+		}
 	}
 	if len(messages) == 0 {
 		return textbehavior.SerializedRequest{}, anthropicBehaviorInput("empty messages")
 	}
 	maxTokens := spec.GetMaxTokens()
 	if maxTokens <= 0 {
-		maxTokens = 4096
+		maxTokens = profile.defaultMaxTokens
 	}
 	body := map[string]any{"messages": messages, "max_tokens": maxTokens, "stream": stream}
+	if profile.adaptiveThinking {
+		body["thinking"] = map[string]any{"type": "adaptive", "display": "omitted"}
+	}
 	if len(system) > 0 {
 		body["system"] = strings.Join(system, "\n\n")
 	}
@@ -132,6 +195,9 @@ func AnthropicTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenario
 		case runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_TOOL:
 			choice["type"], choice["name"] = "tool", spec.GetToolChoiceName()
 		}
+		if !profile.forcedToolChoice && choice["type"] != "auto" && choice["type"] != "none" {
+			return textbehavior.SerializedRequest{}, anthropicBehaviorUnsupported("forced tool choice")
+		}
 		body["tool_choice"] = choice
 	}
 	if format := spec.GetResponseFormat(); format != nil && format.GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_TEXT && format.GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_UNSPECIFIED {
@@ -152,6 +218,81 @@ func AnthropicTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenario
 		return textbehavior.SerializedRequest{}, anthropicBehaviorInput("request JSON")
 	}
 	return textbehavior.SerializedRequest{ContentType: "application/json", Payload: payload}, nil
+}
+
+// AnthropicImageBlock maps one admitted user image to a Messages image block:
+// an inline base64 data URL becomes a base64 source and an HTTP(S) URL a url
+// source. Other schemes and media types are rejected, never fetched here.
+func AnthropicImageBlock(rawURL string) (map[string]any, error) {
+	value := strings.TrimSpace(rawURL)
+	if rest, ok := strings.CutPrefix(value, "data:"); ok {
+		header, data, found := strings.Cut(rest, ",")
+		mediaType, encoding, _ := strings.Cut(header, ";")
+		switch mediaType {
+		case "image/jpeg", "image/png", "image/gif", "image/webp":
+		default:
+			return nil, anthropicBehaviorInput("image media type")
+		}
+		if !found || encoding != "base64" || data == "" {
+			return nil, anthropicBehaviorInput("image data URL")
+		}
+		return map[string]any{"type": "image", "source": map[string]any{"type": "base64", "media_type": mediaType, "data": data}}, nil
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme != "https" && parsed.Scheme != "http" || parsed.Host == "" || parsed.User != nil {
+		return nil, anthropicBehaviorInput("image URL")
+	}
+	return map[string]any{"type": "image", "source": map[string]any{"type": "url", "url": value}}, nil
+}
+
+// anthropicThinkingBlock is exactly what a signed thinking block or a
+// redacted_thinking block carries; with display omitted, thinking is empty.
+type anthropicThinkingBlock struct {
+	Type      string  `json:"type"`
+	Thinking  *string `json:"thinking,omitempty"`
+	Signature string  `json:"signature,omitempty"`
+	Data      string  `json:"data,omitempty"`
+}
+
+func (block anthropicThinkingBlock) valid() bool {
+	switch block.Type {
+	case "thinking":
+		return block.Thinking != nil && *block.Thinking == "" && block.Signature != "" && block.Data == ""
+	case "redacted_thinking":
+		return block.Thinking == nil && block.Signature == "" && block.Data != ""
+	}
+	return false
+}
+
+func anthropicThinkingCarrier(block anthropicThinkingBlock) (*runtimev1.ReasoningContinuityCarrier, error) {
+	if !block.valid() {
+		return nil, anthropicBehaviorOutput("thinking continuity")
+	}
+	payload, err := json.Marshal(block)
+	if err != nil {
+		return nil, anthropicBehaviorOutput("thinking continuity JSON")
+	}
+	carrier := &runtimev1.ReasoningContinuityCarrier{Kind: anthropicThinkingContinuityKind, Version: 1, Payload: payload}
+	if !textbehavior.ValidContinuity(carrier) {
+		return nil, anthropicBehaviorOutput("thinking continuity size")
+	}
+	return carrier, nil
+}
+
+func anthropicThinkingReplay(carrier *runtimev1.ReasoningContinuityCarrier) (map[string]any, error) {
+	if !textbehavior.ValidContinuity(carrier) || carrier.GetKind() != anthropicThinkingContinuityKind || carrier.GetVersion() != 1 {
+		return nil, anthropicBehaviorInput("continuity identity")
+	}
+	var block anthropicThinkingBlock
+	decoder := json.NewDecoder(bytes.NewReader(carrier.GetPayload()))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&block) != nil || decoder.Decode(new(any)) != io.EOF || !block.valid() {
+		return nil, anthropicBehaviorInput("continuity payload")
+	}
+	if block.Type == "thinking" {
+		return map[string]any{"type": "thinking", "thinking": "", "signature": block.Signature}, nil
+	}
+	return map[string]any{"type": "redacted_thinking", "data": block.Data}, nil
 }
 
 // This first slice accepts Vane's inline object/array/scalar schemas. Unsupported
@@ -227,12 +368,20 @@ func validateAnthropicStructuredSchema(schema map[string]any) error {
 }
 
 type anthropicBehaviorBlock struct {
-	Type  string          `json:"type"`
-	Text  string          `json:"text"`
-	ID    string          `json:"id"`
-	Name  string          `json:"name"`
-	Input json.RawMessage `json:"input"`
+	Type      string          `json:"type"`
+	Text      string          `json:"text"`
+	ID        string          `json:"id"`
+	Name      string          `json:"name"`
+	Input     json.RawMessage `json:"input"`
+	Thinking  *string         `json:"thinking"`
+	Signature string          `json:"signature"`
+	Data      string          `json:"data"`
 }
+
+func (block anthropicBehaviorBlock) thinking() anthropicThinkingBlock {
+	return anthropicThinkingBlock{Type: block.Type, Thinking: block.Thinking, Signature: block.Signature, Data: block.Data}
+}
+
 type anthropicBehaviorUsage struct {
 	Input  int64 `json:"input_tokens"`
 	Output int64 `json:"output_tokens"`
@@ -244,6 +393,14 @@ type anthropicBehaviorMessage struct {
 }
 
 func AnthropicTextBehaviorNonStreamParser(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
+	return parseAnthropicMessage(anthropicLegacyMessages, payload, spec)
+}
+
+func AnthropicAdaptiveTextBehaviorNonStreamParser(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
+	return parseAnthropicMessage(anthropicAdaptiveMessages, payload, spec)
+}
+
+func parseAnthropicMessage(profile *anthropicMessagesProfile, payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
 	var message anthropicBehaviorMessage
 	if json.Unmarshal(payload, &message) != nil {
 		return textbehavior.NormalizedResult{}, anthropicBehaviorOutput("response JSON")
@@ -256,6 +413,15 @@ func AnthropicTextBehaviorNonStreamParser(payload []byte, spec *runtimev1.TextGe
 			fragment.Kind, fragment.Text = textbehavior.OrderedItemText, block.Text
 		case "tool_use":
 			fragment.Kind, fragment.ToolCall = textbehavior.OrderedItemToolCall, &textbehavior.ToolCallFragment{IDPart: block.ID, NamePart: block.Name, ArgumentsJSONPart: string(block.Input)}
+		case "thinking", "redacted_thinking":
+			if !profile.adaptiveThinking {
+				return textbehavior.NormalizedResult{}, anthropicBehaviorOutput("content block kind")
+			}
+			carrier, err := anthropicThinkingCarrier(block.thinking())
+			if err != nil {
+				return textbehavior.NormalizedResult{}, err
+			}
+			fragment.Kind, fragment.ReasoningContinuity = textbehavior.OrderedItemReasoningContinuity, carrier
 		default:
 			return textbehavior.NormalizedResult{}, anthropicBehaviorOutput("content block kind")
 		}
@@ -267,6 +433,7 @@ func AnthropicTextBehaviorNonStreamParser(payload []byte, spec *runtimev1.TextGe
 }
 
 type anthropicBehaviorStream struct {
+	profile    *anthropicMessagesProfile
 	spec       *runtimev1.TextGenerateScenarioSpec
 	assembler  *textbehavior.OrderedStreamAssembler
 	blocks     map[uint32]anthropicBehaviorBlock
@@ -278,7 +445,15 @@ type anthropicBehaviorStream struct {
 }
 
 func AnthropicTextBehaviorStreamAssembler(spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
-	return &anthropicBehaviorStream{spec: spec, assembler: textbehavior.NewOrderedStreamAssembler(spec.GetTools(), textbehavior.ValidateToolArguments), blocks: map[uint32]anthropicBehaviorBlock{}, arguments: map[uint32]bool{}}, nil
+	return newAnthropicBehaviorStream(anthropicLegacyMessages, spec), nil
+}
+
+func AnthropicAdaptiveTextBehaviorStreamAssembler(spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
+	return newAnthropicBehaviorStream(anthropicAdaptiveMessages, spec), nil
+}
+
+func newAnthropicBehaviorStream(profile *anthropicMessagesProfile, spec *runtimev1.TextGenerateScenarioSpec) *anthropicBehaviorStream {
+	return &anthropicBehaviorStream{profile: profile, spec: spec, assembler: textbehavior.NewOrderedStreamAssembler(spec.GetTools(), textbehavior.ValidateToolArguments), blocks: map[uint32]anthropicBehaviorBlock{}, arguments: map[uint32]bool{}}
 }
 
 func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.OrderedDelta, error) {
@@ -288,10 +463,12 @@ func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 		Message anthropicBehaviorMessage `json:"message"`
 		Block   anthropicBehaviorBlock   `json:"content_block"`
 		Delta   struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-			JSON string `json:"partial_json"`
-			Stop string `json:"stop_reason"`
+			Type      string  `json:"type"`
+			Text      string  `json:"text"`
+			JSON      string  `json:"partial_json"`
+			Stop      string  `json:"stop_reason"`
+			Thinking  *string `json:"thinking"`
+			Signature string  `json:"signature"`
 		} `json:"delta"`
 		Usage anthropicBehaviorUsage `json:"usage"`
 	}
@@ -326,6 +503,12 @@ func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 			fragment.Kind, fragment.Text = textbehavior.OrderedItemText, event.Block.Text
 		case "tool_use":
 			fragment.Kind, fragment.ToolCall = textbehavior.OrderedItemToolCall, &textbehavior.ToolCallFragment{IDPart: event.Block.ID, NamePart: event.Block.Name}
+		case "thinking", "redacted_thinking":
+			// A continuity carrier is published only once its block is sealed.
+			if !stream.profile.adaptiveThinking {
+				return nil, anthropicBehaviorOutput("stream content kind")
+			}
+			return nil, nil
 		default:
 			return nil, anthropicBehaviorOutput("stream content kind")
 		}
@@ -334,14 +517,30 @@ func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 		if !exists {
 			return nil, anthropicBehaviorOutput("delta without block")
 		}
-		if block.Type == "text" && event.Delta.Type == "text_delta" {
+		switch {
+		case block.Type == "text" && event.Delta.Type == "text_delta":
 			fragment.Kind, fragment.Text = textbehavior.OrderedItemText, event.Delta.Text
-		} else if block.Type == "tool_use" && event.Delta.Type == "input_json_delta" {
+		case block.Type == "tool_use" && event.Delta.Type == "input_json_delta":
 			fragment.Kind, fragment.ToolCall = textbehavior.OrderedItemToolCall, &textbehavior.ToolCallFragment{ArgumentsJSONPart: event.Delta.JSON}
 			if event.Delta.JSON != "" {
 				stream.arguments[event.Index] = true
 			}
-		} else {
+		case block.Type == "thinking" && event.Delta.Type == "thinking_delta":
+			// With display omitted the provider streams no thinking text.
+			if event.Delta.Thinking == nil || *event.Delta.Thinking != "" {
+				return nil, anthropicBehaviorOutput("thinking text")
+			}
+			if block.Thinking == nil {
+				empty := ""
+				block.Thinking = &empty
+			}
+			stream.blocks[event.Index] = block
+			return nil, nil
+		case block.Type == "thinking" && event.Delta.Type == "signature_delta":
+			block.Signature += event.Delta.Signature
+			stream.blocks[event.Index] = block
+			return nil, nil
+		default:
 			return nil, anthropicBehaviorOutput("stream delta kind")
 		}
 	case "content_block_stop":
@@ -350,9 +549,21 @@ func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 			return nil, anthropicBehaviorOutput("stop without block")
 		}
 		fragment.Complete = true
-		if block.Type == "text" {
+		switch block.Type {
+		case "text":
 			fragment.Kind = textbehavior.OrderedItemText
-		} else {
+		case "thinking", "redacted_thinking":
+			thinking := block.thinking()
+			if block.Type == "thinking" && thinking.Thinking == nil {
+				empty := ""
+				thinking.Thinking = &empty
+			}
+			carrier, err := anthropicThinkingCarrier(thinking)
+			if err != nil {
+				return nil, err
+			}
+			fragment.Kind, fragment.ReasoningContinuity = textbehavior.OrderedItemReasoningContinuity, carrier
+		default:
 			fragment.Kind, fragment.ToolCall = textbehavior.OrderedItemToolCall, &textbehavior.ToolCallFragment{}
 			if !stream.arguments[event.Index] {
 				fragment.ToolCall.ArgumentsJSONPart = string(block.Input)
@@ -407,10 +618,13 @@ func finishAnthropicBehavior(assembler *textbehavior.OrderedStreamAssembler, sto
 		}
 		var text strings.Builder
 		for _, item := range items {
-			if item.Kind != textbehavior.OrderedItemText {
+			switch item.Kind {
+			case textbehavior.OrderedItemText:
+				text.WriteString(item.Text)
+			case textbehavior.OrderedItemReasoningContinuity:
+			default:
 				return textbehavior.NormalizedResult{}, anthropicBehaviorOutput("non-text structured output")
 			}
-			text.WriteString(item.Text)
 		}
 		var instance any
 		if json.Unmarshal([]byte(text.String()), &instance) != nil {

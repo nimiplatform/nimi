@@ -1470,16 +1470,23 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
     kind: rule
+    lifecycle: removed
     title: The first Cloud text adapter uses exact Anthropic Messages semantics
+    reason: The single-target Sonnet 4.6 slice is replaced by the reviewed Anthropic Messages cohorts, which keep its exact semantics for claude-sonnet-4-6 and add the current adaptive-thinking models.
+  - id: rule.nimi.runtime.ai-provider.anthropic-messages-text-behaviors
+    kind: rule
+    title: Anthropic text uses exact reviewed Messages cohorts
     modality: must
-    statement: The first admitted Cloud text behavior slice matches provider anthropic and provider model target claude-sonnet-4-6 with the existing AIConfig implementation tuple anthropic, nimillm, anthropic. Its versioned Anthropic Messages hooks serialize text-only canonical messages and ordered function ToolCall and ToolResult turns, preserve ordered text and tool_use content blocks, and admit auto, none, required and named tool choice with single or parallel calls through synchronous and streaming Scenario execution. Structured output uses the native output_config.format JSON Schema contract and validates final JSON against the captured schema; unsupported schema constraints fail before dispatch without deleting constraints or substituting a repair prompt. A stream publishes only complete schema-valid tool arguments, requires message_stop and a valid stop reason, and fails incomplete or error output without converting transport closure into success. The slice does not admit reasoning, provider-executed tools, media, asynchronous behavior Jobs or combined tools and structured output. Credential custody, exact endpoint composition, scheduling and metering remain with the existing Runtime owners, while only the external Host executes tools and chooses subsequent turns; registering a provider or catalog row does not implicitly admit another model or protocol.
-    condition: Whenever the exact Claude Sonnet 4.6 target consumes Tool Use or Structured Output through a Cloud text Scenario.
-    failure: Reject a different or ambiguous adapter target and unsupported behavior with AI_TEXT_BEHAVIOR_UNSUPPORTED, malformed input with AI_INPUT_INVALID, invalid tool arguments with AI_TOOL_CALL_INVALID, and malformed or unterminated provider output with AI_OUTPUT_INVALID or AI_TEXT_OUTPUT_INCOMPLETE; preserve provider and cancellation failures without another model, protocol or workflow fallback.
+    statement: The anthropic provider uses one versioned Messages adapter with the AIConfig implementation tuple anthropic, nimillm, anthropic for exact reviewed catalog targets in two cohorts. claude-sonnet-4-6 and claude-haiku-4-5 keep thinking off and admit function Tool Use with auto, none, required and named tool choice and single or parallel calls, ordered ToolCall and later external-host ToolResult turns and native output_config.format JSON Schema through synchronous and streaming execution, while their plain text keeps the base Messages protocol. claude-opus-5-5, claude-sonnet-5-5 and claude-fable-5-1 route every text step, plain text included, through adaptive hooks that request adaptive thinking with display omitted, return each signed thinking or redacted_thinking block as an opaque continuity carrier replayed unchanged in its original position, admit only auto and none tool choice, refuse sampling controls and default the output limit to 16384 tokens because thinking shares it. Thinking text never becomes a public item, returned thinking text fails as invalid output and a carrier from another route or cohort is never replayed. Admitted user images travel in order as base64 or URL image blocks on the adapter and the base protocol alike. Structured output validates final JSON against the captured schema and rejects unsupported schema constraints before dispatch instead of erasing them, and a stream publishes only complete schema-valid tool arguments, requires message_stop and a valid stop reason and fails incomplete or error output. Credential custody, endpoint composition, scheduling and metering stay with their existing owners, only the external Host executes tools and chooses subsequent turns, and a catalog row or one successful request never admits another model, mode or behavior combination.
+    condition: Whenever an exact reviewed Claude target consumes text, Tool Use or Structured Output through a Cloud text Scenario.
+    failure: Reject a different or ambiguous target, unsupported behavior and forced tool choice or sampling on an adaptive target with AI_TEXT_BEHAVIOR_UNSUPPORTED before dispatch, malformed input or a foreign carrier with AI_INPUT_INVALID, invalid tool arguments with AI_TOOL_CALL_INVALID and malformed, thinking-bearing or unterminated output with AI_OUTPUT_INVALID or AI_TEXT_OUTPUT_INCOMPLETE, and preserve provider and cancellation failures without another model, protocol or workflow fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: supersedes
+        target: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
   - id: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
     kind: rule
     title: DeepSeek Chat Completions has exact non-thinking tool and JSON adapters
@@ -1533,6 +1540,18 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
       - type: supersedes
         target: rule.nimi.runtime.ai-provider.codex-text-behaviors
+  - id: rule.nimi.runtime.ai-provider.openai-responses-text-behaviors
+    kind: rule
+    title: Standard OpenAI text uses exact stateless Responses behavior
+    modality: must
+    statement: The standard API-key openai provider uses one versioned stateless Responses adapter for the exact reviewed catalog targets gpt-6-astra, gpt-6.1-sol and gpt-6-luna with the AIConfig implementation tuple openai, nimillm, openai, so every text step for those targets, plain text included, is a POST to /v1/responses with store false, include reasoning.encrypted_content and SSE delivery in both synchronous and streaming execution. System text travels as instructions; complete ordered user text and admitted image input, top-level function tools with auto, none, required or named tool choice and single or parallel calls, ordered ToolCall and later external-host ToolResult items, native strict JSON Schema and the route's own self-contained encrypted reasoning carriers are sent as the caller-preserved transcript without previous_response_id, background or conversation state. max_output_tokens follows the caller's output limit, while sampling, stop, seed and every reasoning activation, effort or presentation control are rejected, and a carrier issued by another route is never replayed. A step succeeds only after response.completed with every output item sealed and complete schema-valid output or tool calls, and only the external Host executes tools and chooses the next step. None of the ChatGPT-plan namespace, rejected fields, account inventory, renewal or billing rules applies, and a catalog row, official model metadata or one successful request never admits another model, mode or behavior combination.
+    condition: Whenever an exact standard OpenAI text.generate target is configured or executed through an admitted App or Runtime Scenario path.
+    failure: Fail an unsupported target, control or combination before dispatch with AI_TEXT_BEHAVIOR_UNSUPPORTED, malformed input or a foreign carrier with AI_INPUT_INVALID, invalid calls with AI_TOOL_CALL_INVALID, malformed output with AI_OUTPUT_INVALID and incomplete or unterminated streams with AI_TEXT_OUTPUT_INCOMPLETE, and keep provider failures typed without a Chat Completions fallback, stored response or another model.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.text-annotation
     kind: rule
     title: Text annotation preserves model syntax and exact source spans

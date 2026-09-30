@@ -1,6 +1,6 @@
 version: 1
 provider: openai
-catalog_version: 2026-09-28-openai-sora-2-retired
+catalog_version: 2026-09-30-openai-gpt-6-responses
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
@@ -160,6 +160,66 @@ models:
         - json
       supports_language: true
       supports_prompt: true
+  - model_id: gpt-6-astra
+    provider: openai
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-30
+      notes: Current OpenAI flagship on the stateless Responses route with a 1,050,000-token context window and up to 128K output.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-6-astra
+      retrieved_at: 2026-09-30
+      note: OpenAI GPT-6 Astra model card; single snapshot gpt-6-astra, v1/responses and v1/chat/completions, text and image input, streaming, structured outputs and function calling, 1,050,000-token context and 128,000 output tokens; reasoning effort low through max with no none level.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: gpt-6.1-sol
+    provider: openai
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-30
+      notes: GPT-6.1 Sol on the stateless Responses route with a 1,050,000-token context window and up to 128K output.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-6.1-sol
+      retrieved_at: 2026-09-30
+      note: OpenAI GPT-6.1 Sol model card; single snapshot gpt-6.1-sol, v1/responses and v1/chat/completions, text and image input, streaming, structured outputs and function calling, 1,050,000-token context and 128,000 output tokens.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: gpt-6-luna
+    provider: openai
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-30
+      notes: GPT-6 Luna on the stateless Responses route with a 1,050,000-token context window and up to 128K output.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-6-luna
+      retrieved_at: 2026-09-30
+      note: OpenAI GPT-6 Luna model card; single snapshot gpt-6-luna, v1/responses and v1/chat/completions, text and image input, streaming, structured outputs and function calling, 1,050,000-token context and 128,000 output tokens; Chat Completions function calling needs reasoning effort none.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: gpt-5.6-sol
     provider: openai
     model_type: chat

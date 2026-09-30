@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -389,6 +390,16 @@ func buildAnthropicMessageContent(message *runtimev1.ChatMessage) ([]map[string]
 			if text != "" {
 				content = append(content, map[string]any{"type": "text", "text": text})
 			}
+		case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+			// Admitted user images keep their order as Messages image blocks.
+			if strings.TrimSpace(message.GetRole()) != "user" || part.GetImageUrl() == nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+			}
+			block, err := capabilitydriver.AnthropicImageBlock(part.GetImageUrl().GetUrl())
+			if err != nil {
+				return nil, err
+			}
+			content = append(content, block)
 		default:
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}

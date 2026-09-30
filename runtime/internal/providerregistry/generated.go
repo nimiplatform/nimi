@@ -184,6 +184,7 @@ var RemoteProviders = []string{
 }
 
 var TokenProbeProviders = []string{
+	"anthropic",
 	"dashscope",
 	"deepseek",
 	"gemini",
@@ -207,7 +208,7 @@ var Records = map[string]ProviderRecord{
 		ManagedConnectorSupported:     true,
 		InlineSupported:               true,
 		DefaultEndpoint:               "https://api.anthropic.com",
-		DefaultTextModel:              "claude-sonnet-5",
+		DefaultTextModel:              "claude-sonnet-5-5",
 		RequiresExplicitEndpoint:      false,
 		InventoryMode:                 "static_source",
 		DynamicDiscoveryTransport:     "",

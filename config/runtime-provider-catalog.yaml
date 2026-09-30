@@ -55,7 +55,7 @@ entries:
 providers:
   - provider: anthropic
     default_endpoint: https://api.anthropic.com
-    default_text_model: claude-sonnet-5
+    default_text_model: claude-sonnet-5-5
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027

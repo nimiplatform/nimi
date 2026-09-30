@@ -15,14 +15,21 @@ import (
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 20 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and ten Cloud targets", len(registrations))
+	if len(registrations) != 27 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and seventeen Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
 		"anthropic/claude-sonnet-4-6":     "anthropic.sonnet46.messages",
+		"anthropic/claude-haiku-4-5":      "anthropic.haiku45.messages",
+		"anthropic/claude-opus-5-5":       "anthropic.claude-opus-5-5.messages",
+		"anthropic/claude-sonnet-5-5":     "anthropic.claude-sonnet-5-5.messages",
+		"anthropic/claude-fable-5-1":      "anthropic.claude-fable-5-1.messages",
 		"openai_chatgpt_plan/gpt-6.1-sol": "openai_chatgpt_plan.gpt-6.1-sol.responses",
 		"openai_chatgpt_plan/gpt-6-astra": "openai_chatgpt_plan.gpt-6-astra.responses",
 		"openai_chatgpt_plan/gpt-6-luna":  "openai_chatgpt_plan.gpt-6-luna.responses",
+		"openai/gpt-6-astra":              "openai.gpt-6-astra.responses",
+		"openai/gpt-6.1-sol":              "openai.gpt-6.1-sol.responses",
+		"openai/gpt-6-luna":               "openai.gpt-6-luna.responses",
 		"deepseek/deepseek-flash":         "deepseek.flash.chat",
 		"deepseek/deepseek-v4-flash":      "deepseek.v4-flash.chat",
 		"deepseek/deepseek-v4-pro":        "deepseek.v4-pro.chat",

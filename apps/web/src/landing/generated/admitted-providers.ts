@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: config/runtime-provider-catalog.yaml
- *   sha256: bdd4523fb39742ad63a2ef5f5d15041c855d11b5b263b9b70ab40e5ba14d3a6c
+ *   sha256: 3b4cb2d13b487510235c11016deda952e56cbc019eae09c0e985b6b711e7e0d9
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -22,7 +22,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "anthropic",
     defaultEndpoint: "https://api.anthropic.com",
-    defaultTextModel: "claude-sonnet-5",
+    defaultTextModel: "claude-sonnet-5-5",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",

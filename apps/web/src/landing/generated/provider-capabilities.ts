@@ -4,7 +4,7 @@
  *   config/runtime-provider-capabilities.yaml
  *     sha256: 57a4250a06199ac2b0185ebc7afa578a39e3dad0f896eb08f41d8aa47067c407
  *   config/runtime-provider-catalog.yaml
- *     sha256: bdd4523fb39742ad63a2ef5f5d15041c855d11b5b263b9b70ab40e5ba14d3a6c
+ *     sha256: 3b4cb2d13b487510235c11016deda952e56cbc019eae09c0e985b6b711e7e0d9
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.

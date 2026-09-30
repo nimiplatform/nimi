@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-09-28-openai-sora-2-retired
+catalog_version: 2026-09-30-openai-gpt-6-responses
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -69,6 +69,22 @@ sources:
     url: https://developers.openai.com/api/docs/models/gpt-5.6-luna
     retrieved_at: 2026-07-20
     note: OpenAI GPT-5.6 Luna model card with exact model id and supported modalities.
+  - source_id: openai_gpt_6_astra_doc
+    url: https://developers.openai.com/api/docs/models/gpt-6-astra
+    retrieved_at: 2026-09-30
+    note: OpenAI GPT-6 Astra model card; single snapshot gpt-6-astra, v1/responses and v1/chat/completions, text and image input, streaming, structured outputs and function calling, 1,050,000-token context and 128,000 output tokens; reasoning effort low through max with no none level.
+  - source_id: openai_gpt_6_1_sol_doc
+    url: https://developers.openai.com/api/docs/models/gpt-6.1-sol
+    retrieved_at: 2026-09-30
+    note: OpenAI GPT-6.1 Sol model card; single snapshot gpt-6.1-sol, v1/responses and v1/chat/completions, text and image input, streaming, structured outputs and function calling, 1,050,000-token context and 128,000 output tokens.
+  - source_id: openai_gpt_6_luna_doc
+    url: https://developers.openai.com/api/docs/models/gpt-6-luna
+    retrieved_at: 2026-09-30
+    note: OpenAI GPT-6 Luna model card; single snapshot gpt-6-luna, v1/responses and v1/chat/completions, text and image input, streaming, structured outputs and function calling, 1,050,000-token context and 128,000 output tokens; Chat Completions function calling needs reasoning effort none.
+  - source_id: openai_reasoning_guide
+    url: https://developers.openai.com/api/docs/guides/reasoning
+    retrieved_at: 2026-09-30
+    note: Stateless reasoning with store false returns encrypted reasoning items, and every reasoning, function call and function output item since the last user message is passed back with the next request.
   - source_id: openai_gpt_5_4_mini_doc
     url: https://developers.openai.com/api/docs/models/gpt-5.4-mini
     retrieved_at: 2026-04-18
@@ -255,6 +271,48 @@ models:
       response_formats: [text, json]
       supports_language: true
       supports_prompt: true
+
+  - model_id: gpt-6-astra
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-30
+      notes: Current OpenAI flagship on the stateless Responses route with a 1,050,000-token context window and up to 128K output.
+    source_ids: [openai_gpt_6_astra_doc, openai_models_doc, openai_reasoning_guide]
+
+  - model_id: gpt-6.1-sol
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-30
+      notes: GPT-6.1 Sol on the stateless Responses route with a 1,050,000-token context window and up to 128K output.
+    source_ids: [openai_gpt_6_1_sol_doc, openai_models_doc, openai_reasoning_guide]
+
+  - model_id: gpt-6-luna
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-30
+      notes: GPT-6 Luna on the stateless Responses route with a 1,050,000-token context window and up to 128K output.
+    source_ids: [openai_gpt_6_luna_doc, openai_models_doc, openai_reasoning_guide]
 
   - model_id: gpt-5.6-sol
     model_type: chat
