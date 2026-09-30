@@ -471,6 +471,9 @@ func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 			Signature string  `json:"signature"`
 		} `json:"delta"`
 		Usage anthropicBehaviorUsage `json:"usage"`
+		Error struct {
+			Type string `json:"type"`
+		} `json:"error"`
 	}
 	if json.Unmarshal(payload, &event) != nil || stream.stopped {
 		return nil, anthropicBehaviorOutput("stream event")
@@ -479,6 +482,7 @@ func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 		return nil, nil
 	}
 	if event.Type == "error" {
+		logProviderStreamErrorEvent("Anthropic Messages", event.Error.Type)
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if event.Type == "message_start" {

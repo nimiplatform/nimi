@@ -74,6 +74,8 @@ func runProductionDaemon(version string) (resultErr error) {
 		return true
 	}
 	logger := slog.New(slog.NewJSONHandler(protectedlocal.MacOSRuntimeLogWriter{}, nil))
+	// Package-level diagnostics log through the Runtime logger too.
+	slog.SetDefault(logger)
 	runtimeDaemon, err := daemon.NewProtectedFromMacOSSecurityState(cfg, logger, version, state, requestRestart)
 	if err != nil {
 		return fmt.Errorf("construct protected macOS Runtime: %w", err)

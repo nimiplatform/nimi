@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -81,6 +82,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if wireStream {
 		request.Header.Set("Accept", "text/event-stream")
 	}
+	started := time.Now()
 	response, err := backend.do(request)
 	if err != nil {
 		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
@@ -98,6 +100,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if !wireStream {
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
+			logProviderStreamFailure(backend.Name, path, started, err)
 			return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
 		}
 		return invocation.ParseNonStream(body)
@@ -139,6 +142,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		}
 	}
 	if err := scanner.Err(); err != nil {
+		logProviderStreamFailure(backend.Name, path, started, err)
 		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
 	}
 	if err := consume(); err != nil {

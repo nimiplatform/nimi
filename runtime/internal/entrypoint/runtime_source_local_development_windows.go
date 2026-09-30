@@ -63,6 +63,8 @@ func runProductionDaemon(version string) error {
 		return true
 	}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	// Package-level diagnostics log through the Runtime logger too.
+	slog.SetDefault(logger)
 	runtimeDaemon, err := daemon.NewProtectedFromWindowsSecurityState(cfg, logger, version, state, requestRestart)
 	if err != nil {
 		return fmt.Errorf("construct current-user Windows Runtime: %w", err)

@@ -350,6 +350,8 @@ func (service *windowsRuntimeService) open(ctx context.Context, requestRestart f
 		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupConfiguration, err)
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	// Package-level diagnostics log through the Runtime logger too.
+	slog.SetDefault(logger)
 	runtimeDaemon, err := daemon.NewProtectedFromWindowsSecurityState(cfg, logger, service.version, securityState, requestRestart)
 	if err != nil {
 		_ = localAppListener.Close()

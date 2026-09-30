@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -33,6 +34,9 @@ type Backend struct {
 	// Security controls for outbound endpoint validation.
 	enforceEndpointSecurity bool
 	allowLoopbackEndpoint   bool
+	// endpointResolve is how long resolving and pinning the endpoint took when
+	// this backend was created; it is reported with each request's diagnostics.
+	endpointResolve time.Duration
 }
 
 type openAIToolCallFunction struct {
@@ -266,11 +270,20 @@ func NewSecuredBackendWithHeaders(name string, baseURL string, apiKey string, he
 	if normalized == "" {
 		return nil
 	}
+	started := time.Now()
 	transport, err := endpointsec.NewPinnedTransport(context.Background(), normalized, allowLoopback)
 	if err != nil {
+		// Callers report this as an unavailable provider; the class and time
+		// tell a DNS failure or timeout apart from an endpoint the policy refused.
+		slog.Warn("provider endpoint resolution failed", "backend", name,
+			"failure_class", endpointResolutionFailureClass(err), "elapsed_ms", time.Since(started).Milliseconds())
 		return nil
 	}
-	return newBackend(name, normalized, apiKey, headers, timeout, transport, true, allowLoopback)
+	backend := newBackend(name, normalized, apiKey, headers, timeout, transport, true, allowLoopback)
+	if backend != nil {
+		backend.endpointResolve = time.Since(started)
+	}
+	return backend
 }
 
 func newBackend(name string, baseURL string, apiKey string, headers map[string]string, timeout time.Duration, transport http.RoundTripper, secure bool, allowLoopback bool) *Backend {
@@ -415,7 +428,10 @@ func (b *Backend) do(request *http.Request) (*http.Response, error) {
 	if request == nil {
 		return nil, errors.New("request is required")
 	}
-	return b.httpClientForContext(request.Context()).Do(request)
+	observed, observation := observeProviderHTTP(b.Name, b.endpointResolve, request)
+	response, err := b.httpClientForContext(request.Context()).Do(observed)
+	observation.finish(response, err)
+	return response, err
 }
 
 // Endpoint returns the backend base URL.

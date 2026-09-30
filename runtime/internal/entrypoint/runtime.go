@@ -92,6 +92,8 @@ func runNonProductionDaemonFromArgsWithConstructor(program string, args []string
 		return err
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
+	// Package-level diagnostics log through the Runtime logger too.
+	slog.SetDefault(logger)
 	d, err := constructDaemon(cfg, logger, runtimeVersion)
 	if err != nil {
 		return err

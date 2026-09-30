@@ -337,12 +337,14 @@ func (stream *responsesBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 	case "response.created", "response.in_progress", "response.queued":
 		return nil, nil
 	case "error":
+		logProviderStreamErrorEvent(profile.label, event.Code)
 		return nil, profile.failure(0, event.Code)
 	case "response.failed":
 		code := ""
 		if event.Response.Error != nil {
 			code = event.Response.Error.Code
 		}
+		logProviderStreamErrorEvent(profile.label, code)
 		return nil, profile.failure(0, code)
 	case "response.incomplete":
 		reason := ""
