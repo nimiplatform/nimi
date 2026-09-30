@@ -21,12 +21,29 @@ export type ConversationTurnRole = Extract<
   'system' | 'developer' | 'user' | 'assistant' | 'tool'
 >;
 
+/**
+ * One item of a completed assistant turn's ordered output: final text, or an
+ * opaque reasoning-continuity carrier exactly as the model returned it, its
+ * payload in standard base64 so the item survives JSON storage. Items are never
+ * displayed or decoded; the session owner stores them with that assistant
+ * message and passes them back unmodified.
+ */
+export type ConversationAssistantOutputItem =
+  | { type: 'text'; text: string }
+  | { type: 'reasoning-continuity'; kind: string; version: number; payloadBase64: string };
+
 export type ConversationTurnHistoryMessage = {
   id: string;
   role: ConversationTurnRole;
   text: string;
   name?: string | null;
   metadata?: Record<string, unknown>;
+  /**
+   * The ordered output of this assistant turn, as reported by its
+   * `turn-completed` event. When present it is replayed in place of `text`,
+   * whose visible text it must contain unchanged.
+   */
+  outputItems?: readonly ConversationAssistantOutputItem[];
 };
 
 export type ConversationTurnInput = {
@@ -62,6 +79,7 @@ export type ConversationRuntimeTextMessage = {
   text: string;
   content?: string | readonly NimiMessagePart[];
   name?: string | null;
+  outputItems?: readonly ConversationAssistantOutputItem[];
 };
 
 export type ConversationRuntimeTextRequest = {
@@ -243,6 +261,11 @@ export type ConversationTurnEvent =
     usage?: ConversationRuntimeUsage;
     trace?: ConversationRuntimeTrace;
     diagnostics?: Record<string, unknown>;
+    /**
+     * Present when the model returned opaque reasoning continuity: store it as
+     * the assistant history message's `outputItems` so the next turn replays it.
+     */
+    outputItems?: readonly ConversationAssistantOutputItem[];
   }
   | {
     type: 'turn-failed';

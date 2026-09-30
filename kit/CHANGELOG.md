@@ -29,6 +29,41 @@ Required changes from 0.11.0:
   sign-in to the SDK connector auth acquisition host (next-minor section
   "ChatGPT plan sign-in").
 
+## Chat with reasoning models (next minor, development)
+
+- The `simple-ai` conversation provider completes turns from models that
+  return opaque reasoning continuity, instead of failing them with
+  `AI_TEXT_BEHAVIOR_UNSUPPORTED`. Such a turn's `turn-completed` event carries
+  `outputItems`: its ordered final text and carriers, each payload in base64
+  so it survives JSON storage. Store them on that assistant history message as
+  `outputItems`, and the next turn replays them unmodified. Nothing new is
+  displayed, and reasoning summaries still stay out of history. Tool calls
+  still fail the turn.
+- Earlier assistant turns are sent as canonical ordered output, as the SDK
+  Runtime binding requires. Before, a `simple-ai` or app-AI chat request with
+  an earlier assistant message failed in the SDK with "Runtime assistant/tool
+  continuation requires canonical turnItems".
+- `useAppAiChatSession` sets `outputItems` on a completed assistant message
+  when the model returned continuity. `AppAiChatMessage` accepts
+  `outputItems`, or SDK `turnItems`, on assistant messages; pass them back from
+  `resolveRequest`.
+- Stored output whose text differs from the message text fails before
+  dispatch; drop `outputItems` when the text changes. Carriers belong to the
+  route that produced them: after the App's text route changes, a turn whose
+  history still holds them fails with the Runtime's typed error rather than
+  dropping them.
+- New type export `ConversationAssistantOutputItem` from
+  `@nimiplatform/kit/features/chat/headless`; `@nimiplatform/kit/core/sdk-contract`
+  re-exports the `NimiTextOutputItem` and `NimiTextTurnItem` types.
+
+## Retry hint for transient provider failures (next minor, development)
+
+- The Electron standard shell carrier gives `ai-provider-unavailable`,
+  `ai-provider-timeout` and `ai-provider-rate-limited` the action hint
+  `retry_later`, as Runtime does. They previously fell through to
+  `refresh_local_app_runtime_projection`, which sent Apps to refresh a
+  projection that was not stale.
+
 ## ChatGPT plan sign-in (next minor, development)
 
 - `exchangeElectronOauthTokenInHost` and its

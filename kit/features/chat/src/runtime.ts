@@ -23,6 +23,12 @@ import {
   type NimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { ChatComposerAdapter, ChatComposerSubmitInput } from './types.js';
+import type { ConversationAssistantOutputItem } from './orchestration/contracts.js';
+import {
+  createAssistantOutputCollector,
+  toAssistantTurnItems,
+  type AssistantOutputCollector,
+} from './runtime/assistant-output.js';
 export type {
   SimpleAiConversationProviderOptions,
 } from './runtime/orchestration.js';
@@ -41,6 +47,8 @@ export type AppAiChatRuntime = NimiRuntimeAIModelOptions['runtime'];
 export type AppAiChatMetadataDefaults = Record<string, string>;
 export type AppAiChatMessage = Omit<NimiMessage, 'content'> & {
   readonly content: string | readonly NimiMessagePart[];
+  /** An earlier assistant turn's stored ordered output, replayed unmodified. */
+  readonly outputItems?: readonly ConversationAssistantOutputItem[];
 };
 export type AppAiChatPrompt = string | readonly AppAiChatMessage[];
 export type AppAiChatGenerateResult = NimiGenerateTextResult;
@@ -67,6 +75,11 @@ export type AppAiChatSessionMessage = {
   timestamp: string;
   status?: 'streaming' | 'complete' | 'error' | 'canceled';
   error?: string;
+  /**
+   * Set on a completed assistant message when the model returned opaque
+   * reasoning continuity; pass it back as that message's `outputItems`.
+   */
+  outputItems?: readonly ConversationAssistantOutputItem[];
 };
 
 export type AppAiChatComposerResponse =
@@ -286,7 +299,11 @@ export function useAppAiChatSession({
         messages: nextMessages,
       });
       const requestWithSignal = withAppAiChatAbortSignal(request, abortController.signal);
-      const model = createAppAiChatModel(requireAppAiRuntime(runtime), requestWithSignal, appId);
+      const output = createAssistantOutputCollector();
+      const model = observeAssistantOutput(
+        createAppAiChatModel(requireAppAiRuntime(runtime), requestWithSignal, appId),
+        output,
+      );
       const textRequest = toNimiGenerateTextRequest(requestWithSignal);
 
       const result = await streamNimiTextResponse(
@@ -310,6 +327,7 @@ export function useAppAiChatSession({
         },
       );
 
+      const outputItems = output.complete();
       commitMessages((current) => current.map((message) => (
         message.id === assistantMessageId
           ? {
@@ -317,6 +335,7 @@ export function useAppAiChatSession({
             content: result.text,
             status: 'complete',
             error: undefined,
+            ...(outputItems ? { outputItems } : {}),
           }
           : message
       )));
@@ -433,6 +452,26 @@ function toNimiGenerateTextRequest(
 }
 
 function toNimiMessage(message: AppAiChatMessage): NimiMessage {
+  if (message.role === 'assistant') {
+    // An earlier assistant turn is replayed as its canonical ordered output.
+    const text = typeof message.content === 'string'
+      ? message.content
+      : message.content.map((part) => {
+        if (part.type !== 'text') {
+          throw new Error('app AI chat assistant history accepts only text content');
+        }
+        return part.text;
+      }).join('');
+    return {
+      role: 'assistant',
+      content: [],
+      name: normalizeNullableText(message.name) || undefined,
+      turnItems: message.turnItems?.length
+        ? message.turnItems
+        : toAssistantTurnItems(text.trim(), message.outputItems),
+      metadata: message.metadata,
+    };
+  }
   return {
     role: message.role,
     content: typeof message.content === 'string' ? [textPart(message.content)] : message.content,
@@ -440,6 +479,33 @@ function toNimiMessage(message: AppAiChatMessage): NimiMessage {
     toolCallId: normalizeNullableText(message.toolCallId) || undefined,
     toolCalls: message.toolCalls,
     metadata: message.metadata,
+  };
+}
+
+// Records the assistant turn's ordered text and continuity as the stream passes.
+function observeAssistantOutput<TModel extends { streamText?: (request: NimiGenerateTextRequest) => AsyncIterable<NimiRunEvent> | Promise<AsyncIterable<NimiRunEvent>> }>(
+  model: TModel,
+  output: AssistantOutputCollector,
+): TModel {
+  const streamText = model.streamText?.bind(model);
+  if (!streamText) {
+    return model;
+  }
+  return {
+    ...model,
+    async streamText(request: NimiGenerateTextRequest) {
+      const events = await streamText(request);
+      return (async function* observed() {
+        for await (const event of events) {
+          if (event.type === 'text-delta') {
+            output.text(event.text, event.itemIndex);
+          } else if (event.type === 'reasoning-continuity') {
+            output.continuity(event.carrier, event.itemIndex);
+          }
+          yield event;
+        }
+      })();
+    },
   };
 }
 

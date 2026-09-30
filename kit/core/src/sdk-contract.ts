@@ -239,6 +239,8 @@ export type {
   NimiMessageRole,
   NimiModelRef,
   NimiRunEvent,
+  NimiTextOutputItem,
+  NimiTextTurnItem,
 } from '@nimiplatform/sdk/contracts';
 export {
   dataPart,

@@ -2439,6 +2439,11 @@ function actionHint(reasonCode: string): string {
     case 'ai-connector-not-found': return 'reselect_app_ai_config_target';
     case 'ai-connector-disabled': return 'enable_cloud_connector_or_reselect_target';
     case 'ai-connector-credential-missing': return 'add_cloud_connector_credential_or_reselect_target';
+    // The provider, or the network path to it, failed or refused for now; the
+    // committed target stays valid, so the next step is a later retry.
+    case 'ai-provider-unavailable':
+    case 'ai-provider-timeout':
+    case 'ai-provider-rate-limited': return 'retry_later';
     case 'agent-presentation-revision-conflict': return 'refresh_presentation_snapshot';
     case 'agent-presentation-asset-type-invalid':
     case 'agent-presentation-asset-too-large':

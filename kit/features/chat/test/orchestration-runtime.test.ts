@@ -213,40 +213,170 @@ describe('simple-ai conversation provider', () => {
     });
   });
 
-  it('fails visibly instead of dropping ToolCall or opaque continuity items it does not own', async () => {
-    const unsupportedEvents: readonly NimiRunEvent[] = [
-      {
-        type: 'tool-call',
-        toolCall: { id: 'call-1', name: 'lookup', arguments: {} },
-        itemIndex: 0,
-        itemCompleted: true,
-      },
-      {
-        type: 'reasoning-continuity',
-        carrier: { kind: 'native', version: 1, payload: new Uint8Array([1]) },
-        itemIndex: 0,
-        itemCompleted: true,
-      },
-    ];
-    for (const unsupported of unsupportedEvents) {
-      const provider = createSimpleAiConversationProvider({
-        runtimeAdapter: {
-          async streamText() {
-            return sdkStream([
-              { type: 'start', traceId: 'trace-unsupported-item' },
-              unsupported,
-              { type: 'done', finishReason: 'stop' },
-            ]);
-          },
+  it('fails visibly instead of dropping a ToolCall it does not own', async () => {
+    const provider = createSimpleAiConversationProvider({
+      runtimeAdapter: {
+        async streamText() {
+          return sdkStream([
+            { type: 'start', traceId: 'trace-unsupported-item' },
+            {
+              type: 'tool-call',
+              toolCall: { id: 'call-1', name: 'lookup', arguments: {} },
+              itemIndex: 0,
+              itemCompleted: true,
+            },
+            { type: 'done', finishReason: 'stop' },
+          ]);
         },
-      });
-      const events = await collectEvents(provider.runTurn(createTurnInput()));
-      expect(events.map((event) => event.type)).toEqual(['turn-started', 'turn-failed']);
-      expect(events[1]).toEqual(expect.objectContaining({
-        type: 'turn-failed',
-        error: expect.objectContaining({ code: 'AI_TEXT_BEHAVIOR_UNSUPPORTED' }),
-      }));
+      },
+    });
+    const events = await collectEvents(provider.runTurn(createTurnInput()));
+    expect(events.map((event) => event.type)).toEqual(['turn-started', 'turn-failed']);
+    expect(events[1]).toEqual(expect.objectContaining({
+      type: 'turn-failed',
+      error: expect.objectContaining({ code: 'AI_TEXT_BEHAVIOR_UNSUPPORTED' }),
+    }));
+  });
+
+  it('keeps opaque continuity out of the visible turn and replays it unmodified with that assistant turn', async () => {
+    const payload = new Uint8Array([0, 1, 2, 253, 254, 255]);
+    const runtimeHarness = createRuntimeAiTestRuntime({
+      streamEvents: [
+        { type: 'start', traceId: 'trace-thinking' },
+        {
+          type: 'reasoning-continuity',
+          carrier: { kind: 'anthropic.messages.thinking', version: 1, payload },
+          itemIndex: 0,
+          itemCompleted: true,
+        },
+        { type: 'text-delta', text: 'Ship the contract ', itemIndex: 1, itemCompleted: false },
+        { type: 'text-delta', text: 'freeze.', itemIndex: 1, itemCompleted: true },
+        { type: 'done', finishReason: 'stop' },
+      ],
+    });
+    const provider = createSimpleAiConversationProvider({
+      runtimeAdapter: createSdkConversationRuntimeAdapter({
+        runtime: runtimeHarness.runtime,
+        appId: 'kit-chat-test-app',
+      }),
+    });
+
+    const first = await collectEvents(provider.runTurn(createTurnInput({ history: [] })));
+    expect(first.map((event) => event.type)).toEqual(['turn-started', 'text-delta', 'text-delta', 'turn-completed']);
+    const completed = first[3];
+    expect(completed).toEqual(expect.objectContaining({
+      type: 'turn-completed',
+      outputText: 'Ship the contract freeze.',
+      outputItems: [
+        { type: 'reasoning-continuity', kind: 'anthropic.messages.thinking', version: 1, payloadBase64: 'AAEC/f7/' },
+        { type: 'text', text: 'Ship the contract freeze.' },
+      ],
+    }));
+    // The session owner stores the items as JSON and hands them back unchanged.
+    const stored = JSON.parse(JSON.stringify(completed)) as Extract<ConversationTurnEvent, { type: 'turn-completed' }>;
+
+    await collectEvents(provider.runTurn(createTurnInput({
+      turnId: 'turn-2',
+      userMessage: { id: 'msg-user-2', text: 'And after that?', attachments: [] },
+      history: [
+        { id: 'user-1', role: 'user', text: 'What should we ship next?' },
+        { id: 'assistant-1', role: 'assistant', text: stored.outputText, outputItems: stored.outputItems },
+      ],
+    })));
+
+    const replayed = runtimeHarness.streamScenario.mock.calls[1]?.[0];
+    const input = replayed?.spec?.spec.oneofKind === 'textGenerate' ? replayed.spec.spec.textGenerate.input : [];
+    expect(input.map((message) => message.role)).toEqual(['user', 'assistant', 'user']);
+    const assistant = input[1]!;
+    expect(assistant.content).toBe('');
+    expect(assistant.parts).toEqual([]);
+    expect(assistant.turnItems.map((item) => item.item.oneofKind === 'output' ? item.item.output.item : null)).toEqual([
+      {
+        oneofKind: 'reasoningContinuity',
+        reasoningContinuity: { kind: 'anthropic.messages.thinking', version: 1, payload },
+      },
+      { oneofKind: 'text', text: { text: 'Ship the contract freeze.' } },
+    ]);
+  });
+
+  it('sends earlier plain assistant turns as canonical ordered output through the SDK Runtime binding', async () => {
+    const runtimeHarness = createRuntimeAiTestRuntime({
+      streamEvents: [
+        { type: 'start', traceId: 'trace-plain' },
+        { type: 'text-delta', text: 'Freeze the contract first.' },
+        { type: 'done', finishReason: 'stop' },
+      ],
+    });
+    const provider = createSimpleAiConversationProvider({
+      runtimeAdapter: createSdkConversationRuntimeAdapter({
+        runtime: runtimeHarness.runtime,
+        appId: 'kit-chat-test-app',
+      }),
+    });
+
+    const events = await collectEvents(provider.runTurn(createTurnInput()));
+    expect(events.at(-1)).toEqual(expect.objectContaining({
+      type: 'turn-completed',
+      outputText: 'Freeze the contract first.',
+    }));
+    expect(events.at(-1)).not.toHaveProperty('outputItems');
+    const request = runtimeHarness.streamScenario.mock.calls[0]?.[0];
+    const input = request?.spec?.spec.oneofKind === 'textGenerate' ? request.spec.spec.textGenerate.input : [];
+    expect(input.map((message) => [message.role, message.content])).toEqual([
+      ['user', 'We need a plan.'],
+      ['assistant', ''],
+      ['user', 'What should we ship next?'],
+    ]);
+    expect(input[1]?.turnItems.map((item) => item.item.oneofKind === 'output' ? item.item.output.item : null)).toEqual([
+      { oneofKind: 'text', text: { text: 'Start with contract freeze.' } },
+    ]);
+  });
+
+  it('fails closed before dispatch when stored assistant output was changed', async () => {
+    const carrier = { type: 'reasoning-continuity' as const, kind: 'openai.responses.reasoning', version: 1, payloadBase64: 'AAEC' };
+    const invalidOutputs = [
+      [carrier, { type: 'text' as const, text: 'An edited answer.' }],
+      [{ ...carrier, payloadBase64: 'AAEC\n' }, { type: 'text' as const, text: 'Start with contract freeze.' }],
+      [{ ...carrier, payloadBase64: '' }, { type: 'text' as const, text: 'Start with contract freeze.' }],
+      [carrier],
+    ];
+    for (const outputItems of invalidOutputs) {
+      const streamText = vi.fn();
+      const provider = createSimpleAiConversationProvider({ runtimeAdapter: { streamText } });
+      await expect(collectEvents(provider.runTurn(createTurnInput({
+        history: [
+          { id: 'user-0', role: 'user', text: 'We need a plan.' },
+          { id: 'assistant-0', role: 'assistant', text: 'Start with contract freeze.', outputItems },
+        ],
+      })))).rejects.toThrow(/outputItems|continuity|text item/u);
+      expect(streamText).not.toHaveBeenCalled();
     }
+  });
+
+  it('fails the turn when continuity arrives with text outside the ordered item sequence', async () => {
+    const provider = createSimpleAiConversationProvider({
+      runtimeAdapter: {
+        async streamText() {
+          return sdkStream([
+            { type: 'start', traceId: 'trace-unordered' },
+            {
+              type: 'reasoning-continuity',
+              carrier: { kind: 'native', version: 1, payload: new Uint8Array([1]) },
+              itemIndex: 0,
+              itemCompleted: true,
+            },
+            { type: 'text-delta', text: 'unordered answer' },
+            { type: 'done', finishReason: 'stop' },
+          ]);
+        },
+      },
+    });
+    const events = await collectEvents(provider.runTurn(createTurnInput()));
+    expect(events.map((event) => event.type)).toEqual(['turn-started', 'text-delta', 'turn-failed']);
+    expect(events[2]).toEqual(expect.objectContaining({
+      error: expect.objectContaining({ code: 'AI_OUTPUT_INVALID' }),
+      outputText: 'unordered answer',
+    }));
   });
 
   it('lets apps resolve current user runtime content without owning the provider loop', async () => {

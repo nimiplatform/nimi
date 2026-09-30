@@ -191,6 +191,32 @@ function toRuntimeScenarioStreamEvent(
           },
         },
       };
+    case 'reasoning-continuity':
+      return {
+        eventType: STREAM_EVENT.DELTA,
+        sequence: String(sequence),
+        traceId: '',
+        payload: {
+          oneofKind: 'delta',
+          delta: {
+            delta: {
+              oneofKind: 'textOutputItem',
+              textOutputItem: {
+                itemIndex: event.itemIndex,
+                delta: {
+                  oneofKind: 'reasoningContinuity',
+                  reasoningContinuity: {
+                    kind: event.carrier.kind,
+                    version: event.carrier.version,
+                    payload: event.carrier.payload,
+                  },
+                },
+                itemCompleted: true,
+              },
+            },
+          },
+        },
+      };
     case 'artifact':
       return {
         eventType: STREAM_EVENT.DELTA,
@@ -234,7 +260,6 @@ function toRuntimeScenarioStreamEvent(
         },
       };
     case 'reasoning-delta':
-    case 'reasoning-continuity':
     case 'tool-call':
     case 'tool-result':
     case 'tool-approval-request':

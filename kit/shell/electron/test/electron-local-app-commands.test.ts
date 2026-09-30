@@ -299,6 +299,22 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
+  it('keeps transient provider failures with a retry-later next step', async () => {
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const payload = { spec: { type: 'music-generate', prompt: 'ballad', lyrics: 'sing', durationSeconds: 20 }, timeoutMs: 0, clientSubmissionId: 'song-retry' };
+    for (const reasonCode of ['ai-provider-unavailable', 'ai-provider-timeout', 'ai-provider-rate-limited'] as const) {
+      await expect(dispatchElectronLocalAppCommand({
+        command,
+        payload,
+        host: {
+          scenarioJobSubmit: async () => {
+            throw new NimiElectronLocalAppHostError(reasonCode, true);
+          },
+        } as never,
+      })).rejects.toMatchObject({ reasonCode, actionHint: 'retry_later', source: 'runtime', details: { retryable: true } });
+    }
+  });
+
   it('maps unavailable Manager owner state to the standard Runtime-unavailable code', async () => {
     const host = {
       agentManagerSnapshot: async () => {

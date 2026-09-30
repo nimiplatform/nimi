@@ -26,6 +26,10 @@ import {
   type ConversationHistoryBudget,
   type ConversationTokenCounter,
 } from '../orchestration/history-window.js';
+import {
+  createAssistantOutputCollector,
+  toAssistantTurnItems,
+} from './assistant-output.js';
 
 const RUNTIME_TEXT_GENERATION_MODEL: NimiModelRef = Object.freeze({
   modelId: 'text.generate',
@@ -135,6 +139,7 @@ export function createSimpleAiConversationProvider(
       });
       const textRequest = toNimiGenerateTextRequest(request);
       const { runNimiTextTurn } = await loadSdkContract();
+      const output = createAssistantOutputCollector();
 
       for await (const event of runNimiTextTurn({
         runtime: { model: createAdapterTextModel(options.runtimeAdapter, request) },
@@ -143,7 +148,21 @@ export function createSimpleAiConversationProvider(
         turnId: input.turnId,
         signal: input.signal,
       })) {
-        const conversationEvent = toConversationTurnEvent(event, input);
+        let conversationEvent: ConversationTurnEvent | null;
+        try {
+          if (event.type === 'text-delta') {
+            output.text(event.textDelta, event.runEvent.itemIndex);
+          } else if (event.type === 'reasoning-continuity') {
+            output.continuity(event.runEvent.carrier, event.runEvent.itemIndex);
+          }
+          conversationEvent = toConversationTurnEvent(event, input);
+          if (conversationEvent?.type === 'turn-completed') {
+            const outputItems = output.complete();
+            conversationEvent = outputItems ? { ...conversationEvent, outputItems } : conversationEvent;
+          }
+        } catch (error) {
+          conversationEvent = invalidSimpleAIOutput(input.turnId, error, 'snapshot' in event ? event.snapshot.text : '');
+        }
         if (conversationEvent) {
           yield conversationEvent;
           if (conversationEvent.type === 'turn-failed') {
@@ -204,7 +223,8 @@ function toConversationTurnEvent(
     case 'tool-call':
       return unsupportedSimpleAITextBehavior(input.turnId, 'tool-call');
     case 'reasoning-continuity':
-      return unsupportedSimpleAITextBehavior(input.turnId, 'reasoning-continuity');
+      // Kept for the assistant transcript by the turn's output collector; never displayed.
+      return null;
     case 'structured-output-parsed':
     case 'structured-output-repair-required':
     case 'warning':
@@ -249,7 +269,7 @@ function toConversationTurnEvent(
 
 function unsupportedSimpleAITextBehavior(
   turnId: string,
-  behavior: 'tool-call' | 'reasoning-continuity',
+  behavior: 'tool-call',
 ): ConversationTurnEvent {
   return {
     type: 'turn-failed',
@@ -259,6 +279,19 @@ function unsupportedSimpleAITextBehavior(
       message: `simple-ai conversation does not own ${behavior} workflow state`,
       retriable: false,
     },
+  };
+}
+
+function invalidSimpleAIOutput(turnId: string, error: unknown, outputText: string): ConversationTurnEvent {
+  return {
+    type: 'turn-failed',
+    turnId,
+    error: {
+      code: 'AI_OUTPUT_INVALID',
+      message: error instanceof Error ? error.message : 'simple-ai conversation received invalid ordered model output',
+      retriable: false,
+    },
+    outputText: outputText || undefined,
   };
 }
 
@@ -319,10 +352,14 @@ function toConversationRuntimeTextRequest(request: ConversationRuntimeTextReques
 function toRuntimeTextMessage(
   message: ConversationTurnHistoryMessage,
 ): ConversationRuntimeTextMessage {
+  if (message.outputItems && message.role !== 'assistant') {
+    throw new Error('simple-ai history outputItems belong only to assistant messages');
+  }
   return {
     role: message.role,
     text: normalizeText(message.text),
     name: normalizeNullableText(message.name),
+    ...(message.outputItems?.length ? { outputItems: message.outputItems } : {}),
   };
 }
 
@@ -406,6 +443,15 @@ function toNimiGenerateTextRequest(
 }
 
 function toNimiMessage(message: ConversationRuntimeTextMessage): NimiMessage {
+  if (message.role === 'assistant') {
+    // An earlier assistant turn is replayed as its canonical ordered output.
+    return {
+      role: 'assistant',
+      content: [],
+      name: normalizeNullableText(message.name) || undefined,
+      turnItems: toAssistantTurnItems(normalizeText(message.text), message.outputItems),
+    };
+  }
   const content = Array.isArray(message.content)
     ? message.content
     : [toTextPart(normalizeText(message.content ?? message.text))];

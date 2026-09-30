@@ -43,7 +43,7 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 - Reuse `ChatComposer` and session state for AI conversation.
 - Bind ordinary app-AI text generation through vNext `@nimiplatform/sdk/ai` model surfaces; use `chat/runtime` when the app needs reusable Kit composer/session adapters or the `simple-ai` conversation provider.
 - Reuse the orchestration contracts/registry from `chat/headless` before adding app-local mode-specific submit loops.
-- Reuse the `simple-ai` provider core from `chat/runtime` before rebuilding history-aware text-chat orchestration in app code.
+- Reuse the `simple-ai` provider core from `chat/runtime` before rebuilding history-aware text-chat orchestration in app code. When a turn's `turn-completed` event carries `outputItems` (a model's opaque reasoning continuity with its final text), store them on that assistant history message; the provider replays them unmodified and never displays them. `useAppAiChatSession` records them on its assistant messages the same way.
 - Bind human chat send/list/read flows through `chat/realm`.
 - Reuse the neutral confirmed-message cache merge helpers without moving backend event vocabulary into Kit.
 - Reuse `useRealmMessageTimeline(...)` and `getRealmChatTimelineDisplayModel(...)` to avoid reimplementing timeline merge and message-kind display rules.
@@ -70,7 +70,7 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 - `desktop`
   Uses `chat/headless`, `chat/realm`, and `chat/ui` surfaces for human chat composer wiring, confirmed-message cache projection, timeline rendering, stream status, and thread shell.
 - `lab`
-  Uses `chat/runtime` for the Runtime-backed `chat.stream` capability flow and accumulated stream snapshot projection.
+  Uses `chat/headless` composer and attachment helpers, `chat/realm`, and the root chat surface for Agent conversation; its `chat.stream` capability page runs through the Lab's own SDK capability host, not `chat/runtime`.
 
 ## Verification
 - `pnpm --filter @nimiplatform/kit test`

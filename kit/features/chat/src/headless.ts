@@ -43,6 +43,7 @@ export type {
 } from './types.js';
 export { useChatComposer } from './hooks/use-chat-composer.js';
 export type {
+  ConversationAssistantOutputItem,
   ConversationBeatModality,
   ConversationContinuityAdapter,
   ConversationContinuityCancelInput,

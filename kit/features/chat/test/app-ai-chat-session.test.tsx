@@ -41,6 +41,7 @@ function Harness({ runtime, onReady }: HarnessProps) {
       input: messages.map((message) => ({
         role: message.role,
         content: message.content,
+        outputItems: message.outputItems,
       })),
     }),
   });
@@ -119,6 +120,61 @@ describe('useAppAiChatSession', () => {
     expect(container.querySelector('[data-testid="last"]')?.textContent).toBe('Hello world');
     expect(container.querySelector('[data-testid="status"]')?.textContent).toBe('complete');
     expect(container.querySelector('[data-testid="streaming"]')?.textContent).toBe('false');
+  });
+
+  it('keeps opaque continuity on the assistant message and replays that turn on the next prompt', async () => {
+    const payload = new Uint8Array([7, 8, 9]);
+    const runtimeHarness = createRuntimeAiTestRuntime({
+      streamEvents: [
+        { type: 'start', traceId: 'trace-thinking' },
+        {
+          type: 'reasoning-continuity',
+          carrier: { kind: 'openai.responses.reasoning', version: 1, payload },
+          itemIndex: 0,
+          itemCompleted: true,
+        },
+        { type: 'text-delta', text: 'Hello world', itemIndex: 1, itemCompleted: true },
+        { type: 'done', finishReason: 'stop' },
+      ],
+    });
+    let api: HarnessProps['onReady'] extends (input: infer T) => void ? T : never;
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root?.render(<Harness runtime={runtimeHarness.runtime} onReady={(value) => { api = value; }} />);
+      await flush();
+    });
+    await act(async () => {
+      container?.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+    await act(async () => {
+      await api.sendPrompt('Hi there');
+      await flush();
+    });
+    expect(container.querySelector('[data-testid="last"]')?.textContent).toBe('Hello world');
+    expect(container.querySelector('[data-testid="status"]')?.textContent).toBe('complete');
+
+    await act(async () => {
+      await api.sendPrompt('And then?');
+      await flush();
+    });
+
+    expect(container.querySelector('[data-testid="count"]')?.textContent).toBe('4');
+    expect(container.querySelector('[data-testid="status"]')?.textContent).toBe('complete');
+    const request = runtimeHarness.streamScenario.mock.calls[1]?.[0];
+    const input = request?.spec?.spec.oneofKind === 'textGenerate' ? request.spec.spec.textGenerate.input : [];
+    expect(input.map((message) => [message.role, message.content])).toEqual([
+      ['user', 'Hi there'],
+      ['assistant', ''],
+      ['user', 'And then?'],
+    ]);
+    expect(input[1]?.turnItems.map((item) => item.item.oneofKind === 'output' ? item.item.output.item : null)).toEqual([
+      { oneofKind: 'reasoningContinuity', reasoningContinuity: { kind: 'openai.responses.reasoning', version: 1, payload } },
+      { oneofKind: 'text', text: { text: 'Hello world' } },
+    ]);
   });
 
   it('marks the assistant message as error when the runtime stream fails', async () => {
