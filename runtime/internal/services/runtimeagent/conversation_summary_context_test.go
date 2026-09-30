@@ -226,6 +226,52 @@ func TestConversationSummaryCoveredUnavailableWithoutLastValidKeepsRecentWindow(
 	}
 }
 
+func TestConversationSummaryRejectsCompleteAPMLCutAtLength(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	now := time.Now().UTC()
+	svc.chatSurfaceMu.Lock()
+	svc.chatAnchors[anchorID].CommittedTranscript = testPublicChatCommittedTranscript(
+		[2]string{"user 0", "assistant 0"}, [2]string{"user 1", "assistant 1"},
+		[2]string{"user 2", "assistant 2"}, [2]string{"user 3", "assistant 3"},
+		[2]string{"user 4", "assistant 4"}, [2]string{"user 5", "assistant 5"},
+		[2]string{"user 6", "assistant 6"}, [2]string{"user 7", "assistant 7"},
+	)
+	svc.chatAnchors[anchorID].ConversationSummary = &publicChatConversationSummaryState{
+		LastValid: &publicChatConversationSummaryValidState{
+			Revision: 3, CoveredSequenceStart: 0, CoveredSequenceEnd: 0,
+			Text: "last valid summary", GeneratedAt: now, RouteCorrelation: strings.Repeat("a", 64),
+		},
+		LastAttempt: publicChatConversationSummaryAttemptState{Status: "ready", TargetSequenceEnd: 0, AttemptedAt: now},
+	}
+	svc.chatSurfaceMu.Unlock()
+	// Well-formed summary APML, but the model stopped at its output limit.
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{stream: func(
+		_ context.Context,
+		_ *PublicChatTurnExecutionRequest,
+		emit func(*runtimev1.StreamScenarioEvent) error,
+	) error {
+		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message id="conversation-summary">the user asked about</message>`)}}); err != nil {
+			return err
+		}
+		return emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED, Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_LENGTH}}})
+	}})
+	if !svc.schedulePublicChatConversationSummary(anchorID) {
+		t.Fatal("summary attempt was not scheduled")
+	}
+	waitForPublicChatAsyncDrain(t, svc)
+
+	svc.chatSurfaceMu.Lock()
+	state := clonePublicChatAnchorState(svc.chatAnchors[anchorID]).ConversationSummary
+	svc.chatSurfaceMu.Unlock()
+	if state.LastAttempt.Status != "failed" || state.LastAttempt.TargetSequenceEnd != 1 {
+		t.Fatalf("length-cut summary attempt = %#v", state.LastAttempt)
+	}
+	if state.LastValid == nil || state.LastValid.Revision != 3 || state.LastValid.Text != "last valid summary" {
+		t.Fatalf("length-cut summary replaced the last valid summary: %#v", state.LastValid)
+	}
+}
+
 func TestConversationSummaryFailedAttemptPreservesLastValidAndProjectsTypedStatus(t *testing.T) {
 	statePath := t.TempDir() + "/runtime-state.json"
 	first, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)

@@ -89,6 +89,9 @@ func (e *aiBackedChatTrackSidecarExecutor) ExecuteChatTrackSidecar(ctx context.C
 	if err != nil {
 		return nil, err
 	}
+	if err := runtimeTaskFinishError("chat track sidecar", resp.GetFinishReason()); err != nil {
+		return nil, err
+	}
 	text := strings.TrimSpace(resp.GetOutput().GetTextGenerate().GetText())
 	return decodeChatTrackSidecarExecutorResult(text)
 }

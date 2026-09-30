@@ -546,6 +546,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookActivityAndBudgetEvents(t *t
 
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{

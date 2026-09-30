@@ -476,6 +476,7 @@ func (s *Service) executePublicChatConversationSummaryWithExecution(ctx context.
 	var output strings.Builder
 	var failed *runtimev1.ScenarioStreamFailed
 	var completed bool
+	var finish runtimev1.FinishReason
 	executor := s.currentPublicChatTurnExecutor()
 	if _, rejecting := executor.(rejectingPublicChatTurnExecutor); rejecting {
 		return "", fmt.Errorf("%w: conversation summary executor is unavailable", errPublicChatConversationSummaryUnavailable)
@@ -494,8 +495,9 @@ func (s *Service) executePublicChatConversationSummaryWithExecution(ctx context.
 		if event.GetFailed() != nil {
 			failed = event.GetFailed()
 		}
-		if event.GetCompleted() != nil {
+		if done := event.GetCompleted(); done != nil {
 			completed = true
+			finish = done.GetFinishReason()
 		}
 		return nil
 	})
@@ -507,6 +509,11 @@ func (s *Service) executePublicChatConversationSummaryWithExecution(ctx context.
 	}
 	if !completed {
 		return "", errors.New("conversation summary Job ended without completion")
+	}
+	// A summary cut off at its output limit is partial even when its APML
+	// closes; the prior valid summary stays in place.
+	if err := runtimeTaskFinishError("conversation summary", finish); err != nil {
+		return "", err
 	}
 	text, err := parsePublicChatConversationSummaryOutput(output.String())
 	if err != nil {

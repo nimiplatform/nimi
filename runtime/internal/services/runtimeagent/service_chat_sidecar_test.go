@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -203,6 +204,62 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAndAddsFollowUp(t *testing
 	}
 }
 
+func TestRuntimeAgentExecuteChatTrackSidecarRejectsCompleteAPMLCutAtLength(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	identityContext := testRuntimeAgentIdentityContext("agent-chat-length")
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
+		Context: identityContext,
+	}); err != nil {
+		t.Fatalf("RealmSourceMaterialization: %v", err)
+	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
+	now := time.Now()
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-chat-length"), newTestTimePendingHook(t, "hook-chat-length-old", "agent-chat-length", now.Add(5*time.Minute), now)); err != nil {
+		t.Fatalf("admitPendingHook: %v", err)
+	}
+	// The same complete-looking output the apply test accepts, but the model
+	// stopped at its output limit.
+	fakeAI := &fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_LENGTH,
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: `<chat-track-sidecar><behavioral-posture><posture-class>focused_support</posture-class><action-family>support</action-family><interrupt-mode>focused</interrupt-mode><transition-reason>chat sidecar</transition-reason><truth-basis-id>truth-a</truth-basis-id><status-text>focused and present</status-text></behavioral-posture><cancel-pending-hook-id>hook-chat-length-old</cancel-pending-hook-id><next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="follow up later"><time delay="600s"/></next-hook-intent></chat-track-sidecar>`,
+					},
+				},
+			},
+		},
+	}
+	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(fakeAI))
+
+	err := svc.ExecuteChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
+		AgentID:       testRuntimeAgentLocalRef("agent-chat-length"),
+		SourceEventID: "chat-turn-length",
+		Messages:      []*runtimev1.ChatMessage{{Role: "user", Content: "please keep the agent focused"}},
+	})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE {
+		t.Fatalf("length-cut sidecar error = %v", err)
+	}
+	if posture, err := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-chat-length")); err == nil && posture != nil && posture.StatusText == "focused and present" {
+		t.Fatalf("length-cut sidecar applied its posture: %#v", posture)
+	}
+	pending, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context:              identityContext,
+		AgentId:              "agent-chat-length",
+		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
+	})
+	if err != nil {
+		t.Fatalf("ListPendingHooks(pending): %v", err)
+	}
+	if len(pending.GetHooks()) != 1 || pending.GetHooks()[0].GetIntent().GetIntentId() != "hook-chat-length-old" {
+		t.Fatalf("length-cut sidecar changed pending hooks: %#v", pending.GetHooks())
+	}
+}
+
 func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t *testing.T) {
 	t.Parallel()
 
@@ -224,6 +281,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
@@ -299,6 +357,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessagePreservesCallerAppIDForAIE
 
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
@@ -350,6 +409,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorFailsClosedOnInv
 
 	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(&fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
@@ -482,6 +542,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *
 
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{

@@ -36,6 +36,7 @@ func TestAIBackedLifeTrackExecutorUsesCommittedConfigBinding(t *testing.T) {
 
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<life-turn><summary>ok</summary></life-turn>`},
@@ -82,6 +83,7 @@ func TestAIBackedLifeTrackExecutorPreservesUsageWhenHookOutputIsInvalid(t *testi
 
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<life-turn><summary>follow up</summary><next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="follow up"/></life-turn>`},
@@ -132,11 +134,45 @@ func TestAIBackedLifeTrackExecutorReportsContextOverflowAsTypedFailure(t *testin
 	}
 }
 
+func TestAIBackedLifeTrackExecutorRejectsCompleteAPMLCutAtLength(t *testing.T) {
+	t.Parallel()
+
+	// Closed APML is not a complete result when the model stopped at its
+	// output limit: the hook fails and nothing from the output is applied.
+	fakeAI := &fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_LENGTH,
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<life-turn><summary>checked in</summary><status-text>resting</status-text></life-turn>`},
+				},
+			},
+			Usage: &runtimev1.UsageStats{InputTokens: 40, OutputTokens: 1024},
+		},
+	}
+	result, err := NewAIBackedLifeTrackExecutor(fakeAI).ExecuteLifeTrackHook(context.Background(), &lifeTurnRequest{
+		Agent:            &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-route"},
+		State:            &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
+		Hook:             &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-route"}},
+		ExecutionBinding: committedConfigTestBinding,
+	})
+	var executionErr *lifeTurnExecutionError
+	if result != nil || !errors.As(err, &executionErr) {
+		t.Fatalf("a life turn cut at its output limit was accepted: result=%+v, err=%v", result, err)
+	}
+	decision := executionErr.decision()
+	if decision.admissionState != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED ||
+		decision.reasonCode != runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE || decision.tokensUsed != 1064 {
+		t.Fatalf("length-cut life turn decision = %+v", decision)
+	}
+}
+
 func TestAIBackedChatTrackSidecarExecutorUsesCommittedConfigBinding(t *testing.T) {
 	t.Parallel()
 
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<chat-track-sidecar></chat-track-sidecar>`},
@@ -193,6 +229,7 @@ func TestChatTrackSidecarServiceCarriesCommittedConfigIntent(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
+			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<chat-track-sidecar></chat-track-sidecar>`},

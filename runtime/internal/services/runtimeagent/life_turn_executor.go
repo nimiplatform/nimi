@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -123,6 +124,15 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 			reasonCode:     reasonCodeFromError(err),
 			message:        err.Error(),
 			retryable:      false,
+		}
+	}
+	if err := runtimeTaskFinishError("life turn", resp.GetFinishReason()); err != nil {
+		reason, _ := grpcerr.ExtractReasonCode(err)
+		return nil, &lifeTurnExecutionError{
+			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
+			reasonCode:     reason,
+			message:        err.Error(),
+			tokensUsed:     responseTokensUsed(resp),
 		}
 	}
 	text := strings.TrimSpace(resp.GetOutput().GetTextGenerate().GetText())
