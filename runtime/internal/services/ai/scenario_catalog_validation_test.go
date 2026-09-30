@@ -18,7 +18,7 @@ func TestValidateImageGenerateAgainstCatalogUsesSelectedModelFeatures(t *testing
 		ReferenceImages: []string{"https://example.com/reference.png"},
 		Mask:            "https://example.com/mask.png",
 	}
-	if err := svc.validateImageGenerateAgainstCatalog(context.Background(), "openai", "gpt-image-1.5", withFeatures); err != nil {
+	if err := svc.validateImageGenerateAgainstCatalog(context.Background(), "dashscope", "qwen-image-2.0-pro", withFeatures); err != nil {
 		t.Fatalf("declared image features were rejected: %v", err)
 	}
 

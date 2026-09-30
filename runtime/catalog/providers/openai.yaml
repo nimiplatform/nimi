@@ -1,6 +1,6 @@
 version: 1
 provider: openai
-catalog_version: 2026-10-01-openai-speech
+catalog_version: 2026-10-01-openai-gpt-image-2-5
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
@@ -536,39 +536,93 @@ models:
     features:
       - input.image
     context_window_tokens: 8192
-  - model_id: gpt-image-1.5
+  - model_id: gpt-image-2.5-flare
     provider: openai
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-10-01
     capabilities:
       - image.generate
     pricing:
-      unit: request
-      input: "0.04"
-      output: "0.08"
+      unit: token
+      input: "5.00"
+      output: "30.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Image generation. Input = low quality, output = high quality. Per request.
+      as_of: 2026-10-01
+      notes: Per 1M text input and image output tokens; image input is USD 8.00 per 1M tokens.
     source_ref:
-      url: https://platform.openai.com/docs/models/gpt-image-1.5
-      retrieved_at: 2026-03-05
-      note: OpenAI gpt-image-1.5 model card.
-    features:
-      - input.image
-      - input.mask
+      url: https://developers.openai.com/api/docs/models/gpt-image-2.5-flare
+      retrieved_at: 2026-10-01
+      note: OpenAI GPT-Image-2.5 Flare model card; exact id gpt-image-2.5-flare, default snapshot gpt-image-2.5-flare-2026-09-08, v1/images/generations and v1/images/edits, and token pricing.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: true
+      supports_style: false
+  - model_id: gpt-image-2.5-sunburst
+    provider: openai
+    model_type: image
+    updated_at: 2026-10-01
+    capabilities:
+      - image.generate
+    pricing:
+      unit: token
+      input: "5.00"
+      output: "30.00"
+      currency: USD
+      as_of: 2026-10-01
+      notes: Per 1M text input and image output tokens; image input is USD 8.00 per 1M tokens.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst
+      retrieved_at: 2026-10-01
+      note: OpenAI GPT-Image-2.5 Sunburst model card; exact id gpt-image-2.5-sunburst, default snapshot gpt-image-2.5-sunburst-2026-09-08, v1/images/generations and v1/images/edits, and token pricing.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: true
+      supports_style: false
+  - model_id: gpt-image-1.5
+    provider: openai
+    model_type: image
+    updated_at: 2026-10-01
+    capabilities:
+      - image.generate
+    pricing:
+      unit: token
+      input: "5.00"
+      output: "32.00"
+      currency: USD
+      as_of: 2026-10-01
+      notes: Per 1M text input and image output tokens; image input is USD 8.00 per 1M tokens. Previous OpenAI image model, shutting down on 2026-12-01.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-image-1.5
+      retrieved_at: 2026-10-01
+      note: OpenAI GPT-Image-1.5 model card; the previous image generation model, v1/images/generations and v1/images/edits, and token pricing. The models index no longer lists it.
     image_request_options: &a1
       response_formats:
         - b64_json
-        - url
       max_images_per_request: 1
-      supports_negative_prompt: true
-      supports_reference_images: true
-      supports_mask: true
-      supports_seed: true
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
       supports_size: true
-      supports_aspect_ratio: true
+      supports_aspect_ratio: false
       supports_quality: true
-      supports_style: true
+      supports_style: false
   - model_id: gpt-image-1.5-2025-04-14
     provider: openai
     model_type: image
@@ -576,20 +630,17 @@ models:
     capabilities:
       - image.generate
     pricing:
-      unit: request
-      input: "0.04"
-      output: "0.08"
+      unit: token
+      input: "5.00"
+      output: "32.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Image generation. Input = low quality, output = high quality. Per request.
+      as_of: 2026-10-01
+      notes: Per 1M text input and image output tokens; image input is USD 8.00 per 1M tokens. Previous OpenAI image model, shutting down on 2026-12-01.
     source_ref:
-      url: https://platform.openai.com/docs/models/gpt-image-1.5
-      retrieved_at: 2026-03-05
-      note: OpenAI gpt-image-1.5 model card.
+      url: https://developers.openai.com/api/docs/models/gpt-image-1.5
+      retrieved_at: 2026-10-01
+      note: OpenAI GPT-Image-1.5 model card; the previous image generation model, v1/images/generations and v1/images/edits, and token pricing. The models index no longer lists it.
     api_model_id: gpt-image-1.5
-    features:
-      - input.image
-      - input.mask
     image_request_options: *a1
   - model_id: o3
     provider: openai

@@ -599,6 +599,12 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		}
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
+	if d.provider == "openai" && target.capabilityContract == "image.generate" && openAIImageModelAdmitted(target.providerModelID) {
+		if err := validateOpenAIImageRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterOpenAIImages
+	}
 	if d.provider == "gemini" && target.capabilityContract == "audio.synthesize" {
 		if err := validateGeminiTTSRequest(mapped, target.providerModelID, streamMode); err != nil {
 			return nil, err

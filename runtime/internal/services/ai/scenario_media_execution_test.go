@@ -167,7 +167,7 @@ func TestCloudMediaJobCapturesRequestAndBindsRuntimeArtifactCustody(t *testing.T
 			providerPrompt, _ = payload["prompt"].(string)
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"data": []map[string]any{{"b64_json": base64.StdEncoding.EncodeToString([]byte("cloud-image"))}},
+				"data": []map[string]any{{"b64_json": base64.StdEncoding.EncodeToString([]byte(cloudMediaTestPNG))}},
 			})
 		default:
 			http.NotFound(w, r)
@@ -220,7 +220,11 @@ func TestCloudMediaJobCapturesRequestAndBindsRuntimeArtifactCustody(t *testing.T
 	if record.ProducerJobID != job.GetJobId() || record.Owner == nil || record.Owner.SubjectUserID != "user-001" || record.Owner.AppID != "nimi.desktop" {
 		t.Fatalf("artifact custody record=%+v", record)
 	}
-	if string(record.Bytes) != "cloud-image" {
+	if string(record.Bytes) != cloudMediaTestPNG {
 		t.Fatalf("artifact bytes=%q", record.Bytes)
 	}
 }
+
+// cloudMediaTestPNG is a PNG signature and a 1024x1024 IHDR chunk, the least
+// an exact image adapter accepts as a generated PNG.
+const cloudMediaTestPNG = "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x04\x00\x00\x00\x04\x00\x08\x06\x00\x00\x00\x00\x00\x00\x00"

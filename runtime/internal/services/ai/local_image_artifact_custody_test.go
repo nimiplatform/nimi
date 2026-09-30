@@ -231,7 +231,7 @@ func TestImageArtifactReferenceParticipatesInSelectedAndCatalogFeatures(t *testi
 	}
 
 	svc := newTestService(nil)
-	if err := svc.validateImageGenerateAgainstCatalog(context.Background(), "openai", "gpt-image-1.5", spec); err != nil {
+	if err := svc.validateImageGenerateAgainstCatalog(context.Background(), "dashscope", "qwen-image-2.0-pro", spec); err != nil {
 		t.Fatalf("catalog input.image feature rejected artifact reference: %v", err)
 	}
 	err = svc.validateImageGenerateAgainstCatalog(context.Background(), "flux", "flux-2-klein-4b", spec)

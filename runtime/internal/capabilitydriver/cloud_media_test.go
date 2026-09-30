@@ -136,7 +136,7 @@ func TestCloudMediaDriverMapsDefaultsAndKeepsCaptureImmutable(t *testing.T) {
 	if got.GetPrompt() != "captured image" || got.GetSize() != "1024x1024" || got.GetN() != 1 || got.GetQuality() != "high" {
 		t.Fatalf("mapped request mutated or defaults missing: %+v", got)
 	}
-	if mapped.Adapter() != CloudMediaAdapterOpenAICompat {
+	if mapped.Adapter() != CloudMediaAdapterOpenAIImages {
 		t.Fatalf("adapter=%q", mapped.Adapter())
 	}
 	unsupported, _ := structpb.NewStruct(map[string]any{"model": "must-not-be-a-default"})
