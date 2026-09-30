@@ -30,9 +30,11 @@ import {
   type AssistantOutputCollector,
 } from './runtime/assistant-output.js';
 export type {
+  ModelConversationRuntimeAdapterOptions,
   SimpleAiConversationProviderOptions,
 } from './runtime/orchestration.js';
 export {
+  createModelConversationRuntimeAdapter,
   createSdkConversationRuntimeAdapter,
   createSimpleAiConversationProvider,
 } from './runtime/orchestration.js';

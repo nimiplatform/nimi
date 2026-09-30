@@ -15,11 +15,39 @@ import type {
   ConversationTurnEvent,
   ConversationTurnInput,
 } from '../src/headless.js';
+import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
 import {
+  createModelConversationRuntimeAdapter,
   createSdkConversationRuntimeAdapter,
   createSimpleAiConversationProvider,
 } from '../src/runtime.js';
 import { createRuntimeAiTestRuntime } from './runtime-ai-test-helpers.js';
+
+type LocalAppTextAI = Parameters<typeof createNimiLocalAppTextModel>[0];
+
+// A protected App text namespace that records each turn input and answers
+// with the given Local App stream events.
+function localAppTextAI(turns: readonly (readonly unknown[])[]) {
+  const inputs: unknown[] = [];
+  const cancels: number[] = [];
+  const ai = {
+    text: {
+      async streamTurn(input: unknown) {
+        const events = turns[inputs.length] ?? [];
+        inputs.push(input);
+        const index = inputs.length - 1;
+        return Object.assign((async function* stream() {
+          yield* events;
+        })(), {
+          cancel: async () => {
+            cancels.push(index);
+          },
+        });
+      },
+    },
+  } as unknown as LocalAppTextAI;
+  return { ai, inputs, cancels };
+}
 
 async function collectEvents(stream: AsyncIterable<ConversationTurnEvent>): Promise<ConversationTurnEvent[]> {
   const events: ConversationTurnEvent[] = [];
@@ -351,6 +379,133 @@ describe('simple-ai conversation provider', () => {
       })))).rejects.toThrow(/outputItems|continuity|text item/u);
       expect(streamText).not.toHaveBeenCalled();
     }
+  });
+
+  it('runs two turns through a protected App text model and replays the stored continuity', async () => {
+    const carrier = { kind: 'anthropic.messages.thinking', version: 1, payload: [0, 1, 2, 253, 254, 255] };
+    const { ai, inputs } = localAppTextAI([
+      [
+        { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-1', itemIndex: 0, carrier },
+        { type: 'delta', sequence: '2', traceId: 'trace-1', text: 'Freeze the contract first.', itemIndex: 1 },
+        { type: 'completed', sequence: '3', traceId: 'trace-1', finishReason: 'stop' },
+      ],
+      [
+        { type: 'delta', sequence: '1', traceId: 'trace-2', text: 'Then ship it.', itemIndex: 0 },
+        { type: 'completed', sequence: '2', traceId: 'trace-2', finishReason: 'stop' },
+      ],
+    ]);
+    const provider = createSimpleAiConversationProvider({
+      runtimeAdapter: createModelConversationRuntimeAdapter({ model: createNimiLocalAppTextModel(ai) }),
+    });
+
+    const first = await collectEvents(provider.runTurn(createTurnInput({ history: [], systemPrompt: 'Be brief.' })));
+    const completed = first.at(-1) as Extract<ConversationTurnEvent, { type: 'turn-completed' }>;
+    expect(completed).toEqual(expect.objectContaining({
+      type: 'turn-completed',
+      outputText: 'Freeze the contract first.',
+      outputItems: [
+        { type: 'reasoning-continuity', kind: 'anthropic.messages.thinking', version: 1, payloadBase64: 'AAEC/f7/' },
+        { type: 'text', text: 'Freeze the contract first.' },
+      ],
+    }));
+    // The session owner stores the turn as JSON and loads it back later.
+    const stored = JSON.parse(JSON.stringify(completed)) as typeof completed;
+
+    const second = await collectEvents(provider.runTurn(createTurnInput({
+      turnId: 'turn-2',
+      userMessage: { id: 'msg-user-2', text: 'And then?', attachments: [] },
+      systemPrompt: 'Be brief.',
+      history: [
+        { id: 'user-1', role: 'user', text: 'What should we ship next?' },
+        { id: 'assistant-1', role: 'assistant', text: stored.outputText, outputItems: stored.outputItems },
+      ],
+    })));
+    expect(second.at(-1)).toEqual(expect.objectContaining({ type: 'turn-completed', outputText: 'Then ship it.' }));
+    expect(second.at(-1)).not.toHaveProperty('outputItems');
+    expect((inputs[1] as { messages: unknown }).messages).toEqual([
+      { role: 'system', text: 'Be brief.' },
+      { role: 'user', text: 'What should we ship next?' },
+      {
+        role: 'assistant',
+        text: '',
+        turnItems: [
+          { type: 'output', output: { type: 'reasoning-continuity', carrier } },
+          { type: 'output', output: { type: 'text', text: 'Freeze the contract first.' } },
+        ],
+      },
+      { role: 'user', text: 'And then?' },
+    ]);
+  });
+
+  it('reports the typed Runtime reason when the protected App refuses a turn', async () => {
+    const ai = {
+      text: {
+        async streamTurn() {
+          throw Object.assign(new Error('ai-text-behavior-unsupported'), {
+            code: 'runtime-permission-denied',
+            reasonCode: 'ai-text-behavior-unsupported',
+            source: 'runtime',
+          });
+        },
+      },
+    } as unknown as LocalAppTextAI;
+    const provider = createSimpleAiConversationProvider({
+      runtimeAdapter: createModelConversationRuntimeAdapter({ model: createNimiLocalAppTextModel(ai) }),
+    });
+    const events = await collectEvents(provider.runTurn(createTurnInput({ history: [] })));
+    expect(events.at(-1)).toEqual(expect.objectContaining({
+      type: 'turn-failed',
+      error: expect.objectContaining({ code: 'ai-text-behavior-unsupported' }),
+    }));
+  });
+
+  it('refuses request options that a caller-bound model cannot carry', async () => {
+    const { ai, inputs } = localAppTextAI([]);
+    const adapter = createModelConversationRuntimeAdapter({ model: createNimiLocalAppTextModel(ai) });
+    await expect(adapter.streamText({
+      modeId: 'simple-ai',
+      threadId: 'thread-1',
+      turnId: 'turn-1',
+      messages: [{ role: 'user', text: 'Hello' }],
+      metadata: { surfaceId: 'lab' },
+    })).rejects.toThrow(/cannot carry metadata/u);
+    expect(inputs).toHaveLength(0);
+  });
+
+  it('closes the protected App stream when the turn is aborted between events', async () => {
+    let release = () => {};
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const cancels: number[] = [];
+    const ai = {
+      text: {
+        async streamTurn() {
+          return Object.assign((async function* stream() {
+            yield { type: 'delta', sequence: '1', traceId: 'trace-abort', text: 'partial', itemIndex: 0 };
+            await released;
+          })(), {
+            cancel: async () => {
+              cancels.push(1);
+              release();
+            },
+          });
+        },
+      },
+    } as unknown as LocalAppTextAI;
+    const provider = createSimpleAiConversationProvider({
+      runtimeAdapter: createModelConversationRuntimeAdapter({ model: createNimiLocalAppTextModel(ai) }),
+    });
+    const controller = new AbortController();
+    const events: ConversationTurnEvent[] = [];
+    for await (const event of provider.runTurn(createTurnInput({ history: [], signal: controller.signal }))) {
+      events.push(event);
+      if (event.type === 'text-delta') {
+        controller.abort();
+      }
+    }
+    expect(cancels.length).toBeGreaterThan(0);
+    expect(events.at(-1)).toEqual(expect.objectContaining({ type: 'turn-canceled' }));
   });
 
   it('fails the turn when continuity arrives with text outside the ordered item sequence', async () => {

@@ -48,10 +48,21 @@ Required changes from 0.11.0:
   `outputItems`, or SDK `turnItems`, on assistant messages; pass them back from
   `resolveRequest`.
 - Stored output whose text differs from the message text fails before
-  dispatch; drop `outputItems` when the text changes. Carriers belong to the
-  route that produced them: after the App's text route changes, a turn whose
-  history still holds them fails with the Runtime's typed error rather than
-  dropping them.
+  dispatch; drop `outputItems` when the text changes. A carrier is accepted
+  only by an adapter that understands its kind: if the App's text route
+  changes to one that does not, a turn whose history still holds that carrier
+  fails before dispatch with the Runtime's typed error rather than dropping it.
+  History without carriers, or with carriers the new route accepts, is not
+  affected by the change.
+- `createModelConversationRuntimeAdapter({ model })` drives `simple-ai` turns
+  through a caller-bound model, such as the protected App text model from
+  `createNimiLocalAppTextModel`, so a protected App can use the provider
+  without a Runtime client. Requests carry only the fields that are set.
+  Per-request Runtime options the bound model cannot carry (`subjectUserId`,
+  `timeoutMs`, `reasoning`, `metadata`) fail the request instead of being
+  dropped.
+- Both conversation adapters pass the turn's `AbortSignal` to the model, so a
+  stop closes the stream at once instead of at the provider's next event.
 - New type export `ConversationAssistantOutputItem` from
   `@nimiplatform/kit/features/chat/headless`; `@nimiplatform/kit/core/sdk-contract`
   re-exports the `NimiTextOutputItem` and `NimiTextTurnItem` types.

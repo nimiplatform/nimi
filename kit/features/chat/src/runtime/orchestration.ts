@@ -196,6 +196,42 @@ export function createSdkConversationRuntimeAdapter(
   };
 }
 
+export type ModelConversationRuntimeAdapterOptions = {
+  /**
+   * A text model already bound to its caller, such as the protected App model
+   * from `createNimiLocalAppTextModel`. It carries the App identity and the
+   * App's configured route itself.
+   */
+  model: NimiAiModel;
+};
+
+/**
+ * Drives simple-ai turns through a caller-bound model. The bound model cannot
+ * take per-request Runtime options, so a request that sets them fails closed
+ * instead of silently losing them.
+ */
+export function createModelConversationRuntimeAdapter(
+  options: ModelConversationRuntimeAdapterOptions,
+): ConversationRuntimeAdapter {
+  return {
+    async streamText(request) {
+      const unsupported = [
+        normalizeNullableText(request.subjectUserId) ? 'subjectUserId' : '',
+        request.timeoutMs !== undefined ? 'timeoutMs' : '',
+        request.reasoning ? 'reasoning' : '',
+        request.metadata && Object.keys(request.metadata).length > 0 ? 'metadata' : '',
+      ].filter(Boolean);
+      if (unsupported.length > 0) {
+        throw new Error(`a caller-bound conversation model cannot carry ${unsupported.join(', ')}`);
+      }
+      if (!options.model.streamText) {
+        throw new Error('the conversation model does not support streaming');
+      }
+      return options.model.streamText(toNimiGenerateTextRequest(request, { metadata: false }));
+    },
+  };
+}
+
 function toConversationTurnEvent(
   event: NimiTextTurnEvent,
   input: ConversationTurnInput,
@@ -385,7 +421,12 @@ function normalizeRuntimeUserMessage(
 function toConversationTurnError(error: unknown): ConversationTurnError {
   if (error && typeof error === 'object') {
     const record = error as Record<string, unknown>;
-    const code = normalizeNullableText(record.code) || normalizeNullableText(record.reasonCode);
+    // A shell error pairs a generic standard code with the typed Runtime
+    // reason, which is the one a conversation owner can act on.
+    const cause = toRecord(record.cause);
+    const code = normalizeNullableText(record.reasonCode)
+      || normalizeNullableText(cause?.reasonCode)
+      || normalizeNullableText(record.code);
     const message = normalizeNullableText(record.message);
     if (code || message) {
       return {
@@ -419,8 +460,11 @@ function createAdapterTextModel(
   };
 }
 
+// Only set fields become keys, so a strict model binding (such as the
+// protected App text model) sees no field it cannot carry.
 function toNimiGenerateTextRequest(
   request: ConversationRuntimeTextRequest,
+  options: { readonly metadata: boolean } = { metadata: true },
 ): NimiGenerateTextRequest {
   const messages: NimiMessage[] = [];
   const systemPrompt = normalizeNullableText(request.systemPrompt);
@@ -431,24 +475,28 @@ function toNimiGenerateTextRequest(
     });
   }
   messages.push(...request.messages.map(toNimiMessage));
+  const metadata = options.metadata ? toNimiJsonObject(request.metadata) : undefined;
+  const parameters = {
+    ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
+    ...(request.topP === undefined ? {} : { topP: request.topP }),
+    ...(request.maxTokens === undefined ? {} : { maxTokens: request.maxTokens }),
+    ...(metadata ? { metadata } : {}),
+  };
   return {
     messages,
-    parameters: {
-      temperature: request.temperature,
-      topP: request.topP,
-      maxTokens: request.maxTokens,
-      metadata: toNimiJsonObject(request.metadata),
-    },
+    ...(Object.keys(parameters).length > 0 ? { parameters } : {}),
+    ...(request.signal ? { signal: request.signal } : {}),
   };
 }
 
 function toNimiMessage(message: ConversationRuntimeTextMessage): NimiMessage {
+  const name = normalizeNullableText(message.name);
   if (message.role === 'assistant') {
     // An earlier assistant turn is replayed as its canonical ordered output.
     return {
       role: 'assistant',
       content: [],
-      name: normalizeNullableText(message.name) || undefined,
+      ...(name ? { name } : {}),
       turnItems: toAssistantTurnItems(normalizeText(message.text), message.outputItems),
     };
   }
@@ -458,7 +506,7 @@ function toNimiMessage(message: ConversationRuntimeTextMessage): NimiMessage {
   return {
     role: message.role,
     content,
-    name: normalizeNullableText(message.name) || undefined,
+    ...(name ? { name } : {}),
   };
 }
 
