@@ -474,9 +474,8 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 	if b.supportsAnthropicMessages() {
 		return b.generateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params)
 	}
-	if b.supportsCodexResponses() {
-		text, usage, finish, err := b.generateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params)
-		return text, nil, usage, finish, err
+	if b.isChatGPTPlanBackend() {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, chatGPTPlanPrimitiveTextUnsupported()
 	}
 	type chatRequest struct {
 		Model               string           `json:"model"`
@@ -624,8 +623,8 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 	if b.supportsAnthropicMessages() {
 		return b.streamGenerateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, handler.OnText)
 	}
-	if b.supportsCodexResponses() {
-		return b.streamGenerateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, handler.OnText)
+	if b.isChatGPTPlanBackend() {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, chatGPTPlanPrimitiveTextUnsupported()
 	}
 	type streamOptions struct {
 		IncludeUsage bool `json:"include_usage"`

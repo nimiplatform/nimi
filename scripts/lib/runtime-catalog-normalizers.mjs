@@ -134,9 +134,9 @@ const catalogSourceKinds = new Set([
   'authenticated_provider_inventory',
 ]);
 
-const authenticatedProviderInventoryEndpointByProvider = new Map([
-  ['openai_codex', 'https://chatgpt.com/backend-api/codex/models?client_version=1.0.0'],
-]);
+// No provider currently has an admitted authenticated inventory source; the
+// retired private Codex endpoint is not a catalog source for any provider.
+const authenticatedProviderInventoryEndpointByProvider = new Map();
 
 function isExactCalendarDate(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);

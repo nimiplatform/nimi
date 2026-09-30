@@ -371,7 +371,7 @@ test('model features reject capabilities without a feature contract', () => {
   );
 });
 
-test('authenticated provider inventory source remains explicit in the generated source_ref', () => {
+test('authenticated provider inventory is not admitted for the retired Codex route or its successor', () => {
   const source = {
     source_id: 'authenticated_inventory',
     source_kind: 'authenticated_provider_inventory',
@@ -380,13 +380,12 @@ test('authenticated provider inventory source remains explicit in the generated 
     note: 'Authenticated non-public provider inventory observation.',
   };
 
-  const generated = generateProviderCatalog(staticTextProviderWithSource(source, 'openai_codex'));
-  assert.deepEqual(generated.models[0].source_ref, {
-    source_kind: 'authenticated_provider_inventory',
-    url: source.url,
-    retrieved_at: source.retrieved_at,
-    note: source.note,
-  });
+  for (const provider of ['openai_codex', 'openai_chatgpt_plan']) {
+    assert.throws(
+      () => generateProviderCatalog(staticTextProviderWithSource(source, provider)),
+      /authenticated_provider_inventory source authenticated_inventory is not admitted for provider openai_(codex|chatgpt_plan)/u,
+    );
+  }
 });
 
 test('authenticated provider inventory source fails closed without an exact secure endpoint', () => {
@@ -399,23 +398,8 @@ test('authenticated provider inventory source fails closed without an exact secu
   };
 
   assert.throws(
-    () => generateProviderCatalog(staticTextProviderWithSource(source, 'openai_codex')),
+    () => generateProviderCatalog(staticTextProviderWithSource(source, 'openai')),
     /authenticated_provider_inventory source authenticated_inventory must use an exact HTTPS endpoint/u,
-  );
-});
-
-test('authenticated provider inventory source rejects a different secure endpoint', () => {
-  const source = {
-    source_id: 'authenticated_inventory',
-    source_kind: 'authenticated_provider_inventory',
-    url: 'https://provider.example/private/models?client_version=1.0.0',
-    retrieved_at: '2026-08-09',
-    note: 'Authenticated non-public provider inventory observation.',
-  };
-
-  assert.throws(
-    () => generateProviderCatalog(staticTextProviderWithSource(source, 'openai_codex')),
-    /authenticated_provider_inventory source authenticated_inventory must use the exact official inventory endpoint for provider openai_codex/u,
   );
 });
 

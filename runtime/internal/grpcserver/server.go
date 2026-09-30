@@ -667,7 +667,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	connStore := connectorservice.NewConnectorStore(connectorBasePath)
 	if protected != nil {
 		connectorBasePath = filepath.Join(protected.ServiceStateRoot, "connectors")
-		connStore = connectorservice.NewConnectorStoreWithSecretStore(connectorBasePath, protected.ConnectorSecrets)
+		connStore = connectorservice.NewConnectorStoreWithSecretStore(connectorBasePath, protected.ConnectorSecrets,
+			connectorservice.WithChatGPTPlanRenewer(connectorservice.NewChatGPTPlanHTTPRenewer(nil)))
 	}
 	if err := connStore.ReconcileStartup(); err != nil {
 		return nil, fmt.Errorf("reconcile connector store: %w", err)
@@ -689,6 +690,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("init ai service: %w", err)
 	}
 	aiSvc.SetRuntimeArtifactStore(artifactStore)
+	// AIConfig options and effective selections project the same current-account
+	// model availability that admits ChatGPT-plan dispatch.
+	connStore.SetAccountModelAvailability(connectorservice.NewChatGPTPlanAccountAvailability(connStore, aiSvc.CloudProvider()))
 	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 	runtimev1.RegisterRuntimeAiRealtimeServiceServer(g, aiSvc)
 	runtimev1.RegisterRuntimeAiVideoSessionServiceServer(g, aiSvc)

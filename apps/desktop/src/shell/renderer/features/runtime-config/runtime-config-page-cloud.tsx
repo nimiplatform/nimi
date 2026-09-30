@@ -1,4 +1,13 @@
 import {
+  isNimiBrowserManagedConnectorProfile,
+  NIMI_CHATGPT_PLAN_REVOCATION_UNCONFIRMED_ACTION_HINT,
+} from '@nimiplatform/sdk/runtime';
+import {
+  ChatGPTPlanWelcomeDialog,
+  chatGPTPlanDisclosureSeen,
+  markChatGPTPlanDisclosureSeen,
+} from './runtime-config-chatgpt-plan';
+import {
   formatNimiRuntimeErrorBanner as formatRuntimeConfigErrorBanner,
 } from '@nimiplatform/sdk/runtime';
 import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
@@ -11,9 +20,10 @@ import { removeConnectorFromState, replaceConnectorsInState, updateConnectorFiel
 import { RuntimeConfigConnectorCreateDialog } from './runtime-config-connector-create-form';
 import {
   useConnectorOAuthAcquisition,
+  useInvalidateManagedOAuthOnConfigurationChange,
 } from './runtime-config-connector-oauth-session';
 import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
-import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, vendorToProvider } from './runtime-config-connector-sdk-service';
+import { defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, vendorToProvider } from './runtime-config-connector-sdk-service';
 import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-list';
 import { CloudConnectorDetailPanel } from './runtime-config-page-cloud-detail-panel';
 import { Button, CloudEmptyState, PlusIcon } from './runtime-config-page-cloud-primitives';
@@ -46,6 +56,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   const [tokenSaveError, setTokenSaveError] = useState('');
   const [tokenSavedConnectorId, setTokenSavedConnectorId] = useState('');
   const [deletingConnectorId, setDeletingConnectorId] = useState('');
+  const [chatGPTPlanWelcomeOpen, setChatGPTPlanWelcomeOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [catalogOverrideProviderId, setCatalogOverrideProviderId] = useState('');
   const connectorsRef = useRef(state.connectors);
@@ -66,6 +77,9 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     onError: (message) => setTokenSaveError(message),
     onAcquired: async (acquired, operation, isCurrent) => {
       setTokenDraft('');
+      if (operation.connector.isDraft && !chatGPTPlanDisclosureSeen()) {
+        setChatGPTPlanWelcomeOpen(true);
+      }
       const acquiredConnectorId = acquired.connectorId;
       setTokenSavedConnectorId(acquiredConnectorId);
       if (operation.connector.isDraft) {
@@ -116,15 +130,15 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
       }
     },
   });
-  const codexOAuthBusy = connectorOAuth.busy;
-  const codexOAuthPending = connectorOAuth.pending;
+  const managedOAuthBusy = connectorOAuth.busy;
+  const managedOAuthPending = connectorOAuth.pending;
   const selectedConnectorId = selectedConnector?.id || '';
   const connectorScope = selectedConnector?.scope || 'user';
   const isRuntimeSystem = connectorScope === 'runtime-system';
   const isMachineGlobal = connectorScope === 'machine-global';
   const isSystemOwned = isRuntimeSystem;
   const isDraft = selectedConnector?.isDraft || false;
-  const canEditVendor = !isRuntimeSystem && isDraft && !codexOAuthBusy;
+  const canEditVendor = !isRuntimeSystem && isDraft && !managedOAuthBusy;
   const authOptions = useMemo(
     () => listConnectorAuthOptionsForProvider(selectedConnector?.provider || '', providerCatalog),
     [providerCatalog, selectedConnector?.provider],
@@ -138,47 +152,44 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     }
     return 'api_key';
   }, [selectedConnector]);
-  const canEditCredentialMode = !isRuntimeSystem && isDraft && !codexOAuthBusy && authOptions.length > 1;
-  const selectedAuthProfile = connectorAuthProfileForId(selectedConnector?.providerAuthProfile);
-  const isCodexManagedConnector = selectedConnector?.authMode === 'oauth_managed'
-    && selectedAuthProfile?.headerBehavior === 'codex_oauth';
-  const canStartCodexOAuth = Boolean(selectedConnectorId)
-    && isCodexManagedConnector
+  const canEditCredentialMode = !isRuntimeSystem && isDraft && !managedOAuthBusy && authOptions.length > 1;
+  const isBrowserManagedConnector = selectedConnector?.authMode === 'oauth_managed'
+    && isNimiBrowserManagedConnectorProfile(selectedConnector?.providerAuthProfile);
+  const canStartManagedOAuth = Boolean(selectedConnectorId)
+    && isBrowserManagedConnector
     && authStatus === 'authenticated'
     && !savingToken
-    && !codexOAuthBusy;
-  const invalidateCodexOAuth = useCallback((message: string) => {
+    && !managedOAuthBusy;
+  const invalidateManagedOAuth = useCallback((message: string) => {
     connectorOAuth.invalidate(message);
     setTokenSavedConnectorId('');
   }, [connectorOAuth.invalidate]);
   useEffect(() => {
-    invalidateCodexOAuth('Managed connector selection changed');
+    invalidateManagedOAuth('Managed connector selection changed');
     setTokenDraft('');
     setTokenSaveError('');
-  }, [invalidateCodexOAuth, selectedConnectorId]);
+  }, [invalidateManagedOAuth, selectedConnectorId]);
   // An account switch invalidates any in-flight OAuth operation.
   const oauthAuthStatusRef = useRef(authStatus);
   useEffect(() => {
     if (oauthAuthStatusRef.current !== authStatus) {
       oauthAuthStatusRef.current = authStatus;
-      invalidateCodexOAuth('Account changed');
+      invalidateManagedOAuth('Account changed');
     }
-  }, [authStatus, invalidateCodexOAuth]);
-  useEffect(() => {
-    if (codexOAuthBusy) {
-      invalidateCodexOAuth('Managed connector configuration changed');
-    }
-  }, [
-    codexOAuthBusy,
-    invalidateCodexOAuth,
-    selectedConnector?.authMode,
-    selectedConnector?.endpoint,
-    selectedConnector?.isDraft,
-    selectedConnector?.label,
-    selectedConnector?.provider,
-    selectedConnector?.providerAuthProfile,
-    selectedConnector?.vendor,
-  ]);
+  }, [authStatus, invalidateManagedOAuth]);
+  useInvalidateManagedOAuthOnConfigurationChange({
+    busy: managedOAuthBusy,
+    configuration: JSON.stringify([
+      selectedConnector?.authMode,
+      selectedConnector?.endpoint,
+      selectedConnector?.isDraft,
+      selectedConnector?.label,
+      selectedConnector?.provider,
+      selectedConnector?.providerAuthProfile,
+      selectedConnector?.vendor,
+    ]),
+    invalidate: invalidateManagedOAuth,
+  });
   useEffect(() => {
     setConnectorLabelDraft(String(selectedConnector?.label || ''));
   }, [selectedConnectorId, selectedConnector?.label]);
@@ -287,8 +298,8 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   const onDeleteConnector = useCallback(async (connectorId: string) => {
     const connector = state.connectors.find((item) => item.id === connectorId) || null;
     if (!connector || connector.scope === 'runtime-system' || connector.isSystemOwned || deletingConnectorId) return;
-    if (connectorId === selectedConnectorId && codexOAuthBusy) {
-      invalidateCodexOAuth('Managed connector was deleted');
+    if (connectorId === selectedConnectorId && managedOAuthBusy) {
+      invalidateManagedOAuth('Managed connector was deleted');
     }
     setDeletingConnectorId(connectorId);
     try {
@@ -296,30 +307,38 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         updateState((prev) => removeConnectorFromState(prev, connectorId));
         return;
       }
-      await sdkDeleteConnector(connectorId);
+      const deleted = await sdkDeleteConnector(connectorId);
+      if (deleted.actionHint === NIMI_CHATGPT_PLAN_REVOCATION_UNCONFIRMED_ACTION_HINT) {
+        model.setPageFeedback({
+          kind: 'warning',
+          message: t('runtimeConfig.cloud.chatgptPlanSignOutUnconfirmed', {
+            defaultValue: 'The ChatGPT connection was removed and Nimi deleted its saved sign-in, but ChatGPT did not confirm the sign-out on its side.',
+          }),
+        });
+      }
       await refreshConnectorsFromSdk();
     } finally {
       setDeletingConnectorId('');
     }
-  }, [deletingConnectorId, invalidateCodexOAuth, refreshConnectorsFromSdk, selectedConnectorId, state.connectors, updateState]);
+  }, [deletingConnectorId, invalidateManagedOAuth, model, refreshConnectorsFromSdk, selectedConnectorId, state.connectors, t, updateState]);
   const onSelectConnector = useCallback((connectorId: string) => {
-    if (connectorId !== selectedConnectorId && codexOAuthBusy) {
-      invalidateCodexOAuth('Managed connector selection changed');
+    if (connectorId !== selectedConnectorId && managedOAuthBusy) {
+      invalidateManagedOAuth('Managed connector selection changed');
     }
     const connector = state.connectors.find((item) => item.id === connectorId) || null;
     if (connector) {
       setConnectorLabelDraft(String(connector.label || ''));
     }
     updateState((prev) => ({ ...prev, selectedConnectorId: connectorId }));
-  }, [invalidateCodexOAuth, selectedConnectorId, state.connectors, updateState]);
-  const onAcquireCodexOAuth = useCallback(() => {
-    if (!selectedConnector || !selectedConnectorId || !isCodexManagedConnector) {
+  }, [invalidateManagedOAuth, selectedConnectorId, state.connectors, updateState]);
+  const onAcquireManagedOAuth = useCallback(() => {
+    if (!selectedConnector || !selectedConnectorId || !isBrowserManagedConnector) {
       return;
     }
     setTokenSaveError('');
     setTokenSavedConnectorId('');
     void connectorOAuth.start(selectedConnector);
-  }, [connectorOAuth, isCodexManagedConnector, selectedConnector, selectedConnectorId]);
+  }, [connectorOAuth, isBrowserManagedConnector, selectedConnector, selectedConnectorId]);
   const onChangeConnectorVendor = useCallback(async (vendor: string) => {
     if (!selectedConnector || !canEditVendor) return;
     const previousConnector = selectedConnector;
@@ -328,8 +347,8 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     const runtimeCatalog = await sdkListProviderCatalog();
     const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider, runtimeCatalog);
     const endpoint = resolveProviderEndpoint(provider, runtimeCatalog);
-    if (codexOAuthBusy) {
-      invalidateCodexOAuth('Managed connector vendor changed');
+    if (managedOAuthBusy) {
+      invalidateManagedOAuth('Managed connector vendor changed');
     }
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
       vendor: normalizedVendor,
@@ -353,13 +372,13 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         throw error;
       }
     }
-  }, [canEditVendor, invalidateCodexOAuth, sdkListProviderCatalog, selectedConnector, selectedConnectorId, updateState]);
+  }, [canEditVendor, invalidateManagedOAuth, sdkListProviderCatalog, selectedConnector, selectedConnectorId, updateState]);
   const onChangeConnectorAuthOption = useCallback((nextValue: string) => {
     if (!selectedConnector || isRuntimeSystem || !isDraft) return;
     const nextOption = authOptions.find((option) => option.value === nextValue) || null;
     if (!nextOption) return;
-    if (codexOAuthBusy) {
-      invalidateCodexOAuth('Managed connector credential type changed');
+    if (managedOAuthBusy) {
+      invalidateManagedOAuth('Managed connector credential type changed');
     }
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
       authMode: nextOption.authMode,
@@ -369,10 +388,10 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     setTokenDraft('');
     setTokenSaveError('');
     setTokenSavedConnectorId('');
-  }, [authOptions, invalidateCodexOAuth, isDraft, isRuntimeSystem, selectedConnector, selectedConnectorId, updateState]);
+  }, [authOptions, invalidateManagedOAuth, isDraft, isRuntimeSystem, selectedConnector, selectedConnectorId, updateState]);
   const saveConnectionDetails = async (draft: { label: string; endpoint: string; credentialValue: string; }) => {
     const selected = selectedConnector;
-    if (!selected || isSystemOwned || codexOAuthBusy) return;
+    if (!selected || isSystemOwned || managedOAuthBusy) return;
     setSavingToken(true);
     setTokenSaveError('');
     try {
@@ -448,22 +467,23 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
             authStatus={authStatus}
             canEditCredentialMode={canEditCredentialMode}
             canEditVendor={canEditVendor}
-            canStartCodexOAuth={canStartCodexOAuth}
+            canStartManagedOAuth={canStartManagedOAuth}
             canManageCatalogOverrides={canManageCatalogOverrides}
-            codexOAuthBusy={codexOAuthBusy}
-            codexOAuthPending={codexOAuthPending}
-            connectorConfigurationLocked={codexOAuthBusy}
+            managedOAuthBusy={managedOAuthBusy}
+            managedOAuthPending={managedOAuthPending}
+            connectorConfigurationLocked={managedOAuthBusy}
             connectorLabelDraft={connectorLabelDraft}
-            isCodexManagedConnector={isCodexManagedConnector}
+            isBrowserManagedConnector={isBrowserManagedConnector}
             isDraft={isDraft}
             isMachineGlobal={isMachineGlobal}
             isRuntimeSystem={isRuntimeSystem}
             isSystemOwned={isSystemOwned}
             model={model}
-            onAcquireCodexOAuth={onAcquireCodexOAuth}
+            onAcquireManagedOAuth={onAcquireManagedOAuth}
+            onCancelManagedOAuth={() => invalidateManagedOAuth('ChatGPT sign-in was canceled')}
             onManageCatalogOverrides={() => setCatalogOverrideProviderId(selectedConnector?.provider || '')}
             onConnectorLabelDraftChange={(label) => {
-              if (!codexOAuthBusy) setConnectorLabelDraft(label);
+              if (!managedOAuthBusy) setConnectorLabelDraft(label);
             }}
             onChangeConnectorAuthOption={onChangeConnectorAuthOption}
             onChangeConnectorVendor={onChangeConnectorVendor}
@@ -505,6 +525,9 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
                 return { ...next, selectedConnectorId: connectorId };
               });
               const created = connectors.find(connector => connector.id === connectorId);
+              if (created && created.authMode === 'oauth_managed' && isNimiBrowserManagedConnectorProfile(created.providerAuthProfile) && !chatGPTPlanDisclosureSeen()) {
+                setChatGPTPlanWelcomeOpen(true);
+              }
               if (created) await testSelectedConnectorCommand({ state, selectedConnector: created, connectorSdk, now: bindings.clock.now, testingConnector: false, updateState, setStatusBanner: model.setPageFeedback, setControlFeedback: model.setPageFeedback });
             } catch (error) {
               reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
@@ -512,6 +535,14 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
             model.onVaultChanged();
           })();
         }}
+      />
+      <ChatGPTPlanWelcomeDialog
+        open={chatGPTPlanWelcomeOpen}
+        onClose={() => {
+          markChatGPTPlanDisclosureSeen();
+          setChatGPTPlanWelcomeOpen(false);
+        }}
+        t={t}
       />
     </RuntimePageShell>
   );

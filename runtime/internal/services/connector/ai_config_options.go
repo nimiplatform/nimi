@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -170,6 +171,7 @@ func ListAIConfigCloudConnectorOptions(
 
 // @nimi-authority: rule.nimi.runtime.security-core.r048
 func ListAIConfigCloudTargetOptions(
+	ctx context.Context,
 	store *ConnectorStore,
 	modelCatalog *aicatalog.Resolver,
 	accountID string,
@@ -211,6 +213,12 @@ func ListAIConfigCloudTargetOptions(
 		state = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
 		reasons = append(reasons, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
+	// A Connector whose account list is readable projects the same availability
+	// its model listing and dispatch gate use; an unreadable list stays unknown.
+	listed, listedKnown := map[string]struct{}(nil), false
+	if state == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY {
+		listed, listedKnown = store.accountListedModels(ctx, record)
+	}
 	options := make([]AIConfigCloudTargetOption, 0)
 	seenTargets := make(map[string]struct{})
 	matchingTargets := make(map[string]bool)
@@ -225,6 +233,10 @@ func ListAIConfigCloudTargetOptions(
 			modelReasons = append(modelReasons, runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH)
 		}
 		providerModelID := catalogProviderModelID(model.Model)
+		if _, offered := listed[providerModelID]; listedKnown && !offered {
+			modelState = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+			modelReasons = append(modelReasons, AIConfigAccountModelMissingReason)
+		}
 		label := strings.TrimSpace(model.Model.ModelID)
 		if label == "" {
 			label = providerModelID

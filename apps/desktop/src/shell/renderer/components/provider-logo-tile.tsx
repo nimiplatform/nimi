@@ -35,7 +35,7 @@ const PROVIDER_LOGO_KEY: Readonly<Record<string, ProviderLogoKey>> = Object.free
   minimax: 'minimax-color',
   mistral: 'mistral-color',
   openai: 'openai',
-  openai_codex: 'codex-color',
+  openai_chatgpt_plan: 'openai',
   openrouter: 'openrouter-color',
   perplexity: 'perplexity-color',
   pika: 'pika',

@@ -6,11 +6,12 @@ export { CONNECTOR_AUTH_ACQUISITION_PROFILES };
 export type { ConnectorAuthAcquisitionProfileSpec };
 import {
   ConnectorAuthKind,
+  ConnectorKind,
   ConnectorStatus,
   type RuntimeTypedCallOptions,
-  type RuntimeTypedClient,
 } from '../core-generated/runtime-typed-client';
 import type { JsonObject } from '../types';
+import type { DesktopAccountProductRuntimeMethods } from './first-party-protected-runtime-profiles.generated.js';
 import type {
   NimiConnectorAuthAcquisitionPendingState,
   NimiManagedConnectorCredentialAcquisitionRequest,
@@ -19,11 +20,11 @@ import type {
 
 export type NimiConnectorAuthAcquisitionHttpRequest = {
   profileId: string;
-  purpose: 'device_authorization' | 'device_token';
+  purpose: 'authorization_code_exchange' | 'jwks';
   url: string;
-  method: 'POST';
+  method: 'POST' | 'GET';
   headers: Record<string, string>;
-  body: string;
+  body?: string;
 };
 
 export type NimiConnectorAuthAcquisitionHttpResponse = {
@@ -33,20 +34,23 @@ export type NimiConnectorAuthAcquisitionHttpResponse = {
   headers?: Record<string, string>;
 };
 
-export type NimiConnectorAuthAcquisitionTokenExchangeInput = {
-  provider: string;
-  clientId: string;
-  code: string;
-  codeVerifier?: string;
-  redirectUri?: string;
+export type NimiConnectorAuthAcquisitionCallbackRequest = {
+  profileId: string;
+  host: string;
+  path: string;
 };
 
-export type NimiConnectorAuthAcquisitionTokenExchangeResult = {
-  accessToken: string;
-  refreshToken?: string;
-  tokenType?: string;
-  expiresIn?: number;
-  scope?: string;
+// A loopback listener started before the browser opens. Only the port varies;
+// the host and path come from the admitted profile.
+export type NimiConnectorAuthAcquisitionCallback = {
+  redirectUri: string;
+  waitForCallback(signal: AbortSignal): Promise<Record<string, string>>;
+  close(): void | Promise<void>;
+};
+
+export type NimiConnectorAuthAcquisitionCrypto = {
+  getRandomValues(array: Uint8Array): Uint8Array;
+  subtle: SubtleCrypto;
 };
 
 export type NimiConnectorAuthAcquisitionNativeHost = {
@@ -55,11 +59,13 @@ export type NimiConnectorAuthAcquisitionNativeHost = {
     signal?: AbortSignal,
   ): Promise<NimiConnectorAuthAcquisitionHttpResponse>;
   openExternalUrl(url: string, signal?: AbortSignal): Promise<{ opened: boolean }>;
-  oauthTokenExchange(
-    input: NimiConnectorAuthAcquisitionTokenExchangeInput,
+  startAuthorizationCallback(
+    request: NimiConnectorAuthAcquisitionCallbackRequest,
     signal?: AbortSignal,
-  ): Promise<NimiConnectorAuthAcquisitionTokenExchangeResult>;
-  sleep(ms: number, signal?: AbortSignal): Promise<void>;
+  ): Promise<NimiConnectorAuthAcquisitionCallback>;
+  // Stable opaque ext_agent_host_id of this local host; never a user identifier.
+  hostIdentifier(signal?: AbortSignal): Promise<string>;
+  crypto: NimiConnectorAuthAcquisitionCrypto;
   now(): number;
   log?: (
     level: 'debug' | 'info' | 'warn' | 'error',
@@ -68,7 +74,13 @@ export type NimiConnectorAuthAcquisitionNativeHost = {
   ) => void;
 };
 
-export type NimiManagedConnectorCredentialRuntime = Pick<RuntimeTypedClient, 'createConnector' | 'updateConnector'>;
+// Only methods the protected Desktop account carrier admits. It admits
+// ListConnectors but not GetConnector, so reauthorization reads the bound
+// registration from the caller's list.
+export type NimiManagedConnectorCredentialRuntime = Pick<DesktopAccountProductRuntimeMethods, 'createConnector' | 'updateConnector' | 'listConnectors'>;
+
+// Bounds the pages read while looking up the Connector to reauthorize.
+const REGISTRATION_LOOKUP_MAX_PAGES = 20;
 
 export type NimiAcquireManagedConnectorCredentialInHostOptions =
   NimiManagedConnectorCredentialAcquisitionRequest & {
@@ -79,48 +91,33 @@ export type NimiAcquireManagedConnectorCredentialInHostOptions =
     signal?: AbortSignal;
   };
 
-type DeviceCodeResponse = {
-  user_code?: unknown;
-  device_auth_id?: unknown;
-  interval?: unknown;
-  expires_in?: unknown;
-  verification_uri_complete?: unknown;
-};
+export type NimiConnectorAuthAcquisitionErrorCode =
+  | 'AUTHORIZATION_DENIED'
+  | 'PLAN_USAGE_NOT_GRANTED'
+  | 'AUTHORIZATION_INVALID'
+  | 'REGISTRATION_UNAVAILABLE'
+  | 'BROWSER_UNAVAILABLE';
 
-type DevicePollResponse = {
-  authorization_code?: unknown;
-  code_verifier?: unknown;
-};
+// Stable acquisition outcome without provider text, tokens or codes.
+export class NimiConnectorAuthAcquisitionError extends Error {
+  readonly code: NimiConnectorAuthAcquisitionErrorCode;
 
-// The Electron/Node host cannot represent larger timeout delays safely. This is
-// a runtime representation limit, not a product policy for OAuth lifetimes.
-const MAX_RUNTIME_TIMER_DELAY_MS = 2_147_483_647;
-const MAX_RUNTIME_TIMER_DELAY_SECONDS = Math.floor(MAX_RUNTIME_TIMER_DELAY_MS / 1000);
+  constructor(code: NimiConnectorAuthAcquisitionErrorCode, message: string) {
+    super(message);
+    this.name = 'NimiConnectorAuthAcquisitionError';
+    this.code = code;
+  }
+}
+
+const SIWC_CREDENTIAL_SCHEMA = 'nimi.openai_chatgpt_plan.siwc/v1';
+const SIWC_DIRECT_SCOPE = 'chatgpt.tokens.use.direct';
+const SIWC_OFFLINE_SCOPE = 'offline_access';
+const HOST_ID_PREFIXES = ['urn:uuid:', 'urn:ietf:params:oauth:jwk-thumbprint:', 'did:key:'];
+const MAX_TOKEN_RESPONSE_BYTES = 64 * 1024;
+const MAX_CALLBACK_VALUE_BYTES = 4096;
 
 function toTrimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function toTimerRepresentableProviderPositiveInt(
-  value: unknown,
-  fallback: number,
-  field: string,
-): number {
-  if (value === undefined) {
-    return fallback;
-  }
-  const numeric = typeof value === 'number'
-    ? value
-    : typeof value === 'string' && /^\d+$/u.test(value.trim())
-      ? Number(value.trim())
-      : Number.NaN;
-  if (!Number.isSafeInteger(numeric) || numeric <= 0) {
-    throw new Error(`${field} must be a positive integer`);
-  }
-  if (numeric > MAX_RUNTIME_TIMER_DELAY_SECONDS) {
-    throw new Error(`${field} exceeds the runtime timer capacity`);
-  }
-  return numeric;
 }
 
 function abortReason(signal: AbortSignal): unknown {
@@ -129,6 +126,36 @@ function abortReason(signal: AbortSignal): unknown {
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) throw abortReason(signal);
+}
+
+// Bounds how long cancellation waits for a host that is still creating the
+// callback listener; a listener the host returns later is still closed.
+const CALLBACK_STARTUP_CLEANUP_WAIT_MS = 5_000;
+
+// The acquisition owns the loopback listener from the moment the host starts
+// creating it. When cancellation, timeout or a startup failure wins that race,
+// a listener the host still returns is closed, and the acquisition settles only
+// after that close (bounded for a host that never returns).
+async function startOwnedAuthorizationCallback(
+  host: NimiConnectorAuthAcquisitionNativeHost,
+  request: NimiConnectorAuthAcquisitionCallbackRequest,
+  signal: AbortSignal,
+): Promise<NimiConnectorAuthAcquisitionCallback> {
+  const starting = host.startAuthorizationCallback(request, signal);
+  try {
+    return await awaitWithCancellation(starting, signal);
+  } catch (error) {
+    const cleanup = starting.then((late) => late.close(), () => undefined).catch(() => undefined);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      cleanup,
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, CALLBACK_STARTUP_CLEANUP_WAIT_MS);
+      }),
+    ]);
+    if (timer !== undefined) clearTimeout(timer);
+    throw error;
+  }
 }
 
 async function awaitWithCancellation<T>(promise: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
@@ -187,19 +214,6 @@ function createAcquisitionSignal(
   };
 }
 
-async function runWithBoundedAcquisitionSignal<T>(
-  signals: readonly (AbortSignal | undefined)[],
-  timeoutMs: number,
-  operation: (signal: AbortSignal) => Promise<T>,
-): Promise<T> {
-  const lifecycle = createAcquisitionSignal(signals, timeoutMs);
-  try {
-    return await operation(lifecycle.signal);
-  } finally {
-    lifecycle.dispose();
-  }
-}
-
 function acquisitionNow(host: NimiConnectorAuthAcquisitionNativeHost): number {
   const value = host.now();
   if (!Number.isSafeInteger(value)) {
@@ -209,35 +223,19 @@ function acquisitionNow(host: NimiConnectorAuthAcquisitionNativeHost): number {
 }
 
 function parseJsonObject(body: string, errorLabel: string): JsonObject {
+  if (String(body || '').length > MAX_TOKEN_RESPONSE_BYTES) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', `${errorLabel} exceeded its fixed size`);
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(String(body || '')) as unknown;
   } catch {
-    throw new Error(`${errorLabel} returned invalid JSON`);
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', `${errorLabel} returned invalid JSON`);
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`${errorLabel} returned a non-object JSON payload`);
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', `${errorLabel} returned a non-object JSON payload`);
   }
   return parsed as JsonObject;
-}
-
-function toIsoTimestamp(value: number, field: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    throw new Error(`${field} exceeds the runtime date capacity`);
-  }
-  return date.toISOString();
-}
-
-function maskUserCode(userCode: string): string {
-  const normalized = String(userCode || '').trim();
-  if (!normalized) {
-    return '';
-  }
-  if (normalized.length <= 4) {
-    return normalized;
-  }
-  return `${normalized.slice(0, 2)}***${normalized.slice(-2)}`;
 }
 
 function logAcquisition(
@@ -249,64 +247,50 @@ function logAcquisition(
   host.log?.(level, message, details);
 }
 
-async function postJson(
-  host: NimiConnectorAuthAcquisitionNativeHost,
-  profile: ConnectorAuthAcquisitionProfileSpec,
-  purpose: NimiConnectorAuthAcquisitionHttpRequest['purpose'],
-  url: string,
-  payload: JsonObject,
-  signal?: AbortSignal,
-): Promise<NimiConnectorAuthAcquisitionHttpResponse> {
-  return awaitWithCancellation(host.proxyHttp({
-    profileId: profile.profileId,
-    purpose,
-    url,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify(payload),
-  }, signal), signal);
+const BASE64URL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; // pragma: allowlist secret -- RFC 4648 base64url alphabet
+
+function base64UrlEncode(bytes: Uint8Array): string {
+  let output = '';
+  for (let index = 0; index < bytes.length; index += 3) {
+    const a = bytes[index] ?? 0;
+    const b = bytes[index + 1] ?? 0;
+    const c = bytes[index + 2] ?? 0;
+    const triple = (a << 16) | (b << 8) | c;
+    output += BASE64URL_ALPHABET[(triple >> 18) & 63];
+    output += BASE64URL_ALPHABET[(triple >> 12) & 63];
+    if (index + 1 < bytes.length) output += BASE64URL_ALPHABET[(triple >> 6) & 63];
+    if (index + 2 < bytes.length) output += BASE64URL_ALPHABET[triple & 63];
+  }
+  return output;
 }
 
-function buildManagedCredentialJson(input: {
-  profile: ConnectorAuthAcquisitionProfileSpec;
-  accessToken: string;
-  refreshToken?: string;
-  tokenType?: string;
-  expiresIn?: number;
-  scope?: string;
-  now: number;
-}): { credentialJson: string; expiresAt?: string } {
-  const accessToken = toTrimmedString(input.accessToken);
-  if (!accessToken) {
-    throw new Error('Managed OAuth credential payload requires an access token');
+function base64UrlDecode(value: string): Uint8Array<ArrayBuffer> {
+  if (!/^[A-Za-z0-9_-]*$/u.test(value) || value.length % 4 === 1) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'ID token is not base64url encoded');
   }
-  const refreshToken = toTrimmedString(input.refreshToken);
-  const tokenType = toTrimmedString(input.tokenType);
-  const scope = toTrimmedString(input.scope);
-  const expiresIn = input.expiresIn;
-  if (expiresIn !== undefined && (!Number.isSafeInteger(expiresIn) || expiresIn <= 0)) {
-    throw new Error('Managed OAuth token exchange expires_in must be a positive integer');
+  const bytes = new Uint8Array(new ArrayBuffer(Math.floor((value.length * 6) / 8)));
+  let length = 0;
+  let buffer = 0;
+  let bits = 0;
+  for (const char of value) {
+    buffer = ((buffer << 6) | BASE64URL_ALPHABET.indexOf(char)) & 0xffffff;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes[length] = (buffer >> bits) & 0xff;
+      length += 1;
+    }
   }
-  const expiresAt = typeof expiresIn === 'number'
-    ? toIsoTimestamp(input.now + expiresIn * 1000, 'Managed OAuth token exchange expires_in')
-    : undefined;
+  return bytes.subarray(0, length);
+}
 
-  return {
-    expiresAt,
-    credentialJson: JSON.stringify({
-      access_token: accessToken,
-      refresh_token: refreshToken || undefined,
-      token_type: tokenType || undefined,
-      scope: scope || undefined,
-      expires_in: expiresIn,
-      expires_at: expiresAt,
-      issuer: input.profile.issuer,
-      obtained_at: toIsoTimestamp(input.now, 'Managed OAuth acquisition clock'),
-    }),
-  };
+function randomToken(crypto: NimiConnectorAuthAcquisitionCrypto, byteLength: number): string {
+  return base64UrlEncode(crypto.getRandomValues(new Uint8Array(byteLength)));
+}
+
+async function pkceChallenge(crypto: NimiConnectorAuthAcquisitionCrypto, verifier: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return base64UrlEncode(new Uint8Array(digest));
 }
 
 function profileForId(profileId: string): ConnectorAuthAcquisitionProfileSpec {
@@ -318,23 +302,305 @@ function profileForId(profileId: string): ConnectorAuthAcquisitionProfileSpec {
   return profile;
 }
 
-async function persistManagedConnectorCredentialThroughRuntime(input: {
+function validHostIdentifier(value: string): boolean {
+  if (!value || value !== value.trim() || value.length > 512 || /\s/u.test(value)) return false;
+  return HOST_ID_PREFIXES.some((prefix) => value.startsWith(prefix) && value.length > prefix.length);
+}
+
+function exactCallbackRedirect(
+  profile: ConnectorAuthAcquisitionProfileSpec,
+  redirectUri: string,
+): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(redirectUri);
+  } catch {
+    throw new Error('Authorization callback listener returned an invalid redirect URI');
+  }
+  const port = Number(parsed.port);
+  if (parsed.protocol !== 'http:' || parsed.hostname !== profile.callbackHost || !Number.isSafeInteger(port) || port <= 0 ||
+    parsed.pathname !== profile.callbackPath || parsed.search || parsed.hash || parsed.username || parsed.password) {
+    throw new Error('Authorization callback listener is not the admitted loopback callback');
+  }
+  return `http://${profile.callbackHost}:${port}${profile.callbackPath}`;
+}
+
+type RegistrationContext = {
+  clientId: string;
+  initialRegistration: boolean;
+  loginHint: string;
+};
+
+// Explicit reauthorization reuses the registration that Runtime custody bound
+// to this Connector; the renderer never supplies a client or account.
+async function registrationContext(
+  options: NimiAcquireManagedConnectorCredentialInHostOptions,
+  profile: ConnectorAuthAcquisitionProfileSpec,
+  signal: AbortSignal,
+): Promise<RegistrationContext> {
+  const connectorId = toTrimmedString(options.connectorId);
+  if (!connectorId) {
+    return { clientId: profile.initialClientId, initialRegistration: true, loginHint: '' };
+  }
+  let connector: Awaited<ReturnType<NimiManagedConnectorCredentialRuntime['listConnectors']>>['connectors'][number] | undefined;
+  let pageToken = '';
+  for (let page = 0; page < REGISTRATION_LOOKUP_MAX_PAGES && !connector; page += 1) {
+    const response = await awaitWithCancellation(
+      options.runtime.listConnectors({
+        pageSize: 0,
+        pageToken,
+        kindFilter: ConnectorKind.REMOTE_MANAGED,
+        statusFilter: ConnectorStatus.UNSPECIFIED,
+        providerFilter: profile.providerAuthProfile,
+      }, withAcquisitionSignal(options.callOptions, signal)),
+      signal,
+    );
+    connector = (response.connectors ?? []).find((candidate) => candidate.connectorId === connectorId);
+    pageToken = toTrimmedString(response.nextPageToken);
+    if (!pageToken) break;
+  }
+  const clientId = toTrimmedString(connector?.oauthRegistration?.issuedClientId);
+  if (!connector || connector.provider !== profile.providerAuthProfile ||
+    connector.providerAuthProfile !== profile.providerAuthProfile || !clientId || clientId === profile.initialClientId) {
+    throw new NimiConnectorAuthAcquisitionError(
+      'REGISTRATION_UNAVAILABLE',
+      'This Connector has no ChatGPT plan registration to reauthorize; add the account again',
+    );
+  }
+  const accountLabel = toTrimmedString(connector.oauthRegistration?.accountLabel);
+  return { clientId, initialRegistration: false, loginHint: accountLabel.includes('@') ? accountLabel : '' };
+}
+
+function authorizationUrl(input: {
+  profile: ConnectorAuthAcquisitionProfileSpec;
+  registration: RegistrationContext;
+  hostId: string;
+  redirectUri: string;
+  state: string;
+  nonce: string;
+  challenge: string;
+}): string {
+  const params = new URLSearchParams();
+  params.set('client_id', input.registration.clientId);
+  if (input.registration.initialRegistration) {
+    params.set('agent_name_hint', input.profile.agentNameHint);
+  }
+  params.set('ext_agent_host_id', input.hostId);
+  if (input.registration.loginHint) {
+    params.set('login_hint', input.registration.loginHint);
+  }
+  params.set('response_type', 'code');
+  params.set('redirect_uri', input.redirectUri);
+  params.set('scope', input.profile.scopes.join(' '));
+  params.set('resource', input.profile.resource);
+  params.set('state', input.state);
+  params.set('nonce', input.nonce);
+  params.set('code_challenge_method', 'S256');
+  params.set('code_challenge', input.challenge);
+  return `${input.profile.authorizationUrl}?${params.toString()}`;
+}
+
+function boundedCallbackValue(params: Record<string, string>, key: string): string {
+  const value = params[key];
+  if (typeof value !== 'string' || !value || value.length > MAX_CALLBACK_VALUE_BYTES || value !== value.trim()) {
+    return '';
+  }
+  return value;
+}
+
+function callbackRegistration(
+  params: Record<string, string>,
+  profile: ConnectorAuthAcquisitionProfileSpec,
+  registration: RegistrationContext,
+  expectedState: string,
+): { code: string; clientId: string } {
+  if (boundedCallbackValue(params, 'state') !== expectedState) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'Authorization callback state did not match this sign-in');
+  }
+  const error = boundedCallbackValue(params, 'error');
+  if (error === 'access_denied') {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_DENIED', 'ChatGPT sign-in was canceled or denied');
+  }
+  if (error) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'ChatGPT sign-in returned an authorization error');
+  }
+  const code = boundedCallbackValue(params, 'code');
+  if (!code) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'Authorization callback did not include a code');
+  }
+  const returnedClientId = boundedCallbackValue(params, 'client_id');
+  if (registration.initialRegistration) {
+    if (!returnedClientId || returnedClientId === profile.initialClientId) {
+      throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'ChatGPT registration did not return an issued client');
+    }
+    return { code, clientId: returnedClientId };
+  }
+  if (returnedClientId && returnedClientId !== registration.clientId) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'Authorization returned a different ChatGPT registration');
+  }
+  return { code, clientId: registration.clientId };
+}
+
+type TokenResponse = {
+  accessToken: string;
+  refreshToken: string;
+  idToken: string;
+  tokenType: string;
+  scopes: string[];
+};
+
+async function exchangeAuthorizationCode(input: {
+  host: NimiConnectorAuthAcquisitionNativeHost;
+  profile: ConnectorAuthAcquisitionProfileSpec;
+  clientId: string;
+  code: string;
+  verifier: string;
+  redirectUri: string;
+  signal: AbortSignal;
+}): Promise<TokenResponse> {
+  const form = new URLSearchParams();
+  form.set('grant_type', 'authorization_code');
+  form.set('client_id', input.clientId);
+  form.set('code', input.code);
+  form.set('code_verifier', input.verifier);
+  form.set('redirect_uri', input.redirectUri);
+  form.set('resource', input.profile.resource);
+  const response = await awaitWithCancellation(input.host.proxyHttp({
+    profileId: input.profile.profileId,
+    purpose: 'authorization_code_exchange',
+    url: input.profile.tokenUrl,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+    body: form.toString(),
+  }, input.signal), input.signal);
+  if (!response.ok) {
+    let oauthError = '';
+    try {
+      oauthError = toTrimmedString((JSON.parse(response.body) as { error?: unknown }).error);
+    } catch {
+      oauthError = '';
+    }
+    throw new NimiConnectorAuthAcquisitionError(
+      'AUTHORIZATION_INVALID',
+      oauthError === 'invalid_grant'
+        ? 'The ChatGPT authorization code expired or was already used; sign in again'
+        : `ChatGPT token exchange failed with HTTP ${response.status}`,
+    );
+  }
+  const payload = parseJsonObject(response.body, 'ChatGPT token exchange');
+  const accessToken = toTrimmedString(payload.access_token);
+  const refreshToken = toTrimmedString(payload.refresh_token);
+  const idToken = toTrimmedString(payload.id_token);
+  const tokenType = toTrimmedString(payload.token_type);
+  const scopes = toTrimmedString(payload.scope).split(/\s+/u).filter(Boolean);
+  if (!accessToken || !refreshToken || !idToken || tokenType.toLowerCase() !== 'bearer') {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'ChatGPT token exchange returned an incomplete token set');
+  }
+  return { accessToken, refreshToken, idToken, tokenType: 'Bearer', scopes };
+}
+
+type IdentityClaims = { subject: string; email: string };
+
+// Verifies the RS256 ID token against OpenAI's published JWKS and binds it to
+// this attempt's issued client and nonce.
+async function verifyIdToken(input: {
+  host: NimiConnectorAuthAcquisitionNativeHost;
+  profile: ConnectorAuthAcquisitionProfileSpec;
+  idToken: string;
+  clientId: string;
+  nonce: string;
+  signal: AbortSignal;
+}): Promise<IdentityClaims> {
+  const parts = input.idToken.split('.');
+  if (parts.length !== 3) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'ID token is not a signed JWT');
+  }
+  const decoder = new TextDecoder();
+  const header = parseJsonObject(decoder.decode(base64UrlDecode(parts[0] ?? '')), 'ID token header');
+  const claims = parseJsonObject(decoder.decode(base64UrlDecode(parts[1] ?? '')), 'ID token claims');
+  const kid = toTrimmedString(header.kid);
+  if (header.alg !== 'RS256' || !kid) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'ID token signing algorithm is not admitted');
+  }
+  const jwksResponse = await awaitWithCancellation(input.host.proxyHttp({
+    profileId: input.profile.profileId,
+    purpose: 'jwks',
+    url: input.profile.jwksUrl,
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  }, input.signal), input.signal);
+  if (!jwksResponse.ok) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', `OpenAI signing keys were unavailable (HTTP ${jwksResponse.status})`);
+  }
+  const jwks = parseJsonObject(jwksResponse.body, 'OpenAI signing keys');
+  const keys = Array.isArray(jwks.keys) ? jwks.keys : [];
+  const jwk = keys.find((candidate) => {
+    const key = candidate as Record<string, unknown>;
+    return key && key.kid === kid && key.kty === 'RSA' && (key.use === undefined || key.use === 'sig') &&
+      (key.alg === undefined || key.alg === 'RS256') && typeof key.n === 'string' && typeof key.e === 'string';
+  }) as Record<string, string> | undefined;
+  if (!jwk) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'ID token signing key is not published');
+  }
+  const key = await input.host.crypto.subtle.importKey(
+    'jwk',
+    { kty: 'RSA', n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['verify'],
+  );
+  const signatureValid = await input.host.crypto.subtle.verify(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    base64UrlDecode(parts[2] ?? ''),
+    new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+  );
+  if (!signatureValid) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'ID token signature is invalid');
+  }
+  const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+  const expires = typeof claims.exp === 'number' ? claims.exp : Number.NaN;
+  const subject = toTrimmedString(claims.sub);
+  if (claims.iss !== input.profile.issuer || !audience.includes(input.clientId) || claims.nonce !== input.nonce ||
+    !Number.isFinite(expires) || expires * 1000 <= acquisitionNow(input.host) || !subject) {
+    throw new NimiConnectorAuthAcquisitionError('AUTHORIZATION_INVALID', 'ID token does not match this ChatGPT sign-in');
+  }
+  const email = toTrimmedString(claims.email);
+  return { subject, email: email.includes('@') && !/\s/u.test(email) && email.length <= 512 ? email : '' };
+}
+
+function withAcquisitionSignal(
+  options: RuntimeTypedCallOptions | undefined,
+  signal: AbortSignal,
+): RuntimeTypedCallOptions {
+  return { ...withoutAcquisitionCancellation(options), signal };
+}
+
+function withoutAcquisitionCancellation(
+  options: RuntimeTypedCallOptions | undefined,
+): RuntimeTypedCallOptions {
+  return {
+    metadata: options?.metadata,
+    timeoutMs: options?.timeoutMs,
+    responseMetadataObserver: options?.responseMetadataObserver,
+  };
+}
+
+async function persistAuthorizationThroughRuntime(input: {
   options: NimiAcquireManagedConnectorCredentialInHostOptions;
   profile: ConnectorAuthAcquisitionProfileSpec;
   credentialJson: string;
+  accountLabel: string;
   signal: AbortSignal;
 }): Promise<string> {
+  // The final Runtime custody write is the commit point: cancellation before
+  // dispatch aborts; after dispatch the host waits for the exact result.
   throwIfAborted(input.signal);
   const finalWriteCallOptions = withoutAcquisitionCancellation(input.options.callOptions);
-  const provider = toTrimmedString(input.options.provider) || input.profile.providerAuthProfile;
-  const endpoint = toTrimmedString(input.options.endpoint);
-  const label = toTrimmedString(input.options.label) || `${input.profile.providerAuthProfile} managed OAuth`;
   const connectorId = toTrimmedString(input.options.connectorId);
   if (connectorId) {
     const response = await input.options.runtime.updateConnector({
       connectorId,
-      endpoint: endpoint || undefined,
-      label: input.options.label === undefined ? undefined : label,
       status: ConnectorStatus.UNSPECIFIED,
       authKind: ConnectorAuthKind.OAUTH_MANAGED,
       providerAuthProfile: input.profile.providerAuthProfile,
@@ -342,9 +608,10 @@ async function persistManagedConnectorCredentialThroughRuntime(input: {
     }, finalWriteCallOptions);
     return response.connector?.connectorId || connectorId;
   }
+  const label = toTrimmedString(input.options.label) || input.accountLabel || 'ChatGPT plan';
   const response = await input.options.runtime.createConnector({
-    provider,
-    endpoint,
+    provider: input.profile.providerAuthProfile,
+    endpoint: '',
     label,
     apiKey: '',
     authKind: ConnectorAuthKind.OAUTH_MANAGED,
@@ -358,261 +625,99 @@ async function persistManagedConnectorCredentialThroughRuntime(input: {
   return createdConnectorId;
 }
 
-function withoutAcquisitionCancellation(
-  options: RuntimeTypedCallOptions | undefined,
-): RuntimeTypedCallOptions {
-  return {
-    metadata: options?.metadata,
-    timeoutMs: options?.timeoutMs,
-    responseMetadataObserver: options?.responseMetadataObserver,
-  };
-}
-
 // @nimi-authority: definition.nimi.sdks.feature-clients.connector-auth-plane
 // @nimi-authority: rule.nimi.sdks.feature-clients.r060
 // @nimi-authority: rule.nimi.sdks.feature-clients.r061
+// @nimi-authority: rule.nimi.sdks.feature-clients.siwc-refresh
 export async function acquireNimiManagedConnectorCredentialInHost(
   options: NimiAcquireManagedConnectorCredentialInHostOptions,
 ): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
   const profile = profileForId(options.profileId);
-  const lifecycle = createAcquisitionSignal([options.signal, options.callOptions?.signal]);
+  const lifecycle = createAcquisitionSignal(
+    [options.signal, options.callOptions?.signal],
+    profile.acquisitionTimeoutSeconds * 1000,
+  );
   try {
-    return await acquireManagedConnectorCredentialWithProfile(options, profile, lifecycle.signal);
+    return await acquireWithProfile(options, profile, lifecycle.signal);
   } finally {
     lifecycle.dispose();
   }
 }
 
-async function acquireManagedConnectorCredentialWithProfile(
+async function acquireWithProfile(
   options: NimiAcquireManagedConnectorCredentialInHostOptions,
   profile: ConnectorAuthAcquisitionProfileSpec,
   signal: AbortSignal,
 ): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
   const host = options.host;
   throwIfAborted(signal);
+  const registration = await registrationContext(options, profile, signal);
+  const hostId = toTrimmedString(await awaitWithCancellation(host.hostIdentifier(signal), signal));
+  if (!validHostIdentifier(hostId)) {
+    throw new Error('Local host identifier is not an admitted opaque ext_agent_host_id');
+  }
+  const state = randomToken(host.crypto, 32);
+  const nonce = randomToken(host.crypto, 32);
+  const verifier = randomToken(host.crypto, 64);
+  const challenge = await pkceChallenge(host.crypto, verifier);
 
-  logAcquisition(host, 'info', 'managed-oauth:device-code-request:start', {
-    profileId: profile.profileId,
-  });
-
-  const deviceCodeResponse = await postJson(host, profile, 'device_authorization', profile.deviceAuthorizationUrl, {
-    client_id: profile.clientId,
+  const callback = await startOwnedAuthorizationCallback(host, {
+    profileId: profile.profileId, host: profile.callbackHost, path: profile.callbackPath,
   }, signal);
-  if (!deviceCodeResponse.ok) {
-    logAcquisition(host, 'error', 'managed-oauth:device-code-request:failed', {
+  let params: Record<string, string>;
+  let redirectUri: string;
+  try {
+    redirectUri = exactCallbackRedirect(profile, callback.redirectUri);
+    const url = authorizationUrl({ profile, registration, hostId, redirectUri, state, nonce, challenge });
+    logAcquisition(host, 'info', 'managed-oauth:browser-authorization:start', {
       profileId: profile.profileId,
-      status: deviceCodeResponse.status,
+      initialRegistration: registration.initialRegistration,
     });
-    throw new Error(`Managed OAuth device code request failed with HTTP ${deviceCodeResponse.status}`);
-  }
-  const deviceData = parseJsonObject(deviceCodeResponse.body, 'Managed OAuth device code request') as DeviceCodeResponse;
-  const userCode = toTrimmedString(deviceData.user_code);
-  const deviceAuthId = toTrimmedString(deviceData.device_auth_id);
-  const providerPollIntervalSeconds = toTimerRepresentableProviderPositiveInt(
-    deviceData.interval,
-    profile.defaultPollIntervalSeconds,
-    'Managed OAuth device code interval',
-  );
-  if (providerPollIntervalSeconds > profile.maxPollIntervalSeconds) {
-    throw new Error(`Managed OAuth device code interval must not exceed ${profile.maxPollIntervalSeconds}`);
-  }
-  const pollIntervalSeconds = Math.max(profile.minPollIntervalSeconds, providerPollIntervalSeconds);
-  const expiresInSeconds = toTimerRepresentableProviderPositiveInt(
-    deviceData.expires_in,
-    profile.defaultExpiresInSeconds,
-    'Managed OAuth device code expires_in',
-  );
-  if (expiresInSeconds > profile.maxExpiresInSeconds) {
-    throw new Error(`Managed OAuth device code expires_in must not exceed ${profile.maxExpiresInSeconds}`);
-  }
-  const verificationUrl = toTrimmedString(deviceData.verification_uri_complete) || profile.fallbackVerificationUrl;
-
-  return runWithBoundedAcquisitionSignal(
-    [signal],
-    expiresInSeconds * 1000,
-    async (boundedSignal) => completeManagedConnectorCredentialFromDeviceCode({
-      options,
-      profile,
-      host,
-      deviceData,
-      userCode,
-      deviceAuthId,
-      pollIntervalSeconds,
-      expiresInSeconds,
-      verificationUrl,
-      signal: boundedSignal,
-    }),
-  );
-}
-
-async function completeManagedConnectorCredentialFromDeviceCode(input: {
-  options: NimiAcquireManagedConnectorCredentialInHostOptions;
-  profile: ConnectorAuthAcquisitionProfileSpec;
-  host: NimiConnectorAuthAcquisitionNativeHost;
-  deviceData: DeviceCodeResponse;
-  userCode: string;
-  deviceAuthId: string;
-  pollIntervalSeconds: number;
-  expiresInSeconds: number;
-  verificationUrl: string;
-  signal: AbortSignal;
-}): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
-  const {
-    options,
-    profile,
-    host,
-    deviceData,
-    userCode,
-    deviceAuthId,
-    pollIntervalSeconds,
-    expiresInSeconds,
-    verificationUrl,
-    signal,
-  } = input;
-  if (!userCode || !deviceAuthId) {
-    throw new Error('Managed OAuth device code response is missing user_code or device_auth_id');
-  }
-
-  logAcquisition(host, 'info', 'managed-oauth:device-code-request:success', {
-    profileId: profile.profileId,
-    pollIntervalSeconds,
-    expiresInSeconds,
-    userCode: maskUserCode(userCode),
-    hasVerificationUriComplete: Boolean(toTrimmedString(deviceData.verification_uri_complete)),
-  });
-
-  throwIfAborted(signal);
-  options.onPending?.({
-    userCode,
-    verificationUrl,
-    expiresInSeconds,
-    pollIntervalSeconds,
-  });
-  throwIfAborted(signal);
-
-  logAcquisition(host, 'info', 'managed-oauth:browser-open:start', {
-    profileId: profile.profileId,
-    verificationUrl,
-  });
-  const launchResult = await awaitWithCancellation(host.openExternalUrl(verificationUrl, signal), signal);
-  if (!launchResult.opened) {
-    logAcquisition(host, 'error', 'managed-oauth:browser-open:failed', {
-      profileId: profile.profileId,
-      verificationUrl,
-    });
-    throw new Error('Unable to open the browser for managed OAuth sign-in');
-  }
-
-  const deadlineMs = acquisitionNow(host) + expiresInSeconds * 1000;
-  const maxPollAttempts = Math.ceil(expiresInSeconds / profile.minPollIntervalSeconds);
-  let codeResponse: DevicePollResponse | null = null;
-  let pollAttempt = 0;
-  let lastPollStatus: number | null = null;
-  while (acquisitionNow(host) < deadlineMs && pollAttempt < maxPollAttempts) {
     throwIfAborted(signal);
-    const remainingMs = Math.max(0, deadlineMs - acquisitionNow(host));
-    const sleepMs = Math.min(pollIntervalSeconds * 1000, remainingMs);
-    if (sleepMs <= 0) break;
-    await awaitWithCancellation(host.sleep(sleepMs, signal), signal);
-    throwIfAborted(signal);
-    if (acquisitionNow(host) >= deadlineMs) break;
-    pollAttempt += 1;
-    const pollResponse = await postJson(host, profile, 'device_token', profile.deviceTokenUrl, {
-      device_auth_id: deviceAuthId,
-      user_code: userCode,
-    }, signal);
-    lastPollStatus = pollResponse.status;
-    if (pollResponse.status === 200) {
-      logAcquisition(host, 'info', 'managed-oauth:poll:authorized', {
-        profileId: profile.profileId,
-        attempt: pollAttempt,
-        status: pollResponse.status,
-      });
-      codeResponse = parseJsonObject(pollResponse.body, 'Managed OAuth device auth poll') as DevicePollResponse;
-      break;
+    options.onPending?.({ authorizationUrl: url, expiresInSeconds: profile.acquisitionTimeoutSeconds });
+    const launch = await awaitWithCancellation(host.openExternalUrl(url, signal), signal);
+    if (!launch.opened) {
+      throw new NimiConnectorAuthAcquisitionError('BROWSER_UNAVAILABLE', 'Unable to open the browser for ChatGPT sign-in');
     }
-    if (pollResponse.status === 403 || pollResponse.status === 404) {
-      logAcquisition(host, 'debug', 'managed-oauth:poll:pending', {
-        profileId: profile.profileId,
-        attempt: pollAttempt,
-        status: pollResponse.status,
-      });
-      continue;
-    }
-    logAcquisition(host, 'error', 'managed-oauth:poll:failed', {
-      profileId: profile.profileId,
-      attempt: pollAttempt,
-      status: pollResponse.status,
-    });
-    throw new Error(`Managed OAuth device auth polling failed with HTTP ${pollResponse.status}`);
+    params = await awaitWithCancellation(callback.waitForCallback(signal), signal);
+  } finally {
+    await callback.close();
   }
-
-  if (!codeResponse) {
-    logAcquisition(host, 'warn', 'managed-oauth:poll:timeout', {
-      profileId: profile.profileId,
-      attempts: pollAttempt,
-      lastStatus: lastPollStatus,
-    });
-    const timeoutDetails = [
-      `attempts=${pollAttempt}`,
-      `lastStatus=${lastPollStatus ?? 'none'}`,
-    ];
-    throw new Error(`Managed OAuth sign-in timed out before authorization completed (${timeoutDetails.join(', ')})`);
-  }
-
-  const authorizationCode = toTrimmedString(codeResponse.authorization_code);
-  const codeVerifier = toTrimmedString(codeResponse.code_verifier);
-  if (!authorizationCode || !codeVerifier) {
-    throw new Error('Managed OAuth device auth response is missing authorization_code or code_verifier');
-  }
-
-  logAcquisition(host, 'info', 'managed-oauth:token-exchange:start', {
-    profileId: profile.profileId,
-    attemptCount: pollAttempt,
-    redirectUri: profile.redirectUri,
-  });
+  const { code, clientId } = callbackRegistration(params, profile, registration, state);
   throwIfAborted(signal);
-  const exchange = await awaitWithCancellation(host.oauthTokenExchange({
-    provider: profile.tokenExchangeProvider,
-    clientId: profile.clientId,
-    code: authorizationCode,
-    codeVerifier,
-    redirectUri: profile.redirectUri,
-  }, signal), signal);
-  const accessToken = toTrimmedString(exchange.accessToken);
-  if (!accessToken) {
-    throw new Error('Managed OAuth token exchange did not return an access token');
+  const tokens = await exchangeAuthorizationCode({ host, profile, clientId, code, verifier, redirectUri, signal });
+  const identity = await verifyIdToken({ host, profile, idToken: tokens.idToken, clientId, nonce, signal });
+  if (!tokens.scopes.includes(SIWC_DIRECT_SCOPE) || !tokens.scopes.includes(SIWC_OFFLINE_SCOPE)) {
+    throw new NimiConnectorAuthAcquisitionError(
+      'PLAN_USAGE_NOT_GRANTED',
+      'ChatGPT plan usage was not granted for this sign-in; enable it and sign in again',
+    );
   }
-
-  const nowMs = acquisitionNow(host);
-  const credential = buildManagedCredentialJson({
-    profile,
-    accessToken,
-    refreshToken: exchange.refreshToken,
-    tokenType: exchange.tokenType,
-    scope: exchange.scope,
-    expiresIn: exchange.expiresIn,
-    now: nowMs,
+  const credentialJson = JSON.stringify({
+    schema: SIWC_CREDENTIAL_SCHEMA,
+    issuer: profile.issuer,
+    subject: identity.subject,
+    ...(identity.email ? { email: identity.email } : {}),
+    client_id: clientId,
+    ext_agent_host_id: hostId,
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken,
+    token_type: tokens.tokenType,
+    scopes: tokens.scopes,
+    saved_at: new Date(acquisitionNow(host)).toISOString().replace(/\.\d{3}Z$/u, 'Z'),
   });
-
-  logAcquisition(host, 'info', 'managed-oauth:token-exchange:success', {
+  logAcquisition(host, 'info', 'managed-oauth:authorization:validated', {
     profileId: profile.profileId,
-    hasRefreshToken: Boolean(toTrimmedString(exchange.refreshToken)),
-    expiresIn: Number.isFinite(exchange.expiresIn) ? exchange.expiresIn : null,
+    initialRegistration: registration.initialRegistration,
   });
-
-  throwIfAborted(signal);
-  const connectorId = await persistManagedConnectorCredentialThroughRuntime({
-    options,
-    profile,
-    credentialJson: credential.credentialJson,
-    signal,
+  const connectorId = await persistAuthorizationThroughRuntime({
+    options, profile, credentialJson, accountLabel: identity.email, signal,
   });
-
-  return {
+  const result: NimiManagedConnectorCredentialAcquisitionResult = {
     profileId: profile.profileId,
     providerAuthProfile: profile.providerAuthProfile,
     connectorId,
-    expiresAt: credential.expiresAt,
   };
+  if (identity.email) result.accountLabel = identity.email;
+  return result;
 }

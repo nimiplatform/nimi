@@ -1,0 +1,66 @@
+version: 1
+provider: openai_chatgpt_plan
+catalog_version: 2026-09-30-siwc-gpt6-cohort
+inventory_mode: static_source
+models:
+  - model_id: gpt-6.1-sol
+    provider: openai_chatgpt_plan
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-30
+      notes: Eligible usage counts against the signed-in user's ChatGPT plan and its app limits; standard API-key token billing does not apply to this route.
+    source_ref:
+      url: https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference
+      retrieved_at: 2026-09-30
+      note: Official account-scoped GET /v1/models (models[].slug, display_name, visibility) and streaming POST /v1/responses with store false; do not use ChatGPT backend-api.
+    features:
+      - input.image
+    context_window_tokens: 922000
+  - model_id: gpt-6-astra
+    provider: openai_chatgpt_plan
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-30
+      notes: Eligible usage counts against the signed-in user's ChatGPT plan and its app limits; standard API-key token billing does not apply to this route.
+    source_ref:
+      url: https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference
+      retrieved_at: 2026-09-30
+      note: Official account-scoped GET /v1/models (models[].slug, display_name, visibility) and streaming POST /v1/responses with store false; do not use ChatGPT backend-api.
+    features:
+      - input.image
+    context_window_tokens: 922000
+  - model_id: gpt-6-luna
+    provider: openai_chatgpt_plan
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-30
+      notes: Eligible usage counts against the signed-in user's ChatGPT plan and its app limits; standard API-key token billing does not apply to this route.
+    source_ref:
+      url: https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference
+      retrieved_at: 2026-09-30
+      note: Official account-scoped GET /v1/models (models[].slug, display_name, visibility) and streaming POST /v1/responses with store false; do not use ChatGPT backend-api.
+    features:
+      - input.image
+    context_window_tokens: 922000
+voices: []

@@ -122,7 +122,7 @@ func TestPrimitiveTextGenerationRejectsOptionalBehaviors(t *testing.T) {
 			}}}},
 		},
 	}
-	for _, provider := range []struct{ name, model string }{{"openai", "gpt-4o-mini"}, {"anthropic", "claude-sonnet-4-6"}, {"openai_codex", "gpt-5.6-sol"}} {
+	for _, provider := range []struct{ name, model string }{{"openai", "gpt-4o-mini"}, {"anthropic", "claude-sonnet-4-6"}, {"openai_chatgpt_plan", "gpt-6.1-sol"}} {
 		t.Run(provider.name, func(t *testing.T) {
 			var requests atomic.Int32
 			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

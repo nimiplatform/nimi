@@ -78,8 +78,8 @@ function createConnectorProbeResponse(provider = 'openai'): { responseBytesBase6
       connector: {
         connectorId: `conn-${provider}`,
         provider,
-        endpoint: provider === 'openai_codex'
-          ? 'https://chatgpt.com/backend-api/codex'
+        endpoint: provider === 'openai_chatgpt_plan'
+          ? 'https://api.openai.com/v1'
           : 'https://api.openai.com/v1',
         label: `${provider} Connector`,
         hasCredential: true,
@@ -88,7 +88,7 @@ function createConnectorProbeResponse(provider = 'openai'): { responseBytesBase6
         kind: 2,
         status: 1,
         authKind: 1,
-        providerAuthProfile: provider === 'openai_codex' ? 'openai_codex' : '',
+        providerAuthProfile: provider === 'openai_chatgpt_plan' ? 'openai_chatgpt_plan' : '',
       },
     })),
   );
@@ -225,7 +225,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     inlineSupported: true,
   },
   {
-    provider: 'openai_codex',
+    provider: 'openai_chatgpt_plan',
     defaultEndpoint: '',
     requiresExplicitEndpoint: false,
     runtimePlane: 'cloud',
@@ -356,7 +356,7 @@ test('providerToVendor normalizes runtime provider ids without rebuilding provid
   assert.equal(providerToVendor('volcengine_openspeech'), 'volcengine_openspeech');
   assert.equal(providerToVendor('gemini'), 'gemini');
   assert.equal(providerToVendor('openai'), 'openai');
-  assert.equal(providerToVendor('openai_codex'), 'openai_codex');
+  assert.equal(providerToVendor('openai_chatgpt_plan'), 'openai_chatgpt_plan');
   assert.equal(providerToVendor('openai_compatible'), 'openai_compatible');
   assert.equal(providerToVendor('anthropic'), 'anthropic');
   assert.equal(providerToVendor('openrouter'), 'openrouter');
@@ -370,7 +370,7 @@ test('vendorToProvider normalizes UI provider ids without alias mapping', () => 
   assert.equal(vendorToProvider('gemini'), 'gemini');
   assert.equal(vendorToProvider('deepseek'), 'deepseek');
   assert.equal(vendorToProvider('openai'), 'openai');
-  assert.equal(vendorToProvider('openai_codex'), 'openai_codex');
+  assert.equal(vendorToProvider('openai_chatgpt_plan'), 'openai_chatgpt_plan');
   assert.equal(vendorToProvider('openai_compatible'), 'openai_compatible');
   assert.equal(vendorToProvider('anthropic'), 'anthropic');
   assert.equal(vendorToProvider('openrouter'), 'openrouter');
@@ -384,7 +384,7 @@ test('providerToVendor and vendorToProvider are pass-through for runtime provide
     ['volcengine_openspeech', 'volcengine_openspeech'],
     ['gemini', 'gemini'],
     ['openai', 'openai'],
-    ['openai_codex', 'openai_codex'],
+    ['openai_chatgpt_plan', 'openai_chatgpt_plan'],
     ['openai_compatible', 'openai_compatible'],
     ['anthropic', 'anthropic'],
     ['openrouter', 'openrouter'],
@@ -400,14 +400,14 @@ test('providerToVendor is case-insensitive', () => {
   assert.equal(providerToVendor('DEEPSEEK'), 'deepseek');
   assert.equal(providerToVendor('Gemini'), 'gemini');
   assert.equal(providerToVendor('OpenAI'), 'openai');
-  assert.equal(providerToVendor('OPENAI_CODEX'), 'openai_codex');
+  assert.equal(providerToVendor('OPENAI_CHATGPT_PLAN'), 'openai_chatgpt_plan');
   assert.equal(providerToVendor('OpenAI_Compatible'), 'openai_compatible');
 });
 
 test('listConnectorAuthOptionsForProvider exposes admitted oauth-managed options without rebuilding truth', () => {
   assert.deepEqual(
-    listConnectorAuthOptionsForProvider('openai_codex', PROVIDER_CATALOG).map((item) => item.value),
-    ['oauth:openai_codex'],
+    listConnectorAuthOptionsForProvider('openai_chatgpt_plan', PROVIDER_CATALOG).map((item) => item.value),
+    ['oauth:openai_chatgpt_plan'],
   );
   assert.deepEqual(
     listConnectorAuthOptionsForProvider('anthropic', PROVIDER_CATALOG).map((item) => item.value),
@@ -754,13 +754,13 @@ test('renderer connector service rejects managed OAuth credential custody', asyn
   try {
     await assert.rejects(
       () => sdkCreateConnector({
-        provider: 'openai_codex',
-        endpoint: 'https://chatgpt.com/backend-api/codex',
-        label: 'Codex Connector',
+        provider: 'openai_chatgpt_plan',
+        endpoint: 'https://api.openai.com/v1',
+        label: 'ChatGPT plan',
         credentialValue: 'stale-access-token',
         credentialJson: '{"access_token":"must-not-cross"}',
         authMode: 'oauth_managed',
-        providerAuthProfile: 'openai_codex',
+        providerAuthProfile: 'openai_chatgpt_plan',
       } as never),
       /requires the Desktop native host/,
     );
@@ -778,20 +778,20 @@ test('desktop renderer connector admin rejects managed credential carriers befor
     const connectorAdmin = getDesktopConnectorAdminClient();
     await assert.rejects(
       () => connectorAdmin.createConnector({
-        provider: 'openai_codex',
-        endpoint: 'https://chatgpt.com/backend-api/codex',
-        label: 'Codex Connector',
+        provider: 'openai_chatgpt_plan',
+        endpoint: 'https://api.openai.com/v1',
+        label: 'ChatGPT plan',
         authKind: ConnectorAuthKind.OAUTH_MANAGED,
-        providerAuthProfile: 'openai_codex',
+        providerAuthProfile: 'openai_chatgpt_plan',
         credentialJson: '{"access_token":"must-not-cross"}',
       } as never),
       /requires the Desktop native host/,
     );
     await assert.rejects(
       () => connectorAdmin.updateConnector({
-        connectorId: 'connector-codex',
+        connectorId: 'connector-chatgpt-plan',
         authKind: ConnectorAuthKind.OAUTH_MANAGED,
-        providerAuthProfile: 'openai_codex',
+        providerAuthProfile: 'openai_chatgpt_plan',
         credentialJson: '{"access_token":"must-not-cross"}',
       } as never),
       /requires the Desktop native host/,

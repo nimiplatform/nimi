@@ -774,6 +774,24 @@ describe('public Model Config contract', () => {
     });
     expect(ready.querySelector('[data-nimi-model-config-cloud]')).toBeTruthy();
     expect(ready.querySelector('[data-nimi-model-config-cloud-blocked]')).toBeNull();
+    expect(ready.querySelector('[data-nimi-model-config-chatgpt-plan]')).toBeNull();
+  });
+
+  it('says a ChatGPT plan Connector selection uses the signed-in plan', async () => {
+    const implementation = { implementationId: 'openai_chatgpt_plan.gpt-6-luna.responses', driverId: 'nimillm', driverDialect: 'openai-responses' };
+    const providerModelTarget = { provider: 'openai_chatgpt_plan', providerModelId: 'gpt-6-luna', remoteModelCatalogId: 'rmc-gpt-6-luna' };
+    const intent = createNimiCloudAIConfigCapabilityIntent({ capabilityContract: 'text.generate', connectorRef: 'connector-plan', implementation, providerModelTarget });
+    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      capabilities: [intent],
+      effectiveSelections: [{ capabilityContract: 'text.generate', state: 'ready', resource: { oneofKind: 'cloud', cloud: {
+        connector: { connectorRef: 'connector-plan', label: 'ChatGPT', provider: 'openai_chatgpt_plan', state: 'ready', reasons: [] },
+        target: { connectorRef: 'connector-plan', label: 'GPT-6 Luna', capabilityContract: 'text.generate', implementation, providerModelTarget, supportedFeatures: [], state: 'ready', reasons: [] },
+      } }, reasons: [] }],
+    });
+    const note = node.querySelector('[data-nimi-model-config-cloud] [data-nimi-model-config-chatgpt-plan="true"]');
+    expect(note?.textContent).toContain('Using ChatGPT plan');
+    expect(note?.textContent).toContain('signed-in ChatGPT plan limits');
   });
 
   it('asks for another Connector when the committed Connector is no longer offered', async () => {

@@ -59,6 +59,8 @@ export const DEFAULT_MODEL_CONFIG_COPY: Required<ModelConfigCopy> = Object.freez
   cloudTargetDialogDescription: 'Choose the provider model for this Connector.',
   cloudNoticeLabel: 'Cloud execution',
   cloudNoticeDescription: 'Requests may leave this device and incur provider charges.',
+  cloudChatGPTPlanLabel: 'Using ChatGPT plan',
+  cloudChatGPTPlanDescription: 'Eligible usage with this model counts toward the signed-in ChatGPT plan limits, not a Nimi charge.',
   cloudConnectorLabel: 'Configured Connector',
   cloudConnectorPlaceholder: 'Choose a connector',
   cloudLoadFailed: 'Cloud service, model, or account choices could not be loaded.',

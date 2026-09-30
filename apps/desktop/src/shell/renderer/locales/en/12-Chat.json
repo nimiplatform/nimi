@@ -688,5 +688,11 @@
   "markdownCopy": "Copy",
   "markdownCopied": "Copied!",
   "dismissOverlay": "Dismiss overlay",
-  "agentAdmissionUnconfirmed": "Your message may have been accepted, and stopping could not be confirmed. Your text is saved below. Check the conversation before sending it again."
+  "agentAdmissionUnconfirmed": "Your message may have been accepted, and stopping could not be confirmed. Your text is saved below. Check the conversation before sending it again.",
+  "settingsCloudChatGPTPlan": "Using ChatGPT plan",
+  "settingsCloudChatGPTPlanDescription": "Eligible usage with this model counts toward the signed-in ChatGPT plan limits, not a Nimi charge.",
+  "chatgptPlanUsageLimited": "Your ChatGPT plan has reached its usage limit for Nimi. Manage usage in ChatGPT, or choose another model in AI Capabilities.",
+  "chatgptPlanSignInEnded": "ChatGPT sign-in has ended. Sign in to ChatGPT again in Cloud Services, then send your message.",
+  "chatgptPlanModelUnavailable": "This ChatGPT account doesn't offer the selected model. Choose another model in AI Capabilities, then send your message.",
+  "chatgptPlanManageUsage": "Manage usage"
 }

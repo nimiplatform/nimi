@@ -50,7 +50,10 @@ type ConnectorRecord struct {
 	CreatedAt            int64                        `json:"created_at"`
 	UpdatedAt            int64                        `json:"updated_at"`
 	DeletePending        bool                         `json:"delete_pending,omitempty"`
-	CredentialCustodyRef string                       `json:"-"`
+	// OAuthRegistration is the non-secret projection of a managed OAuth
+	// registration; tokens stay only in sealed custody.
+	OAuthRegistration    *OAuthRegistration `json:"oauth_registration,omitempty"`
+	CredentialCustodyRef string             `json:"-"`
 }
 
 // ConnectorMutations describes mutable fields for Update.
@@ -61,6 +64,15 @@ type ConnectorMutations struct {
 	Status              *runtimev1.ConnectorStatus
 	AuthKind            *runtimev1.ConnectorAuthKind
 	ProviderAuthProfile *string
+	// SealedCredential derives the replacement sealed payload from the current
+	// one under the store lock, for credentials bound to their registration.
+	SealedCredential func(existing string) (string, *OAuthRegistration, error)
+}
+
+// OAuthRegistration identifies a managed OAuth registration without secrets.
+type OAuthRegistration struct {
+	ClientID     string `json:"client_id"`
+	AccountLabel string `json:"account_label,omitempty"`
 }
 
 // @nimi-authority: definition.nimi.runtime.ai-provider.connector-plane
@@ -69,6 +81,26 @@ type ConnectorStore struct {
 	mu           sync.Mutex
 	registryPath string
 	secretStore  SecretStore
+
+	chatGPTPlanRenewer  ChatGPTPlanTokenRenewer
+	chatGPTPlanLocks    chatGPTPlanRefreshLocks
+	chatGPTPlanBackoff  chatGPTPlanRenewalBackoff
+	accountAvailability AccountModelAvailability
+	clock               func() time.Time
+}
+
+// StoreOption configures optional Connector custody collaborators.
+type StoreOption func(*ConnectorStore)
+
+// WithChatGPTPlanRenewer binds the exact SIWC renewal exchange. Without it,
+// renewal fails closed and a still-valid access token remains usable.
+func WithChatGPTPlanRenewer(renewer ChatGPTPlanTokenRenewer) StoreOption {
+	return func(store *ConnectorStore) { store.chatGPTPlanRenewer = renewer }
+}
+
+// WithClock replaces the wall clock for deterministic custody tests.
+func WithClock(clock func() time.Time) StoreOption {
+	return func(store *ConnectorStore) { store.clock = clock }
 }
 
 // NewConnectorStore creates a store rooted at basePath.
@@ -79,18 +111,31 @@ func NewConnectorStore(basePath string) *ConnectorStore {
 // NewConnectorStoreWithSecretStore binds Runtime-service-owned credential
 // custody. Production callers must inject a protected service-principal store;
 // the default constructor intentionally fails closed for credential access.
-func NewConnectorStoreWithSecretStore(basePath string, secretStore SecretStore) *ConnectorStore {
+func NewConnectorStoreWithSecretStore(basePath string, secretStore SecretStore, options ...StoreOption) *ConnectorStore {
 	if secretStore == nil {
 		secretStore = newUnavailableSecretStore()
 	}
-	return newConnectorStore(basePath, secretStore)
+	return newConnectorStore(basePath, secretStore, options...)
 }
 
-func newConnectorStore(basePath string, secretStore SecretStore) *ConnectorStore {
-	return &ConnectorStore{
+func newConnectorStore(basePath string, secretStore SecretStore, options ...StoreOption) *ConnectorStore {
+	store := &ConnectorStore{
 		registryPath: filepath.Join(basePath, registryFileName),
 		secretStore:  secretStore,
 	}
+	for _, option := range options {
+		if option != nil {
+			option(store)
+		}
+	}
+	return store
+}
+
+func (s *ConnectorStore) now() time.Time {
+	if s.clock != nil {
+		return s.clock()
+	}
+	return time.Now()
 }
 
 // ResolveBasePath returns the default connector store base path.
@@ -218,6 +263,12 @@ func (s *ConnectorStore) createLocked(record ConnectorRecord, secretPayload stri
 
 // Update applies mutations to a connector record.
 func (s *ConnectorStore) Update(connectorID string, mutations ConnectorMutations) (ConnectorRecord, error) {
+	if mutations.SealedCredential != nil {
+		// Serialize explicit reauthorization with any in-flight renewal of
+		// the same registration so neither overwrites the other's generation.
+		unlock := s.chatGPTPlanLocks.lock(strings.TrimSpace(connectorID))
+		defer unlock()
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -266,11 +317,31 @@ func (s *ConnectorStore) Update(connectorID string, mutations ConnectorMutations
 			rec.HasCredential = false
 		}
 	}
+	if mutations.SealedCredential != nil {
+		existing, err := s.readStoredSecretPayloadLocked(connectorID)
+		if err != nil {
+			return ConnectorRecord{}, fmt.Errorf("read credential: %w", err)
+		}
+		payload, registration, err := mutations.SealedCredential(existing)
+		if err != nil {
+			return ConnectorRecord{}, err
+		}
+		if err := s.writeSecretPayloadLocked(connectorID, payload); err != nil {
+			return ConnectorRecord{}, fmt.Errorf("write credential: %w", err)
+		}
+		rec.HasCredential = true
+		rec.OAuthRegistration = registration
+	}
 
 	rec.UpdatedAt = time.Now().UnixMilli()
 
 	if err := s.persistRegistryLocked(records); err != nil {
 		return ConnectorRecord{}, fmt.Errorf("persist registry: %w", err)
+	}
+	if mutations.SealedCredential != nil {
+		// An explicit reauthorization replaces the token set; earlier
+		// renewal failures no longer defer its first renewal.
+		s.chatGPTPlanBackoff.clear(strings.TrimSpace(connectorID))
 	}
 	return *rec, nil
 }
@@ -341,6 +412,9 @@ func (s *ConnectorStore) CaptureRealtimeCredential(connectorID string) (Connecto
 	if err != nil {
 		return ConnectorRecord{}, "", err
 	}
+	if found && IsChatGPTPlanRecord(record) {
+		return ConnectorRecord{}, "", fmt.Errorf("connector %q has no Realtime credential route", connectorID)
+	}
 	if !found || record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE || !record.HasCredential {
 		return ConnectorRecord{}, "", fmt.Errorf("connector %q has no active Realtime credential", connectorID)
 	}
@@ -363,6 +437,10 @@ func (s *ConnectorStore) CaptureCredentialCustody(connectorID string, jobID stri
 	record, found, err := s.getRecordLocked(connectorID)
 	if err != nil {
 		return ConnectorRecord{}, "", err
+	}
+	if found && IsChatGPTPlanRecord(record) {
+		// SIWC custody captures only a renewed request-scoped token.
+		return ConnectorRecord{}, "", fmt.Errorf("connector %q requires ChatGPT plan request credential capture", connectorID)
 	}
 	if !found || record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE || !record.HasCredential {
 		return ConnectorRecord{}, "", fmt.Errorf("connector %q has no credential custody", connectorID)

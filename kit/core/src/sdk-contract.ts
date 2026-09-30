@@ -139,6 +139,10 @@ export {
   withNimiRuntimeIdempotencyMetadata,
 } from '@nimiplatform/sdk/runtime';
 export {
+  NIMI_CHATGPT_PLAN_USAGE_URL,
+  nimiProviderUsesChatGPTPlan,
+} from '@nimiplatform/sdk/runtime';
+export {
   ExecutionMode,
   MusicScoreFormat, MusicScoreConditioning, MusicGenerationTermination, MusicScoreOrigin,
   MusicTranscriptionFormat, MusicTranscriptionPart, MusicTranscriptionCompleteness,

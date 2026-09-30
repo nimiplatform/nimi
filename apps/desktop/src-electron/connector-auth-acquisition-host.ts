@@ -6,10 +6,13 @@ import type { CoreUnaryRequest } from '@nimiplatform/sdk/types';
 import { getRuntimeWireCodec } from '@nimiplatform/sdk/runtime/generated';
 import {
   acquireNimiManagedConnectorCredentialInHost,
+  CONNECTOR_AUTH_ACQUISITION_PROFILES,
+  NimiConnectorAuthAcquisitionError,
+  type NimiConnectorAuthAcquisitionCallback,
+  type NimiConnectorAuthAcquisitionCallbackRequest,
+  type NimiConnectorAuthAcquisitionCrypto,
   type NimiConnectorAuthAcquisitionHttpRequest,
   type NimiConnectorAuthAcquisitionHttpResponse,
-  type NimiConnectorAuthAcquisitionTokenExchangeInput,
-  type NimiConnectorAuthAcquisitionTokenExchangeResult,
   type NimiManagedConnectorCredentialRuntime,
 } from '@nimiplatform/sdk/runtime/host';
 import {
@@ -26,11 +29,12 @@ import {
 } from '../src/shell/shared/connector-auth-acquisition-contract.js';
 
 const DESKTOP_CONNECTOR_RUNTIME_METHODS = new Set([
+  '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors',
   '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector',
   '/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector',
 ]);
 const REQUEST_ID_PATTERN = /^connector-auth-[a-zA-Z0-9_-]{12,160}$/u;
-const INPUT_KEYS = new Set(['requestId', 'profileId', 'connectorId', 'provider', 'endpoint', 'label']);
+const INPUT_KEYS = new Set(['requestId', 'profileId', 'connectorId', 'label']);
 const DESKTOP_ACCOUNT_PRODUCT_REQUEST_TIMEOUT_MS = 300_000;
 let desktopCredentialUnaryRequestCounter = 0;
 
@@ -108,11 +112,12 @@ export function createDesktopElectronConnectorAuthAcquisitionHost(input: {
   ) => Promise<NimiConnectorAuthAcquisitionHttpResponse>;
   readonly runtime: NimiManagedConnectorCredentialRuntime;
   readonly openExternalUrl: (url: string) => Promise<void> | void;
-  readonly oauthTokenExchange: (
-    input: NimiConnectorAuthAcquisitionTokenExchangeInput,
+  readonly startAuthorizationCallback: (
+    request: NimiConnectorAuthAcquisitionCallbackRequest,
     signal?: AbortSignal,
-  ) => Promise<NimiConnectorAuthAcquisitionTokenExchangeResult>;
-  readonly sleep?: (milliseconds: number, signal?: AbortSignal) => Promise<void>;
+  ) => Promise<NimiConnectorAuthAcquisitionCallback>;
+  readonly hostIdentifier: () => Promise<string>;
+  readonly crypto?: NimiConnectorAuthAcquisitionCrypto;
   readonly now?: () => number;
   readonly authorizeSender: (event: NimiElectronIpcMainInvokeEvent) => boolean;
   readonly subscribeSenderInvalidation?: (listener: () => void) => () => void;
@@ -186,6 +191,9 @@ export function createDesktopElectronConnectorAuthAcquisitionHost(input: {
       };
       active.set(request.requestId, record);
       const runtime: NimiManagedConnectorCredentialRuntime = {
+        listConnectors(runtimeRequest, callOptions) {
+          return input.runtime.listConnectors(runtimeRequest, callOptions);
+        },
         createConnector(runtimeRequest, callOptions) {
           record.finalWriteDispatched = true;
           return input.runtime.createConnector(runtimeRequest, callOptions);
@@ -198,8 +206,6 @@ export function createDesktopElectronConnectorAuthAcquisitionHost(input: {
       const operation = acquireNimiManagedConnectorCredentialInHost({
         profileId: request.profileId,
         connectorId: request.connectorId,
-        provider: request.provider,
-        endpoint: request.endpoint,
         label: request.label,
         runtime,
         signal: controller.signal,
@@ -211,31 +217,32 @@ export function createDesktopElectronConnectorAuthAcquisitionHost(input: {
           proxyHttp: input.proxyHttp,
           openExternalUrl: async (url, signal) => {
             throwIfAborted(signal);
-            await input.openExternalUrl(validatedDeviceVerificationUrl(url));
+            await input.openExternalUrl(validatedAuthorizationUrl(request.profileId, url));
             throwIfAborted(signal);
             return { opened: true };
           },
-          oauthTokenExchange: input.oauthTokenExchange,
-          sleep: input.sleep ?? sleepWithSignal,
+          startAuthorizationCallback: input.startAuthorizationCallback,
+          hostIdentifier: () => input.hostIdentifier(),
+          crypto: input.crypto ?? (globalThis.crypto as NimiConnectorAuthAcquisitionCrypto),
           now: input.now ?? Date.now,
         },
         onPending: (state) => {
           throwIfAborted(controller.signal);
           sendEvent(desktopManagedConnectorAuthPendingEvent(request.requestId), {
-            userCode: state.userCode,
-            verificationUrl: validatedDeviceVerificationUrl(state.verificationUrl),
+            authorizationUrl: validatedAuthorizationUrl(request.profileId, state.authorizationUrl),
             expiresInSeconds: state.expiresInSeconds,
-            pollIntervalSeconds: state.pollIntervalSeconds,
           });
         },
       });
       try {
-        const result = await operation;
+        const result = await operation.catch((error: unknown) => {
+          throw desktopAcquisitionError(error);
+        });
         return {
           profileId: result.profileId,
           providerAuthProfile: result.providerAuthProfile,
           connectorId: result.connectorId,
-          expiresAt: result.expiresAt,
+          ...(result.accountLabel ? { accountLabel: result.accountLabel } : {}),
         };
       } finally {
         active.delete(request.requestId);
@@ -285,8 +292,6 @@ function parseAcquisitionRequest(payload: Readonly<Record<string, unknown>>): {
   readonly requestId: string;
   readonly profileId: string;
   readonly connectorId?: string;
-  readonly provider?: string;
-  readonly endpoint?: string;
   readonly label?: string;
 } {
   const envelope = exactRecord(payload, new Set(['payload']), 'managed connector acquisition envelope');
@@ -304,8 +309,6 @@ function parseAcquisitionRequest(payload: Readonly<Record<string, unknown>>): {
     requestId,
     profileId: requiredText(request.profileId, 'profileId'),
     connectorId: optionalText(request.connectorId),
-    provider: optionalText(request.provider),
-    endpoint: optionalText(request.endpoint),
     label: optionalText(request.label),
   };
 }
@@ -333,23 +336,6 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {
     throw signal.reason ?? new DOMException('Managed connector acquisition was canceled', 'AbortError');
   }
-}
-
-async function sleepWithSignal(milliseconds: number, signal?: AbortSignal): Promise<void> {
-  throwIfAborted(signal);
-  await new Promise<void>((resolve, reject) => {
-    const cleanup = () => signal?.removeEventListener('abort', onAbort);
-    const onAbort = () => {
-      clearTimeout(timer);
-      cleanup();
-      reject(signal?.reason ?? new DOMException('Managed connector acquisition was canceled', 'AbortError'));
-    };
-    const timer = setTimeout(() => {
-      cleanup();
-      resolve();
-    }, milliseconds);
-    signal?.addEventListener('abort', onAbort, { once: true });
-  });
 }
 
 function exactRecord(
@@ -403,27 +389,54 @@ function optionalText(value: unknown): string | undefined {
   return value || undefined;
 }
 
-function validatedDeviceVerificationUrl(value: string): string {
-  let parsed: URL;
+// Only the admitted profile's exact authorization endpoint may open in the
+// system browser or reach the renderer as a reopen link.
+function validatedAuthorizationUrl(profileId: string, value: string): string {
+  const profile = Object.hasOwn(CONNECTOR_AUTH_ACQUISITION_PROFILES, profileId)
+    ? CONNECTOR_AUTH_ACQUISITION_PROFILES[profileId]
+    : undefined;
+  let parsed: URL | undefined;
   try {
     parsed = new URL(value);
   } catch {
-    throw connectorAuthError(
-      'desktop-managed-connector-verification-url-invalid',
-      'retry_managed_connector_authorization',
-      'Managed connector authorization returned an invalid verification URL.',
-      'invalid-payload',
-    );
+    parsed = undefined;
   }
-  if (parsed.protocol !== 'https:' || parsed.username || parsed.password) {
+  if (!profile || !parsed || parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash ||
+    `${parsed.origin}${parsed.pathname}` !== profile.authorizationUrl) {
     throw connectorAuthError(
-      'desktop-managed-connector-verification-url-invalid',
+      'desktop-managed-connector-authorization-url-invalid',
       'retry_managed_connector_authorization',
-      'Managed connector authorization requires an HTTPS verification URL.',
+      'Managed connector authorization produced an unadmitted browser URL.',
       'invalid-payload',
     );
   }
   return parsed.toString();
+}
+
+const ACQUISITION_ERRORS: Readonly<Record<string, readonly [string, string, string]>> = {
+  AUTHORIZATION_DENIED: ['desktop-chatgpt-plan-authorization-denied', 'retry_chatgpt_plan_sign_in', 'ChatGPT sign-in was canceled or denied.'],
+  PLAN_USAGE_NOT_GRANTED: ['desktop-chatgpt-plan-usage-not-granted', 'enable_chatgpt_plan_usage_and_retry', 'ChatGPT plan usage was not granted for this sign-in.'],
+  AUTHORIZATION_INVALID: ['desktop-chatgpt-plan-authorization-invalid', 'retry_chatgpt_plan_sign_in', 'ChatGPT sign-in could not be verified.'],
+  REGISTRATION_UNAVAILABLE: ['desktop-chatgpt-plan-registration-unavailable', 'add_chatgpt_plan_account_again', 'This connector has no ChatGPT plan registration to reauthorize.'],
+  BROWSER_UNAVAILABLE: ['desktop-chatgpt-plan-browser-unavailable', 'open_browser_and_retry', 'The browser could not be opened for ChatGPT sign-in.'],
+};
+
+// Maps SDK acquisition outcomes to stable host errors without provider text,
+// codes or tokens; Runtime typed errors and cancellation pass through.
+function desktopAcquisitionError(error: unknown): unknown {
+  if (error instanceof NimiConnectorAuthAcquisitionError) {
+    const [reasonCode, actionHint, message] = ACQUISITION_ERRORS[error.code] ?? ACQUISITION_ERRORS.AUTHORIZATION_INVALID!;
+    return connectorAuthError(reasonCode, actionHint, message, 'invalid-payload');
+  }
+  if (error instanceof DOMException && error.name === 'TimeoutError') {
+    return connectorAuthError(
+      'desktop-managed-connector-authorization-timeout',
+      'retry_chatgpt_plan_sign_in',
+      'ChatGPT sign-in did not finish in time.',
+      'capability-unavailable',
+    );
+  }
+  return error;
 }
 
 function connectorAuthError(

@@ -1,3 +1,4 @@
+import { NIMI_CHATGPT_PLAN_USAGE_URL } from '@nimiplatform/sdk/runtime';
 import type {
   StudioNonSuccess,
   StudioNonSuccessDiagnostics,
@@ -46,6 +47,9 @@ const MEDIA_OPTION_UNSUPPORTED_REASON_CODE = 'AI_MEDIA_OPTION_UNSUPPORTED';
 const MEDIA_CODEC_UNAVAILABLE_REASON_CODE = 'AI_MEDIA_CODEC_UNAVAILABLE';
 const VOICE_INPUT_INVALID_REASON_CODE = 'AI_VOICE_INPUT_INVALID';
 const VOICE_TARGET_MISMATCH_REASON_CODE = 'AI_VOICE_TARGET_MODEL_MISMATCH';
+// The cloud service refused the request under its rate or usage limit, which
+// for a ChatGPT plan Connector is the plan's usage limit for this app.
+const PROVIDER_RATE_LIMITED_REASON_CODE = 'AI_PROVIDER_RATE_LIMITED';
 
 // A committed target that Runtime can no longer run is recovered by choosing a
 // target again (or repairing its Connector in Desktop), never by retrying the
@@ -57,6 +61,7 @@ const TARGET_RESELECTION_KEY_SEGMENTS: ReadonlyMap<string, string> = new Map([
   ['AI_CONNECTOR_CREDENTIAL_MISSING', 'connectorCredentialMissing'],
   ['AI_CONNECTOR_NOT_FOUND', 'connectorNotFound'],
   ['AI_CONFIG_INVALID', 'configInvalid'],
+  ['AI_MODEL_NOT_FOUND', 'modelNotFound'],
 ]);
 
 function targetReselectionKeySegment(diagnostics?: StudioNonSuccessDiagnostics): string {
@@ -77,6 +82,7 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
   if (diagnostics?.reasonCode === MEDIA_CODEC_UNAVAILABLE_REASON_CODE) return translate('NonSuccess.message.mediaCodecUnavailable');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.geometryUnsupported');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.message.mediaOptionUnsupported');
+  if (diagnostics?.reasonCode === PROVIDER_RATE_LIMITED_REASON_CODE) return translate('NonSuccess.message.providerRateLimited');
   const reselection = targetReselectionKeySegment(diagnostics);
   if (reselection) return translate(`NonSuccess.message.${reselection}`);
   if (reason === 'input-invalid' && capabilityId === 'vision.locate') return translate('VisionLocate.invalidInput');
@@ -94,6 +100,7 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (diagnostics?.reasonCode === MEDIA_CODEC_UNAVAILABLE_REASON_CODE) return translate('NonSuccess.action.mediaCodecUnavailable');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.chooseSupportedGeometry');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.mediaOptionUnsupported');
+  if (diagnostics?.reasonCode === PROVIDER_RATE_LIMITED_REASON_CODE) return translate('NonSuccess.action.providerRateLimited', { usageUrl: NIMI_CHATGPT_PLAN_USAGE_URL });
   const reselection = targetReselectionKeySegment(diagnostics);
   if (reselection) return translate(`NonSuccess.action.${reselection}`);
   if (reason === 'input-invalid' && capabilityId === 'vision.locate') return translate('VisionLocate.correctInput');

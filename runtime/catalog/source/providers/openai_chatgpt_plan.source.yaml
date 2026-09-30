@@ -1,0 +1,77 @@
+schema_version: 3
+provider: openai_chatgpt_plan
+catalog_version: 2026-09-30-siwc-gpt6-cohort
+generated_target: runtime/catalog/providers/openai_chatgpt_plan.yaml
+
+runtime:
+  inventory_mode: static_source
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: false
+  default_endpoint: https://api.openai.com/v1
+  requires_explicit_endpoint: false
+
+defaults:
+  provider: openai_chatgpt_plan
+  model_type: chat
+  capabilities: []
+  context_window_tokens: 922000
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-09-30
+    notes: Eligible usage counts against the signed-in user's ChatGPT plan and its app limits; standard API-key token billing does not apply to this route.
+
+sources:
+  - source_id: openai_siwc_local_oss
+    url: https://developers.openai.com/siwc/token-sharing-open-source
+    retrieved_at: 2026-09-30
+    note: Official ChatGPT plan usage boundary for open-source, locally hosted apps; paid or remotely hosted apps follow a separate interest process.
+  - source_id: openai_siwc_models_inference
+    url: https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference
+    retrieved_at: 2026-09-30
+    note: Official account-scoped GET /v1/models (models[].slug, display_name, visibility) and streaming POST /v1/responses with store false; do not use ChatGPT backend-api.
+  - source_id: openai_siwc_preview_limitations
+    url: https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations
+    retrieved_at: 2026-09-30
+    note: Official preview request limits, grouped function tools, unsupported fields and unsupported hosted tools, audio, video and image generation.
+  - source_id: openai_codex_models_guide_2026_09_30
+    url: https://learn.chatgpt.com/docs/models
+    retrieved_at: 2026-09-30
+    note: Official Codex model guidance recommends gpt-6.1-sol, gpt-6-astra and gpt-6-luna; availability depends on plan, sign-in method and rollout.
+  - source_id: openai_gpt_6_1_sol_doc
+    url: https://developers.openai.com/api/docs/models/gpt-6.1-sol
+    retrieved_at: 2026-09-30
+    note: Official model page documents text and image input, text output, a 1,050,000-token context window and 922,000 maximum input tokens.
+  - source_id: openai_gpt_6_astra_doc
+    url: https://developers.openai.com/api/docs/models/gpt-6-astra
+    retrieved_at: 2026-09-30
+    note: Official model page documents text and image input, text output, a 1,050,000-token context window and 922,000 maximum input tokens.
+  - source_id: openai_gpt_6_luna_doc
+    url: https://developers.openai.com/api/docs/models/gpt-6-luna
+    retrieved_at: 2026-09-30
+    note: Official model page documents text and image input, text output, a 1,050,000-token context window and 922,000 maximum input tokens.
+
+models:
+  - model_id: gpt-6.1-sol
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities: [text.generate]
+    features: [input.image]
+    source_ids: [openai_siwc_models_inference, openai_codex_models_guide_2026_09_30, openai_gpt_6_1_sol_doc]
+
+  - model_id: gpt-6-astra
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities: [text.generate]
+    features: [input.image]
+    source_ids: [openai_siwc_models_inference, openai_codex_models_guide_2026_09_30, openai_gpt_6_astra_doc]
+
+  - model_id: gpt-6-luna
+    model_type: chat
+    updated_at: 2026-09-30
+    capabilities: [text.generate]
+    features: [input.image]
+    source_ids: [openai_siwc_models_inference, openai_codex_models_guide_2026_09_30, openai_gpt_6_luna_doc]

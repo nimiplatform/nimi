@@ -688,5 +688,11 @@
   "markdownCopy": "复制",
   "markdownCopied": "已复制！",
   "dismissOverlay": "关闭浮层",
-  "agentAdmissionUnconfirmed": "消息可能已被接收，目前无法确认是否已停止。原文已保留在下方，请先查看会话，再决定是否重发。"
+  "agentAdmissionUnconfirmed": "消息可能已被接收，目前无法确认是否已停止。原文已保留在下方，请先查看会话，再决定是否重发。",
+  "settingsCloudChatGPTPlan": "正在使用 ChatGPT 计划",
+  "settingsCloudChatGPTPlanDescription": "此模型中符合条件的使用会计入已登录 ChatGPT 计划的额度，Nimi 不收费。",
+  "chatgptPlanUsageLimited": "你的 ChatGPT 计划在 Nimi 中的用量已达上限。请在 ChatGPT 中管理用量，或在 AI 能力中选择其他模型。",
+  "chatgptPlanSignInEnded": "ChatGPT 登录已结束。请在“云服务”中重新登录 ChatGPT，再发送消息。",
+  "chatgptPlanModelUnavailable": "此 ChatGPT 账户不提供所选模型。请在 AI 能力中选择其他模型，再发送消息。",
+  "chatgptPlanManageUsage": "管理用量"
 }

@@ -27,7 +27,6 @@ import {
   createNimiElectronDesktopControlHost,
   createNimiElectronDeveloperModeStatusProbe,
   createNimiElectronRuntimeLifecycleHost,
-  exchangeElectronOauthTokenInHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronFileDialogOpenPayload,
@@ -37,6 +36,10 @@ import {
   type RegisteredNimiElectronRuntimeBridge,
 } from '@nimiplatform/kit/shell/electron/main';
 import { buildAvatarHostHandoffRequest } from '@nimiplatform/kit/features/avatar/headless';
+import {
+  readOrCreateDesktopConnectorAuthHostId,
+  startDesktopConnectorAuthCallback,
+} from './connector-auth-callback-host.js';
 import type { NimiDesktopOpenIntentEnvelope } from '@nimiplatform/kit/core/desktop-open';
 import {
   createDesktopElectronLocalDevelopmentHost,
@@ -567,16 +570,8 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         createNimiElectronDesktopControlHost(),
       ),
       openExternalUrl: openDesktopExternalUrl,
-      oauthTokenExchange: async (input, signal) => {
-        const result = await exchangeElectronOauthTokenInHost(input, undefined, signal);
-        return {
-          accessToken: result.accessToken,
-          refreshToken: result.refreshToken,
-          tokenType: result.tokenType,
-          expiresIn: result.expiresIn,
-          scope: result.scope,
-        };
-      },
+      startAuthorizationCallback: startDesktopConnectorAuthCallback,
+      hostIdentifier: () => readOrCreateDesktopConnectorAuthHostId(app.getPath('userData')),
       authorizeSender: authorizeDesktopRendererSender,
       subscribeSenderInvalidation: (listener) => {
         desktopSenderInvalidationListeners.add(listener);

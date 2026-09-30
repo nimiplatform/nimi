@@ -15,5 +15,4 @@ token_probe_provider_ids:
   - openrouter
   - openai
   - openai_compatible
-  - openai_codex
   - typesafe

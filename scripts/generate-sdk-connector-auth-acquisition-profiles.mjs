@@ -15,17 +15,16 @@ const allowedProfileFields = new Set([
   'profile_id',
   'provider_auth_profile',
   'issuer',
-  'client_id',
-  'device_authorization_url',
-  'device_token_url',
-  'redirect_uri',
-  'fallback_verification_url',
-  'token_exchange_provider',
-  'default_poll_interval_seconds',
-  'min_poll_interval_seconds',
-  'max_poll_interval_seconds',
-  'default_expires_in_seconds',
-  'max_expires_in_seconds',
+  'initial_client_id',
+  'agent_name_hint',
+  'authorization_url',
+  'token_url',
+  'jwks_url',
+  'resource',
+  'scopes',
+  'callback_host',
+  'callback_path',
+  'acquisition_timeout_seconds',
 ]);
 
 function normalizeString(value) {
@@ -61,8 +60,8 @@ function requireHttpsUrl(entry, field, profileID) {
   } catch {
     throw new Error(`profile ${profileID} ${field} must be an absolute URL`);
   }
-  if (parsed.protocol !== 'https:') {
-    throw new Error(`profile ${profileID} ${field} must use https`);
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash) {
+    throw new Error(`profile ${profileID} ${field} must be an exact https URL`);
   }
   return value;
 }
@@ -97,6 +96,14 @@ function assertEntriesMatch(raw, profiles) {
   }
 }
 
+function parseScopes(entry, profileID) {
+  const scopes = Array.isArray(entry?.scopes) ? entry.scopes.map(normalizeString) : [];
+  if (scopes.length === 0 || scopes.some((scope) => !scope || /\s/u.test(scope)) || new Set(scopes).size !== scopes.length) {
+    throw new Error(`profile ${profileID} must define unique non-empty scopes`);
+  }
+  return scopes;
+}
+
 function parseProfiles(raw, runtimeAuthProfileIDs) {
   const profiles = Array.isArray(raw?.profiles) ? raw.profiles : [];
   const seenIDs = new Set();
@@ -118,37 +125,35 @@ function parseProfiles(raw, runtimeAuthProfileIDs) {
     if (!runtimeAuthProfileIDs.has(providerAuthProfile)) {
       throw new Error(`profile ${profileId} references unknown provider_auth_profile ${providerAuthProfile}`);
     }
-
-    const defaultPollIntervalSeconds = requirePositiveInt(entry, 'default_poll_interval_seconds', profileId);
-    const minPollIntervalSeconds = requirePositiveInt(entry, 'min_poll_interval_seconds', profileId);
-    const maxPollIntervalSeconds = requirePositiveInt(entry, 'max_poll_interval_seconds', profileId);
-    const defaultExpiresInSeconds = requirePositiveInt(entry, 'default_expires_in_seconds', profileId);
-    const maxExpiresInSeconds = requirePositiveInt(entry, 'max_expires_in_seconds', profileId);
-    if (defaultPollIntervalSeconds < minPollIntervalSeconds) {
-      throw new Error(`profile ${profileId} default_poll_interval_seconds must be >= min_poll_interval_seconds`);
+    // The browser callback is always a fresh 127.0.0.1 port with this fixed
+    // path; only the port may vary between authorization attempts.
+    const callbackHost = requireNonEmptyString(entry, 'callback_host', profileId);
+    if (callbackHost !== '127.0.0.1') {
+      throw new Error(`profile ${profileId} callback_host must be the 127.0.0.1 loopback address`);
     }
-    if (defaultPollIntervalSeconds > maxPollIntervalSeconds) {
-      throw new Error(`profile ${profileId} default_poll_interval_seconds must be <= max_poll_interval_seconds`);
+    const callbackPath = requireNonEmptyString(entry, 'callback_path', profileId);
+    if (!/^\/[A-Za-z0-9/_-]+$/u.test(callbackPath)) {
+      throw new Error(`profile ${profileId} callback_path must be an absolute path without query or fragment`);
     }
-    if (defaultExpiresInSeconds > maxExpiresInSeconds) {
-      throw new Error(`profile ${profileId} default_expires_in_seconds must be <= max_expires_in_seconds`);
+    const acquisitionTimeoutSeconds = requirePositiveInt(entry, 'acquisition_timeout_seconds', profileId);
+    if (acquisitionTimeoutSeconds > 3600) {
+      throw new Error(`profile ${profileId} acquisition_timeout_seconds must not exceed 3600`);
     }
 
     return {
       profileId,
       providerAuthProfile,
       issuer: requireHttpsUrl(entry, 'issuer', profileId),
-      clientId: requireNonEmptyString(entry, 'client_id', profileId),
-      deviceAuthorizationUrl: requireHttpsUrl(entry, 'device_authorization_url', profileId),
-      deviceTokenUrl: requireHttpsUrl(entry, 'device_token_url', profileId),
-      redirectUri: requireHttpsUrl(entry, 'redirect_uri', profileId),
-      fallbackVerificationUrl: requireHttpsUrl(entry, 'fallback_verification_url', profileId),
-      tokenExchangeProvider: requireNonEmptyString(entry, 'token_exchange_provider', profileId),
-      defaultPollIntervalSeconds,
-      minPollIntervalSeconds,
-      maxPollIntervalSeconds,
-      defaultExpiresInSeconds,
-      maxExpiresInSeconds,
+      initialClientId: requireNonEmptyString(entry, 'initial_client_id', profileId),
+      agentNameHint: requireNonEmptyString(entry, 'agent_name_hint', profileId),
+      authorizationUrl: requireHttpsUrl(entry, 'authorization_url', profileId),
+      tokenUrl: requireHttpsUrl(entry, 'token_url', profileId),
+      jwksUrl: requireHttpsUrl(entry, 'jwks_url', profileId),
+      resource: requireHttpsUrl(entry, 'resource', profileId),
+      scopes: parseScopes(entry, profileId),
+      callbackHost,
+      callbackPath,
+      acquisitionTimeoutSeconds,
     };
   }).sort((left, right) => left.profileId.localeCompare(right.profileId));
 
@@ -161,43 +166,48 @@ function quoteTS(value) {
 }
 
 function renderTS(profiles) {
-  const records = profiles.map((profile) => (
-    `  ${quoteTS(profile.profileId)}: {\n` +
-    `    profileId: ${quoteTS(profile.profileId)},\n` +
-    `    providerAuthProfile: ${quoteTS(profile.providerAuthProfile)},\n` +
-    `    issuer: ${quoteTS(profile.issuer)},\n` +
-    `    clientId: ${quoteTS(profile.clientId)},\n` +
-    `    deviceAuthorizationUrl: ${quoteTS(profile.deviceAuthorizationUrl)},\n` +
-    `    deviceTokenUrl: ${quoteTS(profile.deviceTokenUrl)},\n` +
-    `    redirectUri: ${quoteTS(profile.redirectUri)},\n` +
-    `    fallbackVerificationUrl: ${quoteTS(profile.fallbackVerificationUrl)},\n` +
-    `    tokenExchangeProvider: ${quoteTS(profile.tokenExchangeProvider)},\n` +
-    `    defaultPollIntervalSeconds: ${profile.defaultPollIntervalSeconds},\n` +
-    `    minPollIntervalSeconds: ${profile.minPollIntervalSeconds},\n` +
-    `    maxPollIntervalSeconds: ${profile.maxPollIntervalSeconds},\n` +
-    `    defaultExpiresInSeconds: ${profile.defaultExpiresInSeconds},\n` +
-    `    maxExpiresInSeconds: ${profile.maxExpiresInSeconds},\n` +
-    `  },`
-  )).join('\n');
-
-  return `// Code generated by scripts/generate-sdk-connector-auth-acquisition-profiles.mjs. DO NOT EDIT.\n\n` +
-    `export type ConnectorAuthAcquisitionProfileSpec = {\n` +
-    `  profileId: string;\n` +
-    `  providerAuthProfile: string;\n` +
-    `  issuer: string;\n` +
-    `  clientId: string;\n` +
-    `  deviceAuthorizationUrl: string;\n` +
-    `  deviceTokenUrl: string;\n` +
-    `  redirectUri: string;\n` +
-    `  fallbackVerificationUrl: string;\n` +
-    `  tokenExchangeProvider: string;\n` +
-    `  defaultPollIntervalSeconds: number;\n` +
-    `  minPollIntervalSeconds: number;\n` +
-    `  maxPollIntervalSeconds: number;\n` +
-    `  defaultExpiresInSeconds: number;\n` +
-    `  maxExpiresInSeconds: number;\n` +
-    `};\n\n` +
-    `export const CONNECTOR_AUTH_ACQUISITION_PROFILES: Record<string, ConnectorAuthAcquisitionProfileSpec> = {\n${records}\n};\n`;
+  const lines = [
+    '// Code generated by scripts/generate-sdk-connector-auth-acquisition-profiles.mjs. DO NOT EDIT.',
+    '',
+    'export type ConnectorAuthAcquisitionProfileSpec = {',
+    '  profileId: string;',
+    '  providerAuthProfile: string;',
+    '  issuer: string;',
+    '  initialClientId: string;',
+    '  agentNameHint: string;',
+    '  authorizationUrl: string;',
+    '  tokenUrl: string;',
+    '  jwksUrl: string;',
+    '  resource: string;',
+    '  scopes: readonly string[];',
+    '  callbackHost: string;',
+    '  callbackPath: string;',
+    '  acquisitionTimeoutSeconds: number;',
+    '};',
+    '',
+    'export const CONNECTOR_AUTH_ACQUISITION_PROFILES: Record<string, ConnectorAuthAcquisitionProfileSpec> = {',
+  ];
+  for (const profile of profiles) {
+    lines.push(
+      `  ${quoteTS(profile.profileId)}: {`,
+      `    profileId: ${quoteTS(profile.profileId)},`,
+      `    providerAuthProfile: ${quoteTS(profile.providerAuthProfile)},`,
+      `    issuer: ${quoteTS(profile.issuer)},`,
+      `    initialClientId: ${quoteTS(profile.initialClientId)},`,
+      `    agentNameHint: ${quoteTS(profile.agentNameHint)},`,
+      `    authorizationUrl: ${quoteTS(profile.authorizationUrl)},`,
+      `    tokenUrl: ${quoteTS(profile.tokenUrl)},`,
+      `    jwksUrl: ${quoteTS(profile.jwksUrl)},`,
+      `    resource: ${quoteTS(profile.resource)},`,
+      `    scopes: [${profile.scopes.map(quoteTS).join(', ')}],`,
+      `    callbackHost: ${quoteTS(profile.callbackHost)},`,
+      `    callbackPath: ${quoteTS(profile.callbackPath)},`,
+      `    acquisitionTimeoutSeconds: ${profile.acquisitionTimeoutSeconds},`,
+      '  },',
+    );
+  }
+  lines.push('};', '');
+  return lines.join('\n');
 }
 
 async function main() {

@@ -131,6 +131,7 @@ export * from './audit-projections';
 export * from './desktop-audit';
 export * from './bridge-config';
 export * from './connector-auth-acquisition-client';
+export * from './chatgpt-plan';
 export * from './connector-inventory';
 export * from './cloud-ai-config.js';
 export * from './config-projections';

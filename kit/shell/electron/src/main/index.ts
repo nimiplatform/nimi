@@ -30,10 +30,6 @@ export {
 } from './local-app-host.js';
 export { resolveElectronRuntimeDefaults } from './runtime.js';
 export {
-  exchangeElectronOauthTokenInHost,
-  type NimiElectronOauthTokenExchangeFetch,
-  type NimiElectronOauthTokenExchangeInput,
-  type NimiElectronOauthTokenExchangeResult,
 } from './oauth.js';
 export {
   createNimiElectronFixedRuntimeLifecycleHost,

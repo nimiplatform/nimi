@@ -72,6 +72,26 @@ export interface Connector {
      * @generated from protobuf field: string provider_auth_profile = 14
      */
     providerAuthProfile: string;
+    /**
+     * Non-secret identity of a managed OAuth registration, used only to show the
+     * account and to start explicit reauthorization. Tokens stay in custody.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorOAuthRegistration oauth_registration = 15
+     */
+    oauthRegistration?: ConnectorOAuthRegistration;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConnectorOAuthRegistration
+ */
+export interface ConnectorOAuthRegistration {
+    /**
+     * @generated from protobuf field: string issued_client_id = 1
+     */
+    issuedClientId: string;
+    /**
+     * @generated from protobuf field: string account_label = 2
+     */
+    accountLabel: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CreateConnectorRequest
@@ -1181,7 +1201,8 @@ class Connector$Type extends MessageType<Connector> {
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 13, name: "auth_kind", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorAuthKind", ConnectorAuthKind, "CONNECTOR_AUTH_KIND_"] },
-            { no: 14, name: "provider_auth_profile", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 14, name: "provider_auth_profile", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "oauth_registration", kind: "message", T: () => ConnectorOAuthRegistration }
         ]);
     }
     create(value?: PartialMessage<Connector>): Connector {
@@ -1245,6 +1266,9 @@ class Connector$Type extends MessageType<Connector> {
                 case /* string provider_auth_profile */ 14:
                     message.providerAuthProfile = reader.string();
                     break;
+                case /* nimi.runtime.v1.ConnectorOAuthRegistration oauth_registration */ 15:
+                    message.oauthRegistration = ConnectorOAuthRegistration.internalBinaryRead(reader, reader.uint32(), options, message.oauthRegistration);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1296,6 +1320,9 @@ class Connector$Type extends MessageType<Connector> {
         /* string provider_auth_profile = 14; */
         if (message.providerAuthProfile !== "")
             writer.tag(14, WireType.LengthDelimited).string(message.providerAuthProfile);
+        /* nimi.runtime.v1.ConnectorOAuthRegistration oauth_registration = 15; */
+        if (message.oauthRegistration)
+            ConnectorOAuthRegistration.internalBinaryWrite(message.oauthRegistration, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1306,6 +1333,61 @@ class Connector$Type extends MessageType<Connector> {
  * @generated MessageType for protobuf message nimi.runtime.v1.Connector
  */
 export const Connector = new Connector$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConnectorOAuthRegistration$Type extends MessageType<ConnectorOAuthRegistration> {
+    constructor() {
+        super("nimi.runtime.v1.ConnectorOAuthRegistration", [
+            { no: 1, name: "issued_client_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "account_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ConnectorOAuthRegistration>): ConnectorOAuthRegistration {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.issuedClientId = "";
+        message.accountLabel = "";
+        if (value !== undefined)
+            reflectionMergePartial<ConnectorOAuthRegistration>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectorOAuthRegistration): ConnectorOAuthRegistration {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string issued_client_id */ 1:
+                    message.issuedClientId = reader.string();
+                    break;
+                case /* string account_label */ 2:
+                    message.accountLabel = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConnectorOAuthRegistration, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string issued_client_id = 1; */
+        if (message.issuedClientId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.issuedClientId);
+        /* string account_label = 2; */
+        if (message.accountLabel !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.accountLabel);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConnectorOAuthRegistration
+ */
+export const ConnectorOAuthRegistration = new ConnectorOAuthRegistration$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
     constructor() {

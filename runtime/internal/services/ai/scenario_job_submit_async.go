@@ -98,11 +98,9 @@ func (s *Service) submitScenarioAsyncJob(
 		TraceId:           effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	if err := s.bindCloudCredentialCustody(jobID, effective.resolvedAssembly); err != nil {
+	if err := s.bindCloudCredentialCustody(ctx, jobID, effective.resolvedAssembly); err != nil {
 		cancel()
-		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-			Message: "Cloud ScenarioJob credential custody could not be captured",
-		}))
+		return fail(cloudCredentialCustodyError(err, "Cloud ScenarioJob credential custody could not be captured"))
 	}
 	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, nil, effective.resolvedAssembly, true, localAppMusicSubmissionFromContext(ctx))
 	if persistErr != nil {

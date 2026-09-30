@@ -585,7 +585,7 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 		t.Fatal(err)
 	}
 	svc := &Service{scenarioJobs: store, connStore: connectorStore}
-	if err := svc.bindCloudCredentialCustody(job.GetJobId(), assembly); err != nil {
+	if err := svc.bindCloudCredentialCustody(context.Background(), job.GetJobId(), assembly); err != nil {
 		t.Fatalf("bind credential custody: %v", err)
 	}
 	custodyRef := assembly.CredentialCustodyRef
@@ -823,7 +823,7 @@ func TestBindCloudCredentialCustodyCapturesConnectorRecordAndSecretFromOneGenera
 		t.Fatalf("update Connector: %v", err)
 	}
 	svc := &Service{scenarioJobs: newScenarioJobStore(), connStore: connectorStore}
-	if err := svc.bindCloudCredentialCustody(job.GetJobId(), assembly); err != nil {
+	if err := svc.bindCloudCredentialCustody(context.Background(), job.GetJobId(), assembly); err != nil {
 		t.Fatalf("bind credential custody: %v", err)
 	}
 	if assembly.Connector.Endpoint != newEndpoint || assembly.Connector.ProviderAuthProfile != newProfile {
@@ -877,7 +877,7 @@ func TestBindCloudCredentialCustodyRetainsCleanupObligationAfterAmbiguousStoreFa
 			}
 			store := newScenarioJobStore()
 			svc := &Service{scenarioJobs: store, connStore: connectorStore}
-			if err := svc.bindCloudCredentialCustody(jobID, assembly); err == nil {
+			if err := svc.bindCloudCredentialCustody(context.Background(), jobID, assembly); err == nil {
 				t.Fatal("ambiguous custody write unexpectedly succeeded")
 			}
 			ref, err := connector.CredentialCustodyRefForJob(jobID)
@@ -1014,7 +1014,7 @@ func newCloudCustodyTerminalTestService(
 	}
 	store := newScenarioJobStore()
 	svc := &Service{scenarioJobs: store, connStore: connectorStore}
-	if err := svc.bindCloudCredentialCustody(jobID, assembly); err != nil {
+	if err := svc.bindCloudCredentialCustody(context.Background(), jobID, assembly); err != nil {
 		t.Fatalf("bind credential custody: %v", err)
 	}
 	if created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly); err != nil || created == nil || !published {
@@ -1059,7 +1059,7 @@ func TestStartupReleasesCredentialCapturedBeforeJobPublication(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := &Service{scenarioJobs: store, connStore: connectorStore}
-	if err := svc.bindCloudCredentialCustody(job.GetJobId(), assembly); err != nil {
+	if err := svc.bindCloudCredentialCustody(context.Background(), job.GetJobId(), assembly); err != nil {
 		t.Fatalf("bind credential custody: %v", err)
 	}
 	custodyRef := assembly.CredentialCustodyRef

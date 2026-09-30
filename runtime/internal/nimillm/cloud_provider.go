@@ -21,6 +21,7 @@ type CloudProvider struct {
 	httpTimeout time.Duration
 
 	allowLoopbackEndpoint bool
+	chatGPTPlanInventory  *chatGPTPlanInventoryCache
 }
 
 // NewCloudProvider creates a CloudProvider from the given config.
@@ -41,6 +42,7 @@ func NewCloudProvider(cfg CloudConfig) *CloudProvider {
 		backends:              backends,
 		httpTimeout:           cfg.HTTPTimeout,
 		allowLoopbackEndpoint: cfg.AllowLoopbackEndpoint,
+		chatGPTPlanInventory:  newChatGPTPlanInventoryCache(),
 	}
 }
 
@@ -161,7 +163,10 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 		return nil
 	}
 	allowLoopback := p.allowLoopbackEndpoint || target.AllowLoopback
-	return NewSecuredBackendWithHeaders(
+	if target.ProviderType == chatGPTPlanProvider && !chatGPTPlanTargetEndpointAllowed(target, p.allowLoopbackEndpoint) {
+		return nil
+	}
+	backend := NewSecuredBackendWithHeaders(
 		"cloud-"+target.ProviderType,
 		target.Endpoint,
 		target.APIKey,
@@ -169,4 +174,9 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 		p.probeTimeout(),
 		allowLoopback,
 	)
+	if target.ProviderType == chatGPTPlanProvider {
+		// SIWC tokens reach only the fixed public resource, never a redirect.
+		return backend.withoutRedirects()
+	}
+	return backend
 }

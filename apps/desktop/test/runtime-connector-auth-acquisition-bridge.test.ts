@@ -34,30 +34,26 @@ test('Desktop renderer connector-auth bridge carries only typed pending and resu
       const envelope = payload as { payload: Record<string, unknown> };
       assert.deepEqual(Object.keys(envelope.payload).sort(), [
         'connectorId',
-        'endpoint',
         'label',
         'profileId',
-        'provider',
         'requestId',
       ]);
       listener?.({
         payload: {
-          userCode: 'USER-CODE',
-          verificationUrl: 'https://auth.openai.com/device',
-          expiresInSeconds: 60,
-          pollIntervalSeconds: 3,
+          authorizationUrl: 'https://auth.openai.com/api/accounts/authorize?client_id=oaiapp_bridge',
+          expiresInSeconds: 600,
         },
       });
       return returnSecret
         ? {
-            profileId: 'openai_codex',
-            providerAuthProfile: 'openai_codex',
+            profileId: 'openai_chatgpt_plan',
+            providerAuthProfile: 'openai_chatgpt_plan',
             connectorId: 'connector-1',
             accessToken: 'must-not-project',
           }
         : {
-            profileId: 'openai_codex',
-            providerAuthProfile: 'openai_codex',
+            profileId: 'openai_chatgpt_plan',
+            providerAuthProfile: 'openai_chatgpt_plan',
             connectorId: 'connector-1',
           };
     },
@@ -68,17 +64,15 @@ test('Desktop renderer connector-auth bridge carries only typed pending and resu
     const pending: unknown[] = [];
     const result = await desktopManagedConnectorCredentialAcquisitionHost
       .acquireManagedConnectorCredential({
-        profileId: 'openai_codex',
+        profileId: 'openai_chatgpt_plan',
         connectorId: 'connector-1',
-        provider: 'openai_codex',
-        endpoint: 'https://chatgpt.com/backend-api/codex',
-        label: 'Codex',
+        label: 'user@example.com',
         onPending: (state) => pending.push(state),
       });
 
     assert.deepEqual(result, {
-      profileId: 'openai_codex',
-      providerAuthProfile: 'openai_codex',
+      profileId: 'openai_chatgpt_plan',
+      providerAuthProfile: 'openai_chatgpt_plan',
       connectorId: 'connector-1',
     });
     assert.equal(order[0]?.startsWith(`listen:${DESKTOP_MANAGED_CONNECTOR_AUTH_PENDING_EVENT_PREFIX}`), true);
@@ -89,7 +83,7 @@ test('Desktop renderer connector-auth bridge carries only typed pending and resu
     returnSecret = true;
     await assert.rejects(
       () => desktopManagedConnectorCredentialAcquisitionHost.acquireManagedConnectorCredential({
-        profileId: 'openai_codex',
+        profileId: 'openai_chatgpt_plan',
       }),
       /unexpected field accessToken/,
     );
@@ -134,7 +128,7 @@ test('Desktop renderer connector-auth bridge sends request-keyed cancellation fo
     root.window = { __NIMI_ELECTRON_TEST__: hook };
     const controller = new AbortController();
     const acquisition = desktopManagedConnectorCredentialAcquisitionHost.acquireManagedConnectorCredential({
-      profileId: 'openai_codex',
+      profileId: 'openai_chatgpt_plan',
       signal: controller.signal,
     });
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -179,7 +173,7 @@ test('Desktop renderer preserves the exact native result when cancellation loses
     root.window = { __NIMI_ELECTRON_TEST__: hook };
     const controller = new AbortController();
     const acquisition = desktopManagedConnectorCredentialAcquisitionHost.acquireManagedConnectorCredential({
-      profileId: 'openai_codex',
+      profileId: 'openai_chatgpt_plan',
       signal: controller.signal,
     });
     await new Promise<void>((resolve) => setTimeout(resolve, 0));

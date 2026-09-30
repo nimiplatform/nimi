@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  NIMI_CHATGPT_PLAN_REVOCATION_UNCONFIRMED_ACTION_HINT,
   NIMI_RUNTIME_REASON_CODES,
   createNimiRuntimeConnectorInventoryClient,
   defaultNimiRuntimeConnectorAuthOptionForProvider,
@@ -30,8 +31,8 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     inlineSupported: true,
   },
   {
-    provider: 'openai_codex',
-    defaultEndpoint: '',
+    provider: 'openai_chatgpt_plan',
+    defaultEndpoint: 'https://api.openai.com/v1',
     requiresExplicitEndpoint: false,
     runtimePlane: 'cloud',
     executionModule: 'cloud',
@@ -71,21 +72,21 @@ test('Nimi Runtime connector projection normalizes scope, auth, endpoint, and mo
     kind: ConnectorKind.REMOTE_MANAGED,
     status: ConnectorStatus.ACTIVE,
     authKind: ConnectorAuthKind.OAUTH_MANAGED,
-    providerAuthProfile: 'OPENAI_CODEX',
+    providerAuthProfile: 'OPENAI_CHATGPT_PLAN',
   }, PROVIDER_CATALOG, ['openrouter/auto']);
 
   assert.equal(projection.id, 'conn-1');
   assert.equal(projection.scope, 'machine-global');
   assert.equal(projection.authMode, 'oauth_managed');
-  assert.equal(projection.providerAuthProfile, 'openai_codex');
+  assert.equal(projection.providerAuthProfile, 'openai_chatgpt_plan');
   assert.equal(projection.endpoint, 'https://openrouter.ai/api/v1');
   assert.deepEqual(projection.models, ['openrouter/auto']);
 });
 
 test('Nimi Runtime connector auth options come from generated profile truth', () => {
   assert.deepEqual(
-    listNimiRuntimeConnectorAuthOptionsForProvider('openai_codex', PROVIDER_CATALOG).map((item) => item.value),
-    ['oauth:openai_codex'],
+    listNimiRuntimeConnectorAuthOptionsForProvider('openai_chatgpt_plan', PROVIDER_CATALOG).map((item) => item.value),
+    ['oauth:openai_chatgpt_plan'],
   );
   assert.equal(defaultNimiRuntimeConnectorAuthOptionForProvider('openrouter', PROVIDER_CATALOG).value, 'api_key');
   assert.equal(providerToNimiRuntimeConnectorVendor('OpenRouter'), 'openrouter');
@@ -218,9 +219,9 @@ test('Nimi Runtime connector inventory rejects managed OAuth credential carriers
 
   await assert.rejects(
     () => client.createConnector({
-      provider: 'openai_codex',
-      endpoint: 'https://chatgpt.com/backend-api/codex',
-      label: 'Codex',
+      provider: 'openai_chatgpt_plan',
+      endpoint: 'https://api.openai.com/v1',
+      label: 'ChatGPT plan',
       authMode: 'oauth_managed',
       credentialJson: '{"access_token":"must-not-cross"}',
     } as never),
@@ -236,6 +237,15 @@ test('a committed connector deletion reports its audit diagnostic without becomi
     connectors: { deleteConnector: async () => ({ ack: { ok: true }, auditDiagnostic: diagnostic }) } as never,
     onAuditDiagnostic: value => reported.push(value),
   });
-  await client.deleteConnector('connector-1');
+  assert.deepEqual(await client.deleteConnector('connector-1'), { actionHint: null });
   assert.deepEqual(reported, [diagnostic]);
+});
+
+test('a committed ChatGPT plan deletion keeps the unconfirmed sign-out hint', async () => {
+  const client = createNimiRuntimeConnectorInventoryClient({
+    connectors: {
+      deleteConnector: async () => ({ ack: { ok: true, reasonCode: 0, actionHint: 'chatgpt_plan_revocation_unconfirmed' } }),
+    } as never,
+  });
+  assert.deepEqual(await client.deleteConnector('connector-plan'), { actionHint: NIMI_CHATGPT_PLAN_REVOCATION_UNCONFIRMED_ACTION_HINT });
 });

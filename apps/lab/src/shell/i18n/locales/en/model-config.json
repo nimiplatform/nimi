@@ -34,6 +34,8 @@
     "openOwnerConfigurationLabel": "Manage in Nimi",
     "cloudBlockedLabel": "This Cloud selection cannot run right now. Choose the model again or choose another model.",
     "cloudCatalogStaleLabel": "The Cloud model list changed after this model was selected. Choose the model again from the current list.",
+    "cloudChatGPTPlanLabel": "Using ChatGPT plan",
+    "cloudChatGPTPlanDescription": "Eligible usage with this model counts toward the signed-in ChatGPT plan limits, not a Nimi charge.",
     "loadFailed": "Nimi Lab AI configuration could not be loaded from Runtime.",
     "unsupportedCapabilityLabel": "This capability is unavailable.",
     "notConfiguredLabel": "Not configured",

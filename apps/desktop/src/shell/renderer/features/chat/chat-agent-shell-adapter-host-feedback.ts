@@ -5,6 +5,7 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { toErrorMessage } from './chat-agent-shell-core';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
+import { chatGPTPlanManageUsageFeedbackAction } from './chat-chatgpt-plan-feedback.js';
 
 export type AgentConversationHostErrorDetails = {
   error: string;
@@ -46,7 +47,7 @@ export function useAgentConversationHostFeedback() {
   }, []);
   const reportHostError = useCallback<ReportAgentConversationHostError>((error, options) => {
     const details = buildHostErrorDetails(error, options?.action, options?.extra);
-    const message = toChatUserFacingRuntimeError(error, 'Agent response failed', t).message;
+    const userFacing = toChatUserFacingRuntimeError(error, 'Agent response failed', t);
     logRendererEvent({
       level: 'error',
       area: 'agent-chat-shell',
@@ -55,7 +56,8 @@ export function useAgentConversationHostFeedback() {
     });
     setHostFeedback({
       kind: 'error',
-      message,
+      message: userFacing.message,
+      ...(userFacing.chatGPTPlanUsageLimited ? chatGPTPlanManageUsageFeedbackAction(t) : {}),
     });
   }, [buildHostErrorDetails, t]);
 

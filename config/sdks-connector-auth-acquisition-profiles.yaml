@@ -5,19 +5,24 @@ table_family: product_catalog
 owner: sdks
 catalog_id: sdks_connector_auth_acquisition_profiles
 entries:
-  - openai_codex
+  - openai_chatgpt_plan
 profiles:
-  - profile_id: openai_codex
-    provider_auth_profile: openai_codex
+  - profile_id: openai_chatgpt_plan
+    provider_auth_profile: openai_chatgpt_plan
     issuer: https://auth.openai.com
-    client_id: app_EMoamEEZ73f0CkXaXp7hrann
-    device_authorization_url: https://auth.openai.com/api/accounts/deviceauth/usercode
-    device_token_url: https://auth.openai.com/api/accounts/deviceauth/token
-    redirect_uri: https://auth.openai.com/deviceauth/callback
-    fallback_verification_url: https://auth.openai.com/codex/device
-    token_exchange_provider: CODEX
-    default_poll_interval_seconds: 5
-    min_poll_interval_seconds: 3
-    max_poll_interval_seconds: 30
-    default_expires_in_seconds: 900
-    max_expires_in_seconds: 900
+    initial_client_id: dynamic_agent_client
+    agent_name_hint: Nimi
+    authorization_url: https://auth.openai.com/api/accounts/authorize
+    token_url: https://auth.openai.com/api/accounts/oauth/token
+    jwks_url: https://auth.openai.com/.well-known/jwks.json
+    resource: https://api.openai.com/v1
+    scopes:
+      - openid
+      - profile
+      - email
+      - offline_access
+      - resource.invoke
+      - chatgpt.tokens.use.direct
+    callback_host: 127.0.0.1
+    callback_path: /auth/callback
+    acquisition_timeout_seconds: 600

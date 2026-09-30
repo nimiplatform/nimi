@@ -96,18 +96,18 @@ test('generated Runtime provider catalogs are excluded while catalog sources rem
 
   const { scanned, excluded } = filterSecretScanFiles([
     'runtime/catalog/source/providers/local/50-models-embedding-and-asr.yaml',
-    'runtime/catalog/source/providers/openai_codex.source.yaml',
+    'runtime/catalog/source/providers/openai_chatgpt_plan.source.yaml',
     'runtime/catalog/providers/local.yaml',
-    'runtime/catalog/providers/openai_codex.yaml',
+    'runtime/catalog/providers/openai_chatgpt_plan.yaml',
   ]);
 
   assert.deepEqual(scanned, [
     'runtime/catalog/source/providers/local/50-models-embedding-and-asr.yaml',
-    'runtime/catalog/source/providers/openai_codex.source.yaml',
+    'runtime/catalog/source/providers/openai_chatgpt_plan.source.yaml',
   ]);
   assert.deepEqual(excluded.map((entry) => entry.file), [
     'runtime/catalog/providers/local.yaml',
-    'runtime/catalog/providers/openai_codex.yaml',
+    'runtime/catalog/providers/openai_chatgpt_plan.yaml',
   ]);
 });
 

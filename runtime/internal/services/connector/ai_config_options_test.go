@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -61,7 +62,7 @@ func TestAIConfigCloudTargetOptionsCanonicalizeExecutableAliases(t *testing.T) {
 	}
 	connectorID := created.GetConnector().GetConnectorId()
 	catalog := svc.modelCatalogResolver()
-	options, truncated, err := ListAIConfigCloudTargetOptions(svc.Store(), catalog, "user-1", "audio.transcribe", connectorID, "", 200)
+	options, truncated, err := ListAIConfigCloudTargetOptions(context.Background(), svc.Store(), catalog, "user-1", "audio.transcribe", connectorID, "", 200)
 	if err != nil || truncated || len(options) == 0 {
 		t.Fatalf("options=%d truncated=%v err=%v", len(options), truncated, err)
 	}
@@ -83,7 +84,7 @@ func TestAIConfigCloudTargetOptionsCanonicalizeExecutableAliases(t *testing.T) {
 	}
 	// Searching a dated catalog alias must retain the same exact target and
 	// canonical display label, rather than making the alias a second resource.
-	filtered, truncated, err := ListAIConfigCloudTargetOptions(svc.Store(), catalog, "user-1", "audio.transcribe", connectorID, "2025-09-08", 1)
+	filtered, truncated, err := ListAIConfigCloudTargetOptions(context.Background(), svc.Store(), catalog, "user-1", "audio.transcribe", connectorID, "2025-09-08", 1)
 	if err != nil || truncated || len(filtered) != 1 {
 		t.Fatalf("alias search: options=%d truncated=%v err=%v", len(filtered), truncated, err)
 	}
@@ -115,7 +116,7 @@ func TestAIConfigCloudEmbeddingRequiresVerifiedFixedDimension(t *testing.T) {
 				t.Fatal(err)
 			}
 			connectorID := created.GetConnector().GetConnectorId()
-			options, _, err := ListAIConfigCloudTargetOptions(svc.Store(), catalog, "user-1", "text.embed", connectorID, tc.model, 200)
+			options, _, err := ListAIConfigCloudTargetOptions(context.Background(), svc.Store(), catalog, "user-1", "text.embed", connectorID, tc.model, 200)
 			if err != nil {
 				t.Fatal(err)
 			}

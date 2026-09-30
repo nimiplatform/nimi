@@ -3,17 +3,17 @@ import type {
   NimiManagedConnectorCredentialAcquisitionHost,
 } from '@nimiplatform/sdk/runtime';
 import {
-  acquireCodexManagedCredential,
-  createCodexOAuthConnectorOperationSnapshot,
-  isCodexOAuthConnectorOperationCurrent,
-  type CodexOAuthConnectorOperationSnapshot,
-  type CodexOAuthPendingState,
-} from './runtime-config-codex-oauth.js';
+  acquireManagedConnectorCredential,
+  createManagedOAuthConnectorOperationSnapshot,
+  isManagedOAuthConnectorOperationCurrent,
+  type ManagedOAuthConnectorOperationSnapshot,
+  type ManagedOAuthPendingState,
+} from './runtime-config-managed-oauth.js';
 import type { ApiConnector } from './runtime-config-state-types.js';
 
 export type ConnectorOAuthControllerState = {
   readonly busy: boolean;
-  readonly pending: CodexOAuthPendingState | null;
+  readonly pending: ManagedOAuthPendingState | null;
 };
 
 export type ConnectorOAuthController = {
@@ -31,13 +31,13 @@ export type ConnectorOAuthController = {
  * change, or account change invalidates the generation, and a stale
  * completion never writes into newer state.
  */
-// @nimi-authority: rule.nimi.desktop.ai-consumption.r023
+// @nimi-authority: rule.nimi.sdks.feature-clients.r060
 export function createConnectorOAuthController(input: {
   readonly host: NimiManagedConnectorCredentialAcquisitionHost;
   readonly findConnector: (connectorId: string) => ApiConnector | null | undefined;
   readonly onAcquired: (
-    acquired: { readonly connectorId: string },
-    operation: CodexOAuthConnectorOperationSnapshot,
+    acquired: { readonly connectorId: string; readonly accountLabel?: string },
+    operation: ManagedOAuthConnectorOperationSnapshot,
     /** Re-checks generation/abort/snapshot at any later point (e.g. inside a state updater). */
     isCurrent: (connectorOverride?: ApiConnector | null) => boolean,
   ) => void | Promise<void>;
@@ -76,12 +76,12 @@ export function createConnectorOAuthController(input: {
     const controller = new AbortController();
     abortController = controller;
     generation += 1;
-    const operation = createCodexOAuthConnectorOperationSnapshot(generation, connector);
+    const operation = createManagedOAuthConnectorOperationSnapshot(generation, connector);
     const operationIsCurrent = (connectorOverride?: ApiConnector | null) => (
       !disposed
       && abortController === controller
       && !controller.signal.aborted
-      && isCodexOAuthConnectorOperationCurrent(
+      && isManagedOAuthConnectorOperationCurrent(
         operation,
         generation,
         connectorOverride !== undefined
@@ -91,12 +91,12 @@ export function createConnectorOAuthController(input: {
     );
     setState({ busy: true, pending: null });
     try {
-      const acquired = await acquireCodexManagedCredential({
+      const acquired = await acquireManagedConnectorCredential({
         profileId,
+        // A draft creates a new account registration; a saved Connector is
+        // explicitly reauthorized with the registration Runtime bound to it.
         connectorId: operation.connector.isDraft ? undefined : operation.connector.id,
-        provider: operation.connector.provider,
-        endpoint: operation.connector.endpoint,
-        label: operation.connector.label,
+        label: operation.connector.isDraft ? undefined : operation.connector.label,
         onPending: (pendingState) => {
           if (operationIsCurrent()) {
             setState({ busy: true, pending: pendingState });
@@ -108,7 +108,7 @@ export function createConnectorOAuthController(input: {
         return;
       }
       setState({ busy: false, pending: null });
-      await input.onAcquired({ connectorId: acquired.connectorId }, operation, operationIsCurrent);
+      await input.onAcquired({ connectorId: acquired.connectorId, accountLabel: acquired.accountLabel }, operation, operationIsCurrent);
     } catch (caught) {
       if (!controller.signal.aborted) {
         input.onError?.(caught instanceof Error ? caught.message : String(caught || 'Managed sign-in failed'));
@@ -138,18 +138,41 @@ export function createConnectorOAuthController(input: {
 
 export type ConnectorOAuthAcquisition = {
   readonly busy: boolean;
-  readonly pending: CodexOAuthPendingState | null;
+  readonly pending: ManagedOAuthPendingState | null;
   readonly start: (connector: ApiConnector) => Promise<void>;
   readonly invalidate: (reason: string) => void;
 };
+
+/**
+ * Abandons an in-flight managed OAuth operation when the configuration of the
+ * Connector it started from changes. The busy flag turning on is not such a
+ * change, so starting a sign-in never cancels itself.
+ */
+export function useInvalidateManagedOAuthOnConfigurationChange(input: {
+  readonly busy: boolean;
+  readonly configuration: string;
+  readonly invalidate: (reason: string) => void;
+}): void {
+  const { busy, configuration, invalidate } = input;
+  const configurationRef = useRef(configuration);
+  useEffect(() => {
+    if (configurationRef.current === configuration) {
+      return;
+    }
+    configurationRef.current = configuration;
+    if (busy) {
+      invalidate('Managed connector configuration changed');
+    }
+  }, [busy, configuration, invalidate]);
+}
 
 /** React binding over the shared OAuth controller; disposes on unmount. */
 export function useConnectorOAuthAcquisition(input: {
   readonly host: NimiManagedConnectorCredentialAcquisitionHost;
   readonly findConnector: (connectorId: string) => ApiConnector | null | undefined;
   readonly onAcquired: (
-    acquired: { readonly connectorId: string },
-    operation: CodexOAuthConnectorOperationSnapshot,
+    acquired: { readonly connectorId: string; readonly accountLabel?: string },
+    operation: ManagedOAuthConnectorOperationSnapshot,
     isCurrent: (connectorOverride?: ApiConnector | null) => boolean,
   ) => void | Promise<void>;
   readonly onError?: (message: string) => void;

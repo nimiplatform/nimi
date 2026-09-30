@@ -6994,6 +6994,7 @@ pub struct Connector {
     pub updated_at: Option<String>,
     pub auth_kind: Option<ConnectorAuthKind>,
     pub provider_auth_profile: Option<String>,
+    pub oauth_registration: Option<Box<ConnectorOAuthRegistration>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7007,6 +7008,12 @@ pub struct ConnectorModelDescriptor {
     pub connector_snapshot_id: Option<String>,
     pub endpoint_profile_id: Option<String>,
     pub inventory_snapshot_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorOAuthRegistration {
+    pub issued_client_id: Option<String>,
+    pub account_label: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

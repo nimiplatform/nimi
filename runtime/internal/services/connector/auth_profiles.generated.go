@@ -18,13 +18,13 @@ var GeneratedProviderAuthProfiles = map[string]ProviderAuthProfileSpec{
 		},
 		HeaderBehavior: "anthropic",
 	},
-	"openai_codex": {
-		ID: "openai_codex",
+	"openai_chatgpt_plan": {
+		ID: "openai_chatgpt_plan",
 		AuthKind: "oauth_managed",
 		AllowedProviders: []string{
-			"openai_codex",
+			"openai_chatgpt_plan",
 		},
-		HeaderBehavior: "codex_oauth",
+		HeaderBehavior: "none",
 	},
 	"qwen_oauth": {
 		ID: "qwen_oauth",

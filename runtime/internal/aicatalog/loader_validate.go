@@ -328,9 +328,9 @@ func validateSnapshot(snapshot Snapshot) error {
 	return nil
 }
 
-var authenticatedProviderInventoryEndpointByProvider = map[string]string{
-	"openai_codex": "https://chatgpt.com/backend-api/codex/models?client_version=1.0.0",
-}
+// No provider currently has an admitted authenticated inventory source; the
+// retired private Codex endpoint is not a catalog source for any provider.
+var authenticatedProviderInventoryEndpointByProvider = map[string]string{}
 
 func validateCatalogSourceRef(provider string, sourceRef SourceRef) error {
 	sourceURL := strings.TrimSpace(sourceRef.URL)

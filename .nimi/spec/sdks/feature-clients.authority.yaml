@@ -607,34 +607,41 @@ units:
         target: definition.nimi.sdks.feature-clients.proposal-plane
   - id: rule.nimi.sdks.feature-clients.r060
     kind: rule
-    title: The acquisition facade is host-typed and narrow
+    title: Managed ChatGPT plan acquisition is host typed and narrow
     modality: must
-    statement: The SDK may provide a runtime.connectorAuth.acquireManagedCredential or equivalent host typed facade converging provider browser and device-code flows out of the Desktop renderer, the facade owner is the SDK host typed surface and not a Runtime daemon RPC, Runtime adds no AcquireManagedCredential, BeginProviderOAuth, RefreshManagedCredential, or equivalent connector RPC because the ConnectorService method freeze stays effective, the facade injects host primitives through adapters covering browser open, profile-scoped provider network requests, authorization-code token exchange, cancellable sleep and time sources, and the Runtime connector create and update client, provider network requests carry the profileId and a purpose of device_authorization or device_token with the host failing closed and admitting only the exact endpoints generated for that profile by the acquisition profiles table, one AbortSignal and request identity remain effective through provider requests, polling sleep, token exchange, and the pre-dispatch phase of the final Runtime custody write, the host rechecks that identity immediately before dispatching the final write, that dispatch is the final write commit point after which later cancellation cannot be projected as a canceled acquisition and the host waits for the exact bounded Runtime result, the host cancels and waits for its active pre-dispatch acquisitions and waits for any already-dispatched final write before closing, the SDK never requires the host to expose an arbitrary provider proxy or generic CORS bypass, the SDK never imports Desktop, Tauri, renderer bridges, or provider UI components, and sealed credential payloads returned by host adapters are written only through the existing Runtime CreateConnector and UpdateConnector write path without establishing a second credential persistence path.
-    condition: Whenever managed OAuth acquisition is orchestrated.
-    failure: Fail closed on non-profile endpoints, an expired or canceled acquisition before final write dispatch, post-dispatch cancellation projected ahead of the exact Runtime result, an acquisition or dispatched final write left active after host shutdown, new connector RPCs, and second persistence paths.
+    statement: "The SDK host typed facade owns initial and explicit browser-based SIWC OAuth authorization outside the Desktop renderer; Runtime adds no login, dynamic registration or token-exchange RPC, retains sole sealed Connector custody, and owns only the exact credential refresh defined by Runtime chatgpt-plan-refresh-custody. The facade accepts only the exact profile and authorized local host, injects system-browser open, loopback callback, profile-scoped provider HTTP, cryptographic validation, clock and existing Runtime Connector create/update clients, binds fresh state, nonce, PKCE verifier, request identity and cancellation through code exchange and the final custody-write dispatch, and does not expose an arbitrary provider proxy, credential, endpoint or callback listener to an App or renderer. The final Runtime write is the commit point: cancellation before dispatch aborts; after dispatch the host waits for the exact bounded result. Host shutdown waits for active acquisition and dispatched writes. The issued SIWC client ID and verified selected-account identity remain bound to the credential record; no credential is copied from Codex CLI or another provider."
+    condition: Whenever Nimi acquires or explicitly reauthorizes a ChatGPT-plan Connector credential through the local protected host.
+    failure: Reject non-profile endpoints, missing or changed issued client identity, invalid state, nonce, PKCE, ID-token signature or scope, canceled or expired acquisition, a second credential store, new Runtime browser-login RPC, renderer credential exposure, and a post-dispatch canceled success projection.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.connector-auth-plane
   - id: rule.nimi.sdks.feature-clients.r061
     kind: rule
-    title: Acquisition profile truth lives in one table
+    title: SIWC acquisition profile truth lives in one table
     modality: must
-    statement: The only SDK-side source of OAuth acquisition constants is the connector-auth-acquisition-profiles table, the table carries only acquisition metadata covering profile_id, provider_auth_profile, issuer, client_id, device_authorization_url, device_token_url, redirect_uri, fallback_verification_url, token_exchange_provider, default_poll_interval_seconds, min_poll_interval_seconds, max_poll_interval_seconds, default_expires_in_seconds, and max_expires_in_seconds, a missing provider interval or expires_in uses its profile default, an admitted provider interval is a positive integer no greater than max_poll_interval_seconds, the effective poll interval is the greater of min_poll_interval_seconds and the admitted provider or default interval, an admitted provider expires_in is a positive integer no greater than max_expires_in_seconds, and the admitted expires_in bounds the cancellable acquisition lifetime through final Runtime custody write dispatch, after that commit point the facade waits for the exact result under the existing bounded Runtime call deadline and does not reclassify it as canceled, the table never carries sealed credential payload schemas, refresh-token semantics, provider execution header derivation, connector status truth, model or catalog truth, or Runtime-owned credential validation truth, and token_exchange_provider serves only host-injected authorization-code exchange adapter routing and is never interpreted as a Runtime execution provider, model or catalog owner, or header derivation truth.
-    condition: Whenever acquisition constants are sourced or the profile table is maintained.
-    failure: Reject out-of-table constants, out-of-scope table content, provider interval above max_poll_interval_seconds, provider expires_in above max_expires_in_seconds, and any pre-dispatch acquisition continuing beyond its admitted expires_in.
+    statement: "The SDK connector-auth-acquisition-profiles table is the sole SDK-side source of SIWC acquisition constants: profile_id, provider_auth_profile, issuer, initial_client_id, agent_name_hint, authorization_url, token_url, jwks_url, resource, exact requested scopes, callback_host, callback_path and bounded acquisition timeout. Initial registration uses dynamic_agent_client and the stable local host identifier; explicit reauthorization uses only the issued client ID bound to the verified account and preserves that account on callback. The table contains no access token, refresh token, issued client ID, host identifier value, sealed payload schema, execution header, refresh policy, account model inventory, route, target or capability truth. The host admits only the exact configured OpenAI endpoints and a loopback 127.0.0.1 callback, with a fresh port but unchanged callback path for each attempt, and fails a provider HTTP redirect instead of following it."
+    condition: Whenever Nimi constructs or validates a SIWC acquisition profile or provider request.
+    failure: Reject an out-of-table endpoint or field, non-loopback callback, missing host or issued-client binding, unsupported scope or resource, and any profile content that becomes credential, model or route authority.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.connector-auth-plane
   - id: rule.nimi.sdks.feature-clients.r062
     kind: rule
+    lifecycle: removed
     title: Refresh and rotation stay unadmitted
+    reason: Superseded by SIWC refresh within the sole Runtime Connector custody store; one-hour access tokens and rotating refresh tokens require a confirmed owner without a second secret store.
+  - id: rule.nimi.sdks.feature-clients.siwc-refresh
+    kind: rule
+    title: SDK and Desktop do not own SIWC rotating secrets
     modality: must
-    statement: Admitted managed OAuth acquisition owns no refresh or rotation automation, a refresh token may appear inside a provider-defined sealed credential payload only as opaque material written through Runtime custody, the SDK host facade never silently refreshes, rotates, rewrites, repairs, selects, or binds sealed credential payloads after acquisition completes, and an unusable payload fails a user-explicit bounded Test Connector diagnostic or Cloud execution without creating readiness or changing the AIConfig route or committed Connector reference; re-authentication is manual reacquisition unless a future authority admits a refresh owner.
-    condition: Whenever managed credential refresh or rotation is approached.
-    failure: Reject silent refresh and rotation and keep unusable payloads fail-closed.
+    statement: The SDK and Desktop host limit credential acquisition to initial or explicit reauthorization and do not silently refresh, rotate, persist a second copy of, read back from Runtime, or expose SIWC refresh tokens afterwards. The host writes the newly issued sealed credential once through existing Runtime Connector create/update custody and presents only safe reconnect status on refresh failure; exact subsequent refresh and atomic replacement belong to the local Runtime Connector owner, with no new SDK inference, model-selection or workflow authority.
+    condition: Whenever an admitted SIWC Connector reaches expiry, is renewed, or requires explicit reauthorization.
+    failure: Reject a second credential store, secret-read RPC, host-side automatic refresh and renderer token exposure; preserve the committed AIConfig route and show a typed reconnect action when Runtime cannot renew.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.connector-auth-plane
+      - type: supersedes
+        target: rule.nimi.sdks.feature-clients.r062
   - id: rule.nimi.sdks.feature-clients.r063
     kind: rule
     title: Local environment projection mirrors Runtime

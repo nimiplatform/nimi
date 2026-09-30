@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type {
-  NimiAIConfigOverwriteInput,
-  NimiAIConfigSnapshot,
-  NimiPortableAppAIConfig,
-  NimiPortableAppAIConfigIntent,
+import {
+  runtimeAIConfigStructToJson,
+  type NimiAIConfigOverwriteInput,
+  type NimiAIConfigSnapshot,
+  type NimiPortableAppAIConfig,
+  type NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
+import { nimiProviderUsesChatGPTPlan } from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export const DESKTOP_NIMI_APP_ID = 'nimi.desktop';
@@ -16,6 +18,15 @@ export function findDesktopNimiTextIntent(
   return config?.capabilities.find(
     (intent) => intent.capabilityContract === TEXT_GENERATE_CAPABILITY,
   ) ?? null;
+}
+
+/** Whether the committed Nimi Chat text route runs on the signed-in ChatGPT plan. */
+export function desktopNimiTextIntentUsesChatGPTPlan(
+  intent: NimiPortableAppAIConfigIntent | null,
+): boolean {
+  if (!intent || intent.route.oneofKind !== 'cloud') return false;
+  const target = runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget);
+  return nimiProviderUsesChatGPTPlan(typeof target.provider === 'string' ? target.provider : undefined);
 }
 
 export async function readDesktopNimiAppAIConfig(

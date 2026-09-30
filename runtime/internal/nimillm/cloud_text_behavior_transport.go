@@ -16,7 +16,7 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
-// @nimi-authority: rule.nimi.runtime.ai-provider.codex-text-behaviors
+// @nimi-authority: rule.nimi.runtime.ai-provider.chatgpt-plan-text-behaviors
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
 // The Host supplies the exact credential-bearing target only for this call.
 // Hooks were selected and their request serialized before Job publication.
@@ -35,8 +35,9 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "deepseek":
 	case "dashscope":
 	case "gemini":
-	case "openai_codex":
-		path, wireStream = codexResponsesPath, true
+	case chatGPTPlanProvider:
+		// The public ChatGPT-plan route admits only streaming Responses.
+		path, wireStream = chatGPTPlanResponsesPath, true
 	default:
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
@@ -46,6 +47,13 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	}
 	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
+	}
+	if target.ProviderType == chatGPTPlanProvider {
+		// The usable set is the reviewed target intersected with the current
+		// account's list-visible inventory; a registered row alone never runs.
+		if err := p.requireChatGPTPlanAccountModel(ctx, target, resolvedModelID); err != nil {
+			return textbehavior.NormalizedResult{}, err
+		}
 	}
 	var body map[string]json.RawMessage
 	if json.Unmarshal(serialized.Payload, &body) != nil || body == nil {
@@ -72,6 +80,10 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		if target.ProviderType == chatGPTPlanProvider {
+			body, _ := io.ReadAll(io.LimitReader(response.Body, chatGPTPlanErrorBodyLimit))
+			return textbehavior.NormalizedResult{}, chatGPTPlanHTTPError(response.StatusCode, body)
+		}
 		var providerError map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&providerError)
 		return textbehavior.NormalizedResult{}, MapProviderHTTPError(response.StatusCode, providerError)

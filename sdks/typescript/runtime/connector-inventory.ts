@@ -59,6 +59,7 @@ export interface NimiRuntimeConnectorProjectionInput {
   readonly hasCredential: boolean;
   readonly authKind?: ConnectorAuthKind;
   readonly providerAuthProfile?: string;
+  readonly oauthRegistration?: { readonly accountLabel?: string };
   readonly ownerType: ConnectorOwnerType;
   readonly ownerId?: string;
   readonly kind: ConnectorKind;
@@ -89,6 +90,11 @@ export interface NimiRuntimeConnectorInventoryClientOptions {
   readonly now?: () => number;
 }
 
+export interface NimiRuntimeConnectorDeleteResult {
+  /** Runtime's typed follow-up for a committed deletion, such as an unconfirmed ChatGPT plan sign-out. */
+  readonly actionHint: string | null;
+}
+
 export interface NimiRuntimeConnectorInventoryClient {
   clearCaches(): void;
   listProviderCatalog(): Promise<readonly ProviderCatalogEntry[]>;
@@ -109,7 +115,7 @@ export interface NimiRuntimeConnectorInventoryClient {
     readonly credentialValue?: string;
     readonly authMode?: 'api_key';
   }): Promise<NimiRuntimeConnectorProjection | null>;
-  deleteConnector(connectorId: string): Promise<void>;
+  deleteConnector(connectorId: string): Promise<NimiRuntimeConnectorDeleteResult>;
   testConnector(connectorId: string): Promise<void>;
   listConnectorModels(connectorId: string, forceRefresh?: boolean): Promise<readonly string[]>;
   listConnectorModelDescriptors(
@@ -310,6 +316,7 @@ export function nimiRuntimeConnectorToProjection(
     provider: normalizeText(connector.provider),
     authMode: authModeFromRuntimeAuthKind(connector.authKind),
     providerAuthProfile: normalizeProviderAuthProfile(connector.providerAuthProfile) || undefined,
+    accountLabel: normalizeText(connector.oauthRegistration?.accountLabel) || undefined,
     endpoint: normalizeText(connector.endpoint) || defaultEndpoint,
     scope,
     hasCredential: Boolean(connector.hasCredential),
@@ -460,10 +467,12 @@ export function createNimiRuntimeConnectorInventoryClient(
     return nimiRuntimeConnectorToProjection(response.connector, providerCatalog);
   }
 
-  async function deleteConnector(connectorId: string): Promise<void> {
+  async function deleteConnector(connectorId: string): Promise<NimiRuntimeConnectorDeleteResult> {
     const response = await connectors().deleteConnector({ connectorId }, options.callOptions);
     invalidateConnectorInventoryCache();
     if (response?.auditDiagnostic) options.onAuditDiagnostic?.(response.auditDiagnostic);
+    const actionHint = String(response?.ack?.actionHint || '').trim();
+    return Object.freeze({ actionHint: actionHint || null });
   }
 
   async function testConnector(connectorId: string): Promise<void> {

@@ -50,6 +50,14 @@ message Connector {
   google.protobuf.Timestamp updated_at = 12;
   ConnectorAuthKind auth_kind = 13;
   string provider_auth_profile = 14;
+  // Non-secret identity of a managed OAuth registration, used only to show the
+  // account and to start explicit reauthorization. Tokens stay in custody.
+  ConnectorOAuthRegistration oauth_registration = 15;
+}
+
+message ConnectorOAuthRegistration {
+  string issued_client_id = 1;
+  string account_label = 2;
 }
 
 message CreateConnectorRequest {

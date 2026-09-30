@@ -12,6 +12,7 @@ import {
   type NimiRuntimeConnectorAuthOption,
   type NimiRuntimeConnectorClient,
   type NimiRuntimeConnectorModelInfo,
+  type NimiRuntimeConnectorDeleteResult,
   type NimiRuntimeConnectorProjection,
   type NimiRuntimeConnectorProjectionInput,
 } from '@nimiplatform/sdk/runtime';
@@ -60,7 +61,7 @@ export type RuntimeConfigConnectorSdkService = Readonly<{
     credentialValue?: string;
     authMode?: 'api_key';
   }): Promise<ApiConnector | null>;
-  sdkDeleteConnector(connectorId: string): Promise<void>;
+  sdkDeleteConnector(connectorId: string): Promise<NimiRuntimeConnectorDeleteResult>;
   sdkTestConnector(connectorId: string): Promise<void>;
   sdkListConnectorModels(connectorId: string, forceRefresh?: boolean): Promise<string[]>;
   sdkListConnectorModelDescriptors(
@@ -125,7 +126,7 @@ export function createRuntimeConfigConnectorSdkService(
       return connector ? runtimeConnectorProjectionToApiConnector(connector) : null;
     },
     async sdkDeleteConnector(connectorId) {
-      await inventory.deleteConnector(connectorId);
+      return inventory.deleteConnector(connectorId);
     },
     async sdkTestConnector(connectorId) {
       await inventory.testConnector(connectorId);

@@ -92,7 +92,7 @@ test('sync and streamed output preserve native content after JSON representation
   const payload = new TextEncoder().encode(JSON.stringify({
     type: 'reasoning', id: 'rs_budget', encrypted_content: 'A'.repeat(60 * 1024), summary: [],
   }));
-  const carrier = { kind: 'openai_codex.responses.encrypted-reasoning', version: 1, payload: Array.from(payload) };
+  const carrier = { kind: 'openai_chatgpt_plan.responses.encrypted-reasoning', version: 1, payload: Array.from(payload) };
   // Runtime/native retain this compact numeric spelling. The JSON projection
   // carries the same values, whose JS serialization uses much longer decimals.
   const rawArguments = `{"values":[${Array(16 * 1024).fill('1e20').join(',')}]}`;

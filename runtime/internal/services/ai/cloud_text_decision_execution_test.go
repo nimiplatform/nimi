@@ -112,7 +112,7 @@ func newCloudDecideHarness(t *testing.T, handler http.HandlerFunc) cloudDecideHa
 // identity is exactly what Desktop would offer for a TypeSafe Connector.
 func (h cloudDecideHarness) targetOption(t *testing.T, connectorRef string) (*runtimev1.CapabilityImplementationIdentity, *structpb.Struct) {
 	t.Helper()
-	options, _, err := connector.ListAIConfigCloudTargetOptions(h.fixture.service.connStore, h.fixture.service.speechCatalog, cloudDecideUserID, "text.decide", connectorRef, "", 100)
+	options, _, err := connector.ListAIConfigCloudTargetOptions(context.Background(), h.fixture.service.connStore, h.fixture.service.speechCatalog, cloudDecideUserID, "text.decide", connectorRef, "", 100)
 	if err != nil {
 		t.Fatalf("ListAIConfigCloudTargetOptions: %v", err)
 	}

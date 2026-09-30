@@ -5,7 +5,8 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
 import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion';
-import type { CodexOAuthPendingState } from './runtime-config-codex-oauth';
+import type { ManagedOAuthPendingState } from './runtime-config-managed-oauth';
+import { ChatGPTPlanAccountNotice, ChatGPTPlanPendingNotice, chatGPTPlanSignInLabel } from './runtime-config-chatgpt-plan';
 import {
   Button,
   CheckIcon,
@@ -41,19 +42,20 @@ type CloudConnectorDetailPanelProps = {
   authStatus: string;
   canEditCredentialMode: boolean;
   canEditVendor: boolean;
-  canStartCodexOAuth: boolean;
+  canStartManagedOAuth: boolean;
   canManageCatalogOverrides: boolean;
-  codexOAuthBusy: boolean;
-  codexOAuthPending: CodexOAuthPendingState | null;
+  managedOAuthBusy: boolean;
+  managedOAuthPending: ManagedOAuthPendingState | null;
   connectorConfigurationLocked: boolean;
   connectorLabelDraft: string;
-  isCodexManagedConnector: boolean;
+  isBrowserManagedConnector: boolean;
   isDraft: boolean;
   isMachineGlobal: boolean;
   isRuntimeSystem: boolean;
   isSystemOwned: boolean;
   model: RuntimeConfigPanelControllerModel;
-  onAcquireCodexOAuth: () => void;
+  onAcquireManagedOAuth: () => void;
+  onCancelManagedOAuth: () => void;
   onManageCatalogOverrides: () => void;
   onConnectorLabelDraftChange: (label: string) => void;
   onChangeConnectorAuthOption: (nextValue: string) => void;
@@ -97,13 +99,13 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
     authStatus,
     canEditCredentialMode,
     canEditVendor,
-    canStartCodexOAuth,
+    canStartManagedOAuth,
     canManageCatalogOverrides,
-    codexOAuthBusy,
-    codexOAuthPending,
+    managedOAuthBusy,
+    managedOAuthPending,
     connectorConfigurationLocked,
     connectorLabelDraft,
-    isCodexManagedConnector,
+    isBrowserManagedConnector,
     isDraft,
     isMachineGlobal,
     isRuntimeSystem,
@@ -178,7 +180,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {!isSystemOwned ? (
-              <Button variant="ghost" size="sm" disabled={savingToken || codexOAuthBusy} onClick={editing ? stopEditing : startEditing} icon={editing ? undefined : <PencilLine size={15} />}>
+              <Button variant="ghost" size="sm" disabled={savingToken || managedOAuthBusy} onClick={editing ? stopEditing : startEditing} icon={editing ? undefined : <PencilLine size={15} />}>
                 {t(editing ? 'Common.cancel' : 'runtimeConfig.product.editConnection')}
               </Button>
             ) : null}
@@ -299,7 +301,8 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 value={endpointDraft}
                 onChange={setEndpointDraft}
                 placeholder={selectedProviderCatalogEntry?.defaultEndpoint || DEFAULT_CONNECTOR_ENDPOINT_V11}
-                disabled={isRuntimeSystem || connectorConfigurationLocked}
+                // Browser sign-in Connectors keep the provider's fixed endpoint.
+                disabled={isRuntimeSystem || connectorConfigurationLocked || isBrowserManagedConnector}
               />
               {canEditVendor ? (
                 <div>
@@ -356,16 +359,14 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                   : t('runtimeConfig.product.saveAndCheck')}
               </Button>
             )}
-            {isCodexManagedConnector ? (
+            {isBrowserManagedConnector ? (
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={!canStartCodexOAuth}
-                onClick={() => { void props.onAcquireCodexOAuth(); }}
+                disabled={!canStartManagedOAuth}
+                onClick={() => { void props.onAcquireManagedOAuth(); }}
               >
-                {codexOAuthBusy
-                  ? t('runtimeConfig.cloud.codexOauthSigningIn', { defaultValue: 'Waiting for Codex...' })
-                  : t('runtimeConfig.cloud.codexOauthStart', { defaultValue: 'Sign in with Codex' })}
+                {chatGPTPlanSignInLabel({ busy: managedOAuthBusy, isDraft, hasCredential: selectedConnector.hasCredential, t })}
               </Button>
             ) : null}
             {canManageCatalogOverrides ? (
@@ -392,30 +393,11 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 })}
               </p>
             ) : null}
-            {isCodexManagedConnector && codexOAuthPending ? (
-              <div className="rounded-[var(--nimi-radius-md)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-3 py-2 text-xs text-[var(--nimi-text-secondary)]">
-                <p className="font-medium text-[var(--nimi-text-primary)]">
-                  {t('runtimeConfig.cloud.codexOauthPendingTitle', { defaultValue: 'Complete Codex sign-in' })}
-                </p>
-                <p className="mt-1">
-                  {t('runtimeConfig.cloud.codexOauthPendingBody', {
-                    defaultValue: 'The browser was opened for Codex sign-in. Enter the code below if prompted, then return here.',
-                  })}
-                </p>
-                <p className="mt-2 font-mono text-sm tracking-[0.2em] text-[var(--nimi-action-primary-bg)]">
-                  {codexOAuthPending.userCode}
-                </p>
-                <p className="mt-2 break-all">
-                  <a
-                    href={codexOAuthPending.verificationUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[var(--nimi-action-primary-bg)] underline"
-                  >
-                    {codexOAuthPending.verificationUrl}
-                  </a>
-                </p>
-              </div>
+            {isBrowserManagedConnector && managedOAuthPending ? (
+              <ChatGPTPlanPendingNotice pending={managedOAuthPending} onCancel={props.onCancelManagedOAuth} t={t} />
+            ) : null}
+            {isBrowserManagedConnector && !isDraft ? (
+              <ChatGPTPlanAccountNotice connector={selectedConnector} t={t} />
             ) : null}
             {tokenSavedConnectorId === selectedConnector.id && (
               <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">

@@ -523,7 +523,7 @@ units:
     kind: rule
     title: Managed OAuth consume never mutates custody
     modality: must_not
-    statement: AI execution implicitly refreshes, replaces, or rewrites an OAUTH_MANAGED custody payload or the admitted current-account Connector; custody resolution returns more than the minimum request-scoped token or headers, stores that material in Profile, AIConfig, Driver configuration, ordinary workflow, or Job, or hides provider authentication rejection behind fallback or success.
+    statement: AI execution implicitly refreshes, replaces, or rewrites an OAUTH_MANAGED custody payload outside the exact ChatGPT-plan renewal governed by rule.nimi.runtime.ai-provider.chatgpt-plan-refresh-custody, or rewrites the admitted current-account Connector reference; custody resolution returns more than the minimum request-scoped token or headers, stores that material in Profile, AIConfig, Driver configuration, ordinary workflow, or Job, or hides provider authentication rejection behind fallback or success.
     condition: Whenever AI consume resolves or uses an OAUTH_MANAGED credential.
     failure: Return the applicable typed failure without mutating the sealed payload.
     relations:

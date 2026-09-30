@@ -262,6 +262,8 @@ export const agentCenterZhCatalog = {
   "AgentCenter.aiConfig.localBrokenLabel": "所选本机配置受阻：",
   "AgentCenter.aiConfig.cloudBlockedLabel": "此云端配置当前无法运行。请重新选择模型或改选其他模型。",
   "AgentCenter.aiConfig.cloudCatalogStaleLabel": "选定此模型后云端模型列表已更新。请从当前列表重新选择模型。",
+  "AgentCenter.aiConfig.cloudChatGPTPlanLabel": "正在使用 ChatGPT 计划",
+  "AgentCenter.aiConfig.cloudChatGPTPlanDescription": "此模型中符合条件的使用会计入已登录 ChatGPT 计划的额度，Nimi 不收费。",
   "AgentCenter.aiConfig.localIntentLabel": "本机",
   "AgentCenter.aiConfig.localMismatchLabel": "所选本机配置不支持这些必需功能：{{features}}",
   "AgentCenter.aiConfig.localMissingLabel": "当前设置使用本机模型，但尚未为此能力选择模型。",

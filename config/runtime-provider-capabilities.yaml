@@ -474,7 +474,7 @@ providers:
       - K-MCAT-027
       - K-CONN-008
       - K-KEYSRC-001
-  - provider: openai_codex
+  - provider: openai_chatgpt_plan
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true

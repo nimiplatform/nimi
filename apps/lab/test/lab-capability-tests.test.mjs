@@ -550,6 +550,7 @@ test('a committed target Runtime can no longer run names its cause and leads bac
     ['ai-connector-credential-missing', 'AI_CONNECTOR_CREDENTIAL_MISSING', 'connectorCredentialMissing'],
     ['ai-connector-not-found', 'AI_CONNECTOR_NOT_FOUND', 'connectorNotFound'],
     ['ai-config-invalid', 'AI_CONFIG_INVALID', 'configInvalid'],
+    ['ai-model-not-found', 'AI_MODEL_NOT_FOUND', 'modelNotFound'],
   ];
   for (const [carrierReason, reasonCode, key] of cases) {
     const result = await run(() => { throw typedError(carrierReason); });
@@ -570,6 +571,22 @@ test('a committed target Runtime can no longer run names its cause and leads bac
   assert.equal(studioNonSuccessNeedsTargetReselection(unclassified.diagnostics), false);
   assert.notEqual(studioNonSuccessReasonUserAction(unclassified.reason, t, unclassified.capabilityId, unclassified.diagnostics), t('NonSuccess.action.catalogStale'));
   assert.notEqual(t('NonSuccess.openAIConfig'), 'NonSuccess.openAIConfig');
+});
+
+test('a provider rate or plan usage limit explains the limit instead of a blind retry', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const { studioNonSuccessNeedsTargetReselection, studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
+  const { t } = await load('shell/i18n/index.js');
+  const run = async (execute) => runLabCapability({ capabilityId: 'text.decide', prompt: '', parameters: decisionForm() }, ready(fakeClient({ execute }).client));
+  // Protected carriers deliver the kebab-case reason without the Runtime action hint.
+  const limited = await run(() => { throw typedError('ai-provider-rate-limited'); });
+  assert.equal(limited.reason, 'runtime-call-failed');
+  assert.equal(limited.diagnostics.reasonCode, 'AI_PROVIDER_RATE_LIMITED');
+  assert.equal(studioNonSuccessNeedsTargetReselection(limited.diagnostics), false);
+  assert.equal(studioNonSuccessReasonUserMessage(limited.reason, t, limited.capabilityId, limited.diagnostics), t('NonSuccess.message.providerRateLimited'));
+  const action = studioNonSuccessReasonUserAction(limited.reason, t, limited.capabilityId, limited.diagnostics);
+  assert.match(action, /https:\/\/chatgpt\.com\/settings\/usage/u);
+  assert.notEqual(action, t('NonSuccess.action.runtimeCallFailed'));
 });
 
 test('unsupported media settings offer parameter correction instead of a blind retry', async () => {

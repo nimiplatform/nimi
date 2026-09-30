@@ -99,6 +99,10 @@ func defaultManagedConnectorLabel(provider string) string {
 }
 
 func recordToProto(r ConnectorRecord) *runtimev1.Connector {
+	var registration *runtimev1.ConnectorOAuthRegistration
+	if r.OAuthRegistration != nil {
+		registration = &runtimev1.ConnectorOAuthRegistration{IssuedClientId: r.OAuthRegistration.ClientID, AccountLabel: r.OAuthRegistration.AccountLabel}
+	}
 	return &runtimev1.Connector{
 		ConnectorId:         r.ConnectorID,
 		Kind:                r.Kind,
@@ -113,6 +117,7 @@ func recordToProto(r ConnectorRecord) *runtimev1.Connector {
 		ProviderAuthProfile: r.ProviderAuthProfile,
 		CreatedAt:           timestamppb.New(time.UnixMilli(r.CreatedAt)),
 		UpdatedAt:           timestamppb.New(time.UnixMilli(r.UpdatedAt)),
+		OauthRegistration:   registration,
 	}
 }
 

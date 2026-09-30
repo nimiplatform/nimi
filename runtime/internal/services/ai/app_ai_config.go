@@ -52,7 +52,7 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	if !found {
 		return &runtimev1.GetAppAIConfigResponse{Revision: revision}, nil
 	}
-	effective := s.projectAppAIConfigEffectiveSelections(caller.accountNamespace, config)
+	effective := s.projectAppAIConfigEffectiveSelections(ctx, caller.accountNamespace, config)
 	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
 		config = portableLocalAppAIConfigProjection(config)
 	}

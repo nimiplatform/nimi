@@ -6,9 +6,9 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { ApiConnector } from './runtime-config-state-types.js';
 
-export type CodexOAuthPendingState = NimiConnectorAuthAcquisitionPendingState;
+export type ManagedOAuthPendingState = NimiConnectorAuthAcquisitionPendingState;
 
-export type CodexOAuthConnectorOperationSnapshot = Readonly<{
+export type ManagedOAuthConnectorOperationSnapshot = Readonly<{
   generation: number;
   connector: ApiConnector;
   fingerprint: string;
@@ -32,10 +32,10 @@ function connectorSnapshotFingerprint(connector: ApiConnector): string {
   return JSON.stringify(canonicalizeConnectorSnapshotValue(connector));
 }
 
-export function createCodexOAuthConnectorOperationSnapshot(
+export function createManagedOAuthConnectorOperationSnapshot(
   generation: number,
   connector: ApiConnector,
-): CodexOAuthConnectorOperationSnapshot {
+): ManagedOAuthConnectorOperationSnapshot {
   const fingerprint = connectorSnapshotFingerprint(connector);
   return Object.freeze({
     generation,
@@ -44,8 +44,8 @@ export function createCodexOAuthConnectorOperationSnapshot(
   });
 }
 
-export function isCodexOAuthConnectorOperationCurrent(
-  operation: CodexOAuthConnectorOperationSnapshot,
+export function isManagedOAuthConnectorOperationCurrent(
+  operation: ManagedOAuthConnectorOperationSnapshot,
   generation: number,
   connector: ApiConnector | null | undefined,
 ): boolean {
@@ -54,25 +54,21 @@ export function isCodexOAuthConnectorOperationCurrent(
     && connectorSnapshotFingerprint(connector as ApiConnector) === operation.fingerprint;
 }
 
-type AcquireCodexManagedCredentialOptions = {
+type AcquireManagedConnectorCredentialOptions = {
   profileId: string;
   connectorId?: string;
-  provider?: string;
-  endpoint?: string;
   label?: string;
-  onPending?: (state: CodexOAuthPendingState) => void;
+  onPending?: (state: ManagedOAuthPendingState) => void;
   signal?: AbortSignal;
 };
 
-export async function acquireCodexManagedCredential(
-  options: AcquireCodexManagedCredentialOptions,
+export async function acquireManagedConnectorCredential(
+  options: AcquireManagedConnectorCredentialOptions,
   host: NimiManagedConnectorCredentialAcquisitionHost,
 ): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
   return acquireNimiManagedConnectorCredential({
     profileId: options.profileId,
     connectorId: options.connectorId,
-    provider: options.provider,
-    endpoint: options.endpoint,
     label: options.label,
     onPending: options.onPending,
     signal: options.signal,

@@ -4,34 +4,32 @@ export type ConnectorAuthAcquisitionProfileSpec = {
   profileId: string;
   providerAuthProfile: string;
   issuer: string;
-  clientId: string;
-  deviceAuthorizationUrl: string;
-  deviceTokenUrl: string;
-  redirectUri: string;
-  fallbackVerificationUrl: string;
-  tokenExchangeProvider: string;
-  defaultPollIntervalSeconds: number;
-  minPollIntervalSeconds: number;
-  maxPollIntervalSeconds: number;
-  defaultExpiresInSeconds: number;
-  maxExpiresInSeconds: number;
+  initialClientId: string;
+  agentNameHint: string;
+  authorizationUrl: string;
+  tokenUrl: string;
+  jwksUrl: string;
+  resource: string;
+  scopes: readonly string[];
+  callbackHost: string;
+  callbackPath: string;
+  acquisitionTimeoutSeconds: number;
 };
 
 export const CONNECTOR_AUTH_ACQUISITION_PROFILES: Record<string, ConnectorAuthAcquisitionProfileSpec> = {
-  "openai_codex": {
-    profileId: "openai_codex",
-    providerAuthProfile: "openai_codex",
+  "openai_chatgpt_plan": {
+    profileId: "openai_chatgpt_plan",
+    providerAuthProfile: "openai_chatgpt_plan",
     issuer: "https://auth.openai.com",
-    clientId: "app_EMoamEEZ73f0CkXaXp7hrann",
-    deviceAuthorizationUrl: "https://auth.openai.com/api/accounts/deviceauth/usercode",
-    deviceTokenUrl: "https://auth.openai.com/api/accounts/deviceauth/token",
-    redirectUri: "https://auth.openai.com/deviceauth/callback",
-    fallbackVerificationUrl: "https://auth.openai.com/codex/device",
-    tokenExchangeProvider: "CODEX",
-    defaultPollIntervalSeconds: 5,
-    minPollIntervalSeconds: 3,
-    maxPollIntervalSeconds: 30,
-    defaultExpiresInSeconds: 900,
-    maxExpiresInSeconds: 900,
+    initialClientId: "dynamic_agent_client",
+    agentNameHint: "Nimi",
+    authorizationUrl: "https://auth.openai.com/api/accounts/authorize",
+    tokenUrl: "https://auth.openai.com/api/accounts/oauth/token",
+    jwksUrl: "https://auth.openai.com/.well-known/jwks.json",
+    resource: "https://api.openai.com/v1",
+    scopes: ["openid", "profile", "email", "offline_access", "resource.invoke", "chatgpt.tokens.use.direct"],
+    callbackHost: "127.0.0.1",
+    callbackPath: "/auth/callback",
+    acquisitionTimeoutSeconds: 600,
   },
 };

@@ -30,7 +30,7 @@ func (s *Service) GetSharedLocalAgentAIConfig(
 	}
 	return &runtimev1.GetSharedLocalAgentAIConfigResponse{
 		Config: config, Revision: revision,
-		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(caller.accountNamespace, config),
+		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(ctx, caller.accountNamespace, config),
 		Participation:       projectLocalAgentCapabilityParticipation(),
 	}, nil
 }
@@ -54,7 +54,7 @@ func (s *Service) OverwriteSharedLocalAgentAIConfig(
 	}
 	response := &runtimev1.OverwriteSharedLocalAgentAIConfigResponse{
 		Config: config, Revision: revision, Committed: committed,
-		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(caller.accountNamespace, config),
+		EffectiveSelections: s.projectSharedAIConfigEffectiveSelections(ctx, caller.accountNamespace, config),
 		Participation:       projectLocalAgentCapabilityParticipation(),
 	}
 	if !committed {
@@ -91,7 +91,7 @@ func (s *Service) ListSharedLocalAgentAIConfigOptions(
 		response.Result = &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse_CloudConnectors{CloudConnectors: &runtimev1.AIConfigCloudConnectorOptions{Options: options}}
 		response.Truncated = truncated
 	case *runtimev1.ListSharedLocalAgentAIConfigOptionsRequest_CloudTargets:
-		options, truncated, err := s.listSharedAIConfigCloudTargetOptions(caller.accountNamespace, query.CloudTargets)
+		options, truncated, err := s.listSharedAIConfigCloudTargetOptions(ctx, caller.accountNamespace, query.CloudTargets)
 		if err != nil {
 			return nil, err
 		}

@@ -270,6 +270,10 @@ function useAppsModelConfigCopy(appDisplayName: string): ModelConfigCopy {
     cloudNoticeDescription: t('Chat.settingsCloudConnectorResolution', {
       defaultValue: 'Requests may leave this device and incur provider charges.',
     }),
+    cloudChatGPTPlanLabel: t('Chat.settingsCloudChatGPTPlan', { defaultValue: 'Using ChatGPT plan' }),
+    cloudChatGPTPlanDescription: t('Chat.settingsCloudChatGPTPlanDescription', {
+      defaultValue: 'Eligible usage with this model counts toward the signed-in ChatGPT plan limits, not a Nimi charge.',
+    }),
     cloudConnectorLabel: t('Chat.settingsCloudConnector', { defaultValue: 'Configured Connector' }),
     cloudConnectorPlaceholder: t('Chat.settingsCloudConnectorPlaceholder', {
       defaultValue: 'Choose a connector for this provider',

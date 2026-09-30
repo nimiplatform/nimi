@@ -27,6 +27,8 @@ export interface NimiRuntimeConnectorProjection {
   readonly provider: string;
   readonly authMode: NimiRuntimeConnectorAuthMode;
   readonly providerAuthProfile?: string;
+  // Non-secret account shown for a managed OAuth registration.
+  readonly accountLabel?: string;
   readonly endpoint: string;
   readonly scope: NimiRuntimeConnectorScope;
   readonly hasCredential: boolean;
@@ -49,6 +51,7 @@ export interface NimiRuntimeConfigConnectorProjectionInput {
   readonly provider?: unknown;
   readonly authMode?: unknown;
   readonly providerAuthProfile?: unknown;
+  readonly accountLabel?: unknown;
   readonly endpoint?: unknown;
   readonly scope?: unknown;
   readonly hasCredential?: unknown;
@@ -151,6 +154,7 @@ const VENDOR_TOKEN_ORTHOGRAPHY: Readonly<Record<string, string>> = Object.freeze
   ai: 'AI',
   api: 'API',
   aws: 'AWS',
+  chatgpt: 'ChatGPT',
   dashscope: 'DashScope',
   deepseek: 'DeepSeek',
   elevenlabs: 'ElevenLabs',
@@ -269,6 +273,7 @@ export function normalizeNimiRuntimeConfigConnectorProjection(
     provider: normalizeText(raw.provider),
     authMode: normalizeNimiRuntimeConfigConnectorAuthMode(raw.authMode),
     providerAuthProfile: normalizeText(raw.providerAuthProfile) || undefined,
+    accountLabel: normalizeText(raw.accountLabel) || undefined,
     endpoint: normalizeNimiRuntimeConfigEndpoint(raw.endpoint, NIMI_RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT),
     scope,
     hasCredential: Boolean(raw.hasCredential),

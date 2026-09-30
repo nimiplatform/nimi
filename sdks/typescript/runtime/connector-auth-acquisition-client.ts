@@ -1,15 +1,17 @@
+import { CONNECTOR_AUTH_ACQUISITION_PROFILES } from './connector-auth-acquisition-profiles.generated.js';
+
+// The browser authorization is pending; the URL lets the user reopen the same
+// sign-in page and carries no credential.
 export type NimiConnectorAuthAcquisitionPendingState = {
-  userCode: string;
-  verificationUrl: string;
+  authorizationUrl: string;
   expiresInSeconds: number;
-  pollIntervalSeconds: number;
 };
 
+// connectorId selects explicit reauthorization of that Connector's existing
+// registration; without it a new account registration is created.
 export type NimiManagedConnectorCredentialAcquisitionRequest = {
   profileId: string;
   connectorId?: string;
-  provider?: string;
-  endpoint?: string;
   label?: string;
 };
 
@@ -17,7 +19,7 @@ export type NimiManagedConnectorCredentialAcquisitionResult = {
   profileId: string;
   providerAuthProfile: string;
   connectorId: string;
-  expiresAt?: string;
+  accountLabel?: string;
 };
 
 export type NimiManagedConnectorCredentialAcquisitionHostInput =
@@ -37,12 +39,19 @@ export type NimiAcquireManagedConnectorCredentialOptions =
     host: NimiManagedConnectorCredentialAcquisitionHost;
   };
 
+// Reports whether a managed OAuth auth profile uses Nimi's browser sign-in.
+// The profile table carries only public acquisition metadata.
+export function isNimiBrowserManagedConnectorProfile(providerAuthProfile: string | undefined): boolean {
+  const normalized = String(providerAuthProfile || '').trim().toLowerCase();
+  return Boolean(normalized) && Object.hasOwn(CONNECTOR_AUTH_ACQUISITION_PROFILES, normalized);
+}
+
 export async function acquireNimiManagedConnectorCredential(
   options: NimiAcquireManagedConnectorCredentialOptions,
 ): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
   exactRecord(
     options,
-    new Set(['profileId', 'connectorId', 'provider', 'endpoint', 'label', 'onPending', 'signal', 'host']),
+    new Set(['profileId', 'connectorId', 'label', 'onPending', 'signal', 'host']),
     'managed connector credential acquisition options',
   );
   if (!options.host || typeof options.host.acquireManagedConnectorCredential !== 'function') {
@@ -59,8 +68,6 @@ export async function acquireNimiManagedConnectorCredential(
     profileId: requiredText(options.profileId, 'profileId'),
   };
   copyOptionalText(request, 'connectorId', options.connectorId);
-  copyOptionalText(request, 'provider', options.provider);
-  copyOptionalText(request, 'endpoint', options.endpoint);
   copyOptionalText(request, 'label', options.label);
   if (options.onPending) {
     request.onPending = (value: unknown) => options.onPending?.(parsePendingState(value));
@@ -86,21 +93,23 @@ export function parseNimiManagedConnectorCredentialAcquisitionResult(
 function parsePendingState(value: unknown): NimiConnectorAuthAcquisitionPendingState {
   const record = exactRecord(
     value,
-    new Set(['userCode', 'verificationUrl', 'expiresInSeconds', 'pollIntervalSeconds']),
+    new Set(['authorizationUrl', 'expiresInSeconds']),
     'managed connector credential pending state',
   );
+  const authorizationUrl = requiredText(record.authorizationUrl, 'authorizationUrl');
+  if (!authorizationUrl.startsWith('https://')) {
+    throw new Error('authorizationUrl must be an https URL');
+  }
   return {
-    userCode: requiredText(record.userCode, 'userCode'),
-    verificationUrl: requiredText(record.verificationUrl, 'verificationUrl'),
+    authorizationUrl,
     expiresInSeconds: positiveInteger(record.expiresInSeconds, 'expiresInSeconds'),
-    pollIntervalSeconds: positiveInteger(record.pollIntervalSeconds, 'pollIntervalSeconds'),
   };
 }
 
 function parseAcquisitionResult(value: unknown): NimiManagedConnectorCredentialAcquisitionResult {
   const record = exactRecord(
     value,
-    new Set(['profileId', 'providerAuthProfile', 'connectorId', 'expiresAt']),
+    new Set(['profileId', 'providerAuthProfile', 'connectorId', 'accountLabel']),
     'managed connector credential acquisition result',
   );
   const result: NimiManagedConnectorCredentialAcquisitionResult = {
@@ -108,8 +117,8 @@ function parseAcquisitionResult(value: unknown): NimiManagedConnectorCredentialA
     providerAuthProfile: requiredText(record.providerAuthProfile, 'providerAuthProfile'),
     connectorId: requiredText(record.connectorId, 'connectorId'),
   };
-  const expiresAt = optionalText(record.expiresAt, 'expiresAt');
-  if (expiresAt) result.expiresAt = expiresAt;
+  const accountLabel = optionalText(record.accountLabel, 'accountLabel');
+  if (accountLabel) result.accountLabel = accountLabel;
   return result;
 }
 

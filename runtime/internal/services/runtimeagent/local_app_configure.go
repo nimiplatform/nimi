@@ -45,7 +45,7 @@ func (s *Service) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, req *
 	}
 	var effective []*runtimev1.AIConfigEffectiveSelection
 	if found {
-		effective = s.projectSharedAIConfigEffectiveSelections(decision.AccountID, config)
+		effective = s.projectSharedAIConfigEffectiveSelections(ctx, decision.AccountID, config)
 	}
 	return &runtimev1.GetLocalAppSharedLocalAgentAIConfigResponse{
 		Projection: localAppSharedAIConfigProjection(config, revision, effective),
@@ -68,7 +68,7 @@ func (s *Service) OverwriteLocalAppSharedLocalAgentAIConfig(ctx context.Context,
 	}
 	response := &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigResponse{
 		Projection: localAppSharedAIConfigProjection(
-			config, revision, s.projectSharedAIConfigEffectiveSelections(decision.AccountID, config),
+			config, revision, s.projectSharedAIConfigEffectiveSelections(ctx, decision.AccountID, config),
 		),
 		Committed: committed,
 	}
@@ -106,7 +106,7 @@ func (s *Service) ListLocalAppSharedLocalAgentAIConfigOptions(
 		response.Result = &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudConnectors{CloudConnectors: &runtimev1.AIConfigCloudConnectorOptions{Options: options}}
 		response.Truncated = truncated
 	case *runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest_CloudTargets:
-		options, truncated, err := s.listSharedAIConfigCloudTargetOptions(decision.AccountID, query.CloudTargets)
+		options, truncated, err := s.listSharedAIConfigCloudTargetOptions(ctx, decision.AccountID, query.CloudTargets)
 		if err != nil {
 			return nil, err
 		}

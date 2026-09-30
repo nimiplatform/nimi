@@ -197,7 +197,7 @@ func cloudTextDialect(provider string) string {
 	switch provider {
 	case "anthropic":
 		return "anthropic-messages"
-	case "openai_codex":
+	case "openai_chatgpt_plan":
 		return "openai-responses"
 	default:
 		return "openai-chat-completions"
@@ -431,6 +431,8 @@ func (providerCloudTextDriver) NormalizeReason(err error) error {
 			runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID,
 			runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE,
 			runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED,
+			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
 			runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED:
 			return err
 		}

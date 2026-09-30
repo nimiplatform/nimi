@@ -4,7 +4,7 @@ export type ConnectorAuthProfileSpec = {
   id: string;
   authKind: 'oauth_managed';
   allowedProviders: readonly string[];
-  headerBehavior: 'none' | 'codex_oauth' | 'anthropic';
+  headerBehavior: 'none' | 'anthropic';
 };
 
 export const CONNECTOR_AUTH_PROFILES: Record<string, ConnectorAuthProfileSpec> = {
@@ -14,11 +14,11 @@ export const CONNECTOR_AUTH_PROFILES: Record<string, ConnectorAuthProfileSpec> =
     allowedProviders: ["anthropic"],
     headerBehavior: "anthropic",
   },
-  "openai_codex": {
-    id: "openai_codex",
+  "openai_chatgpt_plan": {
+    id: "openai_chatgpt_plan",
     authKind: "oauth_managed",
-    allowedProviders: ["openai_codex"],
-    headerBehavior: "codex_oauth",
+    allowedProviders: ["openai_chatgpt_plan"],
+    headerBehavior: "none",
   },
   "qwen_oauth": {
     id: "qwen_oauth",

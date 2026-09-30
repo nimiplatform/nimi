@@ -51,8 +51,6 @@ NimiManagedConnectorCredentialAcquisitionHost = Object.freeze({
             requestId,
             profileId: input.profileId,
             connectorId: input.connectorId,
-            provider: input.provider,
-            endpoint: input.endpoint,
             label: input.label,
           },
         },

@@ -15,19 +15,20 @@ import (
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 19 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and nine Cloud targets", len(registrations))
+	if len(registrations) != 20 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and ten Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
-		"anthropic/claude-sonnet-4-6": "anthropic.sonnet46.messages",
-		"openai_codex/gpt-5.6-sol":    "openai_codex.sol.responses",
-		"openai_codex/gpt-6-astra":    "openai_codex.astra.responses",
-		"deepseek/deepseek-flash":     "deepseek.flash.chat",
-		"deepseek/deepseek-v4-flash":  "deepseek.v4-flash.chat",
-		"deepseek/deepseek-v4-pro":    "deepseek.v4-pro.chat",
-		"dashscope/qwen3.8-flash":     "dashscope.qwen38-flash.chat",
-		"dashscope/qwen3.8-max-0902":  "dashscope.qwen38-max-0902.chat",
-		"gemini/gemini-3.8-flash":     "gemini.38-flash.chat",
+		"anthropic/claude-sonnet-4-6":     "anthropic.sonnet46.messages",
+		"openai_chatgpt_plan/gpt-6.1-sol": "openai_chatgpt_plan.gpt-6.1-sol.responses",
+		"openai_chatgpt_plan/gpt-6-astra": "openai_chatgpt_plan.gpt-6-astra.responses",
+		"openai_chatgpt_plan/gpt-6-luna":  "openai_chatgpt_plan.gpt-6-luna.responses",
+		"deepseek/deepseek-flash":         "deepseek.flash.chat",
+		"deepseek/deepseek-v4-flash":      "deepseek.v4-flash.chat",
+		"deepseek/deepseek-v4-pro":        "deepseek.v4-pro.chat",
+		"dashscope/qwen3.8-flash":         "dashscope.qwen38-flash.chat",
+		"dashscope/qwen3.8-max-0902":      "dashscope.qwen38-max-0902.chat",
+		"gemini/gemini-3.8-flash":         "gemini.38-flash.chat",
 	}
 	seenContents := map[string]struct{}{}
 	for _, registration := range registrations {
@@ -108,24 +109,25 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	}
 }
 
-func TestCodexPlainTextUsesExactDeclaredHooks(t *testing.T) {
+func TestChatGPTPlanPlainTextUsesExactDeclaredHooks(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	identity := &runtimev1.CapabilityImplementationIdentity{ImplementationId: "openai_codex", DriverId: "nimillm", DriverDialect: "openai_codex"}
+	identity := &runtimev1.CapabilityImplementationIdentity{ImplementationId: "openai_chatgpt_plan", DriverId: "nimillm", DriverDialect: "openai_chatgpt_plan"}
 	plain := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}}}
-	for _, model := range []string{"gpt-5.6-sol", "gpt-6-astra"} {
+	for _, model := range []string{"gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna"} {
 		for _, mode := range []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM} {
-			adapter, err := resolveTextBehaviorAdapter(registrations, identity, "openai_codex", model, mode, plain)
+			adapter, err := resolveTextBehaviorAdapter(registrations, identity, "openai_chatgpt_plan", model, mode, plain)
 			if err != nil || adapter == nil || adapter.registration.CloudTarget.ProviderModelID != model {
 				t.Fatalf("plain %s/%s did not capture exact hooks: %+v %v", model, mode, adapter, err)
 			}
 		}
 	}
-	if _, err := resolveTextBehaviorAdapter(registrations, identity, "openai_codex", "gpt-6-astra-preview", runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, testTextBehaviorToolSpec()); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+	if _, err := resolveTextBehaviorAdapter(registrations, identity, "openai_chatgpt_plan", "gpt-6-astra-preview", runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, testTextBehaviorToolSpec()); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
 		t.Fatalf("unregistered model matched by name: %v", err)
 	}
-	duplicate := codexTextBehaviorRegistration("gpt-6-astra", "conflicting-astra-adapter")
+	duplicate := chatGPTPlanTextBehaviorRegistration("gpt-6-astra")
+	duplicate.AdapterID = "conflicting-astra-adapter"
 	registrations = append(registrations, duplicate)
-	if _, err := resolveTextBehaviorAdapter(registrations, identity, "openai_codex", "gpt-6-astra", runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, plain); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_AMBIGUOUS {
+	if _, err := resolveTextBehaviorAdapter(registrations, identity, "openai_chatgpt_plan", "gpt-6-astra", runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, plain); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_AMBIGUOUS {
 		t.Fatalf("ambiguous plain-text hooks accepted: %v", err)
 	}
 }

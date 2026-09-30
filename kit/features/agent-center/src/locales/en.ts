@@ -260,6 +260,8 @@ export const agentCenterEnCatalog = {
   "AgentCenter.aiConfig.localBrokenLabel": "The selected machine configuration is blocked:",
   "AgentCenter.aiConfig.cloudBlockedLabel": "This Cloud selection cannot run right now. Choose the model again or choose another model.",
   "AgentCenter.aiConfig.cloudCatalogStaleLabel": "The Cloud model list changed after this model was selected. Choose the model again from the current list.",
+  "AgentCenter.aiConfig.cloudChatGPTPlanLabel": "Using ChatGPT plan",
+  "AgentCenter.aiConfig.cloudChatGPTPlanDescription": "Eligible usage with this model counts toward the signed-in ChatGPT plan limits, not a Nimi charge.",
   "AgentCenter.aiConfig.localIntentLabel": "On-device",
   "AgentCenter.aiConfig.localMismatchLabel": "The selected machine configuration does not provide required features: {{features}}",
   "AgentCenter.aiConfig.localMissingLabel": "These settings use an on-device model, but no model is selected for this capability.",

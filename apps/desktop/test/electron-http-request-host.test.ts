@@ -40,7 +40,7 @@ async function expectReason(
 
 test('Electron HTTP host returns the complete response through a fixed main-process request', async () => {
   const sent: SentRequest[] = [];
-  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_chatgpt_plan;
   assert.ok(profile);
   const host = createDesktopElectronHttpHost({
     fetch: async (input, init) => {
@@ -57,7 +57,7 @@ test('Electron HTTP host returns the complete response through a fixed main-proc
   });
 
   const result = await invokeConnectorAuth(host, {
-    url: profile.deviceTokenUrl,
+    url: profile.tokenUrl,
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -65,7 +65,7 @@ test('Electron HTTP host returns the complete response through a fixed main-proc
     },
     body: '{"device_auth_id":"fixture"}',
     profileId: profile.profileId,
-    purpose: 'device_token',
+    purpose: 'authorization_code_exchange',
   });
 
   assert.deepEqual(result, {
@@ -77,7 +77,7 @@ test('Electron HTTP host returns the complete response through a fixed main-proc
     body: '{"ok":true}',
   });
   assert.equal(sent.length, 1);
-  assert.equal(String(sent[0]?.input), profile.deviceTokenUrl);
+  assert.equal(String(sent[0]?.input), profile.tokenUrl);
   assert.equal(sent[0]?.init?.method, 'POST');
   assert.equal(sent[0]?.init?.body, '{"device_auth_id":"fixture"}');
   assert.equal(sent[0]?.init?.redirect, 'manual');
@@ -85,81 +85,57 @@ test('Electron HTTP host returns the complete response through a fixed main-proc
   assert.ok(sent[0]?.init?.signal instanceof AbortSignal);
 });
 
-test('Electron HTTP host uses the SDK acquisition profile for exact OAuth POST admission', async () => {
-  const sent: string[] = [];
-  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+test('Electron HTTP host admits only the exact SIWC token exchange and signing-key requests', async () => {
+  const sent: Array<{ url: string; method: string | undefined }> = [];
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_chatgpt_plan;
   assert.ok(profile);
   const host = createDesktopElectronHttpHost({
-    fetch: async (input) => {
-      sent.push(String(input));
-      return new Response('{"ok":true}', {
-        headers: { 'Content-Type': 'application/json' },
-      });
+    fetch: async (input, init) => {
+      sent.push({ url: String(input), method: init?.method });
+      return new Response('{"ok":true}', { headers: { 'Content-Type': 'application/json' } });
     },
   });
 
   await invokeConnectorAuth(host, {
-    url: profile.deviceAuthorizationUrl,
+    url: profile.tokenUrl,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: '{"client_id":"fixture"}',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=authorization_code',
     profileId: profile.profileId,
-    purpose: 'device_authorization',
+    purpose: 'authorization_code_exchange',
   });
   await invokeConnectorAuth(host, {
-    url: profile.deviceTokenUrl,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: '{"device_auth_id":"fixture"}',
+    url: profile.jwksUrl,
+    method: 'GET',
+    headers: { Accept: 'application/json' },
     profileId: profile.profileId,
-    purpose: 'device_token',
+    purpose: 'jwks',
   });
   assert.deepEqual(sent, [
-    profile.deviceAuthorizationUrl,
-    profile.deviceTokenUrl,
+    { url: profile.tokenUrl, method: 'POST' },
+    { url: profile.jwksUrl, method: 'GET' },
   ]);
 
   for (const request of [
-    {
-      url: profile.deviceAuthorizationUrl,
-      method: 'GET',
-      profileId: profile.profileId,
-      purpose: 'device_authorization',
-    },
-    {
-      url: profile.deviceAuthorizationUrl,
-      method: 'POST',
-      profileId: profile.profileId,
-      purpose: 'device_token',
-    },
-    {
-      url: `${profile.deviceAuthorizationUrl}?redirect=1`,
-      method: 'POST',
-      profileId: profile.profileId,
-      purpose: 'device_authorization',
-    },
-    {
-      url: profile.deviceAuthorizationUrl,
-      method: 'POST',
-      profileId: 'unknown-profile',
-      purpose: 'device_authorization',
-    },
-    {
-      url: profile.deviceAuthorizationUrl,
-      method: 'POST',
-    },
+    { url: profile.tokenUrl, method: 'GET', profileId: profile.profileId, purpose: 'authorization_code_exchange' },
+    { url: profile.jwksUrl, method: 'POST', body: 'x', profileId: profile.profileId, purpose: 'jwks' },
+    { url: profile.jwksUrl, method: 'GET', body: 'x', profileId: profile.profileId, purpose: 'jwks' },
+    { url: profile.tokenUrl, method: 'POST', profileId: profile.profileId, purpose: 'jwks' },
+    { url: `${profile.tokenUrl}?redirect=1`, method: 'POST', profileId: profile.profileId, purpose: 'authorization_code_exchange' },
+    { url: profile.authorizationUrl, method: 'GET', profileId: profile.profileId, purpose: 'jwks' },
+    { url: 'https://chatgpt.com/backend-api/codex/models', method: 'GET', profileId: profile.profileId, purpose: 'jwks' },
+    { url: profile.tokenUrl, method: 'POST', profileId: 'openai_codex', purpose: 'authorization_code_exchange' },
+    { url: profile.tokenUrl, method: 'POST', profileId: profile.profileId, purpose: 'device_token' },
+    { url: profile.tokenUrl, method: 'POST' },
   ]) {
-    await expectReason(
-      invokeConnectorAuth(host, request),
-      'DESKTOP_HTTP_CONNECTOR_AUTH_NOT_ADMITTED',
-    );
+    await expectReason(invokeConnectorAuth(host, request), 'DESKTOP_HTTP_CONNECTOR_AUTH_NOT_ADMITTED');
   }
   assert.equal(sent.length, 2);
 });
 
 test('Electron HTTP host rejects sensitive header overrides', async () => {
   let sendCount = 0;
-  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_chatgpt_plan;
   assert.ok(profile);
   const host = createDesktopElectronHttpHost({
     fetch: async () => {
@@ -176,10 +152,10 @@ test('Electron HTTP host rejects sensitive header overrides', async () => {
   );
   await expectReason(
     invokeConnectorAuth(host, {
-      url: profile.deviceTokenUrl,
+      url: profile.tokenUrl,
       method: 'TRACE',
       profileId: profile.profileId,
-      purpose: 'device_token',
+      purpose: 'authorization_code_exchange',
     }),
     'DESKTOP_HTTP_METHOD_INVALID',
   );
@@ -198,11 +174,11 @@ test('Electron HTTP host rejects sensitive header overrides', async () => {
   ]) {
     await expectReason(
       invokeConnectorAuth(host, {
-        url: profile.deviceTokenUrl,
+        url: profile.tokenUrl,
         method: 'POST',
         headers: { [headerName]: 'renderer-value' },
         profileId: profile.profileId,
-        purpose: 'device_token',
+        purpose: 'authorization_code_exchange',
       }),
       'DESKTOP_HTTP_HEADER_RESTRICTED',
     );
@@ -212,7 +188,7 @@ test('Electron HTTP host rejects sensitive header overrides', async () => {
 
 test('Electron HTTP host applies fixed request-size boundaries before network dispatch', async () => {
   let sendCount = 0;
-  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_chatgpt_plan;
   assert.ok(profile);
   const host = createDesktopElectronHttpHost({
     fetch: async () => {
@@ -222,27 +198,27 @@ test('Electron HTTP host applies fixed request-size boundaries before network di
   });
   const oversizedRequests: Readonly<Record<string, unknown>>[] = [
     {
-      url: `${profile.deviceTokenUrl}${'u'.repeat(8 * 1024)}`,
+      url: `${profile.tokenUrl}${'u'.repeat(8 * 1024)}`,
       method: 'POST',
       profileId: profile.profileId,
-      purpose: 'device_token',
+      purpose: 'authorization_code_exchange',
     },
     {
-      url: profile.deviceTokenUrl,
+      url: profile.tokenUrl,
       method: 'POST',
       headers: { [`x-${'n'.repeat(128)}`]: 'value' },
       profileId: profile.profileId,
-      purpose: 'device_token',
+      purpose: 'authorization_code_exchange',
     },
     {
-      url: profile.deviceTokenUrl,
+      url: profile.tokenUrl,
       method: 'POST',
       headers: { 'x-large-value': 'v'.repeat((8 * 1024) + 1) },
       profileId: profile.profileId,
-      purpose: 'device_token',
+      purpose: 'authorization_code_exchange',
     },
     {
-      url: profile.deviceTokenUrl,
+      url: profile.tokenUrl,
       method: 'POST',
       headers: {
         'x-total-a': 'a'.repeat(8 * 1024),
@@ -251,14 +227,14 @@ test('Electron HTTP host applies fixed request-size boundaries before network di
         'x-total-d': 'd'.repeat(8 * 1024),
       },
       profileId: profile.profileId,
-      purpose: 'device_token',
+      purpose: 'authorization_code_exchange',
     },
     {
-      url: profile.deviceTokenUrl,
+      url: profile.tokenUrl,
       method: 'POST',
       body: 'b'.repeat((8 * 1024 * 1024) + 1),
       profileId: profile.profileId,
-      purpose: 'device_token',
+      purpose: 'authorization_code_exchange',
     },
   ];
 
@@ -274,7 +250,7 @@ test('Electron HTTP host applies fixed request-size boundaries before network di
 
 test('Electron HTTP host cancels a decompressed response stream above 16 MiB', async () => {
   let canceled = false;
-  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_chatgpt_plan;
   assert.ok(profile);
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -295,12 +271,12 @@ test('Electron HTTP host cancels a decompressed response stream above 16 MiB', a
 
   const error = await expectReason(
     invokeConnectorAuth(host, {
-      url: profile.deviceTokenUrl,
+      url: profile.tokenUrl,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
       profileId: profile.profileId,
-      purpose: 'device_token',
+      purpose: 'authorization_code_exchange',
     }),
     'DESKTOP_HTTP_RESPONSE_TOO_LARGE',
   );
@@ -311,7 +287,7 @@ test('Electron HTTP host cancels a decompressed response stream above 16 MiB', a
 test('Electron HTTP host enforces a 32-request burst for each origin over five seconds', async () => {
   let now = 10_000;
   let sendCount = 0;
-  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_chatgpt_plan;
   assert.ok(profile);
   const host = createDesktopElectronHttpHost({
     now: () => now,
@@ -321,12 +297,12 @@ test('Electron HTTP host enforces a 32-request burst for each origin over five s
     },
   });
   const admittedRequest = {
-    url: profile.deviceTokenUrl,
+    url: profile.tokenUrl,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{}',
     profileId: profile.profileId,
-    purpose: 'device_token',
+    purpose: 'authorization_code_exchange',
   } as const;
 
   for (let index = 0; index < 32; index += 1) {
@@ -350,7 +326,7 @@ test('Electron HTTP host enforces a 32-request burst for each origin over five s
 });
 
 test('Electron HTTP host classifies acquisition transport failures', async () => {
-  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_chatgpt_plan;
   assert.ok(profile);
   const host = createDesktopElectronHttpHost({
     fetch: async () => {
@@ -359,12 +335,12 @@ test('Electron HTTP host classifies acquisition transport failures', async () =>
   });
   const acquisition = await expectReason(
     invokeConnectorAuth(host, {
-      url: profile.deviceTokenUrl,
+      url: profile.tokenUrl,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
       profileId: profile.profileId,
-      purpose: 'device_token',
+      purpose: 'authorization_code_exchange',
     }),
     'DESKTOP_HTTP_SEND_FAILED',
   );
@@ -383,16 +359,16 @@ test('Electron HTTP host propagates managed connector cancellation into provider
       });
     },
   });
-  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_chatgpt_plan;
   assert.ok(profile);
   const controller = new AbortController();
   const request = invokeConnectorAuth(host, {
-    url: profile.deviceTokenUrl,
+    url: profile.tokenUrl,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{}',
     profileId: profile.profileId,
-    purpose: 'device_token',
+    purpose: 'authorization_code_exchange',
   }, controller.signal);
   controller.abort(new DOMException('cancel provider request', 'AbortError'));
   await expectReason(request, 'DESKTOP_HTTP_SEND_FAILED');

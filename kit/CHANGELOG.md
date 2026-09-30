@@ -25,6 +25,27 @@ Required changes from 0.11.0:
   rejected (0.13.0).
 - Node business work takes fresh clients in `onSessionReady(services)`;
   `bridge.services` captured before an invalidation stay retired (0.16.0).
+- An Electron host that used `exchangeElectronOauthTokenInHost` moves browser
+  sign-in to the SDK connector auth acquisition host (next-minor section
+  "ChatGPT plan sign-in").
+
+## ChatGPT plan sign-in (next minor, development)
+
+- `exchangeElectronOauthTokenInHost` and its
+  `NimiElectronOauthTokenExchangeInput`, `...Result` and `...Fetch` types are
+  removed from `@nimiplatform/kit/shell/electron`. OAuth code exchange is not a
+  shell command. A host that signs in a ChatGPT plan Connector implements the
+  SDK connector auth acquisition host instead: a loopback callback, a stable
+  host identifier and the two admitted token and key requests.
+- Model Config shows a "Using ChatGPT plan" note when the chosen Cloud
+  Connector's provider is `openai_chatgpt_plan`. `ModelConfigCopy` gains the
+  optional `cloudChatGPTPlanLabel` and `cloudChatGPTPlanDescription`, and
+  Agent Center supplies them through its own catalog keys.
+- `@nimiplatform/kit/core/sdk-contract` re-exports `NIMI_CHATGPT_PLAN_USAGE_URL`
+  and `nimiProviderUsesChatGPTPlan`.
+- The protected-local proto adds `Connector.oauth_registration`, the issued
+  client ID and account label. Unary Connector calls pass Runtime bytes
+  through unchanged.
 
 ## Runtime maintenance mode (next minor, development)
 

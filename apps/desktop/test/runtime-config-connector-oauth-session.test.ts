@@ -13,13 +13,13 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types.js';
 
 const CONNECTOR = normalizeConnectorV11({
-  id: 'connector-codex',
-  label: 'Codex account',
+  id: 'connector-chatgpt-plan',
+  label: 'user@example.com',
   vendor: 'openai',
-  provider: 'openai_codex',
+  provider: 'openai_chatgpt_plan',
   authMode: 'oauth_managed',
-  providerAuthProfile: 'openai_codex',
-  endpoint: 'https://chatgpt.com/backend-api/codex',
+  providerAuthProfile: 'openai_chatgpt_plan',
+  endpoint: 'https://api.openai.com/v1',
   scope: 'user',
   hasCredential: false,
   isDraft: true,
@@ -40,8 +40,8 @@ function createFakeHost(): FakeHost {
     pendingCalls,
     resolveNext(connectorId = 'conn-realized') {
       resolver?.({
-        profileId: 'openai_codex',
-        providerAuthProfile: 'openai_codex',
+        profileId: 'openai_chatgpt_plan',
+        providerAuthProfile: 'openai_chatgpt_plan',
         connectorId,
       });
     },
@@ -108,13 +108,13 @@ test('a current completion reports exactly once with pending state in between', 
   });
   controller.subscribe(() => {
     const pending = controller.getState().pending;
-    if (pending) pendingSeen.push(pending.userCode);
+    if (pending) pendingSeen.push(pending.authorizationUrl);
   });
 
   const inFlight = controller.start(CONNECTOR);
   const call = fake.pendingCalls[0]!;
-  call.onPending?.({ userCode: 'ABCD-1234', verificationUrl: 'https://example.test', expiresInSeconds: 600, pollIntervalSeconds: 2 });
-  assert.deepEqual(pendingSeen, ['ABCD-1234']);
+  call.onPending?.({ authorizationUrl: 'https://auth.openai.com/api/accounts/authorize?state=s', expiresInSeconds: 600 });
+  assert.deepEqual(pendingSeen, ['https://auth.openai.com/api/accounts/authorize?state=s']);
   fake.resolveNext('conn-real');
   await inFlight;
   assert.deepEqual(acquired, ['conn-real']);

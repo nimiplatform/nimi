@@ -72,11 +72,9 @@ func (s *Service) submitVoiceWorkflowJob(
 		CreatedAt: now, UpdatedAt: now, TraceId: effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	if err := s.bindCloudCredentialCustody(job.GetJobId(), effective.resolvedAssembly); err != nil {
+	if err := s.bindCloudCredentialCustody(ctx, job.GetJobId(), effective.resolvedAssembly); err != nil {
 		cancel()
-		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-			Message: "Cloud voice ScenarioJob credential custody could not be captured",
-		})
+		return nil, cloudCredentialCustodyError(err, "Cloud voice ScenarioJob credential custody could not be captured")
 	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})

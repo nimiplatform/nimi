@@ -68,6 +68,14 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
+	var oauthRegistration *OAuthRegistration
+	if provider == ChatGPTPlanProvider {
+		sealed, registration, err := s.prepareChatGPTPlanCreate(req, authKind, providerAuthProfile, credentialJSON)
+		if err != nil {
+			return nil, err
+		}
+		secretPayload, oauthRegistration = sealed, registration
+	}
 
 	ownerID, hasOwner := subjectUserIDFromContext(ctx)
 	if authKind == runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED && !hasOwner {
@@ -90,6 +98,7 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 		Status:              runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 		AuthKind:            authKind,
 		ProviderAuthProfile: providerAuthProfile,
+		OAuthRegistration:   oauthRegistration,
 	}
 	if hasOwner {
 		rec.OwnerType = runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER
@@ -97,6 +106,12 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 	} else {
 		rec.OwnerType = runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM
 		rec.OwnerID = "machine"
+	}
+	if rec.Label == "" && oauthRegistration != nil {
+		rec.Label = chatGPTPlanDefaultLabel
+		if oauthRegistration.AccountLabel != "" {
+			rec.Label = oauthRegistration.AccountLabel
+		}
 	}
 	if rec.Label == "" {
 		rec.Label = defaultManagedConnectorLabel(provider)
@@ -439,6 +454,11 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
+	if IsChatGPTPlanRecord(rec) {
+		if err := s.prepareChatGPTPlanUpdate(&mutations, nextAuthKind, nextProviderAuthProfile); err != nil {
+			return nil, err
+		}
+	}
 
 	var updated ConnectorRecord
 	committed, err := s.commitRecorded(ctx, "connector.update", map[string]any{"connector_id": connectorID}, func() error {
@@ -447,6 +467,9 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		return writeErr
 	})
 	if !committed {
+		if _, typed := grpcerr.ExtractReasonCode(err); typed {
+			return nil, err
+		}
 		if errors.Is(err, auditlog.ErrUnrecorded) {
 			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AUDIT_RECORD_UNAVAILABLE)
 		}
@@ -496,6 +519,10 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 		}
 	}
 
+	revocationConfirmed := true
+	if IsChatGPTPlanRecord(rec) {
+		revocationConfirmed = s.revokeChatGPTPlanBeforeDelete(ctx, rec)
+	}
 	committed, err := s.commitRecorded(ctx, "connector.delete", map[string]any{"connector_id": connectorID}, func() error { return s.store.Delete(connectorID) })
 	if !committed {
 		if errors.Is(err, auditlog.ErrUnrecorded) {
@@ -507,7 +534,11 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 		return nil, s.internalProviderError("delete_connector.persist", err)
 	}
 
+	ack := &runtimev1.Ack{Ok: true}
+	if !revocationConfirmed {
+		ack.ActionHint = chatGPTPlanRevocationUnconfirmed
+	}
 	return &runtimev1.DeleteConnectorResponse{
-		Ack: &runtimev1.Ack{Ok: true}, AuditDiagnostic: auditlog.CommittedDiagnostic(err),
+		Ack: ack, AuditDiagnostic: auditlog.CommittedDiagnostic(err),
 	}, nil
 }

@@ -337,22 +337,30 @@ function assertConnectorAuthRequestAllowed(
   const profile = profileId && Object.hasOwn(CONNECTOR_AUTH_ACQUISITION_PROFILES, profileId)
     ? CONNECTOR_AUTH_ACQUISITION_PROFILES[profileId]
     : undefined;
-  if (!profile || request.method !== 'POST') {
+  if (!profile) {
     connectorAuthDenied(profileId, purpose);
   }
-  const expectedUrl = acquisitionUrl(profile, purpose);
-  if (request.url.href !== new URL(expectedUrl).href) {
+  // Each purpose admits one exact profile endpoint and method; redirects stay
+  // manual, so a provider redirect is returned rather than followed.
+  const expected = acquisitionRequest(profile, purpose);
+  if (!expected || request.method !== expected.method || request.url.href !== new URL(expected.url).href ||
+    (expected.method === 'GET' && request.body !== undefined)) {
     connectorAuthDenied(profileId, purpose);
   }
 }
 
-function acquisitionUrl(
+function acquisitionRequest(
   profile: ConnectorAuthAcquisitionProfileSpec,
   purpose: ConnectorAuthPurpose,
-): string {
-  return purpose === 'device_authorization'
-    ? profile.deviceAuthorizationUrl
-    : profile.deviceTokenUrl;
+): { readonly method: 'GET' | 'POST'; readonly url: string } | undefined {
+  switch (purpose) {
+    case 'authorization_code_exchange':
+      return { method: 'POST', url: profile.tokenUrl };
+    case 'jwks':
+      return { method: 'GET', url: profile.jwksUrl };
+    default:
+      return undefined;
+  }
 }
 
 function connectorAuthDenied(

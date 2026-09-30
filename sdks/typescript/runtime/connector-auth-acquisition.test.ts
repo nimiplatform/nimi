@@ -1,716 +1,404 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { webcrypto } from 'node:crypto';
 
-import {
-  ConnectorAuthKind,
-  ConnectorKind,
-  ConnectorOwnerType,
-  ConnectorStatus,
-} from '../core-generated/runtime-typed-client';
+import { ConnectorAuthKind } from '../core-generated/runtime-typed-client';
 import {
   acquireNimiManagedConnectorCredential,
   type NimiManagedConnectorCredentialAcquisitionHost,
 } from './index';
 import {
   acquireNimiManagedConnectorCredentialInHost,
+  CONNECTOR_AUTH_ACQUISITION_PROFILES,
+  NimiConnectorAuthAcquisitionError,
+  type NimiConnectorAuthAcquisitionHttpRequest,
   type NimiConnectorAuthAcquisitionNativeHost,
+  type NimiManagedConnectorCredentialRuntime,
 } from './host';
 
-test('native host acquisition seals provider tokens into Runtime custody', async () => {
-  const requests: string[] = [];
-  const runtimeRequests: unknown[] = [];
-  const pendingStates: unknown[] = [];
-  let now = Date.parse('2026-06-05T00:00:00.000Z');
-  const accessToken = 'managed-access-token';
+const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_chatgpt_plan!;
+const HOST_ID = 'urn:uuid:4a0f7f2c-0d3c-4d8e-9d59-1f2a3b4c5d6e';
+const ISSUED_CLIENT = 'oaiapp_issued_client';
+const NOW = Date.parse('2026-09-30T12:00:00.000Z');
+
+function base64Url(bytes: Uint8Array | string): string {
+  return Buffer.from(bytes).toString('base64url');
+}
+
+type SigningKey = { privateKey: CryptoKey; jwk: JsonWebKey };
+
+async function signingKey(): Promise<SigningKey> {
+  const pair = await webcrypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['sign', 'verify'],
+  );
+  return { privateKey: pair.privateKey, jwk: await webcrypto.subtle.exportKey('jwk', pair.publicKey) };
+}
+
+async function idToken(key: SigningKey, claims: Record<string, unknown>, kid = 'key-1'): Promise<string> {
+  const header = base64Url(JSON.stringify({ alg: 'RS256', kid, typ: 'JWT' }));
+  const payload = base64Url(JSON.stringify(claims));
+  const signature = await webcrypto.subtle.sign('RSASSA-PKCS1-v1_5', key.privateKey, new TextEncoder().encode(`${header}.${payload}`));
+  return `${header}.${payload}.${base64Url(new Uint8Array(signature))}`;
+}
+
+type Scenario = {
+  host: NimiConnectorAuthAcquisitionNativeHost;
+  runtime: NimiManagedConnectorCredentialRuntime;
+  http: NimiConnectorAuthAcquisitionHttpRequest[];
+  opened: string[];
+  writes: Array<{ kind: 'create' | 'update'; request: Record<string, unknown> }>;
+  lists: Array<Record<string, unknown>>;
+  closed: { count: number };
+  callbackStartedBeforeBrowser: { value: boolean };
+};
+
+async function scenario(options: {
+  callback?: (url: URL) => Record<string, string>;
+  claims?: (nonce: string) => Record<string, unknown>;
+  scope?: string;
+  connector?: Record<string, unknown>;
+  tamperSignature?: boolean;
+  beforeWrite?: () => void;
+} = {}): Promise<Scenario> {
+  const key = await signingKey();
+  const http: NimiConnectorAuthAcquisitionHttpRequest[] = [];
+  const opened: string[] = [];
+  const writes: Scenario['writes'] = [];
+  const lists: Scenario['lists'] = [];
+  const closed = { count: 0 };
+  const callbackStartedBeforeBrowser = { value: false };
+  let callbackStarted = false;
+  let delivered: Record<string, string> | undefined;
+  let resolveCallback: ((params: Record<string, string>) => void) | undefined;
   const host: NimiConnectorAuthAcquisitionNativeHost = {
     async proxyHttp(request) {
-      requests.push(`${request.purpose}:${request.url}`);
-      if (request.purpose === 'device_authorization') {
-        return {
-          status: 200,
-          ok: true,
-          body: JSON.stringify({
-            user_code: 'USER-CODE',
-            device_auth_id: 'device-auth-1',
-            interval: 1,
-            expires_in: 60,
-            verification_uri_complete: 'https://auth.openai.com/device',
-          }),
-        };
+      http.push(request);
+      if (request.purpose === 'jwks') {
+        return { status: 200, ok: true, body: JSON.stringify({ keys: [{ ...key.jwk, kid: 'key-1', use: 'sig', alg: 'RS256' }] }) };
       }
+      const form = new URLSearchParams(request.body);
+      const authorizeUrl = new URL(opened[0]!);
+      const claims = options.claims?.(authorizeUrl.searchParams.get('nonce')!) ?? {
+        iss: 'https://auth.openai.com', aud: form.get('client_id'), sub: 'account-subject', email: 'user@example.com',
+        nonce: authorizeUrl.searchParams.get('nonce'), exp: Math.floor(NOW / 1000) + 3600,
+      };
+      let token = await idToken(key, claims);
+      if (options.tamperSignature) token = `${token.slice(0, -4)}AAAA`;
       return {
-        status: 200,
-        ok: true,
+        status: 200, ok: true,
         body: JSON.stringify({
-          authorization_code: 'auth-code',
-          code_verifier: 'verifier',
+          access_token: 'access.jwt.value', refresh_token: 'rotating-refresh', id_token: token, token_type: 'Bearer', expires_in: 3600,
+          scope: options.scope ?? 'chatgpt.tokens.use.direct email offline_access openid profile resource.invoke',
         }),
       };
     },
     async openExternalUrl(url) {
-      assert.equal(url, 'https://auth.openai.com/device');
+      callbackStartedBeforeBrowser.value = callbackStarted;
+      opened.push(url);
+      const parsed = new URL(url);
+      // The browser returns asynchronously; the listener may register later.
+      delivered = options.callback?.(parsed) ?? {
+        code: 'authorization-code', state: parsed.searchParams.get('state')!, client_id: ISSUED_CLIENT,
+        scope: 'chatgpt.tokens.use.direct email offline_access openid profile resource.invoke',
+      };
+      resolveCallback?.(delivered);
       return { opened: true };
     },
-    async oauthTokenExchange(input) {
-      assert.equal(input.provider, 'CODEX');
-      assert.equal(input.code, 'auth-code');
-      assert.equal(input.codeVerifier, 'verifier');
+    async startAuthorizationCallback(request) {
+      assert.deepEqual(request, { profileId: 'openai_chatgpt_plan', host: '127.0.0.1', path: '/auth/callback' });
+      callbackStarted = true;
       return {
-        accessToken,
-        refreshToken: 'refresh-token',
-        tokenType: 'Bearer',
-        expiresIn: 3600,
-        scope: 'openid',
-      };
-    },
-    async sleep(ms) {
-      now += ms;
-    },
-    now: () => now,
-  };
-
-  const result = await acquireNimiManagedConnectorCredentialInHost({
-    profileId: 'openai_codex',
-    host,
-    runtime: {
-      async createConnector(request) {
-        runtimeRequests.push(request);
-        return {
-          connector: {
-            connectorId: 'conn-1',
-            kind: ConnectorKind.REMOTE_MANAGED,
-            ownerType: ConnectorOwnerType.USER,
-            ownerId: 'user-1',
-            provider: request.provider,
-            endpoint: request.endpoint,
-            label: request.label,
-            status: ConnectorStatus.ACTIVE,
-            localCategory: 0,
-            hasCredential: true,
-            authKind: request.authKind,
-            providerAuthProfile: request.providerAuthProfile,
-          },
-        };
-      },
-      async updateConnector() {
-        throw new Error('updateConnector should not be called for a new acquisition');
-      },
-    },
-    onPending: (state) => pendingStates.push(state),
-  });
-
-  assert.deepEqual(Object.keys(result).sort(), [
-    'connectorId',
-    'expiresAt',
-    'profileId',
-    'providerAuthProfile',
-  ]);
-  assert.equal(result.profileId, 'openai_codex');
-  assert.equal(result.providerAuthProfile, 'openai_codex');
-  assert.equal(result.connectorId, 'conn-1');
-  assert.deepEqual(Object.keys(pendingStates[0] as object).sort(), [
-    'expiresInSeconds',
-    'pollIntervalSeconds',
-    'userCode',
-    'verificationUrl',
-  ]);
-  assert.equal((pendingStates[0] as { pollIntervalSeconds?: number }).pollIntervalSeconds, 3);
-  assert.deepEqual(requests.map((item) => item.split(':')[0]), ['device_authorization', 'device_token']);
-  assert.equal((runtimeRequests[0] as { authKind?: unknown }).authKind, ConnectorAuthKind.OAUTH_MANAGED);
-  assert.equal((runtimeRequests[0] as { providerAuthProfile?: unknown }).providerAuthProfile, 'openai_codex');
-  const credential = JSON.parse((runtimeRequests[0] as { credentialJson?: string }).credentialJson ?? '{}') as Record<string, unknown>;
-  assert.equal(credential.access_token, accessToken);
-  assert.equal(credential.refresh_token, 'refresh-token');
-  assert.equal(JSON.stringify(result).includes(accessToken), false);
-  assert.equal(JSON.stringify(pendingStates).includes(accessToken), false);
-});
-
-test('renderer SDK facade forwards only acquisition input and rejects secret-bearing host projections', async () => {
-  const forwarded: unknown[] = [];
-  const pendingStates: unknown[] = [];
-  const host: NimiManagedConnectorCredentialAcquisitionHost = {
-    async acquireManagedConnectorCredential(input) {
-      forwarded.push(input);
-      input.onPending?.({
-        userCode: 'USER-CODE',
-        verificationUrl: 'https://auth.openai.com/device',
-        expiresInSeconds: 60,
-        pollIntervalSeconds: 3,
-      });
-      return {
-        profileId: 'openai_codex',
-        providerAuthProfile: 'openai_codex',
-        connectorId: 'conn-1',
-        expiresAt: '2026-06-05T01:00:00.000Z',
-      };
-    },
-  };
-
-  const result = await acquireNimiManagedConnectorCredential({
-    profileId: 'openai_codex',
-    connectorId: 'conn-1',
-    provider: 'openai_codex',
-    endpoint: 'https://chatgpt.com/backend-api/codex',
-    label: 'Codex',
-    onPending: (state) => pendingStates.push(state),
-    host,
-  });
-
-  assert.deepEqual(Object.keys(forwarded[0] as object).sort(), [
-    'connectorId',
-    'endpoint',
-    'label',
-    'onPending',
-    'profileId',
-    'provider',
-  ]);
-  assert.deepEqual(result, {
-    profileId: 'openai_codex',
-    providerAuthProfile: 'openai_codex',
-    connectorId: 'conn-1',
-    expiresAt: '2026-06-05T01:00:00.000Z',
-  });
-  assert.deepEqual(pendingStates, [{
-    userCode: 'USER-CODE',
-    verificationUrl: 'https://auth.openai.com/device',
-    expiresInSeconds: 60,
-    pollIntervalSeconds: 3,
-  }]);
-
-  await assert.rejects(
-    () => acquireNimiManagedConnectorCredential({
-      profileId: 'openai_codex',
-      host,
-      credentialJson: '{"access_token":"must-not-cross"}',
-    } as never),
-    /unexpected field credentialJson/,
-  );
-  assert.equal(forwarded.length, 1);
-
-  await assert.rejects(
-    () => acquireNimiManagedConnectorCredential({
-      profileId: 'openai_codex',
-      host: {
-        async acquireManagedConnectorCredential() {
-          return {
-            profileId: 'openai_codex',
-            providerAuthProfile: 'openai_codex',
-            accessToken: 'must-not-project',
-          } as never;
-        },
-      },
-    }),
-    /unexpected field accessToken/,
-  );
-});
-
-test('native host acquisition rejects malformed and timer-unrepresentable provider polling values', async () => {
-  for (const timing of [
-    { interval: Number.MAX_SAFE_INTEGER, expires_in: 60, error: /interval exceeds the runtime timer capacity/ },
-    { interval: 3, expires_in: Number.MAX_SAFE_INTEGER, error: /expires_in exceeds the runtime timer capacity/ },
-    { interval: '3seconds', expires_in: 60, error: /interval must be a positive integer/ },
-    { interval: null, expires_in: 60, error: /interval must be a positive integer/ },
-    { interval: '', expires_in: 60, error: /interval must be a positive integer/ },
-    { interval: 3, expires_in: null, error: /expires_in must be a positive integer/ },
-    { interval: 3, expires_in: '', error: /expires_in must be a positive integer/ },
-  ]) {
-    let opened = false;
-    let runtimeWrites = 0;
-    const host: NimiConnectorAuthAcquisitionNativeHost = {
-      async proxyHttp() {
-        return {
-          status: 200,
-          ok: true,
-          body: JSON.stringify({
-            user_code: 'USER-CODE',
-            device_auth_id: 'device-auth-1',
-            ...timing,
-          }),
-        };
-      },
-      async openExternalUrl() {
-        opened = true;
-        return { opened: true };
-      },
-      async oauthTokenExchange() {
-        throw new Error('token exchange must not run');
-      },
-      async sleep() {
-        throw new Error('sleep must not run');
-      },
-      now: Date.now,
-    };
-    await assert.rejects(
-      () => acquireNimiManagedConnectorCredentialInHost({
-        profileId: 'openai_codex',
-        host,
-        runtime: {
-          async createConnector() {
-            runtimeWrites += 1;
-            throw new Error('Runtime write must not run');
-          },
-          async updateConnector() {
-            runtimeWrites += 1;
-            throw new Error('Runtime write must not run');
-          },
-        },
-      }),
-      timing.error,
-    );
-    assert.equal(opened, false);
-    assert.equal(runtimeWrites, 0);
-  }
-});
-
-test('native host acquisition errors never project raw provider response text', async () => {
-  const secret = 'provider-secret-response-fragment';
-  const cases = [
-    {
-      name: 'malformed device authorization',
-      respond(request: { purpose: string }) {
-        return request.purpose === 'device_authorization'
-          ? { status: 200, ok: true, body: secret }
-          : { status: 500, ok: false, body: '' };
-      },
-    },
-    {
-      name: 'malformed successful poll',
-      respond(request: { purpose: string }) {
-        return request.purpose === 'device_authorization'
-          ? {
-              status: 200,
-              ok: true,
-              body: JSON.stringify({ user_code: 'USER-CODE', device_auth_id: 'device-auth-1', interval: 3, expires_in: 9 }),
-            }
-          : { status: 200, ok: true, body: secret };
-      },
-    },
-    {
-      name: 'pending poll description',
-      respond(request: { purpose: string }) {
-        return request.purpose === 'device_authorization'
-          ? {
-              status: 200,
-              ok: true,
-              body: JSON.stringify({ user_code: 'USER-CODE', device_auth_id: 'device-auth-1', interval: 3, expires_in: 6 }),
-            }
-          : { status: 403, ok: false, body: JSON.stringify({ error_description: secret }) };
-      },
-    },
-  ];
-
-  for (const testCase of cases) {
-    let now = Date.parse('2026-08-11T00:00:00.000Z');
-    let captured: unknown;
-    try {
-      await acquireNimiManagedConnectorCredentialInHost({
-        profileId: 'openai_codex',
-        host: {
-          async proxyHttp(request) {
-            return testCase.respond(request);
-          },
-          async openExternalUrl() {
-            return { opened: true };
-          },
-          async oauthTokenExchange() {
-            throw new Error('token exchange must not run');
-          },
-          async sleep(milliseconds) {
-            now += milliseconds;
-          },
-          now: () => now,
-        },
-        runtime: {
-          async createConnector() {
-            throw new Error('Runtime write must not run');
-          },
-          async updateConnector() {
-            throw new Error('Runtime write must not run');
-          },
-        },
-      });
-    } catch (error) {
-      captured = error;
-    }
-    assert.ok(captured instanceof Error, `${testCase.name}: expected failure`);
-    assert.equal(captured.message.includes(secret), false, `${testCase.name}: raw response escaped through error`);
-  }
-});
-
-test('native host acquisition rejects provider polling values above profile maxima before side effects', async () => {
-  for (const timing of [
-    { interval: 31, expires_in: 900, error: /interval must not exceed 30/ },
-    { interval: 30, expires_in: 901, error: /expires_in must not exceed 900/ },
-  ]) {
-    let browserOpens = 0;
-    let polls = 0;
-    let tokenExchanges = 0;
-    let runtimeWrites = 0;
-    await assert.rejects(
-      () => acquireNimiManagedConnectorCredentialInHost({
-        profileId: 'openai_codex',
-        host: {
-          async proxyHttp(request) {
-            if (request.purpose === 'device_token') polls += 1;
-            return {
-              status: 200,
-              ok: true,
-              body: JSON.stringify({
-                user_code: 'USER-CODE',
-                device_auth_id: 'device-auth-1',
-                ...timing,
-              }),
-            };
-          },
-          async openExternalUrl() {
-            browserOpens += 1;
-            return { opened: true };
-          },
-          async oauthTokenExchange() {
-            tokenExchanges += 1;
-            return { accessToken: 'must-remain-sealed' };
-          },
-          async sleep() {
-            throw new Error('sleep must not run');
-          },
-          now: Date.now,
-        },
-        runtime: {
-          async createConnector() {
-            runtimeWrites += 1;
-            throw new Error('Runtime write must not run');
-          },
-          async updateConnector() {
-            runtimeWrites += 1;
-            throw new Error('Runtime write must not run');
-          },
-        },
-      }),
-      timing.error,
-    );
-    assert.equal(browserOpens, 0);
-    assert.equal(polls, 0);
-    assert.equal(tokenExchanges, 0);
-    assert.equal(runtimeWrites, 0);
-  }
-});
-
-test('native host acquisition accepts inclusive profile timing maxima', async () => {
-  let now = Date.parse('2026-08-11T00:00:00.000Z');
-  let pendingState: { pollIntervalSeconds: number; expiresInSeconds: number } | undefined;
-  const result = await acquireNimiManagedConnectorCredentialInHost({
-    profileId: 'openai_codex',
-    host: {
-      async proxyHttp(request) {
-        return request.purpose === 'device_authorization'
-          ? {
-              status: 200,
-              ok: true,
-              body: JSON.stringify({
-                user_code: 'USER-CODE',
-                device_auth_id: 'device-auth-1',
-                interval: 30,
-                expires_in: 900,
-              }),
-            }
-          : {
-              status: 200,
-              ok: true,
-              body: JSON.stringify({ authorization_code: 'code', code_verifier: 'verifier' }),
-            };
-      },
-      async openExternalUrl() {
-        return { opened: true };
-      },
-      async oauthTokenExchange() {
-        return { accessToken: 'sealed-token' };
-      },
-      async sleep(milliseconds) {
-        now += milliseconds;
-      },
-      now: () => now,
-    },
-    runtime: {
-      async createConnector() {
-        return { connector: { connectorId: 'connector-1' } } as never;
-      },
-      async updateConnector() {
-        throw new Error('updateConnector must not run');
-      },
-    },
-    onPending(state) {
-      pendingState = state;
-    },
-  });
-
-  assert.equal(result.connectorId, 'connector-1');
-  assert.deepEqual(pendingState, {
-    userCode: 'USER-CODE',
-    verificationUrl: 'https://auth.openai.com/codex/device',
-    pollIntervalSeconds: 30,
-    expiresInSeconds: 900,
-  });
-});
-
-test('native host acquisition fails closed when token expiry metadata exceeds date capacity', async () => {
-  let now = Date.parse('2026-08-11T00:00:00.000Z');
-  let runtimeWrites = 0;
-  await assert.rejects(
-    () => acquireNimiManagedConnectorCredentialInHost({
-      profileId: 'openai_codex',
-      host: {
-        async proxyHttp(request) {
-          return request.purpose === 'device_authorization'
-            ? {
-                status: 200,
-                ok: true,
-                body: JSON.stringify({
-                  user_code: 'USER-CODE',
-                  device_auth_id: 'device-auth-1',
-                  interval: 3,
-                  expires_in: 60,
-                }),
-              }
-            : {
-                status: 200,
-                ok: true,
-                body: JSON.stringify({ authorization_code: 'code', code_verifier: 'verifier' }),
-              };
-        },
-        async openExternalUrl() {
-          return { opened: true };
-        },
-        async oauthTokenExchange() {
-          return { accessToken: 'sealed-token', expiresIn: Number.MAX_SAFE_INTEGER };
-        },
-        async sleep(milliseconds) {
-          now += milliseconds;
-        },
-        now: () => now,
-      },
-      runtime: {
-        async createConnector() {
-          runtimeWrites += 1;
-          throw new Error('Runtime write must not run');
-        },
-        async updateConnector() {
-          runtimeWrites += 1;
-          throw new Error('Runtime write must not run');
-        },
-      },
-    }),
-    /token exchange expires_in exceeds the runtime date capacity/,
-  );
-  assert.equal(runtimeWrites, 0);
-});
-
-test('native host acquisition cancellation interrupts polling and prevents token custody writes', async () => {
-  const controller = new AbortController();
-  let markSleepStarted: (() => void) | undefined;
-  const sleepStarted = new Promise<void>((resolve) => {
-    markSleepStarted = resolve;
-  });
-  let tokenExchanges = 0;
-  let runtimeWrites = 0;
-  const host: NimiConnectorAuthAcquisitionNativeHost = {
-    async proxyHttp(request) {
-      assert.equal(request.purpose, 'device_authorization');
-      return {
-        status: 200,
-        ok: true,
-        body: JSON.stringify({
-          user_code: 'USER-CODE',
-          device_auth_id: 'device-auth-1',
-          interval: 3,
-          expires_in: 60,
+        redirectUri: 'http://127.0.0.1:54321/auth/callback',
+        waitForCallback: (signal) => new Promise((resolve, reject) => {
+          if (signal.aborted) {
+            reject(signal.reason);
+            return;
+          }
+          signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          if (delivered) resolve(delivered);
+          else resolveCallback = resolve;
         }),
+        close: () => {
+          closed.count += 1;
+        },
       };
     },
-    async openExternalUrl() {
-      return { opened: true };
+    async hostIdentifier() {
+      return HOST_ID;
     },
-    async oauthTokenExchange() {
-      tokenExchanges += 1;
-      throw new Error('token exchange must not run');
-    },
-    sleep(_milliseconds, signal) {
-      markSleepStarted?.();
-      return new Promise<void>((_resolve, reject) => {
-        signal?.addEventListener('abort', () => reject(signal.reason), { once: true });
-      });
-    },
-    now: Date.now,
+    crypto: webcrypto as unknown as NimiConnectorAuthAcquisitionNativeHost['crypto'],
+    now: () => NOW,
   };
-  const acquisition = acquireNimiManagedConnectorCredentialInHost({
-    profileId: 'openai_codex',
-    host,
-    signal: controller.signal,
-    runtime: {
-      async createConnector() {
-        runtimeWrites += 1;
-        throw new Error('Runtime write must not run');
-      },
-      async updateConnector() {
-        runtimeWrites += 1;
-        throw new Error('Runtime write must not run');
-      },
+  const runtime: NimiManagedConnectorCredentialRuntime = {
+    async createConnector(request) {
+      options.beforeWrite?.();
+      writes.push({ kind: 'create', request: request as unknown as Record<string, unknown> });
+      return { connector: { connectorId: 'connector-new' } } as never;
     },
+    async updateConnector(request) {
+      options.beforeWrite?.();
+      writes.push({ kind: 'update', request: request as unknown as Record<string, unknown> });
+      return { connector: { connectorId: String(request.connectorId) } } as never;
+    },
+    async listConnectors(request) {
+      lists.push(request as unknown as Record<string, unknown>);
+      return { connectors: options.connector ? [options.connector] : [], nextPageToken: '' } as never;
+    },
+  };
+  return { host, runtime, http, opened, writes, lists, closed, callbackStartedBeforeBrowser };
+}
+
+test('initial ChatGPT plan registration uses loopback PKCE and seals only validated tokens in Runtime custody', async () => {
+  const run = await scenario();
+  const pending: unknown[] = [];
+  const result = await acquireNimiManagedConnectorCredentialInHost({
+    profileId: 'openai_chatgpt_plan', host: run.host, runtime: run.runtime, onPending: (state) => pending.push(state),
   });
-  await sleepStarted;
-  controller.abort(new DOMException('test cancellation', 'AbortError'));
-  await assert.rejects(acquisition, (error: unknown) => (error as { name?: string }).name === 'AbortError');
-  assert.equal(tokenExchanges, 0);
-  assert.equal(runtimeWrites, 0);
+  assert.deepEqual(result, { profileId: 'openai_chatgpt_plan', providerAuthProfile: 'openai_chatgpt_plan', connectorId: 'connector-new', accountLabel: 'user@example.com' });
+  assert.equal(run.callbackStartedBeforeBrowser.value, true);
+  const url = new URL(run.opened[0]!);
+  assert.equal(`${url.origin}${url.pathname}`, 'https://auth.openai.com/api/accounts/authorize');
+  const params = Object.fromEntries(url.searchParams);
+  assert.equal(params.client_id, 'dynamic_agent_client');
+  assert.equal(params.agent_name_hint, 'Nimi');
+  assert.equal(params.ext_agent_host_id, HOST_ID);
+  assert.equal(params.redirect_uri, 'http://127.0.0.1:54321/auth/callback');
+  assert.equal(params.scope, 'openid profile email offline_access resource.invoke chatgpt.tokens.use.direct');
+  assert.equal(params.resource, 'https://api.openai.com/v1');
+  assert.equal(params.response_type, 'code');
+  assert.equal(params.code_challenge_method, 'S256');
+  assert.ok(params.state && params.nonce && params.code_challenge && params.state !== params.nonce);
+  assert.equal(params.login_hint, undefined);
+  const exchange = run.http.find((request) => request.purpose === 'authorization_code_exchange')!;
+  const form = Object.fromEntries(new URLSearchParams(exchange.body));
+  assert.equal(exchange.url, 'https://auth.openai.com/api/accounts/oauth/token');
+  assert.equal(form.client_id, ISSUED_CLIENT);
+  assert.equal(form.grant_type, 'authorization_code');
+  assert.equal(form.redirect_uri, params.redirect_uri);
+  assert.equal(form.resource, 'https://api.openai.com/v1');
+  const challenge = base64Url(new Uint8Array(await webcrypto.subtle.digest('SHA-256', new TextEncoder().encode(form.code_verifier!))));
+  assert.equal(challenge, params.code_challenge);
+  assert.equal(run.closed.count, 1);
+  assert.equal(run.writes.length, 1);
+  const write = run.writes[0]!;
+  assert.equal(write.kind, 'create');
+  assert.equal(write.request.provider, 'openai_chatgpt_plan');
+  assert.equal(write.request.endpoint, '');
+  assert.equal(write.request.authKind, ConnectorAuthKind.OAUTH_MANAGED);
+  assert.equal(write.request.label, 'user@example.com');
+  const credential = JSON.parse(String(write.request.credentialJson));
+  assert.deepEqual(Object.keys(credential).sort(), [
+    'access_token', 'client_id', 'email', 'ext_agent_host_id', 'issuer', 'refresh_token', 'saved_at', 'schema', 'scopes', 'subject', 'token_type',
+  ]);
+  assert.equal(credential.schema, 'nimi.openai_chatgpt_plan.siwc/v1');
+  assert.equal(credential.client_id, ISSUED_CLIENT);
+  assert.equal(credential.subject, 'account-subject');
+  assert.equal(credential.saved_at, '2026-09-30T12:00:00Z');
+  assert.equal(JSON.stringify(pending).includes('rotating-refresh'), false);
+  assert.equal(JSON.stringify(result).includes('access.jwt.value'), false);
+  assert.deepEqual(pending, [{ authorizationUrl: run.opened[0], expiresInSeconds: profile.acquisitionTimeoutSeconds }]);
 });
 
-test('native host acquisition rechecks cancellation before the final Runtime custody write', async () => {
-  const controller = new AbortController();
-  let now = Date.parse('2026-08-11T00:00:00.000Z');
-  let runtimeWrites = 0;
+test('explicit reauthorization reuses the Runtime-bound registration and updates the same Connector', async () => {
+  const run = await scenario({
+    connector: {
+      connectorId: 'connector-1', provider: 'openai_chatgpt_plan', providerAuthProfile: 'openai_chatgpt_plan',
+      oauthRegistration: { issuedClientId: ISSUED_CLIENT, accountLabel: 'user@example.com' },
+    },
+    callback: (url) => ({ code: 'code-2', state: url.searchParams.get('state')! }),
+  });
+  await acquireNimiManagedConnectorCredentialInHost({ profileId: 'openai_chatgpt_plan', connectorId: 'connector-1', host: run.host, runtime: run.runtime });
+  const params = new URL(run.opened[0]!).searchParams;
+  assert.equal(params.get('client_id'), ISSUED_CLIENT);
+  assert.equal(params.get('agent_name_hint'), null);
+  assert.equal(params.get('login_hint'), 'user@example.com');
+  assert.equal(params.get('ext_agent_host_id'), HOST_ID);
+  assert.equal(run.writes.length, 1);
+  assert.equal(run.writes[0]!.kind, 'update');
+  assert.equal(run.writes[0]!.request.connectorId, 'connector-1');
+  // The protected Desktop account carrier admits ListConnectors, not GetConnector.
+  assert.deepEqual(run.lists.map((request) => request.providerFilter), ['openai_chatgpt_plan']);
+});
+
+test('invalid callbacks, identities and grants never reach Runtime custody', async () => {
+  const cases: Array<{ name: string; code: string; options: Parameters<typeof scenario>[0] }> = [
+    { name: 'state mismatch', code: 'AUTHORIZATION_INVALID', options: { callback: () => ({ code: 'c', state: 'forged', client_id: ISSUED_CLIENT }) } },
+    { name: 'denied', code: 'AUTHORIZATION_DENIED', options: { callback: (url) => ({ error: 'access_denied', state: url.searchParams.get('state')! }) } },
+    { name: 'no issued client', code: 'AUTHORIZATION_INVALID', options: { callback: (url) => ({ code: 'c', state: url.searchParams.get('state')! }) } },
+    { name: 'registration entrypoint returned', code: 'AUTHORIZATION_INVALID', options: { callback: (url) => ({ code: 'c', state: url.searchParams.get('state')!, client_id: 'dynamic_agent_client' }) } },
+    { name: 'plan usage not granted', code: 'PLAN_USAGE_NOT_GRANTED', options: { scope: 'email offline_access openid profile' } },
+    { name: 'bad signature', code: 'AUTHORIZATION_INVALID', options: { tamperSignature: true } },
+    { name: 'wrong nonce', code: 'AUTHORIZATION_INVALID', options: { claims: () => ({ iss: 'https://auth.openai.com', aud: ISSUED_CLIENT, sub: 's', nonce: 'other', exp: NOW / 1000 + 60 }) } },
+    { name: 'wrong audience', code: 'AUTHORIZATION_INVALID', options: { claims: (nonce) => ({ iss: 'https://auth.openai.com', aud: 'oaiapp_other', sub: 's', nonce, exp: NOW / 1000 + 60 }) } },
+    { name: 'expired identity', code: 'AUTHORIZATION_INVALID', options: { claims: (nonce) => ({ iss: 'https://auth.openai.com', aud: ISSUED_CLIENT, sub: 's', nonce, exp: NOW / 1000 - 1 }) } },
+    { name: 'foreign issuer', code: 'AUTHORIZATION_INVALID', options: { claims: (nonce) => ({ iss: 'https://example.com', aud: ISSUED_CLIENT, sub: 's', nonce, exp: NOW / 1000 + 60 }) } },
+  ];
+  for (const testCase of cases) {
+    const run = await scenario(testCase.options);
+    await assert.rejects(
+      acquireNimiManagedConnectorCredentialInHost({ profileId: 'openai_chatgpt_plan', host: run.host, runtime: run.runtime }),
+      (error: unknown) => error instanceof NimiConnectorAuthAcquisitionError && error.code === testCase.code,
+      testCase.name,
+    );
+    assert.equal(run.writes.length, 0, testCase.name);
+    assert.equal(run.closed.count, 1, `${testCase.name} closed the callback listener`);
+  }
+});
+
+test('reauthorization rejects a different registration and Connectors without one', async () => {
+  const connector = {
+    connectorId: 'connector-1', provider: 'openai_chatgpt_plan', providerAuthProfile: 'openai_chatgpt_plan',
+    oauthRegistration: { issuedClientId: ISSUED_CLIENT, accountLabel: 'user@example.com' },
+  };
+  const other = await scenario({ connector, callback: (url) => ({ code: 'c', state: url.searchParams.get('state')!, client_id: 'oaiapp_other' }) });
   await assert.rejects(
-    () => acquireNimiManagedConnectorCredentialInHost({
-      profileId: 'openai_codex',
-      signal: controller.signal,
-      host: {
-        async proxyHttp(request) {
-          return request.purpose === 'device_authorization'
-            ? {
-                status: 200,
-                ok: true,
-                body: JSON.stringify({
-                  user_code: 'USER-CODE',
-                  device_auth_id: 'device-auth-1',
-                  interval: 3,
-                  expires_in: 60,
-                }),
-              }
-            : {
-                status: 200,
-                ok: true,
-                body: JSON.stringify({ authorization_code: 'code', code_verifier: 'verifier' }),
-              };
-        },
-        async openExternalUrl() {
-          return { opened: true };
-        },
-        async oauthTokenExchange() {
-          controller.abort(new DOMException('canceled before commit', 'AbortError'));
-          return { accessToken: 'must-remain-sealed' };
-        },
-        async sleep(milliseconds) {
-          now += milliseconds;
-        },
-        now: () => now,
-      },
-      runtime: {
-        async createConnector() {
-          runtimeWrites += 1;
-          throw new Error('Runtime write must not run');
-        },
-        async updateConnector() {
-          runtimeWrites += 1;
-          throw new Error('Runtime write must not run');
-        },
-      },
-    }),
-    (error: unknown) => (error as { name?: string }).name === 'AbortError',
+    acquireNimiManagedConnectorCredentialInHost({ profileId: 'openai_chatgpt_plan', connectorId: 'connector-1', host: other.host, runtime: other.runtime }),
+    (error: unknown) => error instanceof NimiConnectorAuthAcquisitionError && error.code === 'AUTHORIZATION_INVALID',
   );
-  assert.equal(runtimeWrites, 0);
+  const legacy = await scenario({ connector: { connectorId: 'legacy', provider: 'openai_codex', providerAuthProfile: 'openai_codex' } });
+  await assert.rejects(
+    acquireNimiManagedConnectorCredentialInHost({ profileId: 'openai_chatgpt_plan', connectorId: 'legacy', host: legacy.host, runtime: legacy.runtime }),
+    (error: unknown) => error instanceof NimiConnectorAuthAcquisitionError && error.code === 'REGISTRATION_UNAVAILABLE',
+  );
+  assert.equal(legacy.opened.length, 0);
+  const missing = await scenario();
+  await assert.rejects(
+    acquireNimiManagedConnectorCredentialInHost({ profileId: 'openai_chatgpt_plan', connectorId: 'connector-removed', host: missing.host, runtime: missing.runtime }),
+    (error: unknown) => error instanceof NimiConnectorAuthAcquisitionError && error.code === 'REGISTRATION_UNAVAILABLE',
+  );
+  assert.equal(missing.opened.length, 0);
+  assert.equal(other.writes.length + legacy.writes.length + missing.writes.length, 0);
 });
 
-test('final Runtime custody dispatch detaches acquisition cancellation and waits for the exact result', async () => {
+test('cancellation before the final write aborts while a dispatched write settles exactly', async () => {
   const controller = new AbortController();
-  let now = Date.parse('2026-08-11T00:00:00.000Z');
-  let markWriteStarted: (() => void) | undefined;
-  const writeStarted = new Promise<void>((resolve) => {
-    markWriteStarted = resolve;
-  });
-  let finishWrite: (() => void) | undefined;
-  const writeFinished = new Promise<void>((resolve) => {
-    finishWrite = resolve;
-  });
-  let runtimeSignal: AbortSignal | undefined;
-  let acquisitionSettled = false;
-  const acquisition = acquireNimiManagedConnectorCredentialInHost({
-    profileId: 'openai_codex',
-    signal: controller.signal,
-    host: {
-      async proxyHttp(request) {
-        return request.purpose === 'device_authorization'
-          ? {
-              status: 200,
-              ok: true,
-              body: JSON.stringify({
-                user_code: 'USER-CODE',
-                device_auth_id: 'device-auth-1',
-                interval: 3,
-                expires_in: 60,
-              }),
-            }
-          : {
-              status: 200,
-              ok: true,
-              body: JSON.stringify({ authorization_code: 'code', code_verifier: 'verifier' }),
-            };
-      },
-      async openExternalUrl() {
-        return { opened: true };
-      },
-      async oauthTokenExchange() {
-        return { accessToken: 'sealed-token' };
-      },
-      async sleep(milliseconds) {
-        now += milliseconds;
-      },
-      now: () => now,
-    },
-    runtime: {
-      async createConnector(_request, callOptions) {
-        runtimeSignal = callOptions?.signal;
-        markWriteStarted?.();
-        await writeFinished;
-        return { connector: { connectorId: 'connector-committed' } } as never;
-      },
-      async updateConnector() {
-        throw new Error('updateConnector must not run');
-      },
-    },
-    callOptions: {
-      timeoutMs: 300_000,
-      metadata: { idempotencyKey: 'connector-auth-final-write-1234' },
-    },
-  });
-  void acquisition.finally(() => {
-    acquisitionSettled = true;
-  });
+  const run = await scenario({ callback: () => {
+    controller.abort(new DOMException('user canceled', 'AbortError'));
+    return {};
+  } });
+  await assert.rejects(
+    acquireNimiManagedConnectorCredentialInHost({ profileId: 'openai_chatgpt_plan', host: run.host, runtime: run.runtime, signal: controller.signal }),
+    (error: unknown) => error instanceof DOMException && error.name === 'AbortError',
+  );
+  assert.equal(run.writes.length, 0);
+  assert.equal(run.closed.count, 1);
 
-  await writeStarted;
-  controller.abort(new DOMException('cancel arrived after commit', 'AbortError'));
-  await Promise.resolve();
-  assert.equal(runtimeSignal, undefined);
-  assert.equal(acquisitionSettled, false);
-  finishWrite?.();
-  const result = await acquisition;
-
-  assert.equal(result.connectorId, 'connector-committed');
-  assert.equal(controller.signal.aborted, true);
+  const late = new AbortController();
+  const dispatched = await scenario({ beforeWrite: () => late.abort(new DOMException('late cancel', 'AbortError')) });
+  const result = await acquireNimiManagedConnectorCredentialInHost({ profileId: 'openai_chatgpt_plan', host: dispatched.host, runtime: dispatched.runtime, signal: late.signal });
+  assert.equal(result.connectorId, 'connector-new');
+  assert.equal(dispatched.writes.length, 1);
 });
 
-test('renderer SDK facade carries only the AbortSignal cancellation capability to its host', async () => {
+test('cancellation while the host starts the listener closes the late listener before settling', async () => {
+  const run = await scenario();
   const controller = new AbortController();
+  let startRequested!: () => void;
+  const requested = new Promise<void>((resolve) => {
+    startRequested = resolve;
+  });
+  let returnListener!: () => void;
+  const startup = new Promise<void>((resolve) => {
+    returnListener = resolve;
+  });
+  let closes = 0;
+  const host: NimiConnectorAuthAcquisitionNativeHost = {
+    ...run.host,
+    async startAuthorizationCallback() {
+      startRequested();
+      await startup;
+      return {
+        redirectUri: 'http://127.0.0.1:54321/auth/callback',
+        waitForCallback: () => new Promise<Record<string, string>>(() => undefined),
+        close: async () => {
+          closes += 1;
+        },
+      };
+    },
+  };
+  let settled = false;
+  const operation = acquireNimiManagedConnectorCredentialInHost({
+    profileId: 'openai_chatgpt_plan', host, runtime: run.runtime, signal: controller.signal,
+  }).finally(() => {
+    settled = true;
+  });
+  await requested;
+  controller.abort(new DOMException('user canceled during listener startup', 'AbortError'));
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  // Cancellation waits for the listener the host is still creating.
+  assert.equal(settled, false);
+  returnListener();
+  await assert.rejects(operation, (error: unknown) => error instanceof DOMException && error.name === 'AbortError');
+  assert.equal(closes, 1);
+  assert.equal(run.opened.length, 0);
+  assert.equal(run.writes.length, 0);
+});
+
+test('a listener the host returns after cancellation settled is still closed', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const run = await scenario();
+  const controller = new AbortController();
+  let startRequested!: () => void;
+  const requested = new Promise<void>((resolve) => {
+    startRequested = resolve;
+  });
+  let returnListener!: () => void;
+  const startup = new Promise<void>((resolve) => {
+    returnListener = resolve;
+  });
+  let closes = 0;
+  const host: NimiConnectorAuthAcquisitionNativeHost = {
+    ...run.host,
+    async startAuthorizationCallback() {
+      startRequested();
+      await startup;
+      return {
+        redirectUri: 'http://127.0.0.1:54321/auth/callback',
+        waitForCallback: () => new Promise<Record<string, string>>(() => undefined),
+        close: async () => {
+          closes += 1;
+        },
+      };
+    },
+  };
+  const operation = acquireNimiManagedConnectorCredentialInHost({
+    profileId: 'openai_chatgpt_plan', host, runtime: run.runtime, signal: controller.signal,
+  });
+  await requested;
+  controller.abort(new DOMException('user canceled during listener startup', 'AbortError'));
+  await new Promise((resolve) => setImmediate(resolve));
+  // A host that never returns cannot hold cancellation open indefinitely.
+  t.mock.timers.tick(5_000);
+  await assert.rejects(operation, (error: unknown) => error instanceof DOMException && error.name === 'AbortError');
+  assert.equal(closes, 0);
+  returnListener();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(closes, 1);
+  assert.equal(run.opened.length, 0);
+  assert.equal(run.writes.length, 0);
+});
+
+test('renderer facade accepts only the narrowed request and a secret-free result', async () => {
   const host: NimiManagedConnectorCredentialAcquisitionHost = {
     async acquireManagedConnectorCredential(input) {
-      assert.equal(input.signal, controller.signal);
-      return {
-        profileId: 'openai_codex',
-        providerAuthProfile: 'openai_codex',
-        connectorId: 'connector-1',
-      };
+      input.onPending?.({ authorizationUrl: 'https://auth.openai.com/api/accounts/authorize?client_id=x', expiresInSeconds: 600 });
+      return { profileId: 'openai_chatgpt_plan', providerAuthProfile: 'openai_chatgpt_plan', connectorId: 'c', accountLabel: 'user@example.com' };
     },
   };
-  await acquireNimiManagedConnectorCredential({
-    profileId: 'openai_codex',
-    signal: controller.signal,
-    host,
-  });
+  const pending: unknown[] = [];
+  const result = await acquireNimiManagedConnectorCredential({ profileId: 'openai_chatgpt_plan', host, onPending: (state) => pending.push(state) });
+  assert.equal(result.accountLabel, 'user@example.com');
+  assert.equal(pending.length, 1);
+  await assert.rejects(
+    acquireNimiManagedConnectorCredential({ profileId: 'openai_chatgpt_plan', host, provider: 'openai' } as never),
+    /unexpected field provider/u,
+  );
+  const leaking: NimiManagedConnectorCredentialAcquisitionHost = {
+    async acquireManagedConnectorCredential() {
+      return { profileId: 'openai_chatgpt_plan', providerAuthProfile: 'openai_chatgpt_plan', connectorId: 'c', accessToken: 'secret' };
+    },
+  };
+  await assert.rejects(acquireNimiManagedConnectorCredential({ profileId: 'openai_chatgpt_plan', host: leaking }), /unexpected field accessToken/u);
 });

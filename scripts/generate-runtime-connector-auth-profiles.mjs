@@ -11,7 +11,7 @@ const tablePath = path.join(repoRoot, 'config', 'runtime-connector-auth-profiles
 const runtimeOutPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'connector', 'auth_profiles.generated.go');
 const sdkVnextOutPath = path.join(repoRoot, 'sdks', 'typescript', 'runtime', 'connector-auth-profiles.generated.ts');
 
-const allowedHeaderBehaviors = new Set(['none', 'codex_oauth', 'anthropic']);
+const allowedHeaderBehaviors = new Set(['none', 'anthropic']);
 
 function normalizeString(value) {
   return String(value || '').trim();
@@ -116,7 +116,7 @@ function renderTS(profiles) {
     `  id: string;\n` +
     `  authKind: 'oauth_managed';\n` +
     `  allowedProviders: readonly string[];\n` +
-    `  headerBehavior: 'none' | 'codex_oauth' | 'anthropic';\n` +
+    `  headerBehavior: 'none' | 'anthropic';\n` +
     `};\n\n` +
     `export const CONNECTOR_AUTH_PROFILES: Record<string, ConnectorAuthProfileSpec> = {\n${records}\n};\n`;
 }

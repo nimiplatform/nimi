@@ -62,6 +62,6 @@ func (m *memorySecretStore) DeleteSecret(connectorID string) error {
 }
 
 // NewConnectorStoreWithMemorySecrets is a test helper that avoids depending on the host OS keychain.
-func NewConnectorStoreWithMemorySecrets(basePath string) *ConnectorStore {
-	return newConnectorStore(basePath, newMemorySecretStore())
+func NewConnectorStoreWithMemorySecrets(basePath string, options ...StoreOption) *ConnectorStore {
+	return newConnectorStore(basePath, newMemorySecretStore(), options...)
 }

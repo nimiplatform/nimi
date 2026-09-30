@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import {
   createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
+  nimiProviderUsesChatGPTPlan,
   runtimeAIConfigStructToJson,
   type NimiAIConfigCloudConnectorOption,
   type NimiAIConfigCloudTargetOption,
@@ -1122,6 +1123,12 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
             <div className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.copy.cloudNoticeLabel}</div>
             <p className="m-0 mt-1 text-[length:var(--nimi-type-overline-size)] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.cloudNoticeDescription}</p>
           </div>
+          {nimiProviderUsesChatGPTPlan(selectedConnector?.provider) ? (
+            <div data-nimi-model-config-chatgpt-plan="true">
+              <div className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.copy.cloudChatGPTPlanLabel}</div>
+              <p className="m-0 mt-1 text-[length:var(--nimi-type-overline-size)] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.cloudChatGPTPlanDescription}</p>
+            </div>
+          ) : null}
           {cloudError ? <InlineAlert tone="warning">{cloudError}</InlineAlert> : null}
           <InlineAlert tone="info">
             <div className="font-semibold">

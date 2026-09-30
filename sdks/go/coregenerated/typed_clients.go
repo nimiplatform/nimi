@@ -3937,19 +3937,20 @@ type CompleteProductControlFirstRunDeviceEnvironmentScanRequest struct {
 }
 
 type Connector struct {
-	ConnectorId         string             `json:"connector_id,omitempty"`
-	Kind                ConnectorKind      `json:"kind,omitempty"`
-	OwnerType           ConnectorOwnerType `json:"owner_type,omitempty"`
-	OwnerId             string             `json:"owner_id,omitempty"`
-	Provider            string             `json:"provider,omitempty"`
-	Endpoint            string             `json:"endpoint,omitempty"`
-	Label               string             `json:"label,omitempty"`
-	Status              ConnectorStatus    `json:"status,omitempty"`
-	HasCredential       bool               `json:"has_credential,omitempty"`
-	CreatedAt           string             `json:"created_at,omitempty"`
-	UpdatedAt           string             `json:"updated_at,omitempty"`
-	AuthKind            ConnectorAuthKind  `json:"auth_kind,omitempty"`
-	ProviderAuthProfile string             `json:"provider_auth_profile,omitempty"`
+	ConnectorId         string                      `json:"connector_id,omitempty"`
+	Kind                ConnectorKind               `json:"kind,omitempty"`
+	OwnerType           ConnectorOwnerType          `json:"owner_type,omitempty"`
+	OwnerId             string                      `json:"owner_id,omitempty"`
+	Provider            string                      `json:"provider,omitempty"`
+	Endpoint            string                      `json:"endpoint,omitempty"`
+	Label               string                      `json:"label,omitempty"`
+	Status              ConnectorStatus             `json:"status,omitempty"`
+	HasCredential       bool                        `json:"has_credential,omitempty"`
+	CreatedAt           string                      `json:"created_at,omitempty"`
+	UpdatedAt           string                      `json:"updated_at,omitempty"`
+	AuthKind            ConnectorAuthKind           `json:"auth_kind,omitempty"`
+	ProviderAuthProfile string                      `json:"provider_auth_profile,omitempty"`
+	OauthRegistration   *ConnectorOAuthRegistration `json:"oauth_registration,omitempty"`
 }
 
 type ConnectorModelDescriptor struct {
@@ -3962,6 +3963,11 @@ type ConnectorModelDescriptor struct {
 	ConnectorSnapshotId  string   `json:"connector_snapshot_id,omitempty"`
 	EndpointProfileId    string   `json:"endpoint_profile_id,omitempty"`
 	InventorySnapshotId  string   `json:"inventory_snapshot_id,omitempty"`
+}
+
+type ConnectorOAuthRegistration struct {
+	IssuedClientId string `json:"issued_client_id,omitempty"`
+	AccountLabel   string `json:"account_label,omitempty"`
 }
 
 type ConsentRef struct {

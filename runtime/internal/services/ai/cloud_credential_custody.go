@@ -1,15 +1,20 @@
 package ai
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"google.golang.org/grpc/codes"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 // bindCloudCredentialCustody fixes the exact sealed credential generation to
 // the already-minted ScenarioJob identity before Job+assembly persistence.
-func (s *Service) bindCloudCredentialCustody(jobID string, assembly *cloudResolvedAssembly) error {
+func (s *Service) bindCloudCredentialCustody(ctx context.Context, jobID string, assembly *cloudResolvedAssembly) error {
 	if s == nil || s.connStore == nil || s.scenarioJobs == nil || assembly == nil {
 		return fmt.Errorf("Cloud ScenarioJob credential custody is unavailable")
 	}
@@ -20,9 +25,20 @@ func (s *Service) bindCloudCredentialCustody(jobID string, assembly *cloudResolv
 	if err := s.scenarioJobs.beginCloudCredentialCustody(jobID, ref); err != nil {
 		return err
 	}
-	record, capturedRef, err := s.connStore.CaptureCredentialCustody(assembly.Connector.ConnectorID, jobID)
+	var record connector.ConnectorRecord
+	var capturedRef string
+	if connector.IsChatGPTPlanRecord(assembly.Connector) {
+		// SIWC renews in Connector custody first and captures only one
+		// request-scoped access token for this Job.
+		record, capturedRef, err = s.connStore.CaptureChatGPTPlanRequestCredential(ctx, assembly.Connector.ConnectorID, jobID)
+	} else {
+		record, capturedRef, err = s.connStore.CaptureCredentialCustody(assembly.Connector.ConnectorID, jobID)
+	}
 	if err != nil {
 		_ = s.discardPendingCloudCredentialCustody(jobID, ref)
+		if _, typed := grpcerr.ExtractReasonCode(err); typed {
+			return err
+		}
 		return fmt.Errorf("capture Cloud ScenarioJob credential custody: %w", err)
 	}
 	if capturedRef != ref {
@@ -118,4 +134,13 @@ func (s *Service) releaseRecoveredTerminalCloudCredentialCustody() error {
 func connectorRecordWithCredentialCustody(record connector.ConnectorRecord, ref string) connector.ConnectorRecord {
 	record.CredentialCustodyRef = strings.TrimSpace(ref)
 	return record
+}
+
+// cloudCredentialCustodyError keeps a typed Connector outcome, such as a SIWC
+// reauthorization requirement, and wraps only untyped custody failures.
+func cloudCredentialCustodyError(err error, message string) error {
+	if _, typed := grpcerr.ExtractReasonCode(err); typed {
+		return err
+	}
+	return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: message})
 }

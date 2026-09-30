@@ -262,9 +262,9 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 	if spec == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if b.supportsCodexResponses() {
-		// The ChatGPT-plan-usage Responses flow does not admit image generation.
-		// A Codex text model is not a hidden substitute for an image target.
+	if b.isChatGPTPlanBackend() {
+		// The ChatGPT-plan Responses flow does not admit image generation, and a
+		// text model is not a hidden substitute for an image target.
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 

@@ -111,6 +111,11 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
       'AgentCenter.aiConfig.cloudCatalogStaleLabel',
       'The Cloud model list changed after this model was selected. Choose the model again from the current list.',
     ),
+    cloudChatGPTPlanLabel: t('AgentCenter.aiConfig.cloudChatGPTPlanLabel', 'Using ChatGPT plan'),
+    cloudChatGPTPlanDescription: t(
+      'AgentCenter.aiConfig.cloudChatGPTPlanDescription',
+      'Eligible usage with this model counts toward the signed-in ChatGPT plan limits, not a Nimi charge.',
+    ),
     localMismatchLabel: (features: string) => translateAgentCenter(
       i18n,
       'AgentCenter.aiConfig.localMismatchLabel',

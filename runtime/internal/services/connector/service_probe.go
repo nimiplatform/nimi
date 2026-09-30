@@ -50,6 +50,14 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_INVALID},
 		}, nil
 	}
+	if IsChatGPTPlanRecord(rec) {
+		reason, hint := s.testChatGPTPlanConnector(ctx, rec)
+		s.emitAudit(ctx, "connector.test", reason, auditPayload)
+		if reason != runtimev1.ReasonCode_ACTION_EXECUTED {
+			return &runtimev1.TestConnectorResponse{Ack: &runtimev1.Ack{Ok: false, ReasonCode: reason, ActionHint: hint}}, nil
+		}
+		return &runtimev1.TestConnectorResponse{Ack: &runtimev1.Ack{Ok: true}}, nil
+	}
 
 	secretPayload, err := s.store.LoadSecretPayload(connectorID)
 	if err != nil {
@@ -122,7 +130,9 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 
 	var models []*runtimev1.ConnectorModelDescriptor
 	providerCatalogEntry := ProviderCatalog[strings.TrimSpace(rec.Provider)]
-	if providerCatalogEntry.InventoryMode == "dynamic_endpoint" {
+	if IsChatGPTPlanRecord(rec) {
+		models, err = s.listChatGPTPlanConnectorModels(ctx, ownerID, rec)
+	} else if providerCatalogEntry.InventoryMode == "dynamic_endpoint" {
 		models, err = s.listCatalogConnectorModels(ownerID, rec.Provider, rec)
 	} else {
 		models, err = s.listCatalogConnectorModels(ownerID, rec.Provider, rec)

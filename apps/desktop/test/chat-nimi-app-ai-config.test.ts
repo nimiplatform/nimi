@@ -7,6 +7,7 @@ import {
 } from '@nimiplatform/sdk/ai';
 import {
   desktopNimiAppAIConfigQueryKey,
+  desktopNimiTextIntentUsesChatGPTPlan,
   findDesktopNimiTextIntent,
   readDesktopNimiAppAIConfig,
 } from '../src/shell/renderer/features/chat/chat-nimi-app-ai-config.js';
@@ -45,6 +46,22 @@ test('Nimi Chat locates canonical text intent without owning its construction', 
     owner: undefined,
     capabilities: [imageIntent, textIntent],
   }), textIntent);
+});
+
+test('Nimi Chat recognizes a committed ChatGPT plan text route', () => {
+  const cloudText = (provider: string) => createNimiCloudAIConfigCapabilityIntent({
+    capabilityContract: 'text.generate',
+    connectorRef: 'connector:text',
+    implementation: { implementationId: `${provider}.model.responses`, driverId: 'nimillm', driverDialect: 'openai-responses' },
+    providerModelTarget: { provider, providerModelId: 'gpt-6-luna', remoteModelCatalogId: 'remote-model-catalog-gpt-6-luna' },
+  });
+  assert.equal(desktopNimiTextIntentUsesChatGPTPlan(cloudText('openai_chatgpt_plan')), true);
+  assert.equal(desktopNimiTextIntentUsesChatGPTPlan(cloudText('openai')), false);
+  assert.equal(desktopNimiTextIntentUsesChatGPTPlan(createNimiLocalAIConfigCapabilityIntent({
+    capabilityContract: 'text.generate',
+    requiredFeatures: [],
+  })), false);
+  assert.equal(desktopNimiTextIntentUsesChatGPTPlan(null), false);
 });
 
 test('Nimi Chat treats missing App AIConfig as canonical not-configured state', async () => {

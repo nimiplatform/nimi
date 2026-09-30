@@ -2,8 +2,6 @@ package connector
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"sort"
 	"testing"
 
@@ -14,18 +12,6 @@ import (
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
-func codexProbeJWTForTest(t *testing.T, accountID string) string {
-	t.Helper()
-	raw, err := json.Marshal(map[string]any{
-		"https://api.openai.com/auth": map[string]any{
-			"chatgpt_account_id": accountID,
-		},
-	})
-	if err != nil {
-		t.Fatalf("marshal codex probe jwt: %v", err)
-	}
-	return "hdr." + base64.RawURLEncoding.EncodeToString(raw) + ".sig"
-}
 func TestCreateConnector(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
@@ -87,7 +73,7 @@ func TestCreateConnectorRejectsIncompatibleOAuthProfile(t *testing.T) {
 		Provider:            "openai_compatible",
 		Endpoint:            "https://example.com/v1",
 		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
-		ProviderAuthProfile: "openai_codex",
+		ProviderAuthProfile: "openai_chatgpt_plan",
 		CredentialJson:      `{"access_token":"token-1"}`,
 	})
 	if err == nil {
@@ -101,10 +87,9 @@ func TestCreateConnectorRejectsIncompatibleOAuthProfile(t *testing.T) {
 func TestCreateConnectorAnonymousOAuthManagedRequiresAuth(t *testing.T) {
 	svc := newTestService(t)
 	_, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
-		Provider:            "openai_codex",
-		Endpoint:            "https://chatgpt.com/backend-api/codex",
+		Provider:            "anthropic",
 		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
-		ProviderAuthProfile: "openai_codex",
+		ProviderAuthProfile: "anthropic",
 		CredentialJson:      `{"access_token":"token-1"}`,
 	})
 	if err == nil {
@@ -396,20 +381,20 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 	svc := newTestService(t)
 	payload := `{"access_token":"token-1"}`
 	if _, err := svc.store.Create(ConnectorRecord{
-		ConnectorID:         "machine-codex",
+		ConnectorID:         "machine-oauth",
 		Kind:                runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
 		OwnerType:           runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
 		OwnerID:             "machine",
-		Provider:            "openai_codex",
-		ProviderAuthProfile: "openai_codex",
-		Endpoint:            "https://chatgpt.com/backend-api/codex",
+		Provider:            "anthropic",
+		ProviderAuthProfile: "anthropic",
+		Endpoint:            "https://api.anthropic.com",
 		Status:              runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
 	}, payload); err != nil {
 		t.Fatalf("create invalid oauth-managed connector: %v", err)
 	}
 	if _, err := svc.GetConnector(context.Background(), &runtimev1.GetConnectorRequest{
-		ConnectorId: "machine-codex",
+		ConnectorId: "machine-oauth",
 	}); err == nil {
 		t.Fatal("expected invalid oauth-managed connector to be hidden from GetConnector")
 	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
@@ -420,26 +405,26 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 		t.Fatalf("ListConnectors: %v", err)
 	}
 	for _, item := range listResp.GetConnectors() {
-		if item.GetConnectorId() == "machine-codex" {
+		if item.GetConnectorId() == "machine-oauth" {
 			t.Fatal("expected invalid oauth-managed connector to be hidden from ListConnectors")
 		}
 	}
 	if _, err := svc.TestConnector(context.Background(), &runtimev1.TestConnectorRequest{
-		ConnectorId: "machine-codex",
+		ConnectorId: "machine-oauth",
 	}); err == nil {
 		t.Fatal("expected TestConnector to hide invalid oauth-managed connector")
 	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
 		t.Fatalf("expected TestConnector NotFound, got %v", st.Code())
 	}
 	if _, err := svc.ListConnectorModels(context.Background(), &runtimev1.ListConnectorModelsRequest{
-		ConnectorId: "machine-codex",
+		ConnectorId: "machine-oauth",
 	}); err == nil {
 		t.Fatal("expected ListConnectorModels to hide invalid oauth-managed connector")
 	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
 		t.Fatalf("expected ListConnectorModels NotFound, got %v", st.Code())
 	}
 	if _, err := svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
-		ConnectorId: "machine-codex",
+		ConnectorId: "machine-oauth",
 		Label:       proto.String("renamed"),
 	}); err == nil {
 		t.Fatal("expected UpdateConnector to hide invalid oauth-managed connector")
@@ -447,7 +432,7 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 		t.Fatalf("expected UpdateConnector NotFound, got %v", st.Code())
 	}
 	if _, err := svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
-		ConnectorId: "machine-codex",
+		ConnectorId: "machine-oauth",
 	}); err == nil {
 		t.Fatal("expected DeleteConnector to hide invalid oauth-managed connector")
 	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
@@ -461,8 +446,8 @@ func TestUpdateConnectorRejectsOAuthManagedTransitionForMachineOwner(t *testing.
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
 		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
 		OwnerID:     "machine",
-		Provider:    "openai_codex",
-		Endpoint:    "https://chatgpt.com/backend-api/codex",
+		Provider:    "anthropic",
+		Endpoint:    "https://api.anthropic.com",
 		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 		AuthKind:    runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY,
 	}, "machine-key"); err != nil {
@@ -472,7 +457,7 @@ func TestUpdateConnectorRejectsOAuthManagedTransitionForMachineOwner(t *testing.
 	_, err := svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
 		ConnectorId:         "machine-apikey",
 		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED.Enum(),
-		ProviderAuthProfile: proto.String("openai_codex"),
+		ProviderAuthProfile: proto.String("anthropic"),
 		CredentialJson:      proto.String(`{"access_token":"token-1"}`),
 	})
 	if err == nil {

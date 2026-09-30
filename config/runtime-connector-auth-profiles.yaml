@@ -5,15 +5,15 @@ table_family: product_catalog
 owner: runtime
 catalog_id: runtime_connector_auth_profiles
 entries:
-  - openai_codex
+  - openai_chatgpt_plan
   - anthropic
   - qwen_oauth
 profiles:
-  - id: openai_codex
+  - id: openai_chatgpt_plan
     auth_kind: oauth_managed
     allowed_providers:
-      - openai_codex
-    header_behavior: codex_oauth
+      - openai_chatgpt_plan
+    header_behavior: none
   - id: anthropic
     auth_kind: oauth_managed
     allowed_providers:

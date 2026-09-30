@@ -120,6 +120,8 @@ export type ModelConfigCopy = Partial<{
   readonly cloudTargetDialogDescription: string;
   readonly cloudNoticeLabel: string;
   readonly cloudNoticeDescription: string;
+  readonly cloudChatGPTPlanLabel: string;
+  readonly cloudChatGPTPlanDescription: string;
   readonly cloudConnectorLabel: string;
   readonly cloudConnectorPlaceholder: string;
   readonly cloudLoadFailed: string;

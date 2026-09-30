@@ -42,11 +42,13 @@ import { useAiConversationHostActions } from './chat-nimi-shell-host-actions';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   DESKTOP_NIMI_APP_ID,
+  desktopNimiTextIntentUsesChatGPTPlan,
   findDesktopNimiTextIntent,
   useDesktopNimiAppAIConfig,
 } from './chat-nimi-app-ai-config.js';
 import { runDesktopNimiTextCapability } from './chat-nimi-shell-runtime-adapter.js';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
+import { chatGPTPlanManageUsageFeedbackAction } from './chat-chatgpt-plan-feedback.js';
 
 type UseAiConversationModeHostInput = {
   selection: NimiConversationSelection;
@@ -68,6 +70,7 @@ export function useAiConversationModeHost(
     : null;
   const appAIConfig = useDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
   const textIntent = findDesktopNimiTextIntent(appAIConfig.data?.config);
+  const textRouteUsesChatGPTPlan = desktopNimiTextIntentUsesChatGPTPlan(textIntent);
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const [ephemeralThread, setEphemeralThread] = useState<ChatAiThreadRecord | null>(null);
@@ -78,13 +81,15 @@ export function useAiConversationModeHost(
       error,
       t('Chat.nimiExecutionFailed', { defaultValue: 'Nimi Chat could not complete this request.' }),
       t,
+      { chatGPTPlanRoute: textRouteUsesChatGPTPlan },
     );
     setHostFeedback({
       kind: 'error',
       message: userFacing.message,
       technicalDetail: error instanceof Error ? error.message : String(error || ''),
+      ...(userFacing.chatGPTPlanUsageLimited ? chatGPTPlanManageUsageFeedbackAction(t) : {}),
     });
-  }, [t]);
+  }, [t, textRouteUsesChatGPTPlan]);
 
   const setSelection = useCallback((selection: NimiConversationSelection) => {
     if (input.selection.threadId === selection.threadId) {

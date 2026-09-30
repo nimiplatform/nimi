@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -632,65 +631,6 @@ func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
 	}
 	if resp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
 		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", resp.GetAck().GetReasonCode())
-	}
-}
-func TestTestConnectorOpenAICodexUsesOAuthHeaders(t *testing.T) {
-	svc := newTestService(t)
-	ctx := userContext("user-1")
-	var capturedOriginator string
-	var capturedAccountID string
-	var capturedClientVersion string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/backend-api/codex/models" {
-			http.NotFound(w, r)
-			return
-		}
-		capturedOriginator = r.Header.Get("originator")
-		capturedAccountID = r.Header.Get("ChatGPT-Account-ID")
-		capturedClientVersion = r.URL.Query().Get("client_version")
-		w.WriteHeader(http.StatusNoContent)
-	}))
-	t.Cleanup(server.Close)
-	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
-		Providers: map[string]nimillm.ProviderCredentials{
-			"openai_codex": {BaseURL: server.URL + "/backend-api/codex", APIKey: "cloud-key"},
-		},
-		HTTPTimeout:           5 * time.Second,
-		AllowLoopbackEndpoint: true,
-	}))
-	credentialPayload, err := json.Marshal(map[string]any{
-		"access_token": codexProbeJWTForTest(t, "acct_probe_123"),
-	})
-	if err != nil {
-		t.Fatalf("marshal credential payload: %v", err)
-	}
-	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
-		Provider:            "openai_codex",
-		Endpoint:            server.URL + "/backend-api/codex",
-		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
-		ProviderAuthProfile: "openai_codex",
-		CredentialJson:      string(credentialPayload),
-	})
-	if err != nil {
-		t.Fatalf("CreateConnector: %v", err)
-	}
-	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
-		ConnectorId: created.GetConnector().GetConnectorId(),
-	})
-	if err != nil {
-		t.Fatalf("TestConnector: %v", err)
-	}
-	if !resp.GetAck().GetOk() {
-		t.Fatalf("expected probe success, got reason=%v", resp.GetAck().GetReasonCode())
-	}
-	if capturedOriginator != "codex_cli_rs" {
-		t.Fatalf("expected codex originator header, got %q", capturedOriginator)
-	}
-	if capturedAccountID != "acct_probe_123" {
-		t.Fatalf("expected codex account header, got %q", capturedAccountID)
-	}
-	if capturedClientVersion != "1.0.0" {
-		t.Fatalf("expected codex client_version query param, got %q", capturedClientVersion)
 	}
 }
 func TestTestConnectorQwenOAuthUsesBearerTokenThroughOpenAICompatibleProvider(t *testing.T) {

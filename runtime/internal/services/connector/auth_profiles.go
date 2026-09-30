@@ -24,8 +24,6 @@ func buildProviderAuthProfiles() map[string]ProviderAuthProfile {
 
 func resolveProviderAuthProfileHeaders(headerBehavior string) func(string) map[string]string {
 	switch strings.ToLower(strings.TrimSpace(headerBehavior)) {
-	case "codex_oauth":
-		return codexOAuthHeaders
 	case "anthropic":
 		return anthropicCredentialHeaders
 	default:

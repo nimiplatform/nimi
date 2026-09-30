@@ -1964,6 +1964,7 @@ class Connector:
     updated_at: str | None = None
     auth_kind: ConnectorAuthKind | None = None
     provider_auth_profile: str | None = None
+    oauth_registration: ConnectorOAuthRegistration | None = None
 
 @dataclass(frozen=True)
 class ConnectorModelDescriptor:
@@ -1976,6 +1977,11 @@ class ConnectorModelDescriptor:
     connector_snapshot_id: str | None = None
     endpoint_profile_id: str | None = None
     inventory_snapshot_id: str | None = None
+
+@dataclass(frozen=True)
+class ConnectorOAuthRegistration:
+    issued_client_id: str | None = None
+    account_label: str | None = None
 
 @dataclass(frozen=True)
 class ConsentRef:

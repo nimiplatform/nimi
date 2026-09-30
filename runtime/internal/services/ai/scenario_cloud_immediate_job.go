@@ -72,11 +72,9 @@ func (s *Service) prepareCloudScenarioJob(
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, CreatedAt: now, UpdatedAt: now,
 		TraceId: assembly.TraceID, IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	if err := s.bindCloudCredentialCustody(job.GetJobId(), assembly); err != nil {
+	if err := s.bindCloudCredentialCustody(ctx, job.GetJobId(), assembly); err != nil {
 		cancel()
-		return nil, nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-			Message: "Cloud ScenarioJob credential custody could not be captured",
-		})
+		return nil, nil, cloudCredentialCustodyError(err, "Cloud ScenarioJob credential custody could not be captured")
 	}
 	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCloudAssemblyChecked(
 		job, cancel, localAppJobOwnerFromContext(ctx), "", assembly, payload...,

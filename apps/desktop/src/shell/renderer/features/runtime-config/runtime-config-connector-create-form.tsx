@@ -1,6 +1,7 @@
-// @nimi-authority: rule.nimi.desktop.ai-consumption.r023
+// @nimi-authority: rule.nimi.sdks.feature-clients.r060
 
 import { InlineAlert, OverlayShell, ScrollArea, TextField } from '@nimiplatform/kit/ui';
+import { isNimiBrowserManagedConnectorProfile } from '@nimiplatform/sdk/runtime';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import { ArrowLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -8,10 +9,10 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { ChatGPTPlanPendingNotice, chatGPTPlanSignInLabel } from './runtime-config-chatgpt-plan.js';
 import { useConnectorOAuthAcquisition } from './runtime-config-connector-oauth-session.js';
 import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
 import {
-  connectorAuthProfileForId,
   defaultConnectorAuthOptionForProvider,
   listConnectorAuthOptionsForProvider,
   providerToVendor,
@@ -87,8 +88,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
     ?? (resolvedProvider ? defaultConnectorAuthOptionForProvider(resolvedProvider, providerCatalog) : null);
   const resolvedEndpoint = endpoint || (resolvedProvider ? resolveProviderEndpoint(resolvedProvider, providerCatalog) : '');
   const isOAuthManaged = resolvedAuthOption?.authMode === 'oauth_managed';
-  const oauthProfile = connectorAuthProfileForId(resolvedAuthOption?.providerAuthProfile);
-  const isCodexManaged = isOAuthManaged && oauthProfile?.headerBehavior === 'codex_oauth';
+  const isBrowserManaged = isOAuthManaged && isNimiBrowserManagedConnectorProfile(resolvedAuthOption?.providerAuthProfile);
   const oauthRequiresAuth = isOAuthManaged && authStatus !== 'authenticated';
 
   // The not-yet-created connector the OAuth operation is bound to. Field
@@ -261,12 +261,15 @@ export function RuntimeConfigConnectorCreateForm(props: {
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input
-            label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
-            value={resolvedEndpoint}
-            onChange={(next) => onChangeField(() => setEndpoint(next))}
-            disabled={oauthBusy}
-          />
+          {/* Browser sign-in Connectors use the provider's fixed endpoint. */}
+          {!isBrowserManaged ? (
+            <Input
+              label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
+              value={resolvedEndpoint}
+              onChange={(next) => onChangeField(() => setEndpoint(next))}
+              disabled={oauthBusy}
+            />
+          ) : null}
           {authOptions.length > 1 ? (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
@@ -304,24 +307,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
         </p>
       )}
       {oauth.pending ? (
-        <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-3 py-2 text-xs text-[var(--nimi-text-secondary)]">
-          <p className="font-medium text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.cloud.codexOauthPendingTitle', { defaultValue: 'Complete Codex sign-in' })}
-          </p>
-          <p className="mt-2 font-mono text-sm tracking-[0.2em] text-[var(--nimi-action-primary-bg)]">
-            {oauth.pending.userCode}
-          </p>
-          <p className="mt-2 break-all">
-            <a
-              href={oauth.pending.verificationUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-[var(--nimi-action-primary-bg)] underline"
-            >
-              {oauth.pending.verificationUrl}
-            </a>
-          </p>
-        </div>
+        <ChatGPTPlanPendingNotice pending={oauth.pending} onCancel={() => oauth.invalidate('ChatGPT sign-in was canceled')} t={t} />
       ) : null}
       {oauthRequiresAuth ? (
         <p className="rounded-lg bg-[var(--nimi-status-warning-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-warning-soft-text)]">
@@ -345,16 +331,14 @@ export function RuntimeConfigConnectorCreateForm(props: {
               ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
               : props.submitLabel ?? t('runtimeConfig.cloud.createConnector', { defaultValue: 'Create Connector' })}
           </Button>
-        ) : isCodexManaged ? (
+        ) : isBrowserManaged ? (
           <Button
             variant="primary"
             size="sm"
             disabled={oauthBusy || oauthRequiresAuth || !resolvedProvider}
             onClick={startOAuth}
           >
-            {oauthBusy
-              ? t('runtimeConfig.cloud.codexOauthSigningIn', { defaultValue: 'Waiting for Codex...' })
-              : t('runtimeConfig.cloud.codexOauthStart', { defaultValue: 'Sign in with Codex' })}
+            {chatGPTPlanSignInLabel({ busy: oauthBusy, isDraft: true, hasCredential: false, t })}
           </Button>
         ) : null}
         {props.onCancel ? (

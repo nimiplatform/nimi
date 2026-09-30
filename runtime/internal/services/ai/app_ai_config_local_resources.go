@@ -74,13 +74,14 @@ func (s *Service) validateChangedAppAIConfigResourceReferences(
 }
 
 func (s *Service) projectAppAIConfigEffectiveSelections(
+	ctx context.Context,
 	accountNamespace string,
 	config *runtimev1.AIConfig,
 ) []*runtimev1.AIConfigEffectiveSelection {
 	result := make([]*runtimev1.AIConfigEffectiveSelection, 0, len(config.GetCapabilities()))
 	for _, capability := range config.GetCapabilities() {
 		if cloud := capability.GetCloud(); cloud != nil {
-			result = append(result, s.projectCloudEffectiveSelection(accountNamespace, capability.GetCapabilityContract(), cloud))
+			result = append(result, s.projectCloudEffectiveSelection(ctx, accountNamespace, capability.GetCapabilityContract(), cloud))
 			continue
 		}
 		local := capability.GetLocal()
@@ -144,6 +145,7 @@ func appendReasonStringOnce(reasons []string, candidate string) []string {
 }
 
 func (s *Service) projectCloudEffectiveSelection(
+	ctx context.Context,
 	accountNamespace string,
 	capabilityContract string,
 	cloud *runtimev1.AIConfigCloudIntent,
@@ -168,6 +170,12 @@ func (s *Service) projectCloudEffectiveSelection(
 		if reason, ok := grpcerr.ExtractReasonCode(err); ok {
 			selection.Reasons = []string{reason.String()}
 		}
+		return selection
+	}
+	if connector.AIConfigAccountModelBlocked(ctx, s.connStore, record, target["providerModelId"].GetStringValue()) {
+		// The Connector's current account does not list this exact model.
+		selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+		selection.Reasons = []string{connector.AIConfigAccountModelMissingReason.String()}
 		return selection
 	}
 	implementation, _ := proto.Clone(cloud.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
@@ -265,7 +273,7 @@ func (s *Service) ListAppAIConfigOptions(
 			return nil, invalidAppAIConfigError()
 		}
 		options, truncated, err := connector.ListAIConfigCloudTargetOptions(
-			s.connStore, s.speechCatalog, caller.accountNamespace,
+			ctx, s.connStore, s.speechCatalog, caller.accountNamespace,
 			cloudQuery.GetCapabilityContract(), cloudQuery.GetConnectorRef(), cloudQuery.GetSearch(), appAIConfigOptionsLimit,
 		)
 		if err != nil {

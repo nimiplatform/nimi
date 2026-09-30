@@ -10,7 +10,7 @@ import (
 )
 
 func TestCloudTextBehaviorRejectsRawChunksBeforeDispatch(t *testing.T) {
-	for _, provider := range []string{"anthropic", "codex"} {
+	for _, provider := range []string{"anthropic", "chatgpt"} {
 		t.Run(provider, func(t *testing.T) {
 			var calls atomic.Int32
 			handler := func(w http.ResponseWriter, _ *http.Request) {
@@ -21,7 +21,8 @@ func TestCloudTextBehaviorRejectsRawChunksBeforeDispatch(t *testing.T) {
 			if provider == "anthropic" {
 				fixture, _ = anthropicAppFixture(t, handler)
 			} else {
-				fixture, _ = codexAppFixture(t, "gpt-5.6-sol", handler)
+				plan, _ := chatGPTPlanAppFixture(t, "gpt-6.1-sol", handler)
+				fixture = plan.managedCloudScenarioTestFixture
 			}
 			app := "app." + provider
 			ctx := scenarioJobUserContext(app, "user-001")

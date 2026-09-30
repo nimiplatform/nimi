@@ -32,6 +32,50 @@ Required changes from 0.15.0:
   0.19.0).
 - Declare `app.activity` before using `client.activity`, and register the
   `agent.work` declaration before using `agentWork` (0.16.0, 0.19.0).
+- A host that signed in the retired Codex Connector implements the new
+  connector auth acquisition host, and `deleteConnector()` callers or
+  implementations use its result (ChatGPT plan sign-in).
+
+## ChatGPT plan sign-in (next minor, development)
+
+- The only browser-managed Connector profile is `openai_chatgpt_plan`, signed
+  in with Sign in with ChatGPT: dynamic client registration, a loopback
+  callback on `127.0.0.1`, PKCE with state and nonce, and ID-token
+  verification against OpenAI's published keys. The Codex device-code profile
+  and the `openai_codex` provider are removed; an existing `openai_codex`
+  Connector stays listed only so it can be deleted, and every other use fails
+  typed.
+- `NimiConnectorAuthAcquisitionNativeHost` changes shape. `proxyHttp`
+  carries only the `authorization_code_exchange` POST to the profile token URL
+  and the `jwks` GET to the profile key URL, and never follows a redirect.
+  `oauthTokenExchange` and `sleep` are removed, with the
+  `NimiConnectorAuthAcquisitionTokenExchangeInput` and `...Result` types.
+  Hosts add `startAuthorizationCallback(request, signal)`,
+  `hostIdentifier()` and optional `crypto`, and keep `openExternalUrl`,
+  `now` and `log`.
+- `NimiManagedConnectorCredentialRuntime` also needs `getConnector`. It reads
+  only the issued client ID and account label for an explicit sign-in again.
+- The acquisition request is `{ profileId, connectorId?, label? }`; omit
+  `connectorId` to create the Connector on the first sign-in. The pending state
+  is `{ authorizationUrl, expiresInSeconds }`, and the result adds
+  `accountLabel`. Failures throw `NimiConnectorAuthAcquisitionError` with a
+  typed `code`: `AUTHORIZATION_DENIED`, `PLAN_USAGE_NOT_GRANTED`,
+  `AUTHORIZATION_INVALID`, `REGISTRATION_UNAVAILABLE` or
+  `BROWSER_UNAVAILABLE`.
+- Connector projections add `accountLabel` from the Runtime
+  `oauth_registration` projection. No token material crosses.
+- Runtime renews the plan credential itself, and the SDK never refreshes it.
+  An ended sign-in fails with `AI_CONNECTOR_CREDENTIAL_MISSING` and action hint
+  `NIMI_CHATGPT_PLAN_REAUTHORIZE_ACTION_HINT`; a plan usage limit fails with
+  `AI_PROVIDER_RATE_LIMITED` and `NIMI_CHATGPT_PLAN_MANAGE_USAGE_ACTION_HINT`.
+  Use `nimiProviderUsesChatGPTPlan(provider)` to say near model choice that
+  usage counts toward the plan, and link people to
+  `NIMI_CHATGPT_PLAN_USAGE_URL`.
+- `connectorInventory.deleteConnector()` resolves to `{ actionHint }` instead
+  of `void`. `NIMI_CHATGPT_PLAN_REVOCATION_UNCONFIRMED_ACTION_HINT` means the
+  Connector and its saved sign-in were deleted but OpenAI did not confirm the
+  sign-out. Implementations of `NimiRuntimeConnectorInventoryClient` return the
+  new result.
 
 ## Runtime maintenance mode (next minor, development)
 

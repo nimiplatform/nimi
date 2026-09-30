@@ -1217,7 +1217,7 @@ describe('Electron protected local-app host', () => {
     const payload = new TextEncoder().encode(JSON.stringify({
       type: 'reasoning', id: 'rs_budget', encrypted_content: 'A'.repeat(60 * 1024), summary: [],
     }));
-    const carrier = { kind: 'openai_codex.responses.encrypted-reasoning', version: 1, payload: Array.from(payload) };
+    const carrier = { kind: 'openai_chatgpt_plan.responses.encrypted-reasoning', version: 1, payload: Array.from(payload) };
     const rawArguments = `{"values":[${Array(16 * 1024).fill('1e20').join(',')}]}`;
     const text = 'x'.repeat(100 * 1024);
     for (const args of [{ query: 'Nimi' }, JSON.parse(rawArguments)]) {

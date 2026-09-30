@@ -15,7 +15,7 @@ import (
 func TestCatalogSourceRefProjectionPreservesAuthenticatedInventoryKind(t *testing.T) {
 	projected := mapCatalogSourceRef(aicatalog.SourceRef{
 		SourceKind:  "authenticated_provider_inventory",
-		URL:         "https://chatgpt.com/backend-api/codex/models?client_version=1.0.0",
+		URL:         "https://provider.example/v1/models",
 		RetrievedAt: "2026-08-09",
 		Note:        "Authenticated non-public provider inventory observation.",
 	})

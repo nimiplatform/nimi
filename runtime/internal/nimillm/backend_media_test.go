@@ -165,17 +165,17 @@ func TestBackendGenerateImageRejectsNilSpec(t *testing.T) {
 	}
 }
 
-func TestBackendGenerateImageCodexFailsBeforeDispatch(t *testing.T) {
+func TestBackendGenerateImageChatGPTPlanFailsBeforeDispatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Errorf("unsupported Codex image request reached provider: %s %s", r.Method, r.URL.Path)
+		t.Errorf("unsupported ChatGPT plan image request reached provider: %s %s", r.Method, r.URL.Path)
 		http.Error(w, "unexpected request", http.StatusBadRequest)
 	}))
 	defer server.Close()
 
-	backend := NewBackendWithHeaders("cloud-openai_codex", server.URL+"/backend-api/codex", "token-123", nil, time.Second)
+	backend := NewBackendWithHeaders("cloud-openai_chatgpt_plan", server.URL, "token-123", nil, time.Second)
 	payload, _, err := backend.GenerateImage(context.Background(), "gpt-image-2", &runtimev1.ImageGenerateScenarioSpec{Prompt: "make a skyline"}, nil)
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || payload != nil {
-		t.Fatalf("unsupported Codex image target did not fail typed before dispatch: payload=%d reason=%v present=%v err=%v", len(payload), reason, ok, err)
+		t.Fatalf("unsupported ChatGPT plan image target did not fail typed before dispatch: payload=%d reason=%v present=%v err=%v", len(payload), reason, ok, err)
 	}
 }
 

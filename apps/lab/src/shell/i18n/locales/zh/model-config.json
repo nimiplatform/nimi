@@ -34,6 +34,8 @@
     "openOwnerConfigurationLabel": "在 Nimi 中统一管理",
     "cloudBlockedLabel": "此云端配置当前无法运行。请重新选择模型或改选其他模型。",
     "cloudCatalogStaleLabel": "选定此模型后云端模型列表已更新。请从当前列表重新选择模型。",
+    "cloudChatGPTPlanLabel": "正在使用 ChatGPT 计划",
+    "cloudChatGPTPlanDescription": "此模型中符合条件的使用会计入已登录 ChatGPT 计划的额度，Nimi 不收费。",
     "loadFailed": "无法从 Runtime 加载 Nimi Lab AI 配置。",
     "unsupportedCapabilityLabel": "此能力暂不可用。",
     "notConfiguredLabel": "未配置",
