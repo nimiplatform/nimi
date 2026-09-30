@@ -231,33 +231,32 @@ export function useAppAiChatSession({
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesRef = useRef(messages);
-  const isStreamingRef = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // The request that owns the session's streaming state. Only it may finish,
+  // fail, cancel or clear that state; a reset or unmount revokes it, so a
+  // revoked request that ends late cannot touch the next one.
+  const activeRequestRef = useRef<{ readonly controller: AbortController } | null>(null);
 
+  // messagesRef is updated at once, not when React next renders, so a prompt
+  // sent right after a reset builds on the reset messages.
   const commitMessages = useCallback((
     next:
       | readonly AppAiChatSessionMessage[]
       | ((current: readonly AppAiChatSessionMessage[]) => readonly AppAiChatSessionMessage[]),
   ) => {
-    setMessagesState((current) => {
-      const resolved = typeof next === 'function' ? next(current) : next;
-      messagesRef.current = resolved;
-      return resolved;
-    });
+    const resolved = typeof next === 'function' ? next(messagesRef.current) : next;
+    messagesRef.current = resolved;
+    setMessagesState(resolved);
   }, []);
 
   useEffect(() => {
-    messagesRef.current = messages;
     onMessagesChange?.(messages);
   }, [messages, onMessagesChange]);
 
-  useEffect(() => {
-    isStreamingRef.current = isStreaming;
-  }, [isStreaming]);
-
   // An unmounted session closes the reply it is still streaming.
   useEffect(() => () => {
-    abortControllerRef.current?.abort();
+    const active = activeRequestRef.current;
+    activeRequestRef.current = null;
+    active?.controller.abort();
   }, []);
 
   const clearError = useCallback(() => {
@@ -265,22 +264,22 @@ export function useAppAiChatSession({
   }, []);
 
   const resetMessages = useCallback((nextMessages: readonly AppAiChatSessionMessage[] = []) => {
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = null;
+    const active = activeRequestRef.current;
+    activeRequestRef.current = null;
+    active?.controller.abort();
     commitMessages([...nextMessages]);
-    isStreamingRef.current = false;
     setIsStreaming(false);
     setError(null);
   }, [commitMessages]);
 
   const cancelCurrent = useCallback(() => {
-    abortControllerRef.current?.abort();
+    activeRequestRef.current?.controller.abort();
   }, []);
 
   const sendPrompt = useCallback(async (input: string | AppAiChatSessionSendInput) => {
     const payload = typeof input === 'string' ? { prompt: input } : input;
     const prompt = String(payload.prompt || '').trim();
-    if (!prompt || isStreamingRef.current) {
+    if (!prompt || activeRequestRef.current) {
       return;
     }
 
@@ -300,21 +299,21 @@ export function useAppAiChatSession({
       status: 'streaming',
     };
     const nextMessages = [...messagesRef.current, userMessage];
+    const active = { controller: new AbortController() };
+    const owns = () => activeRequestRef.current === active;
 
+    activeRequestRef.current = active;
     commitMessages([...nextMessages, assistantPlaceholder]);
-    isStreamingRef.current = true;
     setIsStreaming(true);
     setError(null);
 
     try {
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
       const request = (payload.resolveRequest ?? resolveRequest)({
         prompt,
         displayPrompt: userMessage.content,
         messages: nextMessages,
       });
-      const requestWithSignal = withAppAiChatAbortSignal(request, abortController.signal);
+      const requestWithSignal = withAppAiChatAbortSignal(request, active.controller.signal);
       const output = createAssistantOutputCollector();
       const model = observeAssistantOutput(
         boundModel
@@ -332,6 +331,9 @@ export function useAppAiChatSession({
         },
         {
           onDelta: (text: string) => {
+            if (!owns()) {
+              return;
+            }
             commitMessages((current) => current.map((message) => (
               message.id === assistantMessageId
                 ? {
@@ -345,6 +347,9 @@ export function useAppAiChatSession({
         },
       );
 
+      if (!owns()) {
+        return;
+      }
       const outputItems = output.complete();
       commitMessages((current) => current.map((message) => (
         message.id === assistantMessageId
@@ -358,6 +363,9 @@ export function useAppAiChatSession({
           : message
       )));
     } catch (nextError) {
+      if (!owns()) {
+        return;
+      }
       if (isAbortLikeError(nextError)) {
         commitMessages((current) => current.map((message) => (
           message.id === assistantMessageId
@@ -385,9 +393,10 @@ export function useAppAiChatSession({
       )));
       onError?.(resolvedError);
     } finally {
-      abortControllerRef.current = null;
-      isStreamingRef.current = false;
-      setIsStreaming(false);
+      if (owns()) {
+        activeRequestRef.current = null;
+        setIsStreaming(false);
+      }
     }
   }, [appId, boundModel, commitMessages, onError, resolveRequest, runtime]);
 

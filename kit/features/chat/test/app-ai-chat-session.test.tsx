@@ -448,6 +448,69 @@ describe('useAppAiChatSession', () => {
       expect(text('error')).toBe('');
     });
 
+    it('a turn reset while streaming cannot end, free or report into the next turn', async () => {
+      // The first turn ignores its cancellation until the test lets it end, so
+      // it finishes only after the next turn has started.
+      const releaseFirst = Promise.withResolvers<void>();
+      const { ai, inputs, cancels } = localAppTextAI([
+        async function* first() {
+          yield { type: 'delta', sequence: '1', traceId: 'trace-1', text: 'First', itemIndex: 0 };
+          await releaseFirst.promise;
+          yield { type: 'completed', sequence: '2', traceId: 'trace-1', finishReason: 'stop' };
+        },
+        async function* second(closed) {
+          yield { type: 'delta', sequence: '1', traceId: 'trace-2', text: 'Second', itemIndex: 0 };
+          await closed;
+          yield { type: 'completed', sequence: '2', traceId: 'trace-2', finishReason: 'stop' };
+        },
+      ]);
+      const api = await mount({ model: createNimiLocalAppTextModel(ai) });
+
+      const firstTurn = api.sendPrompt('one');
+      await act(async () => {
+        await flush();
+      });
+      expect(text('last')).toBe('First');
+
+      let secondTurn: Promise<void> | undefined;
+      await act(async () => {
+        api.resetMessages([]);
+        secondTurn = api.sendPrompt('two');
+        await flush();
+      });
+      expect(text('count')).toBe('2');
+      expect(text('last')).toBe('Second');
+      // The new conversation's request carries none of the reset one.
+      expect(inputs[1]).toEqual({ messages: [{ role: 'user', text: 'two' }] });
+
+      // The reset first turn ends late.
+      await act(async () => {
+        releaseFirst.resolve();
+        await firstTurn;
+        await flush();
+      });
+      expect(text('streaming')).toBe('true');
+      expect(text('can-cancel')).toBe('true');
+      expect(text('last')).toBe('Second');
+      expect(text('error')).toBe('');
+
+      // A third prompt cannot start beside the running second turn.
+      await act(async () => {
+        await api.sendPrompt('three');
+        await flush();
+      });
+      expect(inputs).toHaveLength(2);
+
+      await act(async () => {
+        api.cancelCurrent();
+        await secondTurn;
+        await flush();
+      });
+      expect(cancels).toContain(1);
+      expect(text('status')).toBe('canceled');
+      expect(text('streaming')).toBe('false');
+    });
+
     it('unmounting the session closes the reply it is still streaming', async () => {
       const { ai, cancels } = localAppTextAI([
         async function* reply(closed) {

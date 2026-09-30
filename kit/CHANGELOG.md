@@ -70,6 +70,10 @@ Required changes from 0.11.0:
   requests now carry only the fields that are set and pass the prompt's
   `AbortSignal` to the model, and unmounting the hook closes a reply it is
   still streaming instead of letting the request run to completion.
+- `resetMessages()` revokes a reply still streaming. When that reply ends
+  late it no longer clears the next prompt's streaming state or cancel
+  control, and a prompt sent right after the reset no longer carries the
+  reset messages in its history.
 - New type export `ConversationAssistantOutputItem` from
   `@nimiplatform/kit/features/chat/headless`; `@nimiplatform/kit/core/sdk-contract`
   re-exports the `NimiTextOutputItem` and `NimiTextTurnItem` types.
