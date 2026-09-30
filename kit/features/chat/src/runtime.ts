@@ -9,6 +9,7 @@ import {
   runNimiTextGenerate,
   streamNimiTextResponse,
   textPart,
+  type NimiAiModel,
   type NimiGenerateTextRequest,
   type NimiGenerateTextResult,
   type NimiJsonObject,
@@ -113,6 +114,13 @@ export type AppAiChatSessionResolveRequestContext = {
 export type UseAppAiChatSessionOptions = {
   runtime?: AppAiChatRuntime;
   appId?: string;
+  /**
+   * A text model already bound to its caller, such as the protected App model
+   * from `createNimiLocalAppTextModel`, used instead of `runtime` and `appId`.
+   * It carries the App identity and configured route itself, so a request that
+   * sets `subjectUserId`, `timeoutMs`, `metadata` or `reasoning` fails.
+   */
+  model?: NimiAiModel;
   initialMessages?: readonly AppAiChatSessionMessage[];
   resolveRequest: (
     context: AppAiChatSessionResolveRequestContext,
@@ -213,6 +221,7 @@ export function createAppAiChatComposerAdapter<TAttachment = never>(
 export function useAppAiChatSession({
   runtime,
   appId,
+  model: boundModel,
   initialMessages = [],
   resolveRequest,
   onMessagesChange,
@@ -245,6 +254,11 @@ export function useAppAiChatSession({
   useEffect(() => {
     isStreamingRef.current = isStreaming;
   }, [isStreaming]);
+
+  // An unmounted session closes the reply it is still streaming.
+  useEffect(() => () => {
+    abortControllerRef.current?.abort();
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -303,10 +317,12 @@ export function useAppAiChatSession({
       const requestWithSignal = withAppAiChatAbortSignal(request, abortController.signal);
       const output = createAssistantOutputCollector();
       const model = observeAssistantOutput(
-        createAppAiChatModel(requireAppAiRuntime(runtime), requestWithSignal, appId),
+        boundModel
+          ? requireCallerBoundAppAiChat(boundModel, runtime, requestWithSignal)
+          : createAppAiChatModel(requireAppAiRuntime(runtime), requestWithSignal, appId),
         output,
       );
-      const textRequest = toNimiGenerateTextRequest(requestWithSignal);
+      const textRequest = toNimiGenerateTextRequest(requestWithSignal, { metadata: !boundModel });
 
       const result = await streamNimiTextResponse(
         {
@@ -373,7 +389,7 @@ export function useAppAiChatSession({
       isStreamingRef.current = false;
       setIsStreaming(false);
     }
-  }, [appId, commitMessages, onError, resolveRequest, runtime]);
+  }, [appId, boundModel, commitMessages, onError, resolveRequest, runtime]);
 
   return {
     messages,
@@ -429,8 +445,33 @@ function createAppAiChatModel(
   });
 }
 
+// A caller-bound model carries its caller's identity and route; Runtime
+// request options it cannot carry fail the turn instead of being dropped.
+function requireCallerBoundAppAiChat(
+  model: NimiAiModel,
+  runtime: AppAiChatRuntime | undefined,
+  request: AppAiChatRequest,
+): NimiAiModel {
+  if (runtime) {
+    throw new Error('app AI chat takes either a Runtime AI surface or a caller-bound model, not both');
+  }
+  const unsupported = [
+    normalizeNullableText(request.subjectUserId) ? 'subjectUserId' : '',
+    request.timeoutMs !== undefined ? 'timeoutMs' : '',
+    request.metadata && Object.keys(request.metadata).length > 0 ? 'metadata' : '',
+    request.reasoning ? 'reasoning' : '',
+  ].filter(Boolean);
+  if (unsupported.length > 0) {
+    throw new Error(`a caller-bound app AI chat model cannot carry ${unsupported.join(', ')}`);
+  }
+  return model;
+}
+
+// Only fields that are set are sent: a caller-bound model such as the
+// protected App model refuses keys it cannot represent, even when undefined.
 function toNimiGenerateTextRequest(
   request: AppAiChatRequest,
+  options: { readonly metadata: boolean } = { metadata: true },
 ): NimiGenerateTextRequest {
   const messages: NimiMessage[] = [];
   const system = normalizeNullableText(request.system);
@@ -442,18 +483,25 @@ function toNimiGenerateTextRequest(
   } else {
     messages.push(...request.input.map(toNimiMessage));
   }
+  const parameters = {
+    ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
+    ...(request.topP === undefined ? {} : { topP: request.topP }),
+    ...(request.maxTokens === undefined ? {} : { maxTokens: request.maxTokens }),
+    ...(options.metadata ? { metadata: withDefaultAppAiChatMetadata(request.metadata) } : {}),
+  };
   return {
     messages,
-    parameters: {
-      temperature: request.temperature,
-      topP: request.topP,
-      maxTokens: request.maxTokens,
-      metadata: withDefaultAppAiChatMetadata(request.metadata),
-    },
+    ...(Object.keys(parameters).length > 0 ? { parameters } : {}),
+    ...(request.signal ? { signal: request.signal } : {}),
   };
 }
 
 function toNimiMessage(message: AppAiChatMessage): NimiMessage {
+  const name = normalizeNullableText(message.name);
+  const common = {
+    ...(name ? { name } : {}),
+    ...(message.metadata === undefined ? {} : { metadata: message.metadata }),
+  };
   if (message.role === 'assistant') {
     // An earlier assistant turn is replayed as its canonical ordered output.
     const text = typeof message.content === 'string'
@@ -467,20 +515,19 @@ function toNimiMessage(message: AppAiChatMessage): NimiMessage {
     return {
       role: 'assistant',
       content: [],
-      name: normalizeNullableText(message.name) || undefined,
+      ...common,
       turnItems: message.turnItems?.length
         ? message.turnItems
         : toAssistantTurnItems(text.trim(), message.outputItems),
-      metadata: message.metadata,
     };
   }
+  const toolCallId = normalizeNullableText(message.toolCallId);
   return {
     role: message.role,
     content: typeof message.content === 'string' ? [textPart(message.content)] : message.content,
-    name: normalizeNullableText(message.name) || undefined,
-    toolCallId: normalizeNullableText(message.toolCallId) || undefined,
-    toolCalls: message.toolCalls,
-    metadata: message.metadata,
+    ...common,
+    ...(toolCallId ? { toolCallId } : {}),
+    ...(message.toolCalls === undefined ? {} : { toolCalls: message.toolCalls }),
   };
 }
 

@@ -63,6 +63,13 @@ Required changes from 0.11.0:
   dropped.
 - Both conversation adapters pass the turn's `AbortSignal` to the model, so a
   stop closes the stream at once instead of at the provider's next event.
+- `useAppAiChatSession({ model })` takes the same kind of caller-bound model
+  in place of `runtime` and `appId`, so a protected App can use the session
+  hook. The same four Runtime options fail the prompt instead of being
+  dropped, and passing both `runtime` and `model` fails it. The hook's
+  requests now carry only the fields that are set and pass the prompt's
+  `AbortSignal` to the model, and unmounting the hook closes a reply it is
+  still streaming instead of letting the request run to completion.
 - New type export `ConversationAssistantOutputItem` from
   `@nimiplatform/kit/features/chat/headless`; `@nimiplatform/kit/core/sdk-contract`
   re-exports the `NimiTextOutputItem` and `NimiTextTurnItem` types.

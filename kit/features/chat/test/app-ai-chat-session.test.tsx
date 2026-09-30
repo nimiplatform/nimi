@@ -1,10 +1,12 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { Runtime } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiAiModel, Runtime } from '@nimiplatform/kit/core/sdk-contract';
+import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
 import {
   useAppAiChatSession,
   type AppAiChatSessionMessage,
+  type AppAiChatStreamRequest,
 } from '../src/runtime.js';
 import {
   createRuntimeAiTestRuntime,
@@ -25,7 +27,9 @@ function flush() {
 }
 
 type HarnessProps = {
-  runtime: Runtime;
+  runtime?: Runtime;
+  model?: NimiAiModel;
+  requestOptions?: Omit<AppAiChatStreamRequest, 'input'>;
   onReady: (api: {
     sendPrompt: (input: string) => Promise<void>;
     resetMessages: (messages?: readonly AppAiChatSessionMessage[]) => void;
@@ -33,15 +37,15 @@ type HarnessProps = {
   }) => void;
 };
 
-function Harness({ runtime, onReady }: HarnessProps) {
+function Harness({ runtime, model, requestOptions, onReady }: HarnessProps) {
   const session = useAppAiChatSession({
-    runtime,
-    appId: 'kit-chat-test-app',
+    ...(model ? { model } : { runtime, appId: 'kit-chat-test-app' }),
     resolveRequest: ({ messages }) => ({
+      ...requestOptions,
       input: messages.map((message) => ({
         role: message.role,
         content: message.content,
-        outputItems: message.outputItems,
+        ...(message.outputItems ? { outputItems: message.outputItems } : {}),
       })),
     }),
   });
@@ -308,5 +312,163 @@ describe('useAppAiChatSession', () => {
 
     expect(container.querySelector('[data-testid="count"]')?.textContent).toBe('2');
     expect(container.querySelector('[data-testid="last"]')?.textContent).toBe('Only once');
+  });
+
+  describe('with a caller-bound protected App model', () => {
+    type LocalAppTextAI = Parameters<typeof createNimiLocalAppTextModel>[0];
+    type Api = Parameters<HarnessProps['onReady']>[0];
+
+    // Each turn answers with the next scripted Local App stream; a turn may
+    // wait until its stream is canceled.
+    function localAppTextAI(turns: readonly ((closed: Promise<void>) => AsyncIterable<unknown>)[]) {
+      const inputs: unknown[] = [];
+      const cancels: number[] = [];
+      const ai = {
+        text: {
+          async streamTurn(input: unknown) {
+            const turn = turns[inputs.length]!;
+            const index = inputs.push(input) - 1;
+            let close = () => {};
+            const closed = new Promise<void>((resolve) => { close = resolve; });
+            return Object.assign(turn(closed), {
+              cancel: async () => {
+                cancels.push(index);
+                close();
+              },
+            });
+          },
+        },
+      } as unknown as LocalAppTextAI;
+      return { ai, inputs, cancels };
+    }
+
+    async function mount(props: Omit<HarnessProps, 'onReady'>): Promise<Api> {
+      let api: Api | undefined;
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      root = createRoot(container);
+      await act(async () => {
+        root?.render(<Harness {...props} onReady={(value) => { api = value; }} />);
+        await flush();
+      });
+      await act(async () => {
+        container?.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await flush();
+      });
+      return api!;
+    }
+
+    const text = (id: string) => container?.querySelector(`[data-testid="${id}"]`)?.textContent;
+
+    it('sends only admitted fields and replays the recorded continuity on the next prompt', async () => {
+      const carrier = { kind: 'anthropic.messages.thinking', version: 1, payload: [0, 1, 2, 253, 254, 255] };
+      const { ai, inputs } = localAppTextAI([
+        async function* reply() {
+          yield { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-1', itemIndex: 0, carrier };
+          yield { type: 'delta', sequence: '2', traceId: 'trace-1', text: 'Hello world', itemIndex: 1 };
+          yield { type: 'completed', sequence: '3', traceId: 'trace-1', finishReason: 'stop' };
+        },
+        async function* reply() {
+          yield { type: 'delta', sequence: '1', traceId: 'trace-2', text: 'Then more.', itemIndex: 0 };
+          yield { type: 'completed', sequence: '2', traceId: 'trace-2', finishReason: 'stop' };
+        },
+      ]);
+      const api = await mount({ model: createNimiLocalAppTextModel(ai) });
+
+      await act(async () => {
+        await api.sendPrompt('Hi there');
+        await flush();
+      });
+      expect(text('last')).toBe('Hello world');
+      expect(text('status')).toBe('complete');
+      await act(async () => {
+        await api.sendPrompt('And then?');
+        await flush();
+      });
+
+      expect(text('count')).toBe('4');
+      expect(text('last')).toBe('Then more.');
+      expect(inputs[0]).toEqual({ messages: [{ role: 'user', text: 'Hi there' }] });
+      expect(inputs[1]).toEqual({
+        messages: [
+          { role: 'user', text: 'Hi there' },
+          {
+            role: 'assistant',
+            text: '',
+            turnItems: [
+              { type: 'output', output: { type: 'reasoning-continuity', carrier } },
+              { type: 'output', output: { type: 'text', text: 'Hello world' } },
+            ],
+          },
+          { role: 'user', text: 'And then?' },
+        ],
+      });
+    });
+
+    it('fails a prompt that sets a Runtime option the bound model cannot carry', async () => {
+      const { ai, inputs } = localAppTextAI([]);
+      const api = await mount({ model: createNimiLocalAppTextModel(ai), requestOptions: { metadata: { traceTag: 'x' }, timeoutMs: 5000 } });
+
+      await act(async () => {
+        await api.sendPrompt('Hi there');
+        await flush();
+      });
+
+      expect(inputs).toHaveLength(0);
+      expect(text('status')).toBe('error');
+      expect(text('error')).toBe('a caller-bound app AI chat model cannot carry timeoutMs, metadata');
+    });
+
+    it('cancel closes the protected stream without waiting for another event', async () => {
+      const { ai, cancels } = localAppTextAI([
+        async function* reply(closed) {
+          yield { type: 'delta', sequence: '1', traceId: 'trace-1', text: 'Partial', itemIndex: 0 };
+          await closed;
+          yield { type: 'delta', sequence: '2', traceId: 'trace-1', text: ' late', itemIndex: 0 };
+          yield { type: 'completed', sequence: '3', traceId: 'trace-1', finishReason: 'stop' };
+        },
+      ]);
+      const api = await mount({ model: createNimiLocalAppTextModel(ai) });
+
+      const pending = api.sendPrompt('Cancel me');
+      await act(async () => {
+        await flush();
+      });
+      expect(text('last')).toBe('Partial');
+
+      await act(async () => {
+        api.cancelCurrent();
+        await pending;
+        await flush();
+      });
+
+      expect(cancels).toEqual([0]);
+      expect(text('last')).toBe('Partial');
+      expect(text('status')).toBe('canceled');
+      expect(text('error')).toBe('');
+    });
+
+    it('unmounting the session closes the reply it is still streaming', async () => {
+      const { ai, cancels } = localAppTextAI([
+        async function* reply(closed) {
+          yield { type: 'delta', sequence: '1', traceId: 'trace-1', text: 'Partial', itemIndex: 0 };
+          await closed;
+          yield { type: 'completed', sequence: '2', traceId: 'trace-1', finishReason: 'stop' };
+        },
+      ]);
+      const api = await mount({ model: createNimiLocalAppTextModel(ai) });
+
+      const pending = api.sendPrompt('Keep going');
+      await act(async () => {
+        await flush();
+      });
+      await act(async () => {
+        root?.unmount();
+        await pending;
+      });
+      root = null;
+
+      expect(cancels).toEqual([0]);
+    });
   });
 });
