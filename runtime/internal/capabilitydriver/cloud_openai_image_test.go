@@ -28,6 +28,12 @@ func TestOpenAIImageMapsOnlyPromptSizeAndQuality(t *testing.T) {
 			"landscape low":    func(s *runtimev1.ImageGenerateScenarioSpec) { s.Size, s.Quality = "1536x1024", "low" },
 			"custom max":       func(s *runtimev1.ImageGenerateScenarioSpec) { s.Size, s.Quality = "2048x1152", "max" },
 			"one base64 image": func(s *runtimev1.ImageGenerateScenarioSpec) { s.N, s.ResponseFormat = proto.Int32(1), "b64_json" },
+			"reference edit": func(s *runtimev1.ImageGenerateScenarioSpec) {
+				s.ReferenceImages = []string{"https://example.com/a.png"}
+			},
+			"masked edit": func(s *runtimev1.ImageGenerateScenarioSpec) {
+				s.ReferenceImages, s.Mask = []string{"https://example.com/a.png"}, "https://example.com/mask.png"
+			},
 		} {
 			mapped, err := driver.MapRequest(target, openAIImageTestRequest(mutate), nil, CloudMediaStreamNone)
 			if err != nil || mapped.Adapter() != CloudMediaAdapterOpenAIImages || mapped.ProviderModelID() != model {
@@ -45,6 +51,9 @@ func TestOpenAIImageMapsOnlyPromptSizeAndQuality(t *testing.T) {
 	for name, mutate := range map[string]func(*runtimev1.ImageGenerateScenarioSpec){
 		"custom size": func(s *runtimev1.ImageGenerateScenarioSpec) { s.Size = "2048x1152" },
 		"xhigh":       func(s *runtimev1.ImageGenerateScenarioSpec) { s.Quality = "xhigh" },
+		"edit": func(s *runtimev1.ImageGenerateScenarioSpec) {
+			s.ReferenceImages = []string{"https://example.com/a.png"}
+		},
 	} {
 		_, err := previous.MapRequest(previousTarget, openAIImageTestRequest(mutate), nil, CloudMediaStreamNone)
 		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
@@ -60,8 +69,15 @@ func TestOpenAIImageMapsOnlyPromptSizeAndQuality(t *testing.T) {
 		"style":           func(s *runtimev1.ImageGenerateScenarioSpec) { s.Style = "vivid" },
 		"seed":            func(s *runtimev1.ImageGenerateScenarioSpec) { s.Seed = proto.Int64(7) },
 		"strength":        func(s *runtimev1.ImageGenerateScenarioSpec) { s.Strength = proto.Float32(0.5) },
-		"reference": func(s *runtimev1.ImageGenerateScenarioSpec) {
-			s.ReferenceImages = []string{"https://example.com/a.png"}
+		"two references": func(s *runtimev1.ImageGenerateScenarioSpec) {
+			s.ReferenceImages = []string{"https://example.com/a.png", "https://example.com/b.png"}
+		},
+		"plain http reference": func(s *runtimev1.ImageGenerateScenarioSpec) { s.ReferenceImages = []string{"http://example.com/a.png"} },
+		"data reference": func(s *runtimev1.ImageGenerateScenarioSpec) {
+			s.ReferenceImages = []string{"data:image/png;base64,iVBORw0KGgo="}
+		},
+		"plain http mask": func(s *runtimev1.ImageGenerateScenarioSpec) {
+			s.ReferenceImages, s.Mask = []string{"https://example.com/a.png"}, "http://example.com/mask.png"
 		},
 		"reference artifact":  func(s *runtimev1.ImageGenerateScenarioSpec) { s.ReferenceImageArtifactId = "artifact-1" },
 		"mask":                func(s *runtimev1.ImageGenerateScenarioSpec) { s.Mask = "https://example.com/mask.png" },

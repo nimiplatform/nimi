@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-10-01-openai-gpt-image-2-5
+catalog_version: 2026-10-01-openai-gpt-image-2-5-edits
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -116,7 +116,7 @@ sources:
   - source_id: openai_image_generation_guide
     url: https://developers.openai.com/api/docs/guides/image-generation
     retrieved_at: 2026-10-01
-    note: OpenAI image generation guide; base64 output, the three recommended sizes and custom size rules, and the low through max quality values, where earlier GPT Image models stop at high.
+    note: OpenAI image generation guide; base64 output, the three recommended sizes and custom size rules, and the low through max quality values, where earlier GPT Image models stop at high. Edits upload input images as image[] and an optional alpha mask of the first image's format and size.
   - source_id: openai_gpt_image_1_5_doc
     url: https://developers.openai.com/api/docs/models/gpt-image-1.5
     retrieved_at: 2026-10-01
@@ -564,9 +564,12 @@ models:
     model_type: image
     updated_at: 2026-10-01
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json]
       max_images_per_request: 1
+      supports_reference_images: true
+      supports_mask: true
       supports_size: true
       supports_quality: true
     pricing:
@@ -582,9 +585,12 @@ models:
     model_type: image
     updated_at: 2026-10-01
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json]
       max_images_per_request: 1
+      supports_reference_images: true
+      supports_mask: true
       supports_size: true
       supports_quality: true
     pricing:

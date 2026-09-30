@@ -103,3 +103,101 @@ func TestOpenAIImageRejectsResultsThatAreNotOnePNG(t *testing.T) {
 		}
 	}
 }
+
+func TestOpenAIImageEditUploadsReferenceAndMask(t *testing.T) {
+	reference := openAIImageTestPNG(1024, 1024)
+	mask := append(openAIImageTestPNG(1024, 1024), 'm')
+	smallMask := openAIImageTestPNG(512, 512)
+	result := openAIImageTestPNG(1024, 1024)
+	type upload struct {
+		name        string
+		contentType string
+		payload     []byte
+	}
+	fields := map[string][]string{}
+	uploads := map[string]upload{}
+	var edits int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/reference.png":
+			_, _ = w.Write(reference)
+		case r.Method == http.MethodGet && r.URL.Path == "/mask.png":
+			_, _ = w.Write(mask)
+		case r.Method == http.MethodGet && r.URL.Path == "/small-mask.png":
+			_, _ = w.Write(smallMask)
+		case r.Method == http.MethodGet && r.URL.Path == "/not-an-image.txt":
+			_, _ = io.WriteString(w, "plain text, not an image")
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/images/edits" && r.Header.Get("Authorization") == "Bearer test-key":
+			edits++
+			reader, err := r.MultipartReader()
+			if err != nil {
+				t.Errorf("MultipartReader: %v", err)
+				return
+			}
+			for {
+				part, err := reader.NextPart()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					t.Errorf("NextPart: %v", err)
+					return
+				}
+				payload, _ := io.ReadAll(part)
+				if part.FileName() != "" {
+					uploads[part.FormName()] = upload{part.FileName(), part.Header.Get("Content-Type"), payload}
+					continue
+				}
+				fields[part.FormName()] = append(fields[part.FormName()], string(payload))
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"data":[{"b64_json":"`+base64.StdEncoding.EncodeToString(result)+`"}],"usage":{"input_tokens":300,"output_tokens":272}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	provider, target := openAITranscriptionTestTarget(server.URL, "gpt-image-2.5-sunburst")
+	edit := func(referencePath string, maskPath string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, error) {
+		job := openAIImageTestJob("1024x1024", "low")
+		spec := job.GetSpec().GetImageGenerate()
+		spec.ReferenceImages = []string{server.URL + referencePath}
+		if maskPath != "" {
+			spec.Mask = server.URL + maskPath
+		}
+		artifacts, usage, _, err := provider.executeOpenAIImage(context.Background(), job, "gpt-image-2.5-sunburst", target)
+		return artifacts, usage, err
+	}
+	artifacts, usage, err := edit("/reference.png", "/mask.png")
+	if err != nil {
+		t.Fatalf("masked edit: %v", err)
+	}
+	wantFields := map[string][]string{"model": {"gpt-image-2.5-sunburst"}, "prompt": {"A paper lantern"}, "size": {"1024x1024"}, "quality": {"low"}}
+	if !reflect.DeepEqual(fields, wantFields) {
+		t.Fatalf("fields = %v, want %v", fields, wantFields)
+	}
+	if got := uploads["image[]"]; got.name != "image.png" || got.contentType != "image/png" || !bytes.Equal(got.payload, reference) {
+		t.Fatalf("image upload = %q %q %d bytes", got.name, got.contentType, len(got.payload))
+	}
+	if got := uploads["mask"]; got.name != "mask.png" || got.contentType != "image/png" || !bytes.Equal(got.payload, mask) || len(uploads) != 2 {
+		t.Fatalf("mask upload = %q %q %d bytes, uploads=%d", got.name, got.contentType, len(got.payload), len(uploads))
+	}
+	if len(artifacts) != 1 || !bytes.Equal(artifacts[0].GetBytes(), result) || usage.GetInputTokens() != 300 || usage.GetOutputTokens() != 272 {
+		t.Fatalf("artifacts=%+v usage=%+v", artifacts, usage)
+	}
+
+	edits = 0
+	for name, paths := range map[string][2]string{
+		"mask of another size": {"/reference.png", "/small-mask.png"},
+		"reference not image":  {"/not-an-image.txt", ""},
+	} {
+		_, _, err := edit(paths[0], paths[1])
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("%s: reason=%v present=%v err=%v", name, reason, ok, err)
+		}
+	}
+	if edits != 0 {
+		t.Fatalf("rejected edits reached the provider %d times", edits)
+	}
+}

@@ -1,6 +1,6 @@
 version: 1
 provider: openai
-catalog_version: 2026-10-01-openai-gpt-image-2-5
+catalog_version: 2026-10-01-openai-gpt-image-2-5-edits
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
@@ -553,13 +553,16 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-image-2.5-flare
       retrieved_at: 2026-10-01
       note: OpenAI GPT-Image-2.5 Flare model card; exact id gpt-image-2.5-flare, default snapshot gpt-image-2.5-flare-2026-09-08, v1/images/generations and v1/images/edits, and token pricing.
+    features:
+      - input.image
+      - input.mask
     image_request_options:
       response_formats:
         - b64_json
       max_images_per_request: 1
       supports_negative_prompt: false
-      supports_reference_images: false
-      supports_mask: false
+      supports_reference_images: true
+      supports_mask: true
       supports_seed: false
       supports_size: true
       supports_aspect_ratio: false
@@ -582,13 +585,16 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst
       retrieved_at: 2026-10-01
       note: OpenAI GPT-Image-2.5 Sunburst model card; exact id gpt-image-2.5-sunburst, default snapshot gpt-image-2.5-sunburst-2026-09-08, v1/images/generations and v1/images/edits, and token pricing.
+    features:
+      - input.image
+      - input.mask
     image_request_options:
       response_formats:
         - b64_json
       max_images_per_request: 1
       supports_negative_prompt: false
-      supports_reference_images: false
-      supports_mask: false
+      supports_reference_images: true
+      supports_mask: true
       supports_seed: false
       supports_size: true
       supports_aspect_ratio: false

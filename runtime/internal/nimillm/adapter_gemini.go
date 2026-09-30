@@ -422,7 +422,7 @@ func buildGeminiReferenceImageParts(ctx context.Context, referenceImages []strin
 		if location == "" {
 			continue
 		}
-		payload, mimeType, err := resolveGeminiReferenceImageBytes(ctx, location)
+		payload, mimeType, err := resolveReferenceImageBytes(ctx, location)
 		if err != nil {
 			return nil, err
 		}
@@ -442,7 +442,7 @@ func buildGeminiReferenceImageParts(ctx context.Context, referenceImages []strin
 	return parts, nil
 }
 
-func resolveGeminiReferenceImageBytes(ctx context.Context, location string) ([]byte, string, error) {
+func resolveReferenceImageBytes(ctx context.Context, location string) ([]byte, string, error) {
 	value := strings.TrimSpace(location)
 	if value == "" {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
