@@ -1,10 +1,10 @@
 provider: volcengine
 report_date: 2026-09-30
 audit_mode: family_scoped
-families_in_scope: ["video"]
+families_in_scope: ["video", "text"]
 taxonomy_axes:
   product_family: [volcengine]
-  capability_family: ["video"]
+  capability_family: ["video", "text"]
   lineage_or_track: [retired_targets]
 refresh_policy:
   keep_latest_generations: 2
@@ -12,21 +12,23 @@ refresh_policy:
 evidence_urls:
   official:
     - https://docs.volcengine.com/docs/ark/model-deprecation-notice?lang=zh
+    - https://docs.volcengine.com/docs/ark/model-deprecation-announcement-2025?lang=zh
+    - https://docs.volcengine.com/docs/ark/model-release-announcement-2025?lang=zh
   official_product: []
   aggregate_hints: []
 current_source_inventory:
-  reviewed_targets: ["seedance-1-5-pro"]
+  reviewed_targets: ["seedance-1-5-pro", "doubao-1.5-pro-256k"]
 official_current_inventory:
-  disposition: "The represented Seedance 1.5 Pro version doubao-seedance-1-5-pro-251215 shut down without migration on 2026-09-21. Remove the old abbreviated catalog row and both aliases. Do not infer retirement of doubao-1.5-pro-256k from a different 32K model ID."
+  disposition: "The represented Seedance 1.5 Pro version doubao-seedance-1-5-pro-251215 shut down without migration on 2026-09-21. Remove the old abbreviated catalog row and both aliases. Do not infer retirement of doubao-1.5-pro-256k from a different 32K model ID. Separately, the 2025 retirement announcement (last updated 2026.07.07 18:03:13) lists the exact version doubao-1-5-pro-256k-250115 in its fifth batch: new endpoints stopped 2025-09-22 00:00 and the service went offline 2025-11-27 14:00 (UTC+8), with residual endpoints replaced by doubao-seed-1-6-251015. The 2025 release announcement lists no other doubao-1.5-pro-256k version, so the undated doubao-1.5-pro-256k row and its doubao-1.5-pro alias have no served target. Remove both."
 gap_summary:
   missing_in_source: []
-  stale_in_source: ["seedance-1-5-pro"]
+  stale_in_source: ["seedance-1-5-pro", "doubao-1.5-pro-256k"]
   extra_legacy_in_source: []
   uncertain_items: []
 curation_decision:
   keep: []
   add: []
-  remove: ["seedance-1-5-pro"]
+  remove: ["seedance-1-5-pro", "doubao-1.5-pro-256k"]
   defer: []
   reject_or_noise: []
 review_actions:
@@ -37,4 +39,5 @@ notes:
   - Bounded execution-audit follow-up to previously recorded lifecycle debt; no new model or behavior admission.
   - Bumping catalog_version invalidates every committed Cloud target for this provider. Explicit reselection is required; no automatic target migration.
   - Official documentation rechecked on 2026-09-30; no real provider execution claimed.
+  - The doubao-1.5-pro-256k retirement was read directly from the rendered Ark announcements on 2026-09-30; its catalog_version bump again requires explicit reselection of committed Volcengine Cloud targets.
 confidence: high

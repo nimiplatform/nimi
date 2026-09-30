@@ -103,7 +103,6 @@ func TestResolveTextContextMetadataPreservesSourceModelOverrides(t *testing.T) {
 		{provider: "stepfun", model: "step-1-256k", want: 262144},
 		{provider: "qianfan", model: "ernie-4.5-turbo-128k", want: 131072},
 		{provider: "qianfan", model: "ernie-4.5-turbo-32k", want: 32768},
-		{provider: "volcengine", model: "doubao-1.5-pro", want: 262144},
 	}
 	for _, tt := range tests {
 		t.Run(tt.provider+"/"+tt.model, func(t *testing.T) {

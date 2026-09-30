@@ -726,6 +726,8 @@ models:
     install:
       repo: audio-cpp/audio.cpp-gguf
       revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6 # pragma: allowlist secret -- public immutable model revision
+      license: CC-BY-NC-ND-4.0
+      provenance: RMSnow/VeVo2 speech synthesis and voice creation weights merged and converted by audio-cpp; the same file as the voice conversion row; non-commercial research use
       install_kind: verified-hf-multi-file
       entry: Vevo2-GGUF/vevo2-q8_0.gguf
       artifact_roles: [tts_model]

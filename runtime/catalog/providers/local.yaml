@@ -2868,6 +2868,8 @@ models:
       entry: Vevo2-GGUF/vevo2-q8_0.gguf
       artifact_roles:
         - tts_model
+      license: CC-BY-NC-ND-4.0
+      provenance: RMSnow/VeVo2 speech synthesis and voice creation weights merged and converted by audio-cpp; the same file as the voice conversion row; non-commercial research use
       preferred_engine: audio-cpp
     variants:
       - variant_id: local.tts.vevo2.audio-cpp.q8-0.cuda

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: volcengine
-catalog_version: 2026-09-30-volcengine-retired-targets
+catalog_version: 2026-09-30-volcengine-retired-doubao-256k
 generated_target: runtime/catalog/providers/volcengine.yaml
 runtime:
   inventory_mode: static_source
@@ -249,22 +249,6 @@ models:
     source_ids: [volcengine_openai_sdk_doc]
     aliases:
       - doubao-seed-2.0-code
-
-  - model_id: doubao-1.5-pro-256k
-    context_window_tokens: 262144
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Prior long-context Ark chat model pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_openai_sdk_doc]
-    aliases:
-      - doubao-1.5-pro
 
   - model_id: doubao-embedding
     model_type: embedding
