@@ -45,6 +45,11 @@ export type WorkbenchRuntimeGateProps = {
   readonly resolve: () => Promise<WorkbenchRuntimeGateProjection>;
   readonly clear: () => void;
   readonly toErrorMessage: (error: unknown) => string;
+  // Reports a lost session after the gate opened; the gate then runs the same
+  // check again instead of leaving the App on stale access.
+  readonly revalidate?: (onLoss: () => void) => () => void;
+  // Called when such a re-check finds the session ready again.
+  readonly onRevalidated?: () => void;
   readonly children: ReactNode;
 };
 
@@ -70,6 +75,8 @@ export function WorkbenchRuntimeGate({
   resolve,
   clear,
   toErrorMessage,
+  revalidate,
+  onRevalidated,
   children,
 }: WorkbenchRuntimeGateProps) {
   const [offlineCoordinator] = useState(() => new OfflineCoordinator());
@@ -78,6 +85,22 @@ export function WorkbenchRuntimeGate({
   const [recovery, setRecovery] = useState<WorkbenchRuntimeGateRecoveryState>({ kind: 'idle' });
   // A recovery result belongs to the blocked check that offered it.
   const recoveryGeneration = useRef(0);
+  // One re-check at a time answers every loss reported while it runs.
+  const revalidating = useRef(false);
+  const onRevalidatedRef = useRef(onRevalidated);
+  onRevalidatedRef.current = onRevalidated;
+
+  useEffect(() => {
+    if (!revalidate) return undefined;
+    return revalidate(() => {
+      if (revalidating.current) return;
+      revalidating.current = true;
+      // The failed request is not retried; the ready subtree stays mounted
+      // while the check runs and only a failed check blocks it.
+      clear();
+      setReloadKey((value) => value + 1);
+    });
+  }, [clear, revalidate]);
 
   const retry = useCallback(() => {
     recoveryGeneration.current += 1;
@@ -108,9 +131,12 @@ export function WorkbenchRuntimeGate({
     setState((current) => (current.kind === 'ready' ? current : { kind: 'checking' }));
     void resolve().then((projection) => {
       if (!active) return;
+      const revalidated = revalidating.current;
+      revalidating.current = false;
       if (projection.status === 'ready') {
         offlineCoordinator.markRuntimeReachability('reachable');
         setState({ kind: 'ready' });
+        if (revalidated) onRevalidatedRef.current?.();
         return;
       }
       offlineCoordinator.markRuntimeReachability('unreachable');
@@ -121,6 +147,7 @@ export function WorkbenchRuntimeGate({
       });
     }).catch((error) => {
       if (!active) return;
+      revalidating.current = false;
       offlineCoordinator.markRuntimeReachability('unreachable');
       setState({
         kind: 'blocked',

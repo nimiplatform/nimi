@@ -73,8 +73,12 @@ type CloudConnectorDetailPanelProps = {
   vendorOptions: CloudConnectorVendorOption[];
 };
 
-/** Plain-language reading of a save/check failure; the raw text stays in details. */
-export function humanizeConnectorError(raw: string, t: TFunction): string {
+/**
+ * Plain-language reading of a save or check failure; the raw text stays in
+ * details. A failed check leaves the saved connection in place, so its
+ * fallback never says the connection could not be saved.
+ */
+export function humanizeConnectorError(raw: string, t: TFunction, operation: 'save' | 'check'): string {
   const text = raw.toUpperCase();
   // Runtime rejects a Connector whose service or settings it no longer admits,
   // such as a retired provider; a new key cannot repair that.
@@ -84,7 +88,9 @@ export function humanizeConnectorError(raw: string, t: TFunction): string {
     return t('runtimeConfig.product.errorCredentialRejected');
   if (text.includes('UNREACHABLE') || text.includes('ECONNREFUSED') || text.includes('ENOTFOUND') || text.includes('TIMEOUT') || text.includes('NETWORK'))
     return t('runtimeConfig.product.errorEndpointUnreachable');
-  return t('runtimeConfig.product.connectionSaveFailed');
+  if (text.includes('AI_PROVIDER_UNAVAILABLE'))
+    return t('runtimeConfig.product.errorProviderUnavailable');
+  return t(operation === 'check' ? 'runtimeConfig.product.connectionCheckFailed' : 'runtimeConfig.product.connectionSaveFailed');
 }
 
 // One card per service: identity and state on the hero band, then its
@@ -144,8 +150,8 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
   // Models appear only after a check has returned some; until then the
   // status line above already says what to do next.
   const showModels = modelCount > 0 && (presentation === 'healthy' || presentation === 'attention');
-  const humanError = tokenSaveError ? humanizeConnectorError(tokenSaveError, t) : '';
-  const detailError = selectedConnector.lastDetail && presentation === 'attention' ? humanizeConnectorError(selectedConnector.lastDetail, t) : '';
+  const humanError = tokenSaveError ? humanizeConnectorError(tokenSaveError, t, 'save') : '';
+  const detailError = selectedConnector.lastDetail && presentation === 'attention' ? humanizeConnectorError(selectedConnector.lastDetail, t, 'check') : '';
   const subtitle = [
     vendorLabel.toLowerCase() !== selectedConnector.label.toLowerCase() ? vendorLabel : '',
     selectedConnector.endpoint ? endpointHost(selectedConnector.endpoint) : '',

@@ -24,7 +24,7 @@ export const labTextToolsDescriptor = Object.freeze({
   section: 'chat',
   summary: 'Fixed test tool or fixed JSON Schema → ordered text.generate items → App-side checks.',
   summaryKey: 'CapabilityTests.textTools.summary',
-  surface: 'sdk.localApp.ai.scenario.execute:text-generate (tools, responseFormat, ordered turn items)',
+  surface: 'sdk.localApp.ai.scenario.execute:text-generate or text.streamTurn (tools, responseFormat, ordered turn items)',
   execution: 'runtime-sdk', capabilityContract: 'text.generate',
 } as const);
 

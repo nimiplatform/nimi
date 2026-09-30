@@ -11,7 +11,11 @@ import {
   LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   defineStudioParameters,
 } from '../../ai-studio-core/parameters.js';
-import type { StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
+import {
+  studioAbortError,
+  studioNonSuccessDiagnostics,
+  type StudioCapabilityRuntimeContext,
+} from '../../ai-studio-core/runtime.js';
 import type {
   StudioCapabilityRunResult,
   StudioJsonValue,
@@ -21,14 +25,19 @@ import type {
 import { t } from '../../shell/i18n/index.js';
 
 export type LabTextExchangeScenario = 'tool-call' | 'structured-output';
+// Synchronous steps use scenario.execute; streaming steps use the text-turn
+// stream, which delivers text as it is generated and each tool call once
+// it is complete.
+export type LabTextExchangeDelivery = 'sync' | 'stream';
 
 export type LabTextExchangeParameters = {
   scenario?: LabTextExchangeScenario;
+  delivery?: LabTextExchangeDelivery;
 };
 
 export const labTextExchangeParameters = defineStudioParameters<LabTextExchangeParameters>({
-  initial: () => ({ scenario: 'tool-call' }),
-  routeMatrix: { scenario: LOCAL_AND_CLOUD_STUDIO_PARAMETER },
+  initial: () => ({ scenario: 'tool-call', delivery: 'sync' }),
+  routeMatrix: { scenario: LOCAL_AND_CLOUD_STUDIO_PARAMETER, delivery: LOCAL_AND_CLOUD_STUDIO_PARAMETER },
 });
 
 // One fixed, side-effect-free test tool. The App validates its arguments and
@@ -106,12 +115,91 @@ function exchangeItem(item: NimiLocalAppTextOutputItem): StudioTextExchangeItem 
 }
 
 type TextGenerateOutput = Extract<NimiLocalAppScenarioExecuteResult['output'], { type: 'text-generate' }>;
+type TextGenerateStep = { readonly output: TextGenerateOutput; readonly traceId: string };
+type LabTextStream = Awaited<ReturnType<StudioCapabilityRuntimeContext['host']['client']['ai']['text']['streamTurn']>>;
 
+// The text-turn stream takes no signal, so Stop settles the open at once and a
+// stream that still arrives afterwards is released as soon as it does.
+async function openLabTextStream(context: StudioCapabilityRuntimeContext, input: NimiLocalAppTextTurnInput): Promise<LabTextStream> {
+  const signal = context.input.signal;
+  const opening = context.host.client.ai.text.streamTurn(input);
+  if (!signal) return opening;
+  let onAbort!: () => void;
+  const stopRequested = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(studioAbortError());
+  });
+  if (signal.aborted) onAbort();
+  else signal.addEventListener('abort', onAbort, { once: true });
+  try {
+    return await Promise.race([opening, stopRequested]);
+  } catch (error) {
+    void opening.then((late) => late.cancel()).catch(() => undefined);
+    throw error;
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+  }
+}
+
+// Collects one streamed step into the same ordered items a synchronous step
+// returns. A failed, unterminated or stopped stream never becomes a result.
+async function streamLabTextStep(context: StudioCapabilityRuntimeContext, input: NimiLocalAppTextTurnInput): Promise<TextGenerateStep> {
+  const signal = context.input.signal;
+  const subscription = await openLabTextStream(context, input);
+  let canceled = false;
+  const cancel = () => {
+    if (canceled) return;
+    canceled = true;
+    void subscription.cancel().catch(() => undefined);
+  };
+  signal?.addEventListener('abort', cancel, { once: true });
+  try {
+    const items: NimiLocalAppTextOutputItem[] = [];
+    let traceId = '';
+    if (signal?.aborted) throw studioAbortError();
+    for await (const event of subscription) {
+      if (signal?.aborted) throw studioAbortError();
+      traceId = event.traceId || traceId;
+      if (event.type === 'failed') {
+        throw Object.assign(new Error(event.actionHint || event.reasonCode), { reasonCode: event.reasonCode, actionHint: event.actionHint });
+      }
+      if (event.type === 'completed') {
+        return { output: { type: 'text-generate', items, finishReason: event.finishReason }, traceId };
+      }
+      const current = items[event.itemIndex];
+      if (event.type === 'delta') {
+        if (event.itemIndex === items.length) items.push({ type: 'text', text: event.text });
+        else if (current?.type === 'text' && event.itemIndex === items.length - 1) items[event.itemIndex] = { type: 'text', text: current.text + event.text };
+        else throw new Error(t('CapabilityTests.textTools.streamOrder'));
+        continue;
+      }
+      if (event.itemIndex !== items.length) throw new Error(t('CapabilityTests.textTools.streamOrder'));
+      items.push(event.type === 'tool-call' ? { type: 'tool-call', toolCall: event.toolCall } : { type: 'reasoning-continuity', carrier: event.carrier });
+    }
+    throw new Error(t('CapabilityTests.textTools.streamIncomplete'));
+  } finally {
+    signal?.removeEventListener('abort', cancel);
+    cancel();
+  }
+}
+
+function stopped(context: StudioCapabilityRuntimeContext, error?: unknown): StudioCapabilityRunResult {
+  return context.host.nonSuccess(
+    context.capability,
+    'operation-aborted',
+    context.host.translate('CapabilityTests.textTools.stopped'),
+    error === undefined ? undefined : studioNonSuccessDiagnostics(error),
+  );
+}
+
+// Stop ends the run at the next await: a pending model step settles as stopped
+// through the SDK signal or the stream release, and a result that still
+// arrives afterwards never runs the App tool, starts another step or succeeds.
 export async function runLabTextExchange(context: StudioCapabilityRuntimeContext): Promise<StudioCapabilityRunResult> {
   const { host, capability } = context;
-  const scenario: LabTextExchangeScenario = (context.input.parameters as LabTextExchangeParameters | undefined)?.scenario === 'structured-output'
-    ? 'structured-output'
-    : 'tool-call';
+  const signal = context.input.signal;
+  const parameters = context.input.parameters as LabTextExchangeParameters | undefined;
+  const scenario: LabTextExchangeScenario = parameters?.scenario === 'structured-output' ? 'structured-output' : 'tool-call';
+  const delivery: LabTextExchangeDelivery = parameters?.delivery === 'stream' ? 'stream' : 'sync';
   const prompt = context.input.prompt.trim();
   if (!prompt) return host.nonSuccess(capability, 'input-invalid', host.translate('CapabilityTests.textTools.inputRequired'));
   const steps: StudioTextExchangeStep[] = [];
@@ -123,12 +211,14 @@ export async function runLabTextExchange(context: StudioCapabilityRuntimeContext
   let lastTraceId = '';
   try {
     for (let step = 0; step < MAX_MODEL_STEPS; step += 1) {
-      if (context.input.signal?.aborted) {
-        return host.nonSuccess(capability, 'operation-aborted', host.translate('CapabilityTests.textTools.stopped'));
-      }
-      const response = await host.client.ai.scenario.execute(scenario === 'tool-call'
-        ? { type: 'text-generate', messages: [...messages], tools: [LAB_TEST_TOOL], toolChoice: 'auto' }
-        : { type: 'text-generate', messages: [...messages], responseFormat: { type: 'json-schema', name: LAB_TEST_SCHEMA_NAME, schema: LAB_TEST_SCHEMA, strict: true } });
+      if (signal?.aborted) return stopped(context);
+      const request: NimiLocalAppTextTurnInput = scenario === 'tool-call'
+        ? { messages: [...messages], tools: [LAB_TEST_TOOL], toolChoice: 'auto' }
+        : { messages: [...messages], responseFormat: { type: 'json-schema', name: LAB_TEST_SCHEMA_NAME, schema: LAB_TEST_SCHEMA, strict: true } };
+      const response = delivery === 'stream'
+        ? await streamLabTextStep(context, request)
+        : await host.client.ai.scenario.execute({ type: 'text-generate', ...request }, signal ? { signal } : undefined);
+      if (signal?.aborted) return stopped(context);
       if (response.output.type !== 'text-generate') fail(host.translate('CapabilityTests.textTools.nonTextOutput'));
       const output: TextGenerateOutput = response.output;
       lastTraceId = response.traceId || lastTraceId;
@@ -158,6 +248,7 @@ export async function runLabTextExchange(context: StudioCapabilityRuntimeContext
       const results: NimiLocalAppTextTurnItem[] = [];
       const resultItems: StudioTextExchangeItem[] = [];
       for (const call of toolCalls) {
+        if (signal?.aborted) return stopped(context);
         if (call.name !== LAB_TEST_TOOL_NAME) fail(host.translate('CapabilityTests.textTools.undeclaredTool', { tool: call.name }));
         if (!call.id || seenToolCallIds.has(call.id)) fail(host.translate('CapabilityTests.textTools.toolCallIdInvalid', { id: call.id || '—' }));
         seenToolCallIds.add(call.id);
@@ -181,6 +272,7 @@ export async function runLabTextExchange(context: StudioCapabilityRuntimeContext
     }
     return fail(host.translate('CapabilityTests.textTools.tooManySteps', { steps: MAX_MODEL_STEPS }));
   } catch (error) {
+    if (signal?.aborted) return stopped(context, error);
     if (!(error instanceof LabTextExchangeCheckError)) throw error;
     return host.nonSuccess(capability, 'runtime-call-failed', host.translate('CapabilityTests.textTools.checkFailed', {
       detail: error.message,

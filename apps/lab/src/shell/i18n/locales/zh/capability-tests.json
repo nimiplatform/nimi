@@ -43,9 +43,12 @@
       "scenario": "测试",
       "toolScenario": "工具调用并返回匹配的 ToolResult",
       "structuredScenario": "使用固定 JSON Schema 的结构化输出",
+      "delivery": "返回方式",
+      "syncDelivery": "同步：每一步返回完整结果",
+      "streamDelivery": "流式：文本边生成边返回，工具调用完整后返回",
       "toolHint": "模型可以调用 lab_convert_centimeters。App 会检查工具名、参数和调用 ID，计算结果并以相同 ID 返回。",
       "structuredHint": "请求声明固定的 lab_release_note schema（title、priority、tags）。App 会解析最终文本并检查这些字段。",
-      "stopped": "已在下一步模型调用前停止。",
+      "stopped": "已停止。仍在进行的模型步骤结果会被丢弃，停止后不会再执行工具或下一步。",
       "checkFailed": "测试未通过：{{detail}} 已有交互：{{steps}}",
       "toolPassed": "工具调用测试通过：匹配的 ToolResult 已被接受，模型已作答。",
       "schemaPassed": "结构化输出测试通过：最终文本可解析且符合固定 schema。",
@@ -66,7 +69,9 @@
       "undeclaredTool": "模型调用了未声明的工具：{{tool}}。",
       "toolCallIdInvalid": "工具调用 ID 缺失或重复：{{id}}。",
       "argumentsInvalid": "工具调用 {{id}} 的参数无效：{{detail}}",
-      "tooManySteps": "模型在 {{steps}} 步之后仍在调用工具。"
+      "tooManySteps": "模型在 {{steps}} 步之后仍在调用工具。",
+      "streamOrder": "流式结果的条目顺序无效。",
+      "streamIncomplete": "流在完成之前结束了。"
     },
     "textDecide": {
       "label": "决策",

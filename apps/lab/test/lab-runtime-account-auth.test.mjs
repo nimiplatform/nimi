@@ -917,6 +917,31 @@ test('Lab preserves actual image-generated text when saving the source image fai
   assert.match(result.message, /source image|原图/u);
 });
 
+test('Lab image-assisted text skips opaque reasoning continuity and still requires one text answer', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const carrier = { type: 'reasoning-continuity', carrier: { kind: 'anthropic.messages.thinking', version: 1, payload: Uint8Array.from([1, 2, 3]) } };
+  const run = (items) => runLabCapability({
+    capabilityId: 'text.generate', prompt: 'Describe the image.',
+    attachments: [{ id: 'image', kind: 'image', name: 'cats.jpg', mimeType: 'image/jpeg', dataUrl: 'data:image/jpeg;base64,/9j/2Q==' }],
+  }, readyRuntimeDependencies(fakeLocalAppClient({
+    async uploadArtifact() { return { artifactId: 'owned-image-thinking' }; },
+    async executeScenario() { return { traceId: 'trace-image-thinking', output: { type: 'text-generate', finishReason: 'stop', items } }; },
+    async writeAsset(input) { return { relativePath: input.relativePath, sizeBytes: 4, sha256: `sha256:${'a'.repeat(64)}` }; },
+  })));
+  const answered = await run([carrier, { type: 'text', text: 'Two cats and two remotes.' }]);
+  assert.equal(answered.ok, true);
+  assert.equal(answered.output.text, 'Two cats and two remotes.');
+  for (const items of [
+    [carrier],
+    [carrier, { type: 'text', text: 'One.' }, { type: 'text', text: 'Two.' }],
+    [carrier, { type: 'tool-call', toolCall: { id: 'call-1', name: 'lookup', arguments: {} } }],
+  ]) {
+    const result = await run(items);
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'runtime-call-failed');
+  }
+});
+
 test('Lab text.generate rejects unverified image formats before upload', async () => {
   const { runLabCapability } = await importLabRuntime();
   let uploads = 0;

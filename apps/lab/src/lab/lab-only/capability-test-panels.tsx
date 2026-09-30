@@ -197,6 +197,7 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
   const { t } = useTranslation();
   const parameters = props.parameters as LabTextExchangeParameters;
   const scenario = parameters.scenario === 'structured-output' ? 'structured-output' : 'tool-call';
+  const delivery = parameters.delivery === 'stream' ? 'stream' : 'sync';
   return (
     <Frame {...props}>
       <StudioParameterField label={t('CapabilityTests.textTools.scenario')}>
@@ -207,7 +208,18 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
             { value: 'tool-call', label: t('CapabilityTests.textTools.toolScenario') },
             { value: 'structured-output', label: t('CapabilityTests.textTools.structuredScenario') },
           ]}
-          onValueChange={(value) => props.onChange({ scenario: value === 'structured-output' ? 'structured-output' : 'tool-call' })}
+          onValueChange={(value) => props.onChange({ scenario: value === 'structured-output' ? 'structured-output' : 'tool-call', delivery })}
+        />
+      </StudioParameterField>
+      <StudioParameterField label={t('CapabilityTests.textTools.delivery')}>
+        <SelectField
+          value={delivery}
+          disabled={props.disabled}
+          options={[
+            { value: 'sync', label: t('CapabilityTests.textTools.syncDelivery') },
+            { value: 'stream', label: t('CapabilityTests.textTools.streamDelivery') },
+          ]}
+          onValueChange={(value) => props.onChange({ scenario, delivery: value === 'stream' ? 'stream' : 'sync' })}
         />
       </StudioParameterField>
       <p className="text-sm opacity-70">{t(scenario === 'tool-call' ? 'CapabilityTests.textTools.toolHint' : 'CapabilityTests.textTools.structuredHint')}</p>

@@ -1,6 +1,7 @@
 import { createNimiClient } from '@nimiplatform/sdk';
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
+import { observeLabLocalAppSessionLoss } from './auth/session-loss.js';
 
 let labLocalAppClient: NimiLocalAppClient | null = null;
 
@@ -11,7 +12,7 @@ let labLocalAppClient: NimiLocalAppClient | null = null;
  */
 export function getLabLocalAppClient() {
   labLocalAppClient ??= createNimiClient({
-    localApp: { standardShell: createNimiLocalAppStandardShellSurface() },
+    localApp: { standardShell: observeLabLocalAppSessionLoss(createNimiLocalAppStandardShellSurface()) },
   });
   return labLocalAppClient;
 }

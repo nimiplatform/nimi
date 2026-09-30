@@ -26,9 +26,11 @@ function reasonKeySegment(reason: string): string {
   }
 }
 
-// A synchronous direct call has no Job whose final state could still arrive:
-// stopping it ends it, unlike a submitted Job whose cancellation may be pending.
-const DIRECT_CALL_CAPABILITIES: ReadonlySet<string> = new Set(['text.decide', 'text.generate']);
+// A direct call or text-turn stream has no Job whose final state could still
+// arrive: Stop ends the wait and a later result is discarded, unlike a
+// submitted Job whose cancellation may be pending. Whether the provider also
+// stopped computing is not known here, so the copy never claims it.
+const DIRECT_CALL_CAPABILITIES: ReadonlySet<string> = new Set(['text.decide', 'text.generate', 'text.tools', 'chat.stream']);
 
 export function isStoppedDirectCall(reason: string, capabilityId?: string): boolean {
   return reason === 'operation-aborted' && capabilityId !== undefined && DIRECT_CALL_CAPABILITIES.has(capabilityId);

@@ -74,9 +74,11 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
     if (context.input.signal?.aborted) {
       return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
     }
-    if (response.output.type !== 'text-generate' || response.output.finishReason !== 'stop' ||
-      response.output.items.length !== 1 || response.output.items[0]?.type !== 'text' ||
-      !response.output.items[0].text.trim()) {
+    // This one-turn image request has no follow-up turn to carry opaque state into.
+    const items = response.output.type === 'text-generate'
+      ? response.output.items.filter((item) => item.type !== 'reasoning-continuity') : [];
+    const answer = items.length === 1 && items[0]?.type === 'text' ? items[0].text : '';
+    if (response.output.type !== 'text-generate' || response.output.finishReason !== 'stop' || !answer.trim()) {
       return context.host.nonSuccess(context.capability, 'runtime-call-failed', context.host.translate('Studio.profiles.textGenerate.imageOutputInvalid'));
     }
     const relativePath = `studio/text-generate-inputs/${crypto.randomUUID()}.jpg`;
@@ -112,7 +114,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
       message,
       output: {
         kind: 'text' as const,
-        text: response.output.items[0].text,
+        text: answer,
         finishReason: response.output.finishReason,
         streamed: false,
         ...(sourceImage ? { sourceImage } : {}),

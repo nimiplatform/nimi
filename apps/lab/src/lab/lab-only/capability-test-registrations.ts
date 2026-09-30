@@ -45,7 +45,7 @@ export const labTextToolsCapability = Object.freeze({
     studioTag: 'Tools', inputTitleKey: k('textTools', 'inputTitle'), inputPlaceholderKey: k('textTools', 'inputPlaceholder'), inputKind: 'prompt', supportsAttachments: false, controls: [], primaryLabelKey: k('textTools', 'primaryLabel'), primaryRunningLabelKey: k('textTools', 'primaryRunningLabel'), resultTitle: 'Exchange', emptyTitleKey: k('textTools', 'emptyTitle'), emptyHintKey: k('textTools', 'emptyHint'), resultKind: 'text-exchange', footnoteKey: k('textTools', 'footnote'), rawPrompt: true,
   },
   preset: { id: 'fixed-tool', label: 'Fixed tool', prompt: `Use the ${LAB_TEST_TOOL_NAME} tool to convert 30 centimeters to inches, then write a one-line release note about the result.` },
-  runtimeMethod: 'sdk.localApp.ai.scenario.execute:text-generate',
+  runtimeMethod: 'sdk.localApp.ai.scenario.execute:text-generate / text.streamTurn (streaming delivery)',
   parameters: labTextExchangeParameters,
   parameterPanel: LabTextExchangeParameterPanel,
 } as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);

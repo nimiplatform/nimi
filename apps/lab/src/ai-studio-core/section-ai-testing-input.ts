@@ -38,6 +38,7 @@ export function canCancelStudioCapabilityRun(input: {
 }): boolean {
   return input.capabilityId === 'chat.stream'
     || (input.capabilityId === 'text.generate' && input.hasImageInput === true)
+    || input.resultKind === 'text-exchange'
     || input.resultKind === 'artifacts'
     || input.resultKind === 'text-annotation'
     || input.resultKind === 'text-decision'

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, type ReactNode } from 'react';
+import { notifyStudioAIConfigChanged } from '../../ai-studio-core/ai-config.js';
 import { WorkbenchRuntimeGate, type WorkbenchRuntimeGateProjection } from '../../workbench-core/index.js';
 import { useTranslation } from '../i18n/index.js';
 import {
@@ -6,6 +7,12 @@ import {
   clearRuntimePlatformProjection,
   getRuntimePlatformProjection,
 } from './runtime-platform.js';
+import { subscribeLabLocalAppSessionLoss } from './session-loss.js';
+
+// A fresh session rereads AIConfig views that failed on the stale one.
+function refreshAIConfigViews(): void {
+  notifyStudioAIConfigChanged(window);
+}
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -45,6 +52,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
       resolve={resolve}
       clear={clearRuntimePlatformProjection}
       toErrorMessage={toErrorMessage}
+      revalidate={subscribeLabLocalAppSessionLoss}
+      onRevalidated={refreshAIConfigViews}
     >
       {children}
     </WorkbenchRuntimeGate>

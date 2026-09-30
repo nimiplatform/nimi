@@ -91,10 +91,20 @@ function subscription(events) {
 function fakeClient(overrides = {}) {
   const missing = (name) => async () => { throw Object.assign(new Error(`${name} was not configured`), { reasonCode: 'TEST_METHOD_UNAVAILABLE' }); };
   const assets = new Map();
-  const calls = { submit: [], upload: [], adopt: [], write: [], remove: [], cancel: [], execute: [], executeOptions: [] };
+  const calls = { submit: [], upload: [], adopt: [], write: [], remove: [], cancel: [], execute: [], executeOptions: [], streamTurn: [], streamCancel: 0 };
   const client = {
     ai: {
-      text: { generateCandidate: missing('generateCandidate'), streamTurn: missing('streamTurn') },
+      text: {
+        generateCandidate: missing('generateCandidate'),
+        streamTurn: overrides.streamTurn ? async (input) => {
+          calls.streamTurn.push(structuredClone(input));
+          const events = overrides.streamTurn(input, calls.streamTurn.length);
+          return {
+            async *[Symbol.asyncIterator]() { for (const event of events) yield event; },
+            async cancel() { calls.streamCancel += 1; },
+          };
+        } : missing('streamTurn'),
+      },
       scenario: { execute: overrides.execute ? async (spec, options) => { calls.execute.push(structuredClone(spec)); calls.executeOptions.push(options); return overrides.execute(spec, calls.execute.length, options); } : missing('execute') },
       scenarioJobs: {
         submit: overrides.submit ? async (spec, options) => { calls.submit.push({ spec, options }); return overrides.submit(spec); } : missing('submit'),
@@ -338,6 +348,52 @@ test('text.tools returns every ordered item and a ToolResult with the same call 
   assert.equal(result.output.text, '30 cm is 11.811 inches.');
 });
 
+test('text.tools streaming delivery assembles the same ordered items from the text-turn stream and replays them exactly', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const toolCall = { id: 'call-7', name: 'lab_convert_centimeters', arguments: { centimeters: 30 } };
+  const fake = fakeClient({
+    streamTurn: (_input, call) => call === 1
+      ? [
+          { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-1', itemIndex: 0, carrier: continuity.carrier },
+          { type: 'delta', sequence: '2', traceId: 'trace-1', itemIndex: 1, text: 'Convert' },
+          { type: 'delta', sequence: '3', traceId: 'trace-1', itemIndex: 1, text: 'ing.' },
+          { type: 'tool-call', sequence: '4', traceId: 'trace-1', itemIndex: 2, toolCall },
+          { type: 'completed', sequence: '5', traceId: 'trace-1', finishReason: 'tool-calls' },
+        ]
+      : [
+          { type: 'delta', sequence: '1', traceId: 'trace-2', itemIndex: 0, text: '30 cm is 11.811 inches.' },
+          { type: 'completed', sequence: '2', traceId: 'trace-2', finishReason: 'stop' },
+        ],
+  });
+  const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'Convert 30 cm.', parameters: { scenario: 'tool-call', delivery: 'stream' } }, ready(fake.client));
+  assert.equal(result.ok, true, result.message);
+  assert.equal(fake.calls.execute.length, 0, 'the streaming delivery never falls back to execute');
+  const [first, second] = fake.calls.streamTurn;
+  assert.deepEqual(first.tools.map((tool) => tool.name), ['lab_convert_centimeters']);
+  assert.equal(first.toolChoice, 'auto');
+  assert.equal(first.type, undefined);
+  assert.deepEqual(second.messages[1].turnItems, [
+    { type: 'output', output: continuity },
+    { type: 'output', output: { type: 'text', text: 'Converting.' } },
+    { type: 'output', output: { type: 'tool-call', toolCall } },
+    { type: 'tool-result', toolResult: { toolCallId: 'call-7', toolName: 'lab_convert_centimeters', result: { centimeters: 30, inches: 11.811 }, isError: false } },
+  ]);
+  assert.deepEqual(result.output.steps.map((step) => step.traceId), ['trace-1', undefined, 'trace-2']);
+  assert.equal(result.output.text, '30 cm is 11.811 inches.');
+  assert.equal(fake.calls.streamCancel, 2, 'each finished stream is released');
+
+  const { t } = await load('shell/i18n/index.js');
+  for (const [events, expected] of [
+    [[{ type: 'delta', sequence: '1', traceId: 't', itemIndex: 0, text: '{' }], t('CapabilityTests.textTools.streamIncomplete')],
+    [[{ type: 'failed', sequence: '1', traceId: 't', reasonCode: 'AI_PROVIDER_UNAVAILABLE', actionHint: 'retry_later' }], 'AI_PROVIDER_UNAVAILABLE'],
+  ]) {
+    const broken = fakeClient({ streamTurn: () => events });
+    const failed = await runLabCapability({ capabilityId: 'text.tools', prompt: 'x', parameters: { scenario: 'structured-output', delivery: 'stream' } }, ready(broken.client));
+    assert.equal(failed.ok, false);
+    assert.ok(JSON.stringify(failed).includes(expected), JSON.stringify(failed));
+  }
+});
+
 test('text.tools fails explicitly for an undeclared tool or invalid arguments and never runs anything else', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   for (const call of [
@@ -372,6 +428,102 @@ test('text.tools structured output declares the fixed schema and the App parses 
     const failed = await runLabCapability({ capabilityId: 'text.tools', prompt: 'x', parameters: { scenario: 'structured-output' } }, ready(fake.client));
     assert.equal(failed.ok, false, text);
     assert.ok(failed.message.includes(t('CapabilityTests.textTools.structuredCheckFailed', { detail: '' }).trim()), failed.message);
+  }
+});
+
+// Stop settles a tools/schema run wherever a model step can be pending: the
+// synchronous call, the stream open, mid-stream and between tool round trips.
+// A result that arrives after Stop never runs the App tool, starts another step
+// or succeeds.
+test('text.tools Stop settles as stopped wherever a model step is pending and never succeeds late', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const { t } = await load('shell/i18n/index.js');
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  const settleUntil = async (condition) => {
+    for (let turn = 0; turn < 100 && !condition(); turn += 1) await settle();
+    assert.ok(condition(), 'the run reached its pending model step');
+  };
+  const expectStopped = (result, label) => {
+    assert.equal(result.ok, false, label);
+    assert.equal(result.reason, 'operation-aborted', label);
+    assert.equal(result.message, t('CapabilityTests.textTools.stopped'), label);
+  };
+  const schemaAnswer = { output: { type: 'text-generate', items: [{ type: 'text', text: '{"title":"late","priority":"low","tags":[]}' }], finishReason: 'stop' }, traceId: 'late' };
+  const toolAnswer = { output: { type: 'text-generate', items: [{ type: 'tool-call', toolCall: { id: 'call-1', name: 'lab_convert_centimeters', arguments: { centimeters: 30 } } }], finishReason: 'tool-calls' }, traceId: 'step-1' };
+  const finalAnswer = { output: { type: 'text-generate', items: [{ type: 'text', text: '30 cm is 11.811 inches.' }], finishReason: 'stop' }, traceId: 'late' };
+
+  // Synchronous step: the call carries the Stop signal. A conforming SDK
+  // rejects on abort; a carrier that still resolves afterwards is discarded.
+  for (const conforming of [true, false]) {
+    let release;
+    const fake = fakeClient({ execute: (_spec, _call, options) => new Promise((resolve, reject) => {
+      release = () => resolve(schemaAnswer);
+      if (conforming) options.signal.addEventListener('abort', () => reject(typedError('OPERATION_ABORTED')), { once: true });
+    }) });
+    const controller = new AbortController();
+    const running = runLabCapability({ capabilityId: 'text.tools', prompt: 'x', parameters: { scenario: 'structured-output' }, signal: controller.signal }, ready(fake.client));
+    await settleUntil(() => fake.calls.execute.length === 1);
+    assert.equal(fake.calls.executeOptions[0]?.signal, controller.signal, 'the synchronous step carries the Stop signal');
+    controller.abort('studio-user-canceled');
+    release();
+    expectStopped(await running, conforming ? 'sync step, conforming SDK' : 'sync step, late result');
+  }
+
+  // The stream is still opening at Stop: the run settles at once and the
+  // stream that arrives later is released without being read.
+  {
+    const fake = fakeClient({});
+    let open;
+    let read = 0;
+    let released = 0;
+    fake.client.ai.text.streamTurn = () => new Promise((resolve) => { open = resolve; });
+    const controller = new AbortController();
+    const running = runLabCapability({ capabilityId: 'text.tools', prompt: 'x', parameters: { scenario: 'structured-output', delivery: 'stream' }, signal: controller.signal }, ready(fake.client));
+    await settleUntil(() => open !== undefined);
+    controller.abort('studio-user-canceled');
+    expectStopped(await running, 'stream still opening');
+    open({
+      async *[Symbol.asyncIterator]() { read += 1; yield { type: 'completed', sequence: '1', traceId: 'late', finishReason: 'stop' }; },
+      async cancel() { released += 1; },
+    });
+    await settleUntil(() => released === 1);
+    assert.equal(read, 0, 'the late stream is never read');
+  }
+
+  // Stop mid-stream: the rest is not assembled into a result and the stream is
+  // released once.
+  {
+    const fake = fakeClient({});
+    const controller = new AbortController();
+    let released = 0;
+    fake.client.ai.text.streamTurn = async () => ({
+      async *[Symbol.asyncIterator]() {
+        yield { type: 'delta', sequence: '1', traceId: 't', itemIndex: 0, text: '{"title":"part' };
+        controller.abort('studio-user-canceled');
+        yield { type: 'delta', sequence: '2', traceId: 't', itemIndex: 0, text: 'ial","priority":"low","tags":[]}' };
+        yield { type: 'completed', sequence: '3', traceId: 't', finishReason: 'stop' };
+      },
+      async cancel() { released += 1; },
+    });
+    const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'x', parameters: { scenario: 'structured-output', delivery: 'stream' }, signal: controller.signal }, ready(fake.client));
+    expectStopped(result, 'mid-stream');
+    assert.equal(released, 1, 'the stopped stream is released once');
+  }
+
+  // Tool round trips: a tool call that arrives after Stop is never executed and
+  // no further step starts; Stop while the next step is pending discards it.
+  for (const stopDuringStep of [1, 2]) {
+    let release;
+    const fake = fakeClient({ execute: (_spec, call) => call < stopDuringStep
+      ? toolAnswer
+      : new Promise((resolve) => { release = () => resolve(call === 1 ? toolAnswer : finalAnswer); }) });
+    const controller = new AbortController();
+    const running = runLabCapability({ capabilityId: 'text.tools', prompt: 'Convert 30 cm.', parameters: { scenario: 'tool-call' }, signal: controller.signal }, ready(fake.client));
+    await settleUntil(() => fake.calls.execute.length === stopDuringStep);
+    controller.abort('studio-user-canceled');
+    release();
+    expectStopped(await running, `tool round trip, Stop during step ${stopDuringStep}`);
+    assert.equal(fake.calls.execute.length, stopDuringStep, 'no model step starts after Stop');
   }
 });
 
@@ -513,10 +665,13 @@ test('text.decide failures keep typed non-success reasons and the input limit ha
   assert.equal(studioNonSuccessReasonUserAction(limit.reason, t, limit.capabilityId, limit.diagnostics), t('NonSuccess.action.inputLimitExceeded'));
   assert.notEqual(t('NonSuccess.message.inputLimitExceeded'), t('NonSuccess.message.inputInvalid'));
 
-  // Only a synchronous decision reads as simply stopped; a Job whose cancellation
-  // is unconfirmed keeps the pending-cancellation copy even without a jobId.
+  // A direct call or text-turn stream reads as simply stopped; a Job whose
+  // cancellation is unconfirmed keeps the pending-cancellation copy even
+  // without a jobId.
   const { isStoppedDirectCall, studioNonSuccessReasonTitle } = await load('ai-studio-core/non-success-presentation.js');
   assert.equal(isStoppedDirectCall('operation-aborted', 'text.decide'), true);
+  assert.equal(isStoppedDirectCall('operation-aborted', 'text.tools'), true);
+  assert.equal(isStoppedDirectCall('operation-aborted', 'chat.stream'), true);
   assert.equal(isStoppedDirectCall('operation-aborted', 'video.generate'), false);
   assert.equal(studioNonSuccessReasonTitle('operation-aborted', t, 'text.decide'), t('NonSuccess.title.stoppedDirectCall'));
   assert.equal(studioNonSuccessReasonUserMessage('operation-aborted', t, 'video.generate'), t('NonSuccess.message.operationAborted'));
