@@ -18,6 +18,13 @@ const publicChatRecentVerbatimTurnLimit = 6
 const publicChatConversationSummaryMaxBytes = 6000
 const publicChatConversationSummaryInputMaxBytes = 64 * 1024
 
+// publicChatConversationSummaryMaxOutputTokens bounds one summary step. A
+// complete summary of a dozen turns alone runs near 500 tokens, and models that
+// always think count their reasoning toward the same limit, so at 512 summaries
+// stopped mid-sentence and every attempt failed APML validation. The
+// 6000-byte summary bound still applies to what is kept.
+const publicChatConversationSummaryMaxOutputTokens = 2048
+
 var errPublicChatConversationSummaryUnavailable = errors.New("conversation summary persistence unavailable")
 
 func validatePublicChatConversationSummary(summary *publicChatConversationSummaryState, transcript []publicChatCommittedTranscriptTurn) error {
@@ -305,7 +312,7 @@ func publicChatConversationSummaryResolutionRequest(input string) publicChatTurn
 			{Role: "system", Content: publicChatConversationSummarySystemPrompt},
 			{Role: "user", Content: strings.TrimSpace(input)},
 		},
-		MaxOutputTokens: 512,
+		MaxOutputTokens: publicChatConversationSummaryMaxOutputTokens,
 	}
 }
 
@@ -476,7 +483,7 @@ func (s *Service) executePublicChatConversationSummaryWithExecution(ctx context.
 	err := executor.StreamChatTurn(executionCtx, &PublicChatTurnExecutionRequest{
 		AppID: identity.CallerAppID, SubjectUserID: identity.SubjectUserID,
 		Messages:  publicChatConversationSummaryProviderMessages(execution.Input),
-		MaxTokens: 512, Binding: execution.Binding,
+		MaxTokens: publicChatConversationSummaryMaxOutputTokens, Binding: execution.Binding,
 	}, func(event *runtimev1.StreamScenarioEvent) error {
 		if event == nil {
 			return nil

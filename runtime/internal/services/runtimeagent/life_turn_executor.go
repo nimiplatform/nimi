@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	lifeTurnPromptMaxTokens = 512
+	// A life turn's APML is short, but models that always think spend part of
+	// this limit on reasoning first; at 512 Claude Opus 5.5 stopped mid-element.
+	lifeTurnPromptMaxTokens = 1024
 	lifeTurnRecallLimit     = 8
 	lifeTurnExecutorAppID   = "runtime.agent.internal.life_track"
 )

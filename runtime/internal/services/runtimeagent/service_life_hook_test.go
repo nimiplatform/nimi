@@ -668,7 +668,9 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookActivityAndBudgetEvents(t *t
 	if len(fakeAI.requests) != 1 {
 		t.Fatalf("expected one AI execution request, got %d", len(fakeAI.requests))
 	}
-	if fakeAI.requests[0].GetSpec().GetTextGenerate().GetMaxTokens() == 1 {
-		t.Fatal("max_tokens_per_hook should remain non-enforced on AI scenario request")
+	// max_tokens_per_hook stays non-enforced; the step asks for the life-turn
+	// limit that fits a model reasoning before its short APML.
+	if got := fakeAI.requests[0].GetSpec().GetTextGenerate().GetMaxTokens(); got != 1024 {
+		t.Fatalf("life turn max_tokens = %d, want 1024", got)
 	}
 }
