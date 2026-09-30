@@ -467,6 +467,7 @@ mod tests {
                 reason_code: generated::ReasonCode::ActionExecuted as i32,
                 account_reason_code: generated::AccountReasonCode::ActionExecuted as i32,
                 account_projection: None,
+                audit_diagnostic: None,
             }),
             ..Default::default()
         };
