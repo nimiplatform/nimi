@@ -18,7 +18,7 @@ import {
   type NimiStructuredOutputParseSuccess,
   type NimiStructuredOutputRepairRequest,
 } from '../../features/evaluation';
-import { createNimiError } from '../../types';
+import { createNimiError, isNimiError } from '../../types';
 import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from './index';
 
 export interface NimiTextRuntime {
@@ -433,9 +433,11 @@ async function* emitStructuredTurnCompletion<TStructured>(
   };
 }
 
+// A carrier error's code is its transport category; its reasonCode is the
+// owner's typed reason, which the text error keeps.
 function toNimiTextError(error: unknown): NimiTextError {
   if (isNimiTextErrorLike(error)) {
-    const code = normalizeText(error.code) || normalizeText(error.reasonCode);
+    const code = normalizeText(error.reasonCode) || normalizeText(error.code);
     const message = normalizeText(error.message);
     if (code || message) {
       return {
@@ -470,12 +472,17 @@ function isNimiTextErrorLike(value: unknown): value is NimiTextErrorLike {
 }
 
 function toError(error: NimiTextError): Error {
+  // The owner's own typed failure is rethrown as it was reported.
+  if (isNimiError(error.cause)) {
+    return error.cause;
+  }
+  const cause = isNimiTextErrorLike(error.cause) ? error.cause as { actionHint?: unknown; source?: unknown } : {};
   return createNimiError({
     message: error.message,
     code: error.code,
     reasonCode: error.code,
-    actionHint: 'check_ai_text_error',
-    source: 'sdk',
+    actionHint: normalizeText(cause.actionHint) || 'check_ai_text_error',
+    source: cause.source === 'runtime' || cause.source === 'realm' ? cause.source : 'sdk',
   });
 }
 

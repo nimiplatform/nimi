@@ -36,6 +36,18 @@ Required changes from 0.15.0:
   connector auth acquisition host, and `deleteConnector()` callers or
   implementations use its result (ChatGPT plan sign-in).
 
+## Typed text failures (next minor, development)
+
+- `runNimiTextTurn`, `runNimiTextGenerate` and `streamNimiTextResponse` report
+  a failure under the owner's typed `reasonCode`. Before, an error from the
+  standard-shell carrier was reported under the carrier's transport category
+  in `code`, so a Runtime refusal such as `ai-text-behavior-unsupported` read
+  as `runtime-permission-denied`.
+- `streamNimiTextResponse` rethrows an owner `NimiError` unchanged, keeping
+  its `traceId`, `retryable`, `actionHint` and interruption. It creates a new
+  `NimiError` only for other failures, and then keeps their `actionHint` and
+  Runtime or Realm source.
+
 ## ChatGPT plan sign-in (next minor, development)
 
 - The only browser-managed Connector profile is `openai_chatgpt_plan`, signed

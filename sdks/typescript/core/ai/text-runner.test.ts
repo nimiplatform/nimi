@@ -3,7 +3,8 @@ import test from 'node:test';
 
 import { textPart } from '../contracts';
 import { createNimiMockModel, userTextMessage } from '../testing';
-import { isNimiError } from '../../types';
+import { createNimiError, isNimiError } from '../../types';
+import type { NimiAiModel } from './index';
 import {
   runNimiTextGenerate,
   runNimiTextTurn,
@@ -112,6 +113,66 @@ test('Nimi text response reports stream failures without pseudo-success', async 
       assert.equal(error.code, 'RUNTIME_FAILED');
       assert.equal(error.reasonCode, 'RUNTIME_FAILED');
       assert.equal(error.actionHint, 'check_ai_text_error');
+      return true;
+    },
+  );
+});
+
+function failingModel(error: unknown): NimiAiModel {
+  return {
+    model: { modelId: 'text.generate' },
+    generateText: async () => { throw error; },
+    streamText: async () => { throw error; },
+  };
+}
+
+test('Nimi text response keeps the owner reason a carrier reports under its transport category', async () => {
+  // The Electron carrier reports its own category as code and the Runtime's
+  // typed reason as reasonCode.
+  const carrierError = Object.assign(new Error('ai-text-behavior-unsupported'), {
+    code: 'runtime-permission-denied',
+    reasonCode: 'ai-text-behavior-unsupported',
+    actionHint: 'switch_text_route_or_start_new_conversation',
+    source: 'runtime',
+  });
+  const request = { messages: [userTextMessage('continue')] };
+
+  const events = [];
+  for await (const event of runNimiTextTurn({ runtime: { model: failingModel(carrierError) }, request })) {
+    events.push(event);
+  }
+  const failed = events.at(-1);
+  assert.equal(failed?.type, 'turn-failed');
+  assert.equal(failed?.type === 'turn-failed' ? failed.error.code : '', 'ai-text-behavior-unsupported');
+
+  await assert.rejects(
+    () => streamNimiTextResponse({ runtime: { model: failingModel(carrierError) }, request }),
+    (error: unknown) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal(error.code, 'ai-text-behavior-unsupported');
+      assert.equal(error.reasonCode, 'ai-text-behavior-unsupported');
+      assert.equal(error.actionHint, 'switch_text_route_or_start_new_conversation');
+      assert.equal(error.source, 'runtime');
+      return true;
+    },
+  );
+});
+
+test('Nimi text response rethrows the owner NimiError it received', async () => {
+  const owner = createNimiError({
+    message: 'Nimi text generation failed: AI_PROVIDER_TIMEOUT.',
+    code: 'AI_PROVIDER_TIMEOUT',
+    reasonCode: 'AI_PROVIDER_TIMEOUT',
+    actionHint: 'retry_after_provider_recovers',
+    traceId: 'trace-timeout',
+    retryable: true,
+    source: 'runtime',
+  });
+
+  await assert.rejects(
+    () => streamNimiTextResponse({ runtime: { model: failingModel(owner) }, request: { messages: [userTextMessage('hi')] } }),
+    (error: unknown) => {
+      assert.equal(error, owner);
       return true;
     },
   );
