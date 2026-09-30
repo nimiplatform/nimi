@@ -1,6 +1,6 @@
 version: 1
 provider: openai
-catalog_version: 2026-09-30-openai-gpt-6-responses
+catalog_version: 2026-10-01-openai-gpt-transcribe
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
@@ -85,54 +85,75 @@ models:
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
+  - model_id: gpt-transcribe
+    provider: openai
+    model_type: stt
+    updated_at: 2026-10-01
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: second
+      input: "0.000075"
+      output: "0"
+      currency: USD
+      as_of: 2026-10-01
+      notes: Recorded-file transcription billed at USD 0.0045 per audio minute.
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/speech-to-text
+      retrieved_at: 2026-10-01
+      note: OpenAI speech-to-text guide; it recommends gpt-transcribe for recorded files and lists the uploadable audio types and the 25 MB file limit.
+    transcription:
+      tiers:
+        - core_transcript
+      response_formats:
+        - text
+      supports_language: true
   - model_id: gpt-4o-transcribe
     provider: openai
     model_type: stt
-    updated_at: 2026-03-05
+    updated_at: 2026-10-01
     capabilities:
       - audio.transcribe
     pricing:
       unit: token
       input: "2.50"
-      output: "0"
+      output: "10.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Speech-to-text. Input = audio tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
+      as_of: 2026-10-01
+      notes: Speech-to-text. Input = audio tokens, output = text tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
     source_ref:
-      url: https://platform.openai.com/docs/guides/speech-to-text
-      retrieved_at: 2026-03-05
-      note: OpenAI speech-to-text documentation.
+      url: https://developers.openai.com/api/docs/guides/speech-to-text
+      retrieved_at: 2026-10-01
+      note: OpenAI speech-to-text guide; it recommends gpt-transcribe for recorded files and lists the uploadable audio types and the 25 MB file limit.
     transcription:
       tiers:
         - core_transcript
       response_formats:
         - text
-        - json
       supports_language: true
       supports_prompt: true
   - model_id: gpt-4o-mini-transcribe
     provider: openai
     model_type: stt
-    updated_at: 2026-03-05
+    updated_at: 2026-10-01
     capabilities:
       - audio.transcribe
     pricing:
       unit: token
       input: "1.25"
-      output: "0"
+      output: "5.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Speech-to-text (mini). Input = audio tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
+      as_of: 2026-10-01
+      notes: Speech-to-text (mini). Input = audio tokens, output = text tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
     source_ref:
-      url: https://platform.openai.com/docs/guides/speech-to-text
-      retrieved_at: 2026-03-05
-      note: OpenAI speech-to-text documentation.
+      url: https://developers.openai.com/api/docs/guides/speech-to-text
+      retrieved_at: 2026-10-01
+      note: OpenAI speech-to-text guide; it recommends gpt-transcribe for recorded files and lists the uploadable audio types and the 25 MB file limit.
     transcription:
       tiers:
         - core_transcript
       response_formats:
         - text
-        - json
       supports_language: true
       supports_prompt: true
   - model_id: whisper-1
@@ -149,9 +170,9 @@ models:
       as_of: 2026-03-18
       notes: Legacy STT. Approximate per-token equivalent of $0.006/minute. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
     source_ref:
-      url: https://platform.openai.com/docs/guides/speech-to-text
-      retrieved_at: 2026-03-05
-      note: OpenAI speech-to-text documentation.
+      url: https://developers.openai.com/api/docs/guides/speech-to-text
+      retrieved_at: 2026-10-01
+      note: OpenAI speech-to-text guide; it recommends gpt-transcribe for recorded files and lists the uploadable audio types and the 25 MB file limit.
     transcription:
       tiers:
         - core_transcript

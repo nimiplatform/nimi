@@ -636,6 +636,12 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		}
 		adapter = CloudMediaAdapterDashScopeQwenAudio31ASR
 	}
+	if d.provider == "openai" && target.capabilityContract == "audio.transcribe" && openAITranscribeModels[target.providerModelID] {
+		if err := validateOpenAITranscribeRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterOpenAITranscriptions
+	}
 	if adapter == "" {
 		return nil, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider %q has no %s transport dialect", d.provider, target.capabilityContract))
 	}

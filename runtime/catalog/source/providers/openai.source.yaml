@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-09-30-openai-gpt-6-responses
+catalog_version: 2026-10-01-openai-gpt-transcribe
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -30,9 +30,13 @@ sources:
     retrieved_at: 2026-03-05
     note: OpenAI text-to-speech documentation.
   - source_id: openai_speech_to_text_doc
-    url: https://platform.openai.com/docs/guides/speech-to-text
-    retrieved_at: 2026-03-05
-    note: OpenAI speech-to-text documentation.
+    url: https://developers.openai.com/api/docs/guides/speech-to-text
+    retrieved_at: 2026-10-01
+    note: OpenAI speech-to-text guide; it recommends gpt-transcribe for recorded files and lists the uploadable audio types and the 25 MB file limit.
+  - source_id: openai_transcriptions_api_ref
+    url: https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create
+    retrieved_at: 2026-10-01
+    note: OpenAI create-transcription reference; gpt-transcribe takes expected languages as the languages[] array instead of language.
   - source_id: openai_models_doc
     url: https://developers.openai.com/api/docs/models
     retrieved_at: 2026-07-20
@@ -43,7 +47,7 @@ sources:
     note: Official OpenAI deprecation page, read through its 2026-09-26 Internet Archive capture because the live page returned HTTP 403 here; it announces the 2027-02-26 API removal of whisper-1, gpt-4o-transcribe, and gpt-4o-mini-transcribe, and the 2026-09-24 Sora 2 shutdown.
   - source_id: openai_pricing_doc
     url: https://developers.openai.com/api/docs/pricing
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-10-01
     note: OpenAI official API pricing.
   - source_id: openai_gpt_5_2_doc
     url: https://developers.openai.com/api/docs/models/gpt-5.2
@@ -218,39 +222,56 @@ models:
         timing_modes: [none]
         audio_formats: [mp3]
 
+  - model_id: gpt-transcribe
+    model_type: stt
+    updated_at: 2026-10-01
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: second
+      input: "0.000075"
+      output: "0"
+      currency: USD
+      as_of: 2026-10-01
+      notes: Recorded-file transcription billed at USD 0.0045 per audio minute.
+    source_ids: [openai_speech_to_text_doc, openai_transcriptions_api_ref, openai_models_doc, openai_pricing_doc]
+    transcription:
+      tiers: [core_transcript]
+      response_formats: [text]
+      supports_language: true
+
   - model_id: gpt-4o-transcribe
     model_type: stt
-    updated_at: 2026-03-05
+    updated_at: 2026-10-01
     capabilities: [audio.transcribe]
     pricing:
       unit: token
       input: "2.50"
-      output: "0"
+      output: "10.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Speech-to-text. Input = audio tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
-    source_ids: [openai_speech_to_text_doc, openai_models_doc, openai_deprecations_doc]
+      as_of: 2026-10-01
+      notes: Speech-to-text. Input = audio tokens, output = text tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
+    source_ids: [openai_speech_to_text_doc, openai_transcriptions_api_ref, openai_models_doc, openai_deprecations_doc, openai_pricing_doc]
     transcription:
       tiers: [core_transcript]
-      response_formats: [text, json]
+      response_formats: [text]
       supports_language: true
       supports_prompt: true
 
   - model_id: gpt-4o-mini-transcribe
     model_type: stt
-    updated_at: 2026-03-05
+    updated_at: 2026-10-01
     capabilities: [audio.transcribe]
     pricing:
       unit: token
       input: "1.25"
-      output: "0"
+      output: "5.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Speech-to-text (mini). Input = audio tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
-    source_ids: [openai_speech_to_text_doc, openai_models_doc, openai_deprecations_doc]
+      as_of: 2026-10-01
+      notes: Speech-to-text (mini). Input = audio tokens, output = text tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
+    source_ids: [openai_speech_to_text_doc, openai_transcriptions_api_ref, openai_models_doc, openai_deprecations_doc, openai_pricing_doc]
     transcription:
       tiers: [core_transcript]
-      response_formats: [text, json]
+      response_formats: [text]
       supports_language: true
       supports_prompt: true
 
