@@ -15,6 +15,10 @@ const (
 	// A life turn's APML is short, but models that always think spend part of
 	// this limit on reasoning first; at 512 Claude Opus 5.5 stopped mid-element.
 	lifeTurnPromptMaxTokens = 1024
+	// The sweep runs due hooks one at a time, so this bounds how long one life
+	// turn can hold it. A life-turn-shaped request to Claude Opus 5.5 took
+	// 10–14 s end to end on a proxied connection, past the former 10 s.
+	lifeTurnTimeoutMs = 30_000
 	lifeTurnRecallLimit     = 8
 	lifeTurnExecutorAppID   = "runtime.agent.internal.life_track"
 )
@@ -153,7 +157,7 @@ func buildLifeTurnScenarioRequest(req *lifeTurnRequest) (*runtimev1.ExecuteScena
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         lifeTurnExecutorAppID,
 			SubjectUserId: subjectUserID,
-			TimeoutMs:     10_000,
+			TimeoutMs:     lifeTurnTimeoutMs,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,

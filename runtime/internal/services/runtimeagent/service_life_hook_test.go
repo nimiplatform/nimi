@@ -673,4 +673,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookActivityAndBudgetEvents(t *t
 	if got := fakeAI.requests[0].GetSpec().GetTextGenerate().GetMaxTokens(); got != 1024 {
 		t.Fatalf("life turn max_tokens = %d, want 1024", got)
 	}
+	if got := fakeAI.requests[0].GetHead().GetTimeoutMs(); got != 30_000 {
+		t.Fatalf("life turn timeout = %d ms, want 30000", got)
+	}
 }
