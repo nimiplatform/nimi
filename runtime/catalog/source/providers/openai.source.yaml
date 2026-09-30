@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-10-01-openai-gpt-transcribe
+catalog_version: 2026-10-01-openai-speech
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -26,9 +26,13 @@ defaults:
 
 sources:
   - source_id: openai_tts_doc
-    url: https://platform.openai.com/docs/guides/text-to-speech
-    retrieved_at: 2026-03-05
-    note: OpenAI text-to-speech documentation.
+    url: https://developers.openai.com/api/docs/guides/text-to-speech
+    retrieved_at: 2026-10-01
+    note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - source_id: openai_speech_api_ref
+    url: https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create
+    retrieved_at: 2026-10-01
+    note: OpenAI create-speech reference; input of at most 4096 characters, speed from 0.25 to 4.0, and mp3 among the response formats. gpt-audio models are not speech-endpoint models, and the endpoint returned HTTP 404 for them on 2026-10-01.
   - source_id: openai_speech_to_text_doc
     url: https://developers.openai.com/api/docs/guides/speech-to-text
     retrieved_at: 2026-10-01
@@ -127,7 +131,7 @@ sources:
     note: OpenAI o4-mini reasoning model card.
 
 language_profiles:
-  short_v1: [en, zh, ja, ko, es, fr, de]
+  openai_tts_en_zh_v1: [en, zh]
 
 selection_profiles:
   - profile_id: text.general
@@ -150,77 +154,103 @@ selection_profiles:
     rationale: Highest-capability admitted standard OpenAI model; GPT-6 Astra is OpenAI's current flagship but is not admitted for this route yet.
 
 voice_sets:
-  - voice_set_id: default-tts-v1
-    langs_ref: short_v1
-    source_ids: [openai_tts_doc]
+  - voice_set_id: openai-gpt-4o-mini-tts-v1
+    langs_ref: openai_tts_en_zh_v1
+    source_ids: [openai_tts_doc, openai_speech_api_ref]
     voices:
       - voice_id: alloy
         name: Alloy
+      - voice_id: ash
+        name: Ash
+      - voice_id: ballad
+        name: Ballad
+      - voice_id: coral
+        name: Coral
+      - voice_id: echo
+        name: Echo
+      - voice_id: fable
+        name: Fable
       - voice_id: nova
         name: Nova
+      - voice_id: onyx
+        name: Onyx
+      - voice_id: sage
+        name: Sage
+      - voice_id: shimmer
+        name: Shimmer
+      - voice_id: verse
+        name: Verse
+      - voice_id: marin
+        name: Marin
+      - voice_id: cedar
+        name: Cedar
+  - voice_set_id: openai-tts-1-v1
+    langs_ref: openai_tts_en_zh_v1
+    source_ids: [openai_tts_doc, openai_speech_api_ref]
+    voices:
+      - voice_id: alloy
+        name: Alloy
+      - voice_id: ash
+        name: Ash
+      - voice_id: coral
+        name: Coral
+      - voice_id: echo
+        name: Echo
+      - voice_id: fable
+        name: Fable
+      - voice_id: nova
+        name: Nova
+      - voice_id: onyx
+        name: Onyx
+      - voice_id: sage
+        name: Sage
       - voice_id: shimmer
         name: Shimmer
 
 models:
-  - model_id: gpt-audio
-    updated_at: 2026-03-05
+  - model_id: gpt-4o-mini-tts
+    model_type: tts
+    updated_at: 2026-10-01
     capabilities: [audio.synthesize]
-    source_ids: [openai_tts_doc]
+    source_ids: [openai_tts_doc, openai_speech_api_ref, openai_pricing_doc]
     pricing:
       unit: token
-      input: "100.00"
-      output: "200.00"
+      input: "0.60"
+      output: "12.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Audio token pricing. Input = text tokens, output = audio tokens. Per 1M tokens.
+      as_of: 2026-10-01
+      notes: Per 1M text input tokens and audio output tokens.
     voice:
       discovery_mode: static_catalog
-      voice_set_ref: default-tts-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: short_v1
+      voice_set_ref: openai-gpt-4o-mini-tts-v1
+      supports_voice_ref_kinds: [preset_voice_id]
+      langs_ref: openai_tts_en_zh_v1
       request_options:
         timing_modes: [none]
         audio_formats: [mp3]
-
-  - model_id: gpt-audio-mini
-    updated_at: 2026-03-05
-    capabilities: [audio.synthesize]
-    source_ids: [openai_tts_doc]
-    pricing:
-      unit: token
-      input: "10.00"
-      output: "20.00"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Audio token pricing (mini). Input = text tokens, output = audio tokens. Per 1M tokens.
-    voice:
-      discovery_mode: static_catalog
-      voice_set_ref: default-tts-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: short_v1
-      request_options:
-        timing_modes: [none]
-        audio_formats: [mp3]
+        supports_language: true
 
   - model_id: tts-1
-    updated_at: 2026-03-05
+    model_type: tts
+    updated_at: 2026-10-01
     capabilities: [audio.synthesize]
-    source_ids: [openai_tts_doc]
+    source_ids: [openai_tts_doc, openai_speech_api_ref, openai_pricing_doc]
     pricing:
-      unit: token
+      unit: char
       input: "15.00"
-      output: "30.00"
+      output: "0"
       currency: USD
-      as_of: 2026-03-18
-      notes: Legacy TTS model. Per 1M tokens.
+      as_of: 2026-10-01
+      notes: Legacy speech model. Per 1M input characters.
     voice:
       discovery_mode: static_catalog
-      voice_set_ref: default-tts-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: short_v1
+      voice_set_ref: openai-tts-1-v1
+      supports_voice_ref_kinds: [preset_voice_id]
+      langs_ref: openai_tts_en_zh_v1
       request_options:
         timing_modes: [none]
         audio_formats: [mp3]
+        supports_language: true
 
   - model_id: gpt-transcribe
     model_type: stt

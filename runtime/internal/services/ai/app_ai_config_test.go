@@ -311,7 +311,7 @@ func TestProtectedAppAIConfigListsExactCloudConnectorAndTargets(t *testing.T) {
 }
 
 func TestProtectedAppAIConfigListsPresetVoicesFromAuthorizedSelfOwnerRoute(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-audio", "https://example.com", Config{})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini-tts", "https://example.com", Config{})
 	const appID = "app.voice-options"
 	commitCloudAudioSynthesizeAIConfig(t, fixture.service, "user-001", appID, fixture.targetRef)
 

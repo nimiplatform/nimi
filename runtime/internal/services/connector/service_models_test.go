@@ -56,15 +56,15 @@ func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
 	if len(resp.GetModels()) == 0 {
 		t.Fatalf("expected catalog-derived model list")
 	}
-	foundGPTAudio := false
+	foundSpeechModel := false
 	for _, model := range resp.GetModels() {
-		if model.GetProviderModelId() == "gpt-audio" {
-			foundGPTAudio = true
+		if model.GetProviderModelId() == "gpt-4o-mini-tts" {
+			foundSpeechModel = true
 			break
 		}
 	}
-	if !foundGPTAudio {
-		t.Fatalf("expected openai catalog model gpt-audio in response")
+	if !foundSpeechModel {
+		t.Fatalf("expected openai catalog model gpt-4o-mini-tts in response")
 	}
 	if got := hits.Load(); got != 0 {
 		t.Fatalf("expected zero upstream calls for YAML-only model listing, got %d", got)
@@ -90,19 +90,19 @@ func TestListConnectorModelsProjectsRemoteCatalogIdentity(t *testing.T) {
 	}
 	var found *runtimev1.ConnectorModelDescriptor
 	for _, model := range resp.GetModels() {
-		if model.GetProviderModelId() == "gpt-audio" {
+		if model.GetProviderModelId() == "gpt-4o-mini-tts" {
 			found = model
 			break
 		}
 	}
 	if found == nil {
-		t.Fatal("expected gpt-audio model")
+		t.Fatal("expected gpt-4o-mini-tts model")
 	}
 	if found.GetRemoteModelCatalogId() == "" {
 		t.Fatalf("remote_model_catalog_id missing: %#v", found)
 	}
-	if found.GetModelLabel() != "gpt-audio" {
-		t.Fatalf("model_label = %q want %q", found.GetModelLabel(), "gpt-audio")
+	if found.GetModelLabel() != "gpt-4o-mini-tts" {
+		t.Fatalf("model_label = %q want %q", found.GetModelLabel(), "gpt-4o-mini-tts")
 	}
 	if found.GetProvider() != "openai" {
 		t.Fatalf("provider = %q", found.GetProvider())
@@ -262,7 +262,7 @@ func TestListConnectorModelsEndpointChangeInvalidatesRemoteCatalogID(t *testing.
 		t.Fatalf("CreateConnector: %v", err)
 	}
 	connectorID := created.GetConnector().GetConnectorId()
-	first := connectorModelDescriptorByID(t, svc, ctx, connectorID, "gpt-audio")
+	first := connectorModelDescriptorByID(t, svc, ctx, connectorID, "gpt-4o-mini-tts")
 	if first.GetRemoteModelCatalogId() == "" {
 		t.Fatal("first remote_model_catalog_id missing")
 	}
@@ -273,7 +273,7 @@ func TestListConnectorModelsEndpointChangeInvalidatesRemoteCatalogID(t *testing.
 	if err != nil {
 		t.Fatalf("UpdateConnector endpoint: %v", err)
 	}
-	second := connectorModelDescriptorByID(t, svc, ctx, connectorID, "gpt-audio")
+	second := connectorModelDescriptorByID(t, svc, ctx, connectorID, "gpt-4o-mini-tts")
 	if first.GetRemoteModelCatalogId() == second.GetRemoteModelCatalogId() {
 		t.Fatalf("remote_model_catalog_id should change after endpoint update: %q", first.GetRemoteModelCatalogId())
 	}

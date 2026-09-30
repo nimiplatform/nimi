@@ -28,7 +28,7 @@ func TestProviderMediaHostOpensCredentialOnlyInsideDispatch(t *testing.T) {
 		}
 		authorization = r.Header.Get("Authorization")
 		w.Header().Set("Content-Type", "audio/mpeg")
-		_, _ = io.WriteString(w, "audio-bytes")
+		_, _ = io.WriteString(w, remoteMediaHostMP3)
 	}))
 	defer server.Close()
 
@@ -59,7 +59,7 @@ func TestProviderMediaHostOpensCredentialOnlyInsideDispatch(t *testing.T) {
 	}
 	result, err := driver.NormalizeResponse(response)
 	if err != nil || len(result.Artifacts) != 1 || len(result.Artifacts[0].GetBytes()) != 0 ||
-		string(result.ArtifactBodies[result.Artifacts[0].GetArtifactId()].BoundedBytes()) != "audio-bytes" {
+		string(result.ArtifactBodies[result.Artifacts[0].GetArtifactId()].BoundedBytes()) != remoteMediaHostMP3 {
 		t.Fatalf("NormalizeResponse=%+v err=%v", result, err)
 	}
 	if authorization != "Bearer "+secret {
@@ -108,3 +108,7 @@ func remoteMediaHostDriverInput(t *testing.T) (capabilitydriver.CloudMediaDriver
 	}
 	return driver, target, mapped
 }
+
+// remoteMediaHostMP3 starts with an ID3 tag followed by an MPEG audio frame
+// header, as the OpenAI speech adapter requires of a complete MP3.
+const remoteMediaHostMP3 = "ID3\x04\x00\x00\x00\x00\x00\x00\xff\xf3\x44\xc4"

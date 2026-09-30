@@ -1,90 +1,63 @@
 version: 1
 provider: openai
-catalog_version: 2026-10-01-openai-gpt-transcribe
+catalog_version: 2026-10-01-openai-speech
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
-  - model_id: gpt-audio
+  - model_id: gpt-4o-mini-tts
     provider: openai
     model_type: tts
-    updated_at: 2026-03-05
+    updated_at: 2026-10-01
     capabilities:
       - audio.synthesize
     pricing:
       unit: token
-      input: "100.00"
-      output: "200.00"
+      input: "0.60"
+      output: "12.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Audio token pricing. Input = text tokens, output = audio tokens. Per 1M tokens.
+      as_of: 2026-10-01
+      notes: Per 1M text input tokens and audio output tokens.
     source_ref:
-      url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: 2026-03-05
-      note: OpenAI text-to-speech documentation.
-    voice_set_id: openai:default-tts-v1
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
     voice_discovery_mode: static_catalog
     voice_request_options:
       timing_modes:
         - none
       audio_formats:
         - mp3
+      supports_language: true
     voice_ref_kinds:
       - preset_voice_id
-      - provider_voice_ref
-  - model_id: gpt-audio-mini
-    provider: openai
-    model_type: tts
-    updated_at: 2026-03-05
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: token
-      input: "10.00"
-      output: "20.00"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Audio token pricing (mini). Input = text tokens, output = audio tokens. Per 1M tokens.
-    source_ref:
-      url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: 2026-03-05
-      note: OpenAI text-to-speech documentation.
-    voice_set_id: openai:default-tts-v1
-    voice_discovery_mode: static_catalog
-    voice_request_options:
-      timing_modes:
-        - none
-      audio_formats:
-        - mp3
-    voice_ref_kinds:
-      - preset_voice_id
-      - provider_voice_ref
   - model_id: tts-1
     provider: openai
     model_type: tts
-    updated_at: 2026-03-05
+    updated_at: 2026-10-01
     capabilities:
       - audio.synthesize
     pricing:
-      unit: token
+      unit: char
       input: "15.00"
-      output: "30.00"
+      output: "0"
       currency: USD
-      as_of: 2026-03-18
-      notes: Legacy TTS model. Per 1M tokens.
+      as_of: 2026-10-01
+      notes: Legacy speech model. Per 1M input characters.
     source_ref:
-      url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: 2026-03-05
-      note: OpenAI text-to-speech documentation.
-    voice_set_id: openai:default-tts-v1
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+    voice_set_id: openai:openai-tts-1-v1
     voice_discovery_mode: static_catalog
     voice_request_options:
       timing_modes:
         - none
       audio_formats:
         - mp3
+      supports_language: true
     voice_ref_kinds:
       - preset_voice_id
-      - provider_voice_ref
   - model_id: gpt-transcribe
     provider: openai
     model_type: stt
@@ -698,65 +671,291 @@ models:
     context_window_tokens: 8192
 voices:
   - voice_id: alloy
-    voice_set_id: openai:default-tts-v1
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
     provider: openai
     name: Alloy
     langs:
       - en
       - zh
-      - ja
-      - ko
-      - es
-      - fr
-      - de
     model_ids:
-      - gpt-audio
-      - gpt-audio-mini
-      - tts-1
+      - gpt-4o-mini-tts
     source_ref:
-      url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: 2026-03-05
-      note: OpenAI text-to-speech documentation.
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: ash
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Ash
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: ballad
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Ballad
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: coral
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Coral
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: echo
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Echo
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: fable
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Fable
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
   - voice_id: nova
-    voice_set_id: openai:default-tts-v1
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
     provider: openai
     name: Nova
     langs:
       - en
       - zh
-      - ja
-      - ko
-      - es
-      - fr
-      - de
     model_ids:
-      - gpt-audio
-      - gpt-audio-mini
-      - tts-1
+      - gpt-4o-mini-tts
     source_ref:
-      url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: 2026-03-05
-      note: OpenAI text-to-speech documentation.
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: onyx
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Onyx
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: sage
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Sage
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
   - voice_id: shimmer
-    voice_set_id: openai:default-tts-v1
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
     provider: openai
     name: Shimmer
     langs:
       - en
       - zh
-      - ja
-      - ko
-      - es
-      - fr
-      - de
     model_ids:
-      - gpt-audio
-      - gpt-audio-mini
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: verse
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Verse
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: marin
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Marin
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: cedar
+    voice_set_id: openai:openai-gpt-4o-mini-tts-v1
+    provider: openai
+    name: Cedar
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gpt-4o-mini-tts
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: alloy
+    voice_set_id: openai:openai-tts-1-v1
+    provider: openai
+    name: Alloy
+    langs:
+      - en
+      - zh
+    model_ids:
       - tts-1
     source_ref:
-      url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: 2026-03-05
-      note: OpenAI text-to-speech documentation.
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: ash
+    voice_set_id: openai:openai-tts-1-v1
+    provider: openai
+    name: Ash
+    langs:
+      - en
+      - zh
+    model_ids:
+      - tts-1
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: coral
+    voice_set_id: openai:openai-tts-1-v1
+    provider: openai
+    name: Coral
+    langs:
+      - en
+      - zh
+    model_ids:
+      - tts-1
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: echo
+    voice_set_id: openai:openai-tts-1-v1
+    provider: openai
+    name: Echo
+    langs:
+      - en
+      - zh
+    model_ids:
+      - tts-1
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: fable
+    voice_set_id: openai:openai-tts-1-v1
+    provider: openai
+    name: Fable
+    langs:
+      - en
+      - zh
+    model_ids:
+      - tts-1
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: nova
+    voice_set_id: openai:openai-tts-1-v1
+    provider: openai
+    name: Nova
+    langs:
+      - en
+      - zh
+    model_ids:
+      - tts-1
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: onyx
+    voice_set_id: openai:openai-tts-1-v1
+    provider: openai
+    name: Onyx
+    langs:
+      - en
+      - zh
+    model_ids:
+      - tts-1
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: sage
+    voice_set_id: openai:openai-tts-1-v1
+    provider: openai
+    name: Sage
+    langs:
+      - en
+      - zh
+    model_ids:
+      - tts-1
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
+  - voice_id: shimmer
+    voice_set_id: openai:openai-tts-1-v1
+    provider: openai
+    name: Shimmer
+    langs:
+      - en
+      - zh
+    model_ids:
+      - tts-1
+    source_ref:
+      url: https://developers.openai.com/api/docs/guides/text-to-speech
+      retrieved_at: 2026-10-01
+      note: OpenAI text-to-speech guide; gpt-4o-mini-tts has 13 built-in voices, while tts-1 lacks ballad, verse, marin and cedar.
 selection_profiles:
   - provider: openai
     profile_id: text.general

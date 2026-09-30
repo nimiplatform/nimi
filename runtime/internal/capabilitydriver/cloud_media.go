@@ -636,6 +636,12 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		}
 		adapter = CloudMediaAdapterDashScopeQwenAudio31ASR
 	}
+	if d.provider == "openai" && target.capabilityContract == "audio.synthesize" && openAISpeechVoices[target.providerModelID] != nil {
+		if err := validateOpenAISpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterOpenAISpeech
+	}
 	if d.provider == "openai" && target.capabilityContract == "audio.transcribe" && openAITranscribeModels[target.providerModelID] {
 		if err := validateOpenAITranscribeRequest(mapped, target.providerModelID); err != nil {
 			return nil, err

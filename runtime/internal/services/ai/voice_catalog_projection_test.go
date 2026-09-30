@@ -48,7 +48,7 @@ func (s *catalogProjectionSecretStore) DeleteSecret(id string) error {
 }
 
 func TestListPresetVoicesUsesCommittedCloudAIConfigDriverTarget(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-audio", "https://example.com", Config{})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini-tts", "https://example.com", Config{})
 	commitCloudAudioSynthesizeAIConfig(t, fixture.service, "user-001", "nimi.desktop", fixture.targetRef)
 	response, err := fixture.service.ListPresetVoices(
 		scenarioJobUserContext("nimi.desktop", "user-001"),
@@ -57,13 +57,13 @@ func TestListPresetVoicesUsesCommittedCloudAIConfigDriverTarget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListPresetVoices: %v", err)
 	}
-	if response.GetModelResolved() != "gpt-audio" || len(response.GetVoices()) == 0 {
+	if response.GetModelResolved() != "gpt-4o-mini-tts" || len(response.GetVoices()) == 0 {
 		t.Fatalf("voice catalog projection = %+v", response)
 	}
 }
 
 func TestListPresetVoicesForCapturedIntentUsesOwnerRouteWithoutAppAIConfig(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-audio", "https://example.com", Config{})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini-tts", "https://example.com", Config{})
 	ctx := withCloudScenarioTestIntent(fixture.context, capabilitydriver.AudioSynthesizeContract, fixture.targetRef)
 	response, err := fixture.service.ListPresetVoicesForCapturedIntent(ctx, &runtimev1.ListPresetVoicesRequest{
 		AppId: "nimi.desktop", SubjectUserId: "user-001",
@@ -71,7 +71,7 @@ func TestListPresetVoicesForCapturedIntentUsesOwnerRouteWithoutAppAIConfig(t *te
 	if err != nil {
 		t.Fatalf("ListPresetVoicesForCapturedIntent: %v", err)
 	}
-	if response.GetModelResolved() != "gpt-audio" || len(response.GetVoices()) == 0 {
+	if response.GetModelResolved() != "gpt-4o-mini-tts" || len(response.GetVoices()) == 0 {
 		t.Fatalf("captured-owner voice catalog projection = %+v", response)
 	}
 }
@@ -90,7 +90,7 @@ func TestListPresetVoicesCloudDoesNotOpenSecretOrRequireRemoteHost(t *testing.T)
 	}
 	connectorService := connector.New(logger, store, nil)
 	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
-	descriptor := connectorModelDescriptorForAITest(t, connectorService, ctx, record.ConnectorID, "gpt-audio")
+	descriptor := connectorModelDescriptorForAITest(t, connectorService, ctx, record.ConnectorID, "gpt-4o-mini-tts")
 	service, err := newFromProviderConfig(logger, nil, store, Config{}, 8, 2)
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +98,7 @@ func TestListPresetVoicesCloudDoesNotOpenSecretOrRequireRemoteHost(t *testing.T)
 	service.remoteMediaHost = nil
 	commitCloudAudioSynthesizeAIConfig(t, service, "user-001", "nimi.desktop", cloudScenarioTargetRefForDescriptor(record.ConnectorID, descriptor))
 	response, err := service.ListPresetVoices(ctx, &runtimev1.ListPresetVoicesRequest{AppId: "nimi.desktop", SubjectUserId: "user-001"})
-	if err != nil || response.GetModelResolved() != "gpt-audio" {
+	if err != nil || response.GetModelResolved() != "gpt-4o-mini-tts" {
 		t.Fatalf("ListPresetVoices = %+v, %v", response, err)
 	}
 	secrets.mu.Lock()
@@ -118,12 +118,12 @@ func TestListPresetVoicesFailsClosedForMissingCloudCompositionStages(t *testing.
 	assertVoiceCatalogReason(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
 
 	validTarget, _ := structpb.NewStruct(map[string]any{
-		"provider": "openai", "providerModelId": "gpt-audio", "remoteModelCatalogId": "missing-current-account-catalog",
+		"provider": "openai", "providerModelId": "gpt-4o-mini-tts", "remoteModelCatalogId": "missing-current-account-catalog",
 	})
 	missingImplementation := &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
-			ConnectorRef: "connector:test",
+			ConnectorRef:        "connector:test",
 			ProviderModelTarget: validTarget,
 		}},
 	}

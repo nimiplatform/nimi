@@ -76,6 +76,8 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		artifacts, usage, providerJobID, err = executeDashScopeFiniteASR(ctx, cfg, request, modelID)
 	case "openai_transcriptions_adapter":
 		artifacts, usage, providerJobID, err = p.executeOpenAITranscriptions(ctx, request, modelID, target)
+	case "openai_speech_adapter":
+		artifacts, usage, providerJobID, err = p.executeOpenAISpeech(ctx, request, modelID, target)
 	case "gemini_chat_transcribe_adapter":
 		artifacts, usage, providerJobID, err = ExecuteGeminiTranscribe(ctx, cfg, request, modelID)
 	case "minimax_task_adapter":
