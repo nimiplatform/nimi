@@ -162,10 +162,13 @@
       "continuityRefused": "当前模型无法接受这段对话已保存的延续数据（{{code}}），本轮在发送前已被拒绝。可切回产生它的模型继续，或开始新对话。",
       "loadFailed": "无法读取已保存的对话：{{detail}}。开始新对话即可继续。",
       "saveFailed": "无法保存对话：{{detail}}",
+      "turnTooLarge": "这一轮共 {{size}} KiB，超过已保存对话的容量（{{limit}} KiB），因此没有保存。它只在当前页面显示，离开页面或发送下一条消息后不再保留；已保存的对话仍停在上一轮。",
+      "trimmed": "为使已保存的对话不超过 {{limit}} KiB，已移除最早的 {{messages}} 条消息。",
       "details": "Runtime 详情",
       "surface": "调用路径",
       "savedContinuity": "已保存的延续数据：{{items}} 项，{{bytes}} 字节。只保存并原样交还，不会显示。",
-      "lastRequest": "上一轮交还了 {{messages}} 条较早的消息，其中含 {{items}} 项延续数据（{{bytes}} 字节）。",
+      "lastRequest": "最近一次请求实际交还了 {{messages}} 条较早的消息，其中含 {{items}} 项延续数据（{{bytes}} 字节）。",
+      "windowOmitted": "Kit 的历史窗口没有交还更早的 {{omitted}} 条已完成消息。",
       "continuityNote": "失败或已停止的回复会保留显示，但不会交还模型。若切换到无法接受已保存延续数据的路线，下一轮会在发送前被拒绝；可开始新对话或切回原路线。"
     },
     "imageFaceSwap": {

@@ -1392,3 +1392,201 @@ test('stopping a reply closes the protected App stream and keeps the partial tex
   assert.deepEqual(result, { status: 'stopped', text: 'partial' });
   assert.ok(canceled > 0);
 });
+
+// Each protected call runs the next scripted reply; a reply may wait for the
+// test (or for its stream to be closed) before it finishes.
+function scriptedConversationAI(replies) {
+  const inputs = [];
+  const ai = {
+    text: {
+      async streamTurn(input) {
+        const reply = replies[inputs.length];
+        inputs.push(input);
+        const closed = Promise.withResolvers();
+        return Object.assign(reply(closed.promise), { cancel: async () => closed.resolve() });
+      },
+    },
+  };
+  return { ai, inputs };
+}
+
+const replyWith = (text, carrier) => async function* reply() {
+  if (carrier) yield { type: 'reasoning-continuity', sequence: '1', traceId: 'trace', itemIndex: 0, carrier };
+  yield { type: 'delta', sequence: '2', traceId: 'trace', text, itemIndex: carrier ? 1 : 0 };
+  yield { type: 'completed', sequence: '3', traceId: 'trace', finishReason: 'stop' };
+};
+
+function conversationSession(conversation, storage, ai) {
+  const states = [];
+  let turn = 0;
+  const session = conversation.createLabTextConversationController({
+    storage, ai, now: () => '2026-10-01T09:00:00.000Z', createTurnId: () => `turn-${turn += 1}`,
+    onState: (state) => states.push(state),
+  });
+  const until = async (predicate) => {
+    for (let attempt = 0; attempt < 200 && !predicate(session.getState()); attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    assert.ok(predicate(session.getState()), 'the session never reached the expected state');
+  };
+  return { session, states, until };
+}
+
+function recordingStorage() {
+  const { files, storage } = conversationStorage();
+  const writes = [];
+  let held = null;
+  return {
+    files,
+    writes,
+    hold() {
+      held = Promise.withResolvers();
+      return held.resolve;
+    },
+    storage: {
+      readJson: storage.readJson,
+      async writeJson(relativePath, value) {
+        writes.push(value.messages.map((message) => message.id));
+        const gate = held;
+        held = null;
+        await gate?.promise;
+        return storage.writeJson(relativePath, value);
+      },
+    },
+  };
+}
+
+test('starting over while a reply streams keeps that reply from returning or being saved', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const release = Promise.withResolvers();
+  const { ai } = scriptedConversationAI([
+    replyWith('Paris.'),
+    async function* reply(closed) {
+      yield { type: 'delta', sequence: '1', traceId: 'trace', text: 'partial', itemIndex: 0 };
+      await Promise.race([release.promise, closed]);
+      yield { type: 'delta', sequence: '2', traceId: 'trace', text: ' late', itemIndex: 0 };
+      yield { type: 'completed', sequence: '3', traceId: 'trace', finishReason: 'stop' };
+    },
+  ]);
+  const { files, writes, storage } = recordingStorage();
+  const { session, states, until } = conversationSession(conversation, storage, ai);
+  await session.load();
+  await session.send('Capital of France?');
+  const second = session.send('Write a long story.');
+  await until((state) => state.pending?.text === 'partial');
+
+  const startOver = session.startOver();
+  const afterStartOver = states.length;
+  release.resolve();
+  await Promise.all([second, startOver]);
+
+  assert.deepEqual(writes, [['turn-1:user', 'turn-1:assistant'], []]);
+  assert.deepEqual(JSON.parse(files.get(conversation.LAB_TEXT_CONVERSATION_PATH)).messages, []);
+  assert.deepEqual(session.getState().conversation.messages, []);
+  assert.equal(session.getState().pending, null);
+  assert.ok(states.slice(afterStartOver).every((state) => state.pending === null && state.conversation.messages.length === 0));
+});
+
+test('saves land in order: Start over after a save in flight wins, and a reopened page reads the save', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const { ai } = scriptedConversationAI([replyWith('Paris.'), replyWith('About 2.1 million.')]);
+  const { files, writes, storage, hold } = recordingStorage();
+  const { session, states, until } = conversationSession(conversation, storage, ai);
+  await session.load();
+
+  let releaseWrite = hold();
+  const first = session.send('Capital of France?');
+  await until((state) => state.saving);
+  assert.equal(session.send('And its population?'), null, 'a turn cannot start while the previous one is saving');
+  // The page closes and reopens while the save is still in flight.
+  session.dispose();
+  const reopened = conversationSession(conversation, storage, ai);
+  const reload = reopened.session.load();
+  releaseWrite();
+  await Promise.all([first, reload]);
+  assert.deepEqual(reopened.session.getState().conversation.messages.map((message) => message.id), ['turn-1:user', 'turn-1:assistant']);
+
+  releaseWrite = hold();
+  const second = reopened.session.send('And its population?');
+  await reopened.until((state) => state.saving);
+  const startOver = reopened.session.startOver();
+  const afterStartOver = reopened.states.length;
+  releaseWrite();
+  await Promise.all([second, startOver]);
+
+  assert.deepEqual(writes.map((ids) => ids.length), [2, 4, 0]);
+  assert.deepEqual(JSON.parse(files.get(conversation.LAB_TEXT_CONVERSATION_PATH)).messages, []);
+  assert.deepEqual(reopened.session.getState().saved.messages, []);
+  assert.ok(reopened.states.slice(afterStartOver).every((state) => state.conversation.messages.length === 0));
+  assert.ok(states.every((state) => state.conversation === null || state.conversation.messages.length <= 2));
+});
+
+test('a turn too large to save keeps the saved conversation and says so', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const at = '2026-10-01T08:00:00.000Z';
+  const earlier = [
+    { id: 'turn-0:user', role: 'user', text: 'Hello', createdAt: at },
+    { id: 'turn-0:assistant', role: 'assistant', text: 'Hi.', createdAt: at },
+  ];
+  // A 125 KiB reply is kept twice (the text and its ordered output), which
+  // with its continuity does not fit the 240 KiB document on its own.
+  const carrier = { kind: 'anthropic.messages.thinking', version: 1, payload: Array.from({ length: 1104 }, (_, index) => index % 256) };
+  const { ai } = scriptedConversationAI([replyWith('x'.repeat(125 * 1024), carrier), replyWith('Short.')]);
+  const { files, writes, storage } = recordingStorage();
+  files.set(conversation.LAB_TEXT_CONVERSATION_PATH, JSON.stringify({ version: 1, messages: earlier }));
+  const { session } = conversationSession(conversation, storage, ai);
+  await session.load();
+
+  await session.send('Write 125 KiB.');
+  const state = session.getState();
+  assert.deepEqual(writes, [], 'nothing is written for a turn that does not fit');
+  assert.deepEqual(JSON.parse(files.get(conversation.LAB_TEXT_CONVERSATION_PATH)).messages, earlier);
+  assert.deepEqual(state.saved.messages, earlier);
+  assert.equal(state.conversation.messages.length, 4, 'the reply stays on the page');
+  assert.equal(state.notices.length, 1);
+  assert.equal(state.notices[0].type, 'turn-too-large');
+  assert.ok(state.notices[0].bytes > conversation.LAB_TEXT_CONVERSATION_MAX_BYTES);
+  assert.throws(
+    () => conversation.boundLabTextConversation({ version: 1, messages: state.conversation.messages.slice(2) }),
+    conversation.LabTextConversationTooLargeError,
+  );
+
+  // The next turn is saved; older exchanges, including the oversized one, give way.
+  await session.send('Now something short.');
+  assert.deepEqual(JSON.parse(files.get(conversation.LAB_TEXT_CONVERSATION_PATH)).messages.map((message) => message.id), ['turn-2:user', 'turn-2:assistant']);
+  assert.deepEqual(session.getState().notices, [{ type: 'trimmed', messages: 4 }]);
+});
+
+test('the request count follows the history Kit actually returned, not the saved candidates', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const at = '2026-10-01T08:00:00.000Z';
+  const carrier = { type: 'reasoning-continuity', kind: 'anthropic.messages.thinking', version: 1, payloadBase64: 'AAECAw==' };
+  const messages = Array.from({ length: 14 }, (_, index) => [
+    { id: `old-${index}:user`, role: 'user', text: `Question ${index}`, createdAt: at },
+    {
+      id: `old-${index}:assistant`, role: 'assistant', text: `Answer ${index}`, createdAt: at,
+      ...(index === 0 || index === 13 ? { outputItems: [carrier, { type: 'text', text: `Answer ${index}` }] } : {}),
+    },
+  ]).flat();
+  const { ai, inputs } = scriptedConversationAI([
+    replyWith('Fifteen.'),
+    async function* refused() {
+      yield { type: 'failed', sequence: '1', traceId: 'trace', reasonCode: 'AI_TEXT_BEHAVIOR_UNSUPPORTED', actionHint: '' };
+    },
+  ]);
+  const { files, storage } = recordingStorage();
+  files.set(conversation.LAB_TEXT_CONVERSATION_PATH, JSON.stringify({ version: 1, messages }));
+  const { session } = conversationSession(conversation, storage, ai);
+  await session.load();
+  assert.equal(conversation.labTextConversationHistory(messages).length, 28);
+  assert.deepEqual(conversation.labTextConversationContinuity(messages), { items: 2, bytes: 8 });
+
+  await session.send('Question 14');
+  assert.equal(inputs[0].messages.length, 25);
+  assert.deepEqual(session.getState().lastRequest, { messages: 24, items: 1, bytes: 4, omitted: 4 });
+  assert.deepEqual(conversation.labTextConversationRequest(inputs[0]), { messages: 24, items: 1, bytes: 4 });
+
+  // A route refusing the returned continuity is named as such.
+  await session.send('Question 15');
+  assert.deepEqual(session.getState().notices, [{ type: 'continuity-refused', code: 'AI_TEXT_BEHAVIOR_UNSUPPORTED' }]);
+});

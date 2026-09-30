@@ -162,10 +162,13 @@
       "continuityRefused": "The selected model cannot accept the continuity data this conversation saved ({{code}}), so the turn was refused before anything was sent. Switch back to the model that produced it, or start a new conversation.",
       "loadFailed": "The saved conversation could not be read: {{detail}}. Start a new conversation to continue.",
       "saveFailed": "The conversation could not be saved: {{detail}}",
+      "turnTooLarge": "This turn is {{size}} KiB, more than a saved conversation can hold ({{limit}} KiB), so it was not saved. It is shown here but not kept after you leave this page or send the next message; the saved conversation still ends at the previous turn.",
+      "trimmed": "The oldest {{messages}} messages were removed to keep the saved conversation within {{limit}} KiB.",
       "details": "Runtime details",
       "surface": "Path",
       "savedContinuity": "Saved continuity data: {{items}} items, {{bytes}} bytes. It is stored and returned unchanged, never shown.",
-      "lastRequest": "Last request returned {{messages}} earlier messages, including {{items}} continuity items ({{bytes}} bytes).",
+      "lastRequest": "The latest request returned {{messages}} earlier messages, including {{items}} continuity items ({{bytes}} bytes).",
+      "windowOmitted": "Kit's history window left out {{omitted}} older completed messages.",
       "continuityNote": "Failed or stopped replies stay visible here but are not returned to the model. A model on a route that cannot accept the saved continuity refuses the next turn before sending it; start a new conversation or switch back."
     },
     "imageFaceSwap": {

@@ -1,4 +1,4 @@
-import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppClient, NimiLocalAppTextTurnInput } from '@nimiplatform/sdk/app';
 import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
 import type {
   ConversationAssistantOutputItem,
@@ -96,36 +96,65 @@ export function readLabTextConversationDocument(value: unknown): LabTextConversa
   return { version: 1, messages };
 }
 
-export async function loadLabTextConversation(storage: LabTextConversationStorage): Promise<LabTextConversationDocument> {
-  try {
-    return readLabTextConversationDocument((await storage.readJson(LAB_TEXT_CONVERSATION_PATH)).value);
-  } catch (error) {
-    if (isNotFound(error)) return EMPTY_LAB_TEXT_CONVERSATION;
-    throw error;
-  }
+// Reads and writes of one storage's document run in order, so a save lands
+// before a later one and a load (after the page reopens) sees every save
+// already made.
+const documentQueues = new WeakMap<LabTextConversationStorage, Promise<unknown>>();
+
+function inDocumentOrder<T>(storage: LabTextConversationStorage, task: () => Promise<T>): Promise<T> {
+  const result = (documentQueues.get(storage) ?? Promise.resolve()).then(task);
+  documentQueues.set(storage, result.catch(() => undefined));
+  return result;
+}
+
+export function loadLabTextConversation(storage: LabTextConversationStorage): Promise<LabTextConversationDocument> {
+  return inDocumentOrder(storage, async () => {
+    try {
+      return readLabTextConversationDocument((await storage.readJson(LAB_TEXT_CONVERSATION_PATH)).value);
+    } catch (error) {
+      if (isNotFound(error)) return EMPTY_LAB_TEXT_CONVERSATION;
+      throw error;
+    }
+  });
 }
 
 function documentBytes(document: LabTextConversationDocument): number {
   return new TextEncoder().encode(JSON.stringify(document)).byteLength;
 }
 
-/** Drops whole exchanges from the start until the document fits its bound. */
+/** The latest exchange alone does not fit a saved conversation. */
+export class LabTextConversationTooLargeError extends Error {
+  constructor(readonly bytes: number) {
+    super(`The latest turn needs ${bytes} bytes; a saved conversation holds at most ${LAB_TEXT_CONVERSATION_MAX_BYTES}.`);
+    this.name = 'LabTextConversationTooLargeError';
+  }
+}
+
+/**
+ * Drops whole exchanges from the start until the document fits its bound. The
+ * latest exchange is never dropped: when it alone does not fit, the document
+ * is refused rather than reduced to an empty conversation.
+ */
 export function boundLabTextConversation(document: LabTextConversationDocument): LabTextConversationDocument {
   let messages = [...document.messages];
-  while (messages.length > 0 && documentBytes({ version: 1, messages }) > LAB_TEXT_CONVERSATION_MAX_BYTES) {
+  for (let bytes = documentBytes(document); bytes > LAB_TEXT_CONVERSATION_MAX_BYTES; bytes = documentBytes({ version: 1, messages })) {
     const next = messages.findIndex((message, index) => index > 0 && message.role === 'user');
-    messages = next < 0 ? [] : messages.slice(next);
+    if (next < 0) throw new LabTextConversationTooLargeError(bytes);
+    messages = messages.slice(next);
   }
   return { version: 1, messages };
 }
 
-export async function saveLabTextConversation(
+/** Saves the bounded document; a refused document leaves the saved one unchanged. */
+export function saveLabTextConversation(
   storage: LabTextConversationStorage,
   document: LabTextConversationDocument,
 ): Promise<LabTextConversationDocument> {
-  const bounded = boundLabTextConversation(document);
-  await storage.writeJson(LAB_TEXT_CONVERSATION_PATH, JSON.parse(JSON.stringify(bounded)));
-  return bounded;
+  return inDocumentOrder(storage, async () => {
+    const bounded = boundLabTextConversation(document);
+    await storage.writeJson(LAB_TEXT_CONVERSATION_PATH, JSON.parse(JSON.stringify(bounded)));
+    return bounded;
+  });
 }
 
 /**
@@ -171,16 +200,52 @@ export function labTextConversationContinuity(
   return { items, bytes };
 }
 
+/** What one protected call carried before the new question. */
+export type LabTextConversationRequest = {
+  readonly messages: number;
+  readonly items: number;
+  readonly bytes: number;
+};
+
+/**
+ * Counts the earlier messages a protected call actually carries, after Kit
+ * chose its history window, and the opaque continuity inside them.
+ */
+export function labTextConversationRequest(input: Pick<NimiLocalAppTextTurnInput, 'messages'>): LabTextConversationRequest {
+  const earlier = input.messages.slice(0, -1).filter((message) => message.role !== 'system');
+  let items = 0;
+  let bytes = 0;
+  for (const message of earlier) {
+    for (const item of message.turnItems ?? []) {
+      if (item.type !== 'output' || item.output.type !== 'reasoning-continuity') continue;
+      items += 1;
+      bytes += item.output.carrier.payload.length;
+    }
+  }
+  return { messages: earlier.length, items, bytes };
+}
+
 export async function runLabTextConversationTurn(input: {
-  readonly ai: NimiLocalAppClient['ai'];
+  readonly ai: Pick<NimiLocalAppClient['ai'], 'text'>;
   readonly history: readonly ConversationTurnHistoryMessage[];
   readonly userText: string;
   readonly turnId: string;
   readonly signal: AbortSignal;
   readonly onText?: (text: string) => void;
+  /** Called with what the protected call carries, just before it is made. */
+  readonly onRequest?: (request: LabTextConversationRequest) => void;
 }): Promise<LabTextConversationTurn> {
+  const textClient = input.ai.text;
+  const model = createNimiLocalAppTextModel({
+    text: {
+      streamTurn: (turn) => {
+        input.onRequest?.(labTextConversationRequest(turn));
+        return textClient.streamTurn(turn);
+      },
+    },
+  });
   const provider = createSimpleAiConversationProvider({
-    runtimeAdapter: createModelConversationRuntimeAdapter({ model: createNimiLocalAppTextModel(input.ai) }),
+    runtimeAdapter: createModelConversationRuntimeAdapter({ model }),
   });
   let text = '';
   try {
@@ -211,3 +276,157 @@ export async function runLabTextConversationTurn(input: {
   }
   return { status: 'failed', text, reasonCode: 'LAB_CONVERSATION_INCOMPLETE', message: 'The turn ended without a terminal event.' };
 }
+
+export type LabTextConversationNotice =
+  | { readonly type: 'turn-failed'; readonly code: string; readonly detail: string }
+  | { readonly type: 'continuity-refused'; readonly code: string }
+  | { readonly type: 'turn-too-large'; readonly bytes: number }
+  | { readonly type: 'trimmed'; readonly messages: number }
+  | { readonly type: 'save-failed'; readonly detail: string };
+
+export type LabTextConversationState = {
+  /** What the page shows; null until the saved conversation has been read. */
+  readonly conversation: LabTextConversationDocument | null;
+  /** The document as last read or written. */
+  readonly saved: LabTextConversationDocument | null;
+  readonly loadError: string;
+  readonly pending: { readonly userText: string; readonly text: string } | null;
+  readonly saving: boolean;
+  /** The latest protected call, with the completed messages it did not return. */
+  readonly lastRequest: (LabTextConversationRequest & { readonly omitted: number }) | null;
+  readonly notices: readonly LabTextConversationNotice[];
+};
+
+export const INITIAL_LAB_TEXT_CONVERSATION_STATE: LabTextConversationState = Object.freeze({
+  conversation: null, saved: null, loadError: '', pending: null, saving: false, lastRequest: null, notices: [],
+});
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * The page's conversation session: one turn at a time, each saved before the
+ * next can start. Starting over or closing the page begins a new generation;
+ * work begun for an earlier one (a reply still streaming, a load, a save) may
+ * finish, but it no longer changes what the page shows or writes the document.
+ */
+export function createLabTextConversationController(input: {
+  readonly storage: LabTextConversationStorage;
+  readonly ai: Pick<NimiLocalAppClient['ai'], 'text'>;
+  readonly now: () => string;
+  readonly createTurnId: () => string;
+  readonly onState: (state: LabTextConversationState) => void;
+}) {
+  let state = INITIAL_LAB_TEXT_CONVERSATION_STATE;
+  let generation = 0;
+  let turn: AbortController | null = null;
+  const set = (patch: Partial<LabTextConversationState>) => {
+    state = { ...state, ...patch };
+    input.onState(state);
+  };
+
+  const save = async (
+    current: number,
+    next: LabTextConversationDocument,
+    notices: readonly LabTextConversationNotice[],
+    patch: Partial<LabTextConversationState> = {},
+  ) => {
+    set({ ...patch, conversation: next, saving: true, notices });
+    try {
+      const saved = await saveLabTextConversation(input.storage, next);
+      if (current !== generation) return;
+      const trimmed = next.messages.length - saved.messages.length;
+      set({ conversation: saved, saved, saving: false, notices: trimmed > 0 ? [...notices, { type: 'trimmed', messages: trimmed }] : notices });
+    } catch (error) {
+      if (current !== generation) return;
+      // The reply stays on the page; the saved conversation is unchanged.
+      set({
+        saving: false,
+        notices: [...notices, error instanceof LabTextConversationTooLargeError
+          ? { type: 'turn-too-large', bytes: error.bytes }
+          : { type: 'save-failed', detail: errorText(error) }],
+      });
+    }
+  };
+
+  const run = async (current: number, conversation: LabTextConversationDocument, userText: string) => {
+    const history = labTextConversationHistory(conversation.messages);
+    const turnId = input.createTurnId();
+    const question: LabTextConversationMessage = { id: `${turnId}:user`, role: 'user', text: userText, createdAt: input.now() };
+    const controller = new AbortController();
+    const sent: { request: LabTextConversationRequest | null } = { request: null };
+    turn = controller;
+    set({ pending: { userText, text: '' }, lastRequest: null, notices: [] });
+    const result = await runLabTextConversationTurn({
+      ai: input.ai,
+      history,
+      userText,
+      turnId,
+      signal: controller.signal,
+      onText: (text) => { if (current === generation) set({ pending: { userText, text } }); },
+      onRequest: (request) => {
+        sent.request = request;
+        if (current === generation) set({ lastRequest: { ...request, omitted: history.length - request.messages } });
+      },
+    });
+    if (turn === controller) turn = null;
+    if (current !== generation) return;
+    const answer: LabTextConversationMessage = {
+      id: `${turnId}:assistant`,
+      role: 'assistant',
+      text: result.text,
+      createdAt: input.now(),
+      ...(result.status === 'completed'
+        ? (result.outputItems ? { outputItems: result.outputItems } : {})
+        : { status: result.status, ...(result.status === 'failed' ? { reasonCode: result.reasonCode } : {}) }),
+    };
+    const notices: LabTextConversationNotice[] = [];
+    if (result.status === 'failed') {
+      // Runtime refuses continuity the selected route cannot accept before
+      // anything is sent to a model.
+      const refusedContinuity = (sent.request?.items ?? 0) > 0
+        && ['AI_TEXT_BEHAVIOR_UNSUPPORTED', 'AI_INPUT_INVALID'].includes(result.reasonCode.replaceAll('-', '_').toUpperCase());
+      notices.push(refusedContinuity
+        ? { type: 'continuity-refused', code: result.reasonCode }
+        : { type: 'turn-failed', code: result.reasonCode, detail: result.message });
+    }
+    await save(current, { version: 1, messages: [...conversation.messages, question, answer] }, notices, { pending: null });
+  };
+
+  return {
+    getState: () => state,
+    async load(): Promise<void> {
+      const current = generation;
+      try {
+        const document = await loadLabTextConversation(input.storage);
+        if (current === generation) set({ conversation: document, saved: document });
+      } catch (error) {
+        if (current === generation) set({ conversation: EMPTY_LAB_TEXT_CONVERSATION, loadError: errorText(error) });
+      }
+    },
+    /** Starts a turn, or returns null while another turn runs or saves. */
+    send(userText: string): Promise<void> | null {
+      const text = userText.trim();
+      const conversation = state.conversation;
+      if (!text || !conversation || state.pending || state.saving || state.loadError) return null;
+      return run(generation, conversation, text);
+    },
+    stop(): void {
+      turn?.abort();
+    },
+    startOver(): Promise<void> {
+      generation += 1;
+      turn?.abort();
+      turn = null;
+      return save(generation, EMPTY_LAB_TEXT_CONVERSATION, [], { loadError: '', pending: null, lastRequest: null });
+    },
+    dispose(): void {
+      generation += 1;
+      turn?.abort();
+      turn = null;
+    },
+  };
+}
+
+export type LabTextConversationController = ReturnType<typeof createLabTextConversationController>;

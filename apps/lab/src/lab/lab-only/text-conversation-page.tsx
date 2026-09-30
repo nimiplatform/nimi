@@ -17,25 +17,18 @@ import { useTranslation } from '../../shell/i18n/index.js';
 import { LabAIStudioAdapter } from '../lab-ai-studio-adapter.js';
 import { labTextConversationCapability } from './capability-test-registrations.js';
 import {
-  EMPTY_LAB_TEXT_CONVERSATION,
+  INITIAL_LAB_TEXT_CONVERSATION_STATE,
+  LAB_TEXT_CONVERSATION_MAX_BYTES,
+  createLabTextConversationController,
   labTextConversationContinuity,
-  labTextConversationHistory,
-  loadLabTextConversation,
-  runLabTextConversationTurn,
-  saveLabTextConversation,
-  type LabTextConversationDocument,
-  type LabTextConversationMessage,
+  type LabTextConversationController,
+  type LabTextConversationNotice,
+  type LabTextConversationState,
 } from './text-conversation.js';
 
 const LabAiConfigSettingsPanel = lazy(async () => ({
   default: (await import('../workbench/lab-ai-config-settings-panel.js')).LabAiConfigSettingsPanel,
 }));
-
-type LastRequest = { readonly messages: number; readonly items: number; readonly bytes: number };
-
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 export function LabTextConversationPage(props: { readonly runtime: StudioRuntimeInspection | null }) {
   return (
@@ -45,103 +38,55 @@ export function LabTextConversationPage(props: { readonly runtime: StudioRuntime
   );
 }
 
+const kib = (bytes: number) => Math.ceil(bytes / 1024);
+
 function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRuntimeInspection | null }) {
   const rendererHost = useLabRendererHost();
   const { t } = useTranslation();
   const registration = labTextConversationCapability;
   const runTarget = useStudioRunTargetSummary(registration, runtime);
   const client = rendererHost.sdk.localAppClient;
-  const [conversation, setConversation] = useState<LabTextConversationDocument | null>(null);
-  const [loadError, setLoadError] = useState('');
-  const [notice, setNotice] = useState('');
+  const clock = rendererHost.clock;
+  const [session, setSession] = useState<LabTextConversationController | null>(null);
+  const [state, setState] = useState<LabTextConversationState>(INITIAL_LAB_TEXT_CONVERSATION_STATE);
   const [draft, setDraft] = useState('');
-  const [pending, setPending] = useState<{ readonly userText: string; readonly text: string } | null>(null);
-  const [lastRequest, setLastRequest] = useState<LastRequest | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let active = true;
-    loadLabTextConversation(client.storage).then(
-      (document) => { if (active) setConversation(document); },
-      (error: unknown) => {
-        if (!active) return;
-        setLoadError(errorText(error));
-        setConversation(EMPTY_LAB_TEXT_CONVERSATION);
-      },
-    );
-    return () => {
-      active = false;
-      abortRef.current?.abort();
-    };
-  }, [client]);
-
-  const now = () => new Date(rendererHost.clock.now()).toISOString();
-
-  const save = async (next: LabTextConversationDocument) => {
-    try {
-      setConversation(await saveLabTextConversation(client.storage, next));
-    } catch (error) {
-      setConversation(next);
-      setNotice(t('CapabilityTests.textConversation.saveFailed', { detail: errorText(error) }));
-    }
-  };
-
-  const send = async () => {
-    const userText = draft.trim();
-    if (!userText || !conversation || pending || loadError || !runTarget.canDispatch) return;
-    const history = labTextConversationHistory(conversation.messages);
-    const returned = labTextConversationContinuity(history);
-    setLastRequest({ messages: history.length, ...returned });
-    const turnId = createNimiClientId('lab-conversation');
-    const question: LabTextConversationMessage = { id: `${turnId}:user`, role: 'user', text: userText, createdAt: now() };
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setDraft('');
-    setNotice('');
-    setPending({ userText, text: '' });
-    const turn = await runLabTextConversationTurn({
+    const controller = createLabTextConversationController({
+      storage: client.storage,
       ai: client.ai,
-      history,
-      userText,
-      turnId,
-      signal: controller.signal,
-      onText: (text) => setPending({ userText, text }),
+      now: () => new Date(clock.now()).toISOString(),
+      createTurnId: () => createNimiClientId('lab-conversation'),
+      onState: setState,
     });
-    abortRef.current = null;
-    const answer: LabTextConversationMessage = {
-      id: `${turnId}:assistant`,
-      role: 'assistant',
-      text: turn.text,
-      createdAt: now(),
-      ...(turn.status === 'completed'
-        ? (turn.outputItems ? { outputItems: turn.outputItems } : {})
-        : { status: turn.status, ...(turn.status === 'failed' ? { reasonCode: turn.reasonCode } : {}) }),
-    };
-    if (turn.status === 'failed') {
-      // Runtime refuses continuity the selected route cannot accept before
-      // anything is sent; the saved conversation stays as it was.
-      const refusedContinuity = returned.items > 0
-        && ['AI_TEXT_BEHAVIOR_UNSUPPORTED', 'AI_INPUT_INVALID'].includes(turn.reasonCode.replaceAll('-', '_').toUpperCase());
-      setNotice(refusedContinuity
-        ? t('CapabilityTests.textConversation.continuityRefused', { code: turn.reasonCode })
-        : t('CapabilityTests.textConversation.turnFailed', { code: turn.reasonCode, detail: turn.message }));
-    }
-    setPending(null);
-    await save({ version: 1, messages: [...conversation.messages, question, answer] });
-  };
+    setSession(controller);
+    setState(controller.getState());
+    void controller.load();
+    // Closing the page stops a reply still streaming; it is not saved.
+    return () => controller.dispose();
+  }, [client, clock]);
 
-  const startOver = async () => {
-    abortRef.current?.abort();
-    setLoadError('');
-    setNotice('');
-    setLastRequest(null);
-    await save(EMPTY_LAB_TEXT_CONVERSATION);
-  };
-
+  const { conversation, pending, saving, loadError, lastRequest, notices } = state;
+  const busy = !!pending || saving;
   const messages = conversation?.messages ?? [];
-  const saved = labTextConversationContinuity(messages);
+  const saved = labTextConversationContinuity(state.saved?.messages ?? []);
+
+  const send = () => {
+    if (!runTarget.canDispatch || !session?.send(draft)) return;
+    setDraft('');
+  };
+
+  const noticeText = (notice: LabTextConversationNotice) => {
+    switch (notice.type) {
+      case 'turn-failed': return t('CapabilityTests.textConversation.turnFailed', { code: notice.code, detail: notice.detail });
+      case 'continuity-refused': return t('CapabilityTests.textConversation.continuityRefused', { code: notice.code });
+      case 'turn-too-large': return t('CapabilityTests.textConversation.turnTooLarge', { size: kib(notice.bytes), limit: kib(LAB_TEXT_CONVERSATION_MAX_BYTES) });
+      case 'trimmed': return t('CapabilityTests.textConversation.trimmed', { messages: notice.messages, limit: kib(LAB_TEXT_CONVERSATION_MAX_BYTES) });
+      case 'save-failed': return t('CapabilityTests.textConversation.saveFailed', { detail: notice.detail });
+    }
+  };
 
   return (
     <div ref={rootRef} className="lab-realtime lab-conversation" data-testid="lab-text-conversation">
@@ -198,25 +143,27 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
         <TextareaField
           rows={3}
           value={draft}
-          disabled={!!pending || conversation === null || !!loadError}
+          disabled={busy || conversation === null || !!loadError}
           placeholder={t('CapabilityTests.textConversation.placeholder')}
           aria-label={t('CapabilityTests.textConversation.composer')}
           onChange={(event) => setDraft(event.currentTarget.value)}
         />
         <div className="lab-realtime__row">
           <Button type="button" size="sm" tone="primary"
-            disabled={!draft.trim() || !!pending || conversation === null || !!loadError || !runTarget.canDispatch}
-            onClick={() => void send()}>
+            disabled={!draft.trim() || busy || conversation === null || !!loadError || !runTarget.canDispatch}
+            onClick={send}>
             {t('CapabilityTests.textConversation.send')}
           </Button>
-          <Button type="button" size="sm" tone="secondary" disabled={!pending} onClick={() => abortRef.current?.abort()}>
+          <Button type="button" size="sm" tone="secondary" disabled={!pending} onClick={() => session?.stop()}>
             {t('CapabilityTests.textConversation.stop')}
           </Button>
-          <Button type="button" size="sm" tone="ghost" disabled={conversation === null} onClick={() => void startOver()}>
+          <Button type="button" size="sm" tone="ghost" disabled={conversation === null} onClick={() => void session?.startOver()}>
             {t('CapabilityTests.textConversation.startOver')}
           </Button>
         </div>
-        {notice ? <InlineAlert tone="warning">{notice}</InlineAlert> : null}
+        {notices.map((notice) => (
+          <InlineAlert key={notice.type} tone={notice.type === 'trimmed' ? 'info' : 'warning'}>{noticeText(notice)}</InlineAlert>
+        ))}
       </section>
 
       <details className="lab-realtime__card">
@@ -226,6 +173,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
         {lastRequest ? (
           <p className="lab-realtime__meta" data-testid="lab-text-conversation-last-request">
             {t('CapabilityTests.textConversation.lastRequest', lastRequest)}
+            {lastRequest.omitted > 0 ? ` ${t('CapabilityTests.textConversation.windowOmitted', { omitted: lastRequest.omitted })}` : ''}
           </p>
         ) : null}
         <p className="lab-realtime__meta">{t('CapabilityTests.textConversation.continuityNote')}</p>
