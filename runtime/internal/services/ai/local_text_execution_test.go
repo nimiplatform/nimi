@@ -393,12 +393,22 @@ func TestLocalTextExecutionFailureReasonsRemainDistinct(t *testing.T) {
 		{localexecution.FailureTextOutputIncomplete, runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE},
 		{localexecution.FailureTextOutputInvalid, runtimev1.ReasonCode_AI_OUTPUT_INVALID},
 		{localexecution.FailureToolCallInvalid, runtimev1.ReasonCode_AI_TOOL_CALL_INVALID},
+		{localexecution.FailureInputLimit, runtimev1.ReasonCode_AI_INPUT_LIMIT_EXCEEDED},
 	}
 	for _, test := range tests {
 		err := localTextExecutionError(&localexecution.ExecutionError{Kind: test.kind, Err: fmt.Errorf("failure")})
 		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != test.reason {
 			t.Fatalf("%s error = %v, reason=%v ok=%v", test.kind, err, reason, ok)
 		}
+	}
+	// A request the loaded context cannot hold is the caller's to shorten, not
+	// a failure a retry clears.
+	limitErr := localTextExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureInputLimit, Err: fmt.Errorf("the request needs 374 tokens; the loaded local model context holds 256")})
+	if status.Code(limitErr) != codes.InvalidArgument || !strings.Contains(limitErr.Error(), "needs 374 tokens") {
+		t.Fatalf("input limit error = %v code=%v", limitErr, status.Code(limitErr))
+	}
+	if metadata, ok := grpcerr.ExtractReasonMetadata(limitErr); !ok || metadata["retryable"] != "false" || metadata["action_hint"] != "shorten_input_or_choose_a_larger_context" {
+		t.Fatalf("input limit metadata = %v", metadata)
 	}
 	continuityCause := grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
 	continuityErr := localTextExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureTextOutputInvalid, Err: continuityCause})

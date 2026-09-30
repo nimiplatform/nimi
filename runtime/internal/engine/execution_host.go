@@ -299,6 +299,9 @@ func (h *ExecutionHost) execute(
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, maxLlamaInvocationErrorBody))
+		if limit := llamaContextLimitFailure(response.StatusCode, body); limit != nil {
+			return localexecution.TextResult{}, limit
+		}
 		return localexecution.TextResult{}, h.inferenceFailure(ctx, fmt.Errorf("llama inference HTTP %d: %s", response.StatusCode, strings.TrimSpace(string(body))))
 	}
 	if plan.BehaviorAdapterCapture() != nil {
@@ -668,6 +671,31 @@ func (h *ExecutionHost) textBehaviorInferenceFailure(ctx context.Context, err er
 		}
 	}
 	return h.inferenceFailure(ctx, err)
+}
+
+// llamaContextLimitFailure recognizes llama-server's refusal of a prompt larger
+// than its loaded context. Context shift stays off, so the server refuses the
+// request instead of truncating it; the refusal is the request's own limit, not
+// an inference failure a retry could clear.
+func llamaContextLimitFailure(status int, body []byte) error {
+	if status != http.StatusBadRequest {
+		return nil
+	}
+	var payload struct {
+		Error struct {
+			Type          string `json:"type"`
+			PromptTokens  int64  `json:"n_prompt_tokens"`
+			ContextTokens int64  `json:"n_ctx"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(body, &payload) != nil || payload.Error.Type != "exceed_context_size_error" ||
+		payload.Error.PromptTokens <= 0 || payload.Error.ContextTokens <= 0 {
+		return nil
+	}
+	return executionFailure(localexecution.FailureInputLimit, fmt.Errorf(
+		"the request needs %d tokens; the loaded local model context holds %d",
+		payload.Error.PromptTokens, payload.Error.ContextTokens,
+	))
 }
 
 func executionFailure(kind localexecution.FailureKind, err error) error {

@@ -637,6 +637,15 @@ func localExecutionError(err error) error {
 		options.ActionHint = "reduce_local_execution_memory_requirement"
 		options.Retryable = &retryable
 		return grpcerr.WrapWithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_OUT_OF_MEMORY, err, options)
+	case localexecution.FailureInputLimit:
+		options.ActionHint = "shorten_input_or_choose_a_larger_context"
+		options.Retryable = &retryable
+		// The Host's token counts tell the caller how much to shorten.
+		var executionErr *localexecution.ExecutionError
+		if errors.As(err, &executionErr) && executionErr.Err != nil {
+			options.Message = executionErr.Err.Error()
+		}
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_LIMIT_EXCEEDED, err, options)
 	case localexecution.FailureTextOutputIncomplete:
 		options.ActionHint = "increase_text_output_or_reasoning_budget"
 		options.Retryable = &retryable

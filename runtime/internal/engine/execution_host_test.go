@@ -558,6 +558,36 @@ func TestExecutionHostRejectsAdapterHiddenReasoningWithoutPublicOutputAsTypedInc
 	}
 }
 
+func TestExecutionHostClassifiesContextOverflowAsInputLimit(t *testing.T) {
+	// The body pinned llama-server b8645 returns for a prompt larger than its
+	// loaded context (context shift off).
+	const overflow = `{"error":{"code":400,"message":"request (374 tokens) exceeds the available context size (256 tokens), try increasing it","type":"exceed_context_size_error","n_prompt_tokens":374,"n_ctx":256}}`
+	body := overflow
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(body))
+	}))
+	defer server.Close()
+	host := newExecutionHostWithSubstrate(&fakeLlamaInvocationSubstrate{endpoint: server.URL, healthy: true}, server.Client())
+
+	_, err := host.ExecuteText(context.Background(), llamaInvocationPlanForHostTest(t, "overflow", nil, false), nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureInputLimit || !strings.Contains(err.Error(), "needs 374 tokens") || !strings.Contains(err.Error(), "holds 256") {
+		t.Fatalf("sync overflow = %v kind=%q", err, localexecution.FailureKindOf(err))
+	}
+	_, err = host.StreamText(context.Background(), llamaInvocationPlanForHostTest(t, "overflow-stream", nil, true), func(localexecution.TextDelta) error { return nil }, nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureInputLimit {
+		t.Fatalf("stream overflow = %v kind=%q", err, localexecution.FailureKindOf(err))
+	}
+
+	// Any other refusal stays an inference failure.
+	body = `{"error":{"code":400,"message":"invalid grammar","type":"invalid_request_error"}}`
+	_, err = host.ExecuteText(context.Background(), llamaInvocationPlanForHostTest(t, "other-400", nil, false), nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureInference {
+		t.Fatalf("other refusal = %v kind=%q", err, localexecution.FailureKindOf(err))
+	}
+}
+
 func TestExecutionHostExecutesCapturedEmbeddingPlan(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/embeddings" {

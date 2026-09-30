@@ -87,6 +87,9 @@ func TestConversationSummaryStreamFailurePreservesTypedAttemptClass(t *testing.T
 		{name: "provider timeout", reason: runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, want: "unavailable"},
 		{name: "provider quota", reason: runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, want: "unavailable"},
 		{name: "invalid output", reason: runtimev1.ReasonCode_AI_OUTPUT_INVALID, want: "failed"},
+		// A summary input the model's context cannot hold does not fit on the
+		// next attempt either; the prior valid summary stays in place.
+		{name: "input exceeds the model context", reason: runtimev1.ReasonCode_AI_INPUT_LIMIT_EXCEEDED, want: "failed"},
 		{name: "invalid protocol", reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, want: "failed"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {

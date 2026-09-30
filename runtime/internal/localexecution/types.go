@@ -355,6 +355,9 @@ const (
 	FailureTextOutputIncomplete FailureKind = "text_output_incomplete"
 	FailureTextOutputInvalid    FailureKind = "text_output_invalid"
 	FailureToolCallInvalid      FailureKind = "tool_call_invalid"
+	// FailureInputLimit is a request the loaded model's context cannot hold;
+	// the Host refused it before generating anything.
+	FailureInputLimit FailureKind = "input_limit"
 )
 
 // ExecutionError preserves the private failure phase so service boundaries can

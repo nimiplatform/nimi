@@ -18,9 +18,9 @@ const (
 	// The sweep runs due hooks one at a time, so this bounds how long one life
 	// turn can hold it. A life-turn-shaped request to Claude Opus 5.5 took
 	// 10–14 s end to end on a proxied connection, past the former 10 s.
-	lifeTurnTimeoutMs = 30_000
-	lifeTurnRecallLimit     = 8
-	lifeTurnExecutorAppID   = "runtime.agent.internal.life_track"
+	lifeTurnTimeoutMs     = 30_000
+	lifeTurnRecallLimit   = 8
+	lifeTurnExecutorAppID = "runtime.agent.internal.life_track"
 )
 
 type lifeTurnRequest struct {

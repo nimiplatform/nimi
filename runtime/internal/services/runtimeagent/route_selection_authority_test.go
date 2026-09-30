@@ -8,6 +8,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
 
 // committedConfigTestBinding is the committed Runtime Agent AI Config
@@ -104,6 +106,29 @@ func TestAIBackedLifeTrackExecutorPreservesUsageWhenHookOutputIsInvalid(t *testi
 	}
 	if decision.tokensUsed != 18 {
 		t.Fatalf("invalid model output must retain measured usage, got %d", decision.tokensUsed)
+	}
+}
+
+func TestAIBackedLifeTrackExecutorReportsContextOverflowAsTypedFailure(t *testing.T) {
+	t.Parallel()
+
+	// A Local model whose context cannot hold the life-turn request refuses it
+	// before generating; the hook fails with that typed reason, not retryably.
+	fakeAI := &fakeLifeTurnAI{err: grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_LIMIT_EXCEEDED)}
+	result, err := NewAIBackedLifeTrackExecutor(fakeAI).ExecuteLifeTrackHook(context.Background(), &lifeTurnRequest{
+		Agent:            &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-route"},
+		State:            &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
+		Hook:             &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-route"}},
+		ExecutionBinding: committedConfigTestBinding,
+	})
+	var executionErr *lifeTurnExecutionError
+	if result != nil || !errors.As(err, &executionErr) {
+		t.Fatalf("expected a failed life turn, got result=%+v, err=%v", result, err)
+	}
+	decision := executionErr.decision()
+	if decision.admissionState != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED ||
+		decision.reasonCode != runtimev1.ReasonCode_AI_INPUT_LIMIT_EXCEEDED || decision.retryable {
+		t.Fatalf("context overflow decision = %+v", decision)
 	}
 }
 
