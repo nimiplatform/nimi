@@ -216,6 +216,41 @@ func TestBackendEmbedUsesOpenAICompatiblePathResolver(t *testing.T) {
 	}
 }
 
+func TestBackendEmbedPlacesVectorsByProviderIndex(t *testing.T) {
+	respond := func(data []map[string]any) *httptest.Server {
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": data, "usage": map[string]any{"prompt_tokens": 4, "total_tokens": 4}})
+		}))
+	}
+	// Items arrive out of input order; each vector goes to the input it names.
+	server := respond([]map[string]any{
+		{"index": 1, "embedding": []float64{0.2}},
+		{"index": 0, "embedding": []float64{0.1}},
+	})
+	defer server.Close()
+	vectors, _, err := NewBackend("cloud-openai", server.URL+"/v1", "", time.Second).Embed(context.Background(), "text-embedding-3-small", []string{"first", "second"})
+	if err != nil {
+		t.Fatalf("Embed: %v", err)
+	}
+	if len(vectors) != 2 || vectors[0].GetValues()[0].GetNumberValue() != 0.1 || vectors[1].GetValues()[0].GetNumberValue() != 0.2 {
+		t.Fatalf("vectors were not placed by index: %v", vectors)
+	}
+
+	for name, data := range map[string][]map[string]any{
+		"duplicate index":    {{"index": 0, "embedding": []float64{0.1}}, {"index": 0, "embedding": []float64{0.2}}},
+		"index out of range": {{"index": 0, "embedding": []float64{0.1}}, {"index": 2, "embedding": []float64{0.2}}},
+		"missing vector":     {{"index": 0, "embedding": []float64{0.1}}},
+	} {
+		bad := respond(data)
+		_, _, err := NewBackend("cloud-openai", bad.URL+"/v1", "", time.Second).Embed(context.Background(), "text-embedding-3-small", []string{"first", "second"})
+		bad.Close()
+		if err == nil {
+			t.Fatalf("%s: a response that does not map one vector to each input was accepted", name)
+		}
+	}
+}
+
 func TestBackendGenerateVideoForwardsScenarioExtensions(t *testing.T) {
 	var captured map[string]any
 

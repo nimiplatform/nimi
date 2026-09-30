@@ -47,6 +47,7 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([
 	}
 	type embeddingsResponse struct {
 		Data []struct {
+			Index     *int      `json:"index"`
 			Embedding []float64 `json:"embedding"`
 		} `json:"data"`
 		Usage struct {
@@ -74,17 +75,26 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([
 	}, &respBody); err != nil {
 		return nil, nil, err
 	}
-	if len(respBody.Data) == 0 {
+	if len(respBody.Data) == 0 || len(respBody.Data) != len(reqInputs) {
 		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
-	vectors := make([]*structpb.ListValue, 0, len(respBody.Data))
-	for _, item := range respBody.Data {
+	// Each item names the input it embeds; providers need not return them in
+	// input order. An item without an index keeps its position.
+	vectors := make([]*structpb.ListValue, len(respBody.Data))
+	for position, item := range respBody.Data {
+		index := position
+		if item.Index != nil {
+			index = *item.Index
+		}
+		if index < 0 || index >= len(vectors) || vectors[index] != nil {
+			return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
 		values := make([]*structpb.Value, 0, len(item.Embedding))
 		for _, value := range item.Embedding {
 			values = append(values, structpb.NewNumberValue(value))
 		}
-		vectors = append(vectors, &structpb.ListValue{Values: values})
+		vectors[index] = &structpb.ListValue{Values: values}
 	}
 
 	usage := &runtimev1.UsageStats{
