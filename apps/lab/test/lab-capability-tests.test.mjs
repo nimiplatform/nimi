@@ -33,6 +33,7 @@ function buildModules() {
     'src/lab/lab-only/video-face-swap-session.ts',
     'src/lab/lab-only/ai-realtime-session.ts',
     'src/lab/lab-only/ai-realtime-recording.ts',
+    'src/lab/lab-only/text-conversation.ts',
   ], { cwd: root, stdio: 'pipe' });
   return buildDir;
 }
@@ -1240,4 +1241,154 @@ test('Local-only Lab entries keep their inputs out of a Cloud request and presen
     assert.ok(contract.presentation('cloud').every((item) => item.state === 'disabled' && item.unavailableBecause === 'route'));
     assert.ok(contract.presentation('local').every((item) => item.state === 'enabled'));
   }
+});
+
+// A protected App text namespace that answers each turn with the given Local
+// App stream events and records what it was sent.
+function conversationTextAI(turns) {
+  const inputs = [];
+  const ai = {
+    text: {
+      async streamTurn(input) {
+        const events = turns[inputs.length] ?? [];
+        inputs.push(input);
+        return Object.assign((async function* stream() { yield* events; })(), { cancel: async () => {} });
+      },
+    },
+  };
+  return { ai, inputs };
+}
+
+function conversationStorage() {
+  const files = new Map();
+  return {
+    files,
+    storage: {
+      async readJson(relativePath) {
+        if (!files.has(relativePath)) {
+          throw Object.assign(new Error('missing'), { reasonCode: 'APP_STORAGE_ENTRY_NOT_FOUND' });
+        }
+        return { value: JSON.parse(files.get(relativePath)) };
+      },
+      async writeJson(relativePath, value) {
+        files.set(relativePath, JSON.stringify(value));
+        return {};
+      },
+    },
+  };
+}
+
+test('a conversation keeps each reply with its continuity across a reload and returns it on the next turn', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const carrier = { kind: 'anthropic.messages.thinking', version: 1, payload: [1, 2, 3, 4] };
+  const { ai, inputs } = conversationTextAI([
+    [
+      { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-1', itemIndex: 0, carrier },
+      { type: 'delta', sequence: '2', traceId: 'trace-1', text: 'Paris.', itemIndex: 1 },
+      { type: 'completed', sequence: '3', traceId: 'trace-1', finishReason: 'stop' },
+    ],
+    [
+      { type: 'delta', sequence: '1', traceId: 'trace-2', text: 'About 2.1 million.', itemIndex: 0 },
+      { type: 'completed', sequence: '2', traceId: 'trace-2', finishReason: 'stop' },
+    ],
+  ]);
+  const { storage } = conversationStorage();
+  const empty = await conversation.loadLabTextConversation(storage);
+  assert.deepEqual(empty.messages, []);
+
+  const first = await conversation.runLabTextConversationTurn({
+    ai, history: conversation.labTextConversationHistory(empty.messages), userText: 'Capital of France?',
+    turnId: 'turn-1', signal: new AbortController().signal,
+  });
+  assert.equal(first.status, 'completed');
+  assert.equal(first.text, 'Paris.');
+  await conversation.saveLabTextConversation(storage, {
+    version: 1,
+    messages: [
+      { id: 'turn-1:user', role: 'user', text: 'Capital of France?', createdAt: '2026-09-30T12:00:00.000Z' },
+      { id: 'turn-1:assistant', role: 'assistant', text: first.text, createdAt: '2026-09-30T12:00:02.000Z', outputItems: first.outputItems },
+    ],
+  });
+
+  // A renderer reload reads the App document back before the next turn.
+  const reloaded = await conversation.loadLabTextConversation(storage);
+  const history = conversation.labTextConversationHistory(reloaded.messages);
+  assert.deepEqual(conversation.labTextConversationContinuity(history), { items: 1, bytes: 4 });
+  const second = await conversation.runLabTextConversationTurn({
+    ai, history, userText: 'Population?', turnId: 'turn-2', signal: new AbortController().signal,
+  });
+  assert.equal(second.status, 'completed');
+  assert.equal(second.text, 'About 2.1 million.');
+  assert.equal(second.outputItems, undefined);
+  assert.deepEqual(inputs[1].messages, [
+    { role: 'user', text: 'Capital of France?' },
+    {
+      role: 'assistant',
+      text: '',
+      turnItems: [
+        { type: 'output', output: { type: 'reasoning-continuity', carrier } },
+        { type: 'output', output: { type: 'text', text: 'Paris.' } },
+      ],
+    },
+    { role: 'user', text: 'Population?' },
+  ]);
+});
+
+test('a conversation returns only completed exchanges and refuses a damaged document', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const at = '2026-09-30T12:00:00.000Z';
+  const messages = [
+    { id: 'a', role: 'user', text: 'one', createdAt: at },
+    { id: 'b', role: 'assistant', text: 'partial', createdAt: at, status: 'stopped' },
+    { id: 'c', role: 'user', text: 'two', createdAt: at },
+    { id: 'd', role: 'assistant', text: '', createdAt: at, status: 'failed', reasonCode: 'AI_PROVIDER_UNAVAILABLE' },
+    { id: 'e', role: 'user', text: 'three', createdAt: at },
+    { id: 'f', role: 'assistant', text: 'done', createdAt: at },
+  ];
+  assert.deepEqual(conversation.labTextConversationHistory(messages).map((message) => message.id), ['e', 'f']);
+  assert.deepEqual(conversation.readLabTextConversationDocument({ version: 1, messages }).messages, messages);
+  assert.throws(() => conversation.readLabTextConversationDocument({ version: 2, messages: [] }), /invalid/u);
+  assert.throws(() => conversation.readLabTextConversationDocument({
+    version: 1,
+    messages: [{ id: 'x', role: 'user', text: 'hi', createdAt: at, outputItems: [{ type: 'text', text: 'hi' }] }],
+  }), /outputItems/u);
+
+  const long = 'x'.repeat(50_000);
+  const oversized = {
+    version: 1,
+    messages: Array.from({ length: 12 }, (_, index) => ({ id: String(index), role: index % 2 ? 'assistant' : 'user', text: long, createdAt: at })),
+  };
+  const bounded = conversation.boundLabTextConversation(oversized);
+  assert.ok(Buffer.byteLength(JSON.stringify(bounded)) <= conversation.LAB_TEXT_CONVERSATION_MAX_BYTES);
+  assert.equal(bounded.messages[0].role, 'user');
+  assert.deepEqual(bounded.messages.at(-1), oversized.messages.at(-1));
+});
+
+test('stopping a reply closes the protected App stream and keeps the partial text as stopped', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  let release = () => {};
+  const released = new Promise((resolve) => { release = resolve; });
+  let canceled = 0;
+  const ai = {
+    text: {
+      async streamTurn() {
+        return Object.assign((async function* stream() {
+          yield { type: 'delta', sequence: '1', traceId: 'trace-stop', text: 'partial', itemIndex: 0 };
+          await released;
+        })(), {
+          cancel: async () => {
+            canceled += 1;
+            release();
+          },
+        });
+      },
+    },
+  };
+  const controller = new AbortController();
+  const result = await conversation.runLabTextConversationTurn({
+    ai, history: [], userText: 'Write a long story.', turnId: 'turn-stop', signal: controller.signal,
+    onText: () => controller.abort(),
+  });
+  assert.deepEqual(result, { status: 'stopped', text: 'partial' });
+  assert.ok(canceled > 0);
 });

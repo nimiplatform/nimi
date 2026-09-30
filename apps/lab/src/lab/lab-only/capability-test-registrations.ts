@@ -1,4 +1,4 @@
-import { AudioWaveform, Braces, Clapperboard, ListChecks, ScanFace, Wrench } from 'lucide-react';
+import { AudioWaveform, Braces, Clapperboard, ListChecks, MessagesSquare, ScanFace, Wrench } from 'lucide-react';
 import type { StudioCapabilityRegistration } from '../../ai-studio-core/module-registration.js';
 import { EMPTY_STUDIO_PARAMETERS } from '../../ai-studio-core/parameters.js';
 import {
@@ -11,6 +11,7 @@ import {
   labAiRealtimeDescriptor,
   labImageFaceSwapDescriptor,
   labTextAnnotateDescriptor,
+  labTextConversationDescriptor,
   labTextDecideDescriptor,
   labTextToolsDescriptor,
   labVideoFaceSwapDescriptor,
@@ -63,6 +64,19 @@ export const labTextDecideCapability = Object.freeze({
   parameterPanel: LabTextDecideParameterPanel,
 } as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
 
+// Multi-turn conversation has its own Lab page; the registration supplies its
+// navigation and the text.generate AIConfig it runs on.
+export const labTextConversationCapability = Object.freeze({
+  descriptor: labTextConversationDescriptor,
+  icon: MessagesSquare,
+  profile: {
+    studioTag: 'Conversation', inputTitleKey: k('textConversation', 'title'), inputPlaceholderKey: k('textConversation', 'placeholder'), inputKind: 'none', supportsAttachments: false, controls: [], primaryLabelKey: k('textConversation', 'send'), primaryRunningLabelKey: k('textConversation', 'generating'), resultTitle: 'Conversation', emptyTitleKey: k('textConversation', 'title'), emptyHintKey: k('textConversation', 'intro'), resultKind: 'text', footnoteKey: k('textConversation', 'intro'),
+  },
+  preset: { id: 'conversation', label: 'Conversation', prompt: '' },
+  runtimeMethod: 'kit chat/runtime createSimpleAiConversationProvider + createModelConversationRuntimeAdapter(createNimiLocalAppTextModel) → sdk.localApp.ai.text.streamTurn',
+  parameters: EMPTY_STUDIO_PARAMETERS,
+} as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
+
 export const labImageFaceSwapCapability = Object.freeze({
   descriptor: labImageFaceSwapDescriptor,
   icon: ScanFace,
@@ -104,6 +118,7 @@ export const labCapabilityTestRegistrations = Object.freeze([
   labTextAnnotateCapability,
   labTextToolsCapability,
   labTextDecideCapability,
+  labTextConversationCapability,
   labImageFaceSwapCapability,
   labVideoFaceSwapCapability,
   labAiRealtimeCapability,

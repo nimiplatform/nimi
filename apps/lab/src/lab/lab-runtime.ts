@@ -97,6 +97,12 @@ export async function runLabCapability(
             'sdk-method-unavailable',
             'AI Realtime runs as a Session on its own Lab page.',
           )
-        : null,
+        : context.capability.id === 'text.conversation'
+          ? capabilityNonSuccess(
+              context.capability,
+              'sdk-method-unavailable',
+              'Conversation turns run on their own Lab page.',
+            )
+          : null,
   });
 }

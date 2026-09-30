@@ -52,6 +52,9 @@ const AgentRealtimeCapability = lazy(async () => ({
 const LabAiRealtimePage = lazy(async () => ({
   default: (await import('./lab-only/ai-realtime-page.js')).LabAiRealtimePage,
 }));
+const LabTextConversationPage = lazy(async () => ({
+  default: (await import('./lab-only/text-conversation-page.js')).LabTextConversationPage,
+}));
 const LabVideoFaceSwapSessionLauncher = lazy(async () => ({
   default: (await import('./lab-only/video-face-swap-session-panel.js')).LabVideoFaceSwapSessionLauncher,
 }));
@@ -224,6 +227,12 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
         <Suspense fallback={<LoadingFallback />}>
           <div className="h-full overflow-y-auto p-5">
             <LabAiRealtimePage controller={studioController} runtime={summary?.runtime ?? null} />
+          </div>
+        </Suspense>
+      ) : view.kind === 'capability' && view.capabilityId === 'text.conversation' ? (
+        <Suspense fallback={<LoadingFallback />}>
+          <div className="h-full overflow-y-auto p-5">
+            <LabTextConversationPage runtime={summary?.runtime ?? null} />
           </div>
         </Suspense>
       ) : view.kind === 'ui-recipes' ? (

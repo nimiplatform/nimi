@@ -6,6 +6,7 @@ export type LabCapabilityTestId =
   | 'text.annotate'
   | 'text.tools'
   | 'text.decide'
+  | 'text.conversation'
   | 'image.face_swap'
   | 'video.face_swap'
   | 'realtime.interact';
@@ -35,6 +36,15 @@ export const labTextDecideDescriptor = Object.freeze({
   summaryKey: 'CapabilityTests.textDecide.summary',
   surface: 'sdk.localApp.ai.scenario.execute:text-decide (AbortSignal, timeoutMs)',
   execution: 'runtime-sdk', capabilityContract: 'text.decide',
+} as const);
+
+export const labTextConversationDescriptor = Object.freeze({
+  id: 'text.conversation', label: 'Conversation', labelKey: 'CapabilityTests.textConversation.label', group: 'text',
+  section: 'chat',
+  summary: 'Multi-turn text through the Kit simple-ai helper: the App saves each turn with its opaque continuity and replays it on the next turn.',
+  summaryKey: 'CapabilityTests.textConversation.summary',
+  surface: 'kit chat/runtime simple-ai → sdk.localApp.ai.text.streamTurn + storage.writeJson',
+  execution: 'runtime-sdk', capabilityContract: 'text.generate',
 } as const);
 
 export const labImageFaceSwapDescriptor = Object.freeze({
@@ -68,6 +78,7 @@ export const labCapabilityTestDescriptors = Object.freeze([
   labTextAnnotateDescriptor,
   labTextToolsDescriptor,
   labTextDecideDescriptor,
+  labTextConversationDescriptor,
   labImageFaceSwapDescriptor,
   labVideoFaceSwapDescriptor,
   labAiRealtimeDescriptor,

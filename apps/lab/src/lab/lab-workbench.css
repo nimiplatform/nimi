@@ -122,6 +122,12 @@
 .lab-realtime__track p,
 .lab-realtime__transcript{ margin: 0; white-space: pre-wrap; overflow-wrap: anywhere;}
 .lab-realtime__log{ display: grid; gap: 2px; max-height: 280px; margin: 0; padding-left: 22px; overflow-y: auto; font-size: 12px;}
+.lab-conversation__messages{ display: grid; gap: 10px; margin: 0; padding: 0; list-style: none;}
+.lab-conversation__message{ display: grid; gap: 4px; max-width: 85%; border-radius: var(--nimi-radius-md); padding: 8px 12px;}
+.lab-conversation__message--user{ justify-self: end; background: var(--nimi-surface-panel);}
+.lab-conversation__message--assistant{ justify-self: start; border: 1px solid var(--nimi-border-subtle);}
+.lab-conversation__role{ display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--nimi-text-muted); font-size: 12px;}
+.lab-conversation__text{ margin: 0; white-space: pre-wrap; overflow-wrap: anywhere;}
 .lab-decision__examples,
 .lab-decision__section-head,
 .lab-decision__question-head{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px;}

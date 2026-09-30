@@ -133,11 +133,12 @@ test('lab-only capability tests join the existing section-based navigation witho
   assert.equal(groupOf('text.annotate'), 'text');
   assert.equal(groupOf('text.tools'), 'text');
   assert.equal(groupOf('text.decide'), 'text');
+  assert.equal(groupOf('text.conversation'), 'text');
   assert.equal(groupOf('image.face_swap'), 'image-video');
   assert.equal(groupOf('video.face_swap'), 'image-video');
   assert.equal(groupOf('realtime.interact'), 'voice-music');
   const scaffold = readFileSync(path.join(root, '../../app-tools/lib/app-scaffold-capabilities.mjs'), 'utf8');
-  for (const id of ['text.annotate', 'text.tools', 'text.decide', 'image.face_swap', 'video.face_swap', 'realtime.interact']) {
+  for (const id of ['text.annotate', 'text.tools', 'text.decide', 'text.conversation', 'image.face_swap', 'video.face_swap', 'realtime.interact']) {
     assert.equal(scaffold.includes(`'${id}'`), false, `${id} stays out of public scaffold admission`);
   }
   for (const relative of ['src/ai-studio-core', 'src/studio-modules']) {
