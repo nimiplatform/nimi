@@ -428,7 +428,7 @@ models:
     family: qwen35
     updated_at: 2026-09-29
     capabilities: []
-    source_ids: [qwen35_4b_author_modelcard, qwen35_4b_unsloth_gguf_modelcard]
+    source_ids: [qwen35_4b_unsloth_gguf_modelcard, qwen35_4b_author_modelcard]
     install:
       repo: unsloth/Qwen3.5-4B-GGUF
       revision: e87f176479d0855a907a41277aca2f8ee7a09523 # pragma: allowlist secret -- public immutable model revision

@@ -5,6 +5,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -39,14 +40,14 @@ func TestQwen35Q4BehaviorRegistrationIsExactAndSyncOnly(t *testing.T) {
 	}
 	for name, spec := range map[string]*runtimev1.TextGenerateScenarioSpec{
 		"required tool choice": func() *runtimev1.TextGenerateScenarioSpec {
-			copy := *tool
+			copy := proto.Clone(tool).(*runtimev1.TextGenerateScenarioSpec)
 			copy.ToolChoice = runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED
-			return &copy
+			return copy
 		}(),
 		"tool plus schema": func() *runtimev1.TextGenerateScenarioSpec {
-			copy := *tool
+			copy := proto.Clone(tool).(*runtimev1.TextGenerateScenarioSpec)
 			copy.ResponseFormat = structured.ResponseFormat
-			return &copy
+			return copy
 		}(),
 		"reasoning": {Reasoning: &runtimev1.ReasoningConfig{
 			Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED,

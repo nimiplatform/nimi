@@ -8,6 +8,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
+	"google.golang.org/protobuf/proto"
 )
 
 func qwen35GGUFHeaderForTest(t *testing.T) []byte {
@@ -204,22 +205,22 @@ func TestQwen35FourBProjectorRequiresTheExactVerifiedPair(t *testing.T) {
 	if reason := driver.ValidateCombination(requirements, bindings, assets); reason != success {
 		t.Fatalf("verified Qwen vision pair rejected: %v", reason)
 	}
-	foreign := *projector
+	foreign := proto.Clone(projector).(*runtimev1.ModelAssetExactBinding)
 	foreign.VerifiedContentId = "sha256:" + strings.Repeat("a", 64)
 	foreign.EntrySha256 = strings.Repeat("a", 64)
 	foreignAsset := projected.Descriptor
 	foreignAsset.VerifiedContentID = foreign.VerifiedContentId
 	foreignAsset.EntrySHA256 = foreign.EntrySha256
-	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{main, &foreign}, []ModelAssetDescriptor{mainAsset, foreignAsset}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
+	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{main, foreign}, []ModelAssetDescriptor{mainAsset, foreignAsset}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
 		t.Fatalf("foreign Qwen projector admitted: %v", reason)
 	}
-	wrongMain := *main
+	wrongMain := proto.Clone(main).(*runtimev1.ModelAssetExactBinding)
 	wrongMain.VerifiedContentId = "sha256:" + strings.Repeat("b", 64)
 	wrongMain.EntrySha256 = strings.Repeat("b", 64)
 	wrongMainAsset := mainAsset
 	wrongMainAsset.VerifiedContentID = wrongMain.VerifiedContentId
 	wrongMainAsset.EntrySHA256 = wrongMain.EntrySha256
-	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{&wrongMain, projector}, []ModelAssetDescriptor{wrongMainAsset, projected.Descriptor}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
+	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{wrongMain, projector}, []ModelAssetDescriptor{wrongMainAsset, projected.Descriptor}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
 		t.Fatalf("foreign Qwen main admitted for vision: %v", reason)
 	}
 }

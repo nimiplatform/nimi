@@ -38,7 +38,11 @@ func TestAccountAuditFailurePreservesExactMutationOutcome(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer backend.Close()
+			defer func() {
+				if err := backend.Close(); err != nil {
+					t.Errorf("close test storage: %v", err)
+				}
+			}()
 			failing := &failingAccountAuditBackend{Backend: backend}
 			store, err := auditlog.Open(failing, nil, 100, 10)
 			if err != nil {

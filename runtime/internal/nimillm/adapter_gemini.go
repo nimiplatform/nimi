@@ -296,7 +296,7 @@ func ExecuteGeminiImageGenerateContent(
 		return nil, nil, "", err
 	}
 
-	artifactBytes, mimeType, artifactURI := geminiFinalInlineImage(ctx, responsePayload["candidates"])
+	artifactBytes, _, artifactURI := geminiFinalInlineImage(ctx, responsePayload["candidates"])
 	if len(artifactBytes) == 0 {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -305,6 +305,7 @@ func ExecuteGeminiImageGenerateContent(
 		int64(imageConfig.Width) >= 1<<31 || int64(imageConfig.Height) >= 1<<31 {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
+	var mimeType string
 	switch imageFormat {
 	case "jpeg", "png":
 		mimeType = "image/" + imageFormat

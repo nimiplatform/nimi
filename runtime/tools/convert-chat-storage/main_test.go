@@ -23,7 +23,11 @@ func TestDatabaseURLReadOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ro.Close()
+	defer func() {
+		if err := ro.Close(); err != nil {
+			t.Errorf("close test storage: %v", err)
+		}
+	}()
 	var value string
 	if err := ro.QueryRow("SELECT value FROM marker").Scan(&value); err != nil {
 		t.Fatal(err)

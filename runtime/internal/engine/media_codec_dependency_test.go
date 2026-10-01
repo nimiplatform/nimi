@@ -32,10 +32,19 @@ func TestMediaCodecPinsAndIncompleteArchives(t *testing.T) {
 		t.Fatal(err)
 	}
 	writer := zip.NewWriter(f)
-	entry, _ := writer.Create("ffmpeg")
-	entry.Write([]byte("incomplete"))
-	writer.Close()
-	f.Close()
+	entry, err := writer.Create("ffmpeg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := entry.Write([]byte("incomplete")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
 	if err := extractMediaCodecArchive(file, t.TempDir(), map[string]string{"ffmpeg": "bin/ffmpeg", "ffprobe": "bin/ffprobe"}); err == nil {
 		t.Fatal("partial supply accepted")
 	}

@@ -437,7 +437,9 @@ test('platform matrix admits only Electron on Windows and macOS', () => {
   );
 });
 
-test('official dev launcher proves itself to Desktop with the presence caller token', async () => {
+test('official dev launcher proves itself to Desktop with the presence caller token', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
   const input = fixture();
   const headers = [];
   try {
@@ -454,7 +456,9 @@ test('official dev launcher proves itself to Desktop with the presence caller to
   } finally { rmSync(input.root, { recursive: true, force: true }); }
 });
 
-test('official dev launcher refuses a Desktop presence that carries no caller token', async () => {
+test('official dev launcher refuses a Desktop presence that carries no caller token', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
   const input = fixture();
   const descriptor = JSON.parse(readFileSync(input.descriptorPath, 'utf8'));
   delete descriptor.callerToken;

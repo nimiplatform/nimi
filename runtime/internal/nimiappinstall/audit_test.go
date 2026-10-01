@@ -148,7 +148,11 @@ func TestPackageCommitAuditFailureRetainsTerminalJobAndDiagnostic(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer persistence.Close()
+	defer func() {
+		if err := persistence.Close(); err != nil {
+			t.Errorf("close test storage: %v", err)
+		}
+	}()
 	backend := &failingPackageAuditBackend{Backend: persistence}
 	owner.audit, err = auditlog.Open(backend, nil, 100, 10)
 	if err != nil {

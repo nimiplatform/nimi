@@ -41,7 +41,7 @@ func mediaCodecSpecFor(goos, goarch string) (mediaCodecSpec, error) {
 	switch goos + "/" + goarch {
 	case "windows/amd64":
 		return mediaCodecSpec{version: "8.1.2-gyan", directory: "ffmpeg-8.1.2-windows-amd64", suffix: ".exe", archives: []mediaCodecArchive{{
-			url: "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.2-essentials_build.zip", sha256: "db580001caa24ac104c8cb856cd113a87b0a443f7bdf47d8c12b1d740584a2ec", bytes: 109728040,
+			url: "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.2-essentials_build.zip", sha256: "db580001caa24ac104c8cb856cd113a87b0a443f7bdf47d8c12b1d740584a2ec", bytes: 109728040, // pragma: allowlist secret -- public archive checksum
 			files: map[string]string{"ffmpeg-8.1.2-essentials_build/bin/ffmpeg.exe": "bin/ffmpeg.exe", "ffmpeg-8.1.2-essentials_build/bin/ffprobe.exe": "bin/ffprobe.exe", "ffmpeg-8.1.2-essentials_build/README.txt": "upstream-README.txt"},
 		}}, hashes: map[string]string{"bin/ffmpeg.exe": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e", "bin/ffprobe.exe": "b49ccc7c6547b141ad5a2f6ec69cc04323d7133d7704d70b331b904c63eecb07"}}, nil
 	case "darwin/arm64":
@@ -103,7 +103,7 @@ func (m *Manager) EnsureMediaCodecDependency(ctx context.Context) (MediaCodecDep
 	if err != nil {
 		return MediaCodecDependencyStatus{}, err
 	}
-	defer os.RemoveAll(stage)
+	defer func() { _ = os.RemoveAll(stage) }()
 	payload := filepath.Join(stage, "payload")
 	for index, archive := range spec.archives {
 		file := filepath.Join(stage, fmt.Sprintf("%d.zip", index))
@@ -164,7 +164,7 @@ func extractMediaCodecArchive(file, root string, files map[string]string) error 
 	if err != nil {
 		return err
 	}
-	defer archive.Close()
+	defer func() { _ = archive.Close() }()
 	found := map[string]bool{}
 	for _, entry := range archive.File {
 		relative, ok := files[entry.Name]
@@ -185,11 +185,11 @@ func extractMediaCodecArchive(file, root string, files map[string]string) error 
 		}
 		output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0755)
 		if err != nil {
-			input.Close()
+			_ = input.Close()
 			return err
 		}
 		_, copyErr := io.Copy(output, input)
-		input.Close()
+		_ = input.Close()
 		closeErr := output.Close()
 		if copyErr != nil {
 			return copyErr

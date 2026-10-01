@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -99,9 +100,9 @@ func TestQwen35AdvancedBehaviorRejectsUnverifiedModesAndMalformedOutput(t *testi
 			spec.Tools = append(spec.Tools, gemma4ToolForTest(t, "other"))
 		},
 	} {
-		copy := *tool
-		mutate(&copy)
-		if _, err := Qwen35TextBehaviorRequestSerializer(&copy, false); textBehaviorReasonForDriverTest(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+		copy := proto.Clone(tool).(*runtimev1.TextGenerateScenarioSpec)
+		mutate(copy)
+		if _, err := Qwen35TextBehaviorRequestSerializer(copy, false); textBehaviorReasonForDriverTest(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
 			t.Fatalf("unverified Qwen option accepted: %v", err)
 		}
 	}

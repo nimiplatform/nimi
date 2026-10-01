@@ -38,12 +38,13 @@ async function mount(node: React.ReactNode) {
 }
 
 async function openPanel(input: HTMLInputElement) {
-  await act(async () => {
-    input.click();
-    // openPanel defers through two requestAnimationFrame ticks.
-    await flush(60);
-  });
-  expect(panel()?.style.opacity).toBe('1');
+  await act(async () => { input.click(); });
+  // Observe the real two-frame transition instead of assuming a loaded CI host
+  // will run both animation frames within a fixed 60 ms sleep.
+  await vi.waitFor(async () => {
+    await act(async () => { await flush(20); });
+    expect(panel()?.style.opacity).toBe('1');
+  }, { timeout: 1000 });
 }
 
 afterEach(async () => {

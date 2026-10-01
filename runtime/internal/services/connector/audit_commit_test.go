@@ -37,7 +37,11 @@ func TestConnectorAuditFailureDoesNotInventOrHideCommittedEffects(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func() {
+		if err := backend.Close(); err != nil {
+			t.Errorf("close test storage: %v", err)
+		}
+	}()
 	failing := &failingConnectorAuditBackend{Backend: backend}
 	svc.audit, err = auditlog.Open(failing, nil, 100, 10)
 	if err != nil {

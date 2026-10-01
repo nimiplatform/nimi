@@ -246,7 +246,11 @@ func TestRetiredHunyuanProviderFailsTypedWithoutDispatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer auditBackend.Close()
+	defer func() {
+		if err := auditBackend.Close(); err != nil {
+			t.Errorf("close test storage: %v", err)
+		}
+	}()
 	audit, err := auditlog.Open(auditBackend, nil, 100, 10)
 	if err != nil {
 		t.Fatal(err)
@@ -392,7 +396,11 @@ func TestRetiredOpenAICodexProviderFailsTypedWithoutDispatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer auditBackend.Close()
+	defer func() {
+		if err := auditBackend.Close(); err != nil {
+			t.Errorf("close test storage: %v", err)
+		}
+	}()
 	audit, err := auditlog.Open(auditBackend, nil, 100, 10)
 	if err != nil {
 		t.Fatal(err)

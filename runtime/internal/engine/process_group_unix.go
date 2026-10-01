@@ -14,16 +14,18 @@ import (
 const supervisorOwnerGuardShell = "/bin/sh"
 
 // supervisorOwnerGuardScript lets a supervised engine end with this Runtime.
-// A watcher reads a pipe only the Runtime writes (stdin must be given to it
-// explicitly: a background list would otherwise read /dev/null), then the
-// script execs the engine, which keeps this pid and process group. When the
+// A watcher reads a pipe only the Runtime writes. Keep a separate descriptor:
+// dash redirects an asynchronous list's stdin to /dev/null even with <&0.
+// The script passes it to the watcher, then closes it while execing the engine,
+// which keeps this pid and process group. When the
 // Runtime has finished ending the tree it writes one byte and closes the
 // pipe. End of input without that byte means the Runtime is gone
 // (a crash, a kill, a stop that ran out of time): the watcher stops its own
 // group and escalates after the engine's shutdown budget. A group id is never
 // reused while its members live, so nothing outside the group is signalled.
-const supervisorOwnerGuardScript = "(trap '' TERM; [ -n \"$(head -c 1)\" ] || { kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null; }) <&0 &\n" +
-	"exec \"$@\" </dev/null"
+const supervisorOwnerGuardScript = "exec 3<&0\n" +
+	"(trap '' TERM; [ -n \"$(head -c 1)\" ] || { kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null; }) <&3 3<&- &\n" +
+	"exec \"$@\" </dev/null 3<&-"
 
 // supervisorOwnerRelease is the Runtime's end of an engine's owner pipe.
 type supervisorOwnerRelease struct {
@@ -33,6 +35,7 @@ type supervisorOwnerRelease struct {
 // guardSupervisorProcessOwner runs cmd under the owner guard. The returned
 // reader must be closed once the process started; the release is the
 // Runtime's end of the pipe and lives as long as the process does.
+// @nimi-authority: rule.nimi.runtime.local-compute.r035
 func guardSupervisorProcessOwner(cmd *exec.Cmd, grace time.Duration) (*os.File, *supervisorOwnerRelease, error) {
 	if cmd.Err != nil {
 		return nil, nil, cmd.Err

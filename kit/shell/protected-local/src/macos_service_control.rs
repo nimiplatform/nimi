@@ -1037,7 +1037,7 @@ mod source_local_development_readiness_tests {
     #[tokio::test]
     async fn local_app_accept_rejection_is_transient_unavailable() {
         let path = std::path::PathBuf::from("/tmp").join(format!(
-            "nplt-{}-{}.sock",
+            "nplt-app-{}-{}.sock",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -1076,7 +1076,7 @@ mod source_local_development_readiness_tests {
     #[tokio::test]
     async fn desktop_accept_rejection_stays_fail_closed_untrusted() {
         let path = std::path::PathBuf::from("/tmp").join(format!(
-            "nplt-{}-{}.sock",
+            "nplt-desktop-{}-{}.sock",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

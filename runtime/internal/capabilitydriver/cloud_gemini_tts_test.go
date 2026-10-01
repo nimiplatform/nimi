@@ -5,6 +5,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestGeminiTTSDriverAdmitsOnlyExactKoreWAV(t *testing.T) {
@@ -18,10 +19,10 @@ func TestGeminiTTSDriverAdmitsOnlyExactKoreWAV(t *testing.T) {
 	if err != nil || mapped.Adapter() != CloudMediaAdapterGeminiTTSGenerateContent {
 		t.Fatalf("exact Gemini TTS mapping=%+v err=%v", mapped, err)
 	}
-	chinese := *spec
+	chinese := proto.Clone(spec).(*runtimev1.SpeechSynthesizeScenarioSpec)
 	chinese.Text = "你好，欢迎使用 Nimi。"
 	chinese.Language = "zh"
-	chineseRequest := &runtimev1.SubmitScenarioJobRequest{ScenarioType: request.ScenarioType, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &chinese}}}
+	chineseRequest := &runtimev1.SubmitScenarioJobRequest{ScenarioType: request.ScenarioType, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: chinese}}}
 	if mapped, err := driver.MapRequest(target, chineseRequest, nil, CloudMediaStreamNone); err != nil || mapped.Adapter() != CloudMediaAdapterGeminiTTSGenerateContent {
 		t.Fatalf("Chinese Gemini TTS mapping=%+v err=%v", mapped, err)
 	}
@@ -42,11 +43,9 @@ func TestGeminiTTSDriverAdmitsOnlyExactKoreWAV(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			copy := *spec
-			ref := *spec.VoiceRef
-			copy.VoiceRef = &ref
-			tc.mutate(&copy)
-			candidate := &runtimev1.SubmitScenarioJobRequest{ScenarioType: request.ScenarioType, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &copy}}}
+			copy := proto.Clone(spec).(*runtimev1.SpeechSynthesizeScenarioSpec)
+			tc.mutate(copy)
+			candidate := &runtimev1.SubmitScenarioJobRequest{ScenarioType: request.ScenarioType, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: copy}}}
 			_, err := driver.MapRequest(target, candidate, nil, CloudMediaStreamNone)
 			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 				t.Fatalf("unsupported Gemini TTS reason=%v ok=%v err=%v", reason, ok, err)

@@ -52,10 +52,9 @@ test('electron chat ai store persists the existing thread/message/draft schema',
     resolveSelectedDataRoot: () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
-  let secondHost: DesktopElectronChatAiStoreHost | undefined;
+  const hosts = [firstHost];
   t.after(async () => {
-    await secondHost?.close();
-    await firstHost.close();
+    for (const host of hosts.reverse()) await host.close();
     await rm(dataRoot, { recursive: true, force: true });
   });
   const thread = await invoke(firstHost, 'chat_ai_create_thread', {
@@ -110,10 +109,11 @@ test('electron chat ai store persists the existing thread/message/draft schema',
     },
   });
 
-  secondHost = createDesktopElectronChatAiStoreHost({
+  const secondHost = createDesktopElectronChatAiStoreHost({
     resolveSelectedDataRoot: async () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
+  hosts.push(secondHost);
   const bundle = await invoke(secondHost, 'chat_ai_get_thread_bundle', {
     payload: { threadId: 'thread-1' },
   }) as {

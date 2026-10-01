@@ -5,6 +5,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestGoogleVeoDriverAdmitsOnlyExactFastTextVideo(t *testing.T) {
@@ -46,13 +47,9 @@ func TestGoogleVeoDriverAdmitsOnlyExactFastTextVideo(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			copy := request.GetSpec().GetVideoGenerate()
-			clone := *copy
-			options := *copy.GetOptions()
-			clone.Options = &options
-			clone.Content = append([]*runtimev1.VideoContentItem(nil), copy.GetContent()...)
-			tc.mutate(&clone)
-			candidate := &runtimev1.SubmitScenarioJobRequest{ScenarioType: request.GetScenarioType(), Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &clone}}}
+			clone := proto.Clone(request.GetSpec().GetVideoGenerate()).(*runtimev1.VideoGenerateScenarioSpec)
+			tc.mutate(clone)
+			candidate := &runtimev1.SubmitScenarioJobRequest{ScenarioType: request.GetScenarioType(), Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: clone}}}
 			_, err := driver.MapRequest(target, candidate, nil, CloudMediaStreamNone)
 			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 				t.Fatalf("unsupported Google Veo request reason=%v ok=%v err=%v", reason, ok, err)
