@@ -8,7 +8,6 @@ import type { LabEcosystemReferenceProjection } from '../renderer/contract.js';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
 import { useTranslation } from '../shell/i18n/index.js';
 import { WorkbenchCore, type WorkbenchNavigationGroup, type WorkbenchNavigationItem } from '../workbench-core/index.js';
-import { LabActivityPanel } from './activity/lab-activity-panel.js';
 import { AppAccessPanel } from './app-access/app-access-panel.js';
 import { getLabCapability, labCapabilities, type LabCapabilityId } from './lab-capabilities.js';
 import type { LabAIConfigSummary } from './lab-ai-config.js';
@@ -33,6 +32,9 @@ function restoredInitialCapabilityId(preferences: LabPreferences): LabCapability
 
 const SettingsRoute = lazy(async () => ({
   default: (await import('../shell/routes/settings-route.js')).SettingsRoute,
+}));
+const LabActivityPanel = lazy(async () => ({
+  default: (await import('./activity/lab-activity-panel.js')).LabActivityPanel,
 }));
 const KitComponentGallery = lazy(async () => ({
   default: (await import('./kit-component-gallery.js')).KitComponentGallery,
@@ -223,7 +225,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
           <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={rendererHost.sdk.localAppClient} /></div>
         </Suspense>
       ) : view.kind === 'activity' ? (
-        <LabActivityPanel />
+        <Suspense fallback={<LoadingFallback />}><LabActivityPanel /></Suspense>
       ) : view.kind === 'app-access' ? (
         <AppAccessPanel />
       ) : view.kind === 'capability' && view.capabilityId === 'realtime.interact' ? (

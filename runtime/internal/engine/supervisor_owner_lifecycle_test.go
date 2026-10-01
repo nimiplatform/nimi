@@ -288,6 +288,12 @@ func TestSupervisorStopOwnerHelper(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	guardGate := os.Getenv("NIMI_TEST_GUARD_START_GATE")
+	if mode == "during-stop" {
+		// Hold the watcher before its first instruction until the engine has
+		// received TERM. This exercises delayed scheduling without a sleep race.
+		cmd.Args[2] = strings.Replace(cmd.Args[2], "\n(", "\n(while [ ! -e \"$NIMI_TEST_GUARD_START_GATE\" ]; do sleep 0.01; done; ", 1)
+	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		t.Fatal(err)
@@ -313,6 +319,9 @@ func TestSupervisorStopOwnerHelper(t *testing.T) {
 		if !scanner.Scan() {
 			t.Fatal("engine did not receive TERM")
 		}
+		if err := os.WriteFile(guardGate, nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
 	fmt.Printf("child=%d\n", cmd.Process.Pid)
 	select {}
@@ -324,7 +333,8 @@ func TestSupervisorOwnerLossDuringGracefulStop(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 			defer cancel()
 			parent := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestSupervisorStopOwnerHelper$")
-			parent.Env = append(os.Environ(), "NIMI_TEST_STOP_OWNER="+mode)
+			parent.Env = append(os.Environ(), "NIMI_TEST_STOP_OWNER="+mode,
+				"NIMI_TEST_GUARD_START_GATE="+filepath.Join(t.TempDir(), "guard-ready"))
 			stdout, err := parent.StdoutPipe()
 			if err != nil {
 				t.Fatal(err)

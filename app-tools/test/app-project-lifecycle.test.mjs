@@ -481,7 +481,7 @@ test('production staging preserves parentheses in archive paths and nested local
 });
 
 test('generated production staging uses the project work area and preserves archive identity through a project alias', async () => {
-  const temp = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-app-staging-alias-')));
+  const temp = realpathSync.native(mkdtempSync(path.join(os.tmpdir(), 'nimi-app-staging-alias-')));
   try {
     const physicalApp = path.join(temp, 'consumer');
     const appRoot = path.join(temp, 'consumer-alias');

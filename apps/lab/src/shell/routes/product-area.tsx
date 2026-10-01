@@ -1,8 +1,12 @@
-import { useSyncExternalStore } from 'react';
+import { lazy, Suspense, useSyncExternalStore } from 'react';
+import { LoadingSkeleton } from '@nimiplatform/kit/ui';
 
 import { useLabRendererHost } from '../../renderer/context.js';
-import { WorldTourViewerRoute } from '../../lab/world-tour/world-tour-viewer-route.js';
 import { LabWorkbench } from '../../lab/lab-workbench.js';
+
+const WorldTourViewerRoute = lazy(async () => ({
+  default: (await import('../../lab/world-tour/world-tour-viewer-route.js')).WorldTourViewerRoute,
+}));
 
 export function ProductArea() {
   const host = useLabRendererHost();
@@ -12,7 +16,11 @@ export function ProductArea() {
     host.route.get,
   );
   if (route.pathname.startsWith('/world-tour-viewer')) {
-    return <WorldTourViewerRoute />;
+    return (
+      <Suspense fallback={<LoadingSkeleton className="h-full w-full" />}>
+        <WorldTourViewerRoute />
+      </Suspense>
+    );
   }
   return <LabWorkbench title="Nimi Lab" />;
 }

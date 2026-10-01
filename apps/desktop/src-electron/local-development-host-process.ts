@@ -39,7 +39,10 @@ export function localDevelopmentToolEnvironment(
 // After an ordinary stop the watcher only outlives the target by that budget.
 const POSIX_OWNER_GUARD_SCRIPT = [
   'exec 3<&0',
-  "(trap '' TERM; cat >/dev/null 2>&1; kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null) <&3 3<&- &",
+  // Arm the watcher before forking, even if it is scheduled after the target.
+  "trap '' TERM",
+  '(cat >/dev/null 2>&1; kill -TERM 0 2>/dev/null; sleep "$0"; kill -KILL 0 2>/dev/null) <&3 3<&- &',
+  'trap - TERM',
   'exec "$@" </dev/null 3<&-',
 ].join('\n');
 const POSIX_OWNER_LOSS_GRACE_SECONDS = 5;

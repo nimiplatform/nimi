@@ -3252,7 +3252,7 @@ test('generated Host destroys old renderer state on invalidation before creating
   let source = stripTypeScriptTypes(snapshot.filesByPath.get('src-electron/main.ts').content, { mode: 'strip' });
   source = source.replace(/^import .+ from '[^']+';$/gm, '')
     .replace("await import('@nimiplatform/kit/shell/electron/main')", 'kitMain')
-    .replaceAll('import.meta.url', "'file:///tmp/scope-app/dist-electron/main.js'");
+    .replaceAll('import.meta.url', JSON.stringify(pathToFileURL(path.join(os.tmpdir(), 'scope-app', 'dist-electron', 'main.js')).href));
   const windows = [], events = new Map(), order = []; let invalidated, quits = 0;
   class Window {
     static getAllWindows() { return [...windows]; }
@@ -3271,7 +3271,7 @@ test('generated Host destroys old renderer state on invalidation before creating
   await vm.runInNewContext(`(async () => {${source}})()`, {
     path, fileURLToPath, app, BrowserWindow: Window, ipcMain: {}, Menu, protocol: {}, session: { defaultSession: { webRequest: {} } }, webContents: {},
     configureNimiElectronAppHostProfile() {}, URL, process: { platform: 'win32', argv: [], stderr: { write() {} } },
-    pathToFileURL: value => new URL(`file://${value}`),
+    pathToFileURL,
     kitMain: {
       createNimiElectronStandardApplicationMenuTemplate(options) { menuRequests.push(options); return standardMenuTemplate; },
       isAllowedElectronRendererUrl: () => true, registerNimiElectronAppAssetProtocolScheme() {}, registerNimiElectronAppBridge(input) { invalidated = input.onSessionInvalidated; },
