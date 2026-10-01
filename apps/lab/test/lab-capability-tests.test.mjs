@@ -1662,3 +1662,80 @@ test('the Hook document conversion preserves earlier typed failures during a mod
   ] };
   assert.deepEqual(session.toLabChatSessionDocument(session.fromLabChatSessionDocument(document), document.contextStart), document);
 });
+
+
+test('a failed context checkpoint blocks every retry until the new boundary is durably saved', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const at = '2026-10-01T15:00:00Z';
+  const original = { version: 1, messages: [
+    { id: 'u', role: 'user', text: 'Remember blue.', createdAt: at },
+    { id: 'a', role: 'assistant', text: 'Blue.', createdAt: at, outputItems: [
+      { type: 'reasoning-continuity', kind: 'example.signed', version: 1, payloadBase64: 'AAECAw==' },
+      { type: 'text', text: 'Blue.' },
+    ] },
+  ] };
+  let durable = structuredClone(original);
+  let fail = true;
+  let writes = 0;
+  let calls = 0;
+  const storage = {
+    async readJson() { return { value: structuredClone(durable) }; },
+    async writeJson(_path, value) {
+      writes += 1;
+      if (fail) throw new Error('storage unavailable');
+      durable = structuredClone(value);
+    },
+  };
+  const ai = { text: { async streamTurn(input) {
+    calls += 1;
+    assert.equal(durable.contextStart, 2, 'the boundary must be durable before dispatch');
+    assert.equal(input.messages[1].turnItems.some((item) => item.output?.type === 'reasoning-continuity'), false);
+    return Object.assign(replyWith('Still blue.')(), { cancel: async () => {} });
+  } } };
+  let compatible = false;
+  const makeController = () => conversation.createLabTextConversationController({ storage, ai, now: () => at, createTurnId: () => `retry-${writes}`, onState: () => {}, getAIConfig: async () => ({ effectiveSelections: [{ capabilityContract: 'text.generate', state: 'ready', textReplay: { acceptedCarriers: compatible ? [{ kind: 'example.signed', version: 1, executionModes: ['stream'] }] : [] } }] }) });
+  const controller = makeController();
+  await controller.load();
+  await controller.send('First attempt');
+  assert.equal(controller.getState().conversation.contextStart, 2, 'the unsaved boundary stays visible');
+  assert.equal(controller.getState().saved.contextStart, undefined);
+  await controller.send('Second attempt');
+  assert.equal(writes, 2, 'each retry attempts the still-unconfirmed checkpoint');
+  assert.equal(calls, 0, 'no model request may bypass a failed checkpoint');
+  assert.deepEqual(durable, original, 'failed saves leave the original persisted history and carrier unchanged');
+  fail = false;
+  await controller.send('Now continue');
+  assert.equal(calls, 1);
+  assert.equal(durable.contextStart, 2);
+  assert.deepEqual(durable.messages.slice(0, 2), original.messages);
+  compatible = true;
+  const reopened = makeController();
+  await reopened.load();
+  await reopened.send('Continue after reload and switch-back');
+  assert.equal(calls, 2);
+  assert.equal(durable.contextStart, 2);
+  assert.deepEqual(durable.messages.slice(0, 2), original.messages);
+});
+
+
+test('a failed New conversation save cannot bypass a pending checkpoint whose boundary index is still zero', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const original = { version: 1, messages: [
+    { id: 'u', role: 'user', text: 'Earlier message', createdAt: '2026-10-01T15:00:00Z' },
+    { id: 'a', role: 'assistant', text: 'Earlier answer', createdAt: '2026-10-01T15:00:01Z' },
+  ] };
+  let writes = 0;
+  let calls = 0;
+  const controller = conversation.createLabTextConversationController({
+    storage: { async readJson() { return { value: original }; }, async writeJson() { writes++; throw new Error('storage unavailable'); } },
+    ai: { text: { async streamTurn() { calls++; throw new Error('must not dispatch'); } } },
+    now: () => '2026-10-01T15:00:02Z', createTurnId: () => 'new-conversation', onState: () => {},
+    getAIConfig: async () => ({ effectiveSelections: [{ capabilityContract: 'text.generate', state: 'ready', textReplay: { acceptedCarriers: [] } }] }),
+  });
+  await controller.load();
+  await controller.startOver();
+  await controller.send('New message');
+  assert.equal(writes, 2);
+  assert.equal(calls, 0);
+  assert.deepEqual(controller.getState().saved, original);
+});

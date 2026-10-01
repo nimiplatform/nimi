@@ -393,10 +393,16 @@ export function createLabTextConversationController(input: {
     try {
       plan = planLabTextConversation(source, await input.getAIConfig());
       if (current !== generation || controller.signal.aborted) { if (turn === controller) turn = null; if (current === generation) set({ pending: null }); return; }
-      if (plan.continuity === 'reset') {
+      const checkpointNeeded = !state.saved
+        || plan.contextStart !== (state.saved.contextStart ?? 0)
+        || JSON.stringify(plan.document.messages) !== JSON.stringify(state.saved.messages);
+      if (checkpointNeeded) {
         // Persist the boundary before dispatch; a reload must not resurrect
         // incompatible state even if this next inference fails or is stopped.
-        await save(current, plan.document, [{ type: 'context-reset' }]);
+        // A failed write may leave this boundary visible in memory. Compare
+        // with the last confirmed saved document on every send, not just the
+        // planner's first reset event, so a retry cannot skip the checkpoint.
+        await save(current, plan.document, plan.contextStart !== (state.saved?.contextStart ?? 0) ? [{ type: 'context-reset' }] : []);
         if (current !== generation || controller.signal.aborted) { if (turn === controller) turn = null; if (current === generation) set({ pending: null }); return; }
         if (state.saving || state.notices.some((notice) => notice.type === 'save-failed' || notice.type === 'turn-too-large')) { turn = null; set({ pending: null }); return; }
       }
