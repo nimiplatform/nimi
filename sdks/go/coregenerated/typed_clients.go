@@ -21186,6 +21186,7 @@ func (value *WorldCoreValueDtoOntologyConceptsItem) UnmarshalJSON(data []byte) e
 type WorldCoreValueDtoPresentation struct {
 	BannerResourceRef string   `json:"bannerResourceRef,omitempty"`
 	DisplayName       string   `json:"displayName,omitempty"`
+	HeroResourceRef   string   `json:"heroResourceRef,omitempty"`
 	IconResourceRef   string   `json:"iconResourceRef,omitempty"`
 	Palette           []string `json:"palette,omitempty"`
 	Tagline           string   `json:"tagline,omitempty"`
@@ -21362,76 +21363,164 @@ func (value *WorldCoreValueDtoTimelineEventsItem) UnmarshalJSON(data []byte) err
 }
 
 type WorldCoreValueDtoTimeModel struct {
-	Anchor          *WorldCoreValueDtoTimeModelAnchor `json:"anchor"`
-	Calendar        *string                           `json:"calendar"`
-	DisplayFormat   *string                           `json:"displayFormat"`
-	FlowRatio       float64                           `json:"flowRatio"`
-	IsPaused        bool                              `json:"isPaused"`
-	Mode            string                            `json:"mode"`
-	PausedWorldTime *string                           `json:"pausedWorldTime"`
+	Static            *WorldCoreValueDtoTimeModelVariant1 `json:"-"`
+	WallClockAnchored *WorldCoreValueDtoTimeModelVariant2 `json:"-"`
+}
+
+func (value WorldCoreValueDtoTimeModel) MarshalJSON() ([]byte, error) {
+	var selected any
+	selectedCount := 0
+	if value.Static != nil {
+		selected = value.Static
+		selectedCount++
+	}
+	if value.WallClockAnchored != nil {
+		selected = value.WallClockAnchored
+		selectedCount++
+	}
+	if selectedCount != 1 {
+		return nil, fmt.Errorf("encode WorldCoreValueDtoTimeModel: exactly one typed variant is required")
+	}
+	return json.Marshal(selected)
 }
 
 func (value *WorldCoreValueDtoTimeModel) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Mode string `json:"mode"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel discriminator: %w", err)
+	}
+	switch probe.Mode {
+	case "static":
+		var decoded WorldCoreValueDtoTimeModelVariant1
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			return fmt.Errorf("decode WorldCoreValueDtoTimeModel static: %w", err)
+		}
+		*value = WorldCoreValueDtoTimeModel{Static: &decoded}
+		return nil
+	case "wallClockAnchored":
+		var decoded WorldCoreValueDtoTimeModelVariant2
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			return fmt.Errorf("decode WorldCoreValueDtoTimeModel wallClockAnchored: %w", err)
+		}
+		*value = WorldCoreValueDtoTimeModel{WallClockAnchored: &decoded}
+		return nil
+	default:
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: unknown discriminator %q", probe.Mode)
+	}
+}
+
+type WorldCoreValueDtoTimeModelVariant1 struct {
+	Label *string `json:"label"`
+	Mode  string  `json:"mode"`
+}
+
+func (value *WorldCoreValueDtoTimeModelVariant1) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant1: %w", err)
 	}
-	if err := requireRealmJSONField(raw, "anchor", false); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "calendar", true); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "displayFormat", true); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "flowRatio", false); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "isPaused", false); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	if err := requireRealmJSONField(raw, "label", true); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant1: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "mode", false); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant1: %w", err)
 	}
-	if err := requireRealmJSONField(raw, "pausedWorldTime", true); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
-	}
-	type modelAlias WorldCoreValueDtoTimeModel
+	type modelAlias WorldCoreValueDtoTimeModelVariant1
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant1: %w", err)
 	}
-	*value = WorldCoreValueDtoTimeModel(decoded)
+	if _, present := raw["mode"]; present {
+		switch decoded.Mode {
+		case "static":
+		default:
+			return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant1: field mode has unknown literal %v", decoded.Mode)
+		}
+	}
+	*value = WorldCoreValueDtoTimeModelVariant1(decoded)
 	return nil
 }
 
-type WorldCoreValueDtoTimeModelAnchor struct {
+type WorldCoreValueDtoTimeModelVariant2 struct {
+	Anchor          *WorldCoreValueDtoTimeModelVariant2Anchor `json:"anchor"`
+	Calendar        *string                                   `json:"calendar"`
+	DisplayFormat   *string                                   `json:"displayFormat"`
+	FlowRatio       float64                                   `json:"flowRatio"`
+	IsPaused        bool                                      `json:"isPaused"`
+	Mode            string                                    `json:"mode"`
+	PausedWorldTime *string                                   `json:"pausedWorldTime"`
+}
+
+func (value *WorldCoreValueDtoTimeModelVariant2) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "anchor", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "calendar", true); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayFormat", true); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "flowRatio", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isPaused", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mode", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "pausedWorldTime", true); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoTimeModelVariant2
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: %w", err)
+	}
+	if _, present := raw["mode"]; present {
+		switch decoded.Mode {
+		case "wallClockAnchored":
+		default:
+			return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2: field mode has unknown literal %v", decoded.Mode)
+		}
+	}
+	*value = WorldCoreValueDtoTimeModelVariant2(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoTimeModelVariant2Anchor struct {
 	RealStartedAt         string `json:"realStartedAt"`
 	WorldStartedAt        string `json:"worldStartedAt"`
 	WorldStartedAtDisplay string `json:"worldStartedAtDisplay"`
 }
 
-func (value *WorldCoreValueDtoTimeModelAnchor) UnmarshalJSON(data []byte) error {
+func (value *WorldCoreValueDtoTimeModelVariant2Anchor) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2Anchor: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "realStartedAt", false); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2Anchor: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "worldStartedAt", false); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2Anchor: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "worldStartedAtDisplay", false); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2Anchor: %w", err)
 	}
-	type modelAlias WorldCoreValueDtoTimeModelAnchor
+	type modelAlias WorldCoreValueDtoTimeModelVariant2Anchor
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
-		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelVariant2Anchor: %w", err)
 	}
-	*value = WorldCoreValueDtoTimeModelAnchor(decoded)
+	*value = WorldCoreValueDtoTimeModelVariant2Anchor(decoded)
 	return nil
 }
 
@@ -22044,6 +22133,8 @@ func (value *WorldPublicCharacterSourceRequestDto) UnmarshalJSON(data []byte) er
 type WorldPublicDetailDto struct {
 	CreatedAt         string                        `json:"createdAt"`
 	EntityKinds       []string                      `json:"entityKinds"`
+	Era               *string                       `json:"era"`
+	Genre             *string                       `json:"genre"`
 	Id                string                        `json:"id"`
 	Media             *WorldPublicMediaDto          `json:"media"`
 	Name              string                        `json:"name"`
@@ -22054,8 +22145,8 @@ type WorldPublicDetailDto struct {
 	Summary           string                        `json:"summary"`
 	Systems           []string                      `json:"systems"`
 	Tagline           *string                       `json:"tagline,omitempty"`
-	Tags              []string                      `json:"tags"`
-	Time              *WorldPublicTimeSnapshotDto   `json:"time"`
+	Themes            []string                      `json:"themes"`
+	Time              any                           `json:"time"`
 	Timeline          []WorldPublicTimelineEventDto `json:"timeline"`
 	Type              string                        `json:"type"`
 	UpdatedAt         string                        `json:"updatedAt"`
@@ -22071,6 +22162,12 @@ func (value *WorldPublicDetailDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "entityKinds", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "era", true); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "genre", true); err != nil {
 		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "id", false); err != nil {
@@ -22100,7 +22197,7 @@ func (value *WorldPublicDetailDto) UnmarshalJSON(data []byte) error {
 	if err := requireRealmJSONField(raw, "systems", false); err != nil {
 		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
 	}
-	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+	if err := requireRealmJSONField(raw, "themes", false); err != nil {
 		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "time", false); err != nil {
@@ -22180,20 +22277,22 @@ func (value *WorldPublicEntityCardDto) UnmarshalJSON(data []byte) error {
 }
 
 type WorldPublicItemDto struct {
-	CreatedAt         string                      `json:"createdAt"`
-	EntityKinds       []string                    `json:"entityKinds"`
-	Id                string                      `json:"id"`
-	Media             *WorldPublicMediaDto        `json:"media"`
-	Name              string                      `json:"name"`
-	RelationshipTypes []string                    `json:"relationshipTypes"`
-	Stats             *WorldPublicStatsDto        `json:"stats"`
-	Summary           string                      `json:"summary"`
-	Tagline           *string                     `json:"tagline,omitempty"`
-	Tags              []string                    `json:"tags"`
-	Time              *WorldPublicTimeSnapshotDto `json:"time"`
-	Type              string                      `json:"type"`
-	UpdatedAt         string                      `json:"updatedAt"`
-	Visibility        string                      `json:"visibility"`
+	CreatedAt         string               `json:"createdAt"`
+	EntityKinds       []string             `json:"entityKinds"`
+	Era               *string              `json:"era"`
+	Genre             *string              `json:"genre"`
+	Id                string               `json:"id"`
+	Media             *WorldPublicMediaDto `json:"media"`
+	Name              string               `json:"name"`
+	RelationshipTypes []string             `json:"relationshipTypes"`
+	Stats             *WorldPublicStatsDto `json:"stats"`
+	Summary           string               `json:"summary"`
+	Tagline           *string              `json:"tagline,omitempty"`
+	Themes            []string             `json:"themes"`
+	Time              any                  `json:"time"`
+	Type              string               `json:"type"`
+	UpdatedAt         string               `json:"updatedAt"`
+	Visibility        string               `json:"visibility"`
 }
 
 func (value *WorldPublicItemDto) UnmarshalJSON(data []byte) error {
@@ -22205,6 +22304,12 @@ func (value *WorldPublicItemDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "entityKinds", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "era", true); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "genre", true); err != nil {
 		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "id", false); err != nil {
@@ -22225,7 +22330,7 @@ func (value *WorldPublicItemDto) UnmarshalJSON(data []byte) error {
 	if err := requireRealmJSONField(raw, "summary", false); err != nil {
 		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
 	}
-	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+	if err := requireRealmJSONField(raw, "themes", false); err != nil {
 		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "time", false); err != nil {
@@ -22438,7 +22543,8 @@ type WorldPublicSourceCardDto struct {
 	SourceKind         string                            `json:"sourceKind"`
 	SourceRef          *CharacterSourceRefV3Dto          `json:"sourceRef"`
 	Summary            string                            `json:"summary"`
-	Tags               []string                          `json:"tags"`
+	Topics             []string                          `json:"topics"`
+	Traits             []string                          `json:"traits"`
 	UpdatedAt          string                            `json:"updatedAt"`
 	WorldId            string                            `json:"worldId"`
 	WorldName          string                            `json:"worldName"`
@@ -22473,7 +22579,10 @@ func (value *WorldPublicSourceCardDto) UnmarshalJSON(data []byte) error {
 	if err := requireRealmJSONField(raw, "summary", false); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
 	}
-	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+	if err := requireRealmJSONField(raw, "topics", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "traits", false); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
@@ -22491,6 +22600,39 @@ func (value *WorldPublicSourceCardDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
 	}
 	*value = WorldPublicSourceCardDto(decoded)
+	return nil
+}
+
+type WorldPublicSourceCardPageDto struct {
+	HasMore    bool                       `json:"hasMore"`
+	Items      []WorldPublicSourceCardDto `json:"items"`
+	NextCursor *string                    `json:"nextCursor"`
+	TotalCount float64                    `json:"totalCount"`
+}
+
+func (value *WorldPublicSourceCardPageDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "hasMore", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "totalCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardPageDto: %w", err)
+	}
+	type modelAlias WorldPublicSourceCardPageDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardPageDto: %w", err)
+	}
+	*value = WorldPublicSourceCardPageDto(decoded)
 	return nil
 }
 
@@ -22542,8 +22684,10 @@ func (value *WorldPublicSourceMediaDto) UnmarshalJSON(data []byte) error {
 }
 
 type WorldPublicSourceSectionsDto struct {
-	Characters        []WorldPublicSourceCardDto `json:"characters"`
-	PersonaCharacters []WorldPublicSourceCardDto `json:"personaCharacters"`
+	Characters                  []WorldPublicSourceCardDto `json:"characters"`
+	CharactersNextCursor        *string                    `json:"charactersNextCursor"`
+	PersonaCharacters           []WorldPublicSourceCardDto `json:"personaCharacters"`
+	PersonaCharactersNextCursor *string                    `json:"personaCharactersNextCursor"`
 }
 
 func (value *WorldPublicSourceSectionsDto) UnmarshalJSON(data []byte) error {
@@ -22554,7 +22698,13 @@ func (value *WorldPublicSourceSectionsDto) UnmarshalJSON(data []byte) error {
 	if err := requireRealmJSONField(raw, "characters", false); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceSectionsDto: %w", err)
 	}
+	if err := requireRealmJSONField(raw, "charactersNextCursor", true); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceSectionsDto: %w", err)
+	}
 	if err := requireRealmJSONField(raw, "personaCharacters", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceSectionsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "personaCharactersNextCursor", true); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceSectionsDto: %w", err)
 	}
 	type modelAlias WorldPublicSourceSectionsDto
@@ -22563,6 +22713,42 @@ func (value *WorldPublicSourceSectionsDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicSourceSectionsDto: %w", err)
 	}
 	*value = WorldPublicSourceSectionsDto(decoded)
+	return nil
+}
+
+type WorldPublicStaticTimeDto struct {
+	CurrentWorldTime *string `json:"currentWorldTime"`
+	Label            *string `json:"label"`
+	Mode             string  `json:"mode"`
+}
+
+func (value *WorldPublicStaticTimeDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicStaticTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "currentWorldTime", true); err != nil {
+		return fmt.Errorf("decode WorldPublicStaticTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "label", true); err != nil {
+		return fmt.Errorf("decode WorldPublicStaticTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mode", false); err != nil {
+		return fmt.Errorf("decode WorldPublicStaticTimeDto: %w", err)
+	}
+	type modelAlias WorldPublicStaticTimeDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicStaticTimeDto: %w", err)
+	}
+	if _, present := raw["mode"]; present {
+		switch decoded.Mode {
+		case "static":
+		default:
+			return fmt.Errorf("decode WorldPublicStaticTimeDto: field mode has unknown literal %v", decoded.Mode)
+		}
+	}
+	*value = WorldPublicStaticTimeDto(decoded)
 	return nil
 }
 
@@ -22662,61 +22848,6 @@ func (value *WorldPublicTimelineEventDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type WorldPublicTimeSnapshotDto struct {
-	AnchorRealStartedAt         string  `json:"anchorRealStartedAt"`
-	AnchorWorldStartedAt        string  `json:"anchorWorldStartedAt"`
-	AnchorWorldStartedAtDisplay string  `json:"anchorWorldStartedAtDisplay"`
-	Calendar                    *string `json:"calendar,omitempty"`
-	ComputedAt                  string  `json:"computedAt"`
-	CurrentWorldTime            string  `json:"currentWorldTime"`
-	CurrentWorldTimeDisplay     string  `json:"currentWorldTimeDisplay"`
-	DisplayFormat               *string `json:"displayFormat,omitempty"`
-	FlowRatio                   float64 `json:"flowRatio"`
-	IsPaused                    bool    `json:"isPaused"`
-	Mode                        string  `json:"mode"`
-}
-
-func (value *WorldPublicTimeSnapshotDto) UnmarshalJSON(data []byte) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "anchorRealStartedAt", false); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "anchorWorldStartedAt", false); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "anchorWorldStartedAtDisplay", false); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "computedAt", false); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "currentWorldTime", false); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "currentWorldTimeDisplay", false); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "flowRatio", false); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "isPaused", false); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "mode", false); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	type modelAlias WorldPublicTimeSnapshotDto
-	var decoded modelAlias
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
-	}
-	*value = WorldPublicTimeSnapshotDto(decoded)
-	return nil
-}
-
 type WorldPublicViewerRelationDto struct {
 	ConnectionId     *string `json:"connectionId,omitempty"`
 	RuntimeSourceRef *string `json:"runtimeSourceRef,omitempty"`
@@ -22737,6 +22868,111 @@ func (value *WorldPublicViewerRelationDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicViewerRelationDto: %w", err)
 	}
 	*value = WorldPublicViewerRelationDto(decoded)
+	return nil
+}
+
+type WorldPublicWallClockTimeDto struct {
+	AnchorRealStartedAt         string  `json:"anchorRealStartedAt"`
+	AnchorWorldStartedAt        string  `json:"anchorWorldStartedAt"`
+	AnchorWorldStartedAtDisplay string  `json:"anchorWorldStartedAtDisplay"`
+	Calendar                    *string `json:"calendar"`
+	ComputedAt                  string  `json:"computedAt"`
+	CurrentWorldTime            string  `json:"currentWorldTime"`
+	CurrentWorldTimeDisplay     string  `json:"currentWorldTimeDisplay"`
+	DisplayFormat               *string `json:"displayFormat"`
+	FlowRatio                   float64 `json:"flowRatio"`
+	IsPaused                    bool    `json:"isPaused"`
+	Mode                        string  `json:"mode"`
+	PausedWorldTime             *string `json:"pausedWorldTime"`
+}
+
+func (value *WorldPublicWallClockTimeDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "anchorRealStartedAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "anchorWorldStartedAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "anchorWorldStartedAtDisplay", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "calendar", true); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "computedAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "currentWorldTime", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "currentWorldTimeDisplay", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayFormat", true); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "flowRatio", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isPaused", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mode", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "pausedWorldTime", true); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	type modelAlias WorldPublicWallClockTimeDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicWallClockTimeDto: %w", err)
+	}
+	if _, present := raw["mode"]; present {
+		switch decoded.Mode {
+		case "wallClockAnchored":
+		default:
+			return fmt.Errorf("decode WorldPublicWallClockTimeDto: field mode has unknown literal %v", decoded.Mode)
+		}
+	}
+	*value = WorldPublicWallClockTimeDto(decoded)
+	return nil
+}
+
+type WorldPublicWorldCatalogPageDto struct {
+	HasMore    bool                 `json:"hasMore"`
+	Items      []WorldPublicItemDto `json:"items"`
+	NextCursor *string              `json:"nextCursor"`
+	TotalCount float64              `json:"totalCount"`
+}
+
+func (value *WorldPublicWorldCatalogPageDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicWorldCatalogPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "hasMore", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWorldCatalogPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWorldCatalogPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
+		return fmt.Errorf("decode WorldPublicWorldCatalogPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "totalCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicWorldCatalogPageDto: %w", err)
+	}
+	type modelAlias WorldPublicWorldCatalogPageDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicWorldCatalogPageDto: %w", err)
+	}
+	*value = WorldPublicWorldCatalogPageDto(decoded)
 	return nil
 }
 
@@ -25995,38 +26231,65 @@ type RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest stru
 	Body    struct{}                                                               `json:"body,omitempty"`
 }
 
-type RealmWorldPublicControllerListWorldCharactersOperationPath struct {
+type RealmWorldPublicControllerListPersonaCharacterCatalogOperationPath struct {
+}
+
+type RealmWorldPublicControllerListPersonaCharacterCatalogOperationQuery struct {
+	WorldId string  `json:"worldId,omitempty"`
+	Limit   float64 `json:"limit,omitempty"`
+	Q       string  `json:"q,omitempty"`
+	Cursor  string  `json:"cursor,omitempty"`
+}
+
+type RealmWorldPublicControllerListPersonaCharacterCatalogOperationHeaders struct {
+}
+
+type RealmWorldPublicControllerListPersonaCharacterCatalogOperationRequest struct {
+	Path    RealmWorldPublicControllerListPersonaCharacterCatalogOperationPath    `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerListPersonaCharacterCatalogOperationQuery   `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerListPersonaCharacterCatalogOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                                              `json:"body,omitempty"`
+}
+
+type RealmWorldPublicControllerListWorldCatalogOperationPath struct {
+}
+
+type RealmWorldPublicControllerListWorldCatalogOperationQuery struct {
+	Theme  string  `json:"theme,omitempty"`
+	Genre  string  `json:"genre,omitempty"`
+	Limit  float64 `json:"limit,omitempty"`
+	Q      string  `json:"q,omitempty"`
+	Cursor string  `json:"cursor,omitempty"`
+}
+
+type RealmWorldPublicControllerListWorldCatalogOperationHeaders struct {
+}
+
+type RealmWorldPublicControllerListWorldCatalogOperationRequest struct {
+	Path    RealmWorldPublicControllerListWorldCatalogOperationPath    `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerListWorldCatalogOperationQuery   `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerListWorldCatalogOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                                   `json:"body,omitempty"`
+}
+
+type RealmWorldPublicControllerListWorldCharacterCatalogOperationPath struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
-type RealmWorldPublicControllerListWorldCharactersOperationQuery struct {
-	Limit float64 `json:"limit,omitempty"`
+type RealmWorldPublicControllerListWorldCharacterCatalogOperationQuery struct {
+	Limit  float64 `json:"limit,omitempty"`
+	Q      string  `json:"q,omitempty"`
+	Cursor string  `json:"cursor,omitempty"`
 }
 
-type RealmWorldPublicControllerListWorldCharactersOperationHeaders struct {
+type RealmWorldPublicControllerListWorldCharacterCatalogOperationHeaders struct {
 }
 
-type RealmWorldPublicControllerListWorldCharactersOperationRequest struct {
-	Path    RealmWorldPublicControllerListWorldCharactersOperationPath    `json:"path,omitempty"`
-	Query   RealmWorldPublicControllerListWorldCharactersOperationQuery   `json:"query,omitempty"`
-	Headers RealmWorldPublicControllerListWorldCharactersOperationHeaders `json:"headers,omitempty"`
-	Body    struct{}                                                      `json:"body,omitempty"`
-}
-
-type RealmWorldPublicControllerListWorldsOperationPath struct {
-}
-
-type RealmWorldPublicControllerListWorldsOperationQuery struct {
-}
-
-type RealmWorldPublicControllerListWorldsOperationHeaders struct {
-}
-
-type RealmWorldPublicControllerListWorldsOperationRequest struct {
-	Path    RealmWorldPublicControllerListWorldsOperationPath    `json:"path,omitempty"`
-	Query   RealmWorldPublicControllerListWorldsOperationQuery   `json:"query,omitempty"`
-	Headers RealmWorldPublicControllerListWorldsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{}                                             `json:"body,omitempty"`
+type RealmWorldPublicControllerListWorldCharacterCatalogOperationRequest struct {
+	Path    RealmWorldPublicControllerListWorldCharacterCatalogOperationPath    `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerListWorldCharacterCatalogOperationQuery   `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerListWorldCharacterCatalogOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                                            `json:"body,omitempty"`
 }
 
 type RealmTypedClient struct {
@@ -27429,18 +27692,26 @@ func (c RealmTypedClient) WorldPublicControllerGetWorldDetailWithCharacters(ctx 
 	return decodeTypedResponse[WorldPublicDetailWithCharactersDto](raw)
 }
 
-func (c RealmTypedClient) WorldPublicControllerListWorldCharacters(ctx context.Context, request RealmWorldPublicControllerListWorldCharactersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldPublicSourceCardDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldPublicController_listWorldCharacters", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldPublicControllerListPersonaCharacterCatalog(ctx context.Context, request RealmWorldPublicControllerListPersonaCharacterCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicSourceCardPageDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_listPersonaCharacterCatalog", request, metadata, timeoutMS)
 	if err != nil {
-		return []WorldPublicSourceCardDto{}, err
+		return WorldPublicSourceCardPageDto{}, err
 	}
-	return decodeTypedResponse[[]WorldPublicSourceCardDto](raw)
+	return decodeTypedResponse[WorldPublicSourceCardPageDto](raw)
 }
 
-func (c RealmTypedClient) WorldPublicControllerListWorlds(ctx context.Context, request RealmWorldPublicControllerListWorldsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldPublicItemDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldPublicController_listWorlds", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldPublicControllerListWorldCatalog(ctx context.Context, request RealmWorldPublicControllerListWorldCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicWorldCatalogPageDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_listWorldCatalog", request, metadata, timeoutMS)
 	if err != nil {
-		return []WorldPublicItemDto{}, err
+		return WorldPublicWorldCatalogPageDto{}, err
 	}
-	return decodeTypedResponse[[]WorldPublicItemDto](raw)
+	return decodeTypedResponse[WorldPublicWorldCatalogPageDto](raw)
+}
+
+func (c RealmTypedClient) WorldPublicControllerListWorldCharacterCatalog(ctx context.Context, request RealmWorldPublicControllerListWorldCharacterCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicSourceCardPageDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_listWorldCharacterCatalog", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldPublicSourceCardPageDto{}, err
+	}
+	return decodeTypedResponse[WorldPublicSourceCardPageDto](raw)
 }

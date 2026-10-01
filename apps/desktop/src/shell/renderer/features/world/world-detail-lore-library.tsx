@@ -14,7 +14,8 @@ import {
 import type { WorldDetailData, WorldSemanticData } from './world-detail-types.js';
 
 export type WorldLoreKind = 'rule' | 'system' | 'taboo' | 'language';
-export type WorldLoreIconKind = 'rule' | 'institution' | 'pathway' | 'system' | 'taboo' | 'language';
+// Lore entries carry the icon of their explicit semantic kind; nothing finer is derived from text.
+export type WorldLoreIconKind = WorldLoreKind;
 
 export type WorldLoreEntry = {
   readonly id: string;
@@ -34,7 +35,7 @@ function normalizeLoreText(value: string | null | undefined): string {
 function loreEntryId(kind: WorldLoreKind, value: string, index: number): string {
   const key = value
     .toLocaleLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]+/gu, '-')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
     .replace(/^-+|-+$/gu, '')
     .slice(0, 48);
   return `${kind}-${key || index + 1}`;
@@ -52,20 +53,6 @@ function uniqueDetails(values: readonly (string | null | undefined)[]): string[]
     details.push(detail);
   }
   return details;
-}
-
-function inferLoreIcon(kind: WorldLoreKind, values: readonly string[]): WorldLoreIconKind {
-  if (kind === 'taboo' || kind === 'language' || kind === 'rule') {
-    return kind;
-  }
-  const haystack = values.join(' ').toLocaleLowerCase();
-  if (/(入仕|科举|荐举|荫补|路径|上升|流动|考试|选拔|晋升|career|entry|exam|promotion|mobility|pathway)/u.test(haystack)) {
-    return 'pathway';
-  }
-  if (/(官制|官职|官场|治理|行政|中央|地方|制度|机构|bureaucracy|office|official|governance|administration|institution)/u.test(haystack)) {
-    return 'institution';
-  }
-  return 'system';
 }
 
 export function buildWorldLoreEntries(semantic: WorldSemanticData): WorldLoreEntry[] {
@@ -105,7 +92,9 @@ export function buildWorldLoreEntries(semantic: WorldSemanticData): WorldLoreEnt
     entries.push({
       id: loreEntryId('system', title, index),
       kind: 'system',
-      icon: inferLoreIcon('system', [title, subtitle, body, ...levelKeywords, ...ruleDetails]),
+      // A power system declares no finer kind, so it keeps the neutral system
+      // icon; its name, rules, and levels are never scanned for keywords.
+      icon: 'system',
       title,
       subtitle,
       body,

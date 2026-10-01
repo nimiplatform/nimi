@@ -24,8 +24,9 @@ const primaryWorldFixture = {
   type: 'CREATOR',
   visibility: 'public',
   status: 'DISCOVERABLE',
-  tags: ['Performance'],
+  genre: null,
   themes: ['Performance'],
+  era: null,
   media: {
     iconUrl: null,
     bannerUrl: null,
@@ -45,16 +46,17 @@ const primaryWorldFixture = {
   },
   stats: {
     characterCount: 1,
-    personaCount: 0,
+    personaCharacterCount: 0,
     sceneCount: 0,
     systemCount: 0,
     timelineEventCount: 0,
   },
   computed: {
     time: {
+      mode: 'wallClockAnchored',
       currentWorldTime: '2026-06-19T00:00:00.000Z',
       currentLabel: 'June 19, 2026',
-      eraLabel: 'June 18, 2026',
+      anchorLabel: 'June 18, 2026',
       flowRatio: 1,
       isPaused: false,
     },
@@ -64,7 +66,9 @@ const primaryWorldFixture = {
     featuredCharacterCount: 1,
   },
   characterCount: 1,
-  personaCount: 0,
+  personaCharacterCount: 0,
+  charactersNextCursor: null,
+  personaCharactersNextCursor: null,
   sceneCount: 0,
   systemCount: 0,
   timelineEventCount: 0,
@@ -171,12 +175,17 @@ test('world primary display detail preserves connected local-agent relation stat
 });
 
 test('world recommended character preview loads only three source cards without full detail', async () => {
-  const originalLoadWorldCharacters = realmWorldData.loadWorldCharacters;
+  const originalLoadWorldCharacterPage = realmWorldData.loadWorldCharacterPage;
   const originalLoadWorldDetailWithCharacters = realmWorldData.loadWorldDetailWithCharacters;
   const calls: Array<{ worldId: string; limit?: number }> = [];
-  realmWorldData.loadWorldCharacters = async (worldId, limit) => {
-    calls.push({ worldId, limit });
-    return primaryWorldFixture.characters;
+  realmWorldData.loadWorldCharacterPage = async (worldId, request) => {
+    calls.push({ worldId, limit: request.limit });
+    return {
+      items: primaryWorldFixture.characters as never,
+      nextCursor: 'cursor-2',
+      hasMore: true,
+      totalCount: 42,
+    };
   };
   realmWorldData.loadWorldDetailWithCharacters = async () => {
     throw new Error('FULL_WORLD_DETAIL_MUST_NOT_LOAD_FOR_RECOMMENDED_PREVIEW');
@@ -193,7 +202,7 @@ test('world recommended character preview loads only three source cards without 
     assert.equal(characters[0]?.id, 'character-primary');
     assert.deepEqual(calls, [{ worldId: 'world-primary', limit: 3 }]);
   } finally {
-    realmWorldData.loadWorldCharacters = originalLoadWorldCharacters;
+    realmWorldData.loadWorldCharacterPage = originalLoadWorldCharacterPage;
     realmWorldData.loadWorldDetailWithCharacters = originalLoadWorldDetailWithCharacters;
   }
 });

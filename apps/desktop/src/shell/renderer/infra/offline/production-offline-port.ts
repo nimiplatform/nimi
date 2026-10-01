@@ -62,18 +62,6 @@ export function createDesktopProductionOfflinePort(
     async getCachedProfileMetadata<T extends object>(profileKey: string) {
       return (await openCache()).getCachedProfileMetadata<T>(profileKey);
     },
-    async syncWorldList<T extends object>(worlds: T[]) {
-      await (await openCache()).syncWorldList(worlds);
-    },
-    async getCachedWorldList<T extends object>() {
-      return (await openCache()).getCachedWorldList<T>();
-    },
-    async syncWorldMetadata<T extends object>(worldId: string, payload: T) {
-      await (await openCache()).syncWorldMetadata(worldId, payload);
-    },
-    async getCachedWorldMetadata<T extends object>(worldId: string) {
-      return (await openCache()).getCachedWorldMetadata<T>(worldId);
-    },
     async upsertChatOutboxEntry(entry: Parameters<DesktopRendererOfflinePort['upsertChatOutboxEntry']>[0]) {
       await (await openOutbox()).upsertChatOutboxEntry(entry);
     },

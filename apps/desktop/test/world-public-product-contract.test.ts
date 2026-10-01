@@ -4,12 +4,9 @@ import test from 'node:test';
 import {
   loadWorldDetailWithCharacters,
   loadWorldAssets,
-  loadWorldList,
+  loadWorldCatalogPage,
 } from '../src/shell/renderer/features/world/data/realm-world-data.js';
-import {
-  displayTags,
-  isWorldVisibleInAtlas,
-} from '../src/shell/renderer/features/world/world-list-catalog-model.js';
+import { displayTags } from '../src/shell/renderer/features/world/world-list-catalog-model.js';
 import {
   toWorldDisplayFallback,
   worldPublicHighlightImages,
@@ -75,7 +72,9 @@ function publicWorld(overrides: PublicWorld = {}) {
     tagline: 'High Magic Frontier',
     type: 'CREATOR',
     visibility: 'public',
-    tags: ['Fantasy', 'Adventure'],
+    genre: 'Fantasy',
+    themes: ['Adventure'],
+    era: null,
     media: {
       iconUrl: 'https://cdn.example.com/world-icon.png',
       bannerUrl: 'https://cdn.example.com/world-banner.png',
@@ -87,7 +86,7 @@ function publicWorld(overrides: PublicWorld = {}) {
       entityCount: 8,
       relationshipCount: 12,
       characterCount: 1,
-      personaCount: 1,
+      personaCharacterCount: 1,
       sceneCount: 2,
       systemCount: 1,
       timelineEventCount: 2,
@@ -125,7 +124,8 @@ function publicSource(overrides: PublicSource = {}) {
     role: 'Archivist',
     worldId: 'world-1',
     worldName: 'Eldoria',
-    tags: ['Lore'],
+    traits: ['Patient'],
+    topics: ['Lore'],
     media: {
       avatarUrl: 'https://cdn.example.com/liora.png',
       profileCoverUrl: null,
@@ -156,17 +156,19 @@ function createWorldPublicCallApi(payload: {
   const calls: string[] = [];
   const callApi = async <T>(task: (realm: unknown) => Promise<T>) => task({
     worldPublic: {
-      worldPublicControllerListWorlds: async () => {
-        calls.push('worldPublicControllerListWorlds');
-        return payload.worlds ?? [publicWorld()];
+      worldPublicControllerListWorldCatalog: async (request: { query?: Record<string, unknown> }) => {
+        calls.push(`worldPublicControllerListWorldCatalog:${JSON.stringify(request.query ?? {})}`);
+        const items = payload.worlds ?? [publicWorld()];
+        return { items, nextCursor: null, hasMore: false, totalCount: items.length };
       },
       worldPublicControllerGetWorld: async () => {
         calls.push('worldPublicControllerGetWorld');
         return payload.detail ?? publicWorld();
       },
-      worldPublicControllerListWorldCharacters: async () => {
-        calls.push('worldPublicControllerListWorldCharacters');
-        return payload.characters ?? [publicSource()];
+      worldPublicControllerListWorldCharacterCatalog: async () => {
+        calls.push('worldPublicControllerListWorldCharacterCatalog');
+        const items = payload.characters ?? [publicSource()];
+        return { items, nextCursor: null, hasMore: false, totalCount: items.length };
       },
       worldPublicControllerGetWorldDetailWithCharacters: async () => {
         calls.push('worldPublicControllerGetWorldDetailWithCharacters');
@@ -174,7 +176,9 @@ function createWorldPublicCallApi(payload: {
           world: payload.detail ?? publicWorld(),
           sources: {
             characters: payload.characters ?? [publicSource()],
-            personas: payload.personas ?? [],
+            charactersNextCursor: null,
+            personaCharacters: payload.personas ?? [],
+            personaCharactersNextCursor: null,
           },
         };
       },
@@ -185,13 +189,14 @@ function createWorldPublicCallApi(payload: {
   return { callApi, calls };
 }
 
-test('World Atlas list consumes public product DTOs without raw WorldCore requirements', async () => {
+test('World Atlas catalog pages consume public product DTOs without raw WorldCore requirements', async () => {
   const errors: RealmWorldDataError[] = [];
   const { callApi, calls } = createWorldPublicCallApi({
     worlds: [publicWorld({ era: '元代' })],
   });
 
-  const result = await loadWorldList(callApi as never, createEmitter(errors));
+  const page = await loadWorldCatalogPage(callApi as never, createEmitter(errors), { q: '  北宋 ', cursor: 'cursor-2' });
+  const result = page.items;
   const firstWorld = result[0] as {
     computed?: {
       time?: {
@@ -200,7 +205,12 @@ test('World Atlas list consumes public product DTOs without raw WorldCore requir
     };
   } | undefined;
 
-  assert.equal(calls.includes('worldPublicControllerListWorlds'), true);
+  assert.deepEqual(calls, ['worldPublicControllerListWorldCatalog:{"q":"北宋","cursor":"cursor-2","limit":20}']);
+  assert.deepEqual({ nextCursor: page.nextCursor, hasMore: page.hasMore, totalCount: page.totalCount }, {
+    nextCursor: null,
+    hasMore: false,
+    totalCount: 1,
+  });
   assert.equal(result[0]?.id, 'world-1');
   assert.equal(result[0]?.name, 'Eldoria');
   assert.equal(result[0]?.description, 'A kingdom-scale fantasy setting for source discovery.');
@@ -210,7 +220,7 @@ test('World Atlas list consumes public product DTOs without raw WorldCore requir
   assert.equal(result[0]?.entityCount, 8);
   assert.equal(result[0]?.relationshipCount, 12);
   assert.equal(result[0]?.characterCount, 1);
-  assert.equal(result[0]?.personaCount, 1);
+  assert.equal(result[0]?.personaCharacterCount, 1);
   assert.deepEqual(result[0]?.entityKinds, ['person', 'place', 'office', 'text']);
   assert.deepEqual(result[0]?.relationshipTypes, ['serves', 'authored', 'locatedIn']);
   assert.equal(firstWorld?.computed?.time?.currentWorldTime, '2026-06-19T00:00:00.000Z');
@@ -247,7 +257,7 @@ test('World list model accepts allowlisted public DTOs and rejects reliance on r
   assert.equal(item.entityCount, 8);
   assert.equal(item.relationshipCount, 12);
   assert.equal(item.characterCount, 1);
-  assert.equal(item.personaCount, 1);
+  assert.equal(item.personaCharacterCount, 1);
   assert.equal(item.sceneCount, 2);
   assert.equal(item.timelineEventCount, 2);
   assert.deepEqual(item.entityKinds, ['person', 'place', 'office', 'text']);
@@ -263,23 +273,48 @@ test('World detail list-item fallback consumes the already projected world list 
   assert.equal(fallback.name, 'Eldoria');
   assert.equal(fallback.description, 'A kingdom-scale fantasy setting for source discovery.');
   assert.equal(fallback.characterCount, 1);
-  assert.equal(fallback.currentWorldTime, '2026-06-19T00:00:00.000Z');
+  assert.equal(fallback.time.currentWorldTime, '2026-06-19T00:00:00.000Z');
 });
 
-test('World Atlas preview tags expose only the dynasty label', () => {
-  const item = toWorldListItem(publicWorld({
-    era: '元代',
-    tags: ['historical', 'cbdb-yuan-literati-academy-world'],
+test('World Atlas tags come only from explicit genre, themes and era in that order', () => {
+  const historical = toWorldListItem(publicWorld({ genre: '历史生活', themes: ['草堂', 'friendship'], era: '唐' }));
+  assert.deepEqual(displayTags(historical, 4), ['历史生活', '草堂', 'friendship', '唐']);
+
+  // Names, ids and anchors never produce a dynasty or genre tag.
+  const contemporary = toWorldListItem(publicWorld({
+    id: 'cbdb-yuan-literati-academy-world',
+    name: '当代剧团·第七次排练',
+    genre: null,
+    themes: [],
+    era: null,
   }));
+  assert.deepEqual(displayTags(contemporary, 4), []);
 
-  assert.deepEqual(displayTags(item, 2, 'zh-CN'), ['元代']);
-  assert.deepEqual(displayTags(item, 2, 'en-US'), ['元代']);
+  const mixed = toWorldListItem(publicWorld({ genre: 'Sky Bazaar 浮空市集', themes: ['The Last Star', 'Mira'], era: null }));
+  assert.deepEqual(displayTags(mixed, 4), ['Sky Bazaar 浮空市集', 'The Last Star', 'Mira']);
 });
 
-test('World Atlas excludes Beijing and Northern Song scholar-official worlds from the visible catalog', () => {
-  assert.equal(isWorldVisibleInAtlas(toWorldListItem(publicWorld({ name: '北京士大夫世界' }))), false);
-  assert.equal(isWorldVisibleInAtlas(toWorldListItem(publicWorld({ name: '北宋士大夫世界' }))), false);
-  assert.equal(isWorldVisibleInAtlas(toWorldListItem(publicWorld({ name: '唐代文人世界' }))), true);
+test('World Atlas does not hide worlds by name', async () => {
+  const { callApi } = createWorldPublicCallApi({
+    worlds: [publicWorld({ id: 'song', name: '北宋士大夫世界' }), publicWorld({ id: 'beijing', name: '北京士大夫世界' })],
+  });
+  const page = await loadWorldCatalogPage(callApi as never, createEmitter([]), {});
+  assert.deepEqual(page.items.map((world) => world.name), ['北宋士大夫世界', '北京士大夫世界']);
+});
+
+test('A static world projects no world clock and keeps only its author label', () => {
+  for (const label of ['第三次退潮', null]) {
+    const item = toWorldListItem(publicWorld({ time: { mode: 'static', label, currentWorldTime: null } }));
+    assert.deepEqual(item.computed.time, { mode: 'static', label, currentWorldTime: null });
+    assert.equal(JSON.stringify(item.computed.time).includes('2026'), false);
+  }
+});
+
+test('World public time fails closed on an incomplete wall-clock snapshot', () => {
+  assert.throws(
+    () => toWorldListItem(publicWorld({ time: { mode: 'wallClockAnchored', currentWorldTime: null } })),
+    /wall-clock/i,
+  );
 });
 
 test('World Character projections fail closed on incomplete source refs', () => {
@@ -342,7 +377,9 @@ test('World detail consumes public source sections for characters and personas',
   assert.equal(calls.includes('worldPublicControllerGetWorldDetailWithCharacters'), true);
   assert.equal(result?.id, 'world-1');
   assert.equal(result?.characterCount, 1);
-  assert.equal(result?.personaCount, 1);
+  assert.equal(result?.personaCharacterCount, 1);
+  assert.equal(result?.charactersNextCursor, null);
+  assert.equal(result?.personaCharactersNextCursor, null);
   assert.equal(result?.characters.length, 2);
   assert.equal(result?.characters[0]?.sourceKind, 'worldCharacter');
   assert.equal(result?.characters[1]?.sourceKind, 'personaCharacter');
@@ -381,7 +418,7 @@ test('World detail projects public source sections into atlas recommended people
         entityCount: 8,
         relationshipCount: 12,
         characterCount: 1,
-        personaCount: 1,
+        personaCharacterCount: 1,
         sceneCount: 2,
         systemCount: 1,
         timelineEventCount: 2,

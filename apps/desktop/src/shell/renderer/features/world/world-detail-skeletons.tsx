@@ -113,7 +113,7 @@ export function WorldRelationshipExplorerSkeleton() {
           <SkeletonBlock height={10} width={132} radius={999} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 22 }}>
-          {Array.from({ length: 4 }).map((_, index) => (
+          {Array.from({ length: 3 }).map((_, index) => (
             <SkeletonBlock key={index} height={36} width={52} radius={10} />
           ))}
         </div>

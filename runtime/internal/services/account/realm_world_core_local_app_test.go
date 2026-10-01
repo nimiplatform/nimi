@@ -121,9 +121,7 @@ func validLocalAppWorldCoreJSON(id string) string {
 			"identity":{"name":"Test World","summary":"A test world"},
 			"presentation":{},
 			"ontology":{"entityKinds":[],"relationshipTypes":[]},
-			"timeModel":{"mode":"static","flowRatio":1,"isPaused":true,
-				"anchor":{"realStartedAt":"2026-08-06T00:00:00Z","worldStartedAt":"year 1","worldStartedAtDisplay":"Year 1"},
-				"pausedWorldTime":null,"calendar":null,"displayFormat":null},
+			"timeModel":{"mode":"static","label":"Year 1"},
 			"timeline":{"events":[]},"entities":[],"relationships":[],"systems":[],"scenes":[],
 			"assets":{"resourceRefs":[],"intents":[]},"authoring":{"source":"manual"}
 		},

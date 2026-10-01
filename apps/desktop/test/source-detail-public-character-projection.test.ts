@@ -70,7 +70,8 @@ function publicSourceCard(ref: CharacterSourceRefV3, displayName: string) {
     displayName,
     handle: 'source-handle',
     summary: `${displayName} summary`,
-    tags: ['history'],
+    traits: ['historian'],
+    topics: ['history'],
     role: 'Scholar',
     sourceKind: ref.kind,
     sourceRef: ref,
@@ -128,6 +129,39 @@ test('worldCharacter and personaCharacter use the same shared profile projection
   ]);
   assert.equal(personaProjection.characterProfile.relationshipNotes[0]?.targetRef, 'entity-mentor');
   assert.doesNotMatch(personaProjection.characterProfile.conversationAnchors.join('\n'), /\[object Object\]/);
+});
+
+test('public biography life events keep their explicit kind in the shared milestone projection', () => {
+  const projection = projectCharacterSourceProfile(
+    characterProfile('Mira', 'Station cartographer of The Last Star.') as never,
+    {
+      ...publicSourceCard(sourceRef, 'Mira'),
+      characterBiography: {
+        sourceNotes: [],
+        lifeEvents: [
+          { id: 'event-birth', kind: 'birth', title: 'Born on Deck 9', summary: 'Born aboard the station.', sequence: 1, periodLabel: 'Cycle 1', source: 'biographyMilestone' },
+          { id: 'event-crew', kind: 'relationship', title: 'Joined Oriel Vantasse', summary: 'Mira and Oriel Vantasse chart the outer ring together.', sequence: 2, periodLabel: null, source: 'relationshipSummary' },
+          { id: 'event-post', kind: 'office', title: 'Chief cartographer', summary: 'Appointed chief cartographer.', sequence: 3, periodLabel: 'Cycle 12', source: 'biographyMilestone' },
+          { id: 'event-atlas', kind: 'work', title: 'The Outer Ring Atlas', summary: 'Her atlas of the outer ring.', sequence: 4, periodLabel: null, source: 'biographyMilestone' },
+          { id: 'event-school', kind: 'learning', title: 'Studied at the Academy', summary: 'Trained in navigation.', sequence: 5, periodLabel: null, source: 'biographyMilestone' },
+          { id: 'event-other', kind: 'other', title: '任务完成', summary: 'Mission complete.', sequence: 6, periodLabel: null, source: 'biographyMilestone' },
+        ],
+      },
+    } as never,
+  );
+
+  assert.deepEqual(
+    projection.characterProfile.milestones.map((milestone) => [milestone.id, milestone.kind, milestone.derived]),
+    [
+      ['event-birth', 'biography', false],
+      ['event-crew', 'relationship', true],
+      ['event-post', 'office', false],
+      ['event-atlas', 'work', false],
+      ['event-school', 'biography', false],
+      ['event-other', 'biography', false],
+    ],
+  );
+  assert.equal(readCharacterProfile(projection.characterProfile), projection.characterProfile);
 });
 
 test('source detail fails closed without a complete CharacterSourceRefV3', () => {

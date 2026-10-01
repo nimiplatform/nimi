@@ -129,7 +129,7 @@ test('Desktop source-readiness Realm transport maps upstream failure to typed Re
   });
 
   await assert.rejects(
-    () => transport.unary({ methodId: 'WorldPublicController_listWorlds', body: {} }),
+    () => transport.unary({ methodId: 'WorldPublicController_listWorldCatalog', body: {} }),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.REALM_UNAVAILABLE);
       assert.equal((error as { source?: string }).source, 'realm');
@@ -150,7 +150,8 @@ test('Desktop source-readiness Realm transport exposes the exact generated opera
     'WorldCoreController_listWorldRelationships',
     'WorldPublicController_getWorld',
     'WorldPublicController_getWorldDetailWithCharacters',
-    'WorldPublicController_listWorlds',
+    'WorldPublicController_listWorldCatalog',
+    'WorldPublicController_listPersonaCharacterCatalog',
   ]);
   let runtimeCalls = 0;
   const transport = createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({

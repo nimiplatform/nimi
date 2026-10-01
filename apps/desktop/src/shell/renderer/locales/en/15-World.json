@@ -77,7 +77,6 @@
     },
     "category": {
       "all": "All Worlds",
-      "followed": "Followed",
       "trending": "Trending",
       "new": "New",
       "fantasy": "Fantasy",
@@ -88,9 +87,7 @@
       "anime": "Anime"
     },
     "sort": {
-      "recent": "Recently Updated",
-      "sources": "Most People",
-      "alpha": "Name"
+      "recent": "Recently Updated"
     },
     "actions": {
       "shareWorld": "Share world",
@@ -124,7 +121,13 @@
         "friends": "{{count}} local agents added",
         "recent": "Meet first: {{names}}"
       }
-    }
+    },
+    "loadedCount": "{{loaded}} of {{total}} worlds loaded",
+    "loadMore": "Load more worlds",
+    "loadingMore": "Loading…",
+    "loadMoreError": "Couldn't load more worlds. Try again.",
+    "offlineIncomplete": "Offline: showing only the worlds already loaded. Results are incomplete.",
+    "searchUnavailableOffline": "World search is unavailable while offline."
   },
   "toolbar": {
     "heading": "World Atlas",
@@ -132,11 +135,9 @@
     "viewMode": "View mode",
     "gridView": "Grid view",
     "listView": "List view",
-    "sortLabel": "Sort worlds",
     "sort": {
       "active": "Source rich",
       "recent": "Recently updated",
-      "alpha": "Name A–Z",
       "inhabitants": "Sources"
     }
   },
@@ -164,7 +165,6 @@
   },
   "stats": {
     "inhabitants": "Sources",
-    "sources": "Sources",
     "personas": "Personas",
     "entities": "Entities",
     "characters": "Characters",
@@ -173,8 +173,7 @@
     "systems": "Systems",
     "timelineEvents": "Timeline Events",
     "day": "World Time",
-    "flow": "Timeflow",
-    "timeflow": "Timeflow"
+    "flow": "Timeflow"
   },
   "card": {
     "view": "View World",

@@ -134,7 +134,7 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 				t.Fatalf("expected local/default binding, got %#v", req.Binding)
 			}
 			if got := req.MaxTokens; got != 777 {
-				t.Fatalf("expected provider max_tokens to equal explicit manifest reserve 777, got %d", got)
+				t.Fatalf("expected the caller's max_output_tokens 777 to stay the hard limit, got %d", got)
 			}
 			var providerContext strings.Builder
 			for _, message := range req.Messages {

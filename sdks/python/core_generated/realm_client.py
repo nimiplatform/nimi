@@ -1046,16 +1046,22 @@ REALM_OPERATIONS = [
     "path": "/api/world/by-id/{worldId}/detail-with-characters"
   },
   {
-    "operation_id": "WorldPublicController_listWorldCharacters",
+    "operation_id": "WorldPublicController_listPersonaCharacterCatalog",
     "service": "World",
     "method": "GET",
-    "path": "/api/world/by-id/{worldId}/characters"
+    "path": "/api/world/persona-characters/catalog"
   },
   {
-    "operation_id": "WorldPublicController_listWorlds",
+    "operation_id": "WorldPublicController_listWorldCatalog",
     "service": "World",
     "method": "GET",
-    "path": "/api/world"
+    "path": "/api/world/catalog"
+  },
+  {
+    "operation_id": "WorldPublicController_listWorldCharacterCatalog",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}/characters/catalog"
   }
 ]
 REALM_OPERATION_BY_ID = {operation["operation_id"]: operation for operation in REALM_OPERATIONS}

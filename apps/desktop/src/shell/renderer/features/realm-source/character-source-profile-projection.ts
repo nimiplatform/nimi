@@ -13,7 +13,7 @@ export type CharacterProfileMilestoneProjection = {
   summary: string | null;
   sequence: number | null;
   timeLabel: string | null;
-  kind: 'biography' | 'entry' | 'office' | 'work';
+  kind: 'biography' | 'entry' | 'office' | 'work' | 'relationship';
   derived: boolean;
 };
 
@@ -95,7 +95,9 @@ function biographyMilestoneKind(
 ): CharacterProfileMilestoneProjection['kind'] {
   if (kind === 'office') return 'office';
   if (kind === 'work') return 'work';
-  if (kind === 'relationship') return 'entry';
+  // A relationship life event keeps its declared relationship meaning; `entry`
+  // is the typed entry-into-service career kind and must not absorb it.
+  if (kind === 'relationship') return 'relationship';
   return 'biography';
 }
 
@@ -173,7 +175,7 @@ export function projectCharacterSourceProfile(
       voiceSample: mediaAssets.voiceSample ?? null,
     },
     bio: publicProjection.bio ?? profile.narrative.summary,
-    tags: uniqueStrings(source.tags),
+    tags: uniqueStrings([...source.traits, ...source.topics]),
     ownership: source.ownership,
     worldName: source.worldName,
     viewerRelation: {

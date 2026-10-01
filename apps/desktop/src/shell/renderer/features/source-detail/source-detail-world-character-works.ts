@@ -1,7 +1,6 @@
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { SourceDetailWorkCollection } from './source-detail-model.js';
 import {
-  readMilestoneTimeLabel,
   readOptionalString,
   readScalarString,
   slug,
@@ -10,9 +9,8 @@ import {
   mergeDistinctText,
   mergeTimeLabel,
   normalizeWorkStatus,
-  normalizedWorkMergeText,
+  normalizedMergeText,
   readWorkTitle,
-  readWorkTitleFromText,
 } from './source-detail-world-character-common.js';
 import {
   isWorkRelationshipType,
@@ -23,9 +21,13 @@ import {
   readRelationshipLabel,
   readRelationshipSummary,
   readRelationshipTargetLabel,
+  readRelationshipTimeLabel,
   readRelationshipType,
 } from './source-detail-world-character-relationships.js';
 
+// A work comes only from a relationship row with an explicit work type. Its
+// title comes only from explicit title fields; titles are never parsed out of
+// summaries or other prose.
 function toWorkCollectionFromRelationship(row: JsonObject, index: number): SourceDetailWorkCollection | null {
   const type = readRelationshipType(row);
   if (!isWorkRelationshipType(type)) {
@@ -35,20 +37,17 @@ function toWorkCollectionFromRelationship(row: JsonObject, index: number): Sourc
   const presentation = relationshipPresentation(row);
   const core = relationshipCore(row);
   const summary = readRelationshipSummary(row);
-  const targetTextRef = readScalarString(row.targetEntityId)
-    ?? readScalarString(row.targetRef)
-    ?? readScalarString(core.targetEntityId);
-  const targetTextId = targetTextRef?.replace(/^cbdb-text-/u, '') ?? null;
   const textId = readScalarString(attributes.textId)
     ?? readScalarString(attributes.textCode)
-    ?? targetTextId;
+    ?? readScalarString(row.targetEntityId)
+    ?? readScalarString(row.targetRef)
+    ?? readScalarString(core.targetEntityId);
   const title = readWorkTitle(attributes)
     ?? readOptionalString(presentation, 'title')
-    ?? readRelationshipTargetLabel(row)
-    ?? readWorkTitleFromText(summary);
-  // Rows without an identifiable work title are literary-exchange evidence,
-  // not works. Keep them as text clues titled by the generic relation label
-  // (e.g. 著述线索) so they render separately from real work cards.
+    ?? readRelationshipTargetLabel(row);
+  // Rows without an explicit work title are writing evidence, not works. Keep
+  // them as text clues titled by their relation label so they render
+  // separately from real work cards.
   const textClue = !title;
   const resolvedTitle = title ?? readRelationshipLabel(row) ?? summary;
   if (!resolvedTitle || (textClue && !summary)) {
@@ -63,12 +62,14 @@ function toWorkCollectionFromRelationship(row: JsonObject, index: number): Sourc
     rowRef: readScalarString(attributes.rowRef),
     role: readOptionalString(attributes, 'role') ?? readOptionalString(attributes, 'relationRole'),
     status: normalizeWorkStatus(attributes.joinStatus ?? row.joinStatus ?? attributes.status),
-    summary: textClue || !isGenericWorkSummary(resolvedTitle, summary) ? summary : null,
-    timeLabel: readMilestoneTimeLabel([attributes, presentation, core, row], [resolvedTitle, summary]),
+    summary: textClue || !isTitleOnlySummary(resolvedTitle, summary) ? summary : null,
+    timeLabel: readRelationshipTimeLabel(row),
     ...(textClue ? { textClue: true } : {}),
   };
 }
 
+// Two work records name the same collection only through an explicit id or an
+// identical explicit title.
 function worksReferToSameCollection(
   left: SourceDetailWorkCollection,
   right: SourceDetailWorkCollection,
@@ -84,31 +85,15 @@ function worksReferToSameCollection(
   if (left.textClue || right.textClue) {
     return false;
   }
-  const leftTitle = normalizedWorkMergeText(left.title);
-  const rightTitle = normalizedWorkMergeText(right.title);
-  return Boolean(
-    leftTitle
-      && rightTitle
-      && leftTitle === rightTitle,
-  );
+  const leftTitle = normalizedMergeText(left.title);
+  const rightTitle = normalizedMergeText(right.title);
+  return Boolean(leftTitle && rightTitle && leftTitle === rightTitle);
 }
 
-function isGenericWorkSummary(title: string, summary: string | null | undefined): boolean {
-  const normalizedTitle = normalizedWorkMergeText(title);
-  const normalizedSummary = normalizedWorkMergeText(summary);
-  if (!normalizedTitle || !normalizedSummary) {
-    return false;
-  }
-  return normalizedSummary === normalizedTitle
-    || normalizedSummary === `著有${normalizedTitle}`
-    || normalizedSummary === `撰有${normalizedTitle}`
-    || normalizedSummary === `著作${normalizedTitle}`
-    || normalizedSummary === `${normalizedTitle}有关`
-    || normalizedSummary.endsWith(`著有${normalizedTitle}`)
-    || normalizedSummary.endsWith(`撰有${normalizedTitle}`)
-    || normalizedSummary.endsWith(`著作${normalizedTitle}`)
-    || normalizedSummary.endsWith(`与著作${normalizedTitle}有关`)
-    || normalizedSummary.endsWith(`与作品${normalizedTitle}有关`);
+// A summary that only repeats the title adds nothing to the work card.
+function isTitleOnlySummary(title: string, summary: string | null | undefined): boolean {
+  const normalizedTitle = normalizedMergeText(title);
+  return Boolean(normalizedTitle) && normalizedMergeText(summary) === normalizedTitle;
 }
 
 function mergeWorkStatus(
@@ -124,74 +109,20 @@ function mergeWorkStatus(
   return 'unknown';
 }
 
-function workDisplayScore(work: SourceDetailWorkCollection): number {
-  const normalizedSummary = normalizedWorkMergeText(work.summary);
-  let score = normalizedWorkMergeText(work.title) ? 1 : 0;
-  if (normalizedSummary) {
-    score += 8 + Math.min(normalizedSummary.length, 80) / 10;
-    if (isGenericWorkSummary(work.title, work.summary)) {
-      score -= 7;
-    }
-  }
-  if (work.romanizedTitle) {
-    score += 0.25;
-  }
-  if (work.timeLabel) {
-    score += 0.25;
-  }
-  return score;
+function hasExplicitWorkIdentity(work: SourceDetailWorkCollection): boolean {
+  return Boolean(work.textId || work.rowRef);
 }
 
-function chooseWorkDisplayBase(
-  left: SourceDetailWorkCollection,
-  right: SourceDetailWorkCollection,
-): SourceDetailWorkCollection {
-  const leftScore = workDisplayScore(left);
-  const rightScore = workDisplayScore(right);
-  return rightScore >= leftScore ? right : left;
-}
-
-function workTitleEvidenceScore(work: SourceDetailWorkCollection): number {
-  const normalizedTitle = normalizedWorkMergeText(work.title);
-  const normalizedSummary = normalizedWorkMergeText(work.summary);
-  if (!normalizedTitle) {
-    return 0;
-  }
-  let score = 1;
-  if (normalizedSummary.includes(normalizedTitle)) {
-    score += 4;
-  }
-  score += 1 / Math.max(normalizedTitle.length, 1);
-  return score;
-}
-
-function chooseWorkTitle(
-  left: SourceDetailWorkCollection,
-  right: SourceDetailWorkCollection,
-  display: SourceDetailWorkCollection,
-): string {
-  const leftTitle = normalizedWorkMergeText(left.title);
-  const rightTitle = normalizedWorkMergeText(right.title);
-  if (leftTitle && rightTitle && leftTitle === rightTitle) {
-    return display.title;
-  }
-  const leftScore = workTitleEvidenceScore(left);
-  const rightScore = workTitleEvidenceScore(right);
-  if (leftScore === rightScore) {
-    return display.title;
-  }
-  return rightScore > leftScore ? right.title : left.title;
-}
-
+// The record backed by an explicit text id or row reference is the display
+// base; the other record only fills fields the base leaves empty.
 function mergeWorkCollection(
   left: SourceDetailWorkCollection,
   right: SourceDetailWorkCollection,
 ): SourceDetailWorkCollection {
-  const display = chooseWorkDisplayBase(left, right);
+  const display = !hasExplicitWorkIdentity(left) && hasExplicitWorkIdentity(right) ? right : left;
   const fallback = display === left ? right : left;
   return {
     ...display,
-    title: chooseWorkTitle(left, right, display),
     romanizedTitle: display.romanizedTitle ?? fallback.romanizedTitle,
     textId: display.textId ?? fallback.textId,
     rowRef: display.rowRef ?? fallback.rowRef,

@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -147,6 +148,7 @@ type realmSourceCompilerWorldIdentityV3 struct {
 	Divergences *[]string `json:"divergences,omitempty"`
 }
 
+// @nimi-authority: rule.nimi.runtime.memory-world.r019
 type realmSourceCompilerWorldPresentationV3 struct {
 	Title             *string   `json:"title,omitempty"`
 	DisplayName       *string   `json:"displayName,omitempty"`
@@ -154,6 +156,7 @@ type realmSourceCompilerWorldPresentationV3 struct {
 	Palette           *[]string `json:"palette,omitempty"`
 	IconResourceRef   *string   `json:"iconResourceRef,omitempty"`
 	BannerResourceRef *string   `json:"bannerResourceRef,omitempty"`
+	HeroResourceRef   *string   `json:"heroResourceRef,omitempty"`
 }
 
 type realmSourceCompilerWorldOntologyV3 struct {
@@ -168,18 +171,57 @@ type realmSourceCompilerWorldConceptV3 struct {
 	Summary   *string `json:"summary,omitempty"`
 }
 
+// realmSourceCompilerWorldTimeModelV3 decodes both WorldCore time model shapes: a static world
+// carries only mode and a nullable author label; a wallClockAnchored world carries its clock.
 type realmSourceCompilerWorldTimeModelV3 struct {
-	Mode      string  `json:"mode"`
-	FlowRatio float64 `json:"flowRatio"`
-	IsPaused  *bool   `json:"isPaused"`
-	Anchor    struct {
-		RealStartedAt         string `json:"realStartedAt"`
-		WorldStartedAt        string `json:"worldStartedAt"`
-		WorldStartedAtDisplay string `json:"worldStartedAtDisplay"`
-	} `json:"anchor"`
-	PausedWorldTime sourceMaterializationNullableString `json:"pausedWorldTime"`
-	Calendar        sourceMaterializationNullableString `json:"calendar"`
-	DisplayFormat   sourceMaterializationNullableString `json:"displayFormat"`
+	Mode            string                                `json:"mode"`
+	Label           sourceMaterializationNullableString   `json:"label"`
+	FlowRatio       *float64                              `json:"flowRatio"`
+	IsPaused        *bool                                 `json:"isPaused"`
+	Anchor          *realmSourceCompilerWorldTimeAnchorV3 `json:"anchor"`
+	PausedWorldTime sourceMaterializationNullableString   `json:"pausedWorldTime"`
+	Calendar        sourceMaterializationNullableString   `json:"calendar"`
+	DisplayFormat   sourceMaterializationNullableString   `json:"displayFormat"`
+}
+
+type realmSourceCompilerWorldTimeAnchorV3 struct {
+	RealStartedAt         string `json:"realStartedAt"`
+	WorldStartedAt        string `json:"worldStartedAt"`
+	WorldStartedAtDisplay string `json:"worldStartedAtDisplay"`
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-service.world-time-model
+func validateRealmSourceCompilerWorldTimeModelV3(model realmSourceCompilerWorldTimeModelV3) error {
+	switch model.Mode {
+	case "static":
+		if !model.Label.Present || model.FlowRatio != nil || model.IsPaused != nil || model.Anchor != nil ||
+			model.PausedWorldTime.Present || model.Calendar.Present || model.DisplayFormat.Present {
+			return fmt.Errorf("static WorldCore timeModel must carry exactly mode and label")
+		}
+		if model.Label.Value != nil && strings.TrimSpace(*model.Label.Value) != *model.Label.Value ||
+			model.Label.Value != nil && *model.Label.Value == "" {
+			return fmt.Errorf("static WorldCore timeModel label must be null or trimmed non-empty text")
+		}
+		return nil
+	case "wallClockAnchored":
+		if model.Label.Present || model.FlowRatio == nil || model.IsPaused == nil || model.Anchor == nil ||
+			!model.PausedWorldTime.Present || !model.Calendar.Present || !model.DisplayFormat.Present {
+			return fmt.Errorf("wallClockAnchored WorldCore timeModel fields are incomplete")
+		}
+		if math.IsNaN(*model.FlowRatio) || math.IsInf(*model.FlowRatio, 0) || *model.FlowRatio <= 0 {
+			return fmt.Errorf("wallClockAnchored WorldCore timeModel flowRatio must be positive and finite")
+		}
+		if strings.TrimSpace(model.Anchor.RealStartedAt) == "" || strings.TrimSpace(model.Anchor.WorldStartedAt) == "" ||
+			strings.TrimSpace(model.Anchor.WorldStartedAtDisplay) == "" {
+			return fmt.Errorf("wallClockAnchored WorldCore timeModel anchor is incomplete")
+		}
+		if *model.IsPaused != (model.PausedWorldTime.Value != nil) {
+			return fmt.Errorf("wallClockAnchored WorldCore timeModel pausedWorldTime must be set exactly when paused")
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported WorldCore timeModel mode %q", model.Mode)
+	}
 }
 
 type realmSourceCompilerWorldTimelineV3 struct {
@@ -304,8 +346,11 @@ func decodeRealmSourceCompilerWorldCoreV3(value sourceMaterializationJSONValue) 
 	if err := strictDecodeSourceMaterializationV3(raw, &world); err != nil {
 		return realmSourceCompilerWorldCoreV3{}, fmt.Errorf("decode typed SnapshotV2 WorldCore: %w", err)
 	}
+	if err := validateRealmSourceCompilerWorldTimeModelV3(world.TimeModel); err != nil {
+		return realmSourceCompilerWorldCoreV3{}, fmt.Errorf("validate SnapshotV2 WorldCore: %w", err)
+	}
 	if strings.TrimSpace(world.Identity.Name) == "" || strings.TrimSpace(world.Identity.Summary) == "" ||
-		strings.TrimSpace(world.TimeModel.Mode) == "" || world.Ontology.EntityKinds == nil ||
+		world.Ontology.EntityKinds == nil ||
 		world.Ontology.RelationshipTypes == nil || world.Timeline.Events == nil || world.Entities == nil ||
 		world.Relationships == nil || world.Systems == nil || world.Scenes == nil ||
 		world.Assets.Kind != sourceMaterializationJSONObject || world.Authoring.Kind != sourceMaterializationJSONObject {

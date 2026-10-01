@@ -1,3 +1,4 @@
+import type { WorldComputedTime } from './world-list-model';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
 export type WorldRecommendedCharacterDisplay = {
@@ -62,17 +63,13 @@ export type WorldDetailData = {
   readonly scoreE: number;
   readonly scoreEwma: number;
   readonly scoreQ: number;
-  readonly flowRatio: number;
-  readonly isPaused?: boolean;
+  readonly time: WorldComputedTime;
   readonly genre?: string | null;
   readonly era?: string | null;
   readonly themes?: readonly string[] | null;
-  readonly currentWorldTime?: string | null;
-  readonly currentTimeLabel?: string | null;
-  readonly eraLabel?: string | null;
   readonly entityCount?: number;
   readonly relationshipCount?: number;
-  readonly personaCount?: number;
+  readonly personaCharacterCount?: number;
   readonly sceneCount?: number;
   readonly systemCount?: number;
   readonly timelineEventCount?: number;
@@ -107,7 +104,8 @@ export type WorldCharacter = {
   readonly rank?: string | null;
   readonly sceneName?: string | null;
   readonly location?: string | null;
-  readonly tags?: readonly string[];
+  readonly traits?: readonly string[];
+  readonly topics?: readonly string[];
   readonly createdAt: string;
   readonly avatarUrl?: string | null;
   readonly portraitUrl?: string | null;
@@ -333,4 +331,27 @@ export type RealmConstellationData = {
   boundary?: string | null;
   dimensions?: string | null;
   realms: readonly WorldSemanticRealm[];
+};
+
+/**
+ * Server-backed people browsing for one world: search runs on Realm and further pages are read
+ * by cursor, so the loaded list is never presented as the complete population.
+ */
+// A World's people read from Realm catalogs. `status` describes the first page of the current
+// query: until it is `ready`, the loaded people and `totalCount` are not the population.
+// `offline` is a first page waiting for the connection, which loads by itself once it returns;
+// `error` is a first page that failed and needs a retry.
+export type WorldPeopleCatalogState = {
+  readonly status: 'loading' | 'offline' | 'error' | 'ready';
+  readonly offline: boolean;
+  readonly totalCount: number;
+  readonly hasMore: boolean;
+  readonly loadingMore: boolean;
+  // A requested page is waiting for the connection and continues by itself once it returns.
+  readonly loadMorePaused: boolean;
+  readonly loadMoreFailed: boolean;
+  readonly query: string;
+  readonly onQueryChange: (query: string) => void;
+  readonly onLoadMore: () => void;
+  readonly onRetry: () => void;
 };

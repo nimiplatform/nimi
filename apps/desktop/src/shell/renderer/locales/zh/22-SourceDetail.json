@@ -48,13 +48,6 @@
     "profileEyebrow": "人物档案",
     "overviewTitle": "人物速览",
     "worksEyebrow": "相关阅读",
-    "relationshipQuestion": "你和{{topic}}有什么关系？",
-    "workQuestion": "你的《{{topic}}》为什么重要？",
-    "roleQuestion": "你为什么被称为{{topic}}？",
-    "factionQuestion": "{{topic}}怎样影响了你的一生？",
-    "rankQuestion": "你担任{{topic}}时经历了什么？",
-    "sceneQuestion": "你在{{topic}}里经历了什么？",
-    "topicQuestion": "你会如何解释{{topic}}？",
     "personaStyle": {
       "archetype": {
         "CARING": "照护型",

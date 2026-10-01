@@ -17,15 +17,15 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { initI18n } from '../src/shell/renderer/i18n';
 import worldDetailZh from '../src/shell/renderer/locales/zh/41-WorldDetail.json' with { type: 'json' };
-import { WorldPeopleArchivePage, WorldPeopleGallery } from '../src/shell/renderer/features/world/world-detail-people-gallery';
+import { WorldPeopleArchivePage } from '../src/shell/renderer/features/world/world-detail-people-gallery';
 import {
   availableGroupBys,
   buildPeopleGroups,
   connectableCount,
   defaultPeopleGroupBy,
-  filterPeople,
 } from '../src/shell/renderer/features/world/world-detail-people-gallery-model';
 import type { WorldCharacter } from '../src/shell/renderer/features/world/world-detail-types';
+import { readyPeopleCatalog } from './world-people-catalog-fixture';
 
 function character(overrides: Partial<WorldCharacter> & Pick<WorldCharacter, 'id' | 'name'>): WorldCharacter {
   return {
@@ -85,37 +85,29 @@ test('status grouping splits connectable / connected / unavailable', () => {
   assert.equal(connectableCount(roster), 3);
 });
 
-test('search filters across name, role and faction', () => {
-  assert.deepEqual(filterPeople(roster, '隐逸').map((c) => c.name), ['倪瓒']);
-  assert.deepEqual(filterPeople(roster, '姚').map((c) => c.name), ['姚燧']);
-  assert.equal(filterPeople(roster, '').length, roster.length);
-});
-
 test.before(async () => {
   await initI18n();
 });
 
-test('gallery overlay renders grouped roster with resolved copy', () => {
+test('archive page renders the grouped roster with resolved copy', () => {
   const markup = renderToStaticMarkup(
-    React.createElement(WorldPeopleGallery, {
+    React.createElement(WorldPeopleArchivePage, {
       characters: roster,
-      onClose: () => {},
+      catalog: readyPeopleCatalog(roster.length),
+      onBack: () => {},
       onSelect: () => {},
       onMaterializeSource: () => {},
     }),
   );
 
-  assert.match(markup, /data-testid="world-detail-people-gallery"/);
   // Default faction axis → faction group titles surface.
   assert.match(markup, /文人交游圈/);
   assert.match(markup, /隐逸画家/);
-  // Controls + every character present.
   assert.match(markup, /姚燧/);
   assert.match(markup, /李存/);
   // Connected people pin to the leading group and get a compact chat pill.
   assert.match(markup, /Local agent ready/);
   assert.match(markup, /Chat now/);
-  // No raw i18n keys leak.
   assert.doesNotMatch(markup, /WorldDetail\.paper\.gallery\./);
 });
 
@@ -123,6 +115,7 @@ test('archive page renders as an in-page drill-down without the modal backdrop',
   const markup = renderToStaticMarkup(
     React.createElement(WorldPeopleArchivePage, {
       characters: roster,
+      catalog: readyPeopleCatalog(roster.length),
       onBack: () => {},
       onSelect: () => {},
       onMaterializeSource: () => {},
@@ -145,6 +138,7 @@ test('archive page keeps only the leading back control', () => {
   const markup = renderToStaticMarkup(
     React.createElement(WorldPeopleArchivePage, {
       characters: roster,
+      catalog: readyPeopleCatalog(roster.length),
       onBack: () => {},
       onSelect: () => {},
       onMaterializeSource: () => {},
@@ -152,4 +146,88 @@ test('archive page keeps only the leading back control', () => {
   );
 
   assert.equal(markup.match(/Back to world detail/g)?.length, 1);
+});
+
+test('archive page with a server catalog shows the population total and offers the next page', async () => {
+  await initI18n();
+  const markup = renderToStaticMarkup(
+    React.createElement(WorldPeopleArchivePage, {
+      characters: roster,
+      catalog: readyPeopleCatalog(105, { hasMore: true, query: '姚' }),
+      onBack: () => {},
+      onSelect: () => {},
+    }),
+  );
+
+  assert.match(markup, /105 characters/);
+  assert.match(markup, /data-testid="world-detail-people-load-more"/);
+  assert.match(markup, /5 of 105 loaded/);
+  // Server search already filtered the loaded people; the page does not filter them again.
+  assert.match(markup, /同恕/);
+  assert.match(markup, /倪瓒/);
+});
+
+test('archive page never presents a loading or failed first page as an empty World', async () => {
+  await initI18n();
+  const render = (catalog: ReturnType<typeof readyPeopleCatalog>) => renderToStaticMarkup(
+    React.createElement(WorldPeopleArchivePage, {
+      characters: [],
+      catalog,
+      onBack: () => {},
+      onSelect: () => {},
+    }),
+  );
+
+  const loading = render(readyPeopleCatalog(0, { status: 'loading' }));
+  assert.match(loading, /data-testid="world-people-catalog-loading"/);
+  assert.match(loading, /Loading people…/);
+  assert.doesNotMatch(loading, /No matching characters/);
+  assert.doesNotMatch(loading, /0 characters/);
+
+  const failed = render(readyPeopleCatalog(0, { status: 'error' }));
+  assert.match(failed, /data-testid="world-people-catalog-error"/);
+  assert.match(failed, /Couldn&#x27;t load this World&#x27;s people\./);
+  assert.match(failed, /Try again/);
+  assert.doesNotMatch(failed, /No matching characters/);
+  assert.doesNotMatch(failed, /data-testid="world-detail-people-load-more"/);
+
+  const offline = render(readyPeopleCatalog(0, { status: 'error', offline: true }));
+  assert.match(offline, /Couldn&#x27;t connect to load this World&#x27;s people\. Check your connection and try again\./);
+  assert.match(offline, /Try again/);
+
+  // A first page waiting for the connection loads by itself: no loading, failure or retry.
+  const waiting = render(readyPeopleCatalog(0, { status: 'offline', offline: true }));
+  assert.match(waiting, /data-testid="world-people-catalog-offline"/);
+  assert.match(waiting, /You&#x27;re offline\. This World&#x27;s people will load when you&#x27;re back online\./);
+  assert.doesNotMatch(waiting, /Loading people…|Try again|No matching characters/);
+
+  const empty = render(readyPeopleCatalog(0));
+  assert.match(empty, /No matching characters/);
+});
+
+test('a failed next page keeps the loaded people and offers the page again', async () => {
+  await initI18n();
+  const render = (overrides: Parameters<typeof readyPeopleCatalog>[1]) => renderToStaticMarkup(
+    React.createElement(WorldPeopleArchivePage, {
+      characters: roster,
+      catalog: readyPeopleCatalog(105, { hasMore: true, loadMoreFailed: true, ...overrides }),
+      onBack: () => {},
+      onSelect: () => {},
+    }),
+  );
+
+  const failed = render({});
+  assert.match(failed, /姚燧/);
+  assert.match(failed, /Couldn&#x27;t load more people\. Try again\./);
+  assert.match(failed, /Try again<\/button>/);
+
+  const offline = render({ offline: true });
+  assert.match(offline, /Couldn&#x27;t connect to load more people\. Check your connection and try again\./);
+
+  // A next page waiting for the connection continues by itself; the control cannot be pressed.
+  const waiting = render({ loadMoreFailed: false, loadMorePaused: true, offline: true });
+  assert.match(waiting, /姚燧/);
+  assert.match(waiting, /You&#x27;re offline\. More people will load when you&#x27;re back online\./);
+  assert.match(waiting, /<button type="button" disabled=""/);
+  assert.doesNotMatch(waiting, /Try again/);
 });

@@ -1,37 +1,26 @@
-import { Fragment, type KeyboardEvent, type ReactNode } from 'react';
-import { Check, Heart, ListFilter, X } from 'lucide-react';
+import { type KeyboardEvent, type ReactNode } from 'react';
+import { Heart, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActionMenu,
+  Button,
   EmptyState,
   IconButton,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+  InlineAlert,
   SearchField,
   SidebarShell,
-  type NimiMenuItem,
 } from '@nimiplatform/kit/ui';
 import { formatNum } from './world-list-atoms';
-import { displayTags, type SortId } from './world-list-catalog-model';
+import { displayTags } from './world-list-catalog-model';
 import { WorldCover } from './world-list-cover';
 import type { WorldListItem } from './world-list-model';
-
-const SORT_MENU_IDS = ['recent', 'sources', 'alpha'] as const;
-type SortMenuId = (typeof SORT_MENU_IDS)[number];
-const SORT_LABEL_KEYS: Readonly<Record<SortMenuId, string>> = {
-  recent: 'World.atlas.sort.recent',
-  sources: 'World.atlas.sort.sources',
-  alpha: 'World.atlas.sort.alpha',
-};
+import type { WorldCatalogPaging } from './world-list';
 
 type WorldCatalogRailProps = {
   totalCount: number;
   worlds: readonly WorldListItem[];
+  paging: WorldCatalogPaging;
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  sort: SortId;
-  onSortChange: (sort: SortId) => void;
   selectedWorldId: string | null;
   onSelectWorld: (worldId: string) => void;
   isFollowed: (worldId: string) => boolean;
@@ -44,10 +33,9 @@ type WorldCatalogRailProps = {
 export function WorldCatalogRail({
   totalCount,
   worlds,
+  paging,
   searchQuery,
   onSearchChange,
-  sort,
-  onSortChange,
   selectedWorldId,
   onSelectWorld,
   isFollowed,
@@ -57,17 +45,6 @@ export function WorldCatalogRail({
   flap,
 }: WorldCatalogRailProps) {
   const { t } = useTranslation();
-  // The rail menu never offers the internal 'active' score ranking; fall back
-  // to the default criterion for display if a caller still passes it.
-  const menuSort: SortMenuId = sort === 'active' ? 'recent' : sort;
-  const sortMenuItems: NimiMenuItem[] = SORT_MENU_IDS.map((id) => ({
-    id,
-    label: t(SORT_LABEL_KEYS[id]),
-    trailingIcon: id === menuSort ? <Check className="h-4 w-4" aria-hidden="true" /> : undefined,
-    onSelect: () => onSortChange(id),
-  }));
-  const pinnedCount = worlds.reduce((count, item) => (isFollowed(item.id) ? count + 1 : count), 0);
-  const showFollowedGroup = pinnedCount > 0 && pinnedCount < worlds.length;
 
   const renderRow = (world: WorldListItem, index: number) => (
     <RailWorldRow
@@ -90,8 +67,10 @@ export function WorldCatalogRail({
           <h1 className="truncate text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
             {t('World.atlas.discovery.title')}
           </h1>
-          <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]">
-            {t('World.atlas.worldCount', { value: formatNum(totalCount) })}
+          <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]" data-testid="world-rail-count">
+            {worlds.length < totalCount
+              ? t('World.atlas.loadedCount', { loaded: formatNum(worlds.length), total: formatNum(totalCount) })
+              : t('World.atlas.worldCount', { value: formatNum(totalCount) })}
           </p>
         </div>
         {flap}
@@ -121,23 +100,12 @@ export function WorldCatalogRail({
           className="min-h-8 flex-1"
           inputClassName="text-xs"
         />
-        <Popover>
-          <PopoverTrigger asChild>
-            <IconButton
-              data-testid="world-rail-sort-menu"
-              icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
-              tone="ghost"
-              size="sm"
-              aria-label={t('World.toolbar.sortLabel')}
-              title={`${t('World.toolbar.sortLabel')} · ${t(SORT_LABEL_KEYS[menuSort])}`}
-              className="h-8 w-8 shrink-0"
-            />
-          </PopoverTrigger>
-          <PopoverContent align="end" sideOffset={6} className="p-1">
-            <ActionMenu items={sortMenuItems} ariaLabel={t('World.toolbar.sortLabel')} />
-          </PopoverContent>
-        </Popover>
       </div>
+      {paging.offlineIncomplete ? (
+        <div className="shrink-0 px-2 pb-2" data-testid="world-rail-offline-incomplete">
+          <InlineAlert tone="warning">{t('World.atlas.offlineIncomplete')}</InlineAlert>
+        </div>
+      ) : null}
 
       <div
         data-world-rail-list
@@ -147,22 +115,23 @@ export function WorldCatalogRail({
           <EmptyState className="m-2 lg:mx-1" title={listEmptyLabel} />
         ) : (
           <div className="flex gap-2 lg:flex-col lg:gap-0.5">
-            {showFollowedGroup ? (
-              <div className="hidden px-2 pb-1 text-[11px] font-medium text-[color:var(--nimi-text-muted)] lg:block">
-                {t('World.atlas.category.followed')}
+            {worlds.map((world, index) => renderRow(world, index))}
+            {paging.hasMore && !paging.offlineIncomplete ? (
+              <div className="flex shrink-0 flex-col items-stretch gap-1 px-1 py-2" data-testid="world-rail-load-more">
+                {paging.loadMoreFailed ? (
+                  <span className="text-[11px] text-[var(--nimi-status-danger)]">{t('World.atlas.loadMoreError')}</span>
+                ) : null}
+                <Button
+                  type="button"
+                  tone="secondary"
+                  size="sm"
+                  disabled={paging.loadingMore}
+                  onClick={paging.onLoadMore}
+                >
+                  {paging.loadingMore ? t('World.atlas.loadingMore') : t('World.atlas.loadMore')}
+                </Button>
               </div>
             ) : null}
-            {worlds.map((world, index) => (
-              <Fragment key={world.id}>
-                {showFollowedGroup && index === pinnedCount ? (
-                  <div
-                    aria-hidden="true"
-                    className="mx-2 my-1 hidden border-t border-[color:var(--nimi-border-subtle)] lg:block"
-                  />
-                ) : null}
-                {renderRow(world, index)}
-              </Fragment>
-            ))}
           </div>
         )}
       </div>
@@ -189,8 +158,8 @@ function RailWorldRow({
   followAvailable: boolean;
   onToggleFollow: () => void;
 }) {
-  const { t, i18n } = useTranslation();
-  const eraTag = displayTags(world, 1, i18n.language)[0] ?? null;
+  const { t } = useTranslation();
+  const leadTag = displayTags(world, 1)[0] ?? null;
   return (
     <div className="relative w-[208px] shrink-0 lg:w-auto">
       <button
@@ -214,8 +183,8 @@ function RailWorldRow({
           >
             {world.name}
           </span>
-          {eraTag ? (
-            <span className="block truncate text-[11px] leading-4 text-[color:var(--nimi-text-muted)]">{eraTag}</span>
+          {leadTag ? (
+            <span className="block truncate text-[11px] leading-4 text-[color:var(--nimi-text-muted)]">{leadTag}</span>
           ) : null}
         </span>
       </button>

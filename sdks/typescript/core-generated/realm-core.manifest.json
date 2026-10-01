@@ -13953,9 +13953,353 @@
       ]
     },
     {
-      "operation_id": "WorldPublicController_listWorldCharacters",
+      "operation_id": "WorldPublicController_listPersonaCharacterCatalog",
       "method": "GET",
-      "path": "/api/world/by-id/{worldId}/characters",
+      "path": "/api/world/persona-characters/catalog",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldPublicSourceCardPageDto",
+            "ref_name": "WorldPublicSourceCardPageDto"
+          },
+          "schema_ref": "#/components/schemas/WorldPublicSourceCardPageDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldPublicSourceCardPageDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldPublicController_listWorldCatalog",
+      "method": "GET",
+      "path": "/api/world/catalog",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [
+        {
+          "name": "theme",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "genre",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "theme",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "genre",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldPublicWorldCatalogPageDto",
+            "ref_name": "WorldPublicWorldCatalogPageDto"
+          },
+          "schema_ref": "#/components/schemas/WorldPublicWorldCatalogPageDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldPublicWorldCatalogPageDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldPublicController_listWorldCharacterCatalog",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/characters/catalog",
       "service": "World",
       "tags": [
         "World"
@@ -13969,8 +14313,38 @@
             "kind": "scalar",
             "type": "number",
             "format": null,
-            "minimum": 1,
-            "maximum": 100,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -14018,8 +14392,38 @@
             "kind": "scalar",
             "type": "number",
             "format": null,
-            "minimum": 1,
-            "maximum": 100,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -14036,54 +14440,19 @@
         {
           "status": "200",
           "schema": {
-            "kind": "array",
-            "items": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicSourceCardDto",
-              "ref_name": "WorldPublicSourceCardDto"
-            },
-            "min_items": null,
-            "max_items": null
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldPublicSourceCardPageDto",
+            "ref_name": "WorldPublicSourceCardPageDto"
           },
-          "schema_ref": null
+          "schema_ref": "#/components/schemas/WorldPublicSourceCardPageDto"
         }
       ],
-      "response_schema_refs": []
-    },
-    {
-      "operation_id": "WorldPublicController_listWorlds",
-      "method": "GET",
-      "path": "/api/world",
-      "service": "World",
-      "tags": [
-        "World"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
+      "response_schema_refs": [
         {
           "status": "200",
-          "schema": {
-            "kind": "array",
-            "items": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicItemDto",
-              "ref_name": "WorldPublicItemDto"
-            },
-            "min_items": null,
-            "max_items": null
-          },
-          "schema_ref": null
+          "schema_ref": "#/components/schemas/WorldPublicSourceCardPageDto"
         }
-      ],
-      "response_schema_refs": []
+      ]
     }
   ],
   "operation_maps": [
@@ -15126,16 +15495,22 @@
       "path": "/api/world/by-id/{worldId}/detail-with-characters"
     },
     {
-      "operation_id": "WorldPublicController_listWorldCharacters",
+      "operation_id": "WorldPublicController_listPersonaCharacterCatalog",
       "service": "World",
       "method": "GET",
-      "path": "/api/world/by-id/{worldId}/characters"
+      "path": "/api/world/persona-characters/catalog"
     },
     {
-      "operation_id": "WorldPublicController_listWorlds",
+      "operation_id": "WorldPublicController_listWorldCatalog",
       "service": "World",
       "method": "GET",
-      "path": "/api/world"
+      "path": "/api/world/catalog"
+    },
+    {
+      "operation_id": "WorldPublicController_listWorldCharacterCatalog",
+      "service": "World",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/characters/catalog"
     }
   ],
   "service_registry": [
@@ -15419,8 +15794,9 @@
         "WorldPublicController_getCharacterSource",
         "WorldPublicController_getWorld",
         "WorldPublicController_getWorldDetailWithCharacters",
-        "WorldPublicController_listWorldCharacters",
-        "WorldPublicController_listWorlds"
+        "WorldPublicController_listPersonaCharacterCatalog",
+        "WorldPublicController_listWorldCatalog",
+        "WorldPublicController_listWorldCharacterCatalog"
       ]
     },
     {
@@ -16329,7 +16705,13 @@
       "name": "WorldCoreValueDtoTimeModel"
     },
     {
-      "name": "WorldCoreValueDtoTimeModelAnchor"
+      "name": "WorldCoreValueDtoTimeModelVariant1"
+    },
+    {
+      "name": "WorldCoreValueDtoTimeModelVariant2"
+    },
+    {
+      "name": "WorldCoreValueDtoTimeModelVariant2Anchor"
     },
     {
       "name": "WorldCreationEligibilityDto"
@@ -16422,6 +16804,9 @@
       "name": "WorldPublicSourceCardDto"
     },
     {
+      "name": "WorldPublicSourceCardPageDto"
+    },
+    {
       "name": "WorldPublicSourceMediaAssetsDto"
     },
     {
@@ -16431,16 +16816,22 @@
       "name": "WorldPublicSourceSectionsDto"
     },
     {
+      "name": "WorldPublicStaticTimeDto"
+    },
+    {
       "name": "WorldPublicStatsDto"
     },
     {
       "name": "WorldPublicTimelineEventDto"
     },
     {
-      "name": "WorldPublicTimeSnapshotDto"
+      "name": "WorldPublicViewerRelationDto"
     },
     {
-      "name": "WorldPublicViewerRelationDto"
+      "name": "WorldPublicWallClockTimeDto"
+    },
+    {
+      "name": "WorldPublicWorldCatalogPageDto"
     },
     {
       "name": "WorldRelationshipCoreDto"
@@ -41580,6 +41971,20 @@
             }
           },
           {
+            "name": "heroResourceRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "iconResourceRef",
             "required": false,
             "schema": {
@@ -42180,6 +42585,66 @@
     {
       "name": "WorldCoreValueDtoTimeModel",
       "schema": {
+        "kind": "union",
+        "variants": [
+          {
+            "kind": "ref",
+            "ref": "#generated/materialization/WorldCoreValueDtoTimeModelVariant1",
+            "ref_name": "WorldCoreValueDtoTimeModelVariant1"
+          },
+          {
+            "kind": "ref",
+            "ref": "#generated/materialization/WorldCoreValueDtoTimeModelVariant2",
+            "ref_name": "WorldCoreValueDtoTimeModelVariant2"
+          }
+        ],
+        "discriminator": "mode",
+        "discriminator_mapping": {}
+      }
+    },
+    {
+      "name": "WorldCoreValueDtoTimeModelVariant1",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "label",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 60,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "static"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "mode",
+          "label"
+        ],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldCoreValueDtoTimeModelVariant2",
+      "schema": {
         "kind": "object",
         "properties": [
           {
@@ -42187,8 +42652,8 @@
             "required": true,
             "schema": {
               "kind": "ref",
-              "ref": "#generated/materialization/WorldCoreValueDtoTimeModelAnchor",
-              "ref_name": "WorldCoreValueDtoTimeModelAnchor"
+              "ref": "#generated/materialization/WorldCoreValueDtoTimeModelVariant2Anchor",
+              "ref_name": "WorldCoreValueDtoTimeModelVariant2Anchor"
             }
           },
           {
@@ -42228,7 +42693,7 @@
               "kind": "scalar",
               "type": "number",
               "format": null,
-              "minimum": null,
+              "minimum": 0,
               "maximum": null,
               "min_length": null,
               "max_length": null,
@@ -42255,8 +42720,7 @@
             "schema": {
               "kind": "enum",
               "values": [
-                "wallClockAnchored",
-                "static"
+                "wallClockAnchored"
               ],
               "type": "string"
             }
@@ -42291,7 +42755,7 @@
       }
     },
     {
-      "name": "WorldCoreValueDtoTimeModelAnchor",
+      "name": "WorldCoreValueDtoTimeModelVariant2Anchor",
       "schema": {
         "kind": "object",
         "properties": [
@@ -43953,6 +44417,36 @@
             }
           },
           {
+            "name": "era",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "genre",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "id",
             "required": true,
             "schema": {
@@ -44099,7 +44593,7 @@
             }
           },
           {
-            "name": "tags",
+            "name": "themes",
             "required": true,
             "schema": {
               "kind": "array",
@@ -44121,9 +44615,24 @@
             "name": "time",
             "required": true,
             "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicTimeSnapshotDto",
-              "ref_name": "WorldPublicTimeSnapshotDto"
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/WorldPublicStaticTimeDto",
+                  "ref_name": "WorldPublicStaticTimeDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/WorldPublicWallClockTimeDto",
+                  "ref_name": "WorldPublicWallClockTimeDto"
+                }
+              ],
+              "discriminator": "mode",
+              "discriminator_mapping": {
+                "static": "#/components/schemas/WorldPublicStaticTimeDto",
+                "wallClockAnchored": "#/components/schemas/WorldPublicWallClockTimeDto"
+              }
             }
           },
           {
@@ -44185,7 +44694,9 @@
           "summary",
           "type",
           "visibility",
-          "tags",
+          "genre",
+          "themes",
+          "era",
           "entityKinds",
           "relationshipTypes",
           "media",
@@ -44345,6 +44856,36 @@
             }
           },
           {
+            "name": "era",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "genre",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "id",
             "required": true,
             "schema": {
@@ -44439,7 +44980,7 @@
             }
           },
           {
-            "name": "tags",
+            "name": "themes",
             "required": true,
             "schema": {
               "kind": "array",
@@ -44461,9 +45002,24 @@
             "name": "time",
             "required": true,
             "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/WorldPublicTimeSnapshotDto",
-              "ref_name": "WorldPublicTimeSnapshotDto"
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/WorldPublicStaticTimeDto",
+                  "ref_name": "WorldPublicStaticTimeDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/WorldPublicWallClockTimeDto",
+                  "ref_name": "WorldPublicWallClockTimeDto"
+                }
+              ],
+              "discriminator": "mode",
+              "discriminator_mapping": {
+                "static": "#/components/schemas/WorldPublicStaticTimeDto",
+                "wallClockAnchored": "#/components/schemas/WorldPublicWallClockTimeDto"
+              }
             }
           },
           {
@@ -44511,7 +45067,9 @@
           "summary",
           "type",
           "visibility",
-          "tags",
+          "genre",
+          "themes",
+          "era",
           "entityKinds",
           "relationshipTypes",
           "media",
@@ -45153,7 +45711,26 @@
             }
           },
           {
-            "name": "tags",
+            "name": "topics",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "traits",
             "required": true,
             "schema": {
               "kind": "array",
@@ -45223,10 +45800,84 @@
           "summary",
           "worldId",
           "worldName",
-          "tags",
+          "traits",
+          "topics",
           "media",
           "relation",
           "updatedAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSourceCardPageDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "hasMore",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "items",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicSourceCardDto",
+                "ref_name": "WorldPublicSourceCardDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "nextCursor",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "totalCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "items",
+          "nextCursor",
+          "hasMore",
+          "totalCount"
         ],
         "closed": false,
         "additional_properties": null
@@ -45408,6 +46059,21 @@
             }
           },
           {
+            "name": "charactersNextCursor",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "personaCharacters",
             "required": true,
             "schema": {
@@ -45420,11 +46086,81 @@
               "min_items": null,
               "max_items": null
             }
+          },
+          {
+            "name": "personaCharactersNextCursor",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
           }
         ],
         "required_properties": [
           "characters",
-          "personaCharacters"
+          "charactersNextCursor",
+          "personaCharacters",
+          "personaCharactersNextCursor"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicStaticTimeDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "currentWorldTime",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                null
+              ],
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "label",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "static"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "mode",
+          "label",
+          "currentWorldTime"
         ],
         "closed": false,
         "additional_properties": null
@@ -45780,7 +46516,63 @@
       }
     },
     {
-      "name": "WorldPublicTimeSnapshotDto",
+      "name": "WorldPublicViewerRelationDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "connectionId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "runtimeSourceRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "connectable",
+                "connected",
+                "unavailable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "state"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicWallClockTimeDto",
       "schema": {
         "kind": "object",
         "properties": [
@@ -45828,7 +46620,7 @@
           },
           {
             "name": "calendar",
-            "required": false,
+            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -45885,7 +46677,7 @@
           },
           {
             "name": "displayFormat",
-            "required": false,
+            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -45932,10 +46724,24 @@
             "schema": {
               "kind": "enum",
               "values": [
-                "wallClockAnchored",
-                "static"
+                "wallClockAnchored"
               ],
               "type": "string"
+            }
+          },
+          {
+            "name": "pausedWorldTime",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
             }
           }
         ],
@@ -45943,9 +46749,12 @@
           "mode",
           "flowRatio",
           "isPaused",
+          "calendar",
+          "displayFormat",
           "anchorRealStartedAt",
           "anchorWorldStartedAt",
           "anchorWorldStartedAtDisplay",
+          "pausedWorldTime",
           "currentWorldTime",
           "currentWorldTimeDisplay",
           "computedAt"
@@ -45955,56 +46764,73 @@
       }
     },
     {
-      "name": "WorldPublicViewerRelationDto",
+      "name": "WorldPublicWorldCatalogPageDto",
       "schema": {
         "kind": "object",
         "properties": [
           {
-            "name": "connectionId",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "runtimeSourceRef",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "state",
+            "name": "hasMore",
             "required": true,
             "schema": {
-              "kind": "enum",
-              "values": [
-                "connectable",
-                "connected",
-                "unavailable"
-              ],
-              "type": "string"
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "items",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicItemDto",
+                "ref_name": "WorldPublicItemDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "nextCursor",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "totalCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
             }
           }
         ],
         "required_properties": [
-          "state"
+          "items",
+          "nextCursor",
+          "hasMore",
+          "totalCount"
         ],
         "closed": false,
         "additional_properties": null

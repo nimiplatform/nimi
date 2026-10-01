@@ -95,22 +95,10 @@ export function readExplicitTimeLabel(record: JsonObject | null | undefined): st
   return startYear ?? endYear;
 }
 
-export function readTimeLabelFromText(value: string | null | undefined): string | null {
-  const text = String(value || '').trim();
-  if (!text) {
-    return null;
-  }
-  const parenthesizedYear = text.match(/[（(](\d{3,4}(?:\s*[-–—]\s*\d{1,4})?)[）)]/u);
-  if (parenthesizedYear?.[1]) {
-    return parenthesizedYear[1].replace(/\s+/gu, '');
-  }
-  const yearText = text.match(/(\d{3,4})\s*年/u);
-  return yearText?.[1] ?? null;
-}
-
+// Time labels come only from explicit time fields; titles and summaries are
+// authored prose and are never parsed for dates.
 export function readMilestoneTimeLabel(
   records: readonly (JsonObject | null | undefined)[],
-  fallbackTexts: readonly (string | null | undefined)[],
 ): string | null {
   for (const record of records) {
     const label = readExplicitTimeLabel(record);
@@ -118,13 +106,14 @@ export function readMilestoneTimeLabel(
       return label;
     }
   }
-  for (const text of fallbackTexts) {
-    const label = readTimeLabelFromText(text);
-    if (label) {
-      return label;
-    }
-  }
   return null;
+}
+
+// Numeric sort key read from an explicit time label; labels without a year
+// (era names, story periods) sort after dated ones and keep their authored text.
+export function readTimeLabelSortYear(value: string | null | undefined): number {
+  const parsed = Number(String(value || '').match(/(?<!\d)\d{3,4}(?!\d)/u)?.[0]);
+  return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
 }
 
 export function readPublicMediaAsset(value: unknown): JsonObject | null {
@@ -206,7 +195,7 @@ export function slug(value: string, fallback: string): string {
   const normalized = value
     .trim()
     .toLocaleLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
     .replace(/^-|-$/g, '');
   return normalized || fallback;
 }

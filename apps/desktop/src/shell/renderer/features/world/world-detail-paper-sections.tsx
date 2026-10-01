@@ -20,12 +20,10 @@ import {
   IconCompass,
   IconLanguages,
   IconLayers,
-  IconMilestone,
   IconPlus,
   IconScene,
   IconScrollText,
   IconShield,
-  IconStamp,
   IconUsers,
   PaperAvatar,
   PaperSection,
@@ -411,8 +409,6 @@ export function PaperCharactersSection({
 
 const LORE_OVERVIEW_ICON: Record<WorldLoreEntry['icon'], ReactNode> = {
   rule: <IconScrollText size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
-  institution: <IconStamp size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
-  pathway: <IconMilestone size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
   system: <IconLayers size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
   taboo: <IconShield size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,
   language: <IconLanguages size={19} color="var(--nimi-action-primary-bg)" strokeWidth={1.75} />,

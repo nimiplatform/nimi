@@ -2,30 +2,19 @@ import type { Realm } from '@nimiplatform/sdk/realm';
 import {
   loadNimiRealmExploreFeedItems,
 } from '@nimiplatform/sdk/realm';
-import type {
-  RealmGetExploreFeedOperationResponse,
-  RealmModel,
-} from '@nimiplatform/sdk/realm/generated';
+import type { RealmGetExploreFeedOperationResponse } from '@nimiplatform/sdk/realm/generated';
 import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
 import type { JsonObject } from '@nimiplatform/sdk/types';
+import { readCharacterSourceRefV3 } from '../../realm-source/realm-source-identity.js';
 import {
-  characterSourceRefKey,
-  readCharacterSourceRefV3,
-  type CharacterSourceRefV3,
-} from '../../realm-source/realm-source-identity.js';
-import {
-  projectCharacterSourceProfile,
-} from '../../realm-source/character-source-profile-projection.js';
-import {
+  projectWorldPublicSourceCard,
   requireWorldPublicSourceCardDto,
-  type WorldPublicSourceCardDto,
 } from '../../world/data/world-public-projection.js';
-
-type PersonaCharacterCoreDto = RealmModel<'PersonaCharacterCoreDto'>;
 
 export type LoadExplorePersonasInput = {
   tag?: string | null;
   query?: string | null;
+  cursor?: string | null;
   limit?: number;
 };
 
@@ -42,6 +31,9 @@ export type RealmExploreErrorEmitter = (
 
 export type RealmSourceExploreResponse = {
   items: Array<Record<string, unknown>>;
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalCount: number;
 };
 
 function normalizeText(value: unknown): string | undefined {
@@ -61,131 +53,72 @@ function failPersonaCharacterContract(reasonCode: string, message: string): neve
   throw error;
 }
 
-function requirePersonaCharacterCore(value: unknown): {
-  persona: PersonaCharacterCoreDto;
-  sourceRef: Extract<CharacterSourceRefV3, { kind: 'personaCharacter' }>;
-} {
-  const persona = asRecord(value);
-  const id = normalizeText(persona.id);
-  if (!id) {
-    failPersonaCharacterContract(
-      'SDK_REALM_PERSONA_CHARACTER_CORE_CONTRACT_INVALID',
-      'PersonaCharacter payload is missing id',
-    );
-  }
-  const profile = asRecord(persona.profile);
-  if (Object.keys(profile).length === 0) {
-    failPersonaCharacterContract(
-      'SDK_REALM_PERSONA_CHARACTER_CORE_CONTRACT_INVALID',
-      `PersonaCharacter ${persona.id} payload is missing profile object`,
-    );
-  }
-  const sourceRef = readCharacterSourceRefV3({
-    kind: 'personaCharacter',
-    id,
-    worldId: normalizeText(persona.worldId),
-    ownerAccountId: normalizeText(persona.ownerAccountId),
-    sourceHash: normalizeText(persona.sourceHash),
-  });
-  if (!sourceRef || sourceRef.kind !== 'personaCharacter') {
-    failPersonaCharacterContract(
-      'SDK_REALM_PERSONA_CHARACTER_SOURCE_REF_INVALID',
-      `PersonaCharacter ${id} cannot produce a strict CharacterSourceRefV3`,
-    );
-  }
-  return {
-    persona: value as PersonaCharacterCoreDto,
-    sourceRef,
-  };
-}
-
-async function loadPersonaPublicSourceCard(
-  realm: Realm,
-  sourceRef: Extract<CharacterSourceRefV3, { kind: 'personaCharacter' }>,
-): Promise<WorldPublicSourceCardDto> {
-  const source = requireWorldPublicSourceCardDto(
-    await realm.worldPublic.worldPublicControllerGetCharacterSource({
-      path: {},
-      body: { sourceRef },
-    }),
-    sourceRef.worldId,
-  );
-  const returnedSourceRef = readCharacterSourceRefV3(source.sourceRef);
-  if (!returnedSourceRef
-    || characterSourceRefKey(returnedSourceRef) !== characterSourceRefKey(sourceRef)) {
-    failPersonaCharacterContract(
-      'SDK_REALM_PERSONA_CHARACTER_PUBLIC_SOURCE_REF_MISMATCH',
-      `WorldPublicSourceCard ${source.id} does not match the requested PersonaCharacter sourceRef`,
-    );
-  }
-  return source;
-}
-
+// Public Persona discovery reads the server-side paginated catalog: a search term never switches
+// to the viewer's owned list, and every page is filtered by Realm before it arrives.
 export async function loadExplorePersonas(
   callApi: RealmExploreApiCaller,
   emitRealmExploreError: RealmExploreErrorEmitter,
   input: LoadExplorePersonasInput = {},
 ): Promise<RealmSourceExploreResponse> {
-  const tag = normalizeText(input.tag);
-  const query = normalizeText(input.query);
+  const q = normalizeText(input.query) ?? normalizeText(input.tag);
   const limit = input.limit ?? 20;
   return callApi(
     async (realm) => {
       void emitRealmExploreError;
-      const rows = query || tag
-        ? await realm.worldCore.worldCoreControllerListPersonaCharacters({
-            path: {},
-            query: { take: limit, visibility: 'public' },
-          })
-        : await realm.worldCore.worldCoreControllerDiscoverPersonaCharacters({
-            path: {},
-            query: { take: limit },
-          });
-      if (!Array.isArray(rows)) {
+      const page = asRecord(await realm.worldPublic.worldPublicControllerListPersonaCharacterCatalog({
+        path: {},
+        query: {
+          ...(q ? { q } : {}),
+          ...(input.cursor ? { cursor: input.cursor } : {}),
+          limit,
+        },
+      }));
+      const rows = page.items;
+      const nextCursor = page.nextCursor;
+      if (
+        !Array.isArray(rows)
+        || (nextCursor !== null && typeof nextCursor !== 'string')
+        || typeof page.hasMore !== 'boolean'
+        || page.hasMore !== (nextCursor !== null)
+        || typeof page.totalCount !== 'number'
+      ) {
         failPersonaCharacterContract(
-          'SDK_REALM_PERSONA_CHARACTER_CORE_LIST_CONTRACT_INVALID',
-          'PersonaCharacter list payload must be an array',
+          'SDK_REALM_PERSONA_CHARACTER_CATALOG_CONTRACT_INVALID',
+          'PersonaCharacter catalog page must carry items, nextCursor, hasMore and totalCount',
         );
       }
-      const normalizedQuery = query?.toLowerCase();
-      const normalizedTag = tag?.toLowerCase();
-      const projectedItems = await Promise.all(rows.map(async (row) => {
-        const { persona, sourceRef } = requirePersonaCharacterCore(row);
-        const publicSource = await loadPersonaPublicSourceCard(realm, sourceRef);
-        const projection = projectCharacterSourceProfile(persona.profile, publicSource);
+      const items = rows.map((row) => {
+        const card = requireWorldPublicSourceCardDto(row, String(asRecord(row).worldId || ''));
+        const sourceRef = readCharacterSourceRefV3(card.sourceRef);
+        if (!sourceRef || sourceRef.kind !== 'personaCharacter') {
+          failPersonaCharacterContract(
+            'SDK_REALM_PERSONA_CHARACTER_PUBLIC_SOURCE_REF_MISMATCH',
+            `PersonaCharacter catalog card ${card.id} requires a PersonaCharacter sourceRef`,
+          );
+        }
+        const projected = projectWorldPublicSourceCard(card);
         return {
-          id: persona.id,
-          displayName: projection.displayName,
-          name: projection.displayName,
-          handle: projection.handle || projection.displayName,
-          avatarUrl: projection.avatarUrl,
-          bio: projection.bio,
-          tags: projection.tags,
+          id: card.id,
+          displayName: card.displayName,
+          name: card.displayName,
+          handle: card.handle || card.displayName,
+          avatarUrl: projected.avatarUrl ?? null,
+          bio: card.summary,
+          tags: [...card.traits, ...card.topics],
           sourceRef,
-          viewerRelation: projection.viewerRelation,
-          visibility: persona.visibility,
-          role: projection.characterProfile.role,
-          archetype: projection.characterProfile.archetype,
-          cadence: projection.characterProfile.interaction?.cadence ?? null,
+          viewerRelation: card.relation,
+          visibility: 'public',
+          role: card.role ?? null,
+          archetype: card.role ?? null,
+          cadence: null,
           worldId: sourceRef.worldId,
-          worldName: projection.worldName,
-          ownership: projection.ownership,
-          createdAt: persona.createdAt,
-          updatedAt: persona.updatedAt,
+          worldName: card.worldName,
+          ownership: card.ownership,
+          createdAt: card.updatedAt,
+          updatedAt: card.updatedAt,
         };
-      }));
-      const items = projectedItems.filter((item) => {
-        const haystack = [
-          item.id,
-          item.displayName,
-          item.handle,
-          item.bio,
-          ...(Array.isArray(item.tags) ? item.tags : []),
-        ].join(' ').toLowerCase();
-        return (!normalizedQuery || haystack.includes(normalizedQuery))
-          && (!normalizedTag || haystack.includes(normalizedTag));
       });
-      return { items };
+      return { items, nextCursor, hasMore: page.hasMore, totalCount: page.totalCount };
     },
     '加载 PersonaCharacter 探索失败',
   );
@@ -223,11 +156,11 @@ export function createRealmExploreData(sdk: DesktopRendererSdkPort) {
   const callRealmApi = sdk.socialData.callApi;
   const emitRealmDataError = sdk.socialData.emitDataError;
   return Object.freeze({
-  loadExplorePersonas: (input: LoadExplorePersonasInput = {}) =>
-    loadExplorePersonas(callRealmApi, emitRealmDataError, {
-      ...input,
-      limit: Math.min(input.limit ?? 20, 100),
-    }),
+    loadExplorePersonas: (input: LoadExplorePersonasInput = {}) =>
+      loadExplorePersonas(callRealmApi, emitRealmDataError, {
+        ...input,
+        limit: Math.min(input.limit ?? 20, 100),
+      }),
   loadExploreFeed: (tag: string | null = null, limit = 20) =>
     loadExploreFeedItems(callRealmApi, emitRealmDataError, tag, Math.min(limit, 100)),
   loadMoreExploreFeed: (limit = 20, cursor?: string, tag?: string | null) =>

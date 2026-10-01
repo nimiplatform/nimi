@@ -184,7 +184,7 @@ test('world public detail projection preserves structured scene records from the
     entityKinds: [],
     relationshipTypes: [],
     media: {},
-    time: {},
+    time: { mode: 'static', label: null, currentWorldTime: null },
     stats: {},
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',

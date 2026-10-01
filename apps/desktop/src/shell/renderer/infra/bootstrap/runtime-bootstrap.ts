@@ -64,9 +64,9 @@ function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
         return false;
       }
       try {
-        await getDesktopRealm().worldPublic.worldPublicControllerListWorlds({
+        await getDesktopRealm().worldPublic.worldPublicControllerListWorldCatalog({
           path: {},
-          query: {},
+          query: { limit: 1 },
         });
         return true;
       } catch (error) {

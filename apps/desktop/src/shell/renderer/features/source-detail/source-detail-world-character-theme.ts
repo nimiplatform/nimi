@@ -78,6 +78,8 @@ const RELATIONSHIP_THEMES: Record<string, RelationshipTheme> = {
   postedAddress: relationshipThemeFrom(STATUS_THEME_TOKENS.primary, '3 3'),
 };
 
+// Localized label for a known explicit relationship type; any other explicit
+// type is shown as authored.
 export function relationKindLabel(
   type: string,
   t: TranslationFn,
@@ -92,11 +94,13 @@ export function relationKindLabel(
     biogAddress: t('SourceDetail.worldCharacter.relationshipKind.place', { defaultValue: 'Place' }),
     postedAddress: t('SourceDetail.worldCharacter.relationshipKind.postedPlace', { defaultValue: 'Posted place' }),
   };
-  return labels[type] ?? type;
+  return Object.hasOwn(labels, type) ? labels[type] ?? type : type;
 }
 
-export function relationshipTheme(type: string): RelationshipTheme {
-  return RELATIONSHIP_THEMES[type] ?? relationshipThemeFrom(STATUS_THEME_TOKENS.neutral, '3 4');
+// Unknown explicit types and rows without an explicit type use the neutral theme.
+export function relationshipTheme(type: string | null): RelationshipTheme {
+  return (type && Object.hasOwn(RELATIONSHIP_THEMES, type) ? RELATIONSHIP_THEMES[type] : undefined)
+    ?? relationshipThemeFrom(STATUS_THEME_TOKENS.neutral, '3 4');
 }
 
 /** Theme for the "all relationships" filter, keyed to the primary accent. */
@@ -117,6 +121,9 @@ export function milestoneKindLabel(
   if (milestone.kind === 'entry') {
     return relationKindLabel('entry', t);
   }
+  if (milestone.kind === 'relationship') {
+    return t('SourceDetail.worldCharacter.relationshipTitle', { defaultValue: 'Relationship clues' });
+  }
   return t('SourceDetail.worldCharacter.milestoneKind.biography', { defaultValue: 'Biography' });
 }
 
@@ -129,6 +136,9 @@ export function milestoneTheme(milestone: SourceDetailWorldCharacterMilestone): 
   }
   if (milestone.kind === 'entry') {
     return relationshipTheme('entry');
+  }
+  if (milestone.kind === 'relationship') {
+    return relationshipTheme('association');
   }
   return relationshipTheme('kinship');
 }

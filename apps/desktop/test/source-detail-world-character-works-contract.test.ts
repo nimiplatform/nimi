@@ -9,20 +9,12 @@ import {
   liBaiRaw,
   ouYangDeRaw,
   renderToStaticMarkup,
-  simplifySourceDetailChineseText,
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
 import { composeWorldCharacterMilestones } from '../src/shell/renderer/features/source-detail/source-detail-world-character-milestones.js';
 
 test.before(async () => {
   await initI18n();
-});
-
-test('world character source detail simplifier covers CBDB relationship prose from character dossier', () => {
-  assert.equal(
-    simplifySourceDetailChineseText('墓誌銘由劉智所作；墓表由毛憲所作；爲王璋所作詩文作序；其生祠由王道清作記；為吳善所著書作序；臨別得到李京所作贈言（送別詩、序）'),
-    '墓志铭由刘智所作；墓表由毛宪所作；为王璋所作诗文作序；其生祠由王道清作记；为吴善所著书作序；临别得到李京所作赠言（送别诗、序）',
-  );
 });
 
 test('character source detail maps public biography work events as works collections', () => {
@@ -105,6 +97,11 @@ test('world character source detail reports works unavailable when public biogra
 
   assert.equal(detail.worksAvailability, 'unavailable');
   assert.deepEqual(detail.works, []);
+  const markup = renderToStaticMarkup(React.createElement(SourceDetailView, {
+    source: detail, stats: null, loading: false, error: false,
+    onBack: () => {}, onOpenWorld: () => {}, onPrimaryAction: () => {},
+  }));
+  assert.doesNotMatch(markup, /world-character-works-section/);
 });
 
 

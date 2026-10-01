@@ -44,7 +44,7 @@ function isCharacterProfileMilestone(value: unknown): value is CharacterProfileM
       && Number.isFinite(milestone.sequence)
     ))
     && isNullableString(milestone.timeLabel)
-    && (kind === 'biography' || kind === 'entry' || kind === 'office' || kind === 'work')
+    && (kind === 'biography' || kind === 'entry' || kind === 'office' || kind === 'work' || kind === 'relationship')
     && typeof milestone.derived === 'boolean';
 }
 

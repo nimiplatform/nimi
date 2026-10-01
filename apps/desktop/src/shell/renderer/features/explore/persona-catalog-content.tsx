@@ -22,6 +22,12 @@ import type { ExplorePersonaSourceCardData } from './explore-cards';
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r005
 export function PersonaCatalogContent({
   personas,
+  totalCount,
+  hasMore = false,
+  loadingMore = false,
+  loadMoreFailed = false,
+  offline = false,
+  onLoadMore,
   searchQuery,
   onSearchQueryChange,
   loading = false,
@@ -31,6 +37,12 @@ export function PersonaCatalogContent({
   railFlap,
 }: {
   personas: readonly ExplorePersonaSourceCardData[];
+  totalCount?: number;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  loadMoreFailed?: boolean;
+  offline?: boolean;
+  onLoadMore?: () => void;
   searchQuery?: string;
   onSearchQueryChange?: (value: string) => void;
   loading?: boolean;
@@ -58,9 +70,11 @@ export function PersonaCatalogContent({
             <h1 className="truncate text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
               {t('Explore.sectionPersonas')}
             </h1>
-            <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]">
-              {t('Explore.personaCount', { count: personas.length })}
-            </p>
+            {!loading && !error ? (
+              <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]" data-testid="persona-rail-count">
+                {t('Explore.personaCount', { count: totalCount ?? personas.length })}
+              </p>
+            ) : null}
           </div>
           {railFlap}
         </div>
@@ -91,7 +105,7 @@ export function PersonaCatalogContent({
             </div>
           ) : error ? (
             <p className="px-2 py-4 text-xs leading-5 text-[color:var(--nimi-status-danger-soft-text)]">
-              {t('Explore.personaSourcesLoadError', { defaultValue: 'Could not load personas.' })}
+              {t(offline ? 'Explore.personaSourcesOffline' : 'Explore.personaSourcesLoadError')}
             </p>
           ) : personas.length === 0 ? (
             <p className="px-2 py-4 text-xs leading-5 text-[color:var(--nimi-text-muted)]">
@@ -111,6 +125,15 @@ export function PersonaCatalogContent({
               ))}
             </div>
           )}
+          {!loading && !error ? (
+            <PersonaCatalogMore
+              hasMore={hasMore}
+              loadingMore={loadingMore}
+              loadMoreFailed={loadMoreFailed}
+              offline={offline}
+              onLoadMore={onLoadMore}
+            />
+          ) : null}
         </div>
       </SidebarShell>
 
@@ -140,7 +163,7 @@ export function PersonaCatalogContent({
                 </Button>
               ) : undefined}
             >
-              {t('Explore.personaSourcesLoadError', { defaultValue: 'Could not load personas.' })}
+              {t(offline ? 'Explore.personaSourcesOffline' : 'Explore.personaSourcesLoadError')}
             </InlineAlert>
           </div>
         ) : personas.length === 0 ? (
@@ -164,6 +187,38 @@ export function PersonaCatalogContent({
   return (
     <div className="flex min-h-0 flex-1 flex-col p-3">
       {content}
+    </div>
+  );
+}
+
+export function PersonaCatalogMore({
+  hasMore,
+  loadingMore,
+  loadMoreFailed,
+  offline,
+  onLoadMore,
+}: {
+  hasMore: boolean;
+  loadingMore: boolean;
+  loadMoreFailed: boolean;
+  offline: boolean;
+  onLoadMore?: () => void;
+}) {
+  const { t } = useTranslation();
+  if (offline) {
+    return <InlineAlert tone="warning">{t('Explore.personaSourcesOfflineIncomplete')}</InlineAlert>;
+  }
+  if (!hasMore || !onLoadMore) return null;
+  return (
+    <div className="flex shrink-0 flex-col gap-2 px-1 py-2" data-testid="persona-rail-load-more">
+      {loadMoreFailed ? (
+        <InlineAlert tone="danger">{t('Explore.personaSourcesLoadMoreError')}</InlineAlert>
+      ) : null}
+      <Button type="button" tone="secondary" size="sm" disabled={loadingMore} onClick={onLoadMore}>
+        {loadingMore
+          ? t('Explore.loadingMore')
+          : t(loadMoreFailed ? 'Explore.retryPersonas' : 'Explore.loadMore')}
+      </Button>
     </div>
   );
 }

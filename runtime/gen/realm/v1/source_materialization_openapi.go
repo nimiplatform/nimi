@@ -12,7 +12,7 @@ const (
 	GetSourceMaterializationJwksOperationID                         = "getSourceMaterializationJwks"
 	GetSourceMaterializationJwksMethod                              = "GET"
 	GetSourceMaterializationJwksPath                                = "/api/auth/jwks/source-materialization"
-	MaterializationSchemaClosureSHA256                              = "c0d394929eec9d92df6ad8b31c74292225c844271d60cb6064cef10776f79252"
+	MaterializationSchemaClosureSHA256                              = "d81298f2af3b4bcaa9d32c71b9afe8e0ca32c73ffe44f6cdafd7ef10048bd484"
 )
 
 var WorldCoreControllerCreateSourceMaterializationPacketOperation = OperationDescriptor{
@@ -382,7 +382,7 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 	},
 	"WorldCoreValueDtoPresentation": {
 		Required: []string{},
-		Optional: []string{"bannerResourceRef", "displayName", "iconResourceRef", "palette", "tagline", "title"},
+		Optional: []string{"bannerResourceRef", "displayName", "heroResourceRef", "iconResourceRef", "palette", "tagline", "title"},
 	},
 	"WorldCoreValueDtoRelationshipsItem": {
 		Required: []string{"relationshipId", "sourceEntityId", "targetEntityId", "type"},
@@ -396,11 +396,15 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Required: []string{"name", "summary", "systemId"},
 		Optional: []string{"parameters", "principles"},
 	},
-	"WorldCoreValueDtoTimeModel": {
+	"WorldCoreValueDtoTimeModelVariant1": {
+		Required: []string{"label", "mode"},
+		Optional: []string{},
+	},
+	"WorldCoreValueDtoTimeModelVariant2": {
 		Required: []string{"anchor", "calendar", "displayFormat", "flowRatio", "isPaused", "mode", "pausedWorldTime"},
 		Optional: []string{},
 	},
-	"WorldCoreValueDtoTimeModelAnchor": {
+	"WorldCoreValueDtoTimeModelVariant2Anchor": {
 		Required: []string{"realStartedAt", "worldStartedAt", "worldStartedAtDisplay"},
 		Optional: []string{},
 	},
@@ -636,13 +640,13 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.identity":                                       {{Required: []string{"name", "summary"}, Optional: []string{"divergences", "era", "genre", "tagline", "themes", "worldType"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.ontology":                                       {{Required: []string{"entityKinds", "relationshipTypes"}, Optional: []string{"concepts"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.ontology.concepts[]":                            {{Required: []string{"conceptId", "name"}, Optional: []string{"summary"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.presentation":                                   {{Required: []string{}, Optional: []string{"bannerResourceRef", "displayName", "iconResourceRef", "palette", "tagline", "title"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.presentation":                                   {{Required: []string{}, Optional: []string{"bannerResourceRef", "displayName", "heroResourceRef", "iconResourceRef", "palette", "tagline", "title"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.relationships[]":                                {{Required: []string{"relationshipId", "sourceEntityId", "targetEntityId", "type"}, Optional: []string{"attributes", "summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.scenes[]":                                       {{Required: []string{"name", "sceneId", "summary"}, Optional: []string{"assetRefs", "entityRefs"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.systems[]":                                      {{Required: []string{"name", "summary", "systemId"}, Optional: []string{"parameters", "principles"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeline":                                       {{Required: []string{"events"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeline.events[]":                              {{Required: []string{"eventId", "title"}, Optional: []string{"characterRefs", "endsAt", "entityRefs", "importance", "locationRefs", "sceneRefs", "sequence", "sourceRefs", "startsAt", "summary", "timestamp"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeModel":                                      {{Required: []string{"anchor", "calendar", "displayFormat", "flowRatio", "isPaused", "mode", "pausedWorldTime"}, Optional: []string{}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeModel":                                      {{Required: []string{"label", "mode"}, Optional: []string{}}, {Required: []string{"anchor", "calendar", "displayFormat", "flowRatio", "isPaused", "mode", "pausedWorldTime"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeModel.anchor":                               {{Required: []string{"realStartedAt", "worldStartedAt", "worldStartedAtDisplay"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.lorebookDeclaration":                                 {{Required: []string{"identityBaseSetting", "rolePlacements", "worldRules"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.lorebookDeclaration.rolePlacements[]":                {{Required: []string{"statement"}, Optional: []string{"roleRef"}}},

@@ -11,10 +11,6 @@ export interface DesktopRendererOfflinePort {
   getCachedMessages<T extends object = JsonObject>(chatId: string): Promise<T[]>;
   syncProfileMetadata<T extends object>(profileKey: string, payload: T): Promise<void>;
   getCachedProfileMetadata<T extends object = JsonObject>(profileKey: string): Promise<T | null>;
-  syncWorldList<T extends object>(worlds: T[]): Promise<void>;
-  getCachedWorldList<T extends object = JsonObject>(): Promise<T[]>;
-  syncWorldMetadata<T extends object>(worldId: string, payload: T): Promise<void>;
-  getCachedWorldMetadata<T extends object = JsonObject>(worldId: string): Promise<T | null>;
   upsertChatOutboxEntry(entry: PersistentOutboxEntry): Promise<void>;
   getChatOutboxEntry(clientMessageId: string): Promise<PersistentOutboxEntry | undefined>;
   getChatOutboxEntries(chatId?: string): Promise<PersistentOutboxEntry[]>;
@@ -47,10 +43,6 @@ export function createUnavailableDesktopRendererOfflinePort(
     getCachedMessages: unavailable,
     syncProfileMetadata: unavailable,
     getCachedProfileMetadata: unavailable,
-    syncWorldList: unavailable,
-    getCachedWorldList: unavailable,
-    syncWorldMetadata: unavailable,
-    getCachedWorldMetadata: unavailable,
     upsertChatOutboxEntry: unavailable,
     getChatOutboxEntry: unavailable,
     getChatOutboxEntries: unavailable,

@@ -1,44 +1,15 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { WORLD_ABSTRACT_COVER_BACKGROUNDS, WORLD_EXPLORER_THEME } from './world-list-theme';
+import { WORLD_EXPLORER_THEME, WORLD_NEUTRAL_COVER_BACKGROUND } from './world-list-theme';
 import type { WorldListItem } from './world-list-model';
 
-type WorldCoverTone = keyof typeof WORLD_ABSTRACT_COVER_BACKGROUNDS;
 type WorldCoverVariant = 'thumb' | 'featured' | 'panel' | 'row' | 'banner';
 
-function worldCoverTone(world: WorldListItem): WorldCoverTone {
-  const haystack = [
-    world.name,
-    world.genre,
-    world.era,
-    ...world.themes,
-    ...world.entityKinds,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLocaleLowerCase();
-
-  if (/(?:sci|space|future|科幻|星际|星云|太空)/i.test(haystack)) {
-    return 'sciFi';
-  }
-  if (/(?:nature|forest|mountain|自然|森林|山水|植物)/i.test(haystack)) {
-    return 'nature';
-  }
-  if (/(?:fantasy|xianxia|magic|奇幻|修仙|仙侠|玄幻)/i.test(haystack)) {
-    return 'fantasy';
-  }
-  if (/(?:history|historical|scholarly|cbdb|历史|朝|代|文人|书院|学术)/i.test(haystack)) {
-    return 'history';
-  }
-  return 'sandbox';
-}
-
-export function worldAbstractCoverBackground(world: WorldListItem): string {
-  return WORLD_ABSTRACT_COVER_BACKGROUNDS[worldCoverTone(world)];
-}
-
+// A World without a banner gets one neutral abstract cover. The cover never
+// classifies the World from its name, genre, era, themes, or entity kinds,
+// because WorldListItem declares no cover style.
 function coverBackground(world: WorldListItem): string {
   if (!world.bannerUrl) {
-    return worldAbstractCoverBackground(world);
+    return WORLD_NEUTRAL_COVER_BACKGROUND;
   }
   const safeUrl = world.bannerUrl.replace(/"/g, '%22');
   return `url("${safeUrl}") center/cover no-repeat`;
@@ -72,7 +43,6 @@ export function WorldCover({
     <span
       role={children ? undefined : 'img'}
       aria-label={children ? undefined : world.name}
-      data-world-cover-tone={worldCoverTone(world)}
       data-world-cover={variant}
       className={`${variantClassName[variant]} ${className}`}
       style={style}

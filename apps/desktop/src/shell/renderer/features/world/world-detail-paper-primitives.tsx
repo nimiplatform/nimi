@@ -12,11 +12,9 @@ import {
   Images,
   Layers,
   Languages,
-  Milestone,
   MessageSquare,
   Plus,
   Shield,
-  Stamp,
   ScrollText,
   Users,
 } from 'lucide-react';
@@ -50,14 +48,6 @@ export function IconClock(props: IconProps) {
 
 export function IconLayers(props: IconProps) {
   return kitIcon(Layers, props);
-}
-
-export function IconStamp(props: IconProps) {
-  return kitIcon(Stamp, props);
-}
-
-export function IconMilestone(props: IconProps) {
-  return kitIcon(Milestone, props);
 }
 
 export function IconFile(props: IconProps) {

@@ -7,11 +7,13 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
 const (
+	// The Runtime's own output budget for one sidecar step, not a caller hard limit.
 	chatTrackSidecarPromptMaxTokens = 768
 	chatTrackSidecarExecutorAppID   = "runtime.agent.internal.chat_track_sidecar"
 )
@@ -85,6 +87,7 @@ func (e *aiBackedChatTrackSidecarExecutor) ExecuteChatTrackSidecar(ctx context.C
 		return nil, err
 	}
 	ctx = withPublicChatExecutionIntent(ctx, req.ExecutionBinding, "text.generate")
+	ctx = textbehavior.WithInternalOutputBudget(ctx, chatTrackSidecarPromptMaxTokens)
 	resp, err := e.ai.ExecuteScenario(ctx, execReq)
 	if err != nil {
 		return nil, err
@@ -123,7 +126,6 @@ func buildChatTrackSidecarScenarioRequest(req *ChatTrackSidecarExecutorRequest) 
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					SystemPrompt: systemPrompt,
-					MaxTokens:    proto.Int32(chatTrackSidecarPromptMaxTokens),
 					Input: []*runtimev1.ChatMessage{
 						{
 							Role:    "user",

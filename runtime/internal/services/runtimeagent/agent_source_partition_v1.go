@@ -490,7 +490,7 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 		agentTurnContextTextField{Name: "divergences", Values: agentTurnContextOptionalStrings(world.Identity.Divergences)}); err != nil {
 		return err
 	}
-	worldPresentationPresent := world.Presentation.Title != nil || world.Presentation.DisplayName != nil || world.Presentation.Tagline != nil || world.Presentation.Palette != nil || world.Presentation.IconResourceRef != nil || world.Presentation.BannerResourceRef != nil
+	worldPresentationPresent := world.Presentation.Title != nil || world.Presentation.DisplayName != nil || world.Presentation.Tagline != nil || world.Presentation.Palette != nil || world.Presentation.IconResourceRef != nil || world.Presentation.BannerResourceRef != nil || world.Presentation.HeroResourceRef != nil
 	if !worldPresentationPresent {
 		if err := appendLocalAgentCognitionOmissionV1(partition, seenCoverageIDs, "source.world.presentation", "world_setting_detail", "semanticPayload.materializationContext.owningWorld.core.presentation", worldRef, "explicit_source_section_empty"); err != nil {
 			return err
@@ -501,7 +501,8 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 		agentTurnContextTextField{Name: "tagline", Values: agentTurnContextOptionalString(world.Presentation.Tagline)},
 		agentTurnContextTextField{Name: "palette", Values: agentTurnContextOptionalStrings(world.Presentation.Palette)},
 		agentTurnContextTextField{Name: "icon_resource_ref", Values: agentTurnContextOptionalString(world.Presentation.IconResourceRef)},
-		agentTurnContextTextField{Name: "banner_resource_ref", Values: agentTurnContextOptionalString(world.Presentation.BannerResourceRef)}); err != nil {
+		agentTurnContextTextField{Name: "banner_resource_ref", Values: agentTurnContextOptionalString(world.Presentation.BannerResourceRef)},
+		agentTurnContextTextField{Name: "hero_resource_ref", Values: agentTurnContextOptionalString(world.Presentation.HeroResourceRef)}); err != nil {
 		return err
 	}
 	if err := appendUnit("source.world.ontology", "world_setting_detail", "semanticPayload.materializationContext.owningWorld.core.ontology", worldRef, agentTurnContextV3PriorityWorldBaseline, "Owning world ontology detail",
@@ -521,16 +522,7 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 			}
 		}
 	}
-	if err := appendUnit("source.world.time-model", "world_setting_detail", "semanticPayload.materializationContext.owningWorld.core.timeModel", worldRef, agentTurnContextV3PriorityWorldBaseline, "Owning world time model",
-		agentTurnContextTextField{Name: "mode", Values: []string{world.TimeModel.Mode}},
-		agentTurnContextTextField{Name: "flow_ratio", Values: []string{strconv.FormatFloat(world.TimeModel.FlowRatio, 'g', -1, 64)}},
-		agentTurnContextTextField{Name: "is_paused", Values: localAgentOptionalBoolTextV1(world.TimeModel.IsPaused)},
-		agentTurnContextTextField{Name: "real_started_at", Values: []string{world.TimeModel.Anchor.RealStartedAt}},
-		agentTurnContextTextField{Name: "world_started_at", Values: []string{world.TimeModel.Anchor.WorldStartedAt}},
-		agentTurnContextTextField{Name: "world_started_at_display", Values: []string{world.TimeModel.Anchor.WorldStartedAtDisplay}},
-		agentTurnContextTextField{Name: "paused_world_time", Values: localAgentNullableStringTextV1(world.TimeModel.PausedWorldTime)},
-		agentTurnContextTextField{Name: "calendar", Values: localAgentNullableStringTextV1(world.TimeModel.Calendar)},
-		agentTurnContextTextField{Name: "display_format", Values: localAgentNullableStringTextV1(world.TimeModel.DisplayFormat)}); err != nil {
+	if err := appendLocalAgentWorldTimeModelUnitV1(appendUnit, world.TimeModel, worldRef); err != nil {
 		return err
 	}
 	if snapshot.Semantic.SourceRef.Kind == "worldCharacter" {
@@ -628,6 +620,37 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 
 func worldIdentityTaglineV1(world realmSourceCompilerWorldCoreV3) []string {
 	return realmSourceCompilerFirstOptionalStringV3(world.Identity.Tagline, world.Presentation.Tagline)
+}
+
+// A static world has no world clock: only its author label reaches the model, never an
+// artifact creation or import date. Wall-clock worlds expose their real anchor and flow.
+// @nimi-authority: rule.nimi.runtime.agent-service.world-time-model
+func appendLocalAgentWorldTimeModelUnitV1(
+	appendUnit func(string, string, string, agentTurnContextItemSourceRef, int64, string, ...agentTurnContextTextField) error,
+	model realmSourceCompilerWorldTimeModelV3,
+	worldRef agentTurnContextItemSourceRef,
+) error {
+	const unitID = "source.world.time-model"
+	const path = "semanticPayload.materializationContext.owningWorld.core.timeModel"
+	if model.Mode == "static" {
+		return appendUnit(unitID, "world_setting_detail", path, worldRef, agentTurnContextV3PriorityWorldBaseline, "Owning world time model",
+			agentTurnContextTextField{Name: "mode", Values: []string{model.Mode}},
+			agentTurnContextTextField{Name: "world_clock", Values: []string{"none; no real-world date or year applies inside this world"}},
+			agentTurnContextTextField{Name: "label", Values: localAgentNullableStringTextV1(model.Label)})
+	}
+	if model.FlowRatio == nil || model.Anchor == nil {
+		return fmt.Errorf("project LocalAgent Cognition wall-clock time model is incomplete")
+	}
+	return appendUnit(unitID, "world_setting_detail", path, worldRef, agentTurnContextV3PriorityWorldBaseline, "Owning world time model",
+		agentTurnContextTextField{Name: "mode", Values: []string{model.Mode}},
+		agentTurnContextTextField{Name: "flow_ratio", Values: []string{strconv.FormatFloat(*model.FlowRatio, 'g', -1, 64)}},
+		agentTurnContextTextField{Name: "is_paused", Values: localAgentOptionalBoolTextV1(model.IsPaused)},
+		agentTurnContextTextField{Name: "real_started_at", Values: []string{model.Anchor.RealStartedAt}},
+		agentTurnContextTextField{Name: "world_started_at", Values: []string{model.Anchor.WorldStartedAt}},
+		agentTurnContextTextField{Name: "world_started_at_display", Values: []string{model.Anchor.WorldStartedAtDisplay}},
+		agentTurnContextTextField{Name: "paused_world_time", Values: localAgentNullableStringTextV1(model.PausedWorldTime)},
+		agentTurnContextTextField{Name: "calendar", Values: localAgentNullableStringTextV1(model.Calendar)},
+		agentTurnContextTextField{Name: "display_format", Values: localAgentNullableStringTextV1(model.DisplayFormat)})
 }
 
 func localAgentOptionalBoolTextV1(value *bool) []string {

@@ -29,8 +29,9 @@ surfaces:
   - WorldPublicController_getCharacterSource
   - WorldPublicController_getWorld
   - WorldPublicController_getWorldDetailWithCharacters
-  - WorldPublicController_listWorlds
-  - WorldPublicController_listWorldCharacters
+  - WorldPublicController_listWorldCatalog
+  - WorldPublicController_listWorldCharacterCatalog
+  - WorldPublicController_listPersonaCharacterCatalog
   - getMe
   - updateMe
   - listMyFriendsWithDetails
@@ -383,20 +384,28 @@ operations:
     response_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/response
 
   - <<: *desktop_source_read
-    operation_id: WorldPublicController_listWorlds
-    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r004
+    operation_id: WorldPublicController_listWorldCatalog
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.public-discovery-catalog
     http_method: GET
-    path_template: /api/world
-    request_schema_ref: realm-openapi://operation/WorldPublicController_listWorlds/request
-    response_schema_ref: realm-openapi://operation/WorldPublicController_listWorlds/response
+    path_template: /api/world/catalog
+    request_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCatalog/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCatalog/response
 
   - <<: *desktop_product
-    operation_id: WorldPublicController_listWorldCharacters
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    operation_id: WorldPublicController_listWorldCharacterCatalog
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.public-discovery-catalog
     http_method: GET
-    path_template: /api/world/by-id/{worldId}/characters
-    request_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCharacters/request
-    response_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCharacters/response
+    path_template: /api/world/by-id/{worldId}/characters/catalog
+    request_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCharacterCatalog/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCharacterCatalog/response
+
+  - <<: *desktop_source_read
+    operation_id: WorldPublicController_listPersonaCharacterCatalog
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.public-discovery-catalog
+    http_method: GET
+    path_template: /api/world/persona-characters/catalog
+    request_schema_ref: realm-openapi://operation/WorldPublicController_listPersonaCharacterCatalog/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_listPersonaCharacterCatalog/response
 
   - <<: *desktop_product
     operation_id: getMe

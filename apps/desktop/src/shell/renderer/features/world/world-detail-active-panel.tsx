@@ -4,12 +4,12 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import { WorldDetail } from './world-detail';
 import { WorldDetailLoadingState } from './world-detail-template';
 import {
-  fetchWorldListItems,
+  fetchWorldListItem,
   type WorldDisplayDetail,
   type WorldPrimaryDisplayDetail,
   worldDisplayDetailQueryKey,
   worldPrimaryDisplayDetailQueryKey,
-  worldListQueryKey,
+  worldListItemQueryKey,
 } from './world-detail-queries';
 import { toWorldListItem, type WorldListItem } from './world-list-model';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -36,26 +36,23 @@ export function WorldDetailActivePanel() {
   const selectedWorldId = useAppStore((state) => state.selectedWorldId);
   const selectedWorldInitialSubpage = useAppStore((state) => state.selectedWorldInitialSubpage);
   const navigateBack = useAppStore((state) => state.navigateBack);
-  const cachedWorlds = queryClient.getQueryData<WorldListItem[]>(worldListQueryKey());
-  const cachedSelectedWorld = selectedWorldId
-    ? cachedWorlds?.find((item) => item.id === selectedWorldId) ?? null
-    : null;
+  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const cachedWorldDetail = selectedWorldId
     ? queryClient.getQueryData<WorldDisplayDetail>(
-      worldDisplayDetailQueryKey(selectedWorldId),
+      worldDisplayDetailQueryKey(realmBaseUrl, selectedWorldId),
     )
     : null;
   const cachedWorldPrimaryDetail = selectedWorldId
     ? queryClient.getQueryData<WorldPrimaryDisplayDetail>(
-      worldPrimaryDisplayDetailQueryKey(selectedWorldId),
+      worldPrimaryDisplayDetailQueryKey(realmBaseUrl, selectedWorldId),
     )
     : null;
 
+  // The selected world is read by id; it never depends on the world being in a loaded list page.
   const worldsQuery = useQuery({
-    queryKey: worldListQueryKey(),
-    queryFn: async () => fetchWorldListItems(createRealmWorldData(sdk)),
+    queryKey: worldListItemQueryKey(realmBaseUrl, selectedWorldId ?? ''),
+    queryFn: async () => fetchWorldListItem(createRealmWorldData(sdk), selectedWorldId ?? ''),
     enabled: authStatus === 'authenticated' && Boolean(selectedWorldId),
-    initialData: cachedWorlds ?? undefined,
     staleTime: 30_000,
   });
 
@@ -67,10 +64,7 @@ export function WorldDetailActivePanel() {
     );
   }
 
-  const selectedWorldFromList = worldsQuery.data?.find((item) => item.id === selectedWorldId)
-    ?? cachedSelectedWorld
-    ?? null;
-  const selectedWorld = selectedWorldFromList
+  const selectedWorld = worldsQuery.data
     ?? readCachedWorldDetailListItem(cachedWorldDetail)
     ?? readCachedWorldDetailListItem(cachedWorldPrimaryDetail);
 

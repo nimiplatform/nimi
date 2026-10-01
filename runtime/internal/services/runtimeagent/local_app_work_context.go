@@ -131,7 +131,7 @@ func (s *Service) executeLocalAppWork(work *localAppWorkExecution, binding publi
 	if err != nil {
 		return "", err
 	}
-	execution := &PublicChatTurnExecutionRequest{AppID: work.owner.decision.AppID, SubjectUserID: work.owner.decision.AccountID, Messages: publicChatAgentTurnProviderMessages(compiled.ProviderPrompt.Messages), MaxTokens: int32(compiled.Manifest.Budget.ReservedOutputTokens), Binding: binding, Tools: work.tools}
+	execution := &PublicChatTurnExecutionRequest{AppID: work.owner.decision.AppID, SubjectUserID: work.owner.decision.AccountID, Messages: publicChatAgentTurnProviderMessages(compiled.ProviderPrompt.Messages), ReservedOutputTokens: int32(compiled.Manifest.Budget.ReservedOutputTokens), Binding: binding, Tools: work.tools}
 	for {
 		if err := s.revalidateLocalAppWork(work); err != nil {
 			return "", err

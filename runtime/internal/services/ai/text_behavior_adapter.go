@@ -894,6 +894,15 @@ func (adapter *resolvedTextBehaviorAdapter) capture() *textBehaviorAdapterCaptur
 	return &textBehaviorAdapterCapture{AdapterID: adapter.registration.AdapterID, Version: adapter.registration.Version}
 }
 
+// requestSerializer is the exact adapter's request serializer, or nil when the
+// target keeps its base protocol.
+func (adapter *resolvedTextBehaviorAdapter) requestSerializer() textbehavior.RequestSerializer {
+	if adapter == nil {
+		return nil
+	}
+	return adapter.registration.RequestSerializer
+}
+
 // runtimeAdapter projects the exact resolver result into the lower-level,
 // immutable execution hook bundle. It does not resolve, probe, or register an
 // adapter; the unique match has already been established above this seam.

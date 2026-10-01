@@ -1,7 +1,7 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, LoadingSkeleton, NimiText, Surface } from '@nimiplatform/kit/ui';
-import { isWorldVisibleInAtlas, matchesQuery, pinFollowedFirst, selectInitialWorld, sortWorlds, type SortId } from './world-list-catalog-model';
+import { Button, EmptyState, LoadingSkeleton, NimiText, Surface } from '@nimiplatform/kit/ui';
+import { selectInitialWorld } from './world-list-catalog-model';
 import { WorldDetail } from './world-detail';
 import { WorldCatalogRail } from './world-list-rail';
 import { useFollowedWorlds } from './world-follow-store-context.js';
@@ -52,55 +52,76 @@ export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean
   );
 }
 
-export function WorldsLoadError({ embedded = false }: { embedded?: boolean }) {
+export function WorldsLoadError({
+  embedded = false,
+  offline = false,
+  onRetry,
+}: {
+  embedded?: boolean;
+  offline?: boolean;
+  onRetry?: () => void;
+}) {
   const { t } = useTranslation();
   return (
-    <div className={`flex ${embedded ? 'min-h-[220px]' : 'h-full'} items-center justify-center`}>
-      <NimiText role="body" className="text-[var(--nimi-status-danger)]">{t('World.loadError')}</NimiText>
+    <div className={`flex ${embedded ? 'min-h-[220px]' : 'h-full'} flex-col items-center justify-center gap-3`}>
+      <NimiText role="body" className="text-[var(--nimi-status-danger)]">
+        {offline ? t('World.atlas.searchUnavailableOffline') : t('World.loadError')}
+      </NimiText>
+      {onRetry ? (
+        <Button type="button" tone="secondary" size="sm" onClick={onRetry}>
+          {t('NotificationPanel.refresh', { defaultValue: 'Refresh' })}
+        </Button>
+      ) : null}
     </div>
   );
 }
 
+export type WorldCatalogPaging = {
+  totalCount: number;
+  hasMore: boolean;
+  loadingMore: boolean;
+  loadMoreFailed: boolean;
+  offlineIncomplete: boolean;
+  onLoadMore: () => void;
+};
+
 export function WorldCatalogContent({
   worlds,
+  paging,
   embedded = false,
   searchQuery,
   onSearchQueryChange,
   railFlap,
 }: {
   worlds: WorldListItem[];
+  paging: WorldCatalogPaging;
   embedded?: boolean;
   searchQuery?: string;
   onSearchQueryChange?: (value: string) => void;
   railFlap?: ReactNode;
 }) {
-  const { t, i18n } = useTranslation();
-  const visibleWorlds = useMemo(() => worlds.filter(isWorldVisibleInAtlas), [worlds]);
-  const [sort, setSort] = useState<SortId>('recent');
+  const { t } = useTranslation();
   // The catalog selection lives in the UI slice so it survives the Explore
   // panel unmount during the source-detail round trip (navigateBack restores
   // only the tab; local state would reset to selectInitialWorld).
   const storeSelectedWorldId = useAppStore((state) => state.exploreSelectedWorldId);
   const setExploreSelectedWorldId = useAppStore((state) => state.setExploreSelectedWorldId);
-  const fallbackWorldId = useMemo(() => selectInitialWorld(visibleWorlds), [visibleWorlds]);
+  const fallbackWorldId = useMemo(() => selectInitialWorld(worlds), [worlds]);
   const selectedWorldId = storeSelectedWorldId ?? fallbackWorldId;
   const query = searchQuery ?? '';
   const followed = useFollowedWorlds();
 
-  const filteredWorlds = useMemo(() => {
-    const searched = visibleWorlds.filter((world) => matchesQuery(world, query));
-    return pinFollowedFirst(sortWorlds(searched, sort, i18n.language), followed.isFollowed);
-  }, [query, sort, visibleWorlds, followed, i18n.language]);
-
+  // Worlds arrive in server order; search and paging happen on the server, so the rail never
+  // re-sorts or filters a loaded page as if it were the complete catalog.
   const selectedWorld = useMemo(() => {
     return (
-      filteredWorlds.find((world) => world.id === selectedWorldId)
-      ?? filteredWorlds[0]
+      worlds.find((world) => world.id === selectedWorldId)
+      ?? worlds[0]
       ?? null
     );
-  }, [filteredWorlds, selectedWorldId]);
+  }, [worlds, selectedWorldId]);
 
-  const emptyState = filteredWorlds.length === 0 ? (
+  const emptyState = worlds.length === 0 ? (
     <EmptyState
       title={query ? t('World.noSearchResults') : t('World.card.noMatch')}
       style={WORLD_EXPLORER_THEME.card}
@@ -114,12 +135,11 @@ export function WorldCatalogContent({
       style={WORLD_EXPLORER_THEME.root}
     >
       <WorldCatalogRail
-        totalCount={visibleWorlds.length}
-        worlds={filteredWorlds}
+        totalCount={paging.totalCount}
+        worlds={worlds}
+        paging={paging}
         searchQuery={query}
         onSearchChange={(value) => onSearchQueryChange?.(value)}
-        sort={sort}
-        onSortChange={setSort}
         selectedWorldId={selectedWorld?.id ?? null}
         onSelectWorld={setExploreSelectedWorldId}
         isFollowed={followed.isFollowed}

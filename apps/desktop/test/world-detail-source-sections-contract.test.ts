@@ -23,8 +23,9 @@ const world = {
   type: 'CREATOR',
   visibility: 'public',
   status: 'DISCOVERABLE',
-  tags: ['Fantasy'],
+  genre: null,
   themes: ['Fantasy'],
+  era: null,
   media: {
     iconUrl: null,
     bannerUrl: null,
@@ -44,16 +45,17 @@ const world = {
   },
   stats: {
     characterCount: 1,
-    personaCount: 1,
+    personaCharacterCount: 1,
     sceneCount: 0,
     systemCount: 0,
     timelineEventCount: 0,
   },
   computed: {
     time: {
+      mode: 'wallClockAnchored',
       currentWorldTime: '2026-06-19T00:00:00.000Z',
       currentLabel: 'June 19, 2026',
-      eraLabel: 'June 18, 2026',
+      anchorLabel: 'June 18, 2026',
       flowRatio: 1,
       isPaused: false,
     },
@@ -63,7 +65,9 @@ const world = {
     featuredCharacterCount: 2,
   },
   characterCount: 2,
-  personaCount: 1,
+  personaCharacterCount: 1,
+  charactersNextCursor: null,
+  personaCharactersNextCursor: null,
   sceneCount: 0,
   systemCount: 0,
   timelineEventCount: 0,
@@ -106,7 +110,7 @@ function source(kind: 'worldCharacter' | 'personaCharacter', id: string) {
     importance,
     display: {
       role: kind === 'worldCharacter' ? 'Archivist' : 'Traveler',
-      tags: [],
+      topics: [],
       sourceKind: kind,
       ownership,
       worldName: 'Eldoria',
@@ -130,7 +134,7 @@ test('World detail display keeps world characters and public personas as source 
         ...source('worldCharacter', 'character-1'),
         display: {
           role: 'Archivist',
-          tags: ['与许有壬有交往。'],
+          topics: ['与许有壬有交往。'],
           sourceKind: 'worldCharacter',
           ownership: 'worldOwned',
           worldName: 'Eldoria',
@@ -155,7 +159,7 @@ test('World detail display keeps world characters and public personas as source 
       detail.characters[0]?.sourceRef.sourceHash,
       'a'.repeat(64),
     );
-    assert.deepEqual(detail.characters[0]?.tags, ['与许有壬有交往。']);
+    assert.deepEqual(detail.characters[0]?.topics, ['与许有壬有交往。']);
   } finally {
     realmWorldData.loadWorldDetailWithCharacters = originals.loadWorldDetailWithCharacters;
     realmWorldData.loadWorldHistory = originals.loadWorldHistory;

@@ -3,6 +3,7 @@ import {
   type CharacterSourceRefV3,
 } from '../realm-source/realm-source-identity.js';
 import { isMainWorldType } from './shared';
+import { projectWorldPublicTime } from './data/world-public-projection.js';
 
 type LooseObject = { [key: string]: unknown };
 type WorldDetailDto = LooseObject;
@@ -33,16 +34,21 @@ export type WorldCharacterItem = {
   sourceKind?: CharacterSourceRefV3['kind'];
   ownership?: 'worldOwned' | 'userOwned';
   role?: string | null;
-  tags?: string[];
+  traits?: string[];
+  topics?: string[];
 };
 
-export type WorldComputedTime = {
-  currentWorldTime: string | null;
-  currentLabel: string | null;
-  eraLabel: string | null;
-  flowRatio: number;
-  isPaused: boolean;
-};
+// A static world has no clock and only an optional author label; a wall-clock world carries time.
+export type WorldComputedTime =
+  | { mode: 'static'; label: string | null; currentWorldTime: null }
+  | {
+    mode: 'wallClockAnchored';
+    currentWorldTime: string;
+    currentLabel: string;
+    anchorLabel: string;
+    flowRatio: number;
+    isPaused: boolean;
+  };
 
 export type WorldComputedLanguages = {
   primary: string | null;
@@ -92,7 +98,7 @@ export type WorldListItem = {
   entityCount: number;
   relationshipCount: number;
   characterCount: number;
-  personaCount: number;
+  personaCharacterCount: number;
   sceneCount: number;
   systemCount: number;
   timelineEventCount: number;
@@ -209,13 +215,7 @@ function toWorldComputed(raw: unknown, fallbackCharacterCount = 0): WorldCompute
   const score = readRecord(record?.score);
 
   return {
-    time: {
-      currentWorldTime: readNamedString(time, 'currentWorldTime'),
-      currentLabel: readNamedString(time, 'currentLabel', 'currentWorldTimeDisplay'),
-      eraLabel: readNamedString(time, 'eraLabel', 'anchorWorldStartedAtDisplay'),
-      flowRatio: Math.max(0.0001, readNamedNumber(time, 'flowRatio') ?? 1),
-      isPaused: readNamedBoolean(time, 'isPaused') ?? false,
-    },
+    time: toWorldComputedTime(time),
     languages: {
       primary: readNamedString(languages, 'primary'),
       common: readStringArray(languages?.common),
@@ -229,6 +229,27 @@ function toWorldComputed(raw: unknown, fallbackCharacterCount = 0): WorldCompute
       scoreEwma: readNamedNumber(score, 'scoreEwma') ?? 0,
     },
     featuredCharacterCount: readNumber(record?.featuredCharacterCount) ?? fallbackCharacterCount,
+  };
+}
+
+function toWorldComputedTime(time: LooseObject | null): WorldComputedTime {
+  if (readNamedString(time, 'mode') === 'static') {
+    return { mode: 'static', label: readNamedString(time, 'label'), currentWorldTime: null };
+  }
+  const currentWorldTime = readNamedString(time, 'currentWorldTime');
+  const anchorLabel = readNamedString(time, 'anchorLabel');
+  const flowRatio = readNamedNumber(time, 'flowRatio');
+  const isPaused = readNamedBoolean(time, 'isPaused');
+  if (readNamedString(time, 'mode') !== 'wallClockAnchored' || !currentWorldTime || !anchorLabel || flowRatio === null || isPaused === null) {
+    throw new Error('World list item requires a static or complete wall-clock time projection');
+  }
+  return {
+    mode: 'wallClockAnchored',
+    currentWorldTime,
+    currentLabel: readNamedString(time, 'currentLabel') ?? currentWorldTime,
+    anchorLabel,
+    flowRatio,
+    isPaused,
   };
 }
 
@@ -295,7 +316,8 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
         sourceKind: sourceRef?.kind,
         ownership: character.ownership,
         role: readString(display?.role),
-        tags: readStringArray(display?.tags),
+        traits: readStringArray(display?.traits),
+        topics: readStringArray(display?.topics),
       };
     });
   }
@@ -314,9 +336,9 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     : parsedCharacters?.length
       ? parsedCharacters.length
       : 0;
-  const personaCount = typeof raw.personaCount === 'number'
-    ? raw.personaCount
-    : readNumber(stats?.personaCount) ?? 0;
+  const personaCharacterCount = typeof raw.personaCharacterCount === 'number'
+    ? raw.personaCharacterCount
+    : readNumber(stats?.personaCharacterCount) ?? 0;
   const sceneCount = typeof raw.sceneCount === 'number'
     ? raw.sceneCount
     : readNumber(stats?.sceneCount) ?? 0;
@@ -340,12 +362,8 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     motto: typeof raw.motto === 'string' ? raw.motto : null,
     overview: typeof raw.overview === 'string' ? raw.overview : null,
     contentRating: typeof raw.contentRating === 'string' ? raw.contentRating : null,
-    genre: typeof raw.genre === 'string' ? raw.genre : Array.isArray(raw.tags) && typeof raw.tags[0] === 'string' ? raw.tags[0] : null,
-    themes: Array.isArray(raw.themes)
-      ? raw.themes.filter((t): t is string => typeof t === 'string')
-      : Array.isArray(raw.tags)
-        ? raw.tags.filter((t): t is string => typeof t === 'string')
-      : [],
+    genre: readString(raw.genre),
+    themes: readStringArray(raw.themes),
     era: readString(raw.era),
     iconUrl: readString(raw.iconUrl) ?? readNamedString(media, 'iconUrl'),
     bannerUrl: readString(raw.bannerUrl)
@@ -363,7 +381,7 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     entityCount,
     relationshipCount,
     characterCount,
-    personaCount,
+    personaCharacterCount,
     sceneCount,
     systemCount,
     timelineEventCount,
@@ -376,7 +394,7 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     scoreE: typeof raw.scoreE === 'number' ? raw.scoreE : 0,
     scoreEwma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
     scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
-    computed: toWorldComputed(raw.computed ?? { time }, characterCount),
+    computed: toWorldComputed(raw.computed ?? { time: projectWorldPublicTime(time) }, characterCount),
     characters: parsedCharacters,
   };
 }

@@ -15,7 +15,7 @@ test.before(async () => {
   await initI18n();
 });
 
-test('world character relationship map keeps factual clue text out of graph nodes', () => {
+test('world character relationship map shows explicit relation labels as authored without extracting names from prose', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
     relationships: [
@@ -53,17 +53,21 @@ test('world character relationship map keeps factual clue text out of graph node
   );
 
   const associationClue = source.relationshipClues.find((clue) => clue.id === 'cbdb-rel-99984-association-liu-zhi-1');
-  assert.equal(associationClue?.label, '墓志铭由刘智所作');
+  assert.equal(associationClue?.type, 'association');
+  assert.equal(associationClue?.label, '墓誌銘由劉智所作');
+  assert.equal(associationClue?.targetLabel, null);
 
   const mapStart = markup.indexOf('data-testid="world-character-relationship-map"');
   const mapEnd = markup.indexOf('<div class="mt-4 flex flex-wrap gap-2">', mapStart);
   const mapMarkup = markup.slice(mapStart, mapEnd);
 
-  assert.match(mapMarkup, /刘智/);
-  assert.doesNotMatch(mapMarkup, /墓志铭由刘智所作/);
-  assert.doesNotMatch(markup, /墓誌銘|劉智/);
-  assert.doesNotMatch(mapMarkup, /truncate text-xs leading-4 opacity-75/);
-  assert.match(markup, /<h3 class="text-sm font-semibold leading-6 text-\[var\(--nimi-text-primary\)\]">墓志铭由刘智所作<\/h3>/);
+  // Without an explicit target label the node shows the explicit relation
+  // label as authored; no person name is extracted from the label or summary.
+  assert.match(mapMarkup, /<h3 class="truncate text-sm font-semibold leading-5">墓誌銘由劉智所作<\/h3>/);
+  assert.doesNotMatch(mapMarkup, /<h3 class="truncate text-sm font-semibold leading-5">劉智<\/h3>/);
+  assert.doesNotMatch(markup, /墓志铭由刘智所作/);
+  assert.match(markup, /<h3 class="text-sm font-semibold leading-6 text-\[var\(--nimi-text-primary\)\]">墓誌銘由劉智所作<\/h3>/);
+  assert.match(markup, /刘智与欧阳德存在交游或关联记录。/);
 });
 
 test('world character relationship map renders posted address clues with location icons', () => {
@@ -101,8 +105,8 @@ test('world character relationship map renders posted address clues with locatio
     ],
   }, 'source_materialization_available');
 
-  assert.deepEqual(source.relationshipClues.map((clue) => [clue.type, clue.label]), [
-    ['postedAddress', '京兆府'],
+  assert.deepEqual(source.relationshipClues.map((clue) => [clue.type, clue.label, clue.details]), [
+    ['postedAddress', '京兆府', ['翰林学士', '1086']],
   ]);
 
   const markup = renderToStaticMarkup(

@@ -483,8 +483,8 @@ func (s *Service) executePublicChatConversationSummaryWithExecution(ctx context.
 	}
 	err := executor.StreamChatTurn(executionCtx, &PublicChatTurnExecutionRequest{
 		AppID: identity.CallerAppID, SubjectUserID: identity.SubjectUserID,
-		Messages:  publicChatConversationSummaryProviderMessages(execution.Input),
-		MaxTokens: publicChatConversationSummaryMaxOutputTokens, Binding: execution.Binding,
+		Messages:             publicChatConversationSummaryProviderMessages(execution.Input),
+		ReservedOutputTokens: publicChatConversationSummaryMaxOutputTokens, Binding: execution.Binding,
 	}, func(event *runtimev1.StreamScenarioEvent) error {
 		if event == nil {
 			return nil

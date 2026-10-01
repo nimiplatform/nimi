@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -155,6 +156,9 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 	var maxTokens *int32
 	if req.MaxTokens != 0 {
 		maxTokens = proto.Int32(req.MaxTokens)
+	} else {
+		// @nimi-authority: rule.nimi.runtime.ai-provider.internal-output-budget
+		ctx = textbehavior.WithInternalOutputBudget(ctx, req.ReservedOutputTokens)
 	}
 	streamReq := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{

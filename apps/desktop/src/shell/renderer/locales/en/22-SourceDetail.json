@@ -48,13 +48,6 @@
     "profileEyebrow": "Profile",
     "overviewTitle": "Character overview",
     "worksEyebrow": "Related reading",
-    "relationshipQuestion": "How are you connected to {{topic}}?",
-    "workQuestion": "Why does your {{topic}} matter?",
-    "roleQuestion": "Why are you known as {{topic}}?",
-    "factionQuestion": "How did {{topic}} shape your life?",
-    "rankQuestion": "What did you experience while serving as {{topic}}?",
-    "sceneQuestion": "What did you experience in {{topic}}?",
-    "topicQuestion": "How would you explain {{topic}}?",
     "personaStyle": {
       "archetype": {
         "CARING": "Caring",

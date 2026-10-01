@@ -25,7 +25,8 @@ function publicSourceCard(overrides: Record<string, unknown> = {}): Record<strin
     handle: 'public-resource-ref-boundary',
     summary: 'Public Persona summary',
     role: 'Archivist',
-    tags: ['history', 'research'],
+    traits: ['careful'],
+    topics: ['history', 'research'],
     worldId: sourceRef.worldId,
     worldName: 'Public Test World',
     ownership: 'userOwned',
@@ -40,171 +41,99 @@ function publicSourceCard(overrides: Record<string, unknown> = {}): Record<strin
   };
 }
 
+function forbiddenOwnedApi() {
+  return new Proxy({}, {
+    get() {
+      throw new Error('Public Persona discovery must not read owned or core Persona lists');
+    },
+  });
+}
+
 function callerFor(
-  rows: unknown[],
-  sourceCard: unknown = publicSourceCard(),
-  onPublicSourceRequest?: (sourceRef: CharacterSourceRefV3) => void,
+  cards: unknown[],
+  onRequest?: (query: Record<string, unknown>) => void,
+  page: { nextCursor?: string | null; hasMore?: boolean; totalCount?: number } = {},
 ): RealmExploreApiCaller {
   return async (task) => task({
-    worldCore: {
-      worldCoreControllerListPersonaCharacters: async () => rows,
-      worldCoreControllerDiscoverPersonaCharacters: async () => rows,
-    },
+    worldCore: forbiddenOwnedApi(),
     worldPublic: {
-      worldPublicControllerGetCharacterSource: async (request: {
-        body: { sourceRef: CharacterSourceRefV3 };
-      }) => {
-        onPublicSourceRequest?.(request.body.sourceRef);
-        return sourceCard;
+      worldPublicControllerListPersonaCharacterCatalog: async (request: { query?: Record<string, unknown> }) => {
+        onRequest?.(request.query ?? {});
+        return {
+          items: cards,
+          nextCursor: page.nextCursor ?? null,
+          hasMore: page.hasMore ?? false,
+          totalCount: page.totalCount ?? cards.length,
+        };
       },
     },
   } as never);
 }
 
-function personaProfile(assets: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
-    id: sourceRef.id,
-    ownerAccountId: sourceRef.ownerAccountId,
-    worldId: sourceRef.worldId,
-    sourceHash: sourceRef.sourceHash,
-    contentHash: 'b'.repeat(64),
-    contentRevision: 1,
-    schemaVersion: 'realm.persona-character-core/v1',
-    visibility: 'public',
-    profile: {
-      profileSchemaVersion: 'realm.character-profile-core/v1',
-      identity: {
-        name: 'Core Resource Ref Boundary',
-        summary: 'Core-only summary must not become Explore presentation.',
-      },
-      presentation: {
-        displayName: 'Core Resource Ref Boundary',
-        avatarResourceRef: 'forge-publication-ledger-record-persona-avatar',
-      },
-      narrative: {
-        summary: 'Shared CharacterProfile narrative.',
-        archetype: 'Historian',
-        traits: ['careful'],
-      },
-      interactionProfile: {
-        interactionModes: ['dialogue'],
-        cadence: 'Measured',
-      },
-      knowledge: {
-        topics: ['archives'],
-        constraints: ['cite sources'],
-      },
-      assets: {
-        resourceRefs: [],
-        intents: [],
-        ...assets,
-      },
-      authoring: { source: 'test' },
-      profileCoverage: {
-        aggregateStatus: 'complete',
-        diagnostics: [],
-        manifestSchemaVersion: 'realm.character-profile-coverage/v1',
-        optionalRefs: [],
-        optionalSections: [],
-        profileCoverageHash: 'c'.repeat(64),
-        requiredRefs: [],
-        requiredSections: [],
-      },
-      profileHash: 'd'.repeat(64),
-    },
-    materializationReadiness: { blockers: [], status: 'ready' },
-    origin: { kind: 'manual' },
-    validity: { issues: [], status: 'valid' },
-    createdAt: '2026-07-29T00:00:00.000Z',
-    updatedAt: '2026-07-30T00:00:00.000Z',
-  };
-}
-
 test('Explore Persona projection never treats an avatar resource id as an image URL', async () => {
-  const result = await loadExplorePersonas(callerFor([personaProfile()]), () => undefined);
+  const result = await loadExplorePersonas(callerFor([publicSourceCard({
+    media: { avatarUrl: 'forge-publication-ledger-record-persona-avatar' },
+  })]), () => undefined);
   assert.equal(result.items[0]?.avatarUrl, null);
 });
 
-test('Explore Persona projection gets its avatar only from WorldPublicSourceCard', async () => {
+test('Explore Persona projection gets its avatar only from the public source card', async () => {
   const avatarUrl = 'https://media.nimi.test/persona/avatar.png';
-  const result = await loadExplorePersonas(callerFor([personaProfile({
-    externalRefs: [
-      { kind: 'avatar', uri: 'forge-publication-ledger-record-persona-avatar' },
-      { kind: 'avatar', uri: 'https://core.nimi.test/must-not-leak.png' },
-    ],
-  })], publicSourceCard({
+  const result = await loadExplorePersonas(callerFor([publicSourceCard({
     media: { avatarUrl },
-  })), () => undefined);
+  })]), () => undefined);
   assert.equal(result.items[0]?.avatarUrl, avatarUrl);
 });
 
 test('Explore Persona projection falls back through public portrait and reference image URLs', async () => {
   const portraitUrl = 'https://media.nimi.test/persona/portrait.png';
-  const portraitResult = await loadExplorePersonas(callerFor(
-    [personaProfile()],
+  const portraitResult = await loadExplorePersonas(callerFor([
     publicSourceCard({ media: { portraitUrl } }),
-  ), () => undefined);
+  ]), () => undefined);
   assert.equal(portraitResult.items[0]?.avatarUrl, portraitUrl);
 
   const referenceImageUrl = 'https://media.nimi.test/persona/reference.png';
-  const referenceResult = await loadExplorePersonas(callerFor(
-    [personaProfile()],
+  const referenceResult = await loadExplorePersonas(callerFor([
     publicSourceCard({ media: { referenceImageUrl } }),
-  ), () => undefined);
+  ]), () => undefined);
   assert.equal(referenceResult.items[0]?.avatarUrl, referenceImageUrl);
 });
 
-test('Explore Persona projection uses discovery by default and the public list for local filters', async () => {
-  const calls: string[] = [];
-  const callApi: RealmExploreApiCaller = async (task) => task({
-    worldCore: {
-      worldCoreControllerDiscoverPersonaCharacters: async () => {
-        calls.push('discover');
-        return [personaProfile()];
-      },
-      worldCoreControllerListPersonaCharacters: async () => {
-        calls.push('list');
-        return [personaProfile()];
-      },
-    },
-    worldPublic: {
-      worldPublicControllerGetCharacterSource: async () => {
-        calls.push('public-source');
-        return publicSourceCard();
-      },
-    },
-  } as never);
+test('Explore Persona discovery searches the public catalog and never switches to owned lists', async () => {
+  const queries: Array<Record<string, unknown>> = [];
+  const callApi = callerFor([publicSourceCard()], (query) => queries.push(query), {
+    nextCursor: 'cursor-2',
+    hasMore: true,
+    totalCount: 45,
+  });
 
-  await loadExplorePersonas(callApi, () => undefined);
-  await loadExplorePersonas(callApi, () => undefined, { query: 'resource' });
-  assert.deepEqual(calls, ['discover', 'public-source', 'list', 'public-source']);
+  const firstPage = await loadExplorePersonas(callApi, () => undefined);
+  const searched = await loadExplorePersonas(callApi, () => undefined, { query: ' 风筝 ', cursor: 'cursor-1' });
+
+  assert.deepEqual(queries, [{ limit: 20 }, { q: '风筝', cursor: 'cursor-1', limit: 20 }]);
+  assert.deepEqual(
+    { nextCursor: firstPage.nextCursor, hasMore: firstPage.hasMore, totalCount: firstPage.totalCount },
+    { nextCursor: 'cursor-2', hasMore: true, totalCount: 45 },
+  );
+  assert.equal(searched.items.length, 1);
 });
 
-test('Explore Persona projection uses strict SourceRef, shared profile semantics, and public metadata', async () => {
-  const requestedSourceRefs: CharacterSourceRefV3[] = [];
-  const result = await loadExplorePersonas(
-    callerFor(
-      [personaProfile()],
-      publicSourceCard(),
-      (requestedSourceRef) => requestedSourceRefs.push(requestedSourceRef),
-    ),
-    () => undefined,
-  );
+test('Explore Persona projection uses the strict SourceRef and public metadata only', async () => {
+  const result = await loadExplorePersonas(callerFor([publicSourceCard()]), () => undefined);
 
-  assert.deepEqual(requestedSourceRefs, [sourceRef]);
+  assert.deepEqual(result.items[0]?.sourceRef, sourceRef);
   assert.equal(result.items[0]?.displayName, 'Public Resource Ref Boundary');
   assert.equal(result.items[0]?.worldName, 'Public Test World');
   assert.equal(result.items[0]?.ownership, 'userOwned');
   assert.equal(result.items[0]?.role, 'Archivist');
-  assert.equal(result.items[0]?.archetype, 'Historian');
-  assert.equal(result.items[0]?.cadence, 'Measured');
+  assert.deepEqual(result.items[0]?.tags, ['careful', 'history', 'research']);
   assert.equal('pacing' in (result.items[0] ?? {}), false);
   assert.equal('origin' in (result.items[0] ?? {}), false);
   assert.equal('tier' in (result.items[0] ?? {}), false);
 });
 
 test('Explore Persona card projection preserves public world and ownership metadata', async () => {
-  const result = await loadExplorePersonas(callerFor([personaProfile()]), () => undefined);
+  const result = await loadExplorePersonas(callerFor([publicSourceCard()]), () => undefined);
   const [card] = parsePersonaSources(result, new Map([
     [sourceRef.worldId, {
       bannerUrl: 'https://media.nimi.test/world/banner.png',
@@ -215,7 +144,6 @@ test('Explore Persona card projection preserves public world and ownership metad
   assert.equal(card?.worldName, 'Public Test World');
   assert.equal(card?.ownership, 'userOwned');
   assert.equal(card?.role, 'Archivist');
-  assert.equal(card?.cadence, 'Measured');
   assert.deepEqual(card?.viewerRelation, {
     state: 'connected',
     connectionId: 'connection-1',
@@ -229,16 +157,23 @@ test('Explore Persona card projection preserves public world and ownership metad
   assert.equal('isFriend' in (card ?? {}), false);
 });
 
-test('Explore Persona projection fails closed when WorldPublicSourceCard returns another source hash', async () => {
-  const mismatchedSourceRef = {
-    ...sourceRef,
-    sourceHash: 'e'.repeat(64),
-  };
+test('Explore Persona projection fails closed on a card whose sourceRef does not match it', async () => {
   await assert.rejects(
     () => loadExplorePersonas(
-      callerFor([personaProfile()], publicSourceCard({ sourceRef: mismatchedSourceRef })),
+      callerFor([publicSourceCard({ sourceRef: { ...sourceRef, id: 'another-persona' } })]),
       () => undefined,
     ),
-    /does not match the requested PersonaCharacter sourceRef/,
+    /sourceRef must match/,
+  );
+  await assert.rejects(
+    () => loadExplorePersonas(
+      async (task) => task({
+        worldPublic: {
+          worldPublicControllerListPersonaCharacterCatalog: async () => ({ items: [], nextCursor: null, hasMore: true, totalCount: 0 }),
+        },
+      } as never),
+      () => undefined,
+    ),
+    /PersonaCharacter catalog page/,
   );
 });

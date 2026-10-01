@@ -7,9 +7,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 (globalThis as { React?: typeof React }).React = React;
 
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
-import { pinFollowedFirst } from '../src/shell/renderer/features/world/world-list-catalog-model';
 import { WorldCatalogRail } from '../src/shell/renderer/features/world/world-list-rail';
 import type { WorldListItem } from '../src/shell/renderer/features/world/world-list-model';
+import type { WorldCatalogPaging } from '../src/shell/renderer/features/world/world-list';
 
 const world: WorldListItem = {
   id: 'world-tang-literati',
@@ -19,9 +19,9 @@ const world: WorldListItem = {
   motto: null,
   overview: null,
   contentRating: null,
-  genre: 'historical',
-  themes: ['cbdb-tang-literati-world'],
-  era: '唐代',
+  genre: '历史生活',
+  themes: ['草堂'],
+  era: '唐',
   iconUrl: null,
   bannerUrl: null,
   highlightUrls: [],
@@ -35,7 +35,7 @@ const world: WorldListItem = {
   entityCount: 0,
   relationshipCount: 0,
   characterCount: 80,
-  personaCount: 0,
+  personaCharacterCount: 0,
   sceneCount: 0,
   systemCount: 0,
   timelineEventCount: 0,
@@ -49,13 +49,7 @@ const world: WorldListItem = {
   scoreEwma: 0,
   scoreQ: 0,
   computed: {
-    time: {
-      currentWorldTime: null,
-      currentLabel: null,
-      eraLabel: '唐代',
-      flowRatio: 1,
-      isPaused: false,
-    },
+    time: { mode: 'static', label: '乾元三年·春', currentWorldTime: null },
     languages: {
       primary: null,
       common: [],
@@ -70,15 +64,25 @@ const world: WorldListItem = {
   },
 };
 
-function renderRail(overrides: { worlds?: WorldListItem[]; searchQuery?: string } = {}) {
+const idlePaging: WorldCatalogPaging = {
+  totalCount: 1,
+  hasMore: false,
+  loadingMore: false,
+  loadMoreFailed: false,
+  offlineIncomplete: false,
+  onLoadMore: () => {},
+};
+
+function renderRail(overrides: { worlds?: WorldListItem[]; searchQuery?: string; paging?: Partial<WorldCatalogPaging> } = {}) {
+  const worlds = overrides.worlds ?? [world];
+  const paging = { ...idlePaging, totalCount: worlds.length, ...overrides.paging };
   return renderToStaticMarkup(
     React.createElement(WorldCatalogRail, {
-      totalCount: (overrides.worlds ?? [world]).length,
-      worlds: overrides.worlds ?? [world],
+      totalCount: paging.totalCount,
+      worlds,
+      paging,
       searchQuery: overrides.searchQuery ?? '',
       onSearchChange: () => {},
-      sort: 'active',
-      onSortChange: () => {},
       selectedWorldId: null,
       onSelectWorld: () => {},
       isFollowed: () => false,
@@ -94,54 +98,44 @@ test.before(async () => {
   await changeLocale('zh');
 });
 
-test('world rail row renders only dynasty tags without public/source metadata', () => {
+test('world rail row renders the explicit lead tag without public/source metadata', () => {
   const markup = renderRail();
 
   assert.match(markup, /world-rail-entry-world-tang-literati/);
-  assert.match(markup, />唐代<\/span>/);
+  assert.match(markup, />历史生活<\/span>/);
   assert.doesNotMatch(markup, /\bPublic\b/);
   assert.doesNotMatch(markup, /\bsources?\b/i);
-  assert.doesNotMatch(markup, />历史<\/span>/);
-  assert.doesNotMatch(markup, />朝代<\/span>/);
-  assert.doesNotMatch(markup, />历史世界<\/span>/);
-  assert.doesNotMatch(markup, />学术<\/span>/);
-  assert.doesNotMatch(markup, />学术资料<\/span>/);
+  assert.doesNotMatch(markup, />唐代<\/span>/);
 });
 
-test('world rail row suppresses non-era preview badges derived from world identity or timeline', () => {
+test('world rail row infers no tag from names, ids or time labels', () => {
   const markup = renderRail({
     worlds: [{
       ...world,
-      id: 'world-song-continuum',
-      name: 'Song Continuum',
-      era: 'Song Continuum Foundation',
-      computed: {
-        ...world.computed,
-        time: {
-          ...world.computed.time,
-          eraLabel: null,
-        },
-      },
+      id: 'cbdb-song-continuum-world',
+      name: '当代剧团·Song Continuum',
+      genre: null,
+      themes: [],
+      era: null,
     }],
   });
 
-  assert.match(markup, /Song Continuum/);
-  assert.doesNotMatch(markup, /Song Continuum Foundation/);
-  assert.doesNotMatch(markup, />Foundation<\/span>/);
+  assert.match(markup, /当代剧团·Song Continuum/);
+  assert.doesNotMatch(markup, /leading-4 text-\[color:var\(--nimi-text-muted\)\]">/);
+  assert.doesNotMatch(markup, />宋代<\/span>/);
+  assert.doesNotMatch(markup, />乾元三年·春<\/span>/);
 });
 
-test('world rail renders search and sort without the category filter', () => {
+test('world rail renders server search without client sort or category filters', () => {
   const markup = renderRail();
 
   assert.match(markup, /搜索世界/);
-  assert.match(markup, /排序世界/);
+  assert.doesNotMatch(markup, /world-rail-sort-menu/);
+  assert.doesNotMatch(markup, /排序世界/);
   assert.doesNotMatch(markup, /全部世界/);
-  assert.doesNotMatch(markup, /已关注/);
   assert.doesNotMatch(markup, /趋势/);
-  assert.doesNotMatch(markup, /最新/);
   assert.doesNotMatch(markup, /精选世界/);
   assert.doesNotMatch(markup, /视图模式/);
-  assert.doesNotMatch(markup, /更多/);
 });
 
 test('world rail search renders a clear button only when the query is non-empty', () => {
@@ -152,12 +146,20 @@ test('world rail search renders a clear button only when the query is non-empty'
   assert.doesNotMatch(emptyQuery, /data-testid="world-rail-search-clear"/);
 });
 
-test('followed worlds pin to the top of the rail ordering', () => {
-  const song: WorldListItem = { ...world, id: 'world-song', name: 'Song' };
-  const pinned = pinFollowedFirst([world, song], (worldId) => worldId === 'world-song');
+test('world rail distinguishes loaded from total and offers the next server page', () => {
+  const markup = renderRail({ paging: { totalCount: 137, hasMore: true } });
+  assert.match(markup, /已加载 1 \/ 共 137 个世界/);
+  assert.match(markup, /data-testid="world-rail-load-more"/);
+  assert.match(markup, /加载更多世界/);
 
-  assert.deepEqual(pinned.map((item) => item.id), ['world-song', 'world-tang-literati']);
+  const complete = renderRail();
+  assert.match(complete, /1 个世界/);
+  assert.doesNotMatch(complete, /data-testid="world-rail-load-more"/);
+});
 
-  const unpinned = pinFollowedFirst([world, song], () => false);
-  assert.deepEqual(unpinned.map((item) => item.id), ['world-tang-literati', 'world-song']);
+test('world rail marks offline results incomplete and stops loading more', () => {
+  const markup = renderRail({ paging: { totalCount: 137, hasMore: true, offlineIncomplete: true } });
+  assert.match(markup, /data-testid="world-rail-offline-incomplete"/);
+  assert.match(markup, /离线中：只显示已经加载的世界，结果不完整/);
+  assert.doesNotMatch(markup, /data-testid="world-rail-load-more"/);
 });

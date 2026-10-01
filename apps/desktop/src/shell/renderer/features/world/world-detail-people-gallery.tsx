@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useWorldMaterialization } from './world-materialization-context.js';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, ScrollArea } from '@nimiplatform/kit/ui';
-import type { WorldCharacter } from './world-detail-types.js';
+import type { WorldCharacter, WorldPeopleCatalogState } from './world-detail-types.js';
 import { characterMeta, formatNum } from './world-detail-template-model';
 import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
+import { PeopleCatalogFirstPageStatus, PeopleCatalogMoreControl } from './world-detail-people-catalog-status.js';
 import {
   IconChat,
   IconChevron,
@@ -18,7 +19,6 @@ import {
   buildPeopleGroups,
   connectableCount,
   defaultPeopleGroupBy,
-  filterPeople,
   type PeopleGroup,
   type PeopleGroupBy,
 } from './world-detail-people-gallery-model';
@@ -39,11 +39,6 @@ function groupCaption(group: PeopleGroup, t: ReturnType<typeof useTranslation>['
   return t(`WorldDetail.paper.gallery.${group.kind}.${group.labelKey}.caption`);
 }
 
-const PEOPLE_GALLERY_SHELL_TITLEBAR_HEIGHT_PX = 56;
-const PEOPLE_GALLERY_TITLEBAR_GAP_PX = 16;
-const PEOPLE_GALLERY_TOP_OFFSET_PX = PEOPLE_GALLERY_SHELL_TITLEBAR_HEIGHT_PX + PEOPLE_GALLERY_TITLEBAR_GAP_PX;
-const PEOPLE_GALLERY_BOTTOM_GUTTER_PX = 24;
-const PEOPLE_GALLERY_SIDE_GUTTER_PX = 20;
 const PEOPLE_ARCHIVE_PANEL_MIN_HEIGHT_PX = 560;
 
 /** Compact pill action pinned to the card header — replaces the old full-width bottom button. */
@@ -226,60 +221,11 @@ function GroupBySwitch({
   );
 }
 
-export function WorldPeopleGallery({
-  characters,
-  onClose,
-  onSelect,
-  onViewCharacter,
-  onMaterializeSource,
-  onOpenConversation,
-}: {
-  characters: readonly WorldCharacter[];
-  onClose: () => void;
-  onSelect: (characterId: string) => void;
-  onViewCharacter?: (character: WorldCharacter) => void;
-  onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
-  onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
-}) {
-  const { t } = useTranslation();
-  const axes = useMemo(() => availableGroupBys(characters), [characters]);
-  const [groupBy, setGroupBy] = useState<PeopleGroupBy>(() => defaultPeopleGroupBy(characters));
-  const [query, setQuery] = useState('');
-
-  const effectiveGroupBy = axes.includes(groupBy) ? groupBy : axes[0] ?? 'tier';
-
-  const filtered = useMemo(() => filterPeople(characters, query), [characters, query]);
-  const groups = useMemo(() => buildPeopleGroups(filtered, effectiveGroupBy), [filtered, effectiveGroupBy]);
-  const connectable = useMemo(() => connectableCount(characters), [characters]);
-
-  return (
-    <PeopleArchiveShell
-      effectiveGroupBy={effectiveGroupBy}
-      groups={groups}
-      onAction={onClose}
-      onMaterializeSource={onMaterializeSource}
-      onOpenConversation={onOpenConversation}
-      onViewCharacter={onViewCharacter}
-      onGroupByChange={setGroupBy}
-      onQueryChange={setQuery}
-      onSelect={onSelect}
-      query={query}
-      axes={axes}
-      title={t('WorldDetail.paper.gallery.title')}
-      subtitle={t('WorldDetail.paper.gallery.subtitle', { total: formatNum(characters.length), connectable: formatNum(connectable) })}
-      actionLabel={t('WorldDetail.paper.gallery.close')}
-      modal
-    />
-  );
-}
-
 function PeopleArchiveShell({
-  actionLabel,
   axes,
   effectiveGroupBy,
   groups,
-  modal,
-  onAction,
+  listStatus,
   onMaterializeSource,
   onOpenConversation,
   onGroupByChange,
@@ -290,12 +236,11 @@ function PeopleArchiveShell({
   subtitle,
   title,
 }: {
-  actionLabel?: string;
   axes: readonly PeopleGroupBy[];
   effectiveGroupBy: PeopleGroupBy;
   groups: readonly PeopleGroup[];
-  modal?: boolean;
-  onAction: () => void;
+  // Replaces the list while the first page of the current query is loading or failed.
+  listStatus: ReactNode;
   onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
   onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
   onGroupByChange: (axis: PeopleGroupBy) => void;
@@ -307,15 +252,14 @@ function PeopleArchiveShell({
   title: string;
 }) {
   const { t } = useTranslation();
-  const panel = (
+  return (
     <section
       style={{
         position: 'relative',
         zIndex: 1,
         width: '100%',
         maxWidth: 1080,
-        maxHeight: modal ? `calc(100cqh - ${PEOPLE_GALLERY_TOP_OFFSET_PX}px - ${PEOPLE_GALLERY_BOTTOM_GUTTER_PX}px)` : undefined,
-        minHeight: modal ? undefined : PEOPLE_ARCHIVE_PANEL_MIN_HEIGHT_PX,
+        minHeight: PEOPLE_ARCHIVE_PANEL_MIN_HEIGHT_PX,
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--nimi-surface-card)',
@@ -338,15 +282,6 @@ function PeopleArchiveShell({
               {subtitle}
             </p>
           </div>
-          {actionLabel ? (
-            <button
-              type="button"
-              onClick={onAction}
-              style={{ flexShrink: 0, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, padding: '7px 14px', borderRadius: 999, border: '1px solid var(--nimi-border-subtle)', background: 'var(--nimi-surface-panel)', color: 'var(--nimi-text-secondary)', cursor: 'pointer' }}
-            >
-              {actionLabel}
-            </button>
-          ) : null}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
@@ -374,7 +309,7 @@ function PeopleArchiveShell({
       </div>
 
       <ScrollArea className="min-h-0 flex-1" viewportClassName="px-6 py-5">
-        {groups.length === 0 ? (
+        {listStatus ?? (groups.length === 0 ? (
           <EmptyState
             icon={<IconUsers size={30} color="var(--nimi-text-muted)" strokeWidth={1.5} />}
             title={t('WorldDetail.paper.gallery.empty')}
@@ -408,46 +343,15 @@ function PeopleArchiveShell({
               </div>
             ))}
           </div>
-        )}
+        ))}
       </ScrollArea>
     </section>
-  );
-
-  if (!modal) {
-    return panel;
-  }
-  return (
-    <div
-      data-testid="world-detail-people-gallery"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        // Keep the backdrop full-screen; only the modal layout area clears the
-        // 56px shell titlebar so no top band disappears.
-        paddingTop: PEOPLE_GALLERY_TOP_OFFSET_PX,
-        paddingBottom: PEOPLE_GALLERY_BOTTOM_GUTTER_PX,
-        paddingLeft: PEOPLE_GALLERY_SIDE_GUTTER_PX,
-        paddingRight: PEOPLE_GALLERY_SIDE_GUTTER_PX,
-        zIndex: 35,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <button
-        type="button"
-        aria-label={t('WorldDetail.paper.gallery.close')}
-        onClick={onAction}
-        className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-        style={{ position: 'absolute', inset: 0, border: 0, background: 'var(--nimi-overlay-backdrop)', cursor: 'default' }}
-      />
-      {panel}
-    </div>
   );
 }
 
 export function WorldPeopleArchivePage({
   characters,
+  catalog,
   onBack,
   onSelect,
   onViewCharacter,
@@ -455,6 +359,7 @@ export function WorldPeopleArchivePage({
   onOpenConversation,
 }: {
   characters: readonly WorldCharacter[];
+  catalog: WorldPeopleCatalogState;
   onBack: () => void;
   onSelect: (characterId: string) => void;
   onViewCharacter?: (character: WorldCharacter) => void;
@@ -464,11 +369,11 @@ export function WorldPeopleArchivePage({
   const { t } = useTranslation();
   const axes = useMemo(() => availableGroupBys(characters), [characters]);
   const [groupBy, setGroupBy] = useState<PeopleGroupBy>(() => defaultPeopleGroupBy(characters));
-  const [query, setQuery] = useState('');
+  // Search runs on Realm over the whole population; the loaded pages are shown as returned.
   const effectiveGroupBy = axes.includes(groupBy) ? groupBy : axes[0] ?? 'tier';
-  const filtered = useMemo(() => filterPeople(characters, query), [characters, query]);
-  const groups = useMemo(() => buildPeopleGroups(filtered, effectiveGroupBy), [filtered, effectiveGroupBy]);
+  const groups = useMemo(() => buildPeopleGroups(characters, effectiveGroupBy), [characters, effectiveGroupBy]);
   const connectable = useMemo(() => connectableCount(characters), [characters]);
+  const ready = catalog.status === 'ready';
 
   return (
     <div
@@ -489,18 +394,21 @@ export function WorldPeopleArchivePage({
         <PeopleArchiveShell
           effectiveGroupBy={effectiveGroupBy}
           groups={groups}
-          onAction={onBack}
+          listStatus={ready ? null : <PeopleCatalogFirstPageStatus catalog={catalog} />}
           onMaterializeSource={onMaterializeSource}
           onOpenConversation={onOpenConversation}
           onViewCharacter={onViewCharacter}
           onGroupByChange={setGroupBy}
-          onQueryChange={setQuery}
+          onQueryChange={catalog.onQueryChange}
           onSelect={onSelect}
-          query={query}
+          query={catalog.query}
           axes={axes}
           title={t('WorldDetail.paper.gallery.title')}
-          subtitle={t('WorldDetail.paper.gallery.subtitle', { total: formatNum(characters.length), connectable: formatNum(connectable) })}
+          subtitle={ready
+            ? t('WorldDetail.paper.gallery.subtitle', { total: formatNum(catalog.totalCount), connectable: formatNum(connectable) })
+            : ''}
         />
+        <PeopleCatalogMoreControl catalog={catalog} loadedCount={characters.length} />
       </div>
     </div>
   );

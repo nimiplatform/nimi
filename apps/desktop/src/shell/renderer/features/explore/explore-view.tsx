@@ -11,6 +11,7 @@ import {
   WorldCatalogContent,
   WorldsLoadError,
   WorldsLoadingSkeleton,
+  type WorldCatalogPaging,
 } from '../world/world-list';
 import type { WorldListItem } from '../world/world-list-model';
 import {
@@ -24,7 +25,7 @@ import {
   type ExploreSectionId,
 } from './explore-section-nav';
 import { ExploreSourceModeFlap, type ExploreSourceMode } from './explore-source-mode-flap';
-import { PersonaCatalogContent } from './persona-catalog-content';
+import { PersonaCatalogContent, PersonaCatalogMore } from './persona-catalog-content';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -34,9 +35,20 @@ type ExploreViewProps = {
   categories: string[];
   personaSources: ExplorePersonaSourceCardData[];
   worldCatalogItems: WorldListItem[];
+  worldCatalogPaging: WorldCatalogPaging;
   worldSearchText: string;
+  onWorldSearchTextChange: (value: string) => void;
+  personaSearchText: string;
+  personaTotalCount: number;
+  personaHasMore: boolean;
+  personaLoadingMore: boolean;
+  personaLoadMoreFailed: boolean;
+  personaOffline: boolean;
+  onLoadMorePersonas: () => void;
   worldsLoading: boolean;
   worldsError: boolean;
+  worldsOffline: boolean;
+  onRetryWorlds: () => void;
   activeSection: ExploreSectionId;
   onSectionChange: (section: ExploreSectionId) => void;
   onSearchTextChange: (value: string) => void;
@@ -131,7 +143,7 @@ export function ExploreView(props: ExploreViewProps) {
           onSelect={props.onSectionChange}
           trailing={(
             <ExploreSearchField
-              value={props.worldSearchText}
+              value={props.personaSearchText}
               onChange={props.onSearchTextChange}
               placeholder={searchPlaceholder}
             />
@@ -188,7 +200,7 @@ export function ExploreView(props: ExploreViewProps) {
               </Button>
             )}
           >
-            {t('Explore.personaSourcesLoadError', { defaultValue: 'Could not load personas.' })}
+            {t(props.personaOffline ? 'Explore.personaSourcesOffline' : 'Explore.personaSourcesLoadError')}
           </InlineAlert>
         </div>
       </div>
@@ -209,7 +221,13 @@ export function ExploreView(props: ExploreViewProps) {
           {sourceRailMode === 'personas' ? (
             <PersonaCatalogContent
               personas={props.personaSources}
-              searchQuery={props.worldSearchText}
+              totalCount={props.personaTotalCount}
+              hasMore={props.personaHasMore}
+              loadingMore={props.personaLoadingMore}
+              loadMoreFailed={props.personaLoadMoreFailed}
+              offline={props.personaOffline}
+              onLoadMore={props.onLoadMorePersonas}
+              searchQuery={props.personaSearchText}
               onSearchQueryChange={props.onSearchTextChange}
               loading={props.personaLoading}
               error={props.personaError}
@@ -220,12 +238,13 @@ export function ExploreView(props: ExploreViewProps) {
           ) : props.worldsLoading ? (
             <WorldsLoadingSkeleton embedded />
           ) : props.worldsError ? (
-            <WorldsLoadError embedded />
+            <WorldsLoadError embedded offline={props.worldsOffline} onRetry={props.onRetryWorlds} />
           ) : (
             <WorldCatalogContent
               worlds={props.worldCatalogItems}
+              paging={props.worldCatalogPaging}
               searchQuery={props.worldSearchText}
-              onSearchQueryChange={props.onSearchTextChange}
+              onSearchQueryChange={props.onWorldSearchTextChange}
               railFlap={sourceModeFlap}
               embedded
             />
@@ -247,6 +266,13 @@ export function ExploreView(props: ExploreViewProps) {
                 personaSources={props.personaSources}
                 onPersonaSourceManage={props.onPersonaSourceManage}
                 onPersonaSourceOpen={props.onPersonaSourceOpen}
+              />
+              <PersonaCatalogMore
+                hasMore={props.personaHasMore}
+                loadingMore={props.personaLoadingMore}
+                loadMoreFailed={props.personaLoadMoreFailed}
+                offline={props.personaOffline}
+                onLoadMore={props.onLoadMorePersonas}
               />
             </section>
           )}

@@ -81,13 +81,11 @@
     "notSpecified": "Not specified",
     "openEra": "Open era",
     "stats": {
-      "sources": "Sources",
       "worldOwned": "World Owned",
       "userPersonas": "User Personas",
       "worldTime": "World Time",
       "events": "Events",
       "flow": "Flow",
-      "timeflow": "Timeflow",
       "characters": "Characters",
       "personas": "Personas"
     },
@@ -206,7 +204,6 @@
       },
       "systemLabels": {
         "status": {
-          "discoverable": "Discoverable",
           "public": "Public",
           "system": "System"
         },
@@ -436,7 +433,7 @@
       "people": {
         "label": "People to meet",
         "unit": "",
-        "sub": "Each with full historical context"
+        "sub": "Each with their own story and connections"
       },
       "materials": {
         "label": "Browseable records",
@@ -485,10 +482,10 @@
     },
     "gallery": {
       "title": "People you can meet",
-      "subtitle": "{{total}} characters with full life stories; {{connectable}} can be added locally now.",
+      "subtitle": "{{total}} characters; {{connectable}} can be added locally now.",
       "close": "Close",
       "backToWorld": "Back to world detail",
-      "searchPlaceholder": "Search by name, role or circle",
+      "searchPlaceholder": "Search by name or role",
       "count": "{{count}}",
       "empty": "No matching characters.",
       "groupBy": {
@@ -530,7 +527,17 @@
           "label": "Unaffiliated",
           "caption": "People with no fixed circle who keep to themselves."
         }
-      }
+      },
+      "loadMore": "Load more people ({{loaded}} of {{total}} loaded)",
+      "loadingMore": "Loading…",
+      "loadMoreError": "Couldn't load more people. Try again.",
+      "loadingPeople": "Loading people…",
+      "loadFailed": "Couldn't load this World's people.",
+      "loadFailedOffline": "Couldn't connect to load this World's people. Check your connection and try again.",
+      "retry": "Try again",
+      "loadMoreOffline": "Couldn't connect to load more people. Check your connection and try again.",
+      "peopleWaitingForNetwork": "You're offline. This World's people will load when you're back online.",
+      "loadMoreWaiting": "You're offline. More people will load when you're back online."
     },
     "loreOverview": {
       "title": "Setting overview",
@@ -674,121 +681,43 @@
     },
     "relationshipExplorer": {
       "back": "Back to detail",
-      "noTargetMeta": "No public identity metadata",
-      "openCharacter": "Open character profile",
-      "graphLabel": "Character relationship network",
       "noCharactersTitle": "No public people yet",
       "noCharactersDesc": "Character relationship exploration needs at least one public person.",
-      "allKinds": "All relations",
       "topbar": {
         "current": "Exploring: {{name}}"
       },
       "metrics": {
         "people": "People collected",
-        "relationships": "Relationships organized",
-        "clues": "Explorable clues",
-        "featured": "Key people"
+        "relationships": "Relationships organized"
       },
       "identity": {
         "primary": "Key person",
         "secondary": "Related person",
-        "background": "Era person"
-      },
-      "network": {
-        "heading": "Relationship network",
-        "centerHint": "Centered on {{name}} — view social ties and kinship.",
-        "pickHint": "Click any person on the left to switch their relationship network.",
-        "visibleCount": "Showing {{visible}} / {{total}} first-degree relations",
-        "noFilteredEdges": "No first-degree relations match this filter."
-      },
-      "story": {
-        "title": "Character Relationships And Clues",
-        "subtitle": "{{name}}'s relationships are organized around people, works, identity, and historical clues.",
-        "cardAction": "View relationship path",
-        "viewAllSystem": "View full relationship system ({{count}})"
+        "background": "Background person"
       },
       "profile": {
         "status": "Character profile",
-        "defaultIntro": "This person has a basic profile. Start with identity, historical position, and available material.",
         "identity": "Identity tags",
         "materials": "Available material",
         "basicMaterial": "Basic character information is collected",
         "bioMaterial": "Character introduction is organized",
         "topicMaterial": "{{count}} material clues are organized",
-        "placeMaterial": "Continue through the regional context of {{place}}",
-        "workMaterial": "Continue through {{count}} work clues",
+        "placeMaterial": "Location: {{place}}",
         "directions": "Possible directions",
-        "defaultDirection": "Browse contemporaries first, then continue through identity or work clues.",
         "directionFaction": "Follow the circle around {{value}}",
         "directionRole": "Find other people with the role {{value}}",
-        "directionWork": "Continue from records around {{value}}",
         "directionPlace": "View regional clues around {{value}}",
         "viewProfile": "Open character profile",
-        "contemporaries": "Contemporaries",
         "sameIdentity": "Same identity",
-        "sameWorks": "Same works",
-        "noRelated": "Continue from the people list.",
-        "peers": "Contemporaries",
-        "relationshipOverview": "Relationship overview",
-        "noRelationshipOverview": "This person has no drawable first-degree relations yet."
+        "noRelated": "Continue from the people list."
       },
-      "side": {
-        "relationship": "Relationship detail",
-        "clue": "Exploration clue",
-        "profile": "Character profile",
-        "detail": "Detail panel"
-      },
-      "relation": {
-        "type": "Relationship type",
-        "description": "Relationship note",
-        "evidence": "Evidence clues",
-        "noEvidence": "No displayable evidence text is available for this relationship yet.",
-        "works": "Related works",
-        "noWorks": "No explicit work title appears in this relationship yet."
-      },
-      "clue": {
-        "title": "This is an exploration clue",
-        "desc": "It suggests a possible social, work, or identity direction, but it is not a confirmed person-to-person relationship.",
-        "continue": "Continue from {{name}}'s profile."
-      },
-      "clueList": {
-        "title": "Key clues",
-        "empty": "Start from the profile and contemporaries for this person.",
-        "count": "{{count}}",
-        "limitedCount": "Showing {{shown}} / {{total}}"
-      },
-      "kinds": {
-        "association": "Association",
-        "kinship": "Kinship",
-        "office": "Office",
-        "text": "Text",
-        "entry": "Entry",
-        "address": "Place",
-        "status": "Status",
-        "topic": "Topic"
-      },
-      "worldKindStatic": "Static historical world",
       "peopleList": {
         "title": "People",
         "searchPlaceholder": "Search people or identity…",
-        "clueCount": "{{count}}",
-        "empty": "No people match the current filter.",
-        "filters": {
-          "all": "All",
-          "literati": "Circle",
-          "academy": "Academy"
-        }
-      },
-      "controls": {
-        "zoomIn": "Zoom in",
-        "zoomOut": "Zoom out",
-        "resetView": "Reset view",
-        "collapseDetail": "Collapse detail panel",
-        "expandDetail": "Expand detail panel"
+        "empty": "No people match the current filter."
       }
     },
     "rail": {
-      "sources": "Connectable sources",
       "worldTime": "World time",
       "followWorld": "Follow",
       "followingWorld": "Following",
@@ -817,7 +746,7 @@
       },
       "chatCta": {
         "title": "Talk with people in this world",
-        "desc": "They each carry full historical context, ready to chat."
+        "desc": "Meet their stories, motivations, and connections."
       }
     }
   }

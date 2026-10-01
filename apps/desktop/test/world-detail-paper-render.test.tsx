@@ -28,16 +28,13 @@ import {
   WorldResourceReferencesPage,
   buildWorldResourceReferenceEntries,
 } from '../src/shell/renderer/features/world/world-detail-resource-references';
-import {
-  WorldRelationshipExplorer,
-  displayRelationshipEvidenceText,
-  relationshipGraphEdgeLabelPosition,
-} from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
+import { WorldRelationshipExplorer } from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
 import {
   NarrativeWorldDetailPage,
   worldDetailRootSectionScrollTop,
 } from '../src/shell/renderer/features/world/world-detail-template';
 import { WorldSceneDetailPage } from '../src/shell/renderer/features/world/world-detail-scene-detail-page';
+import { readyPeopleCatalog } from './world-people-catalog-fixture';
 import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types';
 
 function escapeRegExp(value: string): string {
@@ -67,12 +64,10 @@ const world: WorldDetailData = {
   scoreE: 0,
   scoreEwma: 0,
   scoreQ: 0,
-  flowRatio: 1,
+  time: { mode: 'static', label: '至元年间', currentWorldTime: null },
   genre: '历史世界',
   era: '元代',
   themes: ['文人网络'],
-  currentTimeLabel: '至元年间',
-  eraLabel: '元代',
   primaryLanguage: '古典汉语',
   commonLanguages: ['古典汉语'],
 };
@@ -81,7 +76,7 @@ function character(
   id: string,
   name: string,
   connectable: boolean,
-  tags: readonly string[] = [],
+  topics: readonly string[] = [],
 ): WorldCharacter {
   return {
     id,
@@ -96,7 +91,7 @@ function character(
     faction: '文人交游圈',
     sceneName: '书院讲堂',
     location: '洛阳',
-    tags,
+    topics,
     createdAt: '2026-01-01T00:00:00.000Z',
     avatarUrl: null,
     importance: 'PRIMARY',
@@ -258,44 +253,11 @@ const publicAssets = {
   ],
 } as unknown as WorldPublicAssetsData;
 
-type TestRect = {
-  readonly left: number;
-  readonly right: number;
-  readonly top: number;
-  readonly bottom: number;
-};
-
-function testRectFromCenter(
-  center: { readonly x: number; readonly y: number },
-  bounds: { readonly halfWidth: number; readonly halfHeight: number },
-): TestRect {
-  return {
-    left: center.x - bounds.halfWidth,
-    right: center.x + bounds.halfWidth,
-    top: center.y - bounds.halfHeight,
-    bottom: center.y + bounds.halfHeight,
-  };
-}
-
-function testRectsOverlap(a: TestRect, b: TestRect): boolean {
-  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-}
-
 test.before(async () => {
   await initI18n();
 });
 
-test('world relationship explorer displays clue text without evidence kind prefixes', () => {
-  assert.equal(displayRelationshipEvidenceText('kinship: 祖父马世昌，家族渊源。'), '祖父马世昌，家族渊源。');
-  assert.equal(displayRelationshipEvidenceText('kinship：次子马文子，家族传承。'), '次子马文子，家族传承。');
-});
-
-test('derived scenes supplement related characters from exact placement scene tags', () => {
-  const sceneCharacters = [
-    character('wu-cheng', '吴澄', true, ['yuan-literati-network', '理学']),
-    character('ma-zu-chang', '马祖常', true, ['yuan-official-court']),
-    character('unplaced', '未入场角色', true, ['literati-network']),
-  ];
+test('derived scenes never place characters from tag or topic text', () => {
   const sceneAssets = {
     ...publicAssets,
     scenes: [{
@@ -316,11 +278,11 @@ test('derived scenes supplement related characters from exact placement scene ta
     }],
   } as unknown as WorldPublicAssetsData;
 
-  const scenes = derivedScenes(sceneAssets, semantic, sceneCharacters);
+  const scenes = derivedScenes(sceneAssets, semantic);
 
-  assert.equal(scenes[0]?.relatedCharacters.length, 1);
-  assert.equal(scenes[0]?.relatedCharacters[0]?.name, '吴澄');
-  assert.equal(scenes[0]?.counts.relatedCharacterCount, 1);
+  // Scene participants come only from explicit Realm scene references.
+  assert.equal(scenes[0]?.relatedCharacters.length, 0);
+  assert.equal(scenes[0]?.counts.relatedCharacterCount, 0);
 });
 
 test('paper world detail renders narrative sections without the duplicate settings block', () => {
@@ -328,6 +290,8 @@ test('paper world detail renders narrative sections without the duplicate settin
     React.createElement(NarrativeWorldDetailPage, {
       world,
       characters,
+      peopleCharacters: characters,
+      peopleCatalog: readyPeopleCatalog(characters.length),
       history,
       semantic,
       audits: [],
@@ -375,6 +339,8 @@ test('paper world detail hides the major events metric when history has no event
     React.createElement(NarrativeWorldDetailPage, {
       world,
       characters,
+      peopleCharacters: characters,
+      peopleCatalog: readyPeopleCatalog(characters.length),
       history: emptyHistory,
       semantic,
       audits: [],
@@ -425,6 +391,8 @@ test('paper world detail surfaces semantic lore on the root page', async () => {
       React.createElement(NarrativeWorldDetailPage, {
         world,
         characters,
+        peopleCharacters: characters,
+        peopleCatalog: readyPeopleCatalog(characters.length),
         history,
         semantic,
         audits: [],
@@ -457,6 +425,8 @@ test('paper world detail renders lore overview as title-only two-column cards', 
       React.createElement(NarrativeWorldDetailPage, {
         world,
         characters,
+        peopleCharacters: characters,
+        peopleCatalog: readyPeopleCatalog(characters.length),
         history,
         semantic: institutionSemantic,
         audits: [],
@@ -470,12 +440,12 @@ test('paper world detail renders lore overview as title-only two-column cards', 
     assert.match(markup, /世界设定概览/);
     assert.match(markup, /理解这个世界如何运转，以及人物、事件和关系背后的规则。/);
     assert.match(markup, /官制结构/);
-    assert.match(markup, /lucide-stamp/);
+    assert.match(markup, /lucide-layers/);
     assert.doesNotMatch(markup, /中央与地方官职体系/);
     assert.doesNotMatch(markup, /涵盖元代中央与地方各级官职，帮助理解文人的仕宦经历与身份位置。/);
     assert.doesNotMatch(markup, /官职 · 仕宦 · 地方治理/);
     assert.match(markup, /入仕制度/);
-    assert.match(markup, /lucide-milestone/);
+    assert.doesNotMatch(markup, /lucide-stamp|lucide-milestone/);
     assert.doesNotMatch(markup, /士人如何进入官场/);
     assert.doesNotMatch(markup, /记录科举、荐举、荫补等方式，帮助理解人物的上升路径与社会流动。/);
     assert.doesNotMatch(markup, /科举 · 荐举 · 荫补/);
@@ -493,6 +463,8 @@ test('paper world detail hides semantic lore overview when there are no lore rec
       React.createElement(NarrativeWorldDetailPage, {
         world,
         characters,
+        peopleCharacters: characters,
+        peopleCatalog: readyPeopleCatalog(characters.length),
         history,
         semantic: emptySemantic,
         audits: [],
@@ -585,62 +557,46 @@ test('resource references page reorganizes resource data around user-ready asset
   }
 });
 
-test('world relationship explorer dedupes repeated material clues and renders kinship in the network', async () => {
+test('world relationship explorer lists people without inventing relationships from topic text', async () => {
   await changeLocale('zh');
   try {
-    const repeatedIntro = '元代文人书院世界，聚焦文人与书院的学术社交网络。马祖常身处其中，其仕宦经历与庞大的交游网络（与黄溍、柳贯、许有壬等关联人物）是该世界文人交流与仕宦的典型缩影。';
     const relationshipCharacters: WorldCharacter[] = [
       {
         ...character('ma-zu-chang', '马祖常', true),
         role: '文臣、文学家',
-        tags: [
-          repeatedIntro,
+        topics: [
           'kinship: 祖父马世昌，家族渊源。',
-          'kinship: 长子马武子，家族传承。',
-          'kinship: 次子马文子，家族传承。',
           'postedToOffice: 出任御史中丞，执掌监察。',
+          '《石田文集》',
         ],
       },
       character('huang-jin', '黄溍', true),
       character('liu-guan', '柳贯', true),
-      character('xu-you-ren', '许有壬', true),
     ];
 
     const markup = renderToStaticMarkup(
       React.createElement(WorldRelationshipExplorer, {
         world,
         characters: relationshipCharacters,
-        history,
+        catalog: readyPeopleCatalog(relationshipCharacters.length),
         onBack: () => {},
         onSelectCharacter: () => {},
       }),
     );
 
-    assert.match(markup, /data-testid="world-relationship-story-panel"/);
-    assert.match(markup, /data-testid="world-relationship-kind-legend"/);
-    assert.match(markup, /style="width:100%;box-sizing:border-box;padding:9px 10px;display:flex/);
-    assert.match(markup, /全部关系/);
-    assert.match(markup, /亲属/);
-    assert.match(markup, /马世昌/);
-    assert.match(markup, /马武子/);
-    assert.match(markup, /马文子/);
-    assert.doesNotMatch(markup, /长子马武/);
-    assert.doesNotMatch(markup, /次子马文/);
-    assert.doesNotMatch(markup, /postedToOffice: 出任御史中丞/);
+    assert.match(markup, /data-testid="world-relationship-people-panel"/);
+    assert.match(markup, /data-testid="world-relationship-profile"/);
+    assert.match(markup, /马祖常/);
+    assert.match(markup, /黄溍/);
+    assert.match(markup, /柳贯/);
+    assert.doesNotMatch(markup, /data-testid="world-relationship-story-panel"/);
+    assert.doesNotMatch(markup, /data-testid="world-relationship-kind-legend"/);
+    assert.doesNotMatch(markup, /马世昌/);
+    assert.doesNotMatch(markup, /御史中丞/);
+    assert.doesNotMatch(markup, /石田文集/);
   } finally {
     await changeLocale('en');
   }
-});
-
-test('world relationship explorer moves short vertical edge labels out of occupied person areas', () => {
-  const label = relationshipGraphEdgeLabelPosition({ x: 500, y: 372 });
-  const labelRect = testRectFromCenter(label, { halfWidth: 54, halfHeight: 14 });
-  const centerSafeRect = testRectFromCenter({ x: 500, y: 500 }, { halfWidth: 94, halfHeight: 94 });
-  const targetSafeRect = testRectFromCenter({ x: 500, y: 372 }, { halfWidth: 102, halfHeight: 54 });
-
-  assert.equal(testRectsOverlap(labelRect, centerSafeRect), false);
-  assert.equal(testRectsOverlap(labelRect, targetSafeRect), false);
-  assert.notEqual(label.x, 500);
 });
 
 test('paper world detail renders scene entry cards without inline detail-page data', () => {
@@ -648,6 +604,8 @@ test('paper world detail renders scene entry cards without inline detail-page da
     React.createElement(NarrativeWorldDetailPage, {
       world,
       characters,
+      peopleCharacters: characters,
+      peopleCatalog: readyPeopleCatalog(characters.length),
       history,
       semantic,
       audits: [],
@@ -764,6 +722,8 @@ test('paper world detail hero hosts the world follow CTA without banner tags', (
     React.createElement(NarrativeWorldDetailPage, {
       world,
       characters,
+      peopleCharacters: characters,
+      peopleCatalog: readyPeopleCatalog(characters.length),
       history,
       semantic,
       audits: [],
@@ -792,6 +752,8 @@ test('paper world detail hides the hero follow CTA when world follow is unavaila
     React.createElement(NarrativeWorldDetailPage, {
       world,
       characters,
+      peopleCharacters: characters,
+      peopleCatalog: readyPeopleCatalog(characters.length),
       history,
       semantic,
       audits: [],
@@ -828,6 +790,8 @@ test('paper world detail hero omits banner tags even when metadata has display t
     React.createElement(NarrativeWorldDetailPage, {
       world: noisyWorld,
       characters,
+      peopleCharacters: characters,
+      peopleCatalog: readyPeopleCatalog(characters.length),
       history,
       semantic,
       audits: [],
@@ -843,12 +807,20 @@ test('paper world detail hero omits banner tags even when metadata has display t
   assert.doesNotMatch(markup, /data-testid="world-detail-hero-world-time"/);
 });
 
-test('paper world detail formats ISO world time labels before rendering', () => {
+test('paper world detail shows only the label of a static world', () => {
+  assert.equal(worldTimeDisplay({ mode: 'static', label: '第三次退潮', currentWorldTime: null }, String), '第三次退潮');
+  assert.equal(worldTimeDisplay({ mode: 'static', label: null, currentWorldTime: null }, String), null);
+});
+
+test('paper world detail formats ISO wall-clock world time labels before rendering', () => {
   const isoWorldTime = '2026-06-28T03:32:40.159Z';
   const display = worldTimeDisplay({
-    ...world,
+    mode: 'wallClockAnchored',
     currentWorldTime: isoWorldTime,
-    currentTimeLabel: isoWorldTime,
+    currentLabel: isoWorldTime,
+    anchorLabel: 'June 2026',
+    flowRatio: 1,
+    isPaused: false,
   }, (value) => new Intl.DateTimeFormat('en', {
     year: 'numeric',
     month: 'short',
@@ -858,6 +830,6 @@ test('paper world detail formats ISO world time labels before rendering', () => 
   }).format(new Date(String(value))));
 
   assert.notEqual(display, isoWorldTime);
-  assert.doesNotMatch(display, /T03:32:40\.159Z/);
-  assert.match(display, /2026/);
+  assert.doesNotMatch(display ?? '', /T03:32:40\.159Z/);
+  assert.match(display ?? '', /2026/);
 });

@@ -153,8 +153,9 @@ export const REALM_WORLD_PUBLIC_METHODS = [
   'worldPublicControllerGetCharacterSource',
   'worldPublicControllerGetWorld',
   'worldPublicControllerGetWorldDetailWithCharacters',
-  'worldPublicControllerListWorldCharacters',
-  'worldPublicControllerListWorlds',
+  'worldPublicControllerListPersonaCharacterCatalog',
+  'worldPublicControllerListWorldCatalog',
+  'worldPublicControllerListWorldCharacterCatalog',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_TRANSIT_METHODS = [

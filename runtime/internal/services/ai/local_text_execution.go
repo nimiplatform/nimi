@@ -17,6 +17,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -131,6 +132,9 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	if err != nil {
 		return fail(err)
 	}
+	// A Runtime-owned output budget becomes the output limit only where this
+	// exact target accepts one; a caller max_tokens stays the hard limit.
+	request = textbehavior.ApplyInternalOutputBudget(ctx, request, resolvedBehaviorAdapter.requestSerializer(), stream)
 	runtimeBehaviorAdapter, err := resolvedBehaviorAdapter.runtimeAdapter()
 	if err != nil {
 		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local text behavior adapter projection failed"}))

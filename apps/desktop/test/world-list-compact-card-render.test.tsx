@@ -18,9 +18,9 @@ const world: WorldListItem = {
   motto: null,
   overview: null,
   contentRating: null,
-  genre: 'historical',
-  themes: ['cbdb-tang-literati-world'],
-  era: '唐代',
+  genre: '历史生活',
+  themes: ['草堂', 'friendship'],
+  era: '唐',
   iconUrl: null,
   bannerUrl: null,
   highlightUrls: [],
@@ -34,7 +34,7 @@ const world: WorldListItem = {
   entityCount: 0,
   relationshipCount: 0,
   characterCount: 80,
-  personaCount: 0,
+  personaCharacterCount: 0,
   sceneCount: 0,
   systemCount: 0,
   timelineEventCount: 0,
@@ -48,13 +48,7 @@ const world: WorldListItem = {
   scoreEwma: 0,
   scoreQ: 0,
   computed: {
-    time: {
-      currentWorldTime: null,
-      currentLabel: null,
-      eraLabel: '唐代',
-      flowRatio: 1,
-      isPaused: false,
-    },
+    time: { mode: 'static', label: null, currentWorldTime: null },
     languages: {
       primary: null,
       common: [],
@@ -74,7 +68,7 @@ test.before(async () => {
   await changeLocale('zh');
 });
 
-test('compact world card renders only dynasty tags without public/source metadata', () => {
+test('compact world card renders explicit genre, theme and era tags without public/source metadata', () => {
   const markup = renderToStaticMarkup(
     React.createElement(CompactWorldCard, {
       world,
@@ -83,38 +77,30 @@ test('compact world card renders only dynasty tags without public/source metadat
     }),
   );
 
-  assert.match(markup, />唐代<\/span>/);
+  assert.match(markup, />历史生活<\/span>/);
+  assert.match(markup, />草堂<\/span>/);
+  assert.match(markup, />friendship<\/span>/);
   assert.doesNotMatch(markup, /\bPublic\b/);
   assert.doesNotMatch(markup, /\bsources?\b/i);
-  assert.doesNotMatch(markup, />历史<\/span>/);
-  assert.doesNotMatch(markup, />朝代<\/span>/);
-  assert.doesNotMatch(markup, />历史世界<\/span>/);
-  assert.doesNotMatch(markup, />学术<\/span>/);
-  assert.doesNotMatch(markup, />学术资料<\/span>/);
 });
 
-test('compact world card suppresses non-era preview badges derived from world identity or timeline', () => {
+test('compact world card infers no tags from world identity when explicit fields are absent', () => {
   const markup = renderToStaticMarkup(
     React.createElement(CompactWorldCard, {
       world: {
         ...world,
-        id: 'world-song-continuum',
-        name: 'Song Continuum',
-        era: 'Song Continuum Foundation',
-        computed: {
-          ...world.computed,
-          time: {
-            ...world.computed.time,
-            eraLabel: null,
-          },
-        },
+        id: 'cbdb-song-continuum-world',
+        name: 'Song Continuum 宋代',
+        genre: null,
+        themes: [],
+        era: null,
       },
       view: 'grid',
       onOpen: () => {},
     }),
   );
 
-  assert.match(markup, /Song Continuum/);
-  assert.doesNotMatch(markup, /Song Continuum Foundation/);
-  assert.doesNotMatch(markup, />Foundation<\/span>/);
+  assert.match(markup, /Song Continuum 宋代/);
+  assert.doesNotMatch(markup, />宋代<\/span>/);
+  assert.doesNotMatch(markup, />历史生活<\/span>/);
 });

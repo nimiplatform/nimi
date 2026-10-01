@@ -139,7 +139,7 @@ describe('D-OFFLINE-005: explicit ephemeral cache behavior', () => {
     assert.equal(cached[cached.length - 1]?.id, 'msg-49');
   });
 
-  test('profile and world metadata survive explicit ephemeral store round-trips', async () => {
+  test('profile metadata survives explicit ephemeral store round-trips and worlds are never cached', async () => {
     const manager = new OfflineCacheManager({ enableEphemeralStore: true });
     await manager.open();
 
@@ -147,26 +147,13 @@ describe('D-OFFLINE-005: explicit ephemeral cache behavior', () => {
       id: 'profile:alice',
       name: 'Alice',
     });
-    await manager.syncWorldList([
-      { id: 'world-1', title: 'World One' },
-      { id: 'world-2', title: 'World Two' },
-    ]);
-    await manager.syncWorldMetadata('world:main', {
-      id: 'world:main',
-      slug: 'main',
-    });
 
     assert.deepEqual(await manager.getCachedProfileMetadata('profile:alice'), {
       id: 'profile:alice',
       name: 'Alice',
     });
-    assert.deepEqual(await manager.getCachedWorldList(), [
-      { id: 'world-1', title: 'World One' },
-      { id: 'world-2', title: 'World Two' },
-    ]);
-    assert.deepEqual(await manager.getCachedWorldMetadata('world:main'), {
-      id: 'world:main',
-      slug: 'main',
-    });
+    // World lists and details are live Realm reads; the cache exposes no world persistence.
+    assert.equal('syncWorldList' in manager, false);
+    assert.equal('getCachedWorldMetadata' in manager, false);
   });
 });

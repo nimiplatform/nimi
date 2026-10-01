@@ -7,15 +7,12 @@ import { toSafeBackgroundImage } from '../explore/explore-background-image.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData, SourceDetailWorldCharacterMilestone } from './source-detail-model.js';
-import { simplifyChineseDisplayText as simplifyDisplayText } from '@nimiplatform/kit/features/chat/headless';
 import {
-  biographicalTimelineMarker,
   buildSourceDetailBiographicalTimeline,
   type SourceDetailBiographicalTimelineSection,
 } from './source-detail-world-character-biographical-timeline.js';
 import {
   worldCharacterHeroDescription,
-  worldCharacterHeroSubtitle,
   worldCharacterPrimaryActionLabel,
 } from './source-detail-world-character-labels.js';
 import { WorldCharacterRelationshipCluesSection } from './source-detail-world-character-relationship-map.js';
@@ -41,6 +38,7 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
   const works = source.works.filter((work) => !work.textClue);
   const textClues = source.works.filter((work) => work.textClue === true);
+  if (works.length === 0 && textClues.length === 0) return null;
   const countText = works.length > 0
     ? t('SourceDetail.works.count', {
         count: works.length,
@@ -73,17 +71,17 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
             <article key={work.id} className="rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h4 className="truncate text-base font-semibold text-[var(--nimi-text-primary)]">{simplifyDisplayText(work.title)}</h4>
+                  <h4 className="truncate text-base font-semibold text-[var(--nimi-text-primary)]">{work.title}</h4>
                   {work.romanizedTitle ? (
-                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{simplifyDisplayText(work.romanizedTitle)}</p>
+                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{work.romanizedTitle}</p>
                   ) : null}
                   {work.timeLabel ? (
-                    <p className="mt-1 text-xs font-semibold text-[var(--nimi-action-primary-bg)]">{simplifyDisplayText(work.timeLabel)}</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--nimi-action-primary-bg)]">{work.timeLabel}</p>
                   ) : null}
                 </div>
               </div>
               {work.summary ? (
-                <p className="mt-3 text-sm leading-6 text-[var(--nimi-text-muted)]">{simplifyDisplayText(work.summary)}</p>
+                <p className="mt-3 text-sm leading-6 text-[var(--nimi-text-muted)]">{work.summary}</p>
               ) : null}
             </article>
           ))}
@@ -108,7 +106,7 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
                 className="flex items-start gap-2 text-sm leading-6 text-[var(--nimi-text-muted)]"
               >
                 <span aria-hidden className="mt-[11px] h-1 w-1 shrink-0 rounded-full bg-current" />
-                <span className="min-w-0">{simplifyDisplayText(clue.summary ?? clue.title)}</span>
+                <span className="min-w-0">{clue.summary ?? clue.title}</span>
               </li>
             ))}
           </ul>
@@ -135,7 +133,7 @@ function WorldCharacterMilestoneCard({
     <div className={compact ? 'min-w-0 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2' : 'min-w-0 rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4'}>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <h3 className={compact ? 'text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]' : 'text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]'}>
-          {simplifyDisplayText(milestone.title)}
+          {milestone.title}
         </h3>
         <span style={badgeStyle} className="rounded-full px-2 py-0.5 text-[11px] font-semibold">
           {milestoneKindLabel(milestone, t)}
@@ -143,29 +141,9 @@ function WorldCharacterMilestoneCard({
       </div>
       {milestone.summary && milestone.summary !== milestone.title ? (
         <p className={compact ? 'mt-0.5 text-sm leading-6 text-[var(--nimi-text-muted)]' : 'mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]'}>
-          {simplifyDisplayText(milestone.summary)}
+          {milestone.summary}
         </p>
       ) : null}
-    </div>
-  );
-}
-
-function WorldCharacterSecondaryClues({
-  clues,
-}: {
-  readonly clues: readonly SourceDetailWorldCharacterMilestone[];
-}) {
-  if (clues.length === 0) {
-    return null;
-  }
-  return (
-    <div className="mt-3 grid gap-2 border-t border-[var(--nimi-border-subtle)] pt-3">
-      {clues.map((clue) => (
-        <div key={clue.id} data-testid="world-character-biography-secondary-clue" className="grid grid-cols-[4px_minmax(0,1fr)] gap-3">
-          <span aria-hidden="true" className="mt-3 h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-warning)]" />
-          <WorldCharacterMilestoneCard milestone={clue} compact />
-        </div>
-      ))}
     </div>
   );
 }
@@ -182,7 +160,7 @@ function WorldCharacterClueList({
     : t('SourceDetail.worldCharacter.biographyCluesUndated', { defaultValue: 'Undated clues' });
   return (
     <div
-      data-testid={isAllClueList ? 'world-character-biography-clue-list' : 'world-character-biography-unmatched-clues'}
+      data-testid={isAllClueList ? 'world-character-biography-clue-list' : 'world-character-biography-undated-clues'}
       className={`${isAllClueList ? '' : 'ml-[7.75rem] max-[620px]:ml-0'} grid gap-2 rounded-[14px] border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3`}
     >
       <p className="text-xs font-semibold text-[var(--nimi-status-warning-soft-text)]">{title}</p>
@@ -235,22 +213,22 @@ function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData 
               <div className="pt-3 text-right">
                 {section.milestone.timeLabel ? (
                   <span className="block text-sm font-semibold tabular-nums text-[var(--nimi-action-primary-bg)]">
-                    {simplifyDisplayText(section.milestone.timeLabel)}
+                    {section.milestone.timeLabel}
                   </span>
                 ) : null}
               </div>
               <div className="relative z-10 flex justify-center pt-2">
                 <span
                   data-testid="world-character-biography-marker"
+                  aria-hidden="true"
                   style={dotStyle}
-                  className="grid h-7 w-7 place-items-center rounded-full text-[11px] font-semibold shadow-[0_0_0_4px_var(--nimi-surface-card)]"
+                  className="grid h-7 w-7 place-items-center rounded-full shadow-[0_0_0_4px_var(--nimi-surface-card)]"
                 >
-                  {biographicalTimelineMarker(section.milestone)}
+                  <span className="h-2 w-2 rounded-full bg-current" />
                 </span>
               </div>
               <div className="min-w-0">
                 <WorldCharacterMilestoneCard milestone={section.milestone} />
-                <WorldCharacterSecondaryClues clues={section.attachedClues} />
               </div>
             </article>
           );
@@ -273,18 +251,18 @@ function WorldCharacterOpeningLine({
 }) {
   const { t } = useTranslation();
   const interaction = source.characterProfile.interaction;
-  const openingLine = interaction?.greeting ? simplifyDisplayText(interaction.greeting) : null;
+  const openingLine = interaction?.greeting ?? null;
   if (!openingLine) {
     return null;
   }
   const hoverItems = [
     {
       label: t('SourceDetail.worldCharacter.tone', { defaultValue: 'Tone' }),
-      value: interaction?.tone ? simplifyDisplayText(interaction.tone) : null,
+      value: interaction?.tone ?? null,
     },
     {
       label: t('SourceDetail.worldCharacter.cadence', { defaultValue: 'Rhythm' }),
-      value: interaction?.cadence ? simplifyDisplayText(interaction.cadence) : null,
+      value: interaction?.cadence ?? null,
     },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value));
   const hoverText = hoverItems.map((item) => `${item.label}: ${item.value}`).join(' · ');
@@ -422,7 +400,7 @@ function WorldCharacterOverviewSection({
       <div className={referenceImageUrl ? 'mt-4 grid gap-6 min-[900px]:grid-cols-[minmax(0,1fr)_280px]' : 'mt-4'}>
         <div className="min-w-0">
           {source.entity?.summary ? (
-            <p className="text-sm leading-7 text-[var(--nimi-text-secondary)]">{simplifyDisplayText(source.entity.summary)}</p>
+            <p className="text-sm leading-7 text-[var(--nimi-text-secondary)]">{source.entity.summary}</p>
           ) : null}
           {showInlineVoice ? (
             <div data-testid="world-character-media-section" className={hasSummary ? 'mt-4' : ''}>
@@ -487,8 +465,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
   const primaryAction = describeCharacterPrimaryAction(source.sourceState, t);
   const canStartChat = primaryAction.action === 'open_partner';
   const primaryActionJoining = props.primaryActionJoining === true && !canStartChat;
-  const dynastyLabel = worldCharacterHeroSubtitle(source);
-  const heroDescription = worldCharacterHeroDescription(source, dynastyLabel, t);
+  const heroDescription = worldCharacterHeroDescription(source, t);
   const statItems = props.stats
     ? [
         {
@@ -554,7 +531,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                   >
                     <EntityAvatar
                       imageUrl={source.avatarUrl}
-                      name={simplifyDisplayText(source.displayName)}
+                      name={source.displayName}
                       kind="human"
                       shape="circle"
                       sizeClassName="h-full w-full"
@@ -565,20 +542,12 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                   </div>
                   <div data-testid="world-character-hero-title-row" className="mt-4 flex flex-wrap items-center gap-4">
                     <h1 className="text-[44px] font-bold leading-[1.04] tracking-normal text-[var(--nimi-text-primary)] max-[900px]:text-[38px] max-[620px]:text-[34px]">
-                      {simplifyDisplayText(source.displayName)}
+                      {source.displayName}
                     </h1>
-                    {dynastyLabel ? (
-                      <span
-                        data-testid="world-character-hero-dynasty-badge"
-                        className="shrink-0 rounded-[10px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-3 py-1 text-[15px] font-semibold leading-5 text-[var(--nimi-action-primary-bg)]"
-                      >
-                        {simplifyDisplayText(dynastyLabel)}
-                      </span>
-                    ) : null}
                   </div>
                   {heroDescription ? (
                     <p data-testid="world-character-hero-description" className="mt-3 text-[16px] font-medium leading-6 text-[var(--nimi-text-secondary)]">
-                      {simplifyDisplayText(heroDescription)}
+                      {heroDescription}
                     </p>
                   ) : null}
                 </div>

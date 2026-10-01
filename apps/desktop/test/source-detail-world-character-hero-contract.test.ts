@@ -38,7 +38,7 @@ test('world character source detail hides generic system and affordance tags fro
   assert.doesNotMatch(markup, /Interactive character/);
 });
 
-test('world character source detail renders circular banner-overlap avatar and simplified Chinese labels', () => {
+test('world character source detail renders authored labels without scene slugs or a guessed era badge', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
     characterProfile: {
@@ -61,10 +61,11 @@ test('world character source detail renders circular banner-overlap avatar and s
   assert.doesNotMatch(markup, /yuan-literati-network/);
   assert.doesNotMatch(markup, /yuan-academy-gathering/);
   assert.doesNotMatch(markup, /yuan-official-court/);
-  assert.doesNotMatch(markup, /書|學|與|為|從|處|臺|傳/);
+  assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
+  assert.doesNotMatch(markup, /元代/);
 });
 
-test('world character hero uses dynasty badge, no bottom white mask, and hides removed hero metadata copy', async () => {
+test('world character hero shows no era badge guessed from the archetype, no bottom white mask, and hides removed hero metadata copy', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData({
@@ -92,8 +93,9 @@ test('world character hero uses dynasty badge, no bottom white mask, and hides r
       }),
     );
 
-    assert.match(markup, /元代/);
-    assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*同恕[\s\S]*data-testid="world-character-hero-dynasty-badge"[\s\S]*元代/);
+    assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*同恕/);
+    assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
+    assert.doesNotMatch(markup, /元代/);
     assert.doesNotMatch(markup, /<p class="[^"]*">同恕<\/p>/);
     assert.doesNotMatch(markup, /linear-gradient\(to top, rgba\(255,255,255,0\.32\)/);
     assert.match(markup, /加入我的角色/);
@@ -179,7 +181,7 @@ test('world character hero shows a disabled joining state while the join is in f
   }
 });
 
-test('world character hero keeps banner and avatar placement while styling name badge and dossier line', async () => {
+test('world character hero keeps banner and avatar placement and shows the explicit role as authored', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData({
@@ -215,8 +217,14 @@ test('world character hero keeps banner and avatar placement while styling name 
     );
 
     assert.doesNotMatch(markup, /data-testid="world-character-hero-identity"/);
-    assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*姚燧[\s\S]*data-testid="world-character-hero-dynasty-badge"[\s\S]*元代/);
-    assert.match(markup, /data-testid="world-character-hero-description"[\s\S]*元代文学家，政治家，字端甫，号牧庵/);
+    assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*姚燧/);
+    assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
+    // The hero line is the explicit role; no era prefix is guessed from the
+    // archetype and no courtesy or art name is parsed out of the summary.
+    const description = /<p data-testid="world-character-hero-description"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
+    assert.equal(description, '文学家，政治家');
+    // The authored summary still renders unchanged in the overview.
+    assert.match(markup, /姚燧，字端甫，号牧庵，元代文学家、政治家。/);
     assert.ok(
       markup.indexOf('data-testid="world-character-hero-avatar"') < markup.indexOf('data-testid="world-character-hero-title-row"'),
       'avatar should keep its original stacked placement before the name row',
@@ -226,7 +234,7 @@ test('world character hero keeps banner and avatar placement while styling name 
   }
 });
 
-test('world character source detail renders admitted CBDB dossier prose in simplified Chinese', () => {
+test('world character source detail renders admitted CBDB dossier prose as authored without script conversion', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
     displayName: '蘇軾',
@@ -282,10 +290,10 @@ test('world character source detail renders admitted CBDB dossier prose in simpl
     ],
   }, 'source_materialization_available');
 
-  assert.equal(source.displayName, '苏轼');
-  assert.equal(source.entity?.summary, '元代文学与关系网核心人物，后历任翰林学士承旨，旧友往来甚广。');
-  assert.equal(source.characterProfile.archetype, '元代文人关系网');
-  assert.equal(source.characterProfile.milestones[0]?.title, '后入翰林学士院');
+  assert.equal(source.displayName, '蘇軾');
+  assert.equal(source.entity?.summary, '元代文學與關係網核心人物，後歷任翰林學士承旨，舊友往來甚廣。');
+  assert.equal(source.characterProfile.archetype, '元代文人關係網');
+  assert.equal(source.characterProfile.milestones[0]?.title, '後入翰林學士院');
 
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
@@ -300,14 +308,15 @@ test('world character source detail renders admitted CBDB dossier prose in simpl
   );
   const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');
 
-  assert.match(visibleMarkup, /苏轼/);
-  assert.match(visibleMarkup, /元代文学与关系网核心人物，后历任翰林学士承旨，旧友往来甚广。/);
-  assert.match(visibleMarkup, /文学领袖与朝廷重臣/);
-  assert.match(visibleMarkup, /元代文人关系网/);
-  assert.match(visibleMarkup, /后入翰林学士院/);
-  assert.match(visibleMarkup, /旧臣推举入翰林学士院，声名甚广。/);
-  assert.match(visibleMarkup, /语速平缓，听感庄重/);
-  assert.doesNotMatch(visibleMarkup, /蘇|軾|學|與|關|係|後|歷|舊|廣|領|聲|語|聽|莊|會/);
+  assert.match(visibleMarkup, /蘇軾/);
+  assert.match(visibleMarkup, /元代文學與關係網核心人物，後歷任翰林學士承旨，舊友往來甚廣。/);
+  assert.match(visibleMarkup, /文學領袖與朝廷重臣/);
+  assert.match(visibleMarkup, /元代文人關係網/);
+  assert.match(visibleMarkup, /後入翰林學士院/);
+  assert.match(visibleMarkup, /舊臣推舉入翰林學士院，聲名甚廣。/);
+  assert.match(visibleMarkup, /語速平緩，聽感莊重/);
+  assert.doesNotMatch(visibleMarkup, /苏轼|文学领袖|后入翰林学士院|语速平缓/);
+  assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
 });
 
 test('world character source detail removes facts panel and replaces breadcrumbs with back button', () => {

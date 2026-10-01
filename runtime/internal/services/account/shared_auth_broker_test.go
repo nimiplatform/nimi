@@ -49,10 +49,10 @@ func TestInvokeRealmUnaryTypedNegativeMatrix(t *testing.T) {
 		body        string
 		want        runtimev1.AccountReasonCode
 	}{
-		{name: "request_shape", methodID: "WorldPublicController_listWorlds", requestJSON: `{"query":{"notAdmitted":"value"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
-		{name: "credential_request", methodID: "WorldPublicController_listWorlds", requestJSON: `{"body":{"accessToken":"caller-secret"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
-		{name: "upstream_non_2xx", methodID: "WorldPublicController_listWorlds", requestJSON: `{}`, status: http.StatusServiceUnavailable, body: `{"error":"down"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE},
-		{name: "response_too_large", methodID: "WorldPublicController_listWorlds", requestJSON: `{}`, status: http.StatusOK, body: `{"value":"` + strings.Repeat("x", (1<<20)+1) + `"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE},
+		{name: "request_shape", methodID: "WorldPublicController_listWorldCatalog", requestJSON: `{"query":{"notAdmitted":"value"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
+		{name: "credential_request", methodID: "WorldPublicController_listWorldCatalog", requestJSON: `{"body":{"accessToken":"caller-secret"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
+		{name: "upstream_non_2xx", methodID: "WorldPublicController_listWorldCatalog", requestJSON: `{}`, status: http.StatusServiceUnavailable, body: `{"error":"down"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE},
+		{name: "response_too_large", methodID: "WorldPublicController_listWorldCatalog", requestJSON: `{}`, status: http.StatusOK, body: `{"value":"` + strings.Repeat("x", (1<<20)+1) + `"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var hits atomic.Int32
@@ -110,7 +110,7 @@ func TestInvokeRealmUnaryFailsClosedOnCredentialLikeResponse(t *testing.T) {
 			completeLoginAs(t, svc, realmDesktopShellCaller())
 			response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
 				Caller:       realmDesktopShellCaller(),
-				MethodId:     "WorldPublicController_listWorlds",
+				MethodId:     "WorldPublicController_listWorldCatalog",
 				RealmBaseUrl: server.URL,
 				RequestJson:  `{}`,
 			})

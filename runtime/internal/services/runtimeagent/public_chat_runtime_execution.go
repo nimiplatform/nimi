@@ -72,13 +72,14 @@ func (r publicChatRuntime) runTurn(
 		projection.ContextSummary = cloneAgentTurnContextSummary(contextCompilation.Summary)
 	})
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
-		AppID:            session.CallerAppID,
-		SubjectUserID:    session.SubjectUserID,
-		Messages:         publicChatAgentTurnProviderMessages(contextCompilation.ProviderPrompt.Messages),
-		MaxTokens:        int32(contextCompilation.Manifest.Budget.ReservedOutputTokens),
-		Binding:          session.Binding,
-		AvailableActions: turn.AvailableActions,
-		Reasoning:        clonePublicChatReasoningConfig(turn.Reasoning),
+		AppID:                session.CallerAppID,
+		SubjectUserID:        session.SubjectUserID,
+		Messages:             publicChatAgentTurnProviderMessages(contextCompilation.ProviderPrompt.Messages),
+		MaxTokens:            req.MaxOutputTokens,
+		ReservedOutputTokens: int32(contextCompilation.Manifest.Budget.ReservedOutputTokens),
+		Binding:              session.Binding,
+		AvailableActions:     turn.AvailableActions,
+		Reasoning:            clonePublicChatReasoningConfig(turn.Reasoning),
 	}, func(event *runtimev1.StreamScenarioEvent) error {
 		if event == nil {
 			return nil
@@ -335,7 +336,7 @@ func (r publicChatRuntime) runTurn(
 		r.svc.mutatePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 			projection.ContextSummary = cloneAgentTurnContextSummary(roundTwoCompilation.Summary)
 		})
-		roundTwo, roundTwoErr := r.executePublicChatPrivateRound(ctx, session, turn, roundTwoCompilation)
+		roundTwo, roundTwoErr := r.executePublicChatPrivateRound(ctx, session, turn, roundTwoCompilation, req.MaxOutputTokens)
 		if roundTwo != nil {
 			usage = aggregatePublicChatPrivateRoundUsage(usage, roundTwo.Usage)
 			finish = roundTwo.Finish

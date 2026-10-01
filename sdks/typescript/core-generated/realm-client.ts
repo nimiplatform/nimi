@@ -1051,16 +1051,22 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/world/by-id/{worldId}/detail-with-characters"
   },
   {
-    "operationId": "WorldPublicController_listWorldCharacters",
+    "operationId": "WorldPublicController_listPersonaCharacterCatalog",
     "service": "World",
     "method": "GET",
-    "path": "/api/world/by-id/{worldId}/characters"
+    "path": "/api/world/persona-characters/catalog"
   },
   {
-    "operationId": "WorldPublicController_listWorlds",
+    "operationId": "WorldPublicController_listWorldCatalog",
     "service": "World",
     "method": "GET",
-    "path": "/api/world"
+    "path": "/api/world/catalog"
+  },
+  {
+    "operationId": "WorldPublicController_listWorldCharacterCatalog",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}/characters/catalog"
   }
 ] as const;
 

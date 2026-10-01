@@ -191,8 +191,9 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "WorldPublicController_getCharacterSource", Service: "World", Method: "POST", Path: "/api/world/character-sources/public-projection"},
 	{OperationID: "WorldPublicController_getWorld", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}"},
 	{OperationID: "WorldPublicController_getWorldDetailWithCharacters", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}/detail-with-characters"},
-	{OperationID: "WorldPublicController_listWorldCharacters", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}/characters"},
-	{OperationID: "WorldPublicController_listWorlds", Service: "World", Method: "GET", Path: "/api/world"},
+	{OperationID: "WorldPublicController_listPersonaCharacterCatalog", Service: "World", Method: "GET", Path: "/api/world/persona-characters/catalog"},
+	{OperationID: "WorldPublicController_listWorldCatalog", Service: "World", Method: "GET", Path: "/api/world/catalog"},
+	{OperationID: "WorldPublicController_listWorldCharacterCatalog", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}/characters/catalog"},
 }
 
 var RealmOperationByID = func() map[string]RealmOperationDescriptor {

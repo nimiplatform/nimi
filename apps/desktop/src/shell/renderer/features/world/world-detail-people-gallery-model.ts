@@ -81,20 +81,6 @@ export function availableGroupBys(characters: readonly WorldCharacter[]): People
   return axes;
 }
 
-export function filterPeople(characters: readonly WorldCharacter[], query: string): WorldCharacter[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return [...characters];
-  return characters.filter((character) => (
-    character.name.toLowerCase().includes(q)
-    || (character.role ?? '').toLowerCase().includes(q)
-    || (character.faction ?? '').toLowerCase().includes(q)
-    || (character.rank ?? '').toLowerCase().includes(q)
-    || (character.handle ?? '').toLowerCase().includes(q)
-    || (character.sceneName ?? '').toLowerCase().includes(q)
-    || (character.location ?? '').toLowerCase().includes(q)
-  ));
-}
-
 export function connectableCount(characters: readonly WorldCharacter[]): number {
   return characters.reduce((sum, character) => sum + (relationState(character) === 'connectable' ? 1 : 0), 0);
 }

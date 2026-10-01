@@ -22,8 +22,8 @@ class FakeRealmTransport implements CoreTransport {
     if (request.methodId === 'WorldCoreController_getOasisWorld') {
       return { id: 'world-oasis', title: 'OASIS' } as Response;
     }
-    if (request.methodId === 'WorldPublicController_listWorlds') {
-      return [] as Response;
+    if (request.methodId === 'WorldPublicController_listWorldCatalog') {
+      return { items: [], nextCursor: null, hasMore: false, totalCount: 0 } as Response;
     }
     return { ok: true, methodId: request.methodId } as Response;
   }
@@ -56,7 +56,9 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(typeof realm.worldCore.worldCoreControllerGetPersonaCharacter, 'function');
   assert.equal(typeof realm.worldCore.worldCoreControllerDiscoverPersonaCharacters, 'function');
   assert.equal(typeof realm.worldCore.worldCoreControllerDeleteWorldCharacter, 'function');
-  assert.equal(typeof realm.worldPublic.worldPublicControllerListWorlds, 'function');
+  assert.equal(typeof realm.worldPublic.worldPublicControllerListWorldCatalog, 'function');
+  assert.equal(typeof realm.worldPublic.worldPublicControllerListWorldCharacterCatalog, 'function');
+  assert.equal(typeof realm.worldPublic.worldPublicControllerListPersonaCharacterCatalog, 'function');
   assert.equal(typeof realm.worldPublic.worldPublicControllerGetCharacterSource, 'function');
   assert.equal(typeof realm.worldPublic.worldPublicControllerGetWorldDetailWithCharacters, 'function');
   assert.equal(typeof realm.generated.worldCoreControllerGetOasisWorld, 'function');
@@ -128,8 +130,15 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
     take: 100,
   });
 
-  await realm.worldPublic.worldPublicControllerListWorlds({ path: {} });
-  assert.equal(transport.unaryCalls[7]?.methodId, 'WorldPublicController_listWorlds');
+  await realm.worldPublic.worldPublicControllerListWorldCatalog({
+    path: {},
+    query: { q: '邮局', limit: 20 },
+  });
+  assert.equal(transport.unaryCalls[7]?.methodId, 'WorldPublicController_listWorldCatalog');
+  assert.deepEqual((transport.unaryCalls[7]?.body as { query?: unknown } | undefined)?.query, {
+    q: '邮局',
+    limit: 20,
+  });
 });
 
 test('Realm facade blocks direct packet issuance and privileged permission lifecycle bypass', async () => {

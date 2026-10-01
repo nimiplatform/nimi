@@ -27,6 +27,7 @@ import {
 } from '../src/shell/renderer/features/world/world-detail-skeletons';
 import { SourceDetailView } from '../src/shell/renderer/features/source-detail/source-detail-view';
 import type { SourceDetailData } from '../src/shell/renderer/features/source-detail/source-detail-model';
+import { readyPeopleCatalog } from './world-people-catalog-fixture';
 
 await initI18n();
 
@@ -50,6 +51,8 @@ const loadingPageProps = {
   },
   audits: [],
   publicAssets: { resourceRefs: [], externalRefs: [], intents: [], scenes: [] },
+  peopleCharacters: [],
+  peopleCatalog: readyPeopleCatalog(0, { status: 'loading' }),
   loading: true,
 } as unknown as WorldDetailPageProps;
 

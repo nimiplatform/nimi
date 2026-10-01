@@ -8,11 +8,9 @@ import {
   OFFLINE_STORE_PROFILE_METADATA,
   OFFLINE_STORE_CHAT_LIST,
   OFFLINE_STORE_CHAT_MESSAGES,
-  OFFLINE_STORE_WORLD_METADATA,
   openOfflineDatabase,
 } from './database.js';
 
-const WORLD_LIST_CACHE_KEY = '__world-list__';
 
 type MetadataRow = {
   cacheKey: string;
@@ -27,7 +25,6 @@ type OfflineEphemeralStore = {
   chatList: Map<string, object>;
   chatMessages: Map<string, Map<string, object>>;
   profileMetadata: Map<string, MetadataRow>;
-  worldMetadata: Map<string, MetadataRow>;
 };
 
 function createEphemeralStore(): OfflineEphemeralStore {
@@ -35,7 +32,6 @@ function createEphemeralStore(): OfflineEphemeralStore {
     chatList: new Map(),
     chatMessages: new Map(),
     profileMetadata: new Map(),
-    worldMetadata: new Map(),
   };
 }
 
@@ -231,47 +227,4 @@ export class OfflineCacheManager {
     const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_PROFILE_METADATA, profileKey);
     return row && !Array.isArray(row.payload) ? row.payload as T : null;
   }
-
-  async syncWorldList<T extends object>(worlds: T[]): Promise<void> {
-    const row = toMetadataRow(WORLD_LIST_CACHE_KEY, worlds);
-    if (this.ephemeral) {
-      this.ensureEphemeralStore().worldMetadata.set(WORLD_LIST_CACHE_KEY, row);
-      return;
-    }
-    const db = this.ensureDb();
-    const tx = db.transaction(OFFLINE_STORE_WORLD_METADATA, 'readwrite');
-    tx.objectStore(OFFLINE_STORE_WORLD_METADATA).put(row);
-    await this.complete(tx);
-  }
-
-  async getCachedWorldList<T extends object = JsonObject>(): Promise<T[]> {
-    if (this.ephemeral) {
-      const row = this.ensureEphemeralStore().worldMetadata.get(WORLD_LIST_CACHE_KEY);
-      return row && Array.isArray(row.payload) ? row.payload as T[] : [];
-    }
-    const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_WORLD_METADATA, WORLD_LIST_CACHE_KEY);
-    return row && Array.isArray(row.payload) ? row.payload as T[] : [];
-  }
-
-  async syncWorldMetadata<T extends object>(worldId: string, payload: T): Promise<void> {
-    const row = toMetadataRow(worldId, payload);
-    if (this.ephemeral) {
-      this.ensureEphemeralStore().worldMetadata.set(worldId, row);
-      return;
-    }
-    const db = this.ensureDb();
-    const tx = db.transaction(OFFLINE_STORE_WORLD_METADATA, 'readwrite');
-    tx.objectStore(OFFLINE_STORE_WORLD_METADATA).put(row);
-    await this.complete(tx);
-  }
-
-  async getCachedWorldMetadata<T extends object = JsonObject>(worldId: string): Promise<T | null> {
-    if (this.ephemeral) {
-      const row = this.ensureEphemeralStore().worldMetadata.get(worldId);
-      return row && !Array.isArray(row.payload) ? row.payload as T : null;
-    }
-    const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_WORLD_METADATA, worldId);
-    return row && !Array.isArray(row.payload) ? row.payload as T : null;
-  }
-
 }

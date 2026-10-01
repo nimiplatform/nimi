@@ -77,7 +77,6 @@
     },
     "category": {
       "all": "全部世界",
-      "followed": "已关注",
       "trending": "趋势",
       "new": "最新",
       "fantasy": "奇幻",
@@ -88,9 +87,7 @@
       "anime": "动画"
     },
     "sort": {
-      "recent": "最近更新",
-      "sources": "人物最多",
-      "alpha": "名称"
+      "recent": "最近更新"
     },
     "actions": {
       "shareWorld": "分享世界",
@@ -124,7 +121,13 @@
         "friends": "已加入本地 {{count}} 位",
         "recent": "可先认识：{{names}}"
       }
-    }
+    },
+    "loadedCount": "已加载 {{loaded}} / 共 {{total}} 个世界",
+    "loadMore": "加载更多世界",
+    "loadingMore": "正在加载…",
+    "loadMoreError": "没能加载更多世界，请重试。",
+    "offlineIncomplete": "离线中：只显示已经加载的世界，结果不完整。",
+    "searchUnavailableOffline": "离线时暂时无法搜索世界。"
   },
   "toolbar": {
     "heading": "World Atlas",
@@ -132,11 +135,9 @@
     "viewMode": "视图模式",
     "gridView": "网格视图",
     "listView": "列表视图",
-    "sortLabel": "排序世界",
     "sort": {
       "active": "Source 最丰富",
       "recent": "最近更新",
-      "alpha": "名称 A–Z",
       "inhabitants": "Source 数"
     }
   },
@@ -164,7 +165,6 @@
   },
   "stats": {
     "inhabitants": "Source",
-    "sources": "Source",
     "personas": "Persona",
     "entities": "实体",
     "characters": "角色",
@@ -173,8 +173,7 @@
     "systems": "系统",
     "timelineEvents": "时间线事件",
     "day": "世界时间",
-    "flow": "时间流速",
-    "timeflow": "时间流速"
+    "flow": "时间流速"
   },
   "card": {
     "view": "查看世界",

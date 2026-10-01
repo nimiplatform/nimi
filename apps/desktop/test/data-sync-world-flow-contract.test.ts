@@ -8,14 +8,12 @@ import {
 import {
   loadWorldDetailById,
   loadMainWorld,
-  loadWorldCharacters,
+  loadWorldCharacterPage,
   loadWorldDetailWithCharacters,
   loadWorldAssets,
   loadWorldHistory,
   loadWorldSemanticBundle,
 } from '../src/shell/renderer/features/world/data/realm-world-data.js';
-import { OfflineCoordinator } from '@nimiplatform/kit/core/offline-coordinator';
-import { createDesktopProductionOfflinePort } from '../src/shell/renderer/infra/offline/production-offline-port.js';
 
 type RealmWorldDataError = {
   action: string;
@@ -39,7 +37,9 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
     tagline: 'Late Song divergence',
     type: 'CREATOR',
     visibility: 'public',
-    tags: ['Historical', 'Alternate'],
+    genre: 'Historical',
+    themes: ['Alternate'],
+    era: null,
     entityKinds: ['person', 'place', 'office', 'text'],
     relationshipTypes: ['serves', 'locatedIn'],
     media: {
@@ -65,7 +65,7 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
       entityCount: 2,
       relationshipCount: 1,
       characterCount: 1,
-      personaCount: 0,
+      personaCharacterCount: 0,
       sceneCount: 1,
       systemCount: 1,
       timelineEventCount: 1,
@@ -113,7 +113,8 @@ function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
     handle: null,
     summary: 'Keeps the archive coherent.',
     role: 'Steward',
-    tags: ['Archive'],
+    traits: ['Meticulous'],
+    topics: ['Archive'],
     media: {
       avatarUrl: 'https://cdn.example.com/song-steward.png',
       profileCoverUrl: null,
@@ -160,8 +161,18 @@ function createWorldCallApi(
         type: path.worldId === 'OASIS' ? 'OASIS' : worldCore.type,
         visibility: path.worldId === 'OASIS' ? 'system' : worldCore.visibility,
       }),
-      worldPublicControllerListWorldCharacters: async () => characters,
-      worldPublicControllerListWorlds: async () => [worldCore],
+      worldPublicControllerListWorldCharacterCatalog: async () => ({
+        items: characters,
+        nextCursor: null,
+        hasMore: false,
+        totalCount: characters.length,
+      }),
+      worldPublicControllerListWorldCatalog: async () => ({
+        items: [worldCore],
+        nextCursor: null,
+        hasMore: false,
+        totalCount: 1,
+      }),
       worldPublicControllerGetWorldDetailWithCharacters: async ({ path }: { path: { worldId: string } }) => ({
         world: {
           ...worldCore,
@@ -169,7 +180,9 @@ function createWorldCallApi(
         },
         sources: {
           characters,
-          personas,
+          charactersNextCursor: null,
+          personaCharacters: personas,
+          personaCharactersNextCursor: null,
         },
       }),
     },
@@ -225,40 +238,36 @@ test('loadMainWorld fails close on non-object public world payloads', async () =
   assert.equal(errors[0]!.action, 'load-main-world');
 });
 
-test('loadMainWorld still falls back to cached world metadata for offline errors', async () => {
-  const offline = createDesktopProductionOfflinePort(
-    new OfflineCoordinator(),
-    { enableEphemeralStore: true },
+test('loadMainWorld surfaces an offline read without substituting a persisted world', async () => {
+  const errors: RealmWorldDataError[] = [];
+  await assertRejectsWithReasonCode(
+    () => loadMainWorld(
+      async () => {
+        throw createOfflineError({
+          source: 'realm',
+          reasonCode: ReasonCode.REALM_UNAVAILABLE,
+          message: 'offline',
+          actionHint: 'retry',
+        });
+      },
+      createEmitter(errors),
+    ),
+    ReasonCode.REALM_UNAVAILABLE,
   );
-  await offline.syncWorldMetadata('main-world', {
-    id: 'cached-world',
-    name: 'Cached World',
-  });
-
-  const result = await loadMainWorld(
-    async () => {
-      throw createOfflineError({
-        source: 'realm',
-        reasonCode: ReasonCode.REALM_UNAVAILABLE,
-        message: 'offline',
-        actionHint: 'retry',
-      });
-    },
-    () => undefined,
-    offline,
-  );
-
-  assert.equal(result.id, 'cached-world');
+  // Offline is a transport state, not a data-contract error.
+  assert.equal(errors.length, 0);
 });
 
-test('loadWorldCharacters projects public source cards', async () => {
+test('loadWorldCharacterPage projects public source cards', async () => {
   const errors: RealmWorldDataError[] = [];
 
-  const result = await loadWorldCharacters(
+  const page = await loadWorldCharacterPage(
     createWorldCallApi(worldCorePayload(), [worldCharacterPayload()]),
     createEmitter(errors),
     'world-1',
+    {},
   );
+  const result = page.items;
 
   assert.equal(result[0]?.id, 'character-1');
   assert.equal(result[0]?.name, 'Song Steward');
@@ -274,36 +283,64 @@ test('loadWorldCharacters projects public source cards', async () => {
   assert.equal(errors.length, 0);
 });
 
-test('loadWorldCharacters forwards the bounded preview limit through Realm SDK', async () => {
+test('loadWorldCharacterPage forwards the bounded page request through Realm SDK', async () => {
   const errors: RealmWorldDataError[] = [];
-  let receivedQuery: { limit?: number } | undefined;
+  let receivedQuery: Record<string, unknown> | undefined;
 
-  const result = await loadWorldCharacters(
+  const page = await loadWorldCharacterPage(
     async (task) => task({
       worldPublic: {
-        worldPublicControllerListWorldCharacters: async (
-          request: { query?: { limit?: number } },
+        worldPublicControllerListWorldCharacterCatalog: async (
+          request: { query?: Record<string, unknown> },
         ) => {
           receivedQuery = request.query;
-          return [worldCharacterPayload()];
+          return { items: [worldCharacterPayload()], nextCursor: 'cursor-2', hasMore: true, totalCount: 104 };
         },
       },
     } as never),
     createEmitter(errors),
     'world-1',
-    3,
+    { limit: 3, cursor: 'cursor-1', q: ' Juniper ' },
   );
 
-  assert.equal(result.length, 1);
-  assert.deepEqual(receivedQuery, { limit: 3 });
+  assert.equal(page.items.length, 1);
+  assert.deepEqual(receivedQuery, { q: 'Juniper', cursor: 'cursor-1', limit: 3 });
+  assert.deepEqual({ nextCursor: page.nextCursor, hasMore: page.hasMore, totalCount: page.totalCount }, {
+    nextCursor: 'cursor-2',
+    hasMore: true,
+    totalCount: 104,
+  });
   assert.equal(errors.length, 0);
 });
 
-test('loadWorldCharacters fails close when public sourceRef is missing sourceHash', async () => {
+test('loadWorldCharacterPage fails close on an inconsistent page', async () => {
+  const errors: RealmWorldDataError[] = [];
+  await assertRejectsWithReasonCode(
+    () => loadWorldCharacterPage(
+      async (task) => task({
+        worldPublic: {
+          worldPublicControllerListWorldCharacterCatalog: async () => ({
+            items: [worldCharacterPayload()],
+            nextCursor: null,
+            hasMore: true,
+            totalCount: 2,
+          }),
+        },
+      } as never),
+      createEmitter(errors),
+      'world-1',
+      {},
+    ),
+    'SDK_REALM_WORLD_CATALOG_CONTRACT_INVALID',
+  );
+  assert.equal(errors[0]?.action, 'load-world-characters');
+});
+
+test('loadWorldCharacterPage fails close when public sourceRef is missing sourceHash', async () => {
   const errors: RealmWorldDataError[] = [];
 
   await assertRejectsWithReasonCode(
-    () => loadWorldCharacters(
+    () => loadWorldCharacterPage(
       createWorldCallApi(worldCorePayload(), [
         worldCharacterPayload({
           sourceRef: {
@@ -316,6 +353,7 @@ test('loadWorldCharacters fails close when public sourceRef is missing sourceHas
       ]),
       createEmitter(errors),
       'world-1',
+      {},
     ),
     'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
   );
@@ -324,11 +362,11 @@ test('loadWorldCharacters fails close when public sourceRef is missing sourceHas
   assert.equal(errors[0]!.action, 'load-world-characters');
 });
 
-test('loadWorldCharacters fails close when public sourceRef points at a different source', async () => {
+test('loadWorldCharacterPage fails close when public sourceRef points at a different source', async () => {
   const errors: RealmWorldDataError[] = [];
 
   await assertRejectsWithReasonCode(
-    () => loadWorldCharacters(
+    () => loadWorldCharacterPage(
       createWorldCallApi(worldCorePayload(), [
         worldCharacterPayload({
           sourceRef: {
@@ -342,6 +380,7 @@ test('loadWorldCharacters fails close when public sourceRef points at a differen
       ]),
       createEmitter(errors),
       'world-1',
+      {},
     ),
     'SDK_REALM_WORLD_PUBLIC_SOURCE_REF_MISMATCH',
   );
@@ -350,14 +389,15 @@ test('loadWorldCharacters fails close when public sourceRef points at a differen
   assert.equal(errors[0]!.action, 'load-world-characters');
 });
 
-test('loadWorldCharacters fails close on invalid public source rows', async () => {
+test('loadWorldCharacterPage fails close on invalid public source rows', async () => {
   const errors: RealmWorldDataError[] = [];
 
   await assertRejectsWithReasonCode(
-    () => loadWorldCharacters(
+    () => loadWorldCharacterPage(
       createWorldCallApi(worldCorePayload(), [worldCharacterPayload(), 'bad-entry']),
       createEmitter(errors),
       'world-1',
+      {},
     ),
     'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
   );
@@ -375,7 +415,7 @@ test('loadWorldDetailWithCharacters keeps character count, persona count, and so
         entityCount: 2,
         relationshipCount: 1,
         characterCount: 1,
-        personaCount: 1,
+        personaCharacterCount: 1,
         sceneCount: 1,
         systemCount: 1,
         timelineEventCount: 1,
@@ -392,7 +432,7 @@ test('loadWorldDetailWithCharacters keeps character count, persona count, and so
 
   assert.equal(result?.id, 'world-1');
   assert.equal(result?.characterCount, 1);
-  assert.equal(result?.personaCount, 1);
+  assert.equal(result?.personaCharacterCount, 1);
   assert.equal(result?.characters.length, 2);
   assert.equal(errors.length, 0);
 });

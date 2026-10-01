@@ -1,5 +1,6 @@
-import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
-import { currentWorldTime, formatNum, personaCount, sourceCount, worldCharacterCount } from './world-detail-template-model';
+import type { WorldCharacter, WorldHistoryBundle, WorldPublicAssetsData, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
+import { formatNum, personaCount, sourceCount, worldCharacterCount } from './world-detail-template-model';
+import type { WorldComputedTime } from './world-list-model';
 
 export type PaperMaterialKey = 'people' | 'scenes' | 'events' | 'resources' | 'lore';
 
@@ -18,6 +19,7 @@ export function derivedMaterials(
   scenes: readonly WorldSceneItem[],
   publicAssets: WorldPublicAssetsData,
   semantic: WorldSemanticData,
+  peopleTotal: number = characters.length,
 ): PaperMaterial[] {
   const resourceCount = publicAssets.resourceRefs.length + publicAssets.externalRefs.length + publicAssets.intents.length;
   const loreCount = semantic.operationRules.length
@@ -25,7 +27,8 @@ export function derivedMaterials(
     + semantic.taboos.length
     + semantic.languages.length;
   const candidates: PaperMaterial[] = [
-    { key: 'people', count: characters.length },
+    // The world's people total, not the size of the loaded first page.
+    { key: 'people', count: Math.max(peopleTotal, characters.length) },
     { key: 'scenes', count: scenes.length },
     { key: 'resources', count: resourceCount },
     { key: 'lore', count: loreCount },
@@ -80,10 +83,11 @@ export function derivedMetrics(
   scenes: readonly WorldSceneItem[],
   history: WorldHistoryBundle,
   materials: readonly PaperMaterial[],
+  peopleTotal: number = characters.length,
 ): PaperMetric[] {
   const eventCount = history.summary?.totalCount ?? history.items.length;
   const metrics: PaperMetric[] = [
-    { key: 'people', value: formatNum(characters.length) },
+    { key: 'people', value: formatNum(Math.max(peopleTotal, characters.length)) },
     { key: 'materials', value: formatNum(materialsTotal(materials)) },
     { key: 'scenes', value: formatNum(scenes.length) },
   ];
@@ -107,21 +111,17 @@ function formatAuthoredWorldTimeLabel(
 }
 
 /**
- * Human-readable world time. Prefers an authored label; otherwise formats a
- * raw timestamp into the active locale's short date-time instead of leaking an
- * ISO string. Falls back to the era label when no time is set.
+ * Human-readable world time. A static world shows only its authored label (or nothing); a
+ * wall-clock world formats its current world time instead of leaking an ISO string.
  */
 export function worldTimeDisplay(
-  world: WorldDetailData,
+  time: WorldComputedTime,
   formatDateTime: (value: unknown) => string,
-): string {
-  if (world.currentTimeLabel) {
-    return formatAuthoredWorldTimeLabel(world.currentTimeLabel, formatDateTime);
+): string | null {
+  if (time.mode === 'static') {
+    return time.label;
   }
-  if (world.currentWorldTime) {
-    return formatDateTime(world.currentWorldTime);
-  }
-  return currentWorldTime(world);
+  return formatAuthoredWorldTimeLabel(time.currentLabel, formatDateTime);
 }
 
 /** Connectable characters first, used by the recommended-friends rail. */

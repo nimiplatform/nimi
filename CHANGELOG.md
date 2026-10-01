@@ -6,8 +6,50 @@ The format follows Keep a Changelog and Semantic Versioning.
 
 ## [Unreleased]
 
+### Changed (breaking, `@nimiplatform/sdk` Realm)
+
+- Public world discovery is paginated on Realm. `worldPublicControllerListWorlds`
+  and `worldPublicControllerListWorldCharacters` are removed; use
+  `worldPublicControllerListWorldCatalog`, `worldPublicControllerListWorldCharacterCatalog`
+  and the new public `worldPublicControllerListPersonaCharacterCatalog`. Each
+  returns `{ items, nextCursor, hasMore, totalCount }`, takes `cursor`, `q`
+  (server-side search) and `limit` (default 20, at most 100), and rejects a
+  malformed cursor or one from another query with `CATALOG_CURSOR_INVALID` /
+  `CATALOG_CURSOR_SCOPE_MISMATCH`. Migration: page with `nextCursor` until it
+  is `null` instead of reading one capped array, and send search terms as `q`
+  instead of filtering a loaded page. The owned/public
+  `worldCoreControllerListPersonaCharacters` array contract is unchanged.
+- `WorldPublicItemDto.tags` is replaced by `genre` (string or null), `themes`
+  (string array) and `era` (string or null), read directly from the World's
+  canonical identity; `WorldPublicSourceCardDto.tags` is replaced by `traits`
+  and `topics`, and interaction-mode tokens are no longer projected. Migration:
+  read the explicit fields instead of splitting `tags`.
+- `WorldPublicItemDto.time` is a union on `mode`: a `static` world returns
+  `{ mode, label, currentWorldTime: null }` and no anchor, flow or pause fields;
+  a `wallClockAnchored` world returns its anchor, flow, pause state,
+  `pausedWorldTime` and computed current time. `WorldCoreValueDto.timeModel`
+  follows the same split (`static` carries only `mode` and a nullable `label`).
+  Migration: branch on `mode`; do not derive a date for static worlds.
+- `WorldPublicController_getWorldDetailWithCharacters` returns only the first
+  page (up to 20) of `sources.characters` and `sources.personaCharacters`, with
+  `charactersNextCursor` / `personaCharactersNextCursor` to continue in the
+  catalogs; `world.stats` carries the totals. Migration: follow the cursors
+  instead of assuming the arrays are complete.
+
 ### Fixed
 
+- World and Persona discovery distinguish offline waiting, first-page failure
+  and later-page failure while keeping already loaded results available. Both
+  Persona entry points can load subsequent pages, and World detail caches are
+  scoped to the Realm target. The post location picker reports a failed World
+  search instead of presenting it as an empty catalog.
+- LocalAgent chat, summaries, life turns and Chat Track sidecar steps run on
+  text targets that take no output limit, such as ChatGPT plan `gpt-6-astra`,
+  instead of failing every turn with `AI_TEXT_BEHAVIOR_UNSUPPORTED`. Runtime's
+  own output reservation is sent as the provider limit only where the exact
+  target accepts one, so other targets receive the same limit as before. A
+  caller's explicit `max_output_tokens` or `max_tokens` is still the hard limit
+  and still fails before dispatch on a target that cannot honor it.
 - `@nimiplatform/app-tools` scaffolds give the project `LICENSE` to the App:
   `nimi-app create` writes it once as an MIT license naming `--author`, or the
   App title when no author is given, and `nimi-app sync` never rewrites it

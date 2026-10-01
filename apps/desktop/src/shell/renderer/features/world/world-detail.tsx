@@ -23,6 +23,7 @@ import {
   OasisWorldDetailPage,
 } from './world-detail-template';
 import type { WorldCharacter } from './world-detail-types';
+import { useWorldPeopleCatalog } from './world-detail-people-catalog.js';
 import type { WorldListItem } from './world-list-model';
 import {
   fetchWorldPrimaryDisplayDetail,
@@ -73,12 +74,13 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   const primaryReadyLoggedRef = useRef(false);
   const historySemanticReadyLoggedRef = useRef(false);
   const extendedReadyLoggedRef = useRef(false);
+  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const cachedCompositeDisplay = isReady
-    ? queryClient.getQueryData<WorldDisplayDetail>(worldDisplayDetailQueryKey(world.id))
+    ? queryClient.getQueryData<WorldDisplayDetail>(worldDisplayDetailQueryKey(realmBaseUrl, world.id))
     : undefined;
 
   const worldPrimaryQuery = useQuery({
-    queryKey: worldPrimaryDisplayDetailQueryKey(world.id),
+    queryKey: worldPrimaryDisplayDetailQueryKey(realmBaseUrl, world.id),
     queryFn: () => fetchWorldPrimaryDisplayDetail(
       world.id,
       createRealmWorldData(bindings.sdk),
@@ -90,7 +92,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
 
   const primaryDisplay = worldPrimaryQuery.data;
   const worldSupplementalQuery = useQuery({
-    queryKey: worldSupplementalDisplayDetailQueryKey(world.id),
+    queryKey: worldSupplementalDisplayDetailQueryKey(realmBaseUrl, world.id),
     queryFn: () => fetchWorldSupplementalDisplayDetail(
       world.id,
       createRealmWorldData(bindings.sdk),
@@ -101,6 +103,46 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   });
 
   const supplementalDisplay = worldSupplementalQuery.data;
+
+  // The detail's first bounded page seeds the unfiltered people catalog.
+  const realmWorldData = useMemo(() => createRealmWorldData(bindings.sdk), [bindings.sdk]);
+  const [peopleQueryText, setPeopleQueryText] = useState('');
+  const peopleQuery = useDebouncedText(peopleQueryText);
+  const primaryRecord = primaryDisplay?.primary;
+  const seededCharacterPage = useMemo(() => {
+    if (!primaryRecord) return undefined;
+    const nextCursor = primaryRecord.charactersNextCursor;
+    return {
+      items: primaryRecord.characters.filter((character) => character.sourceKind !== 'personaCharacter'),
+      nextCursor,
+      hasMore: nextCursor !== null,
+      totalCount: primaryRecord.characterCount,
+    };
+  }, [primaryRecord]);
+  const seededPersonaPage = useMemo(() => {
+    if (!primaryRecord) return undefined;
+    const nextCursor = primaryRecord.personaCharactersNextCursor;
+    return {
+      items: primaryRecord.characters.filter((character) => character.sourceKind === 'personaCharacter'),
+      nextCursor,
+      hasMore: nextCursor !== null,
+      totalCount: primaryRecord.personaCharacterCount,
+    };
+  }, [primaryRecord]);
+  const offlineTier = useAppStore((state) => state.offlineTier);
+  const { peopleCharacters, peopleCatalog } = useWorldPeopleCatalog({
+    worldId: world.id,
+    worldCreatedAt: world.createdAt,
+    realmBaseUrl,
+    query: peopleQuery,
+    queryText: peopleQueryText,
+    onQueryChange: setPeopleQueryText,
+    seededCharacterPage,
+    seededPersonaPage,
+    enabled: isReady && Boolean(primaryRecord),
+    networkOffline: offlineTier !== 'L0',
+    source: realmWorldData,
+  });
   const primaryLoading = worldPrimaryQuery.isPending && !primaryDisplay;
   const supplementalLoading = Boolean(primaryDisplay) && worldSupplementalQuery.isPending && !supplementalDisplay;
   const initialLoading = primaryLoading && !world.id;
@@ -356,6 +398,8 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         <OasisWorldDetailPage
           world={worldData}
           characters={charactersWithRelation}
+          peopleCharacters={peopleCharacters}
+          peopleCatalog={peopleCatalog}
           history={safeHistory}
           semantic={safeSemantic}
           audits={safeAudits}
@@ -380,6 +424,8 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         <NarrativeWorldDetailPage
           world={worldData}
           characters={charactersWithRelation}
+          peopleCharacters={peopleCharacters}
+          peopleCatalog={peopleCatalog}
           history={safeHistory}
           semantic={safeSemantic}
           audits={safeAudits}
@@ -404,4 +450,16 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
     </ScrollArea>
     </WorldMaterializationContext.Provider>
   );
+}
+
+const PEOPLE_SEARCH_DEBOUNCE_MS = 300;
+
+function useDebouncedText(value: string): string {
+  const normalized = value.trim();
+  const [debounced, setDebounced] = useState(normalized);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(normalized), PEOPLE_SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [normalized]);
+  return debounced;
 }

@@ -469,9 +469,10 @@ func TestConversationSummaryCapturesExecutionIdentityAndResolvesIndependentBindi
 		t.Fatalf("summary used mutable anchor binding instead of independently resolved binding: %#v", executionReq.Binding)
 	}
 	// A complete dozen-turn summary on a model that always thinks needs more
-	// than 512 tokens; resolution reserves the same limit the step requests.
-	if resolutionReq.MaxOutputTokens != 2048 || executionReq.MaxTokens != 2048 {
-		t.Fatalf("summary output limit: resolution=%d execution=%d, want 2048", resolutionReq.MaxOutputTokens, executionReq.MaxTokens)
+	// than 512 tokens; resolution reserves the same budget the step carries as
+	// the Runtime's own output budget, never as a caller max_tokens.
+	if resolutionReq.MaxOutputTokens != 2048 || executionReq.ReservedOutputTokens != 2048 || executionReq.MaxTokens != 0 {
+		t.Fatalf("summary output budget: resolution=%d reserved=%d caller=%d, want 2048/2048/0", resolutionReq.MaxOutputTokens, executionReq.ReservedOutputTokens, executionReq.MaxTokens)
 	}
 	select {
 	case account := <-executionAccount:

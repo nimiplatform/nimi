@@ -312,7 +312,7 @@ type publicChatPrivateRoundResult struct {
 
 // @nimi-authority: rule.nimi.runtime.agent-service.r061
 // @nimi-authority: rule.nimi.runtime.agent-participation.r189
-func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, compilation *agentTurnContextCompilation) (*publicChatPrivateRoundResult, error) {
+func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, compilation *agentTurnContextCompilation, callerMaxTokens int32) (*publicChatPrivateRoundResult, error) {
 	if compilation == nil {
 		return nil, fmt.Errorf("private recall Round 2 context is unavailable")
 	}
@@ -320,9 +320,11 @@ func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, se
 	var output strings.Builder
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
 		AppID: session.CallerAppID, SubjectUserID: session.SubjectUserID,
-		Messages:  publicChatAgentTurnProviderMessages(compilation.ProviderPrompt.Messages),
-		MaxTokens: int32(compilation.Manifest.Budget.ReservedOutputTokens), Binding: session.Binding,
-		AvailableActions: turn.AvailableActions, Reasoning: clonePublicChatReasoningConfig(turn.Reasoning),
+		Messages:             publicChatAgentTurnProviderMessages(compilation.ProviderPrompt.Messages),
+		MaxTokens:            callerMaxTokens,
+		ReservedOutputTokens: int32(compilation.Manifest.Budget.ReservedOutputTokens),
+		Binding:              session.Binding,
+		AvailableActions:     turn.AvailableActions, Reasoning: clonePublicChatReasoningConfig(turn.Reasoning),
 	}, func(event *runtimev1.StreamScenarioEvent) error {
 		if event == nil {
 			return nil

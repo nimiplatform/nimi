@@ -1,12 +1,13 @@
 export const OFFLINE_DB_NAME = 'nimi-offline-cache';
-export const OFFLINE_DB_VERSION = 2;
+export const OFFLINE_DB_VERSION = 3;
 
 export const OFFLINE_STORE_CHAT_LIST = 'chat-list';
 export const OFFLINE_STORE_CHAT_MESSAGES = 'chat-messages';
 export const OFFLINE_STORE_CHAT_OUTBOX = 'chat-outbox';
 export const OFFLINE_STORE_SOCIAL_OUTBOX = 'social-outbox';
 export const OFFLINE_STORE_PROFILE_METADATA = 'profile-metadata';
-export const OFFLINE_STORE_WORLD_METADATA = 'world-metadata';
+// Retired in version 3: world lists and details are live Realm reads, never persisted results.
+const RETIRED_OFFLINE_STORE_WORLD_METADATA = 'world-metadata';
 
 export function hasIndexedDb(): boolean {
   return typeof indexedDB !== 'undefined';
@@ -36,8 +37,9 @@ export function openOfflineDatabase(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(OFFLINE_STORE_PROFILE_METADATA)) {
         db.createObjectStore(OFFLINE_STORE_PROFILE_METADATA, { keyPath: 'cacheKey' });
       }
-      if (!db.objectStoreNames.contains(OFFLINE_STORE_WORLD_METADATA)) {
-        db.createObjectStore(OFFLINE_STORE_WORLD_METADATA, { keyPath: 'cacheKey' });
+      // Only the retired world cache is dropped; chat, outbox and profile stores are kept.
+      if (db.objectStoreNames.contains(RETIRED_OFFLINE_STORE_WORLD_METADATA)) {
+        db.deleteObjectStore(RETIRED_OFFLINE_STORE_WORLD_METADATA);
       }
     };
     request.onsuccess = () => resolve(request.result);

@@ -14,7 +14,8 @@ import (
 func appWorkContextBudget(execution *PublicChatTurnExecutionRequest) error {
 	// Match the compiler's conservative UTF-8 byte/token admission, including
 	// canonical tool schemas and each continuation message, before every step.
-	used := uint64(execution.MaxTokens) + publicChatContextSafetyTokens + publicChatContextAdapterTokens + publicChatReasoningReserveTokens(execution.Reasoning, uint64(execution.MaxTokens))
+	output := uint64(execution.ReservedOutputTokens)
+	used := output + publicChatContextSafetyTokens + publicChatContextAdapterTokens + publicChatReasoningReserveTokens(execution.Reasoning, output)
 	for _, message := range execution.Messages {
 		data, err := protojson.Marshal(message)
 		if err != nil {

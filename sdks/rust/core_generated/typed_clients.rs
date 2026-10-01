@@ -18687,6 +18687,7 @@ pub struct WorldCoreValueDtoOntologyConceptsItem {
 pub struct WorldCoreValueDtoPresentation {
     pub banner_resource_ref: String,
     pub display_name: String,
+    pub hero_resource_ref: String,
     pub icon_resource_ref: String,
     pub palette: Vec<String>,
     pub tagline: String,
@@ -18743,9 +18744,37 @@ pub struct WorldCoreValueDtoTimelineEventsItem {
     pub title: String,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum WorldCoreValueDtoTimeModel {
+    WorldCoreValueDtoTimeModelVariant1(Box<WorldCoreValueDtoTimeModelVariant1>),
+    WorldCoreValueDtoTimeModelVariant2(Box<WorldCoreValueDtoTimeModelVariant2>),
+}
+
+impl Default for WorldCoreValueDtoTimeModel {
+    fn default() -> Self {
+        Self::WorldCoreValueDtoTimeModelVariant1(Box::new(WorldCoreValueDtoTimeModelVariant1::default()))
+    }
+}
+
+impl WorldCoreValueDtoTimeModel {
+    pub fn try_from_discriminator(value: &str) -> Result<Self, String> {
+        match value {
+            "static" => Ok(Self::WorldCoreValueDtoTimeModelVariant1(Box::new(WorldCoreValueDtoTimeModelVariant1::default()))),
+            "wallClockAnchored" => Ok(Self::WorldCoreValueDtoTimeModelVariant2(Box::new(WorldCoreValueDtoTimeModelVariant2::default()))),
+            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown WorldCoreValueDtoTimeModel discriminator {}", value)),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCoreValueDtoTimeModel {
-    pub anchor: Box<WorldCoreValueDtoTimeModelAnchor>,
+pub struct WorldCoreValueDtoTimeModelVariant1 {
+    pub label: Option<String>,
+    pub mode: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreValueDtoTimeModelVariant2 {
+    pub anchor: Box<WorldCoreValueDtoTimeModelVariant2Anchor>,
     pub calendar: Option<String>,
     pub display_format: Option<String>,
     pub flow_ratio: f64,
@@ -18755,7 +18784,7 @@ pub struct WorldCoreValueDtoTimeModel {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCoreValueDtoTimeModelAnchor {
+pub struct WorldCoreValueDtoTimeModelVariant2Anchor {
     pub real_started_at: String,
     pub world_started_at: String,
     pub world_started_at_display: String,
@@ -18929,6 +18958,8 @@ pub struct WorldPublicCharacterSourceRequestDto {
 pub struct WorldPublicDetailDto {
     pub created_at: String,
     pub entity_kinds: Vec<String>,
+    pub era: Option<String>,
+    pub genre: Option<String>,
     pub id: String,
     pub media: Box<WorldPublicMediaDto>,
     pub name: String,
@@ -18939,8 +18970,8 @@ pub struct WorldPublicDetailDto {
     pub summary: String,
     pub systems: Vec<String>,
     pub tagline: Option<String>,
-    pub tags: Vec<String>,
-    pub time: Box<WorldPublicTimeSnapshotDto>,
+    pub themes: Vec<String>,
+    pub time: String,
     pub timeline: Vec<WorldPublicTimelineEventDto>,
     pub r#type: String,
     pub updated_at: String,
@@ -18965,6 +18996,8 @@ pub struct WorldPublicEntityCardDto {
 pub struct WorldPublicItemDto {
     pub created_at: String,
     pub entity_kinds: Vec<String>,
+    pub era: Option<String>,
+    pub genre: Option<String>,
     pub id: String,
     pub media: Box<WorldPublicMediaDto>,
     pub name: String,
@@ -18972,8 +19005,8 @@ pub struct WorldPublicItemDto {
     pub stats: Box<WorldPublicStatsDto>,
     pub summary: String,
     pub tagline: Option<String>,
-    pub tags: Vec<String>,
-    pub time: Box<WorldPublicTimeSnapshotDto>,
+    pub themes: Vec<String>,
+    pub time: String,
     pub r#type: String,
     pub updated_at: String,
     pub visibility: String,
@@ -19041,10 +19074,19 @@ pub struct WorldPublicSourceCardDto {
     pub source_kind: String,
     pub source_ref: Box<CharacterSourceRefV3Dto>,
     pub summary: String,
-    pub tags: Vec<String>,
+    pub topics: Vec<String>,
+    pub traits: Vec<String>,
     pub updated_at: String,
     pub world_id: String,
     pub world_name: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSourceCardPageDto {
+    pub has_more: bool,
+    pub items: Vec<WorldPublicSourceCardDto>,
+    pub next_cursor: Option<String>,
+    pub total_count: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -19069,7 +19111,16 @@ pub struct WorldPublicSourceMediaDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceSectionsDto {
     pub characters: Vec<WorldPublicSourceCardDto>,
+    pub characters_next_cursor: Option<String>,
     pub persona_characters: Vec<WorldPublicSourceCardDto>,
+    pub persona_characters_next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicStaticTimeDto {
+    pub current_world_time: Option<String>,
+    pub label: Option<String>,
+    pub mode: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -19101,7 +19152,14 @@ pub struct WorldPublicTimelineEventDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldPublicTimeSnapshotDto {
+pub struct WorldPublicViewerRelationDto {
+    pub connection_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicWallClockTimeDto {
     pub anchor_real_started_at: String,
     pub anchor_world_started_at: String,
     pub anchor_world_started_at_display: String,
@@ -19113,13 +19171,15 @@ pub struct WorldPublicTimeSnapshotDto {
     pub flow_ratio: f64,
     pub is_paused: bool,
     pub mode: String,
+    pub paused_world_time: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldPublicViewerRelationDto {
-    pub connection_id: Option<String>,
-    pub runtime_source_ref: Option<String>,
-    pub state: String,
+pub struct WorldPublicWorldCatalogPageDto {
+    pub has_more: bool,
+    pub items: Vec<WorldPublicItemDto>,
+    pub next_cursor: Option<String>,
+    pub total_count: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

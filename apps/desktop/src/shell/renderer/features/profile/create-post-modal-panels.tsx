@@ -91,6 +91,8 @@ export function LocationPickerPanel(input: {
   show: boolean;
   position: { left: number; top: number } | null;
   loadingLocations: boolean;
+  locationsError: boolean;
+  retryLocations: () => void;
   locationSearch: string;
   setLocationSearch: (value: string) => void;
   filteredLocations: Location[];
@@ -133,6 +135,13 @@ export function LocationPickerPanel(input: {
         {input.loadingLocations ? (
           <div className="px-3 py-4 text-center text-sm text-[var(--nimi-text-muted)]">
             {i18n.t('Profile.CreatePost.loadingLocations', { defaultValue: 'Loading locations...' })}
+          </div>
+        ) : input.locationsError ? (
+          <div role="alert" className="space-y-2 px-3 py-4 text-center text-sm text-[var(--nimi-status-danger)]">
+            <p>{i18n.t('World.loadError')}</p>
+            <button type="button" onClick={input.retryLocations} className="underline">
+              {i18n.t('NotificationPanel.refresh')}
+            </button>
           </div>
         ) : input.filteredLocations.length > 0 ? (
           input.filteredLocations.map((locationItem) => (

@@ -31,11 +31,15 @@ import {
   WorldRelationshipExplorerSkeleton,
   WorldResourceReferencesSkeleton,
 } from './world-detail-skeletons';
-import type { WorldCharacter, WorldAuditItem, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from './world-detail-types.js';
+import type { WorldCharacter, WorldAuditItem, WorldDetailData, WorldHistoryBundle, WorldPeopleCatalogState, WorldPublicAssetsData, WorldSemanticData } from './world-detail-types.js';
 
 export type WorldDetailPageProps = {
   world: WorldDetailData;
   characters: WorldCharacter[];
+  // Server-backed people browsing; the loaded people list is not the whole population.
+  // The World's people as read from the Realm catalog, which searches and pages them.
+  peopleCharacters: WorldCharacter[];
+  peopleCatalog: WorldPeopleCatalogState;
   history: WorldHistoryBundle;
   semantic: WorldSemanticData;
   audits: WorldAuditItem[];
@@ -145,13 +149,16 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   const [activePaperSubpage, setActivePaperSubpage] = useState<ActivePaperSubpage>(() => resolveInitialPaperSubpage(props.initialSubpage));
   const [pendingRootScrollId, setPendingRootScrollId] = useState<string | null>(null);
 
+  // People pages can select characters beyond the detail's first page.
   const selectedCharacter = selectedCharacterId
-    ? props.characters.find((character) => character.id === selectedCharacterId) ?? null
+    ? props.characters.find((character) => character.id === selectedCharacterId)
+      ?? props.peopleCharacters.find((character) => character.id === selectedCharacterId)
+      ?? null
     : null;
 
   const scenes = useMemo(
-    () => derivedScenes(props.publicAssets, props.semantic, props.characters),
-    [props.publicAssets, props.semantic, props.characters],
+    () => derivedScenes(props.publicAssets, props.semantic),
+    [props.publicAssets, props.semantic],
   );
   const highlightRefs = useMemo(
     () => worldPublicHighlightRefs(props.publicAssets),
@@ -159,12 +166,12 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   );
 
   const materials = useMemo(
-    () => derivedMaterials(props.characters, scenes, props.publicAssets, props.semantic),
-    [props.characters, scenes, props.publicAssets, props.semantic],
+    () => derivedMaterials(props.characters, scenes, props.publicAssets, props.semantic, props.peopleCatalog.totalCount),
+    [props.characters, scenes, props.publicAssets, props.semantic, props.peopleCatalog.totalCount],
   );
   const metrics = useMemo(
-    () => derivedMetrics(props.characters, scenes, props.history, materials),
-    [props.characters, scenes, props.history, materials],
+    () => derivedMetrics(props.characters, scenes, props.history, materials, props.peopleCatalog.totalCount),
+    [props.characters, scenes, props.history, materials, props.peopleCatalog.totalCount],
   );
   const paths = useMemo(
     () => derivedPaths(props.characters, scenes),
@@ -268,8 +275,8 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
       <>
         <WorldRelationshipExplorer
           world={world}
-          characters={props.characters}
-          history={props.history}
+          characters={props.peopleCharacters}
+          catalog={props.peopleCatalog}
           onBack={() => setActivePaperSubpage('root')}
           onSelectCharacter={setSelectedCharacterId}
           onViewCharacter={props.onViewCharacter}
@@ -294,7 +301,8 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
     return (
       <>
         <WorldPeopleArchivePage
-          characters={props.characters}
+          characters={props.peopleCharacters}
+          catalog={props.peopleCatalog}
           onBack={() => setActivePaperSubpage('root')}
           onSelect={setSelectedCharacterId}
           onViewCharacter={props.onViewCharacter}

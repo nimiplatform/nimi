@@ -1,10 +1,12 @@
 import { Heart, MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IconButton, NimiText, StatusBadge, Surface } from '@nimiplatform/kit/ui';
-import { displayTags, type ViewMode } from './world-list-catalog-model';
+import { displayTags } from './world-list-catalog-model';
 import { WorldCover } from './world-list-cover';
 import { WORLD_EXPLORER_SHADOWS, WORLD_EXPLORER_THEME } from './world-list-theme';
 import type { WorldListItem } from './world-list-model';
+
+type ViewMode = 'grid' | 'list';
 
 export function CompactWorldCard({
   world,
@@ -21,8 +23,8 @@ export function CompactWorldCard({
   followAvailable?: boolean;
   onToggleFollow?: () => void;
 }) {
-  const { t, i18n } = useTranslation();
-  const tags = displayTags(world, 3, i18n.language);
+  const { t } = useTranslation();
+  const tags = displayTags(world, 3);
   const listMode = view === 'list';
   return (
     <Surface

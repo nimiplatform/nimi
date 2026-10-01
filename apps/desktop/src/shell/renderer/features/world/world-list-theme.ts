@@ -27,18 +27,9 @@ export const WORLD_EXPLORER_SHADOWS = {
   icon: '0 6px 16px rgba(20, 35, 50, 0.06)',
 } as const;
 
-export const WORLD_ABSTRACT_COVER_BACKGROUNDS = {
-  history:
-    'radial-gradient(circle at 20% 18%, rgba(93, 120, 113, 0.22), transparent 28%), linear-gradient(135deg, #E9EDEF 0%, #F6F2E8 48%, #DDE4E7 100%)',
-  sciFi:
-    'radial-gradient(circle at 70% 28%, color-mix(in srgb, var(--nimi-action-primary-bg) 28%, transparent), transparent 27%), radial-gradient(circle at 26% 74%, rgba(80, 104, 132, 0.22), transparent 28%), linear-gradient(135deg, #EEF4F8 0%, #F8FAFC 58%, #E8F2F5 100%)',
-  sandbox:
-    'linear-gradient(135deg, color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent), transparent 38%), linear-gradient(45deg, #F8FAFC 0 24%, #EEF2F5 24% 48%, #F6F8FB 48% 72%, #EAF6FB 72% 100%)',
-  nature:
-    'radial-gradient(circle at 28% 70%, color-mix(in srgb, var(--nimi-action-primary-bg) 24%, transparent), transparent 30%), linear-gradient(135deg, #EEF4F6 0%, #F8FAF7 50%, #DDE7EB 100%)',
-  fantasy:
-    'radial-gradient(circle at 72% 20%, color-mix(in srgb, var(--nimi-action-primary-bg) 22%, transparent), transparent 30%), linear-gradient(135deg, #F3F6F8 0%, #F8FAFC 50%, #E8EEF0 100%)',
-} as const;
+// The one abstract cover for Worlds without a banner; Worlds declare no cover style to choose from.
+export const WORLD_NEUTRAL_COVER_BACKGROUND =
+  'linear-gradient(135deg, color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent), transparent 38%), linear-gradient(45deg, #F8FAFC 0 24%, #EEF2F5 24% 48%, #F6F8FB 48% 72%, #EAF6FB 72% 100%)';
 
 export const WORLD_EXPLORER_THEME = {
   root: {

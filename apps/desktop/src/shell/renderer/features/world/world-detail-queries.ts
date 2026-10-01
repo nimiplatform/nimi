@@ -77,29 +77,57 @@ export function toWorldDisplayFallback(world: WorldListItem) {
   return projectWorldDisplayFallback(world);
 }
 
-export function worldListQueryKey() {
-  return ['worlds-list'] as const;
+// Memory-only catalog pages are keyed by contract version, Realm target and server query; they
+// never share a key with another query or Realm and are not persisted as offline results.
+export const WORLD_CATALOG_CONTRACT_VERSION = 'realm-world-catalog/v1';
+
+export function worldCatalogQueryKey(realmBaseUrl: string, query: string) {
+  return ['world-catalog', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, query.trim()] as const;
 }
 
-export async function fetchWorldListItems(
+export type WorldCatalogPage = {
+  items: WorldListItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalCount: number;
+};
+
+export async function fetchWorldCatalogPage(
   realmWorldData: RealmWorldData,
-  status?: WorldListItem['status'],
-): Promise<WorldListItem[]> {
-  const worlds = await realmWorldData.loadWorlds(status as Parameters<typeof realmWorldData.loadWorlds>[0]);
-  return worlds.map((world) => toWorldListItem(world));
+  query: string,
+  cursor: string | null,
+): Promise<WorldCatalogPage> {
+  const page = await realmWorldData.loadWorldCatalogPage({ q: query, cursor });
+  return { ...page, items: page.items.map((world) => toWorldListItem(world)) };
 }
 
-export function worldDisplayDetailQueryKey(worldId: string) {
+export function worldListItemQueryKey(realmBaseUrl: string, worldId: string) {
+  return ['world-list-item', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, normalizeWorldId(worldId)] as const;
+}
+
+export async function fetchWorldListItem(
+  realmWorldData: RealmWorldData,
+  worldId: string,
+): Promise<WorldListItem | null> {
+  const world = await realmWorldData.loadWorldDetailById(normalizeWorldId(worldId));
+  return world ? toWorldListItem(world) : null;
+}
+
+export function worldDisplayDetailQueryKey(realmBaseUrl: string, worldId: string) {
   return [
     'world-display-detail',
+    WORLD_CATALOG_CONTRACT_VERSION,
+    realmBaseUrl,
     normalizeWorldId(worldId),
     DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT,
   ] as const;
 }
 
-export function worldPrimaryDisplayDetailQueryKey(worldId: string) {
+export function worldPrimaryDisplayDetailQueryKey(realmBaseUrl: string, worldId: string) {
   return [
     'world-primary-display-detail',
+    WORLD_CATALOG_CONTRACT_VERSION,
+    realmBaseUrl,
     normalizeWorldId(worldId),
     DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT,
   ] as const;
@@ -113,8 +141,8 @@ export function worldRecommendedCharacterPreviewQueryKey(worldId: string) {
   ] as const;
 }
 
-export function worldSupplementalDisplayDetailQueryKey(worldId: string) {
-  return ['world-supplemental-display-detail', normalizeWorldId(worldId)] as const;
+export function worldSupplementalDisplayDetailQueryKey(realmBaseUrl: string, worldId: string) {
+  return ['world-supplemental-display-detail', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, normalizeWorldId(worldId)] as const;
 }
 
 export function worldHistoryQueryKey(worldId: string) {
@@ -148,11 +176,10 @@ export async function fetchWorldRecommendedCharacterPreview(
   worldCreatedAt: string,
   realmWorldData: RealmWorldData,
 ): Promise<WorldCharacter[]> {
-  const characters = await realmWorldData.loadWorldCharacters(
-    normalizeWorldId(worldId),
-    WORLD_RECOMMENDED_CHARACTER_PREVIEW_LIMIT,
-  );
-  return characters.map((character) => toWorldDisplayCharacter(character, worldCreatedAt));
+  const page = await realmWorldData.loadWorldCharacterPage(normalizeWorldId(worldId), {
+    limit: WORLD_RECOMMENDED_CHARACTER_PREVIEW_LIMIT,
+  });
+  return page.items.map((character) => toWorldDisplayCharacter(character, worldCreatedAt));
 }
 
 export async function fetchWorldHistory(worldId: string, realmWorldData: RealmWorldData): Promise<WorldHistoryBundle> {

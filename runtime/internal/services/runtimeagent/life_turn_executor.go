@@ -8,13 +8,14 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
 	// A life turn's APML is short, but models that always think spend part of
-	// this limit on reasoning first; at 512 Claude Opus 5.5 stopped mid-element.
+	// this budget on reasoning first; at 512 Claude Opus 5.5 stopped mid-element.
+	// It is the Runtime's own output budget, not a caller hard limit.
 	lifeTurnPromptMaxTokens = 1024
 	// The sweep runs due hooks one at a time, so this bounds how long one life
 	// turn can hold it. A life-turn-shaped request to Claude Opus 5.5 took
@@ -117,6 +118,7 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 		}
 	}
 	ctx = withPublicChatExecutionIntent(ctx, req.ExecutionBinding, "text.generate")
+	ctx = textbehavior.WithInternalOutputBudget(ctx, lifeTurnPromptMaxTokens)
 	resp, err := e.ai.ExecuteScenario(ctx, execReq)
 	if err != nil {
 		return nil, &lifeTurnExecutionError{
@@ -175,7 +177,6 @@ func buildLifeTurnScenarioRequest(req *lifeTurnRequest) (*runtimev1.ExecuteScena
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					SystemPrompt: systemPrompt,
-					MaxTokens:    proto.Int32(lifeTurnPromptMaxTokens),
 					Input: []*runtimev1.ChatMessage{
 						{
 							Role:    "user",

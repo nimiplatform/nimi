@@ -156,7 +156,10 @@ func (s *Service) captureCloudTextEffectiveInputs(
 	if err != nil {
 		return fail(err)
 	}
-	mapped, err := driver.MapRequest(target, resolved.spec, intent.Defaults, stream)
+	// A Runtime-owned output budget becomes the provider limit only where this
+	// exact target accepts one; a caller max_tokens stays the hard limit.
+	budgeted := textbehavior.ApplyInternalOutputBudget(ctx, resolved.spec, behaviorAdapter.requestSerializer(), stream)
+	mapped, err := driver.MapRequest(target, budgeted, intent.Defaults, stream)
 	if err != nil {
 		return fail(cloudTextDriverError(err))
 	}

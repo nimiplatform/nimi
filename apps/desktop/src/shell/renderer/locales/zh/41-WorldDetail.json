@@ -81,13 +81,11 @@
     "notSpecified": "未指定",
     "openEra": "开放纪元",
     "stats": {
-      "sources": "Sources",
       "worldOwned": "World Owned",
       "userPersonas": "User Personas",
       "worldTime": "世界时间",
       "events": "事件",
       "flow": "流速",
-      "timeflow": "时间流速",
       "characters": "Characters",
       "personas": "Personas"
     },
@@ -206,7 +204,6 @@
       },
       "systemLabels": {
         "status": {
-          "discoverable": "可发现",
           "public": "公开",
           "system": "系统"
         },
@@ -436,7 +433,7 @@
       "people": {
         "label": "可结识人物",
         "unit": "位",
-        "sub": "带有完整历史背景"
+        "sub": "各自拥有故事与关系"
       },
       "materials": {
         "label": "可查阅资料",
@@ -485,14 +482,14 @@
     },
     "gallery": {
       "title": "可结识的人物",
-      "subtitle": "共 {{total}} 位带着完整生平的人物，{{connectable}} 位现在即可加入本地。",
+      "subtitle": "共 {{total}} 位人物，{{connectable}} 位现在即可加入本地。",
       "close": "关闭",
       "backToWorld": "返回世界详情",
-      "searchPlaceholder": "按名字、身份或交游圈搜索",
+      "searchPlaceholder": "按名字或身份搜索",
       "count": "{{count}} 位",
       "empty": "没有匹配的人物。",
       "groupBy": {
-        "faction": "按交游圈",
+        "faction": "按所属圈子",
         "tier": "按重要程度",
         "status": "按结识状态"
       },
@@ -530,7 +527,17 @@
           "label": "自由交游",
           "caption": "没有固定归属、独来独往的人物。"
         }
-      }
+      },
+      "loadMore": "加载更多人物（已加载 {{loaded}} / 共 {{total}}）",
+      "loadingMore": "正在加载…",
+      "loadMoreError": "没能加载更多人物，请重试。",
+      "loadingPeople": "正在加载人物…",
+      "loadFailed": "没能加载这个世界的人物。",
+      "loadFailedOffline": "连接不上，没能加载这个世界的人物。请检查网络后重试。",
+      "retry": "重试",
+      "loadMoreOffline": "连接不上，没能加载更多人物。请检查网络后重试。",
+      "peopleWaitingForNetwork": "当前离线，恢复网络后会自动加载这个世界的人物。",
+      "loadMoreWaiting": "当前离线，恢复网络后会继续加载更多人物。"
     },
     "loreOverview": {
       "title": "世界设定概览",
@@ -674,121 +681,43 @@
     },
     "relationshipExplorer": {
       "back": "返回详情",
-      "noTargetMeta": "暂无公开身份信息",
-      "openCharacter": "查看人物档案",
-      "graphLabel": "人物关系网络",
       "noCharactersTitle": "这个世界还没有公开人物",
       "noCharactersDesc": "人物关系探索需要至少一位公开人物。",
-      "allKinds": "全部关系",
       "topbar": {
         "current": "当前探索：{{name}}"
       },
       "metrics": {
         "people": "已收录人物",
-        "relationships": "已整理关系",
-        "clues": "可探索线索",
-        "featured": "重点人物"
+        "relationships": "已整理关系"
       },
       "identity": {
         "primary": "重点人物",
         "secondary": "相关人物",
-        "background": "时代人物"
-      },
-      "network": {
-        "heading": "关系网络",
-        "centerHint": "以 {{name}} 为中心，看交往与亲属脉络。",
-        "pickHint": "点击左侧任一人物，即可切换其关系网络。",
-        "visibleCount": "显示 {{visible}} / {{total}} 条一度关系",
-        "noFilteredEdges": "当前筛选下暂无一度关系。"
-      },
-      "story": {
-        "title": "人物关系与线索",
-        "subtitle": "{{name}} 的关系主要围绕已整理的人物、作品、身份与时代线索展开。",
-        "cardAction": "查看关系脉络",
-        "viewAllSystem": "查看全部关系系统（{{count}}）"
+        "background": "背景人物"
       },
       "profile": {
         "status": "人物档案",
-        "defaultIntro": "这个人物已有基础档案，适合先从身份、时代位置和相关资料开始了解。",
         "identity": "身份标签",
         "materials": "已有资料",
         "basicMaterial": "已收录基础人物信息",
         "bioMaterial": "已整理人物简介",
         "topicMaterial": "已整理 {{count}} 条资料线索",
-        "placeMaterial": "可从 {{place}} 的地域脉络继续查看",
-        "workMaterial": "可从 {{count}} 条作品线索继续查看",
+        "placeMaterial": "所在地：{{place}}",
         "directions": "可能的探索方向",
-        "defaultDirection": "可先浏览同代人物，再沿身份或作品线索继续。",
         "directionFaction": "沿 {{value}} 的交往圈继续",
         "directionRole": "寻找同为 {{value}} 的人物",
-        "directionWork": "从 {{value}} 相关记录继续",
         "directionPlace": "查看 {{value}} 的地域线索",
         "viewProfile": "查看人物档案",
-        "contemporaries": "同时代人物",
         "sameIdentity": "同身份人物",
-        "sameWorks": "同作品人物",
-        "noRelated": "可先从人物列表继续。",
-        "peers": "同代人物",
-        "relationshipOverview": "关系概览",
-        "noRelationshipOverview": "当前人物还没有可绘制的一度关系。"
+        "noRelated": "可先从人物列表继续。"
       },
-      "side": {
-        "relationship": "关系详情",
-        "clue": "探索线索",
-        "profile": "人物档案",
-        "detail": "详情面板"
-      },
-      "relation": {
-        "type": "关系类型",
-        "description": "关系说明",
-        "evidence": "证据线索",
-        "noEvidence": "这条关系暂未出现可展示的证据文本。",
-        "works": "相关作品",
-        "noWorks": "这条关系暂未出现明确作品名。"
-      },
-      "clue": {
-        "title": "这是一条探索线索",
-        "desc": "它提示了可能的交往、作品或身份方向，但还不是已确认的人物关系。",
-        "continue": "可以从 {{name}} 的档案继续追踪。"
-      },
-      "clueList": {
-        "title": "主要线索",
-        "empty": "当前人物适合先从档案和同代人物开始。",
-        "count": "{{count}} 条",
-        "limitedCount": "显示 {{shown}} / {{total}} 条"
-      },
-      "kinds": {
-        "association": "交往",
-        "kinship": "亲属",
-        "office": "官职",
-        "text": "文本",
-        "entry": "入仕",
-        "address": "地点",
-        "status": "身份",
-        "topic": "主题"
-      },
-      "worldKindStatic": "静态历史世界",
       "peopleList": {
         "title": "人物",
         "searchPlaceholder": "搜索人物或身份…",
-        "clueCount": "{{count}}",
-        "empty": "没有符合条件的人物。",
-        "filters": {
-          "all": "全部",
-          "literati": "文人交游",
-          "academy": "书院学术"
-        }
-      },
-      "controls": {
-        "zoomIn": "放大",
-        "zoomOut": "缩小",
-        "resetView": "重置视图",
-        "collapseDetail": "折叠详情面板",
-        "expandDetail": "展开详情面板"
+        "empty": "没有符合条件的人物。"
       }
     },
     "rail": {
-      "sources": "可结识 Source",
       "worldTime": "世界时间",
       "followWorld": "关注",
       "followingWorld": "已关注",
@@ -817,7 +746,7 @@
       },
       "chatCta": {
         "title": "与世界中的人物交流",
-        "desc": "他们都带着完整的历史背景，等你来聊。"
+        "desc": "认识他们的故事、心愿与关系。"
       }
     }
   }

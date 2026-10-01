@@ -6892,6 +6892,8 @@ components:
               type: string
             displayName:
               type: string
+            heroResourceRef:
+              type: string
             iconResourceRef:
               type: string
             palette:
@@ -6989,52 +6991,76 @@ components:
             type: object
           type: array
         timeModel:
-          additionalProperties: false
-          properties:
-            anchor:
-              additionalProperties: false
+          discriminator:
+            propertyName: mode
+          oneOf:
+            - additionalProperties: false
+              description: >-
+                A world without a world clock. label is an author-declared time
+                label, or null when none is declared.
               properties:
-                realStartedAt:
-                  minLength: 1
+                label:
+                  maxLength: 60
+                  nullable: true
                   type: string
-                worldStartedAt:
-                  minLength: 1
-                  type: string
-                worldStartedAtDisplay:
-                  minLength: 1
+                mode:
+                  enum:
+                    - static
                   type: string
               required:
-                - realStartedAt
-                - worldStartedAt
-                - worldStartedAtDisplay
+                - mode
+                - label
               type: object
-            calendar:
-              nullable: true
-              type: string
-            displayFormat:
-              nullable: true
-              type: string
-            flowRatio:
-              type: number
-            isPaused:
-              type: boolean
-            mode:
-              enum:
-                - wallClockAnchored
-                - static
-              type: string
-            pausedWorldTime:
-              nullable: true
-              type: string
-          required:
-            - mode
-            - flowRatio
-            - isPaused
-            - anchor
-            - pausedWorldTime
-            - calendar
-            - displayFormat
-          type: object
+            - additionalProperties: false
+              description: >-
+                A world clock anchored to real time. pausedWorldTime is required
+                exactly when isPaused is true.
+              properties:
+                anchor:
+                  additionalProperties: false
+                  properties:
+                    realStartedAt:
+                      minLength: 1
+                      type: string
+                    worldStartedAt:
+                      minLength: 1
+                      type: string
+                    worldStartedAtDisplay:
+                      minLength: 1
+                      type: string
+                  required:
+                    - realStartedAt
+                    - worldStartedAt
+                    - worldStartedAtDisplay
+                  type: object
+                calendar:
+                  nullable: true
+                  type: string
+                displayFormat:
+                  nullable: true
+                  type: string
+                flowRatio:
+                  exclusiveMinimum: true
+                  minimum: 0
+                  type: number
+                isPaused:
+                  type: boolean
+                mode:
+                  enum:
+                    - wallClockAnchored
+                  type: string
+                pausedWorldTime:
+                  nullable: true
+                  type: string
+              required:
+                - mode
+                - flowRatio
+                - isPaused
+                - anchor
+                - pausedWorldTime
+                - calendar
+                - displayFormat
+              type: object
         timeline:
           additionalProperties: false
           properties:
@@ -7539,6 +7565,14 @@ components:
           items:
             type: string
           type: array
+        era:
+          description: Canonical WorldCore identity.era.
+          nullable: true
+          type: string
+        genre:
+          description: Canonical WorldCore identity.genre.
+          nullable: true
+          type: string
         id:
           type: string
         media:
@@ -7568,12 +7602,20 @@ components:
         tagline:
           nullable: true
           type: string
-        tags:
+        themes:
+          description: Canonical WorldCore identity.themes.
           items:
             type: string
           type: array
         time:
-          $ref: '#/components/schemas/WorldPublicTimeSnapshotDto'
+          discriminator:
+            mapping:
+              static: '#/components/schemas/WorldPublicStaticTimeDto'
+              wallClockAnchored: '#/components/schemas/WorldPublicWallClockTimeDto'
+            propertyName: mode
+          oneOf:
+            - $ref: '#/components/schemas/WorldPublicStaticTimeDto'
+            - $ref: '#/components/schemas/WorldPublicWallClockTimeDto'
         timeline:
           items:
             $ref: '#/components/schemas/WorldPublicTimelineEventDto'
@@ -7596,7 +7638,9 @@ components:
         - summary
         - type
         - visibility
-        - tags
+        - genre
+        - themes
+        - era
         - entityKinds
         - relationshipTypes
         - media
@@ -7643,6 +7687,14 @@ components:
           items:
             type: string
           type: array
+        era:
+          description: Canonical WorldCore identity.era.
+          nullable: true
+          type: string
+        genre:
+          description: Canonical WorldCore identity.genre.
+          nullable: true
+          type: string
         id:
           type: string
         media:
@@ -7660,12 +7712,20 @@ components:
         tagline:
           nullable: true
           type: string
-        tags:
+        themes:
+          description: Canonical WorldCore identity.themes.
           items:
             type: string
           type: array
         time:
-          $ref: '#/components/schemas/WorldPublicTimeSnapshotDto'
+          discriminator:
+            mapping:
+              static: '#/components/schemas/WorldPublicStaticTimeDto'
+              wallClockAnchored: '#/components/schemas/WorldPublicWallClockTimeDto'
+            propertyName: mode
+          oneOf:
+            - $ref: '#/components/schemas/WorldPublicStaticTimeDto'
+            - $ref: '#/components/schemas/WorldPublicWallClockTimeDto'
         type:
           enum:
             - OASIS
@@ -7684,7 +7744,9 @@ components:
         - summary
         - type
         - visibility
-        - tags
+        - genre
+        - themes
+        - era
         - entityKinds
         - relationshipTypes
         - media
@@ -7869,7 +7931,13 @@ components:
           $ref: '#/components/schemas/CharacterSourceRefV3Dto'
         summary:
           type: string
-        tags:
+        topics:
+          description: Canonical profile knowledge.topics.
+          items:
+            type: string
+          type: array
+        traits:
+          description: Canonical profile narrative.traits.
           items:
             type: string
           type: array
@@ -7888,10 +7956,31 @@ components:
         - summary
         - worldId
         - worldName
-        - tags
+        - traits
+        - topics
         - media
         - relation
         - updatedAt
+      type: object
+    WorldPublicSourceCardPageDto:
+      properties:
+        hasMore:
+          type: boolean
+        items:
+          items:
+            $ref: '#/components/schemas/WorldPublicSourceCardDto'
+          type: array
+        nextCursor:
+          nullable: true
+          type: string
+        totalCount:
+          description: Total matching items for this query and scope.
+          type: number
+      required:
+        - items
+        - nextCursor
+        - hasMore
+        - totalCount
       type: object
     WorldPublicSourceMediaAssetsDto:
       properties:
@@ -7944,16 +8033,57 @@ components:
     WorldPublicSourceSectionsDto:
       properties:
         characters:
+          description: >-
+            First bounded page of public WorldCharacters; stats.characterCount
+            is the total.
           items:
             $ref: '#/components/schemas/WorldPublicSourceCardDto'
           type: array
+        charactersNextCursor:
+          description: >-
+            Continue with WorldPublicController_listWorldCharacterCatalog; null
+            on the last page.
+          nullable: true
+          type: string
         personaCharacters:
+          description: >-
+            First bounded page of public PersonaCharacters;
+            stats.personaCharacterCount is the total.
           items:
             $ref: '#/components/schemas/WorldPublicSourceCardDto'
           type: array
+        personaCharactersNextCursor:
+          description: >-
+            Continue with WorldPublicController_listPersonaCharacterCatalog for
+            this worldId; null on the last page.
+          nullable: true
+          type: string
       required:
         - characters
+        - charactersNextCursor
         - personaCharacters
+        - personaCharactersNextCursor
+      type: object
+    WorldPublicStaticTimeDto:
+      properties:
+        currentWorldTime:
+          description: 'Always null: a static world has no world clock.'
+          enum:
+            - null
+          nullable: true
+          type: string
+        label:
+          description: Author-declared time label; null when the world declares none.
+          nullable: true
+          type: string
+        mode:
+          enum:
+            - static
+          type: string
+      required:
+        - mode
+        - label
+        - currentWorldTime
       type: object
     WorldPublicStatsDto:
       properties:
@@ -7979,46 +8109,6 @@ components:
         - sceneCount
         - systemCount
         - timelineEventCount
-      type: object
-    WorldPublicTimeSnapshotDto:
-      properties:
-        anchorRealStartedAt:
-          type: string
-        anchorWorldStartedAt:
-          type: string
-        anchorWorldStartedAtDisplay:
-          type: string
-        calendar:
-          nullable: true
-          type: string
-        computedAt:
-          type: string
-        currentWorldTime:
-          type: string
-        currentWorldTimeDisplay:
-          type: string
-        displayFormat:
-          nullable: true
-          type: string
-        flowRatio:
-          type: number
-        isPaused:
-          type: boolean
-        mode:
-          enum:
-            - wallClockAnchored
-            - static
-          type: string
-      required:
-        - mode
-        - flowRatio
-        - isPaused
-        - anchorRealStartedAt
-        - anchorWorldStartedAt
-        - anchorWorldStartedAtDisplay
-        - currentWorldTime
-        - currentWorldTimeDisplay
-        - computedAt
       type: object
     WorldPublicTimelineEventDto:
       properties:
@@ -8089,6 +8179,71 @@ components:
           type: string
       required:
         - state
+      type: object
+    WorldPublicWallClockTimeDto:
+      properties:
+        anchorRealStartedAt:
+          type: string
+        anchorWorldStartedAt:
+          type: string
+        anchorWorldStartedAtDisplay:
+          type: string
+        calendar:
+          nullable: true
+          type: string
+        computedAt:
+          type: string
+        currentWorldTime:
+          type: string
+        currentWorldTimeDisplay:
+          type: string
+        displayFormat:
+          nullable: true
+          type: string
+        flowRatio:
+          type: number
+        isPaused:
+          type: boolean
+        mode:
+          enum:
+            - wallClockAnchored
+          type: string
+        pausedWorldTime:
+          nullable: true
+          type: string
+      required:
+        - mode
+        - flowRatio
+        - isPaused
+        - calendar
+        - displayFormat
+        - anchorRealStartedAt
+        - anchorWorldStartedAt
+        - anchorWorldStartedAtDisplay
+        - pausedWorldTime
+        - currentWorldTime
+        - currentWorldTimeDisplay
+        - computedAt
+      type: object
+    WorldPublicWorldCatalogPageDto:
+      properties:
+        hasMore:
+          type: boolean
+        items:
+          items:
+            $ref: '#/components/schemas/WorldPublicItemDto'
+          type: array
+        nextCursor:
+          nullable: true
+          type: string
+        totalCount:
+          description: Total matching items for this query and scope.
+          type: number
+      required:
+        - items
+        - nextCursor
+        - hasMore
+        - totalCount
       type: object
     WorldRelationshipCoreDto:
       additionalProperties: false
@@ -12737,22 +12892,6 @@ paths:
       summary: Translate text
       tags:
         - Translation
-  /api/world:
-    get:
-      operationId: WorldPublicController_listWorlds
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/WorldPublicItemDto'
-                type: array
-          description: ''
-      summary: List public worlds
-      tags:
-        - World
   /api/world/by-id/{worldId}:
     get:
       operationId: WorldPublicController_getWorld
@@ -12772,17 +12911,30 @@ paths:
       summary: Get a public world
       tags:
         - World
-  /api/world/by-id/{worldId}/characters:
+  /api/world/by-id/{worldId}/characters/catalog:
     get:
-      operationId: WorldPublicController_listWorldCharacters
+      operationId: WorldPublicController_listWorldCharacterCatalog
       parameters:
-        - in: query
+        - description: Page size from 1 to 100; default 20.
+          in: query
           name: limit
           required: false
           schema:
-            maximum: 100
-            minimum: 1
             type: number
+        - description: >-
+            Case-insensitive search over public names, summaries and declared
+            topics.
+          in: query
+          name: q
+          required: false
+          schema:
+            type: string
+        - description: Opaque cursor from the previous page of the same query.
+          in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
         - in: path
           name: worldId
           required: true
@@ -12793,11 +12945,17 @@ paths:
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/WorldPublicSourceCardDto'
-                type: array
+                $ref: '#/components/schemas/WorldPublicSourceCardPageDto'
           description: ''
-      summary: List public world character source cards
+        '400':
+          description: >-
+            CATALOG_CURSOR_INVALID, CATALOG_CURSOR_SCOPE_MISMATCH,
+            CATALOG_LIMIT_INVALID or CATALOG_QUERY_INVALID
+        '404':
+          description: World not found
+      summary: >-
+        Page through the public WorldCharacters of one world with server-side
+        search
       tags:
         - World
   /api/world/by-id/{worldId}/detail-with-characters:
@@ -12875,6 +13033,56 @@ paths:
       summary: Get posts scoped to a specific world
       tags:
         - WorldPost
+  /api/world/catalog:
+    get:
+      operationId: WorldPublicController_listWorldCatalog
+      parameters:
+        - description: Exact canonical theme.
+          in: query
+          name: theme
+          required: false
+          schema:
+            type: string
+        - description: Exact canonical genre.
+          in: query
+          name: genre
+          required: false
+          schema:
+            type: string
+        - description: Page size from 1 to 100; default 20.
+          in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - description: >-
+            Case-insensitive search over public names, summaries and declared
+            topics.
+          in: query
+          name: q
+          required: false
+          schema:
+            type: string
+        - description: Opaque cursor from the previous page of the same query.
+          in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldPublicWorldCatalogPageDto'
+          description: ''
+        '400':
+          description: >-
+            CATALOG_CURSOR_INVALID, CATALOG_CURSOR_SCOPE_MISMATCH,
+            CATALOG_LIMIT_INVALID or CATALOG_QUERY_INVALID
+      summary: Page through the public world catalog with server-side search
+      tags:
+        - World
   /api/world/character-sources/public-projection:
     post:
       operationId: WorldPublicController_getCharacterSource
@@ -12903,6 +13111,52 @@ paths:
         '503':
           description: Realm public character source read is unavailable
       summary: Get one public character source projection by typed canonical identity
+      tags:
+        - World
+  /api/world/persona-characters/catalog:
+    get:
+      operationId: WorldPublicController_listPersonaCharacterCatalog
+      parameters:
+        - description: Limit to one public World.
+          in: query
+          name: worldId
+          required: false
+          schema:
+            type: string
+        - description: Page size from 1 to 100; default 20.
+          in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - description: >-
+            Case-insensitive search over public names, summaries and declared
+            topics.
+          in: query
+          name: q
+          required: false
+          schema:
+            type: string
+        - description: Opaque cursor from the previous page of the same query.
+          in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldPublicSourceCardPageDto'
+          description: ''
+        '400':
+          description: >-
+            CATALOG_CURSOR_INVALID, CATALOG_CURSOR_SCOPE_MISMATCH,
+            CATALOG_LIMIT_INVALID or CATALOG_QUERY_INVALID
+      summary: >-
+        Page through public PersonaCharacters in public worlds with server-side
+        search
       tags:
         - World
   /api/world/posts:

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useExploreCatalogQuery } from './explore-catalog-query.js';
 import { createRealmExploreData } from './data/realm-explore-data';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
@@ -17,9 +18,11 @@ import type { ExploreSectionId } from './explore-section-nav';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { parsePersonaSources } from './explore-persona-source-projection';
 import {
-  fetchWorldListItems,
-  worldListQueryKey,
+  WORLD_CATALOG_CONTRACT_VERSION,
+  fetchWorldCatalogPage,
+  worldCatalogQueryKey,
 } from '../world/world-detail-queries.js';
+import type { WorldCatalogPaging } from '../world/world-list';
 import {
   characterSourceMaterializationFailureMessage,
   characterSourceRefKey,
@@ -76,36 +79,61 @@ export function ExplorePanel(props: ExplorePanelProps) {
   >(null);
   const setFeedback = emitFeedbackToast;
 
-  // Fetch worlds for banner carousel
-  const worldsQuery = useQuery({
-    queryKey: worldListQueryKey(),
-    queryFn: async () => fetchWorldListItems(createRealmWorldData(bindings.sdk)),
+  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
+  const networkOffline = useAppStore((state) => state.offlineTier !== 'L0');
+  const realmWorldData = useMemo(() => createRealmWorldData(bindings.sdk), [bindings.sdk]);
+
+  // The world rail owns its own search; worlds and personas never share one query string.
+  const [worldSearchText, setWorldSearchText] = useState('');
+  const worldQuery = useDebouncedSearch(worldSearchText);
+  const worldCatalog = useExploreCatalogQuery({
+    queryKey: worldCatalogQueryKey(realmBaseUrl, worldQuery),
+    loadPage: (cursor) => fetchWorldCatalogPage(realmWorldData, worldQuery, cursor),
     enabled: bootstrapReady,
+    networkOffline,
     staleTime: 30_000,
   });
-
-  // Create worlds map for personaSource mapping
-  const worldsMap = useMemo(() => {
-    const worlds = worldsQuery.data ?? [];
-    return new Map(worlds.map((w) => [w.id, { bannerUrl: w.bannerUrl, name: w.name }]));
-  }, [worldsQuery.data]);
-
-  // Fetch personaSources for sidebar
-  const personaSourcesQuery = useQuery({
-    queryKey: ['explore-personas', authStatus, selectedCategory, props.searchText],
-    queryFn: async () => {
-      const tag = selectedCategory || undefined;
-      const query = props.searchText.trim() || undefined;
-      return realmExploreData.loadExplorePersonas({ tag, query, limit: PAGE_SIZE });
-    },
-    enabled: bootstrapReady,
-    placeholderData: (previousData) => previousData,
-  });
-
-  const personaSourceBase = useMemo(
-    () => parsePersonaSources(personaSourcesQuery.data, worldsMap),
-    [personaSourcesQuery.data, worldsMap],
+  const worldCatalogQuery = worldCatalog.query;
+  const worldCatalogItems = useMemo(
+    () => worldCatalogQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [worldCatalogQuery.data],
   );
+  const worldCatalogPaging: WorldCatalogPaging = {
+    totalCount: worldCatalogQuery.data?.pages[0]?.totalCount ?? 0,
+    hasMore: Boolean(worldCatalogQuery.hasNextPage),
+    loadingMore: worldCatalogQuery.isFetchingNextPage,
+    loadMoreFailed: worldCatalogQuery.isFetchNextPageError,
+    // Offline keeps only the pages already shown for this query and marks them incomplete.
+    offlineIncomplete: worldCatalog.offline && Boolean(worldCatalogQuery.data),
+    onLoadMore: () => {
+      void worldCatalogQuery.fetchNextPage();
+    },
+  };
+
+  // Persona cards carry their own world name; the banner comes from worlds already loaded.
+  const worldsMap = useMemo(
+    () => new Map(worldCatalogItems.map((w) => [w.id, { bannerUrl: w.bannerUrl, name: w.name }])),
+    [worldCatalogItems],
+  );
+
+  const personaQuery = useDebouncedSearch(props.searchText);
+  const personaCatalog = useExploreCatalogQuery({
+    queryKey: ['explore-personas', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, authStatus, personaQuery],
+    loadPage: (cursor) => realmExploreData.loadExplorePersonas({
+      query: personaQuery || undefined,
+      cursor,
+      limit: PAGE_SIZE,
+    }),
+    enabled: bootstrapReady,
+    networkOffline,
+  });
+  const personaSourcesQuery = personaCatalog.query;
+  const personaPages = personaSourcesQuery.data?.pages;
+  const personaSourceBase = useMemo(
+    () => parsePersonaSources({ items: personaPages?.flatMap((page) => page.items) ?? [] }, worldsMap),
+    [personaPages, worldsMap],
+  );
+  const personaTotalCount = personaPages?.[0]?.totalCount ?? 0;
 
   const personaSourceDiscoveryKey = useMemo(
     () => personaSourceBase
@@ -283,18 +311,33 @@ export function ExplorePanel(props: ExplorePanelProps) {
         selectedCategory={selectedCategory}
         categories={categories}
         personaSources={personaSources}
-        worldCatalogItems={worldsQuery.data ?? []}
-        worldSearchText={props.searchText}
-        worldsLoading={worldsQuery.isPending}
-        worldsError={worldsQuery.isError}
+        worldCatalogItems={worldCatalogItems}
+        worldCatalogPaging={worldCatalogPaging}
+        worldSearchText={worldSearchText}
+        onWorldSearchTextChange={setWorldSearchText}
+        personaSearchText={props.searchText}
+        personaTotalCount={personaTotalCount}
+        personaHasMore={Boolean(personaSourcesQuery.hasNextPage)}
+        personaLoadingMore={personaSourcesQuery.isFetchingNextPage}
+        personaLoadMoreFailed={personaSourcesQuery.isFetchNextPageError}
+        personaOffline={personaCatalog.offline}
+        onLoadMorePersonas={() => {
+          void personaSourcesQuery.fetchNextPage();
+        }}
+        worldsLoading={worldCatalog.initialLoading}
+        worldsError={worldCatalog.initialUnavailable}
+        worldsOffline={worldCatalog.offline}
+        onRetryWorlds={() => {
+          void worldCatalogQuery.refetch();
+        }}
         activeSection={props.activeSection}
         onSectionChange={props.onSectionChange}
         onSearchTextChange={props.onSearchTextChange}
         fetchPostPage={fetchPostPage}
         postFeedKey={postFeedKey}
         onPostDelete={() => setRefreshKey((k) => k + 1)}
-        personaLoading={personaSourcesQuery.isPending}
-        personaError={personaSourcesQuery.isError}
+        personaLoading={personaCatalog.initialLoading}
+        personaError={personaCatalog.initialUnavailable}
         onRetryPersonas={() => {
           void personaSourcesQuery.refetch();
         }}
@@ -311,4 +354,16 @@ export function ExplorePanel(props: ExplorePanelProps) {
       />
     </>
   );
+}
+
+const SEARCH_DEBOUNCE_MS = 300;
+
+function useDebouncedSearch(value: string): string {
+  const normalized = value.trim();
+  const [debounced, setDebounced] = useState(normalized);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(normalized), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [normalized]);
+  return debounced;
 }

@@ -160,7 +160,7 @@ test('Realm fetch transport maps network fetch failures to Realm unavailable', a
 
   await assert.rejects(
     transport.unary({
-      methodId: 'WorldPublicController_listWorlds',
+      methodId: 'WorldPublicController_listWorldCatalog',
       body: { path: {}, query: {} },
     }),
     (error: unknown) => {
@@ -173,7 +173,7 @@ test('Realm fetch transport maps network fetch failures to Realm unavailable', a
       assert.equal(record.reasonCode, ReasonCode.REALM_UNAVAILABLE);
       assert.equal(record.source, 'realm');
       assert.equal(record.retryable, true);
-      assert.equal(record.details?.operationId, 'WorldPublicController_listWorlds');
+      assert.equal(record.details?.operationId, 'WorldPublicController_listWorldCatalog');
       return true;
     },
   );

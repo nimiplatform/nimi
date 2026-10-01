@@ -12,6 +12,7 @@ import {
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
 import { composeWorldCharacterMilestones } from '../src/shell/renderer/features/source-detail/source-detail-world-character-milestones.js';
+import { buildSourceDetailBiographicalTimeline } from '../src/shell/renderer/features/source-detail/source-detail-world-character-biographical-timeline.js';
 
 test.before(async () => {
   await initI18n();
@@ -45,7 +46,7 @@ test('world character source detail uses the shared character page surface', () 
   assert.doesNotMatch(markup, /data-testid="source-detail-compact-profile-card"/);
 });
 
-test('persona character source detail uses the same shared profile and page surface', () => {
+test('persona character source detail shares the profile surface and omits unavailable works', () => {
   const source = toSourceDetailData({
     ...liBaiRaw,
     id: 'persona-li-bai',
@@ -84,8 +85,8 @@ test('persona character source detail uses the same shared profile and page surf
 
   assert.match(markup, /data-testid="character-source-detail-page"/);
   assert.match(markup, /data-source-kind="personaCharacter"/);
-  assert.match(markup, /data-testid="world-character-works-section"/);
-  assert.match(markup, /No works are available yet/);
+  assert.doesNotMatch(markup, /data-testid="world-character-works-section"/);
+  assert.doesNotMatch(markup, /No works are available yet/);
   assert.match(markup, /data-testid="world-character-media-section"/);
   assert.match(markup, /且饮一杯，再谈诗。/);
 });
@@ -194,9 +195,15 @@ test('world character source detail reuses the shared dossier and keeps career a
   assert.equal(detail.characterProfile.milestones[1]?.kind, 'biography');
   assert.equal(detail.characterProfile.milestones[1]?.derived, false);
   assert.doesNotMatch(detail.characterProfile.milestones[1]?.summary ?? '', /掌管国家礼仪与科举事务/);
-  assert.equal(milestones[1]?.kind, 'office');
-  assert.equal(milestones[1]?.derived, true);
-  assert.match(milestones[1]?.summary ?? '', /掌管国家礼仪与科举事务/);
+  // The authored biography milestone and the typed office relationship stay
+  // separate: text overlap never merges or reclassifies them.
+  assert.deepEqual(milestones.map((milestone) => [milestone.title, milestone.kind, milestone.derived]), [
+    ['嘉靖二年（1523）中进士', 'biography', false],
+    ['官至礼部尚书', 'biography', false],
+    ['礼部尚书', 'office', true],
+  ]);
+  assert.equal(milestones[1]?.summary, '官至礼部尚书');
+  assert.match(milestones[2]?.summary ?? '', /掌管国家礼仪与科举事务/);
   assert.equal(detail.characterProfile.relationshipNotes[0]?.summary, '欧阳德被明确标识为阳明学派理学家，这是其最核心的学术身份。');
   assert.match(detail.characterProfile.conversationAnchors.join('\n'), /想问诗文、仕途还是人生起落/);
 });
@@ -270,7 +277,7 @@ test('world character career milestones read CBDB first and last year attributes
   assert.equal(detail.characterProfile.milestones.some((item) => item.title === '书院山长'), false);
 });
 
-test('world character career milestones collapse authored career summaries with relationship office facts', () => {
+test('world character career milestones keep authored summaries and typed office relationships as separate entries', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
     characterProfile: {
@@ -352,17 +359,19 @@ test('world character career milestones collapse authored career summaries with 
 
   assert.equal(sharedMilestones.every((milestone) => milestone.kind === 'biography'), true);
   assert.equal(sharedMilestones.every((milestone) => !milestone.derived), true);
-  assert.deepEqual(milestones.map((milestone) => milestone.title), [
-    '历任翰林国史院直学士、学士、承旨',
-    '官至大司农司司农丞',
+  // Office phrases are not parsed out of authored prose, so authored milestones
+  // keep their biography kind and each typed office relationship stays its own
+  // office entry with its explicit label.
+  assert.deepEqual(milestones.slice(0, 2).map((milestone) => [milestone.title, milestone.kind, milestone.derived, milestone.summary]), [
+    ['历任翰林国史院直学士、学士、承旨', 'biography', false, '历任翰林国史院直学士、学士、承旨。'],
+    ['官至大司农司司农丞', 'biography', false, '官至大司农司司农丞。'],
   ]);
-  assert.equal(milestones.every((milestone) => milestone.kind === 'office'), true);
-  assert.equal(milestones.every((milestone) => milestone.derived), true);
-  assert.match(milestones[0]?.summary ?? '', /历任翰林国史院直学士、学士、承旨/);
-  assert.match(milestones[0]?.summary ?? '', /翰林国史院学士/);
-  assert.match(milestones[0]?.summary ?? '', /翰林国史院直学士/);
-  assert.match(milestones[1]?.summary ?? '', /官至大司农司司农丞/);
-  assert.match(milestones[1]?.summary ?? '', /大司农司大司农丞/);
+  assert.deepEqual(milestones.slice(2).map((milestone) => milestone.title).sort(), [
+    '大司农司大司农丞',
+    '翰林国史院学士',
+    '翰林国史院直学士',
+  ].sort());
+  assert.equal(milestones.slice(2).every((milestone) => milestone.kind === 'office' && milestone.derived), true);
 });
 
 test('world character life milestones omit unknown time placeholder', () => {
@@ -400,7 +409,7 @@ test('world character life milestones omit unknown time placeholder', () => {
   assert.doesNotMatch(markup, /Time unknown|未标注/);
 });
 
-test('world character biographical timeline keeps untimed career clues in one reading flow', () => {
+test('world character biographical timeline lists undated explicit milestones apart from dated nodes', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
     characterProfile: {
@@ -492,9 +501,31 @@ test('world character biographical timeline keeps untimed career clues in one re
   );
   const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');
 
+  const sections = buildSourceDetailBiographicalTimeline(composeWorldCharacterMilestones(
+    source.characterProfile.milestones,
+    source.worldCharacterAugmentation?.careerMilestones ?? [],
+  ));
+  const primaryKinds = sections.flatMap((section) => (
+    section.kind === 'primary' ? [[section.milestone.title, section.milestone.kind]] : []
+  ));
+  // The dated milestone keeps its authored biography kind; 任/山长 in its text
+  // does not turn it into an office node.
+  assert.deepEqual(primaryKinds, [
+    ['1254年出生', 'biography'],
+    ['1314年任书院山长', 'biography'],
+    ['1331年去世', 'biography'],
+  ]);
+  const undated = sections.find((section) => section.kind === 'clueList');
+  assert.equal(undated?.kind === 'clueList' ? undated.variant : null, 'undated');
+  assert.deepEqual(
+    (undated?.kind === 'clueList' ? undated.clues : []).map((clue) => [clue.title, clue.kind]).sort(),
+    [['太子左赞善', 'office'], ['徽辟', 'entry'], ['拜访故友', 'biography']].sort(),
+  );
+
   assert.match(markup, /data-testid="world-character-biography-primary-node"/);
-  assert.match(markup, /data-testid="world-character-biography-secondary-clue"/);
-  assert.match(markup, /data-testid="world-character-biography-unmatched-clues"/);
+  assert.doesNotMatch(markup, /data-testid="world-character-biography-secondary-clue"/);
+  assert.match(markup, /data-testid="world-character-biography-undated-clues"/);
+  assert.doesNotMatch(markup, />(?:官|仕|文|生|卒|事)<\/span>/u);
   assert.match(markup, /1314年任书院山长/);
   assert.match(markup, /徽辟/);
   assert.match(markup, /太子左赞善/);

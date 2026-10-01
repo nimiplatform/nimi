@@ -302,6 +302,16 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.world-time-model
+    kind: rule
+    title: LocalAgent context carries only the owning world's own time
+    modality: must
+    statement: Runtime admits an owning WorldCore static time model only as mode static with a null or trimmed non-empty author label and no clock fields, and a wallClockAnchored time model only with a positive finite flowRatio, isPaused, a complete anchor, and pausedWorldTime exactly when paused; model-facing context for a static world states that it has no world clock and carries only its label, never an anchor, flow, creation, import, or current real-world date.
+    condition: Whenever Runtime decodes an owning WorldCore from a materialization snapshot or composes LocalAgent context from it.
+    failure: Reject the snapshot with a typed decode failure when the time model is mixed, incomplete, or inconsistently paused, without substituting real or artifact dates.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
   - id: rule.nimi.runtime.agent-service.r063
     kind: rule
     title: Legacy Runtime long-term Memory ownership is hard cut

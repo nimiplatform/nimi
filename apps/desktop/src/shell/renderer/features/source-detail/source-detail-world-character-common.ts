@@ -1,13 +1,9 @@
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type {
-  SourceDetailWorkCollection,
-  SourceDetailWorldCharacterMilestone,
-} from './source-detail-model.js';
+import type { SourceDetailWorkCollection } from './source-detail-model.js';
 import {
   readOptionalString,
   readScalarString,
 } from './source-detail-model-readers.js';
-import { simplifyChineseDisplayText as simplifySourceDetailChineseText } from '@nimiplatform/kit/features/chat/headless';
 
 export function normalizeWorkStatus(value: unknown): SourceDetailWorkCollection['status'] {
   const status = readScalarString(value)?.toLocaleLowerCase();
@@ -26,70 +22,17 @@ export function readWorkTitle(row: JsonObject): string | null {
     ?? readOptionalString(row, 'title');
 }
 
-export function readWorkTitleFromText(value: string | null): string | null {
-  const text = value?.trim();
-  if (!text) {
-    return null;
-  }
-  const match = text.match(/《([^》]+)》/u)
-    ?? text.match(/[「『]([^」』]+)[」』]/u);
-  return match?.[1]?.trim() || null;
-}
-
-export function normalizedCareerMergeText(value: string | null | undefined): string {
-  return simplifySourceDetailChineseText(String(value || ''))
+// Equality key for two explicit values that name the same thing. It only
+// ignores case, whitespace, and punctuation; it never converts scripts, so
+// authored text in any language compares as written.
+export function normalizedMergeText(value: string | null | undefined): string {
+  return String(value || '')
     .trim()
     .toLocaleLowerCase()
-    .replace(/[《》「」『』（）()[\]\s,，。;；:：、·・\-_/]+/gu, '');
+    .replace(/[\s\p{P}\p{S}]+/gu, '');
 }
 
-export function normalizedWorkMergeText(value: string | null | undefined): string {
-  return simplifySourceDetailChineseText(String(value || ''))
-    .trim()
-    .toLocaleLowerCase()
-    .replace(/[《》「」『』（）()[\]\s,，。;；:：、·・\-_/]+/gu, '');
-}
-
-export function isWorkLikeBiographyMilestone(
-  row: JsonObject,
-  title: string | null,
-  summary: string | null,
-): boolean {
-  const explicitKind = readOptionalString(row, 'kind')?.toLocaleLowerCase();
-  if (explicitKind === 'work' || explicitKind === 'text') {
-    return true;
-  }
-  const text = [title, summary]
-    .map((value) => value?.trim() ?? '')
-    .filter(Boolean)
-    .join('\n');
-  return /《[^》]+》/u.test(text)
-    || /著作|著述|著有|撰有|作品|诗集|詩集|文集|词集|詞集|全集|\btext\b|\bwork\b|\bwriting\b|\bauthored\b/iu.test(text);
-}
-
-export function milestoneTexts(milestone: SourceDetailWorldCharacterMilestone): string[] {
-  return [milestone.title, milestone.summary]
-    .map((value) => value?.trim() ?? '')
-    .filter(Boolean);
-}
-
-export function milestoneTitlesOverlap(
-  left: SourceDetailWorldCharacterMilestone,
-  right: SourceDetailWorldCharacterMilestone,
-): boolean {
-  if (left.kind !== right.kind) {
-    return false;
-  }
-  return milestoneTexts(left).some((leftText) => (
-    milestoneTexts(right).some((rightText) => (
-      leftText.includes(right.title)
-        || rightText.includes(left.title)
-        || leftText.includes(rightText)
-        || rightText.includes(leftText)
-    ))
-  ));
-}
-
+// Joins the explicit texts of records that were merged by explicit identity.
 export function mergeDistinctText(left: string | null, right: string | null): string | null {
   const values: string[] = [];
   for (const value of [left, right]) {
@@ -112,11 +55,12 @@ export function mergeDistinctText(left: string | null, right: string | null): st
 }
 
 function readYearsFromLabel(value: string | null | undefined): number[] {
-  return [...String(value || '').matchAll(/\d{3,4}/gu)]
+  return [...String(value || '').matchAll(/(?<!\d)\d{3,4}(?!\d)/gu)]
     .map((match) => Number(match[0]))
     .filter((year) => Number.isFinite(year));
 }
 
+// Combines two explicit time labels of the same merged record.
 export function mergeTimeLabel(left: string | null, right: string | null): string | null {
   const normalizedLeft = left?.trim() || null;
   const normalizedRight = right?.trim() || null;
@@ -126,8 +70,10 @@ export function mergeTimeLabel(left: string | null, right: string | null): strin
   if (!normalizedRight || normalizedLeft === normalizedRight) {
     return normalizedLeft;
   }
-  const years = [...readYearsFromLabel(normalizedLeft), ...readYearsFromLabel(normalizedRight)];
-  if (years.length > 0) {
+  const leftYears = readYearsFromLabel(normalizedLeft);
+  const rightYears = readYearsFromLabel(normalizedRight);
+  if (leftYears.length > 0 && rightYears.length > 0) {
+    const years = [...leftYears, ...rightYears];
     const min = Math.min(...years);
     const max = Math.max(...years);
     return min === max ? String(min) : `${min}-${max}`;

@@ -71,6 +71,8 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [availableLocations, setAvailableLocations] = useState<Location[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
+  const [locationsError, setLocationsError] = useState(false);
+  const [locationsRetry, setLocationsRetry] = useState(0);
   const [activeEmojiCategory, setActiveEmojiCategory] = useState(0);
   const [emojiCategoryPage, setEmojiCategoryPage] = useState(0);
   const [locationSearch, setLocationSearch] = useState('');
@@ -125,11 +127,8 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
   const captionTags = extractHashtags(caption);
   const tags = [...new Set([...selectedTags, ...captionTags])];
 
-  const filteredLocations = availableLocations.filter(
-    (loc) =>
-      loc.name.toLowerCase().includes(locationSearch.toLowerCase()) ||
-      loc.address.toLowerCase().includes(locationSearch.toLowerCase())
-  );
+  // Worlds are searched on the server; the list shows the first matching catalog page.
+  const filteredLocations = availableLocations;
 
   const reset = useCallback(() => {
     if (selectedFileRef.current) URL.revokeObjectURL(selectedFileRef.current.previewUrl);
@@ -198,32 +197,36 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     }
     let canceled = false;
     setLoadingLocations(true);
-    void realmWorldData.loadWorlds()
-      .then((payload) => {
-        if (canceled) {
-          return;
-        }
-        const normalized = Array.isArray(payload)
-          ? payload
-            .map((item) => mapWorldToLocation(item))
-            .filter((item): item is Location => item !== null)
-          : [];
-        setAvailableLocations(normalized);
-      })
-      .catch(() => {
-        if (!canceled) {
-          setAvailableLocations([]);
-        }
-      })
-      .finally(() => {
-        if (!canceled) {
-          setLoadingLocations(false);
-        }
-      });
+    setLocationsError(false);
+    const timer = setTimeout(() => {
+      void realmWorldData.loadWorldCatalogPage({ q: locationSearch })
+        .then((page) => {
+          if (canceled) {
+            return;
+          }
+          setAvailableLocations(
+            page.items
+              .map((item) => mapWorldToLocation(item))
+              .filter((item): item is Location => item !== null),
+          );
+        })
+        .catch(() => {
+          if (!canceled) {
+            setAvailableLocations([]);
+            setLocationsError(true);
+          }
+        })
+        .finally(() => {
+          if (!canceled) {
+            setLoadingLocations(false);
+          }
+        });
+    }, 300);
     return () => {
       canceled = true;
+      clearTimeout(timer);
     };
-  }, [open]);
+  }, [open, locationSearch, locationsRetry]);
 
   const handleClose = useCallback(() => {
     reset();
@@ -449,6 +452,8 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
         show={showLocationPanel}
         position={locationPanelPos}
         loadingLocations={loadingLocations}
+        locationsError={locationsError}
+        retryLocations={() => setLocationsRetry((value) => value + 1)}
         locationSearch={locationSearch}
         setLocationSearch={setLocationSearch}
         filteredLocations={filteredLocations}

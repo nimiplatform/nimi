@@ -10,7 +10,8 @@ export const NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS = [
   "WorldCoreController_listWorldRelationships",
   "WorldPublicController_getWorld",
   "WorldPublicController_getWorldDetailWithCharacters",
-  "WorldPublicController_listWorlds",
+  "WorldPublicController_listWorldCatalog",
+  "WorldPublicController_listPersonaCharacterCatalog",
 ] as const;
 
 export type NimiDesktopSourceReadinessRealmOperationID =
@@ -35,8 +36,9 @@ export const NIMI_DESKTOP_PRODUCT_REALM_OPERATION_IDS = [
   "WorldCoreController_listWorldRelationships",
   "WorldPublicController_getWorld",
   "WorldPublicController_getWorldDetailWithCharacters",
-  "WorldPublicController_listWorlds",
-  "WorldPublicController_listWorldCharacters",
+  "WorldPublicController_listWorldCatalog",
+  "WorldPublicController_listWorldCharacterCatalog",
+  "WorldPublicController_listPersonaCharacterCatalog",
   "getMe",
   "updateMe",
   "listMyFriendsWithDetails",

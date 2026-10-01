@@ -249,6 +249,7 @@ func TestPrivateRecallRoundTwoFailuresPreserveObservedResultAndUsage(t *testing.
 				publicChatAnchorState{CallerAppID: "desktop.app", SubjectUserID: "user-1", Binding: publicChatExecutionBinding{ModelID: "round-two-model", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD}},
 				publicChatTurnState{},
 				compiled,
+				0,
 			)
 			if roundErr == nil || result == nil || result.Usage == nil || result.Usage.GetInputTokens() != 17 || result.Usage.GetOutputTokens() != 13 || result.Usage.GetComputeMs() != 11 || result.Usage.GetCachedInputTokens() != 7 || result.Usage.GetReasoningOutputTokens() != 5 {
 				t.Fatalf("Round 2 failure lost observed result/usage: result=%+v err=%v", result, roundErr)

@@ -167,7 +167,7 @@ func TestInvokeRealmUnaryTransportAndResponseReadFailuresAreUnavailable(t *testi
 			completeLogin(t, svc)
 			response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
 				Caller:      realmDesktopShellCaller(),
-				MethodId:    "WorldPublicController_listWorlds",
+				MethodId:    "WorldPublicController_listWorldCatalog",
 				RequestJson: `{}`,
 			})
 			if err != nil {
@@ -281,7 +281,7 @@ func TestInvokeRealmUnaryOwnsTimeoutClassificationBeforeCarrierDeadline(t *testi
 	completeLogin(t, svc)
 	startedAt := time.Now()
 	response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
-		Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorlds",
+		Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorldCatalog",
 		RequestJson: `{}`, TimeoutMs: 20,
 	})
 	if err != nil {
@@ -313,7 +313,7 @@ func TestInvokeRealmUnaryPreservesCallerCancellation(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {
 		response, err := svc.InvokeRealmUnary(ctx, &runtimev1.InvokeRealmUnaryRequest{
-			Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorlds",
+			Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorldCatalog",
 			RequestJson: `{}`, TimeoutMs: 30_000,
 		})
 		if response != nil {
@@ -343,7 +343,7 @@ func TestInvokeRealmUnaryPreservesCallerDeadline(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
 	response, err := svc.InvokeRealmUnary(ctx, &runtimev1.InvokeRealmUnaryRequest{
-		Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorlds",
+		Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorldCatalog",
 		RequestJson: `{}`, TimeoutMs: 30_000,
 	})
 	if response != nil || !errors.Is(err, context.DeadlineExceeded) {
@@ -356,7 +356,7 @@ func TestInvokeRealmUnaryRejectsTimeoutOutsideCarrierBound(t *testing.T) {
 	completeLogin(t, svc)
 	for _, timeoutMs := range []int32{300_001, 2_147_483_647} {
 		response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
-			Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorlds",
+			Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorldCatalog",
 			RequestJson: `{}`, TimeoutMs: timeoutMs,
 		})
 		if err != nil || response.GetAccepted() ||
@@ -388,7 +388,7 @@ func TestInvokeRealmUnaryRefusesRedirectAndCredentialErrorPayloads(t *testing.T)
 	completeLogin(t, svc)
 
 	redirectResponse, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
-		Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorlds", RequestJson: `{}`,
+		Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorldCatalog", RequestJson: `{}`,
 	})
 	if err != nil {
 		t.Fatalf("redirect InvokeRealmUnary: %v", err)
@@ -450,7 +450,7 @@ func TestInvokeRealmUnaryConcurrentUnauthorizedRefreshesExactlyOnce(t *testing.T
 		go func() {
 			defer wait.Done()
 			response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
-				Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorlds", RequestJson: `{}`,
+				Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorldCatalog", RequestJson: `{}`,
 			})
 			if err != nil {
 				errorsCh <- err
@@ -489,7 +489,7 @@ func TestInvokeRealmUnaryRetriesUnauthorizedOnceThenRequiresReauthentication(t *
 	)
 	completeLogin(t, svc)
 	response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
-		Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorlds", RequestJson: `{}`,
+		Caller: realmDesktopShellCaller(), MethodId: "WorldPublicController_listWorldCatalog", RequestJson: `{}`,
 	})
 	if err != nil {
 		t.Fatalf("InvokeRealmUnary: %v", err)

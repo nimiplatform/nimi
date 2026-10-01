@@ -58,7 +58,7 @@ test('world list drops a Character sourceRef that belongs to another world', () 
     summary: 'World summary',
     media: {},
     stats: {},
-    time: {},
+    time: { mode: 'static', label: null, currentWorldTime: null },
     characters: [{
       id: worldCharacterSourceRef.id,
       name: 'Character A',

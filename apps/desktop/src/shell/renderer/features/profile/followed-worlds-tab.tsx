@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { CompactWorldCard } from '../world/world-list-compact-card';
 import { useFollowedWorlds } from '../world/world-follow-store-context.js';
 import {
-  fetchWorldListItems,
-  worldListQueryKey,
+  fetchWorldListItem,
+  worldListItemQueryKey,
 } from '../world/world-detail-queries';
 import { ProfileDetailTabFallback } from '../relationship/profile-detail-view-content-shell.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -26,20 +26,28 @@ export function FollowedWorldsTab() {
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const followed = useFollowedWorlds();
 
-  const worldsQuery = useQuery({
-    queryKey: worldListQueryKey(),
-    queryFn: async () => fetchWorldListItems(createRealmWorldData(sdk)),
-    enabled: authStatus === 'authenticated' && followed.ids.length > 0,
-    staleTime: 30_000,
+  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
+  const realmWorldData = useMemo(() => createRealmWorldData(sdk), [sdk]);
+  // Followed worlds are read by id; they never depend on a full catalog list being loaded.
+  const followedWorldQueries = useQueries({
+    queries: followed.ids.map((worldId) => ({
+      queryKey: worldListItemQueryKey(realmBaseUrl, worldId),
+      queryFn: () => fetchWorldListItem(realmWorldData, worldId),
+      enabled: authStatus === 'authenticated',
+      staleTime: 30_000,
+    })),
   });
+  const worldsQuery = {
+    isPending: followedWorldQueries.some((query) => query.isPending),
+    isError: followedWorldQueries.length > 0 && followedWorldQueries.every((query) => query.isError),
+  };
 
-  const followedWorlds = useMemo(() => {
-    const items = worldsQuery.data ?? [];
-    const byId = new Map(items.map((world) => [world.id, world]));
-    return followed.ids
-      .map((id) => byId.get(id))
-      .filter((world): world is NonNullable<typeof world> => Boolean(world));
-  }, [worldsQuery.data, followed.ids]);
+  const followedWorlds = useMemo(
+    () => followedWorldQueries
+      .map((query) => query.data)
+      .filter((world): world is NonNullable<typeof world> => Boolean(world)),
+    [followedWorldQueries],
+  );
 
   if (followed.ids.length === 0) {
     return (

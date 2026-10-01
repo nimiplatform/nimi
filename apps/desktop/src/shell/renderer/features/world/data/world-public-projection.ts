@@ -14,7 +14,14 @@ export type WorldPublicSourceCardDto = RealmModel<'WorldPublicSourceCardDto'>;
 export type CoreRecord = Record<string, unknown>;
 export type WorldDetailDto = CoreRecord;
 export type WorldLevelAuditEventDto = CoreRecord;
-export type WorldDetailWithCharactersDto = WorldDetailDto & { characters: WorldCharacterSummaryDto[] };
+export type WorldDetailWithCharactersDto = WorldDetailDto & {
+  characters: WorldCharacterSummaryDto[];
+  characterCount: number;
+  personaCharacterCount: number;
+  // The detail carries first bounded pages; these cursors continue in the public catalogs.
+  charactersNextCursor: string | null;
+  personaCharactersNextCursor: string | null;
+};
 export type WorldCharacterSummaryDto = {
   id: string;
   name: string;
@@ -358,6 +365,41 @@ export function requireWorldPublicSourceCardDto(value: unknown, expectedWorldId:
   return value as WorldPublicSourceCardDto;
 }
 
+export type WorldPublicTimeProjection =
+  | { mode: 'static'; label: string | null; currentWorldTime: null }
+  | {
+    mode: 'wallClockAnchored';
+    currentWorldTime: string;
+    currentLabel: string;
+    anchorLabel: string;
+    flowRatio: number;
+    isPaused: boolean;
+  };
+
+// A static world has no clock and exposes only its author label; only wall-clock worlds carry time.
+export function projectWorldPublicTime(value: unknown): WorldPublicTimeProjection {
+  const time = asRecord(value);
+  const mode = readString(time, 'mode');
+  if (mode === 'static') {
+    return { mode: 'static', label: readString(time, 'label'), currentWorldTime: null };
+  }
+  const currentWorldTime = readString(time, 'currentWorldTime');
+  const anchorLabel = readString(time, 'anchorWorldStartedAtDisplay');
+  const flowRatio = readNumber(time, 'flowRatio');
+  const isPaused = readBoolean(time, 'isPaused');
+  if (mode !== 'wallClockAnchored' || !currentWorldTime || !anchorLabel || flowRatio === null || isPaused === null) {
+    failRealmWorldContract('SDK_REALM_WORLD_PUBLIC_TIME_CONTRACT_INVALID', 'World public time must be static or a complete wall-clock snapshot');
+  }
+  return {
+    mode: 'wallClockAnchored',
+    currentWorldTime,
+    currentLabel: readString(time, 'currentWorldTimeDisplay') ?? currentWorldTime,
+    anchorLabel,
+    flowRatio,
+    isPaused,
+  };
+}
+
 export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDto {
   const record = world as unknown as CoreRecord;
   const media = asRecord(world.media);
@@ -369,10 +411,13 @@ export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDt
     .map(readPublicAssetDto)
     .filter((asset): asset is WorldPublicAssetDto => Boolean(asset));
   const stats = asRecord(world.stats);
-  const time = asRecord(world.time);
-  const tags = Array.isArray(world.tags)
-    ? world.tags.filter((item): item is string => typeof item === 'string')
-    : [];
+  const genre = typeof world.genre === 'string' && world.genre.trim() ? world.genre.trim() : null;
+  const era = typeof world.era === 'string' && world.era.trim() ? world.era.trim() : null;
+  const themes = (Array.isArray(world.themes) ? world.themes : [])
+    .filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    .map((item) => item.trim());
+  // Display order is the explicit genre, then themes, then the optional era; nothing is inferred.
+  const tags = [...new Set([genre, ...themes, era].filter((item): item is string => Boolean(item)))];
   const iconUrl = iconAsset?.url ?? readPublicUrl(media, 'iconUrl');
   const bannerUrl = bannerAsset?.url ?? readPublicUrl(media, 'bannerUrl') ?? heroAsset?.url ?? readPublicUrl(media, 'heroUrl');
   const heroUrl = heroAsset?.url ?? readPublicUrl(media, 'heroUrl');
@@ -397,9 +442,9 @@ export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDt
     type: world.type,
     visibility: world.visibility,
     tags,
-    themes: tags,
-    genre: tags[0] ?? null,
-    era: readString(record, 'era'),
+    themes,
+    genre,
+    era,
     entityKinds: readArray<string>(record, 'entityKinds').filter((item) => typeof item === 'string'),
     relationshipTypes: readArray<string>(record, 'relationshipTypes').filter((item) => typeof item === 'string'),
     iconUrl,
@@ -410,7 +455,7 @@ export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDt
     entityCount: readNumber(stats, 'entityCount') ?? 0,
     relationshipCount: readNumber(stats, 'relationshipCount') ?? 0,
     characterCount: readNumber(stats, 'characterCount') ?? 0,
-    personaCount: readNumber(stats, 'personaCount') ?? 0,
+    personaCharacterCount: readNumber(stats, 'personaCharacterCount') ?? 0,
     sceneCount: readNumber(stats, 'sceneCount') ?? 0,
     systemCount: readNumber(stats, 'systemCount') ?? 0,
     timelineEventCount: readNumber(stats, 'timelineEventCount') ?? 0,
@@ -418,13 +463,7 @@ export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDt
     stats: world.stats,
     time: world.time,
     computed: {
-      time: {
-        currentWorldTime: readString(time, 'currentWorldTime'),
-        currentLabel: readString(time, 'currentWorldTimeDisplay'),
-        eraLabel: readString(time, 'anchorWorldStartedAtDisplay'),
-        flowRatio: readNumber(time, 'flowRatio') ?? 1,
-        isPaused: readBoolean(time, 'isPaused') ?? false,
-      },
+      time: projectWorldPublicTime(world.time),
       languages: { primary: null, common: [] },
       entry: { recommendedCharacters: [] },
       score: { scoreEwma: 0 },
@@ -507,9 +546,10 @@ export function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): 
     },
     display: {
       role: source.role ?? null,
-      tags: Array.isArray(source.tags)
-        ? source.tags.filter((item): item is string => typeof item === 'string')
-        : [],
+      traits: (Array.isArray(source.traits) ? source.traits : [])
+        .filter((item): item is string => typeof item === 'string'),
+      topics: (Array.isArray(source.topics) ? source.topics : [])
+        .filter((item): item is string => typeof item === 'string'),
       ownership: source.ownership,
       sourceKind: source.sourceKind,
       worldName: source.worldName,
@@ -569,7 +609,7 @@ export function buildWorldPublicHistoryItems(world: CoreRecord): WorldHistoryPay
           sequence: index + 1,
           title: item,
           summary: item,
-          time: readString(asRecord(world.time), 'currentWorldTime') ?? world.updatedAt,
+          time: null,
           eventType: 'worldSetting',
         };
       }
@@ -582,7 +622,8 @@ export function buildWorldPublicHistoryItems(world: CoreRecord): WorldHistoryPay
         sequence: readNumber(event, 'sequence') ?? index + 1,
         title: readString(event, 'title', 'name', 'summary') || eventId,
         summary: readString(event, 'summary') || null,
-        time: readString(event, 'time', 'timestamp', 'startsAt') || readString(asRecord(world.time), 'currentWorldTime') || world.updatedAt,
+        // Only an explicit event time is shown; world or artifact time never stands in for it.
+        time: readString(event, 'time', 'timestamp', 'startsAt'),
         eventType: readString(event, 'eventType', 'type') || 'worldSetting',
       };
     }),
@@ -618,7 +659,7 @@ export function buildWorldPublicSemanticBundle(world: CoreRecord): WorldSemantic
       title: event,
       summary: event,
       eventType: 'worldSetting',
-      createdAt: readString(world, 'updatedAt'),
+      createdAt: null,
     })),
     worldviewSnapshots: [],
     timeModel: world.time,

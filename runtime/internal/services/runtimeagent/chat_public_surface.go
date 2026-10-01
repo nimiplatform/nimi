@@ -335,15 +335,21 @@ type publicChatTurnVoiceRenderPayload struct {
 	Text                 string `json:"text,omitempty"`
 }
 type PublicChatTurnExecutionRequest struct {
-	Tools            []*runtimev1.ToolSpec
-	AppID            string
-	SubjectUserID    string
-	Messages         []*runtimev1.ChatMessage
-	SystemPrompt     string
-	MaxTokens        int32
-	Binding          publicChatExecutionBinding
-	AvailableActions publicChatAvailableActions
-	Reasoning        *publicChatReasoningConfig
+	Tools         []*runtimev1.ToolSpec
+	AppID         string
+	SubjectUserID string
+	Messages      []*runtimev1.ChatMessage
+	SystemPrompt  string
+	// MaxTokens is a caller-requested hard output limit. It is sent as is, so a
+	// target that rejects output limits fails the turn before dispatch.
+	MaxTokens int32
+	// ReservedOutputTokens is the Runtime's own output reservation (a context
+	// budget reserve or a Runtime task budget). It becomes the provider limit
+	// only where the resolved target accepts one.
+	ReservedOutputTokens int32
+	Binding              publicChatExecutionBinding
+	AvailableActions     publicChatAvailableActions
+	Reasoning            *publicChatReasoningConfig
 }
 type PublicChatTurnExecutor interface {
 	StreamChatTurn(context.Context, *PublicChatTurnExecutionRequest, func(*runtimev1.StreamScenarioEvent) error) error

@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin, Network, UserRound } from 'lucide-react';
-import type {
-  SourceDetailData,
-  SourceDetailRelationshipClue,
-} from './source-detail-model.js';
-import type { CharacterProfileRelationshipProjection } from '../realm-source/character-source-profile-projection.js';
-import { simplifyChineseDisplayText as simplifyDisplayText } from '@nimiplatform/kit/features/chat/headless';
+import { Link2, MapPin, Network, UserRound } from 'lucide-react';
+import type { SourceDetailData } from './source-detail-model.js';
 import { uniqueStrings } from './source-detail-world-character-labels.js';
+import { isAddressRelationshipType } from './source-detail-world-character-relationships.js';
 import { allRelationshipsTheme, relationKindLabel, relationshipTheme } from './source-detail-world-character-theme.js';
 
+// One relationship as authored. `type` is the explicit relationship type or
+// null; an untyped item renders neutrally (no kind label, neutral theme and
+// icon) instead of being dropped or classified from its text.
 type RelationshipMapItem = {
   id: string;
-  type: string;
-  graphTitle: string;
-  evidenceText: string;
+  type: string | null;
+  title: string;
+  summary: string | null;
+  details: string[];
 };
 
 const RELATIONSHIP_GRAPH_CENTER = { x: 50, y: 50 };
@@ -34,11 +34,15 @@ function RelationshipTargetIcon({
   size,
   strokeWidth,
 }: {
-  readonly type: string;
+  readonly type: string | null;
   readonly size: number;
   readonly strokeWidth: number;
 }) {
-  const Icon = type === 'postedAddress' ? MapPin : UserRound;
+  const Icon = isAddressRelationshipType(type)
+    ? MapPin
+    : type === 'kinship' || type === 'association'
+      ? UserRound
+      : Link2;
   return <Icon size={size} strokeWidth={strokeWidth} />;
 }
 
@@ -100,17 +104,32 @@ function relationshipEdgeLabelPosition(slot: { x: number; y: number }): { left: 
   };
 }
 
+function explicitRelationshipType(value: string | null | undefined): string | null {
+  const type = value?.trim();
+  return type || null;
+}
+
+// Builds map items from explicit relationship fields only. The node title is
+// the explicit target label, then the explicit relation label, then the
+// localized explicit type, then the summary. Names are never extracted from
+// prose, and a value that equals a known source or entity id is treated as an
+// identifier, not display text.
 function buildRelationshipMapItems(
-  sourceName: string,
-  notes: readonly CharacterProfileRelationshipProjection[],
-  clues: readonly SourceDetailRelationshipClue[],
-  targetLabels: Record<string, string>,
+  source: SourceDetailData,
   t: ReturnType<typeof useTranslation>['t'],
 ): RelationshipMapItem[] {
+  const sourceIds = [source.id, source.sourceId, source.worldId, source.entity?.id, source.runtimeSourceRef];
+  const displayText = (value: string | null | undefined, ids: readonly (string | null | undefined)[]): string | null => {
+    const text = value?.trim();
+    if (!text || [...sourceIds, ...ids].some((id) => id && id.trim() === text)) {
+      return null;
+    }
+    return text;
+  };
   const seen = new Set<string>();
   const items: RelationshipMapItem[] = [];
   const add = (item: RelationshipMapItem) => {
-    const key = `${item.type}:${item.graphTitle}:${item.evidenceText}`;
+    const key = [item.type ?? '', item.title, item.summary ?? ''].join('\u0000');
     if (seen.has(key)) {
       return;
     }
@@ -118,150 +137,54 @@ function buildRelationshipMapItems(
     items.push(item);
   };
 
-  for (const clue of clues) {
-    const graphTitle = relationshipGraphTitleFromClue(sourceName, clue.targetLabel, clue.summary ?? clue.label, clue.label);
-    const evidenceText = clue.detail ?? relationshipEvidenceTextFromClue(graphTitle, clue.label, clue.summary);
+  for (const clue of source.relationshipClues) {
+    const ids = [clue.id, clue.targetEntityId];
+    const label = displayText(clue.label, ids);
+    const summary = displayText(clue.summary, ids);
+    const title = displayText(clue.targetLabel, ids)
+      ?? label
+      ?? (clue.type ? relationKindLabel(clue.type, t) : null)
+      ?? summary;
+    if (!title) {
+      continue;
+    }
     add({
       id: clue.id,
       type: clue.type,
-      graphTitle: simplifyDisplayText(graphTitle),
-      evidenceText: simplifyDisplayText(evidenceText),
+      title,
+      summary: summary && summary !== title ? summary : null,
+      details: uniqueStrings([label, ...clue.details]).filter((detail) => detail !== title && detail !== summary),
     });
   }
 
-  for (const note of notes) {
-    const graphTitle = normalizeRelationshipGraphName(note.targetRef ? targetLabels[note.targetRef] : null)
-      ?? extractRelatedPersonName(sourceName, note.summary)
-      ?? relationKindLabel(note.type, t);
+  for (const note of source.characterProfile.relationshipNotes) {
+    const type = explicitRelationshipType(note.type);
+    const ids = [note.id, note.targetRef];
+    const summary = displayText(note.summary, ids);
+    const targetLabel = note.targetRef && Object.hasOwn(source.relationshipTargetLabels, note.targetRef)
+      ? source.relationshipTargetLabels[note.targetRef]
+      : null;
+    const title = displayText(targetLabel, ids)
+      ?? (type ? relationKindLabel(type, t) : null)
+      ?? summary;
+    if (!title) {
+      continue;
+    }
     add({
       id: note.id,
-      type: note.type,
-      graphTitle: simplifyDisplayText(graphTitle),
-      evidenceText: simplifyDisplayText(note.summary),
+      type,
+      title,
+      summary: summary && summary !== title ? summary : null,
+      details: [],
     });
   }
 
   return items.slice(0, 8);
 }
 
-function relationshipGraphTitleFromClue(
-  sourceName: string,
-  targetLabel: string | null,
-  evidenceText: string,
-  fallbackLabel: string,
-): string {
-  const explicitTarget = normalizeRelationshipGraphName(targetLabel);
-  if (explicitTarget) {
-    return explicitTarget;
-  }
-  return extractRelatedPersonName(sourceName, evidenceText)
-    ?? extractRelatedPersonName(sourceName, fallbackLabel)
-    ?? fallbackLabel;
-}
-
-function relationshipEvidenceTextFromClue(
-  graphTitle: string,
-  label: string,
-  summary: string | null,
-): string {
-  const normalizedLabel = label.trim();
-  const normalizedSummary = summary?.trim() || null;
-  const labelWithResolvedTarget = normalizedLabel.replaceAll('Y', graphTitle);
-
-  if (isSpecificRelationshipLabel(normalizedLabel, graphTitle)) {
-    return labelWithResolvedTarget;
-  }
-  return normalizedSummary ?? labelWithResolvedTarget;
-}
-
-function isSpecificRelationshipLabel(label: string, graphTitle: string): boolean {
-  if (!label || label === graphTitle) {
-    return false;
-  }
-  if (label.includes('Y')) {
-    return true;
-  }
-  return [
-    '墓志铭',
-    '墓誌銘',
-    '墓表',
-    '神道碑',
-    '答書',
-    '答书',
-    '贈',
-    '赠',
-    '書',
-    '书',
-    '所作',
-    '所著',
-    '所撰',
-    '收到',
-    '由',
-  ].some((token) => label.includes(token));
-}
-
-function isMachineReference(value: string): boolean {
-  if (!/^[a-z0-9]+(?:[-_][a-z0-9]+)+$/u.test(value)) {
-    return false;
-  }
-  return value.split(/[-_]/u).length >= 3 || /\d/u.test(value);
-}
-
-function normalizeRelationshipGraphName(value: string | null | undefined): string | null {
-  const normalized = String(value || '').trim();
-  if (!normalized || /^[A-Za-z]$/u.test(normalized) || normalized.includes('Y')) {
-    return null;
-  }
-  if (isMachineReference(normalized)) {
-    return null;
-  }
-  return normalized;
-}
-
-function extractRelatedPersonName(sourceName: string, text: string): string | null {
-  const normalizedSource = sourceName.trim();
-  const normalizedText = text.trim();
-  if (!normalizedText) {
-    return null;
-  }
-
-  const escapedSource = normalizedSource.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-  const pairedPatterns = [
-    new RegExp(`^([^，。；、\\s]+)与${escapedSource}存在`, 'u'),
-    new RegExp(`^${escapedSource}与([^，。；、\\s]+)存在`, 'u'),
-  ];
-  for (const pattern of pairedPatterns) {
-    const match = normalizedText.match(pattern);
-    const candidate = normalizeRelationshipGraphName(match?.[1]);
-    if (candidate) {
-      return candidate;
-    }
-  }
-
-  const eventPatterns = [
-    /由([\p{Script=Han}·・]{2,12})所/u,
-    /收到([\p{Script=Han}·・]{2,12})的/u,
-    /從([\p{Script=Han}·・]{2,12})處收到/u,
-    /从([\p{Script=Han}·・]{2,12})处收到/u,
-    /為([\p{Script=Han}·・]{2,12})所/u,
-    /为([\p{Script=Han}·・]{2,12})所/u,
-  ];
-  for (const pattern of eventPatterns) {
-    const match = normalizedText.match(pattern);
-    const candidate = normalizeRelationshipGraphName(match?.[1]);
-    if (candidate) {
-      return candidate;
-    }
-  }
-
-  return null;
-}
-
 export function WorldCharacterRelationshipCluesSection({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
-  const notes = source.characterProfile.relationshipNotes;
-  const clues = source.relationshipClues;
-  const items = buildRelationshipMapItems(source.displayName, notes, clues, source.relationshipTargetLabels, t);
+  const items = buildRelationshipMapItems(source, t);
   const relationTypes = uniqueStrings(items.map((item) => item.type));
   const [activeType, setActiveType] = useState('all');
   const [graphSize, setGraphSize] = useState<RelationshipGraphSize | null>(null);
@@ -281,7 +204,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
     ? items
     : items.filter((item) => item.type === activeType);
   const activeItems = filteredItems.length > 0 ? filteredItems : items;
-  const focusLabels = uniqueStrings(activeItems.map((item) => relationKindLabel(item.type, t)));
+  const focusLabels = uniqueStrings(activeItems.map((item) => (item.type ? relationKindLabel(item.type, t) : null)));
 
   if (items.length === 0) {
     return null;
@@ -302,13 +225,15 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
               {t('SourceDetail.worldCharacter.relationshipTitle', { defaultValue: 'Relationship clues' })}
             </h2>
           </div>
-          <p className="mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]">
-            {t('SourceDetail.worldCharacter.relationshipSummary', {
-              name: simplifyDisplayText(source.displayName),
-              kinds: focusLabels.join('、'),
-              defaultValue: '{{name}} relationship network centers on {{kinds}}.',
-            })}
-          </p>
+          {focusLabels.length > 0 ? (
+            <p className="mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]">
+              {t('SourceDetail.worldCharacter.relationshipSummary', {
+                name: source.displayName,
+                kinds: focusLabels.join('、'),
+                defaultValue: '{{name}} relationship network centers on {{kinds}}.',
+              })}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
           {relationTypes.map((type) => {
@@ -356,6 +281,9 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
         </svg>
 
         {activeItems.map((item, index) => {
+          if (!item.type) {
+            return null;
+          }
           const slot = relationshipGraphSlot(index);
           const theme = relationshipTheme(item.type);
           const labelPosition = relationshipEdgeLabelPosition(slot);
@@ -376,7 +304,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
         })}
 
         <div className="absolute left-1/2 top-1/2 z-20 grid h-24 w-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[6px] border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)] bg-[var(--nimi-action-primary-bg)] px-3 text-center text-lg font-semibold leading-6 text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-raised)]">
-          <span className="max-w-full break-words">{simplifyDisplayText(source.displayName)}</span>
+          <span className="max-w-full break-words">{source.displayName}</span>
         </div>
 
         {activeItems.map((item, index) => {
@@ -403,7 +331,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
                   <RelationshipTargetIcon type={item.type} size={16} strokeWidth={2.2} />
                 </span>
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold leading-5">{item.graphTitle}</h3>
+                  <h3 className="truncate text-sm font-semibold leading-5">{item.title}</h3>
                 </div>
               </div>
             </article>
@@ -411,40 +339,42 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
         })}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {['all', ...relationTypes].map((type) => {
-          const active = activeType === type;
-          const theme = type === 'all' ? allRelationshipsTheme() : relationshipTheme(type);
-          return (
-            <button
-              key={type}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setActiveType(type)}
-              style={{
-                background: active ? theme.accent : 'var(--nimi-surface-panel)',
-                borderColor: active ? theme.accent : 'var(--nimi-border-subtle)',
-                color: active
-                  ? (type === 'all' ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-inverse)')
-                  : 'var(--nimi-text-muted)',
-              }}
-              className="rounded-full border px-4 py-1.5 text-xs font-semibold transition hover:border-[var(--nimi-action-primary-bg)]"
-            >
-              {type === 'all'
-                ? t('SourceDetail.worldCharacter.relationshipAll', { defaultValue: 'All' })
-                : relationKindLabel(type, t)}
-            </button>
-          );
-        })}
-      </div>
+      {relationTypes.length > 0 ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {['all', ...relationTypes].map((type) => {
+            const active = activeType === type;
+            const theme = type === 'all' ? allRelationshipsTheme() : relationshipTheme(type);
+            return (
+              <button
+                key={type}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setActiveType(type)}
+                style={{
+                  background: active ? theme.accent : 'var(--nimi-surface-panel)',
+                  borderColor: active ? theme.accent : 'var(--nimi-border-subtle)',
+                  color: active
+                    ? (type === 'all' ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-inverse)')
+                    : 'var(--nimi-text-muted)',
+                }}
+                className="rounded-full border px-4 py-1.5 text-xs font-semibold transition hover:border-[var(--nimi-action-primary-bg)]"
+              >
+                {type === 'all'
+                  ? t('SourceDetail.worldCharacter.relationshipAll', { defaultValue: 'All' })
+                  : relationKindLabel(type, t)}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <div data-testid="world-character-relationship-cards" className="mt-4 grid gap-3 md:grid-cols-2">
         {activeItems.map((item) => {
           const theme = relationshipTheme(item.type);
           return (
             <article
               key={item.id}
-              data-testid={`world-character-relationship-clue-${item.type}`}
+              data-testid={`world-character-relationship-clue-${item.type ?? 'untyped'}`}
               style={{ background: theme.cardBg, borderColor: theme.border }}
               className="rounded-[14px] border p-4"
             >
@@ -457,15 +387,23 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
                     <RelationshipTargetIcon type={item.type} size={15} strokeWidth={2.2} />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]">{item.evidenceText}</h3>
+                    <h3 className="text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]">{item.title}</h3>
+                    {item.details.length > 0 ? (
+                      <p className="text-xs font-semibold leading-5 text-[var(--nimi-text-secondary)]">{item.details.join(' · ')}</p>
+                    ) : null}
+                    {item.summary ? (
+                      <p className="mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]">{item.summary}</p>
+                    ) : null}
                   </div>
                 </div>
-                <span
-                  style={{ background: theme.softBg, color: theme.ink }}
-                  className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                >
-                  {relationKindLabel(item.type, t)}
-                </span>
+                {item.type ? (
+                  <span
+                    style={{ background: theme.softBg, color: theme.ink }}
+                    className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                  >
+                    {relationKindLabel(item.type, t)}
+                  </span>
+                ) : null}
               </div>
             </article>
           );

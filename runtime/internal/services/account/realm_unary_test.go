@@ -24,10 +24,11 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_getCharacterSource":           {method: http.MethodPost, path: "/api/world/character-sources/public-projection"},
 		"WorldPublicController_getWorld":                     {method: http.MethodGet, path: "/api/world/by-id/{worldId}"},
 		"WorldPublicController_getWorldDetailWithCharacters": {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
-		"WorldPublicController_listWorlds":                   {method: http.MethodGet, path: "/api/world"},
+		"WorldPublicController_listWorldCatalog":             {method: http.MethodGet, path: "/api/world/catalog"},
+		"WorldPublicController_listPersonaCharacterCatalog":  {method: http.MethodGet, path: "/api/world/persona-characters/catalog"},
 	}
-	if len(realmBrokerOperations) != 74 {
-		t.Fatalf("Realm broker operation count = %d, want 74", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 75 {
+		t.Fatalf("Realm broker operation count = %d, want 75", len(realmBrokerOperations))
 	}
 	for operationID, want := range expectedSourceReadiness {
 		operation, ok := realmBrokerOperations[operationID]
@@ -211,7 +212,7 @@ func TestInvokeRealmUnaryMediatesDesktopSourceReadinessWithoutReturningToken(t *
 	completeLogin(t, svc)
 	resp, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
 		Caller:      realmDesktopShellCaller(),
-		MethodId:    "WorldPublicController_listWorlds",
+		MethodId:    "WorldPublicController_listWorldCatalog",
 		RequestJson: `{}`,
 	})
 	if err != nil {
@@ -220,7 +221,7 @@ func TestInvokeRealmUnaryMediatesDesktopSourceReadinessWithoutReturningToken(t *
 	if !resp.GetAccepted() || resp.GetResponseJson() != `[{"id":"world-1"}]` {
 		t.Fatalf("InvokeRealmUnary response mismatch: %+v", resp)
 	}
-	if observedAuthorization != "Bearer access-1" || observedPath != "/api/world" {
+	if observedAuthorization != "Bearer access-1" || observedPath != "/api/world/catalog" {
 		t.Fatalf("mediated request mismatch: authorization=%q path=%q", observedAuthorization, observedPath)
 	}
 	var raw any
@@ -264,7 +265,7 @@ func TestInvokeRealmUnaryAdmitsExactDesktopSourceReadinessOperationIDs(t *testin
 		{name: "public character source", methodID: "WorldPublicController_getCharacterSource", requestJSON: `{"body":{"sourceRef":{"kind":"worldCharacter","id":"character-1","worldId":"world-1","worldEntityRef":{"kind":"worldEntity","worldId":"world-1","entityId":"entity-1"},"sourceHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}`, method: http.MethodPost, path: "/api/world/character-sources/public-projection"},
 		{name: "world detail", methodID: "WorldPublicController_getWorld", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1"},
 		{name: "world sources", methodID: "WorldPublicController_getWorldDetailWithCharacters", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1/detail-with-characters"},
-		{name: "world list", methodID: "WorldPublicController_listWorlds", requestJSON: `{}`, method: http.MethodGet, path: "/api/world"},
+		{name: "world catalog", methodID: "WorldPublicController_listWorldCatalog", requestJSON: `{}`, method: http.MethodGet, path: "/api/world/catalog"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -319,7 +320,7 @@ func TestInvokeRealmUnaryRejectsNonDesktopCaller(t *testing.T) {
 	completeLogin(t, svc)
 	resp, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
 		Caller:      explicitLocalAppAccountCaller(),
-		MethodId:    "WorldPublicController_listWorlds",
+		MethodId:    "WorldPublicController_listWorldCatalog",
 		RequestJson: `{}`,
 	})
 	if err != nil {
@@ -351,7 +352,7 @@ func TestInvokeRealmUnaryRejectsUnadmittedRealmBase(t *testing.T) {
 	completeLogin(t, svc)
 	foreign, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
 		Caller:       realmDesktopShellCaller(),
-		MethodId:     "WorldPublicController_listWorlds",
+		MethodId:     "WorldPublicController_listWorldCatalog",
 		RealmBaseUrl: "https://realm.foreign.test",
 		RequestJson:  `{}`,
 	})

@@ -240,14 +240,25 @@ func (validation *worldCoreDTOValidation) concept(value any, depth int) bool {
 	return ok && text(object["conceptId"], true, 512) && text(object["name"], true, 4_096) && optionalTextFields(object, localAppWorldCoreMaxTextBytes, "summary")
 }
 
+// A static world carries exactly mode and a nullable label; a wall-clock world carries its clock,
+// with pausedWorldTime set exactly when the clock is paused.
 func (validation *worldCoreDTOValidation) timeModel(value any, depth int) bool {
+	record, ok := value.(map[string]any)
+	if !ok {
+		return false
+	}
+	if oneOfText(record["mode"], "static") {
+		object, ok := validation.object(value, depth, []string{"mode", "label"}, []string{"mode", "label"})
+		return ok && (object["label"] == nil || text(object["label"], true, 4_096))
+	}
 	object, ok := validation.object(value, depth,
 		[]string{"mode", "flowRatio", "isPaused", "anchor", "pausedWorldTime", "calendar", "displayFormat"},
 		[]string{"mode", "flowRatio", "isPaused", "anchor", "pausedWorldTime", "calendar", "displayFormat"})
-	if !ok || !oneOfText(object["mode"], "wallClockAnchored", "static") || !number(object["flowRatio"]) {
+	if !ok || !oneOfText(object["mode"], "wallClockAnchored") || !number(object["flowRatio"]) {
 		return false
 	}
-	if _, ok := object["isPaused"].(bool); !ok {
+	isPaused, ok := object["isPaused"].(bool)
+	if !ok || isPaused != (object["pausedWorldTime"] != nil) {
 		return false
 	}
 	for _, key := range []string{"pausedWorldTime", "calendar", "displayFormat"} {

@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
 import { ExploreSourceModeFlap } from '../src/shell/renderer/features/explore/explore-source-mode-flap';
-import { PersonaCatalogContent } from '../src/shell/renderer/features/explore/persona-catalog-content';
+import { PersonaCatalogContent, PersonaCatalogMore } from '../src/shell/renderer/features/explore/persona-catalog-content';
 
 test.before(async () => {
   await initI18n();
@@ -37,4 +37,20 @@ test('Explore Personas renders the empty catalog without a separate Characters s
   assert.match(markup, />Persona</);
   assert.match(markup, /当前筛选条件下没有 Persona/);
   assert.doesNotMatch(markup, /My Characters|我的角色|agents-panel/i);
+});
+
+test('Persona catalog distinguishes an offline first read from an empty result', () => {
+  const markup = renderToStaticMarkup(<PersonaCatalogContent personas={[]} error offline embedded />);
+  assert.match(markup, /离线时暂时无法搜索 Persona/);
+  assert.doesNotMatch(markup, /当前筛选条件下没有 Persona/);
+});
+
+test('Persona rail and grid share paging that preserves a later-page failure and stops offline loading', () => {
+  const props = { hasMore: true, loadingMore: false, loadMoreFailed: true, onLoadMore: () => {} };
+  const failed = renderToStaticMarkup(<PersonaCatalogMore {...props} offline={false} />);
+  assert.match(failed, /已加载的结果仍可查看/);
+  assert.match(failed, /重试/);
+  const offline = renderToStaticMarkup(<PersonaCatalogMore {...props} offline />);
+  assert.match(offline, /只显示已经加载的 Persona/);
+  assert.doesNotMatch(offline, /<button/);
 });

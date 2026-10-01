@@ -20,14 +20,10 @@ import {
   readWorldCharacterWorksFromRelationships,
 } from './source-detail-world-character-model.js';
 import type {
-  CharacterProfileInteractionProjection,
   CharacterProfileMilestoneProjection,
   CharacterProfileProjection,
-  CharacterProfileRelationshipProjection,
   CharacterSourceViewerRelationProjection,
 } from '../realm-source/character-source-profile-projection.js';
-import { simplifyChineseDisplayText as simplifySourceDetailChineseText } from '@nimiplatform/kit/features/chat/headless';
-
 
 export type SourceDetailData = {
   id: string;
@@ -96,13 +92,17 @@ export type SourceDetailWorldCharacterAugmentation = {
   careerMilestones: SourceDetailWorldCharacterMilestone[];
 };
 
+// A WorldCharacter relationship row shown as authored. `type` is the row's
+// explicit relationship type, or null when the row declares none (rendered
+// neutrally, never dropped or reclassified from its text).
 export type SourceDetailRelationshipClue = {
   id: string;
-  type: string;
-  label: string;
+  type: string | null;
+  label: string | null;
   targetLabel: string | null;
+  targetEntityId: string | null;
   summary: string | null;
-  detail: string | null;
+  details: string[];
 };
 
 export type SourceDetailVoiceSample = {
@@ -158,151 +158,6 @@ function readSourceViewerRelation(value: unknown): CharacterSourceViewerRelation
     state,
     connectionId: readOptionalString(relation, 'connectionId'),
     runtimeSourceRef: readOptionalString(relation, 'runtimeSourceRef'),
-  };
-}
-
-function simplifyNullableText(value: string | null): string | null {
-  return value ? simplifySourceDetailChineseText(value) : value;
-}
-
-function simplifyTextArray(values: string[]): string[] {
-  return values.map(simplifySourceDetailChineseText);
-}
-
-function simplifySourceDetailEntity(entity: SourceDetailEntity | null): SourceDetailEntity | null {
-  if (!entity) {
-    return null;
-  }
-  return {
-    ...entity,
-    name: simplifySourceDetailChineseText(entity.name),
-    summary: simplifyNullableText(entity.summary),
-    tags: simplifyTextArray(entity.tags),
-  };
-}
-
-function simplifySourceDetailWorks(works: SourceDetailWorkCollection[]): SourceDetailWorkCollection[] {
-  return works.map((work) => ({
-    ...work,
-    title: simplifySourceDetailChineseText(work.title),
-    romanizedTitle: simplifyNullableText(work.romanizedTitle),
-    role: simplifyNullableText(work.role),
-    ...(work.summary !== undefined ? { summary: simplifyNullableText(work.summary ?? null) } : {}),
-    ...(work.timeLabel !== undefined ? { timeLabel: simplifyNullableText(work.timeLabel ?? null) } : {}),
-  }));
-}
-
-function simplifyWorldCharacterMilestones(
-  milestones: SourceDetailWorldCharacterMilestone[],
-): SourceDetailWorldCharacterMilestone[] {
-  return milestones.map((milestone) => ({
-    ...milestone,
-    title: simplifySourceDetailChineseText(milestone.title),
-    summary: simplifyNullableText(milestone.summary),
-    timeLabel: simplifyNullableText(milestone.timeLabel),
-  }));
-}
-
-function simplifyCharacterProfileRelationshipNotes(
-  notes: CharacterProfileRelationshipProjection[],
-): CharacterProfileRelationshipProjection[] {
-  return notes.map((note) => ({
-    ...note,
-    summary: simplifySourceDetailChineseText(note.summary),
-  }));
-}
-
-function simplifyCharacterProfileInteraction(
-  interaction: CharacterProfileInteractionProjection | null,
-): CharacterProfileInteractionProjection | null {
-  if (!interaction) {
-    return null;
-  }
-  return {
-    tone: simplifyNullableText(interaction.tone),
-    cadence: simplifyNullableText(interaction.cadence),
-    scenario: simplifyNullableText(interaction.scenario),
-    greeting: simplifyNullableText(interaction.greeting),
-  };
-}
-
-function simplifySourceDetailCharacterProfile(
-  character: CharacterProfileProjection,
-): CharacterProfileProjection {
-  return {
-    ...character,
-    role: simplifyNullableText(character.role),
-    archetype: simplifyNullableText(character.archetype),
-    traits: simplifyTextArray(character.traits),
-    knowledgeTopics: simplifyTextArray(character.knowledgeTopics),
-    knowledgeConstraints: simplifyTextArray(character.knowledgeConstraints),
-    interactionModes: simplifyTextArray(character.interactionModes),
-    milestones: simplifyWorldCharacterMilestones(character.milestones),
-    relationshipNotes: simplifyCharacterProfileRelationshipNotes(character.relationshipNotes),
-    conversationAnchors: simplifyTextArray(character.conversationAnchors),
-    interaction: simplifyCharacterProfileInteraction(character.interaction),
-  };
-}
-
-function simplifyWorldCharacterAugmentation(
-  augmentation: SourceDetailWorldCharacterAugmentation | null,
-): SourceDetailWorldCharacterAugmentation | null {
-  if (!augmentation) {
-    return null;
-  }
-  return {
-    careerMilestones: simplifyWorldCharacterMilestones(augmentation.careerMilestones),
-  };
-}
-
-function simplifySourceDetailRelationshipClues(
-  clues: SourceDetailRelationshipClue[],
-): SourceDetailRelationshipClue[] {
-  return clues.map((clue) => ({
-    ...clue,
-    label: simplifySourceDetailChineseText(clue.label),
-    targetLabel: simplifyNullableText(clue.targetLabel),
-    summary: simplifyNullableText(clue.summary),
-    detail: simplifyNullableText(clue.detail),
-  }));
-}
-
-function simplifySourceDetailRelationshipTargetLabels(
-  labels: Record<string, string>,
-): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(labels).map(([entityId, label]) => [entityId, simplifySourceDetailChineseText(label)]),
-  );
-}
-
-function simplifySourceDetailVoiceSample(
-  voiceSample: SourceDetailVoiceSample | null,
-): SourceDetailVoiceSample | null {
-  if (!voiceSample) {
-    return null;
-  }
-  return {
-    ...voiceSample,
-    transcript: simplifyNullableText(voiceSample.transcript),
-    previewText: simplifyNullableText(voiceSample.previewText),
-  };
-}
-
-function simplifySourceDetailData(detail: SourceDetailData): SourceDetailData {
-  return {
-    ...detail,
-    displayName: simplifySourceDetailChineseText(detail.displayName),
-    bio: simplifyNullableText(detail.bio),
-    tags: simplifyTextArray(detail.tags),
-    archetype: simplifyNullableText(detail.archetype),
-    cadence: simplifyNullableText(detail.cadence),
-    voiceSample: simplifySourceDetailVoiceSample(detail.voiceSample),
-    entity: simplifySourceDetailEntity(detail.entity),
-    characterProfile: simplifySourceDetailCharacterProfile(detail.characterProfile),
-    worldCharacterAugmentation: simplifyWorldCharacterAugmentation(detail.worldCharacterAugmentation),
-    relationshipClues: simplifySourceDetailRelationshipClues(detail.relationshipClues),
-    relationshipTargetLabels: simplifySourceDetailRelationshipTargetLabels(detail.relationshipTargetLabels),
-    works: simplifySourceDetailWorks(detail.works),
   };
 }
 
@@ -410,5 +265,6 @@ export function toSourceDetailData(
       || readOptionalString(world, 'bannerUrl')
     ),
   };
-  return simplifySourceDetailData(detail);
+  // Source text is presented as authored: no script conversion or rewriting.
+  return detail;
 }
