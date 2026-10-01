@@ -13,10 +13,13 @@ import {
 // messages and builds each request's history itself.
 export const LAB_CHAT_SESSION_PATH = 'lab-chat-session.json';
 
+type LabSavedSessionMessage = AppAiChatSessionMessage & { readonly reasonCode?: string };
+
 /** Settled session messages as the saved document. */
-export function toLabChatSessionDocument(messages: readonly AppAiChatSessionMessage[]): LabTextConversationDocument {
+export function toLabChatSessionDocument(messages: readonly LabSavedSessionMessage[], contextStart?: number): LabTextConversationDocument {
   return {
     version: 1,
+    ...(contextStart !== undefined ? { contextStart } : {}),
     messages: messages.map((message): LabTextConversationMessage => {
       if (message.status === 'streaming') throw new Error('A reply that is still streaming is not saved.');
       return {
@@ -25,13 +28,14 @@ export function toLabChatSessionDocument(messages: readonly AppAiChatSessionMess
         text: message.content,
         createdAt: message.timestamp,
         ...(message.status === 'error' ? { status: 'failed' as const } : message.status === 'canceled' ? { status: 'stopped' as const } : {}),
+        ...(message.reasonCode ? { reasonCode: message.reasonCode } : {}),
         ...(message.role === 'assistant' && message.status === 'complete' && message.outputItems ? { outputItems: message.outputItems } : {}),
       };
     }),
   };
 }
 
-export function fromLabChatSessionDocument(document: LabTextConversationDocument): AppAiChatSessionMessage[] {
+export function fromLabChatSessionDocument(document: LabTextConversationDocument): LabSavedSessionMessage[] {
   return document.messages.map((message) => ({
     id: message.id,
     role: message.role,
@@ -39,6 +43,7 @@ export function fromLabChatSessionDocument(document: LabTextConversationDocument
     timestamp: message.createdAt,
     status: message.status === 'failed' ? 'error' : message.status === 'stopped' ? 'canceled' : 'complete',
     ...(message.outputItems ? { outputItems: message.outputItems } : {}),
+    ...(message.reasonCode ? { reasonCode: message.reasonCode } : {}),
   }));
 }
 
@@ -49,8 +54,9 @@ export function fromLabChatSessionDocument(document: LabTextConversationDocument
  */
 export function labChatSessionInput(messages: readonly AppAiChatSessionMessage[], prompt: string): AppAiChatMessage[] {
   const earlier = toLabChatSessionDocument(messages.slice(0, -1)).messages;
+  const history = labTextConversationHistory(earlier);
   return [
-    ...labTextConversationHistory(earlier).map((message): AppAiChatMessage => ({
+    ...history.map((message): AppAiChatMessage => ({
       role: message.role,
       content: message.text,
       ...(message.outputItems ? { outputItems: message.outputItems } : {}),

@@ -130,6 +130,15 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 		if option.Implementation != nil && strings.TrimSpace(option.DisplayName) != "" {
 			selection.Resource = &runtimev1.AIConfigEffectiveSelection_Local{Local: s.projectLocalResourceProjection(option)}
 		}
+		if capability.GetCapabilityContract() == "text.generate" && selection.State == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY {
+			selected, resolveErr := s.localExecution.ResolveLocalExecution("text.generate", option.LoadoutID)
+			if resolveErr == nil {
+				facts, factsErr := localTextBehaviorAdapterResolutionFacts(selected, projectLocalTextBehaviorAdapterMatchFacts(selected))
+				if factsErr == nil {
+					selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
+				}
+			}
+		}
 		result = append(result, selection)
 	}
 	return result
@@ -185,6 +194,12 @@ func (s *Service) projectCloudEffectiveSelection(
 		label = strings.TrimSpace(record.Provider)
 	}
 	selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
+	if capabilityContract == "text.generate" {
+		selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, textBehaviorAdapterResolutionFacts{
+			ImplementationID: implementation.GetImplementationId(), DriverID: implementation.GetDriverId(), DriverDialect: implementation.GetDriverDialect(),
+			CloudTarget: &textBehaviorCloudTarget{Provider: binding.Provider, ProviderModelID: binding.ProviderModelID},
+		})
+	}
 	selection.Resource = &runtimev1.AIConfigEffectiveSelection_Cloud{Cloud: &runtimev1.AIConfigCloudResourceProjection{
 		Connector: &runtimev1.AIConfigCloudConnectorProjection{
 			ConnectorRef: cloud.GetConnectorRef(), Label: label, Provider: record.Provider,

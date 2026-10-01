@@ -58,6 +58,8 @@ export type SimpleAiConversationProviderOptions = {
   runtimeAdapter: ConversationRuntimeAdapter;
   historyBudget?: Partial<ConversationHistoryBudget>;
   countTokens?: ConversationTokenCounter;
+  /** Refuse a too-large request instead of silently dropping older messages. */
+  preserveHistory?: boolean;
   resolveSystemPrompt?: (input: ConversationTurnInput) => string | null | undefined;
   resolveRuntimeUserMessage?: (
     input: ConversationTurnInput,
@@ -98,11 +100,15 @@ export function createSimpleAiConversationProvider(
       const visibleHistory = input.history.filter((message) => (
         message.role !== 'system' && normalizeText(message.text).length > 0
       ));
-      const historyWindow = buildConversationHistoryWindow({
+      const windowResult = buildConversationHistoryWindow({
         history: visibleHistory,
         budget: options.historyBudget,
         countTokens: options.countTokens,
-      }).messages;
+      });
+      if (options.preserveHistory && windowResult.trimmedCount > 0) {
+        throw new Error('The conversation exceeds the history budget. Start a new conversation or explicitly shorten the history.');
+      }
+      const historyWindow = windowResult.messages;
       const systemPrompt = normalizeNullableText(
         options.resolveSystemPrompt ? options.resolveSystemPrompt(input) : input.systemPrompt,
       );

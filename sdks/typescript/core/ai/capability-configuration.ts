@@ -74,6 +74,7 @@ export type NimiSharedLocalAgentAIConfigSnapshot = NimiAIConfigSnapshot & {
 export type NimiAIConfigEffectiveState = 'ready' | 'missing' | 'blocked' | 'unavailable';
 
 export type NimiAIConfigEffectiveSelection = {
+  readonly textReplay?: NimiTextReplayCompatibility;
   readonly capabilityContract: string;
   readonly state: NimiAIConfigEffectiveState;
   readonly resource:
@@ -81,6 +82,14 @@ export type NimiAIConfigEffectiveSelection = {
     | { readonly oneofKind: 'cloud'; readonly cloud: NimiAIConfigCloudResource }
     | null;
   readonly reasons: readonly string[];
+};
+
+export type NimiTextReplayCompatibility = {
+  readonly acceptedCarriers: readonly {
+    readonly kind: string;
+    readonly version: number;
+    readonly executionModes: readonly ('sync' | 'stream')[];
+  }[];
 };
 
 export type NimiAIConfigOverwriteInput = {
@@ -394,6 +403,16 @@ function createAppAIConfigOperations(
 
 function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelections'][number]): NimiAIConfigEffectiveSelection {
   const state = projectEffectiveState(value.state);
+  if (value.textReplay && (value.capabilityContract !== 'text.generate' || state !== 'ready' || value.textReplay.acceptedCarriers.length > 16)) return invalidConfiguration('Text replay selection is invalid');
+  const replayIdentities = new Set<string>();
+  for (const format of value.textReplay?.acceptedCarriers ?? []) {
+    const identity = JSON.stringify([format.kind, format.version]);
+    if (!format.kind || format.kind.trim() !== format.kind || new TextEncoder().encode(format.kind).byteLength > 128 || /[\u0000-\u001f\u007f]/u.test(format.kind)
+      || !Number.isSafeInteger(format.version) || format.version < 1 || format.version > 0xffff_ffff || replayIdentities.has(identity)
+      || !format.executionModes.length || format.executionModes.length > 2 || new Set(format.executionModes).size !== format.executionModes.length
+      || !format.executionModes.every((mode) => mode === 1 || mode === 2)) return invalidConfiguration('Text replay carrier format is invalid');
+    replayIdentities.add(identity);
+  }
   const resource = value.resource.oneofKind === 'local'
     ? { oneofKind: 'local' as const, local: projectLocalResource(value.resource.local) }
     : value.resource.oneofKind === 'cloud'
@@ -410,6 +429,17 @@ function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelec
     state,
     resource,
     reasons: Object.freeze([...value.reasons]),
+    ...(value.textReplay ? { textReplay: {
+      acceptedCarriers: value.textReplay.acceptedCarriers.map((format) => ({
+        kind: requireText(format.kind, 'Text replay carrier kind is invalid'),
+        version: format.version,
+        executionModes: format.executionModes.map((mode): 'sync' | 'stream' => {
+          if (mode === 1) return 'sync';
+          if (mode === 2) return 'stream';
+          return invalidConfiguration('Text replay execution mode is invalid');
+        }),
+      })),
+    } } : {}),
   });
 }
 

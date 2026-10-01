@@ -239,3 +239,20 @@ test('App AIConfig client projects music input decoded from the Runtime wire', a
   if (options.kind !== 'local-loadouts') assert.fail('expected Local options');
   assert.equal(options.options[0]?.musicInput?.generation[0]?.lyricsMode, 'required');
 });
+
+
+test('text replay format crosses real protobuf serialization and remains fail-closed', async () => {
+  const owner = createNimiAppAIConfigOwner('app.text');
+  let version = 1;
+  let mode = 2;
+  const client = createNimiAppAIConfigClient({ appId: 'app.text', runtime: {
+    async getAppAIConfig() { return GetAppAIConfigResponse.fromBinary(GetAppAIConfigResponse.toBinary(GetAppAIConfigResponse.create({ config: { owner, capabilities: [] }, revision: '1', effectiveSelections: [{ capabilityContract: 'text.generate', state: AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY, textReplay: { acceptedCarriers: [{ kind: 'example.encrypted', version, executionModes: [mode] }] } }] }))); },
+    async overwriteAppAIConfig() { throw new Error('unused'); },
+    async listAppAIConfigOptions() { throw new Error('unused'); },
+  } });
+  assert.deepEqual((await client.get()).effectiveSelections[0].textReplay, { acceptedCarriers: [{ kind: 'example.encrypted', version: 1, executionModes: ['stream'] }] });
+  version = 0;
+  await assert.rejects(() => client.get(), /format is invalid/u);
+  version = 1; mode = 3;
+  await assert.rejects(() => client.get(), /format is invalid/u);
+});

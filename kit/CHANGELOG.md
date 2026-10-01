@@ -1,5 +1,9 @@
 # Changelog
 
+## Next minor (compatible additions)
+
+`chat/runtime` adds `planConversationTextReplay` and `planAppAiChatReplay` for App-owned model-change contexts, `cancelAndWait()` on the session hook, and `preserveHistory` for explicit history-budget refusal. Persist the returned context boundary beside the unchanged source history; do not replace saved messages with the request projection. Text replay depends on the matching Runtime/SDK AIConfig compatibility projection.
+
 ## 0.16.0: upgrading from 0.11.0
 
 0.11.0 is the last Kit published before 0.16.0; Kit 0.12.0 through 0.15.3 were

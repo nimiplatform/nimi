@@ -1408,6 +1408,39 @@ export interface AIConfigEffectiveSelection {
      * @generated from protobuf field: repeated string reasons = 4
      */
     reasons: string[];
+    /**
+     * Present only for a ready text.generate selection. Informational adapter
+     * compatibility, never routing authority or a promise of other behavior.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.TextReplayCompatibility text_replay = 6
+     */
+    textReplay?: TextReplayCompatibility;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextReplayCarrierFormat
+ */
+export interface TextReplayCarrierFormat {
+    /**
+     * @generated from protobuf field: string kind = 1
+     */
+    kind: string;
+    /**
+     * @generated from protobuf field: uint32 version = 2
+     */
+    version: number;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextReplayExecutionMode execution_modes = 3
+     */
+    executionModes: TextReplayExecutionMode[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextReplayCompatibility
+ */
+export interface TextReplayCompatibility {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextReplayCarrierFormat accepted_carriers = 1
+     */
+    acceptedCarriers: TextReplayCarrierFormat[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
@@ -1903,6 +1936,23 @@ export enum AIConfigEffectiveState {
      * @generated from protobuf enum value: AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE = 4;
      */
     AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.TextReplayExecutionMode
+ */
+export enum TextReplayExecutionMode {
+    /**
+     * @generated from protobuf enum value: TEXT_REPLAY_EXECUTION_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: TEXT_REPLAY_EXECUTION_MODE_SYNC = 1;
+     */
+    SYNC = 1,
+    /**
+     * @generated from protobuf enum value: TEXT_REPLAY_EXECUTION_MODE_STREAM = 2;
+     */
+    STREAM = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class CapabilityImplementationIdentity$Type extends MessageType<CapabilityImplementationIdentity> {
@@ -5827,7 +5877,8 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
             { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AIConfigEffectiveState", AIConfigEffectiveState] },
             { no: 3, name: "local", kind: "message", oneof: "resource", T: () => AIConfigLocalResourceProjection },
             { no: 5, name: "cloud", kind: "message", oneof: "resource", T: () => AIConfigCloudResourceProjection },
-            { no: 4, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "text_replay", kind: "message", T: () => TextReplayCompatibility }
         ]);
     }
     create(value?: PartialMessage<AIConfigEffectiveSelection>): AIConfigEffectiveSelection {
@@ -5866,6 +5917,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
                 case /* repeated string reasons */ 4:
                     message.reasons.push(reader.string());
                     break;
+                case /* nimi.runtime.v1.TextReplayCompatibility text_replay */ 6:
+                    message.textReplay = TextReplayCompatibility.internalBinaryRead(reader, reader.uint32(), options, message.textReplay);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5893,6 +5947,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
         /* nimi.runtime.v1.AIConfigCloudResourceProjection cloud = 5; */
         if (message.resource.oneofKind === "cloud")
             AIConfigCloudResourceProjection.internalBinaryWrite(message.resource.cloud, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextReplayCompatibility text_replay = 6; */
+        if (message.textReplay)
+            TextReplayCompatibility.internalBinaryWrite(message.textReplay, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5903,6 +5960,124 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
  * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigEffectiveSelection
  */
 export const AIConfigEffectiveSelection = new AIConfigEffectiveSelection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextReplayCarrierFormat$Type extends MessageType<TextReplayCarrierFormat> {
+    constructor() {
+        super("nimi.runtime.v1.TextReplayCarrierFormat", [
+            { no: 1, name: "kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "version", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "execution_modes", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.TextReplayExecutionMode", TextReplayExecutionMode, "TEXT_REPLAY_EXECUTION_MODE_"] }
+        ]);
+    }
+    create(value?: PartialMessage<TextReplayCarrierFormat>): TextReplayCarrierFormat {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.kind = "";
+        message.version = 0;
+        message.executionModes = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextReplayCarrierFormat>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextReplayCarrierFormat): TextReplayCarrierFormat {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string kind */ 1:
+                    message.kind = reader.string();
+                    break;
+                case /* uint32 version */ 2:
+                    message.version = reader.uint32();
+                    break;
+                case /* repeated nimi.runtime.v1.TextReplayExecutionMode execution_modes */ 3:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.executionModes.push(reader.int32());
+                    else
+                        message.executionModes.push(reader.int32());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextReplayCarrierFormat, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string kind = 1; */
+        if (message.kind !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.kind);
+        /* uint32 version = 2; */
+        if (message.version !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.version);
+        /* repeated nimi.runtime.v1.TextReplayExecutionMode execution_modes = 3; */
+        if (message.executionModes.length) {
+            writer.tag(3, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.executionModes.length; i++)
+                writer.int32(message.executionModes[i]);
+            writer.join();
+        }
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextReplayCarrierFormat
+ */
+export const TextReplayCarrierFormat = new TextReplayCarrierFormat$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextReplayCompatibility$Type extends MessageType<TextReplayCompatibility> {
+    constructor() {
+        super("nimi.runtime.v1.TextReplayCompatibility", [
+            { no: 1, name: "accepted_carriers", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextReplayCarrierFormat }
+        ]);
+    }
+    create(value?: PartialMessage<TextReplayCompatibility>): TextReplayCompatibility {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.acceptedCarriers = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextReplayCompatibility>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextReplayCompatibility): TextReplayCompatibility {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.TextReplayCarrierFormat accepted_carriers */ 1:
+                    message.acceptedCarriers.push(TextReplayCarrierFormat.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextReplayCompatibility, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.TextReplayCarrierFormat accepted_carriers = 1; */
+        for (let i = 0; i < message.acceptedCarriers.length; i++)
+            TextReplayCarrierFormat.internalBinaryWrite(message.acceptedCarriers[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextReplayCompatibility
+ */
+export const TextReplayCompatibility = new TextReplayCompatibility$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AIConfigLocalLoadoutOptionsQuery$Type extends MessageType<AIConfigLocalLoadoutOptionsQuery> {
     constructor() {

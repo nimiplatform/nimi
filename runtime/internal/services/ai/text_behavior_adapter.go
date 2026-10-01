@@ -111,6 +111,9 @@ type textBehaviorReasoningSupport struct {
 	ExactBudget             bool
 	SummaryTranscript       bool
 	OpaqueContinuityCarrier bool
+	// Declared by the same versioned adapter that validates these carriers.
+	ContinuityKind    string
+	ContinuityVersion uint32
 }
 
 type textBehaviorStructuredOutputSupport struct {

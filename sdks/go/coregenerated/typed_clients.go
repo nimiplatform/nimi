@@ -2080,6 +2080,14 @@ const (
 	TEXTBEHAVIORKINDSTRUCTUREDOUTPUT TextBehaviorKind = "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT"
 )
 
+type TextReplayExecutionMode string
+
+const (
+	TEXTREPLAYEXECUTIONMODEUNSPECIFIED TextReplayExecutionMode = "TEXT_REPLAY_EXECUTION_MODE_UNSPECIFIED"
+	TEXTREPLAYEXECUTIONMODESYNC        TextReplayExecutionMode = "TEXT_REPLAY_EXECUTION_MODE_SYNC"
+	TEXTREPLAYEXECUTIONMODESTREAM      TextReplayExecutionMode = "TEXT_REPLAY_EXECUTION_MODE_STREAM"
+)
+
 type TextSourceType string
 
 const (
@@ -2307,6 +2315,7 @@ type AIConfigEffectiveSelection struct {
 	Local              *AIConfigLocalResourceProjection `json:"local,omitempty"`
 	Reasons            []string                         `json:"reasons,omitempty"`
 	Cloud              *AIConfigCloudResourceProjection `json:"cloud,omitempty"`
+	TextReplay         *TextReplayCompatibility         `json:"text_replay,omitempty"`
 }
 
 type AIConfigLocalIntent struct {
@@ -8861,6 +8870,16 @@ type TextOutputText struct {
 
 type TextOutputTextDelta struct {
 	Text string `json:"text,omitempty"`
+}
+
+type TextReplayCarrierFormat struct {
+	Kind           string                    `json:"kind,omitempty"`
+	Version        uint32                    `json:"version,omitempty"`
+	ExecutionModes []TextReplayExecutionMode `json:"execution_modes,omitempty"`
+}
+
+type TextReplayCompatibility struct {
+	AcceptedCarriers []TextReplayCarrierFormat `json:"accepted_carriers,omitempty"`
 }
 
 type TextSource struct {

@@ -570,6 +570,25 @@ message AIConfigEffectiveSelection {
     AIConfigCloudResourceProjection cloud = 5;
   }
   repeated string reasons = 4;
+  // Present only for a ready text.generate selection. Informational adapter
+  // compatibility, never routing authority or a promise of other behavior.
+  TextReplayCompatibility text_replay = 6;
+}
+
+message TextReplayCarrierFormat {
+  string kind = 1;
+  uint32 version = 2;
+  repeated TextReplayExecutionMode execution_modes = 3;
+}
+
+enum TextReplayExecutionMode {
+  TEXT_REPLAY_EXECUTION_MODE_UNSPECIFIED = 0;
+  TEXT_REPLAY_EXECUTION_MODE_SYNC = 1;
+  TEXT_REPLAY_EXECUTION_MODE_STREAM = 2;
+}
+
+message TextReplayCompatibility {
+  repeated TextReplayCarrierFormat accepted_carriers = 1;
 }
 
 message AIConfigLocalLoadoutOptionsQuery {

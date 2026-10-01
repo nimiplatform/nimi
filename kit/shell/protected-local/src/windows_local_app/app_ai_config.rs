@@ -231,12 +231,48 @@ pub(super) fn project_effective_selection(
         }),
         None => JsonValue::Null,
     };
-    Ok(json!({
+    let mut projected = json!({
         "capabilityContract": capability_contract,
         "state": state,
         "resource": resource,
         "reasons": selection.reasons,
-    }))
+    });
+    if let Some(replay) = selection.text_replay {
+        if capability_contract != "text.generate"
+            || state != "ready"
+            || replay.accepted_carriers.len() > 16
+        {
+            return Err(untrusted());
+        }
+        let mut identities = std::collections::BTreeSet::new();
+        let mut formats = Vec::new();
+        for format in replay.accepted_carriers {
+            let kind = required_text_value(&format.kind)?;
+            if kind.len() > 128
+                || format.version == 0
+                || !identities.insert((kind.to_owned(), format.version))
+                || format.execution_modes.is_empty()
+                || format.execution_modes.len() > 2
+            {
+                return Err(untrusted());
+            }
+            let mut modes = Vec::new();
+            for mode in format.execution_modes {
+                let name = match mode {
+                    1 => "sync",
+                    2 => "stream",
+                    _ => return Err(untrusted()),
+                };
+                if modes.contains(&name) {
+                    return Err(untrusted());
+                }
+                modes.push(name);
+            }
+            formats.push(json!({"kind": kind, "version": format.version, "executionModes": modes}));
+        }
+        projected["textReplay"] = json!({"acceptedCarriers": formats});
+    }
+    Ok(projected)
 }
 
 pub(super) fn project_cloud_connector(
@@ -269,7 +305,12 @@ pub(super) fn project_cloud_target(
         "reasons": resource.reasons,
     });
     if let Some(input) = resource.music_input {
-        if !matches!(resource.capability_contract.as_str(), "music.generate" | "music.transcribe" | "audio.voice.convert") { return Err(untrusted()); }
+        if !matches!(
+            resource.capability_contract.as_str(),
+            "music.generate" | "music.transcribe" | "audio.voice.convert"
+        ) {
+            return Err(untrusted());
+        }
         projected["musicInput"] = super::music_input::project(input)?;
     }
     if let Some(input) = reference_input {
@@ -302,7 +343,12 @@ pub(super) fn project_local_resource(
         "reasons": resource.reasons,
     });
     if let Some(input) = resource.music_input {
-        if !matches!(resource.capability_contract.as_str(), "music.generate" | "music.transcribe" | "audio.voice.convert") { return Err(untrusted()); }
+        if !matches!(
+            resource.capability_contract.as_str(),
+            "music.generate" | "music.transcribe" | "audio.voice.convert"
+        ) {
+            return Err(untrusted());
+        }
         projected["musicInput"] = super::music_input::project(input)?;
     }
     if let Some(input) = reference_input {
@@ -854,6 +900,36 @@ fn untrusted() -> LocalAppOperationError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn text_replay_projection_is_exact_and_owner_free() {
+        let base = AiConfigEffectiveSelection {
+            capability_contract: "text.generate".into(),
+            state: AiConfigEffectiveState::Ready as i32,
+            text_replay: Some(crate::generated::TextReplayCompatibility {
+                accepted_carriers: vec![crate::generated::TextReplayCarrierFormat {
+                    kind: "example.encrypted".into(),
+                    version: 1,
+                    execution_modes: vec![1, 2],
+                }],
+            }),
+            ..Default::default()
+        };
+        let value = project_effective_selection(base.clone()).unwrap();
+        assert_eq!(
+            value["textReplay"]["acceptedCarriers"][0],
+            json!({"kind":"example.encrypted", "version":1, "executionModes":["sync","stream"]})
+        );
+        let mut invalid = base.clone();
+        invalid.text_replay.as_mut().unwrap().accepted_carriers[0].version = 0;
+        assert!(project_effective_selection(invalid).is_err());
+        let mut missing = base;
+        missing.text_replay = None;
+        assert!(project_effective_selection(missing)
+            .unwrap()
+            .get("textReplay")
+            .is_none());
+    }
 
     #[test]
     fn cloud_options_project_plain_target_json_for_model_selection() {

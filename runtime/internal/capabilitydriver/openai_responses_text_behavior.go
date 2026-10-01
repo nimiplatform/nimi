@@ -10,6 +10,7 @@ import (
 )
 
 const openAIResponsesContinuityKind = "openai.responses.encrypted-reasoning"
+const OpenAIResponsesContinuityKind = openAIResponsesContinuityKind
 
 // openAIResponses is the standard API-key OpenAI route: top-level function
 // tools, named tool choice, parallel calls and an output token limit. It

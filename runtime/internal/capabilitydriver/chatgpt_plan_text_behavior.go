@@ -18,6 +18,7 @@ const (
 	// ChatGPTPlanManageUsageHint points the user at ChatGPT usage settings.
 	ChatGPTPlanManageUsageHint = "manage_chatgpt_plan_usage"
 )
+const ChatGPTPlanContinuityKind = chatGPTPlanContinuityKind
 
 // chatGPTPlanResponses is the ChatGPT-plan route: function tools grouped in a
 // Runtime-owned namespace, one call at a time, no named tool choice and no

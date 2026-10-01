@@ -1,5 +1,9 @@
 # SDK migration notes
 
+## Next minor (compatible additions)
+
+Ready text.generate effective selections may carry `textReplay` with exact accepted carrier kind/version/execution modes. Missing facts remain unconfirmed; an empty acceptedCarriers list means no acceptance. It is informational, and each inference still validates the captured request.
+
 These package-local notes cover the App-facing changes relevant to the current
 published baseline. They are not a complete reconstruction of older releases.
 

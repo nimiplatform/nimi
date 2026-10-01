@@ -220,6 +220,7 @@ SpeechTranscriptStatus = Literal["SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED", "SPEECH
 StreamEventType = Literal["STREAM_EVENT_TYPE_UNSPECIFIED", "STREAM_EVENT_STARTED", "STREAM_EVENT_DELTA", "STREAM_EVENT_USAGE", "STREAM_EVENT_COMPLETED", "STREAM_EVENT_FAILED"]
 TextBehaviorConfigurationState = Literal["TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED", "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE", "TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED", "TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS"]
 TextBehaviorKind = Literal["TEXT_BEHAVIOR_KIND_UNSPECIFIED", "TEXT_BEHAVIOR_KIND_TOOL_USE", "TEXT_BEHAVIOR_KIND_REASONING", "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT"]
+TextReplayExecutionMode = Literal["TEXT_REPLAY_EXECUTION_MODE_UNSPECIFIED", "TEXT_REPLAY_EXECUTION_MODE_SYNC", "TEXT_REPLAY_EXECUTION_MODE_STREAM"]
 TextSourceType = Literal["TEXT_SOURCE_TYPE_UNSPECIFIED", "TEXT_SOURCE_TYPE_URL", "TEXT_SOURCE_TYPE_DOCUMENT"]
 ToolChoiceMode = Literal["TOOL_CHOICE_MODE_UNSPECIFIED", "TOOL_CHOICE_MODE_AUTO", "TOOL_CHOICE_MODE_NONE", "TOOL_CHOICE_MODE_REQUIRED", "TOOL_CHOICE_MODE_TOOL"]
 ToolSpecKind = Literal["TOOL_SPEC_KIND_UNSPECIFIED", "TOOL_SPEC_KIND_FUNCTION", "TOOL_SPEC_KIND_PROVIDER"]
@@ -313,6 +314,7 @@ class AIConfigEffectiveSelection:
     local: AIConfigLocalResourceProjection | None = None
     reasons: tuple[str, ...] = field(default_factory=tuple)
     cloud: AIConfigCloudResourceProjection | None = None
+    text_replay: TextReplayCompatibility | None = None
 
 @dataclass(frozen=True)
 class AIConfigLocalIntent:
@@ -6913,6 +6915,16 @@ class TextOutputText:
 @dataclass(frozen=True)
 class TextOutputTextDelta:
     text: str | None = None
+
+@dataclass(frozen=True)
+class TextReplayCarrierFormat:
+    kind: str | None = None
+    version: int | None = None
+    execution_modes: tuple[TextReplayExecutionMode, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class TextReplayCompatibility:
+    accepted_carriers: tuple[TextReplayCarrierFormat, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class TextSource:

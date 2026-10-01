@@ -3816,7 +3816,23 @@ function requiredVoiceOptionText(value: unknown, field: string, command: string,
 
 function parseEffectiveSelection(value: unknown, command: string): void {
   const selection = assertRecord(value, `${command}: effective selection is invalid`);
-  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons'], command, 'effective selection');
+  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : [])], command, 'effective selection');
+  if (Object.hasOwn(selection, 'textReplay')) {
+    const replay = assertRecord(selection.textReplay, `${command}: text replay compatibility is invalid`);
+    assertProjectionKeys(replay, ['acceptedCarriers'], command, 'text replay compatibility');
+    if (selection.capabilityContract !== 'text.generate' || selection.state !== 'ready' || !Array.isArray(replay.acceptedCarriers) || replay.acceptedCarriers.length > 16) throw new Error(`${command}: text replay selection is invalid`);
+    const identities = new Set<string>();
+    for (const entry of replay.acceptedCarriers) {
+      const format = assertRecord(entry, `${command}: text replay format is invalid`);
+      assertProjectionKeys(format, ['kind', 'version', 'executionModes'], command, 'text replay format');
+      requiredText(format.kind, 'kind', command, 128);
+      const identity = JSON.stringify([format.kind, format.version]);
+      if (!Number.isSafeInteger(format.version) || Number(format.version) < 1 || Number(format.version) > 0xffff_ffff || identities.has(identity)
+        || !Array.isArray(format.executionModes) || !format.executionModes.length || format.executionModes.length > 2 || new Set(format.executionModes).size !== format.executionModes.length
+        || !format.executionModes.every((mode) => mode === 'sync' || mode === 'stream')) throw new Error(`${command}: text replay format is invalid`);
+      identities.add(identity);
+    }
+  }
   requiredText(selection.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH);
   if (!['ready', 'missing', 'blocked', 'unavailable'].includes(String(selection.state))
     || !Array.isArray(selection.reasons)) {

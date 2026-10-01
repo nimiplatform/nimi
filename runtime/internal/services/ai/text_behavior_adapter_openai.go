@@ -27,7 +27,7 @@ func openAIResponsesTextBehaviorRegistration(modelID string) textBehaviorAdapter
 				},
 				SingleCall: true, MultipleCalls: true, ParallelCalls: true, ToolOnlyResponse: true, MixedTextAndCall: true, ToolResultRoundTrip: true,
 			},
-			Reasoning:        &textBehaviorReasoningSupport{OpaqueContinuityCarrier: true},
+			Reasoning:        &textBehaviorReasoningSupport{OpaqueContinuityCarrier: true, ContinuityKind: capabilitydriver.OpenAIResponsesContinuityKind, ContinuityVersion: 1},
 			StructuredOutput: &textBehaviorStructuredOutputSupport{Kinds: []runtimev1.ResponseFormatKind{runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA}, SupportsStrictJSONSchema: true},
 			Combinations: []textBehaviorCombination{
 				{Modes: modes}, {Reasoning: true, Modes: modes},

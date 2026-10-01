@@ -104,6 +104,7 @@ export type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
   NimiAIConfigEffectiveSelection,
+  NimiTextReplayCompatibility,
   NimiAIConfigLocalLoadoutOption,
   NimiAIConfigCloudConnectorOption,
   NimiAIConfigCloudTargetOption,

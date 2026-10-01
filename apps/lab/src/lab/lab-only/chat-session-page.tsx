@@ -26,7 +26,7 @@ import {
   labChatSessionInput,
   toLabChatSessionDocument,
 } from './chat-session.js';
-import { LabConversationTranscript, type LabConversationDisplayMessage } from './conversation-transcript.js';
+import { LabConversationExport, LabConversationTranscript, type LabConversationDisplayMessage } from './conversation-transcript.js';
 import {
   LAB_TEXT_CONVERSATION_MAX_BYTES,
   LabTextConversationTooLargeError,
@@ -37,6 +37,7 @@ import {
   labTurnFailureNotice,
   loadLabTextConversation,
   saveLabTextConversation,
+  planLabTextConversation,
   type LabTextConversationDocument,
   type LabTextConversationNotice,
   type LabTextConversationRequest,
@@ -73,8 +74,12 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
   const [lastRequest, setLastRequest] = useState<LabTextConversationRequest | null>(null);
   const [draft, setDraft] = useState('');
   const [configOpen, setConfigOpen] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const contextStartRef = useRef(0);
+  const requestRef = useRef<ReturnType<typeof labChatSessionInput> | null>(null);
+  const activeRef = useRef(true);
   const rootRef = useRef<HTMLDivElement>(null);
-  const sentRef = useRef<LabTextConversationRequest | null>(null);
   // Saving starts once the saved conversation has been read (or replaced by
   // New conversation). writtenRef is the document last read or written.
   const savingAllowedRef = useRef(false);
@@ -83,7 +88,6 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
   const resetRef = useRef<(messages?: readonly AppAiChatSessionMessage[]) => void>(() => {});
 
   const model = useMemo(() => createLabObservedTextModel(client.ai, (request) => {
-    sentRef.current = request;
     setLastRequest(request);
   }), [client]);
 
@@ -92,21 +96,15 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
   const persist = useCallback((messages: readonly AppAiChatSessionMessage[]) => {
     messagesRef.current = messages;
     if (!savingAllowedRef.current || messages.some((message) => message.status === 'streaming')) return;
-    const document = toLabChatSessionDocument(messages);
+    const document = toLabChatSessionDocument(messages, contextStartRef.current);
     const json = JSON.stringify(document);
     if (json === writtenRef.current) return;
     writtenRef.current = json;
     const current = () => !messagesRef.current.some((message) => message.status === 'streaming')
-      && JSON.stringify(toLabChatSessionDocument(messagesRef.current)) === json;
+      && JSON.stringify(toLabChatSessionDocument(messagesRef.current, contextStartRef.current)) === json;
     saveLabTextConversation(client.storage, document, LAB_CHAT_SESSION_PATH).then((stored) => {
       if (!current()) return;
       setSaved(stored);
-      const trimmed = document.messages.length - stored.messages.length;
-      if (trimmed > 0) {
-        writtenRef.current = JSON.stringify(stored);
-        setNotices((list) => [...list, { type: 'trimmed', messages: trimmed }]);
-        resetRef.current(fromLabChatSessionDocument(stored));
-      }
     }, (error: unknown) => {
       if (!current()) return;
       setNotices((list) => [...list, error instanceof LabTextConversationTooLargeError
@@ -116,12 +114,15 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
   }, [client]);
 
   const onError = useCallback((error: AppAiChatError) => {
-    setNotices([labTurnFailureNotice(labErrorReason(error), labErrorText(error), sentRef.current)]);
+    setNotices([labTurnFailureNotice(labErrorReason(error), labErrorText(error))]);
   }, []);
 
   const session = useAppAiChatSession({
     model,
-    resolveRequest: ({ prompt, messages }) => ({ input: labChatSessionInput(messages, prompt) }),
+    resolveRequest: () => {
+      if (!requestRef.current) throw new Error('The conversation request has not been prepared.');
+      return { input: requestRef.current };
+    },
     onMessagesChange: persist,
     onError,
   });
@@ -129,12 +130,14 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
 
   useEffect(() => {
     let active = true;
+    activeRef.current = true;
     savingAllowedRef.current = false;
     loadLabTextConversation(client.storage, LAB_CHAT_SESSION_PATH).then((document) => {
       if (!active) return;
       writtenRef.current = JSON.stringify(document);
       savingAllowedRef.current = true;
       setSaved(document);
+      contextStartRef.current = document.contextStart ?? 0;
       resetRef.current(fromLabChatSessionDocument(document));
       setLoaded(true);
     }, (error: unknown) => {
@@ -144,10 +147,11 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
     });
     return () => {
       active = false;
+      activeRef.current = false;
     };
   }, [client]);
 
-  const busy = session.isStreaming;
+  const busy = session.isStreaming || preparing || switching;
   const blocked = !loaded || !!loadError;
   const savedContinuity = labTextConversationContinuity(saved?.messages ?? []);
   const displayed: readonly LabConversationDisplayMessage[] = session.messages.map((message) => ({
@@ -160,29 +164,52 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
   const send = () => {
     const prompt = draft.trim();
     if (!prompt || busy || blocked || !runTarget.canDispatch) return;
-    setDraft('');
-    setNotices([]);
-    setLastRequest(null);
-    sentRef.current = null;
-    void session.sendPrompt(prompt);
+    setPreparing(true);
+    void (async () => {
+      try {
+        const document = toLabChatSessionDocument(messagesRef.current, contextStartRef.current);
+        const snapshot = await client.aiConfig.get();
+        if (!activeRef.current) return;
+        const plan = planLabTextConversation(document, snapshot);
+        if (plan.continuity === 'reset') {
+          const stored = await saveLabTextConversation(client.storage, plan.document, LAB_CHAT_SESSION_PATH);
+          if (!activeRef.current) return;
+          contextStartRef.current = plan.contextStart;
+          writtenRef.current = JSON.stringify(stored);
+          setSaved(stored);
+        }
+        requestRef.current = [
+          ...plan.history.map((message) => ({ role: message.role, content: message.text, ...(message.outputItems ? { outputItems: message.outputItems } : {}) })),
+          { role: 'user', content: prompt },
+        ];
+        setDraft('');
+        setNotices(plan.continuity === 'reset' ? [{ type: 'context-reset' }] : []);
+        setLastRequest(null);
+        setPreparing(false);
+        await session.sendPrompt(prompt);
+      } catch (error) {
+        if (activeRef.current) setNotices([{ type: 'turn-failed', code: labErrorReason(error), detail: labErrorText(error) }]);
+      } finally {
+        if (activeRef.current) setPreparing(false);
+      }
+    })();
   };
 
   const startOver = () => {
+    contextStartRef.current = 0;
     savingAllowedRef.current = true;
     setLoadError('');
     setNotices([]);
     setLastRequest(null);
-    sentRef.current = null;
     session.resetMessages([]);
   };
 
   const noticeText = (notice: LabTextConversationNotice) => {
     switch (notice.type) {
       case 'turn-failed': return t('CapabilityTests.textConversation.turnFailed', { code: notice.code, detail: notice.detail });
-      case 'continuity-refused': return t('CapabilityTests.textConversation.continuityRefused', { code: notice.code });
       case 'turn-too-large': return t('CapabilityTests.textConversation.turnTooLarge', { size: kib(notice.bytes), limit: kib(LAB_TEXT_CONVERSATION_MAX_BYTES) });
-      case 'trimmed': return t('CapabilityTests.textConversation.trimmed', { messages: notice.messages, limit: kib(LAB_TEXT_CONVERSATION_MAX_BYTES) });
       case 'save-failed': return t('CapabilityTests.textConversation.saveFailed', { detail: notice.detail });
+      case 'context-reset': return t('CapabilityTests.textConversation.contextReset');
     }
   };
 
@@ -195,7 +222,19 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
         </div>
         <div className="lab-realtime__head-actions">
           <StatusBadge tone={runTarget.canDispatch ? 'success' : 'warning'} shape="dot">{runTarget.intentLabel}</StatusBadge>
-          <Button type="button" size="sm" tone="secondary" onClick={() => setConfigOpen(true)}>{t('CapabilityTests.textConversation.configure')}</Button>
+          <Button type="button" size="sm" tone="secondary" disabled={preparing || switching} onClick={async () => {
+            setSwitching(true);
+            try {
+              const settled = await session.cancelAndWait();
+              const document = toLabChatSessionDocument(settled, contextStartRef.current);
+              const stored = await saveLabTextConversation(client.storage, document, LAB_CHAT_SESSION_PATH);
+              writtenRef.current = JSON.stringify(stored);
+              setSaved(stored);
+              setConfigOpen(true);
+            } catch (error) {
+              setNotices([{ type: 'save-failed', detail: labErrorText(error) }]);
+            } finally { setSwitching(false); }
+          }}>{t(session.isStreaming ? 'CapabilityTests.textConversation.stopAndConfigure' : 'CapabilityTests.textConversation.configure')}</Button>
         </div>
       </header>
       {!runTarget.canDispatch ? <InlineAlert tone="warning">{runTarget.detail}</InlineAlert> : null}
@@ -204,6 +243,7 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
       <LabConversationTranscript messages={displayed} loading={!loaded} />
 
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.textConversation.composer')}>
+        {contextStartRef.current > 0 ? <InlineAlert tone="info">{t('CapabilityTests.textConversation.contextReset')}</InlineAlert> : null}
         <TextareaField
           rows={3}
           value={draft}
@@ -219,13 +259,15 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
           <Button type="button" size="sm" tone="secondary" disabled={!session.canCancel} onClick={session.cancelCurrent}>
             {t('CapabilityTests.textConversation.stop')}
           </Button>
-          <Button type="button" size="sm" tone="ghost" disabled={!loaded} onClick={startOver}>
+          <Button type="button" size="sm" tone="ghost" disabled={!loaded || preparing || switching} onClick={startOver}>
             {t('CapabilityTests.textConversation.startOver')}
           </Button>
         </div>
-        {notices.map((notice) => (
-          <InlineAlert key={notice.type} tone={notice.type === 'trimmed' ? 'info' : 'warning'}>{noticeText(notice)}</InlineAlert>
+        {notices.filter((notice) => notice.type !== 'context-reset').map((notice) => (
+          <InlineAlert key={notice.type} tone="warning">{noticeText(notice)}</InlineAlert>
         ))}
+        <LabConversationExport document={loaded && !busy ? toLabChatSessionDocument(session.messages, contextStartRef.current) : null}
+          disabled={busy || blocked} filename="lab-chat-session.json" />
       </section>
 
       <details className="lab-realtime__card">

@@ -16,7 +16,7 @@ import { useLabRendererHost } from '../../renderer/context.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { LabAIStudioAdapter } from '../lab-ai-studio-adapter.js';
 import { labTextConversationCapability } from './capability-test-registrations.js';
-import { LabConversationTranscript, type LabConversationDisplayMessage } from './conversation-transcript.js';
+import { LabConversationExport, LabConversationTranscript, type LabConversationDisplayMessage } from './conversation-transcript.js';
 import {
   INITIAL_LAB_TEXT_CONVERSATION_STATE,
   LAB_TEXT_CONVERSATION_MAX_BYTES,
@@ -52,6 +52,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
   const [state, setState] = useState<LabTextConversationState>(INITIAL_LAB_TEXT_CONVERSATION_STATE);
   const [draft, setDraft] = useState('');
   const [configOpen, setConfigOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,6 +62,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
       now: () => new Date(clock.now()).toISOString(),
       createTurnId: () => createNimiClientId('lab-conversation'),
       onState: setState,
+      getAIConfig: () => client.aiConfig.get(),
     });
     setSession(controller);
     setState(controller.getState());
@@ -70,7 +72,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
   }, [client, clock]);
 
   const { conversation, pending, saving, loadError, lastRequest, notices } = state;
-  const busy = !!pending || saving;
+  const busy = !!pending || saving || switching;
   const messages = conversation?.messages ?? [];
   const saved = labTextConversationContinuity(state.saved?.messages ?? []);
   const displayed: readonly LabConversationDisplayMessage[] = [
@@ -89,10 +91,9 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
   const noticeText = (notice: LabTextConversationNotice) => {
     switch (notice.type) {
       case 'turn-failed': return t('CapabilityTests.textConversation.turnFailed', { code: notice.code, detail: notice.detail });
-      case 'continuity-refused': return t('CapabilityTests.textConversation.continuityRefused', { code: notice.code });
       case 'turn-too-large': return t('CapabilityTests.textConversation.turnTooLarge', { size: kib(notice.bytes), limit: kib(LAB_TEXT_CONVERSATION_MAX_BYTES) });
-      case 'trimmed': return t('CapabilityTests.textConversation.trimmed', { messages: notice.messages, limit: kib(LAB_TEXT_CONVERSATION_MAX_BYTES) });
       case 'save-failed': return t('CapabilityTests.textConversation.saveFailed', { detail: notice.detail });
+      case 'context-reset': return t('CapabilityTests.textConversation.contextReset');
     }
   };
 
@@ -105,7 +106,12 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
         </div>
         <div className="lab-realtime__head-actions">
           <StatusBadge tone={runTarget.canDispatch ? 'success' : 'warning'} shape="dot">{runTarget.intentLabel}</StatusBadge>
-          <Button type="button" size="sm" tone="secondary" onClick={() => setConfigOpen(true)}>{t('CapabilityTests.textConversation.configure')}</Button>
+          <Button type="button" size="sm" tone="secondary" disabled={switching} onClick={async () => {
+            setSwitching(true);
+            await session?.stopAndWait();
+            setSwitching(false);
+            setConfigOpen(true);
+          }}>{t(pending ? 'CapabilityTests.textConversation.stopAndConfigure' : 'CapabilityTests.textConversation.configure')}</Button>
         </div>
       </header>
       {!runTarget.canDispatch ? <InlineAlert tone="warning">{runTarget.detail}</InlineAlert> : null}
@@ -114,6 +120,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
       <LabConversationTranscript messages={displayed} loading={conversation === null} />
 
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.textConversation.composer')}>
+        {conversation?.contextStart ? <InlineAlert tone="info">{t('CapabilityTests.textConversation.contextReset')}</InlineAlert> : null}
         <TextareaField
           rows={3}
           value={draft}
@@ -135,9 +142,10 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
             {t('CapabilityTests.textConversation.startOver')}
           </Button>
         </div>
-        {notices.map((notice) => (
-          <InlineAlert key={notice.type} tone={notice.type === 'trimmed' ? 'info' : 'warning'}>{noticeText(notice)}</InlineAlert>
+        {notices.filter((notice) => notice.type !== 'context-reset').map((notice) => (
+          <InlineAlert key={notice.type} tone="warning">{noticeText(notice)}</InlineAlert>
         ))}
+        <LabConversationExport document={conversation} disabled={busy || !!loadError} filename="lab-text-conversation.json" />
       </section>
 
       <details className="lab-realtime__card">

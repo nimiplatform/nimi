@@ -4207,6 +4207,19 @@ impl Default for TextBehaviorKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TextReplayExecutionMode {
+    TEXTREPLAYEXECUTIONMODEUNSPECIFIED,
+    TEXTREPLAYEXECUTIONMODESYNC,
+    TEXTREPLAYEXECUTIONMODESTREAM,
+}
+
+impl Default for TextReplayExecutionMode {
+    fn default() -> Self {
+        Self::TEXTREPLAYEXECUTIONMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TextSourceType {
     TEXTSOURCETYPEUNSPECIFIED,
     TEXTSOURCETYPEURL,
@@ -4530,6 +4543,7 @@ pub struct AIConfigEffectiveSelection {
     pub local: Option<Box<AIConfigLocalResourceProjection>>,
     pub reasons: Vec<String>,
     pub cloud: Option<Box<AIConfigCloudResourceProjection>>,
+    pub text_replay: Option<Box<TextReplayCompatibility>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14499,6 +14513,18 @@ pub struct TextOutputText {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TextOutputTextDelta {
     pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextReplayCarrierFormat {
+    pub kind: Option<String>,
+    pub version: Option<u32>,
+    pub execution_modes: Vec<TextReplayExecutionMode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextReplayCompatibility {
+    pub accepted_carriers: Vec<Box<TextReplayCarrierFormat>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

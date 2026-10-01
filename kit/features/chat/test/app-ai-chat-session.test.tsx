@@ -34,6 +34,7 @@ type HarnessProps = {
     sendPrompt: (input: string) => Promise<void>;
     resetMessages: (messages?: readonly AppAiChatSessionMessage[]) => void;
     cancelCurrent: () => void;
+    cancelAndWait: () => Promise<readonly AppAiChatSessionMessage[]>;
   }) => void;
 };
 
@@ -59,6 +60,7 @@ function Harness({ runtime, model, requestOptions, onReady }: HarnessProps) {
             sendPrompt: (input) => session.sendPrompt(input),
             resetMessages: session.resetMessages,
             cancelCurrent: session.cancelCurrent,
+            cancelAndWait: session.cancelAndWait,
           });
         }}
       >
@@ -437,7 +439,9 @@ describe('useAppAiChatSession', () => {
       expect(text('last')).toBe('Partial');
 
       await act(async () => {
-        api.cancelCurrent();
+        const settled = await api.cancelAndWait();
+        expect(settled.at(-1)?.status).toBe('canceled');
+        expect(settled.at(-1)?.content).toBe('Partial');
         await pending;
         await flush();
       });

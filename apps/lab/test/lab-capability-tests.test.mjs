@@ -1359,10 +1359,8 @@ test('a conversation returns only completed exchanges and refuses a damaged docu
     version: 1,
     messages: Array.from({ length: 12 }, (_, index) => ({ id: String(index), role: index % 2 ? 'assistant' : 'user', text: long, createdAt: at })),
   };
-  const bounded = conversation.boundLabTextConversation(oversized);
-  assert.ok(Buffer.byteLength(JSON.stringify(bounded)) <= conversation.LAB_TEXT_CONVERSATION_MAX_BYTES);
-  assert.equal(bounded.messages[0].role, 'user');
-  assert.deepEqual(bounded.messages.at(-1), oversized.messages.at(-1));
+  assert.throws(() => conversation.boundLabTextConversation(oversized), conversation.LabTextConversationTooLargeError);
+  assert.equal(oversized.messages.length, 12, 'capacity refusal preserves the original history');
 });
 
 test('stopping a reply closes the protected App stream and keeps the partial text as stopped', async () => {
@@ -1423,6 +1421,7 @@ function conversationSession(conversation, storage, ai) {
   const session = conversation.createLabTextConversationController({
     storage, ai, now: () => '2026-10-01T09:00:00.000Z', createTurnId: () => `turn-${turn += 1}`,
     onState: (state) => states.push(state),
+    getAIConfig: async () => ({ effectiveSelections: [{ capabilityContract: 'text.generate', state: 'ready', textReplay: { acceptedCarriers: [{ kind: 'anthropic.messages.thinking', version: 1, executionModes: ['stream'] }] } }] }),
   });
   const until = async (predicate) => {
     for (let attempt = 0; attempt < 200 && !predicate(session.getState()); attempt += 1) {
@@ -1552,13 +1551,14 @@ test('a turn too large to save keeps the saved conversation and says so', async 
     conversation.LabTextConversationTooLargeError,
   );
 
-  // The next turn is saved; older exchanges, including the oversized one, give way.
+  // More input cannot make the oversized history disappear.
   await session.send('Now something short.');
-  assert.deepEqual(JSON.parse(files.get(conversation.LAB_TEXT_CONVERSATION_PATH)).messages.map((message) => message.id), ['turn-2:user', 'turn-2:assistant']);
-  assert.deepEqual(session.getState().notices, [{ type: 'trimmed', messages: 4 }]);
+  assert.deepEqual(JSON.parse(files.get(conversation.LAB_TEXT_CONVERSATION_PATH)).messages, earlier);
+  assert.ok(session.getState().conversation.messages.length >= 4);
+  assert.ok(session.getState().notices.some((notice) => notice.type === 'turn-too-large'));
 });
 
-test('the request count follows the history Kit actually returned, not the saved candidates', async () => {
+test('an oversized inference history is explicitly refused without dropping original exchanges', async () => {
   const conversation = await load('lab/lab-only/text-conversation.js');
   const at = '2026-10-01T08:00:00.000Z';
   const carrier = { type: 'reasoning-continuity', kind: 'anthropic.messages.thinking', version: 1, payloadBase64: 'AAECAw==' };
@@ -1583,13 +1583,11 @@ test('the request count follows the history Kit actually returned, not the saved
   assert.deepEqual(conversation.labTextConversationContinuity(messages), { items: 2, bytes: 8 });
 
   await session.send('Question 14');
-  assert.equal(inputs[0].messages.length, 25);
-  assert.deepEqual(session.getState().lastRequest, { messages: 24, items: 1, bytes: 4, omitted: 4 });
-  assert.deepEqual(conversation.labTextConversationRequest(inputs[0]), { messages: 24, items: 1, bytes: 4 });
+  assert.equal(inputs.length, 0, 'no shortened request was dispatched');
+  assert.equal(session.getState().lastRequest, null);
+  assert.match(session.getState().notices[0].detail, /history budget/u);
+  assert.deepEqual(session.getState().conversation.messages.slice(0, messages.length), messages);
 
-  // A route refusing the returned continuity is named as such.
-  await session.send('Question 15');
-  assert.deepEqual(session.getState().notices, [{ type: 'continuity-refused', code: 'AI_TEXT_BEHAVIOR_UNSUPPORTED' }]);
 });
 
 test('the session hook page returns completed exchanges with their recorded output and saves under its own path', async () => {
@@ -1627,4 +1625,40 @@ test('the session hook page returns completed exchanges with their recorded outp
   assert.deepEqual([...files.keys()], [session.LAB_CHAT_SESSION_PATH]);
   assert.deepEqual(await conversation.loadLabTextConversation(storage, session.LAB_CHAT_SESSION_PATH), document);
   assert.deepEqual((await conversation.loadLabTextConversation(storage)).messages, []);
+});
+
+
+test('model-switch reset persists before dispatch, preserves carriers and survives reopening', async () => {
+  const conversation = await load('lab/lab-only/text-conversation.js');
+  const at = '2026-10-01T13:00:00Z';
+  const outputItems = [{ type: 'reasoning-continuity', kind: 'example.signed', version: 1, payloadBase64: 'AAECAw==' }, { type: 'text', text: 'Blue mug.' }];
+  const messages = [{ id: 'u', role: 'user', text: 'Remember my blue mug.', createdAt: at }, { id: 'a', role: 'assistant', text: 'Blue mug.', createdAt: at, outputItems }];
+  const { files, storage } = recordingStorage();
+  files.set(conversation.LAB_TEXT_CONVERSATION_PATH, JSON.stringify({ version: 1, messages }));
+  let compatible = false;
+  let calls = 0;
+  const ai = { text: { async streamTurn(input) {
+    calls += 1;
+    assert.equal(JSON.parse(files.get(conversation.LAB_TEXT_CONVERSATION_PATH)).contextStart, 2, 'context persisted before request');
+    assert.equal(input.messages[1].turnItems.some((item) => item.output?.type === 'reasoning-continuity'), false);
+    return Object.assign(replyWith('Your mug is blue.')(), { cancel: async () => {} });
+  } } };
+  const make = () => conversation.createLabTextConversationController({ storage, ai, now: () => at, createTurnId: () => `switch-${calls}`, onState: () => {}, getAIConfig: async () => ({ effectiveSelections: [{ capabilityContract: 'text.generate', state: 'ready', textReplay: { acceptedCarriers: compatible ? [{ kind: 'example.signed', version: 1, executionModes: ['stream'] }] : [] } }] }) });
+  const first = make(); await first.load(); await first.send('What color?');
+  assert.equal(first.getState().conversation.contextStart, 2);
+  assert.deepEqual(first.getState().conversation.messages[1].outputItems, outputItems);
+  compatible = true;
+  const reopened = make(); await reopened.load(); await reopened.send('And now?');
+  assert.equal(calls, 2);
+  assert.deepEqual(reopened.getState().conversation.messages[1].outputItems, outputItems);
+});
+
+
+test('the Hook document conversion preserves earlier typed failures during a model change', async () => {
+  const session = await load('lab/lab-only/chat-session.js');
+  const document = { version: 1, contextStart: 0, messages: [
+    { id: 'u', role: 'user', text: 'Earlier input', createdAt: '2026-10-01T13:00:00Z' },
+    { id: 'a', role: 'assistant', text: 'Earlier failure', createdAt: '2026-10-01T13:00:01Z', status: 'failed', reasonCode: 'AI_INPUT_INVALID' },
+  ] };
+  assert.deepEqual(session.toLabChatSessionDocument(session.fromLabChatSessionDocument(document), document.contextStart), document);
 });

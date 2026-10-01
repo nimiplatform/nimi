@@ -19,7 +19,7 @@ func gemini38FlashSchemaBehaviorRegistration() textBehaviorAdapterRegistration {
 				ChoiceModes: []runtimev1.ToolChoiceMode{runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO},
 				SingleCall:  true, ToolOnlyResponse: true, ToolResultRoundTrip: true,
 			},
-			Reasoning: &textBehaviorReasoningSupport{OpaqueContinuityCarrier: true},
+			Reasoning: &textBehaviorReasoningSupport{OpaqueContinuityCarrier: true, ContinuityKind: capabilitydriver.Gemini38ToolSignatureKind, ContinuityVersion: 1},
 			StructuredOutput: &textBehaviorStructuredOutputSupport{
 				Kinds:                    []runtimev1.ResponseFormatKind{runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA},
 				SupportsStrictJSONSchema: true,

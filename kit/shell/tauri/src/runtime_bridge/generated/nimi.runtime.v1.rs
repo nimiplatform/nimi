@@ -4379,6 +4379,10 @@ pub struct AiConfigEffectiveSelection {
     pub state: i32,
     #[prost(string, repeated, tag = "4")]
     pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Present only for a ready text.generate selection. Informational adapter
+    /// compatibility, never routing authority or a promise of other behavior.
+    #[prost(message, optional, tag = "6")]
+    pub text_replay: ::core::option::Option<TextReplayCompatibility>,
     #[prost(oneof = "ai_config_effective_selection::Resource", tags = "3, 5")]
     pub resource: ::core::option::Option<ai_config_effective_selection::Resource>,
 }
@@ -4391,6 +4395,20 @@ pub mod ai_config_effective_selection {
         #[prost(message, tag = "5")]
         Cloud(super::AiConfigCloudResourceProjection),
     }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextReplayCarrierFormat {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub version: u32,
+    #[prost(enumeration = "TextReplayExecutionMode", repeated, tag = "3")]
+    pub execution_modes: ::prost::alloc::vec::Vec<i32>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextReplayCompatibility {
+    #[prost(message, repeated, tag = "1")]
+    pub accepted_carriers: ::prost::alloc::vec::Vec<TextReplayCarrierFormat>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiConfigLocalLoadoutOptionsQuery {
@@ -4911,6 +4929,35 @@ impl AiConfigEffectiveState {
             "AI_CONFIG_EFFECTIVE_STATE_MISSING" => Some(Self::Missing),
             "AI_CONFIG_EFFECTIVE_STATE_BLOCKED" => Some(Self::Blocked),
             "AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE" => Some(Self::Unavailable),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TextReplayExecutionMode {
+    Unspecified = 0,
+    Sync = 1,
+    Stream = 2,
+}
+impl TextReplayExecutionMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TEXT_REPLAY_EXECUTION_MODE_UNSPECIFIED",
+            Self::Sync => "TEXT_REPLAY_EXECUTION_MODE_SYNC",
+            Self::Stream => "TEXT_REPLAY_EXECUTION_MODE_STREAM",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TEXT_REPLAY_EXECUTION_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "TEXT_REPLAY_EXECUTION_MODE_SYNC" => Some(Self::Sync),
+            "TEXT_REPLAY_EXECUTION_MODE_STREAM" => Some(Self::Stream),
             _ => None,
         }
     }

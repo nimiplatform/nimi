@@ -470,6 +470,12 @@ export enum TextBehaviorKind {
   STRUCTURED_OUTPUT = 3,
 }
 
+export enum TextReplayExecutionMode {
+  UNSPECIFIED = 0,
+  SYNC = 1,
+  STREAM = 2,
+}
+
 export enum TextSourceType {
   UNSPECIFIED = 0,
   URL = 1,

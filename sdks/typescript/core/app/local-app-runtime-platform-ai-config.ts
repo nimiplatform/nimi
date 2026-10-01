@@ -258,7 +258,8 @@ function projectCapabilityIntent(value: unknown, index: number): void {
 
 function projectEffectiveSelection(value: unknown, index: number): void {
   const selection = asRecord(value);
-  assertExactProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons'], `App AIConfig effective selection ${index}`);
+  assertExactProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(selection && Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : [])], `App AIConfig effective selection ${index}`);
+  if (selection && Object.hasOwn(selection, 'textReplay')) validateTextReplayProjection(selection.textReplay, selection.capabilityContract, selection.state);
   projectionText(selection.capabilityContract, `App AIConfig effective selection ${index} contract`);
   if (!['ready', 'missing', 'blocked', 'unavailable'].includes(String(selection.state))) {
     localAppProjectionError(`App AIConfig effective selection ${index} state`);
@@ -282,6 +283,24 @@ function projectEffectiveSelection(value: unknown, index: number): void {
     } else {
       localAppProjectionError(`App AIConfig effective selection ${index} resource kind`);
     }
+  }
+}
+
+function validateTextReplayProjection(value: unknown, contract: unknown, state: unknown): void {
+  const replay = asRecord(value);
+  assertExactProjectionKeys(replay, ['acceptedCarriers'], 'text replay compatibility');
+  if (contract !== 'text.generate' || state !== 'ready' || !Array.isArray(replay.acceptedCarriers) || replay.acceptedCarriers.length > 16) localAppProjectionError('text replay selection');
+  const identities = new Set<string>();
+  for (const entry of replay.acceptedCarriers) {
+    const format = asRecord(entry);
+    assertExactProjectionKeys(format, ['kind', 'version', 'executionModes'], 'text replay carrier format');
+    const kind = projectionText(format.kind, 'text replay carrier kind');
+    if (new TextEncoder().encode(kind).byteLength > 128 || /[\u0000-\u001f\u007f]/u.test(kind) || !Number.isSafeInteger(format.version) || Number(format.version) < 1 || Number(format.version) > 0xffff_ffff
+      || !Array.isArray(format.executionModes) || format.executionModes.length === 0 || format.executionModes.length > 2 || new Set(format.executionModes).size !== format.executionModes.length
+      || !format.executionModes.every((mode) => mode === 'sync' || mode === 'stream')) localAppProjectionError('text replay carrier format');
+    const identity = JSON.stringify([kind, format.version]);
+    if (identities.has(identity)) localAppProjectionError('duplicate text replay carrier format');
+    identities.add(identity);
   }
 }
 

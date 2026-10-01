@@ -15,6 +15,7 @@ import (
 )
 
 const anthropicThinkingContinuityKind = "anthropic.messages.thinking"
+const AnthropicThinkingContinuityKind = anthropicThinkingContinuityKind
 
 // anthropicMessagesProfile fixes what one reviewed Claude cohort admits on
 // the shared Messages adapter.

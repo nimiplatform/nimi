@@ -39,6 +39,7 @@ export {
   createSdkConversationRuntimeAdapter,
   createSimpleAiConversationProvider,
 } from './runtime/orchestration.js';
+export { planConversationTextReplay, planAppAiChatReplay, type ConversationTextReplayPlan } from './runtime/text-replay.js';
 
 const KIT_APP_AI_CHAT_METADATA: AppAiChatMetadataDefaults = {
   callerKind: 'third-party-app',
@@ -136,6 +137,8 @@ export type UseAppAiChatSessionResult = {
   error: string | null;
   sendPrompt: (input: string | AppAiChatSessionSendInput) => Promise<void>;
   cancelCurrent: () => void;
+  /** Stop the active request and wait for its settled message projection. */
+  cancelAndWait: () => Promise<readonly AppAiChatSessionMessage[]>;
   resetMessages: (messages?: readonly AppAiChatSessionMessage[]) => void;
   setMessages: (messages: readonly AppAiChatSessionMessage[]) => void;
   clearError: () => void;
@@ -234,7 +237,7 @@ export function useAppAiChatSession({
   // The request that owns the session's streaming state. Only it may finish,
   // fail, cancel or clear that state; a reset or unmount revokes it, so a
   // revoked request that ends late cannot touch the next one.
-  const activeRequestRef = useRef<{ readonly controller: AbortController } | null>(null);
+  const activeRequestRef = useRef<{ readonly controller: AbortController; readonly settled: Promise<void> } | null>(null);
 
   // messagesRef is updated at once, not when React next renders, so a prompt
   // sent right after a reset builds on the reset messages.
@@ -276,6 +279,13 @@ export function useAppAiChatSession({
     activeRequestRef.current?.controller.abort();
   }, []);
 
+  const cancelAndWait = useCallback(async () => {
+    const active = activeRequestRef.current;
+    active?.controller.abort();
+    await active?.settled;
+    return messagesRef.current;
+  }, []);
+
   const sendPrompt = useCallback(async (input: string | AppAiChatSessionSendInput) => {
     const payload = typeof input === 'string' ? { prompt: input } : input;
     const prompt = String(payload.prompt || '').trim();
@@ -299,7 +309,8 @@ export function useAppAiChatSession({
       status: 'streaming',
     };
     const nextMessages = [...messagesRef.current, userMessage];
-    const active = { controller: new AbortController() };
+    let settle!: () => void;
+    const active = { controller: new AbortController(), settled: new Promise<void>((resolve) => { settle = resolve; }) };
     const owns = () => activeRequestRef.current === active;
 
     activeRequestRef.current = active;
@@ -397,6 +408,7 @@ export function useAppAiChatSession({
         activeRequestRef.current = null;
         setIsStreaming(false);
       }
+      settle();
     }
   }, [appId, boundModel, commitMessages, onError, resolveRequest, runtime]);
 
@@ -407,6 +419,7 @@ export function useAppAiChatSession({
     error,
     sendPrompt,
     cancelCurrent,
+    cancelAndWait,
     resetMessages,
     setMessages: resetMessages,
     clearError,

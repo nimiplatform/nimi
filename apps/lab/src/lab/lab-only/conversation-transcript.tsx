@@ -1,6 +1,57 @@
-import { LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
+import { useState } from 'react';
+import { createNimiClientId } from '@nimiplatform/sdk';
+import { Button, InlineAlert, LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
 
 import { useTranslation } from '../../shell/i18n/index.js';
+import { useLabRendererHost } from '../../renderer/context.js';
+import type { LabTextConversationDocument } from './text-conversation.js';
+
+/** Export the unchanged source document, including data not sent after a reset. */
+export function LabConversationExport(props: {
+  readonly document: LabTextConversationDocument | null;
+  readonly disabled: boolean;
+  readonly filename: string;
+}) {
+  const host = useLabRendererHost();
+  const { t } = useTranslation();
+  const [exporting, setExporting] = useState(false);
+  const [notice, setNotice] = useState<{ readonly ok: boolean; readonly path?: string; readonly revealed?: boolean } | null>(null);
+  const assets = host.sdk.localAppClient.storage.assets;
+  return (
+    <div className="lab-realtime__row">
+      <Button type="button" size="sm" tone="secondary" disabled={props.disabled || exporting || !props.document?.messages.length}
+        onClick={async () => {
+          if (!props.document) return;
+          const body = JSON.stringify(props.document, null, 2);
+          setExporting(true);
+          setNotice(null);
+          try {
+            const asset = await assets.write({
+              relativePath: `exports/${createNimiClientId('chat')}-${props.filename}`,
+              body: new TextEncoder().encode(body), mediaType: 'application/json', overwrite: false,
+            });
+            try {
+              await assets.reveal(asset.relativePath);
+              setNotice({ ok: true, path: asset.relativePath, revealed: true });
+            } catch { setNotice({ ok: true, path: asset.relativePath, revealed: false }); }
+          } catch { setNotice({ ok: false }); }
+          finally { setExporting(false); }
+        }}>
+        {t(exporting ? 'CapabilityTests.textConversation.exporting' : 'CapabilityTests.textConversation.export')}
+      </Button>
+      {notice ? <InlineAlert tone={notice.ok ? 'success' : 'warning'}>{t(notice.ok
+        ? notice.revealed ? 'CapabilityTests.textConversation.exported' : 'CapabilityTests.textConversation.exportSaved'
+        : 'CapabilityTests.textConversation.exportFailed', { filename: notice.path })}</InlineAlert> : null}
+      {notice?.ok && !notice.revealed && notice.path ? <Button type="button" size="sm" tone="ghost" disabled={exporting}
+        onClick={async () => {
+          setExporting(true);
+          try { await assets.reveal(notice.path!); setNotice({ ...notice, revealed: true }); }
+          catch { setNotice({ ...notice, revealed: false }); }
+          finally { setExporting(false); }
+        }}>{t('CapabilityTests.textConversation.revealExport')}</Button> : null}
+    </div>
+  );
+}
 
 export type LabConversationDisplayMessage = {
   readonly id: string;

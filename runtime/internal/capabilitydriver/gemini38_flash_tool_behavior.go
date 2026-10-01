@@ -13,6 +13,7 @@ import (
 )
 
 const gemini38ToolSignatureKind = "gemini.chat.tool-thought-signature"
+const Gemini38ToolSignatureKind = gemini38ToolSignatureKind
 
 type gemini38ToolSignature struct {
 	CallID    string `json:"call_id"`
