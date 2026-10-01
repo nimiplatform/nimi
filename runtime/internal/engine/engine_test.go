@@ -70,6 +70,7 @@ func TestManagerDataRootQuiesceWaitsForInFlightStartAndAbortResumesAdmission(t *
 // --- Download URL tests ---
 
 func TestLlamaDownloadURL(t *testing.T) {
+	setHostGPUProbeForTest(t, "nvidia", true)
 	const version = "b8575"
 	assetName, err := llamaAssetName(version)
 	if err != nil && LlamaSupervisedPlatformSupported() {

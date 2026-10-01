@@ -246,6 +246,7 @@ jobs:
         working-directory: runtime
         run: |
           go build ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go vet ./...
 
       - name: Test Windows-specific Runtime owners
@@ -253,7 +254,9 @@ jobs:
         working-directory: runtime
         run: |
           go test -count=1 -timeout=15m ./cmd/nimi ./internal/appstorage ./internal/daemon ./internal/daemonctl ./internal/engine ./internal/entrypoint ./internal/nimiappinstall ./internal/nimiappnative ./internal/nimiapppackage ./internal/protectedlocal ./internal/services/localservice ./tools/repair-local-agent-chat
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go test -count=1 -timeout=10m ./internal/grpcserver -run 'Test(ResolveWindowsProfileImagePath|ProtectedProductControlRootReadsCurrentWindowsProfileMapping)'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go test -count=1 -timeout=10m ./internal/services/ai -run 'TestScenarioJob(PersistenceRecoversFromTransientWindowsReader|PersistenceFailsClosedForPersistentWindowsReader|AppendFailsClosedForReaderDenyingWrites|ReplacementPreservesOtherFileErrors)'
 
       - name: Test Windows Runtime installer and acceptance scripts

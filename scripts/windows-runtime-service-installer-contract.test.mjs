@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -208,7 +208,7 @@ test('existing installation state fails closed when takeown fails', {
 test('offline repair invokes only the fixed installed helper once in idempotent apply mode', {
   skip: process.platform !== 'win32',
 }, () => {
-  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-offline-repair-test-'));
+  const tempRoot = realpathSync.native(mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-offline-repair-test-')));
   const databasePath = path.join(tempRoot, 'memory.db');
   const backupPath = `${databasePath}.pre-local-agent-chat-repair-20260731T020845.9306546Z-0123456789abcdef0123456789abcdef.sqlite`;
   writeFileSync(databasePath, 'database', 'utf8');
@@ -260,7 +260,7 @@ test('offline repair invokes only the fixed installed helper once in idempotent 
 test('offline repair accepts only its verified same-directory backup for an applied result', {
   skip: process.platform !== 'win32',
 }, () => {
-  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-offline-backup-test-'));
+  const tempRoot = realpathSync.native(mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-offline-backup-test-')));
   const databasePath = path.join(tempRoot, 'memory.db');
   const backupPath = `${databasePath}.pre-local-agent-chat-repair-20260731T020845.9306546Z-0123456789abcdef0123456789abcdef.sqlite`;
   writeFileSync(databasePath, 'database', 'utf8');
@@ -360,7 +360,7 @@ test('service recovery is bounded and explicit stop cannot restart forever', () 
 test('version retention keeps only current and last-known-good candidates', {
   skip: process.platform !== 'win32',
 }, () => {
-  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-version-retention-test-'));
+  const tempRoot = realpathSync.native(mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-version-retention-test-')));
   try {
     const installerPath = fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url));
     const escapedInstallerPath = installerPath.replaceAll("'", "''");

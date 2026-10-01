@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"testing"
 
@@ -117,7 +116,7 @@ func TestCanonicalWindowsLocalDevelopmentPolicyAcceptsExactExternalProjectAlias(
 	if err != nil {
 		t.Fatalf("exact external project alias must be admitted: %v", err)
 	}
-	if !strings.EqualFold(policy.HostExecutablePath, host) {
+	if !sameWindowsLocalDevelopmentHostFile(policy.HostExecutablePath, host) {
 		t.Fatalf("host path = %q, want %q", policy.HostExecutablePath, host)
 	}
 	rogue := filepath.Join(externalRoot, "rogue.exe")

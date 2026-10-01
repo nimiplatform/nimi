@@ -38,8 +38,9 @@ export function localDevelopmentToolEnvironment(
 // never reused while its members live, so nothing outside it is signalled.
 // After an ordinary stop the watcher only outlives the target by that budget.
 const POSIX_OWNER_GUARD_SCRIPT = [
-  "(trap '' TERM; cat >/dev/null 2>&1; kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null) <&0 &",
-  'exec "$@" </dev/null',
+  'exec 3<&0',
+  "(trap '' TERM; cat >/dev/null 2>&1; kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null) <&3 3<&- &",
+  'exec "$@" </dev/null 3<&-',
 ].join('\n');
 const POSIX_OWNER_LOSS_GRACE_SECONDS = 5;
 

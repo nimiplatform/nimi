@@ -192,7 +192,16 @@ func canonicalWindowsLocalDevelopmentPolicy(policy LocalDevelopmentProcessPolicy
 		return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost}, nil
 	}
 	alias := filepath.Clean(strings.TrimSpace(policy.ProjectHostAliasPath))
-	if !filepath.IsAbs(alias) || !windowsPathWithinRoot(canonicalRoot, alias) {
+	if !filepath.IsAbs(alias) {
+		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageAliasInput, fmt.Errorf("external host executable requires an exact project alias"))
+	}
+	// Expand 8.3 names like EvalSymlinks does for the project root, while
+	// preserving the in-project junction that identifies an external Host.
+	alias, err = windowsLongLocalDevelopmentPath(alias)
+	if err != nil {
+		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageAliasOpen, err)
+	}
+	if !windowsPathWithinRoot(canonicalRoot, alias) {
 		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageAliasInput, fmt.Errorf("external host executable requires an exact project alias"))
 	}
 	aliasInfo, err := os.Stat(alias)
@@ -203,6 +212,26 @@ func canonicalWindowsLocalDevelopmentPolicy(policy LocalDevelopmentProcessPolicy
 		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageAliasIdentity, fmt.Errorf("project host alias does not identify the approved host executable"))
 	}
 	return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost, ProjectHostAliasPath: alias}, nil
+}
+
+func windowsLongLocalDevelopmentPath(path string) (string, error) {
+	input, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return "", fmt.Errorf("encode project host alias: %w", err)
+	}
+	size, err := windows.GetLongPathName(input, nil, 0)
+	if err != nil {
+		return "", fmt.Errorf("measure project host alias: %w", err)
+	}
+	buffer := make([]uint16, size)
+	n, err := windows.GetLongPathName(input, &buffer[0], size)
+	if err != nil {
+		return "", fmt.Errorf("expand project host alias: %w", err)
+	}
+	if n >= size {
+		return "", fmt.Errorf("project host alias changed while expanding its path")
+	}
+	return filepath.Clean(windows.UTF16ToString(buffer[:n])), nil
 }
 
 func windowsPathWithinRoot(root string, candidate string) bool {

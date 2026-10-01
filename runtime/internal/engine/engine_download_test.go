@@ -246,6 +246,7 @@ func TestEngineDownloadTransportEnablesHTTP2(t *testing.T) {
 }
 
 func TestManagerEnsureLlamaFailsWhenRegistryPersistFailsDownloadHelpers(t *testing.T) {
+	setHostGPUProbeForTest(t, "nvidia", true)
 	if !LlamaSupervisedPlatformSupported() {
 		t.Skipf("unsupported platform: %s", PlatformString())
 	}
