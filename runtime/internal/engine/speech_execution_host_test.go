@@ -21,9 +21,23 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestSpeechExecutionHostPreservesInvalidInputFailure(t *testing.T) {
+	host := &SpeechExecutionHost{}
+	err := host.speechHostBackendError(context.Background(), grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID))
+	if localexecution.FailureKindOf(err) != localexecution.FailureInputInvalid {
+		t.Fatalf("invalid recording was classified as %q: %v", localexecution.FailureKindOf(err), err)
+	}
+	err = host.speechHostBackendError(context.Background(), grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE))
+	if localexecution.FailureKindOf(err) != localexecution.FailureInference {
+		t.Fatalf("unavailable backend became bad input: %v", err)
+	}
+}
 
 type speechExecutionHostMaterializerStub struct {
 	endpoint       string

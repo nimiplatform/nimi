@@ -387,6 +387,7 @@ func TestLocalTextExecutionFailureReasonsRemainDistinct(t *testing.T) {
 	}{
 		{localexecution.FailureLoad, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED},
 		{localexecution.FailureInference, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED},
+		{localexecution.FailureInputInvalid, runtimev1.ReasonCode_AI_INPUT_INVALID},
 		{localexecution.FailureOutOfMemory, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_OUT_OF_MEMORY},
 		{localexecution.FailureProcessCrash, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_PROCESS_CRASHED},
 		{localexecution.FailureCanceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED},

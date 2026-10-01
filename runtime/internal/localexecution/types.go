@@ -348,6 +348,7 @@ const (
 	FailureLoad                 FailureKind = "load"
 	FailureContentMismatch      FailureKind = "content_mismatch"
 	FailureInference            FailureKind = "inference"
+	FailureInputInvalid         FailureKind = "input_invalid"
 	FailureOutOfMemory          FailureKind = "out_of_memory"
 	FailureCanceled             FailureKind = "cancel"
 	FailureTimeout              FailureKind = "timeout"

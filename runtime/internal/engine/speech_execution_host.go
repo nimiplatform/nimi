@@ -14,6 +14,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
@@ -644,9 +645,13 @@ func speechExecutionModelRegistration(
 	return registrations[0], nil
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.faster-whisper-transcription
 func (host *SpeechExecutionHost) speechHostBackendError(ctx context.Context, err error) error {
 	if ctx != nil && ctx.Err() != nil {
 		return host.stopCanceledExecution(ctx.Err(), err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_AI_INPUT_INVALID {
+		return speechHostError(localexecution.FailureInputInvalid, err)
 	}
 	return speechHostError(localexecution.FailureInference, err)
 }

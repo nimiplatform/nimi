@@ -75,6 +75,7 @@ export function studioNonSuccessNeedsTargetReselection(diagnostics?: StudioNonSu
 }
 
 export function studioNonSuccessReasonUserMessage(reason: string, translate: StudioTranslate, capabilityId?: string, diagnostics?: StudioNonSuccessDiagnostics): string {
+  if (reason === 'input-invalid' && capabilityId === 'audio.transcribe') return translate('NonSuccess.message.transcriptionInputInvalid');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_INPUT_INVALID_REASON_CODE) return translate('NonSuccess.message.voiceInputRequired');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_TARGET_MISMATCH_REASON_CODE) return translate('NonSuccess.message.voiceTargetMismatch');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND') return translate('VisionLocate.modelSelectionRequired');
@@ -93,6 +94,7 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
 }
 
 export function studioNonSuccessReasonUserAction(reason: string, translate: StudioTranslate, capabilityId?: string, diagnostics?: StudioNonSuccessDiagnostics): string {
+  if (reason === 'input-invalid' && capabilityId === 'audio.transcribe') return translate('NonSuccess.action.transcriptionInputInvalid');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_INPUT_INVALID_REASON_CODE) return translate('NonSuccess.action.voiceInputRequired');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_TARGET_MISMATCH_REASON_CODE) return translate('NonSuccess.action.voiceTargetMismatch');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND') return translate('VisionLocate.selectModelAction');

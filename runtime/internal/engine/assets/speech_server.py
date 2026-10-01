@@ -13,7 +13,7 @@ from typing import Any
 import uuid
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 import uvicorn
@@ -28,6 +28,7 @@ from speech_server_runtime import (
     VOXCPM_BACKEND_ENV,
     VOXCPM_DRIVER_ENV,
     DriverAudioArtifact,
+    SpeechDriverInputError,
     SpeechModelState,
     build_host_state,
     create_voice_with_driver,
@@ -456,6 +457,8 @@ def create_app() -> FastAPI:
                 )
             finally:
                 audio_path.unlink(missing_ok=True)
+        except SpeechDriverInputError as error:
+            return JSONResponse(status_code=400, content={"detail": {"message": str(error), "reason": "speech_request_invalid"}})
         except HTTPException:
             raise
         except Exception as error:

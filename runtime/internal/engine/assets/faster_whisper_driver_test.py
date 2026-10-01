@@ -1,4 +1,6 @@
 import pathlib
+import io
+import json
 import sys
 import tempfile
 import types
@@ -9,6 +11,19 @@ import faster_whisper_driver as driver
 
 
 class FasterWhisperDriverTests(unittest.TestCase):
+    def test_private_input_error_is_distinct_from_execution_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            request = pathlib.Path(directory) / "request.json"
+            response = pathlib.Path(directory) / "response.json"
+            request.write_text(json.dumps({"operation": "audio.transcribe"}))
+            for error, expected in [(driver.WhisperInputError("recording cannot be decoded"), 65),
+                                    (RuntimeError("model failed"), 1),
+                                    (ValueError("model configuration invalid"), 1)]:
+                with self.subTest(error=type(error).__name__), mock.patch.object(sys, "argv", ["driver", "--request", str(request), "--response", str(response)]), \
+                     mock.patch.object(driver, "handle_request", side_effect=error), mock.patch.object(sys, "stderr", io.StringIO()):
+                    self.assertEqual(driver.main(), expected)
+                    self.assertFalse(response.exists())
+
     def test_vad_miss_does_not_discard_recognizable_audio(self):
         audio = [0.1] * 16000
         speech = []
@@ -26,6 +41,7 @@ class FasterWhisperDriverTests(unittest.TestCase):
             calls.append(received)
             return iter(decoded), types.SimpleNamespace(language="en")
         modules = {
+            "av": types.SimpleNamespace(error=types.SimpleNamespace(InvalidDataError=ValueError, EOFError=EOFError)),
             "numpy": types.SimpleNamespace(isfinite=lambda _: types.SimpleNamespace(all=lambda: True)),
             "torch": types.SimpleNamespace(from_numpy=lambda value: value),
             "faster_whisper": types.ModuleType("faster_whisper"),
@@ -50,6 +66,11 @@ class FasterWhisperDriverTests(unittest.TestCase):
             speech.append({"start": 0, "end": 16000})
             with self.assertRaisesRegex(RuntimeError, "empty text after detected speech"):
                 driver.handle_request(request)
+            with mock.patch.object(modules["faster_whisper.audio"], "decode_audio", side_effect=ValueError("bad recording")), \
+                 mock.patch.object(driver, "load_models") as loader:
+                with self.assertRaisesRegex(driver.WhisperInputError, "decodable audio"):
+                    driver.handle_request(request)
+                loader.assert_not_called()
 
     def test_word_output_preserves_real_zero_times_and_punctuation(self):
         segment = types.SimpleNamespace(text="Of course!", words=[

@@ -10,6 +10,13 @@ import sys
 from typing import Any
 
 
+class WhisperInputError(ValueError):
+    """Invalid recording data, distinct from model/driver execution failure."""
+
+
+SPEECH_DRIVER_INPUT_INVALID_EXIT_CODE = 65
+
+
 def captured_bundle(value: dict[str, Any]) -> tuple[str, str]:
     root = Path(str(value.get("bundle_dir") or ""))
     entry = Path(str(value.get("entry_path") or ""))
@@ -96,6 +103,7 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
 
     import numpy as np
     import torch
+    import av
     from faster_whisper.audio import decode_audio
     from faster_whisper.tokenizer import _LANGUAGE_CODES
     from silero_vad import get_speech_timestamps
@@ -103,10 +111,13 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
     language = str(request.get("language") or "").strip().lower()
     if language and language not in _LANGUAGE_CODES:
         raise RuntimeError("unsupported Whisper language code")
-    audio = decode_audio(str(source), sampling_rate=16000)
+    try:
+        audio = decode_audio(str(source), sampling_rate=16000)
+    except (ValueError, av.error.InvalidDataError, av.error.EOFError) as error:
+        raise WhisperInputError("Whisper requires a decodable audio recording") from error
     duration = len(audio) / 16000
     if not 0 < duration <= 300 or not np.isfinite(audio).all():
-        raise RuntimeError("Whisper accepts finite audio up to 300 seconds")
+        raise WhisperInputError("Whisper accepts finite nonempty audio up to 300 seconds")
     model, vad, _ = load_models(recognition_root, vad_entry)
     speech = get_speech_timestamps(torch.from_numpy(audio), vad, sampling_rate=16000,
                                    threshold=0.5, min_silence_duration_ms=2000, speech_pad_ms=400)
@@ -141,6 +152,11 @@ def main() -> int:
         response = handle_request(request)
         Path(args.response).write_text(json.dumps(response, ensure_ascii=True), encoding="utf-8")
         return 0
+    except WhisperInputError as error:
+        sys.stderr.write(f"{error}\n")
+        # Runtime-owned speech Driver protocol: EX_DATAERR identifies invalid
+        # caller media; ordinary execution and command failures keep exit 1/2.
+        return SPEECH_DRIVER_INPUT_INVALID_EXIT_CODE
     except Exception as error:
         sys.stderr.write(f"{error}\n")
         return 1

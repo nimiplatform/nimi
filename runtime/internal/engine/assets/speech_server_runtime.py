@@ -36,6 +36,15 @@ DRIVER_WORK_ROOT_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
 DRIVER_OUTPUT_PATH_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_OUTPUT_PATH"
 DEFAULT_DRIVER_TIMEOUT_MS = 30 * 60_000
 MAX_DRIVER_TIMEOUT_MS = 30 * 60_000
+
+
+class SpeechDriverInputError(ValueError):
+    """The admitted Driver explicitly rejected caller input (EX_DATAERR)."""
+
+
+SPEECH_DRIVER_INPUT_INVALID_EXIT_CODE = 65
+
+
 SPEECH_DRIVER_ENV_BY_KIND = {
     "qwen3_tts": QWEN3_TTS_DRIVER_ENV,
     "qwen3_asr": QWEN3_ASR_DRIVER_ENV,
@@ -594,6 +603,8 @@ def run_driver_command(
                 time.sleep(min(0.05, remaining))
             if proc.returncode != 0:
                 detail = _read_bounded_process_output(stderr) or _read_bounded_process_output(stdout) or "driver exited non-zero"
+                if proc.returncode == SPEECH_DRIVER_INPUT_INVALID_EXIT_CODE:
+                    raise SpeechDriverInputError(detail)
                 raise RuntimeError(f"speech driver failed: {detail}")
         if response_path.is_symlink() or not response_path.is_file():
             raise RuntimeError("speech driver did not write a response")

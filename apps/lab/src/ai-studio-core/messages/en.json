@@ -123,6 +123,7 @@
     "message": {
       "runtimeUnavailable": "Runtime is unavailable for this request.",
       "inputInvalid": "The request needs a valid prompt or required input before it can run.",
+      "transcriptionInputInvalid": "The recording or transcription settings are invalid.",
       "sdkMethodUnavailable": "This capability is not available in the current app build.",
       "principalUnauthorized": "Runtime rejected the protected owner for this request.",
       "operationAborted": "A cancellation was requested, but Runtime has not confirmed the task's final state yet.",
@@ -150,6 +151,7 @@
     "action": {
       "runtimeUnavailable": "Return to Desktop, confirm Local AI is connected, then try again.",
       "inputInvalid": "Review the prompt and required fields, then run it again.",
+      "transcriptionInputInvalid": "Choose a readable audio file and check its format and transcription settings before running again.",
       "sdkMethodUnavailable": "Update the app, then try again.",
       "principalUnauthorized": "Return to Desktop, reopen this app, then try again.",
       "operationAborted": "Check the task status before starting another run.",

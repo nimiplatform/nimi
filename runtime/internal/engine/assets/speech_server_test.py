@@ -320,6 +320,14 @@ class RegistrationRequest:
 
 
 class SpeechServerTests(unittest.TestCase):
+    def test_driver_data_error_is_not_execution_failure(self) -> None:
+        runtime = sys.modules["speech_server_runtime"]
+        for code, expected in [(65, runtime.SpeechDriverInputError), (1, RuntimeError), (2, RuntimeError)]:
+            with self.subTest(code=code):
+                command = [sys.executable, "-c", f"import sys; sys.stderr.write('driver rejected request'); sys.exit({code})"]
+                with self.assertRaises(expected):
+                    runtime.run_driver_command(command, {"operation": "audio.transcribe"})
+
     def setUp(self) -> None:
         speech_server_runtime = sys.modules["speech_server_runtime"]
         self._old_driver_work_root = os.environ.get(speech_server_runtime.DRIVER_WORK_ROOT_ENV)

@@ -612,6 +612,9 @@ func localExecutionError(err error) error {
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, reason, err, options)
 	}
 	switch kind {
+	case localexecution.FailureInputInvalid:
+		options.Retryable = &retryable
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, options)
 	case localexecution.FailureTimeout:
 		options.ActionHint = "request_timed_out"
 		options.Retryable = &retryable

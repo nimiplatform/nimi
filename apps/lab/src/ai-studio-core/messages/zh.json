@@ -123,6 +123,7 @@
     "message": {
       "runtimeUnavailable": "本次请求中 Runtime 不可用。",
       "inputInvalid": "请求需要提供有效的提示词或必填输入后才能运行。",
+      "transcriptionInputInvalid": "音频或转写参数无效。",
       "sdkMethodUnavailable": "当前 App 构建中此能力不可用。",
       "principalUnauthorized": "Runtime 拒绝了本次请求的受保护所有者。",
       "operationAborted": "已请求取消，但 Runtime 尚未确认任务的最终状态。",
@@ -150,6 +151,7 @@
     "action": {
       "runtimeUnavailable": "返回 Desktop 确认本地 AI 已连接，然后重试。",
       "inputInvalid": "检查提示词与必填字段后重新运行。",
+      "transcriptionInputInvalid": "重新选择可读取的音频，并检查音频格式与转写参数后再运行。",
       "sdkMethodUnavailable": "更新 App 后重试。",
       "principalUnauthorized": "返回 Desktop 重新打开此 App，然后重试。",
       "operationAborted": "请先检查任务状态，再决定是否重新运行。",
