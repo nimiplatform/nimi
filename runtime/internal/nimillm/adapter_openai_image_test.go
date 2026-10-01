@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,14 +18,11 @@ import (
 )
 
 func openAIImageTestPNG(width uint32, height uint32) []byte {
-	var image bytes.Buffer
-	image.Write(pngSignature)
-	_ = binary.Write(&image, binary.BigEndian, uint32(13))
-	image.WriteString("IHDR")
-	_ = binary.Write(&image, binary.BigEndian, width)
-	_ = binary.Write(&image, binary.BigEndian, height)
-	image.Write([]byte{8, 6, 0, 0, 0, 0, 0, 0, 0})
-	return image.Bytes()
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, image.NewNRGBA(image.Rect(0, 0, int(width), int(height)))); err != nil {
+		panic(err)
+	}
+	return encoded.Bytes()
 }
 
 func openAIImageTestJob(size string, quality string) *runtimev1.SubmitScenarioJobRequest {
@@ -87,12 +85,19 @@ func TestOpenAIImageSendsOnlyEndpointFields(t *testing.T) {
 }
 
 func TestOpenAIImageRejectsResultsThatAreNotOnePNG(t *testing.T) {
-	encoded := base64.StdEncoding.EncodeToString(openAIImageTestPNG(1024, 1024))
+	valid := openAIImageTestPNG(2, 2)
+	encoded := base64.StdEncoding.EncodeToString(valid)
+	responseFor := func(payload []byte) string {
+		return `{"data":[{"b64_json":"` + base64.StdEncoding.EncodeToString(payload) + `"}]}`
+	}
 	for name, response := range map[string]string{
-		"two images": `{"data":[{"b64_json":"` + encoded + `"},{"b64_json":"` + encoded + `"}]}`,
-		"url only":   `{"data":[{"url":"https://example.com/a.png"}]}`,
-		"not a png":  `{"data":[{"b64_json":"` + base64.StdEncoding.EncodeToString([]byte("GIF89a-not-png-data")) + `"}]}`,
-		"bad base64": `{"data":[{"b64_json":"%%%"}]}`,
+		"header only":      responseFor(valid[:33]),
+		"missing IEND":     responseFor(valid[:len(valid)-12]),
+		"truncated pixels": responseFor(valid[:len(valid)-20]),
+		"two images":       `{"data":[{"b64_json":"` + encoded + `"},{"b64_json":"` + encoded + `"}]}`,
+		"url only":         `{"data":[{"url":"https://example.com/a.png"}]}`,
+		"not a png":        `{"data":[{"b64_json":"` + base64.StdEncoding.EncodeToString([]byte("GIF89a-not-png-data")) + `"}]}`,
+		"bad base64":       `{"data":[{"b64_json":"%%%"}]}`,
 	} {
 		server := openAIImageTestServer(t, nil, func() string { return response })
 		provider, target := openAITranscriptionTestTarget(server.URL, "gpt-image-2.5-flare")

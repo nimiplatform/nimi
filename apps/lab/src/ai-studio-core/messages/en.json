@@ -364,6 +364,7 @@
     },
     "transcript": {
       "title": "Speech transcription",
+      "detectedLanguage": "Detected language: {{language}}",
       "words": "Timed words",
       "wordTimes": "Word timing · {{count}} words",
       "timeHint": "Times are measured in seconds from the start of the input audio.",

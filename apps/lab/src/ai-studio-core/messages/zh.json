@@ -364,6 +364,7 @@
     },
     "transcript": {
       "title": "语音转写",
+      "detectedLanguage": "识别语言：{{language}}",
       "words": "带时间的词",
       "wordTimes": "词级时间 · {{count}} 个词",
       "timeHint": "时间以输入音频起点为零，单位为秒。",

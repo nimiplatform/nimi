@@ -17,6 +17,7 @@ export function SpeechTranscriptResultView({
   return (
     <section className="studio-result__rich" aria-label={t('StudioResults.transcript.title')}>
       <TextStudioOutputBody text={text} />
+      {transcription?.language ? <p className="studio-result__hint">{t('StudioResults.transcript.detectedLanguage', { language: transcription.language })}</p> : null}
       {words.length > 0 ? (
         <details className="studio-annotation" open>
           <summary>{t('StudioResults.transcript.wordTimes', { count: words.length })}</summary>

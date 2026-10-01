@@ -9,7 +9,9 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const adapterOpenAITranscriptions = "openai_transcriptions_adapter"
@@ -33,21 +35,25 @@ func (p *CloudProvider) executeOpenAITranscriptions(
 	if backend == nil || strings.TrimSpace(backendModelID) == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	text, usage, providerSeconds, err := backend.transcribeOpenAI(ctx, backendModelID, scenarioSpeechTranscribeSpec(request))
+	transcript, usage, providerSeconds, err := backend.transcribeOpenAI(ctx, backendModelID, scenarioSpeechTranscribeSpec(request))
 	if err != nil {
 		return nil, nil, "", err
 	}
-	metadata := map[string]any{"text": text, "adapter": adapterOpenAITranscriptions}
+	encoded, err := protojson.Marshal(transcript)
+	if err != nil {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	metadata := map[string]any{"adapter": adapterOpenAITranscriptions}
 	if providerSeconds != nil {
 		metadata["provider_usage_seconds"] = *providerSeconds
 	}
-	return []*runtimev1.ScenarioArtifact{BinaryArtifact("text/plain", []byte(text), metadata)}, usage, "", nil
+	return []*runtimev1.ScenarioArtifact{BinaryArtifact(localexecution.SpeechTranscriptMIME, encoded, metadata)}, usage, "", nil
 }
 
-func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *runtimev1.SpeechTranscribeScenarioSpec) (string, *runtimev1.UsageStats, *float64, error) {
+func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *runtimev1.SpeechTranscribeScenarioSpec) (*runtimev1.SpeechTranscript, *runtimev1.UsageStats, *float64, error) {
 	unsupported := grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	if b == nil || spec == nil {
-		return "", nil, nil, unsupported
+		return nil, nil, nil, unsupported
 	}
 	source, ok := spec.GetAudioSource().GetSource().(*runtimev1.SpeechTranscriptionAudioSource_AudioBytes)
 	filename := openAITranscriptionUploadFilename(spec.GetMimeType())
@@ -57,7 +63,7 @@ func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *ru
 	if !ok || len(source.AudioBytes) == 0 || len(source.AudioBytes) > maxOpenAITranscriptionUploadBytes || filename == "" ||
 		(format != "" && format != "text") || spec.GetTimestamps() || spec.GetDiarization() || spec.GetSpeakerCount() != 0 ||
 		(prompt != "" && modelID == openAIGPTTranscribeModel) {
-		return "", nil, nil, unsupported
+		return nil, nil, nil, unsupported
 	}
 
 	// The endpoint's JSON result is the only one that also reports usage.
@@ -78,32 +84,35 @@ func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *ru
 	writer := multipart.NewWriter(body)
 	for _, field := range fields {
 		if err := writer.WriteField(field[0], field[1]); err != nil {
-			return "", nil, nil, MapProviderRequestError(err)
+			return nil, nil, nil, MapProviderRequestError(err)
 		}
 	}
 	fileWriter, err := writer.CreateFormFile("file", filename)
 	if err != nil {
-		return "", nil, nil, MapProviderRequestError(err)
+		return nil, nil, nil, MapProviderRequestError(err)
 	}
 	if _, err := fileWriter.Write(source.AudioBytes); err != nil {
-		return "", nil, nil, MapProviderRequestError(err)
+		return nil, nil, nil, MapProviderRequestError(err)
 	}
 	if err := writer.Close(); err != nil {
-		return "", nil, nil, MapProviderRequestError(err)
+		return nil, nil, nil, MapProviderRequestError(err)
 	}
 	request, err := b.newRequest(ctx, http.MethodPost, b.baseURL+"/v1/audio/transcriptions", body)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, nil, nil, err
 	}
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	response, err := b.do(request)
 	if err != nil {
-		return "", nil, nil, MapProviderRequestError(err)
+		return nil, nil, nil, MapProviderRequestError(err)
 	}
 	defer func() { _ = response.Body.Close() }()
 
 	var out struct {
-		Text  *string `json:"text"`
+		Text      *string `json:"text"`
+		Languages []struct {
+			Code string `json:"code"`
+		} `json:"languages"`
 		Usage *struct {
 			Type         string   `json:"type"`
 			InputTokens  *int64   `json:"input_tokens"`
@@ -112,12 +121,33 @@ func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *ru
 		} `json:"usage"`
 	}
 	if err := DecodeResponseJSON(response, &out); err != nil {
-		return "", nil, nil, err
+		return nil, nil, nil, err
 	}
 	// The endpoint does not report silence explicitly, so an empty transcript
 	// is not a no_speech result.
 	if out.Text == nil || strings.TrimSpace(*out.Text) == "" {
-		return "", nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	transcript := &runtimev1.SpeechTranscript{
+		Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED,
+		Text:   strings.TrimSpace(*out.Text),
+	}
+	// The current public result has one model-reported language. Reject an
+	// unrepresentable multilingual result rather than dropping languages or
+	// selecting the first. An absent report stays empty, regardless of hints.
+	if len(out.Languages) > 1 {
+		return nil, nil, nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, grpcerr.ReasonOptions{
+			Message: "OpenAI reported multiple transcription languages; the current speech transcript supports one detected language",
+		})
+	}
+	if len(out.Languages) == 1 {
+		transcript.Language = out.Languages[0].Code
+		if strings.TrimSpace(transcript.Language) == "" {
+			return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+	}
+	if err := localexecution.ValidateSpeechTranscript(transcript, false); err != nil {
+		return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	var usage *runtimev1.UsageStats
 	var providerSeconds *float64
@@ -134,7 +164,7 @@ func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *ru
 			}
 		}
 	}
-	return strings.TrimSpace(*out.Text), usage, providerSeconds, nil
+	return transcript, usage, providerSeconds, nil
 }
 
 func openAITranscriptionUploadFilename(mimeType string) string {

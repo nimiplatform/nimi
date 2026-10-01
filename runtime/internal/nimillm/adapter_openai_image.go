@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/binary"
 	"fmt"
+	"image/png"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -22,8 +22,6 @@ const maxOpenAIImageEditInputBytes = 50 * 1024 * 1024
 // openAIImageEditUploadNames are the input image types the edits endpoint
 // accepts, keyed by the sniffed MIME type.
 var openAIImageEditUploadNames = map[string]string{"image/png": "image.png", "image/jpeg": "image.jpg", "image/webp": "image.webp"}
-
-var pngSignature = []byte("\x89PNG\r\n\x1a\n")
 
 // executeOpenAIImage generates one PNG through the OpenAI Images API, or edits
 // one reference image, and keeps the image and token usage it reports.
@@ -180,14 +178,16 @@ func writeOpenAIImagePart(writer *multipart.Writer, field string, filename strin
 	return nil
 }
 
-// pngDimensions reads the width and height from a PNG's leading IHDR chunk.
-func pngDimensions(image []byte) (int32, int32, bool) {
-	if len(image) < 24 || !bytes.Equal(image[:8], pngSignature) || string(image[12:16]) != "IHDR" {
+// pngDimensions validates the complete PNG before exposing its dimensions.
+// Bound decoded pixel allocation separately from the HTTP body's byte limit.
+func pngDimensions(payload []byte) (int32, int32, bool) {
+	config, err := png.DecodeConfig(bytes.NewReader(payload))
+	if err != nil || config.Width <= 0 || config.Height <= 0 || config.Width > 1<<15 || config.Height > 1<<15 ||
+		int64(config.Width)*int64(config.Height) > 16<<20 {
 		return 0, 0, false
 	}
-	width, height := binary.BigEndian.Uint32(image[16:20]), binary.BigEndian.Uint32(image[20:24])
-	if width == 0 || height == 0 || width > 1<<15 || height > 1<<15 {
+	if _, err := png.Decode(bytes.NewReader(payload)); err != nil {
 		return 0, 0, false
 	}
-	return int32(width), int32(height), true
+	return int32(config.Width), int32(config.Height), true
 }

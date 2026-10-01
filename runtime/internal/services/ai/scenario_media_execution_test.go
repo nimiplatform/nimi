@@ -1,12 +1,16 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -14,8 +18,11 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"google.golang.org/protobuf/proto"
 )
 
 type controlledRemoteMediaHost struct {
@@ -27,6 +34,61 @@ type controlledRemoteMediaHost struct {
 	once            sync.Once
 	mu              sync.Mutex
 	executions      int
+}
+
+func TestOpenAITranscriptionLanguageSurvivesProtectedJobReopen(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/audio/transcriptions" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"text":"Bonjour.","languages":[{"code":"fr"}]}`))
+	}))
+	defer server.Close()
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-transcribe", server.URL, Config{AllowLoopbackEndpoint: true})
+	statePath := filepath.Join(t.TempDir(), "local-state.json")
+	store, err := newScenarioJobStoreForLocalStatePath(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.service.scenarioJobs = store
+	intent := cloudVoiceAIConfigIntent(t, fixture.connectorID, fixture.descriptor)
+	intent.CapabilityContract = "audio.transcribe"
+	intent.GetCloud().Implementation = &runtimev1.CapabilityImplementationIdentity{
+		ImplementationId: "cloud.audio.transcribe.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "provider/media-v1",
+	}
+	if err := overwriteAIConfigStoreForTest(context.Background(), fixture.service.aiConfigStore, "user-001", appAIConfig("nimi.realm-persona-studio", intent)); err != nil {
+		t.Fatal(err)
+	}
+	caller := func(operation accountservice.LocalAppOperation, capability string) context.Context {
+		return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
+			AccountID: "user-001", AppID: "nimi.realm-persona-studio", RegisteredAppSubject: "protected-app-principal",
+			Operation: operation, AuthorityClass: localappop.AuthorityClassAppAccess, OperationCapability: capability,
+		})
+	}
+	submitted, err := fixture.service.SubmitLocalAppScenarioJob(caller(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit), &runtimev1.SubmitLocalAppScenarioJobRequest{
+		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_SpeechTranscribe{SpeechTranscribe: &runtimev1.LocalAppSpeechTranscribeJobSpec{
+			AudioSource: &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{AudioBytes: []byte("recording")}}, MimeType: "audio/wav", Language: "en",
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	terminal := waitLocalSpeechJobTerminal(t, fixture.service, submitted.GetJob().GetJobId())
+	expected := &runtimev1.SpeechTranscript{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED, Text: "Bonjour.", Language: "fr"}
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || !proto.Equal(terminal.GetTranscription(), expected) {
+		t.Fatalf("terminal=%v", terminal)
+	}
+	reopened, err := newScenarioJobStoreForLocalStatePath(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.service.scenarioJobs = reopened
+	response, err := fixture.service.GetLocalAppScenarioJob(caller(accountservice.LocalAppOperationScenarioJobGet, localappop.AppOperationIDScenarioJobGet), &runtimev1.GetLocalAppScenarioJobRequest{JobId: terminal.GetJobId()})
+	if err != nil || !proto.Equal(response.GetJob().GetTranscription(), expected) || response.GetJob().GetTranscriptionText() != expected.GetText() {
+		t.Fatalf("reopened GetLocalAppScenarioJob=%v err=%v", response, err)
+	}
 }
 
 func newControlledRemoteMediaHost(cancel bool) *controlledRemoteMediaHost {
@@ -152,6 +214,11 @@ func TestCloudMediaJobCancellationStopsLocalWaitAndPublishesNoProviderState(t *t
 }
 
 func TestCloudMediaJobCapturesRequestAndBindsRuntimeArtifactCustody(t *testing.T) {
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, image.NewNRGBA(image.Rect(0, 0, 2, 2))); err != nil {
+		t.Fatal(err)
+	}
+	imageBytes := encoded.Bytes()
 	var authorization string
 	var providerPrompt string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -167,7 +234,7 @@ func TestCloudMediaJobCapturesRequestAndBindsRuntimeArtifactCustody(t *testing.T
 			providerPrompt, _ = payload["prompt"].(string)
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"data": []map[string]any{{"b64_json": base64.StdEncoding.EncodeToString([]byte(cloudMediaTestPNG))}},
+				"data": []map[string]any{{"b64_json": base64.StdEncoding.EncodeToString(imageBytes)}},
 			})
 		default:
 			http.NotFound(w, r)
@@ -220,11 +287,7 @@ func TestCloudMediaJobCapturesRequestAndBindsRuntimeArtifactCustody(t *testing.T
 	if record.ProducerJobID != job.GetJobId() || record.Owner == nil || record.Owner.SubjectUserID != "user-001" || record.Owner.AppID != "nimi.desktop" {
 		t.Fatalf("artifact custody record=%+v", record)
 	}
-	if string(record.Bytes) != cloudMediaTestPNG {
+	if !bytes.Equal(record.Bytes, imageBytes) {
 		t.Fatalf("artifact bytes=%q", record.Bytes)
 	}
 }
-
-// cloudMediaTestPNG is a PNG signature and a 1024x1024 IHDR chunk, the least
-// an exact image adapter accepts as a generated PNG.
-const cloudMediaTestPNG = "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x04\x00\x00\x00\x04\x00\x08\x06\x00\x00\x00\x00\x00\x00\x00"

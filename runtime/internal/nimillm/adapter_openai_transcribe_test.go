@@ -13,6 +13,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func openAITranscriptionTestRequest(spec *runtimev1.SpeechTranscribeScenarioSpec) *runtimev1.SubmitScenarioJobRequest {
@@ -124,15 +126,17 @@ func TestOpenAITranscriptionsSendsOnlyEndpointFields(t *testing.T) {
 			if fileName != wantName || string(fileBytes) != "RIFF-audio" || authorization != "Bearer test-key" {
 				t.Fatalf("file=%q bytes=%q authorization present=%t", fileName, fileBytes, authorization != "")
 			}
-			if len(artifacts) != 1 || artifacts[0].GetMimeType() != "text/plain" {
+			if len(artifacts) != 1 || artifacts[0].GetMimeType() != localexecution.SpeechTranscriptMIME {
 				t.Fatalf("artifacts = %+v", artifacts)
 			}
 			var parsed struct {
 				Text string `json:"text"`
 			}
 			_ = json.Unmarshal([]byte(tc.response), &parsed)
-			if got := string(artifacts[0].GetBytes()); got == "" || got != strings.TrimSpace(parsed.Text) {
-				t.Fatalf("transcript = %q", got)
+			var transcript runtimev1.SpeechTranscript
+			if err := protojson.Unmarshal(artifacts[0].GetBytes(), &transcript); err != nil ||
+				transcript.GetText() != strings.TrimSpace(parsed.Text) || transcript.GetLanguage() != "" {
+				t.Fatalf("transcript = %v, err=%v", &transcript, err)
 			}
 			if (usage == nil) != (tc.wantUsage == nil) || usage.GetInputTokens() != tc.wantUsage.GetInputTokens() ||
 				usage.GetOutputTokens() != tc.wantUsage.GetOutputTokens() || usage.GetComputeMs() != 0 {
@@ -179,5 +183,43 @@ func TestOpenAITranscriptionsFailsTypedWithoutGuessing(t *testing.T) {
 	}
 	if got := hits.Load(); got != 0 {
 		t.Fatalf("unsupported requests reached the provider %d times", got)
+	}
+}
+
+func TestOpenAITranscriptionDetectedLanguage(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		response     string
+		wantLanguage string
+		invalid      bool
+	}{
+		{"reported", `{"text":"Bonjour.","languages":[{"code":"fr"}]}`, "fr", false},
+		{"absent", `{"text":"Bonjour."}`, "", false},
+		{"empty list", `{"text":"Bonjour.","languages":[]}`, "", false},
+		{"multiple languages", `{"text":"Bonjour. Hello.","languages":[{"code":"fr"},{"code":"en"}]}`, "", true},
+		{"missing code", `{"text":"Bonjour.","languages":[{}]}`, "", true},
+		{"padded code", `{"text":"Bonjour.","languages":[{"code":" fr "}]}`, "", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = io.WriteString(w, tc.response)
+			}))
+			defer server.Close()
+			provider, target := openAITranscriptionTestTarget(server.URL, "gpt-transcribe")
+			artifacts, _, _, err := provider.executeOpenAITranscriptions(context.Background(), openAITranscriptionTestRequest(&runtimev1.SpeechTranscribeScenarioSpec{Language: "en"}), "gpt-transcribe", target)
+			if tc.invalid {
+				if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID || len(artifacts) != 0 {
+					t.Fatalf("invalid result artifacts=%v err=%v", artifacts, err)
+				}
+				return
+			}
+			if err != nil || len(artifacts) != 1 {
+				t.Fatalf("artifacts=%v err=%v", artifacts, err)
+			}
+			var transcript runtimev1.SpeechTranscript
+			if err := protojson.Unmarshal(artifacts[0].GetBytes(), &transcript); err != nil || transcript.GetLanguage() != tc.wantLanguage || transcript.GetText() != "Bonjour." {
+				t.Fatalf("transcript=%v err=%v", &transcript, err)
+			}
+		})
 	}
 }
