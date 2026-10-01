@@ -1,6 +1,7 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hajimehoshi/go-mp3"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/protobuf/proto"
@@ -24,6 +26,23 @@ func openAISpeechTestJob(speed *float32) *runtimev1.SubmitScenarioJobRequest {
 			Speed:    speed,
 			VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "coral"}},
 		}}},
+	}
+}
+
+func TestOpenAISpeechAcceptsCompleteMP3BeyondMusicInputDuration(t *testing.T) {
+	valid, err := os.ReadFile("testdata/tone-24k.mp3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The self-generated fixture has a 45-byte ID3 tag and complete MP3 frames.
+	// Repeat those real frames to cover a formerly rejected 600.120 s output.
+	long := append(bytes.Clone(valid[:45]), bytes.Repeat(valid[45:], 5001)...)
+	decoder, err := mp3.NewDecoder(bytes.NewReader(long))
+	if err != nil || decoder.Length() <= 600*int64(decoder.SampleRate())*4 {
+		t.Fatalf("long fixture is not a valid >600 s MP3: decoder=%v err=%v", decoder, err)
+	}
+	if !openAISpeechMP3(context.Background(), long) {
+		t.Fatal("a complete MP3 within the HTTP byte bound must not inherit the music input duration limit")
 	}
 }
 

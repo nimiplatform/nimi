@@ -9,7 +9,6 @@ import (
 
 	"github.com/hajimehoshi/go-mp3"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -64,8 +63,9 @@ func (b *Backend) synthesizeOpenAISpeech(ctx context.Context, modelID string, sp
 	return audio, nil
 }
 
-// openAISpeechMP3 requires nonempty, fully decoded audio, within the existing
-// finite-audio duration limit. The original compressed bytes are kept.
+// openAISpeechMP3 requires nonempty, fully decoded audio. The HTTP byte bound
+// and request cancellation/deadline bound the work; PCM is discarded rather
+// than accumulated. The original compressed bytes are kept.
 func openAISpeechMP3(ctx context.Context, audio []byte) (valid bool) {
 	// Invalid compressed bitstreams must not take down the Runtime if the
 	// decoder encounters an invalid internal index.
@@ -99,12 +99,7 @@ func openAISpeechMP3(ctx context.Context, audio []byte) (valid bool) {
 	if err != nil || decoder.Length() <= 0 {
 		return false
 	}
-	// go-mp3 emits signed 16-bit stereo PCM even for mono input.
-	limit := int64(decoder.SampleRate()) * 4 * audiomedia.MaxSeconds
-	if decoder.Length() > limit {
-		return false
-	}
-	decoded, err := io.Copy(io.Discard, io.LimitReader(decoder, limit+1))
+	decoded, err := io.Copy(io.Discard, decoder)
 	return err == nil && decoded > 0 && decoded == decoder.Length() && ctx.Err() == nil
 }
 
