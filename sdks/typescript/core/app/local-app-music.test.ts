@@ -8,13 +8,14 @@ test('music input preserves score, exact multiline content and explicit zero see
   const input = validateNimiLocalAppMusicGenerateSpec({ type: 'music-generate', prompt: ' quiet folk\n', lyrics: '\n[Verse]\nA line\n\n',
     seed: 0, durationSeconds: 240, instrumental: false, returnGeneratedScore: false,
     score: { artifactId: 'artifact_score', format: 'abc' }, scoreConditioning: 'melody-only',
-    audioReference: { artifactId: 'artifact_audio', range: { startFrame: 100, endFrame: 480000 } } });
+    audioReference: { artifactId: 'artifact_audio', range: { startFrame: 100, endFrame: 480000 } }, videoReference: { artifactId: 'owned-video' } });
   assert.deepEqual(localMusicGenerateSpec(runtimeMusicGenerateSpec(input)), input);
   for (const invalid of [
     { ...input, durationSeconds: 601 }, { ...input, seed: -1 }, { ...input, seed: 2 ** 32 },
     { ...input, instrumental: true }, { ...input, score: undefined },
     { ...input, audioReference: { artifactId: 'audio', range: { startFrame: 10, endFrame: 10 } } },
     { ...input, engineOptions: { cot: 'full' } }, { ...input, prompt: 'bad\u0000text' },
+    { ...input, videoReference: { uri: 'https://example.com/private.mp4' } },
   ]) assert.throws(() => validateNimiLocalAppMusicGenerateSpec(invalid));
   assert.doesNotThrow(() => validateNimiLocalAppMusicGenerateSpec({ type: 'music-generate', prompt: 'Piano', lyrics: '', instrumental: true }));
 });

@@ -92,6 +92,8 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		artifacts, usage, providerJobID, err = ExecuteKimiImageChatMultimodal(ctx, cfg, request, modelID)
 	case "elevenlabs_native_adapter":
 		artifacts, usage, providerJobID, err = ExecuteElevenLabsTTS(ctx, cfg, request, modelID)
+	case "elevenlabs_music_adapter":
+		artifacts, usage, providerJobID, err = ExecuteElevenLabsMusic(ctx, cfg, request, modelID)
 	case "fish_audio_native_adapter":
 		artifacts, usage, providerJobID, err = ExecuteFishAudioTTS(ctx, cfg, request, modelID)
 	case "aws_polly_native_adapter":

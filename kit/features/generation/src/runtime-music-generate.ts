@@ -78,6 +78,7 @@ export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput):
       ...(input.scoreConditioning !== undefined ? { scoreConditioning: input.scoreConditioning } : {}),
       ...(input.returnGeneratedScore !== undefined ? { returnGeneratedScore: input.returnGeneratedScore } : {}),
       ...(input.audioReference !== undefined ? { audioReference: input.audioReference } : {}),
+      ...(input.videoReference !== undefined ? { videoReference: input.videoReference } : {}),
     });
     const identity = buildNimiRuntimeScenarioJobIdentity({ appId: input.appId, capabilityId: 'music.generate', scenarioId: input.scenarioId });
     const request: SubmitScenarioJobRequest = {
@@ -90,6 +91,7 @@ export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput):
         scoreConditioning: spec.scoreConditioning === 'melody-only' ? MusicScoreConditioning.MELODY_ONLY : spec.scoreConditioning === 'melody-and-harmony' ? MusicScoreConditioning.MELODY_AND_HARMONY : MusicScoreConditioning.UNSPECIFIED,
         score: spec.score ? { artifactId: spec.score.artifactId, format: spec.score.format === 'abc' ? MusicScoreFormat.ABC : MusicScoreFormat.MIDI } : undefined,
         audioReference: spec.audioReference ? { artifactId: spec.audioReference.artifactId, range: spec.audioReference.range ? { startFrame: String(spec.audioReference.range.startFrame), endFrame: String(spec.audioReference.range.endFrame) } : undefined } : undefined,
+        videoReference: spec.videoReference ? { artifactId: spec.videoReference.artifactId } : undefined,
       } } },
       requestId: identity.requestId,
       idempotencyKey: identity.idempotencyKey,

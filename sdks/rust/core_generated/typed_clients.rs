@@ -4534,6 +4534,7 @@ pub struct AIConfigCloudTargetProjection {
     pub reasons: Vec<String>,
     pub reference_audio_input: Option<Box<VoiceReferenceInputCapabilities>>,
     pub music_input: Option<Box<MusicInputCapabilities>>,
+    pub speech_input: Option<Box<SpeechInputCapabilities>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4575,6 +4576,7 @@ pub struct AIConfigLocalResourceProjection {
     pub text_behaviors: Vec<Box<TextBehaviorCapabilityProjection>>,
     pub reference_audio_input: Option<Box<VoiceReferenceInputCapabilities>>,
     pub music_input: Option<Box<MusicInputCapabilities>>,
+    pub speech_input: Option<Box<SpeechInputCapabilities>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10492,6 +10494,7 @@ pub struct LocalAppMusicGenerateJobSpec {
     pub score_conditioning: Option<MusicScoreConditioning>,
     pub return_generated_score: Option<bool>,
     pub audio_reference: Option<Box<MusicAudioInput>>,
+    pub video_reference: Option<Box<MusicVideoReference>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10584,6 +10587,8 @@ pub struct LocalAppSpeechSynthesizeJobSpec {
     pub voice_ref: Option<Box<VoiceReference>>,
     pub timing_mode: Option<SpeechTimingMode>,
     pub voice_render_hints: Option<Box<VoiceRenderHints>>,
+    pub identity_audio: Option<Box<SpeechAudioReference>>,
+    pub performance_audio: Option<Box<SpeechPerformanceReference>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11414,6 +11419,7 @@ pub struct MusicGenerateScenarioSpec {
     pub seed: Option<u32>,
     pub return_generated_score: Option<bool>,
     pub audio_reference: Option<Box<MusicAudioInput>>,
+    pub video_reference: Option<Box<MusicVideoReference>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11441,6 +11447,8 @@ pub struct MusicGenerationInputProfile {
     pub max_lyrics_bytes: Option<u32>,
     pub max_score_bytes: Option<u32>,
     pub max_audio_reference_bytes: Option<u32>,
+    pub video_reference_mode: Option<String>,
+    pub max_video_reference_bytes: Option<u32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11502,6 +11510,11 @@ pub struct MusicTranscriptionInputProfile {
     pub max_duration_seconds: Option<u32>,
     pub max_source_bytes: Option<u32>,
     pub supports_range: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicVideoReference {
+    pub artifact_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13771,6 +13784,26 @@ pub struct SpeechAlignmentToken {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpeechAudioReference {
+    pub artifact_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpeechInputCapabilities {
+    pub supports_identity_audio: Option<bool>,
+    pub supports_performance_audio: Option<bool>,
+    pub max_reference_bytes: Option<u32>,
+    pub max_reference_duration_seconds: Option<u32>,
+    pub max_performance_text_bytes: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpeechPerformanceReference {
+    pub artifact_id: Option<String>,
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SpeechSynthesizeResult {
     pub artifacts: Vec<Box<ScenarioArtifact>>,
 }
@@ -13788,6 +13821,8 @@ pub struct SpeechSynthesizeScenarioSpec {
     pub voice_ref: Option<Box<VoiceReference>>,
     pub timing_mode: Option<SpeechTimingMode>,
     pub voice_render_hints: Option<Box<VoiceRenderHints>>,
+    pub identity_audio: Option<Box<SpeechAudioReference>>,
+    pub performance_audio: Option<Box<SpeechPerformanceReference>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -667,6 +667,17 @@ func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecut
 		return nil, err
 	}
 	assembly.Request.BinaryInput = binaryInput
+	if referenced, ok := synthesize.(interface {
+		References() *capabilitydriver.SpeechReferenceInputs
+	}); ok {
+		if refs := referenced.References(); refs != nil {
+			assembly.Request.BinaryInput = refs.IdentityAudio
+			assembly.Request.ReferenceInput = refs.PerformanceAudio
+			if len(refs.IdentityAudio) > 0 || len(refs.PerformanceAudio) > 0 {
+				mimeType = "audio/wav"
+			}
+		}
+	}
 	assembly.Request.MIMEType = mimeType
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "speech", Speech: plan}
 	assembly.ProcessIdentity.DriverID = plan.DriverID

@@ -10,7 +10,7 @@ function decoded(value: Parameters<typeof MusicInputCapabilities.create>[0]) {
 }
 
 const generation = {
-  lyricsMode: 'required', scoreMode: 'unsupported', supportsSeed: true,
+  lyricsMode: 'required', scoreMode: 'unsupported', supportsSeed: true, videoReferenceMode:'unsupported',
   maxDurationSeconds: 180, defaultDurationSeconds: 20, maxPromptBytes: 32768, maxLyricsBytes: 32768,
 };
 const transcription = {
@@ -35,6 +35,7 @@ test('decoded Runtime music input projects for each music capability', () => {
 });
 
 test('decoded Runtime music input still fails closed outside its bounds', () => {
+  assert.throws(() => projectRuntimeMusicInput(decoded({ generation: [{ ...generation, videoReferenceMode: '' }] })), /Music input capabilities are invalid/u);
   assert.throws(() => projectRuntimeMusicInput(decoded({ generation: [{ ...generation, maxDurationSeconds: 601 }] })), /Music input capabilities are invalid/u);
   assert.throws(() => projectRuntimeMusicInput(decoded({ transcription: [{ ...transcription, parts: [] }] })), /Music input capabilities are invalid/u);
   assert.throws(() => projectRuntimeMusicInput(decoded({})), /Music input capabilities are invalid/u);

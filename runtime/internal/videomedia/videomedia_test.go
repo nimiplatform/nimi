@@ -8,15 +8,47 @@ import (
 	"image/png"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestInspectDurationReadsRealCompleteMP4(t *testing.T) {
+	dir := strings.TrimSpace(os.Getenv("NIMI_TEST_FFMPEG_DIR"))
+	if dir == "" {
+		t.Skip("matching managed test codec unavailable")
+	}
+	suffix := ""
+	if runtime.GOOS == "windows" {
+		suffix = ".exe"
+	}
+	processor, err := New(filepath.Join(dir, "ffmpeg"+suffix), filepath.Join(dir, "ffprobe"+suffix))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(t.TempDir(), "input.mp4")
+	command := exec.Command(processor.ffmpegPath, "-v", "error", "-y", "-f", "lavfi", "-i", "color=green:s=480x480:r=30", "-t", "1", "-c:v", "libx264", "-pix_fmt", "yuv420p", file)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("real encode: %v %s", err, output)
+	}
+	duration, err := processor.InspectDuration(context.Background(), file)
+	if err != nil || duration < 950*time.Millisecond || duration > 1050*time.Millisecond {
+		t.Fatalf("actual duration %v: %v", duration, err)
+	}
+	if err := os.WriteFile(file, []byte("invalid video"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := processor.InspectDuration(context.Background(), file); err == nil {
+		t.Fatal("invalid container accepted")
+	}
+}
 
 func TestNewFailsClosedForUnavailableExecutables(t *testing.T) {
 	tests := []struct {

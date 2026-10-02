@@ -205,7 +205,7 @@ test('App AIConfig client projects music input decoded from the Runtime wire', a
     implementation: { implementationId: 'local.music.generate', driverId: 'driver.music', driverDialect: 'music/v1' },
     state: AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY,
     musicInput: { generation: [{
-      lyricsMode: 'required', scoreMode: 'unsupported', supportsSeed: true,
+      lyricsMode: 'required', scoreMode: 'unsupported', supportsSeed: true, videoReferenceMode:'unsupported',
       maxDurationSeconds: 180, defaultDurationSeconds: 20, maxPromptBytes: 32768, maxLyricsBytes: 32768,
     }] },
   };

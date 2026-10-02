@@ -8,6 +8,18 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+func TestElevenLabsChecksMeasuredOutputAgainstCapturedBudget(t *testing.T) {
+	adapter := capabilitydriver.CloudMediaAdapterElevenLabsMusic
+	if err := validateCloudMusicMeasuredDuration(adapter, 600, 9930); err != nil {
+		t.Fatal(err)
+	}
+	for _, duration := range []int64{0, 600001} {
+		if err := validateCloudMusicMeasuredDuration(adapter, 600, duration); err == nil {
+			t.Fatal("invalid measured output accepted")
+		}
+	}
+}
+
 func TestLyriaClipChecksMeasuredAudioAgainstCapturedBudget(t *testing.T) {
 	adapter := capabilitydriver.CloudMediaAdapterGeminiLyriaClipGenerateContent
 	if err := validateCloudMusicMeasuredDuration(adapter, 35, 30772); err != nil {

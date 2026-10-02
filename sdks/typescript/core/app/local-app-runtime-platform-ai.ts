@@ -179,6 +179,8 @@ export type NimiLocalAppScenarioJobSpec =
     }
   | {
       readonly type: 'speech-synthesize';
+      readonly identityAudio?: { readonly artifactId: string };
+      readonly performanceAudio?: { readonly artifactId: string; readonly text: string };
       readonly text: string;
       readonly language: string;
       readonly audioFormat: string;
@@ -1181,7 +1183,15 @@ function validateVideoSpec(record: Record<string, unknown>): void {
 }
 
 function validateSpeechSynthesizeSpec(record: Record<string, unknown>): void {
-  assertExactKeys(record, ['type', 'text', 'language', 'audioFormat', 'sampleRateHz', 'speed', 'pitch', 'volume', 'emotion', 'voiceRef', 'timingMode', 'voiceRenderHints'], 'speech synthesize spec');
+  assertExactKeys(record, ['type', 'text', 'language', 'audioFormat', 'sampleRateHz', 'speed', 'pitch', 'volume', 'emotion', 'voiceRef', 'timingMode', 'voiceRenderHints', 'identityAudio', 'performanceAudio'], 'speech synthesize spec');
+  for (const key of ['identityAudio','performanceAudio']) {
+    if(record[key] !== undefined) {
+      const reference = asRecord(record[key]);
+      assertExactKeys(reference, key === 'identityAudio' ? ['artifactId'] : ['artifactId','text'], key);
+      boundedIdentifier(reference.artifactId, key + ' artifactId');
+      if(key === 'performanceAudio') { boundedContent(reference.text, 'performance transcript', 32768); if(!String(reference.text).trim()) invalidAIInput('Performance transcript is required'); }
+    }
+  }
   boundedContent(record.text, 'speech text', 32 * 1024);
   boundedToken(record.language, 'speech language', 64);
   boundedToken(record.audioFormat, 'speech audioFormat', 64);
@@ -1771,6 +1781,8 @@ function runtimeLocalJobSpec(
           ...(spec.voiceRef === null ? {} : { voiceRef: runtimeVoiceReference(spec.voiceRef) }),
           timingMode: runtimeSpeechTimingMode(spec.timingMode),
           ...(spec.voiceRenderHints === null ? {} : { voiceRenderHints: { ...spec.voiceRenderHints } }),
+          ...(spec.identityAudio ? { identityAudio: { ...spec.identityAudio } } : {}),
+          ...(spec.performanceAudio ? { performanceAudio: { ...spec.performanceAudio } } : {}),
         },
       };
     case 'text-annotate':
@@ -2290,6 +2302,8 @@ function runtimeSpeechSynthesizeSpec(spec: Extract<ScenarioSpec['spec'], { oneof
     ...(spec.volume !== undefined ? { volume: spec.volume } : {}),
     emotion: spec.emotion, voiceRef, timingMode: speechTimingName(spec.timingMode),
     voiceRenderHints: spec.voiceRenderHints ? { ...spec.voiceRenderHints } : null,
+    ...(spec.identityAudio ? { identityAudio: { ...spec.identityAudio } } : {}),
+    ...(spec.performanceAudio ? { performanceAudio: { ...spec.performanceAudio } } : {}),
   };
 }
 

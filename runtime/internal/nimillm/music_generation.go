@@ -29,7 +29,7 @@ func validateMusicAdapterInput(ctx context.Context, spec *runtimev1.MusicGenerat
 	unsupported := func() (*MusicReferenceAudio, error) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	if len(extensions) != 0 || spec.GetScore() != nil || spec.GetReturnGeneratedScore() || spec.Seed != nil {
+	if spec.GetVideoReference() != nil || len(extensions) != 0 || spec.GetScore() != nil || spec.GetReturnGeneratedScore() || spec.Seed != nil {
 		return unsupported()
 	}
 	if spec.GetAudioReference() == nil {
@@ -52,7 +52,7 @@ func buildMusicGenerationRequest(modelID string, spec *runtimev1.MusicGenerateSc
 	}
 	// No current cloud adapter declares the newly typed score/reference/seed
 	// paths. Reject them before transport rather than dropping their values.
-	if len(extensions) != 0 || spec.GetScore() != nil || spec.GetAudioReference() != nil || spec.Seed != nil || spec.GetReturnGeneratedScore() {
+	if spec.GetVideoReference() != nil || len(extensions) != 0 || spec.GetScore() != nil || spec.GetAudioReference() != nil || spec.Seed != nil || spec.GetReturnGeneratedScore() {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	return map[string]any{"model": modelID, "prompt": spec.GetPrompt(), "lyrics": spec.GetLyrics(), "negative_prompt": spec.GetNegativePrompt(), "style": spec.GetStyle(), "title": spec.GetTitle(), "duration_seconds": spec.GetDurationSeconds(), "instrumental": spec.GetInstrumental()}, nil

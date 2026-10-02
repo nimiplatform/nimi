@@ -2,6 +2,12 @@
 
 ## Next minor (compatible additions)
 
+The music generation helper now retains owned video references through validation and submission, so a video-conditioned request cannot become prompt-only music.
+
+Renderer AIConfig accepts the matching SDK's bounded `speechInput` projection on Local and Cloud speech resources. The bridge speech request type carries separate identity and performance artifact references; the SDK remains the input validator. This completes the existing reference-conditioned speech carrier without changing resource selection or admitting unknown fields.
+
+The native carrier transports owned music video references and separate speech identity/performance conditions, and projects their exact Runtime-declared input profiles. This is a compatible type widening staged for the next minor. Update Runtime, SDK, Kit and native together; empty or missing music video modes fail closed.
+
 The protected App voice-assets client adds owner-scoped `delete(voiceAssetId)`. Update SDK, Kit and the native carrier together. Deletion uses the asset-captured Runtime binding and returns confirmation only after the owner policy completes; provider failures remain errors for explicit retry.
 
 Browser data URL attachments can opt into audio via an explicit accepted MIME list. Existing default image/video picker scope is unchanged. The protected text carrier accepts owned WAV, MPEG audio and MP4 Artifact references; SDK alignment is an additive next-minor widening, with Runtime still enforcing the exact model and execution-mode support.

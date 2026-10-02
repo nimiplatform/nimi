@@ -1,7 +1,7 @@
 import type { NimiLocalAppAgentWorkShell, NimiLocalAppIntegrationShell } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
-import { projectMusicInputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
+import { projectMusicInputCapabilities, projectSpeechInputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '@nimiplatform/kit/core/sdk-contract';
@@ -202,6 +202,8 @@ export type NimiLocalAppScenarioJobSpec =
       readonly pitch?: number; readonly volume?: number; readonly emotion: string;
       readonly voiceRef: { readonly type: 'preset' | 'voice-asset'; readonly id: string } | null;
       readonly timingMode: 'none' | 'word' | 'char';
+      readonly identityAudio?: { readonly artifactId: string };
+      readonly performanceAudio?: { readonly artifactId: string; readonly text: string };
       readonly voiceRenderHints: {
         readonly stability: number; readonly similarityBoost: number; readonly style: number;
         readonly useSpeakerBoost: boolean; readonly speed: number;
@@ -3884,7 +3886,9 @@ function parseCloudTargetResource(value: unknown, command: string): void {
     'supportedFeatures', 'state', 'reasons',
     ...(Object.hasOwn(resource, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
     ...(Object.hasOwn(resource, 'musicInput') ? ['musicInput'] : []),
+    ...(Object.hasOwn(resource, 'speechInput') ? ['speechInput'] : []),
   ], command, 'Cloud target resource');
+  parseSpeechInput(resource, command);
   if (Object.hasOwn(resource, 'musicInput')) {
     if (!['music.generate', 'music.transcribe', 'audio.voice.convert'].includes(String(resource.capabilityContract))) throw new Error(`${command}: invalid music input capability contract`);
     projectMusicInputCapabilities(resource.musicInput);
@@ -3916,7 +3920,9 @@ function parseLocalResource(value: unknown, command: string): void {
     'implementationSupportedFeatures', 'configuredFeatures', 'textBehaviors', 'state', 'reasons',
     ...(Object.hasOwn(resource, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
     ...(Object.hasOwn(resource, 'musicInput') ? ['musicInput'] : []),
+    ...(Object.hasOwn(resource, 'speechInput') ? ['speechInput'] : []),
   ], command, 'Local resource');
+  parseSpeechInput(resource, command);
   if (Object.hasOwn(resource, 'musicInput')) {
     if (!['music.generate', 'music.transcribe', 'audio.voice.convert'].includes(String(resource.capabilityContract))) throw new Error(`${command}: invalid music input capability contract`);
     projectMusicInputCapabilities(resource.musicInput);
@@ -3945,6 +3951,15 @@ function parseLocalResource(value: unknown, command: string): void {
   if (resource.state !== 'ready' && resource.state !== 'blocked') {
     throw new Error(`${command}: Local resource state is invalid`);
   }
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r109
+function parseSpeechInput(resource: Record<string, unknown>, command: string): void {
+  if (!Object.hasOwn(resource, 'speechInput')) return;
+  if (resource.capabilityContract !== 'audio.synthesize') {
+    throw new Error(`${command}: invalid speech input capability contract`);
+  }
+  projectSpeechInputCapabilities(resource.speechInput);
 }
 
 function validTextBehaviorProjection(value: unknown): boolean {

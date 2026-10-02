@@ -23,6 +23,14 @@ defaults:
     notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
 
 sources:
+  - source_id: elevenlabs_music_v2
+    url: https://elevenlabs.io/docs/api-reference/music/compose
+    retrieved_at: 2026-10-02
+    note: Native prompt composition with explicit length and instrumental intent.
+  - source_id: elevenlabs_video_music_v2
+    url: https://elevenlabs.io/docs/api-reference/music/video-to-music
+    retrieved_at: 2026-10-02
+    note: Native video-file conditioned soundtrack with model_id music_v2.
   - source_id: elevenlabs_api_intro
     url: https://elevenlabs.io/docs/api-reference/introduction
     retrieved_at: 2026-04-18
@@ -83,6 +91,11 @@ voice_sets:
         name: Josh
 
 models:
+  - model_id: music_v2
+    model_type: music
+    updated_at: 2026-10-02
+    capabilities: [music.generate]
+    source_ids: [elevenlabs_music_v2, elevenlabs_video_music_v2]
   - model_id: eleven_v3
     updated_at: 2026-03-05
     capabilities: [audio.synthesize]

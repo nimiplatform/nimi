@@ -306,6 +306,7 @@ class AIConfigCloudTargetProjection:
     reasons: tuple[str, ...] = field(default_factory=tuple)
     reference_audio_input: VoiceReferenceInputCapabilities | None = None
     music_input: MusicInputCapabilities | None = None
+    speech_input: SpeechInputCapabilities | None = None
 
 @dataclass(frozen=True)
 class AIConfigEffectiveSelection:
@@ -342,6 +343,7 @@ class AIConfigLocalResourceProjection:
     text_behaviors: tuple[TextBehaviorCapabilityProjection, ...] = field(default_factory=tuple)
     reference_audio_input: VoiceReferenceInputCapabilities | None = None
     music_input: MusicInputCapabilities | None = None
+    speech_input: SpeechInputCapabilities | None = None
 
 @dataclass(frozen=True)
 class AIConfigOwner:
@@ -4254,6 +4256,7 @@ class LocalAppMusicGenerateJobSpec:
     score_conditioning: MusicScoreConditioning | None = None
     return_generated_score: bool | None = None
     audio_reference: MusicAudioInput | None = None
+    video_reference: MusicVideoReference | None = None
 
 @dataclass(frozen=True)
 class LocalAppPackagePreview:
@@ -4340,6 +4343,8 @@ class LocalAppSpeechSynthesizeJobSpec:
     voice_ref: VoiceReference | None = None
     timing_mode: SpeechTimingMode | None = None
     voice_render_hints: VoiceRenderHints | None = None
+    identity_audio: SpeechAudioReference | None = None
+    performance_audio: SpeechPerformanceReference | None = None
 
 @dataclass(frozen=True)
 class LocalAppSpeechTranscribeJobSpec:
@@ -5005,6 +5010,7 @@ class MusicGenerateScenarioSpec:
     seed: int | None = None
     return_generated_score: bool | None = None
     audio_reference: MusicAudioInput | None = None
+    video_reference: MusicVideoReference | None = None
 
 @dataclass(frozen=True)
 class MusicGeneration:
@@ -5030,6 +5036,8 @@ class MusicGenerationInputProfile:
     max_lyrics_bytes: int | None = None
     max_score_bytes: int | None = None
     max_audio_reference_bytes: int | None = None
+    video_reference_mode: str | None = None
+    max_video_reference_bytes: int | None = None
 
 @dataclass(frozen=True)
 class MusicInputCapabilities:
@@ -5083,6 +5091,10 @@ class MusicTranscriptionInputProfile:
     max_duration_seconds: int | None = None
     max_source_bytes: int | None = None
     supports_range: bool | None = None
+
+@dataclass(frozen=True)
+class MusicVideoReference:
+    artifact_id: str | None = None
 
 @dataclass(frozen=True)
 class OpenAppActivityRequest:
@@ -6369,6 +6381,23 @@ class SpeechAlignmentToken:
     end_ms: int | None = None
 
 @dataclass(frozen=True)
+class SpeechAudioReference:
+    artifact_id: str | None = None
+
+@dataclass(frozen=True)
+class SpeechInputCapabilities:
+    supports_identity_audio: bool | None = None
+    supports_performance_audio: bool | None = None
+    max_reference_bytes: int | None = None
+    max_reference_duration_seconds: int | None = None
+    max_performance_text_bytes: int | None = None
+
+@dataclass(frozen=True)
+class SpeechPerformanceReference:
+    artifact_id: str | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
 class SpeechSynthesizeResult:
     artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
 
@@ -6385,6 +6414,8 @@ class SpeechSynthesizeScenarioSpec:
     voice_ref: VoiceReference | None = None
     timing_mode: SpeechTimingMode | None = None
     voice_render_hints: VoiceRenderHints | None = None
+    identity_audio: SpeechAudioReference | None = None
+    performance_audio: SpeechPerformanceReference | None = None
 
 @dataclass(frozen=True)
 class SpeechTranscribeResult:

@@ -43,12 +43,15 @@ func validateGeminiLyriaClipRequest(request *runtimev1.SubmitScenarioJobRequest,
 }
 
 func CloudMusicInputCapabilities(provider, model, capability string) *runtimev1.MusicInputCapabilities {
+	if provider == "elevenlabs" && model == "music_v2" && capability == "music.generate" {
+		return elevenLabsMusicInputCapabilities()
+	}
 	if provider != "gemini" || capability != "music.generate" {
 		return nil
 	}
 	if model == geminiLyria35Model {
 		return &runtimev1.MusicInputCapabilities{Generation: []*runtimev1.MusicGenerationInputProfile{{
-			LyricsMode: "unsupported", ScoreMode: "unsupported", MaxDurationSeconds: geminiLyria35MaxBudgetSeconds,
+			VideoReferenceMode: "unsupported", LyricsMode: "unsupported", ScoreMode: "unsupported", MaxDurationSeconds: geminiLyria35MaxBudgetSeconds,
 			DefaultDurationSeconds: geminiLyria35MaxBudgetSeconds, MaxPromptBytes: geminiLyria35MaxPromptBytes,
 		}}}
 	}
@@ -56,7 +59,7 @@ func CloudMusicInputCapabilities(provider, model, capability string) *runtimev1.
 		return nil
 	}
 	return &runtimev1.MusicInputCapabilities{Generation: []*runtimev1.MusicGenerationInputProfile{{
-		LyricsMode: "unsupported", ScoreMode: "unsupported", MaxDurationSeconds: geminiLyriaClipDurationSeconds,
+		VideoReferenceMode: "unsupported", LyricsMode: "unsupported", ScoreMode: "unsupported", MaxDurationSeconds: geminiLyriaClipDurationSeconds,
 		DefaultDurationSeconds: geminiLyriaClipDurationSeconds, MaxPromptBytes: geminiLyriaClipMaxPromptBytes,
 	}}}
 }

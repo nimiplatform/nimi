@@ -313,6 +313,10 @@ pub(super) fn project_cloud_target(
         }
         projected["musicInput"] = super::music_input::project(input)?;
     }
+    if let Some(input) = resource.speech_input {
+        if resource.capability_contract != "audio.synthesize" { return Err(untrusted()); }
+        projected["speechInput"] = super::speech_input::project(input)?;
+    }
     if let Some(input) = reference_input {
         projected["referenceAudioInput"] = input;
     }
@@ -350,6 +354,10 @@ pub(super) fn project_local_resource(
             return Err(untrusted());
         }
         projected["musicInput"] = super::music_input::project(input)?;
+    }
+    if let Some(input) = resource.speech_input {
+        if resource.capability_contract != "audio.synthesize" { return Err(untrusted()); }
+        projected["speechInput"] = super::speech_input::project(input)?;
     }
     if let Some(input) = reference_input {
         projected["referenceAudioInput"] = input;
@@ -1108,6 +1116,7 @@ mod tests {
             configured_features: vec!["input.image".to_string()],
             reference_audio_input: None,
             music_input: None,
+            speech_input: None,
             text_behaviors: vec![TextBehaviorCapabilityProjection {
                 kind: TextBehaviorKind::ToolUse as i32,
                 implementation_supported: false,

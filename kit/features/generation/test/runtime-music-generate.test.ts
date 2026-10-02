@@ -28,6 +28,23 @@ function protectedMusicClient() {
 }
 
 describe('runRuntimeMusicGenerate', () => {
+  it('preserves the owned video condition in the actual submitted request', async () => {
+    const { client, submitScenarioJob } = protectedMusicClient();
+    submitScenarioJob.mockRejectedValueOnce(new Error('transport boundary reached'));
+    const videoReference = { artifactId: 'owned-video' };
+    await runRuntimeMusicGenerate({ runtime: { ai: client }, appId: 'app.test', prompt: 'Quiet soundtrack', lyrics: '',
+      videoReference, scenarioId: 'video-music', surfaceId: 'lab' });
+    const spec = submitScenarioJob.mock.calls[0]?.[0].spec?.spec;
+    expect(spec?.oneofKind).toBe('musicGenerate');
+    if (spec?.oneofKind === 'musicGenerate') expect(spec.musicGenerate.videoReference).toEqual(videoReference);
+    expect(videoReference).toEqual({ artifactId: 'owned-video' });
+    submitScenarioJob.mockClear();
+    const invalid = await runRuntimeMusicGenerate({ runtime: { ai: client }, appId: 'app.test', prompt: 'Quiet soundtrack', lyrics: '',
+      videoReference: { artifactId: '' }, scenarioId: 'video-music', surfaceId: 'lab' });
+    expect(invalid.ok).toBe(false);
+    expect(submitScenarioJob).not.toHaveBeenCalled();
+  });
+
   it('keeps both artifacts and the typed termination through the protected async carrier', async () => {
     const { client, submitScenarioJob } = protectedMusicClient();
     const result = await runRuntimeMusicGenerate({ runtime: { ai: client }, appId: 'app.test', subjectUserId: 'user.test', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights are waking.', durationSeconds: 120, scenarioId: 'music-1', surfaceId: 'lab' });

@@ -1,10 +1,10 @@
 use super::*;
 use crate::generated::{AudioFrameRange, MusicAudioInput, MusicGeneration, MusicGenerationTermination,
-    MusicScoreConditioning, MusicScoreFormat, MusicScoreOrigin, MusicScoreReference};
+    MusicVideoReference, MusicScoreConditioning, MusicScoreFormat, MusicScoreOrigin, MusicScoreReference};
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 pub(super) fn parse(object: &Map<String, JsonValue>) -> Result<LocalAppMusicGenerateJobSpec, LocalAppOperationError> {
-    allowed_keys(object, &["type", "prompt", "lyrics", "durationSeconds", "instrumental", "seed", "score", "scoreConditioning", "returnGeneratedScore", "audioReference"], &["type", "prompt", "lyrics"])?;
+    allowed_keys(object, &["type", "prompt", "lyrics", "durationSeconds", "instrumental", "seed", "score", "scoreConditioning", "returnGeneratedScore", "audioReference", "videoReference"], &["type", "prompt", "lyrics"])?;
     let prompt = content(object, "prompt")?;
     let lyrics = content(object, "lyrics")?;
     let instrumental = optional_bool_field(object, "instrumental")?.unwrap_or(false);
@@ -43,10 +43,17 @@ pub(super) fn parse(object: &Map<String, JsonValue>) -> Result<LocalAppMusicGene
         }).transpose()?;
         Ok(MusicAudioInput { artifact_id, range })
     }).transpose()?;
+    let video_reference = object.get("videoReference").map(|value| {
+        let value = value.as_object().ok_or_else(invalid_payload)?;
+        exact_keys(value, &["artifactId"])?;
+        let artifact_id = required_text_field(value, "artifactId", MAX_IDENTIFIER_BYTES)?;
+        require_identifier(&artifact_id).map_err(|_| invalid_payload())?;
+        Ok(MusicVideoReference { artifact_id })
+    }).transpose()?;
     Ok(LocalAppMusicGenerateJobSpec {
         prompt, lyrics, duration_seconds: duration.unwrap_or(0) as u32, instrumental, seed, score,
         score_conditioning: score_conditioning as i32,
-        return_generated_score: optional_bool_field(object, "returnGeneratedScore")?.unwrap_or(false), audio_reference,
+        return_generated_score: optional_bool_field(object, "returnGeneratedScore")?.unwrap_or(false), audio_reference, video_reference,
     })
 }
 

@@ -220,6 +220,9 @@ class SpeechSynthesizeRequest:
         volume: float | None = None,
         emotion: str | None = None,
         extensions: dict[str, Any] | None = None,
+        identity_audio_base64: str | None = None,
+        performance_audio_base64: str | None = None,
+        performance_text: str | None = None,
     ) -> None:
         self.model = model
         self.input = input
@@ -232,6 +235,9 @@ class SpeechSynthesizeRequest:
         self.volume = volume
         self.emotion = emotion
         self.extensions = extensions or {}
+        self.identity_audio_base64 = identity_audio_base64
+        self.performance_audio_base64 = performance_audio_base64
+        self.performance_text = performance_text
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "SpeechSynthesizeRequest":
@@ -247,6 +253,9 @@ class SpeechSynthesizeRequest:
             volume=float(payload["volume"]) if payload.get("volume") is not None else None,
             emotion=str(payload.get("emotion") or "").strip() or None,
             extensions=payload.get("extensions") if isinstance(payload.get("extensions"), dict) else {},
+            identity_audio_base64=payload.get("identity_audio_base64"),
+            performance_audio_base64=payload.get("performance_audio_base64"),
+            performance_text=payload.get("performance_text"),
         )
 
 
@@ -380,6 +389,9 @@ def create_app() -> FastAPI:
                     "volume": speech_request.volume,
                     "emotion": speech_request.emotion,
                     "extensions": speech_request.extensions,
+                    "identity_audio_base64": speech_request.identity_audio_base64,
+                    "performance_audio_base64": speech_request.performance_audio_base64,
+                    "performance_text": speech_request.performance_text,
                 },
             )
         except HTTPException:

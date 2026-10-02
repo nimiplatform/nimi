@@ -255,3 +255,5 @@ export * from './text-runner';
 export * from './local-app-model';
 
 export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile, type NimiVoiceConvertInputProfile } from './music-input.js';
+
+export { projectSpeechInputCapabilities, type NimiSpeechInputCapabilities } from './speech-input.js';

@@ -424,6 +424,18 @@ message SpeechSynthesizeScenarioSpec {
   VoiceReference voice_ref = 9;
   SpeechTimingMode timing_mode = 10;
   VoiceRenderHints voice_render_hints = 11;
+  SpeechAudioReference identity_audio = 12;
+  SpeechPerformanceReference performance_audio = 13;
+}
+
+// Per-call immutable canonical audio conditions; these create no VoiceAsset.
+message SpeechAudioReference {
+  string artifact_id = 1;
+}
+
+message SpeechPerformanceReference {
+  string artifact_id = 1;
+  string text = 2;
 }
 
 message SpeechTranscribeScenarioSpec {
@@ -486,6 +498,11 @@ message MusicGenerateScenarioSpec {
   optional uint32 seed = 10;
   bool return_generated_score = 11;
   MusicAudioInput audio_reference = 12;
+  MusicVideoReference video_reference = 13;
+}
+
+message MusicVideoReference {
+  string artifact_id = 1;
 }
 
 enum MusicTranscriptionFormat {
@@ -1270,6 +1287,8 @@ message LocalAppSpeechSynthesizeJobSpec {
   VoiceReference voice_ref = 9;
   SpeechTimingMode timing_mode = 10;
   VoiceRenderHints voice_render_hints = 11;
+  SpeechAudioReference identity_audio = 12;
+  SpeechPerformanceReference performance_audio = 13;
 }
 
 message LocalAppSpeechTranscribeJobSpec {
@@ -1303,6 +1322,7 @@ message LocalAppMusicGenerateJobSpec {
   MusicScoreConditioning score_conditioning = 7;
   bool return_generated_score = 8;
   MusicAudioInput audio_reference = 9;
+  MusicVideoReference video_reference = 10;
 }
 
 // Text-conditioned world generation. Provider selection and asset retrieval

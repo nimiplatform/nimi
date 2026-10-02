@@ -47,7 +47,20 @@ const (
 // SpeechSynthesizeInvocationInput is the complete Driver-owned plain speech
 // synthesis input. The selected asset occurrence is already verified and the
 // request contains no endpoint, process, route, or fallback facts.
+type SpeechReferenceInputs struct {
+	IdentityAudio    []byte
+	PerformanceAudio []byte
+}
+
+func cloneSpeechReferences(value *SpeechReferenceInputs) *SpeechReferenceInputs {
+	if value == nil {
+		return nil
+	}
+	return &SpeechReferenceInputs{IdentityAudio: append([]byte(nil), value.IdentityAudio...), PerformanceAudio: append([]byte(nil), value.PerformanceAudio...)}
+}
+
 type SpeechSynthesizeInvocationInput struct {
+	References     *SpeechReferenceInputs
 	RecipeID       string
 	PortableConfig *structpb.Struct
 	ExactBindings  []InvocationExactBinding
@@ -78,6 +91,7 @@ type VoiceCreateInvocationInput struct {
 }
 
 type SpeechSynthesizeInvocationPlan struct {
+	references   *SpeechReferenceInputs
 	driverID     string
 	modelAssetID string
 	modelFiles   []InvocationExactBinding
@@ -121,6 +135,13 @@ func cloneSpeechInvocationBindings(values []InvocationExactBinding) []Invocation
 		cloned[index].DeclaredFiles = append([]string(nil), cloned[index].DeclaredFiles...)
 	}
 	return cloned
+}
+
+func (p *SpeechSynthesizeInvocationPlan) References() *SpeechReferenceInputs {
+	if p == nil {
+		return nil
+	}
+	return cloneSpeechReferences(p.references)
 }
 
 func (p *SpeechSynthesizeInvocationPlan) Request() *runtimev1.SpeechSynthesizeScenarioSpec {

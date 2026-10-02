@@ -42,6 +42,9 @@ func validateMusicGenerationRequest(spec *runtimev1.MusicGenerateScenarioSpec, e
 			return invalid()
 		}
 	}
+	if video := spec.GetVideoReference(); video != nil && !localAppBoundedIdentifier(video.GetArtifactId()) {
+		return invalid()
+	}
 	for _, extension := range extensions {
 		if extension.GetNamespace() == "nimi.scenario.music_generate.request" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
@@ -62,8 +65,8 @@ func validMusicText(value string) bool {
 	return true
 }
 
-func validateCloudMusicGenerationFields(spec *runtimev1.MusicGenerateScenarioSpec, allowReference bool) error {
-	if spec != nil && (spec.GetScore() != nil || (!allowReference && spec.GetAudioReference() != nil) || spec.GetReturnGeneratedScore() || spec.Seed != nil) {
+func validateCloudMusicGenerationFields(spec *runtimev1.MusicGenerateScenarioSpec, allowReference bool, allowVideo ...bool) error {
+	if spec != nil && (spec.GetScore() != nil || (!allowReference && spec.GetAudioReference() != nil) || (spec.GetVideoReference() != nil && (len(allowVideo) == 0 || !allowVideo[0])) || spec.GetReturnGeneratedScore() || spec.Seed != nil) {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	return nil

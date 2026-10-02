@@ -4250,6 +4250,24 @@ pub struct MusicGenerationInputProfile {
     pub max_score_bytes: u32,
     #[prost(uint32, tag = "14")]
     pub max_audio_reference_bytes: u32,
+    /// unsupported | optional | required
+    #[prost(string, tag = "15")]
+    pub video_reference_mode: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "16")]
+    pub max_video_reference_bytes: u32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SpeechInputCapabilities {
+    #[prost(bool, tag = "1")]
+    pub supports_identity_audio: bool,
+    #[prost(bool, tag = "2")]
+    pub supports_performance_audio: bool,
+    #[prost(uint32, tag = "3")]
+    pub max_reference_bytes: u32,
+    #[prost(uint32, tag = "4")]
+    pub max_reference_duration_seconds: u32,
+    #[prost(uint32, tag = "5")]
+    pub max_performance_text_bytes: u32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MusicInputCapabilities {
@@ -4327,6 +4345,8 @@ pub struct AiConfigLocalResourceProjection {
     pub reference_audio_input: ::core::option::Option<VoiceReferenceInputCapabilities>,
     #[prost(message, optional, tag = "12")]
     pub music_input: ::core::option::Option<MusicInputCapabilities>,
+    #[prost(message, optional, tag = "13")]
+    pub speech_input: ::core::option::Option<SpeechInputCapabilities>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiConfigCloudConnectorProjection {
@@ -4363,6 +4383,8 @@ pub struct AiConfigCloudTargetProjection {
     pub reference_audio_input: ::core::option::Option<VoiceReferenceInputCapabilities>,
     #[prost(message, optional, tag = "10")]
     pub music_input: ::core::option::Option<MusicInputCapabilities>,
+    #[prost(message, optional, tag = "11")]
+    pub speech_input: ::core::option::Option<SpeechInputCapabilities>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigCloudResourceProjection {
@@ -5699,6 +5721,23 @@ pub struct SpeechSynthesizeScenarioSpec {
     pub timing_mode: i32,
     #[prost(message, optional, tag = "11")]
     pub voice_render_hints: ::core::option::Option<VoiceRenderHints>,
+    #[prost(message, optional, tag = "12")]
+    pub identity_audio: ::core::option::Option<SpeechAudioReference>,
+    #[prost(message, optional, tag = "13")]
+    pub performance_audio: ::core::option::Option<SpeechPerformanceReference>,
+}
+/// Per-call immutable canonical audio conditions; these create no VoiceAsset.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SpeechAudioReference {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SpeechPerformanceReference {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub text: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SpeechTranscribeScenarioSpec {
@@ -5784,6 +5823,13 @@ pub struct MusicGenerateScenarioSpec {
     pub return_generated_score: bool,
     #[prost(message, optional, tag = "12")]
     pub audio_reference: ::core::option::Option<MusicAudioInput>,
+    #[prost(message, optional, tag = "13")]
+    pub video_reference: ::core::option::Option<MusicVideoReference>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicVideoReference {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MusicTranscribeScenarioSpec {
@@ -6881,6 +6927,10 @@ pub struct LocalAppSpeechSynthesizeJobSpec {
     pub timing_mode: i32,
     #[prost(message, optional, tag = "11")]
     pub voice_render_hints: ::core::option::Option<VoiceRenderHints>,
+    #[prost(message, optional, tag = "12")]
+    pub identity_audio: ::core::option::Option<SpeechAudioReference>,
+    #[prost(message, optional, tag = "13")]
+    pub performance_audio: ::core::option::Option<SpeechPerformanceReference>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppSpeechTranscribeJobSpec {
@@ -6939,6 +6989,8 @@ pub struct LocalAppMusicGenerateJobSpec {
     pub return_generated_score: bool,
     #[prost(message, optional, tag = "9")]
     pub audio_reference: ::core::option::Option<MusicAudioInput>,
+    #[prost(message, optional, tag = "10")]
+    pub video_reference: ::core::option::Option<MusicVideoReference>,
 }
 /// Text-conditioned world generation. Provider selection and asset retrieval
 /// remain Runtime-owned; the result is a portable world archive artifact.

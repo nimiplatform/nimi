@@ -108,6 +108,12 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 func validateCloudMusicMeasuredDuration(adapter string, budgetSeconds int32, durationMS int64) error {
 	switch adapter {
+	case capabilitydriver.CloudMediaAdapterElevenLabsMusic:
+		if budgetSeconds < 3 || budgetSeconds > 600 || durationMS <= 0 || durationMS > int64(budgetSeconds)*1000 {
+			return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, grpcerr.ReasonOptions{
+				Message: "ElevenLabs music exceeded its captured output budget", ActionHint: "review_music_output_duration",
+			})
+		}
 	case capabilitydriver.CloudMediaAdapterGeminiLyriaClipGenerateContent:
 		if budgetSeconds != 35 || durationMS <= 0 || durationMS > int64(budgetSeconds)*1000 {
 			return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, grpcerr.ReasonOptions{

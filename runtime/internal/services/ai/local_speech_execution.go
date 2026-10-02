@@ -148,6 +148,15 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 		if err != nil {
 			return nil, err
 		}
+		var referenceCapabilities *runtimev1.SpeechInputCapabilities
+		if projector, ok := driver.(capabilitydriver.SpeechInputProjector); ok {
+			referenceCapabilities = projector.SpeechInputCapabilities()
+		}
+		references, referenceErr := s.captureSpeechReferences(ctx, head, spec, referenceCapabilities)
+		if referenceErr != nil {
+			return nil, referenceErr
+		}
+
 		resolvedOwnedVoiceAsset := spec.GetVoiceRef().GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET
 		if resolvedOwnedVoiceAsset {
 			spec, err = s.resolveSynthesizeSpeechSpecVoiceRefForTarget(ctx, head, selected.ExecutionTarget, spec)
@@ -210,7 +219,7 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 			effective.stagingPaths = append(effective.stagingPaths, stagingPath)
 			effective.streamMode = speechDriver.SpeechStreamMode()
 		case capabilitydriver.SpeechSynthesizeInvocationDriver:
-			plan, planErr := speechDriver.PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{RecipeID: selected.RecipeID, PortableConfig: portable, ExactBindings: append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...), Request: spec})
+			plan, planErr := speechDriver.PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{RecipeID: selected.RecipeID, PortableConfig: portable, ExactBindings: append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...), Request: spec, References: references})
 			if planErr != nil {
 				return nil, localSpeechInvocationError(planErr)
 			}
@@ -361,7 +370,7 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 			effective.stagingPaths = append(effective.stagingPaths, captured.StagingWAVPath)
 			effective.streamMode = speechDriver.SpeechStreamMode()
 		case capabilitydriver.SpeechSynthesizeInvocationDriver:
-			effective.synthesizePlan, err = speechDriver.PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{RecipeID: assembly.RecipeID, PortableConfig: portable, ExactBindings: bindings, Request: request})
+			effective.synthesizePlan, err = speechDriver.PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{RecipeID: assembly.RecipeID, PortableConfig: portable, ExactBindings: bindings, Request: request, References: &capabilitydriver.SpeechReferenceInputs{IdentityAudio: assembly.Request.BinaryInput, PerformanceAudio: assembly.Request.ReferenceInput}})
 			effective.streamMode = speechDriver.SpeechStreamMode()
 		default:
 			return nil, fmt.Errorf("captured local speech synthesis Driver has no invocation contract")

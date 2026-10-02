@@ -1,3 +1,5 @@
+import { projectSpeechInputCapabilities, type NimiSpeechInputCapabilities } from './speech-input.js';
+import { SpeechInputCapabilities } from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
 import type { NimiMusicInputCapabilities } from './music-input.js';
 import { projectRuntimeMusicInput } from './music-input-wire.js';
 import { projectVoiceReferenceInput, type NimiVoiceReferenceInputCapabilities } from './voice-reference-input.js';
@@ -128,6 +130,7 @@ export type NimiSharedLocalAgentAIConfigOptionsQuery =
 export type NimiAIConfigLocalLoadoutOption = {
   readonly referenceAudioInput?: NimiVoiceReferenceInputCapabilities;
   readonly musicInput?: NimiMusicInputCapabilities;
+  readonly speechInput?: NimiSpeechInputCapabilities;
   readonly loadoutRef: string;
   readonly label: string;
   readonly capabilityContract: string;
@@ -154,6 +157,7 @@ export type NimiAIConfigCloudConnectorOption = {
 export type NimiAIConfigCloudTargetOption = {
   readonly referenceAudioInput?: NimiVoiceReferenceInputCapabilities;
   readonly musicInput?: NimiMusicInputCapabilities;
+  readonly speechInput?: NimiSpeechInputCapabilities;
   readonly connectorRef: string;
   readonly label: string;
   readonly capabilityContract: string;
@@ -469,6 +473,7 @@ function projectCloudTargetResource(value: AIConfigCloudTargetProjection): NimiA
 		providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiJsonObject,
 		supportedFeatures: Object.freeze([...value.supportedFeatures]),
     ...(value.musicInput ? { musicInput: projectRuntimeMusicInput(value.musicInput) } : {}),
+    ...(value.speechInput ? { speechInput: projectSpeechInputCapabilities(SpeechInputCapabilities.toJson(value.speechInput,{emitDefaultValues:true})) } : {}),
     ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
@@ -490,6 +495,7 @@ function projectLocalResource(value: AIConfigLocalResourceProjection): NimiAICon
     configuredFeatures: Object.freeze([...value.configuredFeatures]),
     textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors),
     ...(value.musicInput ? { musicInput: projectRuntimeMusicInput(value.musicInput) } : {}),
+    ...(value.speechInput ? { speechInput: projectSpeechInputCapabilities(SpeechInputCapabilities.toJson(value.speechInput,{emitDefaultValues:true})) } : {}),
     ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),

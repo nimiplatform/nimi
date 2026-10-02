@@ -111,6 +111,8 @@ def validate_synthesis_request(request: dict[str, Any]) -> str:
     if optional_string(request, "driver") != DRIVER_FAMILY:
         fail("VoxCPM MLX Driver family mismatch")
     text = require_string(request, "input")
+    if any(request.get(key) is not None for key in ("identity_audio_base64","performance_audio_base64","performance_text")):
+        fail("independent speech references are not admitted on this MLX backend")
     voice = optional_string(request, "voice")
     if voice not in {"", "default"}:
         fail("VoxCPM first release supports only the default synthesis voice")

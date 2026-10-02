@@ -4,6 +4,8 @@ from __future__ import annotations
 # @nimi-authority: rule.nimi.runtime.local-compute.r110
 
 import argparse
+import base64
+import tempfile
 import importlib.metadata
 import json
 import os
@@ -144,12 +146,48 @@ def handle_preflight() -> dict[str, Any]:
     return result
 
 
+def condition_audio(request, key, directory, sf):
+    encoded = request.get(key)
+    if encoded is None:
+        return None
+    if not isinstance(encoded, str) or not encoded or len(encoded) > 4 * ((32 * 1024 * 1024 + 2) // 3):
+        fail("invalid captured speech reference")
+    try:
+        data = base64.b64decode(encoded, validate=True)
+    except Exception as error:
+        fail(f"invalid captured speech reference encoding: {error}")
+    if not data or len(data) > 32 * 1024 * 1024:
+        fail("captured speech reference exceeds limits")
+    path = pathlib.Path(directory) / (key + ".wav")
+    path.write_bytes(data)
+    info = sf.info(str(path))
+    if info.format != "WAV" or info.duration <= 0 or info.duration > 30:
+        fail("captured speech reference is not an admitted canonical timeline")
+    return str(path)
+
+
 def handle_synthesize(request: dict[str, Any]) -> dict[str, Any]:
     text = validate_synthesis_request(request)
     model_ref = managed_model_ref(request)
     model = load_model(model_ref)
+    _, sf = ensure_dependencies_importable()
     try:
-        wav = model.generate(text=text, cfg_value=2.0, inference_timesteps=10)
+        with tempfile.TemporaryDirectory(prefix="voxcpm-reference-", dir=driver_work_root()) as directory:
+            identity = condition_audio(request, "identity_audio_base64", directory, sf)
+            performance = condition_audio(request, "performance_audio_base64", directory, sf)
+            transcript = request.get("performance_text")
+            if performance:
+                if not isinstance(transcript, str) or not transcript.strip() or len(transcript.encode("utf-8")) > 4096:
+                    fail("performance reference requires its exact transcript")
+            elif transcript is not None:
+                fail("performance transcript has no audio")
+            options = {}
+            if identity:
+                options["reference_wav_path"] = identity
+            if performance:
+                options["prompt_wav_path"] = performance
+                options["prompt_text"] = transcript
+            wav = model.generate(text=text, cfg_value=2.0, inference_timesteps=10, **options)
     except Exception as error:
         fail(f"VoxCPM generation failed: {error}")
     destination = output_path()

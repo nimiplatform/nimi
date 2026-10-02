@@ -3,11 +3,35 @@ package capabilitydriver
 import (
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestVoxCPMReferencesAreSeparateCapturedConditions(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("reference-conditioned Windows backend")
+	}
+	digest := strings.Repeat("b", 64)
+	binding := InvocationExactBinding{RequirementID: VoxCPMModelRequirementID, ModelAssetID: "model", AbsolutePath: filepath.Join(t.TempDir(), "model.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
+	request := &runtimev1.SpeechSynthesizeScenarioSpec{Text: "你好", AudioFormat: "wav", IdentityAudio: &runtimev1.SpeechAudioReference{ArtifactId: "identity"}, PerformanceAudio: &runtimev1.SpeechPerformanceReference{ArtifactId: "performance", Text: "  原始示范逐字稿\n"}}
+	references := &SpeechReferenceInputs{IdentityAudio: []byte("identity-capture"), PerformanceAudio: []byte("performance-capture")}
+	plan, err := (VoxCPMDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{ExactBindings: []InvocationExactBinding{binding}, Request: request, References: references})
+	if err != nil {
+		t.Fatal(err)
+	}
+	references.IdentityAudio[0] = 'x'
+	request.PerformanceAudio.Text = "changed"
+	if string(plan.References().IdentityAudio) != "identity-capture" || string(plan.References().PerformanceAudio) != "performance-capture" || plan.Request().GetPerformanceAudio().GetText() != "  原始示范逐字稿\n" {
+		t.Fatal("captured identity, performance or text was changed")
+	}
+	undeclared := &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello"}
+	if _, err := (VoxCPMDriver{}).PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput{ExactBindings: []InvocationExactBinding{binding}, Request: undeclared, References: references}); err == nil {
+		t.Fatal("undeclared captured bytes accepted")
+	}
+}
 
 func TestVoxCPMProductionRegistryExposesOneSynthesisDriver(t *testing.T) {
 	identity := Identity{ImplementationID: VoxCPMImplementationID, DriverID: VoxCPMDriverID, DriverDialect: VoxCPMDriverDialect}

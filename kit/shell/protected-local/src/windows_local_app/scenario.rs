@@ -899,6 +899,8 @@ fn parse_speech_synthesize_spec(
             "voiceRef",
             "timingMode",
             "voiceRenderHints",
+            "identityAudio",
+            "performanceAudio",
         ],
         &[
             "type",
@@ -936,7 +938,27 @@ fn parse_speech_synthesize_spec(
         voice_ref: parse_voice_ref(field(object, "voiceRef")?)?,
         timing_mode,
         voice_render_hints: parse_voice_hints(field(object, "voiceRenderHints")?)?,
+        identity_audio: parse_identity_audio(object.get("identityAudio"))?,
+        performance_audio: parse_performance_audio(object.get("performanceAudio"))?,
     })
+}
+
+fn parse_identity_audio(value: Option<&JsonValue>) -> Result<Option<crate::generated::SpeechAudioReference>, LocalAppOperationError> {
+    let Some(value) = value else { return Ok(None); };
+    let object = value.as_object().ok_or_else(invalid_payload)?;
+    exact_keys(object, &["artifactId"])?;
+    let artifact_id = required_text_field(object,"artifactId",MAX_IDENTIFIER_BYTES)?;
+    require_identifier(&artifact_id).map_err(|_| invalid_payload())?;
+    Ok(Some(crate::generated::SpeechAudioReference { artifact_id }))
+}
+fn parse_performance_audio(value: Option<&JsonValue>) -> Result<Option<crate::generated::SpeechPerformanceReference>, LocalAppOperationError> {
+    let Some(value) = value else { return Ok(None); };
+    let object = value.as_object().ok_or_else(invalid_payload)?;
+    exact_keys(object, &["artifactId","text"])?;
+    let artifact_id = required_text_field(object,"artifactId",MAX_IDENTIFIER_BYTES)?;
+    require_identifier(&artifact_id).map_err(|_| invalid_payload())?;
+    let text=required_text_field(object,"text",MAX_PROMPT_BYTES)?;
+    Ok(Some(crate::generated::SpeechPerformanceReference { artifact_id, text }))
 }
 
 fn parse_voice_ref(value: &JsonValue) -> Result<Option<VoiceReference>, LocalAppOperationError> {

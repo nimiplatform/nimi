@@ -3,6 +3,23 @@ provider: elevenlabs
 catalog_version: 2026-04-18-elevenlabs-v3
 inventory_mode: static_source
 models:
+  - model_id: music_v2
+    provider: elevenlabs
+    model_type: music
+    updated_at: 2026-10-02
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-10
+      notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
+    source_ref:
+      url: https://elevenlabs.io/docs/api-reference/music/compose
+      retrieved_at: 2026-10-02
+      note: Native prompt composition with explicit length and instrumental intent.
   - model_id: eleven_v3
     provider: elevenlabs
     model_type: tts

@@ -126,7 +126,15 @@ func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, pla
 		return localexecution.SpeechSynthesisResult{}, err
 	}
 	request := plan.Request()
-	artifactBody, usage, err := backend.SynthesizeSpeechArtifactBody(ctx, plan.ModelAssetID(), request, nil)
+	var references *nimillm.SpeechReferenceAudio
+	if referenced, ok := plan.(interface {
+		References() *capabilitydriver.SpeechReferenceInputs
+	}); ok {
+		if refs := referenced.References(); refs != nil {
+			references = &nimillm.SpeechReferenceAudio{IdentityAudio: refs.IdentityAudio, PerformanceAudio: refs.PerformanceAudio, PerformanceText: request.GetPerformanceAudio().GetText()}
+		}
+	}
+	artifactBody, usage, err := backend.SynthesizeSpeechArtifactBody(ctx, plan.ModelAssetID(), request, nil, references)
 	if err != nil {
 		return localexecution.SpeechSynthesisResult{}, host.speechHostBackendError(ctx, err)
 	}

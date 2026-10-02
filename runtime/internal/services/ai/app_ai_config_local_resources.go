@@ -458,8 +458,16 @@ func (s *Service) projectLocalResourceProjection(option localexecution.LoadoutOp
 			musicInput = projector.MusicInputCapabilities()
 		}
 	}
+	var speechInput *runtimev1.SpeechInputCapabilities
+	if option.CapabilityContract == capabilitydriver.AudioSynthesizeContract && s.capabilityDrivers != nil {
+		driver, _ := s.capabilityDrivers.Resolve(option.CapabilityContract, capabilitydriver.IdentityFromProto(option.Implementation))
+		if projector, ok := driver.(capabilitydriver.SpeechInputProjector); ok {
+			speechInput = projector.SpeechInputCapabilities()
+		}
+	}
 	return &runtimev1.AIConfigLocalResourceProjection{
-		LoadoutRef: option.LoadoutID, Label: option.DisplayName,
+		SpeechInput: speechInput,
+		LoadoutRef:  option.LoadoutID, Label: option.DisplayName,
 		CapabilityContract: option.CapabilityContract, Implementation: implementation,
 		ImplementationSupportedFeatures: append([]string(nil), option.ImplementationSupportedFeatures...),
 		ConfiguredFeatures:              append([]string(nil), option.ConfiguredFeatures...),

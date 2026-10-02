@@ -5,7 +5,7 @@ import { projectMusicInputCapabilities } from './music-input.js';
 test('input projection distinguishes complete legal combinations and rejects contradictory claims', () => {
   const profile = { lyricsMode: 'required', scoreMode: 'unsupported', scoreFormats: [], scoreConditioning: [],
     supportsInstrumental: false, supportsSeed: true, supportsGeneratedScore: true, supportsAudioReference: false,
-    maxDurationSeconds: 600, defaultDurationSeconds: 20, maxPromptBytes: 32768, maxLyricsBytes: 32768, maxScoreBytes: 0, maxAudioReferenceBytes: 0 };
+    maxDurationSeconds: 600, defaultDurationSeconds: 20, maxPromptBytes: 32768, maxLyricsBytes: 32768, maxScoreBytes: 0, maxAudioReferenceBytes: 0, videoReferenceMode: 'unsupported', maxVideoReferenceBytes: 0 };
   const capabilities = { generation: [profile, { ...profile, scoreMode: 'required', scoreFormats: ['abc'], scoreConditioning: ['melody-only'], maxScoreBytes: 1048576, supportsGeneratedScore: false }] };
   assert.deepEqual(projectMusicInputCapabilities(capabilities), capabilities);
   for (const invalid of [

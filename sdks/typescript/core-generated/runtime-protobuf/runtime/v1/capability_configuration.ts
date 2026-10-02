@@ -1144,6 +1144,41 @@ export interface MusicGenerationInputProfile {
      * @generated from protobuf field: uint32 max_audio_reference_bytes = 14
      */
     maxAudioReferenceBytes: number;
+    /**
+     * unsupported | optional | required
+     *
+     * @generated from protobuf field: string video_reference_mode = 15
+     */
+    videoReferenceMode: string;
+    /**
+     * @generated from protobuf field: uint32 max_video_reference_bytes = 16
+     */
+    maxVideoReferenceBytes: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SpeechInputCapabilities
+ */
+export interface SpeechInputCapabilities {
+    /**
+     * @generated from protobuf field: bool supports_identity_audio = 1
+     */
+    supportsIdentityAudio: boolean;
+    /**
+     * @generated from protobuf field: bool supports_performance_audio = 2
+     */
+    supportsPerformanceAudio: boolean;
+    /**
+     * @generated from protobuf field: uint32 max_reference_bytes = 3
+     */
+    maxReferenceBytes: number;
+    /**
+     * @generated from protobuf field: uint32 max_reference_duration_seconds = 4
+     */
+    maxReferenceDurationSeconds: number;
+    /**
+     * @generated from protobuf field: uint32 max_performance_text_bytes = 5
+     */
+    maxPerformanceTextBytes: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MusicInputCapabilities
@@ -1290,6 +1325,10 @@ export interface AIConfigLocalResourceProjection {
      * @generated from protobuf field: nimi.runtime.v1.MusicInputCapabilities music_input = 12
      */
     musicInput?: MusicInputCapabilities;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechInputCapabilities speech_input = 13
+     */
+    speechInput?: SpeechInputCapabilities;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigCloudConnectorProjection
@@ -1360,6 +1399,10 @@ export interface AIConfigCloudTargetProjection {
      * @generated from protobuf field: nimi.runtime.v1.MusicInputCapabilities music_input = 10
      */
     musicInput?: MusicInputCapabilities;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechInputCapabilities speech_input = 11
+     */
+    speechInput?: SpeechInputCapabilities;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigCloudResourceProjection
@@ -5103,7 +5146,9 @@ class MusicGenerationInputProfile$Type extends MessageType<MusicGenerationInputP
             { no: 11, name: "max_prompt_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 12, name: "max_lyrics_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 13, name: "max_score_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 14, name: "max_audio_reference_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+            { no: 14, name: "max_audio_reference_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 15, name: "video_reference_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "max_video_reference_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
     create(value?: PartialMessage<MusicGenerationInputProfile>): MusicGenerationInputProfile {
@@ -5122,6 +5167,8 @@ class MusicGenerationInputProfile$Type extends MessageType<MusicGenerationInputP
         message.maxLyricsBytes = 0;
         message.maxScoreBytes = 0;
         message.maxAudioReferenceBytes = 0;
+        message.videoReferenceMode = "";
+        message.maxVideoReferenceBytes = 0;
         if (value !== undefined)
             reflectionMergePartial<MusicGenerationInputProfile>(this, message, value);
         return message;
@@ -5172,6 +5219,12 @@ class MusicGenerationInputProfile$Type extends MessageType<MusicGenerationInputP
                     break;
                 case /* uint32 max_audio_reference_bytes */ 14:
                     message.maxAudioReferenceBytes = reader.uint32();
+                    break;
+                case /* string video_reference_mode */ 15:
+                    message.videoReferenceMode = reader.string();
+                    break;
+                case /* uint32 max_video_reference_bytes */ 16:
+                    message.maxVideoReferenceBytes = reader.uint32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5227,6 +5280,12 @@ class MusicGenerationInputProfile$Type extends MessageType<MusicGenerationInputP
         /* uint32 max_audio_reference_bytes = 14; */
         if (message.maxAudioReferenceBytes !== 0)
             writer.tag(14, WireType.Varint).uint32(message.maxAudioReferenceBytes);
+        /* string video_reference_mode = 15; */
+        if (message.videoReferenceMode !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.videoReferenceMode);
+        /* uint32 max_video_reference_bytes = 16; */
+        if (message.maxVideoReferenceBytes !== 0)
+            writer.tag(16, WireType.Varint).uint32(message.maxVideoReferenceBytes);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5237,6 +5296,85 @@ class MusicGenerationInputProfile$Type extends MessageType<MusicGenerationInputP
  * @generated MessageType for protobuf message nimi.runtime.v1.MusicGenerationInputProfile
  */
 export const MusicGenerationInputProfile = new MusicGenerationInputProfile$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechInputCapabilities$Type extends MessageType<SpeechInputCapabilities> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechInputCapabilities", [
+            { no: 1, name: "supports_identity_audio", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "supports_performance_audio", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "max_reference_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "max_reference_duration_seconds", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 5, name: "max_performance_text_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechInputCapabilities>): SpeechInputCapabilities {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.supportsIdentityAudio = false;
+        message.supportsPerformanceAudio = false;
+        message.maxReferenceBytes = 0;
+        message.maxReferenceDurationSeconds = 0;
+        message.maxPerformanceTextBytes = 0;
+        if (value !== undefined)
+            reflectionMergePartial<SpeechInputCapabilities>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechInputCapabilities): SpeechInputCapabilities {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool supports_identity_audio */ 1:
+                    message.supportsIdentityAudio = reader.bool();
+                    break;
+                case /* bool supports_performance_audio */ 2:
+                    message.supportsPerformanceAudio = reader.bool();
+                    break;
+                case /* uint32 max_reference_bytes */ 3:
+                    message.maxReferenceBytes = reader.uint32();
+                    break;
+                case /* uint32 max_reference_duration_seconds */ 4:
+                    message.maxReferenceDurationSeconds = reader.uint32();
+                    break;
+                case /* uint32 max_performance_text_bytes */ 5:
+                    message.maxPerformanceTextBytes = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechInputCapabilities, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool supports_identity_audio = 1; */
+        if (message.supportsIdentityAudio !== false)
+            writer.tag(1, WireType.Varint).bool(message.supportsIdentityAudio);
+        /* bool supports_performance_audio = 2; */
+        if (message.supportsPerformanceAudio !== false)
+            writer.tag(2, WireType.Varint).bool(message.supportsPerformanceAudio);
+        /* uint32 max_reference_bytes = 3; */
+        if (message.maxReferenceBytes !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.maxReferenceBytes);
+        /* uint32 max_reference_duration_seconds = 4; */
+        if (message.maxReferenceDurationSeconds !== 0)
+            writer.tag(4, WireType.Varint).uint32(message.maxReferenceDurationSeconds);
+        /* uint32 max_performance_text_bytes = 5; */
+        if (message.maxPerformanceTextBytes !== 0)
+            writer.tag(5, WireType.Varint).uint32(message.maxPerformanceTextBytes);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechInputCapabilities
+ */
+export const SpeechInputCapabilities = new SpeechInputCapabilities$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class MusicInputCapabilities$Type extends MessageType<MusicInputCapabilities> {
     constructor() {
@@ -5512,7 +5650,8 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
             { no: 9, name: "configured_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "text_behaviors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextBehaviorCapabilityProjection },
             { no: 11, name: "reference_audio_input", kind: "message", T: () => VoiceReferenceInputCapabilities },
-            { no: 12, name: "music_input", kind: "message", T: () => MusicInputCapabilities }
+            { no: 12, name: "music_input", kind: "message", T: () => MusicInputCapabilities },
+            { no: 13, name: "speech_input", kind: "message", T: () => SpeechInputCapabilities }
         ]);
     }
     create(value?: PartialMessage<AIConfigLocalResourceProjection>): AIConfigLocalResourceProjection {
@@ -5567,6 +5706,9 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
                 case /* nimi.runtime.v1.MusicInputCapabilities music_input */ 12:
                     message.musicInput = MusicInputCapabilities.internalBinaryRead(reader, reader.uint32(), options, message.musicInput);
                     break;
+                case /* nimi.runtime.v1.SpeechInputCapabilities speech_input */ 13:
+                    message.speechInput = SpeechInputCapabilities.internalBinaryRead(reader, reader.uint32(), options, message.speechInput);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5612,6 +5754,9 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
         /* nimi.runtime.v1.MusicInputCapabilities music_input = 12; */
         if (message.musicInput)
             MusicInputCapabilities.internalBinaryWrite(message.musicInput, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechInputCapabilities speech_input = 13; */
+        if (message.speechInput)
+            SpeechInputCapabilities.internalBinaryWrite(message.speechInput, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5714,7 +5859,8 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
             { no: 7, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AIConfigEffectiveState", AIConfigEffectiveState] },
             { no: 8, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "reference_audio_input", kind: "message", T: () => VoiceReferenceInputCapabilities },
-            { no: 10, name: "music_input", kind: "message", T: () => MusicInputCapabilities }
+            { no: 10, name: "music_input", kind: "message", T: () => MusicInputCapabilities },
+            { no: 11, name: "speech_input", kind: "message", T: () => SpeechInputCapabilities }
         ]);
     }
     create(value?: PartialMessage<AIConfigCloudTargetProjection>): AIConfigCloudTargetProjection {
@@ -5764,6 +5910,9 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
                 case /* nimi.runtime.v1.MusicInputCapabilities music_input */ 10:
                     message.musicInput = MusicInputCapabilities.internalBinaryRead(reader, reader.uint32(), options, message.musicInput);
                     break;
+                case /* nimi.runtime.v1.SpeechInputCapabilities speech_input */ 11:
+                    message.speechInput = SpeechInputCapabilities.internalBinaryRead(reader, reader.uint32(), options, message.speechInput);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5806,6 +5955,9 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
         /* nimi.runtime.v1.MusicInputCapabilities music_input = 10; */
         if (message.musicInput)
             MusicInputCapabilities.internalBinaryWrite(message.musicInput, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechInputCapabilities speech_input = 11; */
+        if (message.speechInput)
+            SpeechInputCapabilities.internalBinaryWrite(message.speechInput, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -8,6 +8,7 @@ pub(super) fn project(value: MusicInputCapabilities) -> Result<Value, LocalAppOp
         || (value.generation.is_empty() && value.transcription.is_empty() && value.voice_convert.is_empty()) { return Err(untrusted()); }
     let mut profiles = Vec::new();
     for row in value.generation {
+        if !["unsupported","optional","required"].contains(&row.video_reference_mode.as_str()) || row.max_video_reference_bytes > 33554432 || (row.video_reference_mode == "unsupported") != (row.max_video_reference_bytes == 0) { return Err(untrusted()); }
         if !matches!(row.lyrics_mode.as_str(), "unsupported" | "optional" | "required")
             || !matches!(row.score_mode.as_str(), "unsupported" | "required")
             || row.max_duration_seconds == 0 || row.max_duration_seconds > 600
@@ -26,7 +27,7 @@ pub(super) fn project(value: MusicInputCapabilities) -> Result<Value, LocalAppOp
             "supportsGeneratedScore":row.supports_generated_score,"supportsAudioReference":row.supports_audio_reference,
             "maxDurationSeconds":row.max_duration_seconds,"defaultDurationSeconds":row.default_duration_seconds,
             "maxPromptBytes":row.max_prompt_bytes,"maxLyricsBytes":row.max_lyrics_bytes,"maxScoreBytes":row.max_score_bytes,
-            "maxAudioReferenceBytes":row.max_audio_reference_bytes}));
+            "maxAudioReferenceBytes":row.max_audio_reference_bytes,"videoReferenceMode":row.video_reference_mode,"maxVideoReferenceBytes":row.max_video_reference_bytes}));
     }
     let mut transcription = Vec::new();
     for row in value.transcription {
@@ -71,11 +72,12 @@ mod tests {
     #[test]
     fn capability_profiles_keep_only_consistent_input_combinations() {
         let profile = crate::generated::MusicGenerationInputProfile {
-            lyrics_mode:"required".into(), score_mode:"unsupported".into(), supports_seed:true,
+            video_reference_mode:"unsupported".into(), lyrics_mode:"required".into(), score_mode:"unsupported".into(), supports_seed:true,
             supports_generated_score:true, max_duration_seconds:600, default_duration_seconds:20,
             max_prompt_bytes:32768, max_lyrics_bytes:32768, ..Default::default()
         };
         let value = MusicInputCapabilities { generation:vec![profile.clone()], ..Default::default() };
+        let mut undeclared=value.clone();undeclared.generation[0].video_reference_mode.clear();assert!(project(undeclared).is_err());
         assert_eq!(project(value.clone()).unwrap()["generation"][0]["maxDurationSeconds"],600);
         let mut contradictory=value.clone();contradictory.generation[0].supports_audio_reference=true;
         assert!(project(contradictory).is_err());

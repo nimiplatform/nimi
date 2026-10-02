@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -29,6 +30,17 @@ const (
 // Host composition selects the standard or MLX backend after this exact plan
 // has fixed the capability, Driver identity, model binding, and request.
 type VoxCPMDriver struct{}
+type SpeechInputProjector interface {
+	SpeechInputCapabilities() *runtimev1.SpeechInputCapabilities
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r112
+func (VoxCPMDriver) SpeechInputCapabilities() *runtimev1.SpeechInputCapabilities {
+	if runtime.GOOS != "windows" {
+		return nil
+	}
+	return &runtimev1.SpeechInputCapabilities{SupportsIdentityAudio: true, SupportsPerformanceAudio: true, MaxReferenceBytes: 32 << 20, MaxReferenceDurationSeconds: 30, MaxPerformanceTextBytes: 4096}
+}
 
 func (VoxCPMDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
 	if strings.TrimSpace(recipeID) != VoxCPMRecipeID {
@@ -249,7 +261,19 @@ func (VoxCPMDriver) PlanSpeechSynthesizeInvocation(input SpeechSynthesizeInvocat
 	if err != nil {
 		return nil, err
 	}
+	if input.References != nil && ((request.GetIdentityAudio() != nil) != (len(input.References.IdentityAudio) > 0) || (request.GetPerformanceAudio() != nil) != (len(input.References.PerformanceAudio) > 0)) {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("undeclared speech reference bytes"))
+	}
+	if request.GetIdentityAudio() != nil || request.GetPerformanceAudio() != nil {
+		if runtime.GOOS != "windows" {
+			return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("reference-conditioned VoxCPM synthesis is not admitted on this backend"))
+		}
+		if input.References == nil || (request.GetIdentityAudio() != nil) != (len(input.References.IdentityAudio) > 0) || (request.GetPerformanceAudio() != nil) != (len(input.References.PerformanceAudio) > 0) || len(input.References.IdentityAudio) > 32<<20 || len(input.References.PerformanceAudio) > 32<<20 {
+			return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("VoxCPM captured references are missing or inconsistent"))
+		}
+	}
 	return &SpeechSynthesizeInvocationPlan{
+		references:   cloneSpeechReferences(input.References),
 		driverID:     VoxCPMDriverID,
 		modelAssetID: binding.ModelAssetID,
 		modelFiles:   []InvocationExactBinding{binding},
@@ -261,6 +285,12 @@ func validateVoxCPMSynthesizeRequest(value *runtimev1.SpeechSynthesizeScenarioSp
 	request, _ := proto.Clone(value).(*runtimev1.SpeechSynthesizeScenarioSpec)
 	if request == nil || strings.TrimSpace(request.GetText()) == "" {
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("voxcpm text is required"))
+	}
+	if ref := request.GetIdentityAudio(); ref != nil && strings.TrimSpace(ref.GetArtifactId()) == "" {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("identity audio artifact is required"))
+	}
+	if ref := request.GetPerformanceAudio(); ref != nil && (strings.TrimSpace(ref.GetArtifactId()) == "" || strings.TrimSpace(ref.GetText()) == "" || len(ref.GetText()) > 4096) {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("performance audio and exact transcript are required"))
 	}
 	format := strings.ToLower(strings.TrimSpace(request.GetAudioFormat()))
 	if format != "" && format != "wav" && format != "wave" {

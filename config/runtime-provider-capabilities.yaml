@@ -178,6 +178,7 @@ providers:
     capabilities:
       - audio.synthesize
       - audio.transcribe
+      - music.generate
       - voice.create
     sources:
       - K-MCAT-027

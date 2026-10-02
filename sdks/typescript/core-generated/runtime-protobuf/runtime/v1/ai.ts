@@ -786,6 +786,38 @@ export interface SpeechSynthesizeScenarioSpec {
      * @generated from protobuf field: nimi.runtime.v1.VoiceRenderHints voice_render_hints = 11
      */
     voiceRenderHints?: VoiceRenderHints;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechAudioReference identity_audio = 12
+     */
+    identityAudio?: SpeechAudioReference;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechPerformanceReference performance_audio = 13
+     */
+    performanceAudio?: SpeechPerformanceReference;
+}
+/**
+ * Per-call immutable canonical audio conditions; these create no VoiceAsset.
+ *
+ * @generated from protobuf message nimi.runtime.v1.SpeechAudioReference
+ */
+export interface SpeechAudioReference {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SpeechPerformanceReference
+ */
+export interface SpeechPerformanceReference {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: string text = 2
+     */
+    text: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SpeechTranscribeScenarioSpec
@@ -944,6 +976,19 @@ export interface MusicGenerateScenarioSpec {
      * @generated from protobuf field: nimi.runtime.v1.MusicAudioInput audio_reference = 12
      */
     audioReference?: MusicAudioInput;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicVideoReference video_reference = 13
+     */
+    videoReference?: MusicVideoReference;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MusicVideoReference
+ */
+export interface MusicVideoReference {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MusicTranscribeScenarioSpec
@@ -3015,6 +3060,14 @@ export interface LocalAppSpeechSynthesizeJobSpec {
      * @generated from protobuf field: nimi.runtime.v1.VoiceRenderHints voice_render_hints = 11
      */
     voiceRenderHints?: VoiceRenderHints;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechAudioReference identity_audio = 12
+     */
+    identityAudio?: SpeechAudioReference;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechPerformanceReference performance_audio = 13
+     */
+    performanceAudio?: SpeechPerformanceReference;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppSpeechTranscribeJobSpec
@@ -3121,6 +3174,10 @@ export interface LocalAppMusicGenerateJobSpec {
      * @generated from protobuf field: nimi.runtime.v1.MusicAudioInput audio_reference = 9
      */
     audioReference?: MusicAudioInput;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicVideoReference video_reference = 10
+     */
+    videoReference?: MusicVideoReference;
 }
 /**
  * Text-conditioned world generation. Provider selection and asset retrieval
@@ -7685,7 +7742,9 @@ class SpeechSynthesizeScenarioSpec$Type extends MessageType<SpeechSynthesizeScen
             { no: 8, name: "emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "voice_ref", kind: "message", T: () => VoiceReference },
             { no: 10, name: "timing_mode", kind: "enum", T: () => ["nimi.runtime.v1.SpeechTimingMode", SpeechTimingMode, "SPEECH_TIMING_MODE_"] },
-            { no: 11, name: "voice_render_hints", kind: "message", T: () => VoiceRenderHints }
+            { no: 11, name: "voice_render_hints", kind: "message", T: () => VoiceRenderHints },
+            { no: 12, name: "identity_audio", kind: "message", T: () => SpeechAudioReference },
+            { no: 13, name: "performance_audio", kind: "message", T: () => SpeechPerformanceReference }
         ]);
     }
     create(value?: PartialMessage<SpeechSynthesizeScenarioSpec>): SpeechSynthesizeScenarioSpec {
@@ -7737,6 +7796,12 @@ class SpeechSynthesizeScenarioSpec$Type extends MessageType<SpeechSynthesizeScen
                 case /* nimi.runtime.v1.VoiceRenderHints voice_render_hints */ 11:
                     message.voiceRenderHints = VoiceRenderHints.internalBinaryRead(reader, reader.uint32(), options, message.voiceRenderHints);
                     break;
+                case /* nimi.runtime.v1.SpeechAudioReference identity_audio */ 12:
+                    message.identityAudio = SpeechAudioReference.internalBinaryRead(reader, reader.uint32(), options, message.identityAudio);
+                    break;
+                case /* nimi.runtime.v1.SpeechPerformanceReference performance_audio */ 13:
+                    message.performanceAudio = SpeechPerformanceReference.internalBinaryRead(reader, reader.uint32(), options, message.performanceAudio);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7782,6 +7847,12 @@ class SpeechSynthesizeScenarioSpec$Type extends MessageType<SpeechSynthesizeScen
         /* nimi.runtime.v1.VoiceRenderHints voice_render_hints = 11; */
         if (message.voiceRenderHints)
             VoiceRenderHints.internalBinaryWrite(message.voiceRenderHints, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechAudioReference identity_audio = 12; */
+        if (message.identityAudio)
+            SpeechAudioReference.internalBinaryWrite(message.identityAudio, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechPerformanceReference performance_audio = 13; */
+        if (message.performanceAudio)
+            SpeechPerformanceReference.internalBinaryWrite(message.performanceAudio, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7792,6 +7863,108 @@ class SpeechSynthesizeScenarioSpec$Type extends MessageType<SpeechSynthesizeScen
  * @generated MessageType for protobuf message nimi.runtime.v1.SpeechSynthesizeScenarioSpec
  */
 export const SpeechSynthesizeScenarioSpec = new SpeechSynthesizeScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechAudioReference$Type extends MessageType<SpeechAudioReference> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechAudioReference", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechAudioReference>): SpeechAudioReference {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<SpeechAudioReference>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechAudioReference): SpeechAudioReference {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechAudioReference, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechAudioReference
+ */
+export const SpeechAudioReference = new SpeechAudioReference$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechPerformanceReference$Type extends MessageType<SpeechPerformanceReference> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechPerformanceReference", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechPerformanceReference>): SpeechPerformanceReference {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<SpeechPerformanceReference>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechPerformanceReference): SpeechPerformanceReference {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* string text */ 2:
+                    message.text = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechPerformanceReference, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* string text = 2; */
+        if (message.text !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.text);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechPerformanceReference
+ */
+export const SpeechPerformanceReference = new SpeechPerformanceReference$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SpeechTranscribeScenarioSpec$Type extends MessageType<SpeechTranscribeScenarioSpec> {
     constructor() {
@@ -8138,7 +8311,8 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
             { no: 9, name: "score_conditioning", kind: "enum", T: () => ["nimi.runtime.v1.MusicScoreConditioning", MusicScoreConditioning, "MUSIC_SCORE_CONDITIONING_"] },
             { no: 10, name: "seed", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ },
             { no: 11, name: "return_generated_score", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 12, name: "audio_reference", kind: "message", T: () => MusicAudioInput }
+            { no: 12, name: "audio_reference", kind: "message", T: () => MusicAudioInput },
+            { no: 13, name: "video_reference", kind: "message", T: () => MusicVideoReference }
         ]);
     }
     create(value?: PartialMessage<MusicGenerateScenarioSpec>): MusicGenerateScenarioSpec {
@@ -8197,6 +8371,9 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
                 case /* nimi.runtime.v1.MusicAudioInput audio_reference */ 12:
                     message.audioReference = MusicAudioInput.internalBinaryRead(reader, reader.uint32(), options, message.audioReference);
                     break;
+                case /* nimi.runtime.v1.MusicVideoReference video_reference */ 13:
+                    message.videoReference = MusicVideoReference.internalBinaryRead(reader, reader.uint32(), options, message.videoReference);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8245,6 +8422,9 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
         /* nimi.runtime.v1.MusicAudioInput audio_reference = 12; */
         if (message.audioReference)
             MusicAudioInput.internalBinaryWrite(message.audioReference, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicVideoReference video_reference = 13; */
+        if (message.videoReference)
+            MusicVideoReference.internalBinaryWrite(message.videoReference, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8255,6 +8435,53 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
  * @generated MessageType for protobuf message nimi.runtime.v1.MusicGenerateScenarioSpec
  */
 export const MusicGenerateScenarioSpec = new MusicGenerateScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MusicVideoReference$Type extends MessageType<MusicVideoReference> {
+    constructor() {
+        super("nimi.runtime.v1.MusicVideoReference", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MusicVideoReference>): MusicVideoReference {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<MusicVideoReference>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MusicVideoReference): MusicVideoReference {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MusicVideoReference, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MusicVideoReference
+ */
+export const MusicVideoReference = new MusicVideoReference$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class MusicTranscribeScenarioSpec$Type extends MessageType<MusicTranscribeScenarioSpec> {
     constructor() {
@@ -14372,7 +14599,9 @@ class LocalAppSpeechSynthesizeJobSpec$Type extends MessageType<LocalAppSpeechSyn
             { no: 8, name: "emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "voice_ref", kind: "message", T: () => VoiceReference },
             { no: 10, name: "timing_mode", kind: "enum", T: () => ["nimi.runtime.v1.SpeechTimingMode", SpeechTimingMode, "SPEECH_TIMING_MODE_"] },
-            { no: 11, name: "voice_render_hints", kind: "message", T: () => VoiceRenderHints }
+            { no: 11, name: "voice_render_hints", kind: "message", T: () => VoiceRenderHints },
+            { no: 12, name: "identity_audio", kind: "message", T: () => SpeechAudioReference },
+            { no: 13, name: "performance_audio", kind: "message", T: () => SpeechPerformanceReference }
         ]);
     }
     create(value?: PartialMessage<LocalAppSpeechSynthesizeJobSpec>): LocalAppSpeechSynthesizeJobSpec {
@@ -14424,6 +14653,12 @@ class LocalAppSpeechSynthesizeJobSpec$Type extends MessageType<LocalAppSpeechSyn
                 case /* nimi.runtime.v1.VoiceRenderHints voice_render_hints */ 11:
                     message.voiceRenderHints = VoiceRenderHints.internalBinaryRead(reader, reader.uint32(), options, message.voiceRenderHints);
                     break;
+                case /* nimi.runtime.v1.SpeechAudioReference identity_audio */ 12:
+                    message.identityAudio = SpeechAudioReference.internalBinaryRead(reader, reader.uint32(), options, message.identityAudio);
+                    break;
+                case /* nimi.runtime.v1.SpeechPerformanceReference performance_audio */ 13:
+                    message.performanceAudio = SpeechPerformanceReference.internalBinaryRead(reader, reader.uint32(), options, message.performanceAudio);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -14469,6 +14704,12 @@ class LocalAppSpeechSynthesizeJobSpec$Type extends MessageType<LocalAppSpeechSyn
         /* nimi.runtime.v1.VoiceRenderHints voice_render_hints = 11; */
         if (message.voiceRenderHints)
             VoiceRenderHints.internalBinaryWrite(message.voiceRenderHints, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechAudioReference identity_audio = 12; */
+        if (message.identityAudio)
+            SpeechAudioReference.internalBinaryWrite(message.identityAudio, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechPerformanceReference performance_audio = 13; */
+        if (message.performanceAudio)
+            SpeechPerformanceReference.internalBinaryWrite(message.performanceAudio, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14650,7 +14891,8 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
             { no: 6, name: "score", kind: "message", T: () => MusicScoreReference },
             { no: 7, name: "score_conditioning", kind: "enum", T: () => ["nimi.runtime.v1.MusicScoreConditioning", MusicScoreConditioning, "MUSIC_SCORE_CONDITIONING_"] },
             { no: 8, name: "return_generated_score", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 9, name: "audio_reference", kind: "message", T: () => MusicAudioInput }
+            { no: 9, name: "audio_reference", kind: "message", T: () => MusicAudioInput },
+            { no: 10, name: "video_reference", kind: "message", T: () => MusicVideoReference }
         ]);
     }
     create(value?: PartialMessage<LocalAppMusicGenerateJobSpec>): LocalAppMusicGenerateJobSpec {
@@ -14697,6 +14939,9 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
                 case /* nimi.runtime.v1.MusicAudioInput audio_reference */ 9:
                     message.audioReference = MusicAudioInput.internalBinaryRead(reader, reader.uint32(), options, message.audioReference);
                     break;
+                case /* nimi.runtime.v1.MusicVideoReference video_reference */ 10:
+                    message.videoReference = MusicVideoReference.internalBinaryRead(reader, reader.uint32(), options, message.videoReference);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -14736,6 +14981,9 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
         /* nimi.runtime.v1.MusicAudioInput audio_reference = 9; */
         if (message.audioReference)
             MusicAudioInput.internalBinaryWrite(message.audioReference, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicVideoReference video_reference = 10; */
+        if (message.videoReference)
+            MusicVideoReference.internalBinaryWrite(message.videoReference, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

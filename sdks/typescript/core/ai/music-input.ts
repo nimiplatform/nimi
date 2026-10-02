@@ -15,6 +15,8 @@ export type NimiMusicGenerationInputProfile = {
   readonly maxLyricsBytes: number;
   readonly maxScoreBytes: number;
   readonly maxAudioReferenceBytes: number;
+  readonly videoReferenceMode: 'unsupported' | 'optional' | 'required';
+  readonly maxVideoReferenceBytes: number;
 };
 export type NimiMusicTranscriptionInputProfile = {
   readonly formats: readonly ('abc' | 'midi' | 'timeline')[];
@@ -59,18 +61,18 @@ export function projectMusicInputCapabilities(value: unknown): NimiMusicInputCap
     || (source.voiceConvert !== undefined && (!Array.isArray(source.voiceConvert) || source.voiceConvert.length > 16))) fail();
   const generation = (source.generation as unknown[]).map((entry) => {
     const row = record(entry);
-    const keys = ['lyricsMode', 'scoreMode', 'scoreFormats', 'scoreConditioning', 'supportsInstrumental', 'supportsSeed', 'supportsGeneratedScore', 'supportsAudioReference', 'maxDurationSeconds', 'defaultDurationSeconds', 'maxPromptBytes', 'maxLyricsBytes', 'maxScoreBytes', 'maxAudioReferenceBytes'];
+    const keys = ['lyricsMode', 'scoreMode', 'scoreFormats', 'scoreConditioning', 'supportsInstrumental', 'supportsSeed', 'supportsGeneratedScore', 'supportsAudioReference', 'maxDurationSeconds', 'defaultDurationSeconds', 'maxPromptBytes', 'maxLyricsBytes', 'maxScoreBytes', 'maxAudioReferenceBytes', 'videoReferenceMode', 'maxVideoReferenceBytes'];
     if (Object.keys(row).length !== keys.length || Object.keys(row).some((key) => !keys.includes(key))
       || !['unsupported', 'optional', 'required'].includes(String(row.lyricsMode)) || !['unsupported', 'required'].includes(String(row.scoreMode))
       || !tokens(row.scoreFormats, ['abc', 'midi']) || !tokens(row.scoreConditioning, ['melody-only', 'melody-and-harmony'])
       || ['supportsInstrumental', 'supportsSeed', 'supportsGeneratedScore', 'supportsAudioReference'].some((key) => typeof row[key] !== 'boolean')
       || !integer(row.maxDurationSeconds, 1, 600) || !integer(row.defaultDurationSeconds, 1, Number(row.maxDurationSeconds))
       || !integer(row.maxPromptBytes, 1, 32768) || !integer(row.maxLyricsBytes, 0, 32768)
-      || !integer(row.maxScoreBytes, 0, 1048576) || !integer(row.maxAudioReferenceBytes, 0, 33554432)) fail();
+      || !integer(row.maxScoreBytes, 0, 1048576) || !integer(row.maxAudioReferenceBytes, 0, 33554432) || !['unsupported','optional','required'].includes(String(row.videoReferenceMode)) || !integer(row.maxVideoReferenceBytes,0,33554432)) fail();
     const profile = row as unknown as NimiMusicGenerationInputProfile;
     if ((profile.scoreMode === 'required') !== (profile.scoreFormats.length > 0 && profile.scoreConditioning.length > 0 && profile.maxScoreBytes > 0)
       || (profile.scoreMode === 'unsupported' && (profile.scoreFormats.length || profile.scoreConditioning.length || profile.maxScoreBytes))
-      || profile.supportsAudioReference !== (profile.maxAudioReferenceBytes > 0)
+      || profile.supportsAudioReference !== (profile.maxAudioReferenceBytes > 0) || (profile.videoReferenceMode === 'unsupported') !== (profile.maxVideoReferenceBytes === 0)
       || (profile.lyricsMode === 'unsupported') !== (profile.maxLyricsBytes === 0)
       || (profile.lyricsMode === 'required' && profile.supportsInstrumental)) fail();
     return Object.freeze({ ...profile, scoreFormats: Object.freeze([...profile.scoreFormats]), scoreConditioning: Object.freeze([...profile.scoreConditioning]) });

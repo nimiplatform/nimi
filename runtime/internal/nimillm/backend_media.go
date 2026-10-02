@@ -464,18 +464,27 @@ func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runti
 	return payload, usage, nil
 }
 
+type SpeechReferenceAudio struct {
+	IdentityAudio    []byte
+	PerformanceAudio []byte
+	PerformanceText  string
+}
+
 type speechSynthesisRequest struct {
-	Model        string         `json:"model"`
-	Input        string         `json:"input"`
-	Voice        string         `json:"voice,omitempty"`
-	Language     string         `json:"language,omitempty"`
-	AudioFormat  string         `json:"audio_format,omitempty"`
-	SampleRateHz int32          `json:"sample_rate_hz,omitempty"`
-	Speed        float32        `json:"speed,omitempty"`
-	Pitch        float32        `json:"pitch,omitempty"`
-	Volume       float32        `json:"volume,omitempty"`
-	Emotion      string         `json:"emotion,omitempty"`
-	Extensions   map[string]any `json:"extensions,omitempty"`
+	Model            string         `json:"model"`
+	Input            string         `json:"input"`
+	Voice            string         `json:"voice,omitempty"`
+	Language         string         `json:"language,omitempty"`
+	AudioFormat      string         `json:"audio_format,omitempty"`
+	SampleRateHz     int32          `json:"sample_rate_hz,omitempty"`
+	Speed            *float32       `json:"speed,omitempty"`
+	IdentityAudio    []byte         `json:"identity_audio_base64,omitempty"`
+	PerformanceAudio []byte         `json:"performance_audio_base64,omitempty"`
+	PerformanceText  string         `json:"performance_text,omitempty"`
+	Pitch            float32        `json:"pitch,omitempty"`
+	Volume           float32        `json:"volume,omitempty"`
+	Emotion          string         `json:"emotion,omitempty"`
+	Extensions       map[string]any `json:"extensions,omitempty"`
 }
 
 func buildSpeechSynthesisRequest(modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) (speechSynthesisRequest, string, error) {
@@ -491,7 +500,7 @@ func buildSpeechSynthesisRequest(modelID string, spec *runtimev1.SpeechSynthesiz
 		Language:     strings.TrimSpace(spec.GetLanguage()),
 		AudioFormat:  strings.TrimSpace(spec.GetAudioFormat()),
 		SampleRateHz: spec.GetSampleRateHz(),
-		Speed:        scenarioSpeechSpeed(spec),
+		Speed:        spec.Speed,
 		Pitch:        spec.GetPitch(),
 		Volume:       spec.GetVolume(),
 		Emotion:      strings.TrimSpace(spec.GetEmotion()),
@@ -509,10 +518,15 @@ type SpeechArtifactBody struct {
 
 // SynthesizeSpeechArtifactBody leaves a successful response open so Runtime
 // can stream it directly into custody without applying the inline read limit.
-func (b *Backend) SynthesizeSpeechArtifactBody(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) (*SpeechArtifactBody, *runtimev1.UsageStats, error) {
+func (b *Backend) SynthesizeSpeechArtifactBody(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any, references ...*SpeechReferenceAudio) (*SpeechArtifactBody, *runtimev1.UsageStats, error) {
 	request, text, err := buildSpeechSynthesisRequest(modelID, spec, scenarioExtensions)
 	if err != nil {
 		return nil, nil, err
+	}
+	if len(references) > 0 && references[0] != nil {
+		request.IdentityAudio = references[0].IdentityAudio
+		request.PerformanceAudio = references[0].PerformanceAudio
+		request.PerformanceText = references[0].PerformanceText
 	}
 	response, err := b.postRawResponse(ctx, "/v1/audio/speech", request)
 	if err != nil {

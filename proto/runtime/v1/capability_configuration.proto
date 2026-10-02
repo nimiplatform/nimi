@@ -486,6 +486,17 @@ message MusicGenerationInputProfile {
   uint32 max_lyrics_bytes = 12;
   uint32 max_score_bytes = 13;
   uint32 max_audio_reference_bytes = 14;
+  // unsupported | optional | required
+  string video_reference_mode = 15;
+  uint32 max_video_reference_bytes = 16;
+}
+
+message SpeechInputCapabilities {
+  bool supports_identity_audio = 1;
+  bool supports_performance_audio = 2;
+  uint32 max_reference_bytes = 3;
+  uint32 max_reference_duration_seconds = 4;
+  uint32 max_performance_text_bytes = 5;
 }
 
 message MusicInputCapabilities {
@@ -534,6 +545,7 @@ message AIConfigLocalResourceProjection {
   repeated TextBehaviorCapabilityProjection text_behaviors = 10;
   VoiceReferenceInputCapabilities reference_audio_input = 11;
   MusicInputCapabilities music_input = 12;
+  SpeechInputCapabilities speech_input = 13;
 }
 
 message AIConfigCloudConnectorProjection {
@@ -555,6 +567,7 @@ message AIConfigCloudTargetProjection {
   repeated string reasons = 8;
   VoiceReferenceInputCapabilities reference_audio_input = 9;
   MusicInputCapabilities music_input = 10;
+  SpeechInputCapabilities speech_input = 11;
 }
 
 message AIConfigCloudResourceProjection {

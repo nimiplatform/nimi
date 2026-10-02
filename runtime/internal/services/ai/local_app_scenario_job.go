@@ -531,7 +531,7 @@ func validateLocalAppMusicGenerateJobSpec(spec *runtimev1.LocalAppMusicGenerateJ
 	if spec.GetDurationSeconds() > 600 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	result := &runtimev1.MusicGenerateScenarioSpec{Prompt: spec.GetPrompt(), Lyrics: spec.GetLyrics(), DurationSeconds: int32(spec.GetDurationSeconds()), Instrumental: spec.GetInstrumental(), Seed: spec.Seed, Score: spec.GetScore(), ScoreConditioning: spec.GetScoreConditioning(), ReturnGeneratedScore: spec.GetReturnGeneratedScore(), AudioReference: spec.GetAudioReference()}
+	result := &runtimev1.MusicGenerateScenarioSpec{Prompt: spec.GetPrompt(), Lyrics: spec.GetLyrics(), DurationSeconds: int32(spec.GetDurationSeconds()), Instrumental: spec.GetInstrumental(), Seed: spec.Seed, Score: spec.GetScore(), ScoreConditioning: spec.GetScoreConditioning(), ReturnGeneratedScore: spec.GetReturnGeneratedScore(), AudioReference: spec.GetAudioReference(), VideoReference: spec.GetVideoReference()}
 	if err := validateMusicGenerationRequest(result, nil); err != nil {
 		return nil, err
 	}
@@ -675,6 +675,7 @@ func validateLocalAppSpeechSynthesizeJobSpec(spec *runtimev1.LocalAppSpeechSynth
 		VoiceRef:         spec.GetVoiceRef(),
 		TimingMode:       spec.GetTimingMode(),
 		VoiceRenderHints: spec.GetVoiceRenderHints(),
+		IdentityAudio:    spec.GetIdentityAudio(), PerformanceAudio: spec.GetPerformanceAudio(),
 	}, nil
 }
 

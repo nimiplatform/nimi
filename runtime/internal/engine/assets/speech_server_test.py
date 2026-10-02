@@ -626,6 +626,35 @@ class SpeechServerTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     VOXCPM_DRIVER.validate_synthesis_request(rejected)
 
+    def test_voxcpm_identity_and_performance_reach_distinct_native_arguments(self):
+        # Mapping regression only: neural inference is replaced and not App acceptance.
+        captured = {}
+        class SoundFile:
+            @staticmethod
+            def info(path):
+                return types.SimpleNamespace(format="WAV", duration=1)
+            @staticmethod
+            def write(path, _wav, _sr):
+                pathlib.Path(path).write_bytes(b"RIFF-mapping-fixture")
+        class Model:
+            tts_model = types.SimpleNamespace(sample_rate=24000)
+            def generate(self, **kwargs):
+                captured.update(kwargs)
+                captured["identity_bytes"] = pathlib.Path(kwargs["reference_wav_path"]).read_bytes()
+                captured["performance_bytes"] = pathlib.Path(kwargs["prompt_wav_path"]).read_bytes()
+                return [0.0]
+        with tempfile.TemporaryDirectory() as directory:
+            bundle=pathlib.Path(directory)/"bundle";bundle.mkdir();(bundle/"model.safetensors").write_bytes(b"binding-fixture")
+            output=pathlib.Path(directory)/"result.wav"
+            request={"driver":"voxcpm","input":"目标口播","audio_format":"wav","bundle_dir":str(bundle),"declared_files":["model.safetensors"],
+                "identity_audio_base64":base64.b64encode(b"identity-input").decode(),"performance_audio_base64":base64.b64encode(b"performance-input").decode(),"performance_text":"  独立示范逐字稿\n"}
+            with mock.patch.dict(os.environ,{VOXCPM_DRIVER.DRIVER_WORK_ROOT_ENV:directory,VOXCPM_DRIVER.DRIVER_OUTPUT_PATH_ENV:str(output)}), mock.patch.object(VOXCPM_DRIVER,"load_model",return_value=Model()),mock.patch.object(VOXCPM_DRIVER,"ensure_dependencies_importable",return_value=(object(),SoundFile)):
+                VOXCPM_DRIVER.handle_synthesize(request)
+        self.assertEqual(captured["identity_bytes"],b"identity-input")
+        self.assertEqual(captured["performance_bytes"],b"performance-input")
+        self.assertNotEqual(captured["reference_wav_path"],captured["prompt_wav_path"])
+        self.assertEqual(captured["prompt_text"],"  独立示范逐字稿\n")
+
     def test_voxcpm_bundle_python_is_not_executed_by_managed_driver_path(self) -> None:
         test_case = self
 

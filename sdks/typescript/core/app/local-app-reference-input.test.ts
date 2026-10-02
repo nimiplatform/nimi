@@ -27,7 +27,7 @@ test('protected AIConfig retains exact reference inputs and rejects malformed me
 test('protected AIConfig accepts bounded music generation profiles without admitting authority generations', async () => {
   const profile = { lyricsMode: 'required', scoreMode: 'unsupported', scoreFormats: [], scoreConditioning: [],
     supportsSeed: true, supportsInstrumental: false, supportsGeneratedScore: false, supportsAudioReference: false,
-    maxDurationSeconds: 180, defaultDurationSeconds: 20, maxPromptBytes: 32768, maxLyricsBytes: 32768, maxScoreBytes: 0, maxAudioReferenceBytes: 0 };
+    maxDurationSeconds: 180, defaultDurationSeconds: 20, maxPromptBytes: 32768, maxLyricsBytes: 32768, maxScoreBytes: 0, maxAudioReferenceBytes: 0, videoReferenceMode: 'unsupported', maxVideoReferenceBytes: 0 };
   const resource = { loadoutRef: 'music-resource', label: 'Music', capabilityContract: 'music.generate',
     implementation: { implementationId: 'local.music', driverId: 'driver', driverDialect: 'v1' },
     implementationSupportedFeatures: [], configuredFeatures: [], textBehaviors: [], state: 'ready', reasons: [],

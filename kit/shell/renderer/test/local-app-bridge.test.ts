@@ -523,6 +523,38 @@ describe('renderer local-app standard-shell surface', () => {
     await expect(client.listOptions(query)).rejects.toThrow();
   });
 
+  it('carries bounded speech conditions through Local and Cloud AIConfig projections', async () => {
+    const speechInput = { supportsIdentityAudio: true, supportsPerformanceAudio: true,
+      maxReferenceBytes: 33554432, maxReferenceDurationSeconds: 30, maxPerformanceTextBytes: 4096 };
+    const local = { loadoutRef: 'loadout-voice', label: 'Speech', capabilityContract: 'audio.synthesize',
+      implementation: { implementationId: 'local.speech', driverId: 'speech', driverDialect: 'speech/v1' },
+      implementationSupportedFeatures: [], configuredFeatures: [], textBehaviors: [], state: 'ready', reasons: [], speechInput };
+    const cloud = { connectorRef: 'connector', label: 'Speech', capabilityContract: 'audio.synthesize',
+      implementation: local.implementation, providerModelTarget: { providerModelId: 'speech' },
+      supportedFeatures: [], state: 'ready', reasons: [], speechInput };
+    let result: unknown;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => structuredClone(result), listen: () => () => {},
+    };
+    const client = createNimiLocalAppStandardShellSurface().aiConfig;
+    const localQuery = { kind: 'local-loadouts' as const, capabilityContract: 'audio.synthesize' };
+    result = { kind: 'local-loadouts', options: [local], truncated: false };
+    await expect(client.listOptions(localQuery)).resolves.toEqual(result);
+    result = { config: null, revision: '1', effectiveSelections: [{ capabilityContract: 'audio.synthesize',
+      state: 'ready', reasons: [], resource: { oneofKind: 'local', local } }] };
+    await expect(client.get()).resolves.toEqual(result);
+    result = { kind: 'cloud-targets', options: [cloud], truncated: false };
+    await expect(client.listOptions({ kind: 'cloud-targets', capabilityContract: 'audio.synthesize', connectorRef: 'connector' })).resolves.toEqual(result);
+    for (const invalid of [
+      { ...local, capabilityContract: 'text.generate' },
+      { ...local, speechInput: { ...speechInput, maxReferenceBytes: 0 } },
+      { ...local, speechInput: { ...speechInput, endpoint: 'private' } },
+    ]) {
+      result = { kind: 'local-loadouts', options: [invalid], truncated: false };
+      await expect(client.listOptions(localQuery)).rejects.toThrow();
+    }
+  });
+
   it('accepts canonical Local Loadout behaviors with Tool-Use-only fields omitted', async () => {
     const option = {
       loadoutRef: 'loadout-gemma',

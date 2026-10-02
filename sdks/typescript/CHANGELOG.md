@@ -2,6 +2,8 @@
 
 ## Next minor (compatible additions)
 
+Protected music generation adds owned videoReference, and speech synthesis adds separate identityAudio/performanceAudio with exact transcript. Consume matching Runtime, Kit and native builds. Resource input profiles explicitly declare video mode and Driver speech limits; missing declarations fail closed. Reference-conditioned VoxCPM is currently supported by the Windows standard backend, without creating a reusable VoiceAsset.
+
 The Local App text binding accepts ordered system messages beyond the initial
 prefix and preserves their role and position. It requires matching Runtime and
 Kit native carrier builds. Exact Driver admission still decides support; an

@@ -54,6 +54,7 @@ const (
 	CloudMediaAdapterGLMTask                 = "glm_task_adapter"
 	CloudMediaAdapterGLMNative               = "glm_native_adapter"
 	CloudMediaAdapterKimiChatMultimodal      = "kimi_chat_multimodal_adapter"
+	CloudMediaAdapterElevenLabsMusic         = "elevenlabs_music_adapter"
 	CloudMediaAdapterElevenLabsNative        = "elevenlabs_native_adapter"
 	CloudMediaAdapterFishAudioNative         = "fish_audio_native_adapter"
 	CloudMediaAdapterAWSPollyNative          = "aws_polly_native_adapter"
@@ -602,6 +603,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		}
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
+	if d.provider == "elevenlabs" && target.capabilityContract == "music.generate" {
+		if err := validateElevenLabsMusicRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "openai" && target.capabilityContract == "image.generate" && openAIImageModelAdmitted(target.providerModelID) {
 		if err := validateOpenAIImageRequest(mapped, target.providerModelID); err != nil {
 			return nil, err
@@ -877,6 +883,9 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 			return CloudMediaAdapterKimiChatMultimodal
 		}
 	case "elevenlabs":
+		if capability == "music.generate" {
+			return CloudMediaAdapterElevenLabsMusic
+		}
 		if capability == "audio.synthesize" {
 			return CloudMediaAdapterElevenLabsNative
 		}

@@ -7,6 +7,7 @@ mod conversation;
 mod embodiment;
 mod integration;
 mod music_input;
+mod speech_input;
 mod realm_persona_character;
 mod realm_realtime;
 mod realm_world_core;

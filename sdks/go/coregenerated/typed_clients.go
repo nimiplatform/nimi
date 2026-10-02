@@ -2307,6 +2307,7 @@ type AIConfigCloudTargetProjection struct {
 	Reasons             []string                          `json:"reasons,omitempty"`
 	ReferenceAudioInput *VoiceReferenceInputCapabilities  `json:"reference_audio_input,omitempty"`
 	MusicInput          *MusicInputCapabilities           `json:"music_input,omitempty"`
+	SpeechInput         *SpeechInputCapabilities          `json:"speech_input,omitempty"`
 }
 
 type AIConfigEffectiveSelection struct {
@@ -2342,6 +2343,7 @@ type AIConfigLocalResourceProjection struct {
 	TextBehaviors                   []TextBehaviorCapabilityProjection `json:"text_behaviors,omitempty"`
 	ReferenceAudioInput             *VoiceReferenceInputCapabilities   `json:"reference_audio_input,omitempty"`
 	MusicInput                      *MusicInputCapabilities            `json:"music_input,omitempty"`
+	SpeechInput                     *SpeechInputCapabilities           `json:"speech_input,omitempty"`
 }
 
 type AIConfigOwner struct {
@@ -6222,6 +6224,7 @@ type LocalAppMusicGenerateJobSpec struct {
 	ScoreConditioning    MusicScoreConditioning `json:"score_conditioning,omitempty"`
 	ReturnGeneratedScore bool                   `json:"return_generated_score,omitempty"`
 	AudioReference       *MusicAudioInput       `json:"audio_reference,omitempty"`
+	VideoReference       *MusicVideoReference   `json:"video_reference,omitempty"`
 }
 
 type LocalAppPackagePreview struct {
@@ -6297,17 +6300,19 @@ type LocalAppSharedLocalAgentAIConfigProjection struct {
 }
 
 type LocalAppSpeechSynthesizeJobSpec struct {
-	Text             string            `json:"text,omitempty"`
-	Language         string            `json:"language,omitempty"`
-	AudioFormat      string            `json:"audio_format,omitempty"`
-	SampleRateHz     *int32            `json:"sample_rate_hz,omitempty"`
-	Speed            *float32          `json:"speed,omitempty"`
-	Pitch            *float32          `json:"pitch,omitempty"`
-	Volume           *float32          `json:"volume,omitempty"`
-	Emotion          string            `json:"emotion,omitempty"`
-	VoiceRef         *VoiceReference   `json:"voice_ref,omitempty"`
-	TimingMode       SpeechTimingMode  `json:"timing_mode,omitempty"`
-	VoiceRenderHints *VoiceRenderHints `json:"voice_render_hints,omitempty"`
+	Text             string                      `json:"text,omitempty"`
+	Language         string                      `json:"language,omitempty"`
+	AudioFormat      string                      `json:"audio_format,omitempty"`
+	SampleRateHz     *int32                      `json:"sample_rate_hz,omitempty"`
+	Speed            *float32                    `json:"speed,omitempty"`
+	Pitch            *float32                    `json:"pitch,omitempty"`
+	Volume           *float32                    `json:"volume,omitempty"`
+	Emotion          string                      `json:"emotion,omitempty"`
+	VoiceRef         *VoiceReference             `json:"voice_ref,omitempty"`
+	TimingMode       SpeechTimingMode            `json:"timing_mode,omitempty"`
+	VoiceRenderHints *VoiceRenderHints           `json:"voice_render_hints,omitempty"`
+	IdentityAudio    *SpeechAudioReference       `json:"identity_audio,omitempty"`
+	PerformanceAudio *SpeechPerformanceReference `json:"performance_audio,omitempty"`
 }
 
 type LocalAppSpeechTranscribeJobSpec struct {
@@ -6973,6 +6978,7 @@ type MusicGenerateScenarioSpec struct {
 	Seed                 *uint32                `json:"seed,omitempty"`
 	ReturnGeneratedScore bool                   `json:"return_generated_score,omitempty"`
 	AudioReference       *MusicAudioInput       `json:"audio_reference,omitempty"`
+	VideoReference       *MusicVideoReference   `json:"video_reference,omitempty"`
 }
 
 type MusicGeneration struct {
@@ -6998,6 +7004,8 @@ type MusicGenerationInputProfile struct {
 	MaxLyricsBytes         uint32   `json:"max_lyrics_bytes,omitempty"`
 	MaxScoreBytes          uint32   `json:"max_score_bytes,omitempty"`
 	MaxAudioReferenceBytes uint32   `json:"max_audio_reference_bytes,omitempty"`
+	VideoReferenceMode     string   `json:"video_reference_mode,omitempty"`
+	MaxVideoReferenceBytes uint32   `json:"max_video_reference_bytes,omitempty"`
 }
 
 type MusicInputCapabilities struct {
@@ -7051,6 +7059,10 @@ type MusicTranscriptionInputProfile struct {
 	MaxDurationSeconds uint32   `json:"max_duration_seconds,omitempty"`
 	MaxSourceBytes     uint32   `json:"max_source_bytes,omitempty"`
 	SupportsRange      bool     `json:"supports_range,omitempty"`
+}
+
+type MusicVideoReference struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
 }
 
 type OpenAppActivityRequest struct {
@@ -8327,22 +8339,41 @@ type SpeechAlignmentToken struct {
 	EndMs   int64  `json:"end_ms,omitempty"`
 }
 
+type SpeechAudioReference struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+}
+
+type SpeechInputCapabilities struct {
+	SupportsIdentityAudio       bool   `json:"supports_identity_audio,omitempty"`
+	SupportsPerformanceAudio    bool   `json:"supports_performance_audio,omitempty"`
+	MaxReferenceBytes           uint32 `json:"max_reference_bytes,omitempty"`
+	MaxReferenceDurationSeconds uint32 `json:"max_reference_duration_seconds,omitempty"`
+	MaxPerformanceTextBytes     uint32 `json:"max_performance_text_bytes,omitempty"`
+}
+
+type SpeechPerformanceReference struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+	Text       string `json:"text,omitempty"`
+}
+
 type SpeechSynthesizeResult struct {
 	Artifacts []ScenarioArtifact `json:"artifacts,omitempty"`
 }
 
 type SpeechSynthesizeScenarioSpec struct {
-	Text             string            `json:"text,omitempty"`
-	Language         string            `json:"language,omitempty"`
-	AudioFormat      string            `json:"audio_format,omitempty"`
-	SampleRateHz     *int32            `json:"sample_rate_hz,omitempty"`
-	Speed            *float32          `json:"speed,omitempty"`
-	Pitch            *float32          `json:"pitch,omitempty"`
-	Volume           *float32          `json:"volume,omitempty"`
-	Emotion          string            `json:"emotion,omitempty"`
-	VoiceRef         *VoiceReference   `json:"voice_ref,omitempty"`
-	TimingMode       SpeechTimingMode  `json:"timing_mode,omitempty"`
-	VoiceRenderHints *VoiceRenderHints `json:"voice_render_hints,omitempty"`
+	Text             string                      `json:"text,omitempty"`
+	Language         string                      `json:"language,omitempty"`
+	AudioFormat      string                      `json:"audio_format,omitempty"`
+	SampleRateHz     *int32                      `json:"sample_rate_hz,omitempty"`
+	Speed            *float32                    `json:"speed,omitempty"`
+	Pitch            *float32                    `json:"pitch,omitempty"`
+	Volume           *float32                    `json:"volume,omitempty"`
+	Emotion          string                      `json:"emotion,omitempty"`
+	VoiceRef         *VoiceReference             `json:"voice_ref,omitempty"`
+	TimingMode       SpeechTimingMode            `json:"timing_mode,omitempty"`
+	VoiceRenderHints *VoiceRenderHints           `json:"voice_render_hints,omitempty"`
+	IdentityAudio    *SpeechAudioReference       `json:"identity_audio,omitempty"`
+	PerformanceAudio *SpeechPerformanceReference `json:"performance_audio,omitempty"`
 }
 
 type SpeechTranscribeResult struct {

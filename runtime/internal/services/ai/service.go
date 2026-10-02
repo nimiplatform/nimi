@@ -370,8 +370,8 @@ func (s *Service) SetLocalSpeechExecutionHost(host localexecution.SpeechExecutio
 	}
 }
 
-// SetLocalVideoMediaPipeline wires the private ffmpeg/ffprobe owner used only
-// after a raw AV candidate has been produced.
+// SetLocalVideoMediaPipeline wires the private codec owner for complete input
+// inspection and raw AV candidate encoding.
 func (s *Service) SetLocalVideoMediaPipeline(pipeline videomedia.Pipeline) {
 	if s != nil {
 		s.localVideoMedia = pipeline

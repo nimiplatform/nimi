@@ -140,6 +140,48 @@ func (p *Processor) Ensure(ctx context.Context) error {
 	return VerifyCodecRuns(ctx, p.ffmpegPath, p.ffprobePath)
 }
 
+// InspectDuration observes a complete owned MP4 input through the same managed
+// codec supply as video generation. It neither encodes nor samples stills.
+func (p *Processor) InspectDuration(ctx context.Context, inputPath string) (time.Duration, error) {
+	if p != nil && p.resolve != nil {
+		ffmpeg, probe, err := p.resolve(ctx)
+		if err != nil {
+			return 0, &Error{Kind: FailureCodecUnavailable, Op: "prepare input codec", Err: err}
+		}
+		concrete, err := New(ffmpeg, probe)
+		if err != nil {
+			return 0, err
+		}
+		return concrete.InspectDuration(ctx, inputPath)
+	}
+	if p == nil || !filepath.IsAbs(inputPath) || p.ffprobePath == "" {
+		return 0, &Error{Kind: FailureCodecUnavailable, Op: "inspect input video"}
+	}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	command := exec.CommandContext(ctx, p.ffprobePath, "-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries", "format=format_name,duration:stream=codec_type", "-of", "json", inputPath)
+	var output bytes.Buffer
+	command.Stdout = &output
+	if err := command.Run(); err != nil {
+		return 0, &Error{Kind: codecFailureKind(ctx, err, FailureMedia), Op: "inspect input video", Err: err}
+	}
+	var document probeDocument
+	if err := json.Unmarshal(output.Bytes(), &document); err != nil {
+		return 0, mediaFailure("decode input probe", err)
+	}
+	video := false
+	for _, stream := range document.Streams {
+		if stream.CodecType == "video" {
+			video = true
+		}
+	}
+	seconds, err := strconv.ParseFloat(document.Format.Duration, 64)
+	if err != nil || !video || !formatContains(document.Format.FormatName, "mp4") || math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds <= 0 {
+		return 0, mediaFailure("inspect input video", fmt.Errorf("invalid complete MP4 duration"))
+	}
+	return time.Duration(seconds * float64(time.Second)), nil
+}
+
 // New validates both executable paths and fails closed when codec tooling is
 // unavailable.
 func New(ffmpegPath string, ffprobePath string) (*Processor, error) {

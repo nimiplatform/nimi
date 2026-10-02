@@ -266,7 +266,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 			return nil, err
 		}
 	}
-	if err := validateCloudMusicGenerationFields(effectiveRequest.GetSpec().GetMusicGenerate(), mapped.Adapter() == capabilitydriver.CloudMediaAdapterStabilityMusic); err != nil {
+	if err := validateCloudMusicGenerationFields(effectiveRequest.GetSpec().GetMusicGenerate(), mapped.Adapter() == capabilitydriver.CloudMediaAdapterStabilityMusic, mapped.Adapter() == capabilitydriver.CloudMediaAdapterElevenLabsMusic); err != nil {
 		return nil, err
 	}
 	if effectiveRequest.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
@@ -285,6 +285,9 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 	}
+	if speech := effectiveRequest.GetSpec().GetSpeechSynthesize(); speech != nil && (speech.GetIdentityAudio() != nil || speech.GetPerformanceAudio() != nil) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
 	var musicReference *nimillm.MusicReferenceAudio
 	if music := effectiveRequest.GetSpec().GetMusicGenerate(); music != nil && music.GetAudioReference() != nil {
 		musicReference, err = s.captureCloudMusicReference(ctx, effectiveRequest.GetHead(), music.GetAudioReference())
@@ -293,6 +296,13 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		}
 	}
 
+	var musicVideo *nimillm.MusicReferenceVideo
+	if music := effectiveRequest.GetSpec().GetMusicGenerate(); music != nil && music.GetVideoReference() != nil {
+		musicVideo, err = s.captureMusicVideoReference(ctx, effectiveRequest.GetHead(), music.GetVideoReference(), music.GetDurationSeconds())
+		if err != nil {
+			return nil, err
+		}
+	}
 	implementation, _ := proto.Clone(intent.CloudImplementation).(*runtimev1.CapabilityImplementationIdentity)
 	rawTarget, _ := proto.Clone(intent.ProviderModelTarget).(*structpb.Struct)
 	defaults, _ := proto.Clone(intent.Defaults).(*structpb.Struct)
@@ -320,6 +330,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Cloud ResolvedAssembly capture failed"})
 	}
 	effective.resolvedAssembly.MusicReference = musicReference
+	effective.resolvedAssembly.MusicVideoReference = musicVideo
 	if err := s.auditCloudMediaCapture(effective); err != nil {
 		effective.release()
 		return nil, err
@@ -468,6 +479,7 @@ func (s *Service) executeCapturedCloudMedia(ctx context.Context, effective *clou
 	}
 	if effective.resolvedAssembly != nil {
 		ctx = nimillm.WithMusicReferenceAudio(ctx, effective.resolvedAssembly.MusicReference)
+		ctx = nimillm.WithMusicReferenceVideo(ctx, effective.resolvedAssembly.MusicVideoReference)
 	}
 	response, err := s.remoteMediaHost.ExecuteMedia(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {

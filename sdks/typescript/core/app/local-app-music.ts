@@ -10,6 +10,7 @@ export type NimiLocalAppMusicGenerateSpec = {
   readonly type: 'music-generate';
   readonly prompt: string;
   readonly lyrics: string;
+  readonly videoReference?: { readonly artifactId: string };
   /** Requested budget, not a guarantee of a complete composition. Exact implementations may support less. */
   readonly durationSeconds?: number;
   readonly instrumental?: boolean;
@@ -49,7 +50,7 @@ const content = (value: unknown): value is string => typeof value === 'string' &
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 export function validateNimiLocalAppMusicGenerateSpec(value: unknown): NimiLocalAppMusicGenerateSpec {
   const record = asRecord(value);
-  assertExactKeys(record, ['type', 'prompt', 'lyrics', 'durationSeconds', 'instrumental', 'seed', 'score', 'scoreConditioning', 'returnGeneratedScore', 'audioReference'], 'music spec');
+  assertExactKeys(record, ['type', 'prompt', 'lyrics', 'durationSeconds', 'instrumental', 'seed', 'score', 'scoreConditioning', 'returnGeneratedScore', 'audioReference', 'videoReference'], 'music spec');
   if (!record || record.type !== 'music-generate' || !content(record.prompt) || !record.prompt.trim() || !content(record.lyrics)) inputError();
   if (record.durationSeconds !== undefined && !uint(record.durationSeconds, 1, 600)) inputError();
   for (const key of ['instrumental', 'returnGeneratedScore']) if (record[key] !== undefined && typeof record[key] !== 'boolean') inputError();
@@ -69,6 +70,11 @@ export function validateNimiLocalAppMusicGenerateSpec(value: unknown): NimiLocal
       assertExactKeys(range, ['startFrame', 'endFrame'], 'audio frame range');
       if (!range || !uint(range.startFrame, 0, 57600000) || !uint(range.endFrame, 1, 57600000) || range.startFrame >= range.endFrame) inputError();
     }
+  }
+  if (record.videoReference !== undefined) {
+    const reference = asRecord(record.videoReference);
+    assertExactKeys(reference, ['artifactId'], 'music video reference');
+    if (!reference || !identifier(reference.artifactId)) inputError();
   }
   return value as NimiLocalAppMusicGenerateSpec;
 }
@@ -109,6 +115,7 @@ export function runtimeMusicGenerateSpec(spec: NimiLocalAppMusicGenerateSpec): M
     score: spec.score ? { artifactId: spec.score.artifactId, format: spec.score.format === 'abc' ? MusicScoreFormat.ABC : MusicScoreFormat.MIDI } : undefined,
     scoreConditioning: spec.scoreConditioning === 'melody-only' ? MusicScoreConditioning.MELODY_ONLY : spec.scoreConditioning === 'melody-and-harmony' ? MusicScoreConditioning.MELODY_AND_HARMONY : MusicScoreConditioning.UNSPECIFIED,
     audioReference: spec.audioReference ? { artifactId: spec.audioReference.artifactId, range: spec.audioReference.range ? { startFrame: String(spec.audioReference.range.startFrame), endFrame: String(spec.audioReference.range.endFrame) } : undefined } : undefined,
+    videoReference: spec.videoReference ? { artifactId: spec.videoReference.artifactId } : undefined,
   };
 }
 
@@ -125,6 +132,7 @@ export function localMusicGenerateSpec(spec: MusicGenerateScenarioSpec): NimiLoc
     ...(conditioning ? { scoreConditioning: conditioning } : {}),
     ...(spec.audioReference ? { audioReference: { artifactId: spec.audioReference.artifactId,
       ...(spec.audioReference.range ? { range: { startFrame: Number(spec.audioReference.range.startFrame), endFrame: Number(spec.audioReference.range.endFrame) } } : {}) } } : {}),
+    ...(spec.videoReference ? { videoReference: { artifactId: spec.videoReference.artifactId } } : {}),
   });
 }
 

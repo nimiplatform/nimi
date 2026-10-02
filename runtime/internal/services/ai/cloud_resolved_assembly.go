@@ -34,6 +34,7 @@ const (
 // an exact Connector custody record; credential material stays in the
 // request-scoped Remote ExecutionHost opening point.
 type cloudResolvedAssembly struct {
+	MusicVideoReference  *nimillm.MusicReferenceVideo          `json:"music_video_reference,omitempty"`
 	MusicReference       *nimillm.MusicReferenceAudio          `json:"music_reference,omitempty"`
 	EmbeddingDimension   int                                   `json:"embedding_dimension,omitempty"`
 	AIConfigRevision     uint64                                `json:"ai_config_revision,omitempty"`
@@ -281,6 +282,9 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 
 func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly) error {
 	unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
+	if assembly.MusicVideoReference != nil && (assembly.RequestKind != cloudResolvedRequestMedia || assembly.CapabilityContract != "music.generate") {
+		return fmt.Errorf("music video capture is outside its contract")
+	}
 	if assembly.MusicReference != nil && (assembly.RequestKind != cloudResolvedRequestMedia || assembly.CapabilityContract != "music.generate") {
 		return fmt.Errorf("music reference capture belongs to another capability")
 	}
@@ -321,6 +325,13 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly) error
 			return fmt.Errorf("Cloud media ResolvedAssembly request identity is mismatched")
 		}
 		music := request.GetSpec().GetMusicGenerate()
+		if reference := assembly.MusicVideoReference; reference != nil {
+			if music == nil || music.GetVideoReference() == nil || reference.ArtifactID != music.GetVideoReference().GetArtifactId() || reference.MIMEType != "video/mp4" || len(reference.Bytes) == 0 || len(reference.Bytes) > 32<<20 {
+				return fmt.Errorf("Cloud music video capture is invalid")
+			}
+		} else if music != nil && music.GetVideoReference() != nil && assembly.CredentialCustodyRef != "" {
+			return fmt.Errorf("Cloud music video capture is missing")
+		}
 		if reference := assembly.MusicReference; reference != nil {
 			if music == nil || music.GetAudioReference() == nil || reference.ArtifactID != music.GetAudioReference().GetArtifactId() || reference.MIMEType != "audio/wav" || len(reference.Bytes) == 0 || len(reference.Bytes) > 32<<20 {
 				return fmt.Errorf("Cloud music reference capture is invalid")
