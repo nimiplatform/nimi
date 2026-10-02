@@ -1279,7 +1279,8 @@ function validateProjectPlan(targetDir, versions, planned, managed) {
 }
 
 export function validateAppInitialization(targetDir, versions) {
-  const current = assertProjectLifecycleCurrent(targetDir, versions, { managed: true });
+  const effective = managedProjectVersions(targetDir, versions);
+  const current = assertProjectLifecycleCurrent(targetDir, effective, { managed: true });
   for (const target of Object.keys(current.buildProfile.targets)) selectBuildOwner(current.buildProfile, target);
 }
 

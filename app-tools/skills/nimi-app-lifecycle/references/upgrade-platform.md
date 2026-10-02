@@ -1,5 +1,12 @@
 # Platform upgrade
 
+Before first fresh init, an App may explicitly select another combination listed
+by the installed tool in package.json. Init verifies the original generated
+sources, preserves immutable identity and direct features, and projects the
+selected pair into derived intent, glue and lock. Fresh create still uses the
+tool default; do not edit intent or lock by hand. Unlisted pairs fail before
+owner mutations.
+
 App Tools 0.9 requires the Host-profile contract in Kit 0.13: select SDK
 `^0.16.0` and Kit `^0.13.0` before sync. Older combinations are rejected before
 files or owner projections change. There is no old-template or default-profile

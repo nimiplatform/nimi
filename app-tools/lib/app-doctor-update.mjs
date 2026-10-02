@@ -15,6 +15,7 @@ import {
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
 import { assertLifecycleGuidanceCurrent, LIFECYCLE_SKILL_PATH, lifecycleOwnerSteps, planLifecycleGuidance } from './app-lifecycle-guidance.mjs';
 import { applyProjectFiles, describeChanges, plannedFile } from './app-project-files.mjs';
+import { resolveDependencyCombination } from './app-dependency-combinations.mjs';
 
 const SCAN_EXCLUDED_DIRS = new Set([
   '.git',
@@ -684,11 +685,27 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const intent = readIntent(targetDir);
   const currentManifest = readCurrentAppManifest(targetDir);
-  const snapshot = buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir });
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
+  // Create still uses the tool default. An explicit listed selection before
+  // first init refreshes derived glue through this owner, just as sync does.
+  // Check the original generated files before projecting the selected pair.
+  const original = buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir });
+  const combination = resolveDependencyCombination(readJsonFile(path.join(targetDir, 'package.json')), versions);
+  const effective = { ...versions, ...combination };
+  const snapshot = buildAppScaffoldSnapshotFromIntent({ intent, versions: effective, targetDir, refreshDerived: true });
   validateAppProjectInputs(targetDir, currentManifest, readJsonFile(path.join(targetDir, 'package.json')), true);
   const initializedPaths = new Set(snapshot.initFiles.map((file) => file.path));
-  assertManagedFilesCurrent(targetDir, { managedFileHashes: Object.fromEntries(Object.entries(snapshot.lock.managedFileHashes).filter(([relativePath]) => !initializedPaths.has(relativePath))) });
-  const planned = [...planLifecycleGuidance(targetDir), ...snapshot.initFiles.map((file) => plannedFile(targetDir, file.path, file.content))];
+  assertManagedFilesCurrent(targetDir, { managedFileHashes: Object.fromEntries(Object.entries(original.lock.managedFileHashes).filter(([relativePath]) => !initializedPaths.has(relativePath))) });
+  const managedFiles = snapshot.filesWithoutLock.filter((file) => snapshot.lock.managedFileHashes[file.path]);
+  const planned = [...managedFiles.map((file) => {
+    let content = file.content;
+    if (file.path === 'nimi.app.yaml' && currentManifest) {
+      const next = parseYaml(content);
+      for (const field of APP_AUTHOR_DECLARATION_FIELDS) if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
+      content = stringifyYaml(next, { lineWidth: 0 });
+    }
+    return plannedFile(targetDir, file.path, content);
+  }), ...planLifecycleGuidance(targetDir), ...snapshot.initFiles.map((file) => plannedFile(targetDir, file.path, file.content))];
   const preview = {
     ok: true, command: 'init', dir: targetDir, dryRun: options.dryRun === true,
     skillPath: LIFECYCLE_SKILL_PATH, changes: describeChanges(targetDir, planned), ownerSteps: lifecycleOwnerSteps(versions),
@@ -708,7 +725,7 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
   assertManagedFilesCurrent(targetDir, snapshot.lock);
   assertNimicodingProjectionCurrent(targetDir, runners);
   applyProjectFiles(targetDir, [lockFile]);
-  validateAppProjectState(targetDir, versions, runners);
+  validateAppProjectState(targetDir, effective, runners);
   const payload = {
     ...preview,
     ok: true,

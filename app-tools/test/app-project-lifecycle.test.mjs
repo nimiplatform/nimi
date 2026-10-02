@@ -15,12 +15,53 @@ import { buildAppScaffoldSnapshot, renderAppIdentityInput, SCAFFOLD_INTENT_PATH,
 import { initApp } from '../lib/app-doctor-update.mjs';
 import { checkAppProject, syncAppProject } from '../lib/app-project-lifecycle.mjs';
 import { rebaseLocalPackagePaths } from '../lib/app-scaffold-profiles.mjs';
+import { validateAppInitialization } from '../lib/app-project-lifecycle.mjs';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const appToolsRoot = path.join(testDir, '..');
 const cliPath = path.join(appToolsRoot, 'bin', 'nimi-app.mjs');
 const appToolsPackage = JSON.parse(readFileSync(path.join(appToolsRoot, 'package.json'), 'utf8'));
 const versions = appToolsPackage.nimiScaffoldVersions;
+
+test('first init projects an explicitly selected supported pair without changing identity or product files', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-init-selected-'));
+  try {
+    const initial = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'selected.example', appTitle: 'Selected', packageName: 'selected-example', targetDir: temp, features: [] });
+    for (const file of initial.createFiles) {
+      const full = path.join(temp, file.path); mkdirSync(path.dirname(full), { recursive: true }); writeFileSync(full, file.content);
+    }
+    const packagePath = path.join(temp, 'package.json');
+    const selected = JSON.parse(readFileSync(packagePath, 'utf8'));
+    selected.dependencies['@nimiplatform/sdk'] = '^0.19.0';
+    selected.dependencies['@nimiplatform/kit'] = '^0.16.0';
+    writeFileSync(packagePath, JSON.stringify(selected, null, 2) + '\n');
+    const productPath = path.join(temp, 'src/shell/routes/product-area.tsx');
+    writeFileSync(productPath, 'export const retainedProduct = true;\n');
+    let ownerCalls = 0;
+    const runners = { runNimicodingSync(target, mode) {
+      ownerCalls += 1;
+      if (mode === 'apply') {
+        mkdirSync(path.join(target, '.nimi/methodology'), { recursive: true });
+        writeFileSync(path.join(target, '.nimi/methodology/authority-authoring.yaml'), 'test-owner: true\n');
+      }
+      return { ok: true };
+    } };
+    validateAppInitialization(temp, versions);
+    const before = snapshotTree(temp);
+    initApp(temp, { dryRun: true }, versions, runners);
+    assert.deepEqual(snapshotTree(temp), before);
+    assert.equal(ownerCalls, 0);
+    initApp(temp, {}, versions, runners);
+    const intent = JSON.parse(readFileSync(path.join(temp, SCAFFOLD_INTENT_PATH), 'utf8'));
+    const lock = JSON.parse(readFileSync(path.join(temp, SCAFFOLD_LOCK_PATH), 'utf8'));
+    assert.equal(intent.appId, initial.appId);
+    assert.deepEqual(intent.directFeatures, []);
+    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.19.0');
+    assert.equal(lock.dependencyMatrix.cargo['nimi-shell-tauri'], '0.8.0');
+    assert.deepEqual(JSON.parse(readFileSync(packagePath, 'utf8')), selected);
+    assert.equal(readFileSync(productPath, 'utf8'), 'export const retainedProduct = true;\n');
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
 
 function runCli(args, cwd, env) {
   return spawnSync(process.execPath, [cliPath, ...args], {
