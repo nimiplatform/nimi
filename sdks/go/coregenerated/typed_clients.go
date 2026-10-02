@@ -6336,10 +6336,12 @@ type LocalAppTextCandidateMessage struct {
 type LocalAppTextEmbedOutput struct {
 	Vectors []EmbeddingVector `json:"vectors,omitempty"`
 	SpaceId string            `json:"space_id,omitempty"`
+	Usage   *UsageStats       `json:"usage,omitempty"`
 }
 
 type LocalAppTextEmbedScenarioSpec struct {
-	Inputs []string `json:"inputs,omitempty"`
+	Inputs     []string `json:"inputs,omitempty"`
+	Dimensions *uint32  `json:"dimensions,omitempty"`
 }
 
 type LocalAppTextGenerateOutput struct {
@@ -8856,7 +8858,8 @@ type TextEmbedOutput struct {
 }
 
 type TextEmbedScenarioSpec struct {
-	Inputs []string `json:"inputs,omitempty"`
+	Inputs     []string `json:"inputs,omitempty"`
+	Dimensions *uint32  `json:"dimensions,omitempty"`
 }
 
 type TextGenerateOutput struct {

@@ -59,10 +59,12 @@
       "stopPlaceholder": "每行一个停止序列",
       "embeddingInput": "嵌入输入 {{index}}",
       "embeddingInputPlaceholder": "要生成嵌入的文本",
+      "embeddingDimensionsHint": "留空使用模型默认维度。当前模型不支持原生维度选项时，Runtime 会拒绝请求。",
       "addInput": "添加输入",
       "removeInput": "移除输入 {{index}}",
       "fields": {
         "inputs": "嵌入输入",
+        "dimensions": "请求输出维度",
         "temperature": "Temperature",
         "topP": "Top P",
         "maxTokens": "最大 Token 数",

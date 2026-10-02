@@ -89,6 +89,14 @@ test('Local embedding accepts multiple inputs through the protected scenario', (
   assert.deepEqual(project('text.embed', 'local', { inputs }), { inputs });
 });
 
+test('embedding dimensions stay explicit across Local and Cloud parameter projections', () => {
+  for (const route of ['local', 'cloud']) {
+    assert.equal(states('text.embed', route).get('dimensions')?.state, 'enabled');
+    assert.deepEqual(project('text.embed', route, { inputs: ['hello'], dimensions: 256 }), { inputs: ['hello'], dimensions: 256 });
+    assert.deepEqual(project('text.embed', route, {}), {});
+  }
+});
+
 test('Local synthesis preserves supported carrier controls and voice assets', () => {
   const local = states('audio.synthesize', 'local');
   for (const field of ['voiceKind', 'voicePreset', 'voiceAssetId', 'language', 'audioFormat', 'timingMode']) {

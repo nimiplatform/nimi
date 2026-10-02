@@ -2,6 +2,8 @@
 
 ## Next minor (compatible additions)
 
+Embedding requests add optional positive integer `dimensions` in the core AI client and protected `text-embed` spec. Use matching Runtime, SDK, Kit and native builds. The selected Runtime implementation admits the requested width; the first shortening group is OpenAI `text-embedding-3-small` and `text-embedding-3-large`. Omit the field for the captured native default. Unsupported compositions and out-of-range widths fail before execution. Returned vectors must match the input count and requested width, remain finite and include their Runtime-owned `spaceId`. Missing provider usage remains unspecified.
+
 Protected music generation adds owned videoReference, and speech synthesis adds separate identityAudio/performanceAudio with exact transcript. Consume matching Runtime, Kit and native builds. Resource input profiles explicitly declare video mode and Driver speech limits; missing declarations fail closed. Reference-conditioned VoxCPM is currently supported by the Windows standard backend, without creating a reusable VoiceAsset.
 
 The Local App text binding accepts ordered system messages beyond the initial

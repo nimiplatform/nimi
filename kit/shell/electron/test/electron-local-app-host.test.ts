@@ -145,6 +145,17 @@ describe('Electron protected local-app host', () => {
     await expect(host.scenarioExecute({ spec: { type: 'text-embed', inputs: ['document'] } })).resolves.toEqual({
       output: { type: 'text-embed', vectors: [[0.1, 0.2]], spaceId: 'space-test-1' }, traceId: 'trace-1',
     });
+    const usage = { promptTokens: 7, completionTokens: 0, totalTokens: 7 };
+    candidate.localAppScenarioExecute = async () => ({ status: 'ok', value: {
+      output: { type: 'text-embed', vectors: [[0.1, 0.2]], spaceId: 'space-test-1', usage }, traceId: 'trace-1',
+    } });
+    await expect(host.scenarioExecute({ spec: { type: 'text-embed', inputs: ['document'], dimensions: 2 } })).resolves.toMatchObject({ output: { usage } });
+    for (const invalid of [{}, { promptTokens: 7, completionTokens: 0, totalTokens: 0 }, { promptTokens: -1, completionTokens: 0, totalTokens: -1 }]) {
+      candidate.localAppScenarioExecute = async () => ({ status: 'ok', value: {
+        output: { type: 'text-embed', vectors: [[0.1, 0.2]], spaceId: 'space-test-1', usage: invalid }, traceId: 'trace-1',
+      } });
+      await expect(host.scenarioExecute({ spec: { type: 'text-embed', inputs: ['document'] } })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    }
     candidate.localAppScenarioExecute = async () => ({ status: 'ok', value: {
       output: { type: 'text-embed', vectors: [[0.1, 0.2]] }, traceId: 'trace-1',
     } });

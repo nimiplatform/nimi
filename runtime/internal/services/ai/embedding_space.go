@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
@@ -97,6 +98,11 @@ func cloudEmbeddingSpaceParts(effective *cloudEmbedEffectiveInputs) []proto.Mess
 		"authKind":            structpb.NewStringValue(effective.connector.AuthKind.String()),
 		"providerAuthProfile": structpb.NewStringValue(effective.connector.ProviderAuthProfile),
 	}}
+	// Native mapping introduces different captured semantics from the earlier
+	// compatible transport, while omission and explicit native width still agree.
+	if protocol := effective.target.Protocol(); protocol == capabilitydriver.CloudEmbedProtocolGeminiV1 {
+		connectorTarget.Fields["embeddingProtocol"] = structpb.NewStringValue(string(protocol))
+	}
 	return []proto.Message{effective.implementation, target, effective.defaults, connectorTarget}
 }
 

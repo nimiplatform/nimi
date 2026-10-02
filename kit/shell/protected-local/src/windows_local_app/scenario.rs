@@ -23,7 +23,7 @@ use crate::generated::{
     ListLocalAppVoiceAssetsRequest as ProtoListVoiceAssetsRequest,
     LocalAppImageGenerateScenarioSpec, LocalAppMusicGenerateJobSpec, LocalAppScenarioArtifact,
     LocalAppScenarioJob, LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec,
-    LocalAppSpeechTranscribeJobSpec, LocalAppTextEmbedScenarioSpec, LocalAppTextTurnFailed,
+    LocalAppSpeechTranscribeJobSpec, LocalAppTextEmbedScenarioSpec, LocalAppTextEmbedOutput, LocalAppTextTurnFailed,
     LocalAppVideoGenerateJobSpec, LocalAppVideoGenerationOptions, LocalAppVoiceAsset,
     LocalAppVoiceCreateJobSpec, LocalAppWorldGenerateJobSpec, MusicAudioInput,
     ReadLocalAppArtifactRequest as ProtoReadArtifactRequest, ScenarioJobEventType,
@@ -98,28 +98,7 @@ pub(super) async fn execute(
         _ => {}
     }
     let output = match response.output.ok_or_else(untrusted)? {
-        ExecuteOutput::TextEmbed(value) => {
-            valid_runtime_text(&value.space_id, MAX_IDENTIFIER_BYTES)?;
-            if value.vectors.is_empty() || value.vectors.len() > 16 {
-                return Err(untrusted());
-            }
-            let vectors = value
-                .vectors
-                .into_iter()
-                .map(|vector| {
-                    if vector.values.is_empty()
-                        || vector.values.len() > 8192
-                        || vector.values.iter().any(|entry| !entry.is_finite())
-                    {
-                        return Err(untrusted());
-                    }
-                    Ok(JsonValue::Array(
-                        vector.values.into_iter().map(JsonValue::from).collect(),
-                    ))
-                })
-                .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
-            json!({"type": "text-embed", "vectors": vectors, "spaceId": value.space_id})
-        }
+        ExecuteOutput::TextEmbed(value) => project_embedding_output(value)?,
         ExecuteOutput::TextGenerate(value) => text_behavior::project_output(value)?,
         ExecuteOutput::ImageGenerate(value) => json!({
             "type": "image-generate",
@@ -130,6 +109,27 @@ pub(super) async fn execute(
         }
     };
     Ok(json!({"output": output, "traceId": response.trace_id}))
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
+fn project_embedding_output(value: LocalAppTextEmbedOutput) -> Result<JsonValue, LocalAppOperationError> {
+    valid_runtime_text(&value.space_id, MAX_IDENTIFIER_BYTES)?;
+    if value.vectors.is_empty() || value.vectors.len() > 16 {
+        return Err(untrusted());
+    }
+    let vectors = value.vectors.into_iter().map(|vector| {
+        if vector.values.is_empty() || vector.values.len() > 8192 || vector.values.iter().any(|entry| !entry.is_finite()) {
+            return Err(untrusted());
+        }
+        Ok(JsonValue::Array(vector.values.into_iter().map(JsonValue::from).collect()))
+    }).collect::<Result<Vec<_>, LocalAppOperationError>>()?;
+    let mut output = json!({"type": "text-embed", "vectors": vectors, "spaceId": value.space_id});
+    if let Some(usage) = value.usage {
+        let total = usage.input_tokens.checked_add(usage.output_tokens).filter(|value| *value <= 9_007_199_254_740_991).ok_or_else(untrusted)?;
+        if usage.input_tokens < 0 || usage.output_tokens < 0 { return Err(untrusted()); }
+        output["usage"] = json!({"promptTokens": usage.input_tokens, "completionTokens": usage.output_tokens, "totalTokens": total});
+    }
+    Ok(output)
 }
 
 /// Runtime's clock advances in coarse ticks (up to 15.6 ms on Windows), so its
@@ -527,13 +527,16 @@ fn parse_execute_spec(value: JsonValue) -> Result<ExecuteSpec, LocalAppOperation
             Ok(ExecuteSpec::TextGenerate(text_behavior::request(input)?))
         }
         "text-embed" => {
-            exact_keys(&object, &["type", "inputs"])?;
+            allowed_keys(&object, &["type", "inputs", "dimensions"], &["type", "inputs"])?;
             let inputs = string_array(field(&object, "inputs")?, 16, MAX_PROMPT_BYTES, false)?;
             if inputs.is_empty() || inputs.iter().map(String::len).sum::<usize>() > 64 * 1024 {
                 return Err(invalid_payload());
             }
             Ok(ExecuteSpec::TextEmbed(LocalAppTextEmbedScenarioSpec {
                 inputs,
+                dimensions: optional_integer_field(&object, "dimensions")?
+                    .map(|value| u32::try_from(value).ok().filter(|value| *value > 0).ok_or_else(invalid_payload))
+                    .transpose()?,
             }))
         }
         "image-generate" => Ok(ExecuteSpec::ImageGenerate(parse_image_spec(&object)?)),
@@ -2025,6 +2028,40 @@ mod tests {
         )
         .is_err());
         assert!(parse_execute_spec(json!({"type": "text-embed", "inputs": []})).is_err());
+    }
+
+    #[test]
+    fn embedding_dimensions_keep_optional_presence_and_positive_integer_bounds() {
+        match parse_execute_spec(json!({"type": "text-embed", "inputs": ["hello"]})).unwrap() {
+            ExecuteSpec::TextEmbed(value) => assert_eq!(value.dimensions, None),
+            _ => panic!("expected embedding spec"),
+        }
+        for width in [1_u64, 1024, u32::MAX as u64] {
+            match parse_execute_spec(json!({"type": "text-embed", "inputs": ["hello"], "dimensions": width})).unwrap() {
+                ExecuteSpec::TextEmbed(value) => assert_eq!(value.dimensions, Some(width as u32)),
+                _ => panic!("expected embedding spec"),
+            }
+        }
+        for invalid in [json!(0), json!(-1), json!(1.5), json!("256"), json!(null), json!(4_294_967_296_u64)] {
+            assert!(parse_execute_spec(json!({"type": "text-embed", "inputs": ["hello"], "dimensions": invalid})).is_err());
+        }
+    }
+
+    #[test]
+    fn embedding_usage_preserves_missing_and_reported_zero_without_estimates() {
+        use crate::generated::{EmbeddingVector, UsageStats};
+        let output = |usage| LocalAppTextEmbedOutput {
+            vectors: vec![EmbeddingVector { values: vec![0.25, 0.75] }],
+            space_id: "space-short".into(), usage,
+        };
+        assert!(project_embedding_output(output(None)).unwrap().get("usage").is_none());
+        let zero = project_embedding_output(output(Some(UsageStats::default()))).unwrap();
+        assert_eq!(zero["usage"], json!({"promptTokens": 0, "completionTokens": 0, "totalTokens": 0}));
+        let reported = project_embedding_output(output(Some(UsageStats { input_tokens: 7, output_tokens: 2, ..Default::default() }))).unwrap();
+        assert_eq!(reported["usage"]["totalTokens"], json!(9));
+        for usage in [UsageStats { input_tokens: -1, ..Default::default() }, UsageStats { input_tokens: i64::MAX, output_tokens: 1, ..Default::default() }] {
+            assert!(project_embedding_output(output(Some(usage))).is_err());
+        }
     }
 
     #[test]

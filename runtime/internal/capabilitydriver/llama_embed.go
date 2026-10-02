@@ -278,6 +278,9 @@ func llamaEmbedRequestBody(spec *runtimev1.TextEmbedScenarioSpec) ([]byte, int, 
 	if spec == nil || len(spec.GetInputs()) == 0 {
 		return nil, 0, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.embed inputs are required"))
 	}
+	if spec.Dimensions != nil {
+		return nil, 0, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected Local embedding recipe does not admit dimensions"))
+	}
 	if len(spec.GetInputs()) > CloudEmbedMaxInputsPerRequest {
 		return nil, 0, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.embed supports at most %d inputs per request", CloudEmbedMaxInputsPerRequest))
 	}

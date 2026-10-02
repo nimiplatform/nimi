@@ -92,8 +92,10 @@ function EmbeddingFields(props: StudioParameterPanelProps) {
   const parameters = props.parameters as StudioEmbeddingParameters;
   const values = parameters.inputs?.length ? parameters.inputs : [''];
   const updateValues = (nextValues: string[]) => {
-    if (nextValues.length > 1 || nextValues.some((value) => value.trim())) props.onChange({ inputs: nextValues });
-    else props.onChange({});
+    const next = { ...parameters };
+    if (nextValues.length > 1 || nextValues.some((value) => value.trim())) next.inputs = nextValues;
+    else delete next.inputs;
+    props.onChange(next);
   };
   const label = t('Studio.parameters.fields.inputs');
   const fields: StudioParameterFieldDefinition[] = [{
@@ -123,6 +125,13 @@ function EmbeddingFields(props: StudioParameterPanelProps) {
         </Button>
       </div>
     ),
+  }, {
+    field: 'dimensions',
+    label: t('Studio.parameters.fields.dimensions'),
+    render: (routeDisabled) => <div>
+      <StudioNumberParameter current={parameters} field="dimensions" label={t('Studio.parameters.fields.dimensions')} onChange={props.onChange} disabled={props.disabled || routeDisabled} min={1} step={1} />
+      <small>{t('Studio.parameters.embeddingDimensionsHint')}</small>
+    </div>,
   }];
   return (
     <StudioRouteAwareParameterFields

@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 )
@@ -84,7 +85,7 @@ func (p *CloudProvider) GenerateTextScenarioWithTarget(
 }
 
 // EmbedWithTarget executes one exact connector target.
-func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inputs []string, target *RemoteTarget) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
+func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inputs []string, dimensions *uint32, protocol capabilitydriver.CloudEmbedProtocol, target *RemoteTarget) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
 	if target == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
@@ -92,7 +93,20 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 	if backend == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	return backend.Embed(ctx, resolvedModelID, inputs)
+	switch protocol {
+	case capabilitydriver.CloudEmbedProtocolGeminiV1:
+		if target.ProviderType != "gemini" || resolvedModelID != capabilitydriver.GeminiEmbedding2ModelID {
+			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		return backend.EmbedGeminiNative(ctx, resolvedModelID, inputs, dimensions)
+	case capabilitydriver.CloudEmbedProtocolCompatibleV1:
+		if target.ProviderType == "gemini" && resolvedModelID == capabilitydriver.GeminiEmbedding2ModelID {
+			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		return backend.Embed(ctx, resolvedModelID, inputs, dimensions)
+	default:
+		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
 }
 
 // StreamGenerateTextScenarioWithTarget executes one exact connector target.

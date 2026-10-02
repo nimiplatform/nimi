@@ -75,7 +75,7 @@ func (h *ProviderEmbedHost) ExecuteEmbed(
 		return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
-	vectors, usage, err := h.transport.EmbedWithTarget(ctx, request.ProviderModelID(), request.Inputs(), remoteTarget)
+	vectors, usage, err := h.transport.EmbedWithTarget(ctx, request.ProviderModelID(), request.Inputs(), request.Dimensions(), request.Protocol(), remoteTarget)
 	if err != nil {
 		return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)
 	}

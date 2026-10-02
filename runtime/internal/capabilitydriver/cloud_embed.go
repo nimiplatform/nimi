@@ -21,6 +21,15 @@ import (
 const (
 	TextEmbedCapabilityContract   = "text.embed"
 	CloudEmbedMaxInputsPerRequest = 16
+	GeminiEmbedding2ModelID       = "gemini-embedding-2"
+	GeminiEmbedding2Dimensions    = 3072
+)
+
+type CloudEmbedProtocol string
+
+const (
+	CloudEmbedProtocolCompatibleV1 CloudEmbedProtocol = "openai-compatible/embeddings/v1"
+	CloudEmbedProtocolGeminiV1     CloudEmbedProtocol = "gemini/embed-content/v1"
 )
 
 // CloudEmbedTarget is one exact provider/model target interpreted by an
@@ -38,10 +47,43 @@ func (t CloudEmbedTarget) ProviderModelID() string      { return t.providerModel
 func (t CloudEmbedTarget) RemoteModelCatalogID() string { return t.remoteModelCatalogID }
 func (t CloudEmbedTarget) Region() string               { return t.region }
 
+func (t CloudEmbedTarget) Protocol() CloudEmbedProtocol {
+	if t.provider == "gemini" && t.providerModelID == GeminiEmbedding2ModelID {
+		return CloudEmbedProtocolGeminiV1
+	}
+	return CloudEmbedProtocolCompatibleV1
+}
+
+func (t CloudEmbedTarget) DefaultDimensions() uint32 {
+	if t.Protocol() == CloudEmbedProtocolGeminiV1 {
+		return GeminiEmbedding2Dimensions
+	}
+	return 0
+}
+
 // CloudEmbedMappedRequest is the immutable output of Driver request mapping.
 type CloudEmbedMappedRequest struct {
-	providerModelID string
-	inputs          []string
+	providerModelID   string
+	inputs            []string
+	dimensions        *uint32
+	protocol          CloudEmbedProtocol
+	defaultDimensions uint32
+}
+
+func (r *CloudEmbedMappedRequest) Protocol() CloudEmbedProtocol {
+	if r == nil {
+		return ""
+	}
+	return r.protocol
+}
+
+// A native protocol's intrinsic default must agree with the reviewed catalog.
+// Zero leaves the default to that catalog's existing compatible contract.
+func (r *CloudEmbedMappedRequest) DefaultDimensions() uint32 {
+	if r == nil {
+		return 0
+	}
+	return r.defaultDimensions
 }
 
 func (r *CloudEmbedMappedRequest) ProviderModelID() string {
@@ -56,6 +98,14 @@ func (r *CloudEmbedMappedRequest) Inputs() []string {
 		return nil
 	}
 	return append([]string(nil), r.inputs...)
+}
+
+func (r *CloudEmbedMappedRequest) Dimensions() *uint32 {
+	if r == nil || r.dimensions == nil {
+		return nil
+	}
+	value := *r.dimensions
+	return &value
 }
 
 // CloudEmbedTransportResponse is the credential-free carrier returned by the
@@ -186,7 +236,35 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 		}
 		inputs = append(inputs, trimmed)
 	}
-	return &CloudEmbedMappedRequest{providerModelID: target.providerModelID, inputs: inputs}, nil
+	var dimensions *uint32
+	protocol, defaultDimensions := target.Protocol(), target.DefaultDimensions()
+	if spec.Dimensions != nil {
+		minimum, limit := nativeCloudEmbeddingDimensionBounds(target.provider, target.providerModelID)
+		if limit == 0 || spec.GetDimensions() < minimum || spec.GetDimensions() > limit {
+			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("requested embedding dimensions are unsupported by the selected implementation"))
+		}
+		value := spec.GetDimensions()
+		dimensions = &value
+	}
+	return &CloudEmbedMappedRequest{providerModelID: target.providerModelID, inputs: inputs, dimensions: dimensions, protocol: protocol, defaultDimensions: defaultDimensions}, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
+func nativeCloudEmbeddingDimensionBounds(provider, modelID string) (uint32, uint32) {
+	if provider == "gemini" && modelID == GeminiEmbedding2ModelID {
+		return 128, GeminiEmbedding2Dimensions
+	}
+	if provider != "openai" {
+		return 0, 0
+	}
+	switch modelID {
+	case "text-embedding-3-small":
+		return 1, 1536
+	case "text-embedding-3-large":
+		return 1, 3072
+	default:
+		return 0, 0
+	}
 }
 
 func (providerCloudEmbedDriver) NormalizeResponse(request *CloudEmbedMappedRequest, response CloudEmbedTransportResponse) (CloudEmbedResult, error) {
@@ -223,17 +301,6 @@ func (providerCloudEmbedDriver) NormalizeResponse(request *CloudEmbedMappedReque
 	var usage *runtimev1.UsageStats
 	if response.Usage != nil {
 		usage, _ = proto.Clone(response.Usage).(*runtimev1.UsageStats)
-	}
-	if usage == nil {
-		var inputTokens int64
-		for _, input := range request.inputs {
-			inputTokens += estimateCloudEmbedTokens(input)
-		}
-		usage = &runtimev1.UsageStats{
-			InputTokens:  inputTokens,
-			OutputTokens: int64(len(vectors) * 4),
-			ComputeMs:    maxCloudEmbedInt64(4, int64(len(vectors)*3)),
-		}
 	}
 	return CloudEmbedResult{Vectors: vectors, Usage: usage}, nil
 }
@@ -345,26 +412,4 @@ func cloudEmbedReasonGRPCCode(reason runtimev1.ReasonCode) codes.Code {
 	default:
 		return codes.Internal
 	}
-}
-
-func estimateCloudEmbedTokens(text string) int64 {
-	count := len([]rune(strings.TrimSpace(text)))
-	if count == 0 {
-		return 0
-	}
-	tokens := count / 4
-	if count%4 != 0 {
-		tokens++
-	}
-	if tokens < 1 {
-		tokens = 1
-	}
-	return int64(tokens)
-}
-
-func maxCloudEmbedInt64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
 }

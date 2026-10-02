@@ -186,13 +186,15 @@ async function runChatStream(context: StudioCapabilityRuntimeContext) {
 }
 
 async function runTextEmbed(context: StudioCapabilityRuntimeContext) {
+  const parameters = context.input.parameters as StudioEmbeddingParameters | undefined;
   const embeddingInputs = nonEmptyEmbeddingInputs(
-    context.input.parameters as StudioEmbeddingParameters | undefined,
+    parameters,
   );
   if (!context.prompt && embeddingInputs.length === 0) return inputRequired(context);
   const result = await context.host.client.ai.scenario.execute({
     type: 'text-embed',
     inputs: embeddingInputs.length > 0 ? embeddingInputs : [context.prompt],
+    ...(parameters?.dimensions !== undefined ? { dimensions: parameters.dimensions } : {}),
   });
   if (result.output.type !== 'text-embed') {
     return context.host.nonSuccess(
@@ -223,6 +225,7 @@ async function runTextEmbed(context: StudioCapabilityRuntimeContext) {
       dimensions: first.length,
       spaceId,
       sample: [...first.slice(0, 8)],
+      ...(result.output.usage ? { totalTokens: result.output.usage.totalTokens } : {}),
     },
     ...(result.traceId ? { trace: { traceId: result.traceId } } : {}),
   };

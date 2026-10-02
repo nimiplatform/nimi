@@ -2,6 +2,8 @@
 
 ## Next minor (compatible additions)
 
+The generation consume helper adds optional embedding `dimensions`, and the protected native carrier retains its presence through the matching SDK and Runtime. This is a compatible next-minor addition. Runtime admits exact native shortening support and rejects unsupported Local or Cloud compositions; omitting the field retains the captured native default. Missing provider usage remains unspecified in the embedding summary.
+
 The music generation helper now retains owned video references through validation and submission, so a video-conditioned request cannot become prompt-only music.
 
 Renderer AIConfig accepts the matching SDK's bounded `speechInput` projection on Local and Cloud speech resources. The bridge speech request type carries separate identity and performance artifact references; the SDK remains the input validator. This completes the existing reference-conditioned speech carrier without changing resource selection or admitting unknown fields.

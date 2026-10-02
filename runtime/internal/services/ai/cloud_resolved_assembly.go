@@ -37,6 +37,7 @@ type cloudResolvedAssembly struct {
 	MusicVideoReference  *nimillm.MusicReferenceVideo          `json:"music_video_reference,omitempty"`
 	MusicReference       *nimillm.MusicReferenceAudio          `json:"music_reference,omitempty"`
 	EmbeddingDimension   int                                   `json:"embedding_dimension,omitempty"`
+	EmbeddingProtocol    capabilitydriver.CloudEmbedProtocol   `json:"embedding_protocol,omitempty"`
 	AIConfigRevision     uint64                                `json:"ai_config_revision,omitempty"`
 	Version              int                                   `json:"version"`
 	RequestKind          string                                `json:"request_kind"`
@@ -152,6 +153,13 @@ func cloneCloudResolvedAssembly(input *cloudResolvedAssembly) (*cloudResolvedAss
 func validateCloudResolvedAssembly(assembly *cloudResolvedAssembly) error {
 	if assembly != nil && assembly.RequestKind == cloudResolvedRequestEmbed && assembly.EmbeddingDimension <= 0 {
 		return fmt.Errorf("Cloud embedding output contract is missing")
+	}
+	if assembly != nil && assembly.RequestKind == cloudResolvedRequestEmbed &&
+		assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolCompatibleV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolGeminiV1 {
+		return fmt.Errorf("Cloud embedding protocol capture is missing or unsupported")
+	}
+	if assembly != nil && assembly.RequestKind != cloudResolvedRequestEmbed && assembly.EmbeddingProtocol != "" {
+		return fmt.Errorf("Cloud embedding protocol belongs only to an embedding request")
 	}
 	if err := validateCloudResolvedAssemblyDraft(assembly); err != nil {
 		return err

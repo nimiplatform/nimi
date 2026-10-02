@@ -85,6 +85,7 @@ export type RuntimeAIConsumeInput = {
   readonly capabilityId: RuntimeAIConsumeCapabilityId;
   readonly prompt: string;
   readonly inputs?: readonly string[];
+  readonly dimensions?: number;
   readonly directive?: string;
   readonly parameters?: RuntimeAIConsumeParameters;
   readonly scenarioId: string;
@@ -123,6 +124,9 @@ export async function runRuntimeAIConsumeCapability(
   }
 
   try {
+    if (input.capabilityId !== 'text.embed' && input.dimensions !== undefined) {
+      throw createNimiError({ reasonCode: ReasonCode.SDK_AI_INPUT_INVALID, message: 'Embedding dimensions require text.embed.', actionHint: 'provide_embedding_dimensions_only_for_text_embed', source: 'sdk' });
+    }
     if (input.capabilityId === 'text.embed') {
       const embedding = createNimiRuntimeEmbeddingClient({
         runtime: input.runtime,
@@ -132,6 +136,7 @@ export async function runRuntimeAIConsumeCapability(
       });
       const result = await embedding.embedText({
         values: input.inputs ?? [input.prompt],
+        ...(input.dimensions !== undefined ? { dimensions: input.dimensions } : {}),
       });
       const first = result.embeddings[0] ?? [];
       const trace = runtimeConsumeTrace(result.raw);

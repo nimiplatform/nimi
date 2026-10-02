@@ -241,8 +241,12 @@ func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.Ex
 				}
 			}
 		}
+		var usage *runtimev1.UsageStats
+		if result.GetRouteDecision() == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD && result.Usage != nil {
+			usage = proto.Clone(result.Usage).(*runtimev1.UsageStats)
+		}
 		return &runtimev1.ExecuteLocalAppScenarioResponse{
-			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_TextEmbed{TextEmbed: &runtimev1.LocalAppTextEmbedOutput{Vectors: vectors, SpaceId: embed.GetSpaceId()}},
+			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_TextEmbed{TextEmbed: &runtimev1.LocalAppTextEmbedOutput{Vectors: vectors, SpaceId: embed.GetSpaceId(), Usage: usage}},
 			TraceId: result.GetTraceId(),
 		}, nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:
@@ -291,7 +295,7 @@ func validateLocalAppScenarioExecuteRequest(req *runtimev1.ExecuteLocalAppScenar
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
 		}
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{
-			TextEmbed: &runtimev1.TextEmbedScenarioSpec{Inputs: inputs},
+			TextEmbed: &runtimev1.TextEmbedScenarioSpec{Inputs: inputs, Dimensions: spec.TextEmbed.Dimensions},
 		}}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED, nil
 	case *runtimev1.ExecuteLocalAppScenarioRequest_TextDecide:
 		if err := validateTextDecideSpec(spec.TextDecide); err != nil {

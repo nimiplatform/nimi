@@ -651,6 +651,10 @@ export interface TextEmbedScenarioSpec {
      * @generated from protobuf field: repeated string inputs = 1
      */
     inputs: string[];
+    /**
+     * @generated from protobuf field: optional uint32 dimensions = 2
+     */
+    dimensions?: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ImageGenerateScenarioSpec
@@ -2750,6 +2754,10 @@ export interface LocalAppTextEmbedScenarioSpec {
      * @generated from protobuf field: repeated string inputs = 1
      */
     inputs: string[];
+    /**
+     * @generated from protobuf field: optional uint32 dimensions = 2
+     */
+    dimensions?: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppImageGenerateScenarioSpec
@@ -2869,6 +2877,12 @@ export interface LocalAppTextEmbedOutput {
      * @generated from protobuf field: string space_id = 2
      */
     spaceId: string;
+    /**
+     * Optional provider-reported usage for Cloud embedding; absence is unknown.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 3
+     */
+    usage?: UsageStats;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppImageGenerateOutput
@@ -7459,7 +7473,8 @@ export const TextGenerateScenarioSpec = new TextGenerateScenarioSpec$Type();
 class TextEmbedScenarioSpec$Type extends MessageType<TextEmbedScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.TextEmbedScenarioSpec", [
-            { no: 1, name: "inputs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "inputs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "dimensions", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
     create(value?: PartialMessage<TextEmbedScenarioSpec>): TextEmbedScenarioSpec {
@@ -7477,6 +7492,9 @@ class TextEmbedScenarioSpec$Type extends MessageType<TextEmbedScenarioSpec> {
                 case /* repeated string inputs */ 1:
                     message.inputs.push(reader.string());
                     break;
+                case /* optional uint32 dimensions */ 2:
+                    message.dimensions = reader.uint32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7492,6 +7510,9 @@ class TextEmbedScenarioSpec$Type extends MessageType<TextEmbedScenarioSpec> {
         /* repeated string inputs = 1; */
         for (let i = 0; i < message.inputs.length; i++)
             writer.tag(1, WireType.LengthDelimited).string(message.inputs[i]);
+        /* optional uint32 dimensions = 2; */
+        if (message.dimensions !== undefined)
+            writer.tag(2, WireType.Varint).uint32(message.dimensions);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -13865,7 +13886,8 @@ export const LocalAppScenarioArtifact = new LocalAppScenarioArtifact$Type();
 class LocalAppTextEmbedScenarioSpec$Type extends MessageType<LocalAppTextEmbedScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.LocalAppTextEmbedScenarioSpec", [
-            { no: 1, name: "inputs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "inputs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "dimensions", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextEmbedScenarioSpec>): LocalAppTextEmbedScenarioSpec {
@@ -13883,6 +13905,9 @@ class LocalAppTextEmbedScenarioSpec$Type extends MessageType<LocalAppTextEmbedSc
                 case /* repeated string inputs */ 1:
                     message.inputs.push(reader.string());
                     break;
+                case /* optional uint32 dimensions */ 2:
+                    message.dimensions = reader.uint32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -13898,6 +13923,9 @@ class LocalAppTextEmbedScenarioSpec$Type extends MessageType<LocalAppTextEmbedSc
         /* repeated string inputs = 1; */
         for (let i = 0; i < message.inputs.length; i++)
             writer.tag(1, WireType.LengthDelimited).string(message.inputs[i]);
+        /* optional uint32 dimensions = 2; */
+        if (message.dimensions !== undefined)
+            writer.tag(2, WireType.Varint).uint32(message.dimensions);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14149,7 +14177,8 @@ class LocalAppTextEmbedOutput$Type extends MessageType<LocalAppTextEmbedOutput> 
     constructor() {
         super("nimi.runtime.v1.LocalAppTextEmbedOutput", [
             { no: 1, name: "vectors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => EmbeddingVector },
-            { no: 2, name: "space_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "space_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "usage", kind: "message", T: () => UsageStats }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextEmbedOutput>): LocalAppTextEmbedOutput {
@@ -14171,6 +14200,9 @@ class LocalAppTextEmbedOutput$Type extends MessageType<LocalAppTextEmbedOutput> 
                 case /* string space_id */ 2:
                     message.spaceId = reader.string();
                     break;
+                case /* nimi.runtime.v1.UsageStats usage */ 3:
+                    message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -14189,6 +14221,9 @@ class LocalAppTextEmbedOutput$Type extends MessageType<LocalAppTextEmbedOutput> 
         /* string space_id = 2; */
         if (message.spaceId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.spaceId);
+        /* nimi.runtime.v1.UsageStats usage = 3; */
+        if (message.usage)
+            UsageStats.internalBinaryWrite(message.usage, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

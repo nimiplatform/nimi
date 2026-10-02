@@ -9,6 +9,7 @@ import {
   type NimiLocalAppTextDecideSpec, type NimiLocalAppTextDecideShellSpec, type NimiLocalAppTextDecideOutput,
 } from './local-app-text-decision.js';
 import { ReasonCode, createNimiError } from '../../types/index.js';
+import type { NimiUsage } from '../contracts/index.js';
 import { copyNimiLocalAppBytes, exactNimiLocalAppBytes, isNimiLocalAppByteView } from './local-app-bytes.js';
 import {
   CanonicalChannelMode,
@@ -119,7 +120,7 @@ export type NimiLocalAppImageGenerateSpec = {
 
 export type NimiLocalAppScenarioExecuteSpec =
   | (NimiLocalAppTextTurnInput & { readonly type: 'text-generate' })
-  | { readonly type: 'text-embed'; readonly inputs: readonly string[] }
+  | { readonly type: 'text-embed'; readonly inputs: readonly string[]; readonly dimensions?: number }
   | NimiLocalAppImageGenerateSpec
   | NimiLocalAppTextDecideSpec;
 
@@ -322,7 +323,7 @@ export type NimiLocalAppTextDecideResult = {
 
 export type NimiLocalAppScenarioExecuteResult =
   | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
-  | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string }; readonly traceId: string }
+  | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string; readonly usage?: NimiUsage }; readonly traceId: string }
   | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string }
   | NimiLocalAppTextDecideResult;
 
@@ -567,7 +568,19 @@ export function createNimiLocalAppAIConsumptionClient(
         return runScenarioExecuteCall(
           call,
           (shellOptions) => shell.scenario.execute(prepared.shellSpec, shellOptions),
-          (value) => projectScenarioExecute(value, prepared.decide),
+          (value) => {
+            const projected = projectScenarioExecute(value, prepared.decide);
+            if (prepared.shellSpec.type === 'text-embed') {
+              const output = projected.output;
+              if (output.type !== 'text-embed') localAppProjectionError('text embed output type');
+              const dimensions = prepared.shellSpec.dimensions ?? output.vectors[0]?.length;
+              if (output.vectors.length !== prepared.shellSpec.inputs.length ||
+                output.vectors.some((row) => row.length !== dimensions)) {
+                localAppProjectionError('text embed output contract');
+              }
+            }
+            return projected;
+          },
         );
       },
     }),
@@ -905,12 +918,17 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       break;
     case 'text-embed':
       if (!execute) invalidAIInput('text-embed is not an async Job spec');
-      assertExactKeys(record, ['type', 'inputs'], 'text embed spec');
+      assertExactKeys(record, ['type', 'inputs', 'dimensions'], 'text embed spec');
+      optionalBoundedInteger(record.dimensions, 'text embed dimensions', 1, 0xffff_ffff);
       if (!Array.isArray(record.inputs) || record.inputs.length === 0 || record.inputs.length > 16) {
         invalidAIInput('text embed inputs are invalid');
       }
       record.inputs.forEach((value, index) => boundedContent(value, `text embed input ${index}`, 32 * 1024));
-      break;
+      return Object.freeze({
+        type: 'text-embed',
+        inputs: Object.freeze([...record.inputs]),
+        ...(record.dimensions !== undefined ? { dimensions: record.dimensions } : {}),
+      }) as T;
     case 'image-generate':
       assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'strength', 'responseFormat'], 'image spec');
       boundedContent(record.prompt, 'image prompt', 32 * 1024);
@@ -1347,7 +1365,7 @@ function projectScenarioExecute(
   }
   assertSafeProjection(record);
   if (output.type === 'text-embed') {
-    assertExactProjectionKeys(output, ['type', 'vectors', 'spaceId'], 'text embed output');
+    assertExactProjectionKeys(output, ['type', 'vectors', 'spaceId', ...(output.usage !== undefined ? ['usage'] : [])], 'text embed output');
     const spaceId = boundedProjectionText(output.spaceId, 'embedding spaceId', 128);
     if (!Array.isArray(output.vectors) || output.vectors.length === 0 || output.vectors.length > 16) localAppProjectionError('text embed vectors');
     const vectors = output.vectors.map((vector) => {
@@ -1355,7 +1373,8 @@ function projectScenarioExecute(
         || vector.some((entry) => typeof entry !== 'number' || !Number.isFinite(entry))) localAppProjectionError('text embed vector');
       return Object.freeze([...vector] as number[]);
     });
-    return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors), spaceId }), traceId });
+    const usage = output.usage === undefined ? undefined : projectEmbeddingUsage(output.usage);
+    return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors), spaceId, ...(usage ? { usage } : {}) }), traceId });
   }
   if (output.type === 'image-generate') {
     assertExactProjectionKeys(output, ['type', 'artifacts'], 'image execute output');
@@ -1712,10 +1731,20 @@ function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAp
   };
 }
 
+function projectEmbeddingUsage(value: unknown): NimiUsage {
+  const usage = asRecord(value);
+  assertExactProjectionKeys(usage, ['promptTokens', 'completionTokens', 'totalTokens'], 'embedding usage');
+  const promptTokens = projectionInteger(usage.promptTokens, 'embedding prompt tokens', 0, Number.MAX_SAFE_INTEGER);
+  const completionTokens = projectionInteger(usage.completionTokens, 'embedding completion tokens', 0, Number.MAX_SAFE_INTEGER);
+  const totalTokens = projectionInteger(usage.totalTokens, 'embedding total tokens', 0, Number.MAX_SAFE_INTEGER);
+  if (totalTokens !== promptTokens + completionTokens) localAppProjectionError('embedding total tokens');
+  return Object.freeze({ promptTokens, completionTokens, totalTokens });
+}
+
 function runtimeExecuteRequest(spec: NimiLocalAppScenarioExecuteShellSpec, timeoutMs: number): ExecuteLocalAppScenarioRequest {
   if (spec.type === 'text-generate') return { spec: { oneofKind: 'textGenerate', textGenerate: runtimeTextTurnRequest(spec) }, timeoutMs };
   if (spec.type === 'text-embed') {
-    return { spec: { oneofKind: 'textEmbed', textEmbed: { inputs: [...spec.inputs] } }, timeoutMs };
+    return { spec: { oneofKind: 'textEmbed', textEmbed: { inputs: [...spec.inputs], ...(spec.dimensions !== undefined ? { dimensions: spec.dimensions } : {}) } }, timeoutMs };
   }
   if (spec.type === 'text-decide') {
     return { spec: { oneofKind: 'textDecide', textDecide: runtimeTextDecideSpec(spec) }, timeoutMs };
@@ -1972,6 +2001,11 @@ function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenario
           type: 'text-embed',
           vectors: response.output.textEmbed.vectors.map((vector) => [...vector.values]),
           spaceId: response.output.textEmbed.spaceId,
+          ...(response.output.textEmbed.usage ? { usage: {
+            promptTokens: Number(response.output.textEmbed.usage.inputTokens),
+            completionTokens: Number(response.output.textEmbed.usage.outputTokens),
+            totalTokens: Number(response.output.textEmbed.usage.inputTokens) + Number(response.output.textEmbed.usage.outputTokens),
+          } } : {}),
         },
         traceId: response.traceId,
       };

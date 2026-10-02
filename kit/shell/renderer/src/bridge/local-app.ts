@@ -146,7 +146,7 @@ export type NimiLocalAppTextCandidateResult = {
 
 export type NimiLocalAppScenarioExecuteSpec =
   | ({ readonly type: 'text-generate' } & NimiLocalAppTextTurnInput)
-  | { readonly type: 'text-embed'; readonly inputs: readonly string[] }
+  | { readonly type: 'text-embed'; readonly inputs: readonly string[]; readonly dimensions?: number }
   | NimiLocalAppImageGenerateSpec
   // Carrier form: JSON content is the SDK's canonical JSON.stringify text.
   | NimiLocalAppTextDecideShellSpec;
@@ -281,7 +281,7 @@ export type NimiLocalAppVoiceAsset = {
 };
 export type NimiLocalAppScenarioExecuteResult =
   | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
-  | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string }; readonly traceId: string }
+  | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string; readonly usage?: { readonly promptTokens: number; readonly completionTokens: number; readonly totalTokens: number } }; readonly traceId: string }
   | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string }
   | { readonly output: NimiLocalAppTextDecideOutput; readonly traceId: string };
 export type NimiLocalAppScenarioJobSubmitResult = {
@@ -2636,7 +2636,15 @@ function parseScenarioExecute(value: unknown, command: string, spec: JsonObject)
     if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))) throw new Error(`${command}: finishReason is invalid`);
   } else if (output.type === 'text-embed') {
     // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-space-identity
-    assertProjectionKeys(output, ['type', 'vectors', 'spaceId'], command, 'embed output');
+    assertProjectionKeys(output, ['type', 'vectors', 'spaceId', ...(output.usage !== undefined ? ['usage'] : [])], command, 'embed output');
+    if (output.usage !== undefined) {
+      const usage = assertRecord(output.usage, `${command}: embed usage is invalid`);
+      assertProjectionKeys(usage, ['promptTokens', 'completionTokens', 'totalTokens'], command, 'embed usage');
+      const prompt = nonNegativeInteger(usage.promptTokens, command, 'promptTokens');
+      const completion = nonNegativeInteger(usage.completionTokens, command, 'completionTokens');
+      const total = nonNegativeInteger(usage.totalTokens, command, 'totalTokens');
+      if (total !== prompt + completion) throw new Error(`${command}: embed usage total is invalid`);
+    }
     if (!optionalProjectionText(output.spaceId, 128, command)) {
       throw new Error(`${command}: embedding spaceId is invalid`);
     }

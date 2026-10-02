@@ -294,7 +294,10 @@ export function StudioResult({
       ];
     }
     if (output.kind === 'embedding') {
-      return [{ label: t('Studio.result.statResult'), value: t('Studio.result.statCreated') }];
+      return [
+        { label: t('Studio.result.statResult'), value: t('Studio.result.statCreated') },
+        ...(output.totalTokens !== undefined ? [{ label: t('Studio.result.statTokens'), value: String(output.totalTokens) }] : []),
+      ];
     }
     if (output.kind === 'text-annotation') {
       return [

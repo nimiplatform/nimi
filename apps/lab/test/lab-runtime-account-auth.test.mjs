@@ -1095,16 +1095,16 @@ test('Lab text.embed executes the closed Local App scenario face and keeps the e
   const client = fakeLocalAppClient({
     async executeScenario(spec) {
       calls.push(spec);
-      return { output: { type: 'text-embed', vectors: [[0.1, 0.2, 0.3]], spaceId: 'local:embed-space-a' }, traceId: 'trace-embed' };
+      return { output: { type: 'text-embed', vectors: [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]], spaceId: 'local:embed-space-a', usage: { promptTokens: 7, completionTokens: 0, totalTokens: 7 } }, traceId: 'trace-embed' };
     },
   });
   const result = await runLabCapability({
     capabilityId: 'text.embed',
     prompt: 'embed me',
-    parameters: { inputs: ['first', ' second '] },
+    parameters: { inputs: ['first', ' second '], dimensions: 3 },
   }, readyRuntimeDependencies(client));
-  assert.deepEqual(calls, [{ type: 'text-embed', inputs: ['first', 'second'] }]);
-  assert.deepEqual(result.output, { kind: 'embedding', vectorCount: 1, dimensions: 3, spaceId: 'local:embed-space-a', sample: [0.1, 0.2, 0.3] });
+  assert.deepEqual(calls, [{ type: 'text-embed', inputs: ['first', 'second'], dimensions: 3 }]);
+  assert.deepEqual(result.output, { kind: 'embedding', vectorCount: 2, dimensions: 3, spaceId: 'local:embed-space-a', sample: [0.1, 0.2, 0.3], totalTokens: 7 });
 });
 
 test('Lab text.embed keeps equal-dimension results from different spaces apart and rejects a missing space', async () => {

@@ -201,7 +201,7 @@ func TestBackendEmbedUsesOpenAICompatiblePathResolver(t *testing.T) {
 	defer func() { server.Close() }()
 
 	backend := NewBackend("cloud-gemini", server.URL+"/v1beta/openai", "", time.Second)
-	vectors, _, err := backend.Embed(context.Background(), "gemini-embedding-001", []string{"hello"})
+	vectors, _, err := backend.Embed(context.Background(), "gemini-embedding-001", []string{"hello"}, nil)
 	if err != nil {
 		t.Fatalf("Embed failed through OpenAI-compatible path resolver: %v; path=%q", err, capturedPath)
 	}
@@ -229,7 +229,7 @@ func TestBackendEmbedPlacesVectorsByProviderIndex(t *testing.T) {
 		{"index": 0, "embedding": []float64{0.1}},
 	})
 	defer server.Close()
-	vectors, _, err := NewBackend("cloud-openai", server.URL+"/v1", "", time.Second).Embed(context.Background(), "text-embedding-3-small", []string{"first", "second"})
+	vectors, _, err := NewBackend("cloud-openai", server.URL+"/v1", "", time.Second).Embed(context.Background(), "text-embedding-3-small", []string{"first", "second"}, nil)
 	if err != nil {
 		t.Fatalf("Embed: %v", err)
 	}
@@ -243,11 +243,54 @@ func TestBackendEmbedPlacesVectorsByProviderIndex(t *testing.T) {
 		"missing vector":     {{"index": 0, "embedding": []float64{0.1}}},
 	} {
 		bad := respond(data)
-		_, _, err := NewBackend("cloud-openai", bad.URL+"/v1", "", time.Second).Embed(context.Background(), "text-embedding-3-small", []string{"first", "second"})
+		_, _, err := NewBackend("cloud-openai", bad.URL+"/v1", "", time.Second).Embed(context.Background(), "text-embedding-3-small", []string{"first", "second"}, nil)
 		bad.Close()
 		if err == nil {
 			t.Fatalf("%s: a response that does not map one vector to each input was accepted", name)
 		}
+	}
+}
+
+func TestBackendEmbedPreservesNativeDimensionsAndReportedUsage(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		usage         any
+		wantUsage     bool
+		input, output int64
+	}{
+		{"missing", nil, false, 0, 0},
+		{"empty", map[string]any{}, false, 0, 0},
+		{"prompt only", map[string]any{"prompt_tokens": 7}, false, 0, 0},
+		{"zero", map[string]any{"prompt_tokens": 0, "total_tokens": 0}, true, 0, 0},
+		{"reported", map[string]any{"prompt_tokens": 7, "total_tokens": 9}, true, 7, 2},
+		{"negative", map[string]any{"prompt_tokens": -1, "total_tokens": 9}, false, 0, 0},
+		{"inconsistent", map[string]any{"prompt_tokens": 7, "total_tokens": 3}, false, 0, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+				}
+				if body["dimensions"] != float64(2) {
+					t.Errorf("native dimensions = %v", body["dimensions"])
+				}
+				response := map[string]any{"data": []any{map[string]any{"embedding": []float64{0.25, 0.75}, "index": 0}}}
+				if tc.usage != nil {
+					response["usage"] = tc.usage
+				}
+				_ = json.NewEncoder(w).Encode(response)
+			}))
+			defer server.Close()
+			dimensions := uint32(2)
+			vectors, usage, err := NewBackend("cloud-openai", server.URL+"/v1", "", time.Second).Embed(context.Background(), "text-embedding-3-small", []string{"hello"}, &dimensions)
+			if err != nil || len(vectors) != 1 {
+				t.Fatalf("Embed = %+v %v", vectors, err)
+			}
+			if (usage != nil) != tc.wantUsage || usage.GetInputTokens() != tc.input || usage.GetOutputTokens() != tc.output || usage.GetComputeMs() != 0 {
+				t.Fatalf("provider usage = %+v", usage)
+			}
+		})
 	}
 }
 

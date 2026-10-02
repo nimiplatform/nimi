@@ -385,6 +385,7 @@ message TextGenerateScenarioSpec {
 
 message TextEmbedScenarioSpec {
   repeated string inputs = 1;
+  optional uint32 dimensions = 2;
 }
 
 message ImageGenerateScenarioSpec {
@@ -1191,6 +1192,7 @@ message LocalAppScenarioArtifact {
 // Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
 message LocalAppTextEmbedScenarioSpec {
   repeated string inputs = 1;
+  optional uint32 dimensions = 2;
 }
 
 message LocalAppImageGenerateScenarioSpec {
@@ -1227,6 +1229,8 @@ message ExecuteLocalAppScenarioRequest {
 message LocalAppTextEmbedOutput {
   repeated EmbeddingVector vectors = 1;
   string space_id = 2;
+  // Optional provider-reported usage for Cloud embedding; absence is unknown.
+  UsageStats usage = 3;
 }
 
 message LocalAppImageGenerateOutput {

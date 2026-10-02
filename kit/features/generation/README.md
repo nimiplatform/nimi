@@ -72,6 +72,17 @@ owned audio artifacts with the same timeline. Receive large WAVs through
 The SDK README documents the initial Driver's input limits and App chunking
 responsibility. A failed or canceled Job does not provide a successful pair.
 
+## Embeddings
+
+`runRuntimeAIConsumeCapability` accepts batch `inputs` and optional positive
+integer `dimensions` for `text.embed`. A protected App submits the same fields
+through `client.ai.scenario.execute({ type: 'text-embed', inputs, dimensions })`.
+Omit `dimensions` to retain the selected implementation's native default.
+Runtime admits shortening only for supported exact targets and rejects the
+option for unsupported compositions. The result summary retains actual width,
+`spaceId` and at most eight sample values. Compare vectors only within the same
+space. Missing usage is unspecified.
+
 ## Verification
 
 - `pnpm --filter @nimiplatform/kit build`

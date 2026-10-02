@@ -64,7 +64,7 @@ describe('renderer local-app standard-shell surface', () => {
   });
   it('preserves the Runtime embedding space through the public App client and rejects invalid projections', async () => {
     let output: Record<string, unknown> = {
-      type: 'text-embed', vectors: [[0.25, 0.75]], spaceId: 'space-runtime-1',
+      type: 'text-embed', vectors: [[0.25, 0.75]], spaceId: 'space-runtime-1', usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
     const requests: unknown[] = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
@@ -75,16 +75,19 @@ describe('renderer local-app standard-shell surface', () => {
       },
     };
     const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
-    const spec = { type: 'text-embed' as const, inputs: ['学习资料中的引用帮助读者核对论据。'] };
+    const spec = { type: 'text-embed' as const, inputs: ['学习资料中的引用帮助读者核对论据。'], dimensions: 2 };
     const first = await client.ai.scenario.execute(spec);
     expect(first).toEqual({ output, traceId: 'trace-embedding-1' });
     output = { ...output, spaceId: 'space-runtime-2' };
     expect((await client.ai.scenario.execute(spec)).output).toEqual(output);
     expect(requests).toHaveLength(2);
+    expect((requests[0] as { payload: { spec: unknown } }).payload.spec).toEqual(spec);
     for (const invalid of [
       { type: 'text-embed', vectors: [[0.25, 0.75]] },
       ...['', ' padded ', 'x'.repeat(129), '学'.repeat(43), 'space\0id', 123].map((spaceId) => ({ ...output, spaceId })),
       { ...output, model: 'private-model' },
+      { ...output, usage: {} },
+      { ...output, usage: { promptTokens: 1, completionTokens: 0, totalTokens: 0 } },
     ]) {
       output = invalid;
       await expect(client.ai.scenario.execute(spec)).rejects.toMatchObject({

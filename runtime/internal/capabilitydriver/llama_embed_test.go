@@ -2,6 +2,7 @@ package capabilitydriver
 
 import (
 	"encoding/json"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -79,6 +80,16 @@ func containsAdjacent(values []string, key string, value string) bool {
 		}
 	}
 	return false
+}
+
+func TestLocalEmbeddingRejectsDimensionsWithoutDroppingTheOption(t *testing.T) {
+	for _, value := range []uint32{0, 1, 768} {
+		_, _, err := llamaEmbedRequestBody(&runtimev1.TextEmbedScenarioSpec{Inputs: []string{"hello"}, Dimensions: &value})
+		var failure *InvocationError
+		if !errors.As(err, &failure) || failure.Kind != InvocationFailureUnsupported {
+			t.Fatalf("unsupported Local dimensions %d: %v", value, err)
+		}
+	}
 }
 
 func TestProductionRegistryResolvesOnlyExactLlamaEmbedIdentity(t *testing.T) {

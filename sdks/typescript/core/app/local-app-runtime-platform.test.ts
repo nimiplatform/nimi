@@ -31,6 +31,59 @@ import {
 } from './local-app-runtime-platform.js';
 import { createNimiLocalAppVoiceAssetsClient, createNimiLocalAppVoiceAssetsRuntimeClient } from './local-app-runtime-platform-ai.js';
 
+test('protected embedding captures optional dimensions and rejects mismatched output before delivery', async () => {
+  const base = standardShell([]);
+  const request = { type: 'text-embed' as const, inputs: ['hello'], dimensions: 2 };
+  let calls = 0;
+  let width = 2;
+  const client = createNimiLocalAppClient({ standardShell: {
+    ...base, ai: { ...base.ai, scenario: { async execute(spec) {
+      calls++;
+      assert.equal(spec.type, 'text-embed');
+      if (spec.type !== 'text-embed') throw new Error('expected embedding request');
+      assert.equal(spec.dimensions, 2);
+      assert.deepEqual(spec.inputs, ['hello']);
+      request.dimensions = 3;
+      request.inputs.push('later');
+      return { output: { type: 'text-embed', vectors: [Array(width).fill(0.25)], spaceId: 'space-short' }, traceId: 'trace' };
+    } } },
+  } });
+  assert.equal((await client.ai.scenario.execute(request)).output.type, 'text-embed');
+  for (const dimensions of [0, -1, 1.5, NaN, Infinity, 0x1_0000_0000]) {
+    await assert.rejects(client.ai.scenario.execute({ type: 'text-embed', inputs: ['hello'], dimensions }));
+  }
+  assert.equal(calls, 1);
+  width = 3;
+  await assert.rejects(client.ai.scenario.execute({ type: 'text-embed', inputs: ['hello'], dimensions: 2 }));
+  assert.equal(calls, 2);
+});
+
+test('protected embedding usage preserves absence and reported zero and refuses malformed counters', async () => {
+  const base = standardShell([]);
+  const create = (usage: unknown) => createNimiLocalAppClient({ standardShell: {
+    ...base, ai: { ...base.ai, scenario: { async execute() {
+      return { output: { type: 'text-embed', vectors: [[0.25, 0.75]], spaceId: 'space-short', ...(usage === undefined ? {} : { usage }) }, traceId: 'trace' };
+    } } },
+  } });
+  const spec = { type: 'text-embed' as const, inputs: ['hello'] };
+  const missing = await create(undefined).ai.scenario.execute(spec);
+  assert.equal('usage' in missing.output, false);
+  const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+  const reported = await create(usage).ai.scenario.execute(spec);
+  assert.deepEqual((reported.output as { usage: unknown }).usage, usage);
+  for (const invalid of [null, {}, { ...usage, totalTokens: 1 }, { ...usage, promptTokens: -1 }, { ...usage, totalTokens: Number.MAX_SAFE_INTEGER + 1 }, { ...usage, computeMs: 0 }]) {
+    await assert.rejects(create(invalid).ai.scenario.execute(spec));
+  }
+});
+
+test('protected embedding rejects inconsistent widths when dimensions are omitted', async () => {
+  const base = standardShell([]);
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenario: {
+    async execute() { return { output: { type: 'text-embed', vectors: [[1, 2], [3]], spaceId: 'space-short' }, traceId: 'trace' }; },
+  } } } });
+  await assert.rejects(client.ai.scenario.execute({ type: 'text-embed', inputs: ['hello', 'world'] }));
+});
+
 test('voice deletion validates the id and requires an exact confirmed owner result', async () => {
   const calls: string[] = [];
   let response: unknown = { deleted: true };

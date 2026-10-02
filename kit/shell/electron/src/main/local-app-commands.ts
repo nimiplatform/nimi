@@ -1281,7 +1281,8 @@ function assertScenarioSpec(value: unknown, command: string, execute: boolean): 
     && (value.type === 'speech-transcribe' || value.type === 'voice-create' || value.type === 'audio-separate');
   validateJsonValue(value, command, 40 * 1024 * 1024, acceptsInlineAudio);
   if (value.type === 'text-embed' && execute) {
-    assertExactKeys(value, ['type', 'inputs'], command);
+    assertExactKeys(value, ['type', 'inputs', ...(value.dimensions !== undefined ? ['dimensions'] : [])], command);
+    if (value.dimensions !== undefined) boundedSafeInteger(value.dimensions, 'dimensions', command, 1, 0xffff_ffff);
     if (!Array.isArray(value.inputs) || value.inputs.length === 0 || value.inputs.length > 16) {
       throw invalidPayload(command, 'embed inputs are invalid');
     }

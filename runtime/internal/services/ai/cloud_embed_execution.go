@@ -148,6 +148,9 @@ func (s *Service) captureCloudEmbedBinding(ctx context.Context, head *runtimev1.
 	if binding.EmbeddingDimension <= 0 {
 		return nil, memoryEmbeddingUnavailable()
 	}
+	if native := target.DefaultDimensions(); native > 0 && int(native) != int(binding.EmbeddingDimension) {
+		return nil, memoryEmbeddingUnavailable()
+	}
 	effective := &cloudEmbedEffectiveInputs{
 		dimension:      int(binding.EmbeddingDimension),
 		implementation: implementation,
@@ -176,7 +179,13 @@ func (s *Service) bindCloudEmbedRequest(ctx context.Context, binding *cloudEmbed
 	if err != nil {
 		return nil, cloudEmbedDriverError(err)
 	}
-	effective.request = &runtimev1.TextEmbedScenarioSpec{Inputs: mapped.Inputs()}
+	effective.request = &runtimev1.TextEmbedScenarioSpec{Inputs: mapped.Inputs(), Dimensions: mapped.Dimensions()}
+	if dimensions := mapped.Dimensions(); dimensions != nil {
+		if int(*dimensions) > binding.dimension {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		effective.dimension = int(*dimensions)
+	}
 	effective.mapped = mapped
 	effective.resolvedAssembly, err = newCloudResolvedAssembly(
 		cloudResolvedRequestEmbed, capabilitydriver.TextEmbedCapabilityContract, effective.implementation, effective.rawTarget,
@@ -187,7 +196,9 @@ func (s *Service) bindCloudEmbedRequest(ctx context.Context, binding *cloudEmbed
 		effective.release()
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Cloud ResolvedAssembly capture failed"})
 	}
-	effective.resolvedAssembly.EmbeddingDimension = binding.dimension
+	effective.resolvedAssembly.EmbeddingDimension = effective.dimension
+	// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
+	effective.resolvedAssembly.EmbeddingProtocol = mapped.Protocol()
 	if err := s.auditCloudEmbedCapture(&effective); err != nil {
 		effective.release()
 		return nil, err
@@ -225,6 +236,13 @@ func (s *Service) cloudEmbedEffectiveInputsFromResolvedAssembly(assembly *cloudR
 	mapped, err := driver.MapRequest(target, request, defaults)
 	if err != nil {
 		return nil, cloudEmbedDriverError(err)
+	}
+	if mapped.Protocol() != assembly.EmbeddingProtocol ||
+		(request.Dimensions == nil && mapped.DefaultDimensions() > 0 && int(mapped.DefaultDimensions()) != assembly.EmbeddingDimension) {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if dimensions := mapped.Dimensions(); dimensions != nil && int(*dimensions) != assembly.EmbeddingDimension {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	clonedAssembly, err := cloneCloudResolvedAssembly(assembly)
 	if err != nil {

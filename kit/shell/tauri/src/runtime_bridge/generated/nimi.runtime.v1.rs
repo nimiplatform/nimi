@@ -5652,6 +5652,8 @@ pub struct TextGenerateScenarioSpec {
 pub struct TextEmbedScenarioSpec {
     #[prost(string, repeated, tag = "1")]
     pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "2")]
+    pub dimensions: ::core::option::Option<u32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ImageGenerateScenarioSpec {
@@ -6763,6 +6765,8 @@ pub struct LocalAppScenarioArtifact {
 pub struct LocalAppTextEmbedScenarioSpec {
     #[prost(string, repeated, tag = "1")]
     pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "2")]
+    pub dimensions: ::core::option::Option<u32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppImageGenerateScenarioSpec {
@@ -6826,6 +6830,9 @@ pub struct LocalAppTextEmbedOutput {
     pub vectors: ::prost::alloc::vec::Vec<EmbeddingVector>,
     #[prost(string, tag = "2")]
     pub space_id: ::prost::alloc::string::String,
+    /// Optional provider-reported usage for Cloud embedding; absence is unknown.
+    #[prost(message, optional, tag = "3")]
+    pub usage: ::core::option::Option<UsageStats>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppImageGenerateOutput {

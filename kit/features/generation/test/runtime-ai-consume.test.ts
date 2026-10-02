@@ -215,6 +215,7 @@ describe('runtime AI consume contract', () => {
     const result = await runRuntimeAIConsumeCapability(input(runtime, 'text.embed', {
       prompt: '',
       inputs: [' first ', 'second'],
+      dimensions: 3,
     }));
 
     expect(executeScenario).toHaveBeenCalledTimes(1);
@@ -224,6 +225,7 @@ describe('runtime AI consume contract', () => {
     const spec = runtimeRequest.spec?.spec;
     if (spec?.oneofKind !== 'textEmbed') throw new Error('expected textEmbed spec');
     expect(spec.textEmbed.inputs).toEqual(['first', 'second']);
+    expect(spec.textEmbed.dimensions).toBe(3);
     expect(result).toMatchObject({
       ok: true,
       capabilityId: 'text.embed',

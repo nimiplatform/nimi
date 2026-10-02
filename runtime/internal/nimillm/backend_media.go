@@ -40,19 +40,20 @@ func transcriptionUploadFilename(mimeType string) string {
 }
 
 // Embed sends an embeddings request.
-func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
+func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string, dimensions *uint32) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
 	type embeddingsRequest struct {
-		Model string   `json:"model"`
-		Input []string `json:"input"`
+		Model      string   `json:"model"`
+		Input      []string `json:"input"`
+		Dimensions *uint32  `json:"dimensions,omitempty"`
 	}
 	type embeddingsResponse struct {
 		Data []struct {
 			Index     *int      `json:"index"`
 			Embedding []float64 `json:"embedding"`
 		} `json:"data"`
-		Usage struct {
-			PromptTokens int64 `json:"prompt_tokens"`
-			TotalTokens  int64 `json:"total_tokens"`
+		Usage *struct {
+			PromptTokens *int64 `json:"prompt_tokens"`
+			TotalTokens  *int64 `json:"total_tokens"`
 		} `json:"usage"`
 	}
 
@@ -67,11 +68,15 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([
 	if len(reqInputs) == 0 {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if dimensions != nil && *dimensions == 0 {
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 
 	var respBody embeddingsResponse
 	if err := b.postJSON(ctx, resolveOpenAICompatiblePath(b.baseURL, "/embeddings"), embeddingsRequest{
-		Model: modelID,
-		Input: reqInputs,
+		Model:      modelID,
+		Input:      reqInputs,
+		Dimensions: dimensions,
 	}, &respBody); err != nil {
 		return nil, nil, err
 	}
@@ -97,21 +102,11 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([
 		vectors[index] = &structpb.ListValue{Values: values}
 	}
 
-	usage := &runtimev1.UsageStats{
-		InputTokens:  MaxInt64(0, respBody.Usage.PromptTokens),
-		OutputTokens: MaxInt64(0, respBody.Usage.TotalTokens-respBody.Usage.PromptTokens),
-		ComputeMs:    0,
-	}
-	if usage.GetInputTokens() == 0 && usage.GetOutputTokens() == 0 {
-		totalInput := int64(0)
-		for _, input := range reqInputs {
-			totalInput += EstimateTokens(input)
-		}
-		usage = &runtimev1.UsageStats{
-			InputTokens:  totalInput,
-			OutputTokens: int64(len(vectors)),
-			ComputeMs:    MaxInt64(4, int64(len(vectors))*3),
-		}
+	// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
+	var usage *runtimev1.UsageStats
+	if observed := respBody.Usage; observed != nil && observed.PromptTokens != nil && observed.TotalTokens != nil &&
+		*observed.PromptTokens >= 0 && *observed.TotalTokens >= *observed.PromptTokens {
+		usage = &runtimev1.UsageStats{InputTokens: *observed.PromptTokens, OutputTokens: *observed.TotalTokens - *observed.PromptTokens}
 	}
 	return vectors, usage, nil
 }

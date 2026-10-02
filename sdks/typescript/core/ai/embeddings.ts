@@ -26,6 +26,7 @@ export interface NimiRuntimeEmbeddingClientOptions {
 
 export interface NimiEmbedTextRequest {
   readonly values: readonly string[];
+  readonly dimensions?: number;
   readonly metadata?: NimiJsonObject;
 }
 
@@ -53,23 +54,28 @@ export function createNimiRuntimeEmbeddingClient(
   return {
     async embedText(request) {
       const values = normalizeEmbeddingInputs(request.values);
+      const dimensions = request.dimensions;
       const response = await scenarioClient.executeScenario(
-        buildRuntimeTextEmbeddingRequest({ values, options, appId }),
+        buildRuntimeTextEmbeddingRequest({ values, dimensions, options, appId }),
         withNimiRuntimeIdempotencyMetadata({
           metadata: mergeMetadata(options.metadata, request.metadata),
           timeoutMs: Number(options.timeoutMs ?? 0) || undefined,
         }, createNimiClientId('runtime-embed')),
       );
-      return toEmbedTextResult(response);
+      return toEmbedTextResult(response, values.length, dimensions);
     },
   };
 }
 
 export function buildRuntimeTextEmbeddingRequest(input: {
   readonly values: readonly string[];
+  readonly dimensions?: number;
   readonly options: NimiRuntimeEmbeddingClientOptions;
   readonly appId: string;
 }): ExecuteScenarioRequest {
+  if (input.dimensions !== undefined && (!Number.isSafeInteger(input.dimensions) || input.dimensions < 1 || input.dimensions > 0xffff_ffff)) {
+    throw createNimiError({ reasonCode: ReasonCode.SDK_AI_INPUT_INVALID, message: 'Embedding dimensions must be a positive integer.', actionHint: 'provide_supported_embedding_dimensions', source: 'sdk' });
+  }
   return {
     head: {
       appId: input.appId,
@@ -83,6 +89,7 @@ export function buildRuntimeTextEmbeddingRequest(input: {
         oneofKind: 'textEmbed',
         textEmbed: {
           inputs: [...input.values],
+          ...(input.dimensions !== undefined ? { dimensions: input.dimensions } : {}),
         },
       },
     },
@@ -90,7 +97,7 @@ export function buildRuntimeTextEmbeddingRequest(input: {
   };
 }
 
-function toEmbedTextResult(response: ExecuteScenarioResponse): NimiEmbedTextResult {
+function toEmbedTextResult(response: ExecuteScenarioResponse, expectedCount: number, requestedDimensions?: number): NimiEmbedTextResult {
   const output = response.output?.output;
   if (output?.oneofKind !== 'textEmbed') {
     throw createNimiError({
@@ -100,6 +107,12 @@ function toEmbedTextResult(response: ExecuteScenarioResponse): NimiEmbedTextResu
       actionHint: 'check_runtime_embedding_scenario_output',
       source: 'sdk',
     });
+  }
+  const width = requestedDimensions ?? output.textEmbed.vectors[0]?.values.length;
+  if (!width || output.textEmbed.vectors.length !== expectedCount || output.textEmbed.vectors.some(
+    (row) => row.values.length !== width || row.values.some((value) => !Number.isFinite(value)),
+  )) {
+    throw createNimiError({ reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID, message: 'Runtime embedding vectors do not match the requested output contract.', actionHint: 'check_runtime_embedding_scenario_output', source: 'sdk' });
   }
   // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-space-identity
   const spaceId = output.textEmbed.spaceId;

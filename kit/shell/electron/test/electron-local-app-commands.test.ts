@@ -410,6 +410,14 @@ describe('Electron local-app standard-shell operations', () => {
     })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]], spaceId: 'space-test-1' }, traceId: 'trace-1' });
     expect(calls).toEqual([['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'] } }]]);
 
+    await dispatchElectronLocalAppCommand({ host, command, payload: { spec: { type: 'text-embed', inputs: ['hello'], dimensions: 256 } } });
+    expect(calls[1]).toEqual(['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'], dimensions: 256 } }]);
+    for (const dimensions of [0, -1, 1.5, 0x1_0000_0000]) {
+      await expect(dispatchElectronLocalAppCommand({ host, command, payload: { spec: { type: 'text-embed', inputs: ['hello'], dimensions } } }))
+        .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    expect(calls).toHaveLength(2);
+
     await expect(dispatchElectronLocalAppCommand({
       host,
       command,

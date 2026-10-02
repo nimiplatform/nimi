@@ -309,9 +309,9 @@ models:
     model_type: embedding
     updated_at: 2026-09-28
     capabilities: [text.embed]
-    # This text-only route sends no output_dimensionality, so the reviewed
-    # native/default output is fixed at 3072; image/audio/video/PDF inputs are
-    # separate contract work, not implied by this source row.
+    # This field records the native default width; the exact text-only Driver
+    # owns request-specific output-width admission. Image/audio/video/PDF
+    # inputs require separate contracts and are not implied by this source row.
     embedding:
       dimension: 3072
     pricing:

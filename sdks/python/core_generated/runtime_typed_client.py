@@ -4368,10 +4368,12 @@ class LocalAppTextCandidateMessage:
 class LocalAppTextEmbedOutput:
     vectors: tuple[EmbeddingVector, ...] = field(default_factory=tuple)
     space_id: str | None = None
+    usage: UsageStats | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextEmbedScenarioSpec:
     inputs: tuple[str, ...] = field(default_factory=tuple)
+    dimensions: int | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextGenerateOutput:
@@ -6902,6 +6904,7 @@ class TextEmbedOutput:
 @dataclass(frozen=True)
 class TextEmbedScenarioSpec:
     inputs: tuple[str, ...] = field(default_factory=tuple)
+    dimensions: int | None = None
 
 @dataclass(frozen=True)
 class TextGenerateOutput:
