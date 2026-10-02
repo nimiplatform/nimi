@@ -404,8 +404,8 @@ const MEDIA_HAPPY_CASES = [
   ['audio.synthesize', 'speechSynthesize', 'audio/mpeg', 'data:audio/mpeg;base64,AQ=='],
 ];
 
-for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES) {
-  test(`Lab ${capabilityId} assembles the Local App Scenario Job adapter and projects artifact preview`, async () => {
+for (const [capabilityId, runnerName, mimeType, previewUrl, firstFrameCase] of [...MEDIA_HAPPY_CASES, [...MEDIA_HAPPY_CASES.find((entry) => entry[0] === 'video.generate'), true]]) {
+  test(`Lab ${capabilityId}${firstFrameCase ? " first-frame URL" : ""} assembles the Local App Scenario Job adapter and projects artifact preview`, async () => {
     const { runLabCapability } = await importLabRuntime();
     const adoptionCalls = [];
     const client = fakeLocalAppClient({
@@ -436,7 +436,7 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
     const parameters = capabilityId === 'image.generate'
       ? { negativePrompt: 'no fog', count: 2, size: '768x512', seed: 0, aspectRatio: '3:2', quality: 'hd', style: 'natural', referenceImageArtifactId: 'artifact-reference', mask: 'https://example.test/mask.png' }
       : capabilityId === 'video.generate'
-        ? { mode: 'i2v-reference', referenceArtifactId: 'artifact-reference', negativePrompt: 'no shake', resolution: '720p', frames: 49, seed: 0, generateAudio: false, ratio: '16:9', durationSec: 2, fps: 24, cameraFixed: false, watermark: true, draft: false, returnLastFrame: true, serviceTier: 'standard', executionExpiresAfterSec: 60 }
+        ? { ...(firstFrameCase ? { mode: 'i2v-first-frame', firstFrameImageUrl: 'https://example.test/first-frame.png' } : { mode: 'i2v-reference', referenceArtifactId: 'artifact-reference' }), negativePrompt: 'no shake', resolution: '720p', frames: 49, seed: 0, generateAudio: false, ratio: '16:9', durationSec: 2, fps: 24, cameraFixed: false, watermark: true, draft: false, returnLastFrame: true, serviceTier: 'standard', executionExpiresAfterSec: 60 }
         : capabilityId === 'music.generate'
           ? { lyrics: '[Verse]\nCity lights are waking.' }
           : { voiceKind: 'preset', voicePreset: 'voice-preset', language: 'en', audioFormat: 'mp3', sampleRateHz: 0, speed: 0, pitch: 0, volume: 0, emotion: 'calm', timingMode: 'word' };
@@ -483,8 +483,8 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
       assert.equal(calls[0].referenceImages, undefined);
       assert.equal(calls[0].mask, 'https://example.test/mask.png');
     } else if (capabilityId === 'video.generate') {
-      assert.equal(calls[0].mode, 'i2v-reference');
-      assert.deepEqual(calls[0].content, [{ type: 'artifact-ref', role: 'reference-image', artifactId: 'artifact-reference' }]);
+      assert.equal(calls[0].mode, firstFrameCase ? 'i2v-first-frame' : 'i2v-reference');
+      assert.deepEqual(calls[0].content, firstFrameCase ? [{ type: 'image-url', role: 'first-frame', url: 'https://example.test/first-frame.png' }] : [{ type: 'artifact-ref', role: 'reference-image', artifactId: 'artifact-reference' }]);
       assert.deepEqual(calls[0].options, {
         resolution: '720p', ratio: '16:9', durationSec: 2, frames: 49, fps: 24, seed: 0,
         cameraFixed: false, watermark: true, generateAudio: false, draft: false,

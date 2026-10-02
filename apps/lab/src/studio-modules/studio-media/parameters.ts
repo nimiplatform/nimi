@@ -21,7 +21,8 @@ export type StudioImageGenerationParameters = {
 };
 
 export type StudioVideoGenerationParameters = {
-  mode?: 't2v' | 'i2v-reference';
+  mode?: 't2v' | 'i2v-first-frame' | 'i2v-reference';
+  firstFrameImageUrl?: string;
   referenceArtifactId?: string;
   negativePrompt?: string;
   resolution?: string;
@@ -145,7 +146,8 @@ export const studioVideoGenerateParameters = defineStudioParameters<StudioVideoG
 	initial: () => ({ mode: 't2v' }),
   routeMatrix: {
     mode: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
-    referenceArtifactId: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    referenceArtifactId: LOCAL_ONLY_STUDIO_PARAMETER,
+    firstFrameImageUrl: CLOUD_ONLY_STUDIO_PARAMETER,
     negativePrompt: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     resolution: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     frames: LOCAL_AND_CLOUD_STUDIO_PARAMETER,

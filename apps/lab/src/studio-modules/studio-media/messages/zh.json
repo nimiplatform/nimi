@@ -188,6 +188,7 @@
       }
     },
     "parameters": {
+      "videoModeFirstFrame": "单张首帧生成视频",
       "videoModeT2v": "文生视频",
       "videoModeReference": "单参考图",
       "chooseImageFile": "选择并上传图片",
@@ -205,6 +206,7 @@
         "referenceImage": "参考图 URL",
         "mask": "蒙版 URL",
         "mode": "模式",
+        "firstFrameImageUrl": "首帧图像 HTTPS URL",
         "referenceArtifactId": "参考产物 ID",
         "referenceImageFile": "本地参考图片",
         "resolution": "分辨率",

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: google_veo
-catalog_version: 2026-09-28-google-veo-fast-t2v-reviewed
+catalog_version: 2026-10-02-google-veo-fast-first-frame
 generated_target: runtime/catalog/providers/google_veo.yaml
 runtime:
   inventory_mode: static_source
@@ -38,20 +38,22 @@ sources:
 models:
   - model_id: veo-3.1-fast-generate-preview
     model_type: video
-    updated_at: 2026-09-28
+    updated_at: 2026-10-02
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: second
       input: "0"
       output: 0.10
       currency: USD
       as_of: 2026-09-28
-      notes: Official Google price is $0.10 per generated second at 720p with native audio. This Nimi row admits only four-second 16:9 text-to-video; other provider modes are not yet a Nimi execution claim.
+      notes: Official Google price is $0.10 per generated second at 720p with native audio. This Nimi row admits four-second 720p 16:9 text-to-video or one HTTPS first-frame image; other modes remain unadmitted.
     source_ids: [google_veo_doc, google_veo_pricing_doc, google_veo_lifecycle_doc]
     video_generation:
-      modes: [t2v]
+      modes: [t2v, i2v_first_frame]
       input_roles:
         t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
       limits:
         resolution: [720p]
         ratio: ["16:9"]

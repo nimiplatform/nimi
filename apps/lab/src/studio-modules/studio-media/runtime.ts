@@ -127,6 +127,9 @@ async function runVideoGenerate(context: StudioCapabilityRuntimeContext) {
     mode,
     prompt: context.prompt,
     ...(parameters?.negativePrompt !== undefined ? { negativePrompt: parameters.negativePrompt } : {}),
+    ...(mode === 'i2v-first-frame' && parameters?.firstFrameImageUrl ? {
+      content: [{ type: 'image-url', role: 'first-frame', url: parameters.firstFrameImageUrl }],
+    } : {}),
     ...(mode === 'i2v-reference' && parameters?.referenceArtifactId ? {
       content: [{ type: 'artifact-ref', role: 'reference-image', artifactId: parameters.referenceArtifactId }],
     } : {}),

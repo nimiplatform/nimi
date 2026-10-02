@@ -188,6 +188,7 @@
       }
     },
     "parameters": {
+      "videoModeFirstFrame": "Video from one first-frame image",
       "videoModeT2v": "Text to video",
       "videoModeReference": "Single reference image",
       "chooseImageFile": "Choose and upload image",
@@ -205,6 +206,7 @@
         "referenceImage": "Reference image URL",
         "mask": "Mask URL",
         "mode": "Mode",
+        "firstFrameImageUrl": "First-frame image HTTPS URL",
         "referenceArtifactId": "Reference artifact ID",
         "referenceImageFile": "Local reference image",
         "resolution": "Resolution",

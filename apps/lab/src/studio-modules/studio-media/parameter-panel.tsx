@@ -198,6 +198,7 @@ function VideoFields(props: StudioParameterPanelProps) {
             disabled={props.disabled || routeDisabled}
             options={[
               { value: 't2v', label: t('Studio.parameters.videoModeT2v') },
+              ...(props.source === 'cloud' ? [{ value: 'i2v-first-frame', label: t('Studio.parameters.videoModeFirstFrame') }] : []),
               { value: 'i2v-reference', label: t('Studio.parameters.videoModeReference') },
             ]}
             onValueChange={(value) => update({ ...parameters, mode: value as StudioVideoGenerationParameters['mode'] })}
@@ -205,6 +206,7 @@ function VideoFields(props: StudioParameterPanelProps) {
         </StudioParameterField>
       ),
     },
+    ...(parameters.mode === 'i2v-first-frame' ? [textField('firstFrameImageUrl', t('Studio.parameters.fields.firstFrameImageUrl'), 'https://…')] : []),
     ...(parameters.mode === 'i2v-reference' ? [{
       field: 'referenceArtifactId',
       label: referenceLabel,

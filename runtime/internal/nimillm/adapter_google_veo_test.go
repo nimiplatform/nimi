@@ -1,8 +1,13 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -103,5 +108,37 @@ func TestGoogleVeoOperationRejectsMissingModelWithoutDispatch(t *testing.T) {
 	}
 	if got := requests.Load(); got != 0 {
 		t.Fatalf("missing Veo model dispatched %d provider requests", got)
+	}
+}
+
+func TestGoogleVeoInlineFirstFramePreservesEncodedImageAndRejectsTruncation(t *testing.T) {
+	source := image.NewRGBA(image.Rect(0, 0, 8, 4))
+	for _, format := range []string{"png", "jpeg"} {
+		var encoded bytes.Buffer
+		if format == "png" {
+			if err := png.Encode(&encoded, source); err != nil {
+				t.Fatal(err)
+			}
+		} else {
+			if err := jpeg.Encode(&encoded, source, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		payload, err := googleVeoInlineFirstFrame(encoded.Bytes())
+		if err != nil {
+			t.Fatal(err)
+		}
+		decoded, err := base64.StdEncoding.DecodeString(payload["bytesBase64Encoded"].(string))
+		if err != nil || !bytes.Equal(decoded, encoded.Bytes()) || payload["mimeType"] != "image/"+format {
+			t.Fatalf("image changed: %v %v", payload, err)
+		}
+		if _, err := googleVeoInlineFirstFrame(encoded.Bytes()[:len(encoded.Bytes())/2]); err == nil {
+			t.Fatal("truncated image became a first frame")
+		}
+	}
+	for _, raw := range [][]byte{nil, []byte("not an image"), make([]byte, 20*1024*1024+1)} {
+		if _, err := googleVeoInlineFirstFrame(raw); err == nil {
+			t.Fatal("invalid first frame admitted")
+		}
 	}
 }

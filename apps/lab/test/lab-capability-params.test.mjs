@@ -171,13 +171,21 @@ test('Cloud enables carrier fields but not private Local App scheduling fields',
     for (const [field, item] of states(capabilityId, 'cloud')) {
       if (capabilityId === 'video.generate' && ['serviceTier', 'executionExpiresAfterSec'].includes(field)) {
         assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'local-app-surface' });
-      } else if (capabilityId === 'image.generate' && field === 'referenceImageArtifactId') {
+      } else if ((capabilityId === 'image.generate' && field === 'referenceImageArtifactId')
+        || (capabilityId === 'video.generate' && field === 'referenceArtifactId')) {
         assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'route' });
       } else {
         assert.equal(item.state, 'enabled', `${capabilityId}.${field}`);
       }
     }
   }
+});
+
+test('video first-frame URL is Cloud-only and artifact input is Local-only', () => {
+  assert.equal(states('video.generate', 'cloud').get('firstFrameImageUrl')?.state, 'enabled');
+  assert.equal(states('video.generate', 'local').get('firstFrameImageUrl')?.state, 'disabled');
+  assert.equal(states('video.generate', 'cloud').get('referenceArtifactId')?.state, 'disabled');
+  assert.equal(states('video.generate', 'local').get('referenceArtifactId')?.state, 'enabled');
 });
 
 test('presentation recomputes immediately from the selected route', () => {
