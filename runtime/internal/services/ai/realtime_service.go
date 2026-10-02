@@ -78,24 +78,24 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	if err != nil {
 		return nil, realtimeDriverError(err)
 	}
+	// This immutable expectation belongs to this Open, never the shared registry Driver.
+	openExpectation := capabilitydriver.CloudRealtimeOpen{
+		InputAudio: cloneRealtimeAudioFormat(inputFormat), AudioOutput: req.GetAudioOutputEnabled(), TurnDetection: turnDetection,
+		InitialInstruction: req.GetInitialInstruction(),
+	}
+	openWire, err := driver.MapOpen(ulid.Make().String(), target, openExpectation)
+	if err != nil {
+		return nil, realtimeDriverError(err)
+	}
 	providerSession, err := s.remoteRealtimeHost.Open(capturedCtx, caller.accountNamespace, capturedRecord, credentialPayload, target, driver.Endpoint(target))
 	if err != nil {
 		return nil, err
-	}
-	openWire, err := driver.MapOpen(ulid.Make().String(), target, capabilitydriver.CloudRealtimeOpen{
-		InputAudio: inputFormat, AudioOutput: req.GetAudioOutputEnabled(), TurnDetection: turnDetection,
-		InitialInstruction: req.GetInitialInstruction(),
-	})
-	if err != nil {
-		_ = providerSession.Close()
-		return nil, realtimeDriverError(err)
 	}
 	if err := providerSession.Send(capturedCtx, openWire); err != nil {
 		_ = providerSession.Close()
 		return nil, err
 	}
-	if err := waitRealtimeProviderReady(capturedCtx, providerSession, driver); err != nil {
-		_ = providerSession.Close()
+	if err := waitRealtimeProviderReady(capturedCtx, providerSession, driver, openExpectation); err != nil {
 		return nil, err
 	}
 	sessionID, channelID, correlationID := ulid.Make().String(), ulid.Make().String(), ulid.Make().String()
@@ -113,7 +113,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		sessionID: sessionID, channelID: channelID, generation: 1,
 		appID: caller.appID, subjectUserID: caller.accountNamespace, correlationID: correlationID,
 		inputAudio: cloneRealtimeAudioFormat(inputFormat), outputAudio: cloneRealtimeAudioFormat(outputFormat), turnDetection: turnDetection,
-		stream: coreStream, driver: driver, provider: providerSession, ctx: sessionCtx, cancel: cancel,
+		stream: coreStream, driver: driver, provider: providerSession, ctx: sessionCtx, cancel: cancel, openExpectation: openExpectation,
 		inputsByProvider: make(map[string]realtimeInputIdentity),
 		terminalInputs:   make(map[string]struct{}),
 		tracksByProvider: make(map[string]*realtimeOutputTrack), tracksByRuntime: make(map[string]*realtimeOutputTrack),
@@ -143,9 +143,10 @@ func validateRealtimeOpen(req *runtimev1.OpenRealtimeSessionRequest) (*runtimev1
 		return nil, nil, 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	input := req.GetInputAudio()
-	inputFrameSupported := (input.GetFrameDurationMs() == 20 && input.GetMaximumFrameBytes() == 640) ||
-		(input.GetFrameDurationMs() == 100 && input.GetMaximumFrameBytes() == 3200)
-	if input.GetCodec() != runtimev1.AiRealtimeAudioCodec_AI_REALTIME_AUDIO_CODEC_PCM_S16LE || input.GetSampleRateHz() != 16000 ||
+	rate := input.GetSampleRateHz()
+	inputFrameSupported := (input.GetFrameDurationMs() == 20 || input.GetFrameDurationMs() == 100) &&
+		input.GetMaximumFrameBytes() == rate*2*input.GetFrameDurationMs()/1000
+	if input.GetCodec() != runtimev1.AiRealtimeAudioCodec_AI_REALTIME_AUDIO_CODEC_PCM_S16LE || (rate != 16000 && rate != 24000) ||
 		input.GetChannelCount() != 1 || !inputFrameSupported {
 		return nil, nil, 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 	}
@@ -173,7 +174,13 @@ func validateRealtimeOpen(req *runtimev1.OpenRealtimeSessionRequest) (*runtimev1
 func waitRealtimeProviderReady(ctx context.Context, session interface {
 	Events() <-chan []byte
 	Errors() <-chan error
-}, driver capabilitydriver.CloudRealtimeDriver) error {
+	Close() error
+}, driver capabilitydriver.CloudRealtimeDriver, expected capabilitydriver.CloudRealtimeOpen) (readyErr error) {
+	defer func() {
+		if readyErr != nil {
+			_ = session.Close()
+		}
+	}()
 	timer := time.NewTimer(aiRealtimeOpenTimeout)
 	defer timer.Stop()
 	for {
@@ -191,7 +198,7 @@ func waitRealtimeProviderReady(ctx context.Context, session interface {
 			if !ok {
 				return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 			}
-			events, err := driver.NormalizeEvent(raw)
+			events, err := driver.NormalizeEvent(raw, expected)
 			if err != nil {
 				return realtimeDriverError(err)
 			}
@@ -459,7 +466,7 @@ func (s *Service) runRealtimeProvider(record *realtimeSessionRecord) {
 				s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, realtimecore.TerminalOwnerFailed)
 				return
 			}
-			events, err := record.driver.NormalizeEvent(raw)
+			events, err := record.driver.NormalizeEvent(raw, record.openExpectation)
 			if err != nil {
 				if s.logger != nil {
 					s.logger.Warn("AI Realtime provider event rejected", "error", err)
@@ -512,7 +519,12 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 			s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_OUTPUT_INVALID, realtimecore.TerminalOwnerFailed)
 			return true
 		}
-		_ = s.publishRealtimeEvent(record, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_Transcript{Transcript: &runtimev1.AiRealtimeTranscript{InputTrackId: identity.inputTrackID, UtteranceId: identity.utteranceID, Text: source.Text, Final: final}}})
+		text, ok := realtimeTranscriptText(record, source, final)
+		if !ok {
+			s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_OUTPUT_INVALID, realtimecore.TerminalOwnerFailed)
+			return true
+		}
+		_ = s.publishRealtimeEvent(record, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_Transcript{Transcript: &runtimev1.AiRealtimeTranscript{InputTrackId: identity.inputTrackID, UtteranceId: identity.utteranceID, Text: text, Final: final}}})
 	case capabilitydriver.CloudRealtimeEventInputTranscriptionFailed:
 		if s.logger != nil {
 			s.logger.Warn("AI Realtime input transcription failed", "provider_error_code", source.ErrorCode)
@@ -555,6 +567,23 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 		return true
 	}
 	return false
+}
+
+// The public partial transcript is a snapshot. Provider-native deltas stay
+// private and accumulate under their already bound input identity only.
+func realtimeTranscriptText(record *realtimeSessionRecord, source capabilitydriver.CloudRealtimeEvent, final bool) (string, bool) {
+	if final || !source.TranscriptTextDelta {
+		return source.Text, len(source.Text) <= aiRealtimeMaxTextBytes
+	}
+	record.mu.Lock()
+	defer record.mu.Unlock()
+	identity, ok := record.inputsByProvider[source.ProviderItemID]
+	if !ok || len(identity.partialTranscript)+len(source.Text) > aiRealtimeMaxTextBytes {
+		return "", false
+	}
+	identity.partialTranscript += source.Text
+	record.inputsByProvider[source.ProviderItemID] = identity
+	return identity.partialTranscript, true
 }
 
 func (s *Service) logRealtimeIdentityFailure(record *realtimeSessionRecord, eventKind, providerItemID string, final bool) {
@@ -1051,6 +1080,14 @@ func cloneRealtimeAudioFormat(value *runtimev1.AiRealtimeAudioFormat) *runtimev1
 func realtimeDriverError(err error) error {
 	if err == nil {
 		return nil
+	}
+	var formatError *capabilitydriver.RealtimeInputFormatError
+	if errors.As(err, &formatError) && (formatError.ExpectedSampleRateHz == 16000 || formatError.ExpectedSampleRateHz == 24000) {
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, err, grpcerr.ReasonOptions{Message: formatError.Error()})
+	}
+	var invocation *capabilitydriver.CloudInvocationError
+	if errors.As(err, &invocation) && invocation.Kind == capabilitydriver.CloudInvocationFailureResponse {
+		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
 	}
 	return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
 }

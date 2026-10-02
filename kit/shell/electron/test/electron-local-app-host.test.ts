@@ -793,6 +793,7 @@ describe('Electron protected local-app host', () => {
 
   it('preserves typed media validation failures', async () => {
     for (const reasonCode of [
+      'ai-modality-not-supported',
       'ai-media-spec-invalid', 'ai-media-option-unsupported',
       'ai-face-reference-missing',
       'ai-face-reference-ambiguous',

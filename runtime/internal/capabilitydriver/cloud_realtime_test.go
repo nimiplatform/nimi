@@ -62,7 +62,7 @@ func TestDashScopeRealtimeDriverMapsAndNormalizesAudioFrames(t *testing.T) {
 	if err != nil || !strings.Contains(string(raw), base64.StdEncoding.EncodeToString(frame)) {
 		t.Fatalf("MapInput = %s err=%v", raw, err)
 	}
-	events, err := driver.NormalizeEvent([]byte(`{"type":"response.audio.delta","response_id":"provider-response","delta":"AQIDBA=="}`))
+	events, err := driver.NormalizeEvent([]byte(`{"type":"response.audio.delta","response_id":"provider-response","delta":"AQIDBA=="}`), CloudRealtimeOpen{})
 	if err != nil || len(events) != 1 || string(events[0].Audio) != string(frame) || events[0].Kind != CloudRealtimeEventAudioDelta {
 		t.Fatalf("NormalizeEvent = %+v err=%v", events, err)
 	}
@@ -70,7 +70,7 @@ func TestDashScopeRealtimeDriverMapsAndNormalizesAudioFrames(t *testing.T) {
 
 func TestDashScopeRealtimeDriverIgnoresUnknownProviderEventsWithoutGenericProjection(t *testing.T) {
 	driver, _ := dashScopeRealtimeDriverFixture(t)
-	events, err := driver.NormalizeEvent([]byte(`{"type":"provider.private.experimental","payload":{"secret":true}}`))
+	events, err := driver.NormalizeEvent([]byte(`{"type":"provider.private.experimental","payload":{"secret":true}}`), CloudRealtimeOpen{})
 	if err != nil || events != nil {
 		t.Fatalf("unknown provider event escaped normalization: %+v err=%v", events, err)
 	}
@@ -78,7 +78,7 @@ func TestDashScopeRealtimeDriverIgnoresUnknownProviderEventsWithoutGenericProjec
 
 func TestDashScopeRealtimeDriverNormalizesInputTranscriptionFailure(t *testing.T) {
 	driver, _ := dashScopeRealtimeDriverFixture(t)
-	events, err := driver.NormalizeEvent([]byte(`{"type":"conversation.item.input_audio_transcription.failed","item_id":"item-1","error":{"code":"audio_too_short"}}`))
+	events, err := driver.NormalizeEvent([]byte(`{"type":"conversation.item.input_audio_transcription.failed","item_id":"item-1","error":{"code":"audio_too_short"}}`), CloudRealtimeOpen{})
 	if err != nil || len(events) != 1 || events[0].Kind != CloudRealtimeEventInputTranscriptionFailed || events[0].ErrorCode != "audio_too_short" {
 		t.Fatalf("NormalizeEvent = %+v err=%v", events, err)
 	}

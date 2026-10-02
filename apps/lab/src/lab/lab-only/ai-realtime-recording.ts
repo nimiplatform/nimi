@@ -1,11 +1,10 @@
 import { t } from '../../shell/i18n/index.js';
 
-const FRAME_BYTES = 640;
-export const LAB_AI_REALTIME_MAX_RECORDING_BYTES = 16_000 * 2 * 4;
+export const LAB_AI_REALTIME_MAX_RECORDING_BYTES = 24_000 * 2 * 4;
 
-// Recorded input follows the same negotiated 16 kHz mono PCM frames as the
-// microphone. It is intentionally a narrow Lab source, not a format converter.
-export function readLabRealtimeRecording(buffer: ArrayBuffer): readonly Uint8Array[] {
+// Recorded input must match the negotiated mono PCM tuple. It does not
+// reinterpret samples or silently convert a recording to another rate.
+export function readLabRealtimeRecording(buffer: ArrayBuffer, sampleRateHz: 16000 | 24000 = 16000): readonly Uint8Array[] {
   const bytes = new Uint8Array(buffer);
   const view = new DataView(buffer);
   const invalid = () => new Error(t('CapabilityTests.aiRealtime.recordingFormatError'));
@@ -22,22 +21,23 @@ export function readLabRealtimeRecording(buffer: ArrayBuffer): readonly Uint8Arr
     if (end > bytes.length) throw invalid();
     if (kind === 'fmt ') {
       if (formatSeen || length < 16 || view.getUint16(start, true) !== 1 ||
-          view.getUint16(start + 2, true) !== 1 || view.getUint32(start + 4, true) !== 16_000 ||
-          view.getUint32(start + 8, true) !== 32_000 || view.getUint16(start + 12, true) !== 2 ||
+          view.getUint16(start + 2, true) !== 1 || view.getUint32(start + 4, true) !== sampleRateHz ||
+          view.getUint32(start + 8, true) !== sampleRateHz * 2 || view.getUint16(start + 12, true) !== 2 ||
           view.getUint16(start + 14, true) !== 16) throw invalid();
       formatSeen = true;
     } else if (kind === 'data') {
-      if (audio || length === 0 || length % 2 !== 0 || length > LAB_AI_REALTIME_MAX_RECORDING_BYTES) throw invalid();
+      if (audio || length === 0 || length % 2 !== 0 || length > sampleRateHz * 2 * 4) throw invalid();
       audio = bytes.slice(start, end);
     }
     offset = end + (length % 2);
     if (offset > bytes.length) throw invalid();
   }
   if (!formatSeen || !audio) throw invalid();
+  const frameBytes = sampleRateHz * 2 * 20 / 1000;
   const frames: Uint8Array[] = [];
-  for (let offset = 0; offset < audio.length; offset += FRAME_BYTES) {
-    const frame = new Uint8Array(FRAME_BYTES);
-    frame.set(audio.subarray(offset, offset + FRAME_BYTES));
+  for (let offset = 0; offset < audio.length; offset += frameBytes) {
+    const frame = new Uint8Array(frameBytes);
+    frame.set(audio.subarray(offset, offset + frameBytes));
     frames.push(frame);
   }
   return frames;

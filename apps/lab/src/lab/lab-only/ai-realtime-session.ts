@@ -17,6 +17,11 @@ export const LAB_AI_REALTIME_INPUT_AUDIO: NimiRealtimeAudioFormat = Object.freez
   maximumFrameBytes: 640,
 });
 
+// The selected input tuple is neutral; the captured Runtime Driver validates it.
+export function labRealtimeInputAudio(sampleRateHz: 16000 | 24000): NimiRealtimeAudioFormat {
+  return { ...LAB_AI_REALTIME_INPUT_AUDIO, sampleRateHz, maximumFrameBytes: sampleRateHz * 2 * 20 / 1000 };
+}
+
 export type LabRealtimeOwnerControl = 'commit-input' | 'start-response' | 'continue-response' | 'pause-response' | 'cancel-response';
 type Scope = { readonly realtimeSessionId: string; readonly generation: string };
 
@@ -52,6 +57,9 @@ const MAX_LOG_ENTRIES = 200;
 
 function describeError(error: unknown): string {
   const reasonCode = error && typeof error === 'object' ? (error as { reasonCode?: unknown }).reasonCode : undefined;
+  if (typeof reasonCode === 'string' && reasonCode.toLowerCase().replaceAll('_', '-') === 'ai-modality-not-supported') {
+    return t('CapabilityTests.aiRealtime.inputFormatUnsupported');
+  }
   const message = error instanceof Error ? error.message : String(error);
   return typeof reasonCode === 'string' && reasonCode ? `${message} (${reasonCode})` : message;
 }
@@ -117,6 +125,7 @@ export function createLabRealtimeController(input: {
   let closeRequested = false;
   let pendingOpen: Promise<void> | null = null;
   let pendingClose: Promise<void> | null = null;
+  let pendingResponseRequestId: string | null = null;
   const set = (patch: Partial<LabRealtimeState>) => {
     state = { ...state, ...patch };
     input.onState(state);
@@ -128,8 +137,14 @@ export function createLabRealtimeController(input: {
     logIndex += 1;
     set({ log: [...state.log, { index: logIndex, kind, detail }].slice(-MAX_LOG_ENTRIES) });
   };
+  const settleResponse = (requestId: string) => {
+    if (requestId && requestId !== pendingResponseRequestId) return;
+    pendingResponseRequestId = null;
+    set({ responsePending: false });
+  };
   const finish = (phase: 'closed' | 'terminated', terminalReason: string, error?: string) => {
     if (state.phase === 'closed' || state.phase === 'terminated') return;
+    pendingResponseRequestId = null;
     set({ phase, responsePending: false, terminalReason, endedAt: input.now().toISOString(), ...(error ? { error } : {}) });
   };
   const track = (outputTrackId: string, requestId: string, patch: (current: LabRealtimeOutputTrack) => Partial<LabRealtimeOutputTrack>) => {
@@ -162,6 +177,9 @@ export function createLabRealtimeController(input: {
       await input.playback?.writeAudioFrame({ outputTrackId: event.outputTrackId, frameSequence: event.frameSequence, frame: event.frame, format: event.format }).catch(() => undefined);
     } else if (event.type === 'output-track') {
       track(event.outputTrackId, event.requestId, () => ({ lifecycle: event.lifecycle, reasonCode: event.reasonCode }));
+      // Interrupted tracks have their terminal fenced by Runtime; no later
+      // request-terminal is required to permit the next explicit input.
+      if (event.lifecycle === 'interrupted') settleResponse(event.requestId);
       if (event.lifecycle !== 'active') {
         await input.playback?.finishOutputTrack({ outputTrackId: event.outputTrackId, lifecycle: event.lifecycle }).catch(() => undefined);
       }
@@ -169,7 +187,7 @@ export function createLabRealtimeController(input: {
       const transcripts = state.transcripts.filter((entry) => entry.utteranceId !== event.utteranceId || entry.final);
       set({ transcripts: [...transcripts, { utteranceId: event.utteranceId, text: event.text, final: event.final }] });
     } else if (event.type === 'request-terminal' || event.type === 'failure') {
-      set({ responsePending: false });
+      settleResponse(event.requestId);
     } else if (event.type === 'session-terminal' && state.phase !== 'closing') {
       finish('terminated', event.reasonCode || 'session-terminal');
     }
@@ -209,12 +227,12 @@ export function createLabRealtimeController(input: {
     }
   };
 
-  type OpenOptions = { readonly instruction: string; readonly turnDetection: 'server-vad' | 'manual'; readonly audioOutputEnabled: boolean };
+  type OpenOptions = { readonly inputAudio?: NimiRealtimeAudioFormat; readonly instruction: string; readonly turnDetection: 'server-vad' | 'manual'; readonly audioOutputEnabled: boolean };
   const openFlow = async (options: OpenOptions) => {
     let opened;
     try {
       opened = await input.client.open({
-        inputAudio: LAB_AI_REALTIME_INPUT_AUDIO,
+        inputAudio: options.inputAudio ?? LAB_AI_REALTIME_INPUT_AUDIO,
         audioOutputEnabled: options.audioOutputEnabled,
         turnDetection: options.turnDetection,
         initialInstruction: options.instruction.trim(),
@@ -269,6 +287,7 @@ export function createLabRealtimeController(input: {
       const scope = requireScope();
       if (state.responsePending) throw new Error(t('CapabilityTests.aiRealtime.responseAlreadyPending'));
       const requestId = input.createId('lab-text');
+      pendingResponseRequestId = requestId;
       set({ responsePending: true });
       try {
         operation('append-text', await input.client.appendInput({ ...scope, input: { type: 'text', requestId, text } }));
@@ -277,7 +296,7 @@ export function createLabRealtimeController(input: {
         count('owner-control');
         return requestId;
       } catch (error) {
-        set({ responsePending: false });
+        settleResponse(requestId);
         throw error;
       }
     },
@@ -290,14 +309,18 @@ export function createLabRealtimeController(input: {
     },
     async ownerControl(control: LabRealtimeOwnerControl): Promise<void> {
       const scope = requireScope();
-      const startsResponse = control === 'start-response';
+      const startsResponse = control === 'start-response' || control === 'continue-response';
+      const requestId = input.createId('lab-control');
       if (startsResponse && state.responsePending) throw new Error(t('CapabilityTests.aiRealtime.responseAlreadyPending'));
-      if (startsResponse) set({ responsePending: true });
+      if (startsResponse) {
+        pendingResponseRequestId = requestId;
+        set({ responsePending: true });
+      }
       try {
-        operation(control, await input.client.submitOwnerControl({ ...scope, requestId: input.createId('lab-control'), control }));
+        operation(control, await input.client.submitOwnerControl({ ...scope, requestId, control }));
         count('owner-control');
       } catch (error) {
-        if (startsResponse) set({ responsePending: false });
+        if (startsResponse) settleResponse(requestId);
         throw error;
       }
     },

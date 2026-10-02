@@ -23,10 +23,11 @@ type realtimeOutputTrack struct {
 }
 
 type realtimeInputIdentity struct {
-	inputTrackID   string
-	utteranceID    string
-	providerItemID string
-	speechStopped  bool
+	inputTrackID      string
+	utteranceID       string
+	providerItemID    string
+	speechStopped     bool
+	partialTranscript string
 }
 
 type realtimeSessionRecord struct {
@@ -42,6 +43,7 @@ type realtimeSessionRecord struct {
 	turnDetection      runtimev1.AiRealtimeTurnDetectionMode
 	stream             *realtimecore.Stream[*runtimev1.AiRealtimeEvent]
 	driver             capabilitydriver.CloudRealtimeDriver
+	openExpectation    capabilitydriver.CloudRealtimeOpen
 	provider           remoteexecution.RealtimeSession
 	ctx                context.Context
 	cancel             context.CancelFunc

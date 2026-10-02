@@ -60,7 +60,13 @@ test('recorded realtime WAV uses exact PCM frames and rejects incompatible audio
   assert.deepEqual(frames[1].slice(160), new Uint8Array(480));
   view.setUint32(24, 24000, true);
   assert.throws(() => readLabRealtimeRecording(buffer));
-  view.setUint32(24, 16000, true);
+  view.setUint32(28, 48000, true);
+  assert.throws(() => readLabRealtimeRecording(buffer), 'a 24 kHz file must not be reinterpreted at 16 kHz');
+  const frames24 = readLabRealtimeRecording(buffer, 24000);
+  assert.deepEqual(frames24.map((frame) => frame.byteLength), [960]);
+  assert.deepEqual(frames24[0].slice(0,800), pcm);
+  assert.deepEqual(frames24[0].slice(800), new Uint8Array(160));
+  view.setUint32(24, 16000, true); view.setUint32(28, 32000, true);
   const longBuffer = new ArrayBuffer(44 + 16_000 * 2 * 5);
   new Uint8Array(longBuffer).set(bytes.slice(0, 44));
   new DataView(longBuffer).setUint32(4, longBuffer.byteLength - 8, true);
@@ -1758,4 +1764,53 @@ test('the shared media non-success projection keeps only a known bounded Job ID 
     const failed = projectStudioRunnerNonSuccess(context, { ok: false, reason: 'runtime-call-failed', message: 'failed', error: { reasonCode: 'AI_INPUT_INVALID', details: { jobId } } });
     assert.equal(failed.jobId, undefined);
   }
+});
+
+test('Realtime controller sends the explicit neutral PCM tuple and retains the negotiated format', async () => {
+ const {createLabRealtimeController, labRealtimeInputAudio} = await load('lab/lab-only/ai-realtime-session.js');
+ const fake=fakeRealtime();
+ let request;
+ const client={...fake.client,async open(input) {request=input; const result=await fake.client.open(input); return {...result,negotiatedInputAudio:input.inputAudio};}};
+ const controller=createLabRealtimeController({client,now:()=>new Date(),createId:(prefix)=>prefix,onState:()=>{}});
+ const inputAudio=labRealtimeInputAudio(24000);
+ await controller.open({instruction:'',turnDetection:'manual',audioOutputEnabled:true,inputAudio});
+ assert.deepEqual(request.inputAudio,{codec:'pcm-s16le',sampleRateHz:24000,channelCount:1,frameDurationMs:20,maximumFrameBytes:960});
+ assert.deepEqual(controller.getState().negotiatedInputAudio,inputAudio);
+ await controller.close();
+});
+
+test('Realtime interruption releases its request while a late old terminal cannot unlock the next response', async () => {
+ const {createLabRealtimeController} = await load('lab/lab-only/ai-realtime-session.js');
+ const fake=fakeRealtime();
+ const queued=[];
+ let wake;
+ let control;
+ const emit=(event)=>{if(wake){const resolve=wake;wake=null;resolve(event);}else queued.push(event);};
+ const client={...fake.client,
+  async open(input){const result=await fake.client.open(input);control=result.control;return result;},
+  async subscribe(){return {
+   async *[Symbol.asyncIterator](){while(true){const event=queued.length?queued.shift():await new Promise(resolve=>{wake=resolve;});if(!event)return;yield {event,control};}},
+   async cancel(){emit(null);}
+  };}
+ };
+ let ids=0;
+ const session=createLabRealtimeController({client,now:()=>new Date(),createId:(prefix)=>`${prefix}-${++ids}`,onState:()=>{}});
+ await session.open({instruction:'',turnDetection:'manual',audioOutputEnabled:false});
+ const first=await session.sendText('First actual owner input');
+ emit({type:'output-track',requestId:first,outputTrackId:'track-first',lifecycle:'active',reasonCode:''});
+ await waitFor(()=>session.getState().tracks.length===1,'first output track');
+ await session.interrupt('track-first');
+ assert.equal(session.getState().responsePending,true,'an interrupt receipt alone does not fabricate completion');
+ emit({type:'output-track',requestId:first,outputTrackId:'track-first',lifecycle:'interrupted',reasonCode:'ACTION_EXECUTED'});
+ await waitFor(()=>!session.getState().responsePending,'observed interrupted terminal');
+ const second=await session.sendText('Explicit next input');
+ emit({type:'request-terminal',requestId:first,finishReason:'stop',usage:null,reasonCode:''});
+ emit({type:'failure',requestId:first,outputTrackId:'track-first',reasonCode:'AI_STREAM_BROKEN'});
+ await waitFor(()=>session.getState().observed['failure']===1,'late old events');
+ assert.equal(session.getState().responsePending,true,'old terminal must not release the new request');
+ await assert.rejects(()=>session.sendText('Duplicate next input'));
+ assert.equal(fake.calls.append.length,2);
+ emit({type:'request-terminal',requestId:second,finishReason:'stop',usage:null,reasonCode:''});
+ await waitFor(()=>!session.getState().responsePending,'second own terminal');
+ await session.close();
 });

@@ -35,6 +35,14 @@ type CloudRealtimeOpen struct {
 	InitialInstruction string
 }
 
+// RealtimeInputFormatError carries only an admitted public PCM requirement,
+// never the selected provider or target identity.
+type RealtimeInputFormatError struct{ ExpectedSampleRateHz uint32 }
+
+func (e *RealtimeInputFormatError) Error() string {
+	return fmt.Sprintf("Realtime audio input requires %d Hz mono PCM S16LE", e.ExpectedSampleRateHz)
+}
+
 type CloudRealtimeEventKind uint8
 
 const (
@@ -63,14 +71,15 @@ const (
 )
 
 type CloudRealtimeEvent struct {
-	Kind               CloudRealtimeEventKind
-	ProviderResponseID string
-	ProviderItemID     string
-	Text               string
-	Audio              []byte
-	Usage              *runtimev1.UsageStats
-	ErrorCode          string
-	ResponseStatus     CloudRealtimeResponseStatus
+	Kind                CloudRealtimeEventKind
+	ProviderResponseID  string
+	ProviderItemID      string
+	Text                string
+	TranscriptTextDelta bool
+	Audio               []byte
+	Usage               *runtimev1.UsageStats
+	ErrorCode           string
+	ResponseStatus      CloudRealtimeResponseStatus
 }
 
 type CloudRealtimeDriver interface {
@@ -80,7 +89,7 @@ type CloudRealtimeDriver interface {
 	MapInput(string, *runtimev1.AppendRealtimeInputRequest) ([]byte, error)
 	MapOwnerControl(string, *runtimev1.SubmitRealtimeOwnerControlRequest) ([]byte, error)
 	MapInterrupt(string, string) ([]byte, error)
-	NormalizeEvent([]byte) ([]CloudRealtimeEvent, error)
+	NormalizeEvent([]byte, CloudRealtimeOpen) ([]CloudRealtimeEvent, error)
 	NormalizeReason(error) error
 }
 
@@ -92,6 +101,9 @@ func NewProductionCloudRealtimeRegistry() *CloudRealtimeRegistry {
 	drivers := make(map[string]CloudRealtimeDriver)
 	if record, ok := providerregistry.Lookup("dashscope"); ok && record.RuntimePlane == "remote" && record.SupportsRealtime {
 		drivers["dashscope"] = dashScopeRealtimeDriver{}
+	}
+	if record, ok := providerregistry.Lookup("openai"); ok && record.RuntimePlane == "remote" && record.SupportsRealtime {
+		drivers["openai"] = openAIRealtimeDriver{}
 	}
 	return &CloudRealtimeRegistry{drivers: drivers}
 }
@@ -149,7 +161,7 @@ func (dashScopeRealtimeDriver) MapOpen(eventID string, target CloudRealtimeTarge
 	if target.provider != "dashscope" || target.providerModelID != "qwen3.5-omni-flash-realtime" ||
 		input.InputAudio == nil || input.InputAudio.GetCodec() != runtimev1.AiRealtimeAudioCodec_AI_REALTIME_AUDIO_CODEC_PCM_S16LE ||
 		input.InputAudio.GetSampleRateHz() != 16000 || input.InputAudio.GetChannelCount() != 1 {
-		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("DashScope Realtime Open format is unsupported"))
+		return nil, &RealtimeInputFormatError{ExpectedSampleRateHz: 16000}
 	}
 	turnDetection := any(nil)
 	if input.TurnDetection == runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD {
@@ -193,19 +205,19 @@ func (dashScopeRealtimeDriver) MapInput(eventID string, req *runtimev1.AppendRea
 		if input.Text == nil || strings.TrimSpace(input.Text.GetText()) == "" {
 			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("Realtime text input is required"))
 		}
-		return dashScopeConversationText(eventID, "user", input.Text.GetText())
+		return cloudRealtimeConversationText(eventID, "user", input.Text.GetText())
 	case *runtimev1.AppendRealtimeInputRequest_OwnerContext:
 		if input.OwnerContext == nil || strings.TrimSpace(input.OwnerContext.GetText()) == "" ||
 			input.OwnerContext.GetKind() == runtimev1.AiRealtimeOwnerContextKind_AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED {
 			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("Realtime owner context is required"))
 		}
-		return dashScopeConversationText(eventID, "system", input.OwnerContext.GetText())
+		return cloudRealtimeConversationText(eventID, "system", input.OwnerContext.GetText())
 	default:
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("Realtime input variant is unsupported"))
 	}
 }
 
-func dashScopeConversationText(eventID string, role string, text string) ([]byte, error) {
+func cloudRealtimeConversationText(eventID string, role string, text string) ([]byte, error) {
 	return json.Marshal(map[string]any{
 		"event_id": eventID, "type": "conversation.item.create",
 		"item": map[string]any{
@@ -246,7 +258,7 @@ func (dashScopeRealtimeDriver) MapInterrupt(eventID string, providerResponseID s
 	})
 }
 
-type dashScopeRealtimeServerEvent struct {
+type cloudRealtimeServerEvent struct {
 	Type       string `json:"type"`
 	ResponseID string `json:"response_id"`
 	ItemID     string `json:"item_id"`
@@ -257,9 +269,9 @@ type dashScopeRealtimeServerEvent struct {
 	Response   struct {
 		ID     string `json:"id"`
 		Status string `json:"status"`
-		Usage  struct {
-			InputTokens  int64 `json:"input_tokens"`
-			OutputTokens int64 `json:"output_tokens"`
+		Usage  *struct {
+			InputTokens  *int64 `json:"input_tokens"`
+			OutputTokens *int64 `json:"output_tokens"`
 		} `json:"usage"`
 	} `json:"response"`
 	Error struct {
@@ -267,8 +279,8 @@ type dashScopeRealtimeServerEvent struct {
 	} `json:"error"`
 }
 
-func (dashScopeRealtimeDriver) NormalizeEvent(raw []byte) ([]CloudRealtimeEvent, error) {
-	var event dashScopeRealtimeServerEvent
+func (dashScopeRealtimeDriver) NormalizeEvent(raw []byte, _ CloudRealtimeOpen) ([]CloudRealtimeEvent, error) {
+	var event cloudRealtimeServerEvent
 	if len(raw) == 0 || json.Unmarshal(raw, &event) != nil || strings.TrimSpace(event.Type) == "" {
 		return nil, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("DashScope Realtime event is invalid"))
 	}
@@ -321,7 +333,12 @@ func (dashScopeRealtimeDriver) NormalizeEvent(raw []byte) ([]CloudRealtimeEvent,
 		default:
 			return nil, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("DashScope Realtime response terminal status is invalid"))
 		}
-		normalized.Usage = &runtimev1.UsageStats{InputTokens: event.Response.Usage.InputTokens, OutputTokens: event.Response.Usage.OutputTokens}
+		if event.Response.Usage != nil {
+			if event.Response.Usage.InputTokens == nil || event.Response.Usage.OutputTokens == nil {
+				return nil, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("Realtime usage is incomplete"))
+			}
+			normalized.Usage = &runtimev1.UsageStats{InputTokens: *event.Response.Usage.InputTokens, OutputTokens: *event.Response.Usage.OutputTokens}
+		}
 	case "error":
 		normalized.Kind, normalized.ErrorCode = CloudRealtimeEventFailed, strings.TrimSpace(event.Error.Code)
 	default:

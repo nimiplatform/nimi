@@ -28,6 +28,7 @@ import { labAiRealtimeCapability } from './capability-test-registrations.js';
 import {
   LAB_AI_REALTIME_INPUT_AUDIO,
   createLabRealtimeController,
+  labRealtimeInputAudio,
   labRealtimeSessionSummary,
   type LabRealtimeController,
   type LabRealtimeOwnerControl,
@@ -67,6 +68,7 @@ function LabAiRealtimeSurface({
   const [instruction, setInstruction] = useState('You are a concise assistant for a Nimi Lab Realtime test.');
   const [turnDetection, setTurnDetection] = useState<'server-vad' | 'manual'>('manual');
   const [audioOutputEnabled, setAudioOutputEnabled] = useState(false);
+  const [inputSampleRate, setInputSampleRate] = useState<16000 | 24000>(16000);
   const [text, setText] = useState('Say hello in one short sentence.');
   const [state, setState] = useState<LabRealtimeState>({ phase: 'idle', responsePending: false, tracks: [], transcripts: [], log: [], observed: {} });
   const [capture, setCapture] = useState<Capture | null>(null);
@@ -89,8 +91,8 @@ function LabAiRealtimeSurface({
   const captureRef = useRef<Capture | null>(null);
   const recordedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const latest = useRef({ runTarget, workspace, t, turnDetection, audioOutputEnabled });
-  latest.current = { runTarget, workspace, t, turnDetection, audioOutputEnabled };
+  const latest = useRef({ runTarget, workspace, t, turnDetection, audioOutputEnabled, inputSampleRate });
+  latest.current = { runTarget, workspace, t, turnDetection, audioOutputEnabled, inputSampleRate };
 
   const record = (result: StudioCapabilityRunResult) => {
     if (recordedRef.current) return;
@@ -104,7 +106,7 @@ function LabAiRealtimeSurface({
       requestParameters: {
         turnDetection: current.turnDetection,
         audioOutputEnabled: current.audioOutputEnabled,
-        inputAudio: current.t('CapabilityTests.aiRealtime.inputFormatValue'),
+        inputAudio: current.t('CapabilityTests.aiRealtime.inputFormatValue', { rate: current.inputSampleRate / 1000, bytes: current.inputSampleRate * 2 * 20 / 1000 }),
       },
     });
     const observed = result.ok && result.output.kind === 'session' ? result.output.observed : {};
@@ -165,7 +167,7 @@ function LabAiRealtimeSurface({
     });
     sessionRef.current = session;
     try {
-      await session.open({ instruction, turnDetection, audioOutputEnabled });
+      await session.open({ instruction, turnDetection, audioOutputEnabled, inputAudio: labRealtimeInputAudio(inputSampleRate) });
     } catch (error) {
       record(capabilityNonSuccess(registration.descriptor, 'runtime-call-failed', error instanceof Error ? error.message : String(error), studioNonSuccessDiagnostics(error)));
     } finally {
@@ -223,7 +225,7 @@ function LabAiRealtimeSurface({
     if (recording.size > LAB_AI_REALTIME_MAX_RECORDING_BYTES + 4_096) {
       throw new Error(t('CapabilityTests.aiRealtime.recordingFormatError'));
     }
-    const frames = readLabRealtimeRecording(await recording.arrayBuffer());
+    const frames = readLabRealtimeRecording(await recording.arrayBuffer(), state.negotiatedInputAudio?.sampleRateHz === 24000 ? 24000 : 16000);
     const inputTrackId = createNimiClientId('lab-recording-track');
     const utteranceId = createNimiClientId('lab-recording-utterance');
     let sent = false;
@@ -291,7 +293,14 @@ function LabAiRealtimeSurface({
             <Toggle checked={audioOutputEnabled} disabled={phase === 'open' || phase === 'opening'} onValueChange={setAudioOutputEnabled} ariaLabel={t('CapabilityTests.aiRealtime.audioOutput')} />
             <span>{t('CapabilityTests.aiRealtime.audioOutput')}</span>
           </label>
-          <span className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.inputFormat')}</span>
+          <SelectField
+            value={String(inputSampleRate)}
+            disabled={phase === 'open' || phase === 'opening'}
+            aria-label={t('CapabilityTests.aiRealtime.inputSampleRate')}
+            options={[{ value: '16000', label: '16 kHz' }, { value: '24000', label: '24 kHz' }]}
+            onValueChange={(value) => setInputSampleRate(value === '24000' ? 24000 : 16000)}
+          />
+          <span className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.inputFormat', { rate: inputSampleRate / 1000, bytes: inputSampleRate * 2 * 20 / 1000 })}</span>
         </div>
         <div className="lab-realtime__row">
           <Button type="button" size="sm" tone="primary" disabled={busy || phase === 'open' || phase === 'opening' || phase === 'closing' || !runTarget.canDispatch} onClick={() => void openSession()}>

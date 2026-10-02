@@ -1,9 +1,26 @@
 version: 1
 provider: openai
-catalog_version: 2026-10-01-openai-gpt-image-2-5-edits
+catalog_version: 2026-10-01-openai-realtime-2-1
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
+  - model_id: gpt-realtime-2.1
+    provider: openai
+    model_type: chat
+    updated_at: 2026-10-01
+    capabilities:
+      - realtime.interact
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-10-01
+      notes: Realtime usage depends on text/audio input and output tokens. Exact account access is confirmed by Session Open, not catalog presence.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-realtime-2.1
+      retrieved_at: 2026-10-01
+      note: Exact GA Realtime speech-to-speech target; text/audio input and output. Tools and image input are outside Nimi's current Session contract.
   - model_id: gpt-4o-mini-tts
     provider: openai
     model_type: tts

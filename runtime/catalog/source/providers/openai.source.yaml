@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-10-01-openai-gpt-image-2-5-edits
+catalog_version: 2026-10-01-openai-realtime-2-1
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -25,6 +25,14 @@ defaults:
     notes: Official pricing differs by model family, API mode, and service class.
 
 sources:
+  - source_id: openai_realtime_2_1_doc
+    url: https://developers.openai.com/api/docs/models/gpt-realtime-2.1
+    retrieved_at: 2026-10-01
+    note: Exact GA Realtime speech-to-speech target; text/audio input and output. Tools and image input are outside Nimi's current Session contract.
+  - source_id: openai_realtime_conversations_doc
+    url: https://developers.openai.com/api/docs/guides/realtime-conversations
+    retrieved_at: 2026-10-01
+    note: GA WebSocket Session events, explicit manual commit/response, 24 kHz PCM and audio transcript output.
   - source_id: openai_tts_doc
     url: https://developers.openai.com/api/docs/guides/text-to-speech
     retrieved_at: 2026-10-01
@@ -220,6 +228,19 @@ voice_sets:
         name: Shimmer
 
 models:
+  - model_id: gpt-realtime-2.1
+    model_type: chat
+    updated_at: 2026-10-01
+    capabilities: [realtime.interact]
+    source_ids: [openai_realtime_2_1_doc, openai_realtime_conversations_doc]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-10-01
+      notes: Realtime usage depends on text/audio input and output tokens. Exact account access is confirmed by Session Open, not catalog presence.
+
   - model_id: gpt-4o-mini-tts
     model_type: tts
     updated_at: 2026-10-01

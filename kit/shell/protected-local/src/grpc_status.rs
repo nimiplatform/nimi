@@ -233,6 +233,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_ROUTE_UNSUPPORTED" => LocalAppReasonCode::AiRouteUnsupported,
         "AI_ROUTE_FALLBACK_DENIED" => LocalAppReasonCode::AiRouteFallbackDenied,
         "AI_INPUT_INVALID" => LocalAppReasonCode::AiInputInvalid,
+        "AI_MODALITY_NOT_SUPPORTED" => LocalAppReasonCode::AiModalityNotSupported,
         "AI_INPUT_LIMIT_EXCEEDED" => LocalAppReasonCode::AiInputLimitExceeded,
         "AI_MEDIA_IDEMPOTENCY_CONFLICT" => LocalAppReasonCode::AiMediaIdempotencyConflict,
         "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => LocalAppReasonCode::AiMusicRecoveryCapacityExceeded,
@@ -759,6 +760,7 @@ mod tests {
     #[test]
     fn media_validation_failures_stay_typed_for_local_apps() {
         for (runtime_reason, expected) in [
+            ("AI_MODALITY_NOT_SUPPORTED", "ai-modality-not-supported"),
             ("AI_MEDIA_SPEC_INVALID", "ai-media-spec-invalid"),
             ("AI_MEDIA_OPTION_UNSUPPORTED", "ai-media-option-unsupported"),
         ] {

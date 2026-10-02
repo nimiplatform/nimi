@@ -151,3 +151,15 @@ func TestAIConfigCloudEmbeddingRequiresVerifiedFixedDimension(t *testing.T) {
 		})
 	}
 }
+
+func TestRealtimeCloudImplementationKeepsProviderDialectsSeparate(t *testing.T) {
+	for _, provider := range []string{"openai", "dashscope"} {
+		identity, ok := aiConfigCloudImplementation(provider, "realtime.interact")
+		if !ok || identity.GetImplementationId() != "cloud.realtime.interact."+provider || identity.GetDriverDialect() != provider+"/realtime/v1" {
+			t.Fatalf("%s: %+v %v", provider, identity, ok)
+		}
+	}
+	if _, ok := aiConfigCloudImplementation("openai_chatgpt_plan", "realtime.interact"); ok {
+		t.Fatal("ChatGPT plan was treated as standard OpenAI Realtime")
+	}
+}

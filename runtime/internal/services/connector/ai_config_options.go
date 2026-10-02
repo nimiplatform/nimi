@@ -61,14 +61,16 @@ func aiConfigCloudImplementation(provider string, capabilityContract string) (*r
 		return nil, false
 	}
 	if capabilityContract == "realtime.interact" {
-		if provider != "dashscope" {
+		switch provider {
+		case "dashscope", "openai":
+			return &runtimev1.CapabilityImplementationIdentity{
+				ImplementationId: "cloud.realtime.interact." + provider,
+				DriverId:         "nimi.runtime.driver." + provider,
+				DriverDialect:    provider + "/realtime/v1",
+			}, true
+		default:
 			return nil, false
 		}
-		return &runtimev1.CapabilityImplementationIdentity{
-			ImplementationId: "cloud.realtime.interact.dashscope",
-			DriverId:         "nimi.runtime.driver.dashscope",
-			DriverDialect:    "dashscope/realtime/v1",
-		}, true
 	}
 	return &runtimev1.CapabilityImplementationIdentity{
 		ImplementationId: provider,
