@@ -82,6 +82,10 @@ func (h *ProviderMediaHost) ExecuteMedia(
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
 	pollState := &privateMediaPollState{}
+	var cleanup *nimillm.ProviderTaskCleanupObservation
+	ctx = nimillm.WithProviderTaskCleanupObserver(ctx, func(observation nimillm.ProviderTaskCleanupObservation) {
+		cleanup = &observation
+	})
 	result, err := h.transport.ExecuteMediaAdapter(
 		ctx,
 		request.Adapter(),
@@ -92,7 +96,10 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		pollState,
 	)
 	if err != nil {
-		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
+		if auditErr := h.recordDispatch(audit, dispatchExit(ctx, "error"), mediaReasonCode(err), false, cleanup); auditErr != nil {
+			return capabilitydriver.CloudMediaTransportResponse{}, auditErr
+		}
+		return capabilitydriver.CloudMediaTransportResponse{}, err
 	}
 	if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		closeNimiArtifactBodies(result.ArtifactBodies)
@@ -343,7 +350,7 @@ func (s *privateMediaPollState) UpdatePollState(providerPrivateID string, provid
 	s.mu.Unlock()
 }
 
-func (h *ProviderMediaHost) recordDispatch(audit MediaDispatchAudit, phase string, reason runtimev1.ReasonCode, providerStopGuaranteed bool) error {
+func (h *ProviderMediaHost) recordDispatch(audit MediaDispatchAudit, phase string, reason runtimev1.ReasonCode, providerStopGuaranteed bool, cleanup ...*nimillm.ProviderTaskCleanupObservation) error {
 	if h == nil || h.audit == nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
@@ -366,6 +373,10 @@ func (h *ProviderMediaHost) recordDispatch(audit MediaDispatchAudit, phase strin
 	})
 	if err != nil {
 		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{})
+	}
+	if len(cleanup) > 0 && cleanup[0] != nil {
+		payload.Fields["provider_cleanup_outcome"] = structpb.NewStringValue(string(cleanup[0].Outcome))
+		payload.Fields["provider_cleanup_reason"] = structpb.NewStringValue(cleanup[0].ReasonCode.String())
 	}
 	traceID := strings.TrimSpace(audit.TraceID)
 	if traceID == "" {

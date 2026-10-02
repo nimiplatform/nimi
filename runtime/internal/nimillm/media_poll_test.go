@@ -206,7 +206,7 @@ func TestDeleteBytedanceARKTaskTreatsConflictAsSuccess(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	if err := DeleteProviderAsyncTask(context.Background(), AdapterBytedanceARKTask, "task-1", MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true}); err != nil {
+	if _, err := DeleteProviderAsyncTask(context.Background(), AdapterBytedanceARKTask, "task-1", MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true}); err != nil {
 		t.Fatalf("expected conflict to be treated as success, got %v", err)
 	}
 }

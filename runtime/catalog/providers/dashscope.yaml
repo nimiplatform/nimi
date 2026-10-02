@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-10-02-dashscope-voice-preview
+catalog_version: 2026-10-02-dashscope-wan-native-i2v
 inventory_mode: static_source
 default_text_model: qwen3.7-plus
 models:
@@ -2057,7 +2057,7 @@ models:
   - model_id: wan2.7-i2v
     provider: dashscope
     model_type: video
-    updated_at: 2026-04-18
+    updated_at: 2026-10-02
     capabilities:
       - video.generate
     pricing:
@@ -2068,9 +2068,9 @@ models:
       as_of: 2026-04-18
       notes: Wan 2.7 image-to-video pricing varies by resolution, duration, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/use-video-generation
-      retrieved_at: 2026-04-18
-      note: Official Wan video generation guide covering t2v and i2v families.
+      url: https://help.aliyun.com/zh/model-studio/image-to-video-general-api-reference
+      retrieved_at: 2026-10-02
+      note: Wan 2.7 native input.media first/last-frame roles and optional driving audio; output audio is automatic, without a generate_audio toggle.
     features:
       - input.image
     video_generation:
@@ -2088,6 +2088,12 @@ models:
           - last_frame
           - reference_audio
       limits:
+        reference_audios:
+          min: 1
+          max: 1
+        seed:
+          min: 0
+          max: 2147483647
         resolution:
           - 720p
           - 1080p
@@ -2098,7 +2104,8 @@ models:
         supports:
           - resolution
           - duration_sec
-          - generate_audio
+          - watermark
+          - seed
         constraints: {}
       outputs:
         video_url: true

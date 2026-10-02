@@ -878,7 +878,7 @@ func TestExecuteAlibabaNativeVideoUsesAsyncTaskContract(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	artifacts, _, providerJobID, err := ExecuteAlibabaNative(
+	artifacts, usage, providerJobID, err := ExecuteAlibabaNative(
 		context.Background(),
 		MediaAdapterConfig{
 			BaseURL:               server.URL + "/compatible-mode/v1",
@@ -915,6 +915,9 @@ func TestExecuteAlibabaNativeVideoUsesAsyncTaskContract(t *testing.T) {
 	}
 	if providerJobID != "wan-video-task-1" {
 		t.Fatalf("unexpected providerJobID: %q", providerJobID)
+	}
+	if usage != nil {
+		t.Fatalf("video seconds became invented token/compute usage: %+v", usage)
 	}
 	if capturedAsyncHeader != "enable" {
 		t.Fatalf("expected X-DashScope-Async enable, got=%q", capturedAsyncHeader)

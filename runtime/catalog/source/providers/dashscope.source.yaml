@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-10-02-dashscope-voice-preview
+catalog_version: 2026-10-02-dashscope-wan-native-i2v
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -157,6 +157,10 @@ sources:
     url: https://help.aliyun.com/zh/model-studio/text-to-video-api-reference
     retrieved_at: 2026-09-12
     note: Wan 2.7 native video parameters and one optional WAV/MP3 reference audio URL; the provider validates remote audio format, 2–30 second duration and at most 15 MB size.
+  - source_id: dashscope_wan_i2v_api_doc
+    url: https://help.aliyun.com/zh/model-studio/image-to-video-general-api-reference
+    retrieved_at: 2026-10-02
+    note: Wan 2.7 native input.media first/last-frame roles and optional driving audio; output audio is automatic, without a generate_audio toggle.
   - source_id: dashscope_wan_video_r2v_doc
     url: https://help.aliyun.com/zh/model-studio/wan-video-to-video-api-reference
     retrieved_at: 2026-04-18
@@ -1397,7 +1401,7 @@ models:
 
   - model_id: wan2.7-i2v
     model_type: video
-    updated_at: 2026-04-18
+    updated_at: 2026-10-02
     capabilities: [video.generate]
     features: [input.image]
     pricing:
@@ -1407,19 +1411,25 @@ models:
       currency: CNY
       as_of: 2026-04-18
       notes: Wan 2.7 image-to-video pricing varies by resolution, duration, and account tier.
-    source_ids: [dashscope_wan_video_guide_doc, dashscope_models_pricing_doc]
+    source_ids: [dashscope_wan_i2v_api_doc, dashscope_models_pricing_doc]
     video_generation:
       modes: [i2v_first_frame, i2v_first_last]
       input_roles:
         i2v_first_frame: [prompt, first_frame, reference_audio]
         i2v_first_last: [prompt, first_frame, last_frame, reference_audio]
       limits:
+        reference_audios:
+          min: 1
+          max: 1
+        seed:
+          min: 0
+          max: 2147483647
         resolution: [720p, 1080p]
         duration_sec:
           min: 2
           max: 15
       options:
-        supports: [resolution, duration_sec, generate_audio]
+        supports: [resolution, duration_sec, watermark, seed]
         constraints: {}
       outputs:
         video_url: true

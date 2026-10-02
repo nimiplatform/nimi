@@ -147,17 +147,40 @@ func sleepWithContext(ctx context.Context, delay time.Duration) error {
 	}
 }
 
+type ProviderTaskCleanupObservation struct {
+	Outcome    ProviderTaskCleanupOutcome
+	ReasonCode runtimev1.ReasonCode
+}
+
+type providerTaskCleanupObserverKey struct{}
+
+// WithProviderTaskCleanupObserver keeps transport cleanup outcomes inside the
+// Remote ExecutionHost audit boundary. It carries no provider task identifier.
+func WithProviderTaskCleanupObserver(ctx context.Context, observe func(ProviderTaskCleanupObservation)) context.Context {
+	return context.WithValue(ctx, providerTaskCleanupObserverKey{}, observe)
+}
+
 func bestEffortDeleteProviderAsyncTask(ctx context.Context, adapter string, baseURL string, apiKey string, providerJobID string) {
 	if strings.TrimSpace(adapter) == "" || strings.TrimSpace(providerJobID) == "" {
 		return
 	}
-	cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
-	_ = DeleteProviderAsyncTask(cleanupCtx, adapter, providerJobID, MediaAdapterConfig{
+	outcome, err := DeleteProviderAsyncTask(cleanupCtx, adapter, providerJobID, MediaAdapterConfig{
 		BaseURL:               baseURL,
 		APIKey:                apiKey,
 		AllowLoopbackEndpoint: allowLoopbackProviderEndpointFromContext(ctx),
 	})
+	if observe, ok := ctx.Value(providerTaskCleanupObserverKey{}).(func(ProviderTaskCleanupObservation)); ok && observe != nil {
+		reason := runtimev1.ReasonCode_ACTION_EXECUTED
+		if err != nil {
+			reason = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+			if typed, exists := grpcerr.ExtractReasonCode(err); exists {
+				reason = typed
+			}
+		}
+		observe(ProviderTaskCleanupObservation{Outcome: outcome, ReasonCode: reason})
+	}
 }
 
 func providerTaskFailedError(statusText string, payload map[string]any) error {
@@ -241,6 +264,19 @@ func PollProviderTaskForArtifact(
 	applyMetadata func(*runtimev1.ScenarioArtifact),
 	extraArtifactMeta map[string]any,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	cleanupAttempted := false
+	cleanup := func() {
+		if !cleanupAttempted {
+			cleanupAttempted = true
+			bestEffortDeleteProviderAsyncTask(ctx, adapter, baseURL, apiKey, providerJobID)
+		}
+	}
+	defer func() {
+		// This also covers cancellation while an HTTP poll is in flight.
+		if ctx.Err() != nil {
+			cleanup()
+		}
+	}()
 	initialDelay := providerPollDelay(0)
 	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(initialDelay)), "")
 	retryCount := int32(0)
@@ -248,13 +284,16 @@ func PollProviderTaskForArtifact(
 	detached := isDetachedPollContext(ctx)
 	for {
 		if ctx.Err() != nil {
-			bestEffortDeleteProviderAsyncTask(ctx, adapter, baseURL, apiKey, providerJobID)
+			cleanup()
 			return nil, nil, providerJobID, providerPollContextError(ctx.Err())
 		}
 		retryCount++
 		pollResp := map[string]any{}
 		pollPath := ResolveTaskQueryPath(queryPathTemplate, providerJobID)
 		if err := DoJSONRequest(ctx, http.MethodGet, JoinURL(baseURL, pollPath), apiKey, nil, &pollResp); err != nil {
+			if ctx.Err() != nil {
+				return nil, nil, providerJobID, providerPollContextError(ctx.Err())
+			}
 			// For detached polling (cancel-only ctx), transient infrastructure
 			// failures (timeout, 5xx, connection errors) are retried with
 			// backoff. Permanent provider errors (auth, not-found, bad-request,
@@ -268,7 +307,7 @@ func PollProviderTaskForArtifact(
 				delay := providerPollDelay(retryCount)
 				updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
 				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
-					bestEffortDeleteProviderAsyncTask(ctx, adapter, baseURL, apiKey, providerJobID)
+					cleanup()
 					return nil, nil, providerJobID, providerPollContextError(sleepErr)
 				}
 				continue
@@ -280,12 +319,13 @@ func PollProviderTaskForArtifact(
 		if IsAsyncTaskPendingStatus(statusText) {
 			if providerPollRetryLimitReached(ctx, retryCount) {
 				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+				cleanup()
 				return nil, nil, providerJobID, providerPollTimeoutError()
 			}
 			delay := providerPollDelay(retryCount)
 			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), "")
 			if err := sleepWithContext(ctx, delay); err != nil {
-				bestEffortDeleteProviderAsyncTask(ctx, adapter, baseURL, apiKey, providerJobID)
+				cleanup()
 				return nil, nil, providerJobID, providerPollContextError(err)
 			}
 			continue

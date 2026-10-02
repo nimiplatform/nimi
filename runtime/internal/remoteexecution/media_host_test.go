@@ -2,10 +2,12 @@ package remoteexecution
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,9 +16,96 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestProviderMediaHostAuditsActualAlibabaCleanupOutcome(t *testing.T) {
+	for _, outcome := range []string{"confirmed_canceled", "not_cancelable"} {
+		t.Run(outcome, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			var polls, cancels atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services/aigc/video-generation/video-synthesis":
+					fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"PENDING"}}`)
+				case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/private-task":
+					if polls.Add(1) == 1 {
+						cancel()
+						fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"RUNNING"}}`)
+					} else {
+						fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"CANCELED"}}`)
+					}
+				case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks/private-task/cancel":
+					cancels.Add(1)
+					if outcome == "not_cancelable" {
+						w.WriteHeader(http.StatusBadRequest)
+						fmt.Fprint(w, `{"code":"UnsupportedOperation","message":"running task"}`)
+					} else {
+						fmt.Fprint(w, `{"request_id":"private-request"}`)
+					}
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer server.Close()
+			store := connector.NewConnectorStoreWithSecretStore(t.TempDir(), &trackingSecretStore{values: map[string]string{}})
+			record, err := store.Create(connector.ConnectorRecord{
+				Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED, OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+				OwnerID: "account-a", Provider: "dashscope", Endpoint: server.URL, Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+			}, "cleanup-scoped-secret")
+			if err != nil {
+				t.Fatal(err)
+			}
+			raw, _ := structpb.NewStruct(map[string]any{"provider": "dashscope", "providerModelId": "wan2.7-t2v", "remoteModelCatalogId": "catalog-wan"})
+			driver, target, err := capabilitydriver.NewProductionCloudMediaRegistry().Resolve(capabilitydriver.Identity{
+				ImplementationID: "cloud.video.generate.dashscope", DriverID: "nimi.runtime.driver.dashscope", DriverDialect: "provider/media-v1",
+			}, raw, "video.generate")
+			if err != nil {
+				t.Fatal(err)
+			}
+			mapped, err := driver.MapRequest(target, &runtimev1.SubmitScenarioJobRequest{
+				ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+				Spec:         &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{Mode: runtimev1.VideoMode_VIDEO_MODE_T2V, Prompt: "A boat"}}},
+			}, nil, capabilitydriver.CloudMediaStreamNone)
+			if err != nil {
+				t.Fatal(err)
+			}
+			audit := auditlog.New(16, 16)
+			host := NewProviderMediaHost(store, nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}), audit, true)
+			_, err = host.ExecuteMedia(ctx, record, target, mapped, MediaDispatchAudit{AppID: "app", AccountID: "account-a", TraceID: "trace-cleanup", Provider: "dashscope", CapabilityContract: "video.generate"})
+			if status.Code(err) != codes.Canceled || cancels.Load() != 1 {
+				t.Fatalf("err=%v cancel requests=%d", err, cancels.Load())
+			}
+			events, err := audit.ListEvents(&runtimev1.ListAuditEventsRequest{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			found := false
+			for _, event := range events.GetEvents() {
+				raw, _ := protojson.Marshal(event)
+				for _, private := range []string{"cleanup-scoped-secret", "private-task", "private-request"} {
+					if strings.Contains(string(raw), private) {
+						t.Fatal("private provider state leaked into audit")
+					}
+				}
+				if event.Operation == "remote_execution_host.media.canceled" {
+					found = true
+					fields := event.GetPayload().GetFields()
+					if fields["provider_cleanup_outcome"].GetStringValue() != outcome || fields["provider_stop_guaranteed"].GetBoolValue() {
+						t.Fatalf("cleanup audit=%s", raw)
+					}
+				}
+			}
+			if !found {
+				t.Fatal("missing terminal Host cleanup audit")
+			}
+		})
+	}
+}
 
 func TestProviderMediaHostOpensCredentialOnlyInsideDispatch(t *testing.T) {
 	mp3, err := os.ReadFile("../nimillm/testdata/tone-24k.mp3")

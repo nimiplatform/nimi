@@ -148,7 +148,13 @@ func ExecuteAlibabaNative(
 		if content := VideoContentPayload(spec); len(content) > 0 {
 			submitPayload["content"] = content
 		}
-		if spec.GetMode() == runtimev1.VideoMode_VIDEO_MODE_T2V {
+		if modelResolved == "wan2.7-i2v" {
+			var err error
+			submitPayload, err = buildWan27ImageVideoPayload(modelResolved, spec)
+			if err != nil {
+				return nil, nil, "", err
+			}
+		} else if spec.GetMode() == runtimev1.VideoMode_VIDEO_MODE_T2V {
 			var err error
 			submitPayload, err = buildAlibabaTextVideoPayload(modelResolved, spec)
 			if err != nil {
@@ -178,9 +184,9 @@ func ExecuteAlibabaNative(
 			}
 			artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 			ApplyVideoSpecMetadata(artifact, spec)
-			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(VideoPrompt(spec), artifactBytes, 420), "", nil
+			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 		}
-		return PollProviderTaskForArtifact(
+		artifacts, _, providerJobID, err := PollProviderTaskForArtifact(
 			ctx,
 			updater,
 			jobID,
@@ -198,6 +204,9 @@ func ExecuteAlibabaNative(
 			},
 			map[string]any{"mode": spec.GetMode().String()},
 		)
+		// Wan reports billed video duration, not token usage or compute time.
+		// The generic poller's text-token estimates are not provider usage.
+		return artifacts, nil, providerJobID, err
 	case runtimev1.Modal_MODAL_TTS:
 		spec := scenarioSpeechSynthesizeSpec(req)
 		if spec == nil {

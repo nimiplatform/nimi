@@ -223,6 +223,34 @@ func TestGoogleVeo31CloudVideoDeadlineCoversDocumentedPeakLatency(t *testing.T) 
 	}
 }
 
+func TestWan27CloudVideoDeadlineCoversQueueAndArtifactCustody(t *testing.T) {
+	for _, model := range []string{"wan2.7-t2v", "wan2.7-i2v"} {
+		for _, ms := range []int32{0, 1, 120000, 480000, 480001, -1} {
+			req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, Head: &runtimev1.ScenarioRequestHead{TimeoutMs: ms}}
+			got, err := cloudMediaJobTimeoutDuration(req, "dashscope", model)
+			if ms < 0 || ms > 480000 {
+				if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || got != 0 {
+					t.Fatalf("invalid deadline accepted: %s %d %s %v", model, ms, got, err)
+				}
+				continue
+			}
+			want := 8 * time.Minute
+			if ms > 0 {
+				want = time.Duration(ms) * time.Millisecond
+			}
+			if err != nil || got != want {
+				t.Fatalf("deadline=%s want=%s err=%v", got, want, err)
+			}
+		}
+	}
+	for _, target := range []struct{ provider, model string }{{"dashscope", "wan2.7-r2v"}, {"dashscope", "wan2.7-i2v-unreviewed"}, {"volcengine", "wan2.7-i2v"}} {
+		req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, Head: &runtimev1.ScenarioRequestHead{}}
+		if got, err := cloudMediaJobTimeoutDuration(req, target.provider, target.model); err != nil || got != defaultGenerateVideoTimeout {
+			t.Fatalf("unrelated target inherited deadline: %+v %s %v", target, got, err)
+		}
+	}
+}
+
 func TestWorldJobTimeoutCoversGenerationAndAssetRetrieval(t *testing.T) {
 	scenarioType := runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE
 	req := &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{}, ScenarioType: scenarioType}

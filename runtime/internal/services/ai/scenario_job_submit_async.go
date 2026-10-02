@@ -130,10 +130,16 @@ func (s *Service) submitScenarioAsyncJob(
 }
 
 // @nimi-authority: rule.nimi.runtime.service-operations.r066
-const googleVeo31CloudVideoJobTimeout = 8 * time.Minute
+const extendedCloudVideoJobTimeout = 8 * time.Minute
 
-func exactGoogleVeo31VideoJob(scenarioType runtimev1.ScenarioType, provider, model string) bool {
-	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE || provider != "google_veo" {
+func exactExtendedCloudVideoJob(scenarioType runtimev1.ScenarioType, provider, model string) bool {
+	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
+		return false
+	}
+	if provider == "dashscope" {
+		return model == "wan2.7-t2v" || model == "wan2.7-i2v"
+	}
+	if provider != "google_veo" {
 		return false
 	}
 	switch model {
@@ -147,15 +153,15 @@ func exactGoogleVeo31VideoJob(scenarioType runtimev1.ScenarioType, provider, mod
 // @nimi-authority: rule.nimi.runtime.service-operations.r066
 func cloudMediaJobTimeoutDuration(req *runtimev1.SubmitScenarioJobRequest, provider, model string) (time.Duration, error) {
 	scenarioType := req.GetScenarioType()
-	if exactGoogleVeo31VideoJob(scenarioType, provider, model) {
+	if exactExtendedCloudVideoJob(scenarioType, provider, model) {
 		if timeoutMS := req.GetHead().GetTimeoutMs(); timeoutMS != 0 {
 			duration := time.Duration(timeoutMS) * time.Millisecond
-			if duration <= 0 || duration > googleVeo31CloudVideoJobTimeout {
+			if duration <= 0 || duration > extendedCloudVideoJobTimeout {
 				return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 			}
 			return duration, nil
 		}
-		return googleVeo31CloudVideoJobTimeout, nil
+		return extendedCloudVideoJobTimeout, nil
 	}
 	return scenarioJobTimeoutDuration(req, defaultCloudMediaJobTimeout(scenarioType, provider, model), false)
 }
