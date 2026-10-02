@@ -12,6 +12,7 @@ import (
 const CloudMediaAdapterOpenAITranscriptions = "openai_transcriptions_adapter"
 
 const openAITranscribeModel = "gpt-transcribe"
+const openAIWhisperModel = "whisper-1"
 const maxOpenAITranscribeUploadBytes = 25 * 1024 * 1024
 
 // openAITranscribeModels are the file transcription models whose request and
@@ -20,6 +21,7 @@ var openAITranscribeModels = map[string]bool{
 	openAITranscribeModel:    true,
 	"gpt-4o-transcribe":      true,
 	"gpt-4o-mini-transcribe": true,
+	openAIWhisperModel:       true,
 }
 
 var openAITranscribeLanguagePattern = regexp.MustCompile(`^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$`)
@@ -36,13 +38,16 @@ var openAITranscribeUploadMIMEs = map[string]bool{
 // @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 // validateOpenAITranscribeRequest admits one uploaded recording and a plain
 // transcript. gpt-transcribe takes an expected language but no free-text hint;
-// the GPT-4o pair also takes a hint. Timing, speakers, URLs, alternate result
-// formats and extensions are never silently dropped or substituted.
+// the GPT-4o pair also takes a hint. Whisper additionally admits real word
+// timing. Speakers, URLs, raw provider formats and extensions are rejected.
 func validateOpenAITranscribeRequest(request *runtimev1.SubmitScenarioJobRequest, model string) error {
 	unsupported := func() error {
 		message := "OpenAI GPT-4o transcription supports one uploaded WAV, MP3, M4A or WebM recording of at most 25 MB, an optional language code and hint, and a plain transcript; URLs, timestamps, speakers and other result formats are unavailable"
 		if model == openAITranscribeModel {
 			message = "OpenAI GPT Transcribe supports one uploaded WAV, MP3, M4A or WebM recording of at most 25 MB, an optional expected language code, and a plain transcript; hints, URLs, timestamps, speakers and other result formats are unavailable"
+		}
+		if model == openAIWhisperModel {
+			message = "Whisper transcription supports one uploaded WAV, MP3, M4A or WebM recording of at most 25 MB, an optional language code and hint, and a plain or word-timed transcript; URLs, speakers and raw provider formats are unavailable"
 		}
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
 			Message:    message,
@@ -54,7 +59,7 @@ func validateOpenAITranscribeRequest(request *runtimev1.SubmitScenarioJobRequest
 	}
 	spec := request.GetSpec().GetSpeechTranscribe()
 	if !openAITranscribeUploadMIMEs[strings.ToLower(strings.TrimSpace(spec.GetMimeType()))] ||
-		spec.GetTimestamps() || spec.GetDiarization() || spec.GetSpeakerCount() != 0 {
+		(spec.GetTimestamps() && model != openAIWhisperModel) || spec.GetDiarization() || spec.GetSpeakerCount() != 0 {
 		return unsupported()
 	}
 	switch strings.ToLower(strings.TrimSpace(spec.GetResponseFormat())) {

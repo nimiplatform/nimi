@@ -186,6 +186,70 @@ func TestOpenAITranscriptionsFailsTypedWithoutGuessing(t *testing.T) {
 	}
 }
 
+func TestOpenAIWhisperPreservesActualWordTimingAndDetectedLanguage(t *testing.T) {
+	for _, tc := range []struct {
+		name, response, language string
+		timestamps, bad          bool
+	}{
+		{"timed French despite English hint", `{"text":" Bonjour, Nimi! ","language":"french","words":[{"word":"Bonjour,","start":0,"end":0.73},{"word":"Nimi!","start":0.73,"end":1.51}]}`, "fr", true, false},
+		{"plain detected Chinese", `{"text":"你好。","language":"chinese"}`, "zh", false, false},
+		{"Whisper Bengali name", `{"text":"Reported transcript.","language":"bengali"}`, "bn", false, false},
+		{"Whisper Myanmar name", `{"text":"Reported transcript.","language":"myanmar"}`, "my", false, false},
+		{"Whisper Nynorsk name", `{"text":"Reported transcript.","language":"nynorsk"}`, "nn", false, false},
+		{"Whisper documented alias", `{"text":"Reported transcript.","language":"burmese"}`, "my", false, false},
+		{"absent language stays empty", `{"text":"Hello."}`, "", false, false},
+		{"missing requested timing", `{"text":"Hello.","language":"english"}`, "", true, true},
+		{"missing zero start", `{"text":"Hello.","words":[{"word":"Hello.","end":1}]}`, "", true, true},
+		{"missing end", `{"text":"Hello.","words":[{"word":"Hello.","start":0}]}`, "", true, true},
+		{"missing word", `{"text":"Hello.","words":[{"start":0,"end":1}]}`, "", true, true},
+		{"negative start", `{"text":"Hello.","words":[{"word":"Hello.","start":-0.1,"end":1}]}`, "", true, true},
+		{"reversed range", `{"text":"Hello.","words":[{"word":"Hello.","start":2,"end":1}]}`, "", true, true},
+		{"out of order", `{"text":"Hello there.","words":[{"word":"Hello","start":1,"end":2},{"word":"there.","start":0.5,"end":1}]}`, "", true, true},
+		{"unknown language", `{"text":"Hello.","language":"not-a-language"}`, "", false, true},
+		{"empty speech is not no_speech", `{"text":"","language":"english","words":[]}`, "", true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/v1/audio/transcriptions" || r.Header.Get("Authorization") != "Bearer test-key" {
+					t.Error("wrong endpoint or credential owner")
+				}
+				if err := r.ParseMultipartForm(1 << 20); err != nil {
+					t.Error(err)
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				if r.FormValue("model") != "whisper-1" || r.FormValue("response_format") != "verbose_json" || r.FormValue("language") != "en" {
+					t.Errorf("wrong Whisper multipart mapping: %+v", r.Form)
+				}
+				if got := r.FormValue("timestamp_granularities[]"); (tc.timestamps && got != "word") || (!tc.timestamps && got != "") || r.FormValue("timestamps") != "" {
+					t.Errorf("wrong timestamp mapping: %+v", r.Form)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = io.WriteString(w, tc.response)
+			}))
+			defer server.Close()
+			provider, target := openAITranscriptionTestTarget(server.URL, "whisper-1")
+			artifacts, usage, _, err := provider.executeOpenAITranscriptions(context.Background(), openAITranscriptionTestRequest(&runtimev1.SpeechTranscribeScenarioSpec{Language: "en", Timestamps: &tc.timestamps}), "whisper-1", target)
+			if tc.bad {
+				if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID || len(artifacts) != 0 {
+					t.Fatalf("malformed response published: artifacts=%v err=%v", artifacts, err)
+				}
+				return
+			}
+			if err != nil || len(artifacts) != 1 || usage != nil {
+				t.Fatalf("Whisper output=%v usage=%v err=%v", artifacts, usage, err)
+			}
+			var transcript runtimev1.SpeechTranscript
+			if err := protojson.Unmarshal(artifacts[0].GetBytes(), &transcript); err != nil || transcript.Language != tc.language {
+				t.Fatalf("language=%q want=%q err=%v", transcript.Language, tc.language, err)
+			}
+			if tc.timestamps && (transcript.Text != "Bonjour, Nimi!" || len(transcript.Words) != 2 || transcript.Words[0].Text != "Bonjour," || transcript.Words[0].StartSeconds != 0 || transcript.Words[0].EndSeconds != 0.73 || transcript.Words[1].Text != "Nimi!" || transcript.Words[1].EndSeconds != 1.51) {
+				t.Fatalf("reported words or punctuation changed: %+v", &transcript)
+			}
+		})
+	}
+}
+
 func TestOpenAITranscriptionDetectedLanguage(t *testing.T) {
 	for _, tc := range []struct {
 		name         string

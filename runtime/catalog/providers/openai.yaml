@@ -1,6 +1,6 @@
 version: 1
 provider: openai
-catalog_version: 2026-10-01-openai-realtime-2-1
+catalog_version: 2026-10-02-openai-whisper-word-timing
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
@@ -149,7 +149,7 @@ models:
   - model_id: whisper-1
     provider: openai
     model_type: stt
-    updated_at: 2026-03-05
+    updated_at: 2026-10-02
     capabilities:
       - audio.transcribe
     pricing:
@@ -166,11 +166,12 @@ models:
     transcription:
       tiers:
         - core_transcript
+        - timed_transcript
       response_formats:
         - text
-        - json
       supports_language: true
       supports_prompt: true
+      supports_timestamps: true
   - model_id: gpt-6-astra
     provider: openai
     model_type: chat

@@ -16,6 +16,7 @@ import (
 
 const adapterOpenAITranscriptions = "openai_transcriptions_adapter"
 const openAIGPTTranscribeModel = "gpt-transcribe"
+const openAIWhisperTranscribeModel = "whisper-1"
 const maxOpenAITranscriptionUploadBytes = 25 * 1024 * 1024
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
@@ -61,13 +62,21 @@ func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *ru
 	language := strings.TrimSpace(spec.GetLanguage())
 	prompt := strings.TrimSpace(spec.GetPrompt())
 	if !ok || len(source.AudioBytes) == 0 || len(source.AudioBytes) > maxOpenAITranscriptionUploadBytes || filename == "" ||
-		(format != "" && format != "text") || spec.GetTimestamps() || spec.GetDiarization() || spec.GetSpeakerCount() != 0 ||
+		(format != "" && format != "text") || (spec.GetTimestamps() && modelID != openAIWhisperTranscribeModel) || spec.GetDiarization() || spec.GetSpeakerCount() != 0 ||
 		(prompt != "" && modelID == openAIGPTTranscribeModel) {
 		return nil, nil, nil, unsupported
 	}
 
-	// The endpoint's JSON result is the only one that also reports usage.
+	// Select a native structured result rather than requesting plain text.
 	fields := [][2]string{{"model", modelID}, {"response_format", "json"}}
+	if modelID == openAIWhisperTranscribeModel {
+		// Verbose JSON reports detected language; the public result remains the
+		// existing typed transcript rather than an upstream response format.
+		fields[1][1] = "verbose_json"
+		if spec.GetTimestamps() {
+			fields = append(fields, [2]string{"timestamp_granularities[]", "word"})
+		}
+	}
 	if language != "" {
 		// gpt-transcribe replaces the single language with a list of
 		// expected languages.
@@ -109,7 +118,13 @@ func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *ru
 	defer func() { _ = response.Body.Close() }()
 
 	var out struct {
-		Text      *string `json:"text"`
+		Text     *string `json:"text"`
+		Language *string `json:"language"`
+		Words    []struct {
+			Word  *string  `json:"word"`
+			Start *float64 `json:"start"`
+			End   *float64 `json:"end"`
+		} `json:"words"`
 		Languages []struct {
 			Code string `json:"code"`
 		} `json:"languages"`
@@ -146,7 +161,27 @@ func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *ru
 			return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 	}
-	if err := localexecution.ValidateSpeechTranscript(transcript, false); err != nil {
+	if modelID == openAIWhisperTranscribeModel {
+		if out.Language != nil {
+			code, ok := openAIWhisperReportedLanguageCode(*out.Language)
+			if !ok {
+				return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			}
+			transcript.Language = code
+		}
+		if len(out.Words) > localexecution.MaxSpeechTranscriptWords {
+			return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		for _, word := range out.Words {
+			if word.Word == nil || word.Start == nil || word.End == nil {
+				return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			}
+			transcript.Words = append(transcript.Words, &runtimev1.SpeechTranscriptWord{
+				Text: *word.Word, StartSeconds: *word.Start, EndSeconds: *word.End,
+			})
+		}
+	}
+	if err := localexecution.ValidateSpeechTranscript(transcript, spec.GetTimestamps()); err != nil {
 		return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	var usage *runtimev1.UsageStats
@@ -165,6 +200,47 @@ func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *ru
 		}
 	}
 	return transcript, usage, providerSeconds, nil
+}
+
+// Whisper reports its own language names in verbose_json, not CLDR display
+// names. Source: OpenAI whisper/tokenizer.py LANGUAGES and TO_LANGUAGE_CODE:
+// https://github.com/openai/whisper/blob/main/whisper/tokenizer.py
+// Convert only the actual report; never use hints or transcript text.
+func openAIWhisperReportedLanguageCode(name string) (string, bool) {
+	if name == "" || strings.TrimSpace(name) != name {
+		return "", false
+	}
+	code, ok := map[string]string{
+		"english": "en", "chinese": "zh", "german": "de", "spanish": "es",
+		"russian": "ru", "korean": "ko", "french": "fr", "japanese": "ja",
+		"portuguese": "pt", "turkish": "tr", "polish": "pl", "catalan": "ca",
+		"dutch": "nl", "arabic": "ar", "swedish": "sv", "italian": "it",
+		"indonesian": "id", "hindi": "hi", "finnish": "fi", "vietnamese": "vi",
+		"hebrew": "he", "ukrainian": "uk", "greek": "el", "malay": "ms",
+		"czech": "cs", "romanian": "ro", "danish": "da", "hungarian": "hu",
+		"tamil": "ta", "norwegian": "no", "thai": "th", "urdu": "ur",
+		"croatian": "hr", "bulgarian": "bg", "lithuanian": "lt", "latin": "la",
+		"maori": "mi", "malayalam": "ml", "welsh": "cy", "slovak": "sk",
+		"telugu": "te", "persian": "fa", "latvian": "lv", "bengali": "bn",
+		"serbian": "sr", "azerbaijani": "az", "slovenian": "sl", "kannada": "kn",
+		"estonian": "et", "macedonian": "mk", "breton": "br", "basque": "eu",
+		"icelandic": "is", "armenian": "hy", "nepali": "ne", "mongolian": "mn",
+		"bosnian": "bs", "kazakh": "kk", "albanian": "sq", "swahili": "sw",
+		"galician": "gl", "marathi": "mr", "punjabi": "pa", "sinhala": "si",
+		"khmer": "km", "shona": "sn", "yoruba": "yo", "somali": "so",
+		"afrikaans": "af", "occitan": "oc", "georgian": "ka", "belarusian": "be",
+		"tajik": "tg", "sindhi": "sd", "gujarati": "gu", "amharic": "am",
+		"yiddish": "yi", "lao": "lo", "uzbek": "uz", "faroese": "fo",
+		"haitian creole": "ht", "pashto": "ps", "turkmen": "tk", "nynorsk": "nn",
+		"maltese": "mt", "sanskrit": "sa", "luxembourgish": "lb", "myanmar": "my",
+		"tibetan": "bo", "tagalog": "tl", "malagasy": "mg", "assamese": "as",
+		"tatar": "tt", "hawaiian": "haw", "lingala": "ln", "hausa": "ha",
+		"bashkir": "ba", "javanese": "jw", "sundanese": "su", "cantonese": "yue",
+		"burmese": "my", "valencian": "ca", "flemish": "nl", "haitian": "ht",
+		"letzeburgesch": "lb", "pushto": "ps", "panjabi": "pa", "moldavian": "ro",
+		"moldovan": "ro", "sinhalese": "si", "castilian": "es", "mandarin": "zh",
+	}[strings.ToLower(name)]
+	return code, ok
 }
 
 func openAITranscriptionUploadFilename(mimeType string) string {

@@ -33,8 +33,14 @@ func TestOpenAITranscribeMapsOnlyUploadedPlainTranscripts(t *testing.T) {
 		t.Fatalf("a GPT-4o hint and plain result must map: %v", err)
 	}
 	whisper, whisperTarget := cloudMediaDriverTarget(t, "openai", "whisper-1", "audio.transcribe")
-	if mapped, err := whisper.MapRequest(whisperTarget, request(&runtimev1.SpeechTranscribeScenarioSpec{}), nil, CloudMediaStreamNone); err != nil || mapped.Adapter() != CloudMediaAdapterOpenAICompat {
-		t.Fatalf("whisper-1 stays outside the exact cell: mapping=%+v err=%v", mapped, err)
+	if mapped, err := whisper.MapRequest(whisperTarget, request(&runtimev1.SpeechTranscribeScenarioSpec{Timestamps: testBool(true), Language: "en", Prompt: "Nimi"}), nil, CloudMediaStreamNone); err != nil || mapped.Adapter() != CloudMediaAdapterOpenAITranscriptions {
+		t.Fatalf("whisper-1 must use the exact timed transcript cell: mapping=%+v err=%v", mapped, err)
+	}
+	for _, spec := range []*runtimev1.SpeechTranscribeScenarioSpec{{Diarization: testBool(true)}, {ResponseFormat: "verbose_json"}, {ResponseFormat: "json"}, {SpeakerCount: testInt32(2)}} {
+		_, err := whisper.MapRequest(whisperTarget, request(spec), nil, CloudMediaStreamNone)
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("unsupported Whisper option must fail before dispatch: %v", err)
+		}
 	}
 
 	driver, target = cloudMediaDriverTarget(t, "openai", "gpt-transcribe", "audio.transcribe")

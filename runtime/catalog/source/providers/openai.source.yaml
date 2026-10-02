@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-10-01-openai-realtime-2-1
+catalog_version: 2026-10-02-openai-whisper-word-timing
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -340,7 +340,7 @@ models:
 
   - model_id: whisper-1
     model_type: stt
-    updated_at: 2026-03-05
+    updated_at: 2026-10-02
     capabilities: [audio.transcribe]
     pricing:
       unit: token
@@ -351,10 +351,11 @@ models:
       notes: Legacy STT. Approximate per-token equivalent of $0.006/minute. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
     source_ids: [openai_speech_to_text_doc, openai_models_doc, openai_deprecations_doc]
     transcription:
-      tiers: [core_transcript]
-      response_formats: [text, json]
+      tiers: [core_transcript, timed_transcript]
+      response_formats: [text]
       supports_language: true
       supports_prompt: true
+      supports_timestamps: true
 
   - model_id: gpt-6-astra
     model_type: chat
