@@ -11,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
@@ -50,6 +51,13 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if backend == nil {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
+	nativeGemini := serialized.Protocol == capabilitydriver.GeminiNativeBaseProtocol
+	if serialized.Protocol != "" && !nativeGemini {
+		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+	}
+	if nativeGemini && (target.ProviderType != "gemini" || resolvedModelID != "gemini-3.8-flash") {
+		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+	}
 	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
 	}
@@ -69,16 +77,33 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	}
 	// The adapter owns protocol shape, while the exact composed model remains
 	// transport-owned and cannot be supplied in the App's text specification.
-	body["model"], _ = json.Marshal(resolvedModelID)
+	if !nativeGemini {
+		body["model"], _ = json.Marshal(resolvedModelID)
+	}
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
 	}
-	request, err := backend.newRequest(ctx, http.MethodPost, backend.baseURL+path, bytes.NewReader(payload))
+	endpoint := backend.baseURL + path
+	if nativeGemini {
+		if len(payload) > capabilitydriver.GeminiNativeMaxRequestBytes {
+			return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		path = "/models/" + resolvedModelID + ":generateContent"
+		if wireStream {
+			path = "/models/" + resolvedModelID + ":streamGenerateContent?alt=sse"
+		}
+		endpoint = resolveGeminiNativeBaseURL(backend.baseURL) + path
+	}
+	request, err := backend.newRequest(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
 	request.Header.Set("Content-Type", serialized.ContentType)
+	if nativeGemini {
+		request.Header.Del("Authorization")
+		request.Header.Set("x-goog-api-key", backend.apiKey)
+	}
 	if wireStream {
 		request.Header.Set("Accept", "text/event-stream")
 	}
@@ -98,7 +123,13 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		return textbehavior.NormalizedResult{}, MapProviderHTTPError(response.StatusCode, providerError)
 	}
 	if !wireStream {
-		body, err := io.ReadAll(response.Body)
+		var body []byte
+		var err error
+		if nativeGemini {
+			body, err = readLimitedResponseBody(response.Body, anthropicMessageStreamLimit)
+		} else {
+			body, err = io.ReadAll(response.Body)
+		}
 		if err != nil {
 			logProviderStreamFailure(backend.Name, path, started, err)
 			return textbehavior.NormalizedResult{}, MapProviderRequestError(err)

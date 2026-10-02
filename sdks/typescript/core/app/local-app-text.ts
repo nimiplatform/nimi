@@ -18,10 +18,11 @@ export type NimiLocalAppTextTurnItem =
   | { readonly type: 'output'; readonly output: NimiLocalAppTextOutputItem }
   | { readonly type: 'tool-result'; readonly toolResult: Pick<NimiToolResult, 'toolCallId' | 'toolName' | 'result' | 'isError'> };
 export type NimiLocalAppTextImageMime = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+export type NimiLocalAppTextMediaMime = NimiLocalAppTextImageMime | 'audio/wav' | 'audio/mpeg' | 'video/mp4';
 export type NimiLocalAppTextPart =
   | { readonly type: 'text'; readonly text: string }
   | { readonly type: 'image-url'; readonly url: string }
-  | { readonly type: 'artifact-ref'; readonly artifactId: string; readonly mediaType: NimiLocalAppTextImageMime; readonly displayName?: string };
+  | { readonly type: 'artifact-ref'; readonly artifactId: string; readonly mediaType: NimiLocalAppTextMediaMime; readonly displayName?: string };
 export type NimiLocalAppTextMessage = {
   readonly role: 'system' | 'user' | 'assistant';
   readonly text: string;
@@ -56,6 +57,10 @@ export function isLocalAppTextImageMime(value: unknown): value is NimiLocalAppTe
   return value === 'image/png' || value === 'image/jpeg' || value === 'image/webp' || value === 'image/gif';
 }
 
+export function isLocalAppTextMediaMime(value: unknown): value is NimiLocalAppTextMediaMime {
+  return isLocalAppTextImageMime(value) || value === 'audio/wav' || value === 'audio/mpeg' || value === 'video/mp4';
+}
+
 function readInputPart(value: unknown): NimiLocalAppTextPart {
   const part = asRecord(value);
   if (!part) return invalid('message part');
@@ -73,9 +78,9 @@ function readInputPart(value: unknown): NimiLocalAppTextPart {
     return Object.freeze({ type: 'image-url', url: part.url });
   }
   if (part.type !== 'artifact-ref') return invalid('unsupported message part');
-  assertExactKeys(part, ['type', 'artifactId', 'mediaType', 'displayName'], 'image artifact part');
+  assertExactKeys(part, ['type', 'artifactId', 'mediaType', 'displayName'], 'media artifact part');
   const artifactId = identifier(part.artifactId, invalid);
-  if (!isLocalAppTextImageMime(part.mediaType) || (part.displayName !== undefined && typeof part.displayName !== 'string')) return invalid('image artifact part');
+  if (!isLocalAppTextMediaMime(part.mediaType) || (part.displayName !== undefined && typeof part.displayName !== 'string')) return invalid('media artifact part');
   return Object.freeze({ type: 'artifact-ref', artifactId, mediaType: part.mediaType, ...(part.displayName === undefined ? {} : { displayName: part.displayName as string }) });
 }
 

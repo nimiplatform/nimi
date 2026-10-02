@@ -189,12 +189,14 @@ func (s *MemoryStore) Get(artifactID string) (ArtifactRecord, bool) {
 
 // Stat returns committed metadata without loading a caller-visible body.
 func (s *MemoryStore) Stat(artifactID string) (ArtifactRecord, bool) {
-	record, ok := s.Get(artifactID)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	record, ok := s.records[strings.TrimSpace(artifactID)]
 	if !ok {
 		return ArtifactRecord{}, false
 	}
 	record.Bytes = nil
-	return record, true
+	return cloneArtifactRecord(record), true
 }
 
 // Open returns one immutable in-memory snapshot that remains readable after a

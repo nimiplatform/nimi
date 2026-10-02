@@ -63,6 +63,8 @@ func (capture AdapterCapture) Validate() error {
 type SerializedRequest struct {
 	ContentType string
 	Payload     []byte
+	// A Runtime-private dialect chosen by the captured serializer, never App input.
+	Protocol string
 }
 
 type RequestSerializer func(*runtimev1.TextGenerateScenarioSpec, bool) (SerializedRequest, error)

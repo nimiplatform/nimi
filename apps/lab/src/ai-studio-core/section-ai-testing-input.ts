@@ -1,16 +1,17 @@
 import type { StudioResultKind } from './module-registration.js';
 import type { NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
 
-export function textStudioImageInputAvailable(snapshot: NimiAIConfigSnapshot): boolean {
+export function textStudioMediaInputAvailable(snapshot: NimiAIConfigSnapshot, mediaType?: string): boolean {
+  const required = mediaType ? mediaType.startsWith('image/') ? 'input.image' : mediaType.startsWith('audio/') ? 'input.audio' : mediaType.startsWith('video/') ? 'input.video' : '' : undefined;
+  if (required === '') return false;
   const selection = snapshot.effectiveSelections.find((item) => item.capabilityContract === 'text.generate');
   if (selection?.state !== 'ready') return false;
   const resource = selection.resource;
   if (resource?.oneofKind === 'cloud') {
-    return resource.cloud.target.state === 'ready' && resource.cloud.target.supportedFeatures.includes('input.image');
+    return resource.cloud.target.state === 'ready' && (required ? resource.cloud.target.supportedFeatures.includes(required) : ['input.image', 'input.audio', 'input.video'].some((feature) => resource.cloud.target.supportedFeatures.includes(feature)));
   }
   if (resource?.oneofKind === 'local') {
-    return resource.local.state === 'ready' && resource.local.configuredFeatures.includes('input.image')
-      && resource.local.implementationSupportedFeatures.includes('input.image');
+    return resource.local.state === 'ready' && (required ? resource.local.configuredFeatures.includes(required) && resource.local.implementationSupportedFeatures.includes(required) : ['input.image', 'input.audio', 'input.video'].some((feature) => resource.local.configuredFeatures.includes(feature) && resource.local.implementationSupportedFeatures.includes(feature)));
   }
   return false;
 }

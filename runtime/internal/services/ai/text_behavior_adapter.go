@@ -28,12 +28,13 @@ type textBehaviorAdapterRegistration struct {
 	Support            textBehaviorSupport
 	ExecutionSemantics textBehaviorExecutionSemantics
 
-	RequestSerializerID string
-	RequestSerializer   textBehaviorRequestSerializer
-	NonStreamParserID   string
-	NonStreamParser     textBehaviorNonStreamParser
-	StreamAssemblerID   string
-	StreamAssembler     textBehaviorStreamAssemblerFactory
+	RequestSerializerID    string
+	RequestSerializer      textBehaviorRequestSerializer
+	MaterializationPlanner textbehavior.MaterializationPlanner
+	NonStreamParserID      string
+	NonStreamParser        textBehaviorNonStreamParser
+	StreamAssemblerID      string
+	StreamAssembler        textBehaviorStreamAssemblerFactory
 }
 
 type textBehaviorCloudTarget struct {

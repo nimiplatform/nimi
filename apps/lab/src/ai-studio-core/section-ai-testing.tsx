@@ -14,7 +14,7 @@ import { ScenarioJobStatus } from '@nimiplatform/sdk/runtime/generated';
 import {
   canCancelStudioCapabilityRun,
   hasStudioCapabilityRunInput,
-  textStudioImageInputAvailable,
+  textStudioMediaInputAvailable,
   usesVerbatimStudioPrompt,
 } from './section-ai-testing-input.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
@@ -77,7 +77,7 @@ function TextStudioShell({
   const [executingRun, setExecutingRun] = useState<TextStudioActiveRun | null>(null);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
-  const [imageInputState, setImageInputState] = useState<'checking' | 'supported' | 'unsupported' | 'unavailable'>('checking');
+  const [mediaInputState, setMediaInputState] = useState<'checking' | 'supported' | 'unsupported' | 'unavailable'>('checking');
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
   const [sessionRuns, setSessionRuns] = useState<Record<string, TextStudioActiveRun>>({});
   const historyPanel = useContext(StudioHistoryPanelContext);
@@ -89,7 +89,7 @@ function TextStudioShell({
   const displayedRun = displayingExecution ? executingRun : activeRun;
   const expandedHistoryErrorRef = useRef<string | null>(null);
   const attachmentAdapter = useMemo(
-    () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment', ...((capability.id === 'vision.locate') ? { maxAttachments: 1, accept: ['image/png','image/jpeg','image/webp','image/gif'] } : capability.id === 'text.generate' ? { maxAttachments: 1, accept: ['image/jpeg'] } : {}) }),
+    () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment', ...((capability.id === 'vision.locate') ? { maxAttachments: 1, accept: ['image/png','image/jpeg','image/webp','image/gif'] } : capability.id === 'text.generate' ? { maxAttachments: 1, accept: ['image/jpeg', 'audio/wav', 'audio/mpeg', 'video/mp4'] } : {}) }),
     [capability.id],
   );
   const composerState = useChatComposer<BrowserDataUrlAttachment>({
@@ -105,19 +105,19 @@ function TextStudioShell({
     let generation = 0;
     const refresh = () => {
       const current = ++generation;
-      setImageInputState('checking');
+      setMediaInputState('checking');
       void rendererHost.sdk.aiConfig.getSnapshot().then((snapshot) => {
         if (!disposed && generation === current) {
-          setImageInputState(textStudioImageInputAvailable(snapshot) ? 'supported' : 'unsupported');
+          setMediaInputState(textStudioMediaInputAvailable(snapshot, composerState.attachments[0]?.mimeType) ? 'supported' : 'unsupported');
         }
       }, () => {
-        if (!disposed && generation === current) setImageInputState('unavailable');
+        if (!disposed && generation === current) setMediaInputState('unavailable');
       });
     };
     refresh();
     const unsubscribe = rendererHost.app.events.subscribeAIConfigRefresh(refresh);
     return () => { disposed = true; generation += 1; unsubscribe(); };
-  }, [capability.id, rendererHost]);
+  }, [capability.id, rendererHost, composerState.attachments[0]?.mimeType]);
   const hasRequiredImage = capability.id !== 'vision.locate'
     || (composerState.attachments.length === 1 && composerState.attachments[0]?.kind === 'image');
   const hasActiveRun = Boolean(displayedRun);
@@ -133,7 +133,7 @@ function TextStudioShell({
   const admission = statusForCapability(registration, runTarget, headerResult, t);
   const requiresPrompt = profile.inputKind !== 'none';
   const supportsMedia = profile.supportsAttachments;
-  const attachmentBlocked = capability.id === 'text.generate' && composerState.attachments.length > 0 && imageInputState !== 'supported';
+  const attachmentBlocked = capability.id === 'text.generate' && composerState.attachments.length > 0 && mediaInputState !== 'supported';
   const capabilityParameters = parameterStore?.state[capability.id] ?? registration.parameters.initial();
   const effectiveCapabilityParameters = useMemo(() => registration.parameters.project(
     runTarget.source,
@@ -237,7 +237,7 @@ function TextStudioShell({
         if (isStreaming) setStreamingText('');
         const directive = textStudioDirectiveForTarget(runTarget, profile);
         if (capability.id === 'text.generate' && composerState.attachments.length > 0 &&
-            !textStudioImageInputAvailable(await rendererHost.sdk.aiConfig.getSnapshot())) {
+            !textStudioMediaInputAvailable(await rendererHost.sdk.aiConfig.getSnapshot(), composerState.attachments[0]?.mimeType)) {
           result = {
             ok: false, capabilityId: capability.id, reason: 'input-invalid',
             message: t('Studio.profiles.textGenerate.imageTargetUnsupported'),
@@ -392,10 +392,10 @@ function TextStudioShell({
       intentLabel={textStudioRunTargetIntentSummary(runTarget, t)}
       running={running}
       attachments={composerState.attachments}
-      attachmentPickerEnabled={capability.id !== 'text.generate' || imageInputState === 'supported'}
-      attachmentWarning={attachmentBlocked ? t(imageInputState === 'checking'
+      attachmentPickerEnabled={capability.id !== 'text.generate' || mediaInputState === 'supported'}
+      attachmentWarning={attachmentBlocked ? t(mediaInputState === 'checking'
         ? 'Studio.profiles.textGenerate.imageTargetChecking'
-        : imageInputState === 'unavailable'
+        : mediaInputState === 'unavailable'
           ? 'Studio.profiles.textGenerate.imageTargetUnknown'
           : 'Studio.profiles.textGenerate.imageTargetUnsupported') : undefined}
       onOpenAttachmentPicker={composerState.openAttachmentPicker}

@@ -59,7 +59,9 @@ func TestLocalAppTextBehaviorPreservesImagePartsAndRejectsOtherInputPlanes(t *te
 		"local asset selector": func(m *runtimev1.LocalAppTextCandidateMessage) {
 			m.Parts[2].GetArtifactRef().LocalArtifactId = "local-model-file"
 		},
-		"audio artifact": func(m *runtimev1.LocalAppTextCandidateMessage) { m.Parts[2].GetArtifactRef().MimeType = "audio/wav" },
+		"unsupported artifact": func(m *runtimev1.LocalAppTextCandidateMessage) {
+			m.Parts[2].GetArtifactRef().MimeType = "application/pdf"
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			changed := proto.Clone(request).(*runtimev1.StreamLocalAppTextTurnRequest)

@@ -10,7 +10,7 @@ import (
 // Tool turns carry the provider's signature in the bounded opaque transcript.
 func gemini38FlashSchemaBehaviorRegistration() textBehaviorAdapterRegistration {
 	return textBehaviorAdapterRegistration{
-		AdapterID: "gemini.38-flash.chat", Version: "2",
+		AdapterID: "gemini.38-flash.chat", Version: "3",
 		ImplementationID: "gemini", DriverID: "nimillm", DriverDialect: "gemini",
 		CloudTarget: &textBehaviorCloudTarget{Provider: "gemini", ProviderModelID: "gemini-3.8-flash"},
 		Support: textBehaviorSupport{
@@ -25,14 +25,16 @@ func gemini38FlashSchemaBehaviorRegistration() textBehaviorAdapterRegistration {
 				SupportsStrictJSONSchema: true,
 			},
 			Combinations: []textBehaviorCombination{
+				{Modes: []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}},
 				{ToolUse: true, Modes: []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC}},
 				{ToolUse: true, Reasoning: true, Modes: []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC}},
 				{StructuredOutput: true, Modes: []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC}},
 			},
 		},
 		ExecutionSemantics:  textBehaviorExecutionSemantics{ProcessIdentityImpact: textBehaviorProcessIdentityUnaffected},
-		RequestSerializerID: "gemini/38-flash/chat/request/v2", RequestSerializer: capabilitydriver.Gemini38FlashRequestSerializer,
-		NonStreamParserID: "gemini/38-flash/chat/response/v2", NonStreamParser: capabilitydriver.Gemini38FlashNonStreamParser,
-		StreamAssemblerID: "gemini/38-flash/chat/stream/v2", StreamAssembler: capabilitydriver.Gemini38FlashSchemaStreamAssembler,
+		RequestSerializerID: "gemini/38-flash/chat/request/v3", RequestSerializer: capabilitydriver.Gemini38FlashRequestSerializer,
+		MaterializationPlanner: capabilitydriver.Gemini38FlashPlanMaterialization,
+		NonStreamParserID:      "gemini/38-flash/chat/response/v3", NonStreamParser: capabilitydriver.Gemini38FlashNonStreamParser,
+		StreamAssemblerID: "gemini/38-flash/chat/stream/v3", StreamAssembler: capabilitydriver.Gemini38FlashSchemaStreamAssembler,
 	}
 }

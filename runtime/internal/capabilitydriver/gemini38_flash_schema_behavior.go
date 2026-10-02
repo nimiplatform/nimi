@@ -2,6 +2,7 @@ package capabilitydriver
 
 import (
 	"encoding/json"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -13,7 +14,32 @@ func geminiSchemaUnsupported() error {
 	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 }
 
+// Inspect both owned references and resolved parts before advanced media can
+// enter materialization. The same admission applies at final serialization.
+func gemini38HasAudioVideoInput(spec *runtimev1.TextGenerateScenarioSpec) bool {
+	for _, message := range spec.GetInput() {
+		for _, part := range message.GetParts() {
+			switch part.GetType() {
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL, runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL:
+				return true
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF:
+				mime := part.GetArtifactRef().GetMimeType()
+				if strings.HasPrefix(mime, "audio/") || strings.HasPrefix(mime, "video/") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func Gemini38FlashRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
+	if gemini38BaseSpec(spec) {
+		return Gemini38FlashBaseRequestSerializer(spec, stream)
+	}
+	if gemini38HasAudioVideoInput(spec) {
+		return textbehavior.SerializedRequest{}, geminiSchemaUnsupported()
+	}
 	if spec != nil && len(spec.GetTools()) > 0 {
 		return Gemini38FlashToolRequestSerializer(spec, stream)
 	}
@@ -21,6 +47,9 @@ func Gemini38FlashRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, st
 }
 
 func Gemini38FlashNonStreamParser(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
+	if gemini38BaseSpec(spec) {
+		return Gemini38FlashBaseNonStreamParser(payload, spec)
+	}
 	if spec != nil && len(spec.GetTools()) > 0 {
 		return Gemini38FlashToolNonStreamParser(payload, spec)
 	}
@@ -176,6 +205,9 @@ func Gemini38FlashSchemaNonStreamParser(payload []byte, spec *runtimev1.TextGene
 	return parseStrictChatJSONSchema(payload, spec)
 }
 
-func Gemini38FlashSchemaStreamAssembler(_ *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
+func Gemini38FlashSchemaStreamAssembler(spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
+	if gemini38BaseSpec(spec) {
+		return &gemini38BaseStream{}, nil
+	}
 	return nil, geminiSchemaUnsupported()
 }

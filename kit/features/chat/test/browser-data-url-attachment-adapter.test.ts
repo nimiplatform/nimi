@@ -7,6 +7,12 @@ import {
 } from '../src/headless.js';
 
 describe('browser data-url attachment adapter', () => {
+  it('admits audio only when its consumer explicitly opts in', async () => {
+    const audio = new File(['pcm'], 'speech.wav', { type: 'audio/wav' });
+    expect(await browserFilesToDataUrlAttachments([audio])).toEqual([]);
+    const result = await browserFilesToDataUrlAttachments([audio], { accept: ['audio/wav'] });
+    expect(result[0]).toMatchObject({ kind: 'audio', mimeType: 'audio/wav', name: 'speech.wav' });
+  });
   it('reads accepted image and video files as data-url attachments', async () => {
     const image = new File(['image-bytes'], 'screen.png', { type: 'image/png' });
     const video = new File(['video-bytes'], 'clip.mp4', { type: 'video/mp4' });

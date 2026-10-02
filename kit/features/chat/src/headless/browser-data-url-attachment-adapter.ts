@@ -6,7 +6,7 @@ import {
   type NimiMessagePart,
 } from '@nimiplatform/kit/core/sdk-contract';
 
-export type BrowserDataUrlAttachmentKind = 'image' | 'video';
+export type BrowserDataUrlAttachmentKind = 'image' | 'video' | 'audio';
 
 export type BrowserDataUrlAttachment = {
   id: string;
@@ -41,6 +41,7 @@ let attachmentSequence = 0;
 function inferBrowserAttachmentKind(mimeType: string): BrowserDataUrlAttachmentKind | null {
   if (mimeType.startsWith('image/')) return 'image';
   if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType.startsWith('audio/')) return 'audio';
   return null;
 }
 
@@ -63,7 +64,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 export async function browserFilesToDataUrlAttachments(
   files: FileList | readonly File[] | null | undefined,
-  options: Pick<BrowserDataUrlAttachmentAdapterOptions, 'idFactory' | 'idPrefix'> = {},
+  options: Pick<BrowserDataUrlAttachmentAdapterOptions, 'idFactory' | 'idPrefix' | 'accept'> = {},
 ): Promise<BrowserDataUrlAttachment[]> {
   if (!files || files.length === 0) {
     return [];
@@ -73,10 +74,12 @@ export async function browserFilesToDataUrlAttachments(
   for (const file of Array.from(files)) {
     const kind = inferBrowserAttachmentKind(file.type);
     if (!kind) continue;
+    // Audio is opt-in; existing image/video consumers retain their picker scope.
+    if (kind === 'audio' && !options.accept?.some((mime) => mime === file.type || mime === 'audio/*')) continue;
     out.push({
       id: options.idFactory?.() ?? createBrowserAttachmentId(prefix),
       kind,
-      name: file.name || (kind === 'image' ? 'pasted-image.png' : 'pasted-video.mp4'),
+      name: file.name || (kind === 'image' ? 'pasted-image.png' : kind === 'audio' ? 'audio.wav' : 'pasted-video.mp4'),
       dataUrl: await readFileAsDataUrl(file),
       mimeType: file.type,
     });

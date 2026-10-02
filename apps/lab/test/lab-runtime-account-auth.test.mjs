@@ -914,7 +914,7 @@ test('Lab preserves actual image-generated text when saving the source image fai
   }, readyRuntimeDependencies(client));
   assert.equal(result.ok, true);
   assert.deepEqual(result.output, { kind: 'text', text: 'Two cats.', finishReason: 'stop', streamed: false });
-  assert.match(result.message, /source image|原图/u);
+  assert.match(result.message, /source media|原媒体/u);
 });
 
 test('Lab image-assisted text skips opaque reasoning continuity and still requires one text answer', async () => {
@@ -953,6 +953,27 @@ test('Lab text.generate rejects unverified image formats before upload', async (
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'input-invalid');
   assert.equal(uploads, 0);
+});
+
+test('Lab text.generate uploads owned audio and saves its original input beside the answer', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const wave = Buffer.alloc(76);
+  wave.write('RIFF'); wave.writeUInt32LE(68,4); wave.write('WAVEfmt ',8); wave.writeUInt32LE(16,16);
+  wave.writeUInt16LE(1,20);wave.writeUInt16LE(1,22);wave.writeUInt32LE(16000,24);wave.writeUInt32LE(32000,28);wave.writeUInt16LE(2,32);wave.writeUInt16LE(16,34);wave.write('data',36);wave.writeUInt32LE(32,40);
+  const calls=[];
+  const client=fakeLocalAppClient({
+    async uploadArtifact(input){calls.push(['upload',input]);return {artifactId:'owned-audio'};},
+    async executeScenario(input){calls.push(['execute',input]);return {output:{type:'text-generate',finishReason:'stop',items:[{type:'text',text:'The model answer.'}]}};},
+    async writeAsset(input){calls.push(['write',input]);return {relativePath:input.relativePath,sizeBytes:wave.length,sha256:`sha256:${'a'.repeat(64)}`};},
+    async generateCandidate(){throw Error('media used text-only candidate');},
+  });
+  const result=await runLabCapability({capabilityId:'text.generate',prompt:'Describe this recording.',attachments:[{id:'audio',kind:'audio',name:'speech.wav',mimeType:'audio/wav',dataUrl:`data:audio/wav;base64,${wave.toString('base64')}`}]},readyRuntimeDependencies(client));
+  assert.equal(result.ok,true);
+  assert.equal(calls[0][1].mimeType,'audio/wav');
+  assert.deepEqual(calls[1][1].messages[0].parts,[{type:'text',text:'Describe this recording.'},{type:'artifact-ref',artifactId:'owned-audio',mediaType:'audio/wav',displayName:'speech.wav'}]);
+  assert.match(calls[2][1].relativePath,/\.wav$/u);
+  assert.equal(result.output.sourceImage.mediaType,'audio/wav');
+  assert.deepEqual(Buffer.from(calls[2][1].body),wave);
 });
 
 test('Lab text.generate preserves only the exact foreground parameter set including explicit zero values', async () => {

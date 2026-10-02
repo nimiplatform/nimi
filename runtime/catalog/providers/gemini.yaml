@@ -1,13 +1,13 @@
 version: 1
 provider: gemini
-catalog_version: 2026-09-28-gemini-lifecycle-v5
+catalog_version: 2026-10-02-gemini-native-text-media
 inventory_mode: static_source
 default_text_model: gemini-3.8-flash
 models:
   - model_id: gemini-3.8-flash
     provider: gemini
     model_type: chat
-    updated_at: 2026-09-02
+    updated_at: 2026-10-02
     capabilities:
       - text.generate
     pricing:
@@ -23,6 +23,8 @@ models:
       note: Stable Gemini 3.8 Flash model card with exact model id, modalities, and token limits.
     features:
       - input.image
+      - input.audio
+      - input.video
     context_window_tokens: 8192
   - model_id: gemini-3.5-flash-lite
     provider: gemini

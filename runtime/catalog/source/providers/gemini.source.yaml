@@ -1,6 +1,6 @@
 schema_version: 3
 provider: gemini
-catalog_version: 2026-09-28-gemini-lifecycle-v5
+catalog_version: 2026-10-02-gemini-native-text-media
 generated_target: runtime/catalog/providers/gemini.yaml
 runtime:
   inventory_mode: static_source
@@ -187,9 +187,9 @@ selection_profiles:
 models:
   - model_id: gemini-3.8-flash
     model_type: chat
-    updated_at: 2026-09-02
+    updated_at: 2026-10-02
     capabilities: [text.generate]
-    features: [input.image]
+    features: [input.image, input.audio, input.video]
     pricing:
       unit: token
       input: unknown

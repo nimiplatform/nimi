@@ -33,7 +33,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
   const attachments = context.input.attachments ?? [];
   if (attachments.length > 0) {
     const image = attachments[0];
-    if (attachments.length !== 1 || !image || image.kind !== 'image' || image.mimeType !== 'image/jpeg') {
+    if (attachments.length !== 1 || !image || !['image/jpeg', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(image.mimeType)) {
       return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.profiles.textGenerate.imageInvalid'));
     }
     const prefix = `data:${image.mimeType};base64,`;
@@ -66,7 +66,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
         text: '',
         parts: [
           { type: 'text', text: context.prompt },
-          { type: 'artifact-ref', artifactId: upload.artifactId, mediaType: 'image/jpeg', displayName: image.name },
+          { type: 'artifact-ref', artifactId: upload.artifactId, mediaType: image.mimeType as 'image/jpeg' | 'audio/wav' | 'audio/mpeg' | 'video/mp4', displayName: image.name },
         ],
       }],
       ...textCandidateParameters(parameters),
@@ -81,7 +81,8 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
     if (response.output.type !== 'text-generate' || response.output.finishReason !== 'stop' || !answer.trim()) {
       return context.host.nonSuccess(context.capability, 'runtime-call-failed', context.host.translate('Studio.profiles.textGenerate.imageOutputInvalid'));
     }
-    const relativePath = `studio/text-generate-inputs/${crypto.randomUUID()}.jpg`;
+    const extension = image.mimeType === 'audio/wav' ? 'wav' : image.mimeType === 'audio/mpeg' ? 'mp3' : image.mimeType === 'video/mp4' ? 'mp4' : 'jpg';
+    const relativePath = `studio/text-generate-inputs/${crypto.randomUUID()}.${extension}`;
     let sourceImage;
     let message = context.host.translate('Studio.profiles.textGenerate.imageCompleted');
     try {

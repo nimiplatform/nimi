@@ -25,7 +25,7 @@ await build({
   stdin: {
     contents: `export { SectionAITesting } from './src/ai-studio-core/section-ai-testing.tsx';
       export { TextStudioComposer } from './src/ai-studio-core/section-ai-testing-composer.tsx';
-      export { textStudioImageInputAvailable } from './src/ai-studio-core/section-ai-testing-input.ts';
+      export { textStudioMediaInputAvailable } from './src/ai-studio-core/section-ai-testing-input.ts';
       export { AIStudioHostProvider } from './src/ai-studio-core/host-context.tsx';
       export { StudioCapabilityParameterContext } from './src/ai-studio-core/contexts.tsx';
       export { labStudioComposition } from './src/lab/lab-studio-composition.ts';
@@ -35,7 +35,7 @@ await build({
   outfile:path.join(buildDir,'studio.mjs'), bundle:true, packages:'external',
   platform:'node', format:'esm', target:'es2022', jsx:'automatic', logLevel:'silent',
 });
-const { SectionAITesting, TextStudioComposer, textStudioImageInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
+const { SectionAITesting, TextStudioComposer, textStudioMediaInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 
 test.after(async () => {
   dom.window.close();
@@ -48,14 +48,17 @@ test('text image action follows the effective configured feature and retains a b
       target:{state:'ready',supportedFeatures:['input.image']},
     }},
   };
-  assert.equal(textStudioImageInputAvailable({effectiveSelections:[selected]}),true);
-  assert.equal(textStudioImageInputAvailable({effectiveSelections:[{
+  assert.equal(textStudioMediaInputAvailable({effectiveSelections:[selected]}),true);
+  assert.equal(textStudioMediaInputAvailable({effectiveSelections:[selected]}, 'audio/wav'),false);
+  assert.equal(textStudioMediaInputAvailable({effectiveSelections:[{...selected,resource:{oneofKind:'cloud',cloud:{target:{state:'ready',supportedFeatures:['input.audio','input.video']}}}}]}, 'audio/wav'),true);
+  assert.equal(textStudioMediaInputAvailable({effectiveSelections:[{...selected,resource:{oneofKind:'cloud',cloud:{target:{state:'ready',supportedFeatures:['input.audio','input.video']}}}}]}, 'video/mp4'),true);
+  assert.equal(textStudioMediaInputAvailable({effectiveSelections:[{
     ...selected,resource:{oneofKind:'cloud',cloud:{target:{state:'ready',supportedFeatures:[]}}},
   }]}),false);
-  assert.equal(textStudioImageInputAvailable({effectiveSelections:[{
+  assert.equal(textStudioMediaInputAvailable({effectiveSelections:[{
     ...selected,resource:{oneofKind:'local',local:{state:'ready',configuredFeatures:[],implementationSupportedFeatures:['input.image']}},
   }]}),false);
-  assert.equal(textStudioImageInputAvailable({effectiveSelections:[{
+  assert.equal(textStudioMediaInputAvailable({effectiveSelections:[{
     ...selected,resource:{oneofKind:'local',local:{state:'ready',configuredFeatures:['input.image'],implementationSupportedFeatures:['input.image']}},
   }]}),true);
 

@@ -228,8 +228,8 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
     nonNegativeNumber(value.charCount, `${path}.charCount`);
     if (value.sourceImage !== undefined) {
       validateManagedArtifact(value.sourceImage, `${path}.sourceImage`);
-      if (!isJsonObject(value.sourceImage) || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(String(value.sourceImage.mediaType))) {
-        historyError(`${path}.sourceImage`, 'requires a saved image');
+      if (!isJsonObject(value.sourceImage) || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(String(value.sourceImage.mediaType))) {
+        historyError(`${path}.sourceImage`, 'requires a saved input media artifact');
       }
     }
     requiredString(value.finishReason, `${path}.finishReason`);

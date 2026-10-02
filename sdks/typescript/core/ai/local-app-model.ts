@@ -1,5 +1,5 @@
 import type { NimiLocalAppAIConsumptionClient } from '../app/local-app-runtime-platform-ai';
-import { validateLocalAppTextInput, modelTextOutputToLocalApp, isLocalAppTextImageMime, type NimiLocalAppTextPart, type NimiLocalAppTextTurnInput, type NimiLocalAppTextTurnItem } from '../app/local-app-text';
+import { validateLocalAppTextInput, modelTextOutputToLocalApp, isLocalAppTextImageMime, isLocalAppTextMediaMime, type NimiLocalAppTextPart, type NimiLocalAppTextTurnInput, type NimiLocalAppTextTurnItem } from '../app/local-app-text';
 import { assertExactKeys, localAppError } from '../app/local-app-runtime-platform-validation';
 import type { NimiRunEvent } from '../contracts';
 import { createNimiError } from '../../types';
@@ -41,9 +41,9 @@ function localInput(request: NimiGenerateTextRequest): NimiLocalAppTextTurnInput
           return { type: 'image-url', url: part.data };
         }
         if (part?.type === 'artifact-ref') {
-          assertExactKeys(part, ['type', 'artifactId', 'localArtifactId', 'mediaType', 'displayName'], 'Local App image artifact');
-          if (part.localArtifactId !== undefined || typeof part.artifactId !== 'string' || !part.artifactId || !isLocalAppTextImageMime(part.mediaType)
-            || (part.displayName !== undefined && typeof part.displayName !== 'string')) return invalid('image artifact reference; use the App artifact upload result');
+          assertExactKeys(part, ['type', 'artifactId', 'localArtifactId', 'mediaType', 'displayName'], 'Local App media artifact');
+          if (part.localArtifactId !== undefined || typeof part.artifactId !== 'string' || !part.artifactId || !isLocalAppTextMediaMime(part.mediaType)
+            || (part.displayName !== undefined && typeof part.displayName !== 'string')) return invalid('media artifact reference; use the App artifact upload result');
           return { type: 'artifact-ref', artifactId: part.artifactId, mediaType: part.mediaType, ...(part.displayName === undefined ? {} : { displayName: part.displayName }) };
         }
         return invalid('non-image content');

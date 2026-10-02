@@ -26,6 +26,17 @@ const user = { role: 'user' as const, content: [{ type: 'text' as const, text: '
 const tool = { name: 'search', inputSchema: { type: 'object' } };
 const call = { id: 'call-1', name: 'search', arguments: { query: 'Nimi', token: 'business data' } };
 
+test('Local App owned audio/video references preserve ordered content without inline or URI bypass', async () => {
+  for (const mediaType of ['audio/wav', 'audio/mpeg', 'video/mp4']) {
+    const f = fixture(async function* () {
+      yield { type: 'delta', sequence: '1', traceId: 'owned-media', itemIndex: 0, text: 'Observed.' };
+      yield { type: 'completed', sequence: '2', traceId: 'owned-media', finishReason: 'stop' };
+    });
+    await f.model.generateText({ messages: [{ role: 'user', content: [textPart('Inspect '), { type: 'artifact-ref', artifactId: 'owned-media', mediaType }, textPart(' briefly.')] }] });
+    assert.deepEqual(f.inputs[0]?.messages[0]?.parts, [{ type: 'text', text: 'Inspect ' }, { type: 'artifact-ref', artifactId: 'owned-media', mediaType }, { type: 'text', text: ' briefly.' }]);
+  }
+});
+
 test('Local App image input preserves user part order alongside tools and schema controls', async () => {
   const f = fixture(async function* () {
     yield { type: 'delta', sequence: '1', traceId: 'image-input', itemIndex: 0, text: '{"valid":true}' };

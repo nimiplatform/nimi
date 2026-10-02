@@ -174,7 +174,7 @@ func validateLocalAppTextParts(parts []*runtimev1.ChatContentPart) error {
 				return localAppTextInputInvalid()
 			}
 			switch ref.GetMimeType() {
-			case "image/png", "image/jpeg", "image/webp", "image/gif":
+			case "image/png", "image/jpeg", "image/webp", "image/gif", "audio/wav", "audio/mpeg", "video/mp4":
 			default:
 				return localAppTextInputInvalid()
 			}

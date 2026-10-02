@@ -23,6 +23,23 @@ type LocalAppArtifactOwner struct {
 	RegisteredAppSubject string
 }
 
+// StatAuthorizedLocalAppArtifact validates the same owner before body opening.
+// It is used for trusted dialect resource preflight, not an existence oracle.
+func StatAuthorizedLocalAppArtifact(ctx context.Context, store Store, artifactID string, owner LocalAppArtifactOwner) (ArtifactRecord, error) {
+	if ctx == nil || store == nil || ctx.Err() != nil || strings.TrimSpace(artifactID) == "" || len([]byte(strings.TrimSpace(artifactID))) > 512 || owner.AccountID == "" || owner.RegisteredAppSubject == "" {
+		return ArtifactRecord{}, ErrLocalAppArtifactUnavailable
+	}
+	record, ok := store.Stat(strings.TrimSpace(artifactID))
+	if !ok || !localAppArtifactOwnerValid(record, owner) {
+		return ArtifactRecord{}, ErrLocalAppArtifactUnavailable
+	}
+	return record, nil
+}
+
+func localAppArtifactOwnerValid(record ArtifactRecord, owner LocalAppArtifactOwner) bool {
+	return record.Owner != nil && strings.TrimSpace(record.Owner.SubjectUserID) == strings.TrimSpace(owner.AccountID) && strings.TrimSpace(record.Owner.RegisteredAppSubject) == strings.TrimSpace(owner.RegisteredAppSubject) && (record.MusicRecoveryUntil.IsZero() || time.Now().Before(record.MusicRecoveryUntil))
+}
+
 // OpenAuthorizedLocalAppArtifact is the single account-plus-registration
 // authorizer for every Local App artifact consumer. The exact use is selected
 // by Runtime code, never by the caller. AppID is intentionally absent.
@@ -45,13 +62,7 @@ func OpenAuthorizedLocalAppArtifact(
 	if !ok || source == nil || source.Body == nil || source.Record.Owner == nil {
 		return nil, ErrLocalAppArtifactUnavailable
 	}
-	artifactOwner := source.Record.Owner
-	if !source.Record.MusicRecoveryUntil.IsZero() && !time.Now().Before(source.Record.MusicRecoveryUntil) {
-		_ = source.Body.Close()
-		return nil, ErrLocalAppArtifactUnavailable
-	}
-	if strings.TrimSpace(artifactOwner.SubjectUserID) != owner.AccountID ||
-		strings.TrimSpace(artifactOwner.RegisteredAppSubject) != owner.RegisteredAppSubject {
+	if !localAppArtifactOwnerValid(source.Record, owner) {
 		_ = source.Body.Close()
 		return nil, ErrLocalAppArtifactUnavailable
 	}

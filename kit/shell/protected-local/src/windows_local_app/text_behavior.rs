@@ -75,7 +75,7 @@ fn parse_input_part(value: Value) -> Result<ChatContentPart, LocalAppOperationEr
             identifier(&artifact_id)?;
             if !matches!(
                 media_type.as_str(),
-                "image/png" | "image/jpeg" | "image/webp" | "image/gif"
+                "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "audio/wav" | "audio/mpeg" | "video/mp4"
             ) {
                 return Err(invalid_payload());
             }
@@ -530,6 +530,22 @@ pub(super) fn project_output(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn owned_audio_video_parts_cross_only_the_artifact_input_plane() {
+        for mime in ["audio/wav", "audio/mpeg", "video/mp4"] {
+            let output = request(serde_json::from_value(json!({"messages":[{"role":"user","text":"","parts":[
+                {"type":"text","text":"Inspect"},
+                {"type":"artifact-ref","artifactId":"owned-media","mediaType":mime}
+            ]}]})).unwrap()).unwrap();
+            assert_eq!(output.messages[0].parts.len(), 2);
+            let chat_content_part::Content::ArtifactRef(reference) = output.messages[0].parts[1].content.as_ref().unwrap() else { panic!("media changed plane") };
+            assert_eq!(reference.mime_type, mime);
+            assert_eq!(reference.artifact_id, "owned-media");
+        }
+        assert!(parse_input_part(json!({"type":"audio-url","url":"https://example.com/speech.wav"})).is_err());
+        assert!(parse_input_part(json!({"type":"video-url","url":"data:video/mp4;base64,AAAA"})).is_err());
+    }
 
     #[test]
     fn user_image_parts_keep_their_order_and_reject_mixed_representations() {

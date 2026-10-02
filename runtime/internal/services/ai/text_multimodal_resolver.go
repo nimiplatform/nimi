@@ -19,6 +19,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 )
 
 type textGenerateResolution struct {
@@ -204,6 +205,16 @@ func (s *Service) resolveTextGenerateArtifactPart(
 			},
 		}, cleanup, nil
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL:
+		if !localText {
+			inline, err := inlineOwnedTextMediaURL(resolvedPath, mimeType)
+			if err != nil {
+				if cleanup != nil {
+					cleanup()
+				}
+				return nil, nil, err
+			}
+			return &runtimev1.ChatContentPart{Type: partType, Content: &runtimev1.ChatContentPart_VideoUrl{VideoUrl: inline}}, cleanup, nil
+		}
 		return &runtimev1.ChatContentPart{
 			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
 			Content: &runtimev1.ChatContentPart_VideoUrl{
@@ -211,6 +222,16 @@ func (s *Service) resolveTextGenerateArtifactPart(
 			},
 		}, cleanup, nil
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL:
+		if !localText {
+			inline, err := inlineOwnedTextMediaURL(resolvedPath, mimeType)
+			if err != nil {
+				if cleanup != nil {
+					cleanup()
+				}
+				return nil, nil, err
+			}
+			return &runtimev1.ChatContentPart{Type: partType, Content: &runtimev1.ChatContentPart_AudioUrl{AudioUrl: inline}}, cleanup, nil
+		}
 		return &runtimev1.ChatContentPart{
 			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL,
 			Content: &runtimev1.ChatContentPart_AudioUrl{
@@ -237,11 +258,17 @@ func (s *Service) resolveTextGenerateArtifactPath(
 
 	if artifactID := strings.TrimSpace(ref.GetArtifactId()); artifactID != "" {
 		if decision, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
+			if err := s.reserveOwnedTextArtifact(ctx, decision, artifactID, ref.GetMimeType()); err != nil {
+				return "", "", nil, err
+			}
 			source, err := s.openAuthorizedLocalAppArtifact(ctx, decision, artifactID, localAppArtifactOperationInput)
 			if err != nil {
 				return "", "", nil, err
 			}
 			defer func() { _ = source.Body.Close() }()
+			if expected := strings.TrimSpace(ref.GetMimeType()); expected != "" && expected != source.Record.MimeType {
+				return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			}
 			mimeType := firstNonEmpty(strings.TrimSpace(source.Record.MimeType), strings.TrimSpace(ref.GetMimeType()))
 			path, cleanup, writeErr := writeTextGenerateArtifactTempStream(ctx, mimeType, source.Body, source.Record.SizeBytes)
 			if writeErr != nil {
@@ -262,6 +289,9 @@ func (s *Service) resolveTextGenerateArtifactPath(
 		if len(artifact.GetBytes()) == 0 {
 			return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
+		if err := textbehavior.ReserveOwnedMediaInput(ctx, int64(len(artifact.GetBytes()))); err != nil {
+			return "", "", nil, err
+		}
 		path, cleanup, err := writeTextGenerateArtifactTempFile(firstNonEmpty(ref.GetMimeType(), artifact.GetMimeType()), artifact.GetBytes())
 		if err != nil {
 			return "", "", nil, err
@@ -274,6 +304,9 @@ func (s *Service) resolveTextGenerateArtifactPath(
 		return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if decision, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
+		if err := s.reserveOwnedTextArtifact(ctx, decision, localArtifactID, ref.GetMimeType()); err != nil {
+			return "", "", nil, err
+		}
 		source, err := s.openAuthorizedLocalAppArtifact(ctx, decision, localArtifactID, localAppArtifactOperationInput)
 		if err != nil {
 			return "", "", nil, err
@@ -299,6 +332,9 @@ func (s *Service) resolveTextGenerateArtifactPath(
 				return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 			}
 			mimeType := firstNonEmpty(strings.TrimSpace(record.MimeType), strings.TrimSpace(ref.GetMimeType()))
+			if err := textbehavior.ReserveOwnedMediaInput(ctx, int64(len(record.Bytes))); err != nil {
+				return "", "", nil, err
+			}
 			path, cleanup, err := writeTextGenerateArtifactTempFile(mimeType, record.Bytes)
 			if err != nil {
 				return "", "", nil, err
@@ -310,6 +346,17 @@ func (s *Service) resolveTextGenerateArtifactPath(
 	// the complete supported local input planes. A legacy LocalAsset id is not
 	// an attachment capability and must never resolve by possession alone.
 	return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+}
+
+func (s *Service) reserveOwnedTextArtifact(ctx context.Context, decision accountservice.LocalAppCallerDecision, id, mime string) error {
+	record, err := runtimeartifact.StatAuthorizedLocalAppArtifact(ctx, s.runtimeArtifacts, id, runtimeartifact.LocalAppArtifactOwner{AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject})
+	if err != nil {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+	}
+	if mime != "" && mime != record.MimeType {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return textbehavior.ReserveOwnedMediaInput(ctx, record.SizeBytes)
 }
 
 func classifyTextGenerateArtifactMedia(explicitMime string, resolvedMime string, resolvedPath string) (runtimev1.ChatContentPartType, error) {
@@ -491,6 +538,24 @@ func inlineTextGenerateImageURL(location string, mimeType string) (string, error
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	return "data:" + resolvedMIME + ";base64," + base64.StdEncoding.EncodeToString(payload), nil
+}
+
+// Only a path returned by the owned Artifact resolver reaches this helper.
+// Public callers cannot supply paths or data URIs. No provider Files upload.
+func inlineOwnedTextMediaURL(location, mimeType string) (string, error) {
+	if mimeType != "audio/wav" && mimeType != "audio/mpeg" && mimeType != "video/mp4" {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	file, err := os.Open(location)
+	if err != nil {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	defer file.Close()
+	body, err := io.ReadAll(io.LimitReader(file, runtimeartifact.MaxInlineBytes+1))
+	if err != nil || len(body) == 0 || len(body) > runtimeartifact.MaxInlineBytes {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(body), nil
 }
 
 func looksLikeTextGenerateLocalFilesystemPath(value string) bool {
