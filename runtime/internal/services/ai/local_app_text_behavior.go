@@ -92,11 +92,13 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 		}
 		switch role {
 		case "system":
-			if index != 0 || len(items) != 0 {
-				return nil, localAppTextInputInvalid()
+			// The first system message remains the Scenario prefix. Later
+			// messages keep their exact place in Input; the selected Driver
+			// must explicitly admit system messages inside the conversation.
+			if index == 0 {
+				spec.SystemPrompt = message.GetText()
+				continue
 			}
-			spec.SystemPrompt = message.GetText()
-			continue
 		case "user":
 			seenUser = true
 		case "assistant":

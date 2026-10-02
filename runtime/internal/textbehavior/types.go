@@ -15,6 +15,28 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// RequiresOrderedSystemMessages identifies message positions or boundaries that
+// a single system prefix cannot represent. It never rewrites the input.
+// @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
+func RequiresOrderedSystemMessages(spec *runtimev1.TextGenerateScenarioSpec) bool {
+	prefix := spec.GetSystemPrompt() != ""
+	conversation := false
+	for _, message := range spec.GetInput() {
+		if message == nil {
+			continue
+		}
+		if message.GetRole() == "system" {
+			if prefix || conversation {
+				return true
+			}
+			prefix = true
+		} else {
+			conversation = true
+		}
+	}
+	return false
+}
+
 // ProcessIdentityImpact declares the exact resident-process identity axes
 // affected by an adapter. Request-time behavior selection never changes this
 // declaration.

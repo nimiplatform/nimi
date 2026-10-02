@@ -7,8 +7,9 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
 func deepseekChatBehaviorRegistration(modelID, adapterID string) textBehaviorAdapterRegistration {
+	modes := []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}
 	return textBehaviorAdapterRegistration{
-		AdapterID: adapterID, Version: "2",
+		AdapterID: adapterID, Version: "3",
 		ImplementationID: "deepseek", DriverID: "nimillm", DriverDialect: "deepseek",
 		CloudTarget: &textBehaviorCloudTarget{Provider: "deepseek", ProviderModelID: modelID},
 		Support: textBehaviorSupport{
@@ -18,11 +19,16 @@ func deepseekChatBehaviorRegistration(modelID, adapterID string) textBehaviorAda
 				SingleCall:  true, MultipleCalls: true, ParallelCalls: true, ToolOnlyResponse: true, MixedTextAndCall: true, ToolResultRoundTrip: true,
 			},
 			StructuredOutput: &textBehaviorStructuredOutputSupport{Kinds: []runtimev1.ResponseFormatKind{runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT}},
-			Combinations:     []textBehaviorCombination{{ToolUse: true, Modes: []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}}, {StructuredOutput: true, Modes: []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}}},
+			Combinations: []textBehaviorCombination{
+				{ToolUse: true, Modes: modes}, {StructuredOutput: true, Modes: modes},
+				{OrderedSystemMessages: true, Modes: modes},
+				{ToolUse: true, OrderedSystemMessages: true, Modes: modes},
+				{StructuredOutput: true, OrderedSystemMessages: true, Modes: modes},
+			},
 		},
 		ExecutionSemantics:  textBehaviorExecutionSemantics{ProcessIdentityImpact: textBehaviorProcessIdentityUnaffected},
-		RequestSerializerID: "deepseek/chat/request/v2", RequestSerializer: capabilitydriver.DeepseekChatRequestSerializer,
-		NonStreamParserID: "deepseek/chat/response/v2", NonStreamParser: capabilitydriver.DeepseekChatNonStreamParser,
-		StreamAssemblerID: "deepseek/chat/stream/v2", StreamAssembler: capabilitydriver.DeepseekChatStreamAssembler,
+		RequestSerializerID: "deepseek/chat/request/v3", RequestSerializer: capabilitydriver.DeepseekChatRequestSerializer,
+		NonStreamParserID: "deepseek/chat/response/v3", NonStreamParser: capabilitydriver.DeepseekChatNonStreamParser,
+		StreamAssemblerID: "deepseek/chat/stream/v3", StreamAssembler: capabilitydriver.DeepseekChatStreamAssembler,
 	}
 }

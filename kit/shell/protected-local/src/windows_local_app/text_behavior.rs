@@ -215,8 +215,7 @@ pub(super) fn request(
     let messages = input
         .messages
         .into_iter()
-        .enumerate()
-        .map(|(index, message)| {
+        .map(|message| {
             if !message.parts.is_empty()
                 && (message.role != "user"
                     || !message.text.is_empty()
@@ -225,7 +224,7 @@ pub(super) fn request(
                 return Err(invalid_payload());
             }
             match message.role.as_str() {
-                "system" if index == 0 && message.turn_items.is_empty() => {}
+                "system" if message.turn_items.is_empty() => {}
                 "user" if message.turn_items.is_empty() => saw_user = true,
                 "assistant" => {}
                 _ => return Err(invalid_payload()),
@@ -545,6 +544,39 @@ mod tests {
         }
         assert!(parse_input_part(json!({"type":"audio-url","url":"https://example.com/speech.wav"})).is_err());
         assert!(parse_input_part(json!({"type":"video-url","url":"data:video/mp4;base64,AAAA"})).is_err());
+    }
+
+    #[test]
+    fn system_instructions_keep_their_position_without_relaxing_other_input_rules() {
+        let messages = json!([
+            {"role":"system", "text":"Character rules"},
+            {"role":"system", "text":"World information"},
+            {"role":"user", "text":"Open the door"},
+            {"role":"assistant", "text":"The door opened."},
+            {"role":"system", "text":"  作者注：保持场景。\n"}
+        ]);
+        let out =
+            request(serde_json::from_value(json!({"messages":messages.clone()})).unwrap()).unwrap();
+        for (actual, expected) in out.messages.iter().zip(messages.as_array().unwrap()) {
+            assert_eq!(actual.role, expected["role"].as_str().unwrap());
+            assert_eq!(actual.text, expected["text"].as_str().unwrap());
+        }
+        assert!(request(
+            serde_json::from_value(json!({"messages":[{"role":"system","text":"No user"}]}))
+                .unwrap()
+        )
+        .is_err());
+        assert!(request(
+            serde_json::from_value(
+                json!({"messages":vec![json!({"role":"user","text":"short"});129]})
+            )
+            .unwrap()
+        )
+        .is_err());
+        let mut invalid = messages.clone();
+        invalid[4]["text"] = json!("");
+        invalid[4]["parts"] = json!([{"type":"image-url","url":"https://example.com/image.png"}]);
+        assert!(request(serde_json::from_value(json!({"messages":invalid})).unwrap()).is_err());
     }
 
     #[test]

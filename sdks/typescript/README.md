@@ -60,6 +60,16 @@ and forwards cancellation. Preserve opaque `reasoning-continuity` bytes and
 order without decoding or displaying them. Only complete successful output
 can be treated as a finished result; partial JSON is not a validated object.
 
+The matching development SDK/Kit/native/Runtime preserves system messages in
+their submitted order, including instructions inside conversation history.
+Separate system-message boundaries and positions require an explicitly admitted
+Driver combination; unsupported combinations fail before inference instead of
+moving instructions to the beginning or changing their role. The initial exact
+DeepSeek Chat Completions v3 slice preserves these inputs in synchronous and
+streaming plain text, function-tool or JSON-object calls. Other combinations
+remain separately admitted. This does not relax the 128-message/1-MiB bounds,
+the required user message, or the user-only media boundary.
+
 The Local App binding supports function tools, tool choice and structured
 `responseFormat` since SDK 0.12.0 / Kit 0.8.0, and user image parts since SDK
 0.13.0 / Kit/native 0.9.0, each with a matching Runtime. HTTP(S) image file
@@ -69,6 +79,15 @@ paths or data URLs in model requests. SDK 0.12.0 / Kit 0.8.0 retain their
 text-only binding. Other media methods have separate contracts, and each
 selected execution configuration must support the requested modality and
 controls.
+
+The matching development cohort also carries owned WAV, MPEG audio and MP4
+video Artifact references in user text-generation messages. Upload the media
+through the App's artifact API; direct audio/video URLs and inline data remain
+invalid App inputs. The exact Gemini 3.8 Flash native base adapter admits this
+media in plain-text synchronous and streaming calls. Its tool and schema modes
+remain separate synchronous combinations and do not admit audio/video input.
+Preserving multiple system-message boundaries is a separate Driver behavior;
+media support does not imply that combination is supported.
 
 ## Local App speech support boundaries
 

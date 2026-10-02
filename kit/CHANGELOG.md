@@ -8,6 +8,11 @@ Browser data URL attachments can opt into audio via an explicit accepted MIME li
 
 The native protected carrier and Electron host preserve the existing `AI_MODALITY_NOT_SUPPORTED` Runtime reason as `ai-modality-not-supported` instead of generic invalid payload. This widens the native reason enum compatibly; no new Runtime operation or provider channel is added.
 
+The protected Local App text carrier preserves system messages at their
+submitted positions. Use the matching SDK and Runtime; Driver admission rejects
+unsupported message-position combinations. The remaining role, media, user
+message and size validation remains in force.
+
 `chat/runtime` adds `planConversationTextReplay` and `planAppAiChatReplay` for App-owned model-change contexts, `cancelAndWait()` on the session hook, and `preserveHistory` for explicit history-budget refusal. Persist the returned context boundary beside the unchanged source history; do not replace saved messages with the request projection. Text replay depends on the matching Runtime/SDK AIConfig compatibility projection.
 
 ## 0.16.0: upgrading from 0.11.0

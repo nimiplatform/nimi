@@ -191,11 +191,10 @@ export function validateLocalAppTextInput(value: unknown): NimiLocalAppTextTurnI
   }
   const calls = new Map<string, string>();
   let sawUser = false;
-  const messages = input.messages.map((message, index): NimiLocalAppTextMessage => {
+  const messages = input.messages.map((message): NimiLocalAppTextMessage => {
     assertExactKeys(message, ['role', 'text', 'turnItems', 'parts'], 'text message');
     const role = message.role;
     if (role !== 'system' && role !== 'user' && role !== 'assistant') invalid('message role');
-    if (role === 'system' && index !== 0) invalid('message role');
     if (typeof message.text !== 'string') invalid('message text');
     if (message.role === 'user') sawUser = true;
     if (message.turnItems !== undefined && !Array.isArray(message.turnItems)) invalid('ordered transcript');

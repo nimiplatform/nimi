@@ -7,6 +7,32 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+func TestOrderedSystemBoundariesCannotFallBackToASinglePrefix(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		prefix string
+		roles  []string
+		want   bool
+	}{
+		{"ordinary prefix", "rules", []string{"user", "assistant"}, false},
+		{"input prefix", "", []string{"system", "user"}, false},
+		{"separate prefixes", "rules", []string{"system", "user"}, true},
+		{"two input prefixes", "", []string{"system", "system", "user"}, true},
+		{"depth zero", "rules", []string{"user", "assistant", "system"}, true},
+		{"depth without prefix", "", []string{"user", "system", "assistant"}, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			spec := &runtimev1.TextGenerateScenarioSpec{SystemPrompt: test.prefix}
+			for _, role := range test.roles {
+				spec.Input = append(spec.Input, &runtimev1.ChatMessage{Role: role, Content: "text"})
+			}
+			if got := RequiresOrderedSystemMessages(spec); got != test.want {
+				t.Fatalf("ordered=%v want=%v", got, test.want)
+			}
+		})
+	}
+}
+
 func TestNormalizedAdapterResultRequiresPrimaryOutputAndRejectsConfirmedBudgetExhaustion(t *testing.T) {
 	for _, test := range []struct {
 		name   string

@@ -17,7 +17,7 @@ function fixture(events: () => AsyncIterable<unknown>, onCancel: () => void = ()
     scenario: { execute: executeOutput === undefined ? unused : async () => executeOutput },
     scenarioJobs: { submit: unused, get: unused, subscribe: unused, cancel: unused },
     artifacts: { read: unused, upload: unused },
-    voiceAssets: { list: unused },
+    voiceAssets: { list: unused, delete: unused },
   });
   return { ai, model: createNimiLocalAppTextModel(ai), inputs, canceled: () => canceled };
 }
@@ -35,6 +35,27 @@ test('Local App owned audio/video references preserve ordered content without in
     await f.model.generateText({ messages: [{ role: 'user', content: [textPart('Inspect '), { type: 'artifact-ref', artifactId: 'owned-media', mediaType }, textPart(' briefly.')] }] });
     assert.deepEqual(f.inputs[0]?.messages[0]?.parts, [{ type: 'text', text: 'Inspect ' }, { type: 'artifact-ref', artifactId: 'owned-media', mediaType }, { type: 'text', text: ' briefly.' }]);
   }
+});
+
+test('Local App model preserves positioned system instructions and keeps the other input bounds', async () => {
+  const f = fixture(async function* () {
+    yield { type: 'delta', sequence: '1', traceId: 'positioned-system', itemIndex: 0, text: 'Reply' };
+    yield { type: 'completed', sequence: '2', traceId: 'positioned-system', finishReason: 'stop' };
+  });
+  await f.model.generateText({ messages: [
+    { role: 'system', content: [textPart('Character rules')] },
+    { role: 'system', content: [textPart('World information')] },
+    user,
+    { role: 'assistant', content: [], turnItems: [{ type: 'output', output: { type: 'text', text: 'The door opened.' } }] },
+    { role: 'system', content: [textPart('  作者注：保持场景。\n')] },
+  ] });
+  assert.deepEqual(f.inputs[0].messages.map(m => [m.role, m.text]), [
+    ['system', 'Character rules'], ['system', 'World information'], ['user', 'Search.'],
+    ['assistant', ''], ['system', '  作者注：保持场景。\n'],
+  ]);
+  await assert.rejects(f.model.generateText({ messages: [{ role: 'system', content: [textPart('No user')] }] }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+  await assert.rejects(f.model.generateText({ messages: Array.from({ length: 129 }, () => user) }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+  assert.equal(f.inputs.length, 1);
 });
 
 test('Local App image input preserves user part order alongside tools and schema controls', async () => {

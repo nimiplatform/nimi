@@ -10,9 +10,57 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"sync/atomic"
 	"testing"
 )
+
+func TestDeepseekAppPositionedSystemMessagesReachTheSameSyncAndStreamDriver(t *testing.T) {
+	want := []map[string]any{
+		{"role": "system", "content": "Character rules"},
+		{"role": "system", "content": "World information"},
+		{"role": "user", "content": "Open the door"},
+		{"role": "assistant", "content": "The door opened."},
+		{"role": "system", "content": "  作者注：保持场景。\n"},
+	}
+	var calls atomic.Int32
+	fixture, decision := deepseekAppFixture(t, func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		var body struct {
+			Messages []map[string]any `json:"messages"`
+			Stream   bool             `json:"stream"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+			return
+		}
+		if !reflect.DeepEqual(body.Messages, want) {
+			t.Errorf("message role/order/content changed: %#v", body.Messages)
+		}
+		if body.Stream {
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"The scene continues.\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = fmt.Fprint(w, `{"choices":[{"index":0,"message":{"content":"The scene continues."},"finish_reason":"stop"}]}`)
+		}
+	})
+	input := &runtimev1.StreamLocalAppTextTurnRequest{}
+	for _, message := range want {
+		input.Messages = append(input.Messages, &runtimev1.LocalAppTextCandidateMessage{Role: message["role"].(string), Text: message["content"].(string)})
+	}
+	result, err := fixture.service.ExecuteLocalAppScenario(decision(accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute), &runtimev1.ExecuteLocalAppScenarioRequest{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextGenerate{TextGenerate: input}})
+	if err != nil || result.GetTextGenerate().GetItems()[0].GetText().GetText() != "The scene continues." {
+		t.Fatalf("sync %v: %v", result, err)
+	}
+	stream := &mockLocalAppTextTurnStream{ctx: decision(accountservice.LocalAppOperationTextTurnStream, localappop.AppOperationIDTextTurnStream)}
+	if err := fixture.service.StreamLocalAppTextTurn(input, stream); err != nil {
+		t.Fatal(err)
+	}
+	if len(stream.events) == 0 || stream.events[len(stream.events)-1].GetCompleted() == nil || calls.Load() != 2 {
+		t.Fatalf("stream %v calls=%d", stream.events, calls.Load())
+	}
+}
 
 func deepseekAppFixture(t *testing.T, handler http.HandlerFunc) (managedCloudScenarioTestFixture, func(accountservice.LocalAppOperation, string) context.Context) {
 	t.Helper()

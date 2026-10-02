@@ -2,8 +2,35 @@ package ai
 
 import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"testing"
 )
+
+func TestPositionedSystemRequiresAnExactModeAndCombination(t *testing.T) {
+	spec := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{
+		{Role: "user", Content: "Open the door"},
+		{Role: "assistant", Content: "The door opened."},
+		{Role: "system", Content: "Keep this scene in the forest."},
+	}}
+	registrations := productionTextBehaviorAdapterRegistrations()
+	for _, target := range []struct{ provider, model string }{
+		{"deepseek", "deepseek-flash"}, {"deepseek", "other-model"},
+		{"anthropic", "claude-sonnet-4-6"}, {"gemini", "gemini-3.8-flash"}, {"openai_chatgpt_plan", "unregistered"},
+	} {
+		identity := &runtimev1.CapabilityImplementationIdentity{ImplementationId: target.provider, DriverId: "nimillm", DriverDialect: target.provider}
+		for _, mode := range []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB} {
+			adapter, err := resolveTextBehaviorAdapter(registrations, identity, target.provider, target.model, mode, spec)
+			admitted := target.model == "deepseek-flash" && mode != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB
+			if admitted {
+				if err != nil || adapter == nil || adapter.registration.Version != "3" {
+					t.Fatalf("admitted %v/%v: %v %v", target, mode, adapter, err)
+				}
+			} else if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+				t.Fatalf("unsupported %v/%v: %v", target, mode, err)
+			}
+		}
+	}
+}
 
 func TestDeepseekJSONRegistrationAdmitsOnlyExactJSONTargets(t *testing.T) {
 	identity := &runtimev1.CapabilityImplementationIdentity{ImplementationId: "deepseek", DriverId: "nimillm", DriverDialect: "deepseek"}
@@ -34,7 +61,7 @@ func TestDeepseekToolsResolveExactTargetsModesAndCombinations(t *testing.T) {
 					s.ToolChoiceName = s.Tools[0].Name
 				}
 				adapter, err := resolveTextBehaviorAdapter(productionTextBehaviorAdapterRegistrations(), identity, "deepseek", model, mode, s)
-				if err != nil || adapter == nil || adapter.registration.Version != "2" {
+				if err != nil || adapter == nil || adapter.registration.Version != "3" {
 					t.Fatalf("%s/%v/%v adapter=%+v err=%v", model, mode, choice, adapter, err)
 				}
 			}

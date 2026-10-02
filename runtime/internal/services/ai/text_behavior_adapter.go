@@ -125,10 +125,11 @@ type textBehaviorStructuredOutputSupport struct {
 // Every admitted non-empty behavior combination and execution mode must be
 // present explicitly. Request-time flags never select between adapters.
 type textBehaviorCombination struct {
-	ToolUse          bool
-	Reasoning        bool
-	StructuredOutput bool
-	Modes            []runtimev1.ExecutionMode
+	ToolUse               bool
+	Reasoning             bool
+	StructuredOutput      bool
+	OrderedSystemMessages bool
+	Modes                 []runtimev1.ExecutionMode
 }
 
 type textBehaviorSerializedRequest = textbehavior.SerializedRequest
@@ -164,16 +165,17 @@ type textBehaviorLocalResolutionTarget struct {
 }
 
 type requestedTextBehaviors struct {
-	toolUse              bool
-	reasoning            bool
-	structured           bool
-	toolRoundTrip        bool
-	reasoningSummaryTurn bool
-	reasoningContinuity  bool
+	toolUse               bool
+	reasoning             bool
+	structured            bool
+	toolRoundTrip         bool
+	reasoningSummaryTurn  bool
+	reasoningContinuity   bool
+	orderedSystemMessages bool
 }
 
 func (requested requestedTextBehaviors) any() bool {
-	return requested.toolUse || requested.reasoning || requested.structured
+	return requested.toolUse || requested.reasoning || requested.structured || requested.orderedSystemMessages
 }
 
 type resolvedTextBehaviorAdapter struct {
@@ -239,7 +241,7 @@ func resolveTextBehaviorAdapterForFacts(
 		declaresPlainText := false
 		for _, registration := range matches {
 			for _, combination := range registration.Support.Combinations {
-				if !combination.ToolUse && !combination.Reasoning && !combination.StructuredOutput {
+				if !combination.ToolUse && !combination.Reasoning && !combination.StructuredOutput && !combination.OrderedSystemMessages {
 					declaresPlainText = true
 				}
 			}
@@ -400,7 +402,7 @@ func validTextBehaviorSupport(support textBehaviorSupport) bool {
 				return false
 			}
 			modeSeen[mode] = struct{}{}
-			key := fmt.Sprintf("%t/%t/%t/%d", combination.ToolUse, combination.Reasoning, combination.StructuredOutput, mode)
+			key := fmt.Sprintf("%t/%t/%t/%t/%d", combination.ToolUse, combination.Reasoning, combination.StructuredOutput, combination.OrderedSystemMessages, mode)
 			if _, duplicate := seenCombinationModes[key]; duplicate {
 				return false
 			}
@@ -572,7 +574,8 @@ func textBehaviorAdapterSupportsRequest(registration textBehaviorAdapterRegistra
 	combinationSupported := false
 	for _, combination := range registration.Support.Combinations {
 		if combination.ToolUse == requested.toolUse && combination.Reasoning == requested.reasoning &&
-			combination.StructuredOutput == requested.structured && containsTextBehaviorExecutionMode(combination.Modes, mode) {
+			combination.StructuredOutput == requested.structured && combination.OrderedSystemMessages == requested.orderedSystemMessages &&
+			containsTextBehaviorExecutionMode(combination.Modes, mode) {
 			combinationSupported = true
 			break
 		}
@@ -714,6 +717,7 @@ func requestedTextBehaviorsForSpec(spec *runtimev1.TextGenerateScenarioSpec) (re
 		return requestedTextBehaviors{}, err
 	}
 	requested := requestedTextBehaviors{
+		orderedSystemMessages: textbehavior.RequiresOrderedSystemMessages(spec),
 		toolUse: len(spec.GetTools()) > 0 ||
 			spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED ||
 			strings.TrimSpace(spec.GetToolChoiceName()) != "",

@@ -2,6 +2,12 @@
 
 ## Next minor (compatible additions)
 
+The Local App text binding accepts ordered system messages beyond the initial
+prefix and preserves their role and position. It requires matching Runtime and
+Kit native carrier builds. Exact Driver admission still decides support; an
+unsupported ordered-system combination fails before dispatch. Message counts,
+byte limits and the requirement for a user message are unchanged.
+
 Ready text.generate effective selections may carry `textReplay` with exact accepted carrier kind/version/execution modes. Missing facts remain unconfirmed; an empty acceptedCarriers list means no acceptance. It is informational, and each inference still validates the captured request.
 
 These package-local notes cover the App-facing changes relevant to the current

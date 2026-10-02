@@ -32,7 +32,8 @@ func validateDeepseekChatSpec(spec *runtimev1.TextGenerateScenarioSpec) error {
 	if format.GetStrict() || format.GetJsonSchema() != nil {
 		return deepseekUnsupported()
 	}
-	if len(spec.GetTools()) == 0 && format.GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT {
+	if len(spec.GetTools()) == 0 && format.GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT &&
+		!textbehavior.RequiresOrderedSystemMessages(spec) {
 		return deepseekUnsupported()
 	}
 	return nil

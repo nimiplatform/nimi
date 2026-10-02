@@ -152,9 +152,6 @@ func DeepseekChatNonStreamParser(payload []byte, spec *runtimev1.TextGenerateSce
 	if len(spec.GetTools()) > 0 {
 		return parseDeepseekToolResponse(payload, spec)
 	}
-	if spec == nil || spec.GetResponseFormat().GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT {
-		return textbehavior.NormalizedResult{}, deepseekJSONInputError("JSON-object request is required")
-	}
 	value, err := decodeDeepseekJSONEnvelope(payload)
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
@@ -170,7 +167,7 @@ func DeepseekChatNonStreamParser(payload []byte, spec *runtimev1.TextGenerateSce
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
-	if err := deepseekJSONObject(text); err != nil {
+	if err := deepseekTextOutput(text, spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT); err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
 	return textbehavior.NormalizedResult{Items: []textbehavior.OrderedItem{{Kind: textbehavior.OrderedItemText, Text: text}}, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, Usage: deepseekJSONUsage(value)}, nil
@@ -183,13 +180,21 @@ func DeepseekChatStreamAssembler(spec *runtimev1.TextGenerateScenarioSpec) (text
 	if len(spec.GetTools()) > 0 {
 		return newDeepseekToolStream(spec), nil
 	}
-	if spec == nil || spec.GetResponseFormat().GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT {
-		return nil, deepseekJSONInputError("JSON-object request is required")
+	return &deepseekJSONStream{plainText: spec.GetResponseFormat().GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT}, nil
+}
+
+func deepseekTextOutput(text string, jsonObject bool) error {
+	if jsonObject {
+		return deepseekJSONObject(text)
 	}
-	return &deepseekJSONStream{}, nil
+	if strings.TrimSpace(text) == "" {
+		return deepseekJSONOutputError()
+	}
+	return nil
 }
 
 type deepseekJSONStream struct {
+	plainText bool
 	text      strings.Builder
 	finished  bool
 	done      bool
@@ -243,7 +248,7 @@ func (stream *deepseekJSONStream) Append(payload []byte) ([]textbehavior.Ordered
 		if err := deepseekJSONFinish(choice.FinishReason); err != nil {
 			return nil, err
 		}
-		if err := deepseekJSONObject(stream.text.String()); err != nil {
+		if err := deepseekTextOutput(stream.text.String(), !stream.plainText); err != nil {
 			return nil, err
 		}
 		stream.finished = true
