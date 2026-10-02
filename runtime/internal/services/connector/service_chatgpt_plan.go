@@ -66,10 +66,11 @@ func (s *Service) prepareChatGPTPlanUpdate(mutations *ConnectorMutations, nextAu
 // revokeChatGPTPlanBeforeDelete ends the renewable session for explicit
 // Connector removal. Deletion proceeds either way; it reports true only when
 // revocation was confirmed or the provider had already ended the session.
+// The caller holds the Connector credential lock through the final deletion.
 func (s *Service) revokeChatGPTPlanBeforeDelete(ctx context.Context, record ConnectorRecord) bool {
 	revokeCtx, cancel := context.WithTimeout(ctx, chatGPTPlanRevocationTimeout)
 	defer cancel()
-	return s.store.RevokeChatGPTPlanSession(revokeCtx, record.ConnectorID) != ChatGPTPlanRevocationUnconfirmed
+	return s.store.revokeChatGPTPlanSessionLocked(revokeCtx, record.ConnectorID) != ChatGPTPlanRevocationUnconfirmed
 }
 
 // testChatGPTPlanConnector checks the renewed credential against the public
@@ -167,6 +168,10 @@ func (s *ConnectorStore) RevokeChatGPTPlanSession(ctx context.Context, connector
 	connectorID = strings.TrimSpace(connectorID)
 	unlock := s.chatGPTPlanLocks.lock(connectorID)
 	defer unlock()
+	return s.revokeChatGPTPlanSessionLocked(ctx, connectorID)
+}
+
+func (s *ConnectorStore) revokeChatGPTPlanSessionLocked(ctx context.Context, connectorID string) ChatGPTPlanRevocationOutcome {
 	s.mu.Lock()
 	payload, err := s.readStoredSecretPayloadLocked(connectorID)
 	s.mu.Unlock()

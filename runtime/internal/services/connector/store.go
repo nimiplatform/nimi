@@ -269,6 +269,12 @@ func (s *ConnectorStore) Update(connectorID string, mutations ConnectorMutations
 		unlock := s.chatGPTPlanLocks.lock(strings.TrimSpace(connectorID))
 		defer unlock()
 	}
+	return s.updateRecord(connectorID, mutations)
+}
+
+// updateRecord requires the SIWC credential lock when replacing a sealed
+// credential. Service callers acquire it before entering the audit writer.
+func (s *ConnectorStore) updateRecord(connectorID string, mutations ConnectorMutations) (ConnectorRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

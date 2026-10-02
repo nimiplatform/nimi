@@ -460,10 +460,23 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		}
 	}
 
+	// @nimi-authority: rule.nimi.runtime.ai-provider.chatgpt-plan-refresh-custody
+	// Match deletion's lock order: credential lifecycle, then audit writer.
+	// This prevents a new authorization between revocation and final deletion
+	// without holding the global audit writer across a provider request.
+	if mutations.SealedCredential != nil {
+		unlock := s.store.chatGPTPlanLocks.lock(connectorID)
+		defer unlock()
+		if _, found, loadErr := s.store.Get(connectorID); loadErr != nil {
+			return nil, s.internalProviderError("update_connector.reload", loadErr)
+		} else if !found {
+			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+		}
+	}
 	var updated ConnectorRecord
 	committed, err := s.commitRecorded(ctx, "connector.update", map[string]any{"connector_id": connectorID}, func() error {
 		var writeErr error
-		updated, writeErr = s.store.Update(connectorID, mutations)
+		updated, writeErr = s.store.updateRecord(connectorID, mutations)
 		return writeErr
 	})
 	if !committed {
@@ -521,6 +534,10 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 
 	revocationConfirmed := true
 	if IsChatGPTPlanRecord(rec) {
+		// Hold one Connector's lifecycle through revocation and local commit.
+		// Reauthorization also takes this lock before the audit writer.
+		unlock := s.store.chatGPTPlanLocks.lock(connectorID)
+		defer unlock()
 		revocationConfirmed = s.revokeChatGPTPlanBeforeDelete(ctx, rec)
 	}
 	committed, err := s.commitRecorded(ctx, "connector.delete", map[string]any{"connector_id": connectorID}, func() error { return s.store.Delete(connectorID) })
