@@ -189,6 +189,7 @@
     },
     "parameters": {
       "videoModeFirstFrame": "单张首帧生成视频",
+      "videoFirstFrameRequired": "请先在参数中填写首帧图像的 HTTPS 链接，再生成视频。",
       "videoModeT2v": "文生视频",
       "videoModeReference": "单参考图",
       "chooseImageFile": "选择并上传图片",

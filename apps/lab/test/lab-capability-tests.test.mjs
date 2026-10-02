@@ -763,6 +763,15 @@ test('unsupported media settings offer parameter correction instead of a blind r
   assert.notEqual(t('NonSuccess.action.mediaOptionUnsupported'), t('NonSuccess.action.runtimeCallFailed'));
 });
 
+test('local loading failures offer input and setup checks', async () => {
+  const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
+  const { t } = await load('shell/i18n/index.js');
+  const diagnostics = { reasonCode: 'AI_LOCAL_EXECUTION_LOAD_FAILED', source: 'runtime' };
+  assert.equal(studioNonSuccessReasonUserMessage('runtime-call-failed', t, 'text.annotate', diagnostics), t('NonSuccess.message.localLoadFailed'));
+  assert.equal(studioNonSuccessReasonUserAction('runtime-call-failed', t, 'text.annotate', diagnostics), t('NonSuccess.action.localLoadFailed'));
+  assert.notEqual(t('NonSuccess.action.localLoadFailed'), t('NonSuccess.action.runtimeCallFailed'));
+});
+
 test('speech synthesis voice failures explain the prerequisite without naming a model', async () => {
   const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
   const { projectStudioRunnerNonSuccess } = await load('ai-studio-core/runtime.js');
@@ -1813,4 +1822,20 @@ test('Realtime interruption releases its request while a late old terminal canno
  emit({type:'request-terminal',requestId:second,finishReason:'stop',usage:null,reasonCode:''});
  await waitFor(()=>!session.getState().responsePending,'second own terminal');
  await session.close();
+});
+
+test('video input validation shows the App correction and retains Runtime error presentation', async () => {
+  const { studioNonSuccessReasonUserMessage } = await load('ai-studio-core/non-success-presentation.js');
+  const t = (key) => key;
+  const correction = 'Enter the first-frame image HTTPS URL in Parameters.';
+  assert.equal(studioNonSuccessReasonUserMessage('input-invalid', t, 'video.generate', undefined, correction), correction);
+  assert.equal(studioNonSuccessReasonUserMessage('input-invalid', t, 'video.generate', { reasonCode: 'AI_INPUT_INVALID', source: 'runtime', retryable: false }, 'provider detail'), 'NonSuccess.message.inputInvalid');
+});
+
+test('unsupported inputs and options direct the user to change the request before another run', async () => {
+  const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
+  const t = (key) => key;
+  const diagnostics = { reasonCode: 'AI_MODALITY_NOT_SUPPORTED', source: 'runtime', retryable: false };
+  assert.equal(studioNonSuccessReasonUserMessage('runtime-call-failed', t, 'image.generate', diagnostics), 'NonSuccess.message.modalityUnsupported');
+  assert.equal(studioNonSuccessReasonUserAction('runtime-call-failed', t, 'image.generate', diagnostics), 'NonSuccess.action.modalityUnsupported');
 });

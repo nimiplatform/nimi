@@ -31,7 +31,8 @@
         "imageStopped": "The media request was stopped. Any late result will be discarded.",
         "imageOutputInvalid": "Runtime did not return one complete text result for this media.",
         "imageCompleted": "Runtime completed the protected media-and-text request.",
-        "imageCompletedWithoutSource": "Runtime returned the answer, but Lab could not save the source media for History."
+        "imageCompletedWithoutSource": "Runtime returned the answer, but Lab could not save the source media for History.",
+        "savedMediaUnavailable": "This run's original media cannot be restored. Retry from a history record with saved media, or start a new request and choose the file again."
       },
       "chatStream": {
         "inputTitle": "Test chat streaming",

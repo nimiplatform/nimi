@@ -397,6 +397,22 @@ function artifactRunnerSuccess(capabilityId, mimeType, previewUrl, previewSource
   };
 }
 
+test('Lab first-frame video requires its image URL before submitting a Job', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  let calls = 0;
+  for (const firstFrameImageUrl of [undefined, '', '   ']) {
+    const result = await runLabCapability({ capabilityId: 'video.generate', prompt: 'Animate this scene',
+      parameters: { mode: 'i2v-first-frame', ...(firstFrameImageUrl !== undefined ? { firstFrameImageUrl } : {}) },
+    }, readyRuntimeDependencies(fakeLocalAppClient(), { runners: {
+      async videoGenerate() { calls++; throw new Error('missing first frame reached submission'); },
+    } }));
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'input-invalid');
+    assert.match(result.message, /首帧|first-frame|videoFirstFrameRequired/u);
+  }
+  assert.equal(calls, 0);
+});
+
 const MEDIA_HAPPY_CASES = [
   ['image.generate', 'imageGenerate', 'image/png', 'data:image/png;base64,AQ=='],
   ['video.generate', 'videoGenerate', 'video/mp4', 'data:video/mp4;base64,AQ=='],
@@ -646,6 +662,26 @@ test('Locate preserves typed input rejection through the Local App bridge', asyn
     assert.equal(result.reason, 'input-invalid');
     assert.equal(result.diagnostics.reasonCode, 'AI_INPUT_INVALID');
   }
+});
+
+test('Lab embedding SDK input rejection asks for correction and keeps its diagnostics', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const client = fakeLocalAppClient({
+    async executeScenario() {
+      throw Object.assign(new Error('text embed dimensions is invalid'), {
+        reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID', source: 'sdk', retryable: false,
+      });
+    },
+  });
+  const result = await runLabCapability({
+    capabilityId: 'text.embed', prompt: 'hello', parameters: { dimensions: 0 },
+  }, readyRuntimeDependencies(client));
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'input-invalid');
+  assert.deepEqual(result.diagnostics, {
+    reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID', source: 'sdk', retryable: false,
+  });
+  assert.equal(result.jobId, undefined);
 });
 
 for (const phase of ['before-upload', 'during-upload', 'upload-rejected']) {

@@ -121,6 +121,9 @@ async function runVideoGenerate(context: StudioCapabilityRuntimeContext) {
   if (!context.prompt) return inputRequired(context);
   const parameters = context.input.parameters as StudioVideoGenerationParameters | undefined;
   const mode = parameters?.mode ?? 't2v';
+  if (mode === 'i2v-first-frame' && !parameters?.firstFrameImageUrl?.trim()) {
+    return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.parameters.videoFirstFrameRequired'));
+  }
   const result = await context.host.runners.videoGenerate({
     runtime: { ai: createStudioScenarioJobClient(context) },
     appId: context.host.appId,

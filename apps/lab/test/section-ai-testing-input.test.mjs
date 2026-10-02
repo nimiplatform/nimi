@@ -72,7 +72,7 @@ test('speech, voice creation, and music send the entered prompt verbatim', () =>
 test('streamed text and async result kinds expose the product cancellation action', () => {
   assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'chat.stream', resultKind: 'text' }), true);
   assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'text.generate', resultKind: 'text' }), false);
-  assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'text.generate', resultKind: 'text', hasImageInput: true }), true);
+  assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'text.generate', resultKind: 'text', hasMediaInput: true }), true);
   assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'image.generate', resultKind: 'artifacts' }), true);
   assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'text.tools', resultKind: 'text-exchange' }), true);
   assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'audio.transcribe', resultKind: 'transcript' }), true);

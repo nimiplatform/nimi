@@ -418,7 +418,7 @@ export function StudioResult({
           <AlertTriangle size={15} aria-hidden="true" />
           <span>{t('StudioShell.generationFailed')}</span>
         </div>
-        <p>{studioNonSuccessReasonUserMessage(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
+        <p>{studioNonSuccessReasonUserMessage(blocked.reason, t, blocked.capabilityId, blocked.diagnostics, blocked.message)}</p>
         <p className="studio-result__hint">{studioNonSuccessReasonUserAction(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
         {onOpenIntentConfig && studioNonSuccessNeedsTargetReselection(blocked.diagnostics) ? (
           <Button

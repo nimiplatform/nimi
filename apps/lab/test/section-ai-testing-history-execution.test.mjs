@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -11,7 +12,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const kitRequire = createRequire(path.resolve(root, '../../kit/package.json'));
 const { JSDOM } = kitRequire('jsdom');
 const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url:'http://localhost/' });
-for (const key of ['window', 'document', 'HTMLElement', 'HTMLFormElement', 'HTMLInputElement', 'HTMLSelectElement', 'Element', 'Node', 'Event', 'CustomEvent', 'DocumentFragment', 'MutationObserver', 'getComputedStyle', 'FileReader']) {
+for (const key of ['window', 'document', 'HTMLElement', 'HTMLFormElement', 'HTMLInputElement', 'HTMLSelectElement', 'Element', 'Node', 'Event', 'CustomEvent', 'DocumentFragment', 'MutationObserver', 'getComputedStyle', 'FileReader', 'File', 'Blob']) {
   globalThis[key] = dom.window[key];
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -90,7 +91,8 @@ test('text image action follows the effective configured feature and retains a b
   }
 });
 
-test('image-assisted Text Studio exposes Stop and cancels its own running request', async () => {
+for (const media of [{ name: 'cats.jpg', type: 'image/jpeg' }, { name: 'speech.wav', type: 'audio/wav' }, { name: 'clip.mp4', type: 'video/mp4' }]) {
+test(`Text Studio exposes Stop for ${media.type} and cancels its own running request`, async () => {
   const registration = labStudioComposition.getCapability('text.generate');
   const calls = [];
   const recorded = [];
@@ -107,7 +109,7 @@ test('image-assisted Text Studio exposes Stop and cancels its own running reques
     sdk: {
       aiConfig: { get: async () => null, getSnapshot: async () => ({ effectiveSelections: [{
         capabilityContract: 'text.generate', state: 'ready', resource: { oneofKind: 'cloud', cloud: {
-          target: { state: 'ready', supportedFeatures: ['input.image'] },
+          target: { state: 'ready', supportedFeatures: ['input.image', 'input.audio', 'input.video'] },
         } },
       }] }) },
       runCapability(input) { const deferred = Promise.withResolvers(); calls.push({ input, ...deferred }); return deferred.promise; },
@@ -131,13 +133,14 @@ test('image-assisted Text Studio exposes Stop and cancels its own running reques
     await act(async () => {
       button('Studio.composer.attachContext').click();
       const picker = document.querySelector('input[type="file"]');
-      Object.defineProperty(picker, 'files', { value: [new dom.window.File(['image input'], 'cats.jpg', { type: 'image/jpeg' })] });
+      Object.defineProperty(picker, 'files', { value: [new dom.window.File(['media input'], media.name, { type: media.type })] });
       picker.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
       await readFinished.promise;
     });
     await act(async () => { button('Studio.profiles.textGenerate.primaryLabel').click(); });
     assert.equal(calls.length, 1);
-    assert.equal(calls[0].input.attachments[0].name, 'cats.jpg');
+    assert.equal(calls[0].input.attachments[0].name, media.name);
+    assert.ok(!container.textContent.includes('Studio.profiles.textGenerate.savedMediaUnavailable'), 'a running media request must not claim its source is unavailable');
     const stop = button('StudioShell.cancelGeneration');
     assert.ok(stop, 'the running image request needs a real Stop action');
     await act(async () => { stop.click(); });
@@ -150,6 +153,87 @@ test('image-assisted Text Studio exposes Stop and cancels its own running reques
   } finally {
     globalThis.FileReader = previousReader;
     await act(async () => { renderer.unmount(); });
+  }
+});
+}
+
+test('text history reruns its saved media and never borrows the current composer attachment', { timeout: 10_000 }, async () => {
+  const registration = labStudioComposition.getCapability('text.generate');
+  const target = { capabilityId: 'text.generate', capabilityContract: 'text.generate', section: 'text', source: 'cloud',
+    status: 'configured', canDispatch: true, intentLabel: 'Cloud', detail: 'configured', params: {}, paramsSummary: [], profileOrigin: null };
+  const bytes = new TextEncoder().encode('original owned audio');
+  const source = { relativePath: 'studio/original.wav', mediaType: 'audio/wav', sizeBytes: bytes.byteLength,
+    sha256: `sha256:${createHash('sha256').update(bytes).digest('hex')}`, displayName: 'original.wav', previewSource: 'managed-asset' };
+  const record = { id: 'saved-media', capabilityId: 'text.generate', createdAt: '2026-10-03T00:00:00.000Z', prompt: 'Describe this recording', status: 'ready', message: 'saved',
+    result: { ok: true, kind: 'text', summary: 'answer', body: 'answer', charCount: 6, finishReason: 'stop', streamed: false, sourceImage: source },
+    runConfig: { target, promptControls: { context: '', contextAttached: false, attachmentCount: 1 } } };
+  const calls = [], results = [], reads = [];
+  let completion = Promise.withResolvers();
+  const host = {
+    appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
+    app: { projection: { promptDraft: () => ({ prompt: 'new draft' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      events: { subscribeAIConfigRefresh: () => () => {} }, commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } },
+    sdk: { aiConfig: { get: async () => null, getSnapshot: async () => ({ effectiveSelections: [{ capabilityContract: 'text.generate', state: 'ready',
+      resource: { oneofKind: 'cloud', cloud: { target: { state: 'ready', supportedFeatures: ['input.image', 'input.audio', 'input.video'] } } } }] }) },
+      assets: { read: async ({ relativePath }) => { reads.push(relativePath); return { asset: source, body: { async *[Symbol.asyncIterator]() { yield bytes; } } }; } },
+      runCapability: async input => { calls.push(input); return { ok: false, capabilityId: 'text.generate', reason: 'runtime-call-failed', message: 'stopped at test transport', actionHint: '' }; },
+    },
+  };
+  const props = { registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' }, lastResult: null,
+    history: { 'text.generate': [record] }, historySelectionRequest: { requestId: 1, record }, onSelectHistoryRun: () => {},
+    onResult: async result => { results.push(result); completion.resolve(); return null; }, verboseConsole: false, draftPersistence: false };
+  const container = document.getElementById('root'), renderer = createRoot(container);
+  const render = () => renderer.render(createElement(TooltipProvider, null, createElement(AIStudioHostProvider, { value: host }, createElement(SectionAITesting, props))));
+  const button = label => Array.from(container.querySelectorAll('button')).find(el => el.getAttribute('aria-label') === label || el.textContent.trim() === label);
+  const regenerate = async () => {
+    completion = Promise.withResolvers();
+    await act(async () => { button('StudioShell.regenerate').click(); await completion.promise; });
+  };
+  const previousReader = globalThis.FileReader;
+  try {
+    await act(async () => render());
+    await regenerate();
+    assert.equal(calls.length, 1, JSON.stringify(results));
+    assert.equal(calls[0].attachments[0].name, 'original.wav');
+    assert.equal(calls[0].attachments[0].dataUrl, `data:audio/wav;base64,${Buffer.from(bytes).toString('base64')}`);
+    assert.equal(button('StudioShell.regenerate').disabled, false, 'a failed replay must retain its known saved input for an explicit retry');
+    const readFinished = Promise.withResolvers();
+    globalThis.FileReader = class extends dom.window.FileReader { constructor() { super(); this.addEventListener('loadend', readFinished.resolve, { once: true }); } };
+    await act(async () => {
+      button('Studio.composer.attachContext').click();
+      const picker = document.querySelector('input[type="file"]');
+      Object.defineProperty(picker, 'files', { value: [new dom.window.File(['new unrelated video'], 'other.mp4', { type: 'video/mp4' })] });
+      picker.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+      await readFinished.promise;
+    });
+    globalThis.FileReader = previousReader;
+    props.historySelectionRequest = { requestId: 2, record };
+    await act(async () => render());
+    await regenerate();
+    assert.equal(calls[1].attachments[0].name, 'original.wav');
+    assert.equal(calls[1].attachments[0].dataUrl, calls[0].attachments[0].dataUrl);
+    assert.ok(container.textContent.includes('other.mp4'), 'replay must not mutate the current draft');
+    const textOnly = structuredClone(record);
+    textOnly.id = 'saved-text'; delete textOnly.result.sourceImage; textOnly.runConfig.promptControls.attachmentCount = 0;
+    props.historySelectionRequest = { requestId: 3, record: textOnly };
+    await act(async () => render());
+    await regenerate();
+    assert.deepEqual(calls[2].attachments, []);
+    assert.deepEqual(reads, [source.relativePath, source.relativePath]);
+    host.sdk.assets.read = async () => { throw new Error('asset missing'); };
+    props.historySelectionRequest = { requestId: 4, record };
+    await act(async () => render());
+    await regenerate();
+    assert.equal(calls.length, 3, 'missing original media must not dispatch plain text');
+    assert.equal(results.at(-1).message, 'Studio.profiles.textGenerate.savedMediaUnavailable');
+    const withoutSource = structuredClone(record); delete withoutSource.result.sourceImage;
+    props.historySelectionRequest = { requestId: 5, record: withoutSource };
+    await act(async () => render());
+    assert.equal(button('StudioShell.regenerate').disabled, true);
+    assert.ok(container.textContent.includes('Studio.profiles.textGenerate.savedMediaUnavailable'));
+  } finally {
+    globalThis.FileReader = previousReader;
+    await act(async () => renderer.unmount());
   }
 });
 

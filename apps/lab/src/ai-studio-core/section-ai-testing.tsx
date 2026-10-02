@@ -18,6 +18,7 @@ import {
   usesVerbatimStudioPrompt,
 } from './section-ai-testing-input.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
+import { readStudioTextReplayMedia } from './text-media-replay.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useStudioRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 import { StudioCapabilityParameterContext, StudioHistoryLoadContext, StudioHistoryPanelContext } from './contexts.js';
 
@@ -129,6 +130,13 @@ function TextStudioShell({
       : null)
     : lastResult?.capabilityId === capability.id ? lastResult : null;
   const headerResult = hasActiveRun ? currentResult : null;
+  const savedTextMedia = (currentResult?.ok && currentResult.output.kind === 'text' ? currentResult.output.sourceImage : undefined)
+    ?? displayedRun?.replayMedia;
+  const displayedAttachmentCount = displayedRun?.record?.runConfig?.promptControls.attachmentCount
+    ?? displayedRun?.attachmentCount ?? (savedTextMedia ? 1 : 0);
+  const textMediaReplayable = capability.id !== 'text.generate' ||
+    (displayedAttachmentCount === 0 && !savedTextMedia) ||
+    (displayedAttachmentCount <= 1 && Boolean(savedTextMedia) && displayedRun?.record?.status !== 'unavailable');
   const runTarget = useStudioRunTargetSummary(registration, runtime);
   const admission = statusForCapability(registration, runTarget, headerResult, t);
   const requiresPrompt = profile.inputKind !== 'none';
@@ -198,6 +206,10 @@ function TextStudioShell({
 
   async function run(nextPrompt = prompt, nextContext = context, replay = false) {
     if (abortControllerRef.current) return;
+    if (replay && !textMediaReplayable) return;
+    const replayTextMedia = replay && capability.id === 'text.generate';
+    let runAttachments = replayTextMedia ? [] : [...composerState.attachments];
+    const attachmentCount = supportsMedia ? (replayTextMedia ? (savedTextMedia ? 1 : displayedAttachmentCount) : runAttachments.length) : 0;
     const runParameters = runParametersFor(replay ? nextPrompt : null);
     if (!runParameters) return;
     const runEffectiveParameters = registration.parameters.project(runTarget.source, runParameters);
@@ -218,6 +230,8 @@ function TextStudioShell({
     const abortController = new AbortController();
     const startedAt = rendererHost.clock.now();
     const pendingRun: TextStudioActiveRun = {
+      attachmentCount,
+      ...(replayTextMedia && savedTextMedia ? { replayMedia: savedTextMedia } : {}),
       id: `pending-${startedAt}`,
       prompt: displayPrompt || (runHasAlternativeInput ? '' : preset.prompt),
       context: nextContext.trim(),
@@ -233,11 +247,20 @@ function TextStudioShell({
     try {
       let result: StudioCapabilityRunResult;
       try {
+        if (replayTextMedia && savedTextMedia) {
+          try {
+            runAttachments = [await readStudioTextReplayMedia(rendererHost.sdk.assets, savedTextMedia, abortController.signal)];
+          } catch (error) {
+            if (abortController.signal.aborted) throw error;
+            throw new Error(t('Studio.profiles.textGenerate.savedMediaUnavailable'));
+          }
+        }
+        abortController.signal.throwIfAborted();
         const isStreaming = capability.id === 'chat.stream';
         if (isStreaming) setStreamingText('');
         const directive = textStudioDirectiveForTarget(runTarget, profile);
-        if (capability.id === 'text.generate' && composerState.attachments.length > 0 &&
-            !textStudioMediaInputAvailable(await rendererHost.sdk.aiConfig.getSnapshot(), composerState.attachments[0]?.mimeType)) {
+        if (capability.id === 'text.generate' && runAttachments.length > 0 &&
+            !textStudioMediaInputAvailable(await rendererHost.sdk.aiConfig.getSnapshot(), runAttachments[0]?.mimeType)) {
           result = {
             ok: false, capabilityId: capability.id, reason: 'input-invalid',
             message: t('Studio.profiles.textGenerate.imageTargetUnsupported'),
@@ -253,7 +276,7 @@ function TextStudioShell({
           onPartial: isStreaming ? (text) => {
             if (runSeqRef.current === runSeq) setStreamingText(text);
           } : undefined,
-          attachments: supportsMedia ? [...composerState.attachments] : undefined,
+          attachments: supportsMedia ? runAttachments : undefined,
           parameters: runEffectiveParameters,
           signal: abortController.signal,
           onJobUpdate: job => {
@@ -263,11 +286,12 @@ function TextStudioShell({
           },
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error || t('NonSuccess.title.runtimeCallFailed'));
+        const message = abortController.signal.aborted ? t('Studio.profiles.textGenerate.imageStopped')
+          : error instanceof Error ? error.message : String(error || t('NonSuccess.title.runtimeCallFailed'));
         result = {
           ok: false,
           capabilityId: capability.id,
-          reason: 'runtime-call-failed',
+          reason: abortController.signal.aborted ? 'operation-aborted' : 'runtime-call-failed',
           message,
           actionHint: t('NonSuccess.hint.runtimeCallFailed'),
           missingSurface: capability.missingSurface,
@@ -279,7 +303,7 @@ function TextStudioShell({
           ? effectiveTextStudioPromptStyle(runTarget)
           : null,
         context: nextContext,
-        attachmentCount: supportsMedia ? composerState.attachments.length : 0,
+        attachmentCount,
         requestParameters: registration.parameters.summarize(runEffectiveParameters),
       });
       const record = await onResult(result, displayPrompt, runConfig);
@@ -493,9 +517,10 @@ function TextStudioShell({
                 admission={admission}
                 intentLabel={displayedRun.record ? getStudioRunIntentLabel(displayedRun.record) : runTarget.intentLabel}
                 running={displayingExecution}
-                canRegenerate={!running && hasRequiredImage && (recordedInput
+                canRegenerate={!running && hasRequiredImage && textMediaReplayable && (recordedInput
                   ? displayedRunReplayable
                   : !profile.requiresParameterInput || hasAlternativeInput)}
+                regenerateHint={!running && !textMediaReplayable ? t('Studio.profiles.textGenerate.savedMediaUnavailable') : undefined}
                 cancelRequested={displayingExecution && cancelRequested}
                 streamingText={displayingExecution ? streamingText : null}
                 verboseConsole={verboseConsole}
@@ -506,7 +531,7 @@ function TextStudioShell({
                 onCancel={displayingExecution && canCancelStudioCapabilityRun({
                   capabilityId: capability.id,
                   resultKind: profile.resultKind,
-                  hasImageInput: composerState.attachments.some((attachment) => attachment.kind === 'image'),
+                  hasMediaInput: (executingRun?.attachmentCount ?? 0) > 0,
                 })
                   ? handleCancel
                   : undefined}

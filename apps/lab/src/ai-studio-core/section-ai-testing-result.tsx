@@ -404,6 +404,7 @@ export function TextStudioResultState({
   intentLabel,
   running,
   canRegenerate,
+  regenerateHint,
   cancelRequested,
   streamingText,
   verboseConsole,
@@ -421,6 +422,7 @@ export function TextStudioResultState({
   intentLabel: string;
   running: boolean;
   canRegenerate: boolean;
+  regenerateHint?: string;
   cancelRequested: boolean;
   streamingText: string | null;
   verboseConsole: boolean;
@@ -437,6 +439,7 @@ export function TextStudioResultState({
   return (
     <section className="studio-thread" aria-label={t('StudioShell.resultAriaLabel', { capability: t(capability.labelKey) })}>
       <div className="studio-thread__scroll">
+        {regenerateHint ? <p className="studio-result__hint" role="status">{regenerateHint}</p> : null}
         {registration.parameters.recordedInput ? (
           // A parameter-owned input is shown as the complete request it recorded.
           <article className="studio-turn studio-turn--user">

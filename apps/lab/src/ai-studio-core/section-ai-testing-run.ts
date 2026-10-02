@@ -3,7 +3,7 @@ import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
 
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration, CapabilityStudioProfile } from './module-registration.js';
-import type { StudioCapabilityRunResult, StudioRuntimeInspection } from './runtime-types.js';
+import type { StudioCapabilityRunResult, StudioManagedArtifact, StudioRuntimeInspection } from './runtime-types.js';
 import {
   getStudioRunIntentLabel,
   type StudioRunConfigSnapshot,
@@ -20,6 +20,8 @@ import {
 import type { StudioTranslate } from './non-success-presentation.js';
 
 export type TextStudioActiveRun = {
+  attachmentCount?: number;
+  replayMedia?: StudioManagedArtifact;
   jobStatus?: 'queued' | 'running';
   id: string;
   prompt: string;

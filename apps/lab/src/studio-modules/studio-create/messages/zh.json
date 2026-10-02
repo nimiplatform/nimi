@@ -31,7 +31,8 @@
         "imageStopped": "媒体请求已停止，不会保存后续返回的结果。",
         "imageOutputInvalid": "Runtime 未为这份媒体返回一条完整文本结果。",
         "imageCompleted": "Runtime 已完成受保护的媒体与文字请求。",
-        "imageCompletedWithoutSource": "Runtime 已返回回答，但 Lab 未能把原媒体保存到历史记录。"
+        "imageCompletedWithoutSource": "Runtime 已返回回答，但 Lab 未能把原媒体保存到历史记录。",
+        "savedMediaUnavailable": "无法恢复这条记录的原媒体。请从保留原媒体的历史记录重试，或新建请求重新选择文件。"
       },
       "chatStream": {
         "inputTitle": "测试聊天流式输出",

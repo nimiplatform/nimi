@@ -189,6 +189,7 @@
     },
     "parameters": {
       "videoModeFirstFrame": "Video from one first-frame image",
+      "videoFirstFrameRequired": "Enter the first-frame image HTTPS URL in Parameters before generating the video.",
       "videoModeT2v": "Text to video",
       "videoModeReference": "Single reference image",
       "chooseImageFile": "Choose and upload image",
