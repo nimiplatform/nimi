@@ -483,6 +483,7 @@ function ensureCompletedNimiRuntimeScenarioJob(
       retryable,
       source: 'runtime',
       details: {
+        jobId: job.jobId,
         [NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY]: ScenarioJobStatus[job.status] || String(job.status),
         ...(Object.keys(reasonMetadata).length > 0 ? { reasonMetadata } : {}),
         ...(interruption ? { interruption: { ...interruption } } : {}),

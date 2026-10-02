@@ -1739,3 +1739,23 @@ test('a failed New conversation save cannot bypass a pending checkpoint whose bo
   assert.equal(calls, 0);
   assert.deepEqual(controller.getState().saved, original);
 });
+
+
+test('the shared media non-success projection keeps only a known bounded Job ID through history reload', async () => {
+  const { projectStudioRunnerNonSuccess, projectStudioRuntimeError } = await load('ai-studio-core/runtime.js');
+  const { capabilityNonSuccess } = await load('lab/lab-non-success.js');
+  const { createStudioRunHistoryResultSnapshot, restoreStudioCapabilityRunResult } = await load('ai-studio-core/history.js');
+  const context = { capability: { id: 'audio.synthesize', label: 'Speech' }, host: { nonSuccess: capabilityNonSuccess } };
+  const error = Object.assign(new Error('canceled'), { reasonCode: 'ACTION_EXECUTED', source: 'runtime', details: { jobId: 'issued-audio-job' } });
+  const projected = projectStudioRunnerNonSuccess(context, { ok: false, reason: 'runtime-canceled', message: 'canceled', error });
+  assert.equal(projected.jobId, 'issued-audio-job');
+  assert.equal(projectStudioRuntimeError(context, error).jobId, 'issued-audio-job');
+  const snapshot = createStudioRunHistoryResultSnapshot(projected);
+  assert.equal(snapshot.jobId, 'issued-audio-job');
+  const reopened = restoreStudioCapabilityRunResult({ id: 'r', capabilityId: 'audio.synthesize', prompt: 'test', createdAt: '2026-10-01T17:00:00Z', status: 'canceled', message: 'canceled', result: JSON.parse(JSON.stringify(snapshot)) });
+  assert.equal(reopened.jobId, 'issued-audio-job');
+  for (const jobId of [undefined, '', 'foreign\nselector', 'x'.repeat(129)]) {
+    const failed = projectStudioRunnerNonSuccess(context, { ok: false, reason: 'runtime-call-failed', message: 'failed', error: { reasonCode: 'AI_INPUT_INVALID', details: { jobId } } });
+    assert.equal(failed.jobId, undefined);
+  }
+});

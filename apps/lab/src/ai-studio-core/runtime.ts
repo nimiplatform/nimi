@@ -340,12 +340,12 @@ export function projectStudioRunnerNonSuccess(
   result: { readonly ok: false; readonly reason: string; readonly message: string; readonly error?: unknown },
 ): StudioNonSuccess {
   const diagnostics = studioNonSuccessDiagnostics(result.error);
-  return context.host.nonSuccess(
+  return withStudioKnownJob(context.host.nonSuccess(
     context.capability,
     studioNonSuccessReasonFromRuntime(result.reason, diagnostics),
     result.message,
     diagnostics,
-  );
+  ), result.error);
 }
 
 export function projectStudioRuntimeError(
@@ -357,12 +357,23 @@ export function projectStudioRuntimeError(
   // input outcome too; it is never retried or presented as a call failure.
   // @nimi-authority: rule.nimi.runtime.ai-provider.r126
   const reason = studioNonSuccessReasonFromRuntime(runtimeScenarioJobNonSuccessReasonFromError(error), diagnostics);
-  return context.host.nonSuccess(
+  return withStudioKnownJob(context.host.nonSuccess(
     context.capability,
     reason,
     studioRuntimeErrorMessage(error),
     diagnostics,
-  );
+  ), error);
+}
+
+/** Preserve an issued Job selector; unknown submission must not gain an ID. */
+function withStudioKnownJob(result: StudioNonSuccess, error: unknown): StudioNonSuccess {
+  const record = error && typeof error === 'object' ? error as { details?: unknown } : null;
+  const details = record?.details && typeof record.details === 'object' && !Array.isArray(record.details)
+    ? record.details as { jobId?: unknown } : null;
+  const id = details?.jobId;
+  return typeof id === 'string' && /^[A-Za-z0-9_.:-]{1,128}$/u.test(id)
+    ? { ...result, jobId: id }
+    : result;
 }
 
 function studioNonSuccessReasonFromRuntime(reason: string, diagnostics?: StudioNonSuccessDiagnostics): StudioNonSuccessReason {
