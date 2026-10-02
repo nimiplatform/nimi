@@ -994,7 +994,10 @@ export function normalizeLocalPlaneRow(model, modelID) {
   if (passive && (install.artifact_roles.length !== 1 || !/^[a-z0-9]+(?:_[a-z0-9]+)*$/u.test(install.artifact_roles[0]))) {
     throw new Error(`local passive ModelAsset offer ${modelID} requires exactly one canonical artifact role`);
   }
-  const variants = normalizeLocalVariantList(model.variants, modelID, install.entry, { capacityOptional: passive || fitnessOptional, installKind: install.install_kind });
+  // Image memory depends on the complete independently selected model set.
+  // R031 forbids turning an unmeasured estimate into catalog fit evidence.
+  const capacityOptional = passive || fitnessOptional || normalizeString(model?.model_type).toLowerCase() === 'image';
+  const variants = normalizeLocalVariantList(model.variants, modelID, install.entry, { capacityOptional, installKind: install.install_kind });
   const out = { install, variants };
   if (hasFitness) {
     const paramCount = normalizeInt(model.fitness.param_count, `local model ${modelID} fitness.param_count`);

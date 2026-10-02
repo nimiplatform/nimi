@@ -1,24 +1,46 @@
 models:
   - model_id: flux.1-schnell-local
     model_type: image
-    updated_at: 2026-03-15
+    family: flux
+    updated_at: 2026-10-02
     capabilities: [image.generate]
-    features: [input.image, input.mask]
+    features: []
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
-      supports_negative_prompt: true
-      supports_reference_images: true
-      supports_mask: true
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
       supports_seed: true
       supports_size: true
-      supports_aspect_ratio: true
-      supports_quality: true
-      supports_style: true
-    source_ids: [diffusers_flux_docs]
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    source_ids: [flux_schnell_modelcard, flux_schnell_gguf_modelcard, stable_diffusion_cpp_flux_guide]
     aliases:
       - local/flux.1-schnell
       - media/flux.1-schnell
+    install:
+      repo: city96/FLUX.1-schnell-gguf
+      revision: f495746ed9c5efcf4661f53ef05401dceadc17d2 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: flux1-schnell-Q4_K_S.gguf
+      artifact_roles: [diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.flux1-schnell.q4-k-s.cuda
+        quant: Q4_K_S
+        entry: flux1-schnell-Q4_K_S.gguf
+        files: [flux1-schnell-Q4_K_S.gguf]
+        hashes:
+          flux1-schnell-Q4_K_S.gguf: sha256:4fd16477b3a5296d0cf722c4b92a9fd7f30d09ac7495826e4465d8de9c9fd973
+        total_size_bytes: 6783943712
+        host_requirement:
+          accelerator: cuda
+    fitness:
+      param_count: 11891178560
+      context_length: 0
 
   # Z-Image-Turbo runs on stable-diffusion.cpp (stablediffusion-ggml native
   # backend). The exact Driver recipe projects independent VAE (--vae) and

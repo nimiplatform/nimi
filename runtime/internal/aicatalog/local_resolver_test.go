@@ -132,6 +132,32 @@ func TestRankVariantsForHostUsesApplicabilityThenCanonicalOrdinal(t *testing.T) 
 	}
 }
 
+func TestImageOfferWithoutMeasuredMemoryRemainsUnknown(t *testing.T) {
+	local := mustLoadLocal(t)
+	var id string
+	for i := range local.models {
+		if local.models[i].ModelID == "z-image-turbo-local" {
+			variant := &local.models[i].Variants[0]
+			variant.HostRequirement = LocalPlaneHostRequirement{Accelerator: "cuda"}
+			id = variant.VariantID
+			break
+		}
+	}
+	if id == "" {
+		t.Fatal("missing image fixture")
+	}
+	if err := local.validateLocalPlane(); err != nil {
+		t.Fatal(err)
+	}
+	ranked := local.RankVariantsForHost([]string{id}, cudaHost(64, 32))
+	if len(ranked) != 1 || ranked[0].Applicability != LocalVariantApplicabilityUnknown {
+		t.Fatalf("missing memory became supported: %+v", ranked)
+	}
+	if selected, ok := local.RecommendVariantForHost([]string{id}, cudaHost(64, 32)); ok || selected != "" {
+		t.Fatalf("unknown memory auto-selected %q", selected)
+	}
+}
+
 func cudaHost(ramGiB int64, vramGiB int64) *runtimev1.LocalDeviceProfile {
 	return &runtimev1.LocalDeviceProfile{
 		Os:            "linux",

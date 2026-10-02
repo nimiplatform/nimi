@@ -1,4 +1,40 @@
 sources:
+  - source_id: flux_schnell_modelcard
+    url: https://huggingface.co/black-forest-labs/FLUX.1-schnell/tree/741f7c3ce8b383c54771c7003378a50191e9efe9
+    retrieved_at: 2026-10-02
+    note: Official Apache-2.0 FLUX.1 Schnell; its ae.safetensors is byte-identical to the existing flux1-vae offer.
+  - source_id: flux_schnell_gguf_modelcard
+    url: https://huggingface.co/city96/FLUX.1-schnell-gguf/tree/f495746ed9c5efcf4661f53ef05401dceadc17d2
+    retrieved_at: 2026-10-02
+    note: Apache-2.0 Schnell GGUF distribution; reviewed Q4_K_S header has FLUX.1 shapes without guidance weights.
+  - source_id: stable_diffusion_cpp_flux_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/bfbef5b7e64e89a0205894853de25d19a7ba54b9/docs/flux.md
+    retrieved_at: 2026-10-02
+    note: Pinned sd.cpp FLUX main, CLIP-L, T5XXL, VAE mapping and Schnell sampling defaults.
+  - source_id: flux_text_encoders_modelcard
+    url: https://huggingface.co/comfyanonymous/flux_text_encoders/tree/6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5
+    retrieved_at: 2026-10-02
+    note: Engine-referenced CLIP-L safetensors distributor declares Apache-2.0 repository metadata; original OpenAI CLIP weights are MIT, identified separately below. Exact 768-width text encoder shapes reviewed.
+  - source_id: openai_clip_l_modelcard
+    url: https://huggingface.co/openai/clip-vit-large-patch14
+    retrieved_at: 2026-10-02
+    note: Original OpenAI CLIP ViT-L/14 model; FLUX consumes its 768-width text encoder.
+  - source_id: openai_clip_license
+    url: https://github.com/openai/CLIP/blob/main/LICENSE
+    retrieved_at: 2026-10-02
+    note: Original OpenAI CLIP repository MIT terms, separate from the converted distribution repository's Apache-2.0 metadata.
+  - source_id: flux_reference_clip_loader
+    url: https://github.com/black-forest-labs/flux/blob/main/src/flux/util.py
+    retrieved_at: 2026-10-02
+    note: Official FLUX load_clip identifies openai/clip-vit-large-patch14 with max_length 77; load_t5 identifies google/t5-v1_1-xxl.
+  - source_id: t5_v1_1_xxl_modelcard
+    url: https://huggingface.co/google/t5-v1_1-xxl
+    retrieved_at: 2026-10-02
+    note: Official Google T5 v1.1 XXL architecture and Apache-2.0 model card.
+  - source_id: t5_v1_1_xxl_gguf_modelcard
+    url: https://huggingface.co/city96/t5-v1_1-xxl-encoder-gguf/tree/005a6ea51a7d0b84d677b3e633bb52a8c85a83d9
+    retrieved_at: 2026-10-02
+    note: Apache-2.0 encoder-only GGUF distribution; Q5_K_M exact header confirms t5encoder, width 4096, 24 blocks and 64 attention heads.
   - source_id: whisper_large_v3_modelcard
     url: https://huggingface.co/openai/whisper-large-v3
     retrieved_at: 2026-09-26

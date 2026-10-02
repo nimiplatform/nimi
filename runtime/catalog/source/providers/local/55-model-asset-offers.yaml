@@ -1,6 +1,51 @@
 # Independent passive ModelAsset offers. Recipe slot metadata may recommend
 # their variant IDs; no row has a parent model, inherited binding, or download claim.
 models:
+  - model_id: asset-image-textenc-clip-l
+    model_type: auxiliary
+    family: clip-l
+    updated_at: 2026-10-02
+    capabilities: []
+    source_ids: [flux_text_encoders_modelcard, openai_clip_l_modelcard, openai_clip_license, flux_reference_clip_loader, stable_diffusion_cpp_flux_guide]
+    install:
+      repo: comfyanonymous/flux_text_encoders
+      revision: 6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: MIT
+      provenance: OpenAI CLIP ViT-L/14 text weights, distributed by comfyanonymous. Original CLIP repository terms are MIT; the distribution repository metadata declares Apache-2.0 separately.
+      entry: clip_l.safetensors
+      artifact_roles: [text_encoder]
+    variants:
+      - variant_id: local.image-textenc.clip-l.f16.cuda
+        quant: F16
+        files: [clip_l.safetensors]
+        hashes:
+          clip_l.safetensors: sha256:660c6f5b1abae9dc498ac2d21e1347d2abdb0cf6c0c0c8576cd796491d9a6cdd
+        total_size_bytes: 246144152
+        host_requirement:
+          accelerator: cuda
+  - model_id: asset-image-textenc-t5-v1-1-xxl
+    model_type: auxiliary
+    family: t5-v1_1-xxl
+    updated_at: 2026-10-02
+    capabilities: []
+    source_ids: [t5_v1_1_xxl_gguf_modelcard, t5_v1_1_xxl_modelcard, stable_diffusion_cpp_flux_guide]
+    install:
+      repo: city96/t5-v1_1-xxl-encoder-gguf
+      revision: 005a6ea51a7d0b84d677b3e633bb52a8c85a83d9 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: t5-v1_1-xxl-encoder-Q5_K_M.gguf
+      artifact_roles: [text_encoder]
+    variants:
+      - variant_id: local.image-textenc.t5-v1-1-xxl.q5-k-m.cuda
+        quant: Q5_K_M
+        files: [t5-v1_1-xxl-encoder-Q5_K_M.gguf]
+        hashes:
+          t5-v1_1-xxl-encoder-Q5_K_M.gguf: sha256:b51cbb10b1a7aac6dd1c3b62f0ed908bfd06e0b42d2f3577d43e061361f51dae
+        total_size_bytes: 3386856640
+        host_requirement:
+          accelerator: cuda
   - model_id: asset-silero-vad-onnx
     model_type: auxiliary
     family: silero-vad

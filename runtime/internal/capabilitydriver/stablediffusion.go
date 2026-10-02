@@ -29,11 +29,13 @@ const (
 
 	StableDiffusionMainRequirementID            = "main.diffusion"
 	StableDiffusionTextEncoderRequirementID     = "companion.text-encoder"
+	StableDiffusionCLIPLRequirementID           = "companion.clip-l"
 	StableDiffusionVAERequirementID             = "companion.vae"
 	StableDiffusionUncondDiffusionRequirementID = "companion.uncond-diffusion"
 
 	StableDiffusionQwenImageRecipeID     = "qwen-image"
 	StableDiffusionQwenImageEditRecipeID = "qwen-image-edit-2511"
+	StableDiffusionFluxSchnellRecipeID   = "flux1-schnell"
 )
 
 const (
@@ -75,6 +77,9 @@ type stableDiffusionFamilySpec struct {
 	name                            string
 	mainArtifactRole                string
 	requiresUncond                  bool
+	requiresCLIPL                   bool
+	mainTensorContract              string
+	textEncoderTensorContract       string
 	mainGGUFArchitectures           []string
 	mainGGUFFamilies                []string
 	compatibleTextEncoders          []string
@@ -89,6 +94,14 @@ func stableDiffusionFamily(value string) (stableDiffusionFamilySpec, bool) {
 		return stableDiffusionFamilySpec{}, false
 	}
 	switch value {
+	case "flux":
+		return stableDiffusionFamilySpec{
+			name: value, mainArtifactRole: "diffusion_model", requiresCLIPL: true,
+			mainGGUFArchitectures: []string{"flux"}, mainTensorContract: "flux1-schnell",
+			compatibleTextEncoders: []string{"t5-v1_1-xxl"}, textEncoderGGUFArchitectures: []string{"t5encoder"},
+			textEncoderTensorContract: "t5-v1_1-xxl-encoder",
+			compatibleVAEs:            []string{"flux1-vae"}, vaeTensorContract: "flux1-vae-16ch",
+		}, true
 	case "z-image":
 		// Z-Image consumes the FLUX.1 VAE (ae.safetensors): its decoder conv_in
 		// weight projects the 16-channel latent shape as flux1-vae.
@@ -137,6 +150,8 @@ type stableDiffusionPortableConfig struct {
 
 func stableDiffusionRecipe(family stableDiffusionFamilySpec, recipeID string) (stableDiffusionFamilySpec, bool, bool) {
 	switch recipeID {
+	case StableDiffusionFluxSchnellRecipeID:
+		return family, family.name == "flux", false
 	case "z-image":
 		return family, family.name == "z-image", false
 	case "ideogram4":
@@ -162,6 +177,9 @@ func StableDiffusionImageRecipeModelFamily(recipeID string) (string, bool) {
 	familyName := recipeID
 	if recipeID == StableDiffusionQwenImageEditRecipeID {
 		familyName = StableDiffusionQwenImageRecipeID
+	}
+	if recipeID == StableDiffusionFluxSchnellRecipeID {
+		familyName = "flux"
 	}
 	family, ok := stableDiffusionFamily(familyName)
 	if !ok {
@@ -201,6 +219,9 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 	if len(portable.family.mainGGUFFamilies) > 0 {
 		mainConstraints["gguf_families"] = stableDiffusionAnyStrings(portable.family.mainGGUFFamilies)
 	}
+	if portable.family.mainTensorContract != "" {
+		mainConstraints["tensor_contract"] = portable.family.mainTensorContract
+	}
 	textEncoderConstraints := map[string]any{
 		"asset_kind": "auxiliary", "artifact_role": "text_encoder",
 		"compatible_families": stableDiffusionAnyStrings(portable.family.compatibleTextEncoders), "format": "gguf",
@@ -210,6 +231,13 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 	}
 	if len(portable.family.textEncoderArchitectureFamilies) > 0 {
 		textEncoderConstraints["gguf_architecture_families"] = stableDiffusionAnyStrings(portable.family.textEncoderArchitectureFamilies)
+	}
+	if portable.family.textEncoderTensorContract != "" {
+		textEncoderConstraints["tensor_contract"] = portable.family.textEncoderTensorContract
+	}
+	textEncoderLabel := stableDiffusionTextEncoderLabel
+	if portable.family.requiresCLIPL {
+		textEncoderLabel = "T5 XXL text encoder"
 	}
 	requirements := []*runtimev1.LocalCapabilityRequirement{
 		stableDiffusionRequirement(
@@ -225,7 +253,7 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 			"auxiliary",
 			0,
-			stableDiffusionTextEncoderLabel,
+			textEncoderLabel,
 			textEncoderConstraints,
 		),
 		stableDiffusionRequirement(
@@ -239,6 +267,9 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 				"format": "safetensors", "tensor_contract": portable.family.vaeTensorContract,
 			},
 		),
+	}
+	if portable.family.requiresCLIPL {
+		requirements = append(requirements, stableDiffusionCLIPLRequirement())
 	}
 	if portable.family.requiresUncond {
 		requirements = append(requirements, stableDiffusionRequirement(
@@ -291,12 +322,16 @@ func (driver StableDiffusionImageDriver) ProjectModelAssetBinding(input ModelAss
 		_, architectureFamilyConstrained := stableDiffusionRequirementConstraintStrings(requirement, "gguf_architecture_families")
 		var summary ggufmeta.Summary
 		var err error
-		if !familyConstrained && (architectureConstrained || architectureFamilyConstrained) {
+		tensorContract, tensorConstrained := stableDiffusionRequirementConstraintString(requirement, "tensor_contract")
+		if !tensorConstrained && !familyConstrained && (architectureConstrained || architectureFamilyConstrained) {
 			summary, err = ggufmeta.InspectLLMMetadata(bytes.NewReader(input.Entry.FormatProbe))
 		} else {
 			summary, err = ggufmeta.Inspect(bytes.NewReader(input.Entry.FormatProbe))
 		}
 		if err != nil {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+		if tensorConstrained && !stableDiffusionGGUFTensorContractValid(tensorContract, summary) {
 			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 		}
 		architecture := ggufmeta.LLMDetectedArchitecture(summary)
@@ -327,7 +362,7 @@ func (driver StableDiffusionImageDriver) ProjectModelAssetBinding(input ModelAss
 		if !ok {
 			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 		}
-		family, valid := stableDiffusionVAETensorContractFamily(contract, input.Entry.FormatProbe)
+		family, valid := stableDiffusionSafetensorsContractFamily(contract, input.Entry.FormatProbe)
 		if !valid {
 			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 		}
@@ -548,6 +583,18 @@ func validStableDiffusionRequirementSequence(requirements []*runtimev1.LocalCapa
 		return false
 	}
 	index := 3
+	if familySpec.requiresCLIPL {
+		if len(requirements) <= index || !stableDiffusionCLIPLRequirementValid(requirements[index]) {
+			return false
+		}
+		index++
+	}
+	for index, expected := range []string{familySpec.mainTensorContract, familySpec.textEncoderTensorContract} {
+		actual, exists := stableDiffusionRequirementConstraintString(requirements[index], "tensor_contract")
+		if (expected != "") != exists || actual != expected {
+			return false
+		}
+	}
 	if familySpec.requiresUncond {
 		if len(requirements) <= index || !stableDiffusionRequirementShape(requirements[index], StableDiffusionUncondDiffusionRequirementID, "image", 0) {
 			return false
@@ -654,20 +701,30 @@ func stableDiffusionConstraintKeysValid(requirement *runtimev1.LocalCapabilityRe
 		allowed["format"] = struct{}{}
 		allowed["gguf_architectures"] = struct{}{}
 		allowed["gguf_families"] = struct{}{}
+		allowed["tensor_contract"] = struct{}{}
 		for _, key := range []string{"model_family", "recipe_id", "artifact_role", "format"} {
 			required[key] = struct{}{}
 		}
 		expectedCount = 6
+		if _, exists := fields["tensor_contract"]; exists {
+			expectedCount++
+		}
 	case StableDiffusionTextEncoderRequirementID:
 		allowed["artifact_role"] = struct{}{}
 		allowed["compatible_families"] = struct{}{}
 		allowed["format"] = struct{}{}
 		allowed["gguf_architectures"] = struct{}{}
 		allowed["gguf_architecture_families"] = struct{}{}
+		allowed["tensor_contract"] = struct{}{}
 		for _, key := range []string{"artifact_role", "compatible_families", "format"} {
 			required[key] = struct{}{}
 		}
 		expectedCount = 5
+		if _, exists := fields["tensor_contract"]; exists {
+			expectedCount++
+		}
+	case StableDiffusionCLIPLRequirementID:
+		return stableDiffusionCLIPLRequirementValid(requirement)
 	case StableDiffusionVAERequirementID:
 		allowed["compatible_families"] = struct{}{}
 		allowed["format"] = struct{}{}
@@ -863,6 +920,10 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 		value := stableDiffusionImageModelFile(binding)
 		load.uncondDiffusion = &value
 	}
+	if binding, ok := bindings[StableDiffusionCLIPLRequirementID]; ok {
+		value := stableDiffusionImageModelFile(binding)
+		load.clipL = &value
+	}
 	requestFields := stableDiffusionCPPRequestFields{
 		prompt: request.prompt, negativePrompt: request.negativePrompt,
 		width: request.width, height: request.height, steps: portable.execution.steps,
@@ -951,6 +1012,14 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 		return fmt.Errorf("stable-diffusion image recipe load facts are inconsistent")
 	}
 	files := []ImageModelFile{load.main, load.textEncoder, load.vae}
+	if clip, exists := load.CLIPL(); exists {
+		if load.recipeID != StableDiffusionFluxSchnellRecipeID {
+			return fmt.Errorf("CLIP-L is not admitted by this image recipe")
+		}
+		files = append(files, clip)
+	} else if load.recipeID == StableDiffusionFluxSchnellRecipeID {
+		return fmt.Errorf("FLUX.1 requires independent CLIP-L and T5 encoders")
+	}
 	if uncond, exists := load.UncondDiffusion(); exists {
 		files = append(files, uncond)
 	}
@@ -1051,6 +1120,9 @@ func exactStableDiffusionInvocationBindings(
 		StableDiffusionMainRequirementID,
 		StableDiffusionTextEncoderRequirementID,
 		StableDiffusionVAERequirementID,
+	}
+	if portable.family.requiresCLIPL {
+		expected = append(expected, StableDiffusionCLIPLRequirementID)
 	}
 	if portable.family.requiresUncond {
 		expected = append(expected, StableDiffusionUncondDiffusionRequirementID)
@@ -1174,8 +1246,8 @@ func normalizeStableDiffusionImageRequest(
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected stable-diffusion recipe does not admit a mask"))
 	}
 	negativePrompt := strings.TrimSpace(spec.GetNegativePrompt())
-	if (portable.recipeID == "qwen-image" || portable.recipeID == "qwen-image-edit-2511") && negativePrompt != "" {
-		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected Qwen Image recipe does not admit negative_prompt"))
+	if (portable.recipeID == "qwen-image" || portable.recipeID == "qwen-image-edit-2511" || portable.recipeID == StableDiffusionFluxSchnellRecipeID) && negativePrompt != "" {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected image recipe does not admit negative_prompt"))
 	}
 	kind := stableDiffusionRequestTextToImage
 	sourceImage := ImageResolvedInput{}
@@ -1189,7 +1261,7 @@ func normalizeStableDiffusionImageRequest(
 		}
 		sourceImage = cloneImageResolvedInput(sourceInputs[0])
 		kind = stableDiffusionRequestInstructionEdit
-	case "z-image", "ideogram4", "qwen-image":
+	case "z-image", "ideogram4", "qwen-image", StableDiffusionFluxSchnellRecipeID:
 		if len(sourceInputs) != 0 {
 			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected text-to-image recipe does not admit input.image"))
 		}
@@ -1254,6 +1326,9 @@ func parseStableDiffusionPortableConfig(recipeID string, value *structpb.Struct)
 	if recipeID == StableDiffusionQwenImageEditRecipeID {
 		familyName = "qwen-image"
 	}
+	if recipeID == StableDiffusionFluxSchnellRecipeID {
+		familyName = "flux"
+	}
 	family, ok := stableDiffusionFamily(familyName)
 	if !ok {
 		return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
@@ -1284,6 +1359,12 @@ func parseStableDiffusionPortableConfig(recipeID string, value *structpb.Struct)
 		},
 	}
 	switch recipeID {
+	case StableDiffusionFluxSchnellRecipeID:
+		result.execution.steps = 4
+		result.execution.cfgScale = 1
+		result.execution.sampler = "euler"
+		result.execution.diffusionFlashAttention = true
+		result.execution.offloadParamsToCPU = true
 	case "z-image":
 		result.execution.steps = 8
 		result.execution.cfgScale = 1

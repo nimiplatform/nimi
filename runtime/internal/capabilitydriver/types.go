@@ -774,6 +774,7 @@ type StableDiffusionCPPLoadPlan struct {
 	recipeID                string
 	main                    ImageModelFile
 	textEncoder             ImageModelFile
+	clipL                   *ImageModelFile
 	vae                     ImageModelFile
 	uncondDiffusion         *ImageModelFile
 	flowShift               float64
@@ -791,6 +792,12 @@ func (p StableDiffusionCPPLoadPlan) RecipeID() string            { return p.reci
 func (p StableDiffusionCPPLoadPlan) Main() ImageModelFile        { return p.main }
 func (p StableDiffusionCPPLoadPlan) TextEncoder() ImageModelFile { return p.textEncoder }
 func (p StableDiffusionCPPLoadPlan) VAE() ImageModelFile         { return p.vae }
+func (p StableDiffusionCPPLoadPlan) CLIPL() (ImageModelFile, bool) {
+	if p.clipL == nil {
+		return ImageModelFile{}, false
+	}
+	return *p.clipL, true
+}
 func (p StableDiffusionCPPLoadPlan) UncondDiffusion() (ImageModelFile, bool) {
 	if p.uncondDiffusion == nil {
 		return ImageModelFile{}, false

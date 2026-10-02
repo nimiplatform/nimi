@@ -183,7 +183,7 @@ func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, 
 func admitManagedImageRecipeForHost(recipeFamily string, packageSource string, goos string, goarch string, gpuVendor string, cudaReady bool) error {
 	recipeFamily = strings.ToLower(strings.TrimSpace(recipeFamily))
 	switch recipeFamily {
-	case "z-image", "ideogram4", "qwen-image", "minimax-h3":
+	case "z-image", "ideogram4", "qwen-image", "minimax-h3", "flux":
 	default:
 		return fmt.Errorf("managed image recipe family %q is not admitted", recipeFamily)
 	}

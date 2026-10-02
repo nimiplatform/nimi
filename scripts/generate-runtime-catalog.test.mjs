@@ -14,6 +14,16 @@ const duplicateVideoFixture = path.join(
   'runtime-catalog-duplicate-video-mode.source.yaml',
 );
 
+test('image offers preserve unknown memory without weakening acquisition integrity', () => {
+  const source = readYamlResource(path.join(import.meta.dirname, '..', 'runtime', 'catalog', 'source', 'providers', 'local'), { merge: true });
+  const image = source.models.find((row) => row.model_id === 'flux.1-schnell-local');
+  const generated = generateProviderCatalog(source).models.find((row) => row.model_id === image.model_id);
+  assert.deepEqual(generated.variants[0].host_requirement, { accelerator: 'cuda' });
+  assert.equal(generated.fitness.param_count, 11891178560);
+  delete image.variants[0].hashes[image.variants[0].entry];
+  assert.throws(() => generateProviderCatalog(source), /missing a hash/u);
+});
+
 test('real catalog generator rejects duplicate canonical video modes from source YAML', () => {
   const source = YAML.parse(fs.readFileSync(duplicateVideoFixture, 'utf8'));
   assert.throws(

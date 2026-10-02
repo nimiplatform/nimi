@@ -129,6 +129,7 @@ func validateLocalPlaneVariants(scope string, variants []LocalPlaneVariant, seen
 
 // validateLocalPlane fails closed on structurally incomplete independent local
 // ModelAsset offers. Integrity material is mandatory per K-MCAT-032.
+// @nimi-authority: rule.nimi.runtime.model-catalog.r031
 func (c *LocalProviderCatalog) validateLocalPlane() error {
 	for i := range c.models {
 		model := &c.models[i]
@@ -161,7 +162,9 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 			return fmt.Errorf("local model %q install.revision must be a pinned commit sha", model.ModelID)
 		}
 		seenVariants := make(map[string]struct{}, len(model.Variants))
-		if err := validateLocalPlaneVariants(fmt.Sprintf("local model %q", model.ModelID), model.Variants, seenVariants, passive || fitnessOptional); err != nil {
+		// Missing measured image memory remains unknown to the host-fit resolver.
+		capacityOptional := passive || fitnessOptional || strings.EqualFold(strings.TrimSpace(model.ModelType), "image")
+		if err := validateLocalPlaneVariants(fmt.Sprintf("local model %q", model.ModelID), model.Variants, seenVariants, capacityOptional); err != nil {
 			return err
 		}
 		releaseArchive := strings.TrimSpace(model.Install.InstallKind) == LocalInstallKindReleaseArchive

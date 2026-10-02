@@ -716,7 +716,7 @@ func TestValidateManagedImageBackendPackageSpecRejectsIncompleteSupportedPackage
 }
 
 func TestAdmitManagedImageRecipeForHostClosesPackageFamilyIntersection(t *testing.T) {
-	for _, family := range []string{"z-image", "ideogram4", "qwen-image", "minimax-h3"} {
+	for _, family := range []string{"z-image", "ideogram4", "qwen-image", "minimax-h3", "flux"} {
 		t.Run("windows_"+family, func(t *testing.T) {
 			if err := admitManagedImageRecipeForHost(family, "", "windows", "amd64", "nvidia", true); err != nil {
 				t.Fatalf("admitManagedImageRecipeForHost(%q): %v", family, err)
@@ -736,7 +736,7 @@ func TestAdmitManagedImageRecipeForHostClosesPackageFamilyIntersection(t *testin
 		goarch        string
 		gpuVendor     string
 	}{
-		{name: "unknown family", family: "flux", goos: "windows", goarch: "amd64", gpuVendor: "nvidia"},
+		{name: "unknown family", family: "unknown-diffusion", goos: "windows", goarch: "amd64", gpuVendor: "nvidia"},
 		{name: "darwin wrong package source does not fallback", family: "qwen-image", packageSource: "experimental_official_sdcpp", goos: "darwin", goarch: "arm64", gpuVendor: "apple"},
 		{name: "wrong package source does not fallback", family: "z-image", packageSource: "experimental_official_sdcpp", goos: "windows", goarch: "amd64", gpuVendor: "nvidia"},
 	} {

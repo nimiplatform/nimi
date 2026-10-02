@@ -4491,6 +4491,79 @@ models:
         total_size_bytes: 690308125
         host_requirement:
           accelerator: cuda
+  - model_id: asset-image-textenc-clip-l
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-10-02
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/comfyanonymous/flux_text_encoders/tree/6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5
+      retrieved_at: 2026-10-02
+      note: Engine-referenced CLIP-L safetensors distributor declares Apache-2.0 repository metadata; original OpenAI CLIP weights are MIT, identified separately below. Exact 768-width text encoder shapes reviewed.
+    family: clip-l
+    install:
+      repo: comfyanonymous/flux_text_encoders
+      revision: 6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5
+      install_kind: weights
+      entry: clip_l.safetensors
+      artifact_roles:
+        - text_encoder
+      license: MIT
+      provenance: OpenAI CLIP ViT-L/14 text weights, distributed by comfyanonymous. Original CLIP repository terms are MIT; the distribution repository metadata declares Apache-2.0 separately.
+    variants:
+      - variant_id: local.image-textenc.clip-l.f16.cuda
+        quant: F16
+        entry: clip_l.safetensors
+        files:
+          - clip_l.safetensors
+        hashes:
+          clip_l.safetensors: sha256:660c6f5b1abae9dc498ac2d21e1347d2abdb0cf6c0c0c8576cd796491d9a6cdd
+        total_size_bytes: 246144152
+        host_requirement:
+          accelerator: cuda
+  - model_id: asset-image-textenc-t5-v1-1-xxl
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-10-02
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/city96/t5-v1_1-xxl-encoder-gguf/tree/005a6ea51a7d0b84d677b3e633bb52a8c85a83d9
+      retrieved_at: 2026-10-02
+      note: Apache-2.0 encoder-only GGUF distribution; Q5_K_M exact header confirms t5encoder, width 4096, 24 blocks and 64 attention heads.
+    family: t5-v1_1-xxl
+    install:
+      repo: city96/t5-v1_1-xxl-encoder-gguf
+      revision: 005a6ea51a7d0b84d677b3e633bb52a8c85a83d9
+      install_kind: weights
+      entry: t5-v1_1-xxl-encoder-Q5_K_M.gguf
+      artifact_roles:
+        - text_encoder
+      license: Apache-2.0
+    variants:
+      - variant_id: local.image-textenc.t5-v1-1-xxl.q5-k-m.cuda
+        quant: Q5_K_M
+        entry: t5-v1_1-xxl-encoder-Q5_K_M.gguf
+        files:
+          - t5-v1_1-xxl-encoder-Q5_K_M.gguf
+        hashes:
+          t5-v1_1-xxl-encoder-Q5_K_M.gguf: sha256:b51cbb10b1a7aac6dd1c3b62f0ed908bfd06e0b42d2f3577d43e061361f51dae
+        total_size_bytes: 3386856640
+        host_requirement:
+          accelerator: cuda
   - model_id: asset-silero-vad-onnx
     provider: local
     model_type: auxiliary
@@ -6094,7 +6167,7 @@ models:
   - model_id: flux.1-schnell-local
     provider: local
     model_type: image
-    updated_at: 2026-03-15
+    updated_at: 2026-10-02
     capabilities:
       - image.generate
     pricing:
@@ -6105,29 +6178,50 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://huggingface.co/docs/diffusers/api/pipelines/flux
-      retrieved_at: 2026-03-15
-      note: Official Diffusers FLUX pipeline documentation.
-    features:
-      - input.image
-      - input.mask
+      url: https://huggingface.co/black-forest-labs/FLUX.1-schnell/tree/741f7c3ce8b383c54771c7003378a50191e9efe9
+      retrieved_at: 2026-10-02
+      note: Official Apache-2.0 FLUX.1 Schnell; its ae.safetensors is byte-identical to the existing flux1-vae offer.
+    family: flux
     image_request_options: &a34
       response_formats:
         - b64_json
         - url
       max_images_per_request: 1
-      supports_negative_prompt: true
-      supports_reference_images: true
-      supports_mask: true
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
       supports_seed: true
       supports_size: true
-      supports_aspect_ratio: true
-      supports_quality: true
-      supports_style: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    install:
+      repo: city96/FLUX.1-schnell-gguf
+      revision: f495746ed9c5efcf4661f53ef05401dceadc17d2
+      install_kind: weights
+      entry: flux1-schnell-Q4_K_S.gguf
+      artifact_roles:
+        - diffusion_model
+      license: Apache-2.0
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.flux1-schnell.q4-k-s.cuda
+        quant: Q4_K_S
+        entry: flux1-schnell-Q4_K_S.gguf
+        files:
+          - flux1-schnell-Q4_K_S.gguf
+        hashes:
+          flux1-schnell-Q4_K_S.gguf: sha256:4fd16477b3a5296d0cf722c4b92a9fd7f30d09ac7495826e4465d8de9c9fd973
+        total_size_bytes: 6783943712
+        host_requirement:
+          accelerator: cuda
+    fitness:
+      param_count: 11891178560
+      context_length: 0
   - model_id: local/flux.1-schnell
     provider: local
     model_type: image
-    updated_at: 2026-03-15
+    updated_at: 2026-10-02
     capabilities:
       - image.generate
     pricing:
@@ -6138,17 +6232,15 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://huggingface.co/docs/diffusers/api/pipelines/flux
-      retrieved_at: 2026-03-15
-      note: Official Diffusers FLUX pipeline documentation.
-    features:
-      - input.image
-      - input.mask
+      url: https://huggingface.co/black-forest-labs/FLUX.1-schnell/tree/741f7c3ce8b383c54771c7003378a50191e9efe9
+      retrieved_at: 2026-10-02
+      note: Official Apache-2.0 FLUX.1 Schnell; its ae.safetensors is byte-identical to the existing flux1-vae offer.
+    family: flux
     image_request_options: *a34
   - model_id: media/flux.1-schnell
     provider: local
     model_type: image
-    updated_at: 2026-03-15
+    updated_at: 2026-10-02
     capabilities:
       - image.generate
     pricing:
@@ -6159,12 +6251,10 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://huggingface.co/docs/diffusers/api/pipelines/flux
-      retrieved_at: 2026-03-15
-      note: Official Diffusers FLUX pipeline documentation.
-    features:
-      - input.image
-      - input.mask
+      url: https://huggingface.co/black-forest-labs/FLUX.1-schnell/tree/741f7c3ce8b383c54771c7003378a50191e9efe9
+      retrieved_at: 2026-10-02
+      note: Official Apache-2.0 FLUX.1 Schnell; its ae.safetensors is byte-identical to the existing flux1-vae offer.
+    family: flux
     image_request_options: *a34
   - model_id: z-image-turbo-local
     provider: local
@@ -10257,6 +10347,59 @@ loadout_recipes:
         model_contract:
           format: safetensors
           artifact_role: stt_transformers_model
+  - recipe_id: flux1-schnell
+    revision: "1"
+    title: FLUX.1 Schnell generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids:
+          - local.image.flux1-schnell.q4-k-s.cuda
+        recommended_content_ids:
+          - sha256:4fd16477b3a5296d0cf722c4b92a9fd7f30d09ac7495826e4465d8de9c9fd973
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_model
+          gguf_architectures:
+            - flux
+          tensor_contract: flux1-schnell
+      - slot_id: companion.text-encoder
+        display_label: T5 XXL text encoder
+        recommended_variant_ids:
+          - local.image-textenc.t5-v1-1-xxl.q5-k-m.cuda
+        recommended_content_ids:
+          - sha256:b51cbb10b1a7aac6dd1c3b62f0ed908bfd06e0b42d2f3577d43e061361f51dae
+        model_contract:
+          format: gguf
+          artifact_role: text_encoder
+          gguf_architectures:
+            - t5encoder
+          tensor_contract: t5-v1_1-xxl-encoder
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids:
+          - local.image-vae.z-image-ae.f16.cuda
+        recommended_content_ids:
+          - sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38
+        model_contract:
+          format: safetensors
+          tensor_contract: flux1-vae-16ch
+      - slot_id: companion.clip-l
+        display_label: CLIP-L text encoder
+        recommended_variant_ids:
+          - local.image-textenc.clip-l.f16.cuda
+        recommended_content_ids:
+          - sha256:660c6f5b1abae9dc498ac2d21e1347d2abdb0cf6c0c0c8576cd796491d9a6cdd
+        model_contract:
+          format: safetensors
+          artifact_role: text_encoder
+          tensor_contract: clip-l-768
   - recipe_id: z-image
     revision: "1"
     title: Z-Image Turbo generation

@@ -600,6 +600,45 @@ loadout_recipes:
         model_contract:
           format: safetensors
           artifact_role: stt_transformers_model
+  - recipe_id: flux1-schnell
+    revision: "1"
+    title: FLUX.1 Schnell generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids: [local.image.flux1-schnell.q4-k-s.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_model
+          gguf_architectures: [flux]
+          tensor_contract: flux1-schnell
+      - slot_id: companion.text-encoder
+        display_label: T5 XXL text encoder
+        recommended_variant_ids: [local.image-textenc.t5-v1-1-xxl.q5-k-m.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: text_encoder
+          gguf_architectures: [t5encoder]
+          tensor_contract: t5-v1_1-xxl-encoder
+      - slot_id: companion.vae
+        display_label: VAE
+        recommended_variant_ids: [local.image-vae.z-image-ae.f16.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: flux1-vae-16ch
+      - slot_id: companion.clip-l
+        display_label: CLIP-L text encoder
+        recommended_variant_ids: [local.image-textenc.clip-l.f16.cuda]
+        model_contract:
+          format: safetensors
+          artifact_role: text_encoder
+          tensor_contract: clip-l-768
   - recipe_id: z-image
     revision: "1"
     title: Z-Image Turbo generation

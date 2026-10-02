@@ -676,6 +676,13 @@ func imageLoadRequest(address string, plan *capabilitydriver.ImageInvocationPlan
 			Required:      true,
 		},
 	}
+	if clip, exists := load.CLIPL(); exists {
+		request.Components[0].EngineSlot = "t5xxl_path"
+		request.Components = append(request.Components, managedimagebackend.ComponentBinding{
+			OccurrenceID: "clip-l", Order: 1, Role: "text_encoder", ComponentKind: "auxiliary",
+			EngineSlot: "clip_l_path", Path: clip.AbsolutePath(), Required: true,
+		})
+	}
 	if uncond, exists := load.UncondDiffusion(); exists {
 		request.Components = append(request.Components, managedimagebackend.ComponentBinding{
 			OccurrenceID:  "uncond-diffusion",
@@ -697,6 +704,10 @@ func directGOSDImageLoadOptions(load capabilitydriver.StableDiffusionCPPLoadPlan
 		"vae_path:" + load.VAE().AbsolutePath(),
 		"diffusion_fa:" + strconv.FormatBool(load.DiffusionFlashAttention()),
 		"offload_params_to_cpu:" + strconv.FormatBool(load.OffloadParamsToCPU()),
+	}
+	if clip, exists := load.CLIPL(); exists {
+		options[1] = "t5xxl_path:" + load.TextEncoder().AbsolutePath()
+		options = append(options, "clip_l_path:"+clip.AbsolutePath())
 	}
 	if uncond, exists := load.UncondDiffusion(); exists {
 		options = append(options, "uncond_diffusion_model:"+uncond.AbsolutePath())

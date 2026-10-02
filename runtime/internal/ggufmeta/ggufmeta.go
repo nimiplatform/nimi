@@ -46,12 +46,13 @@ type MetadataEntry struct {
 }
 
 type Summary struct {
-	Magic       string
-	Version     uint32
-	TensorCount uint64
-	KVCount     uint64
-	Entries     []MetadataEntry
-	TensorNames []string
+	Magic        string
+	Version      uint32
+	TensorCount  uint64
+	KVCount      uint64
+	Entries      []MetadataEntry
+	TensorNames  []string
+	TensorShapes map[string][]uint64
 }
 
 func InspectPath(path string) (Summary, error) {
@@ -78,6 +79,7 @@ func Inspect(reader io.Reader) (Summary, error) {
 		summary.Entries = append(summary.Entries, entry)
 	}
 	summary.TensorNames = make([]string, 0, summary.TensorCount)
+	summary.TensorShapes = make(map[string][]uint64, summary.TensorCount)
 	for i := uint64(0); i < summary.TensorCount; i++ {
 		name, err := readGGUFString(reader)
 		if err != nil {
@@ -90,11 +92,13 @@ func Inspect(reader io.Reader) (Summary, error) {
 		if dimensions > maxTensorDimensions {
 			return Summary{}, fmt.Errorf("gguf tensor %q has too many dimensions: %d", name, dimensions)
 		}
+		shape := make([]uint64, dimensions)
 		for dim := uint32(0); dim < dimensions; dim++ {
 			var size uint64
 			if err := binary.Read(reader, binary.LittleEndian, &size); err != nil {
 				return Summary{}, fmt.Errorf("read gguf tensor shape %q: %w", name, err)
 			}
+			shape[dim] = size
 		}
 		var tensorType uint32
 		if err := binary.Read(reader, binary.LittleEndian, &tensorType); err != nil {
@@ -105,7 +109,11 @@ func Inspect(reader io.Reader) (Summary, error) {
 			return Summary{}, fmt.Errorf("read gguf tensor offset %q: %w", name, err)
 		}
 		if strings.TrimSpace(name) != "" {
+			if _, exists := summary.TensorShapes[name]; exists {
+				return Summary{}, fmt.Errorf("duplicate gguf tensor %q", name)
+			}
 			summary.TensorNames = append(summary.TensorNames, name)
+			summary.TensorShapes[name] = shape
 		}
 	}
 	return summary, nil
