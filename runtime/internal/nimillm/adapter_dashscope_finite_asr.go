@@ -116,7 +116,7 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 	var textBytes int
 	lastFinalID := int64(-1)
 	pending := map[int64]bool{}
-	var billedSeconds int64
+	var billedSeconds *int64
 	for {
 		event, err := readFiniteASREvent(ctx, connection, taskID)
 		if err != nil {
@@ -180,8 +180,14 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 					Text: wordText, StartSeconds: float64(*word.Begin) / 1000, EndSeconds: float64(*word.End) / 1000,
 				})
 			}
-			if event.Payload.Usage != nil && event.Payload.Usage.Duration > billedSeconds {
-				billedSeconds = event.Payload.Usage.Duration
+			if event.Payload.Usage != nil && event.Payload.Usage.Duration != nil {
+				duration := *event.Payload.Usage.Duration
+				if duration < 0 {
+					return nil, nil, "", finiteASRInvalidOutput("invalid billing duration")
+				}
+				if billedSeconds == nil || duration > *billedSeconds {
+					billedSeconds = &duration
+				}
 			}
 		case "task-finished":
 			if !finishRequested.Load() || len(pending) != 0 {
@@ -201,7 +207,11 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 			if err != nil {
 				return nil, nil, "", finiteASRInvalidOutput("transcript encoding failed")
 			}
-			artifact := BinaryArtifact(localexecution.SpeechTranscriptMIME, body, map[string]any{"provider_usage_seconds": billedSeconds})
+			metadata := map[string]any{}
+			if billedSeconds != nil {
+				metadata["provider_usage_seconds"] = *billedSeconds
+			}
+			artifact := BinaryArtifact(localexecution.SpeechTranscriptMIME, body, metadata)
 			return []*runtimev1.ScenarioArtifact{artifact}, &runtimev1.UsageStats{ComputeMs: time.Since(startedAt).Milliseconds()}, "", nil
 		default:
 			return nil, nil, "", finiteASRInvalidOutput("unexpected task event")
@@ -232,7 +242,7 @@ type finiteASREvent struct {
 			} `json:"sentence"`
 		} `json:"output"`
 		Usage *struct {
-			Duration int64 `json:"duration"`
+			Duration *int64 `json:"duration"`
 		} `json:"usage"`
 	} `json:"payload"`
 }

@@ -143,6 +143,48 @@ func TestDashScopeFiniteASRCancellationClosesProviderConnection(t *testing.T) {
 	}
 }
 
+func TestDashScopeFiniteASRDoesNotInventMissingBilledDuration(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		usage        any
+		want         float64
+		present, bad bool
+	}{
+		{"absent usage", nil, 0, false, false},
+		{"missing duration", map[string]any{}, 0, false, false},
+		{"reported zero", map[string]any{"duration": 0}, 0, true, false},
+		{"reported duration", map[string]any{"duration": 3}, 3, true, false},
+		{"negative duration", map[string]any{"duration": -1}, 0, false, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			audio := finiteASRTestWAV()
+			server := finiteASRTestServer(t, audio, func(conn *websocket.Conn, taskID string) {
+				payload := map[string]any{"output": map[string]any{"sentence": finiteASRFinalSentence()}}
+				if tc.usage != nil {
+					payload["usage"] = tc.usage
+				}
+				_ = websocket.JSON.Send(conn, map[string]any{"header": map[string]any{"event": "result-generated", "task_id": taskID}, "payload": payload})
+				finiteASRSendEvent(t, conn, taskID, "task-finished", nil)
+			})
+			defer server.Close()
+			artifacts, _, _, err := executeDashScopeFiniteASR(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture", AllowLoopbackEndpoint: true}, finiteASRTestRequest(audio), "fun-asr-realtime")
+			if tc.bad {
+				if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID || len(artifacts) != 0 {
+					t.Fatalf("invalid usage was published: %v %v", artifacts, err)
+				}
+				return
+			}
+			if err != nil || len(artifacts) != 1 {
+				t.Fatalf("valid transcript failed: %v %v", artifacts, err)
+			}
+			value, present := artifacts[0].GetMetadata().AsMap()["provider_usage_seconds"]
+			if present != tc.present || (present && value != tc.want) {
+				t.Fatalf("reported duration=%v present=%t want=%v present=%t", value, present, tc.want, tc.present)
+			}
+		})
+	}
+}
+
 func TestDashScopeFiniteASRValidatesActualWAV(t *testing.T) {
 	for _, mutation := range []func([]byte){
 		func(audio []byte) { audio[22] = 2 },
