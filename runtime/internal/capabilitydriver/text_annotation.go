@@ -13,16 +13,18 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.spacy-local-annotation
 const (
-	TextAnnotateContract  = "text.annotate"
-	SpacyImplementationID = "local.text.annotate.spacy"
-	SpacyDriverID         = "nimi.runtime.driver.spacy"
-	SpacyDriverDialect    = "spacy/text-annotate/v1"
-	SpacyConsumerID       = "text.spacy.python"
-	SpacyTrfDriverDialect = "spacy/text-annotate/curated-trf/v1"
-	SpacyTrfConsumerID    = "text.spacy-curated.python"
-	SpacyTrfRecipeID      = "spacy-trf-en"
-	SpacyProtocol         = "nimi-text-annotate/1"
-	SpacyModelSlot        = "text.model"
+	TextAnnotateContract    = "text.annotate"
+	SpacyImplementationID   = "local.text.annotate.spacy"
+	SpacyDriverID           = "nimi.runtime.driver.spacy"
+	SpacyDriverDialect      = "spacy/text-annotate/v1"
+	SpacyConsumerID         = "text.spacy.python"
+	SpacyTrfDriverDialect   = "spacy/text-annotate/curated-trf/v1"
+	SpacyTrfConsumerID      = "text.spacy-curated.python"
+	SpacyTrfRecipeID        = "spacy-trf-en"
+	SpacyTrfGermanRecipeID  = "spacy-trf-de"
+	SpacyTrfChineseRecipeID = "spacy-trf-zh"
+	SpacyProtocol           = "nimi-text-annotate/1"
+	SpacyModelSlot          = "text.model"
 )
 
 type SpacyDriver struct{}

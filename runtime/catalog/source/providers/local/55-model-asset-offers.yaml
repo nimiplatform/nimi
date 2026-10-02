@@ -1238,3 +1238,165 @@ models:
           sha256: sha256:17c3497539bd970546b75e36c274b3fa183511b6ef59a178017aa02dde3a090a
           size_bytes: 42105500
           root: ja_core_news_md/ja_core_news_md-3.8.0
+  - model_id: asset-nlp-spacy-de-dep-news-trf-3.8.0
+    model_type: auxiliary
+    family: spacy
+    updated_at: 2026-10-03
+    capabilities: []
+    source_ids:
+      - spacy_models_de_dep_news_trf_3_8_0_release
+    install:
+      repo: explosion/spacy-models
+      revision: de_dep_news_trf-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: MIT
+      provenance: https://github.com/explosion/spacy-models/releases/tag/de_dep_news_trf-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-de-dep-news-trf.3.8.0
+        quant: F32
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - README.md
+          - accuracy.json
+          - attribute_ruler/patterns
+          - config.cfg
+          - lemmatizer/cfg
+          - lemmatizer/model
+          - lemmatizer/trees
+          - meta.json
+          - morphologizer/cfg
+          - morphologizer/model
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - tagger/cfg
+          - tagger/model
+          - tokenizer
+          - transformer/cfg
+          - transformer/model
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:3933c176979b68bc6d0bcc902c7d6c130f1d127f476f17ba5cdba8d99cfd0012
+          LICENSES_SOURCES: sha256:af4380f6e0774e48be00fd36a599ad12b5294ceb49575d37fe0d62d17d16bcd6
+          README.md: sha256:c843d6e0d9e2050ddcf8dc3b8e78771871d1c807a174550ed51b7305c09ea88e
+          accuracy.json: sha256:18f4f900d6f2257e95b31cd9bdb22741c70d1318ca91f1701c6b5b2540f7032b
+          attribute_ruler/patterns: sha256:6241300d1efc3b0263997a4a429ce4692f85a7c71470394c6b07371186ea93ba
+          config.cfg: sha256:f32a73529de2ce52c167e4b12479a904c4559dd03942e1359623a0de5eeb097f
+          lemmatizer/cfg: sha256:d55b253e30af3691480b999fb52084894a1550f458876f9546e7ff1504fde2f9
+          lemmatizer/model: sha256:080eec47c9862364a325e35cfe8b01bd44327c1518b467aae0d9c067592f4f80
+          lemmatizer/trees: sha256:2db7001dc4b535c63c8d9b43cdd44cf032a2d80d1a3a6b4576a5ebe863321063
+          meta.json: sha256:9ce8f227a5ca35637c1958c561adcffd417689177d6e1e931d8d880cf442832a
+          morphologizer/cfg: sha256:39b0475d81853d3f36828d78e986b996c9492806e16e05ca7678af3f405f3e15
+          morphologizer/model: sha256:116f7152740ef07fecc9776bb74b4214a119d0203c940149812b1d6ec5ee2464
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:f0fd023e0340c0ecc581744e9ced37b69827a7e33ed621b271968f2d69eb9779
+          parser/moves: sha256:15a1aef69bfb4c56021be8390c16db152e57b38bae591992c502b11c3d572974
+          tagger/cfg: sha256:6757c37aeac0eeb83c61a6e0269f37691427d35d878320bc8efb515e6c56434f
+          tagger/model: sha256:ac4bb50e0cda5468d5c7a69923351a5b295265901548b53bd20e7c41940c639f
+          tokenizer: sha256:de9ff2caf5338582c90987fe9e6c5f06855639e7565433030950092240636a1c
+          transformer/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          transformer/model: sha256:fb54db94a7c93de25cb62cfe409fbe5ee1b785341b158550a00b8248210443d9
+          vocab/key2row: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          vocab/lookups.bin: sha256:15c33cca0a6b138fa982c8c2fcffa7341c85e49add5c898fec405db6e16cd36c
+          vocab/strings.json: sha256:81b795eabda1e82e788e2e55c61e7ec1cff31578fb7b1558afb75ac74ce1e229
+          vocab/vectors: sha256:14772b683e726436d5948ad3fff2b43d036ef2ebbe3458aafed6004e05a40706
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 444890871
+        host_requirement:
+          accelerator: cpu
+        archive:
+          file: de_dep_news_trf-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:6da411d41d5b0465beb1725549039e05caf00fec9ae1dc41794c8f7555824905
+          size_bytes: 410449584
+          root: de_dep_news_trf/de_dep_news_trf-3.8.0
+  - model_id: asset-nlp-spacy-zh-core-web-trf-3.8.0
+    model_type: auxiliary
+    family: spacy
+    updated_at: 2026-10-03
+    capabilities: []
+    source_ids:
+      - spacy_models_zh_core_web_trf_3_8_0_release
+    install:
+      repo: explosion/spacy-models
+      revision: zh_core_web_trf-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: MIT
+      provenance: https://github.com/explosion/spacy-models/releases/tag/zh_core_web_trf-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-zh-core-web-trf.3.8.0
+        quant: F32
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - README.md
+          - accuracy.json
+          - attribute_ruler/patterns
+          - config.cfg
+          - meta.json
+          - ner/cfg
+          - ner/model
+          - ner/moves
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - tagger/cfg
+          - tagger/model
+          - tokenizer/cfg
+          - tokenizer/pkuseg_model/features.msgpack
+          - tokenizer/pkuseg_model/weights.npz
+          - tokenizer/pkuseg_processors
+          - transformer/cfg
+          - transformer/model
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:3933c176979b68bc6d0bcc902c7d6c130f1d127f476f17ba5cdba8d99cfd0012
+          LICENSES_SOURCES: sha256:1646b588c52127cbe316bf8eba3fd3e3d8c12ca150225d047b5a05ae75d6010c
+          README.md: sha256:809fe3091010f12569a6ff70cf7356ffda82be20c873a703ae1e5b53c92b0c7f
+          accuracy.json: sha256:1e0a41113c8d2f5bb7918d5803d73ce32614bc9f727b7ee90ff3e533b9817ec3
+          attribute_ruler/patterns: sha256:c129c90a51277a9c75593c6f57c1408bb1079c2f162f5dacb43082f2a65d5a1c
+          config.cfg: sha256:5443fc0518bcd3dbcf52e8c2fc21348e3e88ff99276d5e85e945cced174d6000
+          meta.json: sha256:9a14ffb715b283306920d5acc84d99ff9873192308cd24a710aeec001c36e04d
+          ner/cfg: sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+          ner/model: sha256:4872cfa6dead050eaae6cc5ae7e3030cc8e65468ad3e8449c1c6bae240567d6a
+          ner/moves: sha256:f4f4ce2ed489b99568996885249324be46ae4ed8327d6602fce70a2fd9328f47
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:6516e7662f181ac47d308f86d3dc33012eab59d6ded1764ebff96e36da642d11
+          parser/moves: sha256:5c66449a401ac0e82c64410d1dcde95a8d355fee94369afe38d887be695d1c26
+          tagger/cfg: sha256:6b18cdbcdf444e3eb20d3476ec17626288a1184ce0367b6d19f8c8c2ad3dcb9e
+          tagger/model: sha256:81013ea00775e0c76d3afbc9238122cbf6199c8e776d80b5515c40a42097a5e0
+          tokenizer/cfg: sha256:e292e55366dc1320ae9a3d78b60836928e04cb08ff3cf8a62cc7b016986e8814
+          tokenizer/pkuseg_model/features.msgpack: sha256:fd4322482a7018b9bce9216173ae9d2848efe6d310b468bbb4383fb55c874a18
+          tokenizer/pkuseg_model/weights.npz: sha256:5ada075eb25a854f71d6e6fa4e7d55e7be0ae049255b1f8f19d05c13b1b68c9e
+          tokenizer/pkuseg_processors: sha256:cdc3129ffe89371aeaf4abacde2b4f00f5e0ff3cae022e937b14c1ed2b54879e
+          transformer/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          transformer/model: sha256:45b13834ce8ffb947698ef5532e91417d9561789e21ad5db4d507003e6824feb
+          vocab/key2row: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          vocab/lookups.bin: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          vocab/strings.json: sha256:294990baaab33a255307e97829ac7de76d9f2f8a364fad0425007c11fa89c258
+          vocab/vectors: sha256:14772b683e726436d5948ad3fff2b43d036ef2ebbe3458aafed6004e05a40706
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 473732213
+        host_requirement:
+          accelerator: cpu
+        archive:
+          file: zh_core_web_trf-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:5c177a1df422ec114b2e83da8b8906cd44890ef27300e9014349dc6efc908c0a
+          size_bytes: 415134867
+          root: zh_core_web_trf/zh_core_web_trf-3.8.0

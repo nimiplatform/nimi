@@ -1602,8 +1602,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 100 {
-		t.Fatalf("all Loadout recipes = %d, want 100", len(all))
+	if len(all) != 102 {
+		t.Fatalf("all Loadout recipes = %d, want 102", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1617,6 +1617,13 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	if transformer == nil || len(transformer.GetSlots()) != 1 || transformer.GetSlots()[0].GetSlotId() != capabilitydriver.SpacyModelSlot ||
 		transformer.GetImplementation().GetDriverDialect() != capabilitydriver.SpacyTrfDriverDialect {
 		t.Fatalf("English transformer annotation must retain its own recipe and model slot: %+v", transformer)
+	}
+	for _, id := range []string{capabilitydriver.SpacyTrfGermanRecipeID, capabilitydriver.SpacyTrfChineseRecipeID} {
+		recipe := byID[id]
+		if recipe == nil || recipe.GetImplementation().GetDriverDialect() != capabilitydriver.SpacyTrfDriverDialect || len(recipe.GetSlots()) != 1 ||
+			recipe.GetApplicability() == runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED {
+			t.Fatalf("unmeasured transformer projected a supported recipe: %+v", recipe)
+		}
 	}
 	qwen := byID[capabilitydriver.LlamaQwen35RecipeID]
 	if qwen == nil || len(qwen.GetSlots()) != 1 || qwen.GetSlots()[0].GetSlotId() != capabilitydriver.MainGGUFRequirementID ||

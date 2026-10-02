@@ -307,3 +307,11 @@ sources:
     url: https://github.com/explosion/spacy-models/releases/tag/ja_core_news_md-3.8.0
     retrieved_at: 2026-09-24
     note: Official spaCy ja_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its ja_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Japanese analysis ModelAsset. Upstream license CC BY-SA 4.0. Its 2 GiB min_ram_bytes covers the 1048 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+  - source_id: spacy_models_de_dep_news_trf_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/de_dep_news_trf-3.8.0
+    retrieved_at: 2026-10-03
+    note: Official MIT spaCy de_dep_news_trf 3.8.0 release; its 410449584-byte wheel SHA-256 is 6da411d41d5b0465beb1725549039e05caf00fec9ae1dc41794c8f7555824905. The package RECORD declares the exact data-directory files and hashes, including LICENSE and LICENSES_SOURCES. Runtime acquisition verifies the whole archive and each extracted file. Uses spaCy 3.8 and the pinned Windows CPU curated-transformer profile; RAM capacity and actual App use remain unverified.
+  - source_id: spacy_models_zh_core_web_trf_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/zh_core_web_trf-3.8.0
+    retrieved_at: 2026-10-03
+    note: Official MIT spaCy zh_core_web_trf 3.8.0 release; its 415134867-byte wheel SHA-256 is 5c177a1df422ec114b2e83da8b8906cd44890ef27300e9014349dc6efc908c0a. The package RECORD declares the exact data-directory files and hashes, including LICENSE and LICENSES_SOURCES. Runtime acquisition verifies the whole archive and each extracted file. Uses spaCy 3.8 and the pinned Windows CPU curated-transformer profile; RAM capacity and actual App use remain unverified.

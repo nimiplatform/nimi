@@ -904,6 +904,42 @@ loadout_recipes:
         model_contract:
           format: safetensors
           tensor_contract: qwen-image-vae-3d
+  - recipe_id: spacy-trf-de
+    revision: "1"
+    title: German transformer language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/curated-trf/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: German transformer language analysis model
+        recommended_variant_ids:
+          - local.nlp.spacy-de-dep-news-trf.3.8.0
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
+  - recipe_id: spacy-trf-zh
+    revision: "1"
+    title: Chinese transformer language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/curated-trf/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: Chinese transformer language analysis model
+        recommended_variant_ids:
+          - local.nlp.spacy-zh-core-web-trf.3.8.0
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
 
 # NOTE: local workflow objects below are not a generic local workflow green
 # state. They express only the first admitted family-scoped slice:

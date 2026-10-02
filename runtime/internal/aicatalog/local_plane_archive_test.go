@@ -26,8 +26,8 @@ func TestBuiltInSpacyOffersArePinnedReleaseArchives(t *testing.T) {
 			}
 		}
 	}
-	if seen != 9 {
-		t.Fatalf("spaCy release archive variants = %d, want 9", seen)
+	if seen != 11 {
+		t.Fatalf("spaCy release archive variants = %d, want 11", seen)
 	}
 }
 

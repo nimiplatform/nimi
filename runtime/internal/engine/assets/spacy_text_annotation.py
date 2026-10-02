@@ -27,6 +27,8 @@ MODEL_CONFIGS: dict[str, tuple[str, str]] = {
 
 TRANSFORMER_MODEL_CONFIGS: dict[str, tuple[str, str]] = {
     'en': ('core_web_trf', 'ec6d73663a9a137377402267eaff233e24aa06ed5079af80caf01566e56e858e'),  # pragma: allowlist secret - pinned official model configuration digest
+    'de': ('dep_news_trf', 'f32a73529de2ce52c167e4b12479a904c4559dd03942e1359623a0de5eeb097f'),  # pragma: allowlist secret - pinned official 3.8.0 model configuration digest
+    'zh': ('core_web_trf', '5443fc0518bcd3dbcf52e8c2fc21348e3e88ff99276d5e85e945cced174d6000'),  # pragma: allowlist secret - pinned official 3.8.0 model configuration digest
 }
 
 

@@ -132,6 +132,19 @@ func TestRankVariantsForHostUsesApplicabilityThenCanonicalOrdinal(t *testing.T) 
 	}
 }
 
+func TestCuratedTransformerCapacityStaysUnknownBeforeModelMeasurement(t *testing.T) {
+	local := mustLoadLocal(t)
+	for _, variant := range []string{"local.nlp.spacy-de-dep-news-trf.3.8.0", "local.nlp.spacy-zh-core-web-trf.3.8.0"} {
+		ranked := local.RankVariantsForHost([]string{variant}, cpuHost(64))
+		if len(ranked) != 1 || ranked[0].Applicability != LocalVariantApplicabilityUnknown {
+			t.Fatalf("unmeasured transformer became supported: %+v", ranked)
+		}
+		if selected, ok := local.RecommendVariantForHost([]string{variant}, cpuHost(64)); ok || selected != "" {
+			t.Fatalf("unmeasured transformer auto-selected %q", selected)
+		}
+	}
+}
+
 func TestImageOfferWithoutMeasuredMemoryRemainsUnknown(t *testing.T) {
 	local := mustLoadLocal(t)
 	var id string

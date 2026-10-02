@@ -19,6 +19,25 @@ class AnnotationBoundaryTests(unittest.TestCase):
             AnnotationWorker().run("/unavailable", "content", "xx", ["text"])
         self.assertEqual(raised.exception.reason, "AI_INPUT_INVALID")
 
+    def test_curated_transformer_group_admits_only_its_three_exact_languages(self):
+        for language in ("en", "de", "zh"):
+            validate_input(language, ["", "😀"], "curated-trf")
+        for language in ("fr", "ja", "es", "auto"):
+            with self.assertRaises(AnnotationError) as raised:
+                AnnotationWorker("curated-trf").run("/unavailable", "content", language, ["text"])
+            self.assertEqual(raised.exception.reason, "AI_INPUT_INVALID")
+
+    def test_same_configuration_does_not_admit_an_old_transformer_version(self):
+        fixtures = Path(__file__).resolve().parents[2] / "capabilitydriver" / "testdata" / "spacy-curated-trf"
+        for language, name in (("de", "dep_news_trf"), ("zh", "core_web_trf")):
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                (root / "config.cfg").write_bytes((fixtures / language / "config.cfg").read_bytes())
+                (root / "meta.json").write_text('{"lang":"' + language + '","name":"' + name + '","version":"3.7.2"}', encoding="utf-8")
+                with self.assertRaises(AnnotationError) as raised:
+                    load_pipeline(root, language, "curated-trf")
+                self.assertEqual(raised.exception.reason, "AI_LOCAL_EXECUTION_LOAD_FAILED")
+
     def test_changed_configuration_is_rejected_before_spacy_import(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
