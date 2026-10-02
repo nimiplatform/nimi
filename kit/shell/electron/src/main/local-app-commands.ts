@@ -24,6 +24,7 @@ const AIC_COMMANDS = {
   artifactRead: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactRead'],
   artifactUpload: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactUpload'],
   voiceAssetsList: NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsList'],
+  voiceAssetsDelete: NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsDelete'],
 } as const;
 
 const MAX_IDENTIFIER_LENGTH = 512;
@@ -95,6 +96,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [AIC_COMMANDS.artifactRead, 'artifactRead'],
   [AIC_COMMANDS.artifactUpload, 'artifactUpload'],
   [AIC_COMMANDS.voiceAssetsList, 'voiceAssetsList'],
+  [AIC_COMMANDS.voiceAssetsDelete, 'voiceAssetsDelete'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'], 'realmWorldCoreList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'], 'realmWorldCoreCreate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCreationEligibilityGet'], 'realmWorldCreationEligibilityGet'],
@@ -535,6 +537,7 @@ function validatePayload(
         throw invalidPayload(command, 'artifact upload is invalid');
       }
     }
+    case 'voiceAssetsDelete': return identifiers(payload, ['voiceAssetId'], command);
     case 'voiceAssetsList': {
       assertExactKeys(payload, ['pageSize', 'pageToken'], command);
       const pageSize = nonNegativeInteger(payload.pageSize, command, 'pageSize');

@@ -20,6 +20,7 @@ import {
 
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { getLabLocalAppClient } from '../shell/local-app-runtime-platform.js';
+import { listLabVoiceAssets } from '../ai-studio-core/voice-assets.js';
 import { loadLabAIConfigSummary } from '../lab/lab-ai-config.js';
 import { runLabConversationJourney } from '../lab/local-app-conversation-journey.js';
 import { saveLabExport } from '../lab/lab-export.js';
@@ -114,13 +115,9 @@ export function createLabProductionBindings(
     sdk: Object.freeze({
       localAppClient: labLocalAppClient,
       runCapability: (input: Parameters<LabRendererSdkPort['runCapability']>[0]) => input.capabilityId === 'world.generate' ? runWorldTour(input) : runLabCapability(input),
+      deleteLocalAppVoiceAsset: (voiceAssetId: string) => labLocalAppClient.ai.voiceAssets.delete(voiceAssetId),
       async listLocalAppVoiceAssets() {
-        const result = await labLocalAppClient.ai.voiceAssets.list({ pageSize: 100, pageToken: '' });
-        return result.assets.map((asset) => ({
-          voiceAssetId: asset.voiceAssetId,
-          creationSource: asset.creationSource,
-          status: asset.status,
-        }));
+        return listLabVoiceAssets(labLocalAppClient.ai.voiceAssets);
       },
       uploadLocalAppArtifact: (input: Parameters<LabRendererSdkPort['uploadLocalAppArtifact']>[0]) => labLocalAppClient.ai.artifacts.upload(input),
       aiConfig: labLocalAppClient.aiConfig,

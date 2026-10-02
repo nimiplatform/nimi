@@ -228,7 +228,7 @@
     "useAsDraft": "用作草稿",
     "intentLabel": "意图",
     "embeddingSuccess": "向量嵌入生成成功。",
-    "voiceAssetSuccess": "新语音已创建，可以在语音合成中使用。",
+    "voiceAssetSuccess": "这次运行创建了一个音色。",
     "mediaSuccess": "媒体生成成功。",
     "mediaPreviewMetadataOnly": "媒体已生成，但 Runtime 仅返回元数据，没有可用的预览字节。",
     "mediaPreviewUnsupported": "媒体已生成，但此产物类型无法在此处预览。",
@@ -244,7 +244,14 @@
     "runStatusUnavailable": "SDK 不可用",
     "runStatusFailed": "失败",
     "runStatusCanceled": "已取消",
-    "runStatusTimedOut": "已超时"
+    "runStatusTimedOut": "已超时",
+    "voiceDelete": "删除音色",
+    "voiceDeleteTitle": "删除此音色？",
+    "voiceDeleteDescription": "删除后无法再用此音色合成语音。已保存的音频和运行记录会保留。",
+    "voiceDeleteCancel": "取消",
+    "voiceDeleted": "此音色已删除。",
+    "voiceUnavailable": "此音色当前不可用。",
+    "voiceDeleteFailed": "未能删除此音色，尚未将其标记为已删除。请重试。"
   },
   "StudioModelConfig": {
     "drawerTitle": "App AI 配置",

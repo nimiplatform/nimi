@@ -16,6 +16,45 @@ func localAppVoiceAssetsContext() context.Context {
 	return localAppScenarioDecisionContext(accountservice.LocalAppOperationVoiceAssetsList, localappop.AppOperationIDVoiceAssetsList)
 }
 
+func TestDeleteLocalAppVoiceAssetRequiresExactOwnerAndConfirmation(t *testing.T) {
+	svc := newTestService(nil)
+	ctx := localAppScenarioDecisionContext(accountservice.LocalAppOperationVoiceAssetsDelete, localappop.AppOperationIDVoiceAssetsDelete)
+	request := &runtimev1.DeleteLocalAppVoiceAssetRequest{VoiceAssetId: "owned"}
+	for _, rejected := range []context.Context{context.Background(), localAppVoiceAssetsContext()} {
+		_, err := svc.DeleteLocalAppVoiceAsset(rejected, request)
+		assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	}
+	for _, row := range []struct{ id, app, account string }{
+		{"owned", "nimi.realm-persona-studio", "account-1"},
+		{"other-app", "other", "account-1"},
+		{"other-account", "nimi.realm-persona-studio", "account-2"},
+	} {
+		svc.voiceAssets.assets[row.id] = &runtimev1.VoiceAsset{VoiceAssetId: row.id, AppId: row.app, SubjectUserId: row.account,
+			Provider: "local", ProviderVoiceRef: "private-voice", Persistence: runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL, Status: runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE}
+	}
+	for _, id := range []string{"missing", "other-app", "other-account"} {
+		_, err := svc.DeleteLocalAppVoiceAsset(ctx, &runtimev1.DeleteLocalAppVoiceAssetRequest{VoiceAssetId: id})
+		assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+	}
+	for _, id := range []string{"", " owned", "owned\x01"} {
+		_, err := svc.DeleteLocalAppVoiceAsset(ctx, &runtimev1.DeleteLocalAppVoiceAssetRequest{VoiceAssetId: id})
+		assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	response, err := svc.DeleteLocalAppVoiceAsset(ctx, request)
+	if err != nil || !response.GetDeleted() || svc.voiceAssets.assets["owned"].GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
+		t.Fatalf("owner deletion not confirmed: %v %v", response, err)
+	}
+	// A broken captured cloud binding cannot become a local success.
+	cloud := cloneVoiceAsset(svc.voiceAssets.assets["owned"])
+	cloud.VoiceAssetId, cloud.Provider = "cloud-failure", "dashscope"
+	cloud.Persistence, cloud.Status = runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT, runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE
+	svc.voiceAssets.assets[cloud.VoiceAssetId] = cloud
+	response, err = svc.DeleteLocalAppVoiceAsset(ctx, &runtimev1.DeleteLocalAppVoiceAssetRequest{VoiceAssetId: cloud.VoiceAssetId})
+	if err == nil || response.GetDeleted() || svc.voiceAssets.assets[cloud.VoiceAssetId].GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
+		t.Fatalf("failed cloud deletion was acknowledged: %v %v", response, err)
+	}
+}
+
 func TestListLocalAppVoiceAssetsRequiresExactDecision(t *testing.T) {
 	svc := &Service{}
 	_, err := svc.ListLocalAppVoiceAssets(context.Background(), &runtimev1.ListLocalAppVoiceAssetsRequest{})

@@ -1566,6 +1566,14 @@ message ListLocalAppVoiceAssetsResponse {
   string next_page_token = 2;
 }
 
+message DeleteLocalAppVoiceAssetRequest {
+  string voice_asset_id = 1;
+}
+
+message DeleteLocalAppVoiceAssetResponse {
+  bool deleted = 1;
+}
+
 message StreamScenarioRequest {
   ScenarioRequestHead head = 1;
   ScenarioType scenario_type = 2;
@@ -1929,6 +1937,7 @@ service RuntimeAiService {
   rpc ReadLocalAppArtifact(ReadLocalAppArtifactRequest) returns (ReadLocalAppArtifactResponse);
   rpc UploadLocalAppArtifact(UploadLocalAppArtifactRequest) returns (UploadLocalAppArtifactResponse);
   rpc ListLocalAppVoiceAssets(ListLocalAppVoiceAssetsRequest) returns (ListLocalAppVoiceAssetsResponse);
+  rpc DeleteLocalAppVoiceAsset(DeleteLocalAppVoiceAssetRequest) returns (DeleteLocalAppVoiceAssetResponse);
   rpc ExecuteScenario(ExecuteScenarioRequest) returns (ExecuteScenarioResponse);
   rpc StreamScenario(StreamScenarioRequest) returns (stream StreamScenarioEvent);
   rpc SubmitScenarioJob(SubmitScenarioJobRequest) returns (SubmitScenarioJobResponse);

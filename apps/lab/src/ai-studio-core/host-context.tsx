@@ -42,6 +42,7 @@ export type AIStudioHostPort = {
   };
   readonly sdk: {
     readonly runCapability: (input: StudioCapabilityRunInput) => Promise<StudioCapabilityRunResult>;
+    readonly deleteLocalAppVoiceAsset: (voiceAssetId: string) => Promise<{ readonly deleted: true }>;
     readonly listLocalAppVoiceAssets: () => Promise<readonly {
       readonly voiceAssetId: string;
       readonly creationSource: string;

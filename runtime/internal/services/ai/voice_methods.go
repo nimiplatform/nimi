@@ -406,7 +406,7 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 		!connectorRecord.HasCredential || strings.TrimSpace(connectorRecord.Provider) != driverTarget.Provider() {
 		return fail(fmt.Errorf("voice asset connector provider no longer matches its private target"))
 	}
-	mapped, err := driver.MapVoiceDeleteRequest(driverTarget, providerVoiceRef)
+	mapped, err := driver.MapVoiceDeleteRequest(driverTarget, providerVoiceRef, asset.GetMetadata().GetFields()["workflow_model_id"].GetStringValue())
 	if err != nil {
 		return fail(cloudMediaDriverError(privateIntent.CapabilityContract, err))
 	}

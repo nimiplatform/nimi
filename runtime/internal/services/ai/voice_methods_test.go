@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -158,8 +159,27 @@ func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, prov
 }
 
 func TestVoiceAssetMethodsLifecycle(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	var deleteCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+			return
+		}
+		input, _ := body["input"].(map[string]any)
+		if input["action"] == "delete" {
+			if body["model"] != "qwen-voice-enrollment" || input["voice"] != "voice-methods-lifecycle" {
+				t.Errorf("delete lost captured workflow or voice: %+v", body)
+			}
+			if deleteCalls.Add(1) == 1 {
+				w.WriteHeader(http.StatusBadGateway)
+				_, _ = io.WriteString(w, `{"code":"InternalError","message":"temporary failure"}`)
+				return
+			}
+			_, _ = io.WriteString(w, `{"request_id":"delete-lifecycle","output":{"voice":"voice-methods-lifecycle"}}`)
+			return
+		}
 		_, _ = io.WriteString(w, `{"voice_id":"voice-methods-lifecycle","job_id":"job-methods-lifecycle"}`)
 	}))
 	defer server.Close()
@@ -240,6 +260,14 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 		t.Fatalf("expected at least one voice asset")
 	}
 
+	if _, err := svc.DeleteVoiceAsset(ctx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID}); err == nil {
+		t.Fatal("provider delete failure became local success")
+	}
+	failedAsset, _ := svc.voiceAssets.getAsset(assetID)
+	if failedAsset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
+		!failedAsset.GetMetadata().GetFields()["provider_delete_reconciliation_pending"].GetBoolValue() {
+		t.Fatalf("failed provider delete lost active asset or retry state: %+v", failedAsset)
+	}
 	deleteResp, err := svc.DeleteVoiceAsset(ctx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("DeleteVoiceAsset: %v", err)
@@ -254,6 +282,10 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	}
 	if getAfterDelete.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 		t.Fatalf("asset status mismatch after delete: got=%v", getAfterDelete.GetAsset().GetStatus())
+	}
+	if deleteCalls.Load() != 2 || !getAfterDelete.GetAsset().GetMetadata().GetFields()["provider_delete_succeeded"].GetBoolValue() ||
+		getAfterDelete.GetAsset().GetMetadata().GetFields()["provider_delete_reconciliation_pending"].GetBoolValue() {
+		t.Fatal("provider retry did not complete before local deletion")
 	}
 	terminalAfterDelete, err := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
 	if err != nil {

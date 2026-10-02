@@ -126,7 +126,7 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
       read: (artifactId) => request('artifactRead', { artifactId }),
       upload: (input) => request('artifactUpload', input),
     },
-    voiceAssets: { list: (input) => request('voiceAssetsList', { pageSize: input?.pageSize ?? 0, pageToken: input?.pageToken ?? '' }) },
+    voiceAssets: { delete: (voiceAssetId) => request('voiceAssetsDelete', { voiceAssetId }), list: (input) => request('voiceAssetsList', { pageSize: input?.pageSize ?? 0, pageToken: input?.pageToken ?? '' }) },
   });
   const assets = createNimiLocalAppAssetsClient({
     stat: (relativePath) => request('assetStat', { relativePath }),

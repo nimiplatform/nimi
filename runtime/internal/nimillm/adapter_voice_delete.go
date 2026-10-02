@@ -28,6 +28,12 @@ func DeleteProviderVoiceAdapter(ctx context.Context, adapter string, provider st
 		return deleteElevenLabsVoice(ctx, normalizedVoiceRef, cfg)
 	case "fish_audio_voice_delete_adapter":
 		return deleteFishAudioVoiceModel(ctx, normalizedVoiceRef, cfg)
+	case "dashscope_voice_delete_adapter":
+		return deleteDashScopeVoice(ctx, "voice-enrollment", normalizedVoiceRef, cfg)
+	case "dashscope_qwen_clone_voice_delete_adapter":
+		return deleteDashScopeVoice(ctx, "qwen-voice-enrollment", normalizedVoiceRef, cfg)
+	case "dashscope_qwen_design_voice_delete_adapter":
+		return deleteDashScopeVoice(ctx, "qwen-voice-design", normalizedVoiceRef, cfg)
 	default:
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
@@ -39,9 +45,37 @@ func voiceDeleteProviderForAdapter(adapter string) string {
 		return "elevenlabs"
 	case "fish_audio_voice_delete_adapter":
 		return "fish_audio"
+	case "dashscope_voice_delete_adapter", "dashscope_qwen_clone_voice_delete_adapter", "dashscope_qwen_design_voice_delete_adapter":
+		return "dashscope"
 	default:
 		return ""
 	}
+}
+
+// @nimi-authority: rule.nimi.runtime.model-catalog.r029
+func deleteDashScopeVoice(ctx context.Context, workflowModel string, voice string, cfg MediaAdapterConfig) error {
+	baseURL := resolveVoiceWorkflowBaseURL("dashscope", cfg)
+	if baseURL == "" {
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	input := map[string]any{"action": "delete", "voice": voice}
+	if workflowModel == "voice-enrollment" {
+		input = map[string]any{"action": "delete_voice", "voice_id": voice}
+	}
+	payload := map[string]any{"model": workflowModel, "input": input}
+	var response map[string]any
+	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, "/api/v1/services/audio/tts/customization"), cfg.APIKey, payload, &response, voiceWorkflowHeaders("dashscope", cfg)); err != nil {
+		return err
+	}
+	output, ok := response["output"].(map[string]any)
+	requestID, _ := response["request_id"].(string)
+	if !ok || strings.TrimSpace(requestID) == "" || response["code"] != nil {
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if workflowModel != "voice-enrollment" && output["voice"] != voice {
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	return nil
 }
 
 func deleteElevenLabsVoice(ctx context.Context, providerVoiceRef string, cfg MediaAdapterConfig) error {

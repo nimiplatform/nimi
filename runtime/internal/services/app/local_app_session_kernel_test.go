@@ -446,6 +446,7 @@ func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 		localappop.IngressArtifactUpload:               {operation: accountservice.LocalAppOperationArtifactUpload, capability: localappop.AppOperationIDArtifactUpload},
 		localappop.IngressArtifactAdoptToStorage:       {operation: accountservice.LocalAppOperationArtifactAdoptToStorage, capability: "runtime.consume"},
 		localappop.IngressVoiceAssetsList:              {operation: accountservice.LocalAppOperationVoiceAssetsList, capability: localappop.AppOperationIDVoiceAssetsList},
+		localappop.IngressVoiceAssetsDelete:            {operation: accountservice.LocalAppOperationVoiceAssetsDelete, capability: localappop.AppOperationIDVoiceAssetsDelete},
 		localappop.IngressAIRealtimeOpen:               {operation: accountservice.LocalAppOperationAIRealtimeOpen, capability: "runtime.consume"},
 		localappop.IngressAIRealtimeInputAppend:        {operation: accountservice.LocalAppOperationAIRealtimeInputAppend, capability: "runtime.consume"},
 		localappop.IngressAIRealtimeOwnerControlSubmit: {operation: accountservice.LocalAppOperationAIRealtimeOwnerControlSubmit, capability: "runtime.consume"},
@@ -489,6 +490,7 @@ func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 		localappop.IngressAIRealtimeClose,
 		localappop.IngressArtifactAdoptToStorage,
 		localappop.IngressVoiceAssetsList,
+		localappop.IngressVoiceAssetsDelete,
 	} {
 		assertLocalAppReason(
 			t,

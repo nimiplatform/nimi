@@ -29,7 +29,28 @@ import {
   type NimiLocalAppAgentHandle,
   type NimiLocalAppStandardShell,
 } from './local-app-runtime-platform.js';
-import { createNimiLocalAppVoiceAssetsRuntimeClient } from './local-app-runtime-platform-ai.js';
+import { createNimiLocalAppVoiceAssetsClient, createNimiLocalAppVoiceAssetsRuntimeClient } from './local-app-runtime-platform-ai.js';
+
+test('voice deletion validates the id and requires an exact confirmed owner result', async () => {
+  const calls: string[] = [];
+  let response: unknown = { deleted: true };
+  const client = createNimiLocalAppVoiceAssetsClient({
+    list: async () => ({ assets: [], nextPageToken: '' }),
+    delete: async (id) => { calls.push(id); return response; },
+  });
+  await assert.rejects(client.delete(' voice-id'));
+  await assert.rejects(client.delete('x'.repeat(129)));
+  await assert.rejects(client.delete({ voiceAssetId: 'voice-id', provider: 'private' } as never));
+  assert.equal(calls.length, 0);
+  assert.deepEqual(await client.delete('voice-id'), { deleted: true });
+  for (const invalid of [{ deleted: false }, {}, { deleted: true, provider: 'private' }]) {
+    response = invalid;
+    await assert.rejects(client.delete('voice-id'));
+  }
+  const failure = new Error('provider rejected deletion');
+  const failed = createNimiLocalAppVoiceAssetsClient({ list: async () => ({}), delete: async () => { throw failure; } });
+  await assert.rejects(failed.delete('voice-id'), (error) => error === failure);
+});
 
 test('music action identity survives the shell carrier and lookup never submits', async () => {
   const calls: unknown[] = [];
@@ -120,7 +141,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         read: touched('ai.artifacts.read'),
         upload: touched('ai.artifacts.upload'),
       },
-      voiceAssets: { list: touched('ai.voiceAssets.list') },
+      voiceAssets: { list: touched('ai.voiceAssets.list'), delete: touched('ai.voiceAssets.delete') },
       videoSessions: { open: touched('ai.videoSessions.open'), submitFrame: touched('ai.videoSessions.submitFrame'), read: touched('ai.videoSessions.read'), close: touched('ai.videoSessions.close') },
       realtime: {
         open: touched('ai.realtime.open'),
@@ -280,6 +301,7 @@ test('canonical LocalApp VoiceAssets client projects bounded active asset facts'
       ai: {
         ...base.ai,
         voiceAssets: {
+          delete: async () => ({ deleted: true }),
           async list(input) {
             assert.deepEqual(input, { pageSize: 100, pageToken: '7' });
             return {
@@ -307,6 +329,7 @@ test('Runtime VoiceAssets adapter plain-projects generated Timestamp messages', 
   const createdAt = Timestamp.create({ seconds: '1787515183', nanos: 439_558_200 });
   assert.notEqual(Object.getPrototypeOf(createdAt), Object.prototype);
   const client = createNimiLocalAppVoiceAssetsRuntimeClient({
+    deleteLocalAppVoiceAsset: async () => ({ deleted: true }),
     async listLocalAppVoiceAssets() {
       return {
         assets: [{

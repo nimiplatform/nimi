@@ -12,6 +12,31 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r109
+func (s *Service) DeleteLocalAppVoiceAsset(ctx context.Context, req *runtimev1.DeleteLocalAppVoiceAssetRequest) (*runtimev1.DeleteLocalAppVoiceAssetResponse, error) {
+	decision, err := localAppScenarioDecision(ctx, accountservice.LocalAppOperationVoiceAssetsDelete, localappop.AppOperationIDVoiceAssetsDelete)
+	if err != nil {
+		return nil, err
+	}
+	id := req.GetVoiceAssetId()
+	if len(id) == 0 || len(id) > 128 || strings.TrimSpace(id) != id || strings.ContainsFunc(id, func(r rune) bool { return r < 32 || r == 127 }) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	ownerCtx := localAppOwnerCallContext(ctx, decision)
+	asset, found := s.voiceAssets.getAsset(id)
+	if !found || authorizeVoiceAssetOwner(ownerCtx, asset) != nil {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+	}
+	result, err := s.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: id})
+	if err != nil {
+		return nil, err
+	}
+	if !result.GetAck().GetOk() {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	return &runtimev1.DeleteLocalAppVoiceAssetResponse{Deleted: true}, nil
+}
+
 // ListLocalAppVoiceAssets returns the trimmed voice asset catalog owned by the
 // calling App session owner. The App supplies page controls only; the owner
 // scope (App id and account) is derived from the protected session, and the

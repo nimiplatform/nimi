@@ -246,6 +246,7 @@ const (
 	RuntimeAiService_ReadLocalAppArtifact_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact"
 	RuntimeAiService_UploadLocalAppArtifact_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact"
 	RuntimeAiService_ListLocalAppVoiceAssets_FullMethodName            = "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets"
+	RuntimeAiService_DeleteLocalAppVoiceAsset_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset"
 	RuntimeAiService_ExecuteScenario_FullMethodName                    = "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario"
 	RuntimeAiService_StreamScenario_FullMethodName                     = "/nimi.runtime.v1.RuntimeAiService/StreamScenario"
 	RuntimeAiService_SubmitScenarioJob_FullMethodName                  = "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob"
@@ -279,6 +280,7 @@ type RuntimeAiServiceClient interface {
 	ReadLocalAppArtifact(ctx context.Context, in *ReadLocalAppArtifactRequest, opts ...grpc.CallOption) (*ReadLocalAppArtifactResponse, error)
 	UploadLocalAppArtifact(ctx context.Context, in *UploadLocalAppArtifactRequest, opts ...grpc.CallOption) (*UploadLocalAppArtifactResponse, error)
 	ListLocalAppVoiceAssets(ctx context.Context, in *ListLocalAppVoiceAssetsRequest, opts ...grpc.CallOption) (*ListLocalAppVoiceAssetsResponse, error)
+	DeleteLocalAppVoiceAsset(ctx context.Context, in *DeleteLocalAppVoiceAssetRequest, opts ...grpc.CallOption) (*DeleteLocalAppVoiceAssetResponse, error)
 	ExecuteScenario(ctx context.Context, in *ExecuteScenarioRequest, opts ...grpc.CallOption) (*ExecuteScenarioResponse, error)
 	StreamScenario(ctx context.Context, in *StreamScenarioRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamScenarioEvent], error)
 	SubmitScenarioJob(ctx context.Context, in *SubmitScenarioJobRequest, opts ...grpc.CallOption) (*SubmitScenarioJobResponse, error)
@@ -446,6 +448,16 @@ func (c *runtimeAiServiceClient) ListLocalAppVoiceAssets(ctx context.Context, in
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListLocalAppVoiceAssetsResponse)
 	err := c.cc.Invoke(ctx, RuntimeAiService_ListLocalAppVoiceAssets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) DeleteLocalAppVoiceAsset(ctx context.Context, in *DeleteLocalAppVoiceAssetRequest, opts ...grpc.CallOption) (*DeleteLocalAppVoiceAssetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteLocalAppVoiceAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_DeleteLocalAppVoiceAsset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -630,6 +642,7 @@ type RuntimeAiServiceServer interface {
 	ReadLocalAppArtifact(context.Context, *ReadLocalAppArtifactRequest) (*ReadLocalAppArtifactResponse, error)
 	UploadLocalAppArtifact(context.Context, *UploadLocalAppArtifactRequest) (*UploadLocalAppArtifactResponse, error)
 	ListLocalAppVoiceAssets(context.Context, *ListLocalAppVoiceAssetsRequest) (*ListLocalAppVoiceAssetsResponse, error)
+	DeleteLocalAppVoiceAsset(context.Context, *DeleteLocalAppVoiceAssetRequest) (*DeleteLocalAppVoiceAssetResponse, error)
 	ExecuteScenario(context.Context, *ExecuteScenarioRequest) (*ExecuteScenarioResponse, error)
 	StreamScenario(*StreamScenarioRequest, grpc.ServerStreamingServer[StreamScenarioEvent]) error
 	SubmitScenarioJob(context.Context, *SubmitScenarioJobRequest) (*SubmitScenarioJobResponse, error)
@@ -692,6 +705,9 @@ func (UnimplementedRuntimeAiServiceServer) UploadLocalAppArtifact(context.Contex
 }
 func (UnimplementedRuntimeAiServiceServer) ListLocalAppVoiceAssets(context.Context, *ListLocalAppVoiceAssetsRequest) (*ListLocalAppVoiceAssetsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalAppVoiceAssets not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) DeleteLocalAppVoiceAsset(context.Context, *DeleteLocalAppVoiceAssetRequest) (*DeleteLocalAppVoiceAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteLocalAppVoiceAsset not implemented")
 }
 func (UnimplementedRuntimeAiServiceServer) ExecuteScenario(context.Context, *ExecuteScenarioRequest) (*ExecuteScenarioResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExecuteScenario not implemented")
@@ -975,6 +991,24 @@ func _RuntimeAiService_ListLocalAppVoiceAssets_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAiService_DeleteLocalAppVoiceAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteLocalAppVoiceAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).DeleteLocalAppVoiceAsset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_DeleteLocalAppVoiceAsset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).DeleteLocalAppVoiceAsset(ctx, req.(*DeleteLocalAppVoiceAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAiService_ExecuteScenario_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ExecuteScenarioRequest)
 	if err := dec(in); err != nil {
@@ -1252,6 +1286,10 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListLocalAppVoiceAssets",
 			Handler:    _RuntimeAiService_ListLocalAppVoiceAssets_Handler,
+		},
+		{
+			MethodName: "DeleteLocalAppVoiceAsset",
+			Handler:    _RuntimeAiService_DeleteLocalAppVoiceAsset_Handler,
 		},
 		{
 			MethodName: "ExecuteScenario",

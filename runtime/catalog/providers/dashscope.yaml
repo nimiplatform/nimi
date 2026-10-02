@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-09-30-dashscope-retired-targets
+catalog_version: 2026-10-02-dashscope-voice-preview
 inventory_mode: static_source
 default_text_model: qwen3.7-plus
 models:
@@ -414,9 +414,9 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
-      retrieved_at: 2026-03-05
-      note: qwen tts voice design documentation
+      url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
+      retrieved_at: 2026-10-02
+      note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
     api_model_id: qwen3-tts-vd-2026-01-26
     features:
       - input.text
@@ -440,9 +440,9 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
-      retrieved_at: 2026-03-05
-      note: qwen tts voice design documentation
+      url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
+      retrieved_at: 2026-10-02
+      note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
     api_model_id: qwen3-tts-vd-2026-01-26
     features:
       - input.text
@@ -3786,9 +3786,9 @@ voices:
       - qwen3-tts-vd
       - qwen3-tts-vd-2026-01-26
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
-      retrieved_at: 2026-03-05
-      note: qwen tts voice design documentation
+      url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
+      retrieved_at: 2026-10-02
+      note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
   - voice_id: user-custom
     voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
     provider: dashscope
@@ -3900,7 +3900,7 @@ voice_workflow_models:
     output_persistence: provider_persistent
     request_options:
       instruction_text_mode: required
-      preview_text_mode: optional
+      preview_text_mode: required
       supports_language: true
       supports_preferred_name: true
     target_model_refs:
@@ -3908,9 +3908,9 @@ voice_workflow_models:
       - qwen3-tts-vd-2026-01-26
       - qwen3-tts-vd-realtime-2026-01-15
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
-      retrieved_at: 2026-03-05
-      note: qwen tts voice design documentation
+      url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
+      retrieved_at: 2026-10-02
+      note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
     langs:
       - zh
       - en

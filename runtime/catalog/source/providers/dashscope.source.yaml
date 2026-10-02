@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-09-30-dashscope-retired-targets
+catalog_version: 2026-10-02-dashscope-voice-preview
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -118,9 +118,9 @@ sources:
     retrieved_at: 2026-03-05
     note: qwen tts voice cloning documentation
   - source_id: dashscope_voice_design_doc
-    url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
-    retrieved_at: 2026-03-05
-    note: qwen tts voice design documentation
+    url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
+    retrieved_at: 2026-10-02
+    note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
   - source_id: dashscope_qwen_realtime_tts_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
     retrieved_at: 2026-04-18
@@ -1582,7 +1582,7 @@ voice_workflow_models:
     output_persistence: provider_persistent
     request_options:
       instruction_text_mode: required
-      preview_text_mode: optional
+      preview_text_mode: required
       supports_language: true
       supports_preferred_name: true
     target_model_refs:

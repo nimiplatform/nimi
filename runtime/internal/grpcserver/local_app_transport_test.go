@@ -556,6 +556,7 @@ func TestProtectedLocalAppScenarioConsumptionUnaryDispatchesAfterAdmission(t *te
 		{method: protectedReadLocalAppArtifactMethod, request: &runtimev1.ReadLocalAppArtifactRequest{}, ingress: localappop.IngressArtifactRead},
 		{method: protectedUploadLocalAppArtifactMethod, request: &runtimev1.UploadLocalAppArtifactRequest{}, ingress: localappop.IngressArtifactUpload},
 		{method: protectedListLocalAppVoiceAssetsMethod, request: &runtimev1.ListLocalAppVoiceAssetsRequest{}, ingress: localappop.IngressVoiceAssetsList},
+		{method: protectedDeleteLocalAppVoiceAssetMethod, request: &runtimev1.DeleteLocalAppVoiceAssetRequest{VoiceAssetId: "voice-owned"}, ingress: localappop.IngressVoiceAssetsDelete},
 	}
 	for _, test := range tests {
 		admission.calls = 0

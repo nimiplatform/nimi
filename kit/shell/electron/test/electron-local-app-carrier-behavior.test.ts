@@ -41,6 +41,7 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.artifactRead',
   'nimi.shell.localApp.artifactUpload',
   'nimi.shell.localApp.voiceAssetsList',
+  'nimi.shell.localApp.voiceAssetsDelete',
   'nimi.shell.localApp.agentReferenceList',
   'nimi.shell.localApp.agentWorkReferenceList',
   'nimi.shell.localApp.agentWorkStart',

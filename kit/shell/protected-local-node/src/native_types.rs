@@ -281,6 +281,11 @@ pub struct NativeScenarioVoiceAssetsInput {
 }
 
 #[napi(object)]
+pub struct NativeVoiceAssetDeleteInput {
+    pub voice_asset_id: String,
+}
+
+#[napi(object)]
 pub struct NativeScenarioStreamInput {
     pub stream_id: String,
 }

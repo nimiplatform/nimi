@@ -46,6 +46,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppArtifactRead',
   'localAppArtifactUpload',
   'localAppVoiceAssetsList',
+  'localAppVoiceAssetsDelete',
   'localAppRealmWorldCoreList',
   'localAppRealmWorldCoreCreate',
   'localAppRealmWorldCreationEligibilityGet',
@@ -429,6 +430,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppArtifactRead: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppArtifactUpload: (input: NimiElectronLocalAppArtifactUploadBindingInput) => Promise<NativeLocalAppOutcome>;
   readonly localAppVoiceAssetsList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppVoiceAssetsDelete: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCreationEligibilityGet: () => Promise<NativeLocalAppOutcome>;
@@ -573,6 +575,7 @@ export type NimiElectronLocalAppHost = {
   readonly artifactRead: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly artifactUpload: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly voiceAssetsList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly voiceAssetsDelete: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly realmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmWorldCreationEligibilityGet: () => Promise<NimiElectronLocalAppRecord>;
@@ -1097,6 +1100,12 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
         ...(prepared.audioPreparation ? { audioPreparation: prepared.audioPreparation } : {}) }),
       prepared,
     );
+  }
+
+  async voiceAssetsDelete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const value = await invoke(() => this.binding.localAppVoiceAssetsDelete(input));
+    if (!isPlainRecord(value) || !hasExactKeys(value, ['deleted']) || value.deleted !== true) throw untrustedRuntimeError();
+    return Object.freeze({ deleted: true });
   }
 
   voiceAssetsList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1705,6 +1714,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   artifactUpload(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().artifactUpload(input);
+  }
+
+  voiceAssetsDelete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().voiceAssetsDelete(input);
   }
 
   voiceAssetsList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {

@@ -1245,7 +1245,7 @@ test('Lab voice.create submits reference audio, waits for the Job, and verifies 
     preferredName: 'Nimi reference voice',
     text: '你好，欢迎来到 Nimi。',
   }]);
-  assert.deepEqual(calls.slice(1), [['subscribe', submitted.jobId], ['get', submitted.jobId], ['list', { pageSize: 100 }]]);
+  assert.deepEqual(calls.slice(1), [['subscribe', submitted.jobId], ['get', submitted.jobId], ['list', { pageSize: 100, pageToken: '' }]]);
   assert.deepEqual(result.output, {
     kind: 'voice-asset', jobId: completed.jobId, jobState: 'completed', voiceAssetId: asset.voiceAssetId,
     creationSource: source, assetStatus: 'active', voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
@@ -1304,7 +1304,7 @@ test('Lab voice.create submits a text description through the same canonical con
     }],
 	['subscribe', completed.jobId],
     ['get', completed.jobId],
-    ['list', { pageSize: 100 }],
+    ['list', { pageSize: 100, pageToken: '' }],
   ]);
   assert.equal(result.output.kind, 'voice-asset');
   assert.equal(result.output.voiceAssetId, asset.voiceAssetId);

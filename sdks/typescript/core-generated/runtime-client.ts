@@ -743,6 +743,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelScenarioJobResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset",
+    "service": "RuntimeAiService",
+    "method": "DeleteLocalAppVoiceAsset",
+    "kind": "unary",
+    "requestType": "DeleteLocalAppVoiceAssetRequest",
+    "responseType": "DeleteLocalAppVoiceAssetResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
     "service": "RuntimeAiService",
     "method": "DeleteVoiceAsset",

@@ -158,6 +158,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact
       - method_id: /nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact
       - method_id: /nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets
+      - method_id: /nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig
@@ -308,6 +309,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact
         capability: runtime.consume
       - method_id: /nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset
         capability: runtime.consume
       # Physical Desktop-supervised carriage for the same complete canonical
       # agent.configure family used by every equally covered protected App.

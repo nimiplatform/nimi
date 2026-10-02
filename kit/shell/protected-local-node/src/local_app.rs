@@ -625,6 +625,13 @@ pub async fn local_app_artifact_upload(
     .await
 }
 
+#[napi(js_name = "localAppVoiceAssetsDelete")]
+pub async fn local_app_voice_assets_delete(input: NativeVoiceAssetDeleteInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session.delete_scenario_voice_asset(input.voice_asset_id).await
+    }).await
+}
+
 #[napi(js_name = "localAppVoiceAssetsList")]
 pub async fn local_app_voice_assets_list(
     input: NativeScenarioVoiceAssetsInput,

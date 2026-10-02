@@ -7298,6 +7298,68 @@ impl DeleteLoadoutResponse {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct DeleteLocalAppVoiceAssetRequest {
+    #[serde(rename = "voice_asset_id", skip_serializing_if = "Option::is_none")]
+    pub voice_asset_id: Option<String>,
+}
+
+impl DeleteLocalAppVoiceAssetRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "DeleteLocalAppVoiceAssetRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.voice_asset_id = match object.get("voice_asset_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("voice_asset_id"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct DeleteLocalAppVoiceAssetResponse {
+    #[serde(rename = "deleted", skip_serializing_if = "Option::is_none")]
+    pub deleted: Option<bool>,
+}
+
+impl DeleteLocalAppVoiceAssetResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "DeleteLocalAppVoiceAssetResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.deleted = match object.get("deleted") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("deleted"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DeleteModelCatalogProviderRequest {
     pub provider: Option<String>,
@@ -15282,6 +15344,14 @@ impl TryFrom<Vec<u8>> for SubmitLocalAppAgentWorkToolResultResponse {
     }
 }
 
+impl TryFrom<Vec<u8>> for DeleteLocalAppVoiceAssetResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
 impl TryFrom<Vec<u8>> for CloseVideoSessionResponse {
     type Error = RuntimeResponseDecodeError;
 
@@ -15576,6 +15646,20 @@ where
         }).map_err(RuntimeTypedClientError::Transport)?;
         SubmitLocalAppAgentWorkToolResultResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
+    pub fn delete_local_app_voice_asset(&self, request: DeleteLocalAppVoiceAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteLocalAppVoiceAssetResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        DeleteLocalAppVoiceAssetResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset",
             type_name: error.type_name,
             field: error.field,
         })

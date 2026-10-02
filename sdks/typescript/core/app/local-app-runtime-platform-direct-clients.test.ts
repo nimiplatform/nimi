@@ -69,6 +69,7 @@ test('formal AI consumption runtime adapter keeps the canonical Local App operat
     async readLocalAppArtifact() { throw new Error('not used'); },
     async uploadLocalAppArtifact() { throw new Error('not used'); },
     async listLocalAppVoiceAssets() { return { assets: [], nextPageToken: '' }; },
+    async deleteLocalAppVoiceAsset() { return { deleted: true }; },
   });
 
   const stream = await client.text.streamTurn({ messages: [{ role: 'user', text: 'hello' }] });

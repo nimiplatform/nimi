@@ -1475,6 +1475,7 @@ function localAppHost(calls: unknown[]) {
       return { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' };
     },
     voiceAssetsList: async () => ({ assets: [], nextPageToken: '' }),
+    voiceAssetsDelete: async () => ({ deleted: true }),
     realmWorldCoreList: async (input: unknown) => {
       calls.push(['realmWorldCoreList', input]);
       return [{ id: 'world-1' }];

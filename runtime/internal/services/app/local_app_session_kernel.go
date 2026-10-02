@@ -558,6 +558,8 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = localappop.AppOperationIDArtifactUpload
 	case localappop.OperationVoiceAssetsList:
 		capability = localappop.AppOperationIDVoiceAssetsList
+	case localappop.OperationVoiceAssetsDelete:
+		capability = localappop.AppOperationIDVoiceAssetsDelete
 	case localappop.OperationVideoSessionOpen:
 		capability = localappop.AppOperationIDVideoSessionOpen
 	case localappop.OperationVideoSessionFrameSubmit:

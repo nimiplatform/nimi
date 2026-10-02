@@ -728,6 +728,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CancelScenarioJobResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset",
+        service: "RuntimeAiService",
+        method: "DeleteLocalAppVoiceAsset",
+        kind: "unary",
+        request_type: "DeleteLocalAppVoiceAssetRequest",
+        response_type: "DeleteLocalAppVoiceAssetResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
         service: "RuntimeAiService",
         method: "DeleteVoiceAsset",

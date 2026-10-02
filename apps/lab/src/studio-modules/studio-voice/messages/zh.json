@@ -59,9 +59,9 @@
     },
     "parameters": {
       "voicePreset": "预设语音",
-      "voiceAsset": "本地语音资产",
-      "selectVoiceAsset": "选择本地语音资产",
-      "noVoiceAssets": "没有本地语音资产",
+      "voiceAsset": "已创建音色",
+      "selectVoiceAsset": "选择已创建音色",
+      "noVoiceAssets": "暂无已创建音色",
       "chooseAudioFile": "选择音频文件",
       "removeFile": "移除",
       "audioFileTooLarge": "音频文件不得超过 32 MiB。",
@@ -72,7 +72,7 @@
       "fields": {
         "voiceSource": "语音来源",
         "voicePreset": "预设语音 ID",
-        "voiceAsset": "本地语音资产",
+        "voiceAsset": "已创建音色",
         "language": "语言",
         "audioFormat": "音频格式",
         "sampleRateHz": "采样率（Hz）",

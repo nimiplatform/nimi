@@ -7312,6 +7312,16 @@ pub struct ListLocalAppVoiceAssetsResponse {
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteLocalAppVoiceAssetRequest {
+    #[prost(string, tag = "1")]
+    pub voice_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteLocalAppVoiceAssetResponse {
+    #[prost(bool, tag = "1")]
+    pub deleted: bool,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamScenarioRequest {
     #[prost(message, optional, tag = "1")]
@@ -9733,6 +9743,35 @@ pub mod runtime_ai_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAiService",
                         "ListLocalAppVoiceAssets",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_local_app_voice_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeleteLocalAppVoiceAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteLocalAppVoiceAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "DeleteLocalAppVoiceAsset",
                     ),
                 );
             self.inner.unary(req, path, codec).await

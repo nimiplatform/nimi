@@ -127,8 +127,10 @@ func buildDashScopeVoiceWorkflowPayload(req VoiceWorkflowRequest) (map[string]an
 			ValueAsString(req.Payload["text"]),
 			ValueAsString(MapField(req.Payload["input"], "preview_text")),
 			ValueAsString(MapField(req.Payload["input"], "text")),
-			voicePrompt,
 		))
+		if voicePrompt == "" || previewText == "" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+		}
 		language := strings.TrimSpace(FirstNonEmpty(
 			ValueAsString(req.Payload["language"]),
 			ValueAsString(MapField(req.Payload["input"], "language")),

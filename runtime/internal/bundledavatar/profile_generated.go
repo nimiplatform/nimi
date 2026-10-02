@@ -83,6 +83,8 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
 	case "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig":

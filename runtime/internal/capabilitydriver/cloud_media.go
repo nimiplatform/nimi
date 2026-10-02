@@ -80,6 +80,9 @@ const (
 	CloudMediaAdapterStepFunVoiceWorkflow    = "stepfun_voice_workflow_adapter"
 	CloudMediaAdapterElevenLabsVoiceDelete   = "elevenlabs_voice_delete_adapter"
 	CloudMediaAdapterFishAudioVoiceDelete    = "fish_audio_voice_delete_adapter"
+	CloudMediaAdapterDashScopeVoiceDelete    = "dashscope_voice_delete_adapter"
+	CloudMediaAdapterQwenCloneVoiceDelete    = "dashscope_qwen_clone_voice_delete_adapter"
+	CloudMediaAdapterQwenDesignVoiceDelete   = "dashscope_qwen_design_voice_delete_adapter"
 )
 
 const CloudMediaAdapterGeminiTTSGenerateContent = "gemini_tts_generate_content_adapter"
@@ -434,7 +437,7 @@ type CloudMediaDriver interface {
 	ValidateTarget(Identity, *structpb.Struct, string) (CloudMediaTarget, error)
 	MapRequest(CloudMediaTarget, *runtimev1.SubmitScenarioJobRequest, *structpb.Struct, CloudMediaStreamMode) (*CloudMediaMappedRequest, error)
 	MapVoiceWorkflowRequest(CloudMediaTarget, *runtimev1.SubmitScenarioJobRequest, *structpb.Struct, CloudVoiceWorkflowConfig) (*CloudVoiceWorkflowMappedRequest, error)
-	MapVoiceDeleteRequest(CloudMediaTarget, string) (*CloudVoiceDeleteMappedRequest, error)
+	MapVoiceDeleteRequest(CloudMediaTarget, string, string) (*CloudVoiceDeleteMappedRequest, error)
 	NormalizeStreamChunk(CloudMediaStreamChunk) (CloudMediaStreamChunk, error)
 	NormalizeResponse(CloudMediaTransportResponse) (CloudMediaResult, error)
 	NormalizeVoiceWorkflowResponse(CloudVoiceWorkflowTransportResponse) (CloudVoiceWorkflowResult, error)
@@ -760,12 +763,15 @@ func (d providerCloudMediaDriver) MapVoiceWorkflowRequest(
 	}, nil
 }
 
-func (d providerCloudMediaDriver) MapVoiceDeleteRequest(target CloudMediaTarget, providerVoiceRef string) (*CloudVoiceDeleteMappedRequest, error) {
+func (d providerCloudMediaDriver) MapVoiceDeleteRequest(target CloudMediaTarget, providerVoiceRef string, workflowModelID string) (*CloudVoiceDeleteMappedRequest, error) {
 	providerVoiceRef = strings.TrimSpace(providerVoiceRef)
 	if target.provider != d.provider || !cloudVoiceDeleteSourceCapability(target.capabilityContract) || providerVoiceRef == "" {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("cloud voice delete request mapping input is invalid"))
 	}
 	adapter := cloudVoiceDeleteAdapter(d.provider)
+	if d.provider == "dashscope" {
+		adapter = dashScopeVoiceDeleteAdapter(target.ProviderModelID(), workflowModelID)
+	}
 	if adapter == "" {
 		return nil, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider has no voice delete transport dialect"))
 	}
@@ -928,9 +934,36 @@ func cloudVoiceDeleteAdapter(provider string) string {
 		return CloudMediaAdapterElevenLabsVoiceDelete
 	case "fish_audio":
 		return CloudMediaAdapterFishAudioVoiceDelete
+	case "dashscope":
+		return CloudMediaAdapterDashScopeVoiceDelete
 	default:
 		return ""
 	}
+}
+
+// @nimi-authority: rule.nimi.runtime.model-catalog.r029
+// Deletion uses the creation target captured with the asset, never the current
+// catalog, current synthesis selection, or a guess from the opaque handle.
+func dashScopeVoiceDeleteAdapter(model string, workflow string) string {
+	switch model {
+	case "qwen3-tts-vc", "qwen3-tts-vc-2026-01-22", "qwen3-tts-vc-realtime-2026-01-15":
+		if workflow == "qwen-voice-enrollment" {
+			return CloudMediaAdapterQwenCloneVoiceDelete
+		}
+	case "qwen3-tts-vd", "qwen3-tts-vd-2026-01-26", "qwen3-tts-vd-realtime-2026-01-15":
+		if workflow == "qwen-voice-design" {
+			return CloudMediaAdapterQwenDesignVoiceDelete
+		}
+	case "qwen-audio-3.0-tts-plus", "qwen-audio-3.0-tts-flash":
+		if workflow == "voice-enrollment-qwen-audio-clone" || workflow == "voice-enrollment-design" {
+			return CloudMediaAdapterDashScopeVoiceDelete
+		}
+	case "cosyvoice-v3.5-plus", "cosyvoice-v3.5-flash", "cosyvoice-v3-plus", "cosyvoice-v3-flash":
+		if workflow == "voice-enrollment-clone" || workflow == "voice-enrollment-design" {
+			return CloudMediaAdapterDashScopeVoiceDelete
+		}
+	}
+	return ""
 }
 
 // CloudMediaUsesDetachedPolling reports whether the exact Driver mapping uses

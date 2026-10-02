@@ -91,6 +91,7 @@ export interface LabRendererEventPort {
 export interface LabRendererSdkPort {
   readonly localAppClient: NimiLocalAppClient;
   runCapability(input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult>;
+  deleteLocalAppVoiceAsset(voiceAssetId: string): Promise<{ readonly deleted: true }>;
   listLocalAppVoiceAssets(): Promise<readonly {
     readonly voiceAssetId: string;
     readonly creationSource: string;

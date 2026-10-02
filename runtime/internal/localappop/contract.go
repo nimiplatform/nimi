@@ -87,6 +87,7 @@ const (
 	AppOperationIDArtifactRead         = "runtime.ai.artifact.read"
 	AppOperationIDArtifactUpload       = "runtime.ai.artifact.upload"
 	AppOperationIDVoiceAssetsList      = "runtime.ai.voice-assets.list"
+	AppOperationIDVoiceAssetsDelete    = "runtime.ai.voice-assets.delete"
 )
 
 // Canonical operation identifiers for the App activity family governed by the
@@ -175,6 +176,7 @@ const (
 	IngressArtifactRead
 	IngressArtifactUpload
 	IngressVoiceAssetsList
+	IngressVoiceAssetsDelete
 	IngressAIRealtimeOpen
 	IngressAIRealtimeInputAppend
 	IngressAIRealtimeOwnerControlSubmit
@@ -300,6 +302,7 @@ const (
 	OperationArtifactRead
 	OperationArtifactUpload
 	OperationVoiceAssetsList
+	OperationVoiceAssetsDelete
 	OperationAIRealtimeOpen
 	OperationAIRealtimeInputAppend
 	OperationAIRealtimeOwnerControlSubmit
@@ -462,6 +465,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressArtifactRead, OperationArtifactRead, AppOperationIDArtifactRead, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressArtifactUpload, OperationArtifactUpload, AppOperationIDArtifactUpload, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressVoiceAssetsList, OperationVoiceAssetsList, AppOperationIDVoiceAssetsList, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressVoiceAssetsDelete, OperationVoiceAssetsDelete, AppOperationIDVoiceAssetsDelete, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAIRealtimeOpen, OperationAIRealtimeOpen, AppOperationIDAIRealtimeOpen, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAIRealtimeInputAppend, OperationAIRealtimeInputAppend, AppOperationIDAIRealtimeInputAppend, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAIRealtimeOwnerControlSubmit, OperationAIRealtimeOwnerControlSubmit, AppOperationIDAIRealtimeOwnerControlSubmit, AuthorityClassAppAccess, "runtime.consume"},

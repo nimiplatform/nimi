@@ -93,6 +93,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob": "mixed",
+  "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario": "mixed",

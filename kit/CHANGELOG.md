@@ -2,6 +2,8 @@
 
 ## Next minor (compatible additions)
 
+The protected App voice-assets client adds owner-scoped `delete(voiceAssetId)`. Update SDK, Kit and the native carrier together. Deletion uses the asset-captured Runtime binding and returns confirmation only after the owner policy completes; provider failures remain errors for explicit retry.
+
 Browser data URL attachments can opt into audio via an explicit accepted MIME list. Existing default image/video picker scope is unchanged. The protected text carrier accepts owned WAV, MPEG audio and MP4 Artifact references; SDK alignment is an additive next-minor widening, with Runtime still enforcing the exact model and execution-mode support.
 
 The native protected carrier and Electron host preserve the existing `AI_MODALITY_NOT_SUPPORTED` Runtime reason as `ai-modality-not-supported` instead of generic invalid payload. This widens the native reason enum compatibly; no new Runtime operation or provider channel is added.

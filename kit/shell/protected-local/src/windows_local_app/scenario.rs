@@ -476,6 +476,21 @@ fn require_submission_id(value: &str) -> Result<(), LocalAppOperationError> {
     Ok(())
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r109
+pub(super) async fn delete_voice_asset(
+    channel: Channel,
+    voice_asset_id: String,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_identifier(&voice_asset_id)?;
+    let mut request = Request::new(crate::generated::DeleteLocalAppVoiceAssetRequest { voice_asset_id });
+    request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
+    let response = crate::grpc_limits::runtime_ai_client(channel)
+        .delete_local_app_voice_asset(request).await
+        .map_err(local_app_error_from_status)?.into_inner();
+    if !response.deleted { return Err(untrusted()); }
+    Ok(json!({ "deleted": true }))
+}
+
 pub(super) async fn list_voice_assets(
     channel: Channel,
     request: LocalAppScenarioListVoiceAssetsRequest,

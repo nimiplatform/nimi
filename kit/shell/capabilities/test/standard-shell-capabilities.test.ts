@@ -196,6 +196,7 @@ describe('standard shell capabilities', () => {
       'local-app.artifactRead',
       'local-app.artifactUpload',
       'local-app.voiceAssetsList',
+      'local-app.voiceAssetsDelete',
       'local-app.agentIntroductionGet',
       'local-app.agentReferenceList',
       'local-app.agentWorkReferenceList',

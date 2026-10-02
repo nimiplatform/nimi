@@ -1344,6 +1344,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppArtifactRead: record('localAppArtifactRead', { bytes: 'AQI=', mimeType: 'image/png', sizeBytes: 2 }),
     localAppArtifactUpload: record('localAppArtifactUpload', { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' }),
     localAppVoiceAssetsList: record('localAppVoiceAssetsList', { assets: [], nextPageToken: '' }),
+    localAppVoiceAssetsDelete: record('localAppVoiceAssetsDelete', { deleted: true }),
     localAppRealmWorldCoreList: record('localAppRealmWorldCoreList', [{ id: 'world-1', visibility: 'private' }]),
     localAppRealmWorldCoreCreate: record('localAppRealmWorldCoreCreate', { id: 'world-2', visibility: 'private' }),
     localAppRealmWorldCreationEligibilityGet: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),

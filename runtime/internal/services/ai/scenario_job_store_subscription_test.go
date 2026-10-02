@@ -216,6 +216,7 @@ func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 					TargetModelId: "qwen3-tts-vd",
 					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 						InstructionText: "calm female voice",
+						PreviewText:     "This is the explicit voice preview.",
 					}},
 				},
 			},

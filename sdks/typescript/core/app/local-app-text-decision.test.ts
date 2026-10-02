@@ -62,7 +62,7 @@ function shellClient(execute: (spec: NimiLocalAppScenarioExecuteShellSpec, optio
     scenario: { execute },
     scenarioJobs: { submit: unused, get: unused, subscribe: unused, cancel: unused },
     artifacts: { read: unused, upload: unused },
-    voiceAssets: { list: unused },
+    voiceAssets: { list: unused, delete: unused },
   });
 }
 
@@ -77,6 +77,7 @@ function runtimeFixture(execute: NimiLocalAppAIConsumptionRuntime['executeLocalA
     readLocalAppArtifact: unused,
     uploadLocalAppArtifact: unused,
     listLocalAppVoiceAssets: unused,
+    deleteLocalAppVoiceAsset: unused,
   };
 }
 

@@ -967,6 +967,15 @@
           "response_stream": false
         },
         {
+          "name": "DeleteLocalAppVoiceAsset",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset",
+          "kind": "unary",
+          "request_type": "DeleteLocalAppVoiceAssetRequest",
+          "response_type": "DeleteLocalAppVoiceAssetResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ExecuteScenario",
           "method_id": "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
           "kind": "unary",
@@ -2756,6 +2765,7 @@
     "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl",
     "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
+    "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset",
     "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
     "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario",
     "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -3673,6 +3683,14 @@
       "kind": "unary",
       "request_type": "CancelScenarioJobRequest",
       "response_type": "CancelScenarioJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset",
+      "service": "RuntimeAiService",
+      "method": "DeleteLocalAppVoiceAsset",
+      "kind": "unary",
+      "request_type": "DeleteLocalAppVoiceAssetRequest",
+      "response_type": "DeleteLocalAppVoiceAssetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
@@ -5909,6 +5927,14 @@
       "response_type": "CancelScenarioJobResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset",
+      "service": "RuntimeAiService",
+      "method": "DeleteLocalAppVoiceAsset",
+      "kind": "unary",
+      "request_type": "DeleteLocalAppVoiceAssetRequest",
+      "response_type": "DeleteLocalAppVoiceAssetResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
       "service": "RuntimeAiService",
       "method": "DeleteVoiceAsset",
@@ -7669,6 +7695,8 @@
       "DeleteConnectorResponse",
       "DeleteLoadoutRequest",
       "DeleteLoadoutResponse",
+      "DeleteLocalAppVoiceAssetRequest",
+      "DeleteLocalAppVoiceAssetResponse",
       "DeleteModelCatalogProviderRequest",
       "DeleteModelCatalogProviderResponse",
       "DeleteVoiceAssetRequest",
@@ -18376,6 +18404,32 @@
         "name": "DeleteLoadoutResponse",
         "fields": [],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "DeleteLocalAppVoiceAssetRequest",
+        "fields": [
+          {
+            "name": "voice_asset_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "DeleteLocalAppVoiceAssetResponse",
+        "fields": [
+          {
+            "name": "deleted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "DeleteModelCatalogProviderRequest",

@@ -56,6 +56,7 @@ const AIC_COMMANDS = {
   artifactRead: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactRead'],
   artifactUpload: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactUpload'],
   voiceAssetsList: NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsList'],
+  voiceAssetsDelete: NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsDelete'],
 } as const;
 
 const MAX_IDENTIFIER_LENGTH = 512;
@@ -498,6 +499,7 @@ export type NimiLocalAppStandardShellSurface = {
       readonly upload: (input: NimiLocalAppArtifactUploadShellInput) => Promise<NimiLocalAppArtifactUploadResult>;
     };
     readonly voiceAssets: {
+      readonly delete: (voiceAssetId: string) => Promise<{ readonly deleted: true }>;
       readonly list: (input?: { readonly pageSize?: number; readonly pageToken?: string }) => Promise<{ readonly assets: readonly NimiLocalAppVoiceAsset[]; readonly nextPageToken: string }>;
     };
     readonly realtime: {
@@ -635,6 +637,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
         upload: uploadNimiLocalAppScenarioArtifact,
       },
       voiceAssets: {
+        delete: deleteNimiLocalAppVoiceAsset,
         list: listNimiLocalAppVoiceAssets,
       },
       realtime: {
@@ -1091,6 +1094,16 @@ export function uploadNimiLocalAppScenarioArtifact(input: NimiLocalAppArtifactUp
   const command = AIC_COMMANDS.artifactUpload;
   const prepared = validateNimiLocalAppArtifactUploadShellInput(input);
   return invokeChecked(command, { payload: prepared }, (value) => validateNimiLocalAppArtifactUploadResult(value, prepared));
+}
+
+export function deleteNimiLocalAppVoiceAsset(voiceAssetId: string): Promise<{ readonly deleted: true }> {
+  const command = AIC_COMMANDS.voiceAssetsDelete;
+  const id = requiredUtf8Text(voiceAssetId, 'voiceAssetId', command, 128);
+  return invokeChecked(command, { payload: { voiceAssetId: id } }, (value) => {
+    const record = assertRecord(value, command);
+    if (Object.keys(record).length !== 1 || record.deleted !== true) throw new Error(command + ': deletion was not confirmed');
+    return { deleted: true as const };
+  });
 }
 
 export function listNimiLocalAppVoiceAssets(

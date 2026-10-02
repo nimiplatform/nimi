@@ -4176,6 +4176,14 @@ type DeleteLoadoutRequest struct {
 type DeleteLoadoutResponse struct {
 }
 
+type DeleteLocalAppVoiceAssetRequest struct {
+	VoiceAssetId string `json:"voice_asset_id,omitempty"`
+}
+
+type DeleteLocalAppVoiceAssetResponse struct {
+	Deleted bool `json:"deleted,omitempty"`
+}
+
 type DeleteModelCatalogProviderRequest struct {
 	Provider string `json:"provider,omitempty"`
 }
@@ -10208,6 +10216,14 @@ func (c RuntimeTypedClient) CancelScenarioJob(ctx context.Context, request Cance
 		return CancelScenarioJobResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[CancelScenarioJobResponse](raw, "CancelScenarioJobResponse")
+}
+
+func (c RuntimeTypedClient) DeleteLocalAppVoiceAsset(ctx context.Context, request DeleteLocalAppVoiceAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteLocalAppVoiceAssetResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset", request, metadata, timeoutMS)
+	if err != nil {
+		return DeleteLocalAppVoiceAssetResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DeleteLocalAppVoiceAssetResponse](raw, "DeleteLocalAppVoiceAssetResponse")
 }
 
 func (c RuntimeTypedClient) DeleteVoiceAsset(ctx context.Context, request DeleteVoiceAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteVoiceAssetResponse, error) {

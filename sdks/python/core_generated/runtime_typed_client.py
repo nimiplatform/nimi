@@ -2184,6 +2184,14 @@ class DeleteLoadoutResponse:
     pass
 
 @dataclass(frozen=True)
+class DeleteLocalAppVoiceAssetRequest:
+    voice_asset_id: str | None = None
+
+@dataclass(frozen=True)
+class DeleteLocalAppVoiceAssetResponse:
+    deleted: bool | None = None
+
+@dataclass(frozen=True)
 class DeleteModelCatalogProviderRequest:
     provider: str | None = None
 
@@ -7832,6 +7840,10 @@ class RuntimeTypedClient:
     async def cancel_scenario_job(self, request: CancelScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelScenarioJobResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelScenarioJobResponse, raw)
+
+    async def delete_local_app_voice_asset(self, request: DeleteLocalAppVoiceAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteLocalAppVoiceAssetResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(DeleteLocalAppVoiceAssetResponse, raw)
 
     async def delete_voice_asset(self, request: DeleteVoiceAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteVoiceAssetResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

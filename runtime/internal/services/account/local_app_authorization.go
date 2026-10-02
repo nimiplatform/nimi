@@ -83,6 +83,7 @@ const (
 	LocalAppOperationArtifactRead                     = localappop.OperationArtifactRead
 	LocalAppOperationArtifactUpload                   = localappop.OperationArtifactUpload
 	LocalAppOperationVoiceAssetsList                  = localappop.OperationVoiceAssetsList
+	LocalAppOperationVoiceAssetsDelete                = localappop.OperationVoiceAssetsDelete
 	LocalAppOperationAIRealtimeOpen                   = localappop.OperationAIRealtimeOpen
 	LocalAppOperationAIRealtimeInputAppend            = localappop.OperationAIRealtimeInputAppend
 	LocalAppOperationAIRealtimeOwnerControlSubmit     = localappop.OperationAIRealtimeOwnerControlSubmit

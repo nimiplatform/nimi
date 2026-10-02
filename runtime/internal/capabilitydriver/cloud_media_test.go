@@ -178,15 +178,46 @@ func TestCloudVoiceDeleteDriverMapsExactDialect(t *testing.T) {
 	// Lifecycle deletion reuses the exact voice-workflow AIConfig intent that
 	// created the durable provider handle; it never fabricates a delete intent.
 	driver, target := cloudMediaDriverTarget(t, "elevenlabs", "eleven_turbo_v2_5", "voice.create")
-	mapped, err := driver.MapVoiceDeleteRequest(target, "voice-private")
+	mapped, err := driver.MapVoiceDeleteRequest(target, "voice-private", "")
 	if err != nil {
 		t.Fatalf("MapVoiceDeleteRequest: %v", err)
 	}
 	if mapped.Provider() != "elevenlabs" || mapped.Adapter() != CloudMediaAdapterElevenLabsVoiceDelete || mapped.ProviderVoiceRef() != "voice-private" {
 		t.Fatalf("mapped voice delete provider=%q adapter=%q", mapped.Provider(), mapped.Adapter())
 	}
-	if CloudVoiceDeleteSupported("dashscope") {
-		t.Fatal("DashScope unexpectedly gained a provider voice delete dialect")
+	if !CloudVoiceDeleteSupported("dashscope") {
+		t.Fatal("DashScope voice lifecycle has no delete dialect")
+	}
+}
+
+func TestDashScopeVoiceDeleteUsesCapturedTargetDialect(t *testing.T) {
+	for model, adapter := range map[string]string{
+		"qwen3-tts-vc-2026-01-22":          CloudMediaAdapterQwenCloneVoiceDelete,
+		"qwen3-tts-vd-2026-01-26":          CloudMediaAdapterQwenDesignVoiceDelete,
+		"qwen3-tts-vc-realtime-2026-01-15": CloudMediaAdapterQwenCloneVoiceDelete,
+		"qwen3-tts-vd-realtime-2026-01-15": CloudMediaAdapterQwenDesignVoiceDelete,
+		"cosyvoice-v3.5-plus":              CloudMediaAdapterDashScopeVoiceDelete,
+		"qwen-audio-3.0-tts-plus":          CloudMediaAdapterDashScopeVoiceDelete,
+	} {
+		driver, target := cloudMediaDriverTarget(t, "dashscope", model, "voice.create")
+		workflow := "voice-enrollment-design"
+		if adapter == CloudMediaAdapterQwenCloneVoiceDelete {
+			workflow = "qwen-voice-enrollment"
+		}
+		if adapter == CloudMediaAdapterQwenDesignVoiceDelete {
+			workflow = "qwen-voice-design"
+		}
+		mapped, err := driver.MapVoiceDeleteRequest(target, "opaque-handle-without-model-prefix", workflow)
+		if _, mismatch := driver.MapVoiceDeleteRequest(target, "opaque-handle-without-model-prefix", "unknown-workflow"); mismatch == nil {
+			t.Fatal("unknown workflow admitted")
+		}
+		if err != nil || mapped.Adapter() != adapter || mapped.ProviderVoiceRef() != "opaque-handle-without-model-prefix" {
+			t.Fatalf("model=%s mapped=%+v err=%v", model, mapped, err)
+		}
+	}
+	driver, target := cloudMediaDriverTarget(t, "dashscope", "qwen3-tts-vc-unreviewed", "voice.create")
+	if _, err := driver.MapVoiceDeleteRequest(target, "qwen3-tts-vc-2026-01-22-handle", "qwen-voice-enrollment"); err == nil {
+		t.Fatal("unreviewed target inferred a delete dialect from the handle")
 	}
 }
 

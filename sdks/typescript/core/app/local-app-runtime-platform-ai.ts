@@ -40,6 +40,8 @@ import {
   type GetLocalAppScenarioJobRequest,
   type GetLocalAppScenarioJobResponse,
   type GetScenarioArtifactsResponse,
+  type DeleteLocalAppVoiceAssetRequest,
+  type DeleteLocalAppVoiceAssetResponse,
   type ListLocalAppVoiceAssetsRequest,
   type ListLocalAppVoiceAssetsResponse,
   type LocalAppVoiceAsset,
@@ -429,14 +431,17 @@ export type NimiLocalAppVoiceAssetsListResult = {
 };
 
 export type NimiLocalAppVoiceAssetsShell = {
+  readonly delete: (voiceAssetId: string) => Promise<unknown>;
   readonly list: (input?: NimiLocalAppVoiceAssetsListInput) => Promise<unknown>;
 };
 
 export type NimiLocalAppVoiceAssetsClient = {
+  readonly delete: (voiceAssetId: string) => Promise<{ readonly deleted: true }>;
   readonly list: (input?: NimiLocalAppVoiceAssetsListInput) => Promise<NimiLocalAppVoiceAssetsListResult>;
 };
 
 export type NimiLocalAppVoiceAssetsRuntime = {
+  readonly deleteLocalAppVoiceAsset: (request: DeleteLocalAppVoiceAssetRequest, options?: RuntimeTypedCallOptions) => Promise<DeleteLocalAppVoiceAssetResponse>;
   readonly listLocalAppVoiceAssets: (
     request: ListLocalAppVoiceAssetsRequest,
     options?: RuntimeTypedCallOptions,
@@ -504,6 +509,7 @@ export type NimiLocalAppAIConsumptionRuntime = {
     options?: RuntimeTypedCallOptions,
   ) => Promise<UploadLocalAppArtifactResponse>;
   readonly listLocalAppVoiceAssets: NimiLocalAppVoiceAssetsRuntime['listLocalAppVoiceAssets'];
+  readonly deleteLocalAppVoiceAsset: NimiLocalAppVoiceAssetsRuntime['deleteLocalAppVoiceAsset'];
 };
 
 const MAX_RESULT_BYTES = 256 * 1024;
@@ -722,6 +728,7 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
     },
     voiceAssets: {
       list: (input) => voiceAssets.list(input),
+      delete: (voiceAssetId) => voiceAssets.delete(voiceAssetId),
     },
   });
 }
@@ -729,7 +736,7 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
 export function createNimiLocalAppVoiceAssetsClient(
   shell: NimiLocalAppVoiceAssetsShell,
 ): NimiLocalAppVoiceAssetsClient {
-  return createNimiLocalAppVoiceAssetsProjector((input) => shell.list(input));
+  return createNimiLocalAppVoiceAssetsProjector((input) => shell.list(input), (voiceAssetId) => shell.delete(voiceAssetId));
 }
 
 export function createNimiLocalAppVoiceAssetsRuntimeClient(
@@ -744,13 +751,19 @@ export function createNimiLocalAppVoiceAssetsRuntimeClient(
       assets: response.assets.map(projectRuntimeLocalAppVoiceAsset),
       nextPageToken: response.nextPageToken,
     };
-  });
+  }, (voiceAssetId) => runtime.deleteLocalAppVoiceAsset({ voiceAssetId }));
 }
 
 function createNimiLocalAppVoiceAssetsProjector(
   list: (input: Readonly<{ pageSize: number; pageToken: string }>) => Promise<unknown>,
+  remove: (voiceAssetId: string) => Promise<unknown>,
 ): NimiLocalAppVoiceAssetsClient {
   return Object.freeze({
+    async delete(voiceAssetId: string) {
+      const result = asRecord(await remove(boundedIdentifier(voiceAssetId, 'voiceAssetId')));
+      if (!result || Object.keys(result).length !== 1 || result.deleted !== true) localAppProjectionError('voice asset deletion was not confirmed');
+      return Object.freeze({ deleted: true as const });
+    },
     async list(input: NimiLocalAppVoiceAssetsListInput = {}) {
       const page = validateVoiceAssetsListInput(input);
       return projectVoiceAssetsList(await list(page));

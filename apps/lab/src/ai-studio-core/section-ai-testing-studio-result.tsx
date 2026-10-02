@@ -1,3 +1,4 @@
+import { VoiceAssetActions } from './section-ai-testing-voice-asset-actions.js';
 import { MusicGenerationNotice } from './section-ai-testing-music-result.js';
 import { MusicTranscriptionNotice } from './section-ai-testing-transcription-result.js';
 import { VoiceConversionNotice } from './section-ai-testing-voice-conversion-result.js';
@@ -65,6 +66,7 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
     return (
       <div className="studio-result__rich">
         <p className="studio-result__plain">{t('StudioShell.voiceAssetSuccess')}</p>
+        <VoiceAssetActions key={output.voiceAssetId} voiceAssetId={output.voiceAssetId} />
       </div>
     );
   }

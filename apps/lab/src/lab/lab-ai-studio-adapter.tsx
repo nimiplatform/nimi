@@ -54,6 +54,7 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
     },
     sdk: {
       runCapability: (input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> => rendererHost.sdk.runCapability(input),
+      deleteLocalAppVoiceAsset: (voiceAssetId) => rendererHost.sdk.deleteLocalAppVoiceAsset(voiceAssetId),
       listLocalAppVoiceAssets: () => rendererHost.sdk.listLocalAppVoiceAssets(),
       uploadLocalAppArtifact: (input) => rendererHost.sdk.uploadLocalAppArtifact(input),
       assets: rendererHost.sdk.storage.assets,

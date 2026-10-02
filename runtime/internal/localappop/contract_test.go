@@ -92,6 +92,7 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: "runtime.ai.artifact.read", class: AuthorityClassAppAccess, domain: "runtime.consume"},
 		{id: "runtime.ai.artifact.upload", class: AuthorityClassAppAccess, domain: "runtime.consume"},
 		{id: "runtime.ai.voice-assets.list", class: AuthorityClassAppAccess, domain: "runtime.consume"},
+		{id: "runtime.ai.voice-assets.delete", class: AuthorityClassAppAccess, domain: "runtime.consume"},
 		{id: AppOperationIDAIRealtimeOpen, class: AuthorityClassAppAccess, domain: "runtime.consume"},
 		{id: AppOperationIDAIRealtimeInputAppend, class: AuthorityClassAppAccess, domain: "runtime.consume"},
 		{id: AppOperationIDAIRealtimeOwnerControlSubmit, class: AuthorityClassAppAccess, domain: "runtime.consume"},

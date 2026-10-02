@@ -574,7 +574,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(ai.scenario, ['execute'], 'ai.scenario');
   assertExactMethodNamespace(ai.scenarioJobs, ['submit', 'get', 'subscribe', 'cancel'], 'ai.scenarioJobs');
   assertExactMethodNamespace(ai.artifacts, ['read', 'upload'], 'ai.artifacts');
-  assertExactMethodNamespace(ai.voiceAssets, ['list'], 'ai.voiceAssets');
+  assertExactMethodNamespace(ai.voiceAssets, ['list', 'delete'], 'ai.voiceAssets');
   assertExactMethodNamespace(ai.realtime, ['open', 'appendInput', 'submitOwnerControl', 'subscribe', 'interruptOutput', 'close'], 'ai.realtime');
   assertExactMethodNamespace(ai.videoSessions, ['open', 'submitFrame', 'read', 'close'], 'ai.videoSessions');
   assertExactMethodNamespace(standardShell.aiConfig, ['get', 'overwrite', 'listOptions'], 'aiConfig');

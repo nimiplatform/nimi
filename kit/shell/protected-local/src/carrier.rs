@@ -1717,6 +1717,11 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppScenarioListVoiceAssetsRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
+    fn delete_scenario_voice_asset(
+        &self,
+        voice_asset_id: String,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
     fn app_ai_config_get(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;

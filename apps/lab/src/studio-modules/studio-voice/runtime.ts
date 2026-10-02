@@ -8,6 +8,7 @@ import {
   VoiceCreationSource,
 } from '@nimiplatform/sdk/runtime/generated';
 import type { StudioCapabilityRuntimeHandlers } from '../../ai-studio-core/runtime-dispatcher.js';
+import { listLabVoiceAssets } from '../../ai-studio-core/voice-assets.js';
 import {
   createStudioScenarioJobClient,
   projectStudioArtifactRunnerResult,
@@ -211,8 +212,8 @@ async function runVoiceCreate(context: StudioCapabilityRuntimeContext) {
   if (!returnedVoiceAssetId || returnedVoiceAssetId !== resultAsset.voiceAssetId) {
     throw new Error('Completed voice.create did not return an exact VoiceAsset reference.');
   }
-  const listed = await context.host.client.ai.voiceAssets.list({ pageSize: 100 });
-  const listedAsset = listed.assets.find((asset) => asset.voiceAssetId === resultAsset.voiceAssetId);
+  const listed = await listLabVoiceAssets(context.host.client.ai.voiceAssets);
+  const listedAsset = listed.find((asset) => asset.voiceAssetId === resultAsset.voiceAssetId);
   if (!listedAsset || listedAsset.status !== 'active' || listedAsset.creationSource !== creationSource) {
     throw new Error('Completed voice.create did not project its ACTIVE VoiceAsset through the protected owner catalog.');
   }

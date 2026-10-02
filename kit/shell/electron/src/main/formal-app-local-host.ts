@@ -318,6 +318,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
         : { bytes: prepared.bytes!, mimeType: prepared.mimeType, ...(prepared.audioPreparation ? { audioPreparation: prepared.audioPreparation } : {}) }
       ) as Promise<NimiElectronLocalAppRecord>;
     },
+    voiceAssetsDelete: (record) => voiceAssets.delete(requiredText(record.voiceAssetId)) as Promise<NimiElectronLocalAppRecord>,
     voiceAssetsList: (record) => voiceAssets.list(record as never) as Promise<NimiElectronLocalAppRecord>,
     async storageReadJson(record) {
       const response = await runtime.readLocalAppStorageJson({ relativePath: requiredText(record.relativePath) });

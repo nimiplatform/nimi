@@ -98,6 +98,7 @@ const (
 	protectedReadLocalAppArtifactMethod           = "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact"
 	protectedUploadLocalAppArtifactMethod         = "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact"
 	protectedListLocalAppVoiceAssetsMethod        = "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets"
+	protectedDeleteLocalAppVoiceAssetMethod       = "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset"
 	protectedGetAppAIConfigMethod                 = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
 	protectedOverwriteAppAIConfigMethod           = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
 	protectedListAppAIConfigOptionsMethod         = "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions"
@@ -218,6 +219,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedReadLocalAppArtifactMethod:           localAppSessionMethodPolicy(),
 	protectedUploadLocalAppArtifactMethod:         localAppSessionMethodPolicy(),
 	protectedListLocalAppVoiceAssetsMethod:        localAppSessionMethodPolicy(),
+	protectedDeleteLocalAppVoiceAssetMethod:       localAppSessionMethodPolicy(),
 	protectedGetAppAIConfigMethod:                 localAppSessionMethodPolicy(),
 	protectedOverwriteAppAIConfigMethod:           localAppSessionMethodPolicy(),
 	protectedListAppAIConfigOptionsMethod:         localAppSessionMethodPolicy(),
@@ -595,6 +597,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressArtifactUpload
 	case protectedListLocalAppVoiceAssetsMethod:
 		return localappop.IngressVoiceAssetsList
+	case protectedDeleteLocalAppVoiceAssetMethod:
+		return localappop.IngressVoiceAssetsDelete
 	case protectedAgentIntroductionGetMethod:
 		return localappop.IngressAgentIntroductionGet
 	case protectedAgentReferenceListMethod, protectedDesktopAgentReferenceResolveMethod:
@@ -754,7 +758,7 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedGetAppAIConfigMethod, protectedOverwriteAppAIConfigMethod,
 		protectedListAppAIConfigOptionsMethod, protectedGenerateTextCandidateMethod,
 		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,
-		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod,
+		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod, protectedDeleteLocalAppVoiceAssetMethod,
 		protectedAgentIntroductionGetMethod, protectedAgentReferenceListMethod, protectedAvatarHostTargetResolveMethod,
 		protectedAvatarHostTargetRevalidateMethod,
 		protectedOpenConversationMethod, protectedSendConversationTurnMethod,

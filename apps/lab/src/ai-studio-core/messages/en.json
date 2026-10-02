@@ -228,7 +228,7 @@
     "useAsDraft": "Use as draft",
     "intentLabel": "Intent",
     "embeddingSuccess": "Embedding generated successfully.",
-    "voiceAssetSuccess": "The new voice is ready to use for speech generation.",
+    "voiceAssetSuccess": "This run created a voice.",
     "mediaSuccess": "Media generated successfully.",
     "mediaPreviewMetadataOnly": "Media generated, but Runtime returned metadata only and no preview bytes are available.",
     "mediaPreviewUnsupported": "Media generated, but this artifact type cannot be previewed here.",
@@ -244,7 +244,14 @@
     "runStatusUnavailable": "sdk unavailable",
     "runStatusFailed": "failed",
     "runStatusCanceled": "canceled",
-    "runStatusTimedOut": "timed out"
+    "runStatusTimedOut": "timed out",
+    "voiceDelete": "Delete voice",
+    "voiceDeleteTitle": "Delete this voice?",
+    "voiceDeleteDescription": "You will no longer be able to synthesize speech with this voice. Saved audio and run history will remain available.",
+    "voiceDeleteCancel": "Cancel",
+    "voiceDeleted": "This voice has been deleted.",
+    "voiceUnavailable": "This voice is currently unavailable.",
+    "voiceDeleteFailed": "The voice could not be deleted. It has not been marked as deleted. Try again."
   },
   "StudioModelConfig": {
     "drawerTitle": "App AI configuration",

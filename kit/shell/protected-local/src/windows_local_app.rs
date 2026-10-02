@@ -438,6 +438,16 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
+    fn delete_scenario_voice_asset(
+        &self,
+        voice_asset_id: String,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::delete_voice_asset(self.checked_channel()?, voice_asset_id).await
+        })
+    }
+
     fn app_ai_config_get(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>

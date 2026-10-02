@@ -1029,7 +1029,7 @@ export function getStudioRunResultTags(record: StudioRunHistoryRecord): string[]
   if (result.kind === 'session') return ['Session', result.ending];
   if (result.kind === 'artifacts') return ['Ready'];
   if (result.kind === 'transcript') return ['Ready'];
-  if (result.kind === 'voice-asset') return ['VoiceAsset ready', result.creationSource];
+  if (result.kind === 'voice-asset') return [result.creationSource];
   if (result.kind === 'vision-locate') return result.result ? ['Locate', String(result.result.locations.length)] : ['Locate'];
   return [`${result.voiceCount} voices`];
 }
