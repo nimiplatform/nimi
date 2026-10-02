@@ -111,6 +111,9 @@ func TestMiniMaxMusic3DriverFailsUnsupportedCanonicalFieldsClosed(t *testing.T) 
 		{name: "negative prompt", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.NegativePrompt = "noise" }},
 		{name: "style", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.Style = "pop" }},
 		{name: "title", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.Title = "Song" }},
+		{name: "video reference", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) {
+			v.VideoReference = &runtimev1.MusicVideoReference{ArtifactId: "owned-video"}
+		}},
 		{name: "instrumental", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.Instrumental = true }},
 		{name: "duration", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.DurationSeconds = 181 }},
 		{name: "extension", mutate: func(*runtimev1.MusicGenerateScenarioSpec) {}, extensions: []*runtimev1.ScenarioExtension{{}}},

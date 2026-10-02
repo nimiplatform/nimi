@@ -133,6 +133,9 @@ func (YuE2AudioCppDriver) PlanMusicInvocation(input MusicInvocationInput) (*Musi
 		return bad(InvocationFailureInvalidConfig, "requires the captured audio.cpp 0.8.1 CUDA package")
 	}
 	r := input.Request
+	if r.GetVideoReference() != nil {
+		return bad(InvocationFailureUnsupported, "video reference input is unsupported")
+	}
 	if r == nil || strings.TrimSpace(r.GetPrompt()) == "" || strings.TrimSpace(r.GetLyrics()) == "" || !utf8.ValidString(r.GetPrompt()) || !utf8.ValidString(r.GetLyrics()) || strings.ContainsRune(r.GetPrompt()+r.GetLyrics(), 0) {
 		return bad(InvocationFailureInvalidRequest, "style prompt and lyrics are required")
 	}

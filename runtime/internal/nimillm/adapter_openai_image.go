@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"image/png"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -181,12 +180,8 @@ func writeOpenAIImagePart(writer *multipart.Writer, field string, filename strin
 // pngDimensions validates the complete PNG before exposing its dimensions.
 // Bound decoded pixel allocation separately from the HTTP body's byte limit.
 func pngDimensions(payload []byte) (int32, int32, bool) {
-	config, err := png.DecodeConfig(bytes.NewReader(payload))
-	if err != nil || config.Width <= 0 || config.Height <= 0 || config.Width > 1<<15 || config.Height > 1<<15 ||
-		int64(config.Width)*int64(config.Height) > 16<<20 {
-		return 0, 0, false
-	}
-	if _, err := png.Decode(bytes.NewReader(payload)); err != nil {
+	config, format, ok := decodedMediaImageConfig(payload)
+	if !ok || format != "png" {
 		return 0, 0, false
 	}
 	return int32(config.Width), int32(config.Height), true

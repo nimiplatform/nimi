@@ -209,6 +209,11 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 	}
 	if input.RecipeID == LlamaQwen3EmbedRecipeID {
 		processArgs = append(processArgs, "--pooling", "last", "--parallel", "1", "--cache-ram", "0")
+	} else {
+		// Non-causal embedding cannot split a sequence across microbatches.
+		// llama.cpp clamps ubatch to batch; both must cover its admitted context.
+		// Keep the causal Qwen recipe's existing bounded batch behavior.
+		processArgs = append(processArgs, "--batch-size", strconv.FormatUint(contextWindow, 10))
 	}
 	if portable.cacheTypeK != "" {
 		processArgs = append(processArgs, "--cache-type-k", portable.cacheTypeK)

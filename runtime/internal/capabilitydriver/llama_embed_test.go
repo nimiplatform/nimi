@@ -59,7 +59,7 @@ func TestLlamaEmbedDriverProjectsExactEmbeddingSlotAndPlan(t *testing.T) {
 	if !contains(plan.ProcessArgs(), "--embedding") {
 		t.Fatalf("embedding process args = %v", plan.ProcessArgs())
 	}
-	if !containsAdjacent(plan.ProcessArgs(), "--ubatch-size", "8192") {
+	if !containsAdjacent(plan.ProcessArgs(), "--batch-size", "8192") || !containsAdjacent(plan.ProcessArgs(), "--ubatch-size", "8192") {
 		t.Fatalf("embedding process physical batch does not cover the admitted context window: %v", plan.ProcessArgs())
 	}
 	var request map[string]any

@@ -1,13 +1,9 @@
 package nimillm
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
-	"image"
-	_ "image/jpeg"
-	_ "image/png"
 	"net/http"
 	"net/url"
 	"path"
@@ -300,9 +296,8 @@ func ExecuteGeminiImageGenerateContent(
 	if len(artifactBytes) == 0 {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	imageConfig, imageFormat, err := image.DecodeConfig(bytes.NewReader(artifactBytes))
-	if err != nil || imageConfig.Width <= 0 || imageConfig.Height <= 0 ||
-		int64(imageConfig.Width) >= 1<<31 || int64(imageConfig.Height) >= 1<<31 {
+	imageConfig, imageFormat, valid := decodedMediaImageConfig(artifactBytes)
+	if !valid {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	var mimeType string
@@ -325,7 +320,10 @@ func ExecuteGeminiImageGenerateContent(
 	artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 	artifact.Width = int32(imageConfig.Width)
 	artifact.Height = int32(imageConfig.Height)
-	usage := ArtifactUsage(prompt, artifactBytes, 180)
+	usage, err := geminiMediaUsage(responsePayload)
+	if err != nil {
+		return nil, nil, "", err
+	}
 	return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 }
 

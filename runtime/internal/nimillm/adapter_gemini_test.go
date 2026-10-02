@@ -228,8 +228,8 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 	if artifacts[0].GetWidth() != 3 || artifacts[0].GetHeight() != 2 {
 		t.Fatalf("artifact dimensions must come from image bytes, got=%dx%d", artifacts[0].GetWidth(), artifacts[0].GetHeight())
 	}
-	if usage == nil || usage.GetInputTokens() <= 0 {
-		t.Fatalf("expected usage stats, got=%v", usage)
+	if usage != nil {
+		t.Fatalf("response without usage acquired estimated stats: %v", usage)
 	}
 
 	contents, ok := captured["contents"].([]any)

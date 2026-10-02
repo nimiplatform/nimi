@@ -856,13 +856,32 @@ class SpeechServerTests(unittest.TestCase):
         finally:
             restore_env(runtime.DRIVER_TIMEOUT_MS_ENV, old)
 
+    def qwen_custom_voice_model_ref(self) -> str:
+        bundle = pathlib.Path(self._driver_work_root.name) / "VoiceDesign" / "models" / "resolved" / "model_custom"
+        bundle.mkdir(parents=True, exist_ok=True)
+        (bundle / "config.json").write_text(json.dumps({"model_type": "qwen3_tts", "tts_model_type": "custom_voice"}), encoding="utf-8")
+        return str(bundle)
+
+    def test_qwen3_tts_mode_uses_model_config_not_directory_names(self) -> None:
+        bundle = pathlib.Path(self.qwen_custom_voice_model_ref())
+        self.assertEqual(QWEN3_TTS_DRIVER.model_mode(str(bundle)), "custom")
+        for subtype, expected in [("base", "clone"), ("voice_design", "design")]:
+            (bundle / "config.json").write_text(json.dumps({"model_type": "qwen3_tts", "tts_model_type": subtype}), encoding="utf-8")
+            self.assertEqual(QWEN3_TTS_DRIVER.model_mode(str(bundle)), expected)
+        (bundle / "config.json").write_text(json.dumps({"model_type": "qwen3_tts", "tts_model_type": "unknown"}), encoding="utf-8")
+        with self.assertRaisesRegex(RuntimeError, "unsupported tts_model_type"):
+            QWEN3_TTS_DRIVER.model_mode(str(bundle))
+        (bundle / "config.json").unlink()
+        with self.assertRaisesRegex(RuntimeError, "configuration is unavailable"):
+            QWEN3_TTS_DRIVER.model_mode(str(bundle))
+
     def test_qwen3_tts_empty_voice_still_fails_without_first_run_probe(self) -> None:
         model = FakeQwen3TTSModel()
         with mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", return_value=model):
             with self.assertRaisesRegex(RuntimeError, "requires an explicit admitted voice_ref"):
                 QWEN3_TTS_DRIVER.handle_request(
                     {"operation": "audio.synthesize", "input": "hello"},
-                    "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+                    self.qwen_custom_voice_model_ref(),
                 )
 
     def test_qwen3_tts_first_run_probe_uses_model_supported_speaker(self) -> None:
@@ -875,7 +894,7 @@ class SpeechServerTests(unittest.TestCase):
                     "input": "hello",
                     "extensions": {"nimi_first_run_baseline_probe": True},
                 },
-                "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+                self.qwen_custom_voice_model_ref(),
             )
         self.assertEqual(response["audio_path"], "/tmp/out.wav")
         self.assertEqual(model.custom_voice_calls[0]["speaker"], "serena")
@@ -938,7 +957,7 @@ class SpeechServerTests(unittest.TestCase):
                     "input": long_text,
                     "voice": "serena",
                 },
-                "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+                self.qwen_custom_voice_model_ref(),
             )
 
         self.assertEqual(response["audio_path"], "/tmp/out.wav")

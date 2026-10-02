@@ -64,6 +64,9 @@ func TestYuE2ExactProfileAndNativeInputMapping(t *testing.T) {
 		func(v *MusicInvocationInput) { v.ExactBindings[0].VerifiedContentID = MiniMaxMusic3VerifiedContentID },
 		func(v *MusicInvocationInput) { v.Request.Instrumental = true },
 		func(v *MusicInvocationInput) { v.Request.NegativePrompt = "ignored" },
+		func(v *MusicInvocationInput) {
+			v.Request.VideoReference = &runtimev1.MusicVideoReference{ArtifactId: "owned-video"}
+		},
 		func(v *MusicInvocationInput) { v.Request.DurationSeconds = 601 },
 		func(v *MusicInvocationInput) { v.Request.Lyrics = strings.Repeat("a", 20000) },
 		func(v *MusicInvocationInput) { v.Extensions = []*runtimev1.ScenarioExtension{{}} },

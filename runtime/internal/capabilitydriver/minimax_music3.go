@@ -194,6 +194,9 @@ func miniMaxMusic3DeclaredFilesMatch(files []string) bool {
 	return strings.Join(actual, "\x00") == strings.Join(want, "\x00")
 }
 func validateMiniMaxMusic3Request(request *runtimev1.MusicGenerateScenarioSpec, extensions []*runtimev1.ScenarioExtension) error {
+	if request.GetVideoReference() != nil {
+		return invocationError(InvocationFailureUnsupported, fmt.Errorf("MiniMax-Music3 does not support video reference input"))
+	}
 	if request == nil || strings.TrimSpace(request.GetPrompt()) == "" || strings.TrimSpace(request.GetLyrics()) == "" {
 		return invocationError(InvocationFailureInvalidRequest, fmt.Errorf("MiniMax-Music3 prompt and lyrics are required"))
 	}

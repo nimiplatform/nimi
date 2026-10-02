@@ -572,13 +572,21 @@ def build_reference_audio_handle(request: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# @nimi-authority: rule.nimi.runtime.model-catalog.r030
 def model_mode(model_ref: str) -> str:
-    normalized = model_ref.strip().lower()
-    if "voicedesign" in normalized:
-        return "design"
-    if normalized.endswith("-base") or "tts-12hz-0.6b-base" in normalized or "tts-12hz-1.7b-base" in normalized:
-        return "clone"
-    return "custom"
+    # The managed directory may have any user-selected parent name. The
+    # captured model's own configuration supplies its synthesis semantics.
+    try:
+        config = json.loads((pathlib.Path(model_ref) / "config.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        fail(f"qwen3_tts model configuration is unavailable: {error}")
+    if not isinstance(config, dict) or config.get("model_type") != "qwen3_tts":
+        fail("qwen3_tts model configuration has an invalid model_type")
+    subtype = config.get("tts_model_type")
+    mode = {"custom_voice": "custom", "voice_design": "design", "base": "clone"}.get(subtype) if isinstance(subtype, str) else None
+    if mode is None:
+        fail("qwen3_tts model configuration has an unsupported tts_model_type")
+    return mode
 
 
 def synthesize_with_custom_voice(model: Any, request: dict[str, Any]) -> tuple[str, str]:
@@ -731,12 +739,11 @@ def handle_synthesize(request: dict[str, Any], cli_default_model: str) -> dict[s
     model_ref = resolve_model_ref(request, cli_default_model)
     voice = optional_string(request, "voice")
     handle_kind, handle_payload = decode_voice_handle(voice) if voice else ("", None)
-    mode = model_mode(model_ref)
     if handle_kind not in {"text_description", "reference_audio"}:
-        if mode != "custom":
-            fail(f"qwen3_tts plain synthesis requires a voice workflow handle for model_ref={model_ref}")
         if normalized_speaker(voice) in {"", "user-custom", "default"} and not first_run_baseline_probe_enabled(request):
             fail("qwen3_tts synthesis requires an explicit admitted voice_ref or voice workflow handle")
+        if model_mode(model_ref) != "custom":
+            fail("qwen3_tts plain synthesis requires a voice workflow handle for this model configuration")
     model = load_qwen_tts_model(model_ref)
     if handle_kind == "text_description" and handle_payload is not None:
         audio_path, content_type = synthesize_with_design_handle(model, request, handle_payload)

@@ -1,9 +1,7 @@
 package nimillm
 
 import (
-	"bytes"
 	"context"
-	"image/png"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -37,8 +35,8 @@ func executeDashscopeQwen3Image(ctx context.Context, baseURL, apiKey, model stri
 	if err != nil || len(imageBytes) == 0 {
 		return nil, nil, "", dashscopeQwen3ImageInvalidOutput("download")
 	}
-	configuration, err := png.DecodeConfig(bytes.NewReader(imageBytes))
-	if err != nil || configuration.Width <= 0 || configuration.Height <= 0 {
+	configuration, format, ok := decodedMediaImageConfig(imageBytes)
+	if !ok || format != "png" {
 		return nil, nil, "", dashscopeQwen3ImageInvalidOutput("png-decode")
 	}
 	if !dashscopeQwen3ImageGeometryAllowed(model, configuration.Width, configuration.Height) {
