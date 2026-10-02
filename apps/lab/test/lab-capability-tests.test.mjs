@@ -812,6 +812,8 @@ test('speech synthesis voice failures explain the prerequisite without naming a 
   for (const [reasonCode, key] of [
     ['AI_VOICE_INPUT_INVALID', 'voiceInputRequired'],
     ['AI_VOICE_TARGET_MODEL_MISMATCH', 'voiceTargetMismatch'],
+    ['AI_VOICE_ASSET_NOT_FOUND', 'voiceUnavailable'],
+    ['AI_VOICE_ASSET_EXPIRED', 'voiceUnavailable'],
   ]) {
     const diagnostics = { reasonCode };
     const message = studioNonSuccessReasonUserMessage('input-invalid', t, 'audio.synthesize', diagnostics);

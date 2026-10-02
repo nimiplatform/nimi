@@ -643,3 +643,20 @@ test('reopening history never presents a missing or altered annotation document 
   assert.match(byId['run-altered'].message, /verification failed/u);
   assert.deepEqual(projection.imageHistory, [], 'annotation documents are not media history rows');
 });
+
+
+test('voice preview shares saved history verification, compensation and asset deletion', async () => {
+  const preview = { relativePath: 'media/voice-create/preview.wav', mediaType: 'audio/wav', sizeBytes: 4844, sha256: `sha256:${'b'.repeat(64)}`, previewSource: 'managed-asset' };
+  const result = { ok: true, capabilityId: 'voice.create', output: { kind: 'voice-asset', preview } };
+  const removed = [];
+  const failed = await persistLabRunHistoryWithArtifactCompensation(result, async () => { throw new Error('history unavailable'); }, async (relativePath) => { removed.push(relativePath); });
+  assert.equal(failed.managedArtifactCleanup, 'completed');
+  assert.deepEqual(removed, [preview.relativePath]);
+  const record = { id: 'voice-run', capabilityId: 'voice.create', status: 'ready', createdAt: '2026-10-03T00:00:00Z', result: { ok: true, kind: 'voice-asset', jobId: 'voice-job', preview } };
+  const reopened = await reconcileLabManagedHistoryProjection({ 'voice.create': [record] }, [], async () => { throw new Error('preview missing'); });
+  assert.equal(reopened.runHistory['voice.create'][0].status, 'unavailable');
+  const { port, assetCalls } = managedHistoryPort({ runHistory: { 'voice.create': [record] }, imageHistory: [] });
+  const deleted = await deleteLabManagedHistoryRecord(port, record.id, true);
+  assert.equal(deleted.completed, 1);
+  assert.deepEqual(assetCalls, [preview.relativePath]);
+});

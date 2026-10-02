@@ -325,7 +325,7 @@ func TestVoicePublicationRestartReconcilesBeforePruningExpiredCompletedJob(t *te
 	}
 }
 
-func TestVoicePublicationRestartRemovesPendingWithoutCompletedPrimaryJob(t *testing.T) {
+func TestVoicePublicationRestartRetainsPrivateCleanupWithoutCompletedPrimaryJob(t *testing.T) {
 	for _, primaryState := range []string{"missing", "nonterminal"} {
 		t.Run(primaryState, func(t *testing.T) {
 			localStatePath := filepath.Join(t.TempDir(), "local-state.json")
@@ -353,8 +353,12 @@ func TestVoicePublicationRestartRemovesPendingWithoutCompletedPrimaryJob(t *test
 			reopened.mu.RLock()
 			assetCount, pendingCount := len(reopened.assets), len(reopened.pending)
 			reopened.mu.RUnlock()
-			if assetCount != 0 || pendingCount != 0 {
-				t.Fatalf("orphan pending VoiceAsset survived restart: assets=%d pending=%d", assetCount, pendingCount)
+			if assetCount != 1 || pendingCount != 1 {
+				t.Fatalf("known unpublished handle custody was lost: assets=%d pending=%d", assetCount, pendingCount)
+			}
+			private, target, binding, ok := reopened.unpublishedVoiceBinding(asset.GetVoiceAssetId())
+			if !ok || private.GetProviderVoiceRef() != asset.GetProviderVoiceRef() || private.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED || target == nil || binding == nil {
+				t.Fatalf("restart cleanup binding is incomplete: %+v", private)
 			}
 		})
 	}

@@ -314,6 +314,7 @@ func DoJSONRequestWithHeadersAndTimeout(
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var payload map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&payload)
+		observeProviderParameterFailure(ctx, response.StatusCode, payload)
 		return MapProviderHTTPError(response.StatusCode, payload)
 	}
 	if target == nil {

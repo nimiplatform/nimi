@@ -34,6 +34,8 @@ func DeleteProviderVoiceAdapter(ctx context.Context, adapter string, provider st
 		return deleteDashScopeVoice(ctx, "qwen-voice-enrollment", normalizedVoiceRef, cfg)
 	case "dashscope_qwen_design_voice_delete_adapter":
 		return deleteDashScopeVoice(ctx, "qwen-voice-design", normalizedVoiceRef, cfg)
+	case "gemini_voice_delete_adapter":
+		return deleteGeminiStoredVoice(ctx, normalizedVoiceRef, cfg)
 	default:
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
@@ -47,6 +49,8 @@ func voiceDeleteProviderForAdapter(adapter string) string {
 		return "fish_audio"
 	case "dashscope_voice_delete_adapter", "dashscope_qwen_clone_voice_delete_adapter", "dashscope_qwen_design_voice_delete_adapter":
 		return "dashscope"
+	case "gemini_voice_delete_adapter":
+		return "gemini"
 	default:
 		return ""
 	}

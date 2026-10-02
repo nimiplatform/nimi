@@ -154,8 +154,10 @@ function TextStudioShell({
   // A parameter-owned input reruns the displayed run's recorded request, which
   // stays valid however the current parameters have changed since.
   const displayedRunReplayable = useMemo(
-    () => !recordedInput || displayedRunPrompt === undefined || recordedInput.decode(displayedRunPrompt) !== null,
-    [displayedRunPrompt, recordedInput],
+    () => registration.parameters.restoreRecordedParameters
+      ? Boolean(displayedRun?.record?.runConfig?.target.params && registration.parameters.restoreRecordedParameters(displayedRun.record.runConfig.target.params))
+      : !recordedInput || displayedRunPrompt === undefined || recordedInput.decode(displayedRunPrompt) !== null,
+    [displayedRun, displayedRunPrompt, recordedInput, registration.parameters],
   );
 
   useEffect(() => {
@@ -199,6 +201,10 @@ function TextStudioShell({
   // Replaying a run whose input lives in its parameters rebuilds them from the
   // recorded request instead of reading the current parameters.
   function runParametersFor(replayedInput: string | null): StudioParameterValue | null {
+    if (replayedInput !== null && registration.parameters.restoreRecordedParameters) {
+      const saved = displayedRun?.record?.runConfig?.target.params;
+      return saved ? registration.parameters.restoreRecordedParameters(saved) : null;
+    }
     if (replayedInput === null || !recordedInput) return capabilityParameters;
     const restored = recordedInput.decode(replayedInput);
     return restored ? { ...capabilityParameters, ...restored } : null;
@@ -212,7 +218,9 @@ function TextStudioShell({
     const attachmentCount = supportsMedia ? (replayTextMedia ? (savedTextMedia ? 1 : displayedAttachmentCount) : runAttachments.length) : 0;
     const runParameters = runParametersFor(replay ? nextPrompt : null);
     if (!runParameters) return;
-    const runEffectiveParameters = registration.parameters.project(runTarget.source, runParameters);
+    const runEffectiveParameters = replay && registration.parameters.restoreRecordedParameters
+      ? runParameters
+      : registration.parameters.project(runTarget.source, runParameters);
     const runHasAlternativeInput = registration.parameters.hasAlternativeInput(runParameters);
     // Raw document inputs retain their original whitespace so annotation
     // offsets refer to the exact text the user entered. A parameter-owned input
@@ -390,6 +398,12 @@ function TextStudioShell({
   }
 
   function useHistoryRunAsDraft(record: StudioRunHistoryRecord) {
+    if (registration.parameters.restoreRecordedParameters) {
+      const snapshot = record.runConfig?.target.params;
+      const restored = snapshot ? registration.parameters.restoreRecordedParameters(snapshot) : null;
+      if (!restored || !parameterStore) return;
+      parameterStore.setParameters(capability.id, restored);
+    }
     if (recordedInput) {
       const restored = recordedInput.decode(record.prompt);
       if (!restored || !parameterStore) return;

@@ -46,6 +46,7 @@ type MediaHost interface {
 	StreamSpeech(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudMediaMappedRequest, func(capabilitydriver.CloudMediaStreamChunk) error, MediaDispatchAudit) (capabilitydriver.CloudMediaTransportResponse, error)
 	ExecuteVoiceWorkflow(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceWorkflowMappedRequest, MediaDispatchAudit) (capabilitydriver.CloudVoiceWorkflowTransportResponse, error)
 	DeleteVoiceAsset(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceDeleteMappedRequest, MediaDispatchAudit) error
+	InspectVoiceAsset(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceInspectionMappedRequest, MediaDispatchAudit) (capabilitydriver.CloudVoiceWorkflowTransportResponse, bool, error)
 }
 
 // ProviderMediaHost transports existing nimillm provider dialects. Its
@@ -219,20 +220,25 @@ func (h *ProviderMediaHost) ExecuteVoiceWorkflow(
 		Headers:               cloneRemoteHeaders(remoteTarget.Headers),
 		AllowLoopbackEndpoint: remoteTarget.AllowLoopback,
 	})
+	response := capabilitydriver.CloudVoiceWorkflowTransportResponse{
+		ProviderVoiceRef: result.ProviderVoiceRef, PreviewAudio: append([]byte(nil), result.PreviewAudio...),
+		PreviewMime: result.PreviewMime, Usage: result.Usage,
+	}
+	if !result.ExpiresAt.IsZero() {
+		response.ExpiresAt = timestamppb.New(result.ExpiresAt)
+	}
 	if err != nil {
-		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
+		return response, h.auditedError(audit, dispatchExit(ctx, "error"), err)
 	}
 	metadata, metadataErr := structpb.NewStruct(result.Metadata)
 	if metadataErr != nil {
-		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, h.auditedError(audit, "error", grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, metadataErr, grpcerr.ReasonOptions{}))
+		return response, h.auditedError(audit, "error", grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, metadataErr, grpcerr.ReasonOptions{}))
 	}
 	if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
-		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, err
+		return response, err
 	}
-	return capabilitydriver.CloudVoiceWorkflowTransportResponse{
-		ProviderVoiceRef: result.ProviderVoiceRef,
-		Metadata:         metadata,
-	}, nil
+	response.Metadata = metadata
+	return response, nil
 }
 
 func cloneRemoteHeaders(input map[string]string) map[string]string {

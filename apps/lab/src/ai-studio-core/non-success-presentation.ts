@@ -51,6 +51,7 @@ const MEDIA_CODEC_UNAVAILABLE_REASON_CODE = 'AI_MEDIA_CODEC_UNAVAILABLE';
 const LOCAL_LOAD_FAILED_REASON_CODE = 'AI_LOCAL_EXECUTION_LOAD_FAILED';
 const VOICE_INPUT_INVALID_REASON_CODE = 'AI_VOICE_INPUT_INVALID';
 const VOICE_TARGET_MISMATCH_REASON_CODE = 'AI_VOICE_TARGET_MODEL_MISMATCH';
+const UNAVAILABLE_VOICE_REASON_CODES: ReadonlySet<string> = new Set(['AI_VOICE_ASSET_NOT_FOUND', 'AI_VOICE_ASSET_EXPIRED']);
 // The cloud service refused the request under its rate or usage limit, which
 // for a ChatGPT plan Connector is the plan's usage limit for this app.
 const PROVIDER_RATE_LIMITED_REASON_CODE = 'AI_PROVIDER_RATE_LIMITED';
@@ -77,6 +78,7 @@ export function studioNonSuccessNeedsTargetReselection(diagnostics?: StudioNonSu
 }
 
 export function studioNonSuccessReasonUserMessage(reason: string, translate: StudioTranslate, capabilityId?: string, diagnostics?: StudioNonSuccessDiagnostics, appInputMessage?: string): string {
+  if (capabilityId === 'audio.synthesize' && diagnostics && UNAVAILABLE_VOICE_REASON_CODES.has(diagnostics.reasonCode)) return translate('NonSuccess.message.voiceUnavailable');
   if (reason === 'input-invalid' && capabilityId === 'video.generate' && !diagnostics && appInputMessage) return appInputMessage;
   if (reason === 'input-invalid' && capabilityId === 'audio.transcribe') return translate('NonSuccess.message.transcriptionInputInvalid');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_INPUT_INVALID_REASON_CODE) return translate('NonSuccess.message.voiceInputRequired');
@@ -99,6 +101,7 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
 }
 
 export function studioNonSuccessReasonUserAction(reason: string, translate: StudioTranslate, capabilityId?: string, diagnostics?: StudioNonSuccessDiagnostics): string {
+  if (capabilityId === 'audio.synthesize' && diagnostics && UNAVAILABLE_VOICE_REASON_CODES.has(diagnostics.reasonCode)) return translate('NonSuccess.action.voiceUnavailable');
   if (reason === 'input-invalid' && capabilityId === 'audio.transcribe') return translate('NonSuccess.action.transcriptionInputInvalid');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_INPUT_INVALID_REASON_CODE) return translate('NonSuccess.action.voiceInputRequired');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_TARGET_MISMATCH_REASON_CODE) return translate('NonSuccess.action.voiceTargetMismatch');

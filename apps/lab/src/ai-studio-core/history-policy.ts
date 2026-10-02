@@ -462,6 +462,10 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
     return;
   }
   if (kind === 'voice-asset') {
+    if (value.preview !== undefined) validateManagedArtifact(value.preview, `${path}.preview`);
+    optionalString(value.expiresAt, `${path}.expiresAt`);
+    optionalNonNegativeNumber(value.inputTokens, `${path}.inputTokens`);
+    optionalNonNegativeNumber(value.outputTokens, `${path}.outputTokens`);
     requiredString(value.jobId, `${path}.jobId`);
     requiredString(value.jobState, `${path}.jobState`);
     requiredString(value.voiceAssetId, `${path}.voiceAssetId`);
@@ -670,6 +674,7 @@ export function studioHistoryArtifactPaths(record: StudioRunHistoryRecord): stri
   const result = record.result;
   if (!result || result.ok === false) return [];
   if (result.kind === 'text-annotation') return studioHistoryDocumentPaths(record);
+  if (result.kind === 'voice-asset') return result.preview ? [result.preview.relativePath] : [];
   if (result.kind !== 'artifacts') return [];
   const artifacts = result.artifacts?.length ? result.artifacts : result.firstArtifact ? [result.firstArtifact] : [];
   return artifacts.map((artifact) => artifact.relativePath).filter(Boolean);
@@ -682,7 +687,9 @@ export function studioHistoryArtifactPaths(record: StudioRunHistoryRecord): stri
  */
 export function studioHistoryDocumentPaths(record: StudioRunHistoryRecord): string[] {
   const result = record.result;
-  if (!result || result.ok === false || result.kind !== 'text-annotation') return [];
+  if (!result || result.ok === false) return [];
+  if (result.kind === 'voice-asset') return result.preview ? [result.preview.relativePath] : [];
+  if (result.kind !== 'text-annotation') return [];
   return result.document.relativePath ? [result.document.relativePath] : [];
 }
 

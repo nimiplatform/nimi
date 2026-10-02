@@ -147,6 +147,10 @@ func (*controlledRemoteMediaHost) DeleteVoiceAsset(context.Context, connector.Co
 	return context.Canceled
 }
 
+func (*controlledRemoteMediaHost) InspectVoiceAsset(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceInspectionMappedRequest, remoteexecution.MediaDispatchAudit) (capabilitydriver.CloudVoiceWorkflowTransportResponse, bool, error) {
+	return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, false, context.Canceled
+}
+
 func TestCloudMediaJobCapturesCurrentAccountConnector(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
 	host := newControlledRemoteMediaHost(false)

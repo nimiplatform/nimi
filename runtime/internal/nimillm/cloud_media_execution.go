@@ -62,6 +62,8 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		artifacts, usage, providerJobID, err = ExecuteGeminiOperation(ctx, cfg, updater, privateJobID, request, modelID, mediaExecutionExtensions)
 	case "gemini_tts_generate_content_adapter":
 		artifacts, usage, providerJobID, err = ExecuteGeminiTTSGenerateContent(ctx, cfg, request, modelID)
+	case "gemini_tts_interactions_adapter":
+		artifacts, usage, providerJobID, err = ExecuteGeminiTTSInteractions(ctx, cfg, request, modelID)
 	case "gemini_interactions_transcribe_adapter":
 		artifacts, usage, providerJobID, err = ExecuteGeminiInteractionsTranscribe(ctx, cfg, request, modelID)
 	case "gemini_lyria_clip_generate_content_adapter":

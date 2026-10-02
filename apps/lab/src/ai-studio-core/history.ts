@@ -115,6 +115,10 @@ export type StudioRunHistoryResultSnapshot =
       voiceAssetId: string;
       creationSource: 'reference-audio' | 'text-description';
       assetStatus: string;
+      preview?: StudioManagedArtifact;
+      expiresAt?: string;
+      inputTokens?: number;
+      outputTokens?: number;
       traceId?: string;
     }
   | {
@@ -276,6 +280,10 @@ export async function projectStudioManagedHistory(input: {
           });
           projectedIDs.add(id);
         }
+      }
+      if (result?.ok === true && result.kind === 'voice-asset' && result.preview) {
+        const verification = await verifyStudioManagedArtifact(input.statArtifact, result.preview, record);
+        if (verification.status === 'unavailable') unavailableReason = verification.message;
       }
       if (result?.ok === true && result.kind === 'text-annotation') {
         // The saved document is the only complete result; reopening never
@@ -665,6 +673,10 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
       voiceAssetId: output.voiceAssetId,
       creationSource: output.creationSource,
       assetStatus: output.assetStatus,
+      ...(output.preview ? { preview: { ...output.preview } } : {}),
+      ...(output.expiresAt ? { expiresAt: output.expiresAt } : {}),
+      ...(output.inputTokens !== undefined ? { inputTokens: output.inputTokens } : {}),
+      ...(output.outputTokens !== undefined ? { outputTokens: output.outputTokens } : {}),
       ...trace,
     };
   }
@@ -832,6 +844,10 @@ export function restoreStudioCapabilityRunResult(
         voiceAssetId: snapshot.voiceAssetId,
         creationSource: snapshot.creationSource,
         assetStatus: snapshot.assetStatus,
+        ...(snapshot.preview ? { preview: { ...snapshot.preview } } : {}),
+        ...(snapshot.expiresAt ? { expiresAt: snapshot.expiresAt } : {}),
+        ...(snapshot.inputTokens !== undefined ? { inputTokens: snapshot.inputTokens } : {}),
+        ...(snapshot.outputTokens !== undefined ? { outputTokens: snapshot.outputTokens } : {}),
         voiceReference: { kind: 'voice_asset_id', voiceAssetId: snapshot.voiceAssetId },
       },
     };

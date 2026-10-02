@@ -12,6 +12,7 @@ import { listLabVoiceAssets } from '../../ai-studio-core/voice-assets.js';
 import {
   createStudioScenarioJobClient,
   projectStudioArtifactRunnerResult,
+  managedStudioAssetPath,
   projectStudioRunnerNonSuccess,
   type StudioCapabilityRuntimeContext,
 } from '../../ai-studio-core/runtime.js';
@@ -217,6 +218,19 @@ async function runVoiceCreate(context: StudioCapabilityRuntimeContext) {
   if (!listedAsset || listedAsset.status !== 'active' || listedAsset.creationSource !== creationSource) {
     throw new Error('Completed voice.create did not project its ACTIVE VoiceAsset through the protected owner catalog.');
   }
+  if (terminalResult.artifacts.length > 1) throw new Error('Voice creation returned multiple preview artifacts.');
+  const sourcePreview = terminalResult.artifacts[0];
+  let preview;
+  if (sourcePreview) {
+    if (!sourcePreview.artifactId || !sourcePreview.mimeType.startsWith('audio/') || Number(sourcePreview.sizeBytes) <= 0) throw new Error('Voice preview artifact metadata is invalid.');
+    const adopted = await context.host.client.storage.assets.adoptArtifact({ artifactId: sourcePreview.artifactId, relativePath: await managedStudioAssetPath(context.capability.id, terminalJob.jobId, 0), overwrite: false });
+    if (adopted.mediaType !== sourcePreview.mimeType || adopted.sizeBytes !== Number(sourcePreview.sizeBytes)) {
+      await context.host.client.storage.assets.remove(adopted.relativePath);
+      throw new Error('Saved voice preview does not match its Runtime artifact.');
+    }
+    preview = { relativePath: adopted.relativePath, mediaType: adopted.mediaType, sizeBytes: adopted.sizeBytes, sha256: adopted.sha256, displayName: context.capability.label, previewSource: 'managed-asset' as const };
+  }
+  const expires = listedAsset.expiresAt;
   return {
     ok: true as const,
     capabilityId: context.capability.id,
@@ -229,6 +243,9 @@ async function runVoiceCreate(context: StudioCapabilityRuntimeContext) {
       voiceAssetId: listedAsset.voiceAssetId,
       creationSource: listedAsset.creationSource,
       assetStatus: listedAsset.status,
+      ...(preview ? { preview } : {}),
+      ...(expires ? { expiresAt: new Date(Number(expires.seconds) * 1000 + expires.nanos / 1e6).toISOString() } : {}),
+      ...(terminalJob.usage ? { inputTokens: Number(terminalJob.usage.inputTokens), outputTokens: Number(terminalJob.usage.outputTokens) } : {}),
       voiceReference: { kind: 'voice_asset_id' as const, voiceAssetId: resultAsset.voiceAssetId },
     },
     ...(terminalJob.traceId ? { trace: { traceId: terminalJob.traceId } } : {}),

@@ -67,7 +67,8 @@ func shouldStripInlineBinaryArtifactBytes(
 
 func scenarioResponseBinaryArtifactsByID(scenarioType runtimev1.ScenarioType) bool {
 	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:

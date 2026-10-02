@@ -318,7 +318,7 @@ units:
     kind: rule
     title: Voice asset policies gate activation
     modality: must
-    statement: A provider capable of producing reusable voice assets declares Runtime-owned retention, scope, deletion, and reconciliation policy, and remains unavailable until those owner policies are admitted.
+    statement: A provider capable of producing reusable voice assets declares Runtime-owned retention, scope, deletion, and reconciliation policy, and remains unavailable until those owner policies are admitted. A provider-reported expiry is retained as expires_at and refreshed from the captured provider resource binding before reuse; only a confirmed missing resource or an actual provider-reported elapsed expiry establishes expiration, while unavailable or malformed inspection preserves the last known facts and fails dependent reuse. Runtime retains known unpublished provider handles privately for bounded cleanup and restart reconciliation without exposing a failed VoiceAsset, and a durable COMPLETED primary Job protects its successfully published handle even when projection promotion fails. Optional preview audio uses ordinary owned ScenarioJob artifacts and shares terminal success publication rather than embedding provider URLs or base64 audio in ordinary asset metadata. Voice workflow usage retains only actual provider reports, including zero, and omission remains unspecified.
     condition: Whenever a voice-asset-capable provider or family is declared or admitted.
     failure: Deny activation and admission until the handle policy is declared.
     relations:

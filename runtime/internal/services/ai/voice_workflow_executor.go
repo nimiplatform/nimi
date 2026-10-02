@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
@@ -13,7 +14,9 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // voiceWorkflowExecutionResult captures the output from a voice workflow adapter.
@@ -155,10 +158,28 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 	} else if !ok {
 		return
 	}
+	binding := &voiceAssetCloudBinding{
+		CapabilityContract: effective.target.CapabilityContract(), Implementation: effective.implementation,
+		ProviderModelTarget: effective.rawTarget, ConnectorID: effective.connector.ConnectorID,
+	}
 	result, err := s.executeCapturedCloudVoiceWorkflow(ctx, effective)
+	if result.ProviderVoiceRef != "" && assetDraft.GetPersistence() == runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
+		defer s.cleanupUnpublishedVoiceResult(ctx, jobID, assetDraft, effective.voiceTarget, binding, result.ProviderVoiceRef)
+		if stageErr := s.voiceAssets.stageKnownVoiceResult(assetDraft, effective.voiceTarget, binding, result.ProviderVoiceRef); stageErr != nil {
+			s.finishVoiceWorkflowJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+			return
+		}
+	}
 	if err != nil {
 		s.finishVoiceWorkflowJobFailure(ctx, jobID, err)
 		return
+	}
+	if result.ExpiresAt != nil {
+		if result.ExpiresAt.CheckValid() != nil || !result.ExpiresAt.AsTime().After(time.Now().UTC()) {
+			s.finishVoiceWorkflowJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+			return
+		}
+		assetDraft.ExpiresAt = proto.Clone(result.ExpiresAt).(*timestamppb.Timestamp)
 	}
 	if result.Metadata == nil {
 		result.Metadata = map[string]any{}
@@ -189,9 +210,26 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 	}
 	// Provider polling identities remain private to Remote Host. The public
 	// workflow state machine is keyed only by the Runtime voice job id.
-	binding := &voiceAssetCloudBinding{
-		CapabilityContract: effective.target.CapabilityContract(), Implementation: effective.implementation,
-		ProviderModelTarget: effective.rawTarget, ConnectorID: effective.connector.ConnectorID,
+	var previewArtifacts []*runtimev1.ScenarioArtifact
+	var previewIDs []string
+	if len(result.PreviewAudio) > 0 {
+		preview := nimillm.BinaryArtifact(result.PreviewMime, result.PreviewAudio, nil)
+		previewArtifacts, err = bindRuntimeJobArtifacts(jobID, job.GetHead(), []*runtimev1.ScenarioArtifact{preview})
+		if err == nil {
+			previewIDs, err = s.storeRuntimeJobArtifacts(ctx, jobID, job.GetHead(), previewArtifacts, nil)
+		}
+		if err != nil {
+			s.finishVoiceWorkflowJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+			return
+		}
+		defer func() {
+			if _, _, ok := s.scenarioJobs.completedVoiceResult(assetDraft.GetVoiceAssetId()); ok {
+				return
+			}
+			for _, id := range previewIDs {
+				s.deleteRuntimeArtifactCandidate(id, "voice terminal publication failed")
+			}
+		}()
 	}
 	var transitionErr error
 	_, published := s.voiceAssets.publishResult(assetDraft, effective.voiceTarget, binding, result.ProviderVoiceRef, result.Metadata, func(asset *runtimev1.VoiceAsset, reference *runtimev1.VoiceReference) bool {
@@ -201,6 +239,7 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 			job.ReasonDetail = ""
 			job.ReasonMetadata = nil
 			job.Usage = result.Usage
+			job.Artifacts = cloneScenarioArtifacts(previewArtifacts)
 			job.ProgressPercent = 100
 		})
 		transitionErr = err
@@ -356,6 +395,9 @@ func validateVoiceWorkflowRequestAgainstMetadata(
 		if voiceWorkflowFieldModeRequired(options.PreviewTextMode) && strings.TrimSpace(input.GetPreviewText()) == "" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
+		if (options.InstructionTextMode == "unsupported" && strings.TrimSpace(input.GetInstructionText()) != "") || (options.PreviewTextMode == "unsupported" && strings.TrimSpace(input.GetPreviewText()) != "") {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
 	}
 	return nil
 }
@@ -375,50 +417,6 @@ func validateVoiceWorkflowReferenceAudioMIME(mimeType string, allowed []string) 
 
 func voiceWorkflowFieldModeRequired(mode string) bool {
 	return strings.EqualFold(strings.TrimSpace(mode), "required")
-}
-
-func estimateVoiceWorkflowUsage(req *runtimev1.SubmitScenarioJobRequest) *runtimev1.UsageStats {
-	if req == nil || req.GetSpec() == nil {
-		return nil
-	}
-	inputTokens := int64(0)
-	creation := req.GetSpec().GetVoiceCreate()
-	if creation == nil {
-		return nil
-	}
-	switch source := creation.GetSource().(type) {
-	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
-		if source.ReferenceAudio != nil {
-			input := source.ReferenceAudio
-			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetReferenceAudioUri()))
-			inputTokens += int64(len(input.GetReferenceAudioBytes()) / 256)
-			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetText()))
-			for _, hint := range input.GetLanguageHints() {
-				inputTokens += nimillm.EstimateTokens(strings.TrimSpace(hint))
-			}
-		}
-	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
-		if source.TextDescription != nil {
-			input := source.TextDescription
-			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetInstructionText()))
-			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetPreviewText()))
-			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetLanguage()))
-		}
-	}
-	if inputTokens <= 0 {
-		inputTokens = 1
-	}
-	computeMs := int64(50)
-	if inputTokens < 25 {
-		computeMs += inputTokens
-	} else {
-		computeMs += 25
-	}
-	return &runtimev1.UsageStats{
-		InputTokens:  inputTokens,
-		OutputTokens: 1,
-		ComputeMs:    computeMs,
-	}
 }
 
 func voiceWorkflowInputSummary(req *runtimev1.SubmitScenarioJobRequest) string {

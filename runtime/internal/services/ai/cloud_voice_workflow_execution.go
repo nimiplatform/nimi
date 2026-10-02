@@ -369,15 +369,15 @@ func (s *Service) executeCapturedCloudVoiceWorkflow(ctx context.Context, effecti
 		return capabilitydriver.CloudVoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	response, err := s.remoteMediaHost.ExecuteVoiceWorkflow(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
+	// Known created handles stay private even when a later adapter, audit or
+	// normalization check fails; the publication owner must decide cleanup.
+	known := capabilitydriver.CloudVoiceWorkflowResult{ProviderVoiceRef: response.ProviderVoiceRef}
 	if err != nil {
-		return capabilitydriver.CloudVoiceWorkflowResult{}, effective.driver.NormalizeReason(effective.target, err)
+		return known, effective.driver.NormalizeReason(effective.target, err)
 	}
 	result, err := effective.driver.NormalizeVoiceWorkflowResponse(response)
 	if err != nil {
-		return capabilitydriver.CloudVoiceWorkflowResult{}, cloudMediaDriverError(effective.target.CapabilityContract(), err)
-	}
-	if result.Usage == nil {
-		result.Usage = estimateVoiceWorkflowUsage(effective.request)
+		return known, cloudMediaDriverError(effective.target.CapabilityContract(), err)
 	}
 	return result, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -25,6 +26,10 @@ type VoiceWorkflowResult struct {
 	ProviderJobID    string
 	ProviderVoiceRef string
 	Metadata         map[string]any
+	ExpiresAt        time.Time
+	PreviewAudio     []byte
+	PreviewMime      string
+	Usage            *runtimev1.UsageStats
 }
 
 // ExecuteVoiceWorkflowAdapter dispatches one exact Driver-selected voice
@@ -47,6 +52,8 @@ func ExecuteVoiceWorkflowAdapter(ctx context.Context, adapter string, req VoiceW
 		return executeMimoVoiceWorkflow(ctx, req, cfg)
 	case "stepfun_voice_workflow_adapter":
 		return executeStepFunVoiceWorkflow(ctx, req, cfg)
+	case "gemini_voice_workflow_adapter":
+		return executeGeminiVoiceWorkflow(ctx, req, cfg)
 	default:
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
@@ -64,6 +71,8 @@ func voiceWorkflowProviderForAdapter(adapter string) string {
 		return "mimo"
 	case "stepfun_voice_workflow_adapter":
 		return "stepfun"
+	case "gemini_voice_workflow_adapter":
+		return "gemini"
 	default:
 		return ""
 	}

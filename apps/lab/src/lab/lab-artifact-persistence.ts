@@ -3,6 +3,7 @@ export type LabArtifactPersistenceCandidate = {
   capabilityId: string;
   output?: {
     kind?: string;
+    preview?: { readonly relativePath: string };
     artifactCount?: number;
     firstArtifact?: {
       relativePath?: string;
@@ -70,6 +71,7 @@ export function labRunOwnedAssetPaths(result: LabArtifactPersistenceCandidate): 
     )];
   }
   const documentPath = result.ok && result.output?.kind === 'text-annotation' ? result.output.document?.relativePath : undefined;
+  if (result.ok && result.output?.kind === 'voice-asset' && result.output.preview) return [result.output.preview.relativePath];
   return documentPath ? [documentPath] : [];
 }
 

@@ -54,6 +54,6 @@ func executeVoiceWorkflowViaNimillm(
 	}
 	return voiceWorkflowExecutionResult{
 		ProviderJobID: result.ProviderJobID, ProviderVoiceRef: result.ProviderVoiceRef,
-		Metadata: result.Metadata, Usage: estimateVoiceWorkflowUsage(req),
+		Metadata: result.Metadata, Usage: result.Usage,
 	}, nil
 }

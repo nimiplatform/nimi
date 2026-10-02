@@ -47,12 +47,13 @@ func (b *voiceAssetCloudBinding) Valid() bool {
 }
 
 type voiceAssetStore struct {
-	mu            sync.RWMutex
-	assets        map[string]*runtimev1.VoiceAsset
-	targets       map[string]*runtimeidentity.Target
-	cloudBindings map[string]*voiceAssetCloudBinding
-	pending       map[string]bool
-	durablePath   string
+	mu             sync.RWMutex
+	assets         map[string]*runtimev1.VoiceAsset
+	targets        map[string]*runtimeidentity.Target
+	cloudBindings  map[string]*voiceAssetCloudBinding
+	pending        map[string]bool
+	deleteInFlight map[string]bool
+	durablePath    string
 }
 
 type voiceAssetDeleteResult struct {
@@ -70,10 +71,11 @@ type voiceAssetDeleteResult struct {
 
 func newVoiceAssetStore() *voiceAssetStore {
 	return &voiceAssetStore{
-		assets:        make(map[string]*runtimev1.VoiceAsset),
-		targets:       make(map[string]*runtimeidentity.Target),
-		cloudBindings: make(map[string]*voiceAssetCloudBinding),
-		pending:       make(map[string]bool),
+		assets:         make(map[string]*runtimev1.VoiceAsset),
+		targets:        make(map[string]*runtimeidentity.Target),
+		cloudBindings:  make(map[string]*voiceAssetCloudBinding),
+		pending:        make(map[string]bool),
+		deleteInFlight: make(map[string]bool),
 	}
 }
 

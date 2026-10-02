@@ -58,6 +58,18 @@ const LOCAL_TEXT_CLOUD_CONFIGURABLE = Object.freeze({
 // Runtime validates the exact voice, format, language and timing request.
 export const studioSpeechSynthesizeParameters = defineStudioParameters<StudioSpeechSynthesizeParameters>({
   initial: () => ({}),
+  restoreRecordedParameters: (snapshot) => {
+    const strings = new Set(['voiceKind', 'voicePreset', 'voiceAssetId', 'language', 'audioFormat', 'emotion', 'timingMode']);
+    const numbers = new Set(['sampleRateHz', 'speed', 'pitch', 'volume']);
+    for (const [key, value] of Object.entries(snapshot)) {
+      if (strings.has(key)) { if (typeof value !== 'string') return null; }
+      else if (numbers.has(key)) { if (typeof value !== 'number' || !Number.isFinite(value)) return null; }
+      else return null;
+    }
+    if (snapshot.voiceKind !== undefined && snapshot.voiceKind !== 'preset' && snapshot.voiceKind !== 'asset') return null;
+    if (snapshot.timingMode !== undefined && !['unspecified', 'none', 'word', 'char'].includes(String(snapshot.timingMode))) return null;
+    return { ...snapshot } as StudioSpeechSynthesizeParameters;
+  },
   routeMatrix: {
     voiceKind: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     voicePreset: LOCAL_AND_CLOUD_STUDIO_PARAMETER,

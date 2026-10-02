@@ -82,7 +82,8 @@ func (s *voiceAssetStore) publishResult(
 	reference := voiceAssetReference(id)
 
 	s.mu.Lock()
-	if s.assets[id] != nil {
+	staged := s.pending[id] && sameStagedVoiceResult(s.assets[id], draft, target, s.targets[id], binding, s.cloudBindings[id], providerVoiceRef)
+	if s.assets[id] != nil && !staged {
 		s.mu.Unlock()
 		return nil, false
 	}
@@ -92,19 +93,30 @@ func (s *voiceAssetStore) publishResult(
 		s.cloudBindings[id] = binding.Clone()
 		s.pending[id] = true
 		if err := s.persistDurableAssetsLocked(); err != nil {
-			delete(s.assets, id)
-			delete(s.targets, id)
-			delete(s.cloudBindings, id)
-			delete(s.pending, id)
+			if staged {
+				s.assets[id] = cloneVoiceAsset(draft)
+				s.assets[id].ProviderVoiceRef = providerVoiceRef
+			} else {
+				delete(s.assets, id)
+				delete(s.targets, id)
+				delete(s.cloudBindings, id)
+				delete(s.pending, id)
+			}
 			s.mu.Unlock()
 			return nil, false
 		}
 	}
 	if !commit(asset, reference) {
-		delete(s.assets, id)
-		delete(s.targets, id)
-		delete(s.cloudBindings, id)
-		delete(s.pending, id)
+		if staged {
+			s.assets[id] = cloneVoiceAsset(draft)
+			s.assets[id].ProviderVoiceRef = providerVoiceRef
+			s.assets[id].Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_UNSPECIFIED
+		} else {
+			delete(s.assets, id)
+			delete(s.targets, id)
+			delete(s.cloudBindings, id)
+			delete(s.pending, id)
+		}
 		if persistent {
 			_ = s.persistDurableAssetsLocked()
 		}
@@ -175,28 +187,33 @@ func (s *voiceAssetStore) listAssets(req *runtimev1.ListVoiceAssetsRequest) []*r
 	return items
 }
 
-func (s *voiceAssetStore) deleteAsset(voiceAssetID string) bool {
-	return s.deleteAssetWithResult(voiceAssetID, voiceAssetDeleteResult{})
-}
-
-func (s *voiceAssetStore) deleteAssetWithResult(voiceAssetID string, result voiceAssetDeleteResult) bool {
+func (s *voiceAssetStore) deleteAssetWithResult(voiceAssetID string, result voiceAssetDeleteResult) (bool, error) {
 	id := strings.TrimSpace(voiceAssetID)
 	if id == "" {
-		return false
+		return false, nil
 	}
 	s.mu.Lock()
 	asset, ok := s.assets[id]
-	if !ok || s.pending[id] {
+	if !ok || asset == nil || s.pending[id] {
 		s.mu.Unlock()
-		return false
+		return false, nil
 	}
-	asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED
-	nowTime := time.Now().UTC()
-	asset.UpdatedAt = timestamppb.New(nowTime)
-	applyVoiceAssetDeleteResultMetadata(asset, result, nowTime)
-	_ = s.persistDurableAssetsLocked()
+	if asset.GetMetadata().GetFields()["provider_delete_succeeded"].GetBoolValue() && !result.Succeeded {
+		err := s.persistDurableAssetsLocked()
+		s.mu.Unlock()
+		return true, err
+	}
+	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED || result.Attempted {
+		asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED
+		nowTime := time.Now().UTC()
+		asset.UpdatedAt = timestamppb.New(nowTime)
+		applyVoiceAssetDeleteResultMetadata(asset, result, nowTime)
+	}
+	// Retain the actual upstream outcome in memory if storage fails, so an
+	// explicit retry can finish this commit without deleting the voice twice.
+	err := s.persistDurableAssetsLocked()
 	s.mu.Unlock()
-	return true
+	return true, err
 }
 
 func (s *voiceAssetStore) updateAssetDeleteResult(voiceAssetID string, result voiceAssetDeleteResult) bool {
@@ -209,6 +226,10 @@ func (s *voiceAssetStore) updateAssetDeleteResult(voiceAssetID string, result vo
 	if !ok || s.pending[id] || asset == nil {
 		s.mu.Unlock()
 		return false
+	}
+	if asset.GetMetadata().GetFields()["provider_delete_succeeded"].GetBoolValue() && !result.Succeeded {
+		s.mu.Unlock()
+		return true
 	}
 	nowTime := time.Now().UTC()
 	asset.UpdatedAt = timestamppb.New(nowTime)
@@ -228,6 +249,10 @@ func (s *voiceAssetStore) updateDeletedAssetReconciliationResult(voiceAssetID st
 	if !ok || s.pending[id] || asset == nil || asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 		s.mu.Unlock()
 		return false
+	}
+	if asset.GetMetadata().GetFields()["provider_delete_succeeded"].GetBoolValue() && !result.Succeeded {
+		s.mu.Unlock()
+		return true
 	}
 	nowTime := time.Now().UTC()
 	asset.UpdatedAt = timestamppb.New(nowTime)

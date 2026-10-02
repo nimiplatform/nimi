@@ -56,14 +56,18 @@ func TestVoiceWorkflowProviderFamilyFlagsDoNotOverclaim(t *testing.T) {
 			wantTTS:                  true,
 			wantVoiceReferenceAudio:  true,
 			wantVoiceTextDescription: true,
-			coverageInvariant:        "provider-extension registry admits both voice creation sources",
+			coverageInvariant:        "reviewed catalog bindings admit both voice creation sources",
 		},
 		{
 			provider:                 "elevenlabs",
 			wantTTS:                  true,
 			wantVoiceReferenceAudio:  true,
 			wantVoiceTextDescription: true,
-			coverageInvariant:        "provider-extension registry rows admit both ElevenLabs voice creation sources",
+			coverageInvariant:        "reviewed catalog bindings admit both ElevenLabs voice creation sources",
+		},
+		{
+			provider: "gemini", wantTTS: true, wantVoiceReferenceAudio: false, wantVoiceTextDescription: true,
+			coverageInvariant: "a formal prompted workflow does not require provider extension parameters",
 		},
 	}
 

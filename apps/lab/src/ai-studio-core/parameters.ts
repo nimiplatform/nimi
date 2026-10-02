@@ -36,6 +36,9 @@ export type StudioParameterContract = {
   readonly presentation: (source: StudioRunTargetSource) => readonly StudioParameterPresentation[];
   readonly project: (source: StudioRunTargetSource, parameters: StudioParameterValue) => StudioParameterValue;
   readonly recordedInput?: StudioRecordedParameterInput;
+  // Rebuild the complete scalar request: an omitted saved control must stay
+  // omitted instead of borrowing a value from the live draft.
+  readonly restoreRecordedParameters?: (snapshot: Readonly<Record<string, unknown>>) => StudioParameterValue | null;
 };
 
 export type TypedStudioParameterContract<TParameters extends object> = {
@@ -47,6 +50,7 @@ export type TypedStudioParameterContract<TParameters extends object> = {
     readonly encode: (parameters: TParameters) => string;
     readonly decode: (recorded: string) => Partial<TParameters> | null;
   };
+  readonly restoreRecordedParameters?: (snapshot: Readonly<Record<string, unknown>>) => TParameters | null;
 };
 
 export const SUPPORTED_STUDIO_PARAMETER = Object.freeze({ kind: 'supported' } as const);
@@ -90,6 +94,7 @@ export function defineStudioParameters<TParameters extends object>(
   return Object.freeze({
     initial, summarize, hasAlternativeInput, presentation, project,
     ...(recordedInput ? { recordedInput } : {}),
+    ...(typed.restoreRecordedParameters ? { restoreRecordedParameters: (snapshot: Readonly<Record<string, unknown>>) => typed.restoreRecordedParameters!(snapshot) as StudioParameterValue | null } : {}),
   });
 }
 

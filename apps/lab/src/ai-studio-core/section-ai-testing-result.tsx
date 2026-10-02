@@ -361,6 +361,8 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioR
     return (
       <div className="studio-result__rich">
         <p className="studio-result__plain">{t('StudioShell.voiceAssetSuccess')}</p>
+        {snapshot.preview ? <ArtifactMediaResult artifact={snapshot.preview} fallbackLabel={snapshot.jobId} /> : null}
+        {snapshot.expiresAt ? <p>{t('StudioShell.voiceExpiry', { date: new Date(snapshot.expiresAt).toLocaleString() })}</p> : null}
         <VoiceAssetActions key={snapshot.voiceAssetId} voiceAssetId={snapshot.voiceAssetId} />
       </div>
     );

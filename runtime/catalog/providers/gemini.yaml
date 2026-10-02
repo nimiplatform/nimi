@@ -1,6 +1,6 @@
 version: 1
 provider: gemini
-catalog_version: 2026-10-02-gemini-native-text-media
+catalog_version: 2026-10-03-gemini-stored-voice
 inventory_mode: static_source
 default_text_model: gemini-3.8-flash
 models:
@@ -305,22 +305,25 @@ models:
   - model_id: gemini-3.8-flash-tts
     provider: gemini
     model_type: tts
-    updated_at: 2026-09-29
+    updated_at: 2026-10-03
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: token
       input: "0.50"
       output: "9.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore WAV at 24 kHz.
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore or an owned stored prompted voice as complete 24 kHz WAV. Voice design has its own provider-reported usage; synthesis prices do not estimate creation charges.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
       retrieved_at: 2026-09-29
       note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+    features:
+      - input.text
     voice_set_id: gemini:gemini-3-8-kore-v2
-    voice_discovery_mode: static_catalog
+    voice_discovery_mode: mixed
     voice_request_options:
       timing_modes:
         - none
@@ -329,6 +332,7 @@ models:
       supports_language: true
     voice_ref_kinds:
       - preset_voice_id
+      - voice_asset_id
   - model_id: gemini-3.8-flash-lite-tts
     provider: gemini
     model_type: tts
@@ -484,3 +488,42 @@ selection_profiles:
     reviewed_at: 2026-09-28
     freshness_sla_days: 21
     rationale: Gemini 3.1 Pro Preview remains the only Pro-tier Gemini API text model for advanced reasoning; it is a preview with no announced shutdown date.
+voice_workflow_models:
+  - workflow_model_id: gemini-3.8-flash-tts
+    workflow_type: text_description
+    workflow_family: gemini
+    input_contract_ref: gemini_stored_prompted_voice_v1
+    output_persistence: provider_persistent
+    request_options:
+      instruction_text_mode: required
+      preview_text_mode: unsupported
+      supports_language: true
+      supports_preferred_name: true
+    target_model_refs:
+      - gemini-3.8-flash-tts
+    source_ref:
+      url: https://ai.google.dev/static/api/interactions.openapi.json
+      retrieved_at: 2026-10-03
+      note: Native Beta stored prompted voices, top-level sample_audio in the formal OpenAPI Voice schema, provider expire_time, optional usage and Get/Delete resource operations.
+    langs:
+      - en
+      - zh
+model_workflow_bindings:
+  - model_id: gemini-3.8-flash-tts
+    workflow_model_refs:
+      - gemini-3.8-flash-tts
+    workflow_types:
+      - text_description
+voice_handle_policies:
+  - policy_id: gemini_stored_prompted_voice_v1
+    applies_to_workflow_types:
+      - text_description
+    persistence: provider_persistent
+    default_ttl: provider_reported_one_year_inactivity
+    scope: user_scoped
+    delete_semantics: best_effort_provider_delete
+    runtime_reconciliation_required: true
+    source_ref:
+      url: https://ai.google.dev/static/api/interactions.openapi.json
+      retrieved_at: 2026-10-03
+      note: Native Beta stored prompted voices, top-level sample_audio in the formal OpenAPI Voice schema, provider expire_time, optional usage and Get/Delete resource operations.

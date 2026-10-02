@@ -516,11 +516,11 @@ func TestResolveSynthesizeSpeechSpecVoiceRefRejectsExpiredVoiceAsset(t *testing.
 			},
 		},
 	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expired voice asset resolve code=%v err=%v, want InvalidArgument", status.Code(err), err)
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expired voice asset resolve code=%v err=%v, want FailedPrecondition", status.Code(err), err)
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID {
-		t.Fatalf("expired voice asset reason=%v ok=%v err=%v, want AI_VOICE_INPUT_INVALID", reason, ok, err)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED {
+		t.Fatalf("expired voice asset reason=%v ok=%v err=%v, want AI_VOICE_ASSET_EXPIRED", reason, ok, err)
 	}
 }
 

@@ -14,6 +14,19 @@ const duplicateVideoFixture = path.join(
   'runtime-catalog-duplicate-video-mode.source.yaml',
 );
 
+test('mixed Gemini voice discovery keeps presets separate from stored user voices', () => {
+  const source = YAML.parse(fs.readFileSync(path.join(import.meta.dirname, '..', 'runtime', 'catalog', 'source', 'providers', 'gemini.source.yaml'), 'utf8'));
+  const generated = generateProviderCatalog(source);
+  const model = generated.models.find((entry) => entry.model_id === 'gemini-3.8-flash-tts');
+  assert.equal(model.voice_discovery_mode, 'mixed');
+  assert.ok(model.voice_set_id);
+  assert.deepEqual(model.voice_ref_kinds, ['preset_voice_id', 'voice_asset_id']);
+  assert.equal(generated.voice_workflow_models[0].output_persistence, 'provider_persistent');
+  const sourceModel = source.models.find((entry) => entry.model_id === model.model_id);
+  delete sourceModel.voice.voice_set_ref;
+  assert.throws(() => generateProviderCatalog(source), /requires voice.voice_set_ref/u);
+});
+
 test('image offers preserve unknown memory without weakening acquisition integrity', () => {
   const source = readYamlResource(path.join(import.meta.dirname, '..', 'runtime', 'catalog', 'source', 'providers', 'local'), { merge: true });
   const image = source.models.find((row) => row.model_id === 'flux.1-schnell-local');

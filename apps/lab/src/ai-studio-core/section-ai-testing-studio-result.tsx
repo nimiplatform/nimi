@@ -66,6 +66,8 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
     return (
       <div className="studio-result__rich">
         <p className="studio-result__plain">{t('StudioShell.voiceAssetSuccess')}</p>
+        {output.preview ? <ArtifactMediaResult artifact={output.preview} fallbackLabel={output.jobId} /> : null}
+        {output.expiresAt ? <p>{t('StudioShell.voiceExpiry', { date: new Date(output.expiresAt).toLocaleString() })}</p> : null}
         <VoiceAssetActions key={output.voiceAssetId} voiceAssetId={output.voiceAssetId} />
       </div>
     );

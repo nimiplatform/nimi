@@ -90,6 +90,10 @@ export function formatTypedOutput(
       creationSource: output.creationSource,
       assetStatus: output.assetStatus,
       voiceReference: output.voiceReference,
+      ...(output.preview ? { preview: output.preview } : {}),
+      ...(output.expiresAt ? { expiresAt: output.expiresAt } : {}),
+      ...(output.inputTokens !== undefined ? { inputTokens: output.inputTokens } : {}),
+      ...(output.outputTokens !== undefined ? { outputTokens: output.outputTokens } : {}),
     }, null, 2);
   }
   return JSON.stringify({

@@ -3,11 +3,13 @@ package capabilitydriver
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestDashScopeFiniteASRCapturesExactTransport(t *testing.T) {
@@ -171,6 +173,29 @@ func TestCloudVoiceWorkflowDriverMapsRequestAndNormalizesResponse(t *testing.T) 
 	})
 	if err != nil || result.ProviderVoiceRef != "voice-ref" || result.Metadata["provider"] != "dashscope" {
 		t.Fatalf("NormalizeVoiceWorkflowResponse=%+v err=%v", result, err)
+	}
+}
+
+func TestCloudVoiceWorkflowResponseClonesExpiryPreviewAndUsagePresence(t *testing.T) {
+	driver, _ := cloudMediaDriverTarget(t, "dashscope", "qwen3-tts-vc", "voice.create")
+	expiry := timestamppb.New(time.Now().Add(time.Hour))
+	preview := []byte{1, 2, 3}
+	for _, usage := range []*runtimev1.UsageStats{nil, {InputTokens: 0, OutputTokens: 0}} {
+		result, err := driver.NormalizeVoiceWorkflowResponse(CloudVoiceWorkflowTransportResponse{
+			ProviderVoiceRef: "created-ref", ExpiresAt: expiry, PreviewAudio: preview, PreviewMime: "audio/wav", Usage: usage,
+		})
+		if err != nil || result.ExpiresAt.AsTime() != expiry.AsTime() || result.PreviewMime != "audio/wav" || (result.Usage == nil) != (usage == nil) {
+			t.Fatalf("private carrier projection = %+v %v", result, err)
+		}
+		result.ExpiresAt.Seconds++
+		result.PreviewAudio[0] = 99
+		if preview[0] != 1 || result.ExpiresAt.Seconds == expiry.Seconds {
+			t.Fatal("normalized result aliases transport input")
+		}
+	}
+	_, err := driver.NormalizeVoiceWorkflowResponse(CloudVoiceWorkflowTransportResponse{ProviderVoiceRef: "created-ref", ExpiresAt: &timestamppb.Timestamp{Nanos: -1}})
+	if cloudInvocationKind(err) != CloudInvocationFailureResponse {
+		t.Fatalf("invalid provider expiry accepted: %v", err)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -275,9 +276,6 @@ func (s *Service) resolveSynthesizeSpeechSpecVoiceRefForTarget(
 	if !ok || asset == nil || assetTarget == nil || asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
-	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
-	}
 	if head == nil ||
 		strings.TrimSpace(head.GetAppId()) != strings.TrimSpace(asset.GetAppId()) ||
 		strings.TrimSpace(head.GetSubjectUserId()) != strings.TrimSpace(asset.GetSubjectUserId()) {
@@ -293,6 +291,16 @@ func (s *Service) resolveSynthesizeSpeechSpecVoiceRefForTarget(
 	}
 	if requestTarget == nil || !runtimeidentity.Equal(requestTarget, assetTarget) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
+	}
+	asset, err := s.refreshProviderVoiceAsset(ctx, asset)
+	if err != nil {
+		return nil, err
+	}
+	if asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_EXPIRED || (asset.GetExpiresAt() != nil && !asset.GetExpiresAt().AsTime().After(time.Now().UTC())) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED)
+	}
+	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 	providerVoiceRef := strings.TrimSpace(asset.GetProviderVoiceRef())
 	if providerVoiceRef == "" {

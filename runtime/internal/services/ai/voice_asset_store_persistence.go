@@ -152,6 +152,12 @@ func (s *voiceAssetStore) reconcilePendingPublications(jobs *scenarioJobStore) e
 			delete(s.pending, id)
 			continue
 		}
+		if !asset.GetMetadata().GetFields()["provider_delete_succeeded"].GetBoolValue() {
+			// A known but unpublished handle remains private for bounded cleanup.
+			// Absence of a durable COMPLETED Job never silently loses custody.
+			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED
+			continue
+		}
 		delete(s.pending, id)
 		delete(s.assets, id)
 		delete(s.targets, id)

@@ -568,3 +568,32 @@ test('Decisions run the request from Parameters, stop the one call and replay or
     await act(async () => { renderer.unmount(); });
   }
 });
+
+
+test('saved speech replay and draft restore keep the recorded voice and complete controls', async () => {
+  const registration = labStudioComposition.getCapability('audio.synthesize');
+  const saved = { voiceKind: 'asset', voiceAssetId: 'saved-voice', language: 'zh' };
+  const target = { capabilityId: 'audio.synthesize', capabilityContract: 'audio.synthesize', section: 'tts', source: 'cloud', status: 'configured', canDispatch: true, intentLabel: 'Cloud', detail: 'configured', params: {}, paramsSummary: [], profileOrigin: null };
+  const record = { id: 'saved-speech', capabilityId: 'audio.synthesize', createdAt: '2026-10-03T00:00:00Z', prompt: 'Saved speech text', status: 'failed', message: 'previous failure', result: { ok: false, kind: 'non-success', reason: 'runtime-call-failed', message: 'previous failure', summary: 'previous failure' }, runConfig: { target: { ...target, params: saved }, promptControls: { contextAttached: false, context: '', attachmentCount: 0 } } };
+  const calls = [];
+  const host = { appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() }, app: { projection: { promptDraft: () => ({ prompt: 'Current draft' }), projectRunTarget: () => target, runStatusLabel: s => s }, events: { subscribeAIConfigRefresh: () => () => {} }, commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } }, sdk: { aiConfig: { get: async () => null }, listLocalAppPresetVoices: async () => [], listLocalAppVoiceAssets: async () => [{ voiceAssetId: 'saved-voice', creationSource: 'text-description', status: 'active' }], runCapability: async input => { calls.push(input); return { ok: false, capabilityId: 'audio.synthesize', reason: 'runtime-call-failed', message: 'fixture observes request only', actionHint: '' }; } } };
+  let parameters = { voiceKind: 'preset', voicePreset: 'live-voice', language: 'en', speed: 2 };
+  const renderer = createRoot(document.getElementById('root'));
+  const props = { registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' }, lastResult: null, history: { 'audio.synthesize': [record] }, historySelectionRequest: { requestId: 1, record }, onSelectHistoryRun: () => {}, onResult: async () => null, verboseConsole: false, draftPersistence: false };
+  const render = () => renderer.render(createElement(TooltipProvider, null, createElement(AIStudioHostProvider, { value: host }, createElement(StudioCapabilityParameterContext.Provider, { value: { state: { 'audio.synthesize': parameters }, setParameters: (_id, next) => { parameters = next; render(); } } }, createElement(SectionAITesting, props)))));
+  const button = label => [...document.getElementById('root').querySelectorAll('button')].find(x => x.getAttribute('aria-label') === label || x.textContent.trim() === label);
+  try {
+    await act(async () => { render(); });
+    await act(async () => { button('StudioShell.regenerate').click(); });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].prompt, record.prompt);
+    assert.deepEqual(calls[0].parameters, saved);
+    assert.equal(parameters.speed, 2, 'replay leaves the live draft unchanged');
+    props.historySelectionRequest = { requestId: 2, record };
+    await act(async () => { render(); });
+    await act(async () => { button('StudioShell.useAsDraft').click(); });
+    assert.deepEqual(parameters, saved, 'draft restore must remove omitted live controls');
+    assert.equal(registration.parameters.restoreRecordedParameters({ voiceKind: 'unknown' }), null);
+    assert.equal(registration.parameters.restoreRecordedParameters({ language: { bad: true } }), null);
+  } finally { await act(async () => { renderer.unmount(); }); }
+});

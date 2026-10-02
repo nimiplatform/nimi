@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -130,8 +131,17 @@ func TestCloudVoiceRunningPersistenceFailureDoesNotCallProviderOrPublishAsset(t 
 }
 
 func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
-	var providerCalls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	var providerCalls, cleanupCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+			t.Error(err)
+		}
+		if input, ok := body["input"].(map[string]any); ok && input["action"] == "delete" {
+			cleanupCalls.Add(1)
+			_, _ = w.Write([]byte(`{"request_id":"cleanup-known","output":{"voice":"must-remain-private"}}`))
+			return
+		}
 		providerCalls.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"output":{"voice":"must-remain-private"}}`))
@@ -166,11 +176,11 @@ func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
 	jobID := response.GetJob().GetJobId()
-	terminal := waitScenarioJobTerminal(t, fixture.service, jobID, 3*time.Second)
+	terminal := waitVoiceWorkflowExecutionForTest(t, fixture.service, jobID)
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED || terminal.GetReasonDetail() != scenarioJobTerminalPersistenceFailedReason {
 		t.Fatalf("terminal=%s reason=%s detail=%q", terminal.GetStatus(), terminal.GetReasonCode(), terminal.GetReasonDetail())
 	}
-	if providerCalls.Load() != 1 || terminalAttempts.Load() != maxScenarioJobTerminalPersistenceAttempts {
+	if providerCalls.Load() != 1 || cleanupCalls.Load() != 1 || terminalAttempts.Load() != maxScenarioJobTerminalPersistenceAttempts {
 		t.Fatalf("provider calls=%d terminal persistence attempts=%d", providerCalls.Load(), terminalAttempts.Load())
 	}
 	if asset, ok := fixture.service.voiceAssets.getAsset(jobID); ok || asset != nil {

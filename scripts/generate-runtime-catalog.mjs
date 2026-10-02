@@ -413,7 +413,7 @@ export function generateProviderCatalog(doc) {
 	  throw new Error(`${provider} model ${canonicalModelID} declares mask support without feature input.mask`);
 	}
     const embedding = normalizeEmbeddingCapability(model?.embedding, provider, canonicalModelID);
-    const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped']);
+    const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped', 'mixed']);
     if (discoveryMode && !allowedDiscoveryModes.has(discoveryMode)) {
       throw new Error(`${provider} model ${canonicalModelID} has unsupported voice discovery_mode: ${discoveryMode}`);
     }
@@ -426,11 +426,11 @@ export function generateProviderCatalog(doc) {
       if (!discoveryMode && !staticVoiceSetRef) {
         throw new Error(`${provider} model ${canonicalModelID} requires voice.discovery_mode or voice.voice_set_ref`);
       }
-      if (discoveryMode === 'static_catalog' || staticVoiceSetRef) {
+      if (discoveryMode === 'static_catalog' || discoveryMode === 'mixed' || staticVoiceSetRef) {
         if (!staticVoiceSetRef) {
           throw new Error(`${provider} model ${canonicalModelID} requires voice.voice_set_ref`);
         }
-        if (discoveryMode && discoveryMode !== 'static_catalog') {
+        if (discoveryMode && discoveryMode !== 'static_catalog' && discoveryMode !== 'mixed') {
           throw new Error(`${provider} model ${canonicalModelID} uses discovery_mode=${discoveryMode} with static voice_set_ref`);
         }
         if (!voiceSets.has(staticVoiceSetRef)) {
@@ -513,7 +513,7 @@ export function generateProviderCatalog(doc) {
       }
       if (resolvedVoiceSetID) {
         modelEntry.voice_set_id = resolvedVoiceSetID;
-        modelEntry.voice_discovery_mode = dynamicVoiceSet ? dynamicVoiceSetMode : 'static_catalog';
+        modelEntry.voice_discovery_mode = discoveryMode === 'mixed' ? 'mixed' : dynamicVoiceSet ? dynamicVoiceSetMode : 'static_catalog';
       }
       if (voiceRequestOptions) {
         modelEntry.voice_request_options = voiceRequestOptions;

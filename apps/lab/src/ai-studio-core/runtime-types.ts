@@ -125,7 +125,7 @@ export type StudioTypedOutput =
   | { readonly kind: 'text-decision'; readonly answers: readonly StudioTextDecisionAnswer[] }
   | ({ readonly kind: 'session' } & StudioSessionSummary)
   | { readonly kind: 'transcript'; readonly text: string; readonly jobId: string; readonly jobState: string; readonly artifactCount: number; readonly transcription?: NimiLocalAppSpeechTranscript }
-  | { readonly kind: 'voice-asset'; readonly jobId: string; readonly jobState: string; readonly voiceAssetId: string; readonly creationSource: 'reference-audio' | 'text-description'; readonly assetStatus: string; readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } }
+  | { readonly kind: 'voice-asset'; readonly preview?: StudioManagedArtifact; readonly expiresAt?: string; readonly inputTokens?: number; readonly outputTokens?: number; readonly jobId: string; readonly jobState: string; readonly voiceAssetId: string; readonly creationSource: 'reference-audio' | 'text-description'; readonly assetStatus: string; readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } }
   | { readonly kind: 'voice-catalog'; readonly voiceCount: number; readonly sample: Array<{ readonly voiceId: string; readonly creationSource: string; readonly status: string }> };
 
 export type StudioTypedSuccess = {

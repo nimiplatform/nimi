@@ -1744,6 +1744,18 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.canonical-audio
+  - id: rule.nimi.runtime.ai-provider.gemini-stored-voice
+    kind: rule
+    title: Gemini stored voice design preserves provider lifecycle facts
+    modality: must
+    statement: The exact gemini-3.8-flash-tts Cloud voice.create target admits text description through the native Beta Voices protocol with the captured model, prompted type and store=true. It maps instruction, optional display name and BCP-47 language without invented preview text, reference or consent audio, stateless keys or arbitrary extensions. A successful result requires the actual stored voice id, provider expire_time and a valid returned WAV sample, and a supplied non-empty native models/{id} resource name must match the captured exact creation model; optional model echoes and stateless-key fields may be absent or empty, but a non-empty stateless key is not admitted; the private Driver preserves a known id through later validation or normalization failure so Runtime can clean it. Native resource inspection and deletion resolve the same exact private creation target and owner Connector, and inspection distinguishes confirmed missing resources from unavailable transport or invalid responses. Provider inactivity renewal is observed from actual expire_time rather than a locally invented fixed expiration. Synthesis through the resulting owner-scoped VoiceAsset uses the exact admitted gemini-3.8-flash-tts native unary Interactions protocol, store=false and its captured private voice id, with complete owned 24 kHz WAV output and actual optional reported usage; existing prebuilt GenerateContent synthesis retains its separate exact admission. No public selector exposes these private protocols and no operation substitutes a provider default model or voice.
+    condition: Whenever the admitted Gemini stored voice is created, inspected, deleted or synthesized.
+    failure: Reject unsupported inputs before dispatch and invalid provider output before terminal publication, retain known unpublished resources for bounded private cleanup, and fail dependent reuse without inventing successful output, expiry, deletion or usage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.nimillm-plane
   - id: rule.nimi.runtime.ai-provider.gemini-native-base-text
     kind: rule
     title: Gemini native base text consumes bounded owned media

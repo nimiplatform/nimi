@@ -13,7 +13,6 @@ const sourceDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers
 const generatedPath = path.join(repoRoot, 'runtime', 'internal', 'providerregistry', 'generated.go');
 const providerCatalogTablePath = path.join(repoRoot, 'config', 'runtime-provider-catalog.yaml');
 const providerCapabilitiesTablePath = path.join(repoRoot, 'config', 'runtime-provider-capabilities.yaml');
-const providerExtensionRegistryTablePath = path.join(repoRoot, 'config', 'runtime-provider-extension-registry.yaml');
 const providerProbeTargetsTablePath = path.join(
   repoRoot,
   'config',
@@ -160,7 +159,7 @@ function normalizeDynamicInventory(value, providerID) {
   };
 }
 
-function capabilityFlags(sourceDoc) {
+export function capabilityFlags(sourceDoc) {
   const runtime = sourceDoc?.runtime && typeof sourceDoc.runtime === 'object' ? sourceDoc.runtime : {};
   const inventoryMode = normalizeInventoryMode(runtime?.inventory_mode);
   const dynamicInventory = inventoryMode === 'dynamic_endpoint'
@@ -232,7 +231,24 @@ function capabilityFlags(sourceDoc) {
     }
   }
 
-  return { text, embed, image, video, tts, stt, music, realtime, decide, voiceReferenceAudio: false, voiceTextDescription: false };
+  const workflows = Array.isArray(sourceDoc.voice_workflow_models) ? sourceDoc.voice_workflow_models : [];
+  const bindings = Array.isArray(sourceDoc.model_workflow_bindings) ? sourceDoc.model_workflow_bindings : [];
+  const workflowById = new Map(workflows.map((workflow) => [workflow.workflow_model_id, workflow]));
+  const admittedModels = new Set(models.filter((model) => {
+    const declared = normalizeStringArray(model.capabilities).map((value) => value.toLowerCase());
+    return (declared.length > 0 ? declared : defaults).includes('voice.create');
+  }).map((model) => model.model_id));
+  const boundTypes = new Set();
+  for (const binding of bindings) {
+    if (!admittedModels.has(binding.model_id)) continue;
+    for (const ref of normalizeStringArray(binding.workflow_model_refs)) {
+      const workflow = workflowById.get(ref);
+      if (!workflow || !normalizeStringArray(binding.workflow_types).includes(workflow.workflow_type)) throw new Error(`provider ${sourceDoc.provider} has an invalid voice workflow binding`);
+      boundTypes.add(workflow.workflow_type);
+    }
+  }
+  return { text, embed, image, video, tts, stt, music, realtime, decide,
+    voiceReferenceAudio: boundTypes.has('reference_audio'), voiceTextDescription: boundTypes.has('text_description') };
 }
 
 function collectProviderCapabilities(sourceDoc) {
@@ -265,34 +281,6 @@ function collectProviderCapabilities(sourceDoc) {
   return [...capabilitySet].sort((left, right) => left.localeCompare(right));
 }
 
-async function loadProviderExtensionCapabilities() {
-  const raw = await fs.readFile(providerExtensionRegistryTablePath, 'utf8');
-  const doc = YAML.parse(raw) || {};
-  const entries = Array.isArray(doc?.entries) ? doc.entries : [];
-  const out = new Map();
-  for (const entry of entries) {
-    const providerID = normalizeProvider(entry?.provider_id);
-    if (!providerID) {
-      throw new Error('provider-extension-registry entry missing provider_id');
-    }
-    const direction = String(entry?.direction || '').trim().toLowerCase();
-    if (direction && direction !== 'request') {
-      continue;
-    }
-    const scenarioType = String(entry?.scenario_type || '').trim().toUpperCase();
-    const feature = String(entry?.feature || '').trim().toLowerCase();
-    const current = out.get(providerID) || { voiceReferenceAudio: false, voiceTextDescription: false };
-    if (scenarioType === 'VOICE_CREATE' && feature === 'input.audio') {
-      current.voiceReferenceAudio = true;
-    }
-    if (scenarioType === 'VOICE_CREATE' && feature === 'input.text') {
-      current.voiceTextDescription = true;
-    }
-    out.set(providerID, current);
-  }
-  return out;
-}
-
 async function loadTokenProbeProviders(recordsByID) {
   const raw = await fs.readFile(providerProbeTargetsTablePath, 'utf8');
   const doc = YAML.parse(raw) || {};
@@ -318,25 +306,6 @@ async function loadTokenProbeProviders(recordsByID) {
     throw new Error('token probes must admit the nimillm provider');
   }
   return [...seen].sort(compareProviderID);
-}
-
-function applyProviderExtensionCapabilities(record, extensionCapabilities) {
-  const extension = extensionCapabilities.get(record.id) || { voiceReferenceAudio: false, voiceTextDescription: false };
-  const capabilities = Array.isArray(record.capabilities)
-    ? record.capabilities.slice()
-    : [];
-  if (extension.voiceReferenceAudio || extension.voiceTextDescription) {
-    capabilities.push('voice.create');
-  }
-  return {
-    ...record,
-    supports: {
-      ...record.supports,
-      voiceReferenceAudio: Boolean(extension.voiceReferenceAudio),
-      voiceTextDescription: Boolean(extension.voiceTextDescription),
-    },
-    capabilities: [...new Set(capabilities)].sort((left, right) => left.localeCompare(right)),
-  };
 }
 
 function readSelectionProfileDefaultTextModel(sourceDoc) {
@@ -580,7 +549,6 @@ function renderGoFile(records, tokenProbeProviders) {
 
 async function main() {
   const sourceProviders = await loadSourceProviders();
-  const providerExtensionCapabilities = await loadProviderExtensionCapabilities();
 
   const recordsByID = new Map();
   for (const record of sourceProviders) {
@@ -605,14 +573,7 @@ async function main() {
     });
   }
 
-  for (const providerID of providerExtensionCapabilities.keys()) {
-    if (!recordsByID.has(providerID)) {
-      throw new Error(`provider-extension-registry references unknown provider: ${providerID}`);
-    }
-  }
-
   const records = [...recordsByID.values()]
-    .map((record) => applyProviderExtensionCapabilities(record, providerExtensionCapabilities))
     .sort((a, b) => compareProviderID(a.id, b.id));
   const tokenProbeProviders = await loadTokenProbeProviders(recordsByID);
   const rendered = renderGoFile(records, tokenProbeProviders);
@@ -640,7 +601,7 @@ async function main() {
   process.stdout.write(`generated provider registry: ${path.relative(repoRoot, generatedPath)} (${records.length} providers)\n`);
 }
 
-main().catch((error) => {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((error) => {
   process.stderr.write(`generate-runtime-provider-registry failed: ${String(error)}\n`);
   process.exit(1);
 });

@@ -238,6 +238,7 @@ providers:
       - music.generate
       - text.embed
       - text.generate
+      - voice.create
     sources:
       - K-MCAT-027
       - K-CONN-008

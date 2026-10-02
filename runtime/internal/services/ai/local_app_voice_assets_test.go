@@ -2,6 +2,9 @@ package ai
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,6 +17,66 @@ import (
 
 func localAppVoiceAssetsContext() context.Context {
 	return localAppScenarioDecisionContext(accountservice.LocalAppOperationVoiceAssetsList, localappop.AppOperationIDVoiceAssetsList)
+}
+
+func TestDeleteLocalAppVoiceAssetRequiresDurableConfirmationAndCanRetry(t *testing.T) {
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.Method != http.MethodDelete || r.URL.Path != "/v1/voices/voice-delete-durable" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+	svc := newTestService(nil)
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	var err error
+	svc.voiceAssets, err = newVoiceAssetStoreForLocalStatePath(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const id = "voice-durable-delete"
+	svc.voiceAssets.assets[id] = &runtimev1.VoiceAsset{VoiceAssetId: id, AppId: "nimi.realm-persona-studio", SubjectUserId: "account-1",
+		Provider: "elevenlabs", ProviderVoiceRef: "voice-delete-durable", Persistence: runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+		Status: runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE}
+	bindVoiceAssetDeleteTarget(t, svc, id, "elevenlabs", server.URL, "test-key")
+	if err := svc.voiceAssets.persistDurableAssetsLocked(); err != nil {
+		t.Fatal(err)
+	}
+	durablePath := svc.voiceAssets.durablePath
+	svc.voiceAssets.durablePath = t.TempDir() // Atomic rename onto a directory must fail.
+	ctx := localAppScenarioDecisionContext(accountservice.LocalAppOperationVoiceAssetsDelete, localappop.AppOperationIDVoiceAssetsDelete)
+	response, err := svc.DeleteLocalAppVoiceAsset(ctx, &runtimev1.DeleteLocalAppVoiceAssetRequest{VoiceAssetId: id})
+	if err == nil || response.GetDeleted() || calls != 1 {
+		t.Fatalf("failed persistence confirmed deletion: response=%v calls=%d err=%v", response, calls, err)
+	}
+	assertLocalAppTextCandidateError(t, err, codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	asset, _ := svc.voiceAssets.getAsset(id)
+	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED || !asset.GetMetadata().GetFields()["provider_delete_succeeded"].GetBoolValue() {
+		t.Fatal("actual provider outcome lost")
+	}
+	beforeRetry, err := newVoiceAssetStoreForLocalStatePath(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous, _ := beforeRetry.getAsset(id)
+	if previous.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
+		t.Fatal("fixture failed to preserve the old disk state")
+	}
+	svc.voiceAssets.durablePath = durablePath
+	response, err = svc.DeleteLocalAppVoiceAsset(ctx, &runtimev1.DeleteLocalAppVoiceAssetRequest{VoiceAssetId: id})
+	if err != nil || !response.GetDeleted() || calls != 1 {
+		t.Fatalf("persistence retry repeated provider deletion or failed: response=%v calls=%d err=%v", response, calls, err)
+	}
+	reopened, err := newVoiceAssetStoreForLocalStatePath(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, _ := reopened.getAsset(id)
+	if stored.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED || !stored.GetMetadata().GetFields()["provider_delete_succeeded"].GetBoolValue() {
+		t.Fatal("confirmed deletion did not survive reopen")
+	}
 }
 
 func TestDeleteLocalAppVoiceAssetRequiresExactOwnerAndConfirmation(t *testing.T) {

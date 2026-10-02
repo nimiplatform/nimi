@@ -184,11 +184,12 @@ test('Runtime voice job runner uses one terminal Get as the result and artifact 
     ...createScenarioJob('job-voice-1', ScenarioJobStatus.COMPLETED),
     head: { appId: 'app-voice', subjectUserId: 'user-voice', timeoutMs: 0 },
     scenarioType: ScenarioType.VOICE_CREATE,
+    artifacts: [{ artifactId: 'voice-preview', mimeType: 'audio/wav', sizeBytes: '4844' }],
   };
   const asset = {
     voiceAssetId: 'voice-asset-1', appId: 'app-voice', subjectUserId: 'user-voice', provider: 'dashscope', modelId: '', targetModelId: '',
     providerVoiceRef: 'provider-voice-1', persistence: VoiceAssetPersistence.PROVIDER_PERSISTENT, status: VoiceAssetStatus.ACTIVE,
-    metadata: undefined, creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
+    expiresAt: { seconds: '1791024000', nanos: 0 }, metadata: undefined, creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
   };
   const voiceReference = {
     kind: VoiceReferenceKind.VOICE_ASSET,

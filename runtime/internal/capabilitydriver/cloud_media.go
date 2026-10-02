@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // CloudMediaStreamMode is exact audio.synthesize stream behavior captured from
@@ -79,6 +80,9 @@ const (
 	CloudMediaAdapterFishAudioVoiceWorkflow  = "fish_audio_voice_workflow_adapter"
 	CloudMediaAdapterMimoVoiceWorkflow       = "mimo_voice_workflow_adapter"
 	CloudMediaAdapterStepFunVoiceWorkflow    = "stepfun_voice_workflow_adapter"
+	CloudMediaAdapterGeminiVoiceWorkflow     = "gemini_voice_workflow_adapter"
+	CloudMediaAdapterGeminiVoiceDelete       = "gemini_voice_delete_adapter"
+	CloudMediaAdapterGeminiVoiceInspect      = "gemini_voice_inspect_adapter"
 	CloudMediaAdapterElevenLabsVoiceDelete   = "elevenlabs_voice_delete_adapter"
 	CloudMediaAdapterFishAudioVoiceDelete    = "fish_audio_voice_delete_adapter"
 	CloudMediaAdapterDashScopeVoiceDelete    = "dashscope_voice_delete_adapter"
@@ -87,6 +91,7 @@ const (
 )
 
 const CloudMediaAdapterGeminiTTSGenerateContent = "gemini_tts_generate_content_adapter"
+const CloudMediaAdapterGeminiTTSInteractions = "gemini_tts_interactions_adapter"
 const CloudMediaAdapterGeminiInteractionsTranscribe = "gemini_interactions_transcribe_adapter"
 const CloudMediaAdapterGeminiLyriaClipGenerateContent = "gemini_lyria_clip_generate_content_adapter"
 const CloudMediaAdapterGeminiLyria35GenerateContent = "gemini_lyria35_generate_content_adapter"
@@ -421,6 +426,9 @@ type CloudVoiceWorkflowTransportResponse struct {
 	ProviderVoiceRef string
 	Metadata         *structpb.Struct
 	Usage            *runtimev1.UsageStats
+	ExpiresAt        *timestamppb.Timestamp
+	PreviewAudio     []byte
+	PreviewMime      string
 }
 
 // CloudVoiceWorkflowResult is the Driver-normalized voice asset result.
@@ -428,6 +436,9 @@ type CloudVoiceWorkflowResult struct {
 	ProviderVoiceRef string
 	Metadata         map[string]any
 	Usage            *runtimev1.UsageStats
+	ExpiresAt        *timestamppb.Timestamp
+	PreviewAudio     []byte
+	PreviewMime      string
 }
 
 // CloudMediaDriver owns the four r051 layers for one provider dialect:
@@ -439,6 +450,7 @@ type CloudMediaDriver interface {
 	MapRequest(CloudMediaTarget, *runtimev1.SubmitScenarioJobRequest, *structpb.Struct, CloudMediaStreamMode) (*CloudMediaMappedRequest, error)
 	MapVoiceWorkflowRequest(CloudMediaTarget, *runtimev1.SubmitScenarioJobRequest, *structpb.Struct, CloudVoiceWorkflowConfig) (*CloudVoiceWorkflowMappedRequest, error)
 	MapVoiceDeleteRequest(CloudMediaTarget, string, string) (*CloudVoiceDeleteMappedRequest, error)
+	MapVoiceInspectRequest(CloudMediaTarget, string) (*CloudVoiceInspectionMappedRequest, error)
 	NormalizeStreamChunk(CloudMediaStreamChunk) (CloudMediaStreamChunk, error)
 	NormalizeResponse(CloudMediaTransportResponse) (CloudMediaResult, error)
 	NormalizeVoiceWorkflowResponse(CloudVoiceWorkflowTransportResponse) (CloudVoiceWorkflowResult, error)
@@ -619,6 +631,9 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 		adapter = CloudMediaAdapterGeminiTTSGenerateContent
+		if mapped.GetSpec().GetSpeechSynthesize().GetVoiceRef().GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF {
+			adapter = CloudMediaAdapterGeminiTTSInteractions
+		}
 	}
 	if d.provider == "gemini" && target.capabilityContract == "audio.transcribe" && target.providerModelID == geminiInlineTranscribeModel {
 		if err := validateGeminiInlineTranscribeRequest(mapped, target.providerModelID); err != nil {
@@ -710,6 +725,12 @@ func (d providerCloudMediaDriver) MapVoiceWorkflowRequest(
 	spec := request.GetSpec().GetVoiceCreate()
 	if spec == nil {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("cloud voice creation spec is missing"))
+	}
+	if target.provider == "gemini" {
+		input := spec.GetTextDescription()
+		if target.providerModelID != "gemini-3.8-flash-tts" || catalogModelID != target.providerModelID || workflowModelID != target.providerModelID || workflowType != "text_description" || input == nil || strings.TrimSpace(input.GetInstructionText()) == "" || strings.TrimSpace(input.GetPreviewText()) != "" || extensions != nil {
+			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("Gemini voice design requires the admitted text description without preview text or extensions"))
+		}
 	}
 	switch source := spec.GetSource().(type) {
 	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
@@ -837,6 +858,8 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 			return CloudMediaAdapterMimoVoiceWorkflow
 		case "stepfun":
 			return CloudMediaAdapterStepFunVoiceWorkflow
+		case "gemini":
+			return CloudMediaAdapterGeminiVoiceWorkflow
 		default:
 			return ""
 		}
@@ -945,6 +968,8 @@ func cloudVoiceDeleteAdapter(provider string) string {
 		return CloudMediaAdapterFishAudioVoiceDelete
 	case "dashscope":
 		return CloudMediaAdapterDashScopeVoiceDelete
+	case "gemini":
+		return CloudMediaAdapterGeminiVoiceDelete
 	default:
 		return ""
 	}
@@ -1034,10 +1059,18 @@ func (providerCloudMediaDriver) NormalizeVoiceWorkflowResponse(response CloudVoi
 	if response.Usage != nil {
 		usage, _ = proto.Clone(response.Usage).(*runtimev1.UsageStats)
 	}
+	var expiresAt *timestamppb.Timestamp
+	if response.ExpiresAt != nil {
+		if err := response.ExpiresAt.CheckValid(); err != nil {
+			return CloudVoiceWorkflowResult{}, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("provider voice expiry is invalid"))
+		}
+		expiresAt = proto.Clone(response.ExpiresAt).(*timestamppb.Timestamp)
+	}
 	return CloudVoiceWorkflowResult{
 		ProviderVoiceRef: providerVoiceRef,
 		Metadata:         metadata,
 		Usage:            usage,
+		ExpiresAt:        expiresAt, PreviewAudio: append([]byte(nil), response.PreviewAudio...), PreviewMime: response.PreviewMime,
 	}, nil
 }
 

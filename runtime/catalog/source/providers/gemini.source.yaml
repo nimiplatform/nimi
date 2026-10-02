@@ -1,6 +1,6 @@
 schema_version: 3
 provider: gemini
-catalog_version: 2026-10-02-gemini-native-text-media
+catalog_version: 2026-10-03-gemini-stored-voice
 generated_target: runtime/catalog/providers/gemini.yaml
 runtime:
   inventory_mode: static_source
@@ -24,6 +24,14 @@ defaults:
     notes: Gemini public pricing varies by model family, inference tier, and modality mix. This family-scoped refresh only normalizes text and embedding public contract pricing.
 
 sources:
+  - source_id: gemini_voices_api
+    url: https://ai.google.dev/static/api/interactions.openapi.json
+    retrieved_at: 2026-10-03
+    note: Native Beta stored prompted voices, top-level sample_audio in the formal OpenAPI Voice schema, provider expire_time, optional usage and Get/Delete resource operations.
+  - source_id: gemini_voice_design_doc
+    url: https://ai.google.dev/gemini-api/docs/voice-design
+    retrieved_at: 2026-10-03
+    note: Exact Gemini 3.8 Flash TTS prompted voice creation, Interactions synthesis, project quota and one year inactivity renewal.
   - source_id: gemini_models_doc
     url: https://ai.google.dev/gemini-api/docs/models
     retrieved_at: 2026-09-28
@@ -413,12 +421,13 @@ models:
 
   - model_id: gemini-3.8-flash-tts
     model_type: tts
-    updated_at: 2026-09-29
-    capabilities: [audio.synthesize]
+    updated_at: 2026-10-03
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.text]
     voice:
-      discovery_mode: static_catalog
+      discovery_mode: mixed
       voice_set_ref: gemini-3-8-kore-v2
-      supports_voice_ref_kinds: [preset_voice_id]
+      supports_voice_ref_kinds: [preset_voice_id, voice_asset_id]
       langs_ref: gemini_tts_en_zh_v2
       request_options:
         timing_modes: [none]
@@ -430,8 +439,8 @@ models:
       output: "9.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore WAV at 24 kHz.
-    source_ids: [gemini_3_8_flash_tts_doc, gemini_tts_guide, gemini_pricing_doc]
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore or an owned stored prompted voice as complete 24 kHz WAV. Voice design has its own provider-reported usage; synthesis prices do not estimate creation charges.
+    source_ids: [gemini_3_8_flash_tts_doc, gemini_tts_guide, gemini_pricing_doc, gemini_voices_api, gemini_voice_design_doc]
 
   - model_id: gemini-3.8-flash-lite-tts
     model_type: tts
@@ -521,3 +530,33 @@ models:
       as_of: 2026-04-18
       notes: Standard paid-tier pricing. Audio input and alternate inference tiers have separate pricing. Preview pricing may change. Per 1M tokens.
     source_ids: [gemini_3_flash_preview_doc, gemini_models_doc, gemini_pricing_doc]
+
+voice_workflow_models:
+  - workflow_model_id: gemini-3.8-flash-tts
+    workflow_type: text_description
+    workflow_family: gemini
+    input_contract_ref: gemini_stored_prompted_voice_v1
+    output_persistence: provider_persistent
+    request_options:
+      instruction_text_mode: required
+      preview_text_mode: unsupported
+      supports_language: true
+      supports_preferred_name: true
+    target_model_refs: [gemini-3.8-flash-tts]
+    langs_ref: gemini_tts_en_zh_v2
+    source_ids: [gemini_voices_api, gemini_voice_design_doc]
+
+model_workflow_bindings:
+  - model_id: gemini-3.8-flash-tts
+    workflow_model_refs: [gemini-3.8-flash-tts]
+    workflow_types: [text_description]
+
+voice_handle_policies:
+  - policy_id: gemini_stored_prompted_voice_v1
+    applies_to_workflow_types: [text_description]
+    persistence: provider_persistent
+    default_ttl: provider_reported_one_year_inactivity
+    scope: user_scoped
+    delete_semantics: best_effort_provider_delete
+    runtime_reconciliation_required: true
+    source_ids: [gemini_voices_api, gemini_voice_design_doc]

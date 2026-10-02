@@ -577,7 +577,7 @@ var Records = map[string]ProviderRecord{
 		SupportsRealtime:              false,
 		SupportsDecide:                false,
 		SupportsVoiceReferenceAudio:   false,
-		SupportsVoiceTextDescription:  false,
+		SupportsVoiceTextDescription:  true,
 	},
 	"glm": {
 		ID:                            "glm",
