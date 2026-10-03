@@ -130,13 +130,12 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 		if option.Implementation != nil && strings.TrimSpace(option.DisplayName) != "" {
 			selection.Resource = &runtimev1.AIConfigEffectiveSelection_Local{Local: s.projectLocalResourceProjection(option)}
 		}
-		if capability.GetCapabilityContract() == "text.generate" && selection.State == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY {
-			selected, resolveErr := s.localExecution.ResolveLocalExecution("text.generate", option.LoadoutID)
-			if resolveErr == nil {
-				facts, factsErr := localTextBehaviorAdapterResolutionFacts(selected, projectLocalTextBehaviorAdapterMatchFacts(selected))
-				if factsErr == nil {
-					selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
-				}
+		// Configuration reads project current identity. They must not enter Job
+		// admission and hash model payloads while holding inventory locks.
+		if identity := option.TextBehaviorIdentity; capability.GetCapabilityContract() == "text.generate" && selection.State == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY && identity != nil {
+			facts, factsErr := localTextBehaviorIdentityFacts(option.Implementation, identity.RecipeCustody, identity.PortableConfig, identity.Match)
+			if factsErr == nil {
+				selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
 			}
 		}
 		result = append(result, selection)

@@ -41,9 +41,9 @@ func (s *Service) ProjectSelectedLocalLoadout(capabilityContract string) (locale
 			Reasons:         []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND},
 		}, true, nil
 	}
-	loadout = s.deriveCurrentLoadout(loadout)
+	loadout, validation := s.deriveCurrentLoadoutProjection(loadout)
 	implementation, _ := proto.Clone(loadout.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
-	return localexecution.LoadoutOption{
+	option := localexecution.LoadoutOption{
 		LoadoutID: loadout.GetLoadoutId(), DisplayName: loadout.GetDisplayName(),
 		CapabilityContract:              loadout.GetCapabilityContract(),
 		Implementation:                  implementation,
@@ -51,7 +51,32 @@ func (s *Service) ProjectSelectedLocalLoadout(capabilityContract string) (locale
 		ConfiguredFeatures:              append([]string(nil), loadout.GetConfiguredFeatures()...),
 		TextBehaviors:                   cloneTextBehaviorCapabilityProjections(loadout.GetTextBehaviors()),
 		ValidationState:                 loadout.GetValidationState(), Reasons: append([]runtimev1.ReasonCode(nil), loadout.GetReasons()...),
-	}, true, nil
+	}
+	if capabilityContract == "text.generate" && loadout.GetValidationState() == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
+		identity := &localexecution.TextBehaviorIdentity{
+			Match: capabilitydriver.TextBehaviorAdapterMatchFacts{
+				RecipeID: loadout.GetRecipeId(), RecipeRevision: loadout.GetRecipeRevision(),
+				DriverDialect: implementation.GetDriverDialect(),
+			},
+			PortableConfig: cloneStruct(loadout.GetOptions()),
+		}
+		for _, custody := range loadout.GetRecipeCustody() {
+			if custody != nil {
+				identity.RecipeCustody = append(identity.RecipeCustody, proto.Clone(custody).(*runtimev1.LoadoutRecipeCustodyReference))
+			}
+		}
+		for _, axis := range validation.axes {
+			if axis.requirement.GetRequirementId() == capabilitydriver.MainGGUFRequirementID {
+				identity.Match.ModelAssetID = axis.slot.GetModelAssetId()
+				identity.Match.VerifiedContentID = axis.slot.GetExpectedContentId()
+				identity.Match.EntrySHA256 = axis.entrySHA256
+				identity.Match.TemplateIdentity = axis.templateIdentity
+				break
+			}
+		}
+		option.TextBehaviorIdentity = identity
+	}
+	return option, true, nil
 }
 
 // ResolveSelectedLocalExecution atomically captures the current machine

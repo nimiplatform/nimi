@@ -346,9 +346,16 @@ func localTextBehaviorAdapterResolutionFacts(selected *localexecution.SelectedLo
 	if selected == nil || selected.DriverIdentity == nil {
 		return textBehaviorAdapterResolutionFacts{}, fmt.Errorf("selected local text identity is unavailable")
 	}
+	return localTextBehaviorIdentityFacts(selected.DriverIdentity, selected.RecipeCustody, selected.PortableConfig, match)
+}
+
+func localTextBehaviorIdentityFacts(identity *runtimev1.CapabilityImplementationIdentity, custodyReferences []*runtimev1.LoadoutRecipeCustodyReference, options *structpb.Struct, match capabilitydriver.TextBehaviorAdapterMatchFacts) (textBehaviorAdapterResolutionFacts, error) {
+	if identity == nil {
+		return textBehaviorAdapterResolutionFacts{}, fmt.Errorf("local text identity is unavailable")
+	}
 	facts := textBehaviorAdapterResolutionFacts{
-		ImplementationID: strings.TrimSpace(selected.DriverIdentity.GetImplementationId()),
-		DriverID:         strings.TrimSpace(selected.DriverIdentity.GetDriverId()),
+		ImplementationID: strings.TrimSpace(identity.GetImplementationId()),
+		DriverID:         strings.TrimSpace(identity.GetDriverId()),
 		DriverDialect:    strings.TrimSpace(match.DriverDialect),
 		LocalTarget: &textBehaviorLocalResolutionTarget{
 			RecipeID:         strings.TrimSpace(match.RecipeID),
@@ -360,7 +367,7 @@ func localTextBehaviorAdapterResolutionFacts(selected *localexecution.SelectedLo
 			}},
 		},
 	}
-	for _, custody := range selected.RecipeCustody {
+	for _, custody := range custodyReferences {
 		if custody == nil {
 			continue
 		}
@@ -371,8 +378,8 @@ func localTextBehaviorAdapterResolutionFacts(selected *localexecution.SelectedLo
 	sort.Slice(facts.LocalTarget.RecipeCustody, func(left, right int) bool {
 		return facts.LocalTarget.RecipeCustody[left].CustodyID < facts.LocalTarget.RecipeCustody[right].CustodyID
 	})
-	if selected.PortableConfig != nil {
-		for key, value := range selected.PortableConfig.GetFields() {
+	if options != nil {
+		for key, value := range options.GetFields() {
 			if value == nil {
 				return textBehaviorAdapterResolutionFacts{}, fmt.Errorf("canonicalize local text load option %q: value is unavailable", key)
 			}

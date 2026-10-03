@@ -87,6 +87,15 @@ type LoadoutOption struct {
 	TextBehaviors                   []*runtimev1.TextBehaviorCapabilityProjection
 	ValidationState                 runtimev1.LoadoutValidationState
 	Reasons                         []runtimev1.ReasonCode
+	// Projection-only identity for textReplay matching. This is not an
+	// admission proof, captured assembly, payload hold, or execution target.
+	TextBehaviorIdentity *TextBehaviorIdentity
+}
+
+type TextBehaviorIdentity struct {
+	Match          capabilitydriver.TextBehaviorAdapterMatchFacts
+	RecipeCustody  []*runtimev1.LoadoutRecipeCustodyReference
+	PortableConfig *structpb.Struct
 }
 
 // Resolver is the private machine-configuration seam consumed by Runtime

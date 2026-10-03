@@ -1388,18 +1388,24 @@ func applyValidatedLoadoutTextBehaviors(loadout *runtimev1.Loadout, validation l
 }
 
 func (s *Service) deriveCurrentLoadout(stored *runtimev1.Loadout) *runtimev1.Loadout {
+	loadout, _ := s.deriveCurrentLoadoutProjection(stored)
+	return loadout
+}
+
+func (s *Service) deriveCurrentLoadoutProjection(stored *runtimev1.Loadout) (*runtimev1.Loadout, loadoutValidationResult) {
 	loadout := cloneLoadout(stored)
 	if loadout == nil {
-		return nil
+		return nil, loadoutValidationResult{}
 	}
 	driver, requirements, err := s.projectStoredLoadout(loadout)
 	if err != nil {
 		loadout.ValidationState = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 		loadout.Reasons = []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE}
-		return loadout
+		return loadout, loadoutValidationResult{}
 	}
-	applyLoadoutValidation(loadout, s.validateLoadoutCurrent(loadout, driver, requirements))
-	return loadout
+	validation := s.validateLoadoutCurrent(loadout, driver, requirements)
+	applyLoadoutValidation(loadout, validation)
+	return loadout, validation
 }
 
 func validateStoredLoadout(loadout *runtimev1.Loadout) error {

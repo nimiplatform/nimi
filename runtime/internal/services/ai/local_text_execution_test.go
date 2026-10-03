@@ -82,6 +82,10 @@ func selectedLoadoutOptionForTest(selected *localexecution.SelectedLocalExecutio
 		ConfiguredFeatures:              append([]string(nil), selected.ConfiguredFeatures...),
 		TextBehaviors:                   cloneAITextBehaviorCapabilityProjections(selected.TextBehaviors),
 		ValidationState:                 runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
+		TextBehaviorIdentity: &localexecution.TextBehaviorIdentity{
+			Match:         projectLocalTextBehaviorAdapterMatchFacts(selected),
+			RecipeCustody: selected.RecipeCustody, PortableConfig: selected.PortableConfig,
+		},
 	}, true, nil
 }
 

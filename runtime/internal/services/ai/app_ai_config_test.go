@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
@@ -115,7 +116,12 @@ func TestAppAIConfigReadClassifiesInvalidPersistedConfiguration(t *testing.T) {
 }
 
 func TestAppLocalAIConfigsShareCurrentMachineSelectionWithoutRevisionChanges(t *testing.T) {
-	resolver := &mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "loadout-a", "a.gguf")}
+	selected := selectedTextExecutionForTest(t, "loadout-a", "a.gguf")
+	cohort := capabilitydriver.Gemma4BehaviorCohort()[0]
+	selected.ExactBindings[0].VerifiedContentID = cohort.ContentID
+	selected.ExactBindings[0].EntrySHA256 = cohort.EntrySHA256
+	selected.ExactBindings[0].TemplateIdentity = cohort.TemplateIdentity
+	resolver := &mutableLocalExecutionResolver{projection: selected}
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalExecutionResolver(resolver)
 
@@ -144,16 +150,21 @@ func TestAppLocalAIConfigsShareCurrentMachineSelectionWithoutRevisionChanges(t *
 		selection := read.GetEffectiveSelections()[0]
 		if intent.GetLocal() == nil || len(intent.GetLocal().ProtoReflect().GetUnknown()) != 0 ||
 			selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY ||
-			selection.GetLocal().GetLoadoutRef() != loadoutID {
+			selection.GetLocal().GetLoadoutRef() != loadoutID || selection.GetTextReplay() == nil {
 			t.Fatalf("effective %s = intent=%+v selection=%+v", appID, intent, selection)
 		}
 	}
 
 	assertEffectiveLoadout("app.a", "loadout-a")
 	assertEffectiveLoadout("app.b", "loadout-a")
-	resolver.set(selectedTextExecutionForTest(t, "loadout-b", "b.gguf"))
+	selectedB := cloneSelectedExecutionForTest(selected)
+	selectedB.LoadoutID = "loadout-b"
+	resolver.set(selectedB)
 	assertEffectiveLoadout("app.a", "loadout-b")
 	assertEffectiveLoadout("app.b", "loadout-b")
+	if resolver.callCount() != 0 {
+		t.Fatalf("AIConfig projection entered payload admission %d times", resolver.callCount())
+	}
 }
 
 func TestAppLocalAIConfigPersistsWhenMachineSelectionIsMissing(t *testing.T) {

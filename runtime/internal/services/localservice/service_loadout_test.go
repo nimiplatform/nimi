@@ -514,6 +514,12 @@ func TestLoadoutJobAdmissionReusesOnlyAHeldVerificationWhileProjectionUsesCache(
 	if hashCalls != declaredFileCount {
 		t.Fatalf("second projection reread payloads: calls=%d", hashCalls)
 	}
+	if _, found, err := svc.ProjectSelectedLocalLoadout(capabilitydriver.TextEmbedCapabilityContract); err != nil || !found {
+		t.Fatalf("AIConfig selected projection: found=%v err=%v", found, err)
+	}
+	if hashCalls != declaredFileCount {
+		t.Fatalf("AIConfig selected projection reread warm payloads: calls=%d", hashCalls)
+	}
 
 	resolved, err := svc.ResolveLocalExecution(capabilitydriver.TextEmbedCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.TextEmbedCapabilityContract))
 	if err != nil {
