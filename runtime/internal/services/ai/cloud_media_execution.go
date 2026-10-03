@@ -172,7 +172,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	}
 	if cloudVideoHasArtifactReference(request) || cloudImageHasLocalOnlyInput(request) {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-			Message: "Cloud media execution does not support Runtime Artifact image inputs or Local image strength",
+			Message: "Cloud media execution does not support video artifact inputs, image masks or Local image strength",
 		})
 	}
 	capabilityContract := scenarioTargetCapability(request.GetScenarioType())
@@ -246,6 +246,22 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		return nil, cloudMediaDriverError(capabilityContract, err)
 	}
 	effectiveRequest = mapped.Request()
+	// @nimi-authority: rule.nimi.runtime.ai-provider.gemini-owned-image-reference
+	var imageReference *nimillm.ImageReference
+	if spec := effectiveRequest.GetSpec().GetImageGenerate(); spec != nil && spec.GetReferenceImageArtifactId() != "" {
+		payload, mimeType, captureErr := s.resolveOwnedImageArtifactBytes(ctx, effectiveRequest.GetHead(), spec.GetReferenceImageArtifactId())
+		if captureErr != nil {
+			return nil, captureErr
+		}
+		digest := sha256.Sum256(payload)
+		imageReference = &nimillm.ImageReference{
+			ArtifactID: spec.GetReferenceImageArtifactId(), MIMEType: mimeType,
+			Bytes: payload, SHA256: hex.EncodeToString(digest[:]),
+		}
+		if captureErr := nimillm.ValidateGeminiImageReferenceRequest(spec, imageReference); captureErr != nil {
+			return nil, captureErr
+		}
+	}
 	if err := validateSubmitScenarioAsyncJobRequest(effectiveRequest); err != nil {
 		return nil, err
 	}
@@ -331,6 +347,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	}
 	effective.resolvedAssembly.MusicReference = musicReference
 	effective.resolvedAssembly.MusicVideoReference = musicVideo
+	effective.resolvedAssembly.ImageReference = imageReference
 	if err := s.auditCloudMediaCapture(effective); err != nil {
 		effective.release()
 		return nil, err
@@ -407,8 +424,7 @@ func cloudImageHasLocalOnlyInput(request *runtimev1.SubmitScenarioJobRequest) bo
 		return false
 	}
 	spec := request.GetSpec().GetImageGenerate()
-	return strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" ||
-		strings.TrimSpace(spec.GetMaskArtifactId()) != "" || spec.Strength != nil
+	return strings.TrimSpace(spec.GetMaskArtifactId()) != "" || spec.Strength != nil
 }
 
 func (s *Service) speechSynthesizeRouteSupportsNativeStreamTTS(
@@ -480,6 +496,7 @@ func (s *Service) executeCapturedCloudMedia(ctx context.Context, effective *clou
 	if effective.resolvedAssembly != nil {
 		ctx = nimillm.WithMusicReferenceAudio(ctx, effective.resolvedAssembly.MusicReference)
 		ctx = nimillm.WithMusicReferenceVideo(ctx, effective.resolvedAssembly.MusicVideoReference)
+		ctx = nimillm.WithImageReference(ctx, effective.resolvedAssembly.ImageReference)
 	}
 	response, err := s.remoteMediaHost.ExecuteMedia(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {

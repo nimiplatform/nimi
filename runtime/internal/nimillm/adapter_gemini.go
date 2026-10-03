@@ -253,28 +253,20 @@ func ExecuteGeminiImageGenerateContent(
 	}
 
 	resolvedModel := strings.TrimSpace(modelResolved)
-	generationConfig := map[string]any{
-		"responseModalities": []string{"IMAGE"},
-	}
-	if aspectRatio := resolveGeminiImageAspectRatio(spec); aspectRatio != "" {
-		generationConfig["imageConfig"] = map[string]any{
-			"aspectRatio": aspectRatio,
-		}
-	}
-
-	payload := map[string]any{
-		"contents": []map[string]any{
-			{
-				"parts": []map[string]any{{"text": prompt}},
-			},
-		},
-		"generationConfig": generationConfig,
-	}
-	if referenceParts, err := buildGeminiReferenceImageParts(ctx, spec.GetReferenceImages()); err != nil {
+	referenceParts, err := buildGeminiReferenceImageParts(ctx, spec.GetReferenceImages())
+	if err != nil {
 		return nil, nil, "", err
-	} else if len(referenceParts) > 0 {
-		content := payload["contents"].([]map[string]any)
-		content[0]["parts"] = append(content[0]["parts"].([]map[string]any), referenceParts...)
+	}
+	if artifactID := spec.GetReferenceImageArtifactId(); artifactID != "" {
+		reference, _ := ctx.Value(imageReferenceContextKey{}).(*ImageReference)
+		if err := ValidateGeminiImageReferenceRequest(spec, reference); err != nil {
+			return nil, nil, "", err
+		}
+		referenceParts = append(referenceParts, geminiOwnedImagePart(reference))
+	}
+	payload := geminiImageGeneratePayload(spec, referenceParts)
+	if err := validateGeminiImagePayloadSize(payload); err != nil {
+		return nil, nil, "", err
 	}
 
 	responsePayload := map[string]any{}

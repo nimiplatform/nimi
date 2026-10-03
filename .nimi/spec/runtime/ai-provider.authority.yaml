@@ -1766,3 +1766,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.gemini-owned-image-reference
+    kind: rule
+    title: Gemini image reference bytes remain in Runtime custody
+    modality: must
+    statement: The existing exact Gemini image.generate targets admitted by the Cloud image Driver may consume one Runtime-owned JPEG or PNG reference through reference_image_artifact_id, mutually exclusive with reference_images. Before publishing the Job Runtime uses the shared exact operation and owner artifact authorizer, validates bounded original MIME and encoded geometry, and captures immutable content, artifact identity and SHA256 in the private durable Cloud ResolvedAssembly. The Driver retains exact target and option validation; unsupported target, mask, strength or other option combinations fail without falling back or dropping inputs. Dispatch consumes only that captured image, serializes native inlineData with its original bytes and MIME and a complete request limit of 20000000 bytes, and never reopens an artifact identifier, uploads provider Files, exposes a path or accepts an App data URL. Other Cloud image implementations retain typed unsupported for this carrier until their exact mappings are admitted. Recovery retains the same captured content and original Job and cannot acquire current artifact or AIConfig truth.
+    condition: Whenever an admitted Cloud image.generate request carries a Runtime image artifact reference.
+    failure: Reject absent, foreign, expired, corrupt, MIME-mismatched, oversized or unsupported input with the existing typed artifact or media failure, reject missing or inconsistent captured content before outbound, and never substitute another image or publish an invented edit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.nimillm-plane

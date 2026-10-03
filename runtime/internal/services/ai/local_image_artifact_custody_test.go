@@ -243,8 +243,8 @@ func TestImageArtifactReferenceParticipatesInSelectedAndCatalogFeatures(t *testi
 func TestCloudImageArtifactReferenceIsTypedUnsupported(t *testing.T) {
 	request := cloudImageJobRequest("edit from Runtime artifact")
 	request.GetSpec().GetImageGenerate().ReferenceImageArtifactId = "artifact_cloud_image"
-	if !cloudImageHasLocalOnlyInput(request) {
-		t.Fatal("cloud image artifact reference was not detected")
+	if cloudImageHasLocalOnlyInput(request) {
+		t.Fatal("owned source was incorrectly treated as a Local-only option")
 	}
 
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})

@@ -35,6 +35,7 @@ const (
 // request-scoped Remote ExecutionHost opening point.
 type cloudResolvedAssembly struct {
 	MusicVideoReference  *nimillm.MusicReferenceVideo          `json:"music_video_reference,omitempty"`
+	ImageReference       *nimillm.ImageReference               `json:"image_reference,omitempty"`
 	MusicReference       *nimillm.MusicReferenceAudio          `json:"music_reference,omitempty"`
 	EmbeddingDimension   int                                   `json:"embedding_dimension,omitempty"`
 	EmbeddingProtocol    capabilitydriver.CloudEmbedProtocol   `json:"embedding_protocol,omitempty"`
@@ -331,6 +332,17 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly) error
 			request.GetExecutionMode() != assembly.ExecutionMode ||
 			scenarioTargetCapability(request.GetScenarioType()) != assembly.CapabilityContract {
 			return fmt.Errorf("Cloud media ResolvedAssembly request identity is mismatched")
+		}
+		imageSpec := request.GetSpec().GetImageGenerate()
+		if reference := assembly.ImageReference; reference != nil {
+			if imageSpec == nil {
+				return fmt.Errorf("Cloud image capture does not match request")
+			}
+			if err := nimillm.ValidateGeminiImageReferenceRequest(imageSpec, reference); err != nil {
+				return fmt.Errorf("Cloud image captured input is invalid: %w", err)
+			}
+		} else if imageSpec != nil && imageSpec.GetReferenceImageArtifactId() != "" && assembly.CredentialCustodyRef != "" {
+			return fmt.Errorf("Cloud image captured input is missing")
 		}
 		music := request.GetSpec().GetMusicGenerate()
 		if reference := assembly.MusicVideoReference; reference != nil {

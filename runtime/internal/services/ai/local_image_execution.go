@@ -350,48 +350,66 @@ func (s *Service) resolveLocalImageArtifactInput(
 	artifactID string,
 	role capabilitydriver.ImageResolvedInputRole,
 ) (capabilitydriver.ImageResolvedInput, error) {
-	if artifactID == "" || (role != capabilitydriver.ImageResolvedInputRoleSource && role != capabilitydriver.ImageResolvedInputRoleMask) {
+	if role != capabilitydriver.ImageResolvedInputRoleSource && role != capabilitydriver.ImageResolvedInputRoleMask {
 		return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
+	}
+	payload, _, err := s.resolveOwnedImageArtifactBytes(ctx, head, artifactID)
+	if err != nil {
+		return capabilitydriver.ImageResolvedInput{}, err
+	}
+	return capabilitydriver.ImageResolvedInput{Role: role, SourceIdentity: artifactID, ImageBytes: payload}, nil
+}
+
+// resolveOwnedImageArtifactBytes is the shared image custody boundary for Local
+// and admitted Cloud inputs. It authorizes the exact operation and owner before
+// reading bounded bytes; execution never reopens the submitted identifier.
+func (s *Service) resolveOwnedImageArtifactBytes(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+	artifactID string,
+) ([]byte, string, error) {
+	if artifactID == "" {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
 	var source *runtimeartifact.ArtifactSource
 	if decision, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
 		var err error
 		source, err = s.openAuthorizedLocalAppArtifact(ctx, decision, artifactID, localAppArtifactOperationInput)
 		if err != nil {
-			return capabilitydriver.ImageResolvedInput{}, err
+			return nil, "", err
 		}
 	} else {
 		if s == nil || s.runtimeArtifacts == nil {
-			return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+			return nil, "", grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 		}
 		var ok bool
 		source, ok = s.runtimeArtifacts.Open(ctx, artifactID)
 		if !ok {
-			return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+			return nil, "", grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 		}
 		owner := runtimeArtifactOwner(head)
 		if owner == nil || source.Record.Owner == nil || source.Record.Owner.RegisteredAppSubject != "" ||
 			source.Record.Owner.SubjectUserID != owner.SubjectUserID || source.Record.Owner.AppID != owner.AppID {
 			_ = source.Body.Close()
-			return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+			return nil, "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 		}
 	}
 	defer func() { _ = source.Body.Close() }()
 	record := source.Record
 	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(record.MimeType)), "image/") {
-		return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
 	}
 	if record.SizeBytes > runtimeartifact.MaxInlineBytes {
-		return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+		return nil, "", grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
 	}
 	payload, err := io.ReadAll(io.LimitReader(source.Body, runtimeartifact.MaxInlineBytes+1))
 	if err != nil || len(payload) == 0 || int64(len(payload)) != record.SizeBytes {
 		if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
-			return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+			return nil, "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 		}
-		return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+		return nil, "", grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
-	return capabilitydriver.ImageResolvedInput{Role: role, SourceIdentity: artifactID, ImageBytes: payload}, nil
+	return payload, record.MimeType, nil
 }
 
 func normalizeLocalImageRequest(

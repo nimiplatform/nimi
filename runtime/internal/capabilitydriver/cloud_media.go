@@ -599,6 +599,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	if mapped.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && cloudMusicReferenceRequested(mapped) && d.provider != "stability" && !(d.provider == "gemini" && (target.providerModelID == geminiLyriaClipModel || target.providerModelID == geminiLyria35Model)) {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
+	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
+		if d.provider != "gemini" || len(spec.GetReferenceImages()) != 0 {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	}
 	if d.provider == "gemini" && target.capabilityContract == "image.generate" {
 		if err := validateGeminiImageRequest(mapped.GetSpec().GetImageGenerate(), target.providerModelID); err != nil {
 			return nil, err
