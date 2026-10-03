@@ -2,7 +2,7 @@
  * @generated
  * Sources:
  *   config/runtime-provider-capabilities.yaml
- *     sha256: 57a4250a06199ac2b0185ebc7afa578a39e3dad0f896eb08f41d8aa47067c407
+ *     sha256: d31d6e9748e251b868aeb421e39f452bfbb57932e9ba8e50fe2be5a6cf9b61a6
  *   config/runtime-provider-catalog.yaml
  *     sha256: 3b4cb2d13b487510235c11016deda952e56cbc019eae09c0e985b6b711e7e0d9
  * Generator: apps/web/scripts/generate-landing-data.mjs
@@ -170,7 +170,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "voice.create"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "music.generate", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -214,7 +214,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -390,7 +390,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "realtime.interact", "text.embed", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
