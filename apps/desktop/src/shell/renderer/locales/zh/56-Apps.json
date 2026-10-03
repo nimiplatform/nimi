@@ -442,6 +442,10 @@
       "label": "AI 运行时",
       "description": "声明通过 Nimi Runtime 使用受支持的 AI 能力；可在 AI 模型标签页配置模型路由。"
     },
+    "integrationConsume": {
+      "label": "集成服务",
+      "description": "声明通过 Nimi 调用集成服务；具体连接和操作的使用许可在「集成」中单独配置。"
+    },
     "agentLocal": {
       "label": "本地 Agent",
       "description": "声明与 Nimi 暴露的本地 Agent 能力交互。"

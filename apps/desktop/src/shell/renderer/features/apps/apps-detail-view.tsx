@@ -22,6 +22,7 @@ import {
   MoreHorizontal,
   PackageOpen,
   Play,
+  Plug,
   Settings,
   ShieldCheck,
   ShieldQuestion,
@@ -68,6 +69,7 @@ import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-002
 // @nimi-authority: rule.nimi.desktop.shell-ui.r061
 
 type AppsDetailTab = 'overview' | 'access' | 'ai-models';
@@ -75,6 +77,7 @@ type AppsDetailTab = 'overview' | 'access' | 'ai-models';
 const APP_ACCESS_COPY_KEYS = Object.freeze({
   'realm.data': 'realmData',
   'runtime.consume': 'runtimeConsume',
+  'integration.consume': 'integrationConsume',
   'agent.local': 'agentLocal',
   'agent.configure': 'agentConfigure',
 } as const);
@@ -87,6 +90,7 @@ type ProjectReadmeState =
 const APP_ACCESS_FEATURE_ICON = Object.freeze({
   'realm.data': Database,
   'runtime.consume': Sparkles,
+  'integration.consume': Plug,
   'agent.local': Bot,
   'agent.configure': SlidersHorizontal,
 } as const);

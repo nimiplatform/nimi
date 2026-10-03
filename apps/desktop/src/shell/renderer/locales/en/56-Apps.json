@@ -442,6 +442,10 @@
       "label": "AI runtime",
       "description": "Declares use of supported AI capabilities through Nimi Runtime. Model routing can be configured on the AI models tab."
     },
+    "integrationConsume": {
+      "label": "Integration services",
+      "description": "Declares calls to integration services through Nimi. Permissions to use specific connections and operations are configured separately in Integrations."
+    },
     "agentLocal": {
       "label": "Local agents",
       "description": "Declares interaction with local agent capabilities exposed by Nimi."

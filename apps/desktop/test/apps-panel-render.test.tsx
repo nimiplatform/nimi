@@ -214,6 +214,76 @@ function renderView(props: AppsPanelViewProps): string {
   return renderToStaticMarkup(<TooltipProvider><AppsPanelView {...props} /></TooltipProvider>);
 }
 
+test('Nimi Access recognizes integration consumption and preserves unknown declarations in both locales', async () => {
+  const { JSDOM } = await import('jsdom');
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  const values = {
+    window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, HTMLButtonElement: dom.window.HTMLButtonElement,
+    HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element,
+    Node: dom.window.Node, NodeFilter: dom.window.NodeFilter,
+    DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver,
+    CustomEvent: dom.window.CustomEvent, Event: dom.window.Event,
+    getComputedStyle: dom.window.getComputedStyle,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
+    cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
+    IS_REACT_ACT_ENVIRONMENT: true,
+  };
+  const previous = new Map(Object.keys(values).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  await initI18n();
+  const appAccess = ['runtime.consume', 'integration.consume', 'future.unknown'];
+  const installed = installedRuntimeEntry();
+  const sources = [
+    entry({ appAccess }),
+    { ...installed, packageJob: null, committedRelease: { ...installed.committedRelease!, appAccess } },
+  ];
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  try {
+    for (const locale of ['en', 'zh'] as const) {
+      await act(async () => changeLocale(locale));
+      for (const source of sources) {
+        const props = baseProps({
+          projection: { status: 'loaded', entries: [source], catalogStatus: 'loaded', runtimeError: null },
+          selectedEntryKey: source.identity.entryKey,
+        });
+        await act(async () => root.render(<TooltipProvider><AppsPanelView {...props} /></TooltipProvider>));
+        const accessTab = [...dom.window.document.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+          .find((tab) => tab.textContent === 'Nimi Access');
+        assert.ok(accessTab);
+        await act(async () => accessTab.click());
+        const access = dom.window.document.querySelector('[data-testid="apps-detail-app-access"]');
+        assert.ok(access);
+        const integration = access.querySelector('[data-app-access="integration.consume"]');
+        const runtime = access.querySelector('[data-app-access="runtime.consume"]');
+        const unknown = access.querySelector('[data-app-access="future.unknown"]');
+        assert.equal(integration?.querySelector('h3')?.textContent, locale === 'en' ? 'Integration services' : '集成服务');
+        assert.equal(integration?.querySelector('code')?.textContent, 'integration.consume');
+        assert.equal(integration?.querySelector('p')?.textContent, locale === 'en'
+          ? 'Declares calls to integration services through Nimi. Permissions to use specific connections and operations are configured separately in Integrations.'
+          : '声明通过 Nimi 调用集成服务；具体连接和操作的使用许可在「集成」中单独配置。');
+        assert.equal(runtime?.querySelector('h3')?.textContent, locale === 'en' ? 'AI runtime' : 'AI 运行时');
+        assert.equal(unknown?.querySelector('h3')?.textContent, locale === 'en' ? 'Unrecognized declaration' : '未识别的声明');
+        assert.equal(unknown?.querySelector('code')?.textContent, 'future.unknown');
+        assert.match(unknown?.querySelector('p')?.textContent ?? '', locale === 'en' ? /developer diagnostics/ : /开发诊断/);
+        assert.ok(dom.window.document.body.textContent?.includes(locale === 'en'
+          ? 'App Access is a project declaration, not a user permission, approval, or consent setting.'
+          : 'App Access 是项目声明，不是用户权限、批准或同意设置。'));
+        assert.equal(access.textContent?.includes('Apps.accessDomain.'), false);
+      }
+    }
+  } finally {
+    await act(async () => root.unmount());
+    await changeLocale('zh');
+    dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
 test('automatic update prompts wait until the current install confirmation closes', async () => {
   const { JSDOM } = await import('jsdom');
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
