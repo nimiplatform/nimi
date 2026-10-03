@@ -13,7 +13,9 @@ export async function launchInstalledApp(selector: Uint8Array): Promise<Installe
 
 export async function stopInstalledApp(selector: Uint8Array): Promise<void> {
   const result = parseInstalledRun(await invokeChecked('installed_app_stop', { payload: { launchSelector: [...selector] } }, (value) => value));
-  if (result.state !== 'stopped') throw new Error('Installed App stop did not complete');
+  // 'stopping' is a stop accepted while the launch is still preparing; the
+  // run projection reports stopped once that launch has ended.
+  if (result.state !== 'stopped' && result.state !== 'stopping') throw new Error('Installed App stop did not complete');
 }
 
 export async function finishInstalledAppUninstall(jobId: Uint8Array, selector: Uint8Array): Promise<void> {

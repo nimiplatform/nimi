@@ -611,6 +611,7 @@ const RailGroupRow = memo(function RailGroupRow({
     entry: primary,
     actionsDisabled,
     removePending: activeAction === 'remove',
+    activeAction,
     onAction,
   });
   return (

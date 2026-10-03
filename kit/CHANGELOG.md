@@ -2,6 +2,8 @@
 
 ## Next minor (compatible additions)
 
+Installed App control accepts an optional `AbortSignal` for launch. The matching native binding cancels preparation/binding and cleans up suspended children; Desktop uses it when stopping a pending launch. Runtime owns the committed launch configuration and executable verification, so the carrier no longer repeats the executable hash before creating a suspended child.
+
 The generation consume helper adds optional embedding `dimensions`, and the protected native carrier retains its presence through the matching SDK and Runtime. This is a compatible next-minor addition. Runtime admits exact native shortening support and rejects unsupported Local or Cloud compositions; omitting the field retains the captured native default. Missing provider usage remains unspecified in the embedding summary.
 
 The music generation helper now retains owned video references through validation and submission, so a video-conditioned request cannot become prompt-only music.

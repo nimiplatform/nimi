@@ -178,6 +178,7 @@ export const AppListRow = memo(function AppListRow({
     entry,
     actionsDisabled,
     removePending: activeAction === 'remove',
+    activeAction,
     onAction,
   });
 

@@ -1,5 +1,5 @@
-// Data-root admission for Home. Root replacement, cleanup, managed App
-// launches and Runtime restart are exclusive; ordinary commands and long
+// Data-root admission for Home. Root replacement, cleanup and Runtime restart
+// are exclusive; managed App launches, ordinary commands and long
 // independent calls (a synchronous generation, a transcription, its cancel)
 // are shared, so short work never queues behind a long call. Admission is
 // FIFO: a waiting exclusive operation stops later shared work from starting,

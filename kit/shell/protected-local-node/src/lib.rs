@@ -958,20 +958,39 @@ pub async fn desktop_remove_local_development_registration(
 }
 
 #[napi(js_name = "desktopLaunchInstalledApp")]
-pub async fn desktop_launch_installed_app(
+pub fn desktop_launch_installed_app<'env>(
+    env: &'env napi::Env,
     input: NativeInstalledAppLaunchInput,
-) -> NativeJsonOutcome {
-    if input.launch_selector.is_empty() || input.launch_selector.len() > 160 {
-        return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
-    }
-    invoke_desktop_json(|control| async move {
-        control.launch_installed_app(input.launch_selector.into_bytes()).await.map(|result| json!({
-            "launchId": encode_identifier(&result.launch_id), "processId": result.process_id,
-            "appId": result.app_id, "version": result.version,
-        }))
+) -> napi::Result<napi::bindgen_prelude::PromiseRaw<'env, NativeJsonOutcome>> {
+    // Register synchronously before returning the Promise so an immediate stop
+    // cannot overtake the async task's first poll.
+    let selector = input.launch_selector.clone();
+    let pending = installed_launch_cancellation::begin(&selector);
+    env.spawn_future(async move {
+        let Some(mut pending) = pending else {
+            return Ok(NativeJsonOutcome::host_reason("installed-app-launch-failed", false));
+        };
+        let outcome = tokio::select! {
+            biased;
+            _ = pending.canceled() => NativeJsonOutcome::host_reason("installed-app-launch-canceled", false),
+            result = invoke_desktop_json(|control| async move {
+                control.launch_installed_app(input.launch_selector.into_bytes()).await.map(|result| json!({
+                    "launchId": encode_identifier(&result.launch_id), "processId": result.process_id,
+                    "appId": result.app_id, "version": result.version,
+                }))
+            }) => result,
+        };
+        Ok(outcome)
     })
-    .await
 }
+
+#[napi(js_name = "desktopCancelInstalledAppLaunch")]
+pub fn desktop_cancel_installed_app_launch(input: NativeInstalledAppLaunchInput) -> NativeJsonOutcome {
+    installed_launch_cancellation::cancel(&input.launch_selector);
+    NativeJsonOutcome::success(json!({"canceled": true}))
+}
+
+mod installed_launch_cancellation;
 
 #[napi(js_name = "desktopInstalledAppStatus")]
 pub fn desktop_installed_app_status(input: NativeInstalledAppRunInput) -> NativeJsonOutcome {

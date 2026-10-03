@@ -55,6 +55,7 @@ import { AppsSafetyDeclarationSection, resolveSafetyDeclarationState, type AppsS
 import type { DesktopAppsEntry, DesktopAppsProjectionSource } from './apps-panel-projection.js';
 import {
   actionPlanForEntry,
+  appsStopDisabled,
   canRequestCatalogInstall,
   canRequestCatalogUpdate, canRequestLocalPackageUpdate,
   hasAvailableCatalogUpdate,
@@ -147,6 +148,7 @@ function LocalDevelopmentAppsDetailView({
   const actionPlan = actionPlanForEntry(entry);
   const runVisual = appRunVisualState(entry.run?.state ?? null);
   const runTransition = appRunTransition(runVisual, activeAction);
+  const stopDisabled = appsStopDisabled(actionsDisabled, activeAction);
 
   const liveBridge = useMemo(() => createDesktopAppsLiveBridge(), []);
   const [readme, setReadme] = useState<ProjectReadmeState>({ status: 'loading' });
@@ -203,7 +205,7 @@ function LocalDevelopmentAppsDetailView({
       id: 'stop',
       label: t('Apps.action.stop'),
       icon: <Square className="h-4 w-4" aria-hidden="true" />,
-      disabled: actionsDisabled,
+      disabled: stopDisabled,
       onSelect: () => onAction('stop'),
     }] : []),
     ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{
@@ -300,13 +302,18 @@ function LocalDevelopmentAppsDetailView({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {runTransition ? (
-              <Button
-                data-testid={`apps-detail-${runTransition}`}
-                tone={runTransition === 'starting' ? 'primary' : 'secondary'}
-                loading
-              >
-                {t(`Apps.runState.${runTransition}`)}
-              </Button>
+              <>
+                <Button
+                  data-testid={`apps-detail-${runTransition}`}
+                  tone={runTransition === 'starting' ? 'primary' : 'secondary'}
+                  loading
+                >
+                  {t(`Apps.runState.${runTransition}`)}
+                </Button>
+                {runTransition === 'starting' && actionPlan.primary?.id === 'stop' ? (
+                  <AppsStartingStopButton testId="apps-detail-stop" disabled={stopDisabled} onStop={() => onAction('stop')} />
+                ) : null}
+              </>
             ) : actionPlan.primary?.id === 'stop' ? (
               <Button
                 data-testid="apps-detail-stop"
@@ -465,6 +472,9 @@ function InstalledAppsDetailView({
   const actionPlan = actionPlanForEntry(entry);
   const runVisual = appRunVisualState(entry.run?.state ?? null);
   const runTransition = appRunTransition(runVisual, activeAction);
+  // Desktop accepts a stop while Runtime still prepares the launch.
+  const installedStartPending = Boolean(release) && runTransition === 'starting';
+  const stopDisabled = appsStopDisabled(actionsDisabled, activeAction);
 
   const declaredAppAccess = release?.appAccess ?? catalog?.appAccess ?? [];
   // The installed information snapshot is the exact installed version; the
@@ -521,11 +531,11 @@ function InstalledAppsDetailView({
       icon: <Settings className="h-4 w-4" aria-hidden="true" />,
       onSelect: () => setPropertiesOpen(true),
     },
-    ...(actionPlan.secondary.some((action) => action.id === 'stop') ? [{
+    ...(actionPlan.secondary.some((action) => action.id === 'stop') || installedStartPending ? [{
       id: 'stop',
       label: t('Apps.action.stop'),
       icon: <Square className="h-4 w-4" aria-hidden="true" />,
-      disabled: actionsDisabled,
+      disabled: stopDisabled,
       onSelect: () => onAction('stop'),
     }] : []),
     ...(hasAvailableCatalogUpdate(entry) ? [{
@@ -692,13 +702,18 @@ function InstalledAppsDetailView({
                 {t('Apps.action.install')}
               </Button>
             ) : runTransition ? (
-              <Button
-                data-testid={`apps-installed-${runTransition}`}
-                tone={runTransition === 'starting' ? 'primary' : 'secondary'}
-                loading
-              >
-                {t(`Apps.runState.${runTransition}`)}
-              </Button>
+              <>
+                <Button
+                  data-testid={`apps-installed-${runTransition}`}
+                  tone={runTransition === 'starting' ? 'primary' : 'secondary'}
+                  loading
+                >
+                  {t(`Apps.runState.${runTransition}`)}
+                </Button>
+                {installedStartPending ? (
+                  <AppsStartingStopButton testId="apps-installed-stop" disabled={stopDisabled} onStop={() => onAction('stop')} />
+                ) : null}
+              </>
             ) : actionPlan.primary ? (
               <Button
                 data-testid="apps-installed-launch"
@@ -830,6 +845,21 @@ const SOURCE_TILE_ICON = Object.freeze({
  * installed copy) and links to that source's own page; install, run, and
  * removal stay independent per source.
  */
+/** Sits beside 启动中 so a slow start can be abandoned without the ⋯ menu. */
+function AppsStartingStopButton({ testId, disabled, onStop }: {
+  readonly testId: string;
+  readonly disabled: boolean;
+  readonly onStop: () => void;
+}): ReactElement {
+  const { t } = useTranslation();
+  return (
+    <Button data-testid={testId} tone="secondary" disabled={disabled} onClick={onStop}>
+      <Square className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+      {t('Apps.action.stop')}
+    </Button>
+  );
+}
+
 function AppSourcesBanner({ entries, onOpenEntry, className = '' }: {
   readonly entries: readonly DesktopAppsEntry[];
   readonly onOpenEntry: (entryKey: string) => void;

@@ -53,12 +53,30 @@ export function appsActionsLocked(pending: readonly AppsPendingAction[], appId: 
   return pending.some((item) => item.appId === appId || item.action === 'install' || item.action === 'update');
 }
 
+/**
+ * Stopping is the one action that may interrupt a launch still in flight on
+ * the same App, so a user is never stuck waiting on a slow start.
+ */
+export function appsStopLocked(pending: readonly AppsPendingAction[], appId: string): boolean {
+  return pending.some((item) => item.appId === appId && item.action !== 'launch');
+}
+
+/** Whether a stop control stays disabled for this App's current lock. */
+export function appsStopDisabled(actionsDisabled: boolean, activeAction: AppCardActionId | null): boolean {
+  return actionsDisabled && activeAction !== 'launch';
+}
+
+// A stop requested during a launch is the operation the user now waits on.
+function preferredPendingAction(items: readonly AppsPendingAction[]): AppCardActionId | null {
+  return (items.find((item) => item.action === 'stop') ?? items[0])?.action ?? null;
+}
+
 export function pendingActionForEntry(pending: readonly AppsPendingAction[], entryKey: string): AppCardActionId | null {
-  return pending.find((item) => item.entryKey === entryKey)?.action ?? null;
+  return preferredPendingAction(pending.filter((item) => item.entryKey === entryKey));
 }
 
 export function pendingActionForApp(pending: readonly AppsPendingAction[], appId: string): AppCardActionId | null {
-  return pending.find((item) => item.appId === appId)?.action ?? null;
+  return preferredPendingAction(pending.filter((item) => item.appId === appId));
 }
 
 export function isLocalDevelopmentRunActive(runState: string | null): boolean {

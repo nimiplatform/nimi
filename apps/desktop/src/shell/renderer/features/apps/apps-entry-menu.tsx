@@ -5,16 +5,18 @@ import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Copy, Info, Play, Square, Trash2, X } from 'lucide-react';
 import { ConfirmDialog, type NimiMenuItem } from '@nimiplatform/kit/ui';
-import { actionPlanForEntry, type AppCardActionId } from './apps-card-actions.js';
+import { actionPlanForEntry, appsStopDisabled, type AppCardActionId } from './apps-card-actions.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 
 export function useAppEntryMenu(input: {
   readonly entry: DesktopAppsEntry;
   readonly actionsDisabled: boolean;
   readonly removePending: boolean;
+  readonly activeAction?: AppCardActionId | null;
   readonly onAction: (action: AppCardActionId) => void;
 }): { readonly menuItems: NimiMenuItem[]; readonly confirmElement: ReactElement } {
   const { entry, actionsDisabled, removePending, onAction } = input;
+  const stopDisabled = appsStopDisabled(actionsDisabled, input.activeAction ?? null);
   const { t } = useTranslation();
   const actionPlan = actionPlanForEntry(entry);
   const [copiedAppId, setCopiedAppId] = useState(false);
@@ -49,7 +51,7 @@ export function useAppEntryMenu(input: {
         id: 'stop',
         label: t('Apps.action.stop'),
         icon: <Square className="h-4 w-4" aria-hidden="true" />,
-        disabled: actionsDisabled,
+        disabled: stopDisabled,
         onSelect: () => onAction('stop'),
       }
       : {
@@ -63,7 +65,7 @@ export function useAppEntryMenu(input: {
       id: 'stop',
       label: t('Apps.action.stop'),
       icon: <Square className="h-4 w-4" aria-hidden="true" />,
-      disabled: actionsDisabled,
+      disabled: stopDisabled,
       onSelect: () => onAction('stop'),
     }] : []),
     ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{

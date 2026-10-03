@@ -10,7 +10,7 @@ import {
   type DesktopDataRootOperationGate,
 } from './data-root-operation-gate.js';
 
-type Run = { readonly selector: Uint8Array; displayName?: string; launchId?: string; exitState?: 'stopped' | 'crashed'; pending: boolean; launchQueued?: boolean; view: InstalledAppRun };
+type Run = { readonly selector: Uint8Array; displayName?: string; launchId?: string; exitState?: 'stopped' | 'crashed'; pending: boolean; launchQueued?: boolean; stopRequested?: boolean; launchAbort?: AbortController; view: InstalledAppRun };
 const COMMANDS = ['installed_app_launch', 'installed_app_focus', 'installed_app_stop', 'installed_app_runs_list', 'installed_app_uninstall'] as const;
 export type DesktopInstalledAppHost = ReturnType<typeof createDesktopInstalledAppHost>;
 
@@ -134,26 +134,56 @@ export function createDesktopInstalledAppHost(
           await releaseLease(run, id);
         }
         run.exitState = undefined;
+        run.stopRequested = false;
         run.view = { launchSelector: [...selector], state: 'launching', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
         // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007h
         // Prepare, Host profile preparation and spawn/bind hold the data-root
-        // gate only for this bounded launch; a launch still queued when a root
+        // shared gate for this bounded launch; a launch still queued when a root
         // handoff stops this owner is refused on admission.
         const queued = run;
+        queued.launchAbort = new AbortController();
         queued.launchQueued = true;
-        const launched = await operationGate.runExclusive(async () => {
+        const launched = await operationGate.runShared(async () => {
           queued.launchQueued = false;
           if (closing) throw new Error('installed-app-owner-closing');
-          return control.launch(selector);
+          if (queued.stopRequested) return null;
+          return control.launch(selector, queued.launchAbort?.signal);
         }).finally(() => { queued.launchQueued = false; });
-        run.launchId = launched.launchId;
-        run.displayName = launched.appId;
+        if (launched) {
+          run.launchId = launched.launchId;
+          run.displayName = launched.appId;
+        }
+        if (run.stopRequested) {
+          // Stop arrived while Runtime was still preparing: end the child the
+          // launch just bound instead of leaving it running.
+          if (launched) {
+            await control.stop(launched.launchId);
+            await releaseLease(run, launched.launchId);
+          }
+          run.exitState = 'stopped';
+          run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
+          if (launched) observe(run, true);
+          return project(run);
+        }
         run.view = { ...run.view, state: 'running' };
       } catch (error) {
+        if (run.stopRequested && !run.launchId) {
+          run.exitState = 'stopped';
+          run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
+          return project(run);
+        }
         run.view = { ...run.view, state: run.exitState ?? 'crashed', reasonCode: reason(error), message: failureMessage(error), accessAvailable: false };
         return project(run);
-      } finally { run.pending = false; }
+      } finally { run.pending = false; run.launchAbort = undefined; }
       return refresh(run);
+    }
+    if (command === 'installed_app_stop' && run?.pending && run.view.state === 'launching') {
+      // Cancel the native RPC; its guards terminate an unresumed child and
+      // release the pending lease. The completion branch handles a bound race.
+      run.stopRequested = true;
+      run.launchAbort?.abort();
+      run.view = { ...run.view, state: 'stopping' };
+      return project(run);
     }
     if (!run?.launchId) throw new Error('installed-app-run-unavailable');
     if (run.pending) return project(run);

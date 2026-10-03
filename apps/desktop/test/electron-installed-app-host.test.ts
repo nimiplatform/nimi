@@ -289,3 +289,88 @@ test('installed launches share the data-root gate and a queued launch never outl
   await host.shutdown();
   assert.equal(await host.hasActiveRuns(), false);
 });
+
+test('a stop during Prepare ends the bound child and a stop before admission never launches', async () => {
+  const { createDesktopDataRootOperationGate } = await import('../src-electron/data-root-operation-gate.js');
+  const selector = [...new TextEncoder().encode('opaque-committed-selector')];
+  let launches = 0;
+  let stops = 0;
+  let ends = 0;
+  let running = false;
+  let finishPrepare!: () => void;
+  const control: NimiElectronInstalledAppControl = {
+    async launch() {
+      launches += 1;
+      await new Promise<void>((resolve) => { finishPrepare = resolve; });
+      running = true;
+      return { launchId: '11'.repeat(32), processId: 123, appId: 'example', version: '1.0.0' };
+    },
+    async status() { return { running, exitCode: running ? null : 0 }; },
+    async focus() {},
+    async stop() { stops += 1; running = false; },
+    async end() { ends += 1; },
+    async completeUninstall() {},
+    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
+  };
+  const gate = createDesktopDataRootOperationGate();
+  const host = createDesktopInstalledAppHost(control, gate);
+  const call = (command: string) => host.commandHandlers[command]!({ payload: { payload: { launchSelector: selector } } });
+
+  const launching = call('installed_app_launch') as Promise<InstalledAppRun>;
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(launches, 1);
+  const stopping = await call('installed_app_stop') as InstalledAppRun;
+  assert.equal(stopping.state, 'stopping', 'the stop is accepted while Runtime still prepares');
+  assert.equal(((await call('installed_app_runs_list')) as InstalledAppRun[])[0]?.state, 'stopping');
+  finishPrepare();
+  const settled = await launching;
+  assert.equal(settled.state, 'stopped');
+  assert.equal(running, false, 'the child bound by the late launch is terminated');
+  assert.equal(stops, 1);
+  assert.equal(ends, 1, 'its Runtime lease is released');
+  assert.equal(await host.hasActiveRuns(), false);
+
+  // A stop while the launch still waits for the gate skips Prepare entirely.
+  let release!: () => void;
+  const held = gate.runExclusive(() => new Promise<void>((resolve) => { release = resolve; }));
+  const queued = call('installed_app_launch') as Promise<InstalledAppRun>;
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal((await call('installed_app_stop') as InstalledAppRun).state, 'stopping');
+  release();
+  await held;
+  assert.equal((await queued).state, 'stopped');
+  assert.equal(launches, 1, 'a launch stopped before admission never reaches Runtime');
+
+  const relaunch = call('installed_app_launch') as Promise<InstalledAppRun>;
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  finishPrepare();
+  assert.equal((await relaunch).state, 'running', 'an earlier stop never cancels a later launch');
+  await host.shutdown();
+});
+
+test('stopping one preparation cancels its signal while another App can launch', async () => {
+  const starts: string[] = [];
+  const control: NimiElectronInstalledAppControl = {
+    async launch(selector, signal) {
+      const name = new TextDecoder().decode(selector);
+      starts.push(name);
+      if (name === 'slow') await new Promise<void>((_, reject) => {
+        signal!.addEventListener('abort', () => reject(signal!.reason), { once: true });
+      });
+      return { launchId: '22'.repeat(32), processId: 123, appId: name, version: '1' };
+    },
+    status: async () => ({ running: true, exitCode: null }),
+    focus: async () => {}, stop: async () => {}, end: async () => {}, completeUninstall: async () => {},
+    access: async () => ({ available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }),
+  };
+  const host = createDesktopInstalledAppHost(control);
+  const slow = new TextEncoder().encode('slow');
+  const starting = host.launchSelector(slow) as Promise<InstalledAppRun>;
+  await new Promise<void>(resolve => setImmediate(resolve));
+  try {
+    assert.equal((await host.launchSelector(new TextEncoder().encode('fast')) as InstalledAppRun).state, 'running');
+    assert.deepEqual(starts, ['slow', 'fast']);
+    await host.commandHandlers.installed_app_stop!({ payload: { payload: { launchSelector: [...slow] } } });
+    assert.equal((await starting).state, 'stopped');
+  } finally { await host.shutdown(); }
+});

@@ -9,9 +9,7 @@ use crate::windows_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
     InstalledAppLaunchOutcome, InstalledAppRunAccess, NimiHostError, NimiHostErrorReasonCode,
 };
-use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use std::io::Read;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -27,6 +25,25 @@ fn runs() -> &'static Mutex<Runs> {
     RUNS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+// Dropping an in-flight native launch cancels its RPC and releases any known
+// lease. The suspended child guard drops before this guard and terminates it.
+struct PendingLease {
+    channel: Channel,
+    id: [u8; 32],
+    active: bool,
+}
+impl Drop for PendingLease {
+    fn drop(&mut self) {
+        if self.active {
+            let channel = self.channel.clone();
+            let id = self.id;
+            tokio::spawn(async move {
+                let _ = end(channel, id).await;
+            });
+        }
+    }
+}
+
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
 pub(crate) async fn launch(
     channel: Channel,
@@ -40,10 +57,7 @@ pub(crate) async fn launch(
             PrepareInstalledAppLaunchRequest {
                 launch_selector: selector,
             },
-            // Full package verification precedes the short bind lease. A cold
-            // Electron tree can contain thousands of files and hundreds of MB;
-            // cold Windows reads during another install can exceed two minutes.
-            300,
+            30,
         ))
         .await
         .map_err(runtime_error)?
@@ -58,6 +72,11 @@ pub(crate) async fn launch(
     if id == [0; 32] {
         return Err(invalid());
     }
+    let mut lease = PendingLease {
+        channel: channel.clone(),
+        id,
+        active: true,
+    };
     let deadline = timestamp_ms(prepared.bind_deadline)?;
     if now_ms()? >= deadline {
         return Err(invalid());
@@ -76,20 +95,9 @@ pub(crate) async fn launch(
         {
             return Err(invalid());
         }
-        let mut file = std::fs::File::open(&executable).map_err(|_| invalid())?;
-        let mut digest = Sha256::new();
-        let mut buffer = [0u8; 128 * 1024];
-        loop {
-            let count = file.read(&mut buffer).map_err(|_| invalid())?;
-            if count == 0 {
-                break;
-            }
-            digest.update(&buffer[..count]);
-        }
-        if <[u8; 32]>::from(digest.finalize()) != expected {
-            return Err(invalid());
-        }
-        drop(file);
+        // Runtime checks the committed Host before preparation and independently
+        // hashes the actual suspended child image during bind. Rehashing here
+        // would neither pin the file nor add a stronger process identity.
         // Arguments stay empty; the standard shell reads its profile from the
         // child environment before any Electron session exists.
         let profile = crate::host_profile::prepare(host_storage)?;
@@ -137,6 +145,7 @@ pub(crate) async fn launch(
         // before releasing the pending Runtime lease.
         let _ = end(channel, id).await;
     }
+    lease.active = false;
     result
 }
 
@@ -231,9 +240,21 @@ pub(crate) async fn access(
         .into_inner();
     let reason = ReasonCode::try_from(result.reason_code).map_err(|_| invalid())?;
     if result.available {
-        let suffix = result.execution_scope_ref.strip_prefix("execution_scope_").ok_or_else(invalid)?;
-        if reason != ReasonCode::ActionExecuted || suffix.len() != 43 || !suffix.bytes().all(|v| v.is_ascii_alphanumeric() || v == b'_' || v == b'-') { return Err(invalid()); }
-    } else if !result.execution_scope_ref.is_empty() { return Err(invalid()); }
+        let suffix = result
+            .execution_scope_ref
+            .strip_prefix("execution_scope_")
+            .ok_or_else(invalid)?;
+        if reason != ReasonCode::ActionExecuted
+            || suffix.len() != 43
+            || !suffix
+                .bytes()
+                .all(|v| v.is_ascii_alphanumeric() || v == b'_' || v == b'-')
+        {
+            return Err(invalid());
+        }
+    } else if !result.execution_scope_ref.is_empty() {
+        return Err(invalid());
+    }
     Ok(InstalledAppRunAccess {
         available: result.available,
         reason_code: reason.as_str_name().into(),

@@ -8,7 +8,7 @@ type NativeOutcome = { readonly status: 'ok'; readonly value: unknown } | {
 type NativeMethod = (input: Readonly<Record<string, unknown>>) => NativeOutcome | Promise<NativeOutcome>;
 type Binding = Readonly<Record<string, NativeMethod>>;
 const METHODS = [
-  'desktopLaunchInstalledApp', 'desktopInstalledAppStatus', 'desktopFocusInstalledApp',
+  'desktopLaunchInstalledApp', 'desktopCancelInstalledAppLaunch', 'desktopInstalledAppStatus', 'desktopFocusInstalledApp',
   'desktopStopInstalledApp', 'desktopEndInstalledAppRun', 'desktopInstalledAppRunAccess',
   'desktopCompleteAppUninstall',
 ] as const;
@@ -23,7 +23,7 @@ export class NimiElectronInstalledAppError extends Error {
 // Main-only control. Lease identity and native process handles never enter the
 // renderer or App bridge, and Runtime still derives all installed authority.
 export interface NimiElectronInstalledAppControl {
-  launch(selector: Uint8Array): Promise<{ readonly launchId: string; readonly processId: number; readonly appId: string; readonly version: string }>;
+  launch(selector: Uint8Array, signal?: AbortSignal): Promise<{ readonly launchId: string; readonly processId: number; readonly appId: string; readonly version: string }>;
   status(launchId: string): Promise<{ readonly running: boolean; readonly exitCode: number | null }>;
   focus(launchId: string): Promise<void>;
   stop(launchId: string): Promise<void>;
@@ -67,12 +67,19 @@ function createInstalledControl(resolve: () => Binding): NimiElectronInstalledAp
     if (result[flag] !== true || Object.keys(result).length !== 1) invalid();
   };
   return {
-    async launch(selector) {
+    async launch(selector, signal) {
       const bytes = Uint8Array.from(selector);
       if (bytes.length === 0 || bytes.length > 160) invalid();
       const text = Buffer.from(bytes).toString('utf8');
       if (!Buffer.from(text, 'utf8').equals(Buffer.from(bytes))) invalid();
-      const result = await invoke('desktopLaunchInstalledApp', { launchSelector: text });
+      signal?.throwIfAborted();
+      const pending = invoke('desktopLaunchInstalledApp', { launchSelector: text });
+      let cancelPending: Promise<unknown> | undefined;
+      const cancel = () => { cancelPending = invoke('desktopCancelInstalledAppLaunch', { launchSelector: text }); void cancelPending.catch(() => undefined); };
+      signal?.addEventListener('abort', cancel, { once: true });
+      let result: Record<string, unknown>;
+      try { result = await pending; }
+      finally { signal?.removeEventListener('abort', cancel); await cancelPending?.catch(() => undefined); }
       if (Object.keys(result).sort().join('|') !== 'appId|launchId|processId|version' || !Number.isSafeInteger(result.processId) || Number(result.processId) <= 0) invalid();
       return { launchId: identifier(result.launchId), processId: Number(result.processId), appId: requiredText(result.appId), version: requiredText(result.version) };
     },

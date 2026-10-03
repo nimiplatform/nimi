@@ -58,7 +58,7 @@ function buildingEntry(): DesktopAppsEntry {
   };
 }
 
-test('a local-development build keeps 停止 in the detail overflow menu', async () => {
+test('a local-development build keeps 停止 beside 启动中 and in the overflow menu while the launch request is in flight', async () => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
   class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
   const values: Record<string, unknown> = {
@@ -102,7 +102,8 @@ test('a local-development build keeps 停止 in the detail overflow menu', async
     onRetry: () => {},
     onAIConfigChanged: () => {},
     actionError: null,
-    pendingActions: [],
+    // The launch request itself is still pending; stopping must not wait on it.
+    pendingActions: [{ entryKey: entry.identity.entryKey, appId: entry.identity.appId, action: 'launch' }],
     installConfirmation: null,
     onConfirmInstall: () => undefined,
     onCancelInstall: () => undefined,
@@ -112,14 +113,19 @@ test('a local-development build keeps 停止 in the detail overflow menu', async
     await act(async () => root.render(<TooltipProvider><AppsPanelView {...props} /></TooltipProvider>));
     const document = dom.window.document;
     assert.ok(document.querySelector('[data-testid="apps-detail-starting"]'), 'header shows 启动中');
+    const headerStop = document.querySelector<HTMLButtonElement>('[data-testid="apps-detail-stop"]');
+    assert.ok(headerStop, 'header offers 停止 beside 启动中');
+    assert.equal(headerStop.disabled, false);
+    await act(async () => headerStop.click());
     const trigger = document.querySelector<HTMLElement>('[data-testid="apps-detail-more"]');
     assert.ok(trigger, 'expected the detail overflow trigger');
     await act(async () => trigger.click());
     const stop = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
       .find((item) => item.textContent?.includes('停止'));
     assert.ok(stop, 'the overflow menu offers 停止 while the header shows 启动中');
+    assert.notEqual(stop.getAttribute('aria-disabled'), 'true');
     await act(async () => stop.click());
-    assert.deepEqual(actions, [`${entry.identity.entryKey}:stop`]);
+    assert.deepEqual(actions, [`${entry.identity.entryKey}:stop`, `${entry.identity.entryKey}:stop`]);
   } finally {
     await act(async () => root.unmount());
     // Radix focus scopes dispatch their unmount events on a timer; let them

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { AppCardActionId, AppsPendingAction } from './apps-card-actions.js';
-import { appsActionsLocked, canRequestCatalogInstall, canRequestCatalogUpdate, isLocalDevelopmentRunActive } from './apps-card-actions.js';
+import { appsActionsLocked, appsStopLocked, canRequestCatalogInstall, canRequestCatalogUpdate, isLocalDevelopmentRunActive } from './apps-card-actions.js';
 import type {
   AppsInstallIntentController,
   AppsInstallIntentResult,
@@ -364,7 +364,9 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       failAction(entryKey, t('Apps.actionFailed'), `App source is no longer available: ${entryKey}`);
       return;
     }
-    if (appsActionsLocked(pendingActionsRef.current, entry.identity.appId)) return;
+    if (action === 'stop'
+      ? appsStopLocked(pendingActionsRef.current, entry.identity.appId)
+      : appsActionsLocked(pendingActionsRef.current, entry.identity.appId)) return;
     const endPendingAction = beginPendingAction({ entryKey, appId: entry.identity.appId, action });
     void (async () => {
       try {
