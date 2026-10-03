@@ -1083,6 +1083,7 @@ function renderGeneratedAIStudioHostAdapter(resolution) {
     '        createStudioNonSuccess(capability, reason, message, translate, diagnostics)',
     '      ),',
     '    }),',
+    '    deleteLocalAppVoiceAsset: (voiceAssetId) => getNimiLocalAppClient().ai.voiceAssets.delete(voiceAssetId),',
     '    async listLocalAppVoiceAssets() {',
     "      const result = await getNimiLocalAppClient().ai.voiceAssets.list({ pageSize: 100, pageToken: '' });",
     '      return result.assets.map((asset) => ({',

@@ -1668,6 +1668,8 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
     'storage.assets.remove',
     'storage.assets.stat',
     'ai.voiceAssets.list',
+    'deleteLocalAppVoiceAsset',
+    'ai.voiceAssets.delete',
     'ai.artifacts.upload',
     'navigator.clipboard.writeText',
   ]) {
