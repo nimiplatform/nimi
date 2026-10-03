@@ -17,7 +17,7 @@ import {
 } from '@nimiplatform/sdk/ai';
 import type { NimiLoadoutRecipe } from '@nimiplatform/sdk/runtime';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
-import { Button, InlineAlert, Surface, TextField } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, ScrollShell, Surface, TextField } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -951,9 +951,11 @@ function ReadOnlyJson(props: { readonly label: string; readonly value: unknown }
   return (
     <div>
       <div className="mb-1 text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-secondary)]">{props.label}</div>
-      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-[var(--nimi-surface-subtle)] p-2 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-        {JSON.stringify(props.value, null, 2)}
-      </pre>
+      <ScrollShell className="max-h-48 rounded-lg bg-[var(--nimi-surface-subtle)] p-2">
+        <pre className="whitespace-pre-wrap break-words font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+          {JSON.stringify(props.value, null, 2)}
+        </pre>
+      </ScrollShell>
     </div>
   );
 }

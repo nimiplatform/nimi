@@ -7,6 +7,7 @@ import {
   InlineAlert,
   LoadingSkeleton,
   SearchField,
+  ScrollShell,
   SidebarShell,
   Surface,
 } from '@nimiplatform/kit/ui';
@@ -93,9 +94,9 @@ export function PersonaCatalogContent({
           />
         </div>
 
-        <div
+        <ScrollShell
           data-persona-rail-list
-          className="flex min-h-0 flex-1 gap-2 overflow-x-auto px-2 pb-2 lg:flex-col lg:gap-0 lg:overflow-x-hidden lg:overflow-y-auto"
+          className="flex min-h-0 flex-1 gap-2 overflow-x-auto px-2 pb-2 lg:flex-col lg:gap-0 lg:overflow-x-hidden"
         >
           {loading ? (
             <div aria-hidden="true" className="w-full space-y-2 px-2 py-3">
@@ -134,7 +135,7 @@ export function PersonaCatalogContent({
               onLoadMore={onLoadMore}
             />
           ) : null}
-        </div>
+        </ScrollShell>
       </SidebarShell>
 
       <Surface

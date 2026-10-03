@@ -11,6 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
   SearchField,
+  ScrollShell,
   SelectField,
   StatusBadge,
   Surface,
@@ -958,11 +959,13 @@ export function InstallPlanPanel(props: {
               <summary className="cursor-pointer select-none font-medium text-[var(--nimi-text-secondary)]">
                 {t('runtimeConfig.recommend.planFileList', { count: plan.files.length, defaultValue: '{{count}} files' })}
               </summary>
-              <ul className="mt-1.5 max-h-44 space-y-0.5 overflow-auto font-mono text-[11px] text-[var(--nimi-text-muted)]">
-                {plan.files.map((file) => (
-                  <li key={file} className="break-all">{file}</li>
-                ))}
-              </ul>
+              <ScrollShell className="mt-1.5 max-h-44">
+                <ul className="space-y-0.5 font-mono text-[11px] text-[var(--nimi-text-muted)]">
+                  {plan.files.map((file) => (
+                    <li key={file} className="break-all">{file}</li>
+                  ))}
+                </ul>
+              </ScrollShell>
             </details>
           ) : null}
           {plan.warnings.length > 0 ? (

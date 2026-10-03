@@ -6,7 +6,7 @@ import { asNimiError } from '@nimiplatform/sdk';
 import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobKind, AppPackageSourceClass, ReasonCode, type AppPackageJob, type CommittedAppRelease, type LocalAppPackagePreview } from '@nimiplatform/sdk/runtime/wire-types';
 import { openShellFileDialog } from '@nimiplatform/kit/shell/renderer/bridge';
-import { Button, InlineAlert, OverlayShell } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, OverlayShell, ScrollShell } from '@nimiplatform/kit/ui';
 import semver from 'semver';
 
 type LocalIntent = { readonly preview: LocalAppPackagePreview; readonly installed: CommittedAppRelease | null };
@@ -132,27 +132,29 @@ export function AppsLocalImportFeedback({ state }: { readonly state: ReturnType<
     {state.error && !preview ? <InlineAlert tone="danger" className="mx-4 mt-2" role="alert">{state.error}</InlineAlert> : null}
     <OverlayShell open={preview !== undefined} size="md" title={t(state.intent?.installed ? 'Apps.localImport.updateTitle' : 'Apps.localImport.confirmTitle')}
       panelClassName="flex flex-col" panelStyle={{ maxHeight: 'calc(100dvh - 32px)' }}
-      contentClassName="min-h-0 overflow-y-auto" onClose={pending ? undefined : state.cancel}
+      contentClassName="flex min-h-0 flex-col overflow-hidden px-0 py-0" onClose={pending ? undefined : state.cancel}
       footer={<div className="flex justify-end gap-3">
         <Button tone="secondary" disabled={pending} onClick={state.cancel}>{t('Common.cancel')}</Button>
         <Button tone="primary" loading={pending} onClick={() => void state.confirm()}>{t(state.intent?.installed ? 'Apps.action.update' : 'Apps.action.install')}</Button>
       </div>}
     >
-      {preview ? <div className="space-y-3 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-secondary)]">
-        {state.error ? <InlineAlert tone="danger" role="alert">{state.error}</InlineAlert> : null}
-        <div className="flex items-center gap-3"><AppArtworkIcon appId={preview.appId} displayName={preview.displayName} iconUrl={preview.info ? `data:image/png;base64,${preview.info.iconPngBase64}` : null} /><p className="font-semibold">{preview.displayName} · {preview.version}</p></div>
-        <AppsDistributionInfo info={preview.info} />
-        <p>{t('Apps.localImport.sourceDisclosure')}</p>
-        {state.intent?.installed ? <p>{t('Apps.update.confirmMessage', { from: state.intent.installed.version, to: preview.version })}</p> : null}
-        {preview.windowsCodeSigning === 'unsigned' ? <p>{t('Apps.localImport.nativeWindowsUnsigned')}</p> : null}
-        {preview.os === 'macos' && preview.macosNotarization === 'absent' ? <p>{t(preview.observedSigningSubject ? 'Apps.localImport.nativeMacOSUnnotarized' : 'Apps.localImport.nativeMacOSUnsigned')}</p> : null}
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-          <dt>{t('LocalDevelopment.field.app')}</dt><dd className="break-all">{preview.appId}</dd>
-          <dt>{t('Apps.localImport.platform')}</dt><dd>{preview.os} · {preview.arch}</dd>
-          <dt>{t('Apps.localImport.appAccess')}</dt><dd>{preview.appAccess.join(', ') || t('Apps.catalog.none')}</dd>
-          {preview.observedSigningSubject ? <><dt>{t('Apps.catalog.nativePosture')}</dt><dd className="break-all">{preview.observedSigningSubject}</dd></> : null}
-        </dl>
-      </div> : null}
+      <ScrollShell className="px-6 py-2">
+        {preview ? <div className="space-y-3 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-secondary)]">
+          {state.error ? <InlineAlert tone="danger" role="alert">{state.error}</InlineAlert> : null}
+          <div className="flex items-center gap-3"><AppArtworkIcon appId={preview.appId} displayName={preview.displayName} iconUrl={preview.info ? `data:image/png;base64,${preview.info.iconPngBase64}` : null} /><p className="font-semibold">{preview.displayName} · {preview.version}</p></div>
+          <AppsDistributionInfo info={preview.info} />
+          <p>{t('Apps.localImport.sourceDisclosure')}</p>
+          {state.intent?.installed ? <p>{t('Apps.update.confirmMessage', { from: state.intent.installed.version, to: preview.version })}</p> : null}
+          {preview.windowsCodeSigning === 'unsigned' ? <p>{t('Apps.localImport.nativeWindowsUnsigned')}</p> : null}
+          {preview.os === 'macos' && preview.macosNotarization === 'absent' ? <p>{t(preview.observedSigningSubject ? 'Apps.localImport.nativeMacOSUnnotarized' : 'Apps.localImport.nativeMacOSUnsigned')}</p> : null}
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+            <dt>{t('LocalDevelopment.field.app')}</dt><dd className="break-all">{preview.appId}</dd>
+            <dt>{t('Apps.localImport.platform')}</dt><dd>{preview.os} · {preview.arch}</dd>
+            <dt>{t('Apps.localImport.appAccess')}</dt><dd>{preview.appAccess.join(', ') || t('Apps.catalog.none')}</dd>
+            {preview.observedSigningSubject ? <><dt>{t('Apps.catalog.nativePosture')}</dt><dd className="break-all">{preview.observedSigningSubject}</dd></> : null}
+          </dl>
+        </div> : null}
+      </ScrollShell>
     </OverlayShell>
   </>;
 }

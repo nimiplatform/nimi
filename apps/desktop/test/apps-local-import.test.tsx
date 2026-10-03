@@ -61,12 +61,17 @@ test('local import releases invalid previews and keeps confirmation failures ins
     // Rich package metadata scrolls independently of the confirmation actions.
     assert.equal((dialog as HTMLElement).style.maxHeight, 'calc(100dvh - 32px)');
     const content = dialog.querySelector('.nimi-overlay-content');
-    assert.ok(content?.classList.contains('overflow-y-auto'));
+    assert.ok(content?.classList.contains('overflow-hidden'));
     assert.ok(content.classList.contains('min-h-0'));
+    const scroll = content.firstElementChild;
+    assert.ok(scroll?.classList.contains('overflow-y-auto'));
+    assert.ok(scroll.classList.contains('overscroll-contain'));
+    assert.match(scroll.textContent ?? '', /Example/);
     const install = [...dialog.querySelectorAll('button')].find((button) => button.textContent === 'Install');
     const cancel = [...dialog.querySelectorAll('button')].find((button) => button.textContent === 'Cancel');
     assert.ok(install && cancel);
     assert.equal(content.contains(install), false);
+    assert.equal(content.contains(cancel), false);
     await act(async () => { install.click(); });
     assert.equal(state.phase, 'starting');
     assert.equal(install.disabled, true);

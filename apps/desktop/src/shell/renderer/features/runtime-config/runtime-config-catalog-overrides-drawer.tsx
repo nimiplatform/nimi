@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { InlineAlert, OverlayShell } from '@nimiplatform/kit/ui';
+import { InlineAlert, OverlayShell, ScrollShell } from '@nimiplatform/kit/ui';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -260,7 +260,7 @@ export function CatalogOverridesDrawer(props: CatalogOverridesDrawerProps) {
         size="L"
         onClose={requestClose}
         panelClassName="flex max-h-screen flex-col"
-        contentClassName="min-h-0 flex-1 overflow-y-auto"
+        contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden px-0 py-0"
         title={(
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">
@@ -282,164 +282,166 @@ export function CatalogOverridesDrawer(props: CatalogOverridesDrawerProps) {
           </div>
         )}
       >
-        <div className="mt-4 space-y-4">
-          {feedback ? <InlineAlert tone={feedback.kind === 'error' ? 'danger' : 'success'}>{feedback.message}</InlineAlert> : null}
-          {loading && !provider ? (
-            <Card hoverMotion={false} className="p-5 text-sm text-[var(--nimi-text-muted)]">
-              {t('runtimeConfig.catalogOverrides.loading', { defaultValue: 'Loading model information…' })}
-            </Card>
-          ) : null}
+        <ScrollShell className="flex-1 px-6 py-2">
+          <div className="mt-4 space-y-4">
+            {feedback ? <InlineAlert tone={feedback.kind === 'error' ? 'danger' : 'success'}>{feedback.message}</InlineAlert> : null}
+            {loading && !provider ? (
+              <Card hoverMotion={false} className="p-5 text-sm text-[var(--nimi-text-muted)]">
+                {t('runtimeConfig.catalogOverrides.loading', { defaultValue: 'Loading model information…' })}
+              </Card>
+            ) : null}
 
-          {provider ? (
-            <CatalogProviderSummary
-              provider={provider}
-              onRestoreAll={() => setConfirmAction({ kind: 'restore-all' })}
-              restoring={busy}
-            />
-          ) : null}
+            {provider ? (
+              <CatalogProviderSummary
+                provider={provider}
+                onRestoreAll={() => setConfirmAction({ kind: 'restore-all' })}
+                restoring={busy}
+              />
+            ) : null}
 
-          {provider?.inventoryMode === 'dynamic_endpoint' ? (
-            <InlineAlert tone="info">
-              {t('runtimeConfig.catalogOverrides.dynamicInventory', {
-                defaultValue: 'Models for this provider are discovered by the connector. Nimi does not maintain a static provider list here.',
-              })}
-            </InlineAlert>
-          ) : null}
+            {provider?.inventoryMode === 'dynamic_endpoint' ? (
+              <InlineAlert tone="info">
+                {t('runtimeConfig.catalogOverrides.dynamicInventory', {
+                  defaultValue: 'Models for this provider are discovered by the connector. Nimi does not maintain a static provider list here.',
+                })}
+              </InlineAlert>
+            ) : null}
 
-          {provider && provider.inventoryMode !== 'dynamic_endpoint' ? (
-            <>
-              <Card hoverMotion={false} className="overflow-hidden p-0">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--nimi-border-subtle)] px-4 py-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-                      {t('runtimeConfig.catalogOverrides.customModels', { defaultValue: 'Your custom models' })}
-                    </h3>
-                    <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">
-                      {t('runtimeConfig.catalogOverrides.customModelsHint', {
-                        defaultValue: 'Custom entries supplement or override Nimi built-in model information for this provider.',
-                      })}
-                    </p>
+            {provider && provider.inventoryMode !== 'dynamic_endpoint' ? (
+              <>
+                <Card hoverMotion={false} className="overflow-hidden p-0">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--nimi-border-subtle)] px-4 py-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                        {t('runtimeConfig.catalogOverrides.customModels', { defaultValue: 'Your custom models' })}
+                      </h3>
+                      <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">
+                        {t('runtimeConfig.catalogOverrides.customModelsHint', {
+                          defaultValue: 'Custom entries supplement or override Nimi built-in model information for this provider.',
+                        })}
+                      </p>
+                    </div>
+                    <Button size="sm" onClick={() => setAddingModel((value) => !value)} disabled={busy}>
+                      {addingModel
+                        ? t('runtimeConfig.catalogOverrides.cancelAdd', { defaultValue: 'Cancel' })
+                        : t('runtimeConfig.catalogOverrides.addModel', { defaultValue: 'Add custom model' })}
+                    </Button>
                   </div>
-                  <Button size="sm" onClick={() => setAddingModel((value) => !value)} disabled={busy}>
-                    {addingModel
-                      ? t('runtimeConfig.catalogOverrides.cancelAdd', { defaultValue: 'Cancel' })
-                      : t('runtimeConfig.catalogOverrides.addModel', { defaultValue: 'Add custom model' })}
-                  </Button>
-                </div>
 
-                {addingModel ? (
-                  <AddCustomModelForm
-                    providerId={props.providerId}
-                    now={bindings.clock.now}
-                    busy={busy}
-                    onBusyChange={setBusy}
-                    onSaved={async () => {
-                      setAddingModel(false);
-                      await loadProvider();
-                      setFeedback({
-                        kind: 'success',
-                        message: t('runtimeConfig.catalogOverrides.modelSaved', { defaultValue: 'Custom model saved.' }),
-                      });
-                    }}
-                    onError={(message) => setFeedback({ kind: 'error', message })}
-                  />
-                ) : null}
+                  {addingModel ? (
+                    <AddCustomModelForm
+                      providerId={props.providerId}
+                      now={bindings.clock.now}
+                      busy={busy}
+                      onBusyChange={setBusy}
+                      onSaved={async () => {
+                        setAddingModel(false);
+                        await loadProvider();
+                        setFeedback({
+                          kind: 'success',
+                          message: t('runtimeConfig.catalogOverrides.modelSaved', { defaultValue: 'Custom model saved.' }),
+                        });
+                      }}
+                      onError={(message) => setFeedback({ kind: 'error', message })}
+                    />
+                  ) : null}
 
-                {!addingModel ? (
-                  customModels.length > 0 ? (
-                    <div className="divide-y divide-[var(--nimi-border-subtle)]">
-                      {customModels.map((model) => (
-                        <div key={model.modelId} className="flex items-center justify-between gap-4 px-4 py-3">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{model.modelId}</p>
-                              <span className="rounded-full bg-[var(--nimi-status-info-soft-bg)] px-2 py-0.5 text-xs text-[var(--nimi-status-info-soft-text)]">
-                                {model.source === 'overridden'
-                                  ? t('runtimeConfig.catalogOverrides.overridden', { defaultValue: 'Overridden' })
-                                  : t('runtimeConfig.catalogOverrides.custom', { defaultValue: 'Custom' })}
-                              </span>
+                  {!addingModel ? (
+                    customModels.length > 0 ? (
+                      <div className="divide-y divide-[var(--nimi-border-subtle)]">
+                        {customModels.map((model) => (
+                          <div key={model.modelId} className="flex items-center justify-between gap-4 px-4 py-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{model.modelId}</p>
+                                <span className="rounded-full bg-[var(--nimi-status-info-soft-bg)] px-2 py-0.5 text-xs text-[var(--nimi-status-info-soft-text)]">
+                                  {model.source === 'overridden'
+                                    ? t('runtimeConfig.catalogOverrides.overridden', { defaultValue: 'Overridden' })
+                                    : t('runtimeConfig.catalogOverrides.custom', { defaultValue: 'Custom' })}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                                {model.capabilities.join(' · ') || model.modelType}
+                              </p>
                             </div>
-                            <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                              {model.capabilities.join(' · ') || model.modelType}
-                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={busy}
+                              onClick={() => setConfirmAction({ kind: 'restore-model', modelId: model.modelId, source: model.source })}
+                            >
+                              {model.source === 'overridden'
+                                ? t('runtimeConfig.catalogOverrides.restoreModel', { defaultValue: 'Restore built-in' })
+                                : t('runtimeConfig.catalogOverrides.removeModel', { defaultValue: 'Remove' })}
+                            </Button>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={busy}
-                            onClick={() => setConfirmAction({ kind: 'restore-model', modelId: model.modelId, source: model.source })}
-                          >
-                            {model.source === 'overridden'
-                              ? t('runtimeConfig.catalogOverrides.restoreModel', { defaultValue: 'Restore built-in' })
-                              : t('runtimeConfig.catalogOverrides.removeModel', { defaultValue: 'Remove' })}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-7 text-center">
-                      <p className="text-sm text-[var(--nimi-text-secondary)]">
-                        {t('runtimeConfig.catalogOverrides.noCustomModels', { defaultValue: 'No custom models for this provider.' })}
-                      </p>
-                      <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                        {t('runtimeConfig.catalogOverrides.usingBuiltIn', { defaultValue: 'Nimi built-in model information is active.' })}
-                      </p>
-                    </div>
-                  )
-                ) : null}
-              </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-7 text-center">
+                        <p className="text-sm text-[var(--nimi-text-secondary)]">
+                          {t('runtimeConfig.catalogOverrides.noCustomModels', { defaultValue: 'No custom models for this provider.' })}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                          {t('runtimeConfig.catalogOverrides.usingBuiltIn', { defaultValue: 'Nimi built-in model information is active.' })}
+                        </p>
+                      </div>
+                    )
+                  ) : null}
+                </Card>
 
-              <Card hoverMotion={false} className="p-0">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                  aria-expanded={advancedOpen}
-                  onClick={() => setAdvancedOpen((value) => !value)}
-                >
-                  <span>
-                    <span className="block text-sm font-semibold text-[var(--nimi-text-primary)]">
-                      {t('runtimeConfig.catalogOverrides.advancedYaml', { defaultValue: 'Advanced: YAML import' })}
+                <Card hoverMotion={false} className="p-0">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    aria-expanded={advancedOpen}
+                    onClick={() => setAdvancedOpen((value) => !value)}
+                  >
+                    <span>
+                      <span className="block text-sm font-semibold text-[var(--nimi-text-primary)]">
+                        {t('runtimeConfig.catalogOverrides.advancedYaml', { defaultValue: 'Advanced: YAML import' })}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-[var(--nimi-text-muted)]">
+                        {t('runtimeConfig.catalogOverrides.advancedYamlHint', { defaultValue: 'Use only when the structured editor cannot express the required provider metadata.' })}
+                      </span>
                     </span>
-                    <span className="mt-0.5 block text-xs text-[var(--nimi-text-muted)]">
-                      {t('runtimeConfig.catalogOverrides.advancedYamlHint', { defaultValue: 'Use only when the structured editor cannot express the required provider metadata.' })}
-                    </span>
-                  </span>
-                  <span aria-hidden="true" className="text-[var(--nimi-text-muted)]">{advancedOpen ? '−' : '+'}</span>
-                </button>
-                {advancedOpen ? (
-                  <div className="space-y-4 border-t border-[var(--nimi-border-subtle)] p-4">
-                    <LabeledTextarea
-                      label={t('runtimeConfig.catalogOverrides.yourOverrides', { defaultValue: 'Your overrides (editable)' })}
-                      description={t('runtimeConfig.catalogOverrides.yourOverridesHint', { defaultValue: 'Only provider-scoped custom fragments belong here.' })}
-                      value={yamlDraft}
-                      onChange={setYamlDraft}
-                      readOnly={false}
-                      tone="light"
-                    />
-                    <LabeledTextarea
-                      label={t('runtimeConfig.catalogOverrides.effectiveConfiguration', { defaultValue: 'Effective configuration (read only)' })}
-                      description={t('runtimeConfig.catalogOverrides.effectiveConfigurationHint', { defaultValue: 'Nimi built-in information merged with your custom entries.' })}
-                      value={provider.effectiveYaml}
-                      onChange={() => undefined}
-                      readOnly
-                      tone="dark"
-                    />
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="secondary" size="sm" disabled={!dirty || busy} onClick={() => setYamlDraft(initialYaml)}>
-                        {t('runtimeConfig.catalogOverrides.discardChanges', { defaultValue: 'Discard changes' })}
-                      </Button>
-                      <Button size="sm" disabled={!dirty || !yamlDraft.trim() || busy} onClick={() => void saveYaml()}>
-                        {busy
-                          ? t('runtimeConfig.catalogOverrides.saving', { defaultValue: 'Saving…' })
-                          : t('runtimeConfig.catalogOverrides.saveOverrides', { defaultValue: 'Save overrides' })}
-                      </Button>
+                    <span aria-hidden="true" className="text-[var(--nimi-text-muted)]">{advancedOpen ? '−' : '+'}</span>
+                  </button>
+                  {advancedOpen ? (
+                    <div className="space-y-4 border-t border-[var(--nimi-border-subtle)] p-4">
+                      <LabeledTextarea
+                        label={t('runtimeConfig.catalogOverrides.yourOverrides', { defaultValue: 'Your overrides (editable)' })}
+                        description={t('runtimeConfig.catalogOverrides.yourOverridesHint', { defaultValue: 'Only provider-scoped custom fragments belong here.' })}
+                        value={yamlDraft}
+                        onChange={setYamlDraft}
+                        readOnly={false}
+                        tone="light"
+                      />
+                      <LabeledTextarea
+                        label={t('runtimeConfig.catalogOverrides.effectiveConfiguration', { defaultValue: 'Effective configuration (read only)' })}
+                        description={t('runtimeConfig.catalogOverrides.effectiveConfigurationHint', { defaultValue: 'Nimi built-in information merged with your custom entries.' })}
+                        value={provider.effectiveYaml}
+                        onChange={() => undefined}
+                        readOnly
+                        tone="dark"
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="secondary" size="sm" disabled={!dirty || busy} onClick={() => setYamlDraft(initialYaml)}>
+                          {t('runtimeConfig.catalogOverrides.discardChanges', { defaultValue: 'Discard changes' })}
+                        </Button>
+                        <Button size="sm" disabled={!dirty || !yamlDraft.trim() || busy} onClick={() => void saveYaml()}>
+                          {busy
+                            ? t('runtimeConfig.catalogOverrides.saving', { defaultValue: 'Saving…' })
+                            : t('runtimeConfig.catalogOverrides.saveOverrides', { defaultValue: 'Save overrides' })}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ) : null}
-              </Card>
-            </>
-          ) : null}
-        </div>
+                  ) : null}
+                </Card>
+              </>
+            ) : null}
+          </div>
+        </ScrollShell>
       </OverlayShell>
 
       <CatalogConfirmationDialog

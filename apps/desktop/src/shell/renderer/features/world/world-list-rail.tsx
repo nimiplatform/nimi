@@ -7,6 +7,7 @@ import {
   IconButton,
   InlineAlert,
   SearchField,
+  ScrollShell,
   SidebarShell,
 } from '@nimiplatform/kit/ui';
 import { formatNum } from './world-list-atoms';
@@ -107,9 +108,9 @@ export function WorldCatalogRail({
         </div>
       ) : null}
 
-      <div
+      <ScrollShell
         data-world-rail-list
-        className="flex min-h-0 flex-1 gap-2 overflow-x-auto px-2 pb-2 lg:flex-col lg:gap-0 lg:overflow-x-hidden lg:overflow-y-auto"
+        className="flex min-h-0 flex-1 gap-2 overflow-x-auto px-2 pb-2 lg:flex-col lg:gap-0 lg:overflow-x-hidden"
       >
         {worlds.length === 0 ? (
           <EmptyState className="m-2 lg:mx-1" title={listEmptyLabel} />
@@ -134,7 +135,7 @@ export function WorldCatalogRail({
             ) : null}
           </div>
         )}
-      </div>
+      </ScrollShell>
     </SidebarShell>
   );
 }

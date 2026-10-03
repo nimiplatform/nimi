@@ -21,6 +21,7 @@ import {
   LoadingSkeleton,
   OverlayShell,
   PillTabs,
+  ScrollShell,
   SelectField,
   StatusBadge,
   Surface,
@@ -588,7 +589,7 @@ export function SavedConfigsView(props: {
         title={t('runtimeConfig.loadouts.create')}
         onClose={() => setShowCreate(false)}
         panelClassName="flex max-h-screen flex-col overflow-hidden"
-        contentClassName="min-h-0 flex-1 overflow-y-auto"
+        contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden px-0 py-0"
         footer={(
           <div className="flex items-center justify-between gap-2">
             <div>{createStep > 1 ? <Button size="sm" tone="ghost" onClick={() => setCreateStep((current) => (current === 3 ? 2 : 1))}>{t('runtimeConfig.loadouts.back')}</Button> : null}</div>
@@ -609,146 +610,148 @@ export function SavedConfigsView(props: {
           </div>
         )}
       >
-        <div className="grid gap-4 py-2" data-testid="create-loadout-form">
-          <CreateLoadoutStepIndicator step={createStep} />
+        <ScrollShell className="flex-1 px-6 py-2">
+          <div className="grid gap-4 py-2" data-testid="create-loadout-form">
+            <CreateLoadoutStepIndicator step={createStep} />
 
-          {createStep === 1 ? (
-            <div className="grid gap-2">
-              <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.createCapabilityHint')}</p>
-              {createCapabilities.map((capability) => {
-                const recipeCount = recipes.filter((recipe) => recipe.capabilityContract === capability).length;
-                return (
-                  <button
-                    key={capability}
-                    type="button"
-                    data-testid={`create-capability:${capability}`}
-                    onClick={() => selectCreateCapability(capability)}
-                    className="group flex items-center gap-3 rounded-xl border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)]"
-                  >
-                    <span className="grid min-w-0 flex-1 gap-0.5">
-                      <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{capabilityLabel(capability)}</span>
-                      <span className="text-xs text-[var(--nimi-text-muted)]">{t(loadoutCapabilityDescriptionKey(capability))}</span>
-                    </span>
-                    <span className="shrink-0 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.capabilityTemplates', { count: recipeCount })}</span>
-                    <span aria-hidden="true" className="shrink-0 text-[var(--nimi-text-muted)] transition group-hover:text-[var(--nimi-action-primary-bg)]">›</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-
-          {createStep === 2 ? (
-            <div className="grid gap-2">
-              <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.createRecipeHint', { capability: capabilityLabel(createCapability) })}</p>
-              {createCapabilityRecipes.map((recipe) => {
-                const installedCount = recipe.slots.filter((slot) => (
-                  slot.offers.some((offer) => Boolean(offer.installedModelAssetId))
-                )).length;
-                const estimate = summarizeRuntimeConfigRecipeDownloads(recipe);
-                const supported = recipe.applicability === 'supported';
-                return (
-                  <button
-                    key={recipe.recipeId}
-                    type="button"
-                    data-testid={`create-recipe:${recipe.recipeId}`}
-                    onClick={() => selectCreateRecipe(recipe)}
-                    className="group grid gap-1.5 rounded-xl border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)]"
-                  >
-                    <span className="flex items-center justify-between gap-3">
-                      <span className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{recipe.title}</span>
-                        <StatusBadge tone={supported ? 'success' : 'warning'} shape="soft">
-                          {t(`runtimeConfig.loadouts.hostFit.${recipe.applicability}`, { defaultValue: recipe.applicability })}
-                        </StatusBadge>
+            {createStep === 1 ? (
+              <div className="grid gap-2">
+                <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.createCapabilityHint')}</p>
+                {createCapabilities.map((capability) => {
+                  const recipeCount = recipes.filter((recipe) => recipe.capabilityContract === capability).length;
+                  return (
+                    <button
+                      key={capability}
+                      type="button"
+                      data-testid={`create-capability:${capability}`}
+                      onClick={() => selectCreateCapability(capability)}
+                      className="group flex items-center gap-3 rounded-xl border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)]"
+                    >
+                      <span className="grid min-w-0 flex-1 gap-0.5">
+                        <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{capabilityLabel(capability)}</span>
+                        <span className="text-xs text-[var(--nimi-text-muted)]">{t(loadoutCapabilityDescriptionKey(capability))}</span>
                       </span>
+                      <span className="shrink-0 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.capabilityTemplates', { count: recipeCount })}</span>
                       <span aria-hidden="true" className="shrink-0 text-[var(--nimi-text-muted)] transition group-hover:text-[var(--nimi-action-primary-bg)]">›</span>
-                    </span>
-                    <span className="text-xs text-[var(--nimi-text-muted)]">
-                      {!recipe.slots.some((slot) => slot.offers.length > 0)
-                        ? t('runtimeConfig.loadouts.recipeManualModels')
-                        : (
-                          <>
-                            {t('runtimeConfig.loadouts.recipeSummary', { slots: recipe.slots.length, installed: installedCount })}
-                            {' · '}
-                            {estimate.count === 0
-                              ? t('runtimeConfig.loadouts.recipeReady', { defaultValue: 'All required models are installed' })
-                              : estimate.totalSizeBytes === null
-                                ? t('runtimeConfig.loadouts.recommendedDownloadUnknown', { count: estimate.count, defaultValue: '{{count}} model(s) to download · size unknown' })
-                                : t('runtimeConfig.loadouts.recommendedDownloadKnown', { count: estimate.count, size: formatBytes(estimate.totalSizeBytes), defaultValue: '{{count}} model(s) to download · ~{{size}}' })}
-                          </>
-                        )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
 
-          {createStep === 3 && selectedRecipe ? (
-            <>
-              <label className="grid gap-1 text-sm"><span>{t('runtimeConfig.loadouts.name')}</span><TextField value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} /></label>
-              {selectedRecipe.slots.map((slot) => (
-                <div
-                  key={slot.slotId}
-                  data-testid={`recipe-slot:${selectedRecipe.recipeId}:${slot.slotId}`}
-                  className={`grid gap-2 rounded-lg p-2 text-sm ${props.navigationContext?.slotId === slot.slotId
-                    ? 'ring-2 ring-[var(--nimi-action-primary-bg)]'
-                    : ''}`}
-                >
-                  <LoadoutSlotLabel slot={slot} />
-                  <LoadoutSelectedModelCard
-                    slot={slot}
-                    asset={assets.find((asset) => asset.modelAssetId === createAxes[slot.slotId]) ?? null}
-                    verifiedAssets={verifiedAssets}
-                    onOpenPicker={() => setPickerSlotId(slot.slotId)}
-                  />
-                </div>
-              ))}
-              <LoadoutSlotModelPicker
-                key={pickerSlotId ?? 'closed'}
-                slot={selectedRecipe.slots.find((slot) => slot.slotId === pickerSlotId) ?? null}
-                assets={assets}
-                verifiedAssets={verifiedAssets}
-                selectedAssetId={pickerSlotId ? createAxes[pickerSlotId] ?? '' : ''}
-                onSelect={(modelAssetId) => {
-                  if (!pickerSlotId) return;
-                  setCreateAxes((current) => ({ ...current, [pickerSlotId]: modelAssetId }));
-                }}
-                onOpenOffer={(offer) => {
-                  const slot = selectedRecipe.slots.find((item) => item.slotId === pickerSlotId);
-                  if (!slot) return;
-                  props.onOpenModelMarket({
-                    kind: 'slot',
-                    capabilityContract: selectedRecipe.capabilityContract,
-                    recipeId: selectedRecipe.recipeId,
-                    recipeRevision: selectedRecipe.revision,
-                    slotId: slot.slotId,
-                    candidate: offer.candidate,
-                    draft: { displayName, modelAssetIds: { ...createAxes } },
-                  });
-                }}
-                onClose={() => setPickerSlotId(null)}
-              />
-              {missingRequiredSlots.length > 0 ? (
-                <InlineAlert tone="warning">
-                  <p>{t('runtimeConfig.loadouts.missingSlots', {
-                    count: missingRequiredSlots.length,
-                    defaultValue: '{{count}} required model(s) still need to be selected. Choose installed models, or download or import them.',
-                  })}</p>
-                </InlineAlert>
-              ) : (
-                <InlineAlert tone="success">
-                  <p>{t('runtimeConfig.loadouts.readySummary')}</p>
-                </InlineAlert>
-              )}
-              {recommendations.length > 0 ? (
-                <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-                  {t('runtimeConfig.loadouts.downloadEstimateDisclaimer')}
-                </p>
-              ) : null}
-            </>
-          ) : null}
-        </div>
+            {createStep === 2 ? (
+              <div className="grid gap-2">
+                <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.createRecipeHint', { capability: capabilityLabel(createCapability) })}</p>
+                {createCapabilityRecipes.map((recipe) => {
+                  const installedCount = recipe.slots.filter((slot) => (
+                    slot.offers.some((offer) => Boolean(offer.installedModelAssetId))
+                  )).length;
+                  const estimate = summarizeRuntimeConfigRecipeDownloads(recipe);
+                  const supported = recipe.applicability === 'supported';
+                  return (
+                    <button
+                      key={recipe.recipeId}
+                      type="button"
+                      data-testid={`create-recipe:${recipe.recipeId}`}
+                      onClick={() => selectCreateRecipe(recipe)}
+                      className="group grid gap-1.5 rounded-xl border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)]"
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{recipe.title}</span>
+                          <StatusBadge tone={supported ? 'success' : 'warning'} shape="soft">
+                            {t(`runtimeConfig.loadouts.hostFit.${recipe.applicability}`, { defaultValue: recipe.applicability })}
+                          </StatusBadge>
+                        </span>
+                        <span aria-hidden="true" className="shrink-0 text-[var(--nimi-text-muted)] transition group-hover:text-[var(--nimi-action-primary-bg)]">›</span>
+                      </span>
+                      <span className="text-xs text-[var(--nimi-text-muted)]">
+                        {!recipe.slots.some((slot) => slot.offers.length > 0)
+                          ? t('runtimeConfig.loadouts.recipeManualModels')
+                          : (
+                            <>
+                              {t('runtimeConfig.loadouts.recipeSummary', { slots: recipe.slots.length, installed: installedCount })}
+                              {' · '}
+                              {estimate.count === 0
+                                ? t('runtimeConfig.loadouts.recipeReady', { defaultValue: 'All required models are installed' })
+                                : estimate.totalSizeBytes === null
+                                  ? t('runtimeConfig.loadouts.recommendedDownloadUnknown', { count: estimate.count, defaultValue: '{{count}} model(s) to download · size unknown' })
+                                  : t('runtimeConfig.loadouts.recommendedDownloadKnown', { count: estimate.count, size: formatBytes(estimate.totalSizeBytes), defaultValue: '{{count}} model(s) to download · ~{{size}}' })}
+                            </>
+                          )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {createStep === 3 && selectedRecipe ? (
+              <>
+                <label className="grid gap-1 text-sm"><span>{t('runtimeConfig.loadouts.name')}</span><TextField value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} /></label>
+                {selectedRecipe.slots.map((slot) => (
+                  <div
+                    key={slot.slotId}
+                    data-testid={`recipe-slot:${selectedRecipe.recipeId}:${slot.slotId}`}
+                    className={`grid gap-2 rounded-lg p-2 text-sm ${props.navigationContext?.slotId === slot.slotId
+                      ? 'ring-2 ring-[var(--nimi-action-primary-bg)]'
+                      : ''}`}
+                  >
+                    <LoadoutSlotLabel slot={slot} />
+                    <LoadoutSelectedModelCard
+                      slot={slot}
+                      asset={assets.find((asset) => asset.modelAssetId === createAxes[slot.slotId]) ?? null}
+                      verifiedAssets={verifiedAssets}
+                      onOpenPicker={() => setPickerSlotId(slot.slotId)}
+                    />
+                  </div>
+                ))}
+                <LoadoutSlotModelPicker
+                  key={pickerSlotId ?? 'closed'}
+                  slot={selectedRecipe.slots.find((slot) => slot.slotId === pickerSlotId) ?? null}
+                  assets={assets}
+                  verifiedAssets={verifiedAssets}
+                  selectedAssetId={pickerSlotId ? createAxes[pickerSlotId] ?? '' : ''}
+                  onSelect={(modelAssetId) => {
+                    if (!pickerSlotId) return;
+                    setCreateAxes((current) => ({ ...current, [pickerSlotId]: modelAssetId }));
+                  }}
+                  onOpenOffer={(offer) => {
+                    const slot = selectedRecipe.slots.find((item) => item.slotId === pickerSlotId);
+                    if (!slot) return;
+                    props.onOpenModelMarket({
+                      kind: 'slot',
+                      capabilityContract: selectedRecipe.capabilityContract,
+                      recipeId: selectedRecipe.recipeId,
+                      recipeRevision: selectedRecipe.revision,
+                      slotId: slot.slotId,
+                      candidate: offer.candidate,
+                      draft: { displayName, modelAssetIds: { ...createAxes } },
+                    });
+                  }}
+                  onClose={() => setPickerSlotId(null)}
+                />
+                {missingRequiredSlots.length > 0 ? (
+                  <InlineAlert tone="warning">
+                    <p>{t('runtimeConfig.loadouts.missingSlots', {
+                      count: missingRequiredSlots.length,
+                      defaultValue: '{{count}} required model(s) still need to be selected. Choose installed models, or download or import them.',
+                    })}</p>
+                  </InlineAlert>
+                ) : (
+                  <InlineAlert tone="success">
+                    <p>{t('runtimeConfig.loadouts.readySummary')}</p>
+                  </InlineAlert>
+                )}
+                {recommendations.length > 0 ? (
+                  <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+                    {t('runtimeConfig.loadouts.downloadEstimateDisclaimer')}
+                  </p>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        </ScrollShell>
       </OverlayShell>
 
       <OverlayShell
@@ -758,129 +761,131 @@ export function SavedConfigsView(props: {
         title={manageLoadout?.displayName ?? ''}
         onClose={() => setManageLoadoutId(null)}
         panelClassName="flex max-h-screen flex-col overflow-hidden"
-        contentClassName="min-h-0 flex-1 overflow-y-auto"
+        contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden px-0 py-0"
       >
-        {manageLoadout && manageDraft ? (
-          <div className="grid gap-5 py-2" data-testid={`loadout-manage:${manageLoadout.loadoutId}`}>
-            <div className="grid gap-1 text-sm">
-              <span>{t('runtimeConfig.loadouts.name')}</span>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <TextField
-                    value={manageDraft.displayName}
-                    onChange={(event) => setEdits((current) => ({
-                      ...current,
-                      [manageLoadout.loadoutId]: { ...manageDraft, displayName: event.currentTarget.value },
-                    }))}
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  tone="secondary"
-                  disabled={Boolean(busy) || !manageDraft.displayName.trim() || manageDraft.displayName.trim() === manageLoadout.displayName}
-                  onClick={() => requestRename(manageLoadout)}
-                >
-                  {t('runtimeConfig.loadouts.renameSave')}
-                </Button>
-              </div>
-            </div>
-
-            <section className="grid gap-3" data-testid="loadout-model-parts-editor">
-              <div>
-                <h5 className="text-sm font-medium">{t('runtimeConfig.loadouts.changeModels')}</h5>
-                <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.changeModelsDescription')}</p>
-              </div>
-              {manageLoadout.modelAxes.map((axis) => {
-                const asset = assets.find((item) => item.modelAssetId === axis.modelAssetId);
-                const slot = manageRecipe?.slots.find((item) => item.slotId === axis.slotId);
-                const custom = Boolean(asset && slot && !slot.recommendedContentIds.includes(asset.contentId));
-                const error = axisErrors[`${manageLoadout.loadoutId}:${axis.slotId}`];
-                const healthy = Boolean(axis.modelAssetId) && Boolean(asset?.contentVerified) && axis.recipeCompatible;
-                return (
-                  <div key={axis.slotId} className="grid gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                        <span>{axis.displayLabel}</span>
-                        {axis.modelAssetId ? (
-                          <StatusBadge tone={healthy ? 'success' : 'warning'} shape="soft">
-                            {t(healthy ? 'runtimeConfig.loadouts.axisStatus.verified' : 'runtimeConfig.loadouts.axisStatus.attention')}
-                          </StatusBadge>
-                        ) : null}
-                        {custom ? <StatusBadge tone="info" shape="soft">{t('runtimeConfig.loadouts.customModel')}</StatusBadge> : null}
-                      </div>
-                      {error ? <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{t('runtimeConfig.loadouts.incompatibleSummary')}</p> : null}
-                    </div>
-                    <SelectField
-                      value={manageDraft.modelAssetIds[axis.slotId] || LOADOUT_UNSET_MODEL_OPTION_VALUE}
-                      options={[
-                        ...(axis.presence === 'optional-conditional'
-                          ? [{ value: LOADOUT_UNSET_MODEL_OPTION_VALUE, label: t('runtimeConfig.loadouts.unresolved') }]
-                          : []),
-                        ...runtimeConfigLoadoutCandidateAssets(slot, assets, axis).map((item) => {
-                          const incompatibility = candidateErrors[`${manageLoadout.loadoutId}:${axis.slotId}:${item.modelAssetId}`];
-                          const label = loadoutAssetLabel(item, verifiedAssets);
-                          return { value: item.modelAssetId, label: incompatibility ? `${label} · ${t('runtimeConfig.loadouts.incompatibleOption')}` : label };
-                        }),
-                      ]}
-                      onValueChange={(value) => {
-                        const modelAssetId = value === LOADOUT_UNSET_MODEL_OPTION_VALUE ? '' : value;
-                        setEdits((current) => ({
-                          ...current,
-                          [manageLoadout.loadoutId]: { ...manageDraft, modelAssetIds: { ...manageDraft.modelAssetIds, [axis.slotId]: modelAssetId } },
-                        }));
-                        requestUpdate(manageLoadout, axis.slotId, modelAssetId);
-                      }}
-                      disabled={Boolean(busy)}
-                      contentLayer="dialog"
+        <ScrollShell className="flex-1 px-6 py-2">
+          {manageLoadout && manageDraft ? (
+            <div className="grid gap-5 py-2" data-testid={`loadout-manage:${manageLoadout.loadoutId}`}>
+              <div className="grid gap-1 text-sm">
+                <span>{t('runtimeConfig.loadouts.name')}</span>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <TextField
+                      value={manageDraft.displayName}
+                      onChange={(event) => setEdits((current) => ({
+                        ...current,
+                        [manageLoadout.loadoutId]: { ...manageDraft, displayName: event.currentTarget.value },
+                      }))}
                     />
                   </div>
-                );
-              })}
-            </section>
+                  <Button
+                    size="sm"
+                    tone="secondary"
+                    disabled={Boolean(busy) || !manageDraft.displayName.trim() || manageDraft.displayName.trim() === manageLoadout.displayName}
+                    onClick={() => requestRename(manageLoadout)}
+                  >
+                    {t('runtimeConfig.loadouts.renameSave')}
+                  </Button>
+                </div>
+              </div>
 
-            <RuntimeConfigLoadoutTextBehaviors
-              loadoutId={manageLoadout.loadoutId}
-              behaviors={manageLoadout.textBehaviors}
-              compact
-            />
-
-            {manageLoadout.reasons.length > 0 ? (
-              <p className="break-all text-xs text-[var(--nimi-status-danger)]">{manageLoadout.reasons.join(', ')}</p>
-            ) : null}
-
-            <details className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3 text-xs text-[var(--nimi-text-muted)]" data-testid="loadout-execution-supply">
-              <summary className="cursor-pointer font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
-              <div className="mt-3 grid gap-3">
-                <p>{manageLoadout.capabilityContract} · {manageLoadout.recipeId}@{manageLoadout.recipeRevision} · {manageLoadout.implementation.driverDialect}</p>
-                <p>{t('runtimeConfig.loadouts.implementationSupportedFeatures')}: {manageLoadout.implementationSupportedFeatures.length > 0 ? manageLoadout.implementationSupportedFeatures.join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>
-                <p>{t('runtimeConfig.loadouts.configuredFeatures')}: {manageLoadout.configuredFeatures.length > 0 ? manageLoadout.configuredFeatures.join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>
+              <section className="grid gap-3" data-testid="loadout-model-parts-editor">
+                <div>
+                  <h5 className="text-sm font-medium">{t('runtimeConfig.loadouts.changeModels')}</h5>
+                  <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.changeModelsDescription')}</p>
+                </div>
                 {manageLoadout.modelAxes.map((axis) => {
                   const asset = assets.find((item) => item.modelAssetId === axis.modelAssetId);
-                  const catalogBadge = runtimeConfigLoadoutCatalogBadge(asset?.catalogVerification);
+                  const slot = manageRecipe?.slots.find((item) => item.slotId === axis.slotId);
+                  const custom = Boolean(asset && slot && !slot.recommendedContentIds.includes(asset.contentId));
                   const error = axisErrors[`${manageLoadout.loadoutId}:${axis.slotId}`];
+                  const healthy = Boolean(axis.modelAssetId) && Boolean(asset?.contentVerified) && axis.recipeCompatible;
                   return (
-                    <div key={axis.slotId} className="grid gap-1">
-                      <p>{axis.displayLabel}: {axis.modelAssetId || axis.expectedContentId || t('runtimeConfig.loadouts.unresolved')}</p>
-                      <div className="flex flex-wrap gap-1"><StatusBadge tone={asset?.contentVerified ? 'success' : 'warning'} shape="soft">{t('runtimeConfig.loadouts.contentVerified')}</StatusBadge><StatusBadge tone={catalogBadge.tone} shape="soft">{t(`runtimeConfig.loadouts.catalogBadge.${catalogBadge.label}`)}</StatusBadge><StatusBadge tone={axis.recipeCompatible ? 'success' : 'warning'} shape="soft">{t('runtimeConfig.loadouts.recipeCompatible')}</StatusBadge></div>
-                      <p className="font-mono">{catalogBadge.label}</p>
-                      {error ? <p className="break-all text-[var(--nimi-status-danger)]">{error}</p> : null}
+                    <div key={axis.slotId} className="grid gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                          <span>{axis.displayLabel}</span>
+                          {axis.modelAssetId ? (
+                            <StatusBadge tone={healthy ? 'success' : 'warning'} shape="soft">
+                              {t(healthy ? 'runtimeConfig.loadouts.axisStatus.verified' : 'runtimeConfig.loadouts.axisStatus.attention')}
+                            </StatusBadge>
+                          ) : null}
+                          {custom ? <StatusBadge tone="info" shape="soft">{t('runtimeConfig.loadouts.customModel')}</StatusBadge> : null}
+                        </div>
+                        {error ? <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{t('runtimeConfig.loadouts.incompatibleSummary')}</p> : null}
+                      </div>
+                      <SelectField
+                        value={manageDraft.modelAssetIds[axis.slotId] || LOADOUT_UNSET_MODEL_OPTION_VALUE}
+                        options={[
+                          ...(axis.presence === 'optional-conditional'
+                            ? [{ value: LOADOUT_UNSET_MODEL_OPTION_VALUE, label: t('runtimeConfig.loadouts.unresolved') }]
+                            : []),
+                          ...runtimeConfigLoadoutCandidateAssets(slot, assets, axis).map((item) => {
+                            const incompatibility = candidateErrors[`${manageLoadout.loadoutId}:${axis.slotId}:${item.modelAssetId}`];
+                            const label = loadoutAssetLabel(item, verifiedAssets);
+                            return { value: item.modelAssetId, label: incompatibility ? `${label} · ${t('runtimeConfig.loadouts.incompatibleOption')}` : label };
+                          }),
+                        ]}
+                        onValueChange={(value) => {
+                          const modelAssetId = value === LOADOUT_UNSET_MODEL_OPTION_VALUE ? '' : value;
+                          setEdits((current) => ({
+                            ...current,
+                            [manageLoadout.loadoutId]: { ...manageDraft, modelAssetIds: { ...manageDraft.modelAssetIds, [axis.slotId]: modelAssetId } },
+                          }));
+                          requestUpdate(manageLoadout, axis.slotId, modelAssetId);
+                        }}
+                        disabled={Boolean(busy)}
+                        contentLayer="dialog"
+                      />
                     </div>
                   );
                 })}
-                <p>{t('runtimeConfig.loadouts.recipeCustody')}: {manageLoadout.recipeCustody.length > 0 ? manageLoadout.recipeCustody.map((item) => item.custodyId).join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>
-                <p>{t('runtimeConfig.loadouts.executionSupply')}</p>
+              </section>
+
+              <RuntimeConfigLoadoutTextBehaviors
+                loadoutId={manageLoadout.loadoutId}
+                behaviors={manageLoadout.textBehaviors}
+                compact
+              />
+
+              {manageLoadout.reasons.length > 0 ? (
+                <p className="break-all text-xs text-[var(--nimi-status-danger)]">{manageLoadout.reasons.join(', ')}</p>
+              ) : null}
+
+              <details className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3 text-xs text-[var(--nimi-text-muted)]" data-testid="loadout-execution-supply">
+                <summary className="cursor-pointer font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
+                <div className="mt-3 grid gap-3">
+                  <p>{manageLoadout.capabilityContract} · {manageLoadout.recipeId}@{manageLoadout.recipeRevision} · {manageLoadout.implementation.driverDialect}</p>
+                  <p>{t('runtimeConfig.loadouts.implementationSupportedFeatures')}: {manageLoadout.implementationSupportedFeatures.length > 0 ? manageLoadout.implementationSupportedFeatures.join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>
+                  <p>{t('runtimeConfig.loadouts.configuredFeatures')}: {manageLoadout.configuredFeatures.length > 0 ? manageLoadout.configuredFeatures.join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>
+                  {manageLoadout.modelAxes.map((axis) => {
+                    const asset = assets.find((item) => item.modelAssetId === axis.modelAssetId);
+                    const catalogBadge = runtimeConfigLoadoutCatalogBadge(asset?.catalogVerification);
+                    const error = axisErrors[`${manageLoadout.loadoutId}:${axis.slotId}`];
+                    return (
+                      <div key={axis.slotId} className="grid gap-1">
+                        <p>{axis.displayLabel}: {axis.modelAssetId || axis.expectedContentId || t('runtimeConfig.loadouts.unresolved')}</p>
+                        <div className="flex flex-wrap gap-1"><StatusBadge tone={asset?.contentVerified ? 'success' : 'warning'} shape="soft">{t('runtimeConfig.loadouts.contentVerified')}</StatusBadge><StatusBadge tone={catalogBadge.tone} shape="soft">{t(`runtimeConfig.loadouts.catalogBadge.${catalogBadge.label}`)}</StatusBadge><StatusBadge tone={axis.recipeCompatible ? 'success' : 'warning'} shape="soft">{t('runtimeConfig.loadouts.recipeCompatible')}</StatusBadge></div>
+                        <p className="font-mono">{catalogBadge.label}</p>
+                        {error ? <p className="break-all text-[var(--nimi-status-danger)]">{error}</p> : null}
+                      </div>
+                    );
+                  })}
+                  <p>{t('runtimeConfig.loadouts.recipeCustody')}: {manageLoadout.recipeCustody.length > 0 ? manageLoadout.recipeCustody.map((item) => item.custodyId).join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>
+                  <p>{t('runtimeConfig.loadouts.executionSupply')}</p>
+                </div>
+              </details>
+
+              {props.onOpenAdvancedDiagnostics ? (
+                <div><Button size="sm" tone="ghost" onClick={props.onOpenAdvancedDiagnostics}>{t('runtimeConfig.loadouts.viewInEnvironment')}</Button></div>
+              ) : null}
+
+              <div className="flex justify-end border-t border-[var(--nimi-border-subtle)] pt-4">
+                <Button size="sm" tone="danger" disabled={Boolean(busy)} onClick={() => requestDelete(manageLoadout)}>{t('runtimeConfig.loadouts.delete')}</Button>
               </div>
-            </details>
-
-            {props.onOpenAdvancedDiagnostics ? (
-              <div><Button size="sm" tone="ghost" onClick={props.onOpenAdvancedDiagnostics}>{t('runtimeConfig.loadouts.viewInEnvironment')}</Button></div>
-            ) : null}
-
-            <div className="flex justify-end border-t border-[var(--nimi-border-subtle)] pt-4">
-              <Button size="sm" tone="danger" disabled={Boolean(busy)} onClick={() => requestDelete(manageLoadout)}>{t('runtimeConfig.loadouts.delete')}</Button>
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </ScrollShell>
       </OverlayShell>
 
       <ConfirmDialog
