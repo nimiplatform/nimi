@@ -23,9 +23,13 @@ func TestOpenAITranscribeMapsOnlyUploadedPlainTranscripts(t *testing.T) {
 	}
 	for _, model := range []string{"gpt-transcribe", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"} {
 		driver, target := cloudMediaDriverTarget(t, "openai", model, "audio.transcribe")
-		mapped, err := driver.MapRequest(target, request(&runtimev1.SpeechTranscribeScenarioSpec{Language: "zh-CN", MimeType: "audio/mpeg"}), nil, CloudMediaStreamNone)
+		contextHint := "这段录音介绍 Nimi。\n保留中文标点。"
+		mapped, err := driver.MapRequest(target, request(&runtimev1.SpeechTranscribeScenarioSpec{Language: "zh-CN", MimeType: "audio/mpeg", Prompt: contextHint}), nil, CloudMediaStreamNone)
 		if err != nil || mapped.Adapter() != CloudMediaAdapterOpenAITranscriptions || mapped.ProviderModelID() != model {
 			t.Fatalf("%s mapping=%+v err=%v", model, mapped, err)
+		}
+		if mapped.Request().GetSpec().GetSpeechTranscribe().GetPrompt() != contextHint {
+			t.Fatalf("%s lost the transcription context", model)
 		}
 	}
 	driver, target := cloudMediaDriverTarget(t, "openai", "gpt-4o-transcribe", "audio.transcribe")
@@ -48,7 +52,6 @@ func TestOpenAITranscribeMapsOnlyUploadedPlainTranscripts(t *testing.T) {
 		"timestamps":    {Timestamps: testBool(true)},
 		"diarization":   {Diarization: testBool(true)},
 		"speakers":      {SpeakerCount: testInt32(2)},
-		"hint":          {Prompt: "Nimi"},
 		"json result":   {ResponseFormat: "json"},
 		"subtitles":     {ResponseFormat: "srt"},
 		"language text": {Language: "Chinese"},

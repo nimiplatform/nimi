@@ -62,8 +62,7 @@ func (b *Backend) transcribeOpenAI(ctx context.Context, modelID string, spec *ru
 	language := strings.TrimSpace(spec.GetLanguage())
 	prompt := strings.TrimSpace(spec.GetPrompt())
 	if !ok || len(source.AudioBytes) == 0 || len(source.AudioBytes) > maxOpenAITranscriptionUploadBytes || filename == "" ||
-		(format != "" && format != "text") || (spec.GetTimestamps() && modelID != openAIWhisperTranscribeModel) || spec.GetDiarization() || spec.GetSpeakerCount() != 0 ||
-		(prompt != "" && modelID == openAIGPTTranscribeModel) {
+		(format != "" && format != "text") || (spec.GetTimestamps() && modelID != openAIWhisperTranscribeModel) || spec.GetDiarization() || spec.GetSpeakerCount() != 0 {
 		return nil, nil, nil, unsupported
 	}
 

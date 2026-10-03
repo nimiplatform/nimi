@@ -287,7 +287,7 @@ models:
 
   - model_id: gpt-transcribe
     model_type: stt
-    updated_at: 2026-10-01
+    updated_at: 2026-10-03
     capabilities: [audio.transcribe]
     pricing:
       unit: second
@@ -301,6 +301,7 @@ models:
       tiers: [core_transcript]
       response_formats: [text]
       supports_language: true
+      supports_prompt: true
 
   - model_id: gpt-4o-transcribe
     model_type: stt

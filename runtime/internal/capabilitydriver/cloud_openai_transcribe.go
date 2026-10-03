@@ -37,14 +37,14 @@ var openAITranscribeUploadMIMEs = map[string]bool{
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 // validateOpenAITranscribeRequest admits one uploaded recording and a plain
-// transcript. gpt-transcribe takes an expected language but no free-text hint;
-// the GPT-4o pair also takes a hint. Whisper additionally admits real word
+// transcript with optional language and context hints. gpt-transcribe maps the
+// single expected language to languages[]. Whisper additionally admits real word
 // timing. Speakers, URLs, raw provider formats and extensions are rejected.
 func validateOpenAITranscribeRequest(request *runtimev1.SubmitScenarioJobRequest, model string) error {
 	unsupported := func() error {
 		message := "OpenAI GPT-4o transcription supports one uploaded WAV, MP3, M4A or WebM recording of at most 25 MB, an optional language code and hint, and a plain transcript; URLs, timestamps, speakers and other result formats are unavailable"
 		if model == openAITranscribeModel {
-			message = "OpenAI GPT Transcribe supports one uploaded WAV, MP3, M4A or WebM recording of at most 25 MB, an optional expected language code, and a plain transcript; hints, URLs, timestamps, speakers and other result formats are unavailable"
+			message = "OpenAI GPT Transcribe supports one uploaded WAV, MP3, M4A or WebM recording of at most 25 MB, an optional expected language code and context hint, and a plain transcript; URLs, timestamps, speakers and other result formats are unavailable"
 		}
 		if model == openAIWhisperModel {
 			message = "Whisper transcription supports one uploaded WAV, MP3, M4A or WebM recording of at most 25 MB, an optional language code and hint, and a plain or word-timed transcript; URLs, speakers and raw provider formats are unavailable"
@@ -68,9 +68,6 @@ func validateOpenAITranscribeRequest(request *runtimev1.SubmitScenarioJobRequest
 		return unsupported()
 	}
 	if language := strings.TrimSpace(spec.GetLanguage()); language != "" && !openAITranscribeLanguagePattern.MatchString(language) {
-		return unsupported()
-	}
-	if strings.TrimSpace(spec.GetPrompt()) != "" && model == openAITranscribeModel {
 		return unsupported()
 	}
 	source, ok := spec.GetAudioSource().GetSource().(*runtimev1.SpeechTranscriptionAudioSource_AudioBytes)

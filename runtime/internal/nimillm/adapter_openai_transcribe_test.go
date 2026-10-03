@@ -51,12 +51,19 @@ func TestOpenAITranscriptionsSendsOnlyEndpointFields(t *testing.T) {
 		wantBilled any
 	}{
 		{
-			name:       "gpt-transcribe expected language",
+			name:       "gpt-transcribe expected language and context",
 			model:      "gpt-transcribe",
-			spec:       &runtimev1.SpeechTranscribeScenarioSpec{Language: "zh"},
+			spec:       &runtimev1.SpeechTranscribeScenarioSpec{Language: "zh", Prompt: "  这段录音介绍 Nimi。\n保留中文标点。  "},
 			response:   `{"text":" 你好，欢迎。 ","usage":{"type":"duration","seconds":3}}`,
-			wantFields: map[string][]string{"model": {"gpt-transcribe"}, "response_format": {"json"}, "languages[]": {"zh"}},
+			wantFields: map[string][]string{"model": {"gpt-transcribe"}, "response_format": {"json"}, "languages[]": {"zh"}, "prompt": {"这段录音介绍 Nimi。\n保留中文标点。"}},
 			wantBilled: float64(3),
+		},
+		{
+			name:       "gpt-transcribe blank context omitted",
+			model:      "gpt-transcribe",
+			spec:       &runtimev1.SpeechTranscribeScenarioSpec{Prompt: " \n\t "},
+			response:   `{"text":"Reported speech only."}`,
+			wantFields: map[string][]string{"model": {"gpt-transcribe"}, "response_format": {"json"}},
 		},
 		{
 			name:       "gpt-4o language and hint",
@@ -167,11 +174,10 @@ func TestOpenAITranscriptionsFailsTypedWithoutGuessing(t *testing.T) {
 
 	hits.Store(0)
 	for name, spec := range map[string]*runtimev1.SpeechTranscribeScenarioSpec{
-		"timestamps":             {Timestamps: testBool(true)},
-		"diarization":            {Diarization: testBool(true)},
-		"hint on gpt-transcribe": {Prompt: "Nimi"},
-		"json result":            {ResponseFormat: "json"},
-		"unsupported file":       {MimeType: "audio/ogg"},
+		"timestamps":       {Timestamps: testBool(true)},
+		"diarization":      {Diarization: testBool(true)},
+		"json result":      {ResponseFormat: "json"},
+		"unsupported file": {MimeType: "audio/ogg"},
 		"remote URL": {AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
 			Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: "https://example.com/audio.wav"},
 		}},
