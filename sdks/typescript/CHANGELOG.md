@@ -6,6 +6,19 @@ Embedding requests add optional positive integer `dimensions` in the core AI cli
 
 Protected music generation adds owned videoReference, and speech synthesis adds separate identityAudio/performanceAudio with exact transcript. Consume matching Runtime, Kit and native builds. Resource input profiles explicitly declare video mode and Driver speech limits; missing declarations fail closed. Reference-conditioned VoxCPM is currently supported by the Windows standard backend, without creating a reusable VoiceAsset.
 
+Protected text steps accept nonempty App-owned initiation/continuation context
+without a user-role message. Roles and content are unchanged; no filler turn is
+inserted. Empty and opaque-only input, malformed tools, media placement and
+capacity violations still fail. The narrow candidate API keeps its own contract.
+Use matching SDK, native and Runtime builds; exact Driver support still applies.
+
+The protected Local App text model and Vercel factory accept an explicit
+`executionMode: 'sync'`. This uses the existing cancellable Scenario execute
+carrier for tasks whose tools or strict schema are admitted only in SYNC. The
+default remains STREAM. In SYNC, model events carry the complete ordered result
+only after execution finishes; no automatic retry or mode switching occurs.
+Tool loops, request controls and continuity storage remain caller-owned.
+
 The Local App text binding accepts ordered system messages beyond the initial
 prefix and preserves their role and position. It requires matching Runtime and
 Kit native carrier builds. Exact Driver admission still decides support; an

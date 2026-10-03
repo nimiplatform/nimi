@@ -75,7 +75,13 @@ fn parse_input_part(value: Value) -> Result<ChatContentPart, LocalAppOperationEr
             identifier(&artifact_id)?;
             if !matches!(
                 media_type.as_str(),
-                "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "audio/wav" | "audio/mpeg" | "video/mp4"
+                "image/png"
+                    | "image/jpeg"
+                    | "image/webp"
+                    | "image/gif"
+                    | "audio/wav"
+                    | "audio/mpeg"
+                    | "video/mp4"
             ) {
                 return Err(invalid_payload());
             }
@@ -211,7 +217,6 @@ pub(super) fn request(
     {
         return Err(invalid_payload());
     }
-    let mut saw_user = false;
     let messages = input
         .messages
         .into_iter()
@@ -225,7 +230,7 @@ pub(super) fn request(
             }
             match message.role.as_str() {
                 "system" if message.turn_items.is_empty() => {}
-                "user" if message.turn_items.is_empty() => saw_user = true,
+                "user" if message.turn_items.is_empty() => {}
                 "assistant" => {}
                 _ => return Err(invalid_payload()),
             }
@@ -262,7 +267,23 @@ pub(super) fn request(
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    if !saw_user {
+    let has_context = messages.iter().any(|message| {
+        !message.text.trim().is_empty()
+            || !message.parts.is_empty()
+            || message
+                .turn_items
+                .iter()
+                .any(|item| match item.item.as_ref() {
+                    Some(text_turn_item::Item::ToolResult(_)) => true,
+                    Some(text_turn_item::Item::Output(output)) => match output.item.as_ref() {
+                        Some(text_output_item::Item::Text(text)) => !text.text.trim().is_empty(),
+                        Some(text_output_item::Item::ToolCall(_)) => true,
+                        _ => false,
+                    },
+                    _ => false,
+                })
+    });
+    if !has_context {
         return Err(invalid_payload());
     }
     let tools = input
@@ -531,19 +552,59 @@ mod tests {
     use super::*;
 
     #[test]
+    fn app_initiation_keeps_primary_context_without_a_user_turn() {
+        for messages in [
+            json!([{"role":"system","text":"Character and scene rules"}]),
+            json!([{"role":"assistant","text":"  我在邮局等你。\n"}]),
+            json!([{"role":"system","text":"Character rules"},{"role":"assistant","text":"Opening scene"}]),
+        ] {
+            let out =
+                request(serde_json::from_value(json!({"messages":messages.clone()})).unwrap())
+                    .unwrap();
+            assert_eq!(out.messages.len(), messages.as_array().unwrap().len());
+            for (actual, expected) in out.messages.iter().zip(messages.as_array().unwrap()) {
+                assert_eq!(actual.role, expected["role"].as_str().unwrap());
+                assert_eq!(actual.text, expected["text"].as_str().unwrap());
+            }
+        }
+        for messages in [
+            json!([]),
+            json!([{"role":"assistant","turnItems":[{"type":"output","output":{"type":"reasoning-continuity","carrier":{"kind":"test.encrypted","version":1,"payload":[1]}}}]}]),
+        ] {
+            assert!(
+                request(serde_json::from_value(json!({"messages":messages})).unwrap()).is_err()
+            );
+        }
+    }
+
+    #[test]
     fn owned_audio_video_parts_cross_only_the_artifact_input_plane() {
         for mime in ["audio/wav", "audio/mpeg", "video/mp4"] {
-            let output = request(serde_json::from_value(json!({"messages":[{"role":"user","text":"","parts":[
-                {"type":"text","text":"Inspect"},
-                {"type":"artifact-ref","artifactId":"owned-media","mediaType":mime}
-            ]}]})).unwrap()).unwrap();
+            let output = request(
+                serde_json::from_value(json!({"messages":[{"role":"user","text":"","parts":[
+                    {"type":"text","text":"Inspect"},
+                    {"type":"artifact-ref","artifactId":"owned-media","mediaType":mime}
+                ]}]}))
+                .unwrap(),
+            )
+            .unwrap();
             assert_eq!(output.messages[0].parts.len(), 2);
-            let chat_content_part::Content::ArtifactRef(reference) = output.messages[0].parts[1].content.as_ref().unwrap() else { panic!("media changed plane") };
+            let chat_content_part::Content::ArtifactRef(reference) =
+                output.messages[0].parts[1].content.as_ref().unwrap()
+            else {
+                panic!("media changed plane")
+            };
             assert_eq!(reference.mime_type, mime);
             assert_eq!(reference.artifact_id, "owned-media");
         }
-        assert!(parse_input_part(json!({"type":"audio-url","url":"https://example.com/speech.wav"})).is_err());
-        assert!(parse_input_part(json!({"type":"video-url","url":"data:video/mp4;base64,AAAA"})).is_err());
+        assert!(parse_input_part(
+            json!({"type":"audio-url","url":"https://example.com/speech.wav"})
+        )
+        .is_err());
+        assert!(
+            parse_input_part(json!({"type":"video-url","url":"data:video/mp4;base64,AAAA"}))
+                .is_err()
+        );
     }
 
     #[test]
@@ -562,8 +623,7 @@ mod tests {
             assert_eq!(actual.text, expected["text"].as_str().unwrap());
         }
         assert!(request(
-            serde_json::from_value(json!({"messages":[{"role":"system","text":"No user"}]}))
-                .unwrap()
+            serde_json::from_value(json!({"messages":[{"role":"system","text":"   "}]})).unwrap()
         )
         .is_err());
         assert!(request(

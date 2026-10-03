@@ -60,7 +60,7 @@ func TestStreamLocalAppTextTurnRejectsInvalidInput(t *testing.T) {
 	svc := &Service{}
 	stream := &mockLocalAppTextTurnStream{ctx: localAppTextTurnContext()}
 	err := svc.StreamLocalAppTextTurn(&runtimev1.StreamLocalAppTextTurnRequest{
-		Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "assistant", Text: "not admitted"}}, MaxTokens: testInt32(1),
+		Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "assistant", Text: " \n "}}, MaxTokens: testInt32(1),
 	}, stream)
 	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	if len(stream.events) != 0 {

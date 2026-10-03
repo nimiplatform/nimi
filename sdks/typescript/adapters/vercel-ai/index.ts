@@ -5,6 +5,7 @@ import type {
 } from '@nimiplatform/sdk';
 import type {
   NimiAiModel,
+  NimiLocalAppTextModelOptions,
 } from '@nimiplatform/sdk/ai';
 import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
 import type { NimiLocalAppAIConsumptionClient } from '@nimiplatform/sdk/app';
@@ -140,8 +141,12 @@ export function createNimiVercelProvider(options: NimiVercelProviderOptions): Ni
   };
 }
 
-export function createNimiLocalAppVercelLanguageModel(options: { readonly ai: NimiLocalAppAIConsumptionClient }): NimiVercelLanguageModel {
-  const protectedModel = createNimiLocalAppTextModel(options.ai);
+export type NimiLocalAppVercelLanguageModelOptions = NimiLocalAppTextModelOptions & {
+  readonly ai: NimiLocalAppAIConsumptionClient;
+};
+
+export function createNimiLocalAppVercelLanguageModel(options: NimiLocalAppVercelLanguageModelOptions): NimiVercelLanguageModel {
+  const protectedModel = createNimiLocalAppTextModel(options.ai, { executionMode: options.executionMode });
   return createNimiVercelLanguageModel({ model: {
     model: protectedModel.model,
     async generateText(request) { return protectedModel.generateText(await prepareLocalAppImages(request, options.ai)); },

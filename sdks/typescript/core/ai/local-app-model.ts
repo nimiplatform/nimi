@@ -1,9 +1,17 @@
-import type { NimiLocalAppAIConsumptionClient } from '../app/local-app-runtime-platform-ai';
-import { validateLocalAppTextInput, modelTextOutputToLocalApp, isLocalAppTextImageMime, isLocalAppTextMediaMime, type NimiLocalAppTextPart, type NimiLocalAppTextTurnInput, type NimiLocalAppTextTurnItem } from '../app/local-app-text';
-import { assertExactKeys, localAppError } from '../app/local-app-runtime-platform-validation';
-import type { NimiRunEvent } from '../contracts';
-import { createNimiError } from '../../types';
-import { collectNimiTextStream, type NimiAiModel, type NimiGenerateTextRequest } from './index';
+import type { NimiLocalAppAIConsumptionClient } from '../app/local-app-runtime-platform-ai.js';
+import { validateLocalAppTextInput, modelTextOutputToLocalApp, localAppTextOutputToModel, isLocalAppTextImageMime, isLocalAppTextMediaMime, type NimiLocalAppTextPart, type NimiLocalAppTextTurnInput, type NimiLocalAppTextTurnItem } from '../app/local-app-text.js';
+import { assertExactKeys, localAppError, localAppProjectionError } from '../app/local-app-runtime-platform-validation.js';
+import type { NimiRunEvent } from '../contracts/index.js';
+import { createNimiError } from '../../types/index.js';
+import { collectNimiTextStream, type NimiAiModel, type NimiGenerateTextRequest } from './index.js';
+
+export type NimiLocalAppTextModelOptions = {
+  /** Explicit Runtime mode. SYNC exposes events only after the complete result. */
+  readonly executionMode?: 'stream' | 'sync';
+};
+
+type TextCarrier = Pick<NimiLocalAppAIConsumptionClient, 'text'>;
+type SynchronousTextCarrier = Pick<NimiLocalAppAIConsumptionClient, 'text' | 'scenario'>;
 
 function invalid(detail: string): never {
   return localAppError(`Local App text model cannot represent ${detail}.`, 'SDK_LOCAL_APP_INPUT_INVALID', 'use_admitted_local_app_text_fields');
@@ -72,12 +80,40 @@ function localInput(request: NimiGenerateTextRequest): NimiLocalAppTextTurnInput
   });
 }
 
-/** Bind the common single-step model interface to the current protected App.
- * generateText collects the same cancellable stream; neither method executes
- * tools or owns a multi-step workflow.
+/** Bind one model step to an explicitly selected protected Runtime mode.
+ * The default collects the text-turn stream. SYNC executes one Scenario and
+ * projects its complete ordered output as events; it never retries in another
+ * mode. Neither mode executes business tools or owns a multi-step workflow.
  */
 // @nimi-authority: rule.nimi.sdks.feature-clients.local-app-text-behaviors
-export function createNimiLocalAppTextModel(ai: Pick<NimiLocalAppAIConsumptionClient, 'text'>): NimiAiModel {
+export function createNimiLocalAppTextModel(ai: TextCarrier, options?: { readonly executionMode?: 'stream' }): NimiAiModel;
+export function createNimiLocalAppTextModel(ai: SynchronousTextCarrier, options: NimiLocalAppTextModelOptions): NimiAiModel;
+export function createNimiLocalAppTextModel(
+  ai: TextCarrier & Partial<Pick<NimiLocalAppAIConsumptionClient, 'scenario'>>,
+  options: NimiLocalAppTextModelOptions = {},
+): NimiAiModel {
+  assertExactKeys(options, ['executionMode'], 'Local App text model options');
+  if (options.executionMode !== undefined && options.executionMode !== 'sync' && options.executionMode !== 'stream') invalid('execution mode');
+  if (options.executionMode === 'sync' && typeof ai.scenario?.execute !== 'function') invalid('synchronous Scenario carrier');
+
+  async function* executeText(request: NimiGenerateTextRequest): AsyncGenerator<NimiRunEvent> {
+    request.signal?.throwIfAborted();
+    const input = localInput(request);
+    const result = await ai.scenario!.execute({ type: 'text-generate', ...input }, request.signal ? { signal: request.signal } : undefined);
+    request.signal?.throwIfAborted();
+    if (result.output.type !== 'text-generate') localAppProjectionError('synchronous text output');
+    for (const [itemIndex, localItem] of result.output.items.entries()) {
+      request.signal?.throwIfAborted();
+      const item = localAppTextOutputToModel(localItem);
+      if (item.type === 'text') yield { type: 'text-delta', text: item.text, itemIndex };
+      else if (item.type === 'tool-call') yield { type: 'tool-call', toolCall: item.toolCall, itemIndex };
+      else if (item.type === 'reasoning-continuity') yield { type: 'reasoning-continuity', carrier: item.carrier, itemIndex, itemCompleted: true };
+      else localAppProjectionError('synchronous text output item');
+    }
+    request.signal?.throwIfAborted();
+    yield { type: 'done', finishReason: result.output.finishReason };
+  }
+
   async function* streamText(request: NimiGenerateTextRequest): AsyncGenerator<NimiRunEvent> {
     request.signal?.throwIfAborted();
     const input = localInput(request);
@@ -116,9 +152,10 @@ export function createNimiLocalAppTextModel(ai: Pick<NimiLocalAppAIConsumptionCl
       if (stream) await (close ??= stream.cancel());
     }
   }
+  const selectedText = options.executionMode === 'sync' ? executeText : streamText;
   return Object.freeze({
     model: Object.freeze({ modelId: 'text.generate' as const }),
-    generateText: (request: NimiGenerateTextRequest) => collectNimiTextStream(streamText(request)),
-    streamText,
+    generateText: (request: NimiGenerateTextRequest) => collectNimiTextStream(selectedText(request)),
+    streamText: selectedText,
   });
 }

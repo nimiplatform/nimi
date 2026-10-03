@@ -10,6 +10,11 @@ Renderer AIConfig accepts the matching SDK's bounded `speechInput` projection on
 
 The native carrier transports owned music video references and separate speech identity/performance conditions, and projects their exact Runtime-declared input profiles. This is a compatible type widening staged for the next minor. Update Runtime, SDK, Kit and native together; empty or missing music video modes fail closed.
 
+The protected text-turn/Scenario carrier admits nonempty context without a
+user-role message for App-owned initiation and continuation. It retains roles,
+tool/media validation and size limits, and rejects empty or opaque-only input.
+Use matching SDK and Runtime builds; the narrow candidate API is unchanged.
+
 The protected App voice-assets client adds owner-scoped `delete(voiceAssetId)`. Update SDK, Kit and the native carrier together. Deletion uses the asset-captured Runtime binding and returns confirmation only after the owner policy completes; provider failures remain errors for explicit retry.
 
 Browser data URL attachments can opt into audio via an explicit accepted MIME list. Existing default image/video picker scope is unchanged. The protected text carrier accepts owned WAV, MPEG audio and MP4 Artifact references; SDK alignment is an additive next-minor widening, with Runtime still enforcing the exact model and execution-mode support.

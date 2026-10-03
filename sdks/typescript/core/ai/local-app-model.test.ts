@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createNimiLocalAppTextModel } from './local-app-model';
-import { createNimiLocalAppAIConsumptionClient } from '../app/local-app-runtime-platform-ai';
+import { createNimiLocalAppAIConsumptionClient, type NimiLocalAppScenarioExecuteShellSpec, type NimiLocalAppScenarioExecuteOptions } from '../app/local-app-runtime-platform-ai';
 import type { NimiLocalAppTextTurnInput } from '../app/local-app-text';
 import { filePart, textPart } from '../contracts';
 
 function fixture(events: () => AsyncIterable<unknown>, onCancel: () => void = () => {}, executeOutput?: unknown) {
   const inputs: NimiLocalAppTextTurnInput[] = [];
+  const executions: { spec: NimiLocalAppScenarioExecuteShellSpec; options?: NimiLocalAppScenarioExecuteOptions }[] = [];
   let canceled = 0;
   const unused = async (): Promise<never> => { throw new Error('unused fixture operation'); };
   const ai = createNimiLocalAppAIConsumptionClient({
@@ -14,17 +15,87 @@ function fixture(events: () => AsyncIterable<unknown>, onCancel: () => void = ()
       inputs.push(input);
       return { events: events(), cancel: async () => { canceled++; onCancel(); } };
     } },
-    scenario: { execute: executeOutput === undefined ? unused : async () => executeOutput },
+    scenario: { execute: executeOutput === undefined ? unused : async (spec, options) => { executions.push({ spec, options }); return executeOutput; } },
     scenarioJobs: { submit: unused, get: unused, subscribe: unused, cancel: unused },
     artifacts: { read: unused, upload: unused },
     voiceAssets: { list: unused, delete: unused },
   });
-  return { ai, model: createNimiLocalAppTextModel(ai), inputs, canceled: () => canceled };
+  return { ai, model: createNimiLocalAppTextModel(ai), inputs, executions, canceled: () => canceled };
 }
 
 const user = { role: 'user' as const, content: [{ type: 'text' as const, text: 'Search.' }] };
 const tool = { name: 'search', inputSchema: { type: 'object' } };
 const call = { id: 'call-1', name: 'search', arguments: { query: 'Nimi', token: 'business data' } };
+
+test('App initiation keeps system and assistant context without inventing a user turn', async () => {
+  for (const executionMode of ['stream', 'sync'] as const) {
+    const f = fixture(async function* () {
+      yield { type: 'delta', sequence: '1', traceId: 'initiation', itemIndex: 0, text: '继续。' };
+      yield { type: 'completed', sequence: '2', traceId: 'initiation', finishReason: 'stop' };
+    }, undefined, { output: { type: 'text-generate', items: [{ type: 'text', text: '继续。' }], finishReason: 'stop' }, traceId: 'initiation' });
+    const model = createNimiLocalAppTextModel(f.ai, { executionMode });
+    const system = { role: 'system' as const, content: [textPart('角色和场景规则')] };
+    const assistant = { role: 'assistant' as const, content: [], turnItems: [{ type: 'output' as const, output: { type: 'text' as const, text: '  我在邮局等你。\n' } }] };
+    for (const messages of [[system], [assistant], [system, assistant]]) await model.generateText({ messages });
+    const inputs = executionMode === 'sync' ? f.executions.map(value => value.spec as NimiLocalAppTextTurnInput) : f.inputs;
+    assert.deepEqual(inputs.map(input => input.messages.map(message => message.role)), [['system'], ['assistant'], ['system', 'assistant']]);
+    assert.equal(inputs[2].messages[1].turnItems?.[0].type, 'output');
+    assert.deepEqual(inputs[2].messages[1].turnItems, assistant.turnItems);
+    await assert.rejects(model.generateText({ messages: [] }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+    await assert.rejects(model.generateText({ messages: [{ role: 'assistant', content: [], turnItems: [{ type: 'output', output: { type: 'reasoning-continuity', carrier: { kind: 'test.encrypted', version: 1, payload: new Uint8Array([1]) } } }] }] }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+    assert.equal(executionMode === 'sync' ? f.executions.length : f.inputs.length, 3);
+  }
+});
+
+test('explicit SYNC uses Scenario execution and preserves ordered tool continuity and request controls', async () => {
+  const carrier = { kind: 'test.encrypted', version: 1, payload: [0, 127, 255] };
+  const f = fixture(async function* () { throw new Error('SYNC must not open a text stream'); }, undefined, {
+    output: { type: 'text-generate', items: [{ type: 'reasoning-continuity', carrier }, { type: 'text', text: 'Searching. ' }, { type: 'tool-call', toolCall: call }], finishReason: 'tool-calls' },
+    traceId: 'sync-step',
+  });
+  const signal = new AbortController().signal;
+  const model = createNimiLocalAppTextModel(f.ai, { executionMode: 'sync' });
+  const result = await model.generateText({ messages: [user], tools: [tool], toolChoice: 'required', parameters: { maxTokens: 100 }, signal });
+  assert.equal(f.inputs.length, 0);
+  assert.equal(f.executions.length, 1);
+  assert.equal(f.executions[0].spec.type, 'text-generate');
+  assert.ok(f.executions[0].options?.signal instanceof AbortSignal);
+  assert.equal(f.executions[0].options?.signal?.aborted, false);
+  assert.equal((f.executions[0].spec as NimiLocalAppTextTurnInput).maxTokens, 100);
+  assert.equal(result.text, 'Searching. ');
+  assert.deepEqual(result.toolCalls, [call]);
+  assert.deepEqual(result.outputItems?.[0], { type: 'reasoning-continuity', carrier: { ...carrier, payload: new Uint8Array(carrier.payload) } });
+  const format = { type: 'json-schema' as const, strict: true, schema: { type: 'object' } };
+  await model.generateText({ messages: [user], responseFormat: format });
+  assert.deepEqual((f.executions[1].spec as NimiLocalAppTextTurnInput).responseFormat, format);
+});
+
+test('SYNC abort settles before a late Scenario result and emits no partial tool batch', async () => {
+  let release!: (value: unknown) => void;
+  const pending = new Promise<unknown>((resolve) => { release = resolve; });
+  const f = fixture(async function* () { throw new Error('must not fall back to STREAM'); }, undefined, pending);
+  const controller = new AbortController();
+  const model = createNimiLocalAppTextModel(f.ai, { executionMode: 'sync' });
+  const observed: unknown[] = [];
+  const drain = (async () => { for await (const event of await model.streamText!({ messages: [user], tools: [tool], signal: controller.signal })) observed.push(event); })();
+  await Promise.resolve();
+  assert.equal(f.executions.length, 1);
+  controller.abort();
+  await assert.rejects(drain, { reasonCode: 'OPERATION_ABORTED' });
+  assert.equal(f.executions[0].options?.signal?.aborted, true);
+  release({ output: { type: 'text-generate', items: [{ type: 'tool-call', toolCall: call }], finishReason: 'tool-calls' }, traceId: 'late-sync' });
+  await Promise.resolve();
+  assert.deepEqual(observed, []);
+  assert.equal(f.inputs.length, 0);
+});
+
+test('a SYNC refusal is preserved without retrying a streamed transport', async () => {
+  const f = fixture(async function* () { throw new Error('unexpected STREAM'); }, undefined, Promise.reject(Object.assign(new Error('mode refused'), { reasonCode: 'ai-text-behavior-unsupported' })));
+  const model = createNimiLocalAppTextModel(f.ai, { executionMode: 'sync' });
+  await assert.rejects(model.generateText({ messages: [user] }), { reasonCode: 'ai-text-behavior-unsupported' });
+  assert.equal(f.executions.length, 1);
+  assert.equal(f.inputs.length, 0);
+});
 
 test('Local App owned audio/video references preserve ordered content without inline or URI bypass', async () => {
   for (const mediaType of ['audio/wav', 'audio/mpeg', 'video/mp4']) {
@@ -53,7 +124,7 @@ test('Local App model preserves positioned system instructions and keeps the oth
     ['system', 'Character rules'], ['system', 'World information'], ['user', 'Search.'],
     ['assistant', ''], ['system', '  作者注：保持场景。\n'],
   ]);
-  await assert.rejects(f.model.generateText({ messages: [{ role: 'system', content: [textPart('No user')] }] }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+  await assert.rejects(f.model.generateText({ messages: [{ role: 'system', content: [textPart('   ')] }] }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
   await assert.rejects(f.model.generateText({ messages: Array.from({ length: 129 }, () => user) }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
   assert.equal(f.inputs.length, 1);
 });

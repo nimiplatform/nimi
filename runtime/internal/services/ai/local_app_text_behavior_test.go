@@ -24,6 +24,38 @@ func localAppLookupTool(t *testing.T) *runtimev1.ToolSpec {
 	return &runtimev1.ToolSpec{Kind: runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION, Name: "lookup", InputSchema: schema}
 }
 
+func TestLocalAppTextInitiationPreservesContextWithoutUser(t *testing.T) {
+	for _, messages := range [][]*runtimev1.LocalAppTextCandidateMessage{
+		{{Role: "system", Text: "Character and scene rules"}},
+		{{Role: "assistant", Text: "  我在邮局等你。\n"}},
+		{{Role: "system", Text: "Character rules"}, {Role: "assistant", Text: "Opening scene"}},
+	} {
+		spec, err := localAppTextGenerateSpec(&runtimev1.StreamLocalAppTextTurnRequest{Messages: messages})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, message := range spec.GetInput() {
+			if message.GetRole() == "user" {
+				t.Fatal("invented user input")
+			}
+		}
+		if messages[0].Role == "system" && spec.SystemPrompt != messages[0].Text {
+			t.Fatal("system context changed")
+		}
+		if last := messages[len(messages)-1]; last.Role == "assistant" {
+			if got := spec.Input[len(spec.Input)-1].TurnItems[0].GetOutput().GetText().GetText(); got != last.Text {
+				t.Fatalf("assistant context %q != %q", got, last.Text)
+			}
+		}
+	}
+	opaque := &runtimev1.LocalAppTextCandidateMessage{Role: "assistant", TurnItems: []*runtimev1.TextTurnItem{{Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ReasoningContinuity{ReasoningContinuity: &runtimev1.ReasoningContinuityCarrier{Kind: "test.encrypted", Version: 1, Payload: []byte{1}}}}}}}}
+	for _, messages := range [][]*runtimev1.LocalAppTextCandidateMessage{nil, {{Role: "system", Text: "   "}}, {opaque}} {
+		if _, err := localAppTextGenerateSpec(&runtimev1.StreamLocalAppTextTurnRequest{Messages: messages}); err == nil {
+			t.Fatal("empty primary context was admitted")
+		}
+	}
+}
+
 func localAppLookupCall() *runtimev1.ToolCall {
 	return &runtimev1.ToolCall{Id: "lookup-1", Name: "lookup", ArgumentsJson: `{"query":"runtime tools"}`}
 }

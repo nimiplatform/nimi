@@ -68,7 +68,14 @@ moving instructions to the beginning or changing their role. The initial exact
 DeepSeek Chat Completions v3 slice preserves these inputs in synchronous and
 streaming plain text, function-tool or JSON-object calls. Other combinations
 remain separately admitted. This does not relax the 128-message/1-MiB bounds,
-the required user message, or the user-only media boundary.
+or the user-only media boundary.
+
+App-owned initiation or continuation can submit nonempty system/assistant
+context without a user-role message. The carrier does not add a filler user
+turn or rewrite roles. Empty and opaque-only input still fails, and exact
+Driver input support remains required. If an App's budget planner drops needed
+history, the App must report that loss rather than treating it as intentional
+userless generation. The narrow text candidate method is unchanged.
 
 The Local App binding supports function tools, tool choice and structured
 `responseFormat` since SDK 0.12.0 / Kit 0.8.0, and user image parts since SDK

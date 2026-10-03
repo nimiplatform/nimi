@@ -190,13 +190,11 @@ export function validateLocalAppTextInput(value: unknown): NimiLocalAppTextTurnI
     tools.add(name);
   }
   const calls = new Map<string, string>();
-  let sawUser = false;
   const messages = input.messages.map((message): NimiLocalAppTextMessage => {
     assertExactKeys(message, ['role', 'text', 'turnItems', 'parts'], 'text message');
     const role = message.role;
     if (role !== 'system' && role !== 'user' && role !== 'assistant') invalid('message role');
     if (typeof message.text !== 'string') invalid('message text');
-    if (message.role === 'user') sawUser = true;
     if (message.turnItems !== undefined && !Array.isArray(message.turnItems)) invalid('ordered transcript');
     if (message.parts !== undefined && !Array.isArray(message.parts)) invalid('message parts');
     if (message.parts?.length) {
@@ -234,7 +232,9 @@ export function validateLocalAppTextInput(value: unknown): NimiLocalAppTextTurnI
     });
     return Object.freeze({ role: 'assistant', text: '', turnItems: Object.freeze(turnItems) });
   });
-  if (!sawUser) invalid('user message required');
+  const hasContext = messages.some(message => message.text.trim() || message.parts?.length || message.turnItems?.some(item =>
+    item.type === 'tool-result' || item.output.type === 'tool-call' || (item.output.type === 'text' && item.output.text.trim())));
+  if (!hasContext) invalid('nonempty text, media or tool context required');
   const choice = input.toolChoice;
   if (typeof choice === 'object' && choice !== null) {
     assertExactKeys(choice, ['type', 'name'], 'tool choice');

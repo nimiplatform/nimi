@@ -82,6 +82,59 @@ func deepseekAppFixture(t *testing.T, handler http.HandlerFunc) (managedCloudSce
 	}
 }
 
+func TestDeepseekAppInitiationReachesSyncAndStreamWithoutUserPadding(t *testing.T) {
+	for _, roles := range [][]string{{"system"}, {"assistant"}, {"system", "assistant"}} {
+		t.Run(fmt.Sprint(roles), func(t *testing.T) {
+			var calls atomic.Int32
+			fixture, decision := deepseekAppFixture(t, func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				var body struct {
+					Messages []map[string]any `json:"messages"`
+					Stream   bool             `json:"stream"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+					return
+				}
+				if len(body.Messages) != len(roles) {
+					t.Errorf("invented or lost context: %v", body.Messages)
+				}
+				for i, message := range body.Messages {
+					if i >= len(roles) || message["role"] != roles[i] || message["content"] != "实际角色上下文" {
+						t.Errorf("changed context: %v", message)
+					}
+				}
+				if body.Stream {
+					w.Header().Set("Content-Type", "text/event-stream")
+					if _, err := fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Opening scene.\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"); err != nil {
+						t.Error(err)
+					}
+				} else {
+					w.Header().Set("Content-Type", "application/json")
+					if _, err := fmt.Fprint(w, `{"choices":[{"index":0,"message":{"content":"Opening scene."},"finish_reason":"stop"}]}`); err != nil {
+						t.Error(err)
+					}
+				}
+			})
+			input := &runtimev1.StreamLocalAppTextTurnRequest{}
+			for _, role := range roles {
+				input.Messages = append(input.Messages, &runtimev1.LocalAppTextCandidateMessage{Role: role, Text: "实际角色上下文"})
+			}
+			result, err := fixture.service.ExecuteLocalAppScenario(decision(accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute), &runtimev1.ExecuteLocalAppScenarioRequest{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextGenerate{TextGenerate: input}})
+			if err != nil || len(result.GetTextGenerate().GetItems()) != 1 {
+				t.Fatalf("sync: %v %v", result, err)
+			}
+			stream := &mockLocalAppTextTurnStream{ctx: decision(accountservice.LocalAppOperationTextTurnStream, localappop.AppOperationIDTextTurnStream)}
+			if err := fixture.service.StreamLocalAppTextTurn(input, stream); err != nil {
+				t.Fatal(err)
+			}
+			if len(stream.events) == 0 || stream.events[len(stream.events)-1].GetCompleted() == nil || calls.Load() != 2 {
+				t.Fatalf("stream: %v; calls=%d", stream.events, calls.Load())
+			}
+		})
+	}
+}
+
 func TestDeepseekAppNativeToolsRoundTripThroughCommittedCloudConfig(t *testing.T) {
 	var calls atomic.Int32
 	fixture, decision := deepseekAppFixture(t, func(w http.ResponseWriter, r *http.Request) {

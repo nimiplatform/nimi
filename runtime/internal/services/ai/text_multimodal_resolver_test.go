@@ -90,14 +90,38 @@ func TestValidateResolvedTextGenerateInput(t *testing.T) {
 		{
 			name:         "system_prompt_only",
 			systemPrompt: "useful context",
-			wantErr:      true,
+			wantErr:      false,
 		},
 		{
 			name: "system_message_only",
 			input: []*runtimev1.ChatMessage{{
 				Role:    "system",
-				Content: "ignored",
+				Content: "Character and scene context",
 			}},
+			wantErr: false,
+		},
+		{
+			name:         "blank_system_context",
+			systemPrompt: " \n ",
+			input:        []*runtimev1.ChatMessage{{Role: "system", Content: "\t"}},
+			wantErr:      true,
+		},
+		{
+			name: "assistant_canonical_text",
+			input: []*runtimev1.ChatMessage{{Role: "assistant", TurnItems: []*runtimev1.TextTurnItem{{
+				Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{
+					Item: &runtimev1.TextOutputItem_Text{Text: &runtimev1.TextOutputText{Text: "Opening scene"}},
+				}},
+			}}}},
+			wantErr: false,
+		},
+		{
+			name: "opaque_continuity_only",
+			input: []*runtimev1.ChatMessage{{Role: "assistant", TurnItems: []*runtimev1.TextTurnItem{{
+				Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{
+					Item: &runtimev1.TextOutputItem_ReasoningContinuity{ReasoningContinuity: &runtimev1.ReasoningContinuityCarrier{Kind: "test.encrypted", Version: 1, Payload: []byte{1}}},
+				}},
+			}}}},
 			wantErr: true,
 		},
 		{

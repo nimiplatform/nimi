@@ -115,8 +115,8 @@ func validateLocalAppTextCandidateRequest(req *runtimev1.GenerateLocalAppTextCan
 	)
 }
 
-// validateLocalAppTextCandidateFields is the exact closed input boundary shared
-// by the Local App unary text-candidate and the base portion of text-turn.
+// validateLocalAppTextCandidateFields is the narrow unary candidate boundary.
+// Text-turn and Scenario use localAppTextGenerateSpec for broader App context.
 func validateLocalAppTextCandidateFields(
 	messages []*runtimev1.LocalAppTextCandidateMessage,
 	temperature *float32,

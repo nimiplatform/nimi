@@ -39,7 +39,7 @@
     "build": "node ../../../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
     "build:prepared": "node ../../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
     "lint": "pnpm exec tsc -p tsconfig.json",
-    "test": "pnpm exec tsx --test vercel-ai.test.ts vercel-ai.upstream-compat.test.ts",
+    "test": "pnpm exec tsx --test vercel-ai.test.ts vercel-ai.local-app.test.ts vercel-ai.upstream-compat.test.ts",
     "test:upstream": "pnpm exec tsx --test vercel-ai.upstream-compat.test.ts"
   },
   "nimi": {

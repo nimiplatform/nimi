@@ -62,7 +62,7 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 		declared[tool.GetName()] = tool
 		spec.Tools = append(spec.Tools, proto.Clone(tool).(*runtimev1.ToolSpec))
 	}
-	seenUser := false
+	hasContext := false
 	for index, message := range req.GetMessages() {
 		if message == nil {
 			return nil, localAppTextInputInvalid()
@@ -70,6 +70,7 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 		role := message.GetRole()
 		items := message.GetTurnItems()
 		parts := message.GetParts()
+		hasContext = hasContext || strings.TrimSpace(message.GetText()) != "" || len(parts) > 0
 		if len(parts) > 0 {
 			if role != "user" || message.GetText() != "" || len(items) != 0 {
 				return nil, localAppTextInputInvalid()
@@ -86,6 +87,7 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 				if err := validateLocalAppTextTurnItem(item, declared); err != nil {
 					return nil, err
 				}
+				hasContext = hasContext || item.GetToolResult() != nil || item.GetOutput().GetToolCall() != nil || strings.TrimSpace(item.GetOutput().GetText().GetText()) != ""
 			}
 		} else if len(parts) == 0 && strings.TrimSpace(message.GetText()) == "" {
 			return nil, localAppTextInputInvalid()
@@ -100,7 +102,6 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 				continue
 			}
 		case "user":
-			seenUser = true
 		case "assistant":
 		default:
 			return nil, localAppTextInputInvalid()
@@ -120,7 +121,7 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 		}
 		spec.Input = append(spec.Input, converted)
 	}
-	if !seenUser {
+	if !hasContext {
 		return nil, localAppTextInputInvalid()
 	}
 	if format := req.GetResponseFormat(); format != nil {

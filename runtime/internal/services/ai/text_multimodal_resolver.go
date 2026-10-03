@@ -117,13 +117,10 @@ func (s *Service) resolveTextGenerateScenarioForRoute(
 }
 
 func validateResolvedTextGenerateInput(systemPrompt string, input []*runtimev1.ChatMessage) error {
-	if strings.TrimSpace(systemPrompt) == "" && len(input) == 0 {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	if strings.TrimSpace(systemPrompt) != "" {
+		return nil
 	}
 	for _, message := range input {
-		if message == nil || strings.EqualFold(strings.TrimSpace(message.GetRole()), "system") {
-			continue
-		}
 		if chatMessageHasRenderableContent(message) {
 			return nil
 		}
@@ -137,6 +134,11 @@ func chatMessageHasRenderableContent(message *runtimev1.ChatMessage) bool {
 	}
 	if strings.TrimSpace(message.GetContent()) != "" {
 		return true
+	}
+	for _, item := range message.GetTurnItems() {
+		if item.GetToolResult() != nil || item.GetOutput().GetToolCall() != nil || strings.TrimSpace(item.GetOutput().GetText().GetText()) != "" {
+			return true
+		}
 	}
 	for _, part := range message.GetParts() {
 		if part == nil {
