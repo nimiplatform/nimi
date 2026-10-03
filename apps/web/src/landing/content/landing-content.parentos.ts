@@ -265,7 +265,7 @@ export const parentosPreviewContent: HeroDemoParentosPreview = {
       { id: 'children', label: '孩子与家庭成员', desc: '管理孩子档案、记录人与头像。' },
       { id: 'nurture', label: '养育模式', desc: '轻松 · 平衡 · 进阶，决定提醒的密度与语气。' },
       { id: 'reminders', label: '提醒偏好', desc: '按领域调整提醒频率，或暂时关闭。' },
-      { id: 'ai', label: 'AI 与本地模型', desc: '成长顾问与语音转写使用的本地模型。' },
+      { id: 'ai', label: 'AI 设置', desc: '为成长顾问与语音转写选择本地或云端模型。' },
     ],
     info: [
       { label: '隐私与本地数据', desc: '所有记录只保存在这台设备上。' },
@@ -273,7 +273,7 @@ export const parentosPreviewContent: HeroDemoParentosPreview = {
     ],
   },
   notices: {
-    hostOnly: '这个预览只使用演示数据；文件、相机与本地模型在 Nimi 桌面端中可用。',
+    hostOnly: '这个预览只使用演示数据；文件、相机与 AI 模型在 Nimi 桌面端中可用。',
     dismiss: '知道了',
   },
 };
