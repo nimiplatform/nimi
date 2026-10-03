@@ -127,10 +127,11 @@ type CommittedRelease struct {
 }
 
 type CommitPackageReleaseInput struct {
-	AppInfoJSON  []byte
-	JobID        string
-	Version      string
-	Registration RegisterInstalledInput
+	AppInfoJSON      []byte
+	LaunchConfigJSON []byte
+	JobID            string
+	Version          string
+	Registration     RegisterInstalledInput
 }
 
 type CommitPackageReleaseResult struct {
@@ -200,6 +201,14 @@ var packageLifecycleSchemaStatements = []string{
 		source_class TEXT NOT NULL,
 		release_ref TEXT NOT NULL,
 		info_json BLOB NOT NULL CHECK(length(info_json) BETWEEN 1 AND 1048576),
+		PRIMARY KEY(app_id, source_class),
+		FOREIGN KEY(app_id, source_class) REFERENCES committed_app_release(app_id, source_class) ON DELETE CASCADE
+	)`,
+	`CREATE TABLE IF NOT EXISTS app_package_launch_config (
+		app_id TEXT NOT NULL,
+		source_class TEXT NOT NULL,
+		release_ref TEXT NOT NULL,
+		config_json BLOB NOT NULL CHECK(length(config_json) BETWEEN 1 AND 1048576),
 		PRIMARY KEY(app_id, source_class),
 		FOREIGN KEY(app_id, source_class) REFERENCES committed_app_release(app_id, source_class) ON DELETE CASCADE
 	)`,
@@ -478,7 +487,7 @@ func (store *PackageLifecycleStore) ListCommittedReleases(ctx context.Context) (
 // @nimi-authority: definition.nimi.platform.app-ecosystem.immutable-package-seam
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
 func (store *PackageLifecycleStore) CommitPackageRelease(ctx context.Context, input CommitPackageReleaseInput) (CommitPackageReleaseResult, error) {
-	if len(input.AppInfoJSON) == 0 || len(input.AppInfoJSON) > 1048576 || store == nil || store.kernel == nil || requireExactText("job_id", input.JobID) != nil || !safeLifecycleSegment(input.Version) {
+	if len(input.LaunchConfigJSON) == 0 || len(input.LaunchConfigJSON) > 1048576 || !json.Valid(input.LaunchConfigJSON) || len(input.AppInfoJSON) == 0 || len(input.AppInfoJSON) > 1048576 || store == nil || store.kernel == nil || requireExactText("job_id", input.JobID) != nil || !safeLifecycleSegment(input.Version) {
 		return CommitPackageReleaseResult{}, ErrInvalidArgument
 	}
 	if err := validateInstalledInput(input.Registration); err != nil {
@@ -549,6 +558,10 @@ func (store *PackageLifecycleStore) CommitPackageRelease(ctx context.Context, in
 	if _, err := tx.ExecContext(ctx, `INSERT INTO app_package_info(app_id, source_class, release_ref, info_json) VALUES (?, ?, ?, ?)
 		ON CONFLICT(app_id, source_class) DO UPDATE SET release_ref = excluded.release_ref, info_json = excluded.info_json`, job.AppID, string(job.SourceClass), job.TargetRef, input.AppInfoJSON); err != nil {
 		return CommitPackageReleaseResult{}, fmt.Errorf("write committed App information: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO app_package_launch_config(app_id, source_class, release_ref, config_json) VALUES (?, ?, ?, ?)
+		ON CONFLICT(app_id, source_class) DO UPDATE SET release_ref = excluded.release_ref, config_json = excluded.config_json`, job.AppID, string(job.SourceClass), job.TargetRef, input.LaunchConfigJSON); err != nil {
+		return CommitPackageReleaseResult{}, fmt.Errorf("write committed App launch configuration: %w", err)
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE app_package_job SET phase = 'completed', completed_unix_nano = ?,
 		terminal_result = 'completed', reason_code = '', cancelable = 0, updated_unix_nano = ?

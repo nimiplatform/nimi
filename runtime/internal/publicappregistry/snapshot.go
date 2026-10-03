@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dlclark/regexp2"
@@ -71,6 +72,7 @@ var (
 // environment URL, or caller-selected Registry.
 type Client struct {
 	source documentSource
+	cache  snapshotCache
 }
 
 type documentSource interface {
@@ -164,10 +166,13 @@ func newCanonicalGitHubSource(transport http.RoundTripper) *canonicalGitHubSourc
 // always read from Revision; the mutable main branch is never re-read inside a
 // snapshot.
 type Snapshot struct {
-	source           documentSource
-	revision         string
-	index            registryIndexDocument
-	descriptorSchema *jsonschema.Schema
+	source              documentSource
+	revision            string
+	index               registryIndexDocument
+	descriptorSchema    *jsonschema.Schema
+	descriptorMu        sync.Mutex
+	descriptorBytes     map[string][]byte
+	descriptorCacheSize int
 }
 
 func (s *Snapshot) Revision() string {
@@ -504,6 +509,10 @@ func (c *Client) loadAt(ctx context.Context, revision string) (*Snapshot, error)
 	if !commitSHAPattern.MatchString(revision) {
 		return nil, fmt.Errorf("resolve public App Registry main revision: %w", ErrInvalidRegistrySnapshot)
 	}
+	return c.cache.load(ctx, revision, func() (*Snapshot, error) { return c.loadUncachedAt(ctx, revision) })
+}
+
+func (c *Client) loadUncachedAt(ctx context.Context, revision string) (*Snapshot, error) {
 	schemas, err := loadSchemas(ctx, c.source, revision)
 	if err != nil {
 		return nil, err
@@ -578,6 +587,19 @@ func (s *Snapshot) resolve(ctx context.Context, appID, targetID string) (Resolve
 }
 
 func (s *Snapshot) readDescriptor(ctx context.Context, path string) (approvedDescriptorDocument, error) {
+	if err := ctx.Err(); err != nil {
+		return approvedDescriptorDocument{}, err
+	}
+	s.descriptorMu.Lock()
+	cached := s.descriptorBytes[path]
+	s.descriptorMu.Unlock()
+	if cached != nil {
+		// Decode a separate value for each caller so returned slices and maps
+		// cannot mutate another consumer's validated facts.
+		var descriptor approvedDescriptorDocument
+		err := jsonstrict.Decode(cached, &descriptor)
+		return descriptor, err
+	}
 	rawDescriptor, err := s.source.readAt(ctx, s.revision, path, maxDescriptorDocumentLen)
 	if err != nil {
 		return approvedDescriptorDocument{}, fmt.Errorf("read approved App descriptor: %w", err)
@@ -589,6 +611,17 @@ func (s *Snapshot) readDescriptor(ctx context.Context, path string) (approvedDes
 	if err := jsonstrict.Decode(rawDescriptor, &descriptor); err != nil {
 		return approvedDescriptorDocument{}, fmt.Errorf("decode approved App descriptor: %w", errors.Join(ErrInvalidRegistrySnapshot, err))
 	}
+	s.descriptorMu.Lock()
+	if s.descriptorBytes == nil {
+		s.descriptorBytes = make(map[string][]byte)
+	}
+	// Retain a bounded working set within this immutable revision. Failed
+	// reads are not retained; misses perform the same complete validation.
+	if s.descriptorBytes[path] == nil && s.descriptorCacheSize+len(rawDescriptor) <= 8*1024*1024 {
+		s.descriptorBytes[path] = bytes.Clone(rawDescriptor)
+		s.descriptorCacheSize += len(rawDescriptor)
+	}
+	s.descriptorMu.Unlock()
 	return descriptor, nil
 }
 
@@ -687,16 +720,9 @@ func (c *Client) RevalidateInstalled(ctx context.Context, selector ApprovedTarge
 		return ResolvedApprovedTarget{}, &PolicyBlockedError{Reason: *row.KillSwitch.Reason, Revision: row.KillSwitch.Revision}
 	}
 	path := expectedDescriptorPath(appID, selector.descriptorID[len(appID)+1:])
-	raw, err := snapshot.source.readAt(ctx, snapshot.revision, path, maxDescriptorDocumentLen)
+	descriptor, err := snapshot.readDescriptor(ctx, path)
 	if err != nil {
 		return ResolvedApprovedTarget{}, err
-	}
-	if err := validateSchemaDocument(snapshot.descriptorSchema, raw); err != nil {
-		return ResolvedApprovedTarget{}, err
-	}
-	var descriptor approvedDescriptorDocument
-	if err := jsonstrict.Decode(raw, &descriptor); err != nil {
-		return ResolvedApprovedTarget{}, errors.Join(ErrInvalidRegistrySnapshot, err)
 	}
 	if descriptor.DescriptorID != selector.descriptorID {
 		return ResolvedApprovedTarget{}, ErrInvalidRegistrySnapshot

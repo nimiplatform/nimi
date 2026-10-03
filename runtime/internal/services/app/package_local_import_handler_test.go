@@ -164,7 +164,7 @@ func TestPackageInfoSelectorsAndInstalledSnapshot(t *testing.T) {
 		}
 	}
 	appRoot := filepath.Join(kernel.DataRoot(), "test-release")
-	committed, err := store.CommitPackageRelease(ctx, localappkernel.CommitPackageReleaseInput{JobID: job.JobID, Version: info.Version, AppInfoJSON: raw, Registration: localappkernel.RegisterInstalledInput{
+	committed, err := store.CommitPackageRelease(ctx, localappkernel.CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), JobID: job.JobID, Version: info.Version, AppInfoJSON: raw, Registration: localappkernel.RegisterInstalledInput{
 		AppID: info.AppID, DisplayName: info.DisplayName, SourceClass: localappkernel.SourceClassUserImported, SourceRef: "local-package-app:v1:test.info", ProjectRoot: appRoot, ManifestPath: filepath.Join(appRoot, "nimi.app.yaml"), RawDeclaration: []string{}, ImmutableLineageID: job.TargetRef, ProvenanceRevision: 1, ExecutionProfileRef: "macos-current-user-v1", HostExecutableDigest: "host:test", PayloadRootDigest: "payload:test",
 	}})
 	if err != nil {

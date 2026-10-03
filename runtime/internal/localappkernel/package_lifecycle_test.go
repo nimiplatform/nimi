@@ -85,7 +85,7 @@ func TestPackageLifecycleCommitAndUninstallBoundariesRejectCancel(t *testing.T) 
 	store := kernel.PackageLifecycle()
 
 	install := beginCommittingJob(t, ctx, store, PackageJobInstall, "descriptor:nimi.example:1.0.0")
-	committed, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`),
+	committed, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), AppInfoJSON: []byte(`{"snapshot":"storage-test"}`),
 		JobID: install.JobID, Version: "1.0.0", Registration: verifiedRegistrationInput("lineage:1", 1),
 	})
 	if err != nil {
@@ -117,6 +117,9 @@ func TestPackageLifecycleCommitAndUninstallBoundariesRejectCancel(t *testing.T) 
 	if raw, err := store.ReadAppInfo(ctx, committed.Registration.RegistrationHandle, committed.Release.ReleaseRef); !errors.Is(err, ErrCommittedReleaseNotFound) {
 		t.Fatalf("uninstall kept info snapshot: %s %v", raw, err)
 	}
+	if _, err := store.ReadLaunchConfig(ctx, committed.Registration.RegistrationHandle, committed.Release.ReleaseRef); !errors.Is(err, ErrCommittedReleaseNotFound) {
+		t.Fatalf("uninstall kept launch configuration: %v", err)
+	}
 	if _, err := store.GetCommittedRelease(ctx, "nimi.example", SourceClassVerified); !errors.Is(err, ErrCommittedReleaseNotFound) {
 		t.Fatalf("removed committed release = %v", err)
 	}
@@ -141,7 +144,7 @@ func TestCommitVerifiedReleaseIsAtomicAndFailedUpdatePreservesActive(t *testing.
 	store := kernel.PackageLifecycle()
 
 	installJob := beginCommittingJob(t, ctx, store, PackageJobInstall, "descriptor:nimi.example:1.0.0")
-	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"version":"1.0.0"}`),
+	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), AppInfoJSON: []byte(`{"version":"1.0.0"}`),
 		JobID:        installJob.JobID,
 		Version:      "1.0.0",
 		Registration: verifiedRegistrationInput("lineage:1", 1),
@@ -176,7 +179,7 @@ func TestCommitVerifiedReleaseIsAtomicAndFailedUpdatePreservesActive(t *testing.
 	}
 	registration := verifiedRegistrationInput("lineage:2", 2)
 	registration.ExistingRegistrationHandle = first.Registration.RegistrationHandle
-	second, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"version":"1.1.0"}`),
+	second, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), AppInfoJSON: []byte(`{"version":"1.1.0"}`),
 		JobID: updateJob.JobID, Version: "1.1.0", Registration: registration,
 	})
 	if err != nil {
@@ -184,6 +187,12 @@ func TestCommitVerifiedReleaseIsAtomicAndFailedUpdatePreservesActive(t *testing.
 	}
 	if second.Release.Version != "1.1.0" || second.Registration.RegistrationHandle != first.Registration.RegistrationHandle || second.Registration.SourceGeneration != 2 {
 		t.Fatalf("updated commit = %+v", second)
+	}
+	if _, err := store.ReadLaunchConfig(ctx, first.Registration.RegistrationHandle, first.Release.ReleaseRef); !errors.Is(err, ErrCommittedReleaseNotFound) {
+		t.Fatalf("old launch configuration remained readable: %v", err)
+	}
+	if raw, err := store.ReadLaunchConfig(ctx, second.Registration.RegistrationHandle, second.Release.ReleaseRef); err != nil || string(raw) != `{"fixture":"storage-only"}` {
+		t.Fatalf("updated launch configuration: %s %v", raw, err)
 	}
 
 	if raw, err := store.ReadAppInfo(ctx, first.Registration.RegistrationHandle, first.Release.ReleaseRef); !errors.Is(err, ErrCommittedReleaseNotFound) {
@@ -235,7 +244,7 @@ func TestRepairCannotChangeCommittedReleaseIdentityOrImmutableSeam(t *testing.T)
 	defer func() { _ = kernel.Close() }()
 	store := kernel.PackageLifecycle()
 	install := beginCommittingJob(t, ctx, store, PackageJobInstall, "descriptor:nimi.example:1.0.0")
-	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`),
+	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), AppInfoJSON: []byte(`{"snapshot":"storage-test"}`),
 		JobID: install.JobID, Version: "1.0.0", Registration: verifiedRegistrationInput("lineage:1", 1),
 	})
 	if err != nil {
@@ -262,7 +271,7 @@ func TestRepairCannotChangeCommittedReleaseIdentityOrImmutableSeam(t *testing.T)
 			if tc.mutate != nil {
 				tc.mutate(&registration)
 			}
-			if _, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`),
+			if _, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), AppInfoJSON: []byte(`{"snapshot":"storage-test"}`),
 				JobID: repair.JobID, Version: tc.version, Registration: registration,
 			}); !errors.Is(err, ErrStateConflict) {
 				t.Fatalf("repair changed committed release: %v", err)
@@ -416,7 +425,7 @@ func TestDownloadQueueReorderPauseResumeAndUpdateBaseline(t *testing.T) {
 		t.Fatalf("paused mutation lost exclusivity: %v", err)
 	}
 	install := beginCommittingJob(t, ctx, store, PackageJobInstall, "descriptor:nimi.example:1.0.0")
-	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`), JobID: install.JobID, Version: "1.0.0", Registration: verifiedRegistrationInput("lineage:1", 1)})
+	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), AppInfoJSON: []byte(`{"snapshot":"storage-test"}`), JobID: install.JobID, Version: "1.0.0", Registration: verifiedRegistrationInput("lineage:1", 1)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -434,7 +443,7 @@ func TestDownloadQueueReorderPauseResumeAndUpdateBaseline(t *testing.T) {
 	update = advanceJob(t, ctx, store, update, PackageJobCommitting, PackageJobProgress{})
 	registration := verifiedRegistrationInput("lineage:2", 2)
 	registration.ExistingRegistrationHandle = first.Registration.RegistrationHandle
-	if _, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`), JobID: update.JobID, Version: "1.1.0", Registration: registration}); !errors.Is(err, ErrRevisionConflict) {
+	if _, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), AppInfoJSON: []byte(`{"snapshot":"storage-test"}`), JobID: update.JobID, Version: "1.1.0", Registration: registration}); !errors.Is(err, ErrRevisionConflict) {
 		t.Fatalf("stale baseline committed: %v", err)
 	}
 }

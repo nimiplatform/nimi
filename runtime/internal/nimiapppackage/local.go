@@ -82,8 +82,8 @@ func InspectLocal(ctx context.Context, archivePath, targetOS, targetArch string)
 	return metadata, nil
 }
 
-// The committed payload and executable digests authenticate these control
-// documents during VerifyMaterialized; no Registry document is synthesized.
+// ReadInstalledLocalMetadata reads package control files for explicit integrity
+// inspection. Launch uses installation-owned configuration, never these files.
 func ReadInstalledLocalMetadata(rootPath, targetOS, targetArch string) (LocalMetadata, error) {
 	root, err := os.OpenRoot(rootPath)
 	if err != nil {

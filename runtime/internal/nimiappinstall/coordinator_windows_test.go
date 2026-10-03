@@ -112,6 +112,7 @@ func (transport *installFixtureTransport) RoundTrip(request *http.Request) (*htt
 		}
 		if transport.blockAfterAsset {
 			transport.blocked = true
+			transport.revision = installTestNextRevision
 		}
 		return response, nil
 	}
@@ -341,10 +342,12 @@ func advanceInstallFixture(t *testing.T, transport *installFixtureTransport, ver
 	transport.documents = documents
 	transport.asset = asset
 	transport.assetURL = url
-	transport.revision = installTestNextRevision
+	// Publishing another version changes the immutable Registry commit too.
+	revision := sha256.Sum256([]byte("registry:" + version))
+	transport.revision = hex.EncodeToString(revision[:])[:40]
 }
 
-func TestInstalledLaunchRechecksFullPayloadCurrentPolicyAndReservation(t *testing.T) {
+func TestInstalledLaunchChecksHostCurrentPolicyAndReservationWithoutScanningResources(t *testing.T) {
 	ctx := context.Background()
 	coordinator, client, kernel, transport := newInstallFixture(t, false)
 	result, err := coordinator.Install(ctx, resolveInstallFixture(t, client))
@@ -369,10 +372,12 @@ func TestInstalledLaunchRechecksFullPayloadCurrentPolicyAndReservation(t *testin
 	}
 	called = false
 	transport.blocked = true
+	transport.revision = strings.Repeat("d", 40)
 	if err := coordinator.WithInstalledLaunch(ctx, handle, bind); !errors.Is(err, publicappregistry.ErrPolicyBlocked) || called {
 		t.Fatalf("policy bypass: %v", err)
 	}
 	transport.blocked = false
+	transport.revision = strings.Repeat("e", 40)
 	job, err := kernel.PackageLifecycle().Begin(ctx, localappkernel.BeginPackageJobInput{
 		AppID: result.Release.AppID, SourceClass: localappkernel.SourceClassVerified, Kind: localappkernel.PackageJobUninstall,
 		TargetRef: result.Release.ReleaseRef, ProgressBasis: localappkernel.PackageProgressIndeterminate, Cancelable: true,
@@ -389,8 +394,93 @@ func TestInstalledLaunchRechecksFullPayloadCurrentPolicyAndReservation(t *testin
 	if err := os.WriteFile(filepath.Join(result.Registration.ProjectRoot, "payload", "resources", "index.html"), []byte("changed non-executable payload"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := coordinator.WithInstalledLaunch(ctx, handle, bind); !errors.Is(err, nimiapppackage.ErrPackageIntegrity) || called {
-		t.Fatalf("non-EXE mutation bypass: %v", err)
+	if err := coordinator.PrepareInstalledLaunch(ctx, handle, bind); err != nil || !called {
+		t.Fatalf("ordinary resource mutation must not trigger a launch-time package scan: %v", err)
+	}
+	expected := packageExpectation(resolveInstalledFixture(t, client, result.Release.ReleaseRef))
+	var hostDigest [32]byte
+	encoded, _ := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(result.Release.HostExecutableDigest, "bii_v1_"))
+	copy(hostDigest[:], encoded)
+	if _, err := nimiapppackage.VerifyMaterialized(ctx, result.Registration.ProjectRoot, expected, result.Release.PayloadRootDigest, hostDigest); !errors.Is(err, nimiapppackage.ErrPackageIntegrity) {
+		t.Fatalf("explicit integrity check failed to detect changed resource: %v", err)
+	}
+	// Launch inputs stay installation-owned even if a manifest is changed.
+	if err := os.WriteFile(filepath.Join(result.Registration.ProjectRoot, "manifest.json"), []byte(`{"runtime_entry":"payload/replacement.exe"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := coordinator.PrepareInstalledLaunch(ctx, handle, bind); err != nil {
+		t.Fatalf("disk manifest replaced committed launch input: %v", err)
+	}
+	called = false
+	if err := os.WriteFile(filepath.Join(result.Registration.ProjectRoot, "payload", "example-app.exe"), []byte("changed host"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := coordinator.PrepareInstalledLaunch(ctx, handle, bind); err == nil || called {
+		t.Fatalf("changed Host reached launch: %v", err)
+	}
+}
+
+func resolveInstalledFixture(t *testing.T, client *publicappregistry.Client, releaseRef string) publicappregistry.ResolvedApprovedTarget {
+	t.Helper()
+	selector, err := publicappregistry.ParseApprovedTargetSelector(releaseRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := client.RevalidateInstalled(context.Background(), selector)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return target
+}
+
+type pausedLaunchRegistry struct {
+	registryResolver
+	entered chan struct{}
+	resume  chan struct{}
+}
+
+func (registry pausedLaunchRegistry) RevalidateInstalled(ctx context.Context, selector publicappregistry.ApprovedTargetSelector) (publicappregistry.ResolvedApprovedTarget, error) {
+	close(registry.entered)
+	select {
+	case <-registry.resume:
+	case <-ctx.Done():
+		return publicappregistry.ResolvedApprovedTarget{}, ctx.Err()
+	}
+	return registry.registryResolver.RevalidateInstalled(ctx, selector)
+}
+
+func TestInstalledLaunchRechecksUninstallAfterSlowRegistryWithoutHoldingMutationLock(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	coordinator, client, _, _ := newInstallFixture(t, false)
+	installed, err := coordinator.Install(ctx, resolveInstallFixture(t, client))
+	if err != nil {
+		t.Fatal(err)
+	}
+	paused := pausedLaunchRegistry{registryResolver: coordinator.registry, entered: make(chan struct{}), resume: make(chan struct{})}
+	coordinator.registry = paused
+	done := make(chan error, 1)
+	go func() {
+		done <- coordinator.WithInstalledLaunch(ctx, installed.Registration.RegistrationHandle, func(InstalledLaunch) error { return errors.New("launch must not bind after uninstall reservation") })
+	}()
+	<-paused.entered
+	reserved := make(chan error, 1)
+	go func() {
+		_, err := coordinator.StartUninstall(ctx, installed.Registration.RegistrationHandle)
+		reserved <- err
+	}()
+	select {
+	case err := <-reserved:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-ctx.Done():
+		close(paused.resume)
+		t.Fatal("Registry I/O held the package mutation lock")
+	}
+	close(paused.resume)
+	if err := <-done; !errors.Is(err, localappkernel.ErrPackageJobActive) {
+		t.Fatalf("stale launch after Registry wait: %v", err)
 	}
 }
 

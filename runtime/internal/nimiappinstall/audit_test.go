@@ -88,7 +88,7 @@ func TestPackageOwnerRecordsOneResultPerTerminalJob(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	committed, err := lifecycle.CommitPackageRelease(ctx, localappkernel.CommitPackageReleaseInput{
+	committed, err := lifecycle.CommitPackageRelease(ctx, localappkernel.CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`),
 		JobID: install.JobID, Version: "1.0.0", AppInfoJSON: []byte(`{"snapshot":"audit"}`),
 		Registration: localappkernel.RegisterInstalledInput{
 			AppID: "publisher.audit", DisplayName: "Audit", SourceClass: localappkernel.SourceClassVerified,
@@ -175,7 +175,7 @@ func TestPackageCommitAuditFailureRetainsTerminalJobAndDiagnostic(t *testing.T) 
 		t.Fatal(err)
 	}
 	commit := func() error {
-		result, err := lifecycle.CommitPackageRelease(ctx, localappkernel.CommitPackageReleaseInput{JobID: job.JobID, Version: "1.0.0", AppInfoJSON: []byte(`{"snapshot":"audit"}`), Registration: localappkernel.RegisterInstalledInput{
+		result, err := lifecycle.CommitPackageRelease(ctx, localappkernel.CommitPackageReleaseInput{LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), JobID: job.JobID, Version: "1.0.0", AppInfoJSON: []byte(`{"snapshot":"audit"}`), Registration: localappkernel.RegisterInstalledInput{
 			AppID: job.AppID, DisplayName: "Audit", SourceClass: job.SourceClass, SourceRef: "public-registry-app:v1:publisher.audit", ProjectRoot: root, ManifestPath: filepath.Join(root, "nimi.app.yaml"), RawDeclaration: []string{"runtime.consume"}, ImmutableLineageID: "audit-release-ref", ProvenanceAttestationRefs: []string{"attestation:audit"}, ProvenanceRevision: 1, ExecutionProfileRef: "execution:native", HostExecutableDigest: "host:audit", PayloadRootDigest: "payload:audit",
 		}})
 		if err == nil {

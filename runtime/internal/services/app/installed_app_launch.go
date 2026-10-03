@@ -54,7 +54,13 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		return nil, installedLaunchUnavailable()
 	}
 	var lease *installedAppLaunch
-	err := s.appInstallCoordinator.WithInstalledLaunch(ctx, string(selector), func(verified nimiappinstall.InstalledLaunch) error {
+	started := time.Now()
+	defer func() {
+		if s.logger != nil {
+			s.logger.Info("installed App prepare completed", "duration_ms", time.Since(started).Milliseconds())
+		}
+	}()
+	err := s.appInstallCoordinator.PrepareInstalledLaunch(ctx, string(selector), func(verified nimiappinstall.InstalledLaunch) error {
 		trustClass, supportedSource := installedPackageTrustClass(verified.Registration.SourceClass)
 		if !supportedSource {
 			return installedLaunchMismatch()
@@ -120,6 +126,10 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		s.revokeInstalledLaunch(lease.id)
 		return nil, installedLaunchMismatch()
 	}
+	if err := ctx.Err(); err != nil {
+		s.revokeInstalledLaunch(lease.id)
+		return nil, err
+	}
 	time.AfterFunc(time.Until(lease.expires), func() {
 		lease.mu.Lock()
 		expired := !lease.bound && !lease.closed
@@ -174,24 +184,28 @@ func (s *Service) bindInstalledAppProcess(ctx context.Context, req *runtimev1.Bi
 	if lease.closed || lease.bound || !s.now().UTC().Before(lease.expires) {
 		return nil, installedLaunchMismatch()
 	}
+	started := time.Now()
+	process, liveness, err := protectedlocal.VerifyInstalledAppProcess(ctx, req.GetChildProcessId(), lease.policy)
+	if s.logger != nil {
+		s.logger.Info("installed App child image verified", "app_id", lease.verified.Release.AppID, "duration_ms", time.Since(started).Milliseconds(), "error", err)
+	}
+	if err != nil {
+		return nil, installedLaunchMismatch()
+	}
+	accepted := false
+	defer func() {
+		if !accepted {
+			_ = liveness.Close()
+		}
+	}()
 	var deadline time.Time
-	err := s.appInstallCoordinator.WithInstalledLaunch(ctx, lease.policy.RegistrationHandle, func(current nimiappinstall.InstalledLaunch) error {
+	err = s.appInstallCoordinator.WithInstalledLaunch(ctx, lease.policy.RegistrationHandle, func(current nimiappinstall.InstalledLaunch) error {
 		if current.Registration.SourceClass != lease.verified.Registration.SourceClass ||
 			current.Registration.SourceGeneration != lease.policy.SourceGeneration || current.Registration.DeclarationGeneration != lease.policy.DeclarationGeneration ||
 			current.Release.ReleaseRef != lease.verified.Release.ReleaseRef || current.Release.PayloadRootDigest != lease.verified.Release.PayloadRootDigest ||
 			current.ExecutableDigest != lease.policy.HostExecutableDigest || current.RuntimeEntry != lease.policy.HostExecutablePath || !s.now().UTC().Before(lease.expires) {
 			return installedLaunchMismatch()
 		}
-		process, liveness, err := protectedlocal.VerifyInstalledAppProcess(ctx, req.GetChildProcessId(), lease.policy)
-		if err != nil {
-			return installedLaunchMismatch()
-		}
-		accepted := false
-		defer func() {
-			if !accepted {
-				_ = liveness.Close()
-			}
-		}()
 		deadline = s.now().UTC().Add(10 * time.Second)
 		if deadline.After(lease.expires) {
 			deadline = lease.expires

@@ -131,7 +131,7 @@ func TestLocalPackageCommitsPrivateCopyUpdatesAndRevalidatesInstalledLaunch(t *t
 	if err := os.WriteFile(filepath.Join(registration.ProjectRoot, "payload/Example.app/Contents/Resources/text.txt"), []byte("tampered"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := owner.WithInstalledLaunch(ctx, second.RegistrationHandle, func(InstalledLaunch) error { t.Fatal("tampered package reached launch binding"); return nil }); err == nil {
+	if err := owner.PrepareInstalledLaunch(ctx, second.RegistrationHandle, func(InstalledLaunch) error { t.Fatal("tampered signed bundle reached launch binding"); return nil }); err == nil {
 		t.Fatal("tampered installed package accepted")
 	}
 }

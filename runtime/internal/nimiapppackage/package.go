@@ -384,7 +384,7 @@ func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 
 // VerifyMaterialized reuses the installation digest over every managed file.
 // The digest is the existing committed release fact, never a separate ledger.
-// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-014a
 func VerifyMaterialized(ctx context.Context, rootPath string, expected Expected, payloadDigest string, hostDigest [sha256.Size]byte) (Materialized, error) {
 	if ctx == nil || !filepath.IsAbs(rootPath) || payloadDigest == "" || hostDigest == ([sha256.Size]byte{}) {
 		return Materialized{}, ErrPackageIntegrity
@@ -823,6 +823,10 @@ func verifyEntryBytes(ctx context.Context, entry *zip.File) error {
 
 func copyWithContext(ctx context.Context, destination io.Writer, source io.Reader, expected uint64) error {
 	buffer := make([]byte, 128*1024)
+	return copyWithContextBuffer(ctx, destination, source, expected, buffer)
+}
+
+func copyWithContextBuffer(ctx context.Context, destination io.Writer, source io.Reader, expected uint64, buffer []byte) error {
 	var written uint64
 	for {
 		if err := ctx.Err(); err != nil {
@@ -939,6 +943,8 @@ func digestMaterializedRoot(ctx context.Context, rootPath, targetOS, runtimeEntr
 		_, _ = tree.Write([]byte("macos\x00"))
 	}
 	var hostDigest [sha256.Size]byte
+	buffer := make([]byte, 128*1024)
+	host := sha256.New()
 	names := make([]string, 0, len(files))
 	for _, file := range files {
 		if targetOS == "macos" {
@@ -962,18 +968,19 @@ func digestMaterializedRoot(ctx context.Context, rootPath, targetOS, runtimeEntr
 			writeDigestHeader(tree, file.name, file.size)
 			_, writeErr = tree.Write([]byte(file.link))
 		} else {
-			writeErr = writeDigestFile(ctx, tree, file.name, file.path, file.size)
+			writeDigestHeader(tree, file.name, file.size)
+			var destination io.Writer = tree
+			if file.name == runtimeEntry {
+				destination = io.MultiWriter(tree, host)
+			}
+			writeErr = writeDigestFile(ctx, destination, file.name, file.path, file.size, buffer)
 		}
 		if writeErr != nil {
 			return [sha256.Size]byte{}, [sha256.Size]byte{}, nil, 0, writeErr
 		}
 		names = append(names, file.name)
 		if file.name == runtimeEntry {
-			digest, err := digestFile(ctx, file.path)
-			if err != nil {
-				return [sha256.Size]byte{}, [sha256.Size]byte{}, nil, 0, err
-			}
-			hostDigest = digest
+			copy(hostDigest[:], host.Sum(nil))
 		}
 	}
 	if hostDigest == ([sha256.Size]byte{}) {
@@ -993,14 +1000,13 @@ func writeDigestHeader(destination hash.Hash, name string, size int64) {
 	_, _ = destination.Write(length[:])
 }
 
-func writeDigestFile(ctx context.Context, destination hash.Hash, name, filePath string, size int64) error {
-	writeDigestHeader(destination, name, size)
+func writeDigestFile(ctx context.Context, destination io.Writer, name, filePath string, size int64, buffer []byte) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("open staged nimiapp file %s: %w", name, err)
 	}
 	defer func() { _ = file.Close() }()
-	if err := copyWithContext(ctx, destination, file, uint64(size)); err != nil {
+	if err := copyWithContextBuffer(ctx, destination, file, uint64(size), buffer); err != nil {
 		return fmt.Errorf("digest staged nimiapp file %s: %w", name, err)
 	}
 	return nil

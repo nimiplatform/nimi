@@ -2,6 +2,7 @@ package nimiappinstall
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
@@ -510,6 +511,10 @@ func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job lo
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("close public App release root: %w", err), true)
 	}
 	registration := registrationFor(materialized)
+	launchConfig, err := json.Marshal(installedLaunchConfig{Expected: packageExpected, DisplayName: registration.DisplayName})
+	if err != nil {
+		return InstallResult{}, coordinator.failInstall(ctx, job, err, true)
+	}
 	if previous != nil {
 		registration.ExistingRegistrationHandle = previous.RegistrationHandle
 		registration.ProvenanceRevision = previous.ProvenanceRevision + 1
@@ -518,7 +523,7 @@ func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job lo
 	committed, err := coordinator.commitRecordedPackage(job, func() error {
 		var commitErr error
 		commit, commitErr = coordinator.lifecycle.CommitPackageRelease(commitContext, localappkernel.CommitPackageReleaseInput{
-			JobID: job.JobID, Version: packageExpected.Version, Registration: registration, AppInfoJSON: materialized.AppInfoJSON,
+			JobID: job.JobID, Version: packageExpected.Version, Registration: registration, AppInfoJSON: materialized.AppInfoJSON, LaunchConfigJSON: launchConfig,
 		})
 		return commitErr
 	})

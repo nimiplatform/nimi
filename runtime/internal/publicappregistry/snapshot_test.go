@@ -14,6 +14,7 @@ import (
 
 const testRevisionA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 const testRevisionB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+const testRevisionC = "cccccccccccccccccccccccccccccccccccccccc"
 
 type memoryDocumentSource struct {
 	revision  string
@@ -149,6 +150,7 @@ func TestRevalidateProjectsPolicyBeforeStalenessAndNeverSubstitutesLatest(t *tes
 	}
 
 	row.KillSwitch = KillSwitch{Active: false, Reason: nil, Revision: 8}
+	source.revision = testRevisionC
 	row.LatestAdmittedReleaseByTarget["windows-x86_64"] = descriptorPointer{
 		DescriptorID: descriptor.Candidate.AppID + "@2.0.0",
 		Path:         expectedDescriptorPath(descriptor.Candidate.AppID, "2.0.0"),
@@ -259,6 +261,7 @@ func TestInstalledRevalidationKeepsFrozenReleaseWhilePolicyAndLatestChange(t *te
 	}
 	reason := "security-review-revoked"
 	row.KillSwitch = KillSwitch{Active: true, Reason: &reason, Revision: 9}
+	source.revision = testRevisionC
 	index.Apps[descriptor.Candidate.AppID] = row
 	source.documents[indexDocumentPath] = mustJSON(t, index)
 	_, err = client.RevalidateInstalled(ctx, resolved.Selector)

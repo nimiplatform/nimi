@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
+	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -25,22 +28,53 @@ type InstalledLaunch struct {
 	RuntimeEntry     string
 	WorkingDirectory string
 	ExecutableDigest protectedlocal.Identifier
+	expected         nimiapppackage.Expected
 }
 
-// WithInstalledLaunch serializes security bind with uninstall
-// reservation. Prepare and bind both perform this full verification; the
-// callback may only record/bind the exact launch while that reservation is held.
+// Installation owns these inputs. They prevent a changed manifest from
+// selecting another entrypoint without requiring a full payload scan at launch.
+type installedLaunchConfig struct {
+	Expected    nimiapppackage.Expected
+	DisplayName string
+}
+
+// VerifyHost checks the exact installed executable's digest and native posture.
+// Prepare invokes it once; bind independently verifies the actual child image
+// against the committed digest before Desktop resumes that child.
+func (launch InstalledLaunch) VerifyHost(ctx context.Context) error {
+	verifier, err := nativeVerifierForExpected(launch.expected)
+	if err != nil {
+		return err
+	}
+	return verifier.Verify(ctx, launch.RuntimeEntry, [32]byte(launch.ExecutableDigest))
+}
+
+// WithInstalledLaunch checks current installation and policy facts. Only the
+// final state comparison and callback share the package-mutation reservation;
+// Registry I/O and native inspection do not block launches of other Apps.
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
 func (coordinator *Coordinator) WithInstalledLaunch(ctx context.Context, handle string, bind func(InstalledLaunch) error) error {
+	return coordinator.withInstalledLaunch(ctx, handle, false, bind)
+}
+
+func (coordinator *Coordinator) PrepareInstalledLaunch(ctx context.Context, handle string, prepare func(InstalledLaunch) error) error {
+	return coordinator.withInstalledLaunch(ctx, handle, true, prepare)
+}
+
+func (coordinator *Coordinator) withInstalledLaunch(ctx context.Context, handle string, verifyHost bool, bind func(InstalledLaunch) error) error {
 	_, expectedOS, expectedArch, platformErr := publicappregistry.CurrentPlatformTarget()
 	if ctx == nil || coordinator == nil || bind == nil || handle == "" || platformErr != nil {
 		return ErrInstalledLaunch
 	}
 	coordinator.operations.RLock()
 	defer coordinator.operations.RUnlock()
-	coordinator.launchMu.Lock()
-	defer coordinator.launchMu.Unlock()
+	started := time.Now()
+	defer func() {
+		if coordinator.logger != nil {
+			coordinator.logger.Info("installed App launch state checked", "duration_ms", time.Since(started).Milliseconds())
+		}
+	}()
 	if coordinator.isClosing() {
 		return ErrInstalledLaunch
 	}
@@ -82,8 +116,19 @@ func (coordinator *Coordinator) WithInstalledLaunch(ctx context.Context, handle 
 	if protectedlocal.ExecutableDigestRef(digest) != release.HostExecutableDigest {
 		return ErrInstalledLaunch
 	}
-	var packageExpected nimiapppackage.Expected
-	var expectedRegistration func(nimiapppackage.Materialized) localappkernel.RegisterInstalledInput
+	rawConfig, err := coordinator.lifecycle.ReadLaunchConfig(ctx, handle, release.ReleaseRef)
+	if err != nil {
+		return fmt.Errorf("read installed App launch configuration: %w", errors.Join(ErrInstalledLaunch, err))
+	}
+	var config installedLaunchConfig
+	if err := jsonstrict.Decode(rawConfig, &config); err != nil {
+		return errors.Join(ErrInstalledLaunch, err)
+	}
+	packageExpected := config.Expected
+	if packageExpected.AppID != release.AppID || packageExpected.Version != release.Version || packageExpected.OS != expectedOS || packageExpected.Arch != expectedArch ||
+		packageExpected.ExecutionProfileRef != release.ExecutionProfileRef || config.DisplayName != registration.DisplayName || !equalTextList(packageExpected.AppAccess, registration.RawDeclaration) {
+		return ErrInstalledLaunch
+	}
 	if registration.SourceClass == localappkernel.SourceClassVerified {
 		if coordinator.registry == nil {
 			return ErrInstalledLaunch
@@ -101,44 +146,50 @@ func (coordinator *Coordinator) WithInstalledLaunch(ctx context.Context, handle 
 			resolved.Target.OS != expectedOS || resolved.Target.Arch != expectedArch {
 			return ErrInstalledLaunch
 		}
-		packageExpected = packageExpectation(resolved)
-		expectedRegistration = func(materialized nimiapppackage.Materialized) localappkernel.RegisterInstalledInput {
-			return coordinator.registrationInput(resolved, release.ReleaseRef, relative, materialized)
+		if !reflect.DeepEqual(packageExpected, packageExpectation(resolved)) {
+			return ErrInstalledLaunch
 		}
 	} else {
 		if !strings.HasPrefix(release.ReleaseRef, localPackageLineageBase) {
 			return ErrInstalledLaunch
 		}
-		metadata, err := nimiapppackage.ReadInstalledLocalMetadata(registration.ProjectRoot, expectedOS, expectedArch)
-		if err != nil || metadata.Expected.AppID != release.AppID || metadata.Expected.Version != release.Version {
-			return errors.Join(ErrInstalledLaunch, err)
-		}
-		packageExpected = metadata.Expected
-		expectedRegistration = func(materialized nimiapppackage.Materialized) localappkernel.RegisterInstalledInput {
-			return coordinator.localRegistrationInput(metadata, release.ReleaseRef, relative, materialized)
-		}
 	}
-	materialized, err := nimiapppackage.VerifyMaterialized(ctx, registration.ProjectRoot, packageExpected, release.PayloadRootDigest, [32]byte(digest))
+	entry, err := nimiapppackage.ResolveInstalledRuntimeEntry(registration.ProjectRoot, packageExpected)
 	if err != nil {
-		return fmt.Errorf("verify installed App payload: %w", err)
+		return fmt.Errorf("resolve installed App entry: %w", err)
 	}
-	expected := expectedRegistration(materialized)
-
-	// This revision is Runtime-owned lifecycle state, not a package fact. The
-	// package-derived fields must still match after an update advances it.
-	expected.ProvenanceRevision = registration.ProvenanceRevision
-	if !sameInstalledRegistration(registration, expected) {
-		return ErrInstalledLaunch
+	launch := InstalledLaunch{Release: release, Registration: registration, RuntimeEntry: entry, WorkingDirectory: filepath.Dir(entry), ExecutableDigest: digest, expected: packageExpected}
+	if verifyHost {
+		nativeStarted := time.Now()
+		err := launch.VerifyHost(ctx)
+		if coordinator.logger != nil {
+			coordinator.logger.Info("installed App Host verified", "app_id", registration.AppID, "duration_ms", time.Since(nativeStarted).Milliseconds(), "error", err)
+		}
+		if err != nil {
+			return err
+		}
 	}
-	verifier, err := nativeVerifierForExpected(packageExpected)
-	if err != nil {
+	coordinator.launchMu.Lock()
+	defer coordinator.launchMu.Unlock()
+	current, err := coordinator.kernel.Registrations().GetByHandle(ctx, handle)
+	if err != nil || !reflect.DeepEqual(current, registration) {
+		return errors.Join(ErrInstalledLaunch, err)
+	}
+	currentRelease, err := coordinator.lifecycle.GetCommittedRelease(ctx, registration.AppID, registration.SourceClass)
+	if err != nil || !reflect.DeepEqual(currentRelease, release) {
+		return errors.Join(ErrInstalledLaunch, err)
+	}
+	job, err = coordinator.lifecycle.GetActiveJob(ctx, registration.AppID, registration.SourceClass)
+	if err == nil && !terminalPackagePhase(job.Phase) {
+		return localappkernel.ErrPackageJobActive
+	}
+	if err != nil && !errors.Is(err, localappkernel.ErrPackageJobNotFound) {
 		return err
 	}
-	if err := verifier.Verify(ctx, materialized.RuntimeEntryPath, materialized.HostExecutableSHA256); err != nil {
+	if err := ctx.Err(); err != nil {
 		return err
 	}
-	return bind(InstalledLaunch{Release: release, Registration: registration,
-		RuntimeEntry: materialized.RuntimeEntryPath, WorkingDirectory: filepath.Dir(materialized.RuntimeEntryPath), ExecutableDigest: digest})
+	return bind(launch)
 }
 
 func immutablePackageSource(source localappkernel.SourceClass) bool {
