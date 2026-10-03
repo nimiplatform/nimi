@@ -482,6 +482,51 @@ test('local Nimi tarball overrides survive sync and are checked without requirin
   }
 });
 
+test('declared Vercel adapter archives keep their own version and reject stale installed identities', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-adapter-archives-'));
+  const target = writeExistingSubmittedApp(tempRoot, { buildProfileRef: 'electron-pnpm' });
+  const env = fakeNimicodingEnv(tempRoot);
+  try {
+    let result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const name = '@nimiplatform/sdk-adapter-vercel-ai';
+    const packagePath = path.join(target, 'package.json');
+    const manifest = JSON.parse(readFileSync(packagePath, 'utf8'));
+    manifest.devDependencies[name] = '^0.3.0';
+    writeFileSync(packagePath, JSON.stringify(manifest, null, 2) + '\n');
+    const selected = 'file:.nimi/local/packages/adapter.tgz';
+    const archive = path.join(target, selected.slice(5));
+    mkdirSync(path.dirname(archive), { recursive: true });
+    writeFileSync(archive, 'lock validation fixture; actual archive installation is checked by the consumer');
+    const workspacePath = path.join(target, 'pnpm-workspace.yaml');
+    const workspace = parseYaml(readFileSync(workspacePath, 'utf8'));
+    workspace.overrides[name] = selected;
+    writeFileSync(workspacePath, stringifyYaml(workspace));
+    result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(parseYaml(readFileSync(workspacePath, 'utf8')).overrides[name], selected);
+    writePublicRegistryLock(target);
+    const lockPath = path.join(target, 'pnpm-lock.yaml');
+    const lock = parseYaml(readFileSync(lockPath, 'utf8'));
+    lock.overrides = { [name]: selected };
+    lock.importers['.'].devDependencies[name] = { specifier: selected, version: selected };
+    lock.packages = { [name + '@' + selected]: { version: '0.3.0', resolution: { tarball: selected, integrity: 'sha512-adapter-fixture' } } };
+    const installed = path.join(target, 'node_modules', ...name.split('/'));
+    mkdirSync(installed, { recursive: true });
+    writeFileSync(path.join(installed, 'package.json'), JSON.stringify({ name, version: '0.3.0' }));
+    mkdirSync(path.join(target, 'node_modules/.pnpm'), { recursive: true });
+    writeFileSync(path.join(target, 'node_modules/.modules.yaml'), stringifyYaml({ virtualStoreDir: '.pnpm' }));
+    writeFileSync(lockPath, stringifyYaml(lock));
+    writeFileSync(path.join(target, 'node_modules/.pnpm/lock.yaml'), stringifyYaml(lock));
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    writeFileSync(path.join(installed, 'package.json'), JSON.stringify({ name, version: '0.1.0' }));
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /must be @nimiplatform\/sdk-adapter-vercel-ai@\^0\.3\.0/);
+  } finally { rmSync(tempRoot, { recursive: true, force: true }); }
+});
+
 test('production dependency staging rebases local archives in lock keys, peer suffixes and overrides', () => {
   const source = path.resolve('fixture/app');
   const staged = path.join(source, '.nimi/local/production');

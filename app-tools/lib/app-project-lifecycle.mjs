@@ -43,6 +43,7 @@ const SYNCHRONIZED_NIMI_PACKAGES = new Set([
   '@nimiplatform/kit',
   '@nimiplatform/app-tools',
   '@nimiplatform/nimi-coding',
+  '@nimiplatform/sdk-adapter-vercel-ai',
   ...KIT_OWNED_NATIVE_CARRIERS,
 ]);
 const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
@@ -588,7 +589,12 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages, versions, 
     }
     if (!existsSync(manifestPath)) throw installRequiredError(`Local Nimi package is not installed: ${name}`);
     const installed = readJsonFile(manifestPath, name);
-    const expected = expectedNimiDependencies(versions, combination).find((entry) => entry.name === name)?.version || combination.kitVersion;
+    const declared = NPM_DEPENDENCY_SECTIONS.map((section) => dependencySection(packageJson, section)?.[name]).filter((value) => value !== undefined);
+    const expected = expectedNimiDependencies(versions, combination).find((entry) => entry.name === name)?.version
+      || (KIT_OWNED_NATIVE_CARRIERS.includes(name) ? combination.kitVersion : declared[0]);
+    if (!expected || declared.some((specifier) => specifier !== expected)) {
+      throw installRequiredError(`Local Nimi package has no consistent declared version: ${name}`);
+    }
     if (installed.name !== name || !satisfies(installed.version, expected, { includePrerelease: true })) {
       throw installRequiredError(`Installed local Nimi package must be ${name}@${expected}`);
     }
