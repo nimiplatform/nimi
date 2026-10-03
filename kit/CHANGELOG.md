@@ -156,6 +156,13 @@ Required changes from 0.11.0:
   client ID and account label. Unary Connector calls pass Runtime bytes
   through unchanged.
 
+## Model config source slot (next minor, development)
+
+`ModelConfigAIConfigSurface` accepts an optional `modelSourceSlot`. The slot
+renders as a peer card beside the on-device models action, and the pair
+wraps to one column when the surface is narrow. Surfaces that omit the slot
+render as before.
+
 ## Runtime maintenance mode (next minor, development)
 
 - Right after the verified Desktop channel opens, the protected carrier reads

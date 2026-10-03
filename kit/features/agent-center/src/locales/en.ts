@@ -284,6 +284,7 @@ export const agentCenterEnCatalog = {
   "AgentCenter.aiConfig.sectionTitle": "Model settings",
   "AgentCenter.aiConfig.selectionRequiredLabel": "Selection required",
   "AgentCenter.aiConfig.savingLabel": "Saving…",
+  "AgentCenter.aiConfig.savedButtonLabel": "Saved",
   "AgentCenter.aiConfig.clearLabel": "Clear configuration",
   "AgentCenter.aiConfig.clearingLabel": "Clearing…",
   "AgentCenter.aiConfig.conflictLabel": "Configuration changed elsewhere",

@@ -320,7 +320,11 @@
         "description": "分离人声和背景音，保留原有时间轴"
       }
     },
-    "useProfile": "使用 Profile"
+    "profileSource": {
+      "title": "共享配置",
+      "hint": "套用配置库里的一套模型，缺的会下载。",
+      "action": "选择配置"
+    }
   },
   "version": {
     "installed": "已安装 {{version}}",

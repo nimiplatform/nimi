@@ -94,6 +94,7 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     saveLocalLabel: t('Chat.settingsSaveIntent', { defaultValue: 'Save intent' }),
     saveCloudLabel: t('Chat.settingsSaveIntent', { defaultValue: 'Save intent' }),
     savingLabel: t('Chat.settingsSavingIntent', { defaultValue: 'Saving…' }),
+    savedLabel: t('Chat.settingsSavedIntent', { defaultValue: 'Saved' }),
     clearLabel: t('Chat.settingsClearIntent', { defaultValue: 'Clear configuration' }),
     clearingLabel: t('Chat.settingsClearingIntent', { defaultValue: 'Clearing…' }),
     conflictLabel: t('Chat.settingsConfigConflict', { defaultValue: 'Configuration changed elsewhere' }),

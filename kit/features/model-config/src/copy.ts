@@ -21,6 +21,7 @@ export const DEFAULT_MODEL_CONFIG_COPY: Required<ModelConfigCopy> = Object.freez
   saveLocalLabel: 'Save settings',
   saveCloudLabel: 'Save settings',
   savingLabel: 'Saving…',
+  savedLabel: 'Saved',
   clearLabel: 'Clear configuration',
   clearingLabel: 'Clearing…',
   conflictLabel: 'Configuration changed elsewhere',

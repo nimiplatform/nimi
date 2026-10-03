@@ -16,6 +16,7 @@
     "cloudLabel": "云端",
     "saveLabel": "保存设置",
     "savingLabel": "正在保存…",
+    "savedLabel": "已保存",
     "saveFailed": "无法保存模型设置。",
     "technicalDetailsLabel": "技术详情",
     "confirmSelectionLabel": "使用所选项",

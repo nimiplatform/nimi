@@ -106,6 +106,7 @@
   "settingsCloudTargetPlaceholder": "Choose a cloud model",
   "settingsSaveIntent": "Save settings",
   "settingsSavingIntent": "Saving…",
+  "settingsSavedIntent": "Saved",
   "settingsClearIntent": "Clear configuration",
   "settingsClearingIntent": "Clearing…",
   "settingsConfigConflict": "Configuration changed elsewhere",

@@ -49,6 +49,15 @@ import { ModelConfigCurrentMachineLocalAction } from './model-config-current-mac
 import { ModelConfigOwnerBoundary } from './model-config-owner-boundary.js';
 
 type ResolvedCopy = ReturnType<typeof resolveModelConfigCopy>;
+
+function canonicalJson(value: unknown): string {
+  return JSON.stringify(value, (_key, entry: unknown) => (
+    entry && typeof entry === 'object' && !Array.isArray(entry)
+      ? Object.fromEntries(Object.entries(entry).sort(([left], [right]) => left.localeCompare(right)))
+      : entry
+  ));
+}
+
 type PostureBadge = {
   readonly label: string;
   readonly tone: 'neutral' | 'success' | 'warning';
@@ -117,6 +126,11 @@ export type ModelConfigAIConfigSurfaceProps = {
   readonly showTitle?: boolean;
   readonly titleId?: string;
   readonly headerSlot?: ReactNode;
+  /**
+   * Another way to choose models, laid out as a peer card beside the
+   * on-device action so both sources read as equal choices.
+   */
+  readonly modelSourceSlot?: ReactNode;
   readonly footer?: ReactNode;
 };
 
@@ -527,17 +541,25 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
   return (
     <ModelConfigOwnerBoundary context={props.context} className={cn('min-w-0 space-y-5', props.className)}>
       {props.headerSlot}
-      {allowedRoutes.includes('local') ? (
-        <ModelConfigCurrentMachineLocalAction
-          capabilityContracts={props.capabilityContracts}
-          ownerKey={currentMachineOwnerKey}
-          capabilities={props.capabilities}
-          revision={props.revision}
-          listOptions={props.listOptions}
-          onOverwrite={props.onOverwrite}
-          disabled={props.disabled}
-          language={props.language}
-        />
+      {allowedRoutes.includes('local') || props.modelSourceSlot ? (
+        <div
+          className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-3"
+          data-nimi-model-config-model-sources="true"
+        >
+          {allowedRoutes.includes('local') ? (
+            <ModelConfigCurrentMachineLocalAction
+              capabilityContracts={props.capabilityContracts}
+              ownerKey={currentMachineOwnerKey}
+              capabilities={props.capabilities}
+              revision={props.revision}
+              listOptions={props.listOptions}
+              onOverwrite={props.onOverwrite}
+              disabled={props.disabled}
+              language={props.language}
+            />
+          ) : null}
+          {props.modelSourceSlot}
+        </div>
       ) : null}
       {props.loadError ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -1000,6 +1022,15 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     : committedCloudReasons.includes('AI_REMOTE_MODEL_CATALOG_STALE')
       ? props.copy.cloudCatalogStaleLabel
       : props.copy.cloudBlockedLabel;
+  // The committed intent already matches the draft: Save reads as done until
+  // the owner changes the model or a parameter. A blocked Cloud target stays
+  // savable so the owner can choose it again from the current list.
+  const draftMatchesCommitted = Boolean(props.currentIntent)
+    && Boolean(draftChoice)
+    && draftChoice?.id === currentChoice?.id
+    && canonicalJson(draftDefaults) === canonicalJson(runtimeAIConfigStructToJson(props.currentIntent?.defaults))
+    && !committedCloudBlocked
+    && !saveFailure;
 
   return (
     <div className="min-w-0 space-y-4" data-nimi-model-config-capability={props.capabilityContract}>
@@ -1209,13 +1240,15 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         ) : null}
         <Button
           tone="primary"
-          disabled={routeDisabled || !draftRouteAllowed || !draftChoice || !props.revision
+          disabled={routeDisabled || draftMatchesCommitted || !draftRouteAllowed || !draftChoice || !props.revision
             || (draftChoice.route === 'cloud' && (!selectedConnector || !exactCloudSelection))}
           onClick={() => { void commit(); }}
           data-testid={`model-config-save:${props.capabilityContract}`}
+          data-nimi-model-config-saved={draftMatchesCommitted ? 'true' : undefined}
         >
           {saving && mutationKind === 'save'
             ? props.copy.savingLabel
+            : draftMatchesCommitted ? props.copy.savedLabel
             : draftChoice?.route === 'cloud' ? props.copy.saveCloudLabel : props.copy.saveLocalLabel}
         </Button>
       </div>

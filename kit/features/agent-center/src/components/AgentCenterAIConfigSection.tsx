@@ -49,6 +49,7 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     saveLocalLabel: t('AgentCenter.aiConfig.configureLocalAction', 'Save Local intent'),
     saveCloudLabel: t('AgentCenter.aiConfig.cloudSaveAction', 'Save Cloud intent'),
     savingLabel: t('AgentCenter.aiConfig.savingLabel', 'Saving…'),
+    savedLabel: t('AgentCenter.aiConfig.savedButtonLabel', 'Saved'),
     clearLabel: t('AgentCenter.aiConfig.clearLabel', 'Clear configuration'),
     clearingLabel: t('AgentCenter.aiConfig.clearingLabel', 'Clearing…'),
     conflictLabel: t('AgentCenter.aiConfig.conflictLabel', 'Configuration changed elsewhere'),

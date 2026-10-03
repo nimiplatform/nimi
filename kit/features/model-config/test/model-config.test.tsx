@@ -158,6 +158,16 @@ function committedOverwrite() {
   }));
 }
 
+async function setTemperature(node: HTMLElement, value: string): Promise<void> {
+  const temperature = node.querySelector('[data-nimi-default-parameter="temperature"] input') as HTMLInputElement;
+  expect(temperature).toBeTruthy();
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set?.call(temperature, value);
+    temperature.dispatchEvent(new Event('input', { bubbles: true }));
+    await Promise.resolve();
+  });
+}
+
 async function selectField(node: HTMLElement, ariaLabel: string, optionLabel: string): Promise<void> {
   const trigger = node.querySelector(`button[aria-label="${ariaLabel}"]`) as HTMLButtonElement;
   expect(trigger).toBeTruthy();
@@ -413,17 +423,19 @@ describe('public Model Config contract', () => {
     const save = node.querySelector(
       '[data-testid="model-config-save:text.generate"]',
     ) as HTMLButtonElement;
+    await setTemperature(node, '0.7');
     await act(async () => { save.click(); await Promise.resolve(); });
 
     expect(onOverwrite).toHaveBeenCalledTimes(1);
-    expect(onOverwrite.mock.calls[0]?.[0]).toEqual({
-      expectedRevision: '1',
-      capabilities: [{
-        capabilityContract: 'text.generate',
-        requiredFeatures: [],
-        route: { oneofKind: 'local', local: {} },
-      }],
+    const { capabilities: [saved], ...rest } = onOverwrite.mock.calls[0]![0];
+    expect(rest).toEqual({ expectedRevision: '1' });
+    expect(onOverwrite.mock.calls[0]?.[0].capabilities).toHaveLength(1);
+    expect(saved).toMatchObject({
+      capabilityContract: 'text.generate',
+      requiredFeatures: [],
+      route: { oneofKind: 'local', local: {} },
     });
+    expect(runtimeAIConfigStructToJson(saved?.defaults)).toEqual({ temperature: 0.7 });
     expect(JSON.stringify(onOverwrite.mock.calls[0]?.[0])).not.toMatch(/modelId|targetRef|loadoutId/u);
   });
 
@@ -641,6 +653,59 @@ describe('public Model Config contract', () => {
     const cloudTemperature = cloud.querySelector('[data-nimi-default-parameter="temperature"] input') as HTMLInputElement;
     expect(cloudTemperature.placeholder).toBe('Not set · Provider decides');
     expect(cloudTemperature.value).toBe('');
+  });
+
+  it('reads Save as done while the draft matches the committed intent', async () => {
+    const onOverwrite = vi.fn();
+    function SavedHarness() {
+      const [snapshot, setSnapshot] = useState<{
+        readonly capabilities: readonly NimiCapabilityAIConfigIntent[];
+        readonly revision: string;
+      }>({
+        capabilities: [createNimiLocalAIConfigCapabilityIntent({ capabilityContract: 'text.generate' })],
+        revision: '1',
+      });
+      const overwrite: ModelConfigOverwrite = async (input) => {
+        onOverwrite(input);
+        setSnapshot({ capabilities: [...input.capabilities], revision: '2' });
+        return { outcome: 'committed', config: { capabilities: [...input.capabilities] }, revision: '2' };
+      };
+      return (
+        <ModelConfigAIConfigSurface
+          context={{ owner: 'app-ai-config', appId: 'test.app' }}
+          capabilityContracts={['text.generate']}
+          initialCapabilityContract="text.generate"
+          capabilities={snapshot.capabilities}
+          revision={snapshot.revision}
+          effectiveSelections={[]}
+          listOptions={async (query) => ({ kind: query.kind, options: [], truncated: false }) as never}
+          onOverwrite={overwrite}
+        />
+      );
+    }
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => { root?.render(<SavedHarness />); await Promise.resolve(); });
+
+    const save = container.querySelector('[data-testid="model-config-save:text.generate"]') as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    expect(save.textContent).toBe('Saved');
+
+    await setTemperature(container, '0.7');
+    expect(save.disabled).toBe(false);
+    expect(save.textContent).toBe('Save settings');
+
+    await act(async () => { save.click(); await Promise.resolve(); });
+    await flush();
+    expect(onOverwrite).toHaveBeenCalledTimes(1);
+    expect(save.disabled).toBe(true);
+    expect(save.textContent).toBe('Saved');
+
+    await setTemperature(container, '');
+    expect(save.disabled).toBe(false);
+    expect(save.textContent).toBe('Save settings');
   });
 
   it('saves typed defaults with explicit zero and false while dropping unknown keys', async () => {
@@ -1160,6 +1225,7 @@ describe('Model Config capability sections', () => {
     expect(node.querySelector('[data-nimi-model-config-detail="text.generate"]')).toBeTruthy();
 
     const save = node.querySelector('[data-testid="model-config-save:text.generate"]') as HTMLButtonElement;
+    await setTemperature(node, '0.7');
     act(() => { save.click(); });
     await flush();
     expect(onOverwrite).toHaveBeenCalled();

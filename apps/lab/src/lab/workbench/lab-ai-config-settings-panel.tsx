@@ -47,6 +47,7 @@ function useLabModelConfigCopy(): ModelConfigCopy {
     saveLocalLabel: t('ModelConfig.saveLabel'),
     saveCloudLabel: t('ModelConfig.saveLabel'),
     savingLabel: t('ModelConfig.savingLabel'),
+    savedLabel: t('ModelConfig.savedLabel'),
     saveFailed: t('ModelConfig.saveFailed'),
     technicalDetailsLabel: t('ModelConfig.technicalDetailsLabel'),
     cancelLabel: t('Common.cancel'),

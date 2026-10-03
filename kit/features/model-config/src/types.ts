@@ -82,6 +82,7 @@ export type ModelConfigCopy = Partial<{
   readonly saveLocalLabel: string;
   readonly saveCloudLabel: string;
   readonly savingLabel: string;
+  readonly savedLabel: string;
   readonly clearLabel: string;
   readonly clearingLabel: string;
   readonly conflictLabel: string;

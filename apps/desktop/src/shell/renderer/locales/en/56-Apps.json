@@ -320,7 +320,11 @@
         "description": "Separate vocals from background audio while preserving timing"
       }
     },
-    "useProfile": "Use a profile"
+    "profileSource": {
+      "title": "Shared profile",
+      "hint": "Use a model set from your profile library. Missing models download first.",
+      "action": "Choose profile"
+    }
   },
   "version": {
     "installed": "Installed {{version}}",

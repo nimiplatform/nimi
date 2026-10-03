@@ -16,6 +16,7 @@
     "cloudLabel": "Cloud",
     "saveLabel": "Save settings",
     "savingLabel": "Saving…",
+    "savedLabel": "Saved",
     "saveFailed": "Model settings could not be saved.",
     "technicalDetailsLabel": "Technical details",
     "confirmSelectionLabel": "Use selection",

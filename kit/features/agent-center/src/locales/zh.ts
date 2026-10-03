@@ -286,6 +286,7 @@ export const agentCenterZhCatalog = {
   "AgentCenter.aiConfig.sectionTitle": "模型设置",
   "AgentCenter.aiConfig.selectionRequiredLabel": "需要本机选择",
   "AgentCenter.aiConfig.savingLabel": "保存中…",
+  "AgentCenter.aiConfig.savedButtonLabel": "已保存",
   "AgentCenter.aiConfig.clearLabel": "清除配置",
   "AgentCenter.aiConfig.clearingLabel": "正在清除…",
   "AgentCenter.aiConfig.conflictLabel": "配置已在其他位置更改",
