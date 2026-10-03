@@ -1,6 +1,28 @@
 import { t } from '../../shell/i18n/index.js';
+import type { LabRealtimeController } from './ai-realtime-session.js';
 
 export const LAB_AI_REALTIME_MAX_RECORDING_BYTES = 24_000 * 2 * 4;
+
+// Server VAD supplies actual turn signals; sending a file never starts a
+// response in that mode. Manual mode keeps its existing explicit owner actions.
+export async function sendLabRealtimeRecordingFrames(input: {
+  readonly session: Pick<LabRealtimeController, 'appendAudioFrame' | 'ownerControl'>;
+  readonly frames: readonly Uint8Array[];
+  readonly inputTrackId: string;
+  readonly utteranceId: string;
+  readonly turnDetection: 'manual' | 'server-vad';
+}): Promise<void> {
+  for (let index = 0; index < input.frames.length; index += 1) {
+    await input.session.appendAudioFrame({
+      inputTrackId: input.inputTrackId, utteranceId: input.utteranceId,
+      frameSequence: String(index + 1), frame: input.frames[index]!,
+    });
+  }
+  if (input.turnDetection === 'manual') {
+    await input.session.ownerControl('commit-input');
+    await input.session.ownerControl('start-response');
+  }
+}
 
 // Recorded input must match the negotiated mono PCM tuple. It does not
 // reinterpret samples or silently convert a recording to another rate.

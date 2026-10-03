@@ -74,6 +74,39 @@ test('recorded realtime WAV uses exact PCM frames and rejects incompatible audio
   assert.throws(() => readLabRealtimeRecording(longBuffer));
 });
 
+test('recorded frames preserve manual owner controls and leave VAD response startup to the caller', async () => {
+  const { sendLabRealtimeRecordingFrames } = await load('lab/lab-only/ai-realtime-recording.js');
+  for (const turnDetection of ['manual', 'server-vad']) {
+    const events = [];
+    const frames = [new Uint8Array(960), new Uint8Array(960)];
+    await sendLabRealtimeRecordingFrames({
+      turnDetection, inputTrackId: 'recorded-track', utteranceId: 'recorded-utterance', frames,
+      session: {
+        async appendAudioFrame(frame) { events.push(frame); },
+        async ownerControl(action) { events.push(action); },
+      },
+    });
+    assert.deepEqual(events.slice(0,2), frames.map((frame,index)=>({inputTrackId:'recorded-track',utteranceId:'recorded-utterance',frameSequence:String(index+1),frame})));
+    assert.deepEqual(events.slice(2), turnDetection === 'manual' ? ['commit-input','start-response'] : []);
+  }
+});
+
+test('a failed recorded frame never commits or starts a response', async () => {
+  const { sendLabRealtimeRecordingFrames } = await load('lab/lab-only/ai-realtime-recording.js');
+  for (const turnDetection of ['manual', 'server-vad']) {
+    let calls = 0;
+    const failure = new Error('frame ack lost');
+    await assert.rejects(sendLabRealtimeRecordingFrames({
+      turnDetection, inputTrackId:'track', utteranceId:'utterance', frames:[new Uint8Array(960),new Uint8Array(960)],
+      session:{
+        async appendAudioFrame() { calls++; throw failure; },
+        async ownerControl() { assert.fail('failed input cannot commit/start'); },
+      },
+    }),error=>error===failure);
+    assert.equal(calls,1);
+  }
+});
+
 test.after(() => {
   if (buildDir) rmSync(buildDir, { recursive: true, force: true });
 });
