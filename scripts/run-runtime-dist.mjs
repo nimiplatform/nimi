@@ -10,6 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveWindowsPowerShell7 } from './lib/windows-powershell.mjs';
+import { stopSourceRuntimeDevelopment } from './dev-runtime.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -204,13 +205,22 @@ function runElevatedWindowsRuntimeCommand(args) {
   }
 }
 
-export async function main() {
+export async function main(input = {}) {
+  const args = runtimeCommandArgs(input.args);
+  if (args[0] === 'stop') {
+    try {
+      const status = (input.stopSourceRuntime ?? stopSourceRuntimeDevelopment)(args.slice(1));
+      if (status !== 3) return status;
+    } catch (error) {
+      process.stderr.write(`[run-runtime-dist] failed to stop source Runtime: ${error.message}\n`);
+      return 1;
+    }
+  }
   if (!fs.existsSync(binaryPath)) {
     process.stderr.write(`[run-runtime-dist] missing ${path.relative(repoRoot, binaryPath)}; run 'pnpm build:runtime' first.\n`);
     return 1;
   }
 
-  const args = runtimeCommandArgs();
   if (shouldElevateWindowsRuntimeCommand(args)) {
     let result;
     try {

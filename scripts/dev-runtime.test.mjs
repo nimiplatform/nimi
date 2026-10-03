@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { realpathSync } from 'node:fs';
 import test from 'node:test';
 
 import {
   parseSourceRuntimeArguments,
   resolveSourceRuntimeLaunch,
   runSourceRuntimeDevelopment,
+  stopSourceRuntimeDevelopment,
 } from './dev-runtime.mjs';
 
 test('dev:runtime accepts no topology overrides', () => {
@@ -19,7 +21,7 @@ test('dev:runtime accepts no topology overrides', () => {
 
 test('source Runtime launch uses a temporary exact supervisor and workspace Desktop carrier', () => {
   const root = process.cwd();
-  const electron = process.execPath;
+  const electron = realpathSync(process.execPath);
   const tempRoot = path.join(root, '.nimi', 'local', 'test-source-supervisor');
   const plan = resolveSourceRuntimeLaunch({
     repoRoot: root,
@@ -38,6 +40,22 @@ test('source Runtime launch uses a temporary exact supervisor and workspace Desk
     '--desktop-executable', electron,
     '--realm-url', 'http://127.0.0.1:3002',
   ]);
+});
+
+test('source stop preserves arguments and distinguishes absent owner from failure', () => {
+  for (const status of [0, 1, 3]) {
+    const calls = [];
+    const result = stopSourceRuntimeDevelopment(['--', '--timeout', '20s', '--force'], {
+      platform: 'win32',
+      spawnSync(command, args, options) {
+        calls.push({ command, args, options });
+        return { status: calls.length === 1 ? 0 : status };
+      },
+    });
+    assert.equal(result, status);
+    assert.deepEqual(calls[1].args, ['stop', '--timeout', '20s', '--force']);
+    assert.equal(calls[1].options.windowsHide, true);
+  }
 });
 
 test('source Runtime launcher removes its temporary supervisor after child shutdown', async () => {

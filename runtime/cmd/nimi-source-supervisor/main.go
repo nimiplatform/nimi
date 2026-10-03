@@ -38,6 +38,9 @@ type runtimeExit struct {
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
+		if errors.Is(err, errSourceRuntimeNotRunning) {
+			os.Exit(3)
+		}
 		failure := map[string]any{
 			"status":     "failed",
 			"reasonCode": "source-runtime-supervisor-failed",
@@ -54,7 +57,10 @@ func main() {
 	}
 }
 
-func run(args []string) error {
+func run(args []string) (runErr error) {
+	if len(args) > 0 && args[0] == "stop" {
+		return stopSourceRuntime(args[1:])
+	}
 	config, err := parseSupervisorConfig(args)
 	if err != nil {
 		return err
@@ -66,7 +72,8 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = ownerLock.Close() }()
+	control := newSupervisorControl(ownerLock)
+	defer func() { control.finish(runErr) }()
 
 	if err := buildSourceRuntime(config); err != nil {
 		return err
@@ -130,9 +137,11 @@ func run(args []string) error {
 		}
 		return fmt.Errorf("workspace source Runtime exited unexpectedly with code %d: %w", outcome.code, outcome.err)
 	case <-shutdown:
-		return stopOwnedRuntime(command, exited, shutdown)
+		return stopOwnedRuntime(command, exited, shutdown, control.requests, false)
 	case <-stdinClosed:
-		return stopOwnedRuntime(command, exited, shutdown)
+		return stopOwnedRuntime(command, exited, shutdown, control.requests, false)
+	case force := <-control.requests:
+		return stopOwnedRuntime(command, exited, shutdown, control.requests, force)
 	}
 }
 
@@ -291,17 +300,35 @@ func samePlatformPath(left, right string) bool {
 // The Runtime bounds its own shutdown by its configured timeout and stops its
 // engines within it; the supervisor never cuts that short. Another interrupt
 // from the developer forces the stop.
-func stopOwnedRuntime(command *exec.Cmd, exited <-chan runtimeExit, force <-chan os.Signal) error {
+func stopOwnedRuntime(command *exec.Cmd, exited <-chan runtimeExit, force <-chan os.Signal, requests <-chan bool, forceStop bool) error {
 	if command == nil || command.Process == nil {
 		return nil
 	}
-	_ = requestRuntimeStop(command.Process)
-	select {
-	case <-exited:
-		return nil
-	case <-force:
-		_ = command.Process.Kill()
-		<-exited
-		return nil
+	var err error
+	if forceStop {
+		err = command.Process.Kill()
+	} else {
+		err = requestRuntimeStop(command.Process)
+	}
+	if err != nil {
+		// Retain ownership until Wait observes an exit, even if the OS could
+		// not deliver the stop. The caller can time out or request --force.
+		_, _ = fmt.Fprintf(os.Stderr, "request owned Runtime shutdown: %v\n", err)
+	}
+	for {
+		select {
+		case <-exited:
+			return nil
+		case <-force:
+			_ = command.Process.Kill()
+			<-exited
+			return nil
+		case requestedForce := <-requests:
+			if requestedForce {
+				_ = command.Process.Kill()
+				<-exited
+				return nil
+			}
+		}
 	}
 }

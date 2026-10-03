@@ -5,7 +5,21 @@ import {
   buildWindowsRunAsCommands,
   runtimeCommandArgs,
   shouldElevateWindowsRuntimeCommand,
+  main,
 } from './run-runtime-dist.mjs';
+
+test('source stop success and failure both finish before installed service handling', async () => {
+  for (const status of [0, 1]) {
+    const result = await main({
+      args: ['stop', '--timeout', '20s'],
+      stopSourceRuntime(args) {
+        assert.deepEqual(args, ['--timeout', '20s']);
+        return status;
+      },
+    });
+    assert.equal(result, status);
+  }
+});
 
 test('Windows stop preserves graceful service-control arguments and requests elevation', () => {
   assert.deepEqual(runtimeCommandArgs(['stop']), ['stop']);

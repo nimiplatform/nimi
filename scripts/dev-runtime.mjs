@@ -110,6 +110,33 @@ export async function runSourceRuntimeDevelopment(input = {}) {
   }
 }
 
+// Exit 3 means no source supervisor exists; other failures must not be
+// mistaken for permission to stop an unrelated installed Runtime service.
+export function stopSourceRuntimeDevelopment(args = [], input = {}) {
+  if (!['win32', 'darwin'].includes(input.platform ?? process.platform)) return 3;
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-source-runtime-stop-'));
+  const executable = path.join(tempRoot, process.platform === 'win32' ? 'supervisor.exe' : 'supervisor');
+  const execute = input.spawnSync ?? spawnSync;
+  try {
+    const built = execute('go', ['build', '-o', executable, './cmd/nimi-source-supervisor'], {
+      cwd: runtimeRoot, env: process.env, stdio: 'inherit', windowsHide: true,
+    });
+    if (built.error || built.status !== 0) {
+      throw sourceRuntimeError(
+        `source Runtime stop helper build failed: ${built.error?.message || `exit ${built.status}`}`,
+        'source-runtime-supervisor-build-failed', 'fix_source_runtime_supervisor_build',
+      );
+    }
+    const stopped = execute(executable, ['stop', ...args.filter((arg) => arg !== '--')], {
+      cwd: repoRoot, env: process.env, stdio: 'inherit', windowsHide: true,
+    });
+    if (stopped.error) throw stopped.error;
+    return stopped.status ?? 1;
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
 function waitForSupervisor(child) {
   return new Promise((resolve, reject) => {
     let stopping = false;

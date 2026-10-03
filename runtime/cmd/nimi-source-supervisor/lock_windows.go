@@ -3,9 +3,11 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
-	"io"
+	"net"
 	"os"
 	"os/exec"
 	"syscall"
@@ -30,15 +32,15 @@ func validateSourceSupervisorPrincipal() error {
 	return nil
 }
 
-func acquireSourceRuntimeOwnerLock(lockPath string) (io.Closer, error) {
+func sourceRuntimePipe(lockPath string) (string, string, error) {
 	token, err := windows.OpenCurrentProcessToken()
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 	defer func() { _ = token.Close() }()
 	user, err := token.GetTokenUser()
 	if err != nil || user == nil || user.User.Sid == nil {
-		return nil, fmt.Errorf("resolve source Runtime owner SID: %w", err)
+		return "", "", fmt.Errorf("resolve source Runtime owner SID: %w", err)
 	}
 	sid := user.User.Sid.String()
 	lockIdentity := sid
@@ -48,11 +50,31 @@ func acquireSourceRuntimeOwnerLock(lockPath string) (io.Closer, error) {
 	digest := sha256.Sum256([]byte(lockIdentity))
 	name := fmt.Sprintf(`\\.\pipe\nimi-source-runtime-supervisor-%x-v1`, digest)
 	sddl := fmt.Sprintf("O:%sD:P(A;;GA;;;%s)", sid, sid)
+	return name, sddl, nil
+}
+
+func acquireSourceRuntimeOwnerLock(lockPath string) (net.Listener, error) {
+	name, sddl, err := sourceRuntimePipe(lockPath)
+	if err != nil {
+		return nil, err
+	}
 	listener, err := winio.ListenPipe(name, &winio.PipeConfig{SecurityDescriptor: sddl})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errSourceRuntimeAlreadyOwned, err)
 	}
 	return listener, nil
+}
+
+func dialSourceRuntimeOwner(ctx context.Context, lockPath string) (net.Conn, error) {
+	name, _, err := sourceRuntimePipe(lockPath)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := winio.DialPipeContext(ctx, name)
+	if errors.Is(err, windows.ERROR_FILE_NOT_FOUND) {
+		return nil, errSourceRuntimeNotRunning
+	}
+	return conn, err
 }
 
 func requestRuntimeStop(process *os.Process) error {
