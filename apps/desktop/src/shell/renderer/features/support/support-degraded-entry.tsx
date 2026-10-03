@@ -76,7 +76,7 @@ export function SupportDegradedEntry() {
         type="button"
         data-testid="support-degraded-entry-trigger"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)]"
+        className="inline-flex items-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2.5 text-sm font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-active)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)]"
       >
         {t('Support.degradedEntryButton')}
       </button>

@@ -28,7 +28,7 @@ export type RuntimeMaintenanceRecoveryViewProps = {
   readonly onReopen: () => void;
 };
 
-const PRIMARY_BUTTON = 'inline-flex h-10 min-w-36 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-60';
+const PRIMARY_BUTTON = 'inline-flex items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
 
 /**
  * Maps the typed replacement outcome to the next page state. The Runtime
@@ -78,7 +78,7 @@ export function RuntimeMaintenanceRecoveryContent(props: RuntimeMaintenanceRecov
   return (
     <>
       <div data-testid="runtime-maintenance-recovery" data-phase={props.phase} className="mt-5 flex w-full flex-col gap-4 text-left">
-        <div className="rounded-xl bg-[var(--nimi-surface-canvas)] px-4 py-3">
+        <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3">
           <p className="text-xs text-[var(--nimi-text-muted)]">{t('Bootstrap.maintenanceCurrentFolder')}</p>
           <p data-testid="runtime-maintenance-current-root" className="mt-1 break-all text-sm text-[var(--nimi-text-secondary)]">
             {props.currentRoot ?? '-'}
@@ -116,7 +116,7 @@ export function RuntimeMaintenanceRecoveryContent(props: RuntimeMaintenanceRecov
         </div>
         <details className="w-full text-xs text-[var(--nimi-text-muted)]">
           <summary className="cursor-pointer text-center">{t('Feedback.technicalDetails')}</summary>
-          <div className="mt-2 space-y-1 rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2">
+          <div className="mt-2 space-y-1 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2">
             {technicalLines.map((line) => (
               <p key={line} className="break-words font-mono">{line}</p>
             ))}

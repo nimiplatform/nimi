@@ -10,7 +10,7 @@ import { logoutAndClearSession, useLogoutSessionDependencies } from '../../featu
 import { RuntimeLoadingScreen } from './runtime-loading-screen';
 import { SupportDegradedEntry } from '../../features/support/support-degraded-entry.js';
 import { AmbientBackground } from '@nimiplatform/kit/ui';
-import { DesktopRecoveryActions, SharedStatusShell } from './status-shell';
+import { DesktopRecoveryActions, SharedStatusShell, STATUS_SHELL_PRIMARY_BUTTON, STATUS_SHELL_SECONDARY_BUTTON } from './status-shell';
 import { RuntimeMaintenanceRecoveryScreen } from './runtime-maintenance-recovery';
 import { retryRuntimeAccountConnectionNow } from '../../infra/bootstrap/auth-state-watcher.js';
 import type { DesktopHomeProfileStatus } from '../../bridge/runtime-bridge/product-control.js';
@@ -46,7 +46,6 @@ function BootstrapErrorScreen({ message, retryRuntimeService = false }: { messag
   };
   return (
     <SharedStatusShell
-      eyebrow="Nimi"
       title={t('Bootstrap.startFailedTitle')}
       description={t('Bootstrap.startFailedDescription')}
     >
@@ -271,13 +270,15 @@ function HomeProfileRepairScreen() {
     } finally { setBusy(false); }
   };
   return (
-    <SharedStatusShell eyebrow="Nimi" title={t('Support.homeProfileTitle')} description={t('Support.homeProfileDescription')}>
-      <div className="mt-5 flex flex-col items-center gap-3" data-testid="home-profile-repair">
-        {error ? <p role="status" className="text-sm">{error}</p> : null}
-        <button type="button" disabled={busy} onClick={() => { void retry(); }} className="rounded-lg bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-[var(--nimi-action-primary-text)]">
-          {t('Support.homeProfileRetry')}
-        </button>
-        <SupportDegradedEntry />
+    <SharedStatusShell title={t('Support.homeProfileTitle')} description={t('Support.homeProfileDescription')}>
+      <div className="mt-4 flex flex-col items-center gap-4" data-testid="home-profile-repair">
+        {error ? <p role="status" className="text-sm text-[var(--nimi-status-danger)]">{error}</p> : null}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button type="button" disabled={busy} onClick={() => { void retry(); }} className={STATUS_SHELL_PRIMARY_BUTTON}>
+            {t('Support.homeProfileRetry')}
+          </button>
+          <SupportDegradedEntry />
+        </div>
       </div>
     </SharedStatusShell>
   );
@@ -368,7 +369,6 @@ function DesktopAdmissionFailedScreen(props: {
   const { t } = useTranslation();
   return (
     <SharedStatusShell
-      eyebrow="Nimi Runtime"
       title={t('Bootstrap.admissionFailedTitle', { defaultValue: 'Sign-in did not reach the local runtime' })}
       description={t('Bootstrap.admissionFailedDescription', {
         defaultValue:
@@ -377,13 +377,13 @@ function DesktopAdmissionFailedScreen(props: {
     >
       <div
         data-testid="desktop-admission-failed"
-        className="mt-8 flex w-full max-w-[18rem] flex-col gap-3"
+        className="mt-4 flex w-full max-w-[18rem] flex-col gap-3"
       >
         <button
           type="button"
           data-testid="desktop-admission-failed-retry"
           onClick={props.onRetry}
-          className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-4 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
+          className={STATUS_SHELL_PRIMARY_BUTTON}
         >
           {t('Bootstrap.admissionFailedRetry', { defaultValue: 'Retry' })}
         </button>
@@ -391,7 +391,7 @@ function DesktopAdmissionFailedScreen(props: {
           type="button"
           data-testid="desktop-admission-failed-sign-out"
           onClick={props.onSignOut}
-          className="inline-flex h-10 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 text-sm font-semibold text-[var(--nimi-text-primary)] transition-colors hover:bg-[var(--nimi-surface-active)]"
+          className={STATUS_SHELL_SECONDARY_BUTTON}
         >
           {t('Bootstrap.admissionFailedSignOut', { defaultValue: 'Sign out' })}
         </button>
@@ -405,7 +405,6 @@ function DesktopAccountUnavailableScreen() {
   const failureDetail = useAppStore((state) => state.auth.failureDetail);
   return (
     <SharedStatusShell
-      eyebrow="Nimi"
       title={t('Auth.runtimeAccountUnavailableTitle')}
       description={t('Auth.runtimeAccountUnavailableDescription')}
     >
@@ -431,12 +430,12 @@ function DesktopBootstrapLoadingScreen() {
     <RuntimeLoadingScreen
       slowAfterMs={DESKTOP_SLOW_START_MS}
       slowActions={(
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
             data-testid="runtime-loading-slow-reload"
             onClick={() => { void bindings.app.commands.reloadApplication(); }}
-            className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 text-xs font-semibold text-[var(--nimi-text-primary)] transition-colors hover:bg-[var(--nimi-surface-active)]"
+            className={STATUS_SHELL_SECONDARY_BUTTON}
           >
             {t('Bootstrap.retryStart')}
           </button>

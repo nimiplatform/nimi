@@ -257,7 +257,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     <AmbientBackground
       data-testid={E2E_IDS.mainShell}
       variant="mesh"
-      className="flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-[var(--nimi-surface-canvas)]"
+      // Decorative halos extend beyond the viewport. Clip without creating a
+      // scroll container, so descendant focus/scrollIntoView cannot move the shell.
+      className="flex h-full w-full min-h-0 min-w-0 flex-col overflow-clip bg-[var(--nimi-surface-canvas)]"
     >
       <ExecutionNotificationPreferenceSync />
       {collapseTopbar ? (

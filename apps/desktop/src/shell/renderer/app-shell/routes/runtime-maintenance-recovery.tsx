@@ -68,7 +68,6 @@ export function RuntimeMaintenanceRecoveryScreen({ reasonCode }: { readonly reas
 
   return (
     <SharedStatusShell
-      eyebrow="Nimi"
       title={t('Bootstrap.maintenanceTitle')}
       description={t('Bootstrap.maintenanceDescription')}
       wide

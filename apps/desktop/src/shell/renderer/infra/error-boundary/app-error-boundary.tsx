@@ -1,5 +1,4 @@
 import React, { type MouseEvent, type PropsWithChildren } from 'react';
-import { AmbientBackground, Surface } from '@nimiplatform/kit/ui';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import errorBoundaryLogoImage from '../../assets/logo.png';
 import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
@@ -95,49 +94,37 @@ class AppErrorBoundaryImpl extends React.Component<
     });
 
     // Mirrors the SharedStatusShell visual system used by the bootstrap error
-    // routes (AmbientBackground + glass Surface + token button) so the crash
-    // page stays on the same design baseline without importing route modules.
+    // routes (flat canvas background + centered logo/title + token pill button)
+    // so the crash page stays on the same design baseline without importing
+    // route modules.
     return (
-      <AmbientBackground
-        variant="mesh"
-        className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]"
-      >
+      <div className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
         <div
           aria-hidden
           className="absolute inset-x-0 top-0 z-20 h-8"
           onMouseDown={this.onDragRegionMouseDown}
         />
-        <div className="relative z-10 flex min-h-screen items-center justify-center p-6">
-          <Surface
-            as="section"
-            tone="panel"
-            material="glass-regular"
-            padding="none"
-            className="w-full max-w-[420px] rounded-2xl px-6 py-7 sm:px-7 sm:py-8"
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)]">
-                <img src={errorBoundaryLogoImage} alt="" className="h-10 w-10 object-contain" aria-hidden="true" />
-              </div>
-              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[var(--nimi-text-primary)]">{title}</h1>
-              <p className="mt-3 max-w-[28rem] break-words text-sm leading-6 text-[var(--nimi-status-danger)]">
-                {this.state.message}
-              </p>
-              <p className="mt-4 max-w-[28rem] text-xs leading-5 text-[var(--nimi-text-secondary)]">
-                {hint}
-              </p>
-              <button
-                type="button"
-                data-testid="desktop-error-boundary-reload"
-                onClick={() => bindings.app.commands.reloadApplication()}
-                className="mt-8 inline-flex h-10 min-w-36 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
-              >
-                {reloadLabel}
-              </button>
-            </div>
-          </Surface>
-        </div>
-      </AmbientBackground>
+        <main className="relative z-10 flex min-h-screen items-center justify-center px-6 py-8">
+          <section className="flex w-full max-w-[420px] flex-col items-center text-center">
+            <img src={errorBoundaryLogoImage} alt="" className="h-12 w-12 object-contain" aria-hidden="true" />
+            <h1 className="mt-4 text-xl font-medium leading-snug text-[var(--nimi-text-primary)]">{title}</h1>
+            <p className="mt-3 max-w-[28rem] break-words text-sm leading-6 text-[var(--nimi-status-danger)]">
+              {this.state.message}
+            </p>
+            <p className="mt-4 max-w-[28rem] text-xs leading-5 text-[var(--nimi-text-secondary)]">
+              {hint}
+            </p>
+            <button
+              type="button"
+              data-testid="desktop-error-boundary-reload"
+              onClick={() => bindings.app.commands.reloadApplication()}
+              className="mt-4 rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2"
+            >
+              {reloadLabel}
+            </button>
+          </section>
+        </main>
+      </div>
     );
   }
 }
