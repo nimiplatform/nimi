@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalEnvironmentPlan } from '@nimiplatform/sdk/runtime';
+import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalEnvironmentPlan, NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import { TooltipProvider } from '@nimiplatform/kit/ui';
 import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store';
 import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory';
@@ -14,7 +14,7 @@ import {
   createRuntimeSetupTaskStore,
   type RuntimeSetupTask,
 } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-store';
-import { RuntimeConfigSetupTaskView, SetupTaskPlanReview } from '../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view';
+import { PreparationProgress, RuntimeConfigSetupTaskView, SetupTaskPlanReview } from '../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view';
 import { PendingSetupBanner, RuntimeCapabilityDetail } from '../src/shell/renderer/features/runtime-config/runtime-capability-detail';
 import { RuntimeProfileQuickStart } from '../src/shell/renderer/features/runtime-config/runtime-profile-quick-start';
 import type { RuntimeSetupPreparationPlan, RuntimeSetupRunnerPorts } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner';
@@ -22,6 +22,63 @@ import type { RuntimeSetupPreparationPlan, RuntimeSetupRunnerPorts } from '../sr
 (globalThis as { React?: typeof React }).React = React;
 
 const I18N_RESOURCE = { instance: { t: (key: string) => key } } as never;
+
+test('sequential setup keeps completed and waiting files visible across transfer switches and remounts', () => {
+  const store = makeStore();
+  const task = taskOn(store, {
+    capabilityContract: 'image.generate', status: 'preparing',
+    authorization: {
+      confirmedAt: '2026-09-29T00:00:00Z', mode: 'prepare-only',
+      scope: { usage: { selectOnMachine: false, saveOwnerRoute: false }, items: [
+        { kind: 'acquire-asset', id: 'vae', label: 'Image VAE (F16)', sizeBytes: 300 },
+        { kind: 'acquire-asset', id: 'main', label: 'Image model (Q4)', sizeBytes: 3600 },
+        { kind: 'component', id: 'engine', label: 'Image engine' },
+      ] },
+    },
+    refs: { installPlanIds: ['plan-vae'], transferIds: [], dependencyJobIds: [], downloadPlans: { vae: 'plan-vae' } },
+  });
+  const event: NimiRuntimeLocalTransferProgressEvent = {
+    planId: 'plan-vae', installSessionId: 'session-vae', modelAssetId: '', sourceLabel: 'vae',
+    sessionKind: 'download', phase: 'verify', bytesReceived: 300, bytesReused: 0,
+    bytesVerified: 100, bytesTotal: 300, state: 'running', availableActions: [], cleanupPending: false,
+    done: false, success: false,
+  };
+  const first = renderView(<PreparationProgress task={task} progress={{ 'plan-vae': event }} />);
+  assert.match(first, /Image VAE \(F16\)/);
+  assert.match(first, /Image model \(Q4\)/);
+  assert.match(first, /data-download-state="verify"/);
+  assert.match(first, /data-download-state="waiting"/);
+  assert.doesNotMatch(first, /data-download-state="complete"/);
+  assert.match(first, /aria-current="step"[^>]*>.*?downloadQueue.downloadAndVerify/);
+
+  const next = store.updateTask(task.taskId, (current) => ({ refs: {
+    ...current.refs, installPlanIds: ['plan-vae', 'plan-main'],
+    downloadPlans: { vae: 'plan-vae', main: 'plan-main' }, installedOfferRefs: ['vae'],
+  } }))!;
+  const second = renderView(<PreparationProgress task={next} progress={{
+    'plan-main': { ...event, planId: 'plan-main', phase: 'download', bytesReceived: 36, bytesTotal: 3600 },
+  }} />);
+  assert.match(second, /data-download-state="complete"/);
+  assert.match(second, /data-download-state="active"/);
+  assert.match(second, /aria-label="Image model \(Q4\)"/);
+  assert.match(second, /Image VAE \(F16\)/);
+  const reopened = renderView(<PreparationProgress task={next} progress={{}} />);
+  assert.match(reopened, /data-download-state="complete"/);
+  assert.match(reopened, /data-download-state="starting"/);
+
+  const failed = renderView(<PreparationProgress task={next} progress={{
+    'plan-main': { ...event, done: true, success: false },
+  }} />);
+  assert.match(failed, /data-download-state="failed"/);
+  assert.equal((failed.match(/data-download-state="complete"/g) ?? []).length, 1);
+
+  const unknown = { ...task, authorization: { ...task.authorization!, scope: {
+    ...task.authorization!.scope, items: [{ kind: 'acquire-asset' as const, id: 'unknown', label: 'Unknown size' }],
+  } } };
+  const unknownMarkup = renderView(<PreparationProgress task={unknown} progress={{}} />);
+  assert.match(unknownMarkup, /downloadQueue.unknownTotal/);
+  assert.doesNotMatch(unknownMarkup, /aria-valuenow/);
+});
 
 function makeStore() {
   let counter = 0;

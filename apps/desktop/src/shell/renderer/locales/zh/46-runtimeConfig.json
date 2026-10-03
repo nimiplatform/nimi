@@ -254,6 +254,23 @@
       "failed": "上次安装失败",
       "unsupported": "此设备不支持"
     },
+    "downloadQueue": {
+      "title": "模型下载清单",
+      "count": "模型文件 · 已完成 {{completed}} / 共 {{total}} 项",
+      "totalSize": "预计共 {{size}}",
+      "unknownTotal": "总大小暂不确定",
+      "downloadAndVerify": "下载与校验",
+      "finish": "完成设置",
+      "hint": "按顺序下载并校验每一项。进度条仅表示当前文件，全部完成后将继续完成设置。",
+      "withComponents": "按顺序下载并校验每一项。模型文件全部完成后，还需安装运行组件；组件下载量不计入上方大小。",
+      "waiting": "等待下载",
+      "starting": "准备下载",
+      "active": "下载中",
+      "verify": "校验中",
+      "complete": "已完成",
+      "failed": "未完成",
+      "itemEta": "此项剩余约 {{time}}"
+    },
     "inlineTitle": "模型准备",
     "collapse": "关闭设置",
     "checkPreparation": "检查准备情况",
@@ -2414,7 +2431,7 @@
     "preparingCount": "{{count}} 项准备中",
     "attentionCount": "{{count}} 项需处理",
     "apps": {
-      "title": "用到此能力的应用",
+      "title": "相关应用",
       "unavailable": "暂时无法读取应用信息。",
       "incomplete": "部分应用信息暂时无法读取。"
     },

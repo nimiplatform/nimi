@@ -65,7 +65,9 @@ function appJobStage(phase: string): DownloadStage {
 /**
  * The rail entry: a download arrow that becomes a progress ring while work is
  * running. The ring only draws when every active transfer reports a total;
- * otherwise it spins as an indeterminate arc.
+ * otherwise it spins as an indeterminate arc. The entry is ring-sized (44px,
+ * like the other rail controls) with the button centered inside: a ring wider
+ * than its container would overflow only to the right, off the icon's center.
  */
 export function GlobalDownloadsNavigation({ onOpen }: { readonly onOpen: () => void }) {
   const { t } = useTranslation();
@@ -90,10 +92,10 @@ export function GlobalDownloadsNavigation({ onOpen }: { readonly onOpen: () => v
       content={active && fraction !== null ? `${t('runtimeConfig.downloads.title')} · ${Math.round(fraction * 100)}%` : t('runtimeConfig.downloads.title')}
       placement="right"
     >
-      <div className="relative">
+      <div className="relative flex size-11 items-center justify-center">
         {active ? (
           <svg
-            className={`pointer-events-none absolute inset-0 m-auto size-11 -rotate-90 ${fraction === null ? 'animate-spin' : ''}`}
+            className={`pointer-events-none absolute inset-0 size-full -rotate-90 ${fraction === null ? 'animate-spin' : ''}`}
             viewBox="0 0 44 44"
             aria-hidden="true"
             data-testid="global-downloads-ring"

@@ -592,6 +592,8 @@ test('first-time local setup runs the full authorized chain in order with expect
   assert.equal(task?.nextAction, 'return-to-source');
   assert.deepEqual(task?.refs.installPlanIds, ['plan-offer:main']);
   assert.deepEqual(task?.refs.transferIds, ['session-plan-offer:main']);
+  assert.deepEqual(task?.refs.downloadPlans, { 'offer:main': 'plan-offer:main' });
+  assert.deepEqual(task?.refs.installedOfferRefs, ['offer:main']);
   assert.deepEqual(task?.refs.dependencyJobIds, ['job-1']);
   assert.equal(task?.authorization?.mode, 'prepare-and-use');
   assert.equal(task?.candidateRevisionBaseline, 'r2');

@@ -594,98 +594,76 @@ export function SetupTaskPlanReview(props: {
   );
 }
 
-const PREPARATION_STAGES = ['download', 'verify', 'components', 'finish'] as const;
-type PreparationStage = (typeof PREPARATION_STAGES)[number];
+const PREPARATION_STAGES = ['download', 'components', 'finish'] as const;
 
-/**
- * Stage of a running preparation derived from observed transfer events and
- * the task's own status. Nothing is guessed: with no events yet the first
- * stage is simply "current".
- */
-export function preparationStage(input: {
-  readonly status: RuntimeSetupTask['status'];
-  readonly events: readonly NimiRuntimeLocalTransferProgressEvent[];
-  readonly hasComponents: boolean;
-}): PreparationStage {
-  if (input.status === 'committing') return 'finish';
-  const active = input.events.filter((event) => !event.done);
-  if (active.length > 0) {
-    return active.some((event) => event.phase !== 'verify') ? 'download' : 'verify';
-  }
-  if (input.hasComponents) return 'components';
-  return input.events.length > 0 ? 'finish' : 'download';
-}
-
-function PreparationProgress(props: {
+export function PreparationProgress(props: {
   readonly task: RuntimeSetupTask;
   readonly progress: Readonly<Record<string, NimiRuntimeLocalTransferProgressEvent>>;
-  /** Inside a card: an inset well rather than a second card of the same colour. */
   readonly inset?: boolean;
 }) {
   const { t } = useTranslation();
-  const events = props.task.refs.installPlanIds.map((planId) => props.progress[planId]).filter((event): event is NimiRuntimeLocalTransferProgressEvent => !!event);
-  const stage = preparationStage({ status: props.task.status, events, hasComponents: props.task.refs.dependencyJobIds.length > 0 });
-  const stageIndex = PREPARATION_STAGES.indexOf(stage);
-  const active = events.filter((event) => !event.done);
-  const bytesAcquired = active.reduce((total, event) => total + event.bytesReceived + event.bytesReused, 0);
-  const bytesTotal = active.every((event) => typeof event.bytesTotal === 'number' && event.bytesTotal > 0)
-    ? active.reduce((total, event) => total + (event.bytesTotal ?? 0), 0)
-    : null;
-  const speed = active.reduce((total, event) => total + (event.speedBytesPerSec ?? 0), 0);
-  const eta = active.reduce<number | null>((longest, event) => (
-    typeof event.etaSeconds === 'number' ? Math.max(longest ?? 0, event.etaSeconds) : longest
-  ), null);
+  const items = props.task.authorization?.scope.items ?? [];
+  const downloads = items.filter((item) => item.kind === 'acquire-asset');
+  const rows = downloads.map((item) => {
+    const planId = props.task.refs.downloadPlans?.[item.id];
+    const event = planId ? props.progress[planId] : undefined;
+    const complete = props.task.refs.installedOfferRefs?.includes(item.id) || (event?.done && event.success);
+    const state = complete ? 'complete' : event?.done ? 'failed' : event?.phase === 'verify' ? 'verify' : event ? 'active' : planId ? 'starting' : 'waiting';
+    return { item, event, state };
+  });
+  const completed = rows.filter((row) => row.state === 'complete').length;
+  const hasComponents = items.some((item) => item.kind === 'component');
+  const stages = PREPARATION_STAGES.filter((stage) => stage !== 'components' || hasComponents);
+  const stage = props.task.status === 'committing' ? 'finish'
+    : completed < downloads.length ? 'download'
+      : hasComponents ? 'components' : 'finish';
+  const stageIndex = stages.indexOf(stage);
+  const knownTotal = downloads.length > 0 && downloads.every((item) => typeof item.sizeBytes === 'number' && item.sizeBytes > 0)
+    ? downloads.reduce((total, item) => total + item.sizeBytes!, 0) : null;
   return (
-    <div
-      className={`space-y-4 rounded-xl p-4 ${props.inset ? 'bg-[var(--nimi-surface-panel)] ring-1 ring-inset ring-[var(--nimi-border-subtle)]' : 'bg-[var(--nimi-surface-card)]'}`}
-      data-testid="runtime-setup-task-stages"
-    >
+    <div className={`space-y-4 rounded-xl p-4 ${props.inset ? 'bg-[var(--nimi-surface-panel)] ring-1 ring-inset ring-[var(--nimi-border-subtle)]' : 'bg-[var(--nimi-surface-card)]'}`} data-testid="runtime-setup-task-stages">
       <ol className="flex flex-wrap items-center gap-2 text-xs" aria-label={t('runtimeConfig.setupTask.stages.title')}>
-        {PREPARATION_STAGES.map((item, index) => {
-          const tone = index < stageIndex ? 'done' : index === stageIndex ? 'current' : 'pending';
-          const toneClass = tone === 'current'
-            ? 'bg-[var(--nimi-action-primary-bg)] font-medium text-[var(--nimi-action-primary-text)]'
-            : tone === 'done'
-              ? 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]'
-              : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)]';
-          const toneIcon = tone === 'done'
-            ? <CheckCircle2 size={12} />
-            : tone === 'current'
-              ? <LoaderCircle size={12} className="animate-spin" />
-              : null;
-          return (
-            <li key={item} className="flex items-center gap-2">
-              <span
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${toneClass}`}
-                aria-current={tone === 'current' ? 'step' : undefined}
-              >
-                {toneIcon}
-                {t(`runtimeConfig.setupTask.stages.${item}`)}
-              </span>
-              {index < PREPARATION_STAGES.length - 1 ? <span className="text-[var(--nimi-text-muted)]">›</span> : null}
-            </li>
-          );
-        })}
+        {stages.map((item, index) => (
+          <li key={item} className="flex items-center gap-2">
+            <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${index === stageIndex ? 'bg-[var(--nimi-action-primary-bg)] font-medium text-[var(--nimi-action-primary-text)]' : index < stageIndex ? 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]' : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)]'}`} aria-current={index === stageIndex ? 'step' : undefined}>
+              {index < stageIndex ? <CheckCircle2 size={12} aria-hidden="true" /> : index === stageIndex ? <LoaderCircle size={12} className="animate-spin" aria-hidden="true" /> : null}
+              {t(`runtimeConfig.setupTask.${item === 'download' ? 'downloadQueue.downloadAndVerify' : item === 'finish' ? 'downloadQueue.finish' : 'stages.components'}`)}
+            </span>
+            {index < stages.length - 1 ? <ChevronRight size={12} aria-hidden="true" className="text-[var(--nimi-text-muted)]" /> : null}
+          </li>
+        ))}
       </ol>
-      {active.length > 0 ? (
-        <div className="space-y-1.5">
-          <ProgressIndicator value={bytesTotal ? bytesAcquired : undefined} max={bytesTotal ?? undefined} showValue aria-label={t('runtimeConfig.setupTask.stages.download')} />
-          <p className="flex flex-wrap gap-x-3 text-xs tabular-nums text-[var(--nimi-text-secondary)]">
-            <span>{formatBytes(bytesAcquired)}{bytesTotal ? ` / ${formatBytes(bytesTotal)}` : ''}</span>
-            {speed > 0 ? <span>{formatTransferRate(speed)}</span> : null}
-            {eta !== null && eta > 0 ? <span>{t('runtimeConfig.setupTask.stages.eta', { time: formatDurationShort(eta) })}</span> : null}
-          </p>
-        </div>
-      ) : null}
-      {active.length > 1 ? (
-        <ul className="space-y-1 text-xs text-[var(--nimi-text-secondary)]">
-          {active.map((event) => (
-            <li key={event.installSessionId} className="flex justify-between gap-3">
-              <span className="min-w-0 truncate">{event.sourceLabel || event.modelAssetId || event.installSessionId}</span>
-              <span className="shrink-0 tabular-nums">{formatBytes(event.bytesReceived + event.bytesReused)}{event.bytesTotal ? ` / ${formatBytes(event.bytesTotal)}` : ''}</span>
-            </li>
-          ))}
-        </ul>
+      {rows.length > 0 ? (
+        <section className="space-y-3" aria-label={t('runtimeConfig.setupTask.downloadQueue.title')}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.setupTask.downloadQueue.count', { completed, total: rows.length })}</h3>
+            <span className="text-xs text-[var(--nimi-text-secondary)]">{knownTotal ? t('runtimeConfig.setupTask.downloadQueue.totalSize', { size: formatBytes(knownTotal) }) : t('runtimeConfig.setupTask.downloadQueue.unknownTotal')}</span>
+          </div>
+          <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{t(`runtimeConfig.setupTask.downloadQueue.${hasComponents ? 'withComponents' : 'hint'}`)}</p>
+          <ol className="divide-y divide-[var(--nimi-border-subtle)]">
+            {rows.map(({ item, event, state }, index) => {
+              const total = event?.bytesTotal && event.bytesTotal > 0 ? event.bytesTotal : undefined;
+              const acquired = event ? event.bytesReceived + event.bytesReused : 0;
+              return (
+                <li key={item.id} className="space-y-2 py-3 first:pt-0 last:pb-0" data-download-state={state}>
+                  <div className="flex items-start gap-2 text-xs">
+                    <span className="mt-0.5 w-4 shrink-0 text-[var(--nimi-text-muted)]">{state === 'complete' ? <CheckCircle2 size={14} className="text-[var(--nimi-status-success-soft-text)]" aria-hidden="true" /> : index + 1}</span>
+                    <span className="min-w-0 flex-1 break-words font-medium text-[var(--nimi-text-primary)]">{item.label}</span>
+                    <span className="shrink-0 text-[var(--nimi-text-secondary)]">{t(`runtimeConfig.setupTask.downloadQueue.${state}`)}</span>
+                  </div>
+                  <div className="space-y-1.5 pl-6">
+                    {state === 'active' || state === 'starting' ? <ProgressIndicator value={total ? Math.min(acquired, total) : undefined} max={total} showValue aria-label={item.label} /> : null}
+                    <p className="flex flex-wrap gap-x-3 text-xs tabular-nums text-[var(--nimi-text-secondary)]">
+                      <span>{event && state !== 'complete' ? `${formatBytes(acquired)}${total ? ` / ${formatBytes(total)}` : ''}` : scopeSizeLabel(total ?? item.sizeBytes, t('runtimeConfig.setupTask.unknownSize'))}</span>
+                      {state === 'active' && event?.speedBytesPerSec && event.speedBytesPerSec > 0 ? <span>{formatTransferRate(event.speedBytesPerSec)}</span> : null}
+                      {state === 'active' && event?.etaSeconds && event.etaSeconds > 0 ? <span>{t('runtimeConfig.setupTask.downloadQueue.itemEta', { time: formatDurationShort(event.etaSeconds) })}</span> : null}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
       ) : null}
     </div>
   );

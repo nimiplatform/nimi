@@ -1089,7 +1089,7 @@ function buildAuthorization(input: {
       label: item.label,
     })),
     ...input.acquire.map((item) => ({
-      kind: 'acquire-asset' as const,
+      kind: item.offer.installedModelAssetId ? 'reuse-asset' as const : 'acquire-asset' as const,
       id: item.offer.offerRef,
       label: item.offer.title,
       sizeBytes: item.offer.sizeBytes,
@@ -1469,6 +1469,7 @@ export async function runRuntimeSetupPreparation(
     confirmedAt: ports.now(),
   });
   updateLiveTask(store, taskId, { authorization, status: 'preparing', failure: undefined });
+  store.updateTask(taskId, (current) => ({ refs: { ...current.refs, downloadPlans: {}, installedOfferRefs: [] } }));
 
   // Acquire missing assets one by one; completed downloads stay acquired even
   // when a later step fails.
@@ -1499,7 +1500,11 @@ export async function runRuntimeSetupPreparation(
           ? await ports.install.resolveInstallPlan(portableSourceInstallPlanInput(task.capabilityContract, item.offer.portableSource))
           : await ports.install.resolveOfferInstallPlan(item.offer.offerRef);
       store.updateTask(taskId, (current) => ({
-        refs: { ...current.refs, installPlanIds: [...current.refs.installPlanIds, installPlan.planId] },
+        refs: {
+          ...current.refs,
+          installPlanIds: [...current.refs.installPlanIds, installPlan.planId],
+          downloadPlans: { ...current.refs.downloadPlans, [item.offer.offerRef]: installPlan.planId },
+        },
       }));
       const installGuard = await guardWrite(store, taskId, ports, { stage: 'install' });
       if (!('task' in installGuard)) return installGuard;
@@ -1507,6 +1512,7 @@ export async function runRuntimeSetupPreparation(
       store.updateTask(taskId, (current) => ({
         refs: {
           ...current.refs,
+          installedOfferRefs: [...(current.refs.installedOfferRefs ?? []), item.offer.offerRef],
           transferIds: installed.installSessionId
             ? [...current.refs.transferIds, installed.installSessionId]
             : current.refs.transferIds,

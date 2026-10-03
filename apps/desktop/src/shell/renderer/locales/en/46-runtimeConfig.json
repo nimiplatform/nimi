@@ -254,6 +254,23 @@
       "failed": "Last attempt failed",
       "unsupported": "Not supported on this device"
     },
+    "downloadQueue": {
+      "title": "Model download queue",
+      "count": "Model files · {{completed}} of {{total}} complete",
+      "totalSize": "About {{size}} total",
+      "unknownTotal": "Total size not yet known",
+      "downloadAndVerify": "Download & verify",
+      "finish": "Finish setup",
+      "hint": "Each item is downloaded and verified in order. Progress is for that file only; setup continues after all files are ready.",
+      "withComponents": "Each item is downloaded and verified in order. Runtime components are installed afterward; their downloads are excluded from the size above.",
+      "waiting": "Waiting",
+      "starting": "Starting",
+      "active": "Downloading",
+      "verify": "Verifying",
+      "complete": "Complete",
+      "failed": "Incomplete",
+      "itemEta": "This item: about {{time}} left"
+    },
     "inlineTitle": "Model setup",
     "collapse": "Close setup",
     "checkPreparation": "Check preparation",

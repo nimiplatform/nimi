@@ -9,7 +9,7 @@ import { ArrowRight, FolderOpen, Info, SlidersHorizontal, Store, X, type LucideI
 import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
-import { IdentityTile } from '../../components/identity-tile.js';
+import { ModelFamilyLogoTile } from '../../components/provider-logo-tile.js';
 import {
   capabilityModelIdentity,
   configurationVariantLabel,
@@ -76,7 +76,7 @@ function ModelChoiceRow(props: {
 }) {
   return (
     <li className="flex items-center gap-3 px-4 py-3">
-      <IdentityTile seed={props.seed} label={props.name} size="sm" />
+      <ModelFamilyLogoTile name={props.name} seed={props.seed} label={props.name} size="sm" />
       <div className="min-w-0 flex-1">
         <p className="break-words text-sm font-semibold text-[var(--nimi-text-primary)]">{props.name}</p>
         <p className="mt-0.5 break-words text-xs text-[var(--nimi-text-secondary)]">{props.detail}</p>
@@ -164,7 +164,7 @@ export function RuntimeCapabilityModelPicker(props: Props) {
       <div className="space-y-5 pt-2">
         {props.selected ? (
           <div className="flex items-center gap-3 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] py-3 pl-3 pr-2" data-testid="capability-model-picker-current">
-            <IdentityTile seed={modelFamilySeed(current.title)} label={current.shortTitle} size="md" />
+            <ModelFamilyLogoTile name={current.title} seed={modelFamilySeed(current.title)} label={current.shortTitle} size="md" />
             <div className="min-w-0 flex-1">
               <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="break-words text-sm font-semibold text-[var(--nimi-text-primary)]">{current.shortTitle}</span>

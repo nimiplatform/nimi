@@ -149,6 +149,9 @@ export type RuntimeSetupTaskFailure = {
 export type RuntimeSetupTaskRefs = {
   readonly installPlanIds: readonly string[];
   readonly transferIds: readonly string[];
+  /** Current preparation's offer-to-plan links and successful Runtime install receipts. */
+  readonly downloadPlans?: Readonly<Record<string, string>>;
+  readonly installedOfferRefs?: readonly string[];
   readonly environmentPlanId?: string;
   readonly dependencyJobIds: readonly string[];
   readonly aiConfigBaselineRevision?: string;
@@ -258,6 +261,8 @@ function cloneRefs(refs: RuntimeSetupTaskRefs): RuntimeSetupTaskRefs {
   return {
     installPlanIds: [...refs.installPlanIds],
     transferIds: [...refs.transferIds],
+    ...(refs.downloadPlans ? { downloadPlans: { ...refs.downloadPlans } } : {}),
+    ...(refs.installedOfferRefs ? { installedOfferRefs: [...refs.installedOfferRefs] } : {}),
     ...(refs.environmentPlanId ? { environmentPlanId: refs.environmentPlanId } : {}),
     dependencyJobIds: [...refs.dependencyJobIds],
     ...(refs.aiConfigBaselineRevision !== undefined
