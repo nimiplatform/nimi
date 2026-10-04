@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, unlinkSync,
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { PassThrough, Writable } from 'node:stream';
 import { assertLocalDevelopmentPlatform, assertProjectElectronRuntime, runDevShell } from '../scripts/dev-shell.mjs';
 
 test('registration listing only reads Desktop-issued selectors and never starts a new subject', {
@@ -56,6 +57,90 @@ test('resume rejects App IDs and raw owner handles as selectors before dispatch'
 });
 
 const FIXTURE_CALLER_TOKEN = 'ab'.repeat(32);
+
+test('ordinary non-interactive dev refuses existing registrations without starting another identity', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  try {
+    for (const count of [1, 20]) {
+      const calls = [];
+      let output = '';
+      await assert.rejects(runDevShell(input.project, {
+        descriptorPath: input.descriptorPath, now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+        input: { isTTY: false }, output: { write(value) { output += value; } },
+        fetch: async (url) => {
+          calls.push(new URL(url).pathname);
+          return response({ status: 'ok', registrations: Array.from({ length: count }, (_, index) => ({
+            selector: `dev-project-${index}`, displayName: 'Widget', registeredAtUnixMs: 1_700_000_000_000 + index,
+          })) });
+        },
+      }), { reasonCode: 'local-development-registration-selection-required' });
+      assert.deepEqual(calls, ['/v1/registrations']);
+      assert.match(output, /dev-project-0/);
+    }
+  } finally { rmSync(input.root, { recursive: true, force: true }); }
+});
+
+test('interactive dev resumes the explicit selection and cancellation creates nothing', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const fixtureInput = fixture();
+  try {
+    for (const answer of ['2', '', '99']) {
+      const input = new PassThrough(); input.isTTY = true;
+      const output = new Writable({ write(chunk, _encoding, done) {
+        if (String(chunk).includes('empty cancels')) setImmediate(() => input.write(`${answer}\n`));
+        done();
+      } }); output.isTTY = true;
+      const calls = [];
+      const pending = runDevShell(fixtureInput.project, {
+        descriptorPath: fixtureInput.descriptorPath, now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+        input, output, installSignalHandlers: false,
+        fetch: async (url, init) => {
+          calls.push({ route: new URL(url).pathname, body: JSON.parse(init.body) });
+          return url.endsWith('/v1/registrations')
+            ? response({ status: 'ok', registrations: [1, 2].map(index => ({ selector: `dev-project-${index}`, displayName: 'Widget', registeredAtUnixMs: 1_700_000_000_000 })) })
+            : response({ status: 'ok', run: runStatus('stopped') });
+        },
+      });
+      if (answer === '2') {
+        await pending;
+        assert.equal(calls[1].body.registrationSelector, 'dev-project-2');
+        assert.equal(calls[1].body.newRegistration, undefined);
+      } else {
+        await assert.rejects(pending, { reasonCode: 'local-development-registration-selection-required' });
+        assert.equal(calls.length, 1);
+      }
+      input.destroy(); output.destroy();
+    }
+  } finally { rmSync(fixtureInput.root, { recursive: true, force: true }); }
+});
+
+test('fresh creation is explicit and a refused resume never falls back to it', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  try {
+    for (const options of [{ newRegistration: true }, { resume: 'dev-project-expired' }]) {
+      const calls = [];
+      const pending = runDevShell(input.project, {
+        ...options, descriptorPath: input.descriptorPath, now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+        installSignalHandlers: false, output: { write() {} }, errorOutput: { write() {} },
+        fetch: async (url, init) => {
+          calls.push({ route: new URL(url).pathname, body: JSON.parse(init.body) });
+          return response(options.resume ? { status: 'error', reasonCode: 'local-development-registration-not-found' }
+            : { status: 'ok', run: runStatus('stopped') });
+        },
+      });
+      if (options.resume) await assert.rejects(pending, { reasonCode: 'local-development-registration-not-found' });
+      else { await pending; assert.equal(calls[0].body.newRegistration, true); }
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].route, '/v1/start');
+    }
+    await assert.rejects(runDevShell(input.project, { newRegistration: true, resume: 'dev-project-a' }), { reasonCode: 'local-development-intent-invalid' });
+  } finally { rmSync(input.root, { recursive: true, force: true }); }
+});
 
 function fixture() {
   const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-app-dev-shell-')));
@@ -134,6 +219,7 @@ test('official dev launcher requests automatic loopback CDP by default', {
   controller.abort();
   try {
     const fetch = async (url, init) => {
+      if (url.endsWith('/v1/registrations')) return response({ status: 'ok', registrations: [] });
       requests.push({ url, init, body: JSON.parse(init.body) });
       if (url.endsWith('/v1/start')) return response({ status: 'ok', run: runStatus() });
       if (url.endsWith('/v1/cancel')) return response({ status: 'ok', run: runStatus('stopped') });
@@ -176,6 +262,7 @@ test('official dev launcher forwards one validated loopback CDP observation port
   try {
     writeFileSync(path.join(input.project, '.env'), 'NIMI_APP_DEV_CDP_PORT=19482\n');
     const fetch = async (url, init) => {
+      if (url.endsWith('/v1/registrations')) return response({ status: 'ok', registrations: [] });
       requests.push({ url, body: JSON.parse(init.body) });
       if (url.endsWith('/v1/start')) return response({ status: 'ok', run: runStatus() });
       if (url.endsWith('/v1/cancel')) return response({ status: 'ok', run: runStatus('stopped') });
@@ -214,6 +301,7 @@ test('official dev launcher reads a stable CDP override from the project .env', 
   try {
     writeFileSync(path.join(input.project, '.env'), 'NIMI_APP_DEV_CDP_PORT=19482\n');
     const fetch = async (url, init) => {
+      if (url.endsWith('/v1/registrations')) return response({ status: 'ok', registrations: [] });
       requests.push({ url, body: JSON.parse(init.body) });
       if (url.endsWith('/v1/start')) return response({ status: 'ok', run: runStatus('running', 19482) });
       if (url.endsWith('/v1/cancel')) return response({ status: 'ok', run: runStatus('stopped', 19482) });
@@ -245,6 +333,7 @@ test('official dev launcher supports an explicit no-CDP run', {
   try {
     writeFileSync(path.join(input.project, '.env'), 'NIMI_APP_DEV_CDP_PORT=19482\n');
     const fetch = async (url, init) => {
+      if (url.endsWith('/v1/registrations')) return response({ status: 'ok', registrations: [] });
       requests.push({ url, body: JSON.parse(init.body) });
       if (url.endsWith('/v1/start')) return response({ status: 'ok', run: runStatus() });
       if (url.endsWith('/v1/cancel')) return response({ status: 'ok', run: runStatus('stopped') });
@@ -298,6 +387,7 @@ test('official dev launcher stays attached while Desktop recovers a Runtime rest
   let statusRequests = 0;
   try {
     const fetch = async (url) => {
+      if (url.endsWith('/v1/registrations')) return response({ status: 'ok', registrations: [] });
       if (url.endsWith('/v1/start')) {
         return response({
           status: 'ok',
@@ -346,6 +436,7 @@ test('official dev launcher accepts a completed Desktop UI stop without sending 
       fetch: async (url) => {
         const pathname = new URL(url).pathname;
         requests.push(pathname);
+        if (pathname === '/v1/registrations') return response({ status: 'ok', registrations: [] });
         if (pathname === '/v1/start') return response({ status: 'ok', run: runStatus('running') });
         if (pathname === '/v1/status') return response({ status: 'ok', run: runStatus('stopped') });
         throw new Error(`unexpected route: ${url}`);
@@ -355,7 +446,7 @@ test('official dev launcher accepts a completed Desktop UI stop without sending 
       errorOutput: { write(message) { errors.push(message); } },
     });
     assert.equal(result.state, 'stopped');
-    assert.deepEqual(requests, ['/v1/start', '/v1/status']);
+    assert.deepEqual(requests, ['/v1/registrations', '/v1/start', '/v1/status']);
     assert.deepEqual(errors, []);
   } finally {
     rmSync(input.root, { recursive: true, force: true });
@@ -373,6 +464,7 @@ test('official dev launcher exits when Desktop reports terminal process cleanup 
         descriptorPath: input.descriptorPath,
         now: () => Date.parse('2026-07-12T00:00:02.000Z'),
         fetch: async (url) => {
+          if (url.endsWith('/v1/registrations')) return response({ status: 'ok', registrations: [] });
           if (url.endsWith('/v1/start')) {
             return response({
               status: 'ok',

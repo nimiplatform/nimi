@@ -197,7 +197,7 @@
     "deleteAppData": "Delete App Data",
     "launch": "Launch",
     "stop": "Stop",
-    "removeDevelopment": "Remove project",
+    "removeDevelopment": "Remove registration",
     "details": "Details",
     "close": "Close"
   },
@@ -469,9 +469,9 @@
       "message": "Stop {{app}} and remove its local package? App data, shared models and account data will be retained."
     },
     "removeDevelopment": {
-      "title": "Remove local project",
-      "message": "Remove {{app}} from Apps? This stops its current run and removes the local development registration without deleting project files.",
-      "confirm": "Remove project"
+      "title": "Remove development registration",
+      "message": "Remove this development registration for {{app}}? This stops its current run without deleting project files. Registering again creates a separate App identity and does not restore this one.",
+      "confirm": "Remove registration"
     },
     "deleteAppData": {
       "title": "Delete app data",

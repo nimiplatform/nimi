@@ -22,7 +22,7 @@ function parseArgs(argv) {
   const [command = '', ...rest] = argv;
   const values = {
     dir: '', profile: '', appId: '', version: '', title: '', packageName: '', author: '',
-    features: undefined, shell: '', cdpPort: undefined, noCdp: false, listRegistrations: false, resume: '', target: '', aggregate: false, production: false, json: false,
+    features: undefined, shell: '', cdpPort: undefined, noCdp: false, listRegistrations: false, resume: '', newRegistration: false, target: '', aggregate: false, production: false, json: false,
     adopt: false, dryRun: false, input: '',
   };
   const seen = new Set();
@@ -103,6 +103,12 @@ function parseArgs(argv) {
       values.listRegistrations = true;
       continue;
     }
+    if (rest[index] === '--new-registration') {
+      if (seen.has('newRegistration')) throw new Error('Duplicate option: --new-registration');
+      seen.add('newRegistration');
+      values.newRegistration = true;
+      continue;
+    }
     if (rest[index] === '--no-cdp') {
       if (seen.has('noCdp')) throw new Error('Duplicate option: --no-cdp');
       seen.add('noCdp');
@@ -146,7 +152,7 @@ function assertCommandOptions(command, providedOptions) {
     init: new Set(['dir', 'json', 'adopt', 'input', 'dryRun']),
     sync: new Set(['dir', 'json', 'dryRun']),
     check: new Set(['dir', 'json', 'production']),
-    dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp', 'listRegistrations', 'resume']),
+    dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp', 'listRegistrations', 'resume', 'newRegistration']),
     test: new Set(['dir', 'json']),
     build: new Set(['dir', 'target', 'production', 'json']),
     pack: new Set(['dir', 'target', 'aggregate', 'production', 'json']),
@@ -177,7 +183,7 @@ function printUsage() {
       '  nimi-app init [--adopt [--input json-path]] [--dry-run] [--dir path] [--json]',
       '  nimi-app sync [--dry-run] [--dir path] [--json]',
       '  nimi-app check [--dir path] [--production] [--json]',
-      '  nimi-app dev [--dir path] [--shell electron] [--list-registrations | --resume <selector>] [--cdp-port 1024..65535 | --no-cdp]',
+      '  nimi-app dev [--dir path] [--shell electron] [--list-registrations | --resume <selector> | --new-registration] [--cdp-port 1024..65535 | --no-cdp]',
       '  nimi-app test [--dir path] [--json]',
       '  nimi-app build [--dir path] [--target target-id] [--production] [--json]',
       '  nimi-app pack [--dir path] (--target target-id [--production] | --aggregate) [--json]',
@@ -316,6 +322,7 @@ try {
     noCdp,
     listRegistrations,
     resume,
+    newRegistration,
     target,
     aggregate,
     production,
@@ -419,6 +426,7 @@ try {
         noCdp,
         listRegistrations,
         resume,
+        newRegistration,
       });
       break;
     default:

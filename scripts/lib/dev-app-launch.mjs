@@ -64,7 +64,7 @@ export function devAppUsage(appName) {
     );
   }
   if (definition.supportsRegistrations) {
-    lines.push('  --list-registrations  List existing registrations without launching.', '  --resume <selector>   Resume an explicitly selected current-host registration.');
+    lines.push('  --list-registrations  List existing registrations without launching.', '  --resume <selector>   Resume an explicitly selected current-host registration.', '  --new-registration    Create a separate registration and App data.');
   }
   lines.push('', `Electron CDP defaults to 127.0.0.1:${definition.defaultCdpPort}.`, '');
   return lines.join('\n');
@@ -77,6 +77,7 @@ export function parseDevAppArguments(appName, argv = []) {
   let help = false;
   let listRegistrations = false;
   let resume;
+  let newRegistration = false;
   const avatarOptions = new Map();
 
   const setCdpPort = (rawValue, option) => {
@@ -97,12 +98,13 @@ export function parseDevAppArguments(appName, argv = []) {
     if (argument === '--electron') {
       continue;
     }
-    if (argument === '--list-registrations' || argument === '--resume') {
+    if (argument === '--list-registrations' || argument === '--resume' || argument === '--new-registration') {
       if (!definition.supportsRegistrations) {
         throw launchError('dev-app-option-unsupported', `${argument} is available only for Desktop-supervised App registrations.`);
       }
-      if (listRegistrations || resume !== undefined) throw launchError('dev-app-option-duplicate', 'Choose either --list-registrations or --resume once.');
+      if (listRegistrations || resume !== undefined || newRegistration) throw launchError('dev-app-option-duplicate', 'Choose only one of --list-registrations, --resume or --new-registration.');
       if (argument === '--list-registrations') listRegistrations = true;
+      else if (argument === '--new-registration') newRegistration = true;
       else { resume = requireOptionValue(argv, index, argument); index += 1; }
       continue;
     }
@@ -154,6 +156,7 @@ export function parseDevAppArguments(appName, argv = []) {
     envOverrides,
     ...(listRegistrations ? { listRegistrations: true } : {}),
     ...(resume === undefined ? {} : { resume }),
+    ...(newRegistration ? { newRegistration: true } : {}),
   };
 }
 
@@ -177,6 +180,7 @@ export function resolveDevAppLaunch(appName, argv = [], options = {}) {
     pnpmArgs.push('--', '--no-cdp');
   }
   if (parsed.resume !== undefined) pnpmArgs.push('--resume', parsed.resume);
+  if (parsed.newRegistration) pnpmArgs.push('--new-registration');
   const invocation = composePnpmSpawn(pnpmArgs, {
     platform: options.platform,
     env: options.env,

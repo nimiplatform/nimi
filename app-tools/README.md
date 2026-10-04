@@ -279,7 +279,7 @@ pnpm dev
 
 `dev` uses the Desktop supervisor. Direct Electron, Tauri or renderer launch cannot claim protected Nimi access. Process running and Nimi Access ready remain separate states.
 
-Use `nimi-app dev --list-registrations` and `--resume <selector>` to continue an existing development registration and its App data. Refresh the list after Desktop restarts: selectors belong to that Desktop session. A plain `dev` launch creates a separate registration and storage audience, even when the App ID and project path match an older registration.
+Use `nimi-app dev --list-registrations` and `--resume <selector>` to continue an existing development registration and its App data. Refresh the list after Desktop restarts: selectors belong to that Desktop session. A plain `dev` launch creates a registration only when this project has none. Otherwise it asks you to select an existing registration in an interactive terminal; in scripts, pass `--resume <selector>`. Use `--new-registration` only when you want a separate identity and separate App data. A rejected or expired selection never falls back to creating a registration. Remove unwanted registrations from their source row in Apps or Settings > Developer; this stops that registration and leaves project files intact.
 
 Every `build`, including non-production builds, requires the selected target's
 declared payload and exact Runtime entry to exist after its owner command exits

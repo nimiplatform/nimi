@@ -182,7 +182,6 @@ export function RuntimeCapabilityDetail(props: Props) {
   const versionChip = [identity.versionShort, chipSize ? t('runtimeConfig.product.aboutSize', { size: formatBytes(chipSize) }) : '']
     .filter(Boolean)
     .join(' · ');
-  const openUse = () => setActiveTab(props.capability === 'text.generate' ? 'chat' : 'apps');
   // Imported files that no saved configuration of this capability uses yet;
   // Runtime validates any of them only when they are chosen for a recipe.
   const unboundImports = props.assets.some((asset) => !asset.catalogVerified
@@ -337,26 +336,26 @@ export function RuntimeCapabilityDetail(props: Props) {
                     </Button>
                   ) : null}
                   {props.selected ? (
-                    <Button
-                      tone="primary"
-                      disabled={props.busy || props.disabled}
-                      onClick={() => {
-                        if (isReady) openUse();
-                        else if (props.status.task) props.onTask(props.status.task.taskId);
-                        else void props.onStart(props.selected!.recipeId, props.selected);
-                      }}
-                    >
-                      {t(
-                        !isReady
-                          ? props.status.state === 'unknown'
-                            ? 'runtimeConfig.setupTask.checkPreparation'
-                            : 'runtimeConfig.setupTask.repairSetup'
-                          : props.capability === 'text.generate'
-                            ? 'runtimeConfig.overview.openChat'
-                            : 'runtimeConfig.product.openApps',
-                      )}
-                      <ArrowRight size={15} />
-                    </Button>
+                    !isReady || props.capability === 'text.generate' ? (
+                      <Button
+                        tone="primary"
+                        disabled={props.busy || props.disabled}
+                        onClick={() => {
+                          if (isReady) setActiveTab('chat');
+                          else if (props.status.task) props.onTask(props.status.task.taskId);
+                          else void props.onStart(props.selected!.recipeId, props.selected);
+                        }}
+                      >
+                        {t(
+                          !isReady
+                            ? props.status.state === 'unknown'
+                              ? 'runtimeConfig.setupTask.checkPreparation'
+                              : 'runtimeConfig.setupTask.repairSetup'
+                            : 'runtimeConfig.overview.openChat',
+                        )}
+                        <ArrowRight size={15} />
+                      </Button>
+                    ) : null
                   ) : downloaded ? (
                     <Button
                       tone="primary"

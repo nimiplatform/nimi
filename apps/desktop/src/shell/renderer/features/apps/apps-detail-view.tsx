@@ -104,6 +104,7 @@ export interface AppsDetailViewProps {
   readonly requestedNavigationRevision: number;
   readonly onBack: () => void;
   readonly onOpenEntry: (entryKey: string) => void;
+  readonly onRemoveSource?: (entryKey: string) => void;
   readonly onAction: (action: AppCardActionId) => void;
   readonly activeAction: AppCardActionId | null;
   readonly actionsDisabled: boolean;
@@ -128,6 +129,7 @@ function LocalDevelopmentAppsDetailView({
   requestedNavigationRevision,
   onBack,
   onOpenEntry,
+  onRemoveSource,
   onAction,
   activeAction,
   actionsDisabled,
@@ -369,6 +371,8 @@ function LocalDevelopmentAppsDetailView({
             <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="space-y-7 outline-none">
               <AppsOverviewTab
                 sourceEntries={sourceEntries}
+                onRemoveSource={onRemoveSource}
+                actionsDisabled={actionsDisabled}
                 onOpenEntry={onOpenEntry}
                 readme={readme}
                 about={(
@@ -440,6 +444,7 @@ function InstalledAppsDetailView({
   requestedNavigationRevision,
   onBack,
   onOpenEntry,
+  onRemoveSource,
   onAction,
   activeAction,
   actionsDisabled,
@@ -766,6 +771,8 @@ function InstalledAppsDetailView({
             <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="space-y-7 outline-none">
               <AppsOverviewTab
                 sourceEntries={sourceEntries}
+                onRemoveSource={onRemoveSource}
+                actionsDisabled={actionsDisabled}
                 onOpenEntry={onOpenEntry}
                 readme={readme}
                 about={(
@@ -860,12 +867,16 @@ function AppsStartingStopButton({ testId, disabled, onStop }: {
   );
 }
 
-function AppSourcesBanner({ entries, onOpenEntry, className = '' }: {
+function AppSourcesBanner({ entries, onOpenEntry, onRemoveSource, actionsDisabled, className = '' }: {
   readonly entries: readonly DesktopAppsEntry[];
   readonly onOpenEntry: (entryKey: string) => void;
+  readonly onRemoveSource?: (entryKey: string) => void;
+  readonly actionsDisabled: boolean;
   readonly className?: string;
 }): ReactElement | null {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [removingEntryKey, setRemovingEntryKey] = useState<string | null>(null);
+  const removingEntry = entries.find((entry) => entry.identity.entryKey === removingEntryKey && entry.localDevelopment);
   if (entries.length === 0) return null;
   return (
     <section
@@ -896,6 +907,11 @@ function AppSourcesBanner({ entries, onOpenEntry, className = '' }: {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium leading-5 text-[color:var(--nimi-text-primary)]">{t(headlineKey)}</p>
                 <p className="truncate text-xs leading-4 text-[color:var(--nimi-text-secondary)]">{statusText}</p>
+                {sourceEntry.localDevelopment ? (
+                  <p className="text-xs leading-4 text-[color:var(--nimi-text-secondary)]">
+                    {t('Apps.detail.registeredAt')} · {formatTimestamp(sourceEntry.localDevelopment.registeredAtUnixMs, i18n.language)}
+                  </p>
+                ) : null}
               </div>
               <Button
                 tone="secondary"
@@ -907,10 +923,41 @@ function AppSourcesBanner({ entries, onOpenEntry, className = '' }: {
                 {t('Apps.detail.viewSource')}
                 <ChevronRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
               </Button>
+              {sourceEntry.localDevelopment && onRemoveSource ? (
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  disabled={actionsDisabled}
+                  data-testid={`apps-remove-source-${sourceEntry.identity.entryKey}`}
+                  onClick={() => setRemovingEntryKey(sourceEntry.identity.entryKey)}
+                >
+                  <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                  {t('Apps.action.removeDevelopment')}
+                </Button>
+              ) : null}
             </li>
           );
         })}
       </ul>
+      <ConfirmDialog
+        open={Boolean(removingEntry)}
+        title={t('Apps.confirm.removeDevelopment.title')}
+        message={<>
+          <p>{t('Apps.confirm.removeDevelopment.message', { app: removingEntry?.identity.displayName ?? '' })}</p>
+          {removingEntry?.localDevelopment ? <p className="mt-2 text-xs">
+            {t('Apps.detail.registeredAt')} · {formatTimestamp(removingEntry.localDevelopment.registeredAtUnixMs, i18n.language)}
+          </p> : null}
+        </>}
+        confirmLabel={t('Apps.confirm.removeDevelopment.confirm')}
+        cancelLabel={t('Common.cancel')}
+        confirmTone="danger"
+        pending={actionsDisabled}
+        onConfirm={() => {
+          if (removingEntry && !actionsDisabled) onRemoveSource?.(removingEntry.identity.entryKey);
+          setRemovingEntryKey(null);
+        }}
+        onClose={() => setRemovingEntryKey(null)}
+      />
     </section>
   );
 }
@@ -922,16 +969,18 @@ function AppSourcesBanner({ entries, onOpenEntry, className = '' }: {
  * leaving the side of the page empty. Below that breakpoint the bands stack
  * in the original order.
  */
-function AppsOverviewTab({ sourceEntries, onOpenEntry, about, readme }: {
+function AppsOverviewTab({ sourceEntries, onOpenEntry, onRemoveSource, actionsDisabled, about, readme }: {
   readonly sourceEntries: readonly DesktopAppsEntry[];
   readonly onOpenEntry: (entryKey: string) => void;
+  readonly onRemoveSource?: (entryKey: string) => void;
+  readonly actionsDisabled: boolean;
   readonly about: ReactNode;
   readonly readme: ProjectReadmeState;
 }): ReactElement {
   const hasReadme = readme.status !== 'loaded' || Boolean(readme.content);
   return (
     <>
-      <AppSourcesBanner entries={sourceEntries} onOpenEntry={onOpenEntry} />
+      <AppSourcesBanner entries={sourceEntries} onOpenEntry={onOpenEntry} onRemoveSource={onRemoveSource} actionsDisabled={actionsDisabled} />
       {hasReadme ? (
         <div className="flex flex-col gap-7 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] xl:items-start">
           <div className="min-w-0 xl:order-2">{about}</div>

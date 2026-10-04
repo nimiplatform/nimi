@@ -197,7 +197,7 @@
     "deleteAppData": "删除应用数据",
     "launch": "启动",
     "stop": "停止",
-    "removeDevelopment": "移除项目",
+    "removeDevelopment": "移除注册",
     "details": "详情",
     "close": "关闭"
   },
@@ -469,9 +469,9 @@
       "message": "停止 {{app}} 并移除本机安装包？App 数据、共享模型和账户数据将保留。"
     },
     "removeDevelopment": {
-      "title": "移除本地项目",
-      "message": "从 Apps 移除 {{app}}？这会停止当前运行并移除本地开发注册，但不会删除项目文件。",
-      "confirm": "移除项目"
+      "title": "移除本地开发注册",
+      "message": "移除 {{app}} 的这条本地开发注册？这会停止该注册的当前运行，不会删除项目文件。重新注册会创建独立的应用身份，不会恢复此注册的身份。",
+      "confirm": "移除注册"
     },
     "deleteAppData": {
       "title": "删除应用数据",

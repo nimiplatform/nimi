@@ -306,6 +306,7 @@ export function AppsPanelView({
               requestedNavigationRevision={requestedDetailNavigationRevision}
               onBack={onBack}
               onOpenEntry={(entryKey) => onCardAction(entryKey, 'details')}
+              onRemoveSource={(entryKey) => onCardAction(entryKey, 'remove')}
               onAction={(action) => onCardAction(selectedEntry.identity.entryKey, action)}
               activeAction={pendingActionForEntry(pendingActions, selectedEntry.identity.entryKey)}
               actionsDisabled={appsActionsLocked(pendingActions, selectedEntry.identity.appId)}

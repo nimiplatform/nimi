@@ -664,6 +664,9 @@ test('Apps detail lists the other sources of the same App', async () => {
   }));
   assert.ok(installedDetail.includes('已注册本地开发来源'), 'expected the local-development headline');
   assert.ok(installedDetail.includes('data-testid="apps-source-entry-local_development:nimi.lab:dev-project-example"'), 'expected the development source link');
+  assert.ok(installedDetail.includes('data-testid="apps-remove-source-local_development:nimi.lab:dev-project-example"'));
+  assert.ok(installedDetail.includes('注册时间'));
+  assert.equal(devDetail.includes('data-testid="apps-remove-source-verified:nimi.lab"'), false);
   const single = renderView(baseProps({ selectedEntryKey: 'local_development:nimi.lab:dev-project-example' }));
   assert.equal(single.includes('data-testid="apps-other-sources"'), false, 'single-source Apps render no sources banner');
 });
@@ -901,7 +904,7 @@ test('A local-development build shows 启动中 on the detail header without a s
     selectedEntryKey: building.identity.entryKey,
   }));
   assert.ok(detail.includes('data-testid="apps-detail-starting"'), 'header shows 启动中');
-  assert.equal(detail.includes('data-testid="apps-detail-stop"'), false);
+  assert.ok(detail.includes('data-testid="apps-detail-stop"'), 'a pending build remains stoppable');
   assert.equal(detail.includes('data-run-visual='), false, 'no second 启动中 badge next to the title');
 });
 

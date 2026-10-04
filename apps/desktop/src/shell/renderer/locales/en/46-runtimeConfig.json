@@ -2639,7 +2639,6 @@
       "applyHintDownloadUnknown": "The selected version needs a download. When you apply, we first list what needs preparing, and nothing downloads until you confirm.",
       "applyInvalid": "The runtime options aren’t a valid JSON object. Fix them to apply."
     },
-    "openApps": "Open apps",
     "changeModel": "Change model",
     "modelPicker": {
       "title": "Change model for {{capability}}",

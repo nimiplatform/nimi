@@ -2639,7 +2639,6 @@
       "applyHintDownloadUnknown": "所选版本需要下载文件。应用时会先列出要准备的内容，确认后才开始下载。",
       "applyInvalid": "运行参数不是有效的 JSON 对象，修正后才能应用。"
     },
-    "openApps": "前往应用",
     "changeModel": "更换模型",
     "modelPicker": {
       "title": "更换{{capability}}模型",

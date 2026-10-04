@@ -1686,6 +1686,44 @@ describe('Desktop local-development project icon', () => {
 });
 
 describe('Desktop local-development caller boundary', () => {
+  it('rejects implicit fresh registration for a known project and never falls back from a stale selector', async () => {
+    let registrations = 0;
+    const host = new ElectronLocalDevelopmentHost(control({ register: async () => { registrations++; return registration(); } }), '/tmp');
+    const internal = host as unknown as {
+      startLauncherIntent(appId: string, projectRoot: string, shell: string): Promise<unknown>;
+      resumeIntent(selector: string, appId: string, projectRoot: string, shell: string): Promise<unknown>;
+    };
+    await assert.rejects(internal.startLauncherIntent('example.local-app', '/projects/example', 'electron'), /local-development-registration-selection-required/);
+    await assert.rejects(internal.resumeIntent('dev-project-expired', 'example.local-app', '/projects/example', 'electron'), /local-development-registration-not-found/);
+    assert.equal(registrations, 0);
+  });
+
+  it('serializes first-launch checks so a concurrent request cannot create another identity', async () => {
+    const host = new ElectronLocalDevelopmentHost(control({ listRegistrations: async () => [] }), '/tmp');
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+      startLauncherIntent(appId: string, projectRoot: string, shell: string, cdpPort?: number, newRegistration?: boolean): Promise<unknown>;
+      startIntent(): Promise<ReturnType<typeof activeRun>['status']>;
+    };
+    let starts = 0;
+    internal.startIntent = async () => {
+      starts++;
+      const run = activeRun(); run.registrationHandle = undefined;
+      run.status.state = 'preparing'; internal.runs.set(run.status.runId, run);
+      return run.status;
+    };
+    const results = await Promise.allSettled([
+      internal.startLauncherIntent('example.local-app', '/projects/example', 'electron'),
+      internal.startLauncherIntent('example.local-app', '/projects/example', 'electron'),
+    ]);
+    assert.equal(results[0].status, 'fulfilled');
+    assert.equal(results[1].status, 'rejected');
+    assert.equal(starts, 1);
+    internal.runs.clear();
+    await internal.startLauncherIntent('example.local-app', '/projects/example', 'electron', undefined, true);
+    assert.equal(starts, 2);
+  });
+
   it('answers only a caller that presents the owner-only presence token', async () => {
     const home = await (await import('node:fs/promises')).realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-dev-caller-')));
     const host = new ElectronLocalDevelopmentHost(control(), home);

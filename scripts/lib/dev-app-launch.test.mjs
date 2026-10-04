@@ -23,6 +23,9 @@ test('supervised workspace Apps forward registration selection without reserving
   assert.deepEqual(resumed.args.slice(-5), ['--', '--cdp-port', '9334', '--resume', 'dev-project-selected']);
   assert.throws(() => parseDevAppArguments('lab', ['--list-registrations', '--resume', 'dev-project-selected']));
   assert.throws(() => parseDevAppArguments('desktop', ['--list-registrations']));
+  assert.throws(() => parseDevAppArguments('desktop', ['--new-registration']));
+  assert.throws(() => parseDevAppArguments('lab', ['--new-registration', '--resume', 'dev-project-selected']));
+  assert.deepEqual(resolveDevAppLaunch('lab', ['--new-registration'], { platform: 'darwin' }).args.slice(-4), ['--', '--cdp-port', '9335', '--new-registration']);
   for (const name of ['nimigo', 'nimiday']) {
     const definition = DEV_APP_DEFINITIONS[name];
     const listing = resolveDevAppLaunch(name, ['--list-registrations'], { platform: 'darwin' });

@@ -213,6 +213,9 @@ test('the home lists on-device models, expands with read-only candidate checks, 
     const defaultBadge = await ui.waitFor('[data-testid="local-model-configuration-badge:L-default"]');
     assert.equal(defaultBadge.querySelector('[data-state]')?.getAttribute('data-state'), 'ready');
     assert.ok(ui.document.querySelector('[data-testid="local-model-variant:c-mystery"] [data-testid="local-model-use-not-identified"]'));
+    // A known model family shows its brand mark; an unrecognized file keeps its monogram.
+    assert.ok(await ui.waitFor('[data-testid="local-model:content:c1"] [data-model-family-logo="google-color"]'));
+    assert.ok(!ui.document.querySelector('[data-testid="local-model:content:c-mystery"] [data-model-family-logo]'));
     assert.deepEqual(ui.calls.environmentPlans.filter(Boolean), [], 'nothing resolves a candidate plan before a row is expanded');
     assert.ok(!ui.document.querySelector('[data-testid="local-model-configuration:L-custom"]'), 'non-default configurations stay collapsed');
 

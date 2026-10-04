@@ -60,6 +60,8 @@ export type LocalModelEntry = {
   /** Catalog logical model id when the catalog supplies it, otherwise the single content id. */
   readonly modelKey: string;
   readonly title: string;
+  /** Name the brand tile resolves from: the model itself, or the model a companion-only entry serves. */
+  readonly brandName: string;
   readonly variants: readonly LocalModelVariant[];
 };
 
@@ -99,6 +101,29 @@ function variantTitle(
 }
 
 /**
+ * Display name of the model setup a companion-only asset (a text encoder, a
+ * VAE, …) serves, resolved from the recipe that offers it or the recipe a
+ * referencing Loadout was created from. Empty for a model in its own right or
+ * an asset no recipe identifies, so the entry keeps its own name.
+ */
+function companionServedByTitle(input: {
+  readonly configurableFor: readonly LocalModelConfigurable[];
+  readonly configurations: readonly LocalModelConfiguration[];
+  readonly loadoutRecipeTitles: readonly string[];
+  readonly recipeTitleById: ReadonlyMap<string, string>;
+}): string {
+  const asModel = input.configurableFor.some((item) => item.role === 'model')
+    || input.configurations.some((item) => item.role === 'model');
+  if (asModel) return '';
+  const offered = input.configurableFor.find((item) => item.role === 'companion');
+  if (offered) {
+    const title = input.recipeTitleById.get(offered.recipeId);
+    if (title) return title;
+  }
+  return input.loadoutRecipeTitles[0] ?? '';
+}
+
+/**
  * Builds the on-device model list. Assets sharing one content id are shown as
  * one variant that keeps every asset id; variants are grouped into one model
  * only when the catalog supplies a logical model id for them. Nothing is ever
@@ -112,6 +137,7 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
     }
   }
   const selectedByCapability = new Map(input.selections.map((item) => [item.capabilityContract, item.loadoutId]));
+  const recipeTitleById = new Map(input.recipes.map((recipe) => [recipe.recipeId, modelDisplayTitle(recipe.title)]));
 
   // asset id -> configurable uses, from recipe slot offers that resolve to an installed asset
   const configurableByAsset = new Map<string, LocalModelConfigurable[]>();
@@ -136,9 +162,20 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
 
   // asset id -> configurations (Loadouts) referencing it
   const configurationsByAsset = new Map<string, LocalModelConfiguration[]>();
+  // asset id -> titles of the model setups it serves as a companion, in Loadout order
+  const companionServedByAsset = new Map<string, string[]>();
   for (const loadout of input.loadouts) {
     for (const axis of loadout.modelAxes) {
       if (!axis.modelAssetId) continue;
+      const role = localModelSlotRole(axis.slotId);
+      if (role === 'companion') {
+        const servedTitle = recipeTitleById.get(loadout.recipeId);
+        if (servedTitle) {
+          const titles = companionServedByAsset.get(axis.modelAssetId) ?? [];
+          if (!titles.includes(servedTitle)) titles.push(servedTitle);
+          companionServedByAsset.set(axis.modelAssetId, titles);
+        }
+      }
       const list = configurationsByAsset.get(axis.modelAssetId) ?? [];
       if (list.some((item) => item.loadoutId === loadout.loadoutId)) continue;
       list.push({
@@ -147,7 +184,7 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
         displayName: loadout.displayName,
         validationState: loadout.validationState,
         isDefault: selectedByCapability.get(loadout.capabilityContract) === loadout.loadoutId,
-        role: localModelSlotRole(axis.slotId),
+        role,
       });
       configurationsByAsset.set(axis.modelAssetId, list);
     }
@@ -207,7 +244,18 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
     entries.set(item.modelKey, entry);
   }
   return [...entries.entries()]
-    .map(([modelKey, entry]) => ({ modelKey, title: entry.title, variants: entry.variants }))
+    .map(([modelKey, entry]) => ({
+      modelKey,
+      title: entry.title,
+      // Resolve after grouping: every asset alias and model variant contributes its uses.
+      brandName: companionServedByTitle({
+        configurableFor: entry.variants.flatMap((variant) => variant.configurableFor),
+        configurations: entry.variants.flatMap((variant) => variant.configurations),
+        loadoutRecipeTitles: entry.variants.flatMap((variant) => variant.assetIds.flatMap((assetId) => companionServedByAsset.get(assetId) ?? [])),
+        recipeTitleById,
+      }) || entry.title,
+      variants: entry.variants,
+    }))
     .sort((left, right) => {
       const rank = (entry: LocalModelEntry) => {
         if (entry.variants.some((variant) => variant.configurations.some((item) => item.isDefault))) return 0;

@@ -228,9 +228,12 @@ export type AppsActionError = { readonly message: string; readonly detail: strin
 export type AppsActionFailure = { readonly entryKey: string | null; readonly error: AppsActionError };
 
 /** A failure shows in the list, or in the detail of the App it happened on. */
-export function visibleAppsActionError(failure: AppsActionFailure | null, detailEntryKey: string | null): AppsActionError | null {
+export function visibleAppsActionError(failure: AppsActionFailure | null, detailEntryKey: string | null, entries: readonly DesktopAppsEntry[] = []): AppsActionError | null {
   if (!failure) return null;
-  return failure.entryKey === null || detailEntryKey === null || failure.entryKey === detailEntryKey ? failure.error : null;
+  if (failure.entryKey === null || detailEntryKey === null || failure.entryKey === detailEntryKey) return failure.error;
+  const failed = entries.find((entry) => entry.identity.entryKey === failure.entryKey);
+  const current = entries.find((entry) => entry.identity.entryKey === detailEntryKey);
+  return failed && current && failed.identity.appId === current.identity.appId ? failure.error : null;
 }
 
 export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanelController {
@@ -455,7 +458,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     setInstallConfirmation(null);
   }, [installIntentController]);
 
-  const actionError = visibleAppsActionError(actionFailure, detailEntryKey);
+  const actionError = visibleAppsActionError(actionFailure, detailEntryKey, projection?.status === 'loaded' ? projection.entries : []);
   return {
     projection,
     detailEntryKey,

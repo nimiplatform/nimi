@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import type { NimiJsonObject } from '@nimiplatform/kit/core/sdk-contract';
 import { SelectField, TextareaField, TextField } from '@nimiplatform/kit/ui';
 import {
@@ -132,7 +133,7 @@ function DefaultFieldControl(props: {
     const nested = asRecord(value);
     return (
       <fieldset
-        className="col-span-full grid min-w-0 grid-cols-1 gap-3 rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-border-subtle)] p-3 sm:grid-cols-2"
+        className="col-span-full grid min-w-0 grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-3 rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-border-subtle)] p-3"
         data-nimi-default-parameter-group={parameterPath}
       >
         <legend className="px-1 font-mono text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-text-secondary)]">
@@ -241,18 +242,18 @@ export function CapabilityDefaultsEditor(props: CapabilityDefaultsEditorProps) {
 
   return (
     <details
-      className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]"
+      className="group overflow-hidden rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] transition-colors duration-[var(--nimi-motion-fast)]"
       data-nimi-model-config-defaults={props.capabilityContract}
     >
-      <summary className="cursor-pointer list-none px-3 py-2.5 text-xs font-semibold text-[var(--nimi-text-primary)]">
+      <summary className="cursor-pointer select-none list-none px-3 py-2.5 text-xs font-semibold text-[var(--nimi-text-primary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] [&::-webkit-details-marker]:hidden">
         <span className="flex items-center justify-between gap-3">
           <span>{props.copy.label}</span>
-          <span aria-hidden="true" className="text-[var(--nimi-text-muted)]">⌄</span>
+          <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-[var(--nimi-text-muted)] transition-transform duration-[var(--nimi-motion-fast)] group-open:rotate-90" />
         </span>
       </summary>
       <div className="space-y-3 border-t border-[var(--nimi-border-subtle)] p-3">
         <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.hint}</p>
-        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-3">
           {fields.map((field) => (
             <DefaultFieldControl
               key={field.key}

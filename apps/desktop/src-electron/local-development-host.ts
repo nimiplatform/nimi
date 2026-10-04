@@ -189,6 +189,7 @@ export class ElectronLocalDevelopmentHost {
   private readonly registrationSelectors = new Map<string, string>();
   private readonly registrationRemovalSequences = new Map<string, number>();
   private registrationIntentSequence = 0;
+  private launcherStartQueue: Promise<unknown> = Promise.resolve();
   private server: Server | undefined;
   private endpoint = '';
   private shutdownPromise: Promise<void> | undefined;
@@ -382,20 +383,22 @@ export class ElectronLocalDevelopmentHost {
       if (request.url === '/v1/start') {
         const hasCdpPort = Object.prototype.hasOwnProperty.call(body, 'cdpPort');
         const hasRegistrationSelector = Object.prototype.hasOwnProperty.call(body, 'registrationSelector');
+        const hasNewRegistration = Object.prototype.hasOwnProperty.call(body, 'newRegistration');
         const value = exact(
           body,
-          ['appId', 'projectRoot', 'schemaVersion', 'shell', ...(hasCdpPort ? ['cdpPort'] : []), ...(hasRegistrationSelector ? ['registrationSelector'] : [])],
+          ['appId', 'projectRoot', 'schemaVersion', 'shell', ...(hasCdpPort ? ['cdpPort'] : []), ...(hasRegistrationSelector ? ['registrationSelector'] : []), ...(hasNewRegistration ? ['newRegistration'] : [])],
         );
-        if (value.schemaVersion !== 1) throw new Error('local-development-intent-invalid');
+        if (value.schemaVersion !== 1 || (hasNewRegistration && (value.newRegistration !== true || hasRegistrationSelector))) throw new Error('local-development-intent-invalid');
         const run = hasRegistrationSelector ? await this.resumeIntent(
           selector(value.registrationSelector, 'dev-project'),
           text(value.appId), text(value.projectRoot), text(value.shell),
           hasCdpPort ? cdpPort(value.cdpPort) : undefined,
-        ) : await this.startIntent(
+        ) : await this.startLauncherIntent(
           text(value.appId),
           text(value.projectRoot),
           text(value.shell),
           hasCdpPort ? cdpPort(value.cdpPort) : undefined,
+          hasNewRegistration,
         );
         return json(response, { status: 'ok', run });
       }
@@ -422,6 +425,25 @@ export class ElectronLocalDevelopmentHost {
     if (shell !== 'electron') throw new Error('local-development-platform-unsupported');
     return (await this.listRegistrations()).filter((row) => row.appId === appId
       && comparableCanonicalProjectPath(row.canonicalProjectRoot) === comparableCanonicalProjectPath(projectRoot));
+  }
+
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018a
+  private startLauncherIntent(appId: string, projectRoot: string, shell: string, requestedCdpPort?: number, newRegistration = false): Promise<RunStatus> {
+    const start = this.launcherStartQueue.then(async () => {
+      // Paths only detect a potential duplicate; they never select a subject.
+      if (!newRegistration && (await this.control.listRegistrations()).some((row) => (
+        row.project.appId === appId && row.project.shell === shell
+        && comparableCanonicalProjectPath(row.project.canonicalProjectRoot) === comparableCanonicalProjectPath(projectRoot)
+      ))) throw new Error('local-development-registration-selection-required');
+      if ([...this.runs.values()].some((run) => !run.stopped
+        && run.plan.appId === appId
+        && comparableCanonicalProjectPath(run.plan.projectRoot) === comparableCanonicalProjectPath(projectRoot))) {
+        throw new Error('local-development-registration-selection-required');
+      }
+      return this.startIntent(appId, projectRoot, shell, requestedCdpPort);
+    });
+    this.launcherStartQueue = start.catch(() => undefined);
+    return start;
   }
 
   // @nimi-authority: rule.nimi.runtime.app-surface.r052

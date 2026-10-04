@@ -4,6 +4,7 @@ import { lstat, readFile, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { createInterface } from 'node:readline/promises';
 import { parseEnv } from 'node:util';
 import { parse as parseYaml } from 'yaml';
 
@@ -25,7 +26,9 @@ const TERMINAL_STATES = new Set([
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018a
 export async function runDevShell(cwd, options = {}) {
-  if (options.listRegistrations && options.resume) throw new DevShellError('local-development-intent-invalid', '--list-registrations and --resume cannot be combined.');
+  if ([options.listRegistrations, options.resume, options.newRegistration].filter(Boolean).length > 1) {
+    throw new DevShellError('local-development-intent-invalid', '--list-registrations, --resume and --new-registration cannot be combined.');
+  }
   if (options.resume && !/^dev-project-[A-Za-z0-9_-]{1,148}$/u.test(options.resume)) {
     throw new DevShellError('local-development-selector-invalid', '--resume requires a current-host selector from --list-registrations.');
   }
@@ -42,7 +45,9 @@ export async function runDevShell(cwd, options = {}) {
   if (typeof fetchImpl !== 'function') {
     throw new DevShellError('local-development-launcher-unavailable', 'This Node.js runtime does not provide fetch.');
   }
-  if (options.listRegistrations) {
+  if (!options.listRegistrations) await assertProjectElectronRuntime(projectRoot);
+  let registrationSelector = options.resume;
+  if (options.listRegistrations || (!options.resume && !options.newRegistration)) {
     const listed = await postJson(fetchImpl, descriptor, '/v1/registrations', {
       schemaVersion: 1, appId, projectRoot, shell,
     });
@@ -55,22 +60,27 @@ export async function runDevShell(cwd, options = {}) {
         || typeof row.displayName !== 'string' || !Number.isSafeInteger(row.registeredAtUnixMs)) {
         throw new DevShellError('local-development-intent-invalid', 'Desktop returned an invalid registration projection.');
       }
-      output.write(`${row.selector}\t${new Date(row.registeredAtUnixMs).toISOString()}\t${row.displayName}\n`);
     }
-    output.write(listed.registrations.length
-      ? '[nimi-app dev] Resume an explicit selection with: pnpm dev -- --resume <selector>\n'
-      : '[nimi-app dev] No current-host registrations for this project. Run pnpm dev to create one.\n');
-    return listed.registrations;
+    if (options.listRegistrations) {
+      printRegistrations(output, listed.registrations);
+      output.write(listed.registrations.length
+        ? '[nimi-app dev] Resume an explicit selection with: pnpm dev -- --resume <selector>\n'
+        : '[nimi-app dev] No current-host registrations for this project. Run pnpm dev to create one.\n');
+      return listed.registrations;
+    }
+    if (listed.registrations.length) {
+      registrationSelector = await selectRegistration(listed.registrations, options);
+    }
   }
 
-  await assertProjectElectronRuntime(projectRoot);
   const startIntent = {
     schemaVersion: 1,
     appId,
     projectRoot,
     shell,
     ...(cdpPort === undefined ? {} : { cdpPort }),
-    ...(options.resume ? { registrationSelector: options.resume } : {}),
+    ...(registrationSelector ? { registrationSelector } : {}),
+    ...(options.newRegistration ? { newRegistration: true } : {}),
   };
   const start = await postJson(fetchImpl, descriptor, '/v1/start', startIntent);
   const initial = parseBridgeRun(start);
@@ -133,6 +143,36 @@ export async function runDevShell(cwd, options = {}) {
     throw error;
   } finally {
     removeSignalHandlers();
+  }
+}
+
+function printRegistrations(output, registrations) {
+  for (const [index, row] of registrations.entries()) {
+    output.write(`${index + 1}. ${row.selector}\t${new Date(row.registeredAtUnixMs).toISOString()}\t${row.displayName}\n`);
+  }
+}
+
+async function selectRegistration(registrations, options) {
+  const input = options.input ?? process.stdin;
+  const output = options.output ?? process.stdout;
+  printRegistrations(output, registrations);
+  const guidance = 'Choose an existing registration with --resume <selector>, or use --new-registration for separate App data.';
+  if (!input.isTTY || !output.isTTY) {
+    throw new DevShellError('local-development-registration-selection-required', guidance);
+  }
+  const prompt = createInterface({ input, output });
+  try {
+    const answer = (await prompt.question(
+      '[nimi-app dev] Resume which registration? Enter its number (empty cancels): ',
+      options.signal ? { signal: options.signal } : undefined,
+    )).trim();
+    const index = /^\d+$/u.test(answer) ? Number(answer) - 1 : -1;
+    if (!Number.isSafeInteger(index) || !registrations[index]) {
+      throw new DevShellError('local-development-registration-selection-required', guidance);
+    }
+    return registrations[index].selector;
+  } finally {
+    prompt.close();
   }
 }
 

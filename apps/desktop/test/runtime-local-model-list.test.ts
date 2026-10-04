@@ -50,11 +50,12 @@ const recipe = (
   capability: string,
   slots: readonly { slotId: string; installed: readonly string[]; applicability?: string }[],
   applicability = 'supported',
+  title = recipeId,
 ): NimiLoadoutRecipe =>
   ({
     recipeId,
     capabilityContract: capability,
-    title: recipeId,
+    title,
     applicability,
     slots: slots.map((slot) => ({
       slotId: slot.slotId,
@@ -76,8 +77,9 @@ const loadout = (
   axes: readonly { slotId: string; modelAssetId: string }[],
   displayName = loadoutId,
   validationState: NimiMachineLoadout['validationState'] = 'configured',
+  recipeId = '',
 ): NimiMachineLoadout =>
-  ({ loadoutId, capabilityContract: capability, displayName, validationState, modelAxes: axes }) as unknown as NimiMachineLoadout;
+  ({ loadoutId, capabilityContract: capability, displayName, validationState, recipeId, modelAxes: axes }) as unknown as NimiMachineLoadout;
 
 const plan = (dependencies: readonly { id: string; required: boolean; state: string }[], state = 'ready'): NimiRuntimeLocalEnvironmentPlan =>
   ({
@@ -107,6 +109,8 @@ test('a variant without any Loadout has no configuration and lists what it can b
   assert.deepEqual(configurableCapabilities(gemma.variants[0]!), ['text.generate']);
   assert.equal(gemma.variants[0]!.quantLabel, 'Q4');
   assert.equal(gemma.variants[0]!.useNotIdentified, false);
+  // A model in its own right resolves its brand from its own name.
+  assert.equal(gemma.brandName, gemma.title);
 
   const vae = list.find((entry) => entry.modelKey === 'content:c-vae');
   assert.ok(vae);
@@ -114,6 +118,68 @@ test('a variant without any Loadout has no configuration and lists what it can b
   // A companion-only match never offers the capability as something the model performs.
   assert.deepEqual(configurableCapabilities(vae.variants[0]!), []);
   assert.equal(vae.variants[0]!.useNotIdentified, false);
+  // …and its brand comes from the model setup it serves, not its own name.
+  assert.equal(vae.brandName, 'r-image');
+});
+
+test('a companion-only entry takes its brand name from the recipe of the referencing Loadout when no offer names it', () => {
+  const list = buildLocalModelList({
+    assets: [asset('textenc-q4', 'c-textenc-q4'), asset('vae', 'c-vae'), asset('diffusion', 'c-diffusion')],
+    catalog: [
+      descriptor('c-textenc-q4', 'asset-image-textenc-qwen3-4b-instruct-2507 (Q4_K_M)', 'Qwen3-4B-Instruct-2507-Q4_K_M.gguf', 'asset-image-textenc-qwen3-4b-instruct-2507'),
+      descriptor('c-vae', 'asset-image-vae-z-image-ae (F16)', 'ae.safetensors', 'asset-image-vae-z-image-ae'),
+      descriptor('c-diffusion', 'z-image-turbo-local (Q4_K_M)', 'z-image-turbo-Q4_K_M.safetensors', 'z-image-turbo'),
+    ],
+    recipes: [
+      recipe('z-image-turbo', 'image.generate', [
+        { slotId: 'main.diffusion', installed: ['diffusion'] },
+        { slotId: 'companion.text-encoder', installed: ['textenc-q4'] },
+      ], 'supported', 'Z Image Turbo generation'),
+    ],
+    loadouts: [
+      loadout('L-image', 'image.generate', [
+        { slotId: 'main.diffusion', modelAssetId: 'diffusion' },
+        { slotId: 'companion.vae', modelAssetId: 'vae' },
+      ], 'Z Image Turbo', 'configured', 'z-image-turbo'),
+    ],
+    selections: [],
+  });
+  const textenc = list.find((entry) => entry.modelKey === 'model:asset-image-textenc-qwen3-4b-instruct-2507');
+  assert.equal(textenc?.brandName, 'Z Image Turbo');
+  const vae = list.find((entry) => entry.modelKey === 'model:asset-image-vae-z-image-ae');
+  assert.equal(vae?.brandName, 'Z Image Turbo');
+  const model = list.find((entry) => entry.modelKey === 'model:z-image-turbo');
+  assert.ok(model);
+  assert.equal(model.brandName, model.title);
+});
+
+test('brand resolution includes later aliases and model roles across grouped variants', () => {
+  for (const reversed of [false, true]) {
+    const assets = [asset('unreferenced', 'shared'), asset('companion', 'shared')];
+    const input = {
+      assets: reversed ? [...assets].reverse() : assets,
+      catalog: [],
+      recipes: [recipe('image', 'image.generate', [
+        { slotId: 'companion.encoder', installed: ['companion'] },
+      ], 'supported', 'Z Image Turbo generation')],
+      loadouts: [],
+      selections: [],
+    };
+    assert.equal(buildLocalModelList(input)[0]?.brandName, 'Z Image Turbo');
+    const grouped = buildLocalModelList({
+      ...input,
+      assets: [...input.assets, asset('model', 'other-quant')],
+      catalog: [
+        descriptor('shared', 'Qwen3 (Q4_K_M)', 'qwen-Q4_K_M.gguf', 'qwen3'),
+        descriptor('other-quant', 'Qwen3 (Q8_0)', 'qwen-Q8_0.gguf', 'qwen3'),
+      ],
+      recipes: [...input.recipes, recipe('chat', 'text.generate', [
+        { slotId: 'main.model', installed: ['model'] },
+      ])],
+    });
+    assert.equal(grouped.length, 1);
+    assert.equal(grouped[0]?.brandName, grouped[0]?.title);
+  }
 });
 
 test('an unsupported recipe is not offered as configurable and the recipe bounds the slot applicability', () => {

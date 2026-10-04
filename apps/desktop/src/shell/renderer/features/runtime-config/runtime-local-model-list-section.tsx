@@ -5,8 +5,9 @@ import { Check, ChevronDown, FolderOpen } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
-import { IdentityTile } from '../../components/identity-tile.js';
+import { ModelFamilyLogoTile } from '../../components/provider-logo-tile.js';
 import type { CapabilityInventory, CapabilityPreparationState } from './runtime-capability-inventory.js';
+import { modelFamilySeed } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import {
@@ -141,7 +142,7 @@ function ModelCard(props: {
       data-testid={`local-model:${entry.modelKey}`}
     >
       <div className="flex items-center gap-3 px-4 pt-3.5">
-        <IdentityTile seed={entry.title.split(/\s+/u)[0] ?? entry.title} label={entry.title} size="sm" />
+        <ModelFamilyLogoTile name={entry.brandName} seed={modelFamilySeed(entry.brandName)} label={entry.title} size="sm" />
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{entry.title}</h3>
       </div>
       <div className="divide-y divide-[var(--nimi-border-subtle)]">
