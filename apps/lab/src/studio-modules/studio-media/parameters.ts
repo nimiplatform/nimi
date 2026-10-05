@@ -137,7 +137,7 @@ export const studioImageGenerateParameters = defineStudioParameters<StudioImageG
     quality: CLOUD_ONLY_STUDIO_PARAMETER,
     style: CLOUD_ONLY_STUDIO_PARAMETER,
     referenceImage: CLOUD_ONLY_STUDIO_PARAMETER,
-    referenceImageArtifactId: LOCAL_ONLY_STUDIO_PARAMETER,
+    referenceImageArtifactId: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     mask: CLOUD_ONLY_STUDIO_PARAMETER,
   },
 });

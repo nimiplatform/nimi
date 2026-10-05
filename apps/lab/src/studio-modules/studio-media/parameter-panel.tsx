@@ -39,6 +39,7 @@ function ImageFields(props: StudioParameterPanelProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploadedFileName, setUploadedFileName] = useState('');
+  const imageMimes = props.source === 'cloud' ? ['image/png', 'image/jpeg'] : STUDIO_IMAGE_MIME_TYPES;
   async function selectReferenceImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
@@ -47,8 +48,8 @@ function ImageFields(props: StudioParameterPanelProps) {
       setUploadError(t('Studio.parameters.imageFileTooLarge'));
       return;
     }
-    if (!isStudioImageMimeType(file.type)) {
-      setUploadError(t('Studio.parameters.imageFileMimeUnsupported'));
+    if (!isStudioImageMimeType(file.type) || !imageMimes.includes(file.type as StudioImageMimeType)) {
+      setUploadError(t(props.source === 'cloud' ? 'Studio.parameters.cloudImageFileMimeUnsupported' : 'Studio.parameters.imageFileMimeUnsupported'));
       return;
     }
     setUploading(true);
@@ -112,7 +113,7 @@ function ImageFields(props: StudioParameterPanelProps) {
       label: t('Studio.parameters.fields.referenceImageFile'),
       render: (routeDisabled) => (
         <StudioParameterField label={t('Studio.parameters.fields.referenceImageFile')}>
-          <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={props.disabled || routeDisabled || uploading} onChange={(event) => void selectReferenceImage(event)} />
+          <input ref={inputRef} className="studio-parameters__file-input" type="file" accept={imageMimes.join(',')} disabled={props.disabled || routeDisabled || uploading} onChange={(event) => void selectReferenceImage(event)} />
           <div className="studio-parameters__file-row">
             <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled || uploading} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
               {uploading ? t('Studio.parameters.uploadingImage') : t('Studio.parameters.chooseImageFile')}
@@ -125,6 +126,7 @@ function ImageFields(props: StudioParameterPanelProps) {
             ) : null}
           </div>
           {uploadError ? <small>{uploadError}</small> : null}
+          <small>{t(props.source === 'cloud' ? 'Studio.parameters.cloudImageReferenceHint' : 'Studio.parameters.imageReferenceHint')}</small>
         </StudioParameterField>
       ),
     },

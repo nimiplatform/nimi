@@ -30,6 +30,9 @@ export const studioMediaRuntimeHandlers: StudioCapabilityRuntimeHandlers = Objec
 async function runImageGenerate(context: StudioCapabilityRuntimeContext) {
   if (!context.prompt) return inputRequired(context);
   const parameters = context.input.parameters as StudioImageGenerationParameters | undefined;
+  if (parameters?.referenceImage?.trim() && parameters.referenceImageArtifactId?.trim()) {
+    return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.parameters.imageReferenceExclusive'));
+  }
   const result = await context.host.runners.imageGenerate({
     runtime: { ai: createStudioScenarioJobClient(context) },
     appId: context.host.appId,

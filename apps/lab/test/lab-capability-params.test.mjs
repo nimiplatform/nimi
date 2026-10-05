@@ -65,15 +65,8 @@ test('Local text preserves admitted fields and image exposes only artifact custo
   for (const field of ['referenceImage', 'mask']) {
     assert.equal(cloudImage.get(field)?.state, 'enabled', `image.generate.${field}`);
   }
-  assert.deepEqual(cloudImage.get('referenceImageArtifactId'), {
-    field: 'referenceImageArtifactId', state: 'disabled', unavailableBecause: 'route',
-  });
-  assert.deepEqual(project('image.generate', 'cloud', {
-    referenceImage: 'https://example.test/reference.png',
-    referenceImageArtifactId: 'artifact-image-source-1',
-  }), {
-    referenceImage: 'https://example.test/reference.png',
-  });
+  assert.equal(cloudImage.get('referenceImageArtifactId')?.state, 'enabled');
+  assert.deepEqual(project('image.generate', 'cloud', { referenceImageArtifactId: 'artifact-image-source-1' }), { referenceImageArtifactId: 'artifact-image-source-1' });
   assert.deepEqual(project('image.generate', 'local', {
     referenceImage: 'https://example.test/reference.png',
     referenceImageArtifactId: 'artifact-image-source-1',
@@ -179,8 +172,7 @@ test('Cloud enables carrier fields but not private Local App scheduling fields',
     for (const [field, item] of states(capabilityId, 'cloud')) {
       if (capabilityId === 'video.generate' && ['serviceTier', 'executionExpiresAfterSec'].includes(field)) {
         assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'local-app-surface' });
-      } else if ((capabilityId === 'image.generate' && field === 'referenceImageArtifactId')
-        || (capabilityId === 'video.generate' && field === 'referenceArtifactId')) {
+      } else if (capabilityId === 'video.generate' && field === 'referenceArtifactId') {
         assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'route' });
       } else {
         assert.equal(item.state, 'enabled', `${capabilityId}.${field}`);
