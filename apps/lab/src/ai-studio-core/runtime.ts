@@ -21,6 +21,7 @@ import {
 } from '@nimiplatform/sdk/app';
 import type {
   StudioAudioSeparation,
+  StudioAudioSeparationRequest,
   StudioCapabilityRunInput,
   StudioCapabilityRunResult,
   StudioManagedArtifact,
@@ -80,6 +81,7 @@ export type StudioCapabilityRuntimeContext = {
   readonly voiceSourceVocal?: StudioManagedArtifact;
   readonly voiceTargetAudio?: StudioManagedArtifact;
   readonly separationSourceAudio?: StudioManagedArtifact;
+  readonly separationRequest?: StudioAudioSeparationRequest;
   readonly capability: StudioRuntimeCapabilityDescriptor;
   readonly input: StudioCapabilityRunInput;
   readonly prompt: string;
@@ -297,6 +299,7 @@ export async function projectStudioArtifactRunnerResult(
     const vocals = stemFor(value.vocalsArtifactId);
     const background = stemFor(value.backgroundArtifactId);
     audioSeparation = { sourceAudio: context.separationSourceAudio, vocals, background,
+      ...(context.separationRequest ? { request: context.separationRequest } : {}),
       ...(value.instrumentParts?.length ? { instrumentParts: value.instrumentParts.map(part => ({ kind: part.kind, artifact: stemFor(part.artifactId) })) } : {}) };
   }
   if (result.output.kind === 'music-artifacts') {

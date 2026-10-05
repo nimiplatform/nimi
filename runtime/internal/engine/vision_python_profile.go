@@ -15,7 +15,7 @@ const VisionLocateConsumerID = capabilitydriver.LocateAnythingConsumerID
 const GroundingDinoConsumerID = capabilitydriver.GroundingDinoConsumerID
 const visionDriverProtocolVersion = capabilitydriver.LocateAnythingProtocol
 
-//go:embed assets/vision_server.py assets/vision_locate.py assets/grounding_dino_locator.py assets/locateanything_loader/*
+//go:embed assets/vision_server.py assets/vision_locate.py assets/grounding_dino_locator.py assets/locateanything_loader/*.py assets/locateanything_loader/LICENSE* assets/locateanything_loader/NOTICE.md
 var visionDriverBundle embed.FS
 
 func visionPythonBackend(platformTuple, acceleratorPlane string) (string, error) {

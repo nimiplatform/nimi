@@ -7724,6 +7724,108 @@ models:
         total_size_bytes: 242862
         host_requirement:
           accelerator: cpu
+  - model_id: spleeter-2stems-local
+    provider: local
+    model_type: music
+    updated_at: 2026-10-05
+    capabilities:
+      - audio.separate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/deezer/spleeter/releases/tag/v1.4.0
+      retrieved_at: 2026-10-05
+      note: Official ordinary 2/4 stems; Deezer authors paper explicitly licenses code and pretrained models under MIT.
+    family: spleeter
+    install:
+      repo: deezer/spleeter
+      revision: v1.4.0
+      install_kind: verified-release-archive
+      entry: model.meta
+      artifact_roles:
+        - music_model
+      license: MIT
+      provenance: Official Deezer v1.4.0 ordinary 2stems checkpoint, tag commit 556ef2121492d72398a988af1b38b55176f5973a; MIT notice retained in shipped Runtime Driver distribution.
+      preferred_engine: sidecar
+    variants:
+      - variant_id: local.audio.spleeter.2stems.f32.cpu
+        quant: F32
+        entry: model.meta
+        files:
+          - checkpoint
+          - model.data-00000-of-00001
+          - model.index
+          - model.meta
+        hashes:
+          checkpoint: sha256:011c96b970c1f56137037924fe1a0f0851369b0ee6692e120aea798615326f48
+          model.data-00000-of-00001: sha256:7747f9fd2c782306dbec1504360fbb645a097a48446f23486c3ff9c89bc11788
+          model.index: sha256:55661a09f79c86071fc7077b44b4cf1f01b6d82bbbb83ed94cb68a2f9944e378
+          model.meta: sha256:6e1f6d86a22bb452a58cb20e3de87b416f8a79e626ca223e20f763ab2d21ec95
+        total_size_bytes: 79424966
+        host_requirement:
+          accelerator: cpu
+        archive:
+          file: 2stems.tar.gz
+          format: tar.gz
+          sha256: sha256:f3a90b39dd2874269e8b05a48a86745df897b848c61f3958efc80a39152bd692
+          size_bytes: 73109797
+          root: .
+  - model_id: spleeter-4stems-local
+    provider: local
+    model_type: music
+    updated_at: 2026-10-05
+    capabilities:
+      - audio.separate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/deezer/spleeter/releases/tag/v1.4.0
+      retrieved_at: 2026-10-05
+      note: Official ordinary 2/4 stems; Deezer authors paper explicitly licenses code and pretrained models under MIT.
+    family: spleeter
+    install:
+      repo: deezer/spleeter
+      revision: v1.4.0
+      install_kind: verified-release-archive
+      entry: model.meta
+      artifact_roles:
+        - music_model
+      license: MIT
+      provenance: Official Deezer v1.4.0 ordinary 4stems checkpoint, tag commit 556ef2121492d72398a988af1b38b55176f5973a; MIT notice retained in shipped Runtime Driver distribution.
+      preferred_engine: sidecar
+    variants:
+      - variant_id: local.audio.spleeter.4stems.f32.cpu
+        quant: F32
+        entry: model.meta
+        files:
+          - checkpoint
+          - model.data-00000-of-00001
+          - model.index
+          - model.meta
+        hashes:
+          checkpoint: sha256:011c96b970c1f56137037924fe1a0f0851369b0ee6692e120aea798615326f48
+          model.data-00000-of-00001: sha256:3823e0ef50835cca3907c386dc9667a6a9af77b40a20c3ab845a8d6c9592255d
+          model.index: sha256:99ea41b3ef9bfbc6a34520409427af5ba7a883173e57ea25d6c487584b891b18
+          model.meta: sha256:f2c2843e3c8c84c737d0ba642fef798d24056f8dbb0b2e2d58a19de55b20034e
+        total_size_bytes: 158827034
+        host_requirement:
+          accelerator: cpu
+        archive:
+          file: 4stems.tar.gz
+          format: tar.gz
+          sha256: sha256:3adb4a50ad4eb18c7c4d65fcf4cf2367a07d48408a5eb7d03cd20067429dfaa8
+          size_bytes: 146308147
+          root: .
 voices:
   - voice_id: Vivian
     voice_set_id: local:qwen3-tts-audio-cpp-v1
@@ -9907,6 +10009,46 @@ loadout_recipes:
           - sha256:24b5e2a22dbb7575cb3cdd999ac96f24eb5cac6a38df6fc32446fe3a5c96763a
         model_contract:
           format: onnx
+          artifact_role: music_model
+  - recipe_id: spleeter.2stems.tf-cpu.v1
+    revision: "1"
+    title: Spleeter 2 stems CPU
+    capability_contract: audio.separate
+    implementation_id: local.audio.separate.spleeter.tf-cpu
+    driver_id: nimi.runtime.driver.python.spleeter
+    driver_dialect: python/spleeter-tf/audio-separate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: separation.model
+        display_label: Spleeter 2 stems checkpoint
+        recommended_variant_ids:
+          - local.audio.spleeter.2stems.f32.cpu
+        recommended_content_ids:
+          - sha256:64f93fd4a6556b82033fcfd1eefd0352607544de66706eedcbfe77b396b47aee
+        model_contract:
+          format: tensorflow-checkpoint
+          artifact_role: music_model
+  - recipe_id: spleeter.4stems.tf-cpu.v1
+    revision: "1"
+    title: Spleeter 4 stems CPU
+    capability_contract: audio.separate
+    implementation_id: local.audio.separate.spleeter.tf-cpu
+    driver_id: nimi.runtime.driver.python.spleeter
+    driver_dialect: python/spleeter-tf/audio-separate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: separation.model
+        display_label: Spleeter 4 stems checkpoint
+        recommended_variant_ids:
+          - local.audio.spleeter.4stems.f32.cpu
+        recommended_content_ids:
+          - sha256:45aa223901d7d2d1b614b896eab6d63da69a535c32cced32495974fc8a299a30
+        model_contract:
+          format: tensorflow-checkpoint
           artifact_role: music_model
   - recipe_id: faster-whisper-vad
     revision: "1"

@@ -141,7 +141,7 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 		}
 		_, passive := localPassiveModelTypes[strings.ToLower(strings.TrimSpace(model.ModelType))]
 		vision := strings.EqualFold(strings.TrimSpace(model.ModelType), "vision")
-		fitnessOptional := localMusicTranscriptionOffer(model) || vision || strings.EqualFold(strings.TrimSpace(model.ModelType), "tts") || strings.EqualFold(strings.TrimSpace(model.ModelType), "stt")
+		fitnessOptional := localAudioDerivedSymbolicOffer(model) || vision || strings.EqualFold(strings.TrimSpace(model.ModelType), "tts") || strings.EqualFold(strings.TrimSpace(model.ModelType), "stt")
 		if vision && strings.TrimSpace(model.Install.PreferredEngine) != "" {
 			return fmt.Errorf("local vision ModelAsset offer %q must not select a public engine", model.ModelID)
 		}
@@ -208,7 +208,7 @@ var (
 )
 
 // ValidateLocalPlaneArchive admits one official release archive source: a
-// GitHub owner/repository, a release tag, a single-segment asset name, the zip
+// GitHub owner/repository, a release tag, a single-segment asset name, the zip or tar.gz
 // format, exact archive integrity, and a canonical data root. Declared files
 // are canonical paths below that root.
 func ValidateLocalPlaneArchive(repo string, revision string, archive LocalPlaneArchive, files []string) error {
@@ -221,7 +221,7 @@ func ValidateLocalPlaneArchive(repo string, revision string, archive LocalPlaneA
 	if !localReleaseSegmentPattern.MatchString(archive.File) || strings.Contains(archive.File, "..") {
 		return fmt.Errorf("release archive file %q must be one asset name", archive.File)
 	}
-	if archive.Format != "zip" {
+	if archive.Format != "zip" && archive.Format != "tar.gz" {
 		return fmt.Errorf("release archive format %q is not admitted", archive.Format)
 	}
 	if !localExactSHA256Pattern.MatchString(archive.SHA256) {
@@ -230,7 +230,7 @@ func ValidateLocalPlaneArchive(repo string, revision string, archive LocalPlaneA
 	if archive.SizeBytes <= 0 {
 		return fmt.Errorf("release archive size_bytes must be positive")
 	}
-	if !canonicalArchivePath(archive.Root) {
+	if !(archive.Format == "tar.gz" && archive.Root == ".") && !canonicalArchivePath(archive.Root) {
 		return fmt.Errorf("release archive root %q is not canonical", archive.Root)
 	}
 	if len(files) == 0 {
@@ -420,9 +420,9 @@ func cloneAnyMap(input map[string]any) map[string]any {
 	return result
 }
 
-func localMusicTranscriptionOffer(model *ModelEntry) bool {
+func localAudioDerivedSymbolicOffer(model *ModelEntry) bool {
 	for _, capability := range model.Capabilities {
-		if capability == "music.transcribe" {
+		if capability == "music.transcribe" || capability == "audio.separate" {
 			return true
 		}
 	}

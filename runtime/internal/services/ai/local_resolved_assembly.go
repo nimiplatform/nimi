@@ -111,35 +111,35 @@ type localResolvedAssemblyLoadPlan struct {
 }
 
 type localResolvedAssemblyMusicPlan struct {
-	Python                         *capabilitydriver.MusicPythonPlan `json:"python,omitempty"`
-	SourcePath                     string                            `json:"source_path,omitempty"`
-	SourceInfo                     *runtimev1.LocalAppAudioInfo      `json:"source_info,omitempty"`
-	TargetPath                     string                            `json:"target_path,omitempty"`
-	TargetInfo                     *runtimev1.LocalAppAudioInfo      `json:"target_info,omitempty"`
-	StagingDirectory               string                            `json:"staging_directory,omitempty"`
-	ProcessKey                     string                            `json:"process_key"`
-	AudioCppPackageID              string                            `json:"audio_cpp_package_id"`
-	AudioCppSelectedSourceRecordID string                            `json:"audio_cpp_selected_source_record_id"`
-	AudioCppRoot                   string                            `json:"audio_cpp_root"`
-	AudioCppExecutablePath         string                            `json:"audio_cpp_executable_path"`
-	CUDA13DependencyID             string                            `json:"cuda13_dependency_id"`
-	CUDA13SelectedSourceRecordID   string                            `json:"cuda13_selected_source_record_id"`
-	CUDA13Root                     string                            `json:"cuda13_root"`
-	ModelRoot                      string                            `json:"model_root"`
-	LanguageModelPath              string                            `json:"language_model_path"`
-	RVQDepthDecoderPath            string                            `json:"rvq_depth_decoder_path"`
-	FlowTransformerPath            string                            `json:"flow_transformer_path"`
-	DurationBudgetSeconds          int                               `json:"duration_budget_seconds"`
-	NumInferenceSteps              int                               `json:"num_inference_steps"`
-	GuidanceScale                  float64                           `json:"guidance_scale"`
-	ARGuidanceScale                float64                           `json:"ar_guidance_scale"`
-	TopK                           int                               `json:"top_k"`
-	Seed                           uint64                            `json:"seed"`
-	MemorySaver                    bool                              `json:"memory_saver"`
-	StagingWAVPath                 string                            `json:"staging_wav_path"`
-	ExpectedSampleRate             int                               `json:"expected_sample_rate"`
-	ExpectedChannels               int                               `json:"expected_channels"`
-	ExpectedBitsPerSample          int                               `json:"expected_bits_per_sample"`
+	Python                         *capabilitydriver.PythonInvocationPlan `json:"python,omitempty"`
+	SourcePath                     string                                 `json:"source_path,omitempty"`
+	SourceInfo                     *runtimev1.LocalAppAudioInfo           `json:"source_info,omitempty"`
+	TargetPath                     string                                 `json:"target_path,omitempty"`
+	TargetInfo                     *runtimev1.LocalAppAudioInfo           `json:"target_info,omitempty"`
+	StagingDirectory               string                                 `json:"staging_directory,omitempty"`
+	ProcessKey                     string                                 `json:"process_key"`
+	AudioCppPackageID              string                                 `json:"audio_cpp_package_id"`
+	AudioCppSelectedSourceRecordID string                                 `json:"audio_cpp_selected_source_record_id"`
+	AudioCppRoot                   string                                 `json:"audio_cpp_root"`
+	AudioCppExecutablePath         string                                 `json:"audio_cpp_executable_path"`
+	CUDA13DependencyID             string                                 `json:"cuda13_dependency_id"`
+	CUDA13SelectedSourceRecordID   string                                 `json:"cuda13_selected_source_record_id"`
+	CUDA13Root                     string                                 `json:"cuda13_root"`
+	ModelRoot                      string                                 `json:"model_root"`
+	LanguageModelPath              string                                 `json:"language_model_path"`
+	RVQDepthDecoderPath            string                                 `json:"rvq_depth_decoder_path"`
+	FlowTransformerPath            string                                 `json:"flow_transformer_path"`
+	DurationBudgetSeconds          int                                    `json:"duration_budget_seconds"`
+	NumInferenceSteps              int                                    `json:"num_inference_steps"`
+	GuidanceScale                  float64                                `json:"guidance_scale"`
+	ARGuidanceScale                float64                                `json:"ar_guidance_scale"`
+	TopK                           int                                    `json:"top_k"`
+	Seed                           uint64                                 `json:"seed"`
+	MemorySaver                    bool                                   `json:"memory_saver"`
+	StagingWAVPath                 string                                 `json:"staging_wav_path"`
+	ExpectedSampleRate             int                                    `json:"expected_sample_rate"`
+	ExpectedChannels               int                                    `json:"expected_channels"`
+	ExpectedBitsPerSample          int                                    `json:"expected_bits_per_sample"`
 }
 
 type localResolvedAssemblyInvocationBinding struct {
@@ -201,18 +201,19 @@ type localResolvedAssemblySpeechPlan struct {
 // source staged for the selected separation process so execution re-plans the
 // exact captured input instead of the inline-bytes carrier.
 type localResolvedAssemblySeparationPlan struct {
-	ProcessKey                     string                       `json:"process_key"`
-	CLIArgs                        []string                     `json:"cli_args"`
-	AudioCppPackageID              string                       `json:"audio_cpp_package_id"`
-	AudioCppSelectedSourceRecordID string                       `json:"audio_cpp_selected_source_record_id"`
-	AudioCppRoot                   string                       `json:"audio_cpp_root"`
-	AudioCppExecutablePath         string                       `json:"audio_cpp_executable_path"`
-	CUDA13DependencyID             string                       `json:"cuda13_dependency_id"`
-	CUDA13SelectedSourceRecordID   string                       `json:"cuda13_selected_source_record_id"`
-	CUDA13Root                     string                       `json:"cuda13_root"`
-	SourcePath                     string                       `json:"source_path"`
-	SourceInfo                     *runtimev1.LocalAppAudioInfo `json:"source_info"`
-	StagingDirectory               string                       `json:"staging_directory"`
+	Python                         *capabilitydriver.PythonInvocationPlan `json:"python,omitempty"`
+	ProcessKey                     string                                 `json:"process_key"`
+	CLIArgs                        []string                               `json:"cli_args"`
+	AudioCppPackageID              string                                 `json:"audio_cpp_package_id"`
+	AudioCppSelectedSourceRecordID string                                 `json:"audio_cpp_selected_source_record_id"`
+	AudioCppRoot                   string                                 `json:"audio_cpp_root"`
+	AudioCppExecutablePath         string                                 `json:"audio_cpp_executable_path"`
+	CUDA13DependencyID             string                                 `json:"cuda13_dependency_id"`
+	CUDA13SelectedSourceRecordID   string                                 `json:"cuda13_selected_source_record_id"`
+	CUDA13Root                     string                                 `json:"cuda13_root"`
+	SourcePath                     string                                 `json:"source_path"`
+	SourceInfo                     *runtimev1.LocalAppAudioInfo           `json:"source_info"`
+	StagingDirectory               string                                 `json:"staging_directory"`
 }
 
 type localResolvedAssemblyAudioCppReferenceVoicePlan struct {
@@ -622,7 +623,7 @@ func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecut
 		binaryInput, mimeType = separate.AudioBytes(), separate.MIMEType()
 		if separate.SourcePath() != "" {
 			pkg := separate.NativeAudioCppPackage()
-			plan.SeparationSource = &localResolvedAssemblySeparationPlan{ProcessKey: separate.NativeProcessKey(), CLIArgs: separate.NativeCLIArgs(),
+			plan.SeparationSource = &localResolvedAssemblySeparationPlan{Python: separate.PythonExecution(), ProcessKey: separate.NativeProcessKey(), CLIArgs: separate.NativeCLIArgs(),
 				AudioCppPackageID: pkg.AudioCppPackageID, AudioCppSelectedSourceRecordID: pkg.AudioCppSelectedSourceRecordID, AudioCppRoot: pkg.AudioCppRoot,
 				AudioCppExecutablePath: pkg.AudioCppExecutablePath, CUDA13DependencyID: pkg.CUDA13DependencyID, CUDA13SelectedSourceRecordID: pkg.CUDA13SelectedSourceRecordID,
 				CUDA13Root: pkg.CUDA13Root, SourcePath: separate.SourcePath(), SourceInfo: separate.SourceInfo(),

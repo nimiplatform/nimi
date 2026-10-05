@@ -12,7 +12,7 @@ func TestBuiltInSpacyOffersArePinnedReleaseArchives(t *testing.T) {
 	}
 	seen := 0
 	for _, row := range local.LocalPlaneModels() {
-		if row.Install == nil || row.Install.InstallKind != LocalInstallKindReleaseArchive {
+		if row.Install == nil || row.Install.InstallKind != LocalInstallKindReleaseArchive || row.Install.Repo != "explosion/spacy-models" {
 			continue
 		}
 		for _, variant := range row.Variants {
@@ -48,7 +48,7 @@ func TestValidateLocalPlaneArchiveRejectsUnsafeSources(t *testing.T) {
 		},
 		"format": func() error {
 			bad := valid
-			bad.Format = "tar.gz"
+			bad.Format = "rar"
 			return ValidateLocalPlaneArchive("owner/repo", "pkg-1.0", bad, []string{"config.cfg"})
 		},
 		"digest": func() error {

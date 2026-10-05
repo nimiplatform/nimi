@@ -666,3 +666,13 @@ units:
         target: definition.nimi.runtime.model-catalog.github-commit-model-files
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
+  - id: rule.nimi.runtime.model-catalog.github-release-tar-model-archives
+    kind: rule
+    title: Pinned GitHub tar archives use bounded verified acquisition
+    modality: must
+    statement: A reviewed verified-release-archive offer may declare format tar.gz and root . for a top-level payload, while existing zip directory roots retain their meaning. Runtime derives the URL from the reviewed official owner/repository, release tag and single asset name, captures exact compressed SHA-256 and size plus the complete installed file identities in the existing durable Transfer, and verifies the compressed archive before a bounded gzip/tar scan. The scan validates every path and normalized case identity, rejects traversal, collisions, links and special entries, enforces compressed and uncompressed budgets, verifies every declared file and missing-file condition before extraction, and never writes undeclared metadata. Extraction remains in owned staging under the existing object writer grants and publishes only individually verified payload objects and a complete ModelAsset; pause, resume and cancel retain existing explicit controls. A leading ./ archive prefix is normalized only as a top-level tar entry spelling, never as an escape or compatibility lookup. Rights attribution may be retained in the shipped Driver distribution with explicit provenance rather than falsely claiming it was present in the upstream archive.
+    condition: Whenever a reviewed GitHub release tar ModelAsset offer is acquired, resumed or published.
+    failure: Fail the Transfer on unsafe, oversized, incomplete, changed or corrupt archives without publishing an incomplete ModelAsset, bypassing ownership or extracting arbitrary files.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane

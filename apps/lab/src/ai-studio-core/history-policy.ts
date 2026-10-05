@@ -1,5 +1,6 @@
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import { validateNimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
+import { isAudioSeparationRequest } from './audio-separation-request.js';
 
 import type { AIStudioHistoryPanelPreferences } from './workspace.js';
 import type { StudioRunHistory, StudioRunHistoryRecord } from './history.js';
@@ -396,6 +397,7 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
         || !isJsonObject(separation) || !isJsonObject(separation.vocals) || !isJsonObject(separation.background) || !Array.isArray(value.artifacts)) {
         historyError(path, 'requires complete audio separation metadata');
       }
+      if (separation.request !== undefined && !isAudioSeparationRequest(separation.request)) historyError(path, 'has an invalid separation request');
       validateManagedArtifact(separation.sourceAudio, `${path}.sourceAudio`);
       if (!isJsonObject(separation.sourceAudio) || separation.sourceAudio.mediaType !== 'audio/wav') historyError(path, 'requires saved canonical source audio');
       validateManagedArtifact(separation.vocals, `${path}.vocals`);

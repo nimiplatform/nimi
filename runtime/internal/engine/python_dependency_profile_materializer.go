@@ -84,6 +84,7 @@ type pythonDependencyProfileCommandRunner func(
 ) (string, error)
 
 type pythonDependencyProfileProbe struct {
+	TensorFlowVersion      string   `json:"tensorflow_version"`
 	ONNXRuntimeVersion     string   `json:"onnxruntime_version"`
 	PythonVersion          string   `json:"python_version"`
 	PythonCacheTag         string   `json:"python_cache_tag"`
@@ -601,6 +602,9 @@ func verifyPythonDependencyProfile(
 		}
 	}
 	probeScript := pythonDependencyProfileTorchProbeScript(identity.AcceleratorPlane)
+	if strings.TrimSpace(consumer) == SpleeterConsumerID {
+		probeScript = "from spleeter_driver import probe_environment; probe_environment()"
+	}
 	if strings.TrimSpace(consumer) == BasicPitchConsumerID {
 		probeScript = "from basic_pitch_driver import probe_environment; probe_environment()"
 	}
@@ -625,7 +629,9 @@ func verifyPythonDependencyProfile(
 	if err != nil {
 		return PythonDependencyProfileStatus{}, err
 	}
-	if strings.TrimSpace(consumer) == BasicPitchConsumerID {
+	if strings.TrimSpace(consumer) == SpleeterConsumerID {
+		err = verifySpleeterProfileProbe(observed, identity)
+	} else if strings.TrimSpace(consumer) == BasicPitchConsumerID {
 		err = verifyBasicPitchProfileProbe(observed, identity)
 	} else if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		err = verifyFaceSwapProfileProbe(observed, identity)
@@ -813,7 +819,7 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 	if err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(consumer) == BasicPitchConsumerID {
+	if strings.TrimSpace(consumer) == BasicPitchConsumerID || strings.TrimSpace(consumer) == SpleeterConsumerID {
 		return packageManifest.ImportProbes, nil
 	}
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
@@ -866,6 +872,9 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 
 func verifyPythonDependencyProfileDriverBundle(root string, consumer string) error {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == SpleeterConsumerID {
+		return verifySpleeterDriverBundle(root)
+	}
 	if trimmedConsumer == BasicPitchConsumerID {
 		return verifyBasicPitchDriverBundle(root)
 	}
@@ -896,6 +905,9 @@ func pythonDependencyProfileDriverCommands(root string, consumer string) map[str
 
 func pythonDependencyProfileDriverScripts(root string, consumer string) []string {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == SpleeterConsumerID {
+		return []string{filepath.Join(root, "spleeter_driver.py")}
+	}
 	if trimmedConsumer == BasicPitchConsumerID {
 		return []string{filepath.Join(root, "basic_pitch_driver.py")}
 	}

@@ -89,7 +89,11 @@
     "preparationHint": "Audio is decoded to canonical PCM before submission. Stopping during preparation prevents the Job from starting once decoding finishes.",
     "recoveryMissingJob": "This separation was recorded before its job was identified, so it cannot be recovered. Remove the record to abandon it.",
     "result": "Separated stems",
-    "derivation": "The source was prepared as canonical PCM before submission. When its sample rate or channel layout differs from the selected implementation's input domain (HTDemucs: 44.1 kHz stereo), this App first requests one explicit derived conversion, and the source shown here is that converted input. No hidden downmix or channel change is applied; the stems are shown exactly as returned.",
+    "processedRange": "Processed range: {{start}}–{{end}} seconds of the source. Each output track starts at 0 seconds, corresponding to {{start}} seconds in the source. The source player retains the full recording.",
+    "processedRangeToEnd": "Processed range: {{start}} seconds through the end of the source. Each output track starts at 0 seconds, corresponding to {{start}} seconds in the source. The source player retains the full recording.",
+    "processedFullSource": "Processed range: the full source recording. Each output track starts at the beginning of the source.",
+    "processedRangeUnknown": "This result did not record its processed range, so the output tracks' start position in the source is unknown. The source player retains the full recording.",
+    "derivation": "The source was prepared as canonical PCM before submission. When its sample rate or channel layout differs from the selected implementation's input domain, this App first requests one explicit derived conversion, and the source shown here is that converted input. No hidden downmix or channel change is applied; the stems are shown exactly as returned.",
     "vocals": "Vocals",
     "background": "Background",
     "parts": {

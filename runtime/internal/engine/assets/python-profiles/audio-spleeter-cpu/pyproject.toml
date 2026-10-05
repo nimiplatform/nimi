@@ -1,0 +1,12 @@
+[project]
+name = "nimi-managed-python-profile"
+version = "0.0.0"
+requires-python = "==3.12.13"
+dependencies = ["tensorflow==2.16.1", "tensorflow-intel==2.16.1", "numpy==1.26.4", "soundfile==0.12.1"]
+[tool.uv]
+package = false
+environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'"]
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true

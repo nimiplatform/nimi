@@ -32,6 +32,10 @@ const promptDraftOutput = ts.transpileModule(promptDraftSource, {
 const promptDraftModuleUrl = `data:text/javascript;base64,${Buffer.from(promptDraftOutput).toString('base64')}`;
 const sdkTypesStubUrl = `data:text/javascript;base64,${Buffer.from('export const isJsonObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);').toString('base64')}`;
 const sdkAppModuleUrl = import.meta.resolve('@nimiplatform/sdk/app');
+const separationRequestOutput = ts.transpileModule(read('src/ai-studio-core/audio-separation-request.ts'), {
+  compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const separationRequestModuleUrl = `data:text/javascript;base64,${Buffer.from(separationRequestOutput).toString('base64')}`;
 const historyPolicySource = read('src/ai-studio-core/history-policy.ts');
 const historyPolicyOutput = ts.transpileModule(historyPolicySource, {
   compilerOptions: {
@@ -44,6 +48,9 @@ const historyPolicyOutput = ts.transpileModule(historyPolicySource, {
 ).replace(
   /from\s+['"]@nimiplatform\/sdk\/app['"]/g,
   `from ${JSON.stringify(sdkAppModuleUrl)}`,
+).replace(
+  /from\s+['"]\.\/audio-separation-request\.js['"]/g,
+  `from ${JSON.stringify(separationRequestModuleUrl)}`,
 );
 const historyPolicyModuleUrl = `data:text/javascript;base64,${Buffer.from(historyPolicyOutput).toString('base64')}`;
 const { outputText } = ts.transpileModule(source, {

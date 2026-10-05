@@ -26,6 +26,7 @@ await build({
   stdin: {
     contents: `export { SectionAITesting } from './src/ai-studio-core/section-ai-testing.tsx';
       export { TextStudioComposer } from './src/ai-studio-core/section-ai-testing-composer.tsx';
+      export { TextStudioResultState } from './src/ai-studio-core/section-ai-testing-result.tsx';
       export { textStudioMediaInputAvailable } from './src/ai-studio-core/section-ai-testing-input.ts';
       export { AIStudioHostProvider } from './src/ai-studio-core/host-context.tsx';
       export { StudioCapabilityParameterContext } from './src/ai-studio-core/contexts.tsx';
@@ -36,7 +37,7 @@ await build({
   outfile:path.join(buildDir,'studio.mjs'), bundle:true, packages:'external',
   platform:'node', format:'esm', target:'es2022', jsx:'automatic', logLevel:'silent',
 });
-const { SectionAITesting, TextStudioComposer, textStudioMediaInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
+const { SectionAITesting, TextStudioComposer, TextStudioResultState, textStudioMediaInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 
 test.after(async () => {
   dom.window.close();
@@ -597,4 +598,57 @@ test('saved speech replay and draft restore keep the recorded voice and complete
     assert.equal(registration.parameters.restoreRecordedParameters({ voiceKind: 'unknown' }), null);
     assert.equal(registration.parameters.restoreRecordedParameters({ language: { bad: true } }), null);
   } finally { await act(async () => { renderer.unmount(); }); }
+});
+
+test('saved separation range stays with its own submission across history, whole-source and unknown records', async () => {
+  const registration = labStudioComposition.getCapability('audio.separate');
+  const asset = name => ({ relativePath: `audio/${name}.wav`, mediaType: 'audio/wav', sizeBytes: 58,
+    sha256: `sha256:${'a'.repeat(64)}`, previewSource: 'managed-asset' });
+  const separation = { sourceAudio: asset('full-source'), vocals: asset('vocals'), background: asset('background') };
+  const draftTarget = { capabilityId: 'audio.separate', capabilityContract: 'audio.separate', section: 'music',
+    source: 'local', status: 'configured', intentLabel: 'Local', paramsSummary: [], profileOrigin: null,
+    params: { sourceRelativePath: 'draft.wav', startSeconds: 5, endSeconds: 6 } };
+  const record = parameters => ({ id: 'saved-separation', capabilityId: 'audio.separate', prompt: '',
+    createdAt: '2026-10-05T01:24:17.000Z', status: 'ready', message: 'saved',
+    result: { ok: true, kind: 'artifacts', summary: 'completed', jobId: 'saved-job', jobState: 'completed',
+      artifactCount: 2, artifacts: [separation.vocals, separation.background], audioSeparation: separation },
+    runConfig: { target: { ...draftTarget, params: parameters }, promptControls: { context: '', contextAttached: false, attachmentCount: 0 } } });
+  const host = { translate: (key, values) => key + (values ? JSON.stringify(values) : ''), locale: 'en', clock: { now: () => Date.now() },
+    app: { projection: { projectRunTarget: () => draftTarget, runStatusLabel: status => status }, commands: {} }, sdk: {} };
+  const props = { registration, activeRun: { prompt: '', context: '', record: record({ sourceRelativePath: 'saved.wav', startSeconds: 2, endSeconds: 9 }) },
+    admission: {}, intentLabel: 'Local', running: false, canRegenerate: false, cancelRequested: false,
+    streamingText: null, verboseConsole: false, composer: null, onCopy() {}, onDownload() {}, onRegenerate() {}, onUseAsDraft() {} };
+  const container = document.getElementById('root');
+  const renderer = createRoot(container);
+  const render = () => renderer.render(createElement(TooltipProvider, null,
+    createElement(AIStudioHostProvider, { value: host }, createElement(TextStudioResultState, props))));
+  const range = () => container.querySelector('[data-audio-separation-range]')?.textContent;
+  try {
+    await act(async () => render());
+    assert.equal(range(), 'AudioSeparate.processedRange{"start":2,"end":9}');
+    draftTarget.params = { sourceRelativePath: 'changed-draft.wav', startSeconds: 1, endSeconds: 3 };
+    await act(async () => render());
+    assert.equal(range(), 'AudioSeparate.processedRange{"start":2,"end":9}', 'current draft cannot change a saved range');
+    props.activeRun.record = record({ sourceRelativePath: 'whole-source.wav' });
+    await act(async () => render());
+    assert.equal(range(), 'AudioSeparate.processedFullSource');
+    props.activeRun.record = record({});
+    await act(async () => render());
+    assert.equal(range(), 'AudioSeparate.processedRangeUnknown');
+    props.activeRun.record = record({ recoverySubmissionId: 'own-recovery', ...draftTarget.params });
+    await act(async () => render());
+    assert.equal(range(), 'AudioSeparate.processedRangeUnknown', 'a recovery action is not a fresh range submission');
+    props.activeRun.record = record({ sourceRelativePath: 'bad-range.wav', startSeconds: null, endSeconds: 9 });
+    await act(async () => render());
+    assert.equal(range(), 'AudioSeparate.processedRangeUnknown', 'null is not a recorded zero-second start');
+    props.activeRun.result = { ok: true, capabilityId: 'audio.separate', capabilityLabel: 'Separate', message: 'completed',
+      output: { kind: 'artifacts', jobId: 'live-job', jobState: 'completed', artifactCount: 2,
+        artifacts: [separation.vocals, separation.background],
+        audioSeparation: { ...separation, request: { kind: 'range', startSeconds: 2, endSeconds: 9 } } } };
+    await act(async () => render());
+    assert.equal(range(), 'AudioSeparate.processedRange{"start":2,"end":9}', 'live output uses its captured request');
+    props.activeRun.result.output.audioSeparation.request = { kind: 'full-source' };
+    await act(async () => render());
+    assert.equal(range(), 'AudioSeparate.processedFullSource');
+  } finally { await act(async () => renderer.unmount()); }
 });

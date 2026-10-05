@@ -56,9 +56,9 @@ type musicTranscriptionPlan struct {
 	normalize  func([]byte, []byte) (*MusicTranscriptionOutput, error)
 }
 
-// MusicPythonPlan is the exact private package/profile captured at admission.
+// PythonInvocationPlan is the exact private package/profile captured at admission.
 // It carries no configurable backend fallback or App-supplied executable.
-type MusicPythonPlan struct {
+type PythonInvocationPlan struct {
 	ConsumerID             string
 	ProfileRoot            string
 	ProfileDigest          string
@@ -68,7 +68,7 @@ type MusicPythonPlan struct {
 	ScriptPath             string
 }
 
-func (p *MusicInvocationPlan) PythonTranscription() *MusicPythonPlan {
+func (p *MusicInvocationPlan) PythonTranscription() *PythonInvocationPlan {
 	if p == nil || p.musicPython == nil {
 		return nil
 	}

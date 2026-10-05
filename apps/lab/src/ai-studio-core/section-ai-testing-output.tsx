@@ -211,9 +211,11 @@ export function hasPreviewableArtifact(artifact?: StudioArtifactPreviewSource): 
 export function ArtifactMediaPreview({
   artifact,
   fallbackLabel,
+  mediaLabel,
 }: {
   artifact?: StudioArtifactPreviewSource;
   fallbackLabel: string;
+  mediaLabel?: string;
 }) {
   const relativePath = artifact?.relativePath;
   const mimeType = artifact?.mediaType ?? '';
@@ -265,7 +267,7 @@ export function ArtifactMediaPreview({
     };
   }, [imagePreviewOpen, relativePath, t]);
   if (!hasPreviewableArtifact(artifact) || !url) return null;
-  const label = artifact?.displayName || relativePath || fallbackLabel;
+  const label = mediaLabel || artifact?.displayName || relativePath || fallbackLabel;
   const isImage = branch === 'image';
   let media: ReactNode = null;
   if (isImage) {
@@ -286,7 +288,7 @@ export function ArtifactMediaPreview({
       </div>
     );
   } else if (branch === 'audio') {
-    media = <audio controls src={url} />;
+    media = <audio controls src={url} aria-label={label} />;
   } else if (branch === 'video') {
     media = <video controls src={url} />;
   }
@@ -294,6 +296,7 @@ export function ArtifactMediaPreview({
   return (
     <>
       <figure className="ai-result__media" data-mime={mimeType}>
+        {mediaLabel ? <figcaption className="studio-result__plain">{mediaLabel}</figcaption> : null}
         {media}
       </figure>
       {isImage ? (
@@ -324,14 +327,16 @@ export function ArtifactMediaPreview({
 export function ArtifactMediaResult({
   artifact,
   fallbackLabel,
+  mediaLabel,
 }: {
   artifact?: StudioArtifactPreviewSource;
   fallbackLabel: string;
+  mediaLabel?: string;
 }) {
   const { translate: t } = useAIStudioHost();
   const branch = studioArtifactRenderBranch(artifact);
   if (branch === 'image' || branch === 'audio' || branch === 'video') {
-    return <ArtifactMediaPreview artifact={artifact} fallbackLabel={fallbackLabel} />;
+    return <ArtifactMediaPreview artifact={artifact} fallbackLabel={fallbackLabel} mediaLabel={mediaLabel} />;
   }
   return (
     <div className="studio-result__media-unavailable">

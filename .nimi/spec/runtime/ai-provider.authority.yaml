@@ -1800,3 +1800,15 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.vision-locate-contract
+  - id: rule.nimi.runtime.ai-provider.spleeter-local-separation
+    kind: rule
+    title: Fixed Spleeter checkpoint separation uses captured TensorFlow CPU inference
+    modality: must
+    statement: The Spleeter audio.separate shared Driver admits only the reviewed official v1.4.0 ordinary 2stems and 4stems checkpoint bundles under their exact content identities, with the fixed Python 3.12.13 Windows amd64 TensorFlow 2.16.1 CPU profile and versioned private Driver bundle captured in the immutable Job assembly and validated on rehydration. It restores every checkpoint variable with exact names, shapes and dtypes and rejects missing or uninitialized variables; global_step is retained auxiliary state, never a substitute for inference weights. The unchanged restored U-net subgraph executes with an explicit false learning phase and the fixed c8854001ac8acad34a9bc2bd15f28475541828b1 official DSP, including 44100 Hz stereo, periodic Hann STFT 4096/1024, T512/F1024, power-two ratio masks, zero high-frequency extension, Hann inverse compensation 2/3 and removal of internal padding back to the exact input frame count. Two stems return vocals and its actual accompaniment as background and reject instrument-part requests before execution; four stems sum the actual drums, bass and other for background and publish those three extras only when requested. No training, Estimator, inference-time download, arbitrary Python class or module selection, GPU, MWF, model conversion or backend fallback is admitted. This audio-derived model does not require invented text-token context or numeric fitness facts; its declared canonical input bound remains explicit. The private process uses the existing owned process-tree cancellation and complete artifact publication lifecycle; input remains bounded by the existing 600-second canonical separation owner without a quality or measured capacity promise.
+    condition: Whenever either exact Spleeter recipe is prepared, captured, executed or rehydrated.
+    failure: Reject unknown model/profile/protocol identities, incomplete restoration, unsupported combinations and malformed or retimed outputs without publishing partial success or replacing stems with the mixture.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

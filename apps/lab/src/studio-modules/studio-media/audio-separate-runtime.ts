@@ -17,7 +17,8 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
     if (!entry.jobId) throw new Error(context.host.translate('AudioSeparate.recoveryMissingJob'));
     const result = await context.host.runners.audioSeparationObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
       jobId: entry.jobId, signal, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
-    const projected = await projectStudioArtifactRunnerResult({ ...context, separationSourceAudio: entry.sourceAudio }, result);
+    const projected = await projectStudioArtifactRunnerResult({ ...context, separationSourceAudio: entry.sourceAudio,
+      separationRequest: entry.separationRequest }, result);
     await saveMusicRecoveryResult(client.storage, entry.clientSubmissionId, projected, 'audio.separate');
     return projected;
   }
@@ -52,6 +53,10 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
   const sourceRangeResult = resolveRange(parameters.startSeconds, parameters.endSeconds, sourceInfo);
   if (sourceRangeResult === 'invalid') return invalid();
   const sourceRange = sourceRangeResult;
+  const separationRequest = sourceRange
+    ? { kind: 'range' as const, startSeconds: sourceRange.startFrame / sourceInfo.sampleRateHz,
+      endSeconds: sourceRange.endFrame / sourceInfo.sampleRateHz }
+    : { kind: 'full-source' as const };
   const adopted = await client.storage.assets.adoptArtifact({ artifactId: separationInput.artifactId,
     relativePath: `studio/music/audio-separate-inputs/${crypto.randomUUID()}/source.wav`, overwrite: false });
   const sourceAudio: StudioManagedArtifact = { relativePath: adopted.relativePath, mediaType: adopted.mediaType,
@@ -60,7 +65,7 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
   try {
     signal?.throwIfAborted();
     if (adopted.sizeBytes !== separationInput.sizeBytes || adopted.mediaType !== separationInput.mimeType) throw new Error('Canonical source adoption changed metadata');
-    clientSubmissionId = await beginMusicRecovery(client.storage, 'audio.separate', sourceAudio);
+    clientSubmissionId = await beginMusicRecovery(client.storage, 'audio.separate', sourceAudio, undefined, separationRequest);
   } catch (cause) { await client.storage.assets.remove(adopted.relativePath); throw cause; }
   const scenarioClient = createStudioScenarioJobClient(context);
   let capturedJobId: string | undefined;
@@ -85,7 +90,7 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
   }
   if (result.ok) captureJobId(result.output.jobId);
   await jobIdCapture.catch(() => undefined);
-  const projected = await projectStudioArtifactRunnerResult({ ...context, separationSourceAudio: sourceAudio }, result);
+  const projected = await projectStudioArtifactRunnerResult({ ...context, separationSourceAudio: sourceAudio, separationRequest }, result);
   await saveMusicRecoveryResult(client.storage, clientSubmissionId, projected, 'audio.separate');
   return projected;
 }

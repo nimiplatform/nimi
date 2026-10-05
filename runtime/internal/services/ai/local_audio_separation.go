@@ -18,7 +18,7 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.audio-separation
-func (s *Service) captureSeparationInput(ctx context.Context, head *runtimev1.ScenarioRequestHead, spec *runtimev1.AudioSeparateScenarioSpec, packageInput capabilitydriver.AudioCppRuntimePackageInput, portable *structpb.Struct, exactBindings []capabilitydriver.InvocationExactBinding, driver capabilitydriver.AudioSeparateInvocationDriver, effective *localSpeechEffectiveInputs) error {
+func (s *Service) captureSeparationInput(ctx context.Context, head *runtimev1.ScenarioRequestHead, spec *runtimev1.AudioSeparateScenarioSpec, packageInput capabilitydriver.AudioCppRuntimePackageInput, portable *structpb.Struct, exactBindings []capabilitydriver.InvocationExactBinding, driver capabilitydriver.AudioSeparateInvocationDriver, recipeID string, dependencies []capabilitydriver.InvocationExactDependencySource, effective *localSpeechEffectiveInputs) error {
 	owned := spec.GetSourceAudio()
 	source, err := s.openMusicInputSource(ctx, head, owned.GetArtifactId())
 	if err != nil {
@@ -60,7 +60,7 @@ func (s *Service) captureSeparationInput(ctx context.Context, head *runtimev1.Sc
 		return err
 	}
 	info := &runtimev1.LocalAppAudioInfo{SampleRateHz: canonical.SampleRateHz, Channels: uint32(canonical.Channels), FrameCount: end - start, DurationMs: int64((end - start) * 1000 / uint64(canonical.SampleRateHz))}
-	plan, err := driver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: exactBindings, Request: spec, Package: packageInput, SourcePath: sourcePath, SourceInfo: info, StagingDir: stagingDir})
+	plan, err := driver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{RecipeID: recipeID, DependencySources: dependencies, PortableConfig: portable, ExactBindings: exactBindings, Request: spec, Package: packageInput, SourcePath: sourcePath, SourceInfo: info, StagingDir: stagingDir})
 	if err != nil {
 		return localSpeechInvocationError(err)
 	}

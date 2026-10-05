@@ -200,7 +200,7 @@ func (BasicPitchDriver) PlanMusicTranscriptionInvocation(input MusicTranscriptio
 	if profile == nil || !filepath.IsAbs(profile.CanonicalRoot) || filepath.Clean(profile.CanonicalRoot) != profile.CanonicalRoot || profile.SelectedSourceRecordID == "" || profile.Version == "" || profile.Version != profile.Hashes["profile_digest"] || len(profile.Hashes["driver_bundle_sha256"]) != 64 {
 		return bad(InvocationFailureInvalidConfig, "requires the captured Windows cp312 ONNX CPU profile")
 	}
-	pythonPlan := &MusicPythonPlan{ConsumerID: BasicPitchConsumerID, ProfileRoot: profile.CanonicalRoot, ProfileDigest: profile.Version, DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], SelectedSourceRecordID: profile.SelectedSourceRecordID, InterpreterPath: filepath.Join(profile.CanonicalRoot, "Scripts", "python.exe"), ScriptPath: filepath.Join(profile.CanonicalRoot, "basic_pitch_driver.py")}
+	pythonPlan := &PythonInvocationPlan{ConsumerID: BasicPitchConsumerID, ProfileRoot: profile.CanonicalRoot, ProfileDigest: profile.Version, DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], SelectedSourceRecordID: profile.SelectedSourceRecordID, InterpreterPath: filepath.Join(profile.CanonicalRoot, "Scripts", "python.exe"), ScriptPath: filepath.Join(profile.CanonicalRoot, "basic_pitch_driver.py")}
 	hasher := sha256.New()
 	for _, value := range append(invocationExactBindingIdentity(binding), profile.SelectedSourceRecordID, profile.Version, pythonPlan.DriverBundleDigest, BasicPitchDriverDialect) {
 		_, _ = hasher.Write([]byte(value))

@@ -470,3 +470,10 @@ test('catalog source kind vocabulary is closed', () => {
     /source unsupported_source has unsupported source_kind/u,
   );
 });
+
+test('Spleeter ordinary checkpoints retain tar integrity and symbolic audio fitness',()=>{
+ const source=readYamlResource(path.join(import.meta.dirname,'..','runtime','catalog','source','providers','local'),{merge:true});
+ const generated=generateProviderCatalog(source);const models=generated.models.filter(x=>x.model_id.startsWith('spleeter-'));
+ assert.equal(models.length,2);for(const model of models){assert.equal(model.fitness,undefined);assert.equal(model.install.repo,'deezer/spleeter');assert.equal(model.install.revision,'v1.4.0');assert.equal(model.variants[0].archive.format,'tar.gz');assert.equal(model.variants[0].archive.root,'.');assert.equal(model.variants[0].files.length,4);assert.equal(Object.keys(model.variants[0].hashes).length,4)}
+ const bad=structuredClone(source);bad.models.find(x=>x.model_id==='spleeter-2stems-local').variants[0].archive.root='../';assert.throws(()=>generateProviderCatalog(bad),/root/);
+});

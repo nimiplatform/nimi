@@ -49,7 +49,12 @@ export type StudioAudioSeparationInstrumentPart = {
   readonly artifact: StudioManagedArtifact;
 };
 
+export type StudioAudioSeparationRequest =
+  | { readonly kind: 'full-source' }
+  | { readonly kind: 'range'; readonly startSeconds: number; readonly endSeconds?: number };
+
 export type StudioAudioSeparation = {
+  readonly request?: StudioAudioSeparationRequest;
   readonly sourceAudio: StudioManagedArtifact;
   readonly vocals: StudioManagedArtifact;
   readonly background: StudioManagedArtifact;

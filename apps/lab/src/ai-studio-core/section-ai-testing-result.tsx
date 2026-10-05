@@ -240,7 +240,8 @@ function TextStudioHistoryRecordResult({
       </div>
     );
   } else {
-    body = <TextStudioHistorySnapshotBody snapshot={snapshot} />;
+    body = <TextStudioHistorySnapshotBody snapshot={snapshot}
+      submittedParameters={record.capabilityId === 'audio.separate' ? record.runConfig?.target.params : undefined} />;
   }
   return (
     <div className="studio-history-result" role="status">
@@ -309,7 +310,10 @@ function TextStudioHistoryRecordResult({
   );
 }
 
-function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioRunHistoryResultSnapshot, { ok: true }> }) {
+function TextStudioHistorySnapshotBody({ snapshot, submittedParameters }: {
+  snapshot: Extract<StudioRunHistoryResultSnapshot, { ok: true }>;
+  submittedParameters?: Readonly<Record<string, unknown>>;
+}) {
   const { translate: t } = useAIStudioHost();
   if (snapshot.kind === 'vision-locate') return snapshot.result
     ? <VisionLocateResultView output={{kind:'vision-locate', jobId:snapshot.jobId, result:snapshot.result, sourceImage:snapshot.sourceImage}} />
@@ -356,7 +360,7 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioR
         <MusicGenerationNotice value={snapshot.musicGeneration} />
         <MusicTranscriptionNotice value={snapshot.musicTranscription} />
         <VoiceConversionNotice value={snapshot.voiceConversion} />
-        <AudioSeparationNotice value={snapshot.audioSeparation} />
+        <AudioSeparationNotice value={snapshot.audioSeparation} submittedParameters={submittedParameters} />
         <FaceSwapNotice value={snapshot.faceSwap} />
         {artifacts.filter((artifact) => !snapshot.musicTranscription && !snapshot.voiceConversion && !snapshot.audioSeparation && artifact.relativePath !== snapshot.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
           <ArtifactMediaResult

@@ -393,12 +393,21 @@ func (s *Service) acquireManagedModelArchiveFiles(
 	result.receivedBytes, result.transferTotal = archive.sizeBytes, archive.sizeBytes
 	s.updateTransferReuse(transferID, "extract", result.receivedBytes, 0, "verifying release archive contents")
 
-	reader, err := zip.OpenReader(archivePath)
-	if err != nil {
-		return result, managedModelArchiveManifestError(fmt.Errorf("open release archive: %w", err))
+	entries := make(map[string]managedArchiveEntry)
+	if archive.format == "tar.gz" {
+		entries, err = indexManagedModelTarArchive(archivePath, archive.root, spec.files, spec.hashes, spec.totalSizeBytes, checkActive)
+	} else {
+		reader, openErr := zip.OpenReader(archivePath)
+		if openErr != nil {
+			return result, managedModelArchiveManifestError(fmt.Errorf("open release archive: %w", openErr))
+		}
+		defer func() { _ = reader.Close() }()
+		indexed, indexErr := indexManagedModelArchiveEntries(reader.File, archive.root, spec.files)
+		err = indexErr
+		for name, entry := range indexed {
+			entries[name] = managedArchiveEntry{size: int64(entry.UncompressedSize64), open: entry.Open}
+		}
 	}
-	defer func() { _ = reader.Close() }()
-	entries, err := indexManagedModelArchiveEntries(reader.File, archive.root, spec.files)
 	if err != nil {
 		return result, managedModelArchiveManifestError(err)
 	}
@@ -531,7 +540,7 @@ func (s *Service) publishManagedModelArchiveFile(
 	stagingDir string,
 	relativeFile string,
 	expected string,
-	entry *zip.File,
+	entry managedArchiveEntry,
 	remainingBytes int64,
 	checkActive func() error,
 ) (modelDistributionFile, error) {
@@ -550,10 +559,10 @@ func (s *Service) publishManagedModelArchiveFile(
 		s.pinModelObject(expected, transferID)
 		return modelDistributionFile{RelativePath: relativeFile, SHA256: expected, SizeBytes: size, NonExecutableContent: nonExecutable}, nil
 	}
-	if entry.UncompressedSize64 > uint64(clampInt64Minimum(remainingBytes, 0)) {
+	if entry.size <= 0 || entry.size > clampInt64Minimum(remainingBytes, 0) {
 		return modelDistributionFile{}, managedModelArchiveManifestError(fmt.Errorf("release archive file %q exceeds the declared installed size", relativeFile))
 	}
-	declaredSize := int64(entry.UncompressedSize64)
+	declaredSize := entry.size
 	targetPath := filepath.Join(stagingDir, filepath.FromSlash(relativeFile))
 	if !pathWithinBase(stagingDir, targetPath, false) {
 		return modelDistributionFile{}, managedModelArchiveManifestError(fmt.Errorf("declared file %q escapes staging", relativeFile))
@@ -564,7 +573,7 @@ func (s *Service) publishManagedModelArchiveFile(
 	if err := os.Remove(targetPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return modelDistributionFile{}, fmt.Errorf("discard stale extracted file %q: %w", relativeFile, err)
 	}
-	digest, size, err := extractManagedModelArchiveEntry(entry, targetPath, declaredSize)
+	digest, size, err := extractManagedModelArchiveStream(entry.open, targetPath, declaredSize)
 	if err != nil {
 		return modelDistributionFile{}, err
 	}
@@ -586,7 +595,11 @@ func (s *Service) publishManagedModelArchiveFile(
 }
 
 func extractManagedModelArchiveEntry(entry *zip.File, targetPath string, declaredSize int64) (string, int64, error) {
-	source, err := entry.Open()
+	return extractManagedModelArchiveStream(entry.Open, targetPath, declaredSize)
+}
+
+func extractManagedModelArchiveStream(open func() (io.ReadCloser, error), targetPath string, declaredSize int64) (string, int64, error) {
+	source, err := open()
 	if err != nil {
 		return "", 0, managedModelArchiveManifestError(fmt.Errorf("open release archive entry: %w", err))
 	}

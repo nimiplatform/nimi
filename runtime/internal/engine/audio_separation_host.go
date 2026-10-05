@@ -18,6 +18,9 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.demucs-local-separation
 func (host *SpeechExecutionHost) ExecuteAudioSeparation(ctx context.Context, plan *capabilitydriver.AudioSeparateInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.AudioSeparationResult, error) {
+	if plan != nil && plan.PythonExecution() != nil {
+		return host.executeSpleeterSeparation(ctx, plan, onStart)
+	}
 	if plan != nil && plan.IsNative() {
 		return host.executeNativeAudioSeparation(ctx, plan, onStart)
 	}

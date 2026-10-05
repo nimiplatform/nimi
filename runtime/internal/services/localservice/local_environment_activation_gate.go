@@ -257,6 +257,8 @@ func localEnvironmentActivationDependencyReason(state string) string {
 
 func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmentConsumerRequirement, bool) {
 	switch strings.TrimSpace(consumerID) {
+	case engine.SpleeterConsumerID:
+		return localEnvironmentConsumerRequirement{ConsumerID: engine.SpleeterConsumerID, PackID: "local-audio-separation"}, true
 	case engine.BasicPitchConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: engine.BasicPitchConsumerID, PackID: "local-music-notes"}, true
 	case engine.TextAnnotationConsumerID:

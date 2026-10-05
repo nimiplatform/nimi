@@ -1608,12 +1608,17 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 103 {
-		t.Fatalf("all Loadout recipes = %d, want 103", len(all))
+	if len(all) != 105 {
+		t.Fatalf("all Loadout recipes = %d, want 105", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
+	}
+	for _, id := range []string{capabilitydriver.SpleeterRecipe2, capabilitydriver.SpleeterRecipe4} {
+		if recipe := byID[id]; recipe == nil || recipe.GetImplementation().GetDriverId() != capabilitydriver.SpleeterDriverID {
+			t.Fatalf("Spleeter recipe %s missing or mismatched", id)
+		}
 	}
 	basicPitch := byID[capabilitydriver.BasicPitchRecipeID]
 	if basicPitch == nil || basicPitch.GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {

@@ -854,8 +854,8 @@ function normalizeLocalReleaseArchive(raw, files, label) {
     throw new Error(`${label} archive.file must be one asset name, got: ${raw.file}`);
   }
   const format = normalizeString(raw.format);
-  if (format !== 'zip') {
-    throw new Error(`${label} archive.format must be zip, got: ${raw.format}`);
+  if (format !== 'zip' && format !== 'tar.gz') {
+    throw new Error(`${label} archive.format must be zip or tar.gz, got: ${raw.format}`);
   }
   const sha256 = normalizeString(raw.sha256).toLowerCase();
   if (!/^sha256:[0-9a-f]{64}$/u.test(sha256)) {
@@ -866,7 +866,7 @@ function normalizeLocalReleaseArchive(raw, files, label) {
     throw new Error(`${label} archive.size_bytes must be a positive integer`);
   }
   const root = normalizeString(raw.root);
-  if (!canonicalLocalArchivePath(root)) {
+  if (!(format === 'tar.gz' && root === '.') && !canonicalLocalArchivePath(root)) {
     throw new Error(`${label} archive.root must be a canonical relative path, got: ${raw.root}`);
   }
   for (const file of files) {
@@ -984,7 +984,7 @@ export function normalizeLocalPlaneRow(model, modelID) {
     throw new Error(`local passive ModelAsset offer ${modelID} must not declare capabilities`);
   }
   const privateHost = normalizeString(model?.model_type).toLowerCase() === 'vision';
-  const fitnessOptional = ['tts', 'stt', 'vision'].includes(normalizeString(model?.model_type).toLowerCase()) || normalizeStringArray(model?.capabilities).includes('music.transcribe');
+  const fitnessOptional = ['tts', 'stt', 'vision'].includes(normalizeString(model?.model_type).toLowerCase()) || normalizeStringArray(model?.capabilities).some(capability => ['music.transcribe', 'audio.separate'].includes(capability));
   if (!passive && !fitnessOptional && !hasFitness) {
     throw new Error(`local runnable model ${modelID} requires fitness`);
   }

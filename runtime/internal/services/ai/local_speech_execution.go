@@ -120,6 +120,9 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 		if !ok {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 		}
+		if identity.DriverID == capabilitydriver.SpleeterDriverID && spec.GetSourceAudio() == nil {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
 		if owned := spec.GetSourceAudio(); owned != nil {
 			var packageInput capabilitydriver.AudioCppRuntimePackageInput
 			if identity.DriverID == capabilitydriver.HTDemucsDriverID {
@@ -129,7 +132,7 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 					return nil, localSpeechInvocationError(packageErr)
 				}
 			}
-			if captureErr := s.captureSeparationInput(ctx, head, spec, packageInput, portable, exactBindings, separationDriver, effective); captureErr != nil {
+			if captureErr := s.captureSeparationInput(ctx, head, spec, packageInput, portable, exactBindings, separationDriver, selected.RecipeID, invocationExactDependencySources(selected.ExactDependencySources), effective); captureErr != nil {
 				cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 				return nil, captureErr
 			}
@@ -400,11 +403,11 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 					return nil, packageErr
 				}
 			}
-			effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request,
+			effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{RecipeID: assembly.RecipeID, DependencySources: resolvedAssemblyExactDependencySources(assembly), PortableConfig: portable, ExactBindings: bindings, Request: request,
 				Package: packageInput, SourcePath: source.SourcePath, SourceInfo: source.SourceInfo, StagingDir: source.StagingDirectory})
 			effective.stagingPaths = append(effective.stagingPaths, source.SourcePath, filepath.Join(source.StagingDirectory, "stems"), source.StagingDirectory)
 		} else {
-			effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request, AudioBytes: assembly.Request.BinaryInput, MIMEType: assembly.Request.MIMEType})
+			effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{RecipeID: assembly.RecipeID, DependencySources: resolvedAssemblyExactDependencySources(assembly), PortableConfig: portable, ExactBindings: bindings, Request: request, AudioBytes: assembly.Request.BinaryInput, MIMEType: assembly.Request.MIMEType})
 		}
 		effective.scenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE
 	case "transcribe":

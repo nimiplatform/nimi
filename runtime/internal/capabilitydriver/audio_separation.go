@@ -23,11 +23,13 @@ const (
 )
 
 type AudioSeparateInvocationInput struct {
-	PortableConfig *structpb.Struct
-	ExactBindings  []InvocationExactBinding
-	Request        *runtimev1.AudioSeparateScenarioSpec
-	AudioBytes     []byte
-	MIMEType       string
+	RecipeID          string
+	DependencySources []InvocationExactDependencySource
+	PortableConfig    *structpb.Struct
+	ExactBindings     []InvocationExactBinding
+	Request           *runtimev1.AudioSeparateScenarioSpec
+	AudioBytes        []byte
+	MIMEType          string
 	// Owned canonical audio input for local separation. Mutually
 	// exclusive with the inline AudioBytes carrier.
 	Package    AudioCppRuntimePackageInput
@@ -52,8 +54,23 @@ type AudioSeparateInvocationPlan struct {
 	sourceInfo            *runtimev1.LocalAppAudioInfo
 	nativeOutDir          string
 	includeInstrument     bool
+	python                *PythonInvocationPlan
+	spleeterGroup         int
 }
 
+func (p *AudioSeparateInvocationPlan) PythonExecution() *PythonInvocationPlan {
+	if p == nil || p.python == nil {
+		return nil
+	}
+	v := *p.python
+	return &v
+}
+func (p *AudioSeparateInvocationPlan) SpleeterGroup() int {
+	if p == nil {
+		return 0
+	}
+	return p.spleeterGroup
+}
 func (p *AudioSeparateInvocationPlan) IsNative() bool { return p != nil && p.native }
 func (p *AudioSeparateInvocationPlan) NativeProcessKey() string {
 	if p == nil {
@@ -114,7 +131,7 @@ func (p *AudioSeparateInvocationPlan) NativeModelBinding() InvocationExactBindin
 }
 
 func (p *AudioSeparateInvocationPlan) DriverID() string {
-	if p != nil && p.native {
+	if p != nil && (p.native || p.python != nil) {
 		return p.nativeDriverIdentity.DriverID
 	}
 	return DemucsDriverID

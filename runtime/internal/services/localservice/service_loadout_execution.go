@@ -357,6 +357,12 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 	profile := collectDeviceProfile()
 	host := localEnvironmentHostProfileFromDeviceProfile(profile)
 	switch typed := driver.(type) {
+	case capabilitydriver.SpleeterDriver:
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.SpleeterConsumerID, func(root string) string { return filepath.Join(root, "spleeter_driver.py") }, profile)
+		if !ok {
+			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Audio separation environment is not ready", map[string]string{"detail": detail})
+		}
+		return []localexecution.ExactDependencySource{{DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID, ConsumerScope: engine.SpleeterConsumerID, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version, VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}}, nil
 	case capabilitydriver.BasicPitchDriver:
 		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.BasicPitchConsumerID, func(root string) string { return filepath.Join(root, "basic_pitch_driver.py") }, profile)
 		if !ok {

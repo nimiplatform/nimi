@@ -22,6 +22,10 @@ const {
 const historyActionsSource = readFileSync(path.join(root, 'src/lab/lab-managed-history.ts'), 'utf8');
 const sdkTypesStubUrl = `data:text/javascript;base64,${Buffer.from('export const isJsonObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);').toString('base64')}`;
 const sdkAppModuleUrl = import.meta.resolve('@nimiplatform/sdk/app');
+const separationRequestOutput = ts.transpileModule(readFileSync(path.join(root, 'src/ai-studio-core/audio-separation-request.ts'), 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const separationRequestModuleUrl = `data:text/javascript;base64,${Buffer.from(separationRequestOutput).toString('base64')}`;
 const sharedHistorySource = readFileSync(path.join(root, 'src/ai-studio-core/history.ts'), 'utf8');
 const sharedHistoryOutput = ts.transpileModule(sharedHistorySource, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
@@ -39,6 +43,9 @@ const sharedHistoryPolicyOutput = ts.transpileModule(sharedHistoryPolicySource, 
 ).replace(
   /from\s+['"]@nimiplatform\/sdk\/app['"]/g,
   `from ${JSON.stringify(sdkAppModuleUrl)}`,
+).replace(
+  /from\s+['"]\.\/audio-separation-request\.js['"]/g,
+  `from ${JSON.stringify(separationRequestModuleUrl)}`,
 );
 const sharedHistoryPolicyUrl = `data:text/javascript;base64,${Buffer.from(sharedHistoryPolicyOutput).toString('base64')}`;
 const sharedHistoryFacadeUrl = `data:text/javascript;base64,${Buffer.from([

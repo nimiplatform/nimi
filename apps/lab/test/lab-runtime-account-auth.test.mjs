@@ -1835,6 +1835,7 @@ test('Lab audio separation submits without a client submission identity and adop
   assert.equal(result.output.artifactCount, 5);
   const separation = result.output.audioSeparation;
   assert.equal(separation.sourceAudio.mediaType, 'audio/wav');
+  assert.deepEqual(separation.request, { kind: 'range', startSeconds: 1, endSeconds: 10 });
   assert.equal(separation.vocals.mediaType, 'audio/wav');
   assert.equal(separation.background.sizeBytes, 7680058);
   assert.deepEqual(separation.instrumentParts.map(part => part.kind), ['DRUMS', 'BASS', 'OTHER']);
@@ -1843,6 +1844,8 @@ test('Lab audio separation submits without a client submission identity and adop
   assert.deepEqual(adoptions, ['source-converted', 'vocals-1', 'background-1', 'drums-1', 'bass-1', 'other-1']);
   const entries = getEntries();
   assert.equal(entries[0].jobId, 'separation-job-1');
+  assert.deepEqual(entries[0].separationRequest, separation.request);
+  assert.deepEqual(entries[0].result.audioSeparation.request, separation.request);
   assert.equal(entries[0].sourceAudio.relativePath, separation.sourceAudio.relativePath);
   assert.equal(entries[0].result.audioSeparation.vocals.relativePath, separation.vocals.relativePath);
 });
@@ -1870,19 +1873,28 @@ test('Lab audio separation recovers only from its captured job identity after a 
     },
   });
   const failed = await runLabCapability({ capabilityId: 'audio.separate', prompt: '', parameters: {
-    sourceRelativePath: 'input/mix.mp3', sourceMimeType: 'audio/mpeg' } }, dependencies);
+    sourceRelativePath: 'input/mix.mp3', sourceMimeType: 'audio/mpeg', startSeconds: 2, endSeconds: 9 } }, dependencies);
   assert.equal(failed.ok, false);
   assert.equal(getEntries()[0].jobId, 'separation-job-1');
-  const recovery = { capabilityId: 'audio.separate', prompt: '', parameters: { recoverySubmissionId: getEntries()[0].clientSubmissionId } };
+  const recovery = { capabilityId: 'audio.separate', prompt: '', parameters: {
+    recoverySubmissionId: getEntries()[0].clientSubmissionId, sourceRelativePath: 'input/current-draft.wav', startSeconds: 5, endSeconds: 6 } };
   const recovered = await runLabCapability(recovery, dependencies);
   assert.equal(recovered.ok, true, recovered.message);
   assert.equal(recovered.output.artifacts.length, 2);
   assert.equal(recovered.output.audioSeparation.vocals.mediaType, 'audio/wav');
+  assert.deepEqual(recovered.output.audioSeparation.request, { kind: 'range', startSeconds: 2, endSeconds: 9 });
   assert.equal(recovered.output.audioSeparation.instrumentParts, undefined);
   assert.equal(recovered.output.audioSeparation.sourceAudio.relativePath, getEntries()[0].sourceAudio.relativePath);
   const reopened = await runLabCapability(recovery, dependencies);
   assert.equal(reopened.ok, true, reopened.message);
   assert.deepEqual(reopened.output.audioSeparation, recovered.output.audioSeparation);
+  const musicRecovery = await import(pathToFileURL(path.join(buildModule(), 'studio-modules/studio-media/music-recovery.js')).href);
+  const saved = structuredClone(getEntries()[0]);
+  delete saved.result.audioSeparation.request;
+  assert.deepEqual(musicRecovery.restoreSavedMusicResult(saved, 'Separate', 'audio.separate').output.audioSeparation.request,
+    { kind: 'range', startSeconds: 2, endSeconds: 9 }, 'saved recovery uses its own recorded request');
+  delete saved.separationRequest;
+  assert.equal(musicRecovery.restoreSavedMusicResult(saved, 'Separate', 'audio.separate').output.audioSeparation.request, undefined);
   assert.equal(runs, 1); assert.equal(submits, 1); assert.equal(observations, 1);
   assert.deepEqual(adoptions, ['source-converted', 'vocals-1', 'background-1']);
 });

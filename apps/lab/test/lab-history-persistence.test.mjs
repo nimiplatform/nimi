@@ -38,9 +38,11 @@ function compileModule(relativePath, replacements) {
 const standardStorageModuleUrl = compileModule('src/lab/lab-standard-storage.ts', [
   ['../shell/local-app-runtime-platform.js', clientModuleUrl],
 ]);
+const separationRequestModuleUrl = compileModule('src/ai-studio-core/audio-separation-request.ts', []);
 const historyPolicyModuleUrl = compileModule('src/ai-studio-core/history-policy.ts', [
   ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
   ['@nimiplatform/sdk/app', sdkAppModuleUrl],
+  ['./audio-separation-request.js', separationRequestModuleUrl],
 ]);
 const historyStorageModuleUrl = compileModule('src/lab/lab-history-storage.ts', [
   ['../ai-studio-core/history-policy.js', historyPolicyModuleUrl],

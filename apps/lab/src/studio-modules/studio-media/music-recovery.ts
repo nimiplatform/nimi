@@ -2,7 +2,8 @@ import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import type { JsonValue } from '@nimiplatform/sdk/types';
 import { createStudioRunHistoryResultSnapshot, restoreStudioCapabilityRunResult, type StudioRunHistoryResultSnapshot } from '../../ai-studio-core/history.js';
 import { validateManagedArtifact, validateStudioHistoryResult } from '../../ai-studio-core/history-policy.js';
-import type { StudioCapabilityRunResult, StudioManagedArtifact } from '../../ai-studio-core/runtime-types.js';
+import type { StudioAudioSeparationRequest, StudioCapabilityRunResult, StudioManagedArtifact } from '../../ai-studio-core/runtime-types.js';
+import { isAudioSeparationRequest } from '../../ai-studio-core/audio-separation-request.js';
 
 type Storage = Pick<NimiLocalAppClient['storage'], 'readJson' | 'writeJson'>;
 export type MusicRecoveryEntry = {
@@ -13,6 +14,7 @@ export type MusicRecoveryEntry = {
   readonly sourceAudio?: StudioManagedArtifact;
   readonly targetAudio?: StudioManagedArtifact;
   readonly jobId?: string;
+  readonly separationRequest?: StudioAudioSeparationRequest;
 };
 export type MusicRecoveryCapability = 'music.generate' | 'music.transcribe' | 'audio.voice.convert' | 'audio.separate';
 const paths = { 'music.generate': 'studio/music-recovery.json', 'music.transcribe': 'studio/music-transcription-recovery.json', 'audio.voice.convert': 'studio/voice-convert-recovery.json', 'audio.separate': 'studio/audio-separation-recovery.json' };
@@ -35,8 +37,9 @@ export async function readMusicRecovery(storage: Storage, capability: MusicRecov
       || Object.keys(item).some((key) => !['clientSubmissionId', 'createdAt', 'message', 'result',
         ...(capability === 'music.generate' ? [] : ['sourceAudio']),
         ...(capability === 'audio.voice.convert' ? ['targetAudio'] : []),
-        ...(capability === 'audio.separate' ? ['jobId'] : [])].includes(key))) throw new Error('Invalid saved music recovery entry');
+        ...(capability === 'audio.separate' ? ['jobId', 'separationRequest'] : [])].includes(key))) throw new Error('Invalid saved music recovery entry');
     ids.add(item.clientSubmissionId);
+    if (item.separationRequest !== undefined && !isAudioSeparationRequest(item.separationRequest)) throw new Error('Invalid saved separation request');
     if (capability === 'audio.separate' && item.jobId !== undefined
       && (typeof item.jobId !== 'string' || item.jobId.length < 1 || item.jobId.length > 256 || item.jobId !== item.jobId.trim())) throw new Error('Invalid saved music recovery entry');
     if (capability !== 'music.generate') validateManagedArtifact(item.sourceAudio, 'music recovery source');
@@ -47,6 +50,10 @@ export async function readMusicRecovery(storage: Storage, capability: MusicRecov
         : capability === 'audio.voice.convert' ? item.result.voiceConversion
         : capability === 'audio.separate' ? item.result.audioSeparation : item.result.musicGeneration;
       if (!item.result.ok || item.result.kind !== 'artifacts' || !complete || typeof item.message !== 'string') throw new Error('Incomplete saved music result');
+      const savedRequest = capability === 'audio.separate' ? item.result.audioSeparation?.request : undefined;
+      if (savedRequest && item.separationRequest && (savedRequest.kind !== item.separationRequest.kind
+        || savedRequest.startSeconds !== item.separationRequest.startSeconds
+        || savedRequest.endSeconds !== item.separationRequest.endSeconds)) throw new Error('Saved separation request conflicts with its result');
     }
   }
   return value as MusicRecoveryEntry[];
@@ -66,11 +73,12 @@ async function mutate(storage: Storage, update: (entries: readonly MusicRecovery
   await next;
 }
 
-export async function beginMusicRecovery(storage: Storage, capability: MusicRecoveryCapability = 'music.generate', sourceAudio?: StudioManagedArtifact, targetAudio?: StudioManagedArtifact): Promise<string> {
+export async function beginMusicRecovery(storage: Storage, capability: MusicRecoveryCapability = 'music.generate', sourceAudio?: StudioManagedArtifact, targetAudio?: StudioManagedArtifact, separationRequest?: StudioAudioSeparationRequest): Promise<string> {
   if (capability !== 'music.generate') validateManagedArtifact(sourceAudio, 'music recovery source');
   if (targetAudio !== undefined) validateManagedArtifact(targetAudio, 'voice conversion recovery target');
+  if (separationRequest !== undefined && (capability !== 'audio.separate' || !isAudioSeparationRequest(separationRequest))) throw new Error('Invalid separation request');
   const clientSubmissionId = crypto.randomUUID();
-  await mutate(storage, (entries) => [...entries, { clientSubmissionId, createdAt: new Date().toISOString(), ...(sourceAudio ? { sourceAudio } : {}), ...(targetAudio ? { targetAudio } : {}) }], capability);
+  await mutate(storage, (entries) => [...entries, { clientSubmissionId, createdAt: new Date().toISOString(), ...(sourceAudio ? { sourceAudio } : {}), ...(targetAudio ? { targetAudio } : {}), ...(separationRequest ? { separationRequest } : {}) }], capability);
   return clientSubmissionId;
 }
 
@@ -101,5 +109,10 @@ export async function forgetMusicRecovery(storage: Storage, id: string, capabili
 
 export function restoreSavedMusicResult(entry: MusicRecoveryEntry, label: string, capability: MusicRecoveryCapability = 'music.generate'): StudioCapabilityRunResult | null {
   if (!entry.result) return null;
-  return restoreStudioCapabilityRunResult({ capabilityId: capability, result: entry.result, message: entry.message ?? '' }, () => label);
+  const result = restoreStudioCapabilityRunResult({ capabilityId: capability, result: entry.result, message: entry.message ?? '' }, () => label);
+  if (capability === 'audio.separate' && entry.separationRequest && result?.ok && result.output.kind === 'artifacts' && result.output.audioSeparation) {
+    return { ...result, output: { ...result.output,
+      audioSeparation: { ...result.output.audioSeparation, request: entry.separationRequest } } };
+  }
+  return result;
 }
