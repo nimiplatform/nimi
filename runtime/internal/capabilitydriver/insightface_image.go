@@ -161,6 +161,7 @@ func (driver InsightFaceImageDriver) ValidateCombination(requirements []*runtime
 }
 
 type ImageFaceSwapInvocationPlan struct {
+	Backend            string
 	ProfileRoot        string
 	ProfileDigest      string
 	DriverBundleDigest string
@@ -170,6 +171,7 @@ type ImageFaceSwapInvocationPlan struct {
 }
 
 type FaceSwapModelPlan struct {
+	Backend            string
 	ProfileRoot        string
 	ProfileDigest      string
 	DriverBundleDigest string
@@ -177,7 +179,7 @@ type FaceSwapModelPlan struct {
 }
 
 func (plan *ImageFaceSwapInvocationPlan) Models() FaceSwapModelPlan {
-	return FaceSwapModelPlan{ProfileRoot: plan.ProfileRoot, ProfileDigest: plan.ProfileDigest, DriverBundleDigest: plan.DriverBundleDigest, Bindings: plan.Bindings}
+	return FaceSwapModelPlan{Backend: plan.Backend, ProfileRoot: plan.ProfileRoot, ProfileDigest: plan.ProfileDigest, DriverBundleDigest: plan.DriverBundleDigest, Bindings: plan.Bindings}
 }
 
 func (InsightFaceImageDriver) PlanImageFaceSwapInvocation(platform, recipe string, reference, target []byte, bindings []InvocationExactBinding, dependencies []InvocationExactDependencySource) (*ImageFaceSwapInvocationPlan, error) {
@@ -188,7 +190,7 @@ func (InsightFaceImageDriver) PlanImageFaceSwapInvocation(platform, recipe strin
 	if err != nil {
 		return nil, err
 	}
-	return &ImageFaceSwapInvocationPlan{ProfileRoot: models.ProfileRoot, ProfileDigest: models.ProfileDigest, DriverBundleDigest: models.DriverBundleDigest, Bindings: models.Bindings, ReferenceImage: append([]byte(nil), reference...), TargetImage: append([]byte(nil), target...)}, nil
+	return &ImageFaceSwapInvocationPlan{Backend: models.Backend, ProfileRoot: models.ProfileRoot, ProfileDigest: models.ProfileDigest, DriverBundleDigest: models.DriverBundleDigest, Bindings: models.Bindings, ReferenceImage: append([]byte(nil), reference...), TargetImage: append([]byte(nil), target...)}, nil
 }
 
 func planFaceSwapModels(bindings []InvocationExactBinding, dependencies []InvocationExactDependencySource) (FaceSwapModelPlan, error) {
@@ -215,5 +217,5 @@ func planFaceSwapModels(bindings []InvocationExactBinding, dependencies []Invoca
 	if profile == nil || !filepath.IsAbs(profile.CanonicalRoot) || profile.SelectedSourceRecordID == "" || profile.Version == "" || profile.Hashes["profile_digest"] != profile.Version || profile.Hashes["driver_bundle_sha256"] == "" {
 		return FaceSwapModelPlan{}, fmt.Errorf("face replacement has no exact managed dependency profile")
 	}
-	return FaceSwapModelPlan{ProfileRoot: profile.CanonicalRoot, ProfileDigest: profile.Version, DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], Bindings: cloneInvocationExactBindings(bindings)}, nil
+	return FaceSwapModelPlan{Backend: FaceSwapBackendInsightFace, ProfileRoot: profile.CanonicalRoot, ProfileDigest: profile.Version, DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], Bindings: cloneInvocationExactBindings(bindings)}, nil
 }

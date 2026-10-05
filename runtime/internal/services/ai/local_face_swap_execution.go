@@ -50,7 +50,7 @@ func (s *Service) captureLocalFaceSwapInputs(ctx context.Context, head *runtimev
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
 	resolved, reason := s.capabilityDrivers.Resolve(capabilitydriver.ImageFaceSwapContract, capabilitydriver.IdentityFromProto(selected.DriverIdentity))
-	driver, ok := resolved.(capabilitydriver.InsightFaceImageDriver)
+	driver, ok := resolved.(imageFaceSwapPlanner)
 	if !ok || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
@@ -70,12 +70,14 @@ func (s *Service) captureLocalFaceSwapInputs(ctx context.Context, head *runtimev
 	platform := runtime.GOOS + "/" + runtime.GOARCH
 	plan, err := driver.PlanImageFaceSwapInvocation(platform, selected.RecipeID, reference.ImageBytes, target.ImageBytes, projectInvocationExactBindings(selected.ExactBindings), invocationExactDependencySources(selected.ExactDependencySources))
 	if err != nil {
+		s.logger.Warn("image face replacement plan rejected", "driver", selected.DriverIdentity.GetDriverDialect(), "error", err)
 		return nil, nil, "", grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED, err, grpcerr.ReasonOptions{})
 	}
 	if s.localFaceSwapHost == nil {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED)
 	}
 	if err := s.localFaceSwapHost.AdmitImageFaceSwap(plan); err != nil {
+		s.logger.Warn("image face replacement Host rejected", "driver", selected.DriverIdentity.GetDriverDialect(), "error", err)
 		return nil, nil, "", grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED, err, grpcerr.ReasonOptions{})
 	}
 	payload, err := protojson.Marshal(spec)
@@ -102,7 +104,7 @@ func faceSwapResolvedLoadPlan(plan *capabilitydriver.ImageFaceSwapInvocationPlan
 
 func faceSwapPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabilitydriver.ImageFaceSwapInvocationPlan, error) {
 	if assembly == nil || assembly.LoadPlan.Kind != "image-face-swap" || assembly.LoadPlan.FaceSwap == nil || assembly.CapabilityContract != capabilitydriver.ImageFaceSwapContract || assembly.Request.Kind != capabilitydriver.ImageFaceSwapContract ||
-		assembly.DriverIdentity.ImplementationID != capabilitydriver.InsightFaceImplementationID || assembly.DriverIdentity.DriverID != capabilitydriver.InsightFaceDriverID || assembly.DriverIdentity.DriverDialect != capabilitydriver.InsightFaceDriverDialect || len(assembly.RecipeCustody) != 0 {
+		len(assembly.RecipeCustody) != 0 {
 		return nil, fmt.Errorf("captured face replacement assembly is incomplete")
 	}
 	spec := &runtimev1.ImageFaceSwapScenarioSpec{}
@@ -118,7 +120,11 @@ func faceSwapPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabil
 		}
 	}
 	load := assembly.LoadPlan.FaceSwap
-	plan, err := (capabilitydriver.InsightFaceImageDriver{}).PlanImageFaceSwapInvocation(load.PlatformTuple, assembly.RecipeID, assembly.Request.ReferenceInput, assembly.Request.BinaryInput, resolvedAssemblyExactBindings(assembly), resolvedAssemblyExactDependencySources(assembly))
+	driver, err := restoredImageFaceSwapPlanner(assembly)
+	if err != nil {
+		return nil, err
+	}
+	plan, err := driver.PlanImageFaceSwapInvocation(load.PlatformTuple, assembly.RecipeID, assembly.Request.ReferenceInput, assembly.Request.BinaryInput, resolvedAssemblyExactBindings(assembly), resolvedAssemblyExactDependencySources(assembly))
 	if err != nil {
 		return nil, err
 	}

@@ -57,6 +57,9 @@ class FaceSwapWorker:
     """One serial Host owns this worker; only model sessions may remain resident."""
 
     def __init__(self):
+        self.backend = os.environ.get("NIMI_RUNTIME_FACE_SWAP_BACKEND", "inswapper")
+        if self.backend not in ("inswapper", "hyperswap-1a"):
+            raise FaceSwapError("AI_MEDIA_OPTION_UNSUPPORTED", "Unknown captured face backend")
         self._identity = None
         self._models = None
 
@@ -130,7 +133,8 @@ class FaceSwapWorker:
             detector = RetinaFace(model_file=paths[0], session=sessions[0])
             detector.prepare(ctx_id=0, input_size=(640, 640), det_thresh=0.5)
             recognizer = ArcFaceONNX(model_file=paths[1], session=sessions[1])
-            swapper = INSwapper(model_file=paths[2], session=sessions[2])
+            swapper = (HyperSwapONNX(sessions[2]) if self.backend == "hyperswap-1a"
+                       else INSwapper(model_file=paths[2], session=sessions[2]))
             self._identity, self._models = paths, (detector, recognizer, swapper)
             return self._models
         except FaceSwapError:
@@ -188,7 +192,8 @@ class FaceSwapWorker:
             # the upstream mask's erosion and blur halo. The full target is
             # still detected on every frame; no old geometry is reused.
             tile, matrix = swapper.get(target, destination, source, paste_back=False)
-            if tile.shape != (128, 128, 3) or tile.dtype != np.uint8 or not np.isfinite(matrix).all():
+            tile_size = 256 if self.backend == "hyperswap-1a" else 128
+            if tile.shape != (tile_size, tile_size, 3) or tile.dtype != np.uint8 or not np.isfinite(matrix).all():
                 raise FaceSwapError("AI_OUTPUT_INVALID", "Face replacement tile or alignment is invalid")
             inverse = cv2.invertAffineTransform(matrix)
             size = tile.shape[0]
@@ -224,6 +229,57 @@ class FaceSwapWorker:
             raise
         except Exception as error:
             raise FaceSwapError("AI_LOCAL_EXECUTION_INFERENCE_FAILED", "Face replacement inference failed") from error
+
+
+class HyperSwapONNX:
+    """The exact 1a graph; paired identity is not projected through INSwapper."""
+
+    def __init__(self, session):
+        self.session = session
+        inputs = {item.name: (item.type, item.shape) for item in session.get_inputs()}
+        outputs = {item.name: (item.type, item.shape) for item in session.get_outputs()}
+        if inputs != {"source": ("tensor(float)", [1, 512]), "target": ("tensor(float)", [1, 3, 256, 256])}:
+            raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "HyperSwap input graph is incompatible")
+        if outputs != {"output": ("tensor(float)", [1, 3, 256, 256]), "mask": ("tensor(float)", [1, 1, 256, 256])}:
+            raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "HyperSwap output graph is incompatible")
+
+    def get(self, image, target_face, source_face, paste_back=False):
+        import numpy as np
+        from insightface.utils import face_align
+
+        if paste_back:
+            raise FaceSwapError("AI_INPUT_INVALID", "Runtime owns full-frame blending")
+        identity = normalize_hyperswap_identity(source_face.embedding)
+        # The conventional 128 ArcFace template scales to 256. Only current
+        # detector five-points are used; no hidden 68-point refinement occurs.
+        crop, matrix = face_align.norm_crop2(image, target_face.kps, image_size=256)
+        prediction = self.session.run(["output"], {"source": identity, "target": prepare_hyperswap_crop(crop)})[0]
+        # The graph also exposes an auxiliary learned mask. This backend uses
+        # the explicit Runtime footprint blend; that mask is not a result.
+        return decode_hyperswap_pixels(prediction), matrix
+
+
+def normalize_hyperswap_identity(value):
+    import numpy as np
+    embedding = np.asarray(value, dtype=np.float32)
+    norm = np.linalg.norm(embedding)
+    if embedding.shape != (512,) or not np.isfinite(embedding).all() or not np.isfinite(norm) or norm <= 0:
+        raise FaceSwapError("AI_OUTPUT_INVALID", "HyperSwap reference identity is invalid")
+    return np.ascontiguousarray((embedding / norm)[None])
+
+
+def prepare_hyperswap_crop(crop):
+    import numpy as np
+    if crop.shape != (256, 256, 3) or crop.dtype != np.uint8:
+        raise FaceSwapError("AI_INPUT_INVALID", "HyperSwap crop is not exact uint8 geometry")
+    return np.ascontiguousarray((crop[:, :, ::-1].astype(np.float32) / 127.5 - 1).transpose(2, 0, 1)[None])
+
+
+def decode_hyperswap_pixels(prediction):
+    import numpy as np
+    if prediction.shape != (1, 3, 256, 256) or not np.isfinite(prediction).all():
+        raise FaceSwapError("AI_OUTPUT_INVALID", "HyperSwap returned malformed pixels")
+    return np.clip((prediction[0].transpose(1, 2, 0) + 1) * 127.5, 0, 255)[:, :, ::-1].astype(np.uint8)
 
 
 def probe_environment():

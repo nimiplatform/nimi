@@ -1,13 +1,52 @@
 package ai
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/protobuf/encoding/protowire"
 )
+
+func TestCapturedFaceSwapRestoresOnlyItsCompleteDriverIdentity(t *testing.T) {
+	root := t.TempDir()
+	bindings := []capabilitydriver.InvocationExactBinding{}
+	for index, slot := range []string{capabilitydriver.FaceDetectorSlot, capabilitydriver.FaceRecognizerSlot, capabilitydriver.FaceSwapperSlot} {
+		bindings = append(bindings, capabilitydriver.InvocationExactBinding{RequirementID: slot, AbsolutePath: filepath.Join(root, slot), VerifiedContentID: "content-" + slot, EntrySHA256: []string{capabilitydriver.HyperSwapDetectorSHA, capabilitydriver.HyperSwapRecognizerSHA, capabilitydriver.HyperSwapSwapperSHA}[index]})
+	}
+	deps := []capabilitydriver.InvocationExactDependencySource{{DependencyFamily: "python.package-set", ConsumerScope: capabilitydriver.InsightFaceConsumerID, CanonicalRoot: root, SelectedSourceRecordID: "selected", Version: "profile", Hashes: map[string]string{"profile_digest": "profile", "driver_bundle_sha256": "bundle"}}}
+	for _, item := range []struct{ implementation, driver, dialect, recipe, backend string }{
+		{capabilitydriver.HyperSwapVideoImplementationID, capabilitydriver.HyperSwapDriverID, capabilitydriver.HyperSwapVideoDialect, capabilitydriver.HyperSwapVideoRecipeID, capabilitydriver.FaceSwapBackendHyperSwap},
+		{capabilitydriver.InsightFaceVideoImplementationID, capabilitydriver.InsightFaceDriverID, capabilitydriver.InsightFaceVideoDriverDialect, capabilitydriver.InsightFaceVideoRecipeID, capabilitydriver.FaceSwapBackendInsightFace},
+	} {
+		a := &localResolvedAssembly{CapabilityContract: capabilitydriver.VideoFaceSwapContract, DriverIdentity: localResolvedAssemblyDriverIdentity{ImplementationID: item.implementation, DriverID: item.driver, DriverDialect: item.dialect}}
+		p, err := restoredVideoFaceSwapPlanner(a)
+		if err != nil {
+			t.Fatal(err)
+		}
+		models, err := p.PlanVideoFaceSwapSession("windows/amd64", item.recipe, []byte("owned fixture"), bindings, deps)
+		if err != nil || models.Backend != item.backend {
+			t.Fatalf("restored backend=%q err=%v", models.Backend, err)
+		}
+		for _, field := range []string{"implementation", "driver", "dialect"} {
+			bad := *a
+			switch field {
+			case "implementation":
+				bad.DriverIdentity.ImplementationID = "unregistered"
+			case "driver":
+				bad.DriverIdentity.DriverID = "unregistered"
+			case "dialect":
+				bad.DriverIdentity.DriverDialect = "unregistered"
+			}
+			if _, err := restoredVideoFaceSwapPlanner(&bad); err == nil {
+				t.Fatalf("changed %s identity was restored", field)
+			}
+		}
+	}
+}
 
 func TestImageFaceSwapSpecIsOwnedArtifactOnly(t *testing.T) {
 	valid := &runtimev1.ImageFaceSwapScenarioSpec{ReferenceImageArtifactId: "reference-1", TargetImageArtifactId: "target-1"}

@@ -10335,6 +10335,64 @@ loadout_recipes:
         recommended_content_ids: []
         model_contract:
           format: onnx
+  - recipe_id: hyperswap-1a.image-face-swap.v1
+    revision: "1"
+    title: HyperSwap 1a image face replacement
+    capability_contract: image.face_swap
+    implementation_id: local.image.face-swap.hyperswap-1a
+    driver_id: nimi.runtime.driver.hyperswap
+    driver_dialect: hyperswap/image-face-swap/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: detector.onnx
+        display_label: Exact SCRFD five-point detector
+        recommended_variant_ids: []
+        recommended_content_ids: []
+        model_contract:
+          format: onnx
+      - slot_id: recognizer.onnx
+        display_label: Paired ArcFace W600K-R50 encoder
+        recommended_variant_ids: []
+        recommended_content_ids: []
+        model_contract:
+          format: onnx
+      - slot_id: swapper.onnx
+        display_label: HyperSwap 1a 256 model
+        recommended_variant_ids: []
+        recommended_content_ids: []
+        model_contract:
+          format: onnx
+  - recipe_id: hyperswap-1a.video-face-swap.v1
+    revision: "1"
+    title: HyperSwap 1a video face replacement
+    capability_contract: video.face_swap
+    implementation_id: local.video.face-swap.hyperswap-1a
+    driver_id: nimi.runtime.driver.hyperswap
+    driver_dialect: hyperswap/video-face-swap/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: detector.onnx
+        display_label: Exact SCRFD five-point detector
+        recommended_variant_ids: []
+        recommended_content_ids: []
+        model_contract:
+          format: onnx
+      - slot_id: recognizer.onnx
+        display_label: Paired ArcFace W600K-R50 encoder
+        recommended_variant_ids: []
+        recommended_content_ids: []
+        model_contract:
+          format: onnx
+      - slot_id: swapper.onnx
+        display_label: HyperSwap 1a 256 model
+        recommended_variant_ids: []
+        recommended_content_ids: []
+        model_contract:
+          format: onnx
   - recipe_id: locateanything.vision-locate.v1
     revision: "1"
     title: LocateAnything image localization

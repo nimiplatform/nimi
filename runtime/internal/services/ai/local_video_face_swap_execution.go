@@ -56,7 +56,7 @@ func (s *Service) captureLocalVideoFaceSwapInputs(ctx context.Context, head *run
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
 	resolved, reason := s.capabilityDrivers.Resolve(capabilitydriver.VideoFaceSwapContract, capabilitydriver.IdentityFromProto(selected.DriverIdentity))
-	driver, ok := resolved.(capabilitydriver.InsightFaceVideoDriver)
+	driver, ok := resolved.(videoFaceSwapPlanner)
 	if !ok || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
@@ -117,7 +117,7 @@ func videoFaceSwapResolvedLoadPlan(plan *capabilitydriver.VideoFaceSwapInvocatio
 }
 
 func videoFaceSwapPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabilitydriver.VideoFaceSwapInvocationPlan, error) {
-	if assembly == nil || assembly.LoadPlan.Kind != "video-face-swap" || assembly.LoadPlan.FaceSwap == nil || assembly.CapabilityContract != capabilitydriver.VideoFaceSwapContract || assembly.Request.Kind != capabilitydriver.VideoFaceSwapContract || assembly.Request.MIMEType != "video/mp4" || assembly.DriverIdentity.ImplementationID != capabilitydriver.InsightFaceVideoImplementationID || assembly.DriverIdentity.DriverID != capabilitydriver.InsightFaceDriverID || assembly.DriverIdentity.DriverDialect != capabilitydriver.InsightFaceVideoDriverDialect || len(assembly.RecipeCustody) != 0 {
+	if assembly == nil || assembly.LoadPlan.Kind != "video-face-swap" || assembly.LoadPlan.FaceSwap == nil || assembly.CapabilityContract != capabilitydriver.VideoFaceSwapContract || assembly.Request.Kind != capabilitydriver.VideoFaceSwapContract || assembly.Request.MIMEType != "video/mp4" || len(assembly.RecipeCustody) != 0 {
 		return nil, fmt.Errorf("captured video replacement assembly is incomplete")
 	}
 	spec := &runtimev1.VideoFaceSwapScenarioSpec{}
@@ -128,7 +128,11 @@ func videoFaceSwapPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*ca
 		return nil, err
 	}
 	load := assembly.LoadPlan.FaceSwap
-	plan, err := (capabilitydriver.InsightFaceVideoDriver{}).PlanVideoFaceSwapInvocation(load.PlatformTuple, assembly.RecipeID, assembly.Request.ReferenceInput, assembly.Request.BinaryInput, videoFaceSwapNoFacePolicy(spec.NoFacePolicy), resolvedAssemblyExactBindings(assembly), resolvedAssemblyExactDependencySources(assembly))
+	driver, err := restoredVideoFaceSwapPlanner(assembly)
+	if err != nil {
+		return nil, err
+	}
+	plan, err := driver.PlanVideoFaceSwapInvocation(load.PlatformTuple, assembly.RecipeID, assembly.Request.ReferenceInput, assembly.Request.BinaryInput, videoFaceSwapNoFacePolicy(spec.NoFacePolicy), resolvedAssemblyExactBindings(assembly), resolvedAssemblyExactDependencySources(assembly))
 	if err != nil {
 		return nil, err
 	}

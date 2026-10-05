@@ -381,7 +381,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 		return []localexecution.ExactDependencySource{{DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID,
 			ConsumerScope: annotationConsumer, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version,
 			VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}}, nil
-	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver:
+	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver, capabilitydriver.HyperSwapImageDriver, capabilitydriver.HyperSwapVideoDriver:
 		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.FaceSwapConsumerID, func(root string) string { return filepath.Join(root, "face_swap_server.py") }, profile)
 		if !ok {
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Face replacement managed profile is not ready", map[string]string{"detail": detail})

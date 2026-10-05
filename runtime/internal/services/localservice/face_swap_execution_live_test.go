@@ -109,7 +109,7 @@ func TestFaceSwapManagedExecution(t *testing.T) {
 		}
 		return data
 	}
-	plan := &capabilitydriver.ImageFaceSwapInvocationPlan{ProfileRoot: profile.ProfileRoot, ProfileDigest: profile.Identity.ProfileDigest, DriverBundleDigest: profile.Identity.DriverBundleDigest, Bindings: bindings, ReferenceImage: read("reference.png"), TargetImage: read("target.png")}
+	plan := &capabilitydriver.ImageFaceSwapInvocationPlan{Backend: capabilitydriver.FaceSwapBackendInsightFace, ProfileRoot: profile.ProfileRoot, ProfileDigest: profile.Identity.ProfileDigest, DriverBundleDigest: profile.Identity.DriverBundleDigest, Bindings: bindings, ReferenceImage: read("reference.png"), TargetImage: read("target.png")}
 	host := engine.NewFaceSwapExecutionHost(manager)
 	started := time.Now()
 	result, err := host.ExecuteImageFaceSwap(ctx, plan, nil)

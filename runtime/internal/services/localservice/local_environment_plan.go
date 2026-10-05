@@ -105,7 +105,7 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			return "local-music-notes", engine.BasicPitchConsumerID, true
 		}
 		return "", "", false
-	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver:
+	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver, capabilitydriver.HyperSwapImageDriver, capabilitydriver.HyperSwapVideoDriver:
 		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") && localEnvironmentHostSupportsCUDA(host) {
 			return "local-face-swap", engine.FaceSwapConsumerID, true
 		}

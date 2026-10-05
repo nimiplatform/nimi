@@ -1622,6 +1622,8 @@ func (registry *Registry) Resolve(capabilityContract string, identity Identity) 
 
 func NewProductionRegistry() *Registry {
 	entries := map[RegistrationKey]Driver{
+		{CapabilityContract: ImageFaceSwapContract, Identity: Identity{ImplementationID: HyperSwapImageImplementationID, DriverID: HyperSwapDriverID, DriverDialect: HyperSwapImageDialect}}: HyperSwapImageDriver{},
+		{CapabilityContract: VideoFaceSwapContract, Identity: Identity{ImplementationID: HyperSwapVideoImplementationID, DriverID: HyperSwapDriverID, DriverDialect: HyperSwapVideoDialect}}: HyperSwapVideoDriver{},
 		// @nimi-authority: rule.nimi.runtime.local-compute.face-swap-driver
 		{CapabilityContract: ImageFaceSwapContract, Identity: Identity{ImplementationID: InsightFaceImplementationID, DriverID: InsightFaceDriverID, DriverDialect: InsightFaceDriverDialect}}:           InsightFaceImageDriver{},
 		{CapabilityContract: VideoFaceSwapContract, Identity: Identity{ImplementationID: InsightFaceVideoImplementationID, DriverID: InsightFaceDriverID, DriverDialect: InsightFaceVideoDriverDialect}}: InsightFaceVideoDriver{},

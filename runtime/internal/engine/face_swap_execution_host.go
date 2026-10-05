@@ -58,7 +58,7 @@ func (host *FaceSwapExecutionHost) AdmitImageFaceSwap(plan *capabilitydriver.Ima
 }
 
 func (host *FaceSwapExecutionHost) admitModels(plan capabilitydriver.FaceSwapModelPlan) error {
-	if host == nil || host.manager == nil || len(plan.Bindings) != 3 {
+	if host == nil || host.manager == nil || len(plan.Bindings) != 3 || (plan.Backend != capabilitydriver.FaceSwapBackendInsightFace && plan.Backend != capabilitydriver.FaceSwapBackendHyperSwap) {
 		return fmt.Errorf("face replacement Host has no captured model plan")
 	}
 	manifest, err := ReadPythonDependencyProfileManifest(plan.ProfileRoot)
@@ -202,7 +202,7 @@ func faceSwapWorkerReason(value string) runtimev1.ReasonCode {
 
 func (host *FaceSwapExecutionHost) start(ctx context.Context, plan capabilitydriver.FaceSwapModelPlan) error {
 	host.residentModelAssets.capture(plan.Bindings)
-	parts := []string{plan.ProfileRoot, plan.ProfileDigest, plan.DriverBundleDigest}
+	parts := []string{plan.Backend, plan.ProfileRoot, plan.ProfileDigest, plan.DriverBundleDigest}
 	for _, binding := range plan.Bindings {
 		parts = append(parts, binding.RequirementID, binding.AbsolutePath, binding.VerifiedContentID)
 	}
@@ -229,6 +229,7 @@ func (host *FaceSwapExecutionHost) start(ctx context.Context, plan capabilitydri
 	token := hex.EncodeToString(secret)
 	env := pythonDependencyProfileReadOnlyEnv()
 	env["NIMI_RUNTIME_FACE_SWAP_TOKEN"] = token
+	env["NIMI_RUNTIME_FACE_SWAP_BACKEND"] = plan.Backend
 	env["NO_ALBUMENTATIONS_UPDATE"] = "1"
 	cfg := EngineConfig{Kind: engineFaceSwapExecutionHost, Port: port, BinaryPath: managedPythonPath(plan.ProfileRoot),
 		CommandArgs: []string{filepath.Join(plan.ProfileRoot, "face_swap_server.py"), "--port", strconv.Itoa(port)}, CommandEnv: env, WorkingDir: plan.ProfileRoot, ExecutionHostIdentity: identity,

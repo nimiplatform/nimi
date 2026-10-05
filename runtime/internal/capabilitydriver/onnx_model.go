@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 
 	"google.golang.org/protobuf/encoding/protowire"
 )
@@ -17,20 +18,43 @@ type onnxTensor struct {
 }
 
 type onnxModel struct {
-	IRVersion uint64       `json:"ir_version"`
-	Inputs    []onnxTensor `json:"inputs"`
-	Outputs   []onnxTensor `json:"outputs"`
+	IRVersion   uint64            `json:"ir_version"`
+	Inputs      []onnxTensor      `json:"inputs"`
+	Outputs     []onnxTensor      `json:"outputs"`
+	Opsets      map[string]uint64 `json:"opsets,omitempty"`
+	NodeDomains []string          `json:"node_domains,omitempty"`
+	NodeOps     []string          `json:"node_ops,omitempty"`
 }
 
 func probeONNXModel(source io.ReaderAt, size int64) ([]byte, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("empty ONNX model")
 	}
-	model := onnxModel{}
+	model := onnxModel{Opsets: map[string]uint64{}}
+	domains, operators := map[string]bool{}, map[string]bool{}
 	graphs := 0
 	err := walkONNXFields(source, 0, size, func(field protowire.Number, kind protowire.Type, start, length int64, value uint64) error {
 		if field == 1 && kind == protowire.VarintType {
 			model.IRVersion = value
+		}
+		if field == 8 && kind == protowire.BytesType {
+			body, err := readONNXMetadata(source, start, length)
+			if err != nil {
+				return err
+			}
+			domain, err := onnxBytes(body, 1)
+			if err != nil || len(domain) > 1 {
+				return fmt.Errorf("invalid ONNX opset domain")
+			}
+			name := ""
+			if len(domain) == 1 {
+				name = string(domain[0])
+			}
+			version, ok := onnxVarint(body, 2)
+			if !ok || version == 0 || model.Opsets[name] != 0 {
+				return fmt.Errorf("invalid or repeated ONNX opset")
+			}
+			model.Opsets[name] = version
 		}
 		if field != 7 || kind != protowire.BytesType {
 			return nil
@@ -40,6 +64,25 @@ func probeONNXModel(source io.ReaderAt, size int64) ([]byte, error) {
 			return fmt.Errorf("ambiguous ONNX graph")
 		}
 		return walkONNXFields(source, start, length, func(number protowire.Number, wire protowire.Type, offset, count int64, _ uint64) error {
+			if number == 1 && wire == protowire.BytesType {
+				return walkONNXFields(source, offset, count, func(f protowire.Number, k protowire.Type, o, n int64, _ uint64) error {
+					if (f == 4 || f == 7) && k == protowire.BytesType {
+						if n > 256 {
+							return fmt.Errorf("ONNX operator identity exceeds its bound")
+						}
+						data, err := readONNXMetadata(source, o, n)
+						if err != nil {
+							return err
+						}
+						if f == 4 {
+							operators[string(data)] = true
+						} else {
+							domains[string(data)] = true
+						}
+					}
+					return nil
+				})
+			}
 			if number == 5 && wire == protowire.BytesType {
 				return walkONNXFields(source, offset, count, func(field protowire.Number, kind protowire.Type, _, _ int64, value uint64) error {
 					if field == 13 || (field == 14 && kind == protowire.VarintType && value != 0) {
@@ -76,7 +119,26 @@ func probeONNXModel(source io.ReaderAt, size int64) ([]byte, error) {
 	if graphs != 1 || model.IRVersion == 0 || len(model.Inputs) == 0 || len(model.Outputs) == 0 {
 		return nil, fmt.Errorf("ONNX model has no complete tensor interface")
 	}
+	for name := range domains {
+		model.NodeDomains = append(model.NodeDomains, name)
+	}
+	for name := range operators {
+		model.NodeOps = append(model.NodeOps, name)
+	}
+	sort.Strings(model.NodeDomains)
+	sort.Strings(model.NodeOps)
 	return json.Marshal(model)
+}
+
+func readONNXMetadata(source io.ReaderAt, offset, size int64) ([]byte, error) {
+	if size < 0 || size > 65536 {
+		return nil, fmt.Errorf("ONNX metadata exceeds its bound")
+	}
+	data := make([]byte, size)
+	if _, err := source.ReadAt(data, offset); err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func walkONNXFields(source io.ReaderAt, start, length int64, visit func(protowire.Number, protowire.Type, int64, int64, uint64) error) error {

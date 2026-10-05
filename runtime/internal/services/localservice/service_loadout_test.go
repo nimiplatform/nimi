@@ -743,6 +743,17 @@ func TestLocalJobAdmissionProbesTheHostOncePerDependencyLookup(t *testing.T) {
 	}
 }
 
+func TestHyperSwapAdmissionRequiresTheManagedFaceProfile(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer svc.Close()
+	for _, driver := range []capabilitydriver.Driver{capabilitydriver.HyperSwapImageDriver{}, capabilitydriver.HyperSwapVideoDriver{}} {
+		sources, err := svc.resolveSelectedLocalExecutionDependencySources("", driver, nil)
+		if err == nil || sources != nil || grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED {
+			t.Fatalf("%T admitted without the exact managed face profile: sources=%+v err=%v", driver, sources, err)
+		}
+	}
+}
+
 func TestCaptureLocalExecutionVerifiesPayloadsBeforeTakingTheLocks(t *testing.T) {
 	svc, asset := loadoutEmbeddingFixture(t)
 	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "Embedding pre-verification", asset)
@@ -1608,12 +1619,17 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 105 {
-		t.Fatalf("all Loadout recipes = %d, want 105", len(all))
+	if len(all) != 107 {
+		t.Fatalf("all Loadout recipes = %d, want 107", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
+	}
+	for _, id := range []string{capabilitydriver.HyperSwapImageRecipeID, capabilitydriver.HyperSwapVideoRecipeID} {
+		if recipe := byID[id]; recipe == nil || recipe.GetImplementation().GetDriverId() != capabilitydriver.HyperSwapDriverID || len(recipe.GetSlots()) != 3 {
+			t.Fatalf("HyperSwap recipe %s missing exact three-slot projection", id)
+		}
 	}
 	for _, id := range []string{capabilitydriver.SpleeterRecipe2, capabilitydriver.SpleeterRecipe4} {
 		if recipe := byID[id]; recipe == nil || recipe.GetImplementation().GetDriverId() != capabilitydriver.SpleeterDriverID {

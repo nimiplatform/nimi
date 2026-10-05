@@ -100,7 +100,7 @@ func (s *Service) OpenVideoSession(ctx context.Context, req *runtimev1.OpenVideo
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
 	resolved, reason := s.capabilityDrivers.Resolve(capabilitydriver.VideoFaceSwapContract, capabilitydriver.IdentityFromProto(selected.DriverIdentity))
-	driver, ok := resolved.(capabilitydriver.InsightFaceVideoDriver)
+	driver, ok := resolved.(videoFaceSwapPlanner)
 	if !ok || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}

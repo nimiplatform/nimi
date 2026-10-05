@@ -1233,6 +1233,20 @@ units:
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
+  - id: rule.nimi.runtime.local-compute.hyperswap-1a-driver
+    kind: rule
+    title: HyperSwap 1a uses one exact ONNX group through the existing face contracts
+    modality: must
+    statement: HyperSwap 1a uses local.image.face-swap.hyperswap-1a and local.video.face-swap.hyperswap-1a with Driver nimi.runtime.driver.hyperswap, image and video dialects hyperswap/image-face-swap/v1 and hyperswap/video-face-swap/v1, and recipes hyperswap-1a.image-face-swap.v1 and hyperswap-1a.video-face-swap.v1. Its three independently imported ModelAsset slots bind the exact SCRFD five-point detector, official ArcFace W600K-R50 encoder and hyperswap_1a_256 distribution by verified content and role-specific ONNX structure, never filenames or embedding width alone. The actual detector is IR-6/opset-11, encoder IR-6/opset-15 and swapper IR-8/opset-15; the swapper takes float32 source [1,512] and target [1,3,256,256], returns float32 output [1,3,256,256] and auxiliary mask [1,1,256,256], and exposes only its image through the existing public artifact or associated frame result. The normalized source identity bypasses INSwapper initializer projection, target crop follows the conventional ArcFace 128 template scaled to 256 with RGB values in [-1,1], and output is inversely normalized to uint8 before explicit Runtime blending at original target geometry. This minimal group uses actual detector five-points, no hidden 68-point refinement, identity mixture, pixel-boost variant or whole FaceFusion workflow. It shares the existing managed Windows amd64 ONNX Runtime GPU 1.28.0 CUDA-13 Python 3.12.13 locked dependencies and media.face-swap.insightface.python library consumer, while its updated Runtime-owned driver bundle produces a new immutable profile identity. Captured Driver identity determines the backend during both new work and restoration, and the resident model cache includes that backend plus exact model and profile identities. Image Job, finite video Job and independent frame Session retain their existing ownership, single-face reasons, supported 24/25/30 fps video, actual frame/audio results, cancellation, generation/queue/absent/Close and confirmed capacity-release semantics. This implementation supports user import and the declared noncommercial local testing scope, without creating a curated weight offer or a general commercial or redistribution claim.
+    condition: Whenever the exact HyperSwap 1a group is imported, configured, captured, executed or restored through either face contract.
+    failure: Reject a different or missing component, unverified content, wrong encoder, incompatible graph or nonstandard node domain, external tensor file, unsupported platform/profile or malformed output; preserve precise face outcomes and never reuse a different backend cache, publish partial success, silently restore different weights, or treat an auxiliary mask or copied frame as successful transformation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.face-swap-contract
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.face-swap-video-driver
     kind: rule
     title: Video face replacement shares exact model supply and owns bounded codec execution
