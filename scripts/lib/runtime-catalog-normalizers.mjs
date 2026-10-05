@@ -703,7 +703,7 @@ export function selectionProfileModelID(selectionProfiles, profileID) {
   return normalizeString(match?.model_id);
 }
 
-const localInstallKinds = new Set(['binary', 'weights', 'verified-hf-multi-file', 'verified-release-archive']);
+const localInstallKinds = new Set(['binary', 'weights', 'verified-hf-multi-file', 'verified-release-archive', 'verified-github-commit-files']);
 const localReleaseArchiveInstallKind = 'verified-release-archive';
 const localPreferredEngines = new Set(['llama', 'media', 'speech', 'sidecar', 'audio-cpp']);
 const localAccelerators = new Set(['cpu', 'metal', 'cuda']);
@@ -902,8 +902,9 @@ function normalizeLocalInstall(install, label, { passive = false, privateHost = 
     throw new Error(`${label} release archive install requires a GitHub owner/repository and one release tag`);
   }
   if (!localInstallKinds.has(installKind)) {
-    throw new Error(`${label} install.install_kind must be binary|weights|verified-hf-multi-file|verified-release-archive, got: ${installKind}`);
+    throw new Error(`${label} install.install_kind must be binary|weights|verified-hf-multi-file|verified-release-archive|verified-github-commit-files, got: ${installKind}`);
   }
+  if (installKind === "verified-github-commit-files" && (!/^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/u.test(repo) || repo.includes("..") || !/^[0-9a-f]{40}$/u.test(revision))) { throw new Error(`${label} GitHub commit files require a canonical owner/repository and full commit`); }
   const entry = normalizeString(install.entry);
   if (!entry) {
     throw new Error(`${label} install.entry is required`);
@@ -983,7 +984,7 @@ export function normalizeLocalPlaneRow(model, modelID) {
     throw new Error(`local passive ModelAsset offer ${modelID} must not declare capabilities`);
   }
   const privateHost = normalizeString(model?.model_type).toLowerCase() === 'vision';
-  const fitnessOptional = ['tts', 'stt', 'vision'].includes(normalizeString(model?.model_type).toLowerCase());
+  const fitnessOptional = ['tts', 'stt', 'vision'].includes(normalizeString(model?.model_type).toLowerCase()) || normalizeStringArray(model?.capabilities).includes('music.transcribe');
   if (!passive && !fitnessOptional && !hasFitness) {
     throw new Error(`local runnable model ${modelID} requires fitness`);
   }

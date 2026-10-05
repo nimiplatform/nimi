@@ -41,7 +41,7 @@ func TestYuE2NativeExecutionIntegration(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	host := NewAudioCppExecutionHost(nil)
+	host := NewMusicExecutionHost(nil)
 	defer func() { _ = host.Stop() }()
 	started := time.Now()
 	admitted := false

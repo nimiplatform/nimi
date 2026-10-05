@@ -519,6 +519,8 @@ enum MusicTranscriptionPart {
   MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY = 1;
   MUSIC_TRANSCRIPTION_PART_LEAD_SHEET = 2;
   MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT = 3;
+  // Estimated polyphonic notes without instrument or vocal-role claims.
+  MUSIC_TRANSCRIPTION_PART_NOTE_EVENTS = 4;
 }
 
 message MusicTranscribeScenarioSpec {

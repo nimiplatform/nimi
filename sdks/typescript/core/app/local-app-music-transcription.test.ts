@@ -12,6 +12,19 @@ test('music transcription preserves owned source ranges and requested symbolic o
     assert.throws(() => validateNimiLocalAppMusicTranscribeSpec({ ...spec, ...change }));
   }
 });
+
+test('note-events survives public request/result and profile projection without role substitution', () => {
+  const spec = validateNimiLocalAppMusicTranscribeSpec({ type: 'music-transcribe', sourceAudio: { artifactId: 'source-1', range: { startFrame: 64000, endFrame: 192000 } },
+    requestedFormats: ['midi', 'timeline'], requestedParts: ['note-events'] });
+  assert.deepEqual(localMusicTranscribeSpec(runtimeMusicTranscribeSpec(spec)), spec);
+  const artifacts = [{ artifactId: 'midi-1', mimeType: 'audio/midi', sizeBytes: 42 }, { artifactId: 'timeline-1', mimeType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 500 }];
+  const result = validateNimiLocalAppMusicTranscription({ scores: [{ artifactId: 'midi-1', format: 'midi', part: 'note-events' }], timelineArtifactId: 'timeline-1',
+    origin: 'transcribed-estimate', sourceArtifactId: 'source-1', sourceInfo: { sampleRateHz: 32000, channels: 1, frameCount: 256000, durationMs: 8000 },
+    inputRange: spec.sourceAudio.range, completeness: 'unknown' }, artifacts);
+  assert.deepEqual(localMusicTranscription(runtimeMusicTranscription(result)!), result);
+  const projected = projectMusicInputCapabilities({ transcription: [{ formats: ['midi', 'timeline'], parts: ['note-events'], maxDurationSeconds: 600, maxSourceBytes: 536870912, supportsRange: true }], generation: [] });
+  assert.deepEqual(projected?.transcription?.[0]?.parts, ['note-events']);
+});
 test('transcribed estimates retain source facts and reject missing or unrelated artifacts', () => {
   const artifacts = [{ artifactId: 'score-1', mimeType: 'text/vnd.abc', sizeBytes: 2223 }, { artifactId: 'timeline-1', mimeType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 56791 }];
   const result = validateNimiLocalAppMusicTranscription({ scores: [{ artifactId: 'score-1', format: 'abc', part: 'lead-sheet' }], timelineArtifactId: 'timeline-1',

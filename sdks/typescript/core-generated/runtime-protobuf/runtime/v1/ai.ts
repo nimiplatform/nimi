@@ -5488,7 +5488,13 @@ export enum MusicTranscriptionPart {
     /**
      * @generated from protobuf enum value: MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT = 3;
      */
-    FULL_ARRANGEMENT = 3
+    FULL_ARRANGEMENT = 3,
+    /**
+     * Estimated polyphonic notes without instrument or vocal-role claims.
+     *
+     * @generated from protobuf enum value: MUSIC_TRANSCRIPTION_PART_NOTE_EVENTS = 4;
+     */
+    NOTE_EVENTS = 4
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AudioInstrumentPartKind

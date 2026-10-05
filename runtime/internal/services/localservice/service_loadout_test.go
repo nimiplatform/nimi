@@ -1608,12 +1608,16 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 102 {
-		t.Fatalf("all Loadout recipes = %d, want 102", len(all))
+	if len(all) != 103 {
+		t.Fatalf("all Loadout recipes = %d, want 103", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
+	}
+	basicPitch := byID[capabilitydriver.BasicPitchRecipeID]
+	if basicPitch == nil || basicPitch.GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
+		t.Fatalf("Windows CPU Basic Pitch must not become supported on macOS: %+v", basicPitch)
 	}
 	groundingDino := byID[capabilitydriver.GroundingDinoRecipeID]
 	if groundingDino == nil || groundingDino.GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED || len(groundingDino.GetSlots()) != 1 {

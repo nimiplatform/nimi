@@ -483,6 +483,7 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 	case strings.TrimSpace(dependencyID) == localEnvironmentPythonRuntimeDependencyID(),
 		strings.TrimSpace(dependencyID) == "uv":
 		return []string{
+			engine.BasicPitchConsumerID,
 			"stable-diffusion.cpp.cpu",
 			"stable-diffusion.cpp.metal",
 			"stable-diffusion.cpp.cuda",
@@ -506,7 +507,7 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 
 func resolvePythonDependencyProfileForJob(job localEnvironmentDependencyJobState, requireProfileDependencyID bool) (engine.PythonDependencyProfileIdentity, string, error) {
 	consumer := pythonTorchWheelPrerequisiteConsumer(pythonMaterializerConsumerForJob(job))
-	if !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") && consumer != engine.FaceSwapConsumerID && consumer != engine.VisionLocateConsumerID && consumer != engine.GroundingDinoConsumerID && consumer != engine.TextAnnotationConsumerID && consumer != engine.TextAnnotationTrfConsumerID && consumer != engine.TextDecisionConsumerID {
+	if !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") && consumer != engine.FaceSwapConsumerID && consumer != engine.VisionLocateConsumerID && consumer != engine.GroundingDinoConsumerID && consumer != engine.TextAnnotationConsumerID && consumer != engine.TextAnnotationTrfConsumerID && consumer != engine.TextDecisionConsumerID && consumer != engine.BasicPitchConsumerID {
 		return engine.PythonDependencyProfileIdentity{}, "", fmt.Errorf("python dependency profile is not admitted for consumer %s", consumer)
 	}
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
@@ -608,7 +609,7 @@ func pythonMaterializerConsumerForJob(job localEnvironmentDependencyJobState) st
 
 func pythonMaterializerConsumerScope(consumer string) bool {
 	trimmed := strings.TrimSpace(consumer)
-	return trimmed == engine.TextAnnotationConsumerID || trimmed == engine.TextAnnotationTrfConsumerID || trimmed == engine.TextAnnotationTrfConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID || trimmed == engine.VisionLocateConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID+".cuda" || trimmed == engine.GroundingDinoConsumerID || trimmed == engine.GroundingDinoConsumerID+".cuda" ||
+	return trimmed == engine.BasicPitchConsumerID || trimmed == engine.TextAnnotationConsumerID || trimmed == engine.TextAnnotationTrfConsumerID || trimmed == engine.TextAnnotationTrfConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID || trimmed == engine.VisionLocateConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID+".cuda" || trimmed == engine.GroundingDinoConsumerID || trimmed == engine.GroundingDinoConsumerID+".cuda" ||
 		localDecisionPythonConsumerScope(trimmed) ||
 		strings.HasPrefix(trimmed, "stable-diffusion.cpp.") ||
 		trimmed == engine.FaceSwapConsumerID ||

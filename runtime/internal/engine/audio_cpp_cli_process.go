@@ -27,6 +27,7 @@ type audioCppProcessSpec struct {
 	executablePath    string
 	workingDir        string
 	cuda13Root        string
+	pythonProfileRoot string
 	args              []string
 	stagingOutputPath string
 	modelBindings     []capabilitydriver.InvocationExactBinding
@@ -39,8 +40,15 @@ type audioCppProcessOutcome struct {
 }
 
 func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCppProcessOutcome, error) {
-	if !filepath.IsAbs(spec.executablePath) || !filepath.IsAbs(spec.workingDir) || !filepath.IsAbs(spec.cuda13Root) || !filepath.IsAbs(spec.stagingOutputPath) || len(spec.args) == 0 {
+	if !filepath.IsAbs(spec.executablePath) || !filepath.IsAbs(spec.workingDir) || !filepath.IsAbs(spec.stagingOutputPath) || len(spec.args) == 0 {
 		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp process specification is incomplete"))
+	}
+	if spec.pythonProfileRoot != "" {
+		if !filepath.IsAbs(spec.pythonProfileRoot) || spec.workingDir != spec.pythonProfileRoot || spec.executablePath != managedPythonPath(spec.pythonProfileRoot) || spec.cuda13Root != "" {
+			return audioCppProcessOutcome{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("Python music process capture is invalid"))
+		}
+	} else if !filepath.IsAbs(spec.cuda13Root) {
+		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp CUDA process capture is invalid"))
 	}
 	output := spec.stagingOutputPath
 	tempOutput := output + ".tmp"
@@ -62,7 +70,11 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 	command := exec.Command(spec.executablePath, append([]string(nil), spec.args...)...)
 	command.Dir = spec.workingDir
 	configureManagedCommand(command)
-	command.Env = append(os.Environ(), "PATH="+spec.cuda13Root+string(os.PathListSeparator)+spec.workingDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if spec.pythonProfileRoot != "" {
+		command.Env = managedCommandProcessEnvironment(os.Environ(), pythonDependencyProfileReadOnlyEnv())
+	} else {
+		command.Env = append(os.Environ(), "PATH="+spec.cuda13Root+string(os.PathListSeparator)+spec.workingDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	}
 	stdout := &boundedAudioCppOutput{limit: audioCppMaxDiagnosticBytes}
 	stderr := &boundedAudioCppOutput{limit: audioCppMaxDiagnosticBytes}
 	command.Stdout = stdout

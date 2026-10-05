@@ -13,7 +13,7 @@ func validateMusicTranscriptionSpec(spec *runtimev1.MusicTranscribeScenarioSpec)
 	invalid := func() error {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if spec == nil || !localAppBoundedIdentifier(spec.GetSourceAudio().GetArtifactId()) || len(spec.GetRequestedFormats()) < 1 || len(spec.GetRequestedFormats()) > 3 || len(spec.GetRequestedParts()) < 1 || len(spec.GetRequestedParts()) > 3 {
+	if spec == nil || !localAppBoundedIdentifier(spec.GetSourceAudio().GetArtifactId()) || len(spec.GetRequestedFormats()) < 1 || len(spec.GetRequestedFormats()) > 3 || len(spec.GetRequestedParts()) < 1 || len(spec.GetRequestedParts()) > 4 {
 		return invalid()
 	}
 	if r := spec.GetSourceAudio().GetRange(); r != nil && (r.GetEndFrame() <= r.GetStartFrame() || r.GetEndFrame() > 96000*600) {
@@ -28,7 +28,7 @@ func validateMusicTranscriptionSpec(spec *runtimev1.MusicTranscribeScenarioSpec)
 	}
 	parts := map[runtimev1.MusicTranscriptionPart]bool{}
 	for _, value := range spec.GetRequestedParts() {
-		if value < runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY || value > runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT || parts[value] {
+		if value < runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY || value > runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_NOTE_EVENTS || parts[value] {
 			return invalid()
 		}
 		parts[value] = true

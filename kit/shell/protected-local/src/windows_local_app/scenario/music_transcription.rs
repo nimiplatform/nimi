@@ -19,14 +19,14 @@ pub(super) fn parse(object: &Map<String, JsonValue>) -> Result<MusicTranscribeSc
     }).transpose()?;
     let formats = field(object, "requestedFormats")?.as_array().ok_or_else(invalid_payload)?;
     let parts = field(object, "requestedParts")?.as_array().ok_or_else(invalid_payload)?;
-    if formats.is_empty() || formats.len() > 3 || parts.is_empty() || parts.len() > 3 { return Err(invalid_payload()); }
+    if formats.is_empty() || formats.len() > 3 || parts.is_empty() || parts.len() > 4 { return Err(invalid_payload()); }
     let requested_formats = formats.iter().map(|v| match v.as_str() {
         Some("abc") => Ok(MusicTranscriptionFormat::Abc as i32), Some("midi") => Ok(MusicTranscriptionFormat::Midi as i32),
         Some("timeline") => Ok(MusicTranscriptionFormat::Timeline as i32), _ => Err(invalid_payload()),
     }).collect::<Result<Vec<_>, _>>()?;
     let requested_parts = parts.iter().map(|v| match v.as_str() {
         Some("vocal-melody") => Ok(MusicTranscriptionPart::VocalMelody as i32), Some("lead-sheet") => Ok(MusicTranscriptionPart::LeadSheet as i32),
-        Some("full-arrangement") => Ok(MusicTranscriptionPart::FullArrangement as i32), _ => Err(invalid_payload()),
+        Some("full-arrangement") => Ok(MusicTranscriptionPart::FullArrangement as i32), Some("note-events") => Ok(MusicTranscriptionPart::NoteEvents as i32), _ => Err(invalid_payload()),
     }).collect::<Result<Vec<_>, _>>()?;
     if requested_formats.iter().collect::<HashSet<_>>().len() != formats.len() || requested_parts.iter().collect::<HashSet<_>>().len() != parts.len() { return Err(invalid_payload()); }
     Ok(MusicTranscribeScenarioSpec { source_audio: Some(MusicAudioInput { artifact_id, range }), requested_formats, requested_parts })
@@ -49,7 +49,7 @@ pub(super) fn project(value: &MusicTranscription, artifacts: &[LocalAppScenarioA
             MusicScoreFormat::Abc => ("abc", "text/vnd.abc", 1_048_576_i64), MusicScoreFormat::Midi => ("midi", "audio/midi", 16_777_216_i64), _ => return Err(untrusted()),
         };
         let part = match MusicTranscriptionPart::try_from(score.part).map_err(|_| untrusted())? {
-            MusicTranscriptionPart::VocalMelody => "vocal-melody", MusicTranscriptionPart::LeadSheet => "lead-sheet", MusicTranscriptionPart::FullArrangement => "full-arrangement", _ => return Err(untrusted()),
+            MusicTranscriptionPart::VocalMelody => "vocal-melody", MusicTranscriptionPart::LeadSheet => "lead-sheet", MusicTranscriptionPart::FullArrangement => "full-arrangement", MusicTranscriptionPart::NoteEvents => "note-events", _ => return Err(untrusted()),
         };
         if expected.insert(score.artifact_id.as_str(), (mime, max)).is_some() || !pairs.insert((score.format, score.part)) { return Err(untrusted()); }
         scores.push(json!({"artifactId":score.artifact_id,"format":format,"part":part}));

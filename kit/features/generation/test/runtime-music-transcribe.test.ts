@@ -21,6 +21,18 @@ function setup() {
 }
 
 describe('protected music transcription runner', () => {
+
+  it('carries note-events MIDI through the public Job runner and terminal projection', async () => {
+    const { client, transcription, artifacts, submitScenarioJob } = setup();
+    transcription.scores[0]!.format = 2;
+    transcription.scores[0]!.part = 4;
+    artifacts[0]!.mimeType = 'audio/midi';
+    const result = await runRuntimeMusicTranscribe({ runtime: { ai: client }, appId: 'test.app', scenarioId: 'notes', surfaceId: 'test',
+      sourceAudio: { artifactId: 'source-1', range: { startFrame: 48000, endFrame: 480000 } }, requestedFormats: ['midi', 'timeline'], requestedParts: ['note-events'] });
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    expect(result.output.transcription.scores[0]).toMatchObject({ format: 'midi', part: 'note-events' });
+    expect(submitScenarioJob.mock.calls[0]?.[0].spec?.spec).toMatchObject({ oneofKind: 'musicTranscribe', musicTranscribe: { requestedParts: [4], requestedFormats: [2,3] } });
+  });
   it('preserves the whole score/timeline set and absolute source frame basis', async () => {
     const { client, submitScenarioJob } = setup();
     const result = await runRuntimeMusicTranscribe({ runtime: { ai: client }, appId: 'test.app', scenarioId: 'test', surfaceId: 'test',

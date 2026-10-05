@@ -45,7 +45,7 @@ type Daemon struct {
 	auditStore              *auditlog.Store
 	engineMgr               *engine.Manager
 	imageExecutionHost      *engine.ImageExecutionHost
-	audioCppExecutionHost   *engine.AudioCppExecutionHost
+	musicExecutionHost      *engine.MusicExecutionHost
 	audioCppSpeechHost      *engine.AudioCppSpeechExecutionHost
 	videoExecutionHost      *engine.VideoExecutionHost
 	newEngineManager        func(logger *slog.Logger, roots engine.ManagedRoots, onState engine.StateChangeFunc) (*engine.Manager, error)
@@ -611,8 +611,8 @@ func (d *Daemon) stopSupervisedEngines(ctx context.Context, reason string) {
 		if d.imageExecutionHost != nil {
 			stopHost("image execution host", d.imageExecutionHost.Stop)
 		}
-		if d.audioCppExecutionHost != nil {
-			stopHost("audio.cpp execution host", d.audioCppExecutionHost.Stop)
+		if d.musicExecutionHost != nil {
+			stopHost("music execution host", d.musicExecutionHost.Stop)
 		}
 		if d.audioCppSpeechHost != nil {
 			stopHost("audio.cpp speech execution host", d.audioCppSpeechHost.Stop)
@@ -810,8 +810,8 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 		decisionHost := engine.NewTextDecisionExecutionHost(mgr)
 		aiSvc.SetLocalTextDecisionExecutionHost(decisionHost)
 		modelAssetHosts = append(modelAssetHosts, decisionHost)
-		d.audioCppExecutionHost = engine.NewAudioCppExecutionHost(d.logger)
-		aiSvc.SetLocalMusicExecutionHost(d.audioCppExecutionHost)
+		d.musicExecutionHost = engine.NewMusicExecutionHost(d.logger)
+		aiSvc.SetLocalMusicExecutionHost(d.musicExecutionHost)
 		d.videoExecutionHost = engine.NewVideoExecutionHost(mgr, d.logger, engine.VideoExecutionHostConfig{
 			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
 		})

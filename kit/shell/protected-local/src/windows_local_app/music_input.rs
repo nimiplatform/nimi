@@ -33,7 +33,7 @@ pub(super) fn project(value: MusicInputCapabilities) -> Result<Value, LocalAppOp
     for row in value.transcription {
         if row.formats.is_empty() || row.parts.is_empty()
             || !tokens(&row.formats, &["abc", "midi", "timeline"])
-            || !tokens(&row.parts, &["vocal-melody", "lead-sheet", "full-arrangement"])
+            || !tokens(&row.parts, &["vocal-melody", "lead-sheet", "full-arrangement", "note-events"])
             || row.max_duration_seconds == 0 || row.max_duration_seconds > 600
             || row.max_source_bytes == 0 || row.max_source_bytes > 512 * 1024 * 1024 { return Err(untrusted()); }
         transcription.push(json!({"formats":row.formats,"parts":row.parts,"maxDurationSeconds":row.max_duration_seconds,

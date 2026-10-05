@@ -7681,6 +7681,49 @@ models:
     fitness:
       param_count: 3000000000
       context_length: 24576
+  - model_id: basic-pitch-onnx-local
+    provider: local
+    model_type: music
+    updated_at: 2026-10-04
+    capabilities:
+      - music.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/spotify/basic-pitch/tree/9991303bba609a3b93089d13ec80d1d495083596
+      retrieved_at: 2026-10-04
+      note: Official v0.4.0 ONNX and accompanying Apache 2.0 license/NOTICE; note estimates without instrument or vocal roles.
+    family: basic-pitch
+    install:
+      repo: spotify/basic-pitch
+      revision: 9991303bba609a3b93089d13ec80d1d495083596
+      install_kind: verified-github-commit-files
+      entry: basic_pitch/saved_models/icassp_2022/nmp.onnx
+      artifact_roles:
+        - music_model
+      license: Apache-2.0
+      provenance: Official Spotify Basic Pitch v0.4.0 icassp_2022 ONNX; retained license and NOTICE.
+      preferred_engine: sidecar
+    variants:
+      - variant_id: local.music.basic-pitch.onnx.f32.cpu
+        quant: F32
+        entry: basic_pitch/saved_models/icassp_2022/nmp.onnx
+        files:
+          - LICENSE
+          - NOTICE
+          - basic_pitch/saved_models/icassp_2022/nmp.onnx
+        hashes:
+          LICENSE: sha256:929c910bae2152fa87199a5d0660e09263419b7eee6d4b301d05ee2aaf211c37
+          NOTICE: sha256:b810e55c0e3b520fabb45fc2ccc74880187bf84e309971968541cc812dcde905
+          basic_pitch/saved_models/icassp_2022/nmp.onnx: sha256:2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec
+        total_size_bytes: 242862
+        host_requirement:
+          accelerator: cpu
 voices:
   - voice_id: Vivian
     voice_set_id: local:qwen3-tts-audio-cpp-v1
@@ -9845,6 +9888,26 @@ voice_handle_policies:
       retrieved_at: 2026-04-17
       note: Default local voice clone checkpoint for first-wave local admission.
 loadout_recipes:
+  - recipe_id: basic-pitch.onnx-cpu.v1
+    revision: "1"
+    title: Basic Pitch note estimates
+    capability_contract: music.transcribe
+    implementation_id: local.music.transcribe.basic-pitch.onnx-cpu
+    driver_id: nimi.runtime.driver.python.basic-pitch
+    driver_dialect: python/basic-pitch-onnx/music-transcribe/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: music.model
+        display_label: Basic Pitch ONNX with license and NOTICE
+        recommended_variant_ids:
+          - local.music.basic-pitch.onnx.f32.cpu
+        recommended_content_ids:
+          - sha256:24b5e2a22dbb7575cb3cdd999ac96f24eb5cac6a38df6fc32446fe3a5c96763a
+        model_contract:
+          format: onnx
+          artifact_role: music_model
   - recipe_id: faster-whisper-vad
     revision: "1"
     title: Whisper transcription with voice activity detection

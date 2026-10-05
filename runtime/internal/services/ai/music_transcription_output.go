@@ -72,8 +72,13 @@ func (s *Service) commitLocalMusicTranscription(ctx context.Context, jobID strin
 			}
 			mime = "text/vnd.abc"
 		case runtimev1.MusicScoreFormat_MUSIC_SCORE_FORMAT_MIDI:
-			// No current Driver emits MIDI; admission cannot invent a conversion.
-			return fmt.Errorf("MIDI transcription output validation has no admitted implementation")
+			if score.Part != runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_NOTE_EVENTS {
+				return fmt.Errorf("MIDI transcription part has no admitted implementation")
+			}
+			if _, err := musicscore.ParseNoteMIDI(score.Bytes); err != nil {
+				return err
+			}
+			mime = "audio/midi"
 		default:
 			return fmt.Errorf("music transcription score format is invalid")
 		}
@@ -167,7 +172,7 @@ func validateMusicTranscriptionResult(job *runtimev1.ScenarioJob) error {
 	parts := map[[2]int32]bool{}
 	for _, score := range value.GetScores() {
 		key := [2]int32{int32(score.GetFormat()), int32(score.GetPart())}
-		if !localAppBoundedIdentifier(score.GetArtifactId()) || expected[score.GetArtifactId()] != "" || parts[key] || score.GetPart() < runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY || score.GetPart() > runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT {
+		if !localAppBoundedIdentifier(score.GetArtifactId()) || expected[score.GetArtifactId()] != "" || parts[key] || score.GetPart() < runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY || score.GetPart() > runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_NOTE_EVENTS {
 			return fmt.Errorf("music transcription score identity is invalid")
 		}
 		parts[key] = true

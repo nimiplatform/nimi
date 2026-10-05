@@ -397,6 +397,10 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 			Message: "install plan does not match its catalog offer", ActionHint: "resolve_model_install_plan",
 		})
 	}
+	githubCommitFiles, err := s.catalogGitHubCommitForPlan(plan)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, err, grpcerr.ReasonOptions{})
+	}
 	record, installSessionID, err := s.installManagedDownloadedModelWithTransfer(ctx, managedDownloadedModelSpec{
 		modelID:           defaultString(plan.GetTemplateId(), defaultString(plan.GetItemId(), plan.GetModelId())),
 		displayName:       plan.GetModelId(),
@@ -414,6 +418,7 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 		totalSizeBytes:    plan.GetTotalSizeBytes(),
 		planID:            plan.GetPlanId(),
 		archive:           archive,
+		githubCommitFiles: githubCommitFiles,
 	}, "")
 	if err != nil {
 		return nil, modelInstallRPCError(err)

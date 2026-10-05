@@ -10,6 +10,7 @@ const KIT = '@nimiplatform/kit';
 
 export const ADDITIONAL_DEPENDENCY_COMBINATIONS = Object.freeze([
   Object.freeze({ sdkVersion: '^0.20.0', kitVersion: '^0.17.0', nimiShellTauriVersion: '0.9.0', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.18.0', nimiShellTauriVersion: '0.10.0', source: 'existing' }),
   Object.freeze({ sdkVersion: '^0.19.0', kitVersion: '^0.16.0', nimiShellTauriVersion: '0.8.0', source: 'existing' }),
 ]);
 

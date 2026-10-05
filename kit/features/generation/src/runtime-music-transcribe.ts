@@ -19,7 +19,7 @@ export type RuntimeMusicTranscribeResult =
   | { readonly ok: false; readonly capabilityId: 'music.transcribe'; readonly reason: RuntimeScenarioJobNonSuccessReason | 'input-invalid'; readonly message: string; readonly error: NimiError };
 
 const format = { abc: MusicTranscriptionFormat.ABC, midi: MusicTranscriptionFormat.MIDI, timeline: MusicTranscriptionFormat.TIMELINE };
-const part = { 'vocal-melody': MusicTranscriptionPart.VOCAL_MELODY, 'lead-sheet': MusicTranscriptionPart.LEAD_SHEET, 'full-arrangement': MusicTranscriptionPart.FULL_ARRANGEMENT };
+const part = { 'vocal-melody': MusicTranscriptionPart.VOCAL_MELODY, 'lead-sheet': MusicTranscriptionPart.LEAD_SHEET, 'full-arrangement': MusicTranscriptionPart.FULL_ARRANGEMENT, 'note-events': MusicTranscriptionPart.NOTE_EVENTS };
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-transcription
 export async function runRuntimeMusicTranscribe(input: RuntimeMusicTranscribeInput): Promise<RuntimeMusicTranscribeResult> {
@@ -48,13 +48,13 @@ function project(result: NimiRuntimeScenarioJobResult): RuntimeMusicTranscribeRe
   const artifacts = result.artifacts.map(a => ({ artifactId: a.artifactId, mimeType: a.mimeType, sizeBytes: Number(a.sizeBytes), sha256: a.sha256 }));
   const transcription = validateNimiLocalAppMusicTranscription({
     scores: value.scores.map(score => ({ artifactId: score.artifactId, format: score.format === MusicScoreFormat.ABC ? 'abc' : score.format === MusicScoreFormat.MIDI ? 'midi' : undefined,
-      part: ({ [MusicTranscriptionPart.VOCAL_MELODY]: 'vocal-melody', [MusicTranscriptionPart.LEAD_SHEET]: 'lead-sheet', [MusicTranscriptionPart.FULL_ARRANGEMENT]: 'full-arrangement' } as Record<number, string>)[score.part] })),
+      part: ({ [MusicTranscriptionPart.VOCAL_MELODY]: 'vocal-melody', [MusicTranscriptionPart.LEAD_SHEET]: 'lead-sheet', [MusicTranscriptionPart.FULL_ARRANGEMENT]: 'full-arrangement', [MusicTranscriptionPart.NOTE_EVENTS]: 'note-events' } as Record<number, string>)[score.part] })),
     ...(value.timelineArtifactId ? { timelineArtifactId: value.timelineArtifactId } : {}), origin: value.origin === MusicScoreOrigin.TRANSCRIBED_ESTIMATE ? 'transcribed-estimate' : undefined,
     sourceArtifactId: value.sourceArtifactId, sourceInfo: value.sourceInfo ? { ...value.sourceInfo, frameCount: Number(value.sourceInfo.frameCount), durationMs: Number(value.sourceInfo.durationMs) } : undefined,
     inputRange: value.inputRange ? { startFrame: Number(value.inputRange.startFrame), endFrame: Number(value.inputRange.endFrame) } : undefined,
     completeness: ({ [MusicTranscriptionCompleteness.UNKNOWN]: 'unknown', [MusicTranscriptionCompleteness.COMPLETE]: 'complete', [MusicTranscriptionCompleteness.TRUNCATED]: 'truncated' } as Record<number, string>)[value.completeness],
   }, artifacts);
-  return { ok: true, capabilityId: 'music.transcribe', message: 'Music transcription returned an estimated score and musical events.',
+  return { ok: true, capabilityId: 'music.transcribe', message: 'Music transcription returned the requested estimates.',
     output: { kind: 'music-transcription-artifacts', jobId: result.job.jobId, jobStatus: 'completed', transcription, artifactCount: artifacts.length, artifacts },
     trace: result.traceId ? { traceId: result.traceId } : undefined };
 }

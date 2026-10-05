@@ -77,6 +77,9 @@ func PythonDependencyProfileStaticFiles(consumer string, identity PythonDependen
 		}
 		return append(files, driverFiles...), nil
 	}
+	if strings.TrimSpace(consumer) == BasicPitchConsumerID {
+		return append(files, basicPitchDriverStaticFiles()...), nil
+	}
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		return append(files, faceSwapDriverStaticFiles()...), nil
 	}
@@ -139,7 +142,7 @@ func ResolvePythonDependencyProfileIdentity(consumer string, platformTuple strin
 	torchIdentity := PythonTorchWheelDependencyIdentity{AcceleratorPlane: trimmedPlane}
 	if trimmedConsumer == FaceSwapConsumerID {
 		torchIdentity.CUDAABI = "cu13"
-	} else if trimmedConsumer != TextAnnotationConsumerID {
+	} else if trimmedConsumer != TextAnnotationConsumerID && trimmedConsumer != BasicPitchConsumerID {
 		torchIdentity, err = ResolvePythonTorchWheelDependencyIdentity(trimmedConsumer + "." + trimmedPlane)
 		if err != nil {
 			return PythonDependencyProfileIdentity{}, err
@@ -209,6 +212,11 @@ func admitPythonDependencyProfilePlatform(platformTuple string, acceleratorPlane
 func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, acceleratorPlane string) (string, error) {
 	line := ""
 	switch strings.TrimSpace(consumer) {
+	case BasicPitchConsumerID:
+		if platformTuple != "windows/amd64" || acceleratorPlane != "cpu" {
+			return "", fmt.Errorf("Basic Pitch profile requires windows/amd64 CPU")
+		}
+		return "music-basic-pitch-cpu", nil
 	case TextAnnotationConsumerID:
 		if acceleratorPlane != "cpu" {
 			return "", fmt.Errorf("text annotation profile requires CPU")
@@ -285,7 +293,7 @@ func pythonDependencyProfileInput(sourceLabel string, name string) ([]byte, erro
 }
 
 func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane string) (string, error) {
-	if strings.TrimSpace(consumer) == FaceSwapConsumerID || strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+	if strings.TrimSpace(consumer) == FaceSwapConsumerID || strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == BasicPitchConsumerID {
 		return "pypi=https://pypi.org/simple", nil
 	}
 	manifest, err := resolvePythonTorchWheelManifest(strings.TrimSpace(consumer) + "." + strings.TrimSpace(acceleratorPlane))
@@ -296,6 +304,9 @@ func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane stri
 }
 
 func pythonDependencyProfileDriverProtocol(consumer string) string {
+	if strings.TrimSpace(consumer) == BasicPitchConsumerID {
+		return capabilitydriver.BasicPitchProtocol
+	}
 	if strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == TextAnnotationTrfConsumerID {
 		return capabilitydriver.SpacyProtocol
 	}
@@ -319,6 +330,13 @@ func speechDriverBundleDigest(consumer string) (string, error) {
 }
 
 func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol string) (string, error) {
+	if strings.TrimSpace(consumer) == BasicPitchConsumerID {
+		lines := []string{"driver_protocol=" + driverProtocol}
+		for _, file := range basicPitchDriverStaticFiles() {
+			lines = append(lines, "file="+file.RelativePath, string(file.Content))
+		}
+		return sha256Hex([]byte(strings.Join(lines, "\n") + "\n")), nil
+	}
 	if strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == TextAnnotationTrfConsumerID {
 		lines := []string{"driver_protocol=" + driverProtocol}
 		for _, file := range textAnnotationDriverStaticFiles() {

@@ -11,20 +11,26 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-transcription
 type MusicTranscriptionInvocationInput struct {
-	LoadoutID      string
-	RecipeID       string
-	PortableConfig *structpb.Struct
-	ExactBindings  []InvocationExactBinding
-	Package        AudioCppRuntimePackageInput
-	Request        *runtimev1.MusicTranscribeScenarioSpec
-	SourceInfo     *runtimev1.LocalAppAudioInfo
-	SourcePath     string
-	StagingDir     string
+	LoadoutID         string
+	RecipeID          string
+	PortableConfig    *structpb.Struct
+	ExactBindings     []InvocationExactBinding
+	Package           AudioCppRuntimePackageInput
+	DependencySources []InvocationExactDependencySource
+	Request           *runtimev1.MusicTranscribeScenarioSpec
+	SourceInfo        *runtimev1.LocalAppAudioInfo
+	SourcePath        string
+	StagingDir        string
 }
 
 type MusicTranscriptionInvocationDriver interface {
 	Driver
 	PlanMusicTranscriptionInvocation(MusicTranscriptionInvocationInput) (*MusicInvocationPlan, error)
+}
+
+type PythonMusicTranscriptionDriver interface {
+	MusicTranscriptionInvocationDriver
+	MusicPythonConsumerID() string
 }
 
 type MusicTranscriptionScoreOutput struct {
@@ -50,6 +56,26 @@ type musicTranscriptionPlan struct {
 	normalize  func([]byte, []byte) (*MusicTranscriptionOutput, error)
 }
 
+// MusicPythonPlan is the exact private package/profile captured at admission.
+// It carries no configurable backend fallback or App-supplied executable.
+type MusicPythonPlan struct {
+	ConsumerID             string
+	ProfileRoot            string
+	ProfileDigest          string
+	DriverBundleDigest     string
+	SelectedSourceRecordID string
+	InterpreterPath        string
+	ScriptPath             string
+}
+
+func (p *MusicInvocationPlan) PythonTranscription() *MusicPythonPlan {
+	if p == nil || p.musicPython == nil {
+		return nil
+	}
+	value := *p.musicPython
+	return &value
+}
+
 func (p *MusicInvocationPlan) IsTranscription() bool { return p != nil && p.transcription != nil }
 
 func (p *MusicInvocationPlan) PrimaryStagingOutputPath() string {
@@ -57,6 +83,9 @@ func (p *MusicInvocationPlan) PrimaryStagingOutputPath() string {
 		return ""
 	}
 	if p.transcription != nil {
+		if p.musicPython != nil {
+			return p.transcription.eventsPath
+		}
 		return p.transcription.scorePath
 	}
 	return p.stagingWAVPath

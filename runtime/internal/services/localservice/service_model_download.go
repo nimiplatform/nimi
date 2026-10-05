@@ -51,6 +51,7 @@ var errModelDownloadHashMismatch = errors.New("model file hash mismatch")
 // result (created or reused, final model_asset_id) lives separately on the
 // transfer.
 type managedDownloadedModelSpec struct {
+	githubCommitFiles bool
 	modelID           string
 	displayName       string
 	catalogAssetID    string
@@ -462,7 +463,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		}
 		size := completedSize
 		if !completed {
-			_, err = s.downloadManagedModelFile(ctx, transferID, spec.repo, spec.revision, relativeFile, targetPath, spec.hashes, received, bundleTotal, index == len(files)-1)
+			_, err = s.downloadManagedModelFile(ctx, transferID, spec.repo, spec.revision, spec.githubCommitFiles, relativeFile, targetPath, spec.hashes, received, bundleTotal, index == len(files)-1)
 			if err != nil {
 				switch {
 				case errors.Is(err, errLocalTransferCancelled):
@@ -755,6 +756,12 @@ func canonicalManagedDownloadedModelSpec(input managedDownloadedModelSpec) (mana
 		totalSizeBytes:    clampInt64Minimum(input.totalSizeBytes, 0),
 		engineConfig:      toStruct(structToMap(input.engineConfig)),
 		planID:            strings.TrimSpace(input.planID),
+		githubCommitFiles: input.githubCommitFiles,
+	}
+	if result.githubCommitFiles {
+		if input.archive != nil || !validGitHubCommitSource(result.repo, result.revision) {
+			return managedDownloadedModelSpec{}, errors.New("GitHub commit file source is invalid")
+		}
 	}
 	if result.modelID == "" || result.repo == "" {
 		return managedDownloadedModelSpec{}, errors.New("managed download spec requires model and repository identity")
@@ -833,6 +840,7 @@ func cloneManagedDownloadedModelSpec(input managedDownloadedModelSpec) managedDo
 		totalSizeBytes:    input.totalSizeBytes,
 		engineConfig:      toStruct(structToMap(input.engineConfig)),
 		planID:            input.planID,
+		githubCommitFiles: input.githubCommitFiles,
 		archive:           cloneManagedModelArchiveSource(input.archive),
 	}
 }
@@ -851,6 +859,7 @@ func localStateManagedDownloadSpec(input managedDownloadedModelSpec) *localState
 		License:           input.license,
 		SourceProvenance:  input.sourceProvenance,
 		Repo:              input.repo,
+		GitHubCommitFiles: input.githubCommitFiles,
 		Revision:          input.revision,
 		Hashes:            cloneStringMap(input.hashes),
 		TotalSizeBytes:    input.totalSizeBytes,
@@ -876,6 +885,7 @@ func managedDownloadedModelSpecFromLocalState(input *localStateManagedModelDownl
 		license:           input.License,
 		sourceProvenance:  input.SourceProvenance,
 		repo:              input.Repo,
+		githubCommitFiles: input.GitHubCommitFiles,
 		revision:          input.Revision,
 		hashes:            cloneStringMap(input.Hashes),
 		totalSizeBytes:    input.TotalSizeBytes,
@@ -913,6 +923,7 @@ func (s *Service) downloadManagedModelFile(
 	sessionID string,
 	repo string,
 	revision string,
+	githubCommitFiles bool,
 	relativeFile string,
 	targetPath string,
 	hashes map[string]string,
@@ -928,6 +939,14 @@ func (s *Service) downloadManagedModelFile(
 	)
 	if err != nil {
 		return "", err
+	}
+	var redirect func(*http.Request, []*http.Request) error
+	if githubCommitFiles {
+		requestURL, err = buildGitHubCommitFileURL(repo, revision, relativeFile)
+		if err != nil {
+			return "", err
+		}
+		redirect = gitHubCommitFileRedirect
 	}
 	expectedHash := expectedModelSHA256(hashes, relativeFile)
 	if expectedHash == "" {
@@ -965,7 +984,7 @@ func (s *Service) downloadManagedModelFile(
 		header,
 		timeout,
 		0,
-		nil,
+		redirect,
 	)
 	if err != nil {
 		if errors.Is(err, errLocalTransferCancelled) {

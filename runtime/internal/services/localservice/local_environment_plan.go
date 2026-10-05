@@ -95,6 +95,11 @@ type localComputePackDefinition struct {
 // @nimi-authority: rule.nimi.runtime.local-compute.r066
 func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localEnvironmentHostProfileState) (string, string, bool) {
 	switch driver.(type) {
+	case capabilitydriver.BasicPitchDriver:
+		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") {
+			return "local-music-notes", engine.BasicPitchConsumerID, true
+		}
+		return "", "", false
 	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver:
 		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") && localEnvironmentHostSupportsCUDA(host) {
 			return "local-face-swap", engine.FaceSwapConsumerID, true
@@ -578,7 +583,7 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 }
 
 func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) ([]localEnvironmentPlanDependency, bool) {
-	if def.PackID != "local-speech" && def.PackID != "local-vision" && def.PackID != "local-face-swap" && def.PackID != "local-nlp" && def.PackID != "local-nlp-transformer" && def.PackID != localDecisionPackID {
+	if def.PackID != "local-speech" && def.PackID != "local-vision" && def.PackID != "local-face-swap" && def.PackID != "local-nlp" && def.PackID != "local-nlp-transformer" && def.PackID != "local-music-notes" && def.PackID != localDecisionPackID {
 		return nil, false
 	}
 	if family != localEnvironmentFamilyPythonUV &&
@@ -593,6 +598,9 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 		return nil, false
 	}
 	consumers := localSpeechPlanConsumers(consumerScope)
+	if def.PackID == "local-music-notes" {
+		consumers = []string{engine.BasicPitchConsumerID}
+	}
 	if def.PackID == "local-nlp" {
 		consumers = []string{engine.TextAnnotationConsumerID}
 	}
@@ -776,6 +784,7 @@ func localComputePackByID(packID string) (localComputePackDefinition, bool) {
 
 func localComputePackDefinitions() []localComputePackDefinition {
 	return []localComputePackDefinition{
+		{PackID: "local-music-notes", ProductLabel: "Music note estimation", RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet}, CloudOnlyImpact: "none"},
 		{
 			PackID: "local-nlp", ProductLabel: "Language analysis",
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet},
@@ -876,7 +885,7 @@ func defaultLocalEnvironmentDependencyID(packID string, family string) string {
 }
 
 func localPythonAcceleratorPlane(consumer string, host localEnvironmentHostProfileState) string {
-	if strings.TrimSpace(consumer) != engine.TextAnnotationConsumerID && strings.TrimSpace(consumer) != engine.TextAnnotationTrfConsumerID && localEnvironmentHostSupportsCUDA(host) {
+	if strings.TrimSpace(consumer) != engine.TextAnnotationConsumerID && strings.TrimSpace(consumer) != engine.TextAnnotationTrfConsumerID && strings.TrimSpace(consumer) != engine.BasicPitchConsumerID && localEnvironmentHostSupportsCUDA(host) {
 		return "cuda"
 	}
 	return "cpu"

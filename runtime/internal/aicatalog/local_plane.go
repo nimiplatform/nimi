@@ -141,7 +141,7 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 		}
 		_, passive := localPassiveModelTypes[strings.ToLower(strings.TrimSpace(model.ModelType))]
 		vision := strings.EqualFold(strings.TrimSpace(model.ModelType), "vision")
-		fitnessOptional := vision || strings.EqualFold(strings.TrimSpace(model.ModelType), "tts") || strings.EqualFold(strings.TrimSpace(model.ModelType), "stt")
+		fitnessOptional := localMusicTranscriptionOffer(model) || vision || strings.EqualFold(strings.TrimSpace(model.ModelType), "tts") || strings.EqualFold(strings.TrimSpace(model.ModelType), "stt")
 		if vision && strings.TrimSpace(model.Install.PreferredEngine) != "" {
 			return fmt.Errorf("local vision ModelAsset offer %q must not select a public engine", model.ModelID)
 		}
@@ -418,4 +418,13 @@ func cloneAnyMap(input map[string]any) map[string]any {
 		result[key] = value
 	}
 	return result
+}
+
+func localMusicTranscriptionOffer(model *ModelEntry) bool {
+	for _, capability := range model.Capabilities {
+		if capability == "music.transcribe" {
+			return true
+		}
+	}
+	return false
 }

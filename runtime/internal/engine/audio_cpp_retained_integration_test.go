@@ -74,7 +74,7 @@ func TestAudioCpp081RetainedDriversIntegration(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	musicHost := NewAudioCppExecutionHost(nil)
+	musicHost := NewMusicExecutionHost(nil)
 	defer func() { _ = musicHost.Stop() }()
 	musicPlan, err := (capabilitydriver.MiniMaxMusic3AudioCppDriver{}).PlanMusicInvocation(capabilitydriver.MusicInvocationInput{
 		LoadoutID: "isolated-music3", RecipeID: capabilitydriver.MiniMaxMusic3RecipeID, Package: packageInput,

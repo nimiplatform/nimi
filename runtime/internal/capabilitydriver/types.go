@@ -1046,6 +1046,7 @@ type ImageInvocationDriver interface {
 // MusicInvocationPlan is the immutable private Music Driver/Host seam. CLI
 // options are translated by the exact Driver, never selected by the Host.
 type MusicInvocationPlan struct {
+	musicPython                    *MusicPythonPlan
 	transcription                  *musicTranscriptionPlan
 	voiceConvert                   *voiceConvertPlan
 	requestJSON                    []byte
@@ -1653,6 +1654,7 @@ func NewProductionRegistry() *Registry {
 	for key, driver := range audioCppSpeechProductionDrivers() {
 		entries[key] = driver
 	}
+	entries[RegistrationKey{CapabilityContract: MusicTranscribeCapabilityContract, Identity: Identity{ImplementationID: BasicPitchImplementationID, DriverID: BasicPitchDriverID, DriverDialect: BasicPitchDriverDialect}}] = BasicPitchDriver{}
 	entries[layaRegistrationKey()] = LayaDriver{}
 	registry, err := NewRegistry(entries)
 	if err != nil {

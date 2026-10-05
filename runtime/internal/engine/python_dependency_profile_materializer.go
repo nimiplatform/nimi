@@ -601,6 +601,9 @@ func verifyPythonDependencyProfile(
 		}
 	}
 	probeScript := pythonDependencyProfileTorchProbeScript(identity.AcceleratorPlane)
+	if strings.TrimSpace(consumer) == BasicPitchConsumerID {
+		probeScript = "from basic_pitch_driver import probe_environment; probe_environment()"
+	}
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		probeScript = "from face_swap import probe_environment; probe_environment()"
 	}
@@ -622,7 +625,9 @@ func verifyPythonDependencyProfile(
 	if err != nil {
 		return PythonDependencyProfileStatus{}, err
 	}
-	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
+	if strings.TrimSpace(consumer) == BasicPitchConsumerID {
+		err = verifyBasicPitchProfileProbe(observed, identity)
+	} else if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		err = verifyFaceSwapProfileProbe(observed, identity)
 	} else if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
 		err = verifyTextAnnotationProfileProbe(observed, identity)
@@ -808,6 +813,9 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 	if err != nil {
 		return nil, err
 	}
+	if strings.TrimSpace(consumer) == BasicPitchConsumerID {
+		return packageManifest.ImportProbes, nil
+	}
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		return append(packageManifest.ImportProbes, "face_swap"), nil
 	}
@@ -858,6 +866,9 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 
 func verifyPythonDependencyProfileDriverBundle(root string, consumer string) error {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == BasicPitchConsumerID {
+		return verifyBasicPitchDriverBundle(root)
+	}
 	if trimmedConsumer == TextAnnotationConsumerID || trimmedConsumer == TextAnnotationTrfConsumerID {
 		return verifyTextAnnotationDriverBundle(root)
 	}
@@ -885,6 +896,9 @@ func pythonDependencyProfileDriverCommands(root string, consumer string) map[str
 
 func pythonDependencyProfileDriverScripts(root string, consumer string) []string {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == BasicPitchConsumerID {
+		return []string{filepath.Join(root, "basic_pitch_driver.py")}
+	}
 	if trimmedConsumer == TextAnnotationConsumerID || trimmedConsumer == TextAnnotationTrfConsumerID {
 		return []string{filepath.Join(root, "text_annotation_server.py")}
 	}

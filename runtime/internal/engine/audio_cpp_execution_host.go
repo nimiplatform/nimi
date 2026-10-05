@@ -29,9 +29,9 @@ type audioCppMusicRequest struct {
 }
 
 // @nimi-authority: definition.nimi.platform.core-protocol.execution-host
-// AudioCppExecutionHost is the sole local Music execution implementation. It
-// owns one FIFO and starts one exact official CLI process per dispatched Job.
-type AudioCppExecutionHost struct {
+// MusicExecutionHost owns one FIFO and starts one exact captured audio.cpp or
+// managed Python process per dispatched music Job.
+type MusicExecutionHost struct {
 	logger *slog.Logger
 	runCLI audioCppCLIRunner
 
@@ -46,29 +46,29 @@ type AudioCppExecutionHost struct {
 	stopOnce     sync.Once
 }
 
-var _ localexecution.MusicExecutionHost = (*AudioCppExecutionHost)(nil)
+var _ localexecution.MusicExecutionHost = (*MusicExecutionHost)(nil)
 
-func NewAudioCppExecutionHost(logger *slog.Logger) *AudioCppExecutionHost {
-	return newAudioCppExecutionHostWithRunner(logger, runAudioCppCLIProcess)
+func NewMusicExecutionHost(logger *slog.Logger) *MusicExecutionHost {
+	return newMusicExecutionHostWithRunner(logger, runLocalMusicProcess)
 }
 
-func newAudioCppExecutionHostWithRunner(logger *slog.Logger, runner audioCppCLIRunner) *AudioCppExecutionHost {
+func newMusicExecutionHostWithRunner(logger *slog.Logger, runner audioCppCLIRunner) *MusicExecutionHost {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	host := &AudioCppExecutionHost{logger: logger, runCLI: runner, wake: make(chan struct{}, 1), stop: make(chan struct{}), stopped: make(chan struct{})}
+	host := &MusicExecutionHost{logger: logger, runCLI: runner, wake: make(chan struct{}, 1), stop: make(chan struct{}), stopped: make(chan struct{})}
 	go host.run()
 	return host
 }
 
-func (h *AudioCppExecutionHost) ExecuteMusic(ctx context.Context, plan *capabilitydriver.MusicInvocationPlan, onStart localexecution.MusicExecutionStartFunc) (localexecution.MusicResult, error) {
+func (h *MusicExecutionHost) ExecuteMusic(ctx context.Context, plan *capabilitydriver.MusicInvocationPlan, onStart localexecution.MusicExecutionStartFunc) (localexecution.MusicResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if h == nil || h.runCLI == nil {
 		return localexecution.MusicResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp execution host is unavailable"))
 	}
-	if err := validateAudioCppMusicPlan(plan); err != nil {
+	if err := validateLocalMusicPlan(plan); err != nil {
 		return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, err)
 	}
 	request := &audioCppMusicRequest{ctx: ctx, plan: plan, onStart: onStart, done: make(chan audioCppCLIProcessResult, 1)}
@@ -90,7 +90,7 @@ func (h *AudioCppExecutionHost) ExecuteMusic(ctx context.Context, plan *capabili
 	}
 }
 
-func (h *AudioCppExecutionHost) Stop() error {
+func (h *MusicExecutionHost) Stop() error {
 	if h == nil {
 		return nil
 	}
@@ -117,7 +117,7 @@ func (h *AudioCppExecutionHost) Stop() error {
 	return nil
 }
 
-func (h *AudioCppExecutionHost) enqueue(request *audioCppMusicRequest) bool {
+func (h *MusicExecutionHost) enqueue(request *audioCppMusicRequest) bool {
 	h.mu.Lock()
 	if h.stopping {
 		h.mu.Unlock()
@@ -131,7 +131,7 @@ func (h *AudioCppExecutionHost) enqueue(request *audioCppMusicRequest) bool {
 	}
 	return true
 }
-func (h *AudioCppExecutionHost) removeQueued(request *audioCppMusicRequest) bool {
+func (h *MusicExecutionHost) removeQueued(request *audioCppMusicRequest) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for index, queued := range h.queue {
@@ -144,7 +144,7 @@ func (h *AudioCppExecutionHost) removeQueued(request *audioCppMusicRequest) bool
 	}
 	return false
 }
-func (h *AudioCppExecutionHost) dequeue() *audioCppMusicRequest {
+func (h *MusicExecutionHost) dequeue() *audioCppMusicRequest {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if len(h.queue) == 0 {
@@ -157,7 +157,7 @@ func (h *AudioCppExecutionHost) dequeue() *audioCppMusicRequest {
 	h.active = request
 	return request
 }
-func (h *AudioCppExecutionHost) clearActive(request *audioCppMusicRequest) {
+func (h *MusicExecutionHost) clearActive(request *audioCppMusicRequest) {
 	h.mu.Lock()
 	if h.active == request {
 		h.active = nil
@@ -165,14 +165,14 @@ func (h *AudioCppExecutionHost) clearActive(request *audioCppMusicRequest) {
 	}
 	h.mu.Unlock()
 }
-func (h *AudioCppExecutionHost) deliver(request *audioCppMusicRequest, outcome audioCppCLIProcessResult) {
+func (h *MusicExecutionHost) deliver(request *audioCppMusicRequest, outcome audioCppCLIProcessResult) {
 	select {
 	case request.done <- outcome:
 	default:
 	}
 }
 
-func (h *AudioCppExecutionHost) run() {
+func (h *MusicExecutionHost) run() {
 	defer close(h.stopped)
 	for {
 		request := h.dequeue()

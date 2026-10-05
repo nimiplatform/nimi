@@ -336,7 +336,7 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
       const expected = new Map<string, string>(); const pairs = new Set<string>();
       for (const score of music.scores) {
         if (!isJsonObject(score) || typeof score.relativePath !== 'string' || !['abc', 'midi'].includes(String(score.format))
-          || !['vocal-melody', 'lead-sheet', 'full-arrangement'].includes(String(score.part))) historyError(path, 'has an invalid transcribed score');
+          || !['vocal-melody', 'lead-sheet', 'full-arrangement', 'note-events'].includes(String(score.part))) historyError(path, 'has an invalid transcribed score');
         const pair = `${score.format}:${score.part}`;
         if (pairs.has(pair) || expected.has(score.relativePath)) historyError(path, 'duplicates a transcribed score');
         pairs.add(pair); expected.set(score.relativePath, score.format === 'abc' ? 'text/vnd.abc' : 'audio/midi');

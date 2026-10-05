@@ -466,6 +466,7 @@ func TestDownloadManagedModelFileRetriesMidStreamDrop(t *testing.T) {
 		transfer.GetInstallSessionId(),
 		"Qwen/Qwen3-Embedding-8B-GGUF",
 		"main",
+		false,
 		"model.gguf",
 		targetPath,
 		map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])},

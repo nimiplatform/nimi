@@ -20,7 +20,7 @@ export type NimiMusicGenerationInputProfile = {
 };
 export type NimiMusicTranscriptionInputProfile = {
   readonly formats: readonly ('abc' | 'midi' | 'timeline')[];
-  readonly parts: readonly ('vocal-melody' | 'lead-sheet' | 'full-arrangement')[];
+  readonly parts: readonly ('vocal-melody' | 'lead-sheet' | 'full-arrangement' | 'note-events')[];
   readonly maxDurationSeconds: number;
   readonly maxSourceBytes: number;
   readonly supportsRange: boolean;
@@ -81,7 +81,7 @@ export function projectMusicInputCapabilities(value: unknown): NimiMusicInputCap
     const row = record(entry); const keys = ['formats', 'parts', 'maxDurationSeconds', 'maxSourceBytes', 'supportsRange'];
     if (Object.keys(row).length !== keys.length || Object.keys(row).some(key => !keys.includes(key))
       || !tokens(row.formats, ['abc', 'midi', 'timeline']) || !row.formats.length
-      || !tokens(row.parts, ['vocal-melody', 'lead-sheet', 'full-arrangement']) || !row.parts.length
+      || !tokens(row.parts, ['vocal-melody', 'lead-sheet', 'full-arrangement', 'note-events']) || !row.parts.length
       || !integer(row.maxDurationSeconds, 1, 600) || !integer(row.maxSourceBytes, 1, 512 * 1024 * 1024) || typeof row.supportsRange !== 'boolean') fail();
     const profile = row as unknown as NimiMusicTranscriptionInputProfile;
     return Object.freeze({ ...profile, formats: Object.freeze([...profile.formats]), parts: Object.freeze([...profile.parts]) });

@@ -236,6 +236,7 @@ export enum MusicTranscriptionPart {
   VOCAL_MELODY = 1,
   LEAD_SHEET = 2,
   FULL_ARRANGEMENT = 3,
+  NOTE_EVENTS = 4,
 }
 
 export enum RealmAttachmentDisplayKind {

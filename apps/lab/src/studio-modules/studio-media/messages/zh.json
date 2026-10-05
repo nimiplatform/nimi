@@ -8,7 +8,12 @@
     "source": "原始录音",
     "chooseSource": "导入录音",
     "part": "谱面内容",
-    "parts": { "vocal-melody": "人声旋律", "lead-sheet": "旋律与和弦简谱", "full-arrangement": "完整编配" },
+    "parts": {
+      "vocal-melody": "人声旋律",
+      "lead-sheet": "旋律与和弦简谱",
+      "full-arrangement": "完整编配",
+      "note-events": "音符估计"
+    },
     "formats": "输出文件",
     "timeline": "音乐事件时间线",
     "start": "起点（秒，可留空）",
@@ -17,9 +22,17 @@
     "preparationHint": "提交前先解码音频。此时停止操作，会在解码结束后放弃启动任务。",
     "result": "转谱估计结果",
     "estimate": "这是模型估计，并非权威谱面。编辑或生成音乐前，请与原始录音对照。",
-    "completeness": { "unknown": "模型未提供识别是否完整的信号。", "complete": "引擎报告处理完整，音符准确性仍需核对。", "truncated": "转谱结果存在截断。" },
+    "completeness": {
+      "unknown": "模型未提供识别是否完整的信号。",
+      "complete": "引擎报告处理完整，音符准确性仍需核对。",
+      "truncated": "转谱结果存在截断。"
+    },
     "range": "原始录音 {{start}}–{{end}} 秒 · 帧坐标基于 {{hz}} Hz",
-    "export": "导出选中文件"
+    "export": "导出选中文件",
+    "midiTimeBasis": "MIDI 时间从所选音频片段起算，该片段在原录音中从 {{start}} 秒开始；时间线保留原录音时间。",
+    "exportMidi": "导出 MIDI",
+    "showFile": "显示已保存文件",
+    "exported": "导出文件已保存在本 App，并在文件夹中显示：{{path}}"
   },
   "VoiceConvert": {
     "running": "正在准备音频或转换人声…",
@@ -31,7 +44,11 @@
     "sourceStart": "源起点（秒，可留空）",
     "sourceEnd": "源终点（秒，可留空）",
     "targetKind": "目标声音",
-    "targetKinds": { "reference-audio": "参考音频", "preset": "预置声音", "voice-asset": "语音资产" },
+    "targetKinds": {
+      "reference-audio": "参考音频",
+      "preset": "预置声音",
+      "voice-asset": "语音资产"
+    },
     "target": "目标参考音频",
     "chooseTarget": "导入参考音频",
     "targetStart": "目标起点（秒，可留空）",
@@ -48,7 +65,10 @@
     "preparationHint": "提交前先将音频解码为规范 PCM。此时停止操作，会在解码结束后放弃启动任务。",
     "result": "转换后的人声",
     "lengthRelation": "长度关系：{{relation}} · {{delta}} 毫秒",
-    "length": { "EXACT": "完全一致", "MODEL_FRAME_ROUNDING": "模型帧对齐取整" },
+    "length": {
+      "EXACT": "完全一致",
+      "MODEL_FRAME_ROUNDING": "模型帧对齐取整"
+    },
     "sourceFacts": "源人声：{{hz}} Hz · {{channels}} 声道 · {{durationMs}} 毫秒",
     "vocalFacts": "转换后人声：{{hz}} Hz · {{channels}} 声道 · {{durationMs}} 毫秒",
     "range": "源范围 {{start}}–{{end}} 秒 · 帧坐标基于 {{hz}} Hz",
@@ -72,7 +92,11 @@
     "derivation": "源录音在提交前准备为规范 PCM。若其采样率或声道布局与所选实现的输入域不同（HTDemucs：44.1 kHz 立体声），本应用会先请求一次显式派生转换，此处显示的源录音即为转换后的输入。不做隐藏的混缩或声道变更；各条音轨按返回值如实显示。",
     "vocals": "人声",
     "background": "背景",
-    "parts": { "DRUMS": "鼓", "BASS": "贝斯", "OTHER": "其他器乐" }
+    "parts": {
+      "DRUMS": "鼓",
+      "BASS": "贝斯",
+      "OTHER": "其他器乐"
+    }
   },
   "VisionLocate": {
     "chooseImage": "选择图片",
@@ -107,9 +131,18 @@
     "running": "正在加载模型或定位目标…"
   },
   "Capabilities": {
-    "voiceConvert": { "label": "声音转换", "summary": "把已有演唱转换为另一种声音，同时保留其旋律、歌词与时间轴。" },
-    "musicTranscribe": { "label": "音乐转谱", "summary": "从已有录音估计谱面与音乐事件。" },
-    "audioSeparate": { "label": "音频分离", "summary": "把录音拆分成人声与背景，可选返回真实器乐音轨。" },
+    "voiceConvert": {
+      "label": "声音转换",
+      "summary": "把已有演唱转换为另一种声音，同时保留其旋律、歌词与时间轴。"
+    },
+    "musicTranscribe": {
+      "label": "音乐转谱",
+      "summary": "从已有录音估计谱面与音乐事件。"
+    },
+    "audioSeparate": {
+      "label": "音频分离",
+      "summary": "把录音拆分成人声与背景，可选返回真实器乐音轨。"
+    },
     "visionLocate": {
       "label": "图像定位",
       "summary": "描述单张图片中的物体或控件，获取边界框或定位点。"
@@ -130,22 +163,28 @@
   "Studio": {
     "profiles": {
       "voiceConvert": {
-        "inputTitle": "演唱人声转换", "inputPlaceholder": "",
-        "primaryLabel": "开始转换", "primaryRunningLabel": "正在准备或转换…",
+        "inputTitle": "演唱人声转换",
+        "inputPlaceholder": "",
+        "primaryLabel": "开始转换",
+        "primaryRunningLabel": "正在准备或转换…",
         "emptyTitle": "把演唱转换为另一种声音",
         "emptyHint": "打开输入设置，导入源人声与目标声音，并确认变调设置。",
         "footnote": "源人声、目标声音与转换结果会一起保存，便于对照。"
       },
       "musicTranscribe": {
-        "inputTitle": "录音转谱", "inputPlaceholder": "",
-        "primaryLabel": "开始转谱", "primaryRunningLabel": "正在准备或转谱…",
+        "inputTitle": "录音转谱",
+        "inputPlaceholder": "",
+        "primaryLabel": "开始转谱",
+        "primaryRunningLabel": "正在准备或转谱…",
         "emptyTitle": "从录音得到谱面草稿",
         "emptyHint": "打开输入设置，导入录音，并选择谱面内容与输出文件。",
         "footnote": "原始音频与转谱估计结果会一起保存，便于对照。"
       },
       "audioSeparate": {
-        "inputTitle": "人声与背景分离", "inputPlaceholder": "",
-        "primaryLabel": "开始分离", "primaryRunningLabel": "正在准备或分离…",
+        "inputTitle": "人声与背景分离",
+        "inputPlaceholder": "",
+        "primaryLabel": "开始分离",
+        "primaryRunningLabel": "正在准备或分离…",
         "emptyTitle": "把录音拆分成人声与背景",
         "emptyHint": "打开输入设置，导入录音，并选择是否请求器乐音轨。",
         "footnote": "源录音与返回的每条音轨会一起保存，便于对照。"

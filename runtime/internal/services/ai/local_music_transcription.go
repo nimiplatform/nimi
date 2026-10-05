@@ -47,9 +47,12 @@ func (s *Service) captureLocalMusicTranscription(ctx context.Context, head *runt
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || !ok {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
-	pkg, err := audioCppRuntimePackageInput(selected)
-	if err != nil {
-		return nil, localMusicInvocationError(err)
+	var pkg capabilitydriver.AudioCppRuntimePackageInput
+	if _, python := driver.(capabilitydriver.PythonMusicTranscriptionDriver); !python {
+		pkg, err = audioCppRuntimePackageInput(selected)
+		if err != nil {
+			return nil, localMusicInvocationError(err)
+		}
 	}
 	source, err := s.openMusicInputSource(ctx, head, spec.GetSourceAudio().GetArtifactId())
 	if err != nil {
@@ -75,7 +78,7 @@ func (s *Service) captureLocalMusicTranscription(ctx context.Context, head *runt
 		info.DurationMs = int64(canonical.FrameCount * 1000 / uint64(canonical.SampleRateHz))
 	}
 	plan, err := driver.PlanMusicTranscriptionInvocation(capabilitydriver.MusicTranscriptionInvocationInput{LoadoutID: selected.LoadoutID, RecipeID: selected.RecipeID,
-		PortableConfig: selected.PortableConfig, ExactBindings: projectInvocationExactBindings(selected.ExactBindings), Package: pkg, Request: spec, SourceInfo: info,
+		PortableConfig: selected.PortableConfig, ExactBindings: projectInvocationExactBindings(selected.ExactBindings), DependencySources: invocationExactDependencySources(selected.ExactDependencySources), Package: pkg, Request: spec, SourceInfo: info,
 		StagingDir: filepath.Dir(staging), SourcePath: filepath.Join(filepath.Dir(staging), "source.wav")})
 	if err != nil {
 		return nil, localMusicInvocationError(err)
@@ -114,7 +117,7 @@ func localResolvedAssemblyForMusicTranscription(selected *localexecution.Selecte
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "music-transcription", Music: &localResolvedAssemblyMusicPlan{
 		ProcessKey: plan.ProcessKey(), AudioCppPackageID: plan.AudioCppPackageID(), AudioCppSelectedSourceRecordID: plan.AudioCppSelectedSourceRecordID(), AudioCppRoot: plan.AudioCppRoot(), AudioCppExecutablePath: plan.AudioCppExecutablePath(),
 		CUDA13DependencyID: plan.CUDA13DependencyID(), CUDA13SelectedSourceRecordID: plan.CUDA13SelectedSourceRecordID(), CUDA13Root: plan.CUDA13Root(), ModelRoot: plan.ModelRoot(),
-		SourcePath: plan.TranscriptionSourcePath(), SourceInfo: plan.TranscriptionSourceInfo(), StagingDirectory: plan.StagingDirectory()}}
+		SourcePath: plan.TranscriptionSourcePath(), SourceInfo: plan.TranscriptionSourceInfo(), StagingDirectory: plan.StagingDirectory(), Python: plan.PythonTranscription()}}
 	assembly.ProcessIdentity.ProcessKey = plan.ProcessKey()
 	assembly.ProcessIdentity.ProcessArgs = plan.CLIArgs()
 	return assembly, nil
@@ -142,12 +145,15 @@ func (s *Service) localMusicTranscriptionFromResolvedAssembly(assembly *localRes
 		return nil, err
 	}
 	selected.PortableConfig = portable
-	pkg, err := audioCppRuntimePackageInput(selected)
-	if err != nil {
-		return nil, err
+	var pkg capabilitydriver.AudioCppRuntimePackageInput
+	if _, python := driver.(capabilitydriver.PythonMusicTranscriptionDriver); !python {
+		pkg, err = audioCppRuntimePackageInput(selected)
+		if err != nil {
+			return nil, err
+		}
 	}
 	plan, err := driver.PlanMusicTranscriptionInvocation(capabilitydriver.MusicTranscriptionInvocationInput{LoadoutID: assembly.LoadoutID, RecipeID: assembly.RecipeID, PortableConfig: portable,
-		ExactBindings: resolvedAssemblyExactBindings(assembly), Package: pkg, Request: request, SourceInfo: assembly.LoadPlan.Music.SourceInfo, SourcePath: assembly.LoadPlan.Music.SourcePath, StagingDir: assembly.LoadPlan.Music.StagingDirectory})
+		ExactBindings: resolvedAssemblyExactBindings(assembly), DependencySources: resolvedAssemblyExactDependencySources(assembly), Package: pkg, Request: request, SourceInfo: assembly.LoadPlan.Music.SourceInfo, SourcePath: assembly.LoadPlan.Music.SourcePath, StagingDir: assembly.LoadPlan.Music.StagingDirectory})
 	if err != nil {
 		return nil, err
 	}

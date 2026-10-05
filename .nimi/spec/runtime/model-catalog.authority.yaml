@@ -650,3 +650,19 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
+  - id: definition.nimi.runtime.model-catalog.github-commit-model-files
+    kind: definition
+    title: Reviewed GitHub commit file ModelAsset source
+    meaning: A verified-github-commit-files ModelAsset offer names a reviewed official GitHub owner/repository, one immutable full commit identity, an exact source-relative entry and complete safe file list with per-file SHA-256 and measured byte sizes. It is a catalog source observation and acquisition input, not a Loadout, selected Driver, executable support claim or App-owned arbitrary URL.
+  - id: rule.nimi.runtime.model-catalog.github-commit-model-files
+    kind: rule
+    title: GitHub commit files use normal verified acquisition custody
+    modality: must
+    statement: A reviewed local ModelAsset offer may use install_kind verified-github-commit-files with a canonical GitHub owner/repository and exact 40-hex commit, a nonempty safe relative file list, entry, complete per-file SHA-256, actual total_size_bytes, license and provenance. Runtime captures that source identity in the existing immutable Transfer spec and constructs HTTPS raw.githubusercontent.com file URLs from the exact catalog facts; Apps cannot supply an arbitrary URL or change the download host. Only same-host HTTPS redirects are accepted for this source. These files use the existing per-digest writer ownership, transfer staging, byte verification, non-overwriting object publication and explicit pause, resume, cancellation and restart rules. Model and required license/NOTICE files remain declared verified payload, while catalog acquisition never automatically binds or selects a Driver or edits AIConfig. Existing Hugging Face file and GitHub release-archive sources retain their own exact declared source forms.
+    condition: Whenever a reviewed GitHub commit-file offer is resolved, acquired or resumed.
+    failure: Reject missing or mutable commits, unsafe paths, arbitrary hosts or redirects, missing file hashes, changed captured source facts, unverified objects or catalog recommendations presented as successful bindings.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.github-commit-model-files
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane

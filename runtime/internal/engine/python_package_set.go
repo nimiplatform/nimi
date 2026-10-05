@@ -16,6 +16,8 @@ type pythonPackageSetManifest struct {
 func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest, error) {
 	trimmed := strings.TrimSpace(consumer)
 	switch {
+	case trimmed == BasicPitchConsumerID:
+		return pythonPackageSetManifest{ID: "music-basic-pitch-python-core", ImportProbes: []string{"onnxruntime", "numpy", "librosa", "scipy", "soundfile", "basic_pitch_driver"}}, nil
 	case trimmed == TextAnnotationConsumerID:
 		return pythonPackageSetManifest{ID: "text-spacy-python-core", ImportProbes: []string{"spacy", "spacy_pkuseg", "sudachipy", "sudachidict_core", "pymorphy3", "fastapi", "uvicorn"}}, nil
 	case trimmed == TextAnnotationTrfConsumerID:
@@ -287,6 +289,13 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 		return fmt.Errorf("python pipeline script root is required")
 	}
 	switch {
+	case strings.TrimSpace(consumer) == BasicPitchConsumerID:
+		for _, file := range basicPitchDriverStaticFiles() {
+			if err := os.WriteFile(filepath.Join(trimmedRoot, file.RelativePath), file.Content, 0o444); err != nil {
+				return err
+			}
+		}
+		return nil
 	case strings.TrimSpace(consumer) == FaceSwapConsumerID:
 		for _, file := range faceSwapDriverStaticFiles() {
 			if err := os.WriteFile(filepath.Join(trimmedRoot, file.RelativePath), file.Content, 0o444); err != nil {

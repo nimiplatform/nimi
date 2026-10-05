@@ -81,7 +81,7 @@ func containsAudioCppArg(args []string, value string) bool {
 	return false
 }
 
-func TestAudioCppExecutionHostFIFOAndQueuedCancel(t *testing.T) {
+func TestMusicExecutionHostFIFOAndQueuedCancel(t *testing.T) {
 	firstRelease := make(chan struct{})
 	started := make(chan string, 3)
 	var mu sync.Mutex
@@ -101,7 +101,7 @@ func TestAudioCppExecutionHostFIFOAndQueuedCancel(t *testing.T) {
 		}
 		return localexecution.MusicResult{StagingWAVPath: plan.StagingWAVPath()}, nil
 	}
-	host := newAudioCppExecutionHostWithRunner(testLogger(), runner)
+	host := newMusicExecutionHostWithRunner(testLogger(), runner)
 	defer func() { _ = host.Stop() }()
 
 	type outcome struct {
@@ -149,12 +149,12 @@ func TestAudioCppExecutionHostFIFOAndQueuedCancel(t *testing.T) {
 	}
 }
 
-func TestAudioCppExecutionHostRunningCancelAndTimeout(t *testing.T) {
+func TestMusicExecutionHostRunningCancelAndTimeout(t *testing.T) {
 	runner := func(ctx context.Context, _ *capabilitydriver.MusicInvocationPlan) (localexecution.MusicResult, error) {
 		<-ctx.Done()
 		return localexecution.MusicResult{}, musicContextFailure(ctx.Err())
 	}
-	host := newAudioCppExecutionHostWithRunner(testLogger(), runner)
+	host := newMusicExecutionHostWithRunner(testLogger(), runner)
 	defer func() { _ = host.Stop() }()
 
 	cancelCtx, cancel := context.WithCancel(context.Background())

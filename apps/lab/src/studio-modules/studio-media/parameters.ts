@@ -57,7 +57,7 @@ export type StudioMusicTranscriptionParameters = {
   sourceName?: string;
   sourceMimeType?: 'audio/wav' | 'audio/mpeg' | 'audio/flac';
   requestedFormats?: ('abc' | 'midi' | 'timeline')[];
-  requestedPart?: 'vocal-melody' | 'lead-sheet' | 'full-arrangement';
+  requestedPart?: 'vocal-melody' | 'lead-sheet' | 'full-arrangement' | 'note-events';
   startSeconds?: number;
   endSeconds?: number;
   recoverySubmissionId?: string;

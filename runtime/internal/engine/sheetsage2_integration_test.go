@@ -77,7 +77,7 @@ func TestSheetSage2NativeExecutionIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	host := NewAudioCppExecutionHost(nil)
+	host := NewMusicExecutionHost(nil)
 	defer func() { _ = host.Stop() }()
 	started := time.Now()
 	result, err := host.ExecuteMusic(ctx, plan, nil)

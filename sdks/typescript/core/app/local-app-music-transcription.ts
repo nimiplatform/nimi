@@ -3,7 +3,7 @@ import { MusicScoreFormat, MusicScoreOrigin, MusicTranscriptionCompleteness, Mus
   type MusicTranscribeScenarioSpec, type MusicTranscription } from '../../core-generated/runtime-typed-client.js';
 
 export type NimiMusicTranscriptionFormat = 'abc' | 'midi' | 'timeline';
-export type NimiMusicTranscriptionPart = 'vocal-melody' | 'lead-sheet' | 'full-arrangement';
+export type NimiMusicTranscriptionPart = 'vocal-melody' | 'lead-sheet' | 'full-arrangement' | 'note-events';
 export type NimiLocalAppMusicTranscribeSpec = {
   readonly type: 'music-transcribe';
   readonly sourceAudio: { readonly artifactId: string; readonly range?: { readonly startFrame: number; readonly endFrame: number } };
@@ -20,7 +20,7 @@ export type NimiLocalAppMusicTranscription = {
   readonly completeness: 'unknown' | 'complete' | 'truncated';
 };
 const formats = { abc: MusicTranscriptionFormat.ABC, midi: MusicTranscriptionFormat.MIDI, timeline: MusicTranscriptionFormat.TIMELINE } as const;
-const parts = { 'vocal-melody': MusicTranscriptionPart.VOCAL_MELODY, 'lead-sheet': MusicTranscriptionPart.LEAD_SHEET, 'full-arrangement': MusicTranscriptionPart.FULL_ARRANGEMENT } as const;
+const parts = { 'vocal-melody': MusicTranscriptionPart.VOCAL_MELODY, 'lead-sheet': MusicTranscriptionPart.LEAD_SHEET, 'full-arrangement': MusicTranscriptionPart.FULL_ARRANGEMENT, 'note-events': MusicTranscriptionPart.NOTE_EVENTS } as const;
 const completeness = { unknown: MusicTranscriptionCompleteness.UNKNOWN, complete: MusicTranscriptionCompleteness.COMPLETE, truncated: MusicTranscriptionCompleteness.TRUNCATED } as const;
 const identifier = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9._:-]{1,128}$/u.test(value);
 const uint = (value: unknown, min: number, max: number): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value >= min && value <= max;
@@ -44,7 +44,7 @@ export function validateNimiLocalAppMusicTranscribeSpec(value: unknown): NimiLoc
 export function validateNimiLocalAppMusicTranscription(value: unknown, artifactValues: unknown): NimiLocalAppMusicTranscription {
   const record = asRecord(value);
   assertExactProjectionKeys(record, ['scores', 'origin', 'sourceArtifactId', 'sourceInfo', 'inputRange', 'completeness', ...(record && Object.hasOwn(record, 'timelineArtifactId') ? ['timelineArtifactId'] : [])], 'music transcription');
-  if (!record || record.origin !== 'transcribed-estimate' || !identifier(record.sourceArtifactId) || !Object.hasOwn(completeness, String(record.completeness)) || !Array.isArray(record.scores) || record.scores.length > 6 || !Array.isArray(artifactValues)) localAppProjectionError('music transcription');
+  if (!record || record.origin !== 'transcribed-estimate' || !identifier(record.sourceArtifactId) || !Object.hasOwn(completeness, String(record.completeness)) || !Array.isArray(record.scores) || record.scores.length > Object.keys(parts).length * 2 || !Array.isArray(artifactValues)) localAppProjectionError('music transcription');
   const info = asRecord(record.sourceInfo); assertExactProjectionKeys(info, ['sampleRateHz', 'channels', 'frameCount', 'durationMs'], 'transcription source facts');
   if (!info || !uint(info.sampleRateHz, 8000, 96000) || !uint(info.channels, 1, 2) || !uint(info.frameCount, 1, info.sampleRateHz * 600) || info.durationMs !== Math.floor(info.frameCount * 1000 / info.sampleRateHz)) localAppProjectionError('transcription source facts');
   const range = asRecord(record.inputRange); assertExactProjectionKeys(range, ['startFrame', 'endFrame'], 'transcription input range');

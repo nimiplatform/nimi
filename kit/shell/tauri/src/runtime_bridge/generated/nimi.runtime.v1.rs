@@ -8722,6 +8722,8 @@ pub enum MusicTranscriptionPart {
     VocalMelody = 1,
     LeadSheet = 2,
     FullArrangement = 3,
+    /// Estimated polyphonic notes without instrument or vocal-role claims.
+    NoteEvents = 4,
 }
 impl MusicTranscriptionPart {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -8734,6 +8736,7 @@ impl MusicTranscriptionPart {
             Self::VocalMelody => "MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY",
             Self::LeadSheet => "MUSIC_TRANSCRIPTION_PART_LEAD_SHEET",
             Self::FullArrangement => "MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT",
+            Self::NoteEvents => "MUSIC_TRANSCRIPTION_PART_NOTE_EVENTS",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -8743,6 +8746,7 @@ impl MusicTranscriptionPart {
             "MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY" => Some(Self::VocalMelody),
             "MUSIC_TRANSCRIPTION_PART_LEAD_SHEET" => Some(Self::LeadSheet),
             "MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT" => Some(Self::FullArrangement),
+            "MUSIC_TRANSCRIPTION_PART_NOTE_EVENTS" => Some(Self::NoteEvents),
             _ => None,
         }
     }
