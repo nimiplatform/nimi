@@ -60,7 +60,9 @@ func newSupervisorControl(listener net.Listener) *supervisorControl {
 
 func (control *supervisorControl) handle(conn net.Conn) {
 	defer control.clients.Done()
-	defer conn.Close()
+	// The protocol response determines shutdown success; closing the completed
+	// control connection cannot acknowledge or reverse the owner's operation.
+	defer func() { _ = conn.Close() }()
 	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 	var request stopRequest
 	if err := json.NewDecoder(io.LimitReader(conn, 1024)).Decode(&request); err != nil || request.Action != "stop" {
@@ -112,7 +114,7 @@ func requestSourceRuntimeStop(ctx context.Context, lockPath string, force bool) 
 	if err != nil {
 		return fmt.Errorf("connect to source Runtime supervisor: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = conn.SetDeadline(deadline)
 	}

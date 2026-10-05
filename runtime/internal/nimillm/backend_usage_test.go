@@ -83,7 +83,11 @@ func TestSpeechArtifactBodyDoesNotEstimateUsageFromContentLength(t *testing.T) {
 	if err != nil || body == nil || usage != nil {
 		t.Fatalf("body=%v usage=%v err=%v", body, usage, err)
 	}
-	defer body.Body.Close()
+	defer func() {
+		if err := body.Body.Close(); err != nil {
+			t.Errorf("close speech body: %v", err)
+		}
+	}()
 	got, err := io.ReadAll(body.Body)
 	if err != nil || !bytes.Equal(got, audio) {
 		t.Fatalf("audio size=%d err=%v", len(got), err)

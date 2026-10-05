@@ -88,10 +88,14 @@ func TestGemini38NativeBaseTransportUsesCapturedModelAndNativeAuth(t *testing.T)
 				payload := `{"candidates":[{"content":{"parts":[{"text":"Ready."}]},"finishReason":"STOP"}]}`
 				if stream {
 					w.Header().Set("Content-Type", "text/event-stream")
-					fmt.Fprintf(w, "data: %s\n\n", payload)
+					if _, err := fmt.Fprintf(w, "data: %s\n\n", payload); err != nil {
+						t.Errorf("write Gemini stream: %v", err)
+					}
 				} else {
 					w.Header().Set("Content-Type", "application/json")
-					fmt.Fprint(w, payload)
+					if _, err := fmt.Fprint(w, payload); err != nil {
+						t.Errorf("write Gemini response: %v", err)
+					}
 				}
 			}))
 			defer server.Close()

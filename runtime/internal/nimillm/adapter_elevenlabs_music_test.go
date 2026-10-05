@@ -23,13 +23,23 @@ func TestElevenLabsMusicConsumesCapturedVideoWithoutURLOrTextSubstitution(t *tes
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer file.Close()
-		data, _ := io.ReadAll(file)
+		defer func() {
+			if err := file.Close(); err != nil {
+				t.Errorf("close multipart video: %v", err)
+			}
+		}()
+		data, err := io.ReadAll(file)
+		if err != nil {
+			t.Errorf("read multipart video: %v", err)
+			return
+		}
 		if !bytes.Equal(data, video) || r.FormValue("model_id") != "music_v2" || r.FormValue("description") != "quiet" {
 			t.Errorf("captured condition or text changed")
 		}
 		w.Header().Set("Content-Type", "audio/mpeg")
-		w.Write([]byte("ID3-transport-fixture"))
+		if _, err := w.Write([]byte("ID3-transport-fixture")); err != nil {
+			t.Errorf("write music response: %v", err)
+		}
 	}))
 	defer server.Close()
 	request := &runtimev1.SubmitScenarioJobRequest{Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateScenarioSpec{Prompt: "quiet", VideoReference: &runtimev1.MusicVideoReference{ArtifactId: "clip-owned"}}}}}

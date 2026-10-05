@@ -31,21 +31,30 @@ func TestProviderMediaHostAuditsActualAlibabaCleanupOutcome(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch {
 				case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services/aigc/video-generation/video-synthesis":
-					fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"PENDING"}}`)
+					if _, err := fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"PENDING"}}`); err != nil {
+						t.Errorf("write submitted task: %v", err)
+					}
 				case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/private-task":
 					if polls.Add(1) == 1 {
 						cancel()
-						fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"RUNNING"}}`)
+						// This request is deliberately cancelled above; its peer may already be closed.
+						_, _ = fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"RUNNING"}}`)
 					} else {
-						fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"CANCELED"}}`)
+						if _, err := fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"CANCELED"}}`); err != nil {
+							t.Errorf("write canceled task: %v", err)
+						}
 					}
 				case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks/private-task/cancel":
 					cancels.Add(1)
 					if outcome == "not_cancelable" {
 						w.WriteHeader(http.StatusBadRequest)
-						fmt.Fprint(w, `{"code":"UnsupportedOperation","message":"running task"}`)
+						if _, err := fmt.Fprint(w, `{"code":"UnsupportedOperation","message":"running task"}`); err != nil {
+							t.Errorf("write cancellation refusal: %v", err)
+						}
 					} else {
-						fmt.Fprint(w, `{"request_id":"private-request"}`)
+						if _, err := fmt.Fprint(w, `{"request_id":"private-request"}`); err != nil {
+							t.Errorf("write cancellation acknowledgement: %v", err)
+						}
 					}
 				default:
 					http.NotFound(w, r)

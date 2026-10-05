@@ -552,7 +552,7 @@ func inlineOwnedTextMediaURL(location, mimeType string) (string, error) {
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // Read-only input; the complete bounded read decides success.
 	body, err := io.ReadAll(io.LimitReader(file, runtimeartifact.MaxInlineBytes+1))
 	if err != nil || len(body) == 0 || len(body) > runtimeartifact.MaxInlineBytes {
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)

@@ -2,6 +2,8 @@ package ai
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -13,12 +15,12 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
-func (s *Service) captureMusicVideoReference(ctx context.Context, head *runtimev1.ScenarioRequestHead, reference *runtimev1.MusicVideoReference, budgetSeconds int32) (*nimillm.MusicReferenceVideo, error) {
+func (s *Service) captureMusicVideoReference(ctx context.Context, head *runtimev1.ScenarioRequestHead, reference *runtimev1.MusicVideoReference, budgetSeconds int32) (captured *nimillm.MusicReferenceVideo, captureErr error) {
 	source, err := s.openMusicInputSource(ctx, head, reference.GetArtifactId())
 	if err != nil {
 		return nil, err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }() // Input read errors determine capture; this close releases custody.
 	if source.Record.MimeType != "video/mp4" || source.Record.SizeBytes <= 0 || source.Record.SizeBytes > 32<<20 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
@@ -40,10 +42,14 @@ func (s *Service) captureMusicVideoReference(ctx context.Context, head *runtimev
 		return nil, err
 	}
 	name := file.Name()
-	defer os.Remove(name)
+	defer func() {
+		if err := os.Remove(name); err != nil && !os.IsNotExist(err) {
+			captured = nil
+			captureErr = errors.Join(captureErr, fmt.Errorf("remove music video staging file: %w", err))
+		}
+	}()
 	if _, err = file.Write(data); err != nil {
-		file.Close()
-		return nil, err
+		return nil, errors.Join(err, file.Close())
 	}
 	if err = file.Close(); err != nil {
 		return nil, err

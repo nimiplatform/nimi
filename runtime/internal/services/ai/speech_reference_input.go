@@ -26,7 +26,7 @@ func (s *Service) captureSpeechReferences(ctx context.Context, head *runtimev1.S
 		if err != nil {
 			return nil, err
 		}
-		defer source.Body.Close()
+		defer func() { _ = source.Body.Close() }() // ReadRange errors remain authoritative for this read-only source.
 		info := source.Record.CanonicalAudio
 		if info == nil || source.Record.MimeType != "audio/wav" || info.SampleRateHz == 0 || info.FrameCount > uint64(info.SampleRateHz)*uint64(capabilities.GetMaxReferenceDurationSeconds()) {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)

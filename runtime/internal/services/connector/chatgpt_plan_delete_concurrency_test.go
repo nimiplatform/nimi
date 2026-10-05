@@ -47,7 +47,11 @@ func TestChatGPTPlanDeleteSerializesReauthorizationBeforeAuditWriter(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func() {
+		if err := backend.Close(); err != nil {
+			t.Errorf("close connector audit backend: %v", err)
+		}
+	}()
 	writer := &observedConnectorAuditWriter{Backend: backend, entered: make(chan struct{})}
 	svc.audit, err = auditlog.Open(writer, nil, 100, 10)
 	if err != nil {

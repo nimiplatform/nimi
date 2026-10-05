@@ -39,10 +39,14 @@ func TestAlibabaTaskCancellationRequiresTerminalConfirmation(t *testing.T) {
 				case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks/task-1/cancel":
 					posts++
 					w.WriteHeader(tc.postStatus)
-					fmt.Fprint(w, tc.postBody)
+					if _, err := fmt.Fprint(w, tc.postBody); err != nil {
+						t.Errorf("write cancellation response: %v", err)
+					}
 				case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/task-1":
 					gets++
-					fmt.Fprint(w, tc.getBody)
+					if _, err := fmt.Fprint(w, tc.getBody); err != nil {
+						t.Errorf("write task response: %v", err)
+					}
 				default:
 					t.Errorf("unexpected cancel transport: %s %s", r.Method, r.URL.Path)
 					http.NotFound(w, r)
@@ -73,7 +77,9 @@ func TestAlibabaPollDeadlineCancelsInFlightRequestAndObservesCleanup(t *testing.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks/task-1/cancel" {
 			cancels.Add(1)
-			fmt.Fprint(w, `{"request_id":"cancel-request"}`)
+			if _, err := fmt.Fprint(w, `{"request_id":"cancel-request"}`); err != nil {
+				t.Errorf("write cancellation response: %v", err)
+			}
 			return
 		}
 		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/task-1" {
@@ -81,7 +87,9 @@ func TestAlibabaPollDeadlineCancelsInFlightRequestAndObservesCleanup(t *testing.
 				<-r.Context().Done()
 				return
 			}
-			fmt.Fprint(w, `{"output":{"task_id":"task-1","task_status":"CANCELED"}}`)
+			if _, err := fmt.Fprint(w, `{"output":{"task_id":"task-1","task_status":"CANCELED"}}`); err != nil {
+				t.Errorf("write canceled task response: %v", err)
+			}
 			return
 		}
 		http.NotFound(w, r)

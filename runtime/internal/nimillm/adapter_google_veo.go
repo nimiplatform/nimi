@@ -211,7 +211,9 @@ func googleVeoFirstFrame(ctx context.Context, location string) (map[string]any, 
 	if err != nil {
 		return nil, MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	// Closing this read-only response releases the connection; validated bytes
+	// and HTTP/read errors determine the result.
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		return nil, MapProviderHTTPError(response.StatusCode, nil)
 	}
