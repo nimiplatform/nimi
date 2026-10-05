@@ -11,6 +11,7 @@ export async function sendLabRealtimeRecordingFrames(input: {
   readonly inputTrackId: string;
   readonly utteranceId: string;
   readonly turnDetection: 'manual' | 'server-vad';
+  readonly startResponse?: boolean;
 }): Promise<void> {
   for (let index = 0; index < input.frames.length; index += 1) {
     await input.session.appendAudioFrame({
@@ -20,7 +21,7 @@ export async function sendLabRealtimeRecordingFrames(input: {
   }
   if (input.turnDetection === 'manual') {
     await input.session.ownerControl('commit-input');
-    await input.session.ownerControl('start-response');
+    if (input.startResponse !== false) await input.session.ownerControl('start-response');
   }
 }
 

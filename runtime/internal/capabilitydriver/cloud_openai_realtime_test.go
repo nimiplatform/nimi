@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func openAIRealtimeFixture(t *testing.T) (CloudRealtimeDriver, CloudRealtimeTarget) {
+func openAIRealtimeFixture(t *testing.T) (openAIRealtimeDriver, CloudRealtimeTarget) {
 	t.Helper()
 	raw, err := structpb.NewStruct(map[string]any{"provider": "openai", "providerModelId": "gpt-realtime-2.1", "remoteModelCatalogId": "catalog-test"})
 	if err != nil {
@@ -18,7 +18,7 @@ func openAIRealtimeFixture(t *testing.T) (CloudRealtimeDriver, CloudRealtimeTarg
 	if err != nil {
 		t.Fatal(err)
 	}
-	return driver, target
+	return driver.(openAIRealtimeDriver), target
 }
 
 func TestOpenAIRealtimeGAOpenUsesExactPCMAndOwnerControlledVAD(t *testing.T) {

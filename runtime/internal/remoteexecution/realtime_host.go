@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -48,7 +49,7 @@ func (h *ProviderRealtimeHost) Open(
 	record connector.ConnectorRecord,
 	secretPayload string,
 	target RealtimeProviderTarget,
-	driverEndpoint string,
+	transport capabilitydriver.CloudRealtimeTransport,
 ) (RealtimeSession, error) {
 	if h == nil || h.connectors == nil || target == nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -73,7 +74,7 @@ func (h *ProviderRealtimeHost) Open(
 	if credential.APIKey == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
-	endpoint, err := realtimeProviderURL(driverEndpoint, target.ProviderModelID())
+	endpoint, err := realtimeProviderURL(transport.Endpoint, target.ProviderModelID(), transport.ModelQuery)
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{})
 	}
@@ -85,9 +86,16 @@ func (h *ProviderRealtimeHost) Open(
 		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{})
 	}
 	config.Header = make(http.Header)
-	config.Header.Set("Authorization", "Bearer "+credential.APIKey)
+	if transport.APIKeyHeader != "" {
+		if target.Provider() != "gemini" || transport.APIKeyHeader != "x-goog-api-key" {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		}
+		config.Header.Set(transport.APIKeyHeader, credential.APIKey)
+	} else {
+		config.Header.Set("Authorization", "Bearer "+credential.APIKey)
+	}
 	for key, value := range credential.Headers {
-		if strings.TrimSpace(key) != "" && strings.TrimSpace(value) != "" {
+		if strings.TrimSpace(key) != "" && strings.TrimSpace(value) != "" && !strings.EqualFold(key, "Authorization") && !strings.EqualFold(key, "x-goog-api-key") {
 			config.Header.Set(key, value)
 		}
 	}
@@ -102,17 +110,19 @@ func (h *ProviderRealtimeHost) Open(
 	return session, nil
 }
 
-func realtimeProviderURL(endpoint string, model string) (string, error) {
+func realtimeProviderURL(endpoint string, model string, modelQuery bool) (string, error) {
 	parsed, err := url.Parse(strings.TrimSpace(endpoint))
-	if err != nil || parsed.Scheme != "wss" || parsed.Host == "" || parsed.User != nil || parsed.RawFragment != "" {
+	if err != nil || parsed.Scheme != "wss" || parsed.Host == "" || parsed.User != nil || parsed.Fragment != "" || parsed.RawFragment != "" {
 		return "", fmt.Errorf("Realtime Driver endpoint is invalid")
 	}
 	if strings.TrimSpace(model) == "" || strings.TrimSpace(model) != model {
 		return "", fmt.Errorf("Realtime Driver model identity is invalid")
 	}
-	query := parsed.Query()
-	query.Set("model", model)
-	parsed.RawQuery = query.Encode()
+	if modelQuery {
+		query := parsed.Query()
+		query.Set("model", model)
+		parsed.RawQuery = query.Encode()
+	}
 	return parsed.String(), nil
 }
 

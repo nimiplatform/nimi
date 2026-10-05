@@ -346,7 +346,7 @@ func TestProviderProjectionRejectsLateAudioAfterTrackInterrupt(t *testing.T) {
 	}
 	record := &realtimeSessionRecord{
 		sessionID: "session", channelID: "channel", generation: 1, appID: "app", subjectUserID: "account",
-		outputAudio: &runtimev1.AiRealtimeAudioFormat{MaximumFrameBytes: 4}, stream: stream, driver: driver, provider: provider,
+		outputAudio: &runtimev1.AiRealtimeAudioFormat{MaximumFrameBytes: 4}, stream: stream, driver: realtimeTestProtocol(t, driver, target, capabilitydriver.CloudRealtimeOpen{}), provider: provider,
 		tracksByProvider: make(map[string]*realtimeOutputTrack), tracksByRuntime: make(map[string]*realtimeOutputTrack),
 	}
 	svc := &Service{realtimeSessions: newRealtimeSessionStore()}
@@ -388,7 +388,7 @@ func TestInterruptedProviderResponseDoesNotPublishSuccessTerminal(t *testing.T) 
 }
 
 func TestRealtimeInterruptLinearizesBeforeConcurrentProviderDone(t *testing.T) {
-	driver, _ := realtimeTestDashScopeDriver(t)
+	driver, target := realtimeTestDashScopeDriver(t)
 	provider := &blockingRealtimeTestProvider{
 		realtimeTestProvider: newRealtimeTestProvider(),
 		sendStarted:          make(chan struct{}),
@@ -402,7 +402,7 @@ func TestRealtimeInterruptLinearizesBeforeConcurrentProviderDone(t *testing.T) {
 	}
 	record := &realtimeSessionRecord{
 		sessionID: "session", channelID: "channel", generation: 1, appID: "app", subjectUserID: "account",
-		stream: stream, driver: driver, provider: provider, ctx: context.Background(),
+		stream: stream, driver: realtimeTestProtocol(t, driver, target, capabilitydriver.CloudRealtimeOpen{}), provider: provider, ctx: context.Background(),
 		tracksByProvider: make(map[string]*realtimeOutputTrack), tracksByRuntime: make(map[string]*realtimeOutputTrack),
 	}
 	track := ensureRealtimeOutputTrack(record, "provider-response")
@@ -506,12 +506,12 @@ func TestRealtimeStaleGenerationTerminalIsProjectedAsClosed(t *testing.T) {
 }
 
 func TestDashScopeResponseDonePreservesProviderTerminalStatus(t *testing.T) {
-	driver, _ := realtimeTestDashScopeDriver(t)
-	events, err := driver.NormalizeEvent([]byte(`{"type":"response.done","response":{"id":"response-1","status":"cancelled","usage":{"input_tokens":1,"output_tokens":2}}}`), capabilitydriver.CloudRealtimeOpen{})
+	driver, target := realtimeTestDashScopeDriver(t)
+	events, err := realtimeTestProtocol(t, driver, target, capabilitydriver.CloudRealtimeOpen{}).Normalize([]byte(`{"type":"response.done","response":{"id":"response-1","status":"cancelled","usage":{"input_tokens":1,"output_tokens":2}}}`))
 	if err != nil || len(events) != 1 || events[0].ResponseStatus != capabilitydriver.CloudRealtimeResponseStatusCancelled {
 		t.Fatalf("cancelled response normalization events=%+v err=%v", events, err)
 	}
-	if _, err := driver.NormalizeEvent([]byte(`{"type":"response.done","response":{"id":"response-1","status":""}}`), capabilitydriver.CloudRealtimeOpen{}); err == nil {
+	if _, err := realtimeTestProtocol(t, driver, target, capabilitydriver.CloudRealtimeOpen{}).Normalize([]byte(`{"type":"response.done","response":{"id":"response-1","status":""}}`)); err == nil {
 		t.Fatal("response.done without a typed provider terminal status was admitted")
 	}
 }
@@ -644,7 +644,7 @@ func realtimeTestOpenExpectation(audio bool, turn runtimev1.AiRealtimeTurnDetect
 }
 func realtimeReadyEcho(t *testing.T, driver capabilitydriver.CloudRealtimeDriver, target capabilitydriver.CloudRealtimeTarget, expected capabilitydriver.CloudRealtimeOpen) map[string]any {
 	t.Helper()
-	wire, err := driver.MapOpen("open-test", target, expected)
+	wire, err := realtimeTestProtocol(t, driver, target, expected).OpenWire("open-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -663,7 +663,7 @@ func TestRealtimeReadyMatchesCapturedOpenAndClosesMismatchWithoutRetry(t *testin
 			expected := realtimeTestOpenExpectation(audio, turn)
 			raw, _ := json.Marshal(realtimeReadyEcho(t, driver, target, expected))
 			probe := readyProbe(raw)
-			if err := waitRealtimeProviderReady(context.Background(), probe, driver, expected); err != nil || probe.closes.Load() != 0 {
+			if err := waitRealtimeProviderReady(context.Background(), probe, realtimeTestProtocol(t, driver, target, expected), expected); err != nil || probe.closes.Load() != 0 {
 				t.Fatalf("matching Open audio=%v turn=%v: %v closes=%d", audio, turn, err, probe.closes.Load())
 			}
 		}
@@ -700,7 +700,7 @@ func TestRealtimeReadyMatchesCapturedOpenAndClosesMismatchWithoutRetry(t *testin
 			tc.mutate(echo["session"].(map[string]any))
 			raw, _ := json.Marshal(echo)
 			probe := readyProbe(raw)
-			err := waitRealtimeProviderReady(context.Background(), probe, driver, expected)
+			err := waitRealtimeProviderReady(context.Background(), probe, realtimeTestProtocol(t, driver, target, expected), expected)
 			if err == nil || status.Code(err) != codes.Internal || probe.closes.Load() != 1 {
 				t.Fatalf("mismatch not rejected/closed: %v closes=%d", err, probe.closes.Load())
 			}
@@ -725,7 +725,7 @@ func TestRealtimeReadyExpectationsStayIsolatedWithOneSharedProductionDriver(t *t
 		go func(p *realtimeReadyProbe, e capabilitydriver.CloudRealtimeOpen) {
 			defer wg.Done()
 			<-start
-			errors <- waitRealtimeProviderReady(context.Background(), p, driver, e)
+			errors <- waitRealtimeProviderReady(context.Background(), p, realtimeTestProtocol(t, driver, target, e), e)
 		}(probes[i], expected)
 	}
 	close(start)
@@ -741,4 +741,13 @@ func TestRealtimeReadyExpectationsStayIsolatedWithOneSharedProductionDriver(t *t
 			t.Fatal("another Open's expectation closed this provider")
 		}
 	}
+}
+
+func realtimeTestProtocol(t *testing.T, driver capabilitydriver.CloudRealtimeDriver, target capabilitydriver.CloudRealtimeTarget, open capabilitydriver.CloudRealtimeOpen) capabilitydriver.CloudRealtimeProtocol {
+	t.Helper()
+	p, err := driver.NewSession(target, open)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
 }

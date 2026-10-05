@@ -1,6 +1,6 @@
 schema_version: 3
 provider: gemini
-catalog_version: 2026-10-03-gemini-word-timestamps
+catalog_version: 2026-10-04-gemini-live-hold
 generated_target: runtime/catalog/providers/gemini.yaml
 runtime:
   inventory_mode: static_source

@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -53,6 +54,7 @@ func AIConfigEffectiveFailureState(err error) runtimev1.AIConfigEffectiveState {
 	return runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.gemini-live-owner-controls
 func aiConfigCloudImplementation(provider string, capabilityContract string) (*runtimev1.CapabilityImplementationIdentity, bool) {
 	provider = strings.TrimSpace(provider)
 	providerCapability, supported := ProviderCapabilities[provider]
@@ -61,16 +63,15 @@ func aiConfigCloudImplementation(provider string, capabilityContract string) (*r
 		return nil, false
 	}
 	if capabilityContract == "realtime.interact" {
-		switch provider {
-		case "dashscope", "openai":
-			return &runtimev1.CapabilityImplementationIdentity{
-				ImplementationId: "cloud.realtime.interact." + provider,
-				DriverId:         "nimi.runtime.driver." + provider,
-				DriverDialect:    provider + "/realtime/v1",
-			}, true
-		default:
+		protocol, found := providerregistry.Lookup(provider)
+		if !found || !protocol.SupportsRealtime {
 			return nil, false
 		}
+		return &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "cloud.realtime.interact." + provider,
+			DriverId:         "nimi.runtime.driver." + provider,
+			DriverDialect:    provider + "/realtime/v1",
+		}, true
 	}
 	return &runtimev1.CapabilityImplementationIdentity{
 		ImplementationId: provider,

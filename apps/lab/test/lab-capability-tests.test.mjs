@@ -107,6 +107,19 @@ test('a failed recorded frame never commits or starts a response', async () => {
   }
 });
 
+test('manual recording can be committed without starting a response', async () => {
+  const { sendLabRealtimeRecordingFrames } = await load('lab/lab-only/ai-realtime-recording.js');
+  const calls = [];
+  await sendLabRealtimeRecordingFrames({
+    turnDetection: 'manual', startResponse: false, inputTrackId: 'track', utteranceId: 'utterance', frames: [new Uint8Array(640)],
+    session: {
+      async appendAudioFrame(frame) { calls.push(frame.frameSequence); },
+      async ownerControl(control) { calls.push(control); },
+    },
+  });
+  assert.deepEqual(calls, ['1', 'commit-input']);
+});
+
 test.after(() => {
   if (buildDir) rmSync(buildDir, { recursive: true, force: true });
 });
@@ -1167,11 +1180,22 @@ test('direct AI Realtime reports the owner reason for a refused Local route, a r
   assert.equal(session.getState().responsePending, false, 'a refused input releases the control');
   await session.close();
 
-  const ending = fakeRealtime({ endStream: true, events: [{ type: 'session-terminal', reasonCode: 'AI_PROVIDER_UNAVAILABLE' }] });
-  const ended = createLabRealtimeController({ client: ending.client, now: () => new Date(), createId: (prefix) => prefix, onState: () => {} });
+  const ending = fakeRealtime({ endStream: true, events: [
+    { type: 'output-track', requestId: 'done', outputTrackId: 'completed', lifecycle: 'completed', reasonCode: '' },
+    { type: 'text-output', requestId: 'active', outputTrackId: 'active', text: 'Actual partial output', final: false },
+    { type: 'session-terminal', reasonCode: 'AI_PROVIDER_UNAVAILABLE' },
+  ] });
+  const releasedTracks = [];
+  const ended = createLabRealtimeController({ client: ending.client, now: () => new Date(), createId: (prefix) => prefix, onState: () => {},
+    playback: { writeAudioFrame: async () => {}, interruptOutputTrack: async () => { throw new Error('must not invent native interrupt'); },
+      finishOutputTrack: async (track) => { releasedTracks.push(track); } },
+  });
   await ended.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: false });
   await waitFor(() => ended.getState().phase === 'terminated', 'owner terminal');
   assert.equal(ended.getState().terminalReason, 'AI_PROVIDER_UNAVAILABLE');
+  assert.equal(ended.getState().tracks[0].lifecycle, 'completed');
+  assert.deepEqual(ended.getState().tracks[1], { outputTrackId: 'active', requestId: 'active', text: 'Actual partial output', audioFrames: 0, lifecycle: 'failed', reasonCode: 'AI_PROVIDER_UNAVAILABLE' });
+  assert.deepEqual(releasedTracks, [{ outputTrackId: 'completed', lifecycle: 'completed' }, { outputTrackId: 'active', lifecycle: 'failed' }]);
 
   const silent = fakeRealtime({ endStream: true });
   const dropped = createLabRealtimeController({ client: silent.client, now: () => new Date(), createId: (prefix) => prefix, onState: () => {} });

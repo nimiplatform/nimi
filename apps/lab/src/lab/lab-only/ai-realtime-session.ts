@@ -145,7 +145,15 @@ export function createLabRealtimeController(input: {
   const finish = (phase: 'closed' | 'terminated', terminalReason: string, error?: string) => {
     if (state.phase === 'closed' || state.phase === 'terminated') return;
     pendingResponseRequestId = null;
-    set({ phase, responsePending: false, terminalReason, endedAt: input.now().toISOString(), ...(error ? { error } : {}) });
+    const failedTracks = phase === 'terminated' ? state.tracks.filter((entry) => entry.lifecycle === 'active') : [];
+    set({ phase, responsePending: false, terminalReason, endedAt: input.now().toISOString(),
+      ...(phase === 'terminated' ? { tracks: state.tracks.map((entry) => entry.lifecycle === 'active'
+        ? { ...entry, lifecycle: 'failed' as const, reasonCode: terminalReason } : entry) } : {}),
+      ...(error ? { error } : {}) });
+    // A failed Session releases local playback. This is not a native interrupt acknowledgement.
+    for (const entry of failedTracks) {
+      void input.playback?.finishOutputTrack({ outputTrackId: entry.outputTrackId, lifecycle: 'failed' }).catch(() => undefined);
+    }
   };
   const track = (outputTrackId: string, requestId: string, patch: (current: LabRealtimeOutputTrack) => Partial<LabRealtimeOutputTrack>) => {
     const existing = state.tracks.find((entry) => entry.outputTrackId === outputTrackId)

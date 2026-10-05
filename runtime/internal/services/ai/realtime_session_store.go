@@ -31,35 +31,38 @@ type realtimeInputIdentity struct {
 }
 
 type realtimeSessionRecord struct {
-	mu                 sync.Mutex
-	sessionID          string
-	channelID          string
-	generation         uint64
-	appID              string
-	subjectUserID      string
-	correlationID      string
-	inputAudio         *runtimev1.AiRealtimeAudioFormat
-	outputAudio        *runtimev1.AiRealtimeAudioFormat
-	turnDetection      runtimev1.AiRealtimeTurnDetectionMode
-	stream             *realtimecore.Stream[*runtimev1.AiRealtimeEvent]
-	driver             capabilitydriver.CloudRealtimeDriver
-	openExpectation    capabilitydriver.CloudRealtimeOpen
-	provider           remoteexecution.RealtimeSession
-	ctx                context.Context
-	cancel             context.CancelFunc
-	closed             bool
-	nextSequence       uint64
-	pendingRequestID   string
-	inputTrackID       string
-	utteranceID        string
-	inputFrameSeq      uint64
-	inputIdentityCount uint64
-	inputCommitted     bool
-	pendingInputs      []realtimeInputIdentity
-	inputsByProvider   map[string]realtimeInputIdentity
-	terminalInputs     map[string]struct{}
-	tracksByProvider   map[string]*realtimeOutputTrack
-	tracksByRuntime    map[string]*realtimeOutputTrack
+	operationMu          sync.Mutex
+	mu                   sync.Mutex
+	sessionID            string
+	channelID            string
+	generation           uint64
+	appID                string
+	subjectUserID        string
+	correlationID        string
+	inputAudio           *runtimev1.AiRealtimeAudioFormat
+	outputAudio          *runtimev1.AiRealtimeAudioFormat
+	turnDetection        runtimev1.AiRealtimeTurnDetectionMode
+	stream               *realtimecore.Stream[*runtimev1.AiRealtimeEvent]
+	driver               capabilitydriver.CloudRealtimeProtocol
+	openExpectation      capabilitydriver.CloudRealtimeOpen
+	provider             remoteexecution.RealtimeSession
+	ctx                  context.Context
+	cancel               context.CancelFunc
+	closed               bool
+	nextSequence         uint64
+	pendingRequestID     string
+	requestsByResponse   map[string]string
+	responseKeysRequired bool
+	inputTrackID         string
+	utteranceID          string
+	inputFrameSeq        uint64
+	inputIdentityCount   uint64
+	inputCommitted       bool
+	pendingInputs        []realtimeInputIdentity
+	inputsByProvider     map[string]realtimeInputIdentity
+	terminalInputs       map[string]struct{}
+	tracksByProvider     map[string]*realtimeOutputTrack
+	tracksByRuntime      map[string]*realtimeOutputTrack
 }
 
 type realtimeSessionStore struct {

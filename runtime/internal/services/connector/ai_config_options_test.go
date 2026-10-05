@@ -159,7 +159,9 @@ func TestRealtimeCloudImplementationKeepsProviderDialectsSeparate(t *testing.T) 
 			t.Fatalf("%s: %+v %v", provider, identity, ok)
 		}
 	}
-	if _, ok := aiConfigCloudImplementation("openai_chatgpt_plan", "realtime.interact"); ok {
-		t.Fatal("ChatGPT plan was treated as standard OpenAI Realtime")
+	for _, provider := range []string{"gemini", "openai_chatgpt_plan", "anthropic", "unknown"} {
+		if _, ok := aiConfigCloudImplementation(provider, "realtime.interact"); ok {
+			t.Fatalf("%s was offered without a realtime protocol", provider)
+		}
 	}
 }

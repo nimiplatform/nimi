@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func dashScopeRealtimeDriverFixture(t *testing.T) (CloudRealtimeDriver, CloudRealtimeTarget) {
+func dashScopeRealtimeDriverFixture(t *testing.T) (dashScopeRealtimeDriver, CloudRealtimeTarget) {
 	t.Helper()
 	target, err := structpb.NewStruct(map[string]any{
 		"provider": "dashscope", "providerModelId": "qwen3.5-omni-flash-realtime",
@@ -25,7 +25,7 @@ func dashScopeRealtimeDriverFixture(t *testing.T) (CloudRealtimeDriver, CloudRea
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
-	return driver, resolved
+	return driver.(dashScopeRealtimeDriver), resolved
 }
 
 func TestDashScopeRealtimeDriverMapsExactNeutralAudioContract(t *testing.T) {

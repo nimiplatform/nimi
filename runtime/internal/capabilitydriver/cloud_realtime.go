@@ -80,17 +80,12 @@ type CloudRealtimeEvent struct {
 	Usage               *runtimev1.UsageStats
 	ErrorCode           string
 	ResponseStatus      CloudRealtimeResponseStatus
+	NoOutput            bool
 }
 
 type CloudRealtimeDriver interface {
 	ValidateTarget(Identity, *structpb.Struct) (CloudRealtimeTarget, error)
-	Endpoint(CloudRealtimeTarget) string
-	MapOpen(string, CloudRealtimeTarget, CloudRealtimeOpen) ([]byte, error)
-	MapInput(string, *runtimev1.AppendRealtimeInputRequest) ([]byte, error)
-	MapOwnerControl(string, *runtimev1.SubmitRealtimeOwnerControlRequest) ([]byte, error)
-	MapInterrupt(string, string) ([]byte, error)
-	NormalizeEvent([]byte, CloudRealtimeOpen) ([]CloudRealtimeEvent, error)
-	NormalizeReason(error) error
+	NewSession(CloudRealtimeTarget, CloudRealtimeOpen) (CloudRealtimeProtocol, error)
 }
 
 type CloudRealtimeRegistry struct {

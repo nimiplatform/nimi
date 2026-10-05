@@ -73,6 +73,7 @@ function LabAiRealtimeSurface({
   const [state, setState] = useState<LabRealtimeState>({ phase: 'idle', responsePending: false, tracks: [], transcripts: [], log: [], observed: {} });
   const [capture, setCapture] = useState<Capture | null>(null);
   const [recording, setRecording] = useState<File | null>(null);
+  const [recordingSubmitted, setRecordingSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [configOpen, setConfigOpen] = useState(false);
@@ -152,10 +153,14 @@ function LabAiRealtimeSurface({
 
   const phase = state.phase;
   const open = phase === 'open';
+  useEffect(() => {
+    if (phase === 'closed' || phase === 'terminated') setRecordingSubmitted(false);
+  }, [phase]);
 
   async function openSession() {
     setBusy(true);
     setNotice('');
+    setRecordingSubmitted(false);
     recordedRef.current = false;
     setRecorded(null);
     const session = createLabRealtimeController({
@@ -219,9 +224,10 @@ function LabAiRealtimeSurface({
     await active?.stop();
   }
 
-  async function sendRecording() {
+  async function sendRecording(startResponse = true) {
     const session = sessionRef.current;
     if (!session || !recording || !open || captureRef.current) return;
+    if (recordingSubmitted) return;
     if (recording.size > LAB_AI_REALTIME_MAX_RECORDING_BYTES + 4_096) {
       throw new Error(t('CapabilityTests.aiRealtime.recordingFormatError'));
     }
@@ -229,7 +235,8 @@ function LabAiRealtimeSurface({
     const inputTrackId = createNimiClientId('lab-recording-track');
     const utteranceId = createNimiClientId('lab-recording-utterance');
     try {
-      await sendLabRealtimeRecordingFrames({ session, frames, inputTrackId, utteranceId, turnDetection });
+      await sendLabRealtimeRecordingFrames({ session, frames, inputTrackId, utteranceId, turnDetection, startResponse });
+      if (!startResponse) setRecordingSubmitted(true);
     } catch (error) {
       // Even a lost first ack can leave input on the owner. Discard that
       // partial or unknown buffer by closing the captured Session before retry.
@@ -247,11 +254,15 @@ function LabAiRealtimeSurface({
     try {
       await session.close();
     } finally {
+      setRecordingSubmitted(false);
       recordSummary(session);
     }
   }
 
-  const control = (kind: LabRealtimeOwnerControl) => run(() => sessionRef.current!.ownerControl(kind));
+  const control = (kind: LabRealtimeOwnerControl) => run(async () => {
+    await sessionRef.current!.ownerControl(kind);
+    if (kind === 'start-response' || kind === 'continue-response') setRecordingSubmitted(false);
+  });
   const activeTracks = state.tracks.filter((track) => track.lifecycle === 'active');
 
   return (
@@ -328,10 +339,13 @@ function LabAiRealtimeSurface({
             {t(capture ? 'CapabilityTests.aiRealtime.stopMic' : 'CapabilityTests.aiRealtime.startMic')}
           </Button>
           <input type="file" accept=".wav,audio/wav" aria-label={t('CapabilityTests.aiRealtime.recordingFile')}
-            disabled={busy || !!capture} onChange={(event) => setRecording(event.currentTarget.files?.[0] ?? null)} />
+            disabled={busy || !!capture || recordingSubmitted} onChange={(event) => setRecording(event.currentTarget.files?.[0] ?? null)} />
           <Button type="button" size="sm" tone="secondary"
-            disabled={!open || busy || !!capture || !recording || state.responsePending || activeTracks.length > 0}
+            disabled={!open || busy || !!capture || !recording || recordingSubmitted || state.responsePending || activeTracks.length > 0}
             onClick={() => void run(sendRecording)}>{t(turnDetection === 'manual' ? 'CapabilityTests.aiRealtime.sendRecording' : 'CapabilityTests.aiRealtime.sendRecordingVad')}</Button>
+          {turnDetection === 'manual' ? <Button type="button" size="sm" tone="secondary"
+            disabled={!open || busy || !!capture || !recording || recordingSubmitted || state.responsePending || activeTracks.length > 0}
+            onClick={() => void run(() => sendRecording(false))}>{t('CapabilityTests.aiRealtime.submitRecordingOnly')}</Button> : null}
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('commit-input')}>{t('CapabilityTests.aiRealtime.commitInput')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy || state.responsePending || activeTracks.length > 0} onClick={() => void control('start-response')}>{t('CapabilityTests.aiRealtime.startResponse')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('cancel-response')}>{t('CapabilityTests.aiRealtime.cancelResponse')}</Button>
@@ -341,6 +355,7 @@ function LabAiRealtimeSurface({
             </Button>
           ))}
         </div>
+        {recordingSubmitted ? <p role="status">{t('CapabilityTests.aiRealtime.recordingSubmitted')}</p> : null}
         <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.audioHint')}</p>
         <p className="lab-realtime__meta">{t(turnDetection === 'manual' ? 'CapabilityTests.aiRealtime.recordingHint' : 'CapabilityTests.aiRealtime.recordingHintVad')}</p>
         {notice ? <InlineAlert tone="warning">{notice}</InlineAlert> : null}

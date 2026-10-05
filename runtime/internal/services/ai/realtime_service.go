@@ -83,11 +83,15 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		InputAudio: cloneRealtimeAudioFormat(inputFormat), AudioOutput: req.GetAudioOutputEnabled(), TurnDetection: turnDetection,
 		InitialInstruction: req.GetInitialInstruction(),
 	}
-	openWire, err := driver.MapOpen(ulid.Make().String(), target, openExpectation)
+	protocol, err := driver.NewSession(target, openExpectation)
 	if err != nil {
 		return nil, realtimeDriverError(err)
 	}
-	providerSession, err := s.remoteRealtimeHost.Open(capturedCtx, caller.accountNamespace, capturedRecord, credentialPayload, target, driver.Endpoint(target))
+	openWire, err := protocol.OpenWire(ulid.Make().String())
+	if err != nil {
+		return nil, realtimeDriverError(err)
+	}
+	providerSession, err := s.remoteRealtimeHost.Open(capturedCtx, caller.accountNamespace, capturedRecord, credentialPayload, target, protocol.Transport())
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +99,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		_ = providerSession.Close()
 		return nil, err
 	}
-	if err := waitRealtimeProviderReady(capturedCtx, providerSession, driver, openExpectation); err != nil {
+	if err := waitRealtimeProviderReady(capturedCtx, providerSession, protocol, openExpectation); err != nil {
 		return nil, err
 	}
 	sessionID, channelID, correlationID := ulid.Make().String(), ulid.Make().String(), ulid.Make().String()
@@ -113,7 +117,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		sessionID: sessionID, channelID: channelID, generation: 1,
 		appID: caller.appID, subjectUserID: caller.accountNamespace, correlationID: correlationID,
 		inputAudio: cloneRealtimeAudioFormat(inputFormat), outputAudio: cloneRealtimeAudioFormat(outputFormat), turnDetection: turnDetection,
-		stream: coreStream, driver: driver, provider: providerSession, ctx: sessionCtx, cancel: cancel, openExpectation: openExpectation,
+		stream: coreStream, driver: protocol, provider: providerSession, ctx: sessionCtx, cancel: cancel, openExpectation: openExpectation,
 		inputsByProvider: make(map[string]realtimeInputIdentity),
 		terminalInputs:   make(map[string]struct{}),
 		tracksByProvider: make(map[string]*realtimeOutputTrack), tracksByRuntime: make(map[string]*realtimeOutputTrack),
@@ -175,7 +179,7 @@ func waitRealtimeProviderReady(ctx context.Context, session interface {
 	Events() <-chan []byte
 	Errors() <-chan error
 	Close() error
-}, driver capabilitydriver.CloudRealtimeDriver, expected capabilitydriver.CloudRealtimeOpen) (readyErr error) {
+}, driver capabilitydriver.CloudRealtimeProtocol, expected capabilitydriver.CloudRealtimeOpen) (readyErr error) {
 	defer func() {
 		if readyErr != nil {
 			_ = session.Close()
@@ -198,7 +202,7 @@ func waitRealtimeProviderReady(ctx context.Context, session interface {
 			if !ok {
 				return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 			}
-			events, err := driver.NormalizeEvent(raw, expected)
+			events, err := driver.Normalize(raw)
 			if err != nil {
 				return realtimeDriverError(err)
 			}
@@ -220,7 +224,11 @@ func (s *Service) AppendRealtimeInput(ctx context.Context, req *runtimev1.Append
 	if err != nil {
 		return nil, err
 	}
-	if err := validateAndCaptureRealtimeInput(record, req); err != nil {
+	if !record.operationMu.TryLock() {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	defer record.operationMu.Unlock()
+	if err := realtimeInputAdmission(record, req, false); err != nil {
 		if s.logger != nil {
 			frameSequence, frameBytes, variant := uint64(0), 0, "unknown"
 			switch input := req.GetInput().(type) {
@@ -235,11 +243,14 @@ func (s *Service) AppendRealtimeInput(ctx context.Context, req *runtimev1.Append
 		}
 		return nil, err
 	}
-	wire, err := record.driver.MapInput(ulid.Make().String(), req)
+	effect, err := record.driver.Input(ulid.Make().String(), req)
 	if err != nil {
 		return nil, realtimeDriverError(err)
 	}
-	if err := record.provider.Send(record.ctx, wire); err != nil {
+	if err := validateAndCaptureRealtimeInput(record, req); err != nil {
+		return nil, err
+	}
+	if err := s.sendRealtimeEffect(record, effect); err != nil {
 		s.terminalizeRealtimeSession(record, reasonCodeOr(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE), realtimecore.TerminalOwnerFailed)
 		return nil, err
 	}
@@ -268,6 +279,10 @@ func (s *Service) AppendRealtimeInput(ctx context.Context, req *runtimev1.Append
 }
 
 func validateAndCaptureRealtimeInput(record *realtimeSessionRecord, req *runtimev1.AppendRealtimeInputRequest) error {
+	return realtimeInputAdmission(record, req, true)
+}
+
+func realtimeInputAdmission(record *realtimeSessionRecord, req *runtimev1.AppendRealtimeInputRequest, capture bool) error {
 	if record == nil || req == nil || req.GetInput() == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -303,10 +318,14 @@ func validateAndCaptureRealtimeInput(record *realtimeSessionRecord, req *runtime
 			if frame.GetFrameSequence() != 1 {
 				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 			}
-			record.inputCommitted = false
-			record.inputIdentityCount++
+			if capture {
+				record.inputCommitted = false
+				record.inputIdentityCount++
+			}
 		}
-		record.inputTrackID, record.utteranceID, record.inputFrameSeq = frame.GetInputTrackId(), frame.GetUtteranceId(), frame.GetFrameSequence()
+		if capture {
+			record.inputTrackID, record.utteranceID, record.inputFrameSeq = frame.GetInputTrackId(), frame.GetUtteranceId(), frame.GetFrameSequence()
+		}
 	case *runtimev1.AppendRealtimeInputRequest_Text:
 		if input.Text == nil || strings.TrimSpace(input.Text.GetRequestId()) == "" || strings.TrimSpace(input.Text.GetText()) == "" || len(input.Text.GetText()) > aiRealtimeMaxTextBytes {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -330,24 +349,73 @@ func (s *Service) SubmitRealtimeOwnerControl(ctx context.Context, req *runtimev1
 	if req == nil || strings.TrimSpace(req.GetRequestId()) == "" || req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if !record.operationMu.TryLock() {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	defer record.operationMu.Unlock()
+	var stopTrack *realtimeOutputTrack
+	if req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE || req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE {
+		record.mu.Lock()
+		full := len(record.requestsByResponse) >= aiRealtimeMaxInputIdentities
+		record.mu.Unlock()
+		if full {
+			return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+	}
+	if req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE || req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE {
+		if key := record.driver.CurrentResponseKey(); key != "" {
+			record.mu.Lock()
+			stopTrack = record.tracksByProvider[key]
+			valid := stopTrack != nil && !stopTrack.terminal && !stopTrack.interrupting && !stopTrack.requestTerminal
+			record.mu.Unlock()
+			if !valid {
+				return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
+			}
+		}
+	}
+	if req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT {
+		if err := realtimeInputCommitAdmission(record, false); err != nil {
+			return nil, err
+		}
+	}
+	effect, err := record.driver.OwnerControl(ulid.Make().String(), req)
+	if err != nil {
+		return nil, realtimeDriverError(err)
+	}
 	record.mu.Lock()
 	if req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE ||
 		req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE {
 		record.pendingRequestID = req.GetRequestId()
+		if effect.ResponseKey != "" {
+			if record.requestsByResponse == nil {
+				record.requestsByResponse = make(map[string]string)
+			}
+			record.responseKeysRequired = true
+			record.requestsByResponse[effect.ResponseKey] = req.GetRequestId()
+		}
+	}
+	if effect.AwaitNativeStop && stopTrack != nil {
+		stopTrack.interrupting = true
 	}
 	record.mu.Unlock()
-	wire, err := record.driver.MapOwnerControl(ulid.Make().String(), req)
-	if err != nil {
-		return nil, realtimeDriverError(err)
-	}
 	if req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT {
 		if err := beginRealtimeInputCommit(record); err != nil {
 			return nil, err
 		}
 	}
-	if err := record.provider.Send(record.ctx, wire); err != nil {
+	if err := s.sendRealtimeEffect(record, effect); err != nil {
 		s.terminalizeRealtimeSession(record, reasonCodeOr(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE), realtimecore.TerminalOwnerFailed)
 		return nil, err
+	}
+	if effect.AwaitNativeStop {
+		track := stopTrack
+		if track == nil {
+			s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_OUTPUT_INVALID, realtimecore.TerminalOwnerFailed)
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		if err := s.finishRealtimeNativeStop(ctx, record, track, effect.ResponseKey); err != nil {
+			return nil, err
+		}
 	}
 	return &runtimev1.SubmitRealtimeOwnerControlResponse{Ack: &runtimev1.Ack{Ok: true}, Control: realtimeControl(record, runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_READY, 0, "")}, nil
 }
@@ -391,6 +459,10 @@ func (s *Service) InterruptRealtimeOutput(ctx context.Context, req *runtimev1.In
 	if req == nil || strings.TrimSpace(req.GetOutputTrackId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if !record.operationMu.TryLock() {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	defer record.operationMu.Unlock()
 	record.mu.Lock()
 	track := record.tracksByRuntime[req.GetOutputTrackId()]
 	if track == nil || track.terminal || track.interrupting || track.requestTerminal {
@@ -399,7 +471,7 @@ func (s *Service) InterruptRealtimeOutput(ctx context.Context, req *runtimev1.In
 	}
 	providerResponseID := track.providerResponseID
 	record.mu.Unlock()
-	wire, err := record.driver.MapInterrupt(ulid.Make().String(), providerResponseID)
+	effect, err := record.driver.Interrupt(ulid.Make().String(), providerResponseID)
 	if err != nil {
 		return nil, realtimeDriverError(err)
 	}
@@ -410,9 +482,15 @@ func (s *Service) InterruptRealtimeOutput(ctx context.Context, req *runtimev1.In
 	}
 	track.interrupting = true
 	record.mu.Unlock()
-	if err := record.provider.Send(record.ctx, wire); err != nil {
+	if err := s.sendRealtimeEffect(record, effect); err != nil {
 		s.terminalizeRealtimeSession(record, reasonCodeOr(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE), realtimecore.TerminalOwnerFailed)
 		return nil, err
+	}
+	if effect.AwaitNativeStop {
+		if err := s.finishRealtimeNativeStop(ctx, record, track, effect.ResponseKey); err != nil {
+			return nil, err
+		}
+		return &runtimev1.InterruptRealtimeOutputResponse{Ack: &runtimev1.Ack{Ok: true}, Control: realtimeControl(record, runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_READY, 0, "")}, nil
 	}
 	record.mu.Lock()
 	if record.closed || !track.interrupting {
@@ -466,7 +544,7 @@ func (s *Service) runRealtimeProvider(record *realtimeSessionRecord) {
 				s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, realtimecore.TerminalOwnerFailed)
 				return
 			}
-			events, err := record.driver.NormalizeEvent(raw, record.openExpectation)
+			events, err := record.driver.Normalize(raw)
 			if err != nil {
 				if s.logger != nil {
 					s.logger.Warn("AI Realtime provider event rejected", "error", err)
@@ -484,6 +562,16 @@ func (s *Service) runRealtimeProvider(record *realtimeSessionRecord) {
 }
 
 func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, source capabilitydriver.CloudRealtimeEvent) bool {
+	if source.ProviderResponseID != "" {
+		record.mu.Lock()
+		_, known := record.requestsByResponse[source.ProviderResponseID]
+		valid := !record.responseKeysRequired || known || record.tracksByProvider[source.ProviderResponseID] != nil
+		record.mu.Unlock()
+		if !valid {
+			s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_OUTPUT_INVALID, realtimecore.TerminalOwnerFailed)
+			return true
+		}
+	}
 	switch source.Kind {
 	case capabilitydriver.CloudRealtimeEventReady:
 		return false
@@ -556,6 +644,20 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 		// single output-track/request decision so cancellation can still win.
 		_ = ensureRealtimeOutputTrack(record, source.ProviderResponseID)
 	case capabilitydriver.CloudRealtimeEventResponseDone:
+		if source.NoOutput {
+			record.mu.Lock()
+			requestID := record.requestsByResponse[source.ProviderResponseID]
+			if !record.responseKeysRequired {
+				requestID = record.pendingRequestID
+			}
+			if record.pendingRequestID == requestID {
+				record.pendingRequestID = ""
+			}
+			delete(record.requestsByResponse, source.ProviderResponseID)
+			record.mu.Unlock()
+			_ = s.publishRealtimeEvent(record, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_RequestTerminal{RequestTerminal: &runtimev1.AiRealtimeRequestTerminal{RequestId: requestID, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, Usage: source.Usage, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}}})
+			return false
+		}
 		track := ensureRealtimeOutputTrack(record, source.ProviderResponseID)
 		s.completeRealtimeResponse(record, track, source.ResponseStatus, source.Usage)
 	case capabilitydriver.CloudRealtimeEventFailed:
@@ -616,13 +718,21 @@ func ensureRealtimeOutputTrack(record *realtimeSessionRecord, providerResponseID
 	if track := record.tracksByProvider[providerResponseID]; track != nil {
 		return track
 	}
-	track := &realtimeOutputTrack{providerResponseID: providerResponseID, outputTrackID: ulid.Make().String(), requestID: record.pendingRequestID}
+	requestID := record.pendingRequestID
+	if record.responseKeysRequired {
+		requestID = record.requestsByResponse[providerResponseID]
+	}
+	track := &realtimeOutputTrack{providerResponseID: providerResponseID, outputTrackID: ulid.Make().String(), requestID: requestID}
 	record.tracksByProvider[providerResponseID] = track
 	record.tracksByRuntime[track.outputTrackID] = track
 	return track
 }
 
 func beginRealtimeInputCommit(record *realtimeSessionRecord) error {
+	return realtimeInputCommitAdmission(record, true)
+}
+
+func realtimeInputCommitAdmission(record *realtimeSessionRecord, capture bool) error {
 	if record == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -655,8 +765,10 @@ func beginRealtimeInputCommit(record *realtimeSessionRecord) error {
 		}
 		identity = candidate
 	}
-	record.inputCommitted = true
-	record.pendingInputs = append(record.pendingInputs, identity)
+	if capture {
+		record.inputCommitted = true
+		record.pendingInputs = append(record.pendingInputs, identity)
+	}
 	return nil
 }
 
@@ -885,6 +997,7 @@ func (s *Service) completeRealtimeResponse(record *realtimeSessionRecord, track 
 		record.mu.Unlock()
 		return
 	}
+	delete(record.requestsByResponse, track.providerResponseID)
 	var publishErr error
 	publish := func(event *runtimev1.AiRealtimeEvent) {
 		if publishErr == nil {
@@ -993,6 +1106,9 @@ func (s *Service) terminalizeRealtimeSession(record *realtimeSessionRecord, reas
 	}
 	if record.provider != nil {
 		_ = record.provider.Close()
+	}
+	if record.driver != nil {
+		record.driver.Close()
 	}
 	_ = record.stream.PublishTerminal(record.generation, event, terminal)
 }
