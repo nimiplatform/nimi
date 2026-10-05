@@ -7,6 +7,7 @@ import type {
   NimiLocalAppTextTurnItem,
 } from '@nimiplatform/sdk/app';
 import { isJsonObject } from '@nimiplatform/sdk/types';
+import type { NimiRuntimeAIReasoningOptions } from '@nimiplatform/sdk/ai';
 import {
   LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   defineStudioParameters,
@@ -31,13 +32,14 @@ export type LabTextExchangeScenario = 'tool-call' | 'structured-output';
 export type LabTextExchangeDelivery = 'sync' | 'stream';
 
 export type LabTextExchangeParameters = {
+  reasoning?: NimiRuntimeAIReasoningOptions;
   scenario?: LabTextExchangeScenario;
   delivery?: LabTextExchangeDelivery;
 };
 
 export const labTextExchangeParameters = defineStudioParameters<LabTextExchangeParameters>({
   initial: () => ({ scenario: 'tool-call', delivery: 'sync' }),
-  routeMatrix: { scenario: LOCAL_AND_CLOUD_STUDIO_PARAMETER, delivery: LOCAL_AND_CLOUD_STUDIO_PARAMETER },
+  routeMatrix: { scenario: LOCAL_AND_CLOUD_STUDIO_PARAMETER, delivery: LOCAL_AND_CLOUD_STUDIO_PARAMETER, reasoning: LOCAL_AND_CLOUD_STUDIO_PARAMETER },
 });
 
 // One fixed, side-effect-free test tool. The App validates its arguments and
@@ -107,7 +109,7 @@ export function checkLabTestSchemaResult(text: string): { readonly title: string
 }
 
 function exchangeItem(item: NimiLocalAppTextOutputItem): StudioTextExchangeItem {
-  if (item.type === 'text') return { type: 'text', text: item.text };
+  if (item.type === 'text' || item.type === 'reasoning-summary') return { type: item.type, text: item.text };
   if (item.type === 'reasoning-continuity') {
     return { type: 'reasoning-continuity', carrierKind: item.carrier.kind, version: item.carrier.version, payloadBytes: item.carrier.payload.length };
   }
@@ -166,9 +168,10 @@ async function streamLabTextStep(context: StudioCapabilityRuntimeContext, input:
         return { output: { type: 'text-generate', items, finishReason: event.finishReason }, traceId };
       }
       const current = items[event.itemIndex];
-      if (event.type === 'delta') {
-        if (event.itemIndex === items.length) items.push({ type: 'text', text: event.text });
-        else if (current?.type === 'text' && event.itemIndex === items.length - 1) items[event.itemIndex] = { type: 'text', text: current.text + event.text };
+      if (event.type === 'delta' || event.type === 'reasoning-summary') {
+        const type = event.type === 'delta' ? 'text' : 'reasoning-summary';
+        if (event.itemIndex === items.length) items.push({ type, text: event.text });
+        else if (current?.type === type && event.itemIndex === items.length - 1) items[event.itemIndex] = { type, text: current.text + event.text };
         else throw new Error(t('CapabilityTests.textTools.streamOrder'));
         continue;
       }
@@ -215,6 +218,7 @@ export async function runLabTextExchange(context: StudioCapabilityRuntimeContext
       const request: NimiLocalAppTextTurnInput = scenario === 'tool-call'
         ? { messages: [...messages], tools: [LAB_TEST_TOOL], toolChoice: 'auto' }
         : { messages: [...messages], responseFormat: { type: 'json-schema', name: LAB_TEST_SCHEMA_NAME, schema: LAB_TEST_SCHEMA, strict: true } };
+      if (parameters?.reasoning !== undefined) Object.assign(request, { reasoning: parameters.reasoning });
       const response = delivery === 'stream'
         ? await streamLabTextStep(context, request)
         : await host.client.ai.scenario.execute({ type: 'text-generate', ...request }, signal ? { signal } : undefined);

@@ -10,12 +10,16 @@ import (
 // target to the stateless Responses adapter, so every text step for it,
 // including plain text, uses one protocol. Each registered step may return the
 // encrypted reasoning items the adapter requests and may replay its own
-// carriers in the same mode; this is continuity only, with no reasoning
-// activation, effort or presentation control.
+// carriers in the same mode. Exact controls share the common serializer;
+// only the selected model's admitted off mapping differs.
 func openAIResponsesTextBehaviorRegistration(modelID string) textBehaviorAdapterRegistration {
 	modes := []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}
+	activations := []runtimev1.ReasoningActivation{runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED}
+	if modelID == "gpt-6-luna" {
+		activations = append(activations, runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED)
+	}
 	return textBehaviorAdapterRegistration{
-		AdapterID: "openai." + modelID + ".responses", Version: "1",
+		AdapterID: "openai." + modelID + ".responses", Version: "2",
 		ImplementationID: "openai", DriverID: "nimillm", DriverDialect: "openai",
 		CloudTarget: &textBehaviorCloudTarget{Provider: "openai", ProviderModelID: modelID},
 		Support: textBehaviorSupport{
@@ -27,7 +31,12 @@ func openAIResponsesTextBehaviorRegistration(modelID string) textBehaviorAdapter
 				},
 				SingleCall: true, MultipleCalls: true, ParallelCalls: true, ToolOnlyResponse: true, MixedTextAndCall: true, ToolResultRoundTrip: true,
 			},
-			Reasoning:        &textBehaviorReasoningSupport{OpaqueContinuityCarrier: true, ContinuityKind: capabilitydriver.OpenAIResponsesContinuityKind, ContinuityVersion: 1},
+			Reasoning: &textBehaviorReasoningSupport{
+				Activations:       activations,
+				Presentations:     []runtimev1.ReasoningPresentation{runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN, runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY},
+				Efforts:           []runtimev1.ReasoningEffort{runtimev1.ReasoningEffort_REASONING_EFFORT_LOW, runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM, runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH, runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH, runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM},
+				SummaryTranscript: true, OpaqueContinuityCarrier: true, ContinuityKind: capabilitydriver.OpenAIResponsesContinuityKind, ContinuityVersion: 1,
+			},
 			StructuredOutput: &textBehaviorStructuredOutputSupport{Kinds: []runtimev1.ResponseFormatKind{runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA}, SupportsStrictJSONSchema: true},
 			Combinations: []textBehaviorCombination{
 				{Modes: modes}, {Reasoning: true, Modes: modes},
@@ -36,9 +45,11 @@ func openAIResponsesTextBehaviorRegistration(modelID string) textBehaviorAdapter
 			},
 		},
 		ExecutionSemantics:  textBehaviorExecutionSemantics{ProcessIdentityImpact: textBehaviorProcessIdentityUnaffected},
-		RequestSerializerID: "openai/responses/request/v1", RequestSerializer: capabilitydriver.OpenAIResponsesTextBehaviorRequestSerializer,
-		NonStreamParserID: "openai/responses/nonstream/v1", NonStreamParser: capabilitydriver.OpenAIResponsesTextBehaviorNonStreamParser,
-		StreamAssemblerID: "openai/responses/stream/v1", StreamAssembler: capabilitydriver.OpenAIResponsesTextBehaviorStreamAssembler,
+		RequestSerializerID: "openai/responses/request/v2", RequestSerializer: func(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textBehaviorSerializedRequest, error) {
+			return capabilitydriver.OpenAIResponsesTextBehaviorRequestSerializer(modelID, spec, stream)
+		},
+		NonStreamParserID: "openai/responses/nonstream/v2", NonStreamParser: capabilitydriver.OpenAIResponsesTextBehaviorNonStreamParser,
+		StreamAssemblerID: "openai/responses/stream/v2", StreamAssembler: capabilitydriver.OpenAIResponsesTextBehaviorStreamAssembler,
 	}
 }
 

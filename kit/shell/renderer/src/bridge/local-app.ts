@@ -1,7 +1,7 @@
 import type { NimiLocalAppAgentWorkShell, NimiLocalAppIntegrationShell } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
-import { projectMusicInputCapabilities, projectSpeechInputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
+import { projectMusicInputCapabilities, projectSpeechInputCapabilities, projectReasoningInputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '@nimiplatform/kit/core/sdk-contract';
@@ -932,7 +932,7 @@ export async function streamNimiLocalAppTextTurn(
     canonicalTextTurnInput(input, command),
     (value) => {
       const event = parseTextTurnEvent(value, command);
-      if (event.type === 'delta' && typeof event.text === 'string') {
+      if ((event.type === 'delta' || event.type === 'reasoning-summary') && typeof event.text === 'string') {
         deltaBytes += new TextEncoder().encode(event.text).byteLength;
       }
       if (event.type === 'tool-call') deltaBytes += new TextEncoder().encode(JSON.stringify(event.toolCall)).byteLength;
@@ -2899,6 +2899,13 @@ function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTu
     throw new Error(`${command}: text-turn sequence is invalid`);
   }
   const traceId = requiredText(record.traceId, 'traceId', command, 512);
+  if (record.type === 'reasoning-summary') {
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'text', 'itemCompleted'], command, 'reasoning summary');
+    if (typeof record.itemCompleted !== 'boolean' || typeof record.text !== 'string' || record.text === '' && !record.itemCompleted) throw new Error(`${command}: reasoning summary seal is invalid`);
+    return Object.freeze({ type:'reasoning-summary',sequence:record.sequence,traceId,
+      itemIndex:boundedSafeInteger(record.itemIndex,'itemIndex',command,0,4_294_967_295),
+      text:record.text === '' ? '' : projectionUtf8Content(record.text,'text',command,64*1024,true),itemCompleted:record.itemCompleted });
+  }
   if (record.type === 'delta') {
     assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'text', 'itemIndex'], command, 'text delta');
     return Object.freeze({ type: 'delta', sequence: record.sequence, traceId,
@@ -3839,7 +3846,11 @@ function requiredVoiceOptionText(value: unknown, field: string, command: string,
 
 function parseEffectiveSelection(value: unknown, command: string): void {
   const selection = assertRecord(value, `${command}: effective selection is invalid`);
-  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : [])], command, 'effective selection');
+  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : [])], command, 'effective selection');
+  if (Object.hasOwn(selection, 'reasoningInput')) {
+    if (selection.capabilityContract !== 'text.generate' || selection.state !== 'ready') throw new Error(`${command}: reasoning input selection is invalid`);
+    projectReasoningInputCapabilities(selection.reasoningInput, (detail) => { throw new Error(`${command}: ${detail}`); });
+  }
   if (Object.hasOwn(selection, 'textReplay')) {
     const replay = assertRecord(selection.textReplay, `${command}: text replay compatibility is invalid`);
     assertProjectionKeys(replay, ['acceptedCarriers'], command, 'text replay compatibility');

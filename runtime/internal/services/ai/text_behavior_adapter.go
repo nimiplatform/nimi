@@ -236,6 +236,16 @@ func resolveTextBehaviorAdapterForFacts(
 		}
 	}
 	if !requested.any() {
+		// Explicit off is a control, not an enabled reasoning combination.
+		// Exact registered targets must admit its real mapping even on plain
+		// calls; a base Driver validates off itself when no adapter matches.
+		if normalizeReasoningConfig(spec.GetReasoning()).activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED {
+			for _, registration := range matches {
+				if !textBehaviorReasoningSupportsRequest(registration.Support.Reasoning, requested, spec) {
+					return nil, textBehaviorUnavailableError()
+				}
+			}
+		}
 		// A declared plain-text combination keeps that exact target on its
 		// captured hooks. Other targets retain their existing base protocol.
 		declaresPlainText := false
@@ -412,7 +422,8 @@ func validTextBehaviorSupport(support textBehaviorSupport) bool {
 		coveredReasoning = coveredReasoning || combination.Reasoning
 		coveredStructured = coveredStructured || combination.StructuredOutput
 	}
-	return (support.ToolUse == nil || coveredTool) && (support.Reasoning == nil || coveredReasoning) &&
+	offOnly := support.Reasoning != nil && len(support.Reasoning.Activations) == 1 && support.Reasoning.Activations[0] == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED && !support.Reasoning.SummaryTranscript && !support.Reasoning.OpaqueContinuityCarrier
+	return (support.ToolUse == nil || coveredTool) && (support.Reasoning == nil || coveredReasoning || offOnly) &&
 		(support.StructuredOutput == nil || coveredStructured)
 }
 
@@ -456,12 +467,13 @@ func validTextBehaviorReasoningSupport(support textBehaviorReasoningSupport) boo
 		len(support.Presentations) == 0 && len(support.Efforts) == 0 && !support.ExactBudget {
 		return true
 	}
-	if len(support.Activations) == 0 || len(support.Presentations) == 0 || len(support.Efforts) == 0 && !support.ExactBudget {
+	offOnly := len(support.Activations) == 1 && support.Activations[0] == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
+	if len(support.Activations) == 0 || len(support.Presentations) == 0 || !offOnly && len(support.Efforts) == 0 && !support.ExactBudget {
 		return false
 	}
 	seenActivation := map[runtimev1.ReasoningActivation]struct{}{}
 	for _, value := range support.Activations {
-		if value != runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE && value != runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED {
+		if value != runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED && value != runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE && value != runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED {
 			return false
 		}
 		if _, duplicate := seenActivation[value]; duplicate {
@@ -484,7 +496,7 @@ func validTextBehaviorReasoningSupport(support textBehaviorReasoningSupport) boo
 		switch value {
 		case runtimev1.ReasoningEffort_REASONING_EFFORT_MINIMAL, runtimev1.ReasoningEffort_REASONING_EFFORT_LOW,
 			runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM, runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH,
-			runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM:
+			runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM, runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH:
 		default:
 			return false
 		}
@@ -586,7 +598,7 @@ func textBehaviorAdapterSupportsRequest(registration textBehaviorAdapterRegistra
 	if requested.toolUse && !textBehaviorToolUseSupportsRequest(registration.Support.ToolUse, requested, spec) {
 		return false
 	}
-	if requested.reasoning && !textBehaviorReasoningSupportsRequest(registration.Support.Reasoning, requested, spec) {
+	if (requested.reasoning || normalizeReasoningConfig(spec.GetReasoning()).activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED) && !textBehaviorReasoningSupportsRequest(registration.Support.Reasoning, requested, spec) {
 		return false
 	}
 	return !requested.structured || textBehaviorStructuredOutputSupportsRequest(registration.Support.StructuredOutput, spec)
@@ -641,12 +653,15 @@ func textBehaviorReasoningSupportsRequest(support *textBehaviorReasoningSupport,
 		return false
 	}
 	normalized := normalizeReasoningConfig(spec.GetReasoning())
-	if normalized.activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED {
+	if normalized.activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED {
 		return requested.reasoningSummaryTurn || requested.reasoningContinuity
 	}
 	if !containsReasoningActivation(support.Activations, normalized.activation) ||
 		!containsReasoningPresentation(support.Presentations, normalized.presentation) {
 		return false
+	}
+	if normalized.activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED {
+		return normalized.intensity == reasoningIntensityNone
 	}
 	switch normalized.intensity {
 	case reasoningIntensityEffort:

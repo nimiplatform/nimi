@@ -83,6 +83,7 @@ enum ReasoningEffort {
   REASONING_EFFORT_MEDIUM = 3;
   REASONING_EFFORT_HIGH = 4;
   REASONING_EFFORT_MAXIMUM = 5;
+  REASONING_EFFORT_XHIGH = 6;
 }
 
 enum ReasoningPresentation {
@@ -1475,6 +1476,8 @@ message StreamLocalAppTextTurnRequest {
   ToolChoiceMode tool_choice = 11;
   string tool_choice_name = 12;
   ResponseFormat response_format = 13;
+  // Omission preserves the selected exact implementation's default.
+  ReasoningConfig reasoning = 14;
 }
 
 message LocalAppTextTurnDelta {
@@ -1491,6 +1494,12 @@ message LocalAppTextTurnToolCall {
 message LocalAppTextTurnContinuity {
   uint32 item_index = 1;
   ReasoningContinuityCarrier carrier = 2;
+}
+
+message LocalAppTextTurnReasoningSummary {
+  string text = 1;
+  uint32 item_index = 2;
+  bool item_completed = 3;
 }
 
 message LocalAppTextTurnCompleted {
@@ -1512,6 +1521,7 @@ message StreamLocalAppTextTurnEvent {
     LocalAppTextTurnFailed failed = 5;
     LocalAppTextTurnToolCall tool_call = 6;
     LocalAppTextTurnContinuity reasoning_continuity = 7;
+    LocalAppTextTurnReasoningSummary reasoning_summary = 8;
   }
 }
 

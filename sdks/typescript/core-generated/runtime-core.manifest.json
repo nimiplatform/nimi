@@ -8047,6 +8047,7 @@
       "LocalAppTextTurnContinuity",
       "LocalAppTextTurnDelta",
       "LocalAppTextTurnFailed",
+      "LocalAppTextTurnReasoningSummary",
       "LocalAppTextTurnToolCall",
       "LocalAppVideoGenerateJobSpec",
       "LocalAppVideoGenerationOptions",
@@ -8210,6 +8211,7 @@
       "RealtimeControlStatus",
       "ReasoningConfig",
       "ReasoningContinuityCarrier",
+      "ReasoningInputCapabilities",
       "ReasoningSummary",
       "ReasoningSummaryDelta",
       "RebindLocalAppProcessRequest",
@@ -11210,6 +11212,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "reasoning_input",
+            "type": "ReasoningInputCapabilities",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -28604,6 +28613,33 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "LocalAppTextTurnReasoningSummary",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "item_index",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "item_completed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "LocalAppTextTurnToolCall",
         "fields": [
           {
@@ -35498,6 +35534,61 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "ReasoningInputCapabilities",
+        "fields": [
+          {
+            "name": "follows_model_default",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "supports_disabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "supports_required",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "supports_adaptive",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "efforts",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "supports_budget",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "presentations",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "ReasoningSummary",
         "fields": [
           {
@@ -39275,6 +39366,13 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "reasoning_summary",
+            "type": "LocalAppTextTurnReasoningSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -39372,6 +39470,13 @@
             "repeated": false,
             "optional": false,
             "number": 13
+          },
+          {
+            "name": "reasoning",
+            "type": "ReasoningConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 14
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -45971,7 +46076,8 @@
           "REASONING_EFFORT_LOW",
           "REASONING_EFFORT_MEDIUM",
           "REASONING_EFFORT_HIGH",
-          "REASONING_EFFORT_MAXIMUM"
+          "REASONING_EFFORT_MAXIMUM",
+          "REASONING_EFFORT_XHIGH"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },

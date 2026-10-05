@@ -46,6 +46,12 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 		Stop: append([]string(nil), req.GetStop()...), Seed: localAppOptionalInt64(req.Seed),
 		ToolChoice: req.GetToolChoice(), ToolChoiceName: req.GetToolChoiceName(),
 	}
+	if req.GetReasoning() != nil {
+		spec.Reasoning = proto.Clone(req.GetReasoning()).(*runtimev1.ReasoningConfig)
+	}
+	if validateReasoningConfig(spec) != nil {
+		return nil, localAppTextInputInvalid()
+	}
 	declared := make(map[string]*runtimev1.ToolSpec, len(req.GetTools()))
 	for _, tool := range req.GetTools() {
 		if tool == nil || tool.GetKind() != runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION ||
@@ -199,6 +205,9 @@ func validateLocalAppTextTurnItem(item *runtimev1.TextTurnItem, tools map[string
 		return localAppTextInputInvalid()
 	}
 	if output := item.GetOutput(); output != nil {
+		if summary := output.GetReasoningSummary(); summary != nil && summary.GetText() != "" {
+			return nil
+		}
 		if text := output.GetText(); text != nil && text.GetText() != "" {
 			return nil
 		}
@@ -278,6 +287,8 @@ func projectLocalAppTextOutput(output *runtimev1.TextGenerateOutput, finish runt
 			seenCalls[call.GetId()] = struct{}{}
 			bytes += proto.Size(call)
 			hasPrimary = true
+		} else if summary := item.GetReasoningSummary(); summary != nil && summary.GetText() != "" && spec.GetReasoning().GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
+			bytes += len(summary.GetText())
 		} else if carrier := item.GetReasoningContinuity(); textbehavior.ValidContinuity(carrier) {
 			bytes += proto.Size(carrier)
 		} else {

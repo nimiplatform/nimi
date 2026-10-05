@@ -136,15 +136,19 @@ func (s *Service) captureCloudTextEffectiveInputs(
 	}
 	// Select the exact captured hooks before materializing media. A dialect's
 	// budget is not inferred from an App label or a provider string here.
-	preMapped, err := driver.MapRequest(target, request.GetSpec().GetTextGenerate(), intent.Defaults, stream)
+	preAdapter, err := resolveTextBehaviorAdapter(s.textBehaviorAdapters, intent.CloudImplementation, target.Provider(), target.ProviderModelID(), mode, request.GetSpec().GetTextGenerate())
+	if err != nil {
+		return nil, err
+	}
+	preHooks, err := preAdapter.runtimeAdapter()
+	if err != nil {
+		return nil, err
+	}
+	preMapped, err := driver.MapRequest(target, request.GetSpec().GetTextGenerate(), intent.Defaults, stream, preHooks)
 	if err != nil {
 		return nil, cloudTextDriverError(err)
 	}
 	preSpec := preMapped.Spec()
-	preAdapter, err := resolveTextBehaviorAdapter(s.textBehaviorAdapters, intent.CloudImplementation, target.Provider(), target.ProviderModelID(), mode, preSpec)
-	if err != nil {
-		return nil, err
-	}
 	if preAdapter != nil && preAdapter.registration.MaterializationPlanner != nil {
 		var inputBudget *textbehavior.OwnedMediaInputBudget
 		preSpec, inputBudget, err = preAdapter.registration.MaterializationPlanner(ctx, preSpec, stream)
@@ -178,7 +182,11 @@ func (s *Service) captureCloudTextEffectiveInputs(
 	// A Runtime-owned output budget becomes the provider limit only where this
 	// exact target accepts one; a caller max_tokens stays the hard limit.
 	budgeted := textbehavior.ApplyInternalOutputBudget(ctx, resolved.spec, behaviorAdapter.requestSerializer(), stream)
-	mapped, err := driver.MapRequest(target, budgeted, intent.Defaults, stream)
+	hooks, err := behaviorAdapter.runtimeAdapter()
+	if err != nil {
+		return fail(err)
+	}
+	mapped, err := driver.MapRequest(target, budgeted, intent.Defaults, stream, hooks)
 	if err != nil {
 		return fail(cloudTextDriverError(err))
 	}
@@ -268,7 +276,11 @@ func (s *Service) cloudTextEffectiveInputsFromResolvedAssembly(assembly *cloudRe
 	if !matchingTextBehaviorAdapterCapture(behaviorAdapter, assembly.TextBehaviorAdapter) {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	mapped, err := driver.MapRequest(target, request, defaults, assembly.ExecutionMode == runtimev1.ExecutionMode_EXECUTION_MODE_STREAM)
+	hooks, err := behaviorAdapter.runtimeAdapter()
+	if err != nil {
+		return nil, err
+	}
+	mapped, err := driver.MapRequest(target, request, defaults, assembly.ExecutionMode == runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, hooks)
 	if err != nil {
 		return nil, cloudTextDriverError(err)
 	}

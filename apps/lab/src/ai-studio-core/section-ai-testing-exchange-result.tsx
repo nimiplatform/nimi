@@ -42,8 +42,8 @@ export function TextExchangeResultView({ output }: { readonly output: TextExchan
 
 function TextExchangeItemView({ item }: { readonly item: StudioTextExchangeItem }) {
   const { translate: t } = useAIStudioHost();
-  if (item.type === 'text') {
-    return <><span className="studio-exchange__kind">{t('StudioResults.exchange.text')}</span><p className="studio-exchange__text">{item.text}</p></>;
+  if (item.type === 'text' || item.type === 'reasoning-summary') {
+    return <><span className="studio-exchange__kind">{t(item.type === 'text' ? 'StudioResults.exchange.text' : 'CapabilityTests.reasoning.summary')}</span><p className="studio-exchange__text">{item.text}</p></>;
   }
   if (item.type === 'reasoning-continuity') {
     return (

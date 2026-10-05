@@ -67,6 +67,7 @@ func gemma4TextBehaviorRegistration(entry capabilitydriver.Gemma4BehaviorCohortE
 			},
 			Reasoning: &textBehaviorReasoningSupport{
 				Activations: []runtimev1.ReasoningActivation{
+					runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
 					runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE,
 					runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED,
 				},

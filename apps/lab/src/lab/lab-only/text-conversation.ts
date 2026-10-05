@@ -10,6 +10,7 @@ import {
   planConversationTextReplay,
 } from '@nimiplatform/kit/features/chat/runtime';
 import type { NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
+import type { NimiRuntimeAIReasoningOptions } from '@nimiplatform/sdk/ai';
 
 // One App-owned conversation document. The App is the session owner: it keeps
 // each completed turn's ordered output exactly as Kit reported it, and the
@@ -60,8 +61,8 @@ function readOutputItems(value: unknown): readonly ConversationAssistantOutputIt
   if (!Array.isArray(value) || value.length === 0) return invalidDocument('outputItems');
   return value.map((item): ConversationAssistantOutputItem => {
     const record = item && typeof item === 'object' ? item as Record<string, unknown> : null;
-    if (record?.type === 'text' && typeof record.text === 'string') {
-      return { type: 'text', text: record.text };
+    if ((record?.type === 'text' || record?.type === 'reasoning-summary') && typeof record.text === 'string' && record.text.length > 0) {
+      return { type: record.type, text: record.text };
     }
     if (record?.type === 'reasoning-continuity' && typeof record.kind === 'string'
       && typeof record.version === 'number' && typeof record.payloadBase64 === 'string') {
@@ -267,6 +268,7 @@ export function labErrorReason(error: unknown): string {
 }
 
 export async function runLabTextConversationTurn(input: {
+  readonly reasoning?: NimiRuntimeAIReasoningOptions;
   readonly ai: Pick<NimiLocalAppClient['ai'], 'text'>;
   readonly history: readonly ConversationTurnHistoryMessage[];
   readonly userText: string;
@@ -279,6 +281,7 @@ export async function runLabTextConversationTurn(input: {
   const provider = createSimpleAiConversationProvider({
     runtimeAdapter: createModelConversationRuntimeAdapter({ model: createLabObservedTextModel(input.ai, input.onRequest) }),
     preserveHistory: true,
+    resolveRuntimeRequest: () => input.reasoning === undefined ? {} : { reasoning: input.reasoning },
   });
   let text = '';
   try {
@@ -383,7 +386,7 @@ export function createLabTextConversationController(input: {
     }
   };
 
-  const run = async (current: number, source: LabTextConversationDocument, userText: string) => {
+  const run = async (current: number, source: LabTextConversationDocument, userText: string, reasoning?: NimiRuntimeAIReasoningOptions) => {
     const turnId = input.createTurnId();
     const question: LabTextConversationMessage = { id: `${turnId}:user`, role: 'user', text: userText, createdAt: input.now() };
     const controller = new AbortController();
@@ -414,6 +417,7 @@ export function createLabTextConversationController(input: {
     const conversation = plan.document;
     const history = plan.history;
     const result = await runLabTextConversationTurn({
+      reasoning,
       ai: input.ai,
       history,
       userText,
@@ -452,11 +456,11 @@ export function createLabTextConversationController(input: {
       }
     },
     /** Starts a turn, or returns null while another turn runs or saves. */
-    send(userText: string): Promise<void> | null {
+    send(userText: string, reasoning?: NimiRuntimeAIReasoningOptions): Promise<void> | null {
       const text = userText.trim();
       const conversation = state.conversation;
       if (!text || !conversation || state.pending || state.saving || state.loadError) return null;
-      activeTask = run(generation, conversation, text);
+      activeTask = run(generation, conversation, text, reasoning);
       return activeTask;
     },
     stop(): void {

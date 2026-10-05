@@ -1117,6 +1117,7 @@ fn native_text_turn_request(
     input: NativeTextTurnInput,
 ) -> Result<LocalAppTextTurnRequest, LocalAppOperationError> {
     Ok(LocalAppTextTurnRequest {
+        reasoning: input.reasoning,
         messages: input
             .messages
             .into_iter()
@@ -3175,6 +3176,7 @@ mod session_rebind_tests {
     #[test]
     fn native_text_turn_conversion_preserves_extended_sampling() {
         let request = native_text_turn_request(NativeTextTurnInput {
+            reasoning: Some(serde_json::json!({"activation":"required","effort":"xhigh","presentation":"summary"})),
             messages: vec![NativeTextTurnMessage {
                 role: "user".to_string(),
                 text: "hello".to_string(),
@@ -3196,6 +3198,7 @@ mod session_rebind_tests {
         .expect("native optional parameters");
         assert_eq!(request.top_k, Some(0));
         assert_eq!(request.seed, Some(0));
+        assert_eq!(request.reasoning.unwrap()["effort"], "xhigh");
     }
 
     #[test]

@@ -21,6 +21,10 @@ func qwen35Q4TextBehaviorRegistration() textBehaviorAdapterRegistration {
 			}},
 		},
 		Support: textBehaviorSupport{
+			Reasoning: &textBehaviorReasoningSupport{
+				Activations:   []runtimev1.ReasoningActivation{runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED},
+				Presentations: []runtimev1.ReasoningPresentation{runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN},
+			},
 			ToolUse: &textBehaviorToolUseSupport{
 				SpecKinds:   append([]runtimev1.ToolSpecKind(nil), toolProjection.GetSupportedToolSpecKinds()...),
 				ChoiceModes: append([]runtimev1.ToolChoiceMode(nil), toolProjection.GetSupportedToolChoiceModes()...),

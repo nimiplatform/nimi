@@ -4405,6 +4405,10 @@ pub struct AiConfigEffectiveSelection {
     /// compatibility, never routing authority or a promise of other behavior.
     #[prost(message, optional, tag = "6")]
     pub text_replay: ::core::option::Option<TextReplayCompatibility>,
+    /// Exact selected adapter's primitive controls, never a combination or route
+    /// promise. Absent means unconfirmed. Omission follows its model default.
+    #[prost(message, optional, tag = "7")]
+    pub reasoning_input: ::core::option::Option<ReasoningInputCapabilities>,
     #[prost(oneof = "ai_config_effective_selection::Resource", tags = "3, 5")]
     pub resource: ::core::option::Option<ai_config_effective_selection::Resource>,
 }
@@ -4417,6 +4421,25 @@ pub mod ai_config_effective_selection {
         #[prost(message, tag = "5")]
         Cloud(super::AiConfigCloudResourceProjection),
     }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReasoningInputCapabilities {
+    #[prost(bool, tag = "1")]
+    pub follows_model_default: bool,
+    #[prost(bool, tag = "2")]
+    pub supports_disabled: bool,
+    #[prost(bool, tag = "3")]
+    pub supports_required: bool,
+    #[prost(bool, tag = "4")]
+    pub supports_adaptive: bool,
+    /// Common effort vocabulary: minimal, low, medium, high, xhigh, maximum.
+    #[prost(string, repeated, tag = "5")]
+    pub efforts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "6")]
+    pub supports_budget: bool,
+    /// Common presentation vocabulary: hidden, summary.
+    #[prost(string, repeated, tag = "7")]
+    pub presentations: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TextReplayCarrierFormat {
@@ -7224,6 +7247,9 @@ pub struct StreamLocalAppTextTurnRequest {
     pub tool_choice_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "13")]
     pub response_format: ::core::option::Option<ResponseFormat>,
+    /// Omission preserves the selected exact implementation's default.
+    #[prost(message, optional, tag = "14")]
+    pub reasoning: ::core::option::Option<ReasoningConfig>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppTextTurnDelta {
@@ -7247,6 +7273,15 @@ pub struct LocalAppTextTurnContinuity {
     #[prost(message, optional, tag = "2")]
     pub carrier: ::core::option::Option<ReasoningContinuityCarrier>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppTextTurnReasoningSummary {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub item_index: u32,
+    #[prost(bool, tag = "3")]
+    pub item_completed: bool,
+}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppTextTurnCompleted {
     #[prost(enumeration = "FinishReason", tag = "1")]
@@ -7267,7 +7302,10 @@ pub struct StreamLocalAppTextTurnEvent {
     pub sequence: u64,
     #[prost(string, tag = "2")]
     pub trace_id: ::prost::alloc::string::String,
-    #[prost(oneof = "stream_local_app_text_turn_event::Payload", tags = "3, 4, 5, 6, 7")]
+    #[prost(
+        oneof = "stream_local_app_text_turn_event::Payload",
+        tags = "3, 4, 5, 6, 7, 8"
+    )]
     pub payload: ::core::option::Option<stream_local_app_text_turn_event::Payload>,
 }
 /// Nested message and enum types in `StreamLocalAppTextTurnEvent`.
@@ -7284,6 +7322,8 @@ pub mod stream_local_app_text_turn_event {
         ToolCall(super::LocalAppTextTurnToolCall),
         #[prost(message, tag = "7")]
         ReasoningContinuity(super::LocalAppTextTurnContinuity),
+        #[prost(message, tag = "8")]
+        ReasoningSummary(super::LocalAppTextTurnReasoningSummary),
     }
 }
 /// Bounded inline artifact read limited to artifacts owned by the calling App
@@ -8155,6 +8195,7 @@ pub enum ReasoningEffort {
     Medium = 3,
     High = 4,
     Maximum = 5,
+    Xhigh = 6,
 }
 impl ReasoningEffort {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -8169,6 +8210,7 @@ impl ReasoningEffort {
             Self::Medium => "REASONING_EFFORT_MEDIUM",
             Self::High => "REASONING_EFFORT_HIGH",
             Self::Maximum => "REASONING_EFFORT_MAXIMUM",
+            Self::Xhigh => "REASONING_EFFORT_XHIGH",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -8180,6 +8222,7 @@ impl ReasoningEffort {
             "REASONING_EFFORT_MEDIUM" => Some(Self::Medium),
             "REASONING_EFFORT_HIGH" => Some(Self::High),
             "REASONING_EFFORT_MAXIMUM" => Some(Self::Maximum),
+            "REASONING_EFFORT_XHIGH" => Some(Self::Xhigh),
             _ => None,
         }
     }

@@ -20,7 +20,7 @@ function invalid(detail: string): never {
 function localInput(request: NimiGenerateTextRequest): NimiLocalAppTextTurnInput {
   assertExactKeys(request, ['messages', 'tools', 'toolChoice', 'responseFormat', 'parameters', 'signal'], 'text model request');
   const parameters = request.parameters ?? {};
-  assertExactKeys(parameters, ['temperature', 'topP', 'topK', 'maxTokens', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'], 'Local App text parameters');
+  assertExactKeys(parameters, ['reasoning', 'temperature', 'topP', 'topK', 'maxTokens', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'], 'Local App text parameters');
   if (!Array.isArray(request.messages)) invalid('messages');
   const messages = request.messages.map((message) => {
     assertExactKeys(message, ['role', 'content', 'turnItems'], 'Local App model message');
@@ -106,6 +106,7 @@ export function createNimiLocalAppTextModel(
       request.signal?.throwIfAborted();
       const item = localAppTextOutputToModel(localItem);
       if (item.type === 'text') yield { type: 'text-delta', text: item.text, itemIndex };
+      else if (item.type === 'reasoning-summary') yield { type: 'reasoning-summary-delta', text: item.text, itemIndex, itemCompleted: true };
       else if (item.type === 'tool-call') yield { type: 'tool-call', toolCall: item.toolCall, itemIndex };
       else if (item.type === 'reasoning-continuity') yield { type: 'reasoning-continuity', carrier: item.carrier, itemIndex, itemCompleted: true };
       else localAppProjectionError('synchronous text output item');
@@ -132,6 +133,7 @@ export function createNimiLocalAppTextModel(
       for await (const event of stream) {
         request.signal?.throwIfAborted();
         if (event.type === 'delta') yield { type: 'text-delta', text: event.text, itemIndex: event.itemIndex };
+        else if (event.type === 'reasoning-summary') yield { type: 'reasoning-summary-delta', text: event.text, itemIndex: event.itemIndex, itemCompleted: event.itemCompleted };
         else if (event.type === 'tool-call') yield { type: 'tool-call', toolCall: event.toolCall, itemIndex: event.itemIndex };
         else if (event.type === 'reasoning-continuity') yield { type: 'reasoning-continuity', carrier: { ...event.carrier, payload: new Uint8Array(event.carrier.payload) }, itemIndex: event.itemIndex, itemCompleted: true };
         else if (event.type === 'completed') yield { type: 'done', finishReason: event.finishReason };

@@ -140,11 +140,35 @@
       "unexpectedOutput": "Runtime 返回的输出不是判断结果。",
       "resultMismatch": "判断结果与提交的问题和候选项不一致。"
     },
+    "reasoning": {
+      "title": "Reasoning",
+      "activation": "推理模式",
+      "modelDefault": "沿用模型默认",
+      "disabled": "关闭推理",
+      "required": "指定推理强度",
+      "adaptive": "自适应推理",
+      "defaultHint": "未设置时沿用所选模型默认。可用控制项由 Runtime 提供；仅请求概要时才显示模型返回的概要。",
+      "unavailable": "当前模型不支持此设置",
+      "changedModel": "模型已更换，请选择可用设置。旧设置会在派发前被明确拒绝。",
+      "effort": "推理强度",
+      "budget": "精确 token 预算",
+      "presentation": "推理输出",
+      "hidden": "不显示概要",
+      "summary": "推理概要",
+      "efforts": {
+        "minimal": "Minimal",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "xhigh": "Xhigh",
+        "maximum": "Maximum"
+      }
+    },
     "textConversation": {
       "label": "多轮对话",
       "summary": "经 Kit 对话助手进行多轮文本对话：每条回复连同其不透明延续数据一起保存，下一轮原样交还模型。",
       "title": "多轮对话",
-      "intro": "使用 App 文本模型进行多轮文本对话。Nimi Lab 保存这段对话，并在下一轮把每条完成的回复交还模型，包括模型返回的延续数据。界面只显示文本。",
+      "intro": "使用 App 文本模型进行多轮文本对话。Nimi Lab 保存这段对话，并在下一轮把每条完成的回复交还模型，包括模型返回的延续数据。界面显示回复文本，以及显式请求后模型返回的概要。",
       "configure": "选择模型",
       "transcript": "对话",
       "composer": "消息",
@@ -181,7 +205,7 @@
       "label": "会话 Hook",
       "summary": "经 Kit useAppAiChatSession 会话 Hook 进行多轮文本对话：由 App 组装每轮请求的历史，并交还 Hook 记录的延续数据。",
       "title": "会话 Hook",
-      "intro": "同样的多轮对话，改用 Kit 的 useAppAiChatSession 会话 Hook 驱动 App 文本模型。Hook 保存消息并记录每条回复的延续数据；Nimi Lab 保存这段对话，并自行组装每轮请求的历史，不经过 Kit 的历史窗口。界面只显示文本。"
+      "intro": "同样的多轮对话，改用 Kit 的 useAppAiChatSession 会话 Hook 驱动 App 文本模型。Hook 保存消息并记录每条回复的延续数据；Nimi Lab 保存这段对话，并自行组装每轮请求的历史，不经过 Kit 的历史窗口。界面显示回复文本，以及显式请求后模型返回的概要。"
     },
     "imageFaceSwap": {
       "label": "图片换脸",

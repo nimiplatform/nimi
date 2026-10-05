@@ -26,7 +26,7 @@ type normalizedReasoningConfig struct {
 
 func normalizeReasoningConfig(cfg *runtimev1.ReasoningConfig) normalizedReasoningConfig {
 	normalized := normalizedReasoningConfig{
-		activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
+		activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED,
 		presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
 	}
 	if cfg == nil {
@@ -55,6 +55,10 @@ func normalizeClonedReasoningConfig(spec *runtimev1.TextGenerateScenarioSpec) no
 		return normalizeReasoningConfig(nil)
 	}
 	normalized := normalizeReasoningConfig(spec.GetReasoning())
+	if !normalized.provided || normalized.activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED && normalized.presentation == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN && normalized.intensity == reasoningIntensityNone {
+		spec.Reasoning = nil
+		return normalized
+	}
 	canonical := &runtimev1.ReasoningConfig{
 		Activation:   normalized.activation,
 		Presentation: normalized.presentation,
@@ -81,6 +85,10 @@ func validateReasoningConfig(spec *runtimev1.TextGenerateScenarioSpec) error {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	switch normalized.activation {
+	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED:
+		if normalized.presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN || normalized.intensity != reasoningIntensityNone {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
 	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED:
 		if normalized.presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN || normalized.intensity != reasoningIntensityNone {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -97,6 +105,7 @@ func validateReasoningConfig(spec *runtimev1.TextGenerateScenarioSpec) error {
 				runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM,
 				runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH,
 				runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM:
+			case runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH:
 			default:
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 			}
@@ -114,7 +123,8 @@ func requestedReasoningEnabled(spec *runtimev1.TextGenerateScenarioSpec) bool {
 	if spec == nil {
 		return false
 	}
-	return normalizeReasoningConfig(spec.GetReasoning()).activation != runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
+	activation := normalizeReasoningConfig(spec.GetReasoning()).activation
+	return activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE || activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED
 }
 
 func validateReasoningRequest(

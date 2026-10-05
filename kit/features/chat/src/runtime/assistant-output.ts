@@ -13,6 +13,7 @@ const MAX_CONTINUITY_PAYLOAD_BASE64_CHARS = 87_384;
 
 export type AssistantOutputCollector = {
   text: (text: string, itemIndex: number | undefined) => void;
+  summary: (text: string, itemIndex: number) => void;
   continuity: (carrier: ContinuityCarrier, itemIndex: number) => void;
   /** The ordered items when the turn returned continuity, otherwise undefined. */
   complete: () => readonly ConversationAssistantOutputItem[] | undefined;
@@ -22,7 +23,7 @@ export type AssistantOutputCollector = {
 /**
  * Collects one assistant turn's ordered final text and opaque reasoning
  * continuity carriers, so that the session owner can store the turn and replay
- * it unmodified. Reasoning summaries stay out of the replayed turn.
+ * it unmodified, including authorized summaries as separate output items.
  */
 export function createAssistantOutputCollector(): AssistantOutputCollector {
   const items = new Map<number, ConversationAssistantOutputItem>();
@@ -39,6 +40,12 @@ export function createAssistantOutputCollector(): AssistantOutputCollector {
         throw new Error('model output reused one ordered item index for text and reasoning continuity');
       }
       items.set(itemIndex, { type: 'text', text: `${current?.text ?? ''}${text}` });
+    },
+    summary(text, itemIndex) {
+      const current = items.get(itemIndex);
+      if (current && current.type !== 'reasoning-summary') throw new Error('model output reused a summary item index');
+      items.set(itemIndex, { type: 'reasoning-summary', text: `${current?.text ?? ''}${text}` });
+      continuity = true;
     },
     continuity(carrier, itemIndex) {
       if (items.has(itemIndex)) {
@@ -64,7 +71,14 @@ export function createAssistantOutputCollector(): AssistantOutputCollector {
       const ordered = [...items.entries()]
         .sort(([left], [right]) => left - right)
         .map(([, item]) => item)
-        .filter((item) => item.type !== 'text' || item.text.length > 0);
+        .filter((item) => item.type === 'reasoning-continuity' || item.text.length > 0);
+      for (let index = 0; index < items.size; index += 1) if (!items.has(index)) throw new Error('model output skipped an ordered item index');
+      let bytes = 0;
+      for (const item of ordered) {
+        const projected = toNimiOutputItem(item);
+        bytes += projected.type === 'reasoning-continuity' ? projected.carrier.payload.byteLength : 'text' in projected ? new TextEncoder().encode(projected.text).byteLength : 0;
+      }
+      if (bytes > 256 * 1024) throw new Error('model output exceeds the shared text output budget');
       if (!ordered.some((item) => item.type === 'text')) {
         throw new Error('model output returned reasoning continuity without final text');
       }
@@ -96,11 +110,11 @@ export function toAssistantTurnItems(
 }
 
 function toNimiOutputItem(item: ConversationAssistantOutputItem): NimiTextOutputItem {
-  if (item?.type === 'text') {
+  if (item?.type === 'text' || item?.type === 'reasoning-summary') {
     if (typeof item.text !== 'string' || item.text.length === 0) {
       throw new Error('assistant history text item must be non-empty');
     }
-    return { type: 'text', text: item.text };
+    return { type: item.type, text: item.text };
   }
   if (item?.type !== 'reasoning-continuity') {
     throw new Error('assistant history outputItems admit only text and reasoning-continuity items');

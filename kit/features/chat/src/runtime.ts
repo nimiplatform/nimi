@@ -119,7 +119,8 @@ export type UseAppAiChatSessionOptions = {
    * A text model already bound to its caller, such as the protected App model
    * from `createNimiLocalAppTextModel`, used instead of `runtime` and `appId`.
    * It carries the App identity and configured route itself, so a request that
-   * sets `subjectUserId`, `timeoutMs`, `metadata` or `reasoning` fails.
+   * sets `subjectUserId`, `timeoutMs` or `metadata` fails. Common typed
+   * reasoning travels with the ordinary text request.
    */
   model?: NimiAiModel;
   initialMessages?: readonly AppAiChatSessionMessage[];
@@ -481,7 +482,6 @@ function requireCallerBoundAppAiChat(
     normalizeNullableText(request.subjectUserId) ? 'subjectUserId' : '',
     request.timeoutMs !== undefined ? 'timeoutMs' : '',
     request.metadata && Object.keys(request.metadata).length > 0 ? 'metadata' : '',
-    request.reasoning ? 'reasoning' : '',
   ].filter(Boolean);
   if (unsupported.length > 0) {
     throw new Error(`a caller-bound app AI chat model cannot carry ${unsupported.join(', ')}`);
@@ -506,6 +506,7 @@ function toNimiGenerateTextRequest(
     messages.push(...request.input.map(toNimiMessage));
   }
   const parameters = {
+    ...(request.reasoning === undefined ? {} : { reasoning: request.reasoning }),
     ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
     ...(request.topP === undefined ? {} : { topP: request.topP }),
     ...(request.maxTokens === undefined ? {} : { maxTokens: request.maxTokens }),
@@ -572,6 +573,8 @@ function observeAssistantOutput<TModel extends { streamText?: (request: NimiGene
             output.text(event.text, event.itemIndex);
           } else if (event.type === 'reasoning-continuity') {
             output.continuity(event.carrier, event.itemIndex);
+          } else if (event.type === 'reasoning-summary-delta') {
+            output.summary(event.text, event.itemIndex);
           }
           yield event;
         }

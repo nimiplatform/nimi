@@ -1532,6 +1532,13 @@ fn project_text_turn_event(
     }
     valid_runtime_text(&event.trace_id, MAX_TRACE_BYTES)?;
     match event.payload.ok_or_else(untrusted)? {
+        TextTurnPayload::ReasoningSummary(value) => {
+            if value.text.len() > 64 * 1024 || value.text.is_empty() && !value.item_completed {
+                return Err(untrusted());
+            }
+            *total_delta_bytes = total_delta_bytes.checked_add(value.text.len()).filter(|total| *total <= 256 * 1024).ok_or_else(untrusted)?;
+            Ok(json!({"type": "reasoning-summary", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "itemIndex": value.item_index, "text": value.text, "itemCompleted": value.item_completed}))
+        }
         TextTurnPayload::Delta(value) => {
             if value.text.is_empty() || value.text.len() > 64 * 1024 {
                 return Err(untrusted());

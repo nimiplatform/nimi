@@ -33,6 +33,8 @@ type responsesProfile struct {
 	outputLimit       bool
 	namedToolChoice   bool
 	parallelToolCalls bool
+	reasoningControls bool
+	reasoningDisabled bool
 	failure           func(status int, code string) error
 }
 
@@ -65,10 +67,9 @@ func serializeResponsesRequest(profile *responsesProfile, spec *runtimev1.TextGe
 		spec.MaxTokens != nil && (!profile.outputLimit || spec.GetMaxTokens() <= 0) {
 		return textbehavior.SerializedRequest{}, profile.unsupported("generation controls")
 	}
-	if reasoning := spec.Reasoning; reasoning != nil && (reasoning.Intensity != nil ||
-		reasoning.Activation != runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED && reasoning.Activation != runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED ||
-		reasoning.Presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED && reasoning.Presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN) {
-		return textbehavior.SerializedRequest{}, profile.unsupported("reasoning controls")
+	reasoningWire, err := responsesReasoningConfig(profile, spec.GetReasoning())
+	if err != nil {
+		return textbehavior.SerializedRequest{}, err
 	}
 	input := make([]any, 0, len(spec.Input))
 	instructions := []string{}
@@ -141,6 +142,9 @@ func serializeResponsesRequest(profile *responsesProfile, spec *runtimev1.TextGe
 		return textbehavior.SerializedRequest{}, profile.inputError("empty input")
 	}
 	body := map[string]any{"input": input, "store": false, "stream": true, "include": []string{"reasoning.encrypted_content"}}
+	if reasoningWire != nil {
+		body["reasoning"] = reasoningWire
+	}
 	if len(instructions) > 0 {
 		body["instructions"] = strings.Join(instructions, "\n\n")
 	}
@@ -216,9 +220,60 @@ func serializeResponsesRequest(profile *responsesProfile, spec *runtimev1.TextGe
 	return textbehavior.SerializedRequest{ContentType: "application/json", Payload: payload}, nil
 }
 
+func responsesReasoningConfig(profile *responsesProfile, config *runtimev1.ReasoningConfig) (map[string]any, error) {
+	if config == nil || config.GetActivation() == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED && config.GetIntensity() == nil &&
+		(config.GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED || config.GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN) {
+		return nil, nil
+	}
+	if !profile.reasoningControls {
+		return nil, profile.unsupported("reasoning controls")
+	}
+	presentation := config.GetPresentation()
+	if presentation == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED {
+		presentation = runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
+	}
+	if config.GetActivation() == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED {
+		if !profile.reasoningDisabled || config.GetIntensity() != nil || presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN {
+			return nil, profile.unsupported("explicit reasoning off")
+		}
+		return map[string]any{"effort": "none"}, nil
+	}
+	if config.GetActivation() != runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED ||
+		(presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN && presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY) {
+		return nil, profile.unsupported("reasoning activation or presentation")
+	}
+	if _, ok := config.GetIntensity().(*runtimev1.ReasoningConfig_Effort); !ok {
+		return nil, profile.unsupported("reasoning exact token budget")
+	}
+	efforts := map[runtimev1.ReasoningEffort]string{
+		runtimev1.ReasoningEffort_REASONING_EFFORT_LOW: "low", runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM: "medium",
+		runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH: "high", runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH: "xhigh", runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM: "max",
+	}
+	effort, ok := efforts[config.GetEffort()]
+	if !ok {
+		return nil, profile.unsupported("reasoning effort")
+	}
+	wire := map[string]any{"effort": effort}
+	if presentation == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
+		wire["summary"] = "auto"
+	}
+	return wire, nil
+}
+
 func responsesTurnItems(profile *responsesProfile, turnItems []*runtimev1.TextTurnItem) ([]any, error) {
 	items := make([]any, 0, len(turnItems))
+	var summaries []string
 	for _, item := range turnItems {
+		if summary := item.GetOutput().GetReasoningSummary(); summary != nil {
+			if !profile.reasoningControls || summary.GetText() == "" {
+				return nil, profile.unsupported("reasoning summary transcript")
+			}
+			summaries = append(summaries, summary.GetText())
+			continue
+		}
+		if len(summaries) > 0 && item.GetOutput().GetReasoningContinuity() == nil {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
+		}
 		switch {
 		case item.GetToolResult() != nil:
 			result := item.GetToolResult()
@@ -251,22 +306,42 @@ func responsesTurnItems(profile *responsesProfile, turnItems []*runtimev1.TextTu
 			if decoder.Decode(&reasoning) != nil || decoder.Decode(new(any)) != io.EOF || !reasoning.valid() {
 				return nil, profile.inputError("continuity payload")
 			}
+			{
+				if len(summaries) != len(reasoning.Summary) {
+					return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
+				}
+				for index, text := range summaries {
+					if reasoning.Summary[index].Text != text {
+						return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
+					}
+				}
+			}
+			summaries = nil
 			items = append(items, reasoning)
 		default:
 			return nil, profile.unsupported("ordered content kind")
 		}
 	}
+	if len(summaries) > 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
+	}
 	return items, nil
 }
 
+type responsesSummaryPart struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
 type responsesBehaviorItem struct {
-	Type      string `json:"type"`
-	ID        string `json:"id"`
-	CallID    string `json:"call_id"`
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Arguments string `json:"arguments"`
-	Encrypted string `json:"encrypted_content"`
+	Type      string                 `json:"type"`
+	ID        string                 `json:"id"`
+	CallID    string                 `json:"call_id"`
+	Name      string                 `json:"name"`
+	Namespace string                 `json:"namespace"`
+	Arguments string                 `json:"arguments"`
+	Encrypted string                 `json:"encrypted_content"`
+	Summary   []responsesSummaryPart `json:"summary"`
 	Content   []struct {
 		Type string `json:"type"`
 		Text string `json:"text"`
@@ -286,9 +361,12 @@ type responsesBehaviorResponse struct {
 	IncompleteDetails *struct {
 		Reason string `json:"reason"`
 	} `json:"incomplete_details"`
-	Usage struct {
-		Input  int64 `json:"input_tokens"`
-		Output int64 `json:"output_tokens"`
+	Usage *struct {
+		Input   *int64 `json:"input_tokens"`
+		Output  *int64 `json:"output_tokens"`
+		Details *struct {
+			Reasoning *int64 `json:"reasoning_tokens"`
+		} `json:"output_tokens_details"`
 	} `json:"usage"`
 }
 
@@ -297,16 +375,27 @@ type responsesBehaviorBlock struct {
 	text, arguments strings.Builder
 	emitted         int
 	done            bool
+	summaryParts    []*responsesSummaryBlock
+}
+
+type responsesSummaryBlock struct {
+	text     strings.Builder
+	textDone bool
+	partDone bool
+	emitted  int
+	closed   bool
 }
 
 type responsesBehaviorStream struct {
-	profile   *responsesProfile
-	spec      *runtimev1.TextGenerateScenarioSpec
-	assembler *textbehavior.OrderedStreamAssembler
-	blocks    []*responsesBehaviorBlock
-	next      uint32
-	completed bool
-	response  responsesBehaviorResponse
+	profile       *responsesProfile
+	spec          *runtimev1.TextGenerateScenarioSpec
+	assembler     *textbehavior.OrderedStreamAssembler
+	blocks        []*responsesBehaviorBlock
+	next          uint32
+	publicNext    uint32
+	completed     bool
+	response      responsesBehaviorResponse
+	bufferedBytes int
 }
 
 // newResponsesStreamAssembler parses the public Responses SSE stream. Only
@@ -321,14 +410,17 @@ func (stream *responsesBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 		return nil, nil
 	}
 	var event struct {
-		Type      string                    `json:"type"`
-		Index     uint32                    `json:"output_index"`
-		ItemID    string                    `json:"item_id"`
-		Delta     string                    `json:"delta"`
-		Arguments string                    `json:"arguments"`
-		Code      string                    `json:"code"`
-		Item      responsesBehaviorItem     `json:"item"`
-		Response  responsesBehaviorResponse `json:"response"`
+		Type         string                    `json:"type"`
+		Index        uint32                    `json:"output_index"`
+		ItemID       string                    `json:"item_id"`
+		Delta        string                    `json:"delta"`
+		Text         string                    `json:"text"`
+		SummaryIndex *uint32                   `json:"summary_index"`
+		Part         responsesSummaryPart      `json:"part"`
+		Arguments    string                    `json:"arguments"`
+		Code         string                    `json:"code"`
+		Item         responsesBehaviorItem     `json:"item"`
+		Response     responsesBehaviorResponse `json:"response"`
 	}
 	if json.Unmarshal(payload, &event) != nil || stream.completed {
 		return nil, profile.outputError("stream event")
@@ -385,11 +477,13 @@ func (stream *responsesBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 			return nil, profile.outputError("text delta kind")
 		}
 		block.text.WriteString(event.Delta)
+		stream.bufferedBytes += len(event.Delta)
 	case "response.function_call_arguments.delta":
 		if block.item.Type != "function_call" {
 			return nil, profile.outputError("arguments delta kind")
 		}
 		block.arguments.WriteString(event.Delta)
+		stream.bufferedBytes += len(event.Delta)
 	case "response.function_call_arguments.done":
 		if block.item.Type != "function_call" || block.arguments.Len() > 0 && block.arguments.String() != event.Arguments {
 			return nil, profile.outputError("arguments completion")
@@ -416,16 +510,69 @@ func (stream *responsesBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 			}
 			if block.text.Len() == 0 {
 				block.text.WriteString(text.String())
+				stream.bufferedBytes += text.Len()
+			}
+		}
+		if event.Item.Type == "reasoning" && stream.profile.reasoningControls && len(block.summaryParts) > 0 {
+			if len(event.Item.Summary) != len(block.summaryParts) {
+				return nil, profile.outputError("summary item part count")
+			}
+			for index, part := range block.summaryParts {
+				if !part.partDone || !part.textDone || event.Item.Summary[index].Type != "summary_text" || event.Item.Summary[index].Text != part.text.String() {
+					return nil, profile.outputError("summary item completion")
+				}
 			}
 		}
 		block.item, block.done = event.Item, true
-	case "response.content_part.added", "response.content_part.done", "response.output_text.done",
-		"response.reasoning_summary_part.added", "response.reasoning_summary_part.done", "response.reasoning_summary_text.delta", "response.reasoning_summary_text.done":
+	case "response.reasoning_summary_part.added", "response.reasoning_summary_part.done", "response.reasoning_summary_text.delta", "response.reasoning_summary_text.done":
+		if !profile.reasoningControls {
+			return nil, nil
+		}
+		if block.item.Type != "reasoning" || event.SummaryIndex == nil || event.ItemID != block.item.ID {
+			return nil, profile.outputError("summary event association")
+		}
+		index := int(*event.SummaryIndex)
+		if event.Type == "response.reasoning_summary_part.added" {
+			if index != len(block.summaryParts) || index >= 128 || event.Part.Type != "summary_text" || event.Part.Text != "" {
+				return nil, profile.outputError("summary part association")
+			}
+			block.summaryParts = append(block.summaryParts, &responsesSummaryBlock{})
+		} else {
+			if index >= len(block.summaryParts) {
+				return nil, profile.outputError("summary without part")
+			}
+			part := block.summaryParts[index]
+			switch event.Type {
+			case "response.reasoning_summary_text.delta":
+				if part.textDone || part.partDone {
+					return nil, profile.outputError("late summary delta")
+				}
+				part.text.WriteString(event.Delta)
+				if event.Delta != "" && stream.spec.GetReasoning().GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
+					return nil, profile.outputError("unrequested summary")
+				}
+				stream.bufferedBytes += len(event.Delta)
+			case "response.reasoning_summary_text.done":
+				if part.textDone || part.partDone || part.text.String() != event.Text {
+					return nil, profile.outputError("summary text completion")
+				}
+				part.textDone = true
+			case "response.reasoning_summary_part.done":
+				if part.partDone || !part.textDone || event.Part.Type != "summary_text" || event.Part.Text != part.text.String() {
+					return nil, profile.outputError("summary part completion")
+				}
+				part.partDone = true
+			}
+			if part.text.Len() > responsesItemTextLimit {
+				return nil, profile.outputError("summary size")
+			}
+		}
+	case "response.content_part.added", "response.content_part.done", "response.output_text.done":
 		return nil, nil
 	default:
 		return nil, profile.outputError("unsupported stream event " + event.Type)
 	}
-	if block.text.Len()+block.arguments.Len() > responsesItemTextLimit {
+	if stream.bufferedBytes > responsesItemTextLimit || block.text.Len()+block.arguments.Len() > responsesItemTextLimit {
 		return nil, profile.outputError("output size")
 	}
 	return stream.flush()
@@ -437,7 +584,7 @@ func (stream *responsesBehaviorStream) flush() ([]textbehavior.OrderedDelta, err
 	var deltas []textbehavior.OrderedDelta
 	for int(stream.next) < len(stream.blocks) {
 		block := stream.blocks[stream.next]
-		fragment := textbehavior.PrivateFragment{ItemIndex: stream.next, Complete: block.done}
+		fragment := textbehavior.PrivateFragment{ItemIndex: stream.publicNext, Complete: block.done}
 		switch block.item.Type {
 		case "message":
 			fragment.Kind, fragment.Text = textbehavior.OrderedItemText, block.text.String()[block.emitted:]
@@ -451,13 +598,54 @@ func (stream *responsesBehaviorStream) flush() ([]textbehavior.OrderedDelta, err
 			}
 			fragment.Kind, fragment.ToolCall = textbehavior.OrderedItemToolCall, &textbehavior.ToolCallFragment{IDPart: block.item.CallID, NamePart: block.item.Name, ArgumentsJSONPart: block.item.Arguments}
 		case "reasoning":
+			if stream.spec.GetReasoning().GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
+				for _, part := range block.summaryParts {
+					if part.closed {
+						continue
+					}
+					if part.partDone && part.text.Len() == 0 {
+						return nil, stream.profile.outputError("empty summary")
+					}
+					text := part.text.String()[part.emitted:]
+					if text != "" || part.partDone {
+						items, err := stream.assembler.AppendFragment(textbehavior.PrivateFragment{ItemIndex: stream.publicNext, Kind: textbehavior.OrderedItemReasoningSummary, Text: text, Complete: part.partDone})
+						if err != nil {
+							return nil, err
+						}
+						deltas = append(deltas, items...)
+						part.emitted = part.text.Len()
+					}
+					if !part.partDone {
+						return deltas, nil
+					}
+					part.closed = true
+					stream.publicNext++
+				}
+			}
 			if !block.done {
 				return deltas, nil
 			}
-			reasoning := responsesEncryptedReasoning{Type: "reasoning", ID: block.item.ID, Encrypted: block.item.Encrypted, Summary: []any{}}
+			summary := block.item.Summary
+			reasoning := responsesEncryptedReasoning{Type: "reasoning", ID: block.item.ID, Encrypted: block.item.Encrypted, Summary: summary}
 			if !reasoning.valid() {
 				return nil, stream.profile.outputError("missing encrypted continuity")
 			}
+			if len(reasoning.Summary) > 0 && stream.spec.GetReasoning().GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
+				return nil, stream.profile.outputError("unrequested native summary")
+			}
+			if stream.spec.GetReasoning().GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
+				if len(block.summaryParts) == 0 {
+					for _, part := range reasoning.Summary {
+						items, err := stream.assembler.AppendFragment(textbehavior.PrivateFragment{ItemIndex: stream.publicNext, Kind: textbehavior.OrderedItemReasoningSummary, Text: part.Text, Complete: true})
+						if err != nil {
+							return nil, err
+						}
+						deltas = append(deltas, items...)
+						stream.publicNext++
+					}
+				}
+			}
+			fragment.ItemIndex = stream.publicNext
 			payload, err := json.Marshal(reasoning)
 			if err != nil {
 				return nil, stream.profile.outputError("continuity JSON")
@@ -473,6 +661,7 @@ func (stream *responsesBehaviorStream) flush() ([]textbehavior.OrderedDelta, err
 			return deltas, nil
 		}
 		stream.next++
+		stream.publicNext++
 	}
 	return deltas, nil
 }
@@ -507,20 +696,42 @@ func (stream *responsesBehaviorStream) Finish() (textbehavior.NormalizedResult, 
 			return textbehavior.NormalizedResult{}, stream.profile.outputError("structured schema mismatch")
 		}
 	}
-	return textbehavior.NormalizedResult{Items: items, FinishReason: finish, Usage: &runtimev1.UsageStats{InputTokens: stream.response.Usage.Input, OutputTokens: stream.response.Usage.Output}}, nil
+	var usage *runtimev1.UsageStats
+	if observed := stream.response.Usage; observed != nil && observed.Input != nil && observed.Output != nil {
+		if *observed.Input < 0 || *observed.Output < 0 {
+			return textbehavior.NormalizedResult{}, stream.profile.outputError("usage")
+		}
+		usage = &runtimev1.UsageStats{InputTokens: *observed.Input, OutputTokens: *observed.Output}
+		if observed.Details != nil && observed.Details.Reasoning != nil {
+			if *observed.Details.Reasoning < 0 || *observed.Details.Reasoning > *observed.Output {
+				return textbehavior.NormalizedResult{}, stream.profile.outputError("reasoning usage")
+			}
+			usage.ReasoningOutputTokens = *observed.Details.Reasoning
+		}
+	}
+	return textbehavior.NormalizedResult{Items: items, FinishReason: finish, Usage: usage}, nil
 }
 
 // Only encrypted continuity and the identity needed by Responses are retained.
-// Raw reasoning and reasoning summaries never enter a public output item.
+// Native summaries remain part of the unchanged encrypted item's replay
+// envelope. Only explicitly authorized summaries become public text items.
 type responsesEncryptedReasoning struct {
-	Type      string `json:"type"`
-	ID        string `json:"id"`
-	Encrypted string `json:"encrypted_content"`
-	Summary   []any  `json:"summary"`
+	Type      string                 `json:"type"`
+	ID        string                 `json:"id"`
+	Encrypted string                 `json:"encrypted_content"`
+	Summary   []responsesSummaryPart `json:"summary"`
 }
 
 func (value responsesEncryptedReasoning) valid() bool {
-	return value.Type == "reasoning" && value.ID != "" && value.Encrypted != "" && value.Summary != nil && len(value.Summary) == 0
+	if value.Type != "reasoning" || value.ID == "" || value.Encrypted == "" || value.Summary == nil {
+		return false
+	}
+	for _, part := range value.Summary {
+		if part.Type != "summary_text" || part.Text == "" {
+			return false
+		}
+	}
+	return true
 }
 
 func validateResponsesStructuredSchema(profile *responsesProfile, schema map[string]any, strict bool) error {

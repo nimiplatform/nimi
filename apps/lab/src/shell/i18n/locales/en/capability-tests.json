@@ -140,11 +140,35 @@
       "unexpectedOutput": "Runtime returned an output that is not a decision.",
       "resultMismatch": "The decisions do not match the submitted questions and candidates."
     },
+    "reasoning": {
+      "title": "Reasoning",
+      "activation": "Reasoning mode",
+      "modelDefault": "Use model default",
+      "disabled": "Disable reasoning",
+      "required": "Set reasoning effort",
+      "adaptive": "Adaptive reasoning",
+      "defaultHint": "Without a setting, the selected model keeps its default. Runtime supplies available controls. A summary is shown only when requested and returned.",
+      "unavailable": "Setting unavailable for this model",
+      "changedModel": "The model changed. Choose an available setting; the previous setting will be refused before dispatch.",
+      "effort": "Reasoning effort",
+      "budget": "Exact token budget",
+      "presentation": "Reasoning output",
+      "hidden": "Hide summary",
+      "summary": "Reasoning summary",
+      "efforts": {
+        "minimal": "Minimal",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "xhigh": "Xhigh",
+        "maximum": "Maximum"
+      }
+    },
     "textConversation": {
       "label": "Conversation",
       "summary": "Multi-turn text through the Kit conversation helper: each reply is saved with its opaque continuity and returned unchanged on the next turn.",
       "title": "Conversation",
-      "intro": "A multi-turn text conversation on the App text model. Nimi Lab keeps the conversation and gives each completed reply back to the model on the next turn, including any continuity data the model returned. Only text is shown.",
+      "intro": "A multi-turn text conversation on the App text model. Nimi Lab keeps the conversation and gives each completed reply back to the model on the next turn, including any continuity data the model returned. The reply text and explicitly requested summaries are shown.",
       "configure": "Choose model",
       "transcript": "Conversation",
       "composer": "Message",
@@ -181,7 +205,7 @@
       "label": "Session hook",
       "summary": "Multi-turn text through Kit's useAppAiChatSession hook: the App builds each request's history and returns the continuity the hook recorded.",
       "title": "Session hook",
-      "intro": "The same kind of conversation through Kit's useAppAiChatSession hook on the App text model. The hook keeps the messages and records each reply's continuity data; Nimi Lab saves the conversation and builds every request's history itself, without Kit's history window. Only text is shown."
+      "intro": "The same kind of conversation through Kit's useAppAiChatSession hook on the App text model. The hook keeps the messages and records each reply's continuity data; Nimi Lab saves the conversation and builds every request's history itself, without Kit's history window. The reply text and explicitly requested summaries are shown."
     },
     "imageFaceSwap": {
       "label": "Image face swap",

@@ -27,6 +27,31 @@ const user = { role: 'user' as const, content: [{ type: 'text' as const, text: '
 const tool = { name: 'search', inputSchema: { type: 'object' } };
 const call = { id: 'call-1', name: 'search', arguments: { query: 'Nimi', token: 'business data' } };
 
+test('Local App reasoning omission, explicit controls and ordered summaries use the formal model contract', async () => {
+  const carrier = { kind: 'openai.responses.encrypted-reasoning', version: 1, payload: [1, 2, 3] };
+  const f = fixture(async function* () {
+    yield { type: 'reasoning-summary', sequence: '1', traceId: 'summary', itemIndex: 0, text: 'Part one', itemCompleted: false };
+    yield { type: 'reasoning-summary', sequence: '2', traceId: 'summary', itemIndex: 0, text: '', itemCompleted: true };
+    yield { type: 'reasoning-summary', sequence: '3', traceId: 'summary', itemIndex: 1, text: 'Part two', itemCompleted: true };
+    yield { type: 'reasoning-continuity', sequence: '4', traceId: 'summary', itemIndex: 2, carrier };
+    yield { type: 'delta', sequence: '5', traceId: 'summary', itemIndex: 3, text: 'Final answer' };
+    yield { type: 'completed', sequence: '6', traceId: 'summary', finishReason: 'stop' };
+  });
+  const reasoning = { activation: 'required' as const, effort: 'xhigh' as const, presentation: 'summary' as const };
+  const result = await f.model.generateText({ messages: [user], parameters: { reasoning } });
+  assert.equal(result.text, 'Final answer');
+  assert.equal(result.reasoningSummary, 'Part onePart two');
+  assert.deepEqual(result.outputItems?.map((item) => item.type), ['reasoning-summary', 'reasoning-summary', 'reasoning-continuity', 'text']);
+  assert.deepEqual(f.inputs[0]?.reasoning, reasoning);
+  await assert.rejects(f.model.generateText({ messages: [user] }), { reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID' });
+  assert.equal(f.inputs[1]?.reasoning, undefined);
+  const off = fixture(async function* () {
+    yield { type: 'failed', sequence: '1', traceId: 'off', reasonCode: 'AI_TEXT_BEHAVIOR_UNSUPPORTED', actionHint: '' };
+  });
+  await assert.rejects(off.model.generateText({ messages: [user], parameters: { reasoning: { activation: 'disabled' } } }), { reasonCode: 'AI_TEXT_BEHAVIOR_UNSUPPORTED' });
+  assert.deepEqual(off.inputs[0]?.reasoning, { activation: 'disabled' });
+});
+
 test('App initiation keeps system and assistant context without inventing a user turn', async () => {
   for (const executionMode of ['stream', 'sync'] as const) {
     const f = fixture(async function* () {
@@ -68,6 +93,26 @@ test('explicit SYNC uses Scenario execution and preserves ordered tool continuit
   const format = { type: 'json-schema' as const, strict: true, schema: { type: 'object' } };
   await model.generateText({ messages: [user], responseFormat: format });
   assert.deepEqual((f.executions[1].spec as NimiLocalAppTextTurnInput).responseFormat, format);
+});
+
+test('explicit SYNC carries reasoning and preserves summary before continuity and final text', async () => {
+  const carrier = { kind:'openai.responses.encrypted-reasoning',version:1,payload:[1,2,3] };
+  const reasoning = { activation:'required' as const,effort:'xhigh' as const,presentation:'summary' as const };
+  const f = fixture(async function* () { throw new Error('SYNC must not open a stream'); },undefined,{
+    output:{type:'text-generate',items:[{type:'reasoning-summary',text:'Part one'},{type:'reasoning-summary',text:'Part two'},{type:'reasoning-continuity',carrier},{type:'text',text:'Final'}],finishReason:'stop'},traceId:'sync-reasoning',
+  });
+  const model=createNimiLocalAppTextModel(f.ai,{executionMode:'sync'});
+  const result=await model.generateText({messages:[user],parameters:{reasoning}});
+  assert.equal(result.text,'Final');
+  assert.equal(result.reasoningSummary,'Part onePart two');
+  assert.deepEqual(result.outputItems?.map(i=>i.type),['reasoning-summary','reasoning-summary','reasoning-continuity','text']);
+  assert.deepEqual((f.executions[0].spec as NimiLocalAppTextTurnInput).reasoning,reasoning);
+  const events=[];
+  for await(const event of await model.streamText!({messages:[user],parameters:{reasoning}})) events.push(event);
+  assert.deepEqual(events.filter(e=>'itemIndex' in e).map(e=>e.itemIndex),[0,1,2,3]);
+  assert.equal(events[0].type,'reasoning-summary-delta');
+  assert.equal('itemCompleted' in events[0] && events[0].itemCompleted,true);
+  assert.equal(f.inputs.length,0);
 });
 
 test('SYNC abort settles before a late Scenario result and emits no partial tool batch', async () => {

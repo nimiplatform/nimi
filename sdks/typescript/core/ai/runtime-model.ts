@@ -3,16 +3,12 @@ import {
   ExecutionInterruptionCause,
   ExecutionResubmitDisposition,
   FinishReason,
-  ReasoningActivation,
-  ReasoningEffort,
-  ReasoningPresentation,
   ResponseFormatKind,
   RoutePolicy,
   ScenarioType,
   type ExecuteScenarioRequest,
   type ExecuteScenarioResponse,
   type ExecutionInterruption,
-  type ReasoningConfig,
   type ResponseFormat,
   type StreamScenarioEvent,
   type StreamScenarioRequest,
@@ -56,29 +52,8 @@ import {
   toRuntimeTools,
 } from './runtime-model-text-projection';
 
-export type NimiRuntimeAIReasoningActivation = 'disabled' | 'adaptive' | 'required';
-export type NimiRuntimeAIReasoningPresentation = 'hidden' | 'summary';
-export type NimiRuntimeAIReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'maximum';
-
-export type NimiRuntimeAIReasoningOptions =
-  | {
-      readonly activation?: 'disabled';
-      readonly presentation?: 'hidden';
-      readonly effort?: never;
-      readonly exactBudgetTokens?: never;
-    }
-  | {
-      readonly activation: 'adaptive' | 'required';
-      readonly presentation?: NimiRuntimeAIReasoningPresentation;
-      readonly effort: NimiRuntimeAIReasoningEffort;
-      readonly exactBudgetTokens?: never;
-    }
-  | {
-      readonly activation: 'adaptive' | 'required';
-      readonly presentation?: NimiRuntimeAIReasoningPresentation;
-      readonly effort?: never;
-      readonly exactBudgetTokens: number;
-    };
+export type { NimiRuntimeAIReasoningActivation, NimiRuntimeAIReasoningPresentation, NimiRuntimeAIReasoningEffort, NimiRuntimeAIReasoningOptions, NimiReasoningInputCapabilities } from './reasoning';
+import { toRuntimeReasoningConfig, type NimiRuntimeAIReasoningOptions } from './reasoning';
 
 export interface NimiRuntimeAIScenarioClient {
   executeScenario(request: ExecuteScenarioRequest, options?: RuntimeTypedCallOptions): Promise<ExecuteScenarioResponse>;
@@ -186,7 +161,7 @@ export function buildRuntimeTextScenarioRequest(input: {
           temperature: input.request.parameters?.temperature,
           topP: input.request.parameters?.topP,
           maxTokens: input.request.parameters?.maxTokens,
-          reasoning: toRuntimeReasoningConfig(input.options.reasoning),
+          reasoning: toRuntimeReasoningConfig(input.request.parameters?.reasoning ?? input.options.reasoning, runtimeInputInvalid),
           toolChoice: toRuntimeToolChoiceMode(input.request.toolChoice),
           toolChoiceName: toRuntimeToolChoiceName(input.request.toolChoice),
           responseFormat: toRuntimeResponseFormat(input.request.responseFormat),
@@ -587,53 +562,6 @@ function toRuntimeStop(stop: string | readonly string[] | undefined): string[] {
     return [];
   }
   return Array.isArray(stop) ? [...stop] : [stop as string];
-}
-
-function toRuntimeReasoningConfig(reasoning: NimiRuntimeAIReasoningOptions | undefined): ReasoningConfig {
-  const activation = reasoning?.activation ?? 'disabled';
-  const presentation = reasoning?.presentation ?? 'hidden';
-  if (activation === 'disabled') {
-    if (presentation !== 'hidden' || reasoning?.effort !== undefined || reasoning?.exactBudgetTokens !== undefined) {
-      runtimeInputInvalid('Disabled Runtime reasoning admits no intensity and must remain hidden');
-    }
-    return {
-      activation: ReasoningActivation.DISABLED,
-      intensity: { oneofKind: undefined },
-      presentation: ReasoningPresentation.HIDDEN,
-    };
-  }
-  const hasEffort = reasoning?.effort !== undefined;
-  const hasExactBudget = reasoning?.exactBudgetTokens !== undefined;
-  if (hasEffort === hasExactBudget) {
-    runtimeInputInvalid('Adaptive or required Runtime reasoning requires exactly one effort or exactBudgetTokens intensity');
-  }
-  if (hasExactBudget) {
-    const exactBudgetTokens = Number(reasoning.exactBudgetTokens);
-    if (!Number.isSafeInteger(exactBudgetTokens) || exactBudgetTokens <= 0) {
-      runtimeInputInvalid('Runtime reasoning exactBudgetTokens must be a positive safe integer');
-    }
-    return {
-      activation: activation === 'adaptive' ? ReasoningActivation.ADAPTIVE : ReasoningActivation.REQUIRED,
-      intensity: { oneofKind: 'exactBudgetTokens', exactBudgetTokens },
-      presentation: presentation === 'summary' ? ReasoningPresentation.SUMMARY : ReasoningPresentation.HIDDEN,
-    };
-  }
-  return {
-    activation: activation === 'adaptive' ? ReasoningActivation.ADAPTIVE : ReasoningActivation.REQUIRED,
-    intensity: { oneofKind: 'effort', effort: toRuntimeReasoningEffort(reasoning?.effort) },
-    presentation: presentation === 'summary' ? ReasoningPresentation.SUMMARY : ReasoningPresentation.HIDDEN,
-  };
-}
-
-function toRuntimeReasoningEffort(effort: NimiRuntimeAIReasoningEffort | undefined): ReasoningEffort {
-  switch (effort) {
-    case 'minimal': return ReasoningEffort.MINIMAL;
-    case 'low': return ReasoningEffort.LOW;
-    case 'medium': return ReasoningEffort.MEDIUM;
-    case 'high': return ReasoningEffort.HIGH;
-    case 'maximum': return ReasoningEffort.MAXIMUM;
-    default: return runtimeInputInvalid('Runtime reasoning effort is invalid');
-  }
 }
 
 function toRuntimeCallOptions(

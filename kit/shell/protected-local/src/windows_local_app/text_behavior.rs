@@ -10,6 +10,8 @@ use crate::generated::{
     LocalAppTextGenerateOutput, ReasoningContinuityCarrier, ResponseFormat, ResponseFormatKind,
     StreamLocalAppTextTurnRequest, TextOutputItem, TextOutputText, TextTurnItem, ToolCall,
     ToolChoiceMode, ToolResult, ToolSpec, ToolSpecKind,
+    reasoning_config, ReasoningConfig, ReasoningActivation, ReasoningEffort,
+    ReasoningPresentation, ReasoningSummary,
 };
 use crate::{LocalAppOperationError, LocalAppTextTurnRequest};
 
@@ -142,6 +144,9 @@ struct FunctionResult {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case", deny_unknown_fields)]
 enum OutputItem {
+    ReasoningSummary {
+        text: String,
+    },
     ReasoningContinuity {
         carrier: ContinuityCarrier,
     },
@@ -186,6 +191,50 @@ struct StructuredFormat {
     description: String,
     #[serde(default)]
     strict: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ReasoningInput {
+    activation: Option<String>,
+    presentation: Option<String>,
+    effort: Option<String>,
+    exact_budget_tokens: Option<u32>,
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r088
+fn parse_reasoning(value: Value) -> Result<Option<ReasoningConfig>, LocalAppOperationError> {
+    let input: ReasoningInput = serde_json::from_value(value).map_err(|_| invalid_payload())?;
+    let presentation = match input.presentation.as_deref().unwrap_or("hidden") {
+        "hidden" => ReasoningPresentation::Hidden,
+        "summary" => ReasoningPresentation::Summary,
+        _ => return Err(invalid_payload()),
+    };
+    let activation = match input.activation.as_deref() {
+        None if presentation == ReasoningPresentation::Hidden && input.effort.is_none() && input.exact_budget_tokens.is_none() => return Ok(None),
+        Some("disabled") if presentation == ReasoningPresentation::Hidden && input.effort.is_none() && input.exact_budget_tokens.is_none() => ReasoningActivation::Disabled,
+        Some("adaptive") => ReasoningActivation::Adaptive,
+        Some("required") => ReasoningActivation::Required,
+        _ => return Err(invalid_payload()),
+    };
+    let intensity = if activation == ReasoningActivation::Disabled {
+        None
+    } else {
+        Some(match (input.effort.as_deref(), input.exact_budget_tokens) {
+            (Some(effort), None) => reasoning_config::Intensity::Effort(match effort {
+                "minimal" => ReasoningEffort::Minimal,
+                "low" => ReasoningEffort::Low,
+                "medium" => ReasoningEffort::Medium,
+                "high" => ReasoningEffort::High,
+                "xhigh" => ReasoningEffort::Xhigh,
+                "maximum" => ReasoningEffort::Maximum,
+                _ => return Err(invalid_payload()),
+            } as i32),
+            (None, Some(budget)) if budget > 0 => reasoning_config::Intensity::ExactBudgetTokens(budget),
+            _ => return Err(invalid_payload()),
+        })
+    };
+    Ok(Some(ReasoningConfig { activation: activation as i32, presentation: presentation as i32, intensity }))
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
@@ -355,6 +404,7 @@ pub(super) fn request(
         })
         .transpose()?;
     Ok(StreamLocalAppTextTurnRequest {
+        reasoning: input.reasoning.map(parse_reasoning).transpose()?.flatten(),
         messages,
         tools,
         tool_choice: tool_choice as i32,
@@ -376,6 +426,10 @@ fn parse_turn_item(value: Value) -> Result<TextTurnItem, LocalAppOperationError>
     let item = match item {
         TurnItem::Output { output } => text_turn_item::Item::Output(TextOutputItem {
             item: Some(match output {
+                OutputItem::ReasoningSummary { text } => {
+                    if text.is_empty() { return Err(invalid_payload()); }
+                    text_output_item::Item::ReasoningSummary(ReasoningSummary { text })
+                }
                 OutputItem::ReasoningContinuity { carrier } => {
                     identifier(&carrier.kind)?;
                     if carrier.version == 0
@@ -526,6 +580,10 @@ pub(super) fn project_output(
                 content_bytes += value.text.len();
                 Ok(json!({"type": "text", "text": value.text}))
             }
+            Some(text_output_item::Item::ReasoningSummary(value)) if !value.text.is_empty() => {
+                content_bytes += value.text.len();
+                Ok(json!({"type": "reasoning-summary", "text": value.text}))
+            }
             Some(text_output_item::Item::ToolCall(call)) => {
                 has_call = true;
                 content_bytes += prost::Message::encoded_len(&call);
@@ -550,6 +608,19 @@ pub(super) fn project_output(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reasoning_default_and_explicit_controls_do_not_collapse_at_native_input() {
+        assert!(parse_reasoning(json!({})).unwrap().is_none());
+        let explicit = parse_reasoning(json!({"activation":"required","effort":"xhigh","presentation":"summary"})).unwrap().unwrap();
+        assert_eq!(explicit.activation, ReasoningActivation::Required as i32);
+        assert_eq!(explicit.presentation, ReasoningPresentation::Summary as i32);
+        assert_eq!(explicit.intensity, Some(reasoning_config::Intensity::Effort(ReasoningEffort::Xhigh as i32)));
+        assert_eq!(parse_reasoning(json!({"activation":"disabled"})).unwrap().unwrap().activation, ReasoningActivation::Disabled as i32);
+        for invalid in [json!({"effort":"low"}),json!({"activation":"disabled","presentation":"summary"}),json!({"activation":"required","effort":"low","exactBudgetTokens":1}),json!({"activation":"other","effort":"low"}),json!({"activation":"required","effort":"maximum","provider":"openai"})] {
+            assert!(parse_reasoning(invalid).is_err());
+        }
+    }
 
     #[test]
     fn app_initiation_keeps_primary_context_without_a_user_turn() {

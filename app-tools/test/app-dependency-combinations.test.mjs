@@ -12,6 +12,8 @@ test('independent Agent work and Integration pair is preserved without changing 
   assert.equal(resolveDependencyCombination(app('^0.18.1','^0.15.3'),versions).source,'default');
 });
 test('mixing one new package with the old carrier still fails before scaffold writes',()=>{
+  assert.deepEqual(resolveDependencyCombination(app('^0.20.0','^0.17.0'),versions),{sdkVersion:'^0.20.0',kitVersion:'^0.17.0',nimiShellTauriVersion:'0.9.0',source:'existing'});
+  assert.throws(()=>resolveDependencyCombination(app('^0.20.0','^0.16.0'),versions),/Unsupported SDK\/Kit combination/);
   assert.throws(()=>resolveDependencyCombination(app('^0.19.0','^0.15.3'),versions),/Unsupported SDK\/Kit combination/);
   assert.throws(()=>resolveDependencyCombination(app('^0.18.1','^0.16.0'),versions),/Unsupported SDK\/Kit combination/);
 });

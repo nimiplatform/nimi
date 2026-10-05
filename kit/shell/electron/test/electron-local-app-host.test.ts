@@ -9,6 +9,21 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('projects separate summary deltas and an empty seal through the native stream and sync output', async () => {
+    const events = [
+      { type:'reasoning-summary',sequence:'1',traceId:'summary',itemIndex:0,text:'Permitted summary',itemCompleted:false },
+      { type:'reasoning-summary',sequence:'2',traceId:'summary',itemIndex:0,text:'',itemCompleted:true },
+      { type:'delta',sequence:'3',traceId:'summary',itemIndex:1,text:'Final answer' },
+    ];
+    let index=0;
+    const host=createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppTextTurnStreamNext:async()=>({status:'ok' as const,value:{completed:false,event:events[index++]}}),
+      localAppScenarioExecute:async()=>({status:'ok' as const,value:{output:{type:'text-generate',items:[{type:'reasoning-summary',text:'Permitted summary'},{type:'text',text:'Final answer'}],finishReason:'stop'},traceId:'summary'}}),
+    });
+    await host.textTurnSubscribe({messages:[{role:'user',text:'Answer'}],reasoning:{activation:'required',effort:'low',presentation:'summary'}});
+    for(const event of events) await expect(host.textTurnStreamNext({streamId:'text-turn-1'})).resolves.toEqual({completed:false,event});
+    await expect(host.scenarioExecute({spec:{}})).resolves.toMatchObject({output:{items:[{type:'reasoning-summary',text:'Permitted summary'},{type:'text',text:'Final answer'}]}});
+  });
   it('keeps a missing Connector error in the existing session so configuration can be corrected', async () => {
     let invalidations = 0; let rebinds = 0;
     const candidate = { ...binding([]),

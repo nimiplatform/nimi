@@ -19,6 +19,31 @@ type mockLocalAppTextTurnStream struct {
 	events []*runtimev1.StreamLocalAppTextTurnEvent
 }
 
+func TestLocalAppSummaryEmptySealAndHiddenRefusal(t *testing.T) {
+	mock := &mockLocalAppTextTurnStream{ctx: context.Background()}
+	bridge := &localAppTextTurnStreamBridge{ServerStreamingServer: mock, allowSummary: true}
+	delta := func(text string, complete bool) *runtimev1.StreamScenarioEvent {
+		item := &runtimev1.TextOutputItemDelta{ItemIndex: 0, ItemCompleted: complete}
+		if text != "" {
+			item.Delta = &runtimev1.TextOutputItemDelta_ReasoningSummary{ReasoningSummary: &runtimev1.ReasoningSummaryDelta{Text: text}}
+		}
+		return &runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{Delta: &runtimev1.ScenarioStreamDelta_TextOutputItem{TextOutputItem: item}}}}
+	}
+	if err := bridge.Send(delta("Authorized", false)); err != nil {
+		t.Fatal(err)
+	}
+	if err := bridge.Send(delta("", true)); err != nil {
+		t.Fatal(err)
+	}
+	if len(mock.events) != 2 || mock.events[1].GetReasoningSummary().GetText() != "" || !mock.events[1].GetReasoningSummary().GetItemCompleted() || bridge.nextItemIndex != 1 || bridge.hasOutput {
+		t.Fatalf("summary seal=%v", mock.events)
+	}
+	hidden := &localAppTextTurnStreamBridge{ServerStreamingServer: &mockLocalAppTextTurnStream{ctx: context.Background()}}
+	if err := hidden.Send(delta("Unrequested", false)); err == nil {
+		t.Fatal("hidden summary emitted")
+	}
+}
+
 func (m *mockLocalAppTextTurnStream) Send(event *runtimev1.StreamLocalAppTextTurnEvent) error {
 	m.events = append(m.events, event)
 	return nil

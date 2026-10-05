@@ -79,6 +79,10 @@ func TestOpenAIResponsesAppToolRoundTripReplaysContinuityInBothModes(t *testing.
 			fixture, decision := openAIResponsesAppFixture(t, "gpt-6-luna", func(w http.ResponseWriter, r *http.Request) {
 				number := requests.Add(1)
 				body := decodeOpenAIResponsesRequest(t, r, "gpt-6-luna")
+				reasoning := body["reasoning"].(map[string]any)
+				if reasoning["effort"] != "low" || reasoning["summary"] != "auto" {
+					t.Errorf("reasoning controls = %v", reasoning)
+				}
 				tools, _ := body["tools"].([]any)
 				if len(tools) != 1 || tools[0].(map[string]any)["type"] != "function" || tools[0].(map[string]any)["name"] != "lookup" || body["parallel_tool_calls"] != true {
 					t.Errorf("function tools were not sent top-level: %v", body["tools"])
@@ -88,7 +92,7 @@ func TestOpenAIResponsesAppToolRoundTripReplaysContinuityInBothModes(t *testing.
 						t.Errorf("tool choice = %v", body["tool_choice"])
 					}
 					output := []map[string]any{
-						{"type": "reasoning", "id": "rs_1", "encrypted_content": "opaque-continuity", "summary": []any{}},
+						{"type": "reasoning", "id": "rs_1", "encrypted_content": "opaque-continuity", "summary": []any{map[string]any{"type": "summary_text", "text": "Need lookup"}, map[string]any{"type": "summary_text", "text": "Then answer"}}},
 						openAIResponsesCall("fc_1", "call_1", `{"query":"one"}`),
 					}
 					writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
@@ -133,7 +137,15 @@ func TestOpenAIResponsesAppToolRoundTripReplaysContinuityInBothModes(t *testing.
 				for _, event := range events.events {
 					switch {
 					case event.GetReasoningContinuity() != nil:
+						if int(event.GetReasoningContinuity().GetItemIndex()) != len(items) {
+							t.Fatal("carrier index collision")
+						}
 						items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ReasoningContinuity{ReasoningContinuity: event.GetReasoningContinuity().GetCarrier()}})
+					case event.GetReasoningSummary() != nil:
+						if !event.GetReasoningSummary().GetItemCompleted() || int(event.GetReasoningSummary().GetItemIndex()) != len(items) {
+							t.Fatal("summary index or seal")
+						}
+						items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ReasoningSummary{ReasoningSummary: &runtimev1.ReasoningSummary{Text: event.GetReasoningSummary().GetText()}}})
 					case event.GetToolCall() != nil:
 						items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ToolCall{ToolCall: event.GetToolCall().GetToolCall()}})
 					case event.GetDelta() != nil:
@@ -150,8 +162,12 @@ func TestOpenAIResponsesAppToolRoundTripReplaysContinuityInBothModes(t *testing.
 				return items
 			}
 			input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Use the lookup"}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED}
+			input.Reasoning = &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED, Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY, Intensity: &runtimev1.ReasoningConfig_Effort{Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_LOW}}
+			if _, err := localAppTextGenerateSpec(input); err != nil {
+				t.Fatalf("protected reasoning input: %v", err)
+			}
 			items := step(input)
-			if len(items) != 2 || items[0].GetReasoningContinuity().GetKind() != "openai.responses.encrypted-reasoning" || items[1].GetToolCall().GetId() != "call_1" {
+			if len(items) != 4 || items[0].GetReasoningSummary().GetText() != "Need lookup" || items[1].GetReasoningSummary().GetText() != "Then answer" || items[2].GetReasoningContinuity().GetKind() != "openai.responses.encrypted-reasoning" || items[3].GetToolCall().GetId() != "call_1" {
 				t.Fatalf("ordered outputs: %v", items)
 			}
 			turn := &runtimev1.LocalAppTextCandidateMessage{Role: "assistant"}
@@ -217,7 +233,8 @@ func TestOpenAIResponsesAppAdmitsStandardControlsOnly(t *testing.T) {
 		Kind: "openai_chatgpt_plan.responses.encrypted-reasoning", Version: 1, Payload: []byte(`{"type":"reasoning","id":"rs_x","encrypted_content":"plan","summary":[]}`),
 	}}}
 	for name, input := range map[string]*runtimev1.StreamLocalAppTextTurnRequest{
-		"sampling": {Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Hi"}}, Temperature: &temperature},
+		"unsupported off": {Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Hi"}}, Reasoning: &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED}},
+		"sampling":        {Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Hi"}}, Temperature: &temperature},
 		"plan carrier": {Messages: []*runtimev1.LocalAppTextCandidateMessage{
 			{Role: "user", Text: "Hi"},
 			{Role: "assistant", TurnItems: []*runtimev1.TextTurnItem{{Item: &runtimev1.TextTurnItem_Output{Output: carrier}}, {Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_Text{Text: &runtimev1.TextOutputText{Text: "Hello"}}}}}}},

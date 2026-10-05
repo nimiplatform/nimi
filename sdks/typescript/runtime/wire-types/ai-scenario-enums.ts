@@ -338,6 +338,7 @@ export enum ReasoningEffort {
   MEDIUM = 3,
   HIGH = 4,
   MAXIMUM = 5,
+  XHIGH = 6,
 }
 
 export enum ReasoningPresentation {

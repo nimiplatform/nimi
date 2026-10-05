@@ -1907,6 +1907,7 @@ const (
 	REASONINGEFFORTMEDIUM      ReasoningEffort = "REASONING_EFFORT_MEDIUM"
 	REASONINGEFFORTHIGH        ReasoningEffort = "REASONING_EFFORT_HIGH"
 	REASONINGEFFORTMAXIMUM     ReasoningEffort = "REASONING_EFFORT_MAXIMUM"
+	REASONINGEFFORTXHIGH       ReasoningEffort = "REASONING_EFFORT_XHIGH"
 )
 
 type ReasoningPresentation string
@@ -2317,6 +2318,7 @@ type AIConfigEffectiveSelection struct {
 	Reasons            []string                         `json:"reasons,omitempty"`
 	Cloud              *AIConfigCloudResourceProjection `json:"cloud,omitempty"`
 	TextReplay         *TextReplayCompatibility         `json:"text_replay,omitempty"`
+	ReasoningInput     *ReasoningInputCapabilities      `json:"reasoning_input,omitempty"`
 }
 
 type AIConfigLocalIntent struct {
@@ -6369,6 +6371,12 @@ type LocalAppTextTurnFailed struct {
 	Interruption *ExecutionInterruption `json:"interruption,omitempty"`
 }
 
+type LocalAppTextTurnReasoningSummary struct {
+	Text          string `json:"text,omitempty"`
+	ItemIndex     uint32 `json:"item_index,omitempty"`
+	ItemCompleted bool   `json:"item_completed,omitempty"`
+}
+
 type LocalAppTextTurnToolCall struct {
 	ItemIndex uint32    `json:"item_index,omitempty"`
 	ToolCall  *ToolCall `json:"tool_call,omitempty"`
@@ -7703,6 +7711,16 @@ type ReasoningContinuityCarrier struct {
 	Payload []byte `json:"payload,omitempty"`
 }
 
+type ReasoningInputCapabilities struct {
+	FollowsModelDefault bool     `json:"follows_model_default,omitempty"`
+	SupportsDisabled    bool     `json:"supports_disabled,omitempty"`
+	SupportsRequired    bool     `json:"supports_required,omitempty"`
+	SupportsAdaptive    bool     `json:"supports_adaptive,omitempty"`
+	Efforts             []string `json:"efforts,omitempty"`
+	SupportsBudget      bool     `json:"supports_budget,omitempty"`
+	Presentations       []string `json:"presentations,omitempty"`
+}
+
 type ReasoningSummary struct {
 	Text string `json:"text,omitempty"`
 }
@@ -8500,13 +8518,14 @@ type StatLocalAppAssetResponse struct {
 }
 
 type StreamLocalAppTextTurnEvent struct {
-	Sequence            uint64                      `json:"sequence,omitempty"`
-	TraceId             string                      `json:"trace_id,omitempty"`
-	Delta               *LocalAppTextTurnDelta      `json:"delta,omitempty"`
-	Completed           *LocalAppTextTurnCompleted  `json:"completed,omitempty"`
-	Failed              *LocalAppTextTurnFailed     `json:"failed,omitempty"`
-	ToolCall            *LocalAppTextTurnToolCall   `json:"tool_call,omitempty"`
-	ReasoningContinuity *LocalAppTextTurnContinuity `json:"reasoning_continuity,omitempty"`
+	Sequence            uint64                            `json:"sequence,omitempty"`
+	TraceId             string                            `json:"trace_id,omitempty"`
+	Delta               *LocalAppTextTurnDelta            `json:"delta,omitempty"`
+	Completed           *LocalAppTextTurnCompleted        `json:"completed,omitempty"`
+	Failed              *LocalAppTextTurnFailed           `json:"failed,omitempty"`
+	ToolCall            *LocalAppTextTurnToolCall         `json:"tool_call,omitempty"`
+	ReasoningContinuity *LocalAppTextTurnContinuity       `json:"reasoning_continuity,omitempty"`
+	ReasoningSummary    *LocalAppTextTurnReasoningSummary `json:"reasoning_summary,omitempty"`
 }
 
 type StreamLocalAppTextTurnRequest struct {
@@ -8523,6 +8542,7 @@ type StreamLocalAppTextTurnRequest struct {
 	ToolChoice       ToolChoiceMode                 `json:"tool_choice,omitempty"`
 	ToolChoiceName   string                         `json:"tool_choice_name,omitempty"`
 	ResponseFormat   *ResponseFormat                `json:"response_format,omitempty"`
+	Reasoning        *ReasoningConfig               `json:"reasoning,omitempty"`
 }
 
 type StreamScenarioEvent struct {

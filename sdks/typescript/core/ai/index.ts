@@ -17,6 +17,7 @@ import type {
 import { createNimiError } from '../../types';
 
 export interface NimiAiRequestParameters {
+  readonly reasoning?: import('./reasoning').NimiRuntimeAIReasoningOptions;
   readonly temperature?: number;
   readonly topP?: number;
   readonly topK?: number;
@@ -257,3 +258,4 @@ export * from './local-app-model';
 export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile, type NimiVoiceConvertInputProfile } from './music-input.js';
 
 export { projectSpeechInputCapabilities, type NimiSpeechInputCapabilities } from './speech-input.js';
+export { projectReasoningInputCapabilities } from './reasoning.js';

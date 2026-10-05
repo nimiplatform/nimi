@@ -41,6 +41,7 @@ func (s *Service) StreamLocalAppTextTurn(req *runtimev1.StreamLocalAppTextTurnRe
 	bridge := &localAppTextTurnStreamBridge{
 		ServerStreamingServer: stream, tools: declared,
 		toolChoice: spec.GetToolChoice(), toolChoiceName: spec.GetToolChoiceName(),
+		allowSummary: spec.GetReasoning().GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY,
 	}
 	return s.StreamScenario(&runtimev1.StreamScenarioRequest{
 		Head:          localAppScenarioHead(decision),
@@ -61,6 +62,8 @@ type localAppTextTurnStreamBridge struct {
 	sequence       uint64
 	nextItemIndex  uint32
 	textOpen       bool
+	summaryOpen    bool
+	allowSummary   bool
 	hasOutput      bool
 	hasTool        bool
 	terminal       bool
@@ -92,6 +95,30 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 	case *runtimev1.StreamScenarioEvent_Delta:
 		item := payload.Delta.GetTextOutputItem()
 		if item == nil || item.GetItemIndex() != b.nextItemIndex {
+			return invalid()
+		}
+		if b.summaryOpen && item.GetDelta() == nil && item.GetItemCompleted() {
+			b.summaryOpen = false
+			b.nextItemIndex++
+			out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_ReasoningSummary{ReasoningSummary: &runtimev1.LocalAppTextTurnReasoningSummary{ItemIndex: item.GetItemIndex(), ItemCompleted: true}}
+			break
+		}
+		if summary := item.GetReasoningSummary(); summary != nil {
+			if !b.allowSummary || b.textOpen || len(summary.GetText()) > maxLocalAppTextTurnDeltaBytes || summary.GetText() == "" && !item.GetItemCompleted() {
+				return invalid()
+			}
+			b.totalBytes += len(summary.GetText())
+			if b.totalBytes > maxLocalAppTextTurnTotalBytes {
+				return invalid()
+			}
+			b.summaryOpen = !item.GetItemCompleted()
+			if item.GetItemCompleted() {
+				b.nextItemIndex++
+			}
+			out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_ReasoningSummary{ReasoningSummary: &runtimev1.LocalAppTextTurnReasoningSummary{Text: summary.GetText(), ItemIndex: item.GetItemIndex(), ItemCompleted: item.GetItemCompleted()}}
+			break
+		}
+		if b.summaryOpen {
 			return invalid()
 		}
 		if call := item.GetToolCall(); call != nil {
@@ -163,7 +190,7 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 			b.nextItemIndex++
 		}
 	case *runtimev1.StreamScenarioEvent_Completed:
-		if !b.hasOutput || b.textOpen || !localAppTextFinishReason(payload.Completed.GetFinishReason()) ||
+		if !b.hasOutput || b.textOpen || b.summaryOpen || !localAppTextFinishReason(payload.Completed.GetFinishReason()) ||
 			(payload.Completed.GetFinishReason() == runtimev1.FinishReason_FINISH_REASON_TOOL_CALL && !b.hasTool) {
 			return invalid()
 		}

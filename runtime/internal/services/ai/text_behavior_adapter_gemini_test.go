@@ -28,7 +28,11 @@ func TestGeminiNativeBasePreservesSystemThroughProtectedConversionAndCapture(t *
 		if err != nil {
 			t.Fatal(err)
 		}
-		mapped, err := driver.MapRequest(target, spec, nil, mode == runtimev1.ExecutionMode_EXECUTION_MODE_STREAM)
+		hooks, err := adapter.runtimeAdapter()
+		if err != nil {
+			t.Fatal(err)
+		}
+		mapped, err := driver.MapRequest(target, spec, nil, mode == runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, hooks)
 		if err != nil {
 			t.Fatal(err)
 		}

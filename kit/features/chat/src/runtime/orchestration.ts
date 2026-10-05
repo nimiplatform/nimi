@@ -160,6 +160,8 @@ export function createSimpleAiConversationProvider(
             output.text(event.textDelta, event.runEvent.itemIndex);
           } else if (event.type === 'reasoning-continuity') {
             output.continuity(event.runEvent.carrier, event.runEvent.itemIndex);
+          } else if (event.type === 'reasoning-delta' && event.runEvent.type === 'reasoning-summary-delta') {
+            output.summary(event.textDelta, event.runEvent.itemIndex);
           }
           conversationEvent = toConversationTurnEvent(event, input);
           if (conversationEvent?.type === 'turn-completed') {
@@ -224,7 +226,6 @@ export function createModelConversationRuntimeAdapter(
       const unsupported = [
         normalizeNullableText(request.subjectUserId) ? 'subjectUserId' : '',
         request.timeoutMs !== undefined ? 'timeoutMs' : '',
-        request.reasoning ? 'reasoning' : '',
         request.metadata && Object.keys(request.metadata).length > 0 ? 'metadata' : '',
       ].filter(Boolean);
       if (unsupported.length > 0) {
@@ -483,6 +484,7 @@ function toNimiGenerateTextRequest(
   messages.push(...request.messages.map(toNimiMessage));
   const metadata = options.metadata ? toNimiJsonObject(request.metadata) : undefined;
   const parameters = {
+    ...(request.reasoning === undefined ? {} : { reasoning: request.reasoning }),
     ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
     ...(request.topP === undefined ? {} : { topP: request.topP }),
     ...(request.maxTokens === undefined ? {} : { maxTokens: request.maxTokens }),

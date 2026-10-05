@@ -169,7 +169,7 @@ describe('chat orchestration primitives', () => {
 });
 
 describe('simple-ai conversation provider', () => {
-  it('builds a history-aware request and keeps canonical reasoning summary out of history', async () => {
+  it('builds a history-aware request and preserves authorized summary separately from final text', async () => {
     let capturedRequest: unknown = null;
     const runtimeAdapter: ConversationRuntimeAdapter = {
       streamText: vi.fn(async (request) => {
@@ -180,7 +180,7 @@ describe('simple-ai conversation provider', () => {
             type: 'reasoning-summary-delta', text: 'permitted-summary',
             itemIndex: 0, itemCompleted: true,
           },
-          { type: 'text-delta', text: 'public-answer' },
+          { type: 'text-delta', text: 'public-answer', itemIndex: 1 },
           {
             type: 'done',
             finishReason: 'stop',
@@ -234,6 +234,7 @@ describe('simple-ai conversation provider', () => {
       type: 'turn-completed',
       turnId: 'turn-1',
       outputText: 'public-answer',
+      outputItems: [{ type: 'reasoning-summary', text: 'permitted-summary' }, { type: 'text', text: 'public-answer' }],
       reasoningText: 'permitted-summary',
       finishReason: 'stop',
       usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },

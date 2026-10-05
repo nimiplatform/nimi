@@ -1,4 +1,5 @@
 import type { NimiResponseFormat, NimiGenerateTextRequest } from '../ai';
+import { toRuntimeReasoningConfig, type NimiRuntimeAIReasoningOptions } from '../ai/reasoning';
 import type { NimiFunctionTool, NimiJsonValue, NimiTextOutputItem, NimiToolCall, NimiToolResult } from '../contracts';
 import { asRecord, assertExactKeys, assertExactProjectionKeys, localAppError, localAppProjectionError } from './local-app-runtime-platform-validation';
 
@@ -12,6 +13,7 @@ export type NimiLocalAppReasoningContinuityCarrier = {
 };
 export type NimiLocalAppTextOutputItem =
   | Extract<NimiTextOutputItem, { readonly type: 'text' }>
+  | Extract<NimiTextOutputItem, { readonly type: 'reasoning-summary' }>
   | { readonly type: 'reasoning-continuity'; readonly carrier: NimiLocalAppReasoningContinuityCarrier }
   | { readonly type: 'tool-call'; readonly toolCall: NimiLocalAppToolCall };
 export type NimiLocalAppTextTurnItem =
@@ -30,6 +32,7 @@ export type NimiLocalAppTextMessage = {
   readonly parts?: readonly NimiLocalAppTextPart[];
 };
 export type NimiLocalAppTextTurnInput = {
+  readonly reasoning?: NimiRuntimeAIReasoningOptions;
   readonly messages: readonly NimiLocalAppTextMessage[];
   readonly tools?: readonly NimiLocalAppFunctionTool[];
   readonly toolChoice?: NimiGenerateTextRequest['toolChoice'];
@@ -143,12 +146,12 @@ function readOutputItem(value: unknown, projection: boolean): NimiLocalAppTextOu
   const fail = projection ? localAppProjectionError : invalid;
   const record = asRecord(value);
   if (!record) return fail('text output item');
-  const keys = record.type === 'text' ? ['type', 'text'] : record.type === 'reasoning-continuity' ? ['type', 'carrier'] : ['type', 'toolCall'];
+  const keys = record.type === 'text' || record.type === 'reasoning-summary' ? ['type', 'text'] : record.type === 'reasoning-continuity' ? ['type', 'carrier'] : ['type', 'toolCall'];
   if (projection) assertExactProjectionKeys(record, keys, 'text output item');
   else assertExactKeys(record, keys, 'text output item');
-  if (record.type === 'text' && typeof record.text === 'string' && record.text.length > 0) {
+  if ((record.type === 'text' || record.type === 'reasoning-summary') && typeof record.text === 'string' && record.text.length > 0) {
     if (projection && new TextEncoder().encode(record.text).byteLength > 256 * 1024) return fail('text item size');
-    return Object.freeze({ type: 'text', text: record.text });
+    return Object.freeze({ type: record.type, text: record.text });
   }
   if (record.type === 'tool-call') return Object.freeze({ type: 'tool-call', toolCall: readToolCall(record.toolCall, projection) });
   if (record.type === 'reasoning-continuity') return Object.freeze({ type: 'reasoning-continuity', carrier: readContinuity(record.carrier, projection) });
@@ -176,8 +179,9 @@ export function projectLocalAppTextItems(value: unknown): readonly NimiLocalAppT
 // Only the surrounding exact typed envelopes carry protocol fields.
 // @nimi-authority: rule.nimi.sdks.feature-clients.local-app-text-behaviors
 export function validateLocalAppTextInput(value: unknown): NimiLocalAppTextTurnInput {
-  assertExactKeys(value, ['messages', 'tools', 'toolChoice', 'responseFormat', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'], 'text-turn input');
+  assertExactKeys(value, ['messages', 'tools', 'toolChoice', 'responseFormat', 'reasoning', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'], 'text-turn input');
   const input = value as unknown as NimiLocalAppTextTurnInput;
+  toRuntimeReasoningConfig(input.reasoning, invalid);
   if (!Array.isArray(input.messages) || input.messages.length === 0 || input.messages.length > 128) invalid('messages');
   if (input.tools !== undefined && (!Array.isArray(input.tools) || input.tools.length > 64)) invalid('tools');
   const tools = new Set<string>();

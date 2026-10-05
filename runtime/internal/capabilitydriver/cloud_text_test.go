@@ -98,7 +98,7 @@ func TestCloudTextDriverSeparatesTargetAndRequestMapping(t *testing.T) {
 	defaults, _ := structpb.NewStruct(map[string]any{"temperature": 0.25, "maxTokens": 64})
 	mapped, err := driver.MapRequest(validated, &runtimev1.TextGenerateScenarioSpec{
 		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
-	}, defaults, true)
+	}, defaults, true, nil)
 	if err != nil {
 		t.Fatalf("map request: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestCloudTextDriverMapsReasoningToClosedWireDirectives(t *testing.T) {
 		return driver.MapRequest(validated, &runtimev1.TextGenerateScenarioSpec{
 			Input:     []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
 			Reasoning: reasoning,
-		}, nil, false)
+		}, nil, false, nil)
 	}
 
 	deepSeek, err := mapRequest("deepseek", &runtimev1.ReasoningConfig{
@@ -145,15 +145,16 @@ func TestCloudTextDriverMapsReasoningToClosedWireDirectives(t *testing.T) {
 		t.Fatalf("DeepSeek directives = %#v", deepSeek.WireDirectives())
 	}
 
-	ordinary, err := mapRequest("openai", &runtimev1.ReasoningConfig{
+	_, err = mapRequest("openai", &runtimev1.ReasoningConfig{
 		Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
 		Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
 	})
-	if err != nil {
-		t.Fatalf("map OpenAI OFF: %v", err)
+	if err == nil {
+		t.Fatal("generic OpenAI explicit off has no real mapping")
 	}
-	if !ordinary.WireDirectives().Empty() {
-		t.Fatalf("ordinary OpenAI directives = %#v", ordinary.WireDirectives())
+	ordinary, err := mapRequest("openai", nil)
+	if err != nil || !ordinary.WireDirectives().Empty() {
+		t.Fatalf("model default directives = %#v, %v", ordinary, err)
 	}
 
 	if _, err := mapRequest("openai", &runtimev1.ReasoningConfig{

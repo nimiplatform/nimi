@@ -311,6 +311,9 @@ async function* streamLocalAppTextEvents(
     for await (const event of subscription) {
       // This one-turn text surface has no follow-up turn to carry opaque state into.
       if (event.type === 'reasoning-continuity') continue;
+      if (event.type === 'reasoning-summary') {
+        throw Object.assign(new Error('The text-only Studio request received an unrequested reasoning summary.'), { reasonCode: 'SDK_AI_RUNTIME_OUTPUT_INVALID' });
+      }
       if (!started) {
         started = true;
         yield {

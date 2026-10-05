@@ -1329,14 +1329,16 @@ function conversationStorage() {
   };
 }
 
-test('a conversation keeps each reply with its continuity across a reload and returns it on the next turn', async () => {
+test('a conversation saves authorized summaries separately and replays them with continuity after reload', async () => {
   const conversation = await load('lab/lab-only/text-conversation.js');
   const carrier = { kind: 'anthropic.messages.thinking', version: 1, payload: [1, 2, 3, 4] };
   const { ai, inputs } = conversationTextAI([
     [
-      { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-1', itemIndex: 0, carrier },
-      { type: 'delta', sequence: '2', traceId: 'trace-1', text: 'Paris.', itemIndex: 1 },
-      { type: 'completed', sequence: '3', traceId: 'trace-1', finishReason: 'stop' },
+      { type: 'reasoning-summary', sequence: '1', traceId: 'trace-1', itemIndex: 0, text: 'Identify capital', itemCompleted: false },
+      { type: 'reasoning-summary', sequence: '2', traceId: 'trace-1', itemIndex: 0, text: '', itemCompleted: true },
+      { type: 'reasoning-continuity', sequence: '3', traceId: 'trace-1', itemIndex: 1, carrier },
+      { type: 'delta', sequence: '4', traceId: 'trace-1', text: 'Paris.', itemIndex: 2 },
+      { type: 'completed', sequence: '5', traceId: 'trace-1', finishReason: 'stop' },
     ],
     [
       { type: 'delta', sequence: '1', traceId: 'trace-2', text: 'About 2.1 million.', itemIndex: 0 },
@@ -1349,6 +1351,7 @@ test('a conversation keeps each reply with its continuity across a reload and re
 
   const first = await conversation.runLabTextConversationTurn({
     ai, history: conversation.labTextConversationHistory(empty.messages), userText: 'Capital of France?',
+    reasoning: { activation: 'required', effort: 'low', presentation: 'summary' },
     turnId: 'turn-1', signal: new AbortController().signal,
   });
   assert.equal(first.status, 'completed');
@@ -1377,6 +1380,7 @@ test('a conversation keeps each reply with its continuity across a reload and re
       role: 'assistant',
       text: '',
       turnItems: [
+        { type: 'output', output: { type: 'reasoning-summary', text: 'Identify capital' } },
         { type: 'output', output: { type: 'reasoning-continuity', carrier } },
         { type: 'output', output: { type: 'text', text: 'Paris.' } },
       ],

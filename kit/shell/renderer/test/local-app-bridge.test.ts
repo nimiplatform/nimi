@@ -146,7 +146,7 @@ describe('renderer local-app standard-shell surface', () => {
     let unlistenCalls = 0;
     const call = { id: 'call-1', name: 'search', arguments: { subject: 'trees', token: 'business data' } };
     const carrier = { kind: 'test.encrypted', version: 1, payload: [0, 127, 255] };
-    const output = { type: 'text-generate', items: [{ type: 'reasoning-continuity', carrier }, { type: 'text', text: 'Looking up sources.' }, { type: 'tool-call', toolCall: call }], finishReason: 'tool-calls' };
+    const output = { type: 'text-generate', items: [{ type:'reasoning-summary', text:'Find relevant sources' }, { type: 'reasoning-continuity', carrier }, { type: 'text', text: 'Looking up sources.' }, { type: 'tool-call', toolCall: call }], finishReason: 'tool-calls' };
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, input: { payload: { action?: string } }) => {
         requests.push([command, input.payload]);
@@ -160,6 +160,7 @@ describe('renderer local-app standard-shell surface', () => {
     const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
     const input = {
       messages: [{ role: 'user' as const, text: 'Find sources.' }],
+      reasoning:{ activation:'required' as const, effort:'low' as const, presentation:'summary' as const },
       tools: [{ type: 'function' as const, name: 'search', inputSchema: { type: 'object', properties: { subject: { type: 'string' } } } }],
       toolChoice: 'required' as const,
     };
@@ -167,13 +168,15 @@ describe('renderer local-app standard-shell surface', () => {
     const stream = await client.ai.text.streamTurn(input);
     const iterator = stream[Symbol.asyncIterator]();
     for (const event of [
-      { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-1', itemIndex: 0, carrier },
-      { type: 'delta', sequence: '2', traceId: 'trace-1', itemIndex: 1, text: 'Looking up' },
-      { type: 'delta', sequence: '3', traceId: 'trace-1', itemIndex: 1, text: ' ' },
-      { type: 'delta', sequence: '4', traceId: 'trace-1', itemIndex: 1, text: '\n' },
-      { type: 'delta', sequence: '5', traceId: 'trace-1', itemIndex: 1, text: 'sources.' },
-      { type: 'tool-call', sequence: '6', traceId: 'trace-1', itemIndex: 2, toolCall: call },
-      { type: 'completed', sequence: '7', traceId: 'trace-1', finishReason: 'tool-calls' },
+      { type:'reasoning-summary',sequence:'1',traceId:'trace-1',itemIndex:0,text:'Find relevant sources',itemCompleted:false },
+      { type:'reasoning-summary',sequence:'2',traceId:'trace-1',itemIndex:0,text:'',itemCompleted:true },
+      { type: 'reasoning-continuity', sequence: '3', traceId: 'trace-1', itemIndex: 1, carrier },
+      { type: 'delta', sequence: '4', traceId: 'trace-1', itemIndex: 2, text: 'Looking up' },
+      { type: 'delta', sequence: '5', traceId: 'trace-1', itemIndex: 2, text: ' ' },
+      { type: 'delta', sequence: '6', traceId: 'trace-1', itemIndex: 2, text: '\n' },
+      { type: 'delta', sequence: '7', traceId: 'trace-1', itemIndex: 2, text: 'sources.' },
+      { type: 'tool-call', sequence: '8', traceId: 'trace-1', itemIndex: 3, toolCall: call },
+      { type: 'completed', sequence: '9', traceId: 'trace-1', finishReason: 'tool-calls' },
     ]) {
       const next = iterator.next();
       emit!({ payload: { subscriptionId: 'text-1', eventType: 'next', event } });
@@ -487,6 +490,7 @@ describe('renderer local-app standard-shell surface', () => {
         capabilityContract: 'text.generate',
         state: 'ready',
         reasons: [],
+          reasoningInput:{followsModelDefault:true,supportsDisabled:true,supportsRequired:true,supportsAdaptive:false,efforts:['low','xhigh'],supportsBudget:false,presentations:['hidden','summary']},
         resource: { oneofKind: 'cloud', cloud: {
           connector: { connectorRef: target.connectorRef, label: 'DeepSeek', provider: 'deepseek', state: 'ready', reasons: [] },
           target,

@@ -2,10 +2,10 @@
 
 Use this adapter to retain Vercel's model, streaming and caller-owned tool-loop
 interfaces while Nimi owns execution configuration and protected access.
-Adapter 0.3.0 requires SDK 0.19.0 with Kit and its native package 0.16.0 and
-the matching Runtime. The Local App factory now also accepts an explicit
+Adapter 0.4.0 requires SDK 0.20.0 with Kit and its native package 0.17.0 and
+the matching Runtime. The Local App factory also accepts an explicit
 `executionMode` selection. Follow the SDK and Kit migration notes for the
-carrier upgrade from adapter 0.1.0 (SDK peer `^0.13.0`).
+carrier upgrade from adapter 0.1.0 (SDK peer `^0.13.0`). Adapter 0.2.0 was never published.
 
 ## Local App
 

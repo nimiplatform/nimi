@@ -136,6 +136,7 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 			facts, factsErr := localTextBehaviorIdentityFacts(option.Implementation, identity.RecipeCustody, identity.PortableConfig, identity.Match)
 			if factsErr == nil {
 				selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
+				selection.ReasoningInput = projectReasoningInput(s.textBehaviorAdapters, facts)
 			}
 		}
 		result = append(result, selection)
@@ -194,10 +195,12 @@ func (s *Service) projectCloudEffectiveSelection(
 	}
 	selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
 	if capabilityContract == "text.generate" {
-		selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, textBehaviorAdapterResolutionFacts{
+		facts := textBehaviorAdapterResolutionFacts{
 			ImplementationID: implementation.GetImplementationId(), DriverID: implementation.GetDriverId(), DriverDialect: implementation.GetDriverDialect(),
 			CloudTarget: &textBehaviorCloudTarget{Provider: binding.Provider, ProviderModelID: binding.ProviderModelID},
-		})
+		}
+		selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
+		selection.ReasoningInput = projectReasoningInput(s.textBehaviorAdapters, facts)
 	}
 	selection.Resource = &runtimev1.AIConfigEffectiveSelection_Cloud{Cloud: &runtimev1.AIConfigCloudResourceProjection{
 		Connector: &runtimev1.AIConfigCloudConnectorProjection{

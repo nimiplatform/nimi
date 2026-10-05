@@ -68,6 +68,7 @@ import {
 } from '../../core-generated/runtime-typed-client.js';
 import type { Timestamp } from '../../core-generated/runtime-protobuf/google/protobuf/timestamp.js';
 import { toRuntimeMessages, toRuntimeTools, toRuntimeStruct, toNimiToolCall, toNimiTextOutputItems } from '../ai/runtime-model-text-projection.js';
+import { toRuntimeReasoningConfig } from '../ai/reasoning.js';
 import {
   validateLocalAppTextInput, projectLocalAppToolCall, projectLocalAppTextItems, projectLocalAppContinuity,
   modelTextOutputToLocalApp, localAppTextOutputToModel,
@@ -374,6 +375,7 @@ export type NimiLocalAppArtifactUploadResult = {
 };
 
 export type NimiLocalAppTextTurnEvent =
+  | { readonly type: 'reasoning-summary'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly text: string; readonly itemCompleted: boolean }
   | { readonly type: 'reasoning-continuity'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly carrier: NimiLocalAppReasoningContinuityCarrier }
   | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string; readonly itemIndex: number }
   | { readonly type: 'tool-call'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly toolCall: NimiLocalAppToolCall }
@@ -537,18 +539,34 @@ export function createNimiLocalAppAIConsumptionClient(
             let sequence = 0n;
             let terminal = false;
             let hasPrimary = false;
+            let lastIndex = -1;
+            let lastKind = '';
+            let summaryOpen = false;
             const toolIds = new Set<string>();
             try {
               for await (const event of stream) {
                 if (canceled) break;
                 if (terminal || BigInt(event.sequence) !== ++sequence) localAppProjectionError('text-turn event sequence');
+                if ('itemIndex' in event) {
+                  if (event.itemIndex === lastIndex) {
+                    if (!(event.type === 'delta' && lastKind === 'delta') && !(event.type === 'reasoning-summary' && lastKind === 'reasoning-summary' && summaryOpen)) localAppProjectionError('text-turn item sequence');
+                  } else {
+                    if (event.itemIndex !== lastIndex + 1 || summaryOpen) localAppProjectionError('text-turn item sequence');
+                    lastIndex = event.itemIndex;
+                    lastKind = event.type;
+                  }
+                }
+                if (event.type === 'reasoning-summary') {
+                  if (input.reasoning?.presentation !== 'summary') localAppProjectionError('unrequested reasoning summary');
+                  summaryOpen = !event.itemCompleted;
+                }
                 if (event.type === 'delta') hasPrimary = true;
                 if (event.type === 'tool-call') {
                   hasPrimary = true;
                   if (toolIds.has(event.toolCall.id)) localAppProjectionError('duplicate text tool call');
                   toolIds.add(event.toolCall.id);
                 }
-                if (event.type === 'completed' && !hasPrimary) localAppProjectionError('missing primary text output');
+                if (event.type === 'completed' && (!hasPrimary || summaryOpen)) localAppProjectionError('missing primary text output or incomplete summary');
                 terminal = event.type === 'completed' || event.type === 'failed';
                 yield event;
               }
@@ -570,6 +588,8 @@ export function createNimiLocalAppAIConsumptionClient(
           (shellOptions) => shell.scenario.execute(prepared.shellSpec, shellOptions),
           (value) => {
             const projected = projectScenarioExecute(value, prepared.decide);
+            if (prepared.shellSpec.type === 'text-generate' && projected.output.type === 'text-generate'
+              && prepared.shellSpec.reasoning?.presentation !== 'summary' && projected.output.items.some((item) => item.type === 'reasoning-summary')) localAppProjectionError('unrequested reasoning summary');
             if (prepared.shellSpec.type === 'text-embed') {
               const output = projected.output;
               if (output.type !== 'text-embed') localAppProjectionError('text embed output type');
@@ -1326,6 +1346,12 @@ function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'toolCall'], 'text tool call');
     return Object.freeze({ ...base, type: 'tool-call', itemIndex: projectionInteger(record.itemIndex, 'tool item index', 0, 4_294_967_295), toolCall: projectLocalAppToolCall(record.toolCall) });
   }
+  if (record.type === 'reasoning-summary') {
+    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'text', 'itemCompleted'], 'text reasoning summary');
+    if (typeof record.itemCompleted !== 'boolean' || (record.text === '' && !record.itemCompleted)) localAppProjectionError('summary seal');
+    if (typeof record.text !== 'string') localAppProjectionError('reasoning summary');
+    return Object.freeze({ ...base, type: 'reasoning-summary', itemIndex: projectionInteger(record.itemIndex, 'summary item index', 0, 4_294_967_295), text: optionalProjectionContent(record.text, 'reasoning summary', 64 * 1024), itemCompleted: record.itemCompleted });
+  }
   if (record.type === 'reasoning-continuity') {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'carrier'], 'text continuity');
     return Object.freeze({ ...base, type: 'reasoning-continuity', itemIndex: projectionInteger(record.itemIndex, 'continuity item index', 0, 4_294_967_295), carrier: projectLocalAppContinuity(record.carrier) });
@@ -1712,6 +1738,7 @@ function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAp
   return {
     messages,
     tools: toRuntimeTools(input.tools),
+    ...(input.reasoning === undefined ? {} : { reasoning: toRuntimeReasoningConfig(input.reasoning, (detail) => localAppError(detail, 'SDK_LOCAL_APP_INPUT_INVALID', 'provide_admitted_local_app_text_input')) }),
     toolChoice: choice === 'none' ? ToolChoiceMode.NONE : choice === 'auto' ? ToolChoiceMode.AUTO
       : choice === 'required' ? ToolChoiceMode.REQUIRED : choice ? ToolChoiceMode.TOOL : ToolChoiceMode.UNSPECIFIED,
     toolChoiceName: typeof choice === 'object' ? choice.name : '',
@@ -1961,6 +1988,8 @@ function runtimeVoiceReference(
 function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknown {
   const base = { sequence: event.sequence, traceId: event.traceId };
   switch (event.payload.oneofKind) {
+    case 'reasoningSummary':
+      return { ...base, type: 'reasoning-summary', ...event.payload.reasoningSummary };
     case 'reasoningContinuity': {
       const carrier = event.payload.reasoningContinuity.carrier;
       if (!carrier) return localAppProjectionError('Runtime continuity carrier');

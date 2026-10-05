@@ -245,6 +245,8 @@ func parsePublicChatReasoningEffort(value string) runtimev1.ReasoningEffort {
 		return runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM
 	case "high", "reasoning_effort_high":
 		return runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH
+	case "xhigh", "reasoning_effort_xhigh":
+		return runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH
 	case "maximum", "reasoning_effort_maximum":
 		return runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM
 	default:

@@ -272,6 +272,18 @@ pub(super) fn project_effective_selection(
         }
         projected["textReplay"] = json!({"acceptedCarriers": formats});
     }
+    if let Some(input) = selection.reasoning_input {
+        if capability_contract != "text.generate" || state != "ready" || !input.follows_model_default
+            || input.efforts.iter().any(|v| !matches!(v.as_str(), "minimal" | "low" | "medium" | "high" | "xhigh" | "maximum"))
+            || input.presentations.iter().any(|v| !matches!(v.as_str(), "hidden" | "summary"))
+            || input.efforts.iter().collect::<std::collections::BTreeSet<_>>().len() != input.efforts.len()
+            || input.presentations.iter().collect::<std::collections::BTreeSet<_>>().len() != input.presentations.len()
+        { return Err(untrusted()); }
+        projected["reasoningInput"] = json!({"followsModelDefault":true,
+            "supportsDisabled":input.supports_disabled, "supportsRequired":input.supports_required,
+            "supportsAdaptive":input.supports_adaptive, "supportsBudget":input.supports_budget,
+            "efforts":input.efforts, "presentations":input.presentations});
+    }
     Ok(projected)
 }
 

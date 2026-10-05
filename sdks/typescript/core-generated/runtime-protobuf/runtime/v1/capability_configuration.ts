@@ -1458,6 +1458,50 @@ export interface AIConfigEffectiveSelection {
      * @generated from protobuf field: nimi.runtime.v1.TextReplayCompatibility text_replay = 6
      */
     textReplay?: TextReplayCompatibility;
+    /**
+     * Exact selected adapter's primitive controls, never a combination or route
+     * promise. Absent means unconfirmed. Omission follows its model default.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ReasoningInputCapabilities reasoning_input = 7
+     */
+    reasoningInput?: ReasoningInputCapabilities;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReasoningInputCapabilities
+ */
+export interface ReasoningInputCapabilities {
+    /**
+     * @generated from protobuf field: bool follows_model_default = 1
+     */
+    followsModelDefault: boolean;
+    /**
+     * @generated from protobuf field: bool supports_disabled = 2
+     */
+    supportsDisabled: boolean;
+    /**
+     * @generated from protobuf field: bool supports_required = 3
+     */
+    supportsRequired: boolean;
+    /**
+     * @generated from protobuf field: bool supports_adaptive = 4
+     */
+    supportsAdaptive: boolean;
+    /**
+     * Common effort vocabulary: minimal, low, medium, high, xhigh, maximum.
+     *
+     * @generated from protobuf field: repeated string efforts = 5
+     */
+    efforts: string[];
+    /**
+     * @generated from protobuf field: bool supports_budget = 6
+     */
+    supportsBudget: boolean;
+    /**
+     * Common presentation vocabulary: hidden, summary.
+     *
+     * @generated from protobuf field: repeated string presentations = 7
+     */
+    presentations: string[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.TextReplayCarrierFormat
@@ -6030,7 +6074,8 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
             { no: 3, name: "local", kind: "message", oneof: "resource", T: () => AIConfigLocalResourceProjection },
             { no: 5, name: "cloud", kind: "message", oneof: "resource", T: () => AIConfigCloudResourceProjection },
             { no: 4, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "text_replay", kind: "message", T: () => TextReplayCompatibility }
+            { no: 6, name: "text_replay", kind: "message", T: () => TextReplayCompatibility },
+            { no: 7, name: "reasoning_input", kind: "message", T: () => ReasoningInputCapabilities }
         ]);
     }
     create(value?: PartialMessage<AIConfigEffectiveSelection>): AIConfigEffectiveSelection {
@@ -6072,6 +6117,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
                 case /* nimi.runtime.v1.TextReplayCompatibility text_replay */ 6:
                     message.textReplay = TextReplayCompatibility.internalBinaryRead(reader, reader.uint32(), options, message.textReplay);
                     break;
+                case /* nimi.runtime.v1.ReasoningInputCapabilities reasoning_input */ 7:
+                    message.reasoningInput = ReasoningInputCapabilities.internalBinaryRead(reader, reader.uint32(), options, message.reasoningInput);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6102,6 +6150,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
         /* nimi.runtime.v1.TextReplayCompatibility text_replay = 6; */
         if (message.textReplay)
             TextReplayCompatibility.internalBinaryWrite(message.textReplay, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasoningInputCapabilities reasoning_input = 7; */
+        if (message.reasoningInput)
+            ReasoningInputCapabilities.internalBinaryWrite(message.reasoningInput, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6112,6 +6163,101 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
  * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigEffectiveSelection
  */
 export const AIConfigEffectiveSelection = new AIConfigEffectiveSelection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReasoningInputCapabilities$Type extends MessageType<ReasoningInputCapabilities> {
+    constructor() {
+        super("nimi.runtime.v1.ReasoningInputCapabilities", [
+            { no: 1, name: "follows_model_default", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "supports_disabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "supports_required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "supports_adaptive", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "efforts", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "supports_budget", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "presentations", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReasoningInputCapabilities>): ReasoningInputCapabilities {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.followsModelDefault = false;
+        message.supportsDisabled = false;
+        message.supportsRequired = false;
+        message.supportsAdaptive = false;
+        message.efforts = [];
+        message.supportsBudget = false;
+        message.presentations = [];
+        if (value !== undefined)
+            reflectionMergePartial<ReasoningInputCapabilities>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReasoningInputCapabilities): ReasoningInputCapabilities {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool follows_model_default */ 1:
+                    message.followsModelDefault = reader.bool();
+                    break;
+                case /* bool supports_disabled */ 2:
+                    message.supportsDisabled = reader.bool();
+                    break;
+                case /* bool supports_required */ 3:
+                    message.supportsRequired = reader.bool();
+                    break;
+                case /* bool supports_adaptive */ 4:
+                    message.supportsAdaptive = reader.bool();
+                    break;
+                case /* repeated string efforts */ 5:
+                    message.efforts.push(reader.string());
+                    break;
+                case /* bool supports_budget */ 6:
+                    message.supportsBudget = reader.bool();
+                    break;
+                case /* repeated string presentations */ 7:
+                    message.presentations.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReasoningInputCapabilities, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool follows_model_default = 1; */
+        if (message.followsModelDefault !== false)
+            writer.tag(1, WireType.Varint).bool(message.followsModelDefault);
+        /* bool supports_disabled = 2; */
+        if (message.supportsDisabled !== false)
+            writer.tag(2, WireType.Varint).bool(message.supportsDisabled);
+        /* bool supports_required = 3; */
+        if (message.supportsRequired !== false)
+            writer.tag(3, WireType.Varint).bool(message.supportsRequired);
+        /* bool supports_adaptive = 4; */
+        if (message.supportsAdaptive !== false)
+            writer.tag(4, WireType.Varint).bool(message.supportsAdaptive);
+        /* repeated string efforts = 5; */
+        for (let i = 0; i < message.efforts.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.efforts[i]);
+        /* bool supports_budget = 6; */
+        if (message.supportsBudget !== false)
+            writer.tag(6, WireType.Varint).bool(message.supportsBudget);
+        /* repeated string presentations = 7; */
+        for (let i = 0; i < message.presentations.length; i++)
+            writer.tag(7, WireType.LengthDelimited).string(message.presentations[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReasoningInputCapabilities
+ */
+export const ReasoningInputCapabilities = new ReasoningInputCapabilities$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class TextReplayCarrierFormat$Type extends MessageType<TextReplayCarrierFormat> {
     constructor() {

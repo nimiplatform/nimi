@@ -309,9 +309,7 @@ test('Runtime-backed Nimi AI preserves optional sampling presence and explicit z
   assert.equal(decoded.presencePenalty, 0);
   assert.equal(decoded.frequencyPenalty, 0);
   assert.equal(decoded.seed, '0');
-  assert.equal(absent.textGenerate.reasoning?.activation, ReasoningActivation.DISABLED);
-  assert.equal(absent.textGenerate.reasoning?.presentation, ReasoningPresentation.HIDDEN);
-  assert.equal(absent.textGenerate.reasoning?.intensity.oneofKind, undefined);
+  assert.equal(absent.textGenerate.reasoning, undefined);
 });
 
 test('Runtime-backed Nimi AI maps effort intensity and rejects invalid reasoning algebra', async () => {

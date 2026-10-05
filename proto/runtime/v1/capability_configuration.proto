@@ -586,6 +586,21 @@ message AIConfigEffectiveSelection {
   // Present only for a ready text.generate selection. Informational adapter
   // compatibility, never routing authority or a promise of other behavior.
   TextReplayCompatibility text_replay = 6;
+  // Exact selected adapter's primitive controls, never a combination or route
+  // promise. Absent means unconfirmed. Omission follows its model default.
+  ReasoningInputCapabilities reasoning_input = 7;
+}
+
+message ReasoningInputCapabilities {
+  bool follows_model_default = 1;
+  bool supports_disabled = 2;
+  bool supports_required = 3;
+  bool supports_adaptive = 4;
+  // Common effort vocabulary: minimal, low, medium, high, xhigh, maximum.
+  repeated string efforts = 5;
+  bool supports_budget = 6;
+  // Common presentation vocabulary: hidden, summary.
+  repeated string presentations = 7;
 }
 
 message TextReplayCarrierFormat {

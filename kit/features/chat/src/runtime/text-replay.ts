@@ -45,7 +45,7 @@ export function planConversationTextReplay<T extends ConversationTurnHistoryMess
   const history = input.history.map((message, index) => {
     if (index >= contextStart || !message.outputItems) return message;
     toAssistantTurnItems(message.text, message.outputItems);
-    return { ...message, outputItems: message.outputItems.filter((item) => item.type !== 'reasoning-continuity') };
+    return { ...message, outputItems: message.outputItems.filter((item) => item.type === 'text') };
   });
   return { history, contextStart, continuity: incompatible ? 'reset' : 'retained' };
 }
@@ -95,8 +95,8 @@ export function planAppAiChatReplay(input: {
     contextStart, continuity: incompatible ? 'reset' : 'retained',
     history: input.history.map((message, index) => index >= contextStart ? message : {
       ...message,
-      ...(message.outputItems ? { outputItems: message.outputItems.filter((item) => item.type !== 'reasoning-continuity') } : {}),
-      ...(message.turnItems ? { turnItems: message.turnItems.filter((item) => item.type !== 'output' || item.output.type !== 'reasoning-continuity') } : {}),
+      ...(message.outputItems ? { outputItems: message.outputItems.filter((item) => item.type === 'text') } : {}),
+      ...(message.turnItems ? { turnItems: message.turnItems.filter((item) => item.type !== 'output' || (item.output.type !== 'reasoning-continuity' && item.output.type !== 'reasoning-summary')) } : {}),
     }),
   };
 }

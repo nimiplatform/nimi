@@ -162,6 +162,7 @@ Local archives may also use paths relative to the App. Install, run sync and
 check, then use the normal dev/test/build/pack loop. Sync retains these choices;
 check verifies matrix compatibility and compares the selected tarball version,
 source and integrity with pnpm's installed dependency lock and package manifest.
+The SDK `^0.20.0` / Kit `^0.17.0` / Rust carrier `0.9.0` development combination additionally carries common Reasoning controls and authorized ordered summaries through the protected App boundary.
 The additional SDK `^0.19.0` / Kit `^0.16.0` / Rust carrier `0.8.0`
 development combination supports independent Agent work and Integration.
 Select the complete matching Runtime and native package set explicitly; this

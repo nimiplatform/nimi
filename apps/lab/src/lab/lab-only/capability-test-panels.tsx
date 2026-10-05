@@ -19,6 +19,7 @@ import {
 } from './face-swap.js';
 import type { LabTextAnnotateParameters } from './text-annotate.js';
 import type { LabTextExchangeParameters } from './text-exchange.js';
+import { LabReasoningControls } from './reasoning-controls.js';
 
 function Frame(props: StudioParameterPanelProps & { readonly children: ReactNode; readonly localRouteOnly?: boolean }) {
   const { t } = useTranslation();
@@ -208,7 +209,7 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
             { value: 'tool-call', label: t('CapabilityTests.textTools.toolScenario') },
             { value: 'structured-output', label: t('CapabilityTests.textTools.structuredScenario') },
           ]}
-          onValueChange={(value) => props.onChange({ scenario: value === 'structured-output' ? 'structured-output' : 'tool-call', delivery })}
+          onValueChange={(value) => props.onChange({ ...parameters, scenario: value === 'structured-output' ? 'structured-output' : 'tool-call', delivery })}
         />
       </StudioParameterField>
       <StudioParameterField label={t('CapabilityTests.textTools.delivery')}>
@@ -219,10 +220,11 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
             { value: 'sync', label: t('CapabilityTests.textTools.syncDelivery') },
             { value: 'stream', label: t('CapabilityTests.textTools.streamDelivery') },
           ]}
-          onValueChange={(value) => props.onChange({ scenario, delivery: value === 'stream' ? 'stream' : 'sync' })}
+          onValueChange={(value) => props.onChange({ ...parameters, scenario, delivery: value === 'stream' ? 'stream' : 'sync' })}
         />
       </StudioParameterField>
       <p className="text-sm opacity-70">{t(scenario === 'tool-call' ? 'CapabilityTests.textTools.toolHint' : 'CapabilityTests.textTools.structuredHint')}</p>
+      <LabReasoningControls value={parameters.reasoning} disabled={props.disabled} onChange={(reasoning) => props.onChange({ ...parameters, reasoning })} />
     </Frame>
   );
 }

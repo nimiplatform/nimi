@@ -78,6 +78,7 @@ export type StudioJsonValue = null | boolean | number | string | readonly Studio
 
 // One ordered text model step, or the tool results the App returned for it.
 export type StudioTextExchangeItem =
+  | { readonly type: 'reasoning-summary'; readonly text: string }
   | { readonly type: 'text'; readonly text: string }
   | { readonly type: 'reasoning-continuity'; readonly carrierKind: string; readonly version: number; readonly payloadBytes: number }
   | { readonly type: 'tool-call'; readonly toolCallId: string; readonly toolName: string; readonly arguments: StudioJsonValue }

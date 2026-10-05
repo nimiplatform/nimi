@@ -184,3 +184,6 @@
 .lab-session__placeholder{ display: grid; place-items: center; padding: 8px; background: var(--nimi-surface-panel); color: var(--nimi-text-muted); font-size: 12px; text-align: center;}
 .lab-session__frame figcaption{ color: var(--nimi-text-muted); font-size: 12px; overflow-wrap: anywhere;}
 }
+
+.lab-reasoning{border:0;padding:0;margin:0 0 var(--nimi-spacing-stack,16px);min-width:0;}
+.lab-reasoning legend{margin-bottom:8px;}

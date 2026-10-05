@@ -147,7 +147,7 @@ type CloudTextResult struct {
 // and reason-code normalization.
 type CloudTextDriver interface {
 	ValidateTarget(Identity, *structpb.Struct) (CloudTextTarget, error)
-	MapRequest(CloudTextTarget, *runtimev1.TextGenerateScenarioSpec, *structpb.Struct, bool) (*CloudTextMappedRequest, error)
+	MapRequest(CloudTextTarget, *runtimev1.TextGenerateScenarioSpec, *structpb.Struct, bool, *textbehavior.Adapter) (*CloudTextMappedRequest, error)
 	NormalizeStreamDelta(string) (string, error)
 	NormalizeResponse(CloudTextTransportResponse) (CloudTextResult, error)
 	NormalizeReason(error) error
@@ -246,7 +246,7 @@ func (d providerCloudTextDriver) ValidateTarget(identity Identity, raw *structpb
 	}, nil
 }
 
-func (d providerCloudTextDriver) MapRequest(target CloudTextTarget, spec *runtimev1.TextGenerateScenarioSpec, defaults *structpb.Struct, stream bool) (*CloudTextMappedRequest, error) {
+func (d providerCloudTextDriver) MapRequest(target CloudTextTarget, spec *runtimev1.TextGenerateScenarioSpec, defaults *structpb.Struct, stream bool, adapter *textbehavior.Adapter) (*CloudTextMappedRequest, error) {
 	if target.provider != d.provider || target.providerModelID == "" || spec == nil {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("cloud text request mapping input is incomplete"))
 	}
@@ -260,10 +260,17 @@ func (d providerCloudTextDriver) MapRequest(target CloudTextTarget, spec *runtim
 	if err := validateCloudTextRequest(mapped); err != nil {
 		return nil, err
 	}
-	wireDirectives, err := mapCloudTextWireDirectives(d.provider, mapped.GetReasoning())
-	if err != nil {
-		return nil, err
+	var wireDirectives textwire.Directives
+	if adapter == nil {
+		var err error
+		wireDirectives, err = mapCloudTextWireDirectives(d.provider, mapped.GetReasoning())
+		if err != nil {
+			return nil, err
+		}
 	}
+	// A captured exact adapter owns its controls and serializer. The base
+	// dialect cannot reinterpret them before owner-specific materialization.
+	// Target, defaults and common request validation still apply here.
 	return &CloudTextMappedRequest{
 		providerModelID: target.providerModelID,
 		spec:            mapped,
@@ -277,7 +284,7 @@ func mapCloudTextWireDirectives(
 	provider string,
 	reasoning *runtimev1.ReasoningConfig,
 ) (textwire.Directives, error) {
-	activation := runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
+	activation := runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED
 	presentation := runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
 	hasIntensity := false
 	if reasoning != nil {
@@ -285,13 +292,20 @@ func mapCloudTextWireDirectives(
 		presentation = reasoning.GetPresentation()
 		hasIntensity = reasoning.GetIntensity() != nil
 	}
-	if activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED {
-		activation = runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
-	}
 	if presentation == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED {
 		presentation = runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
 	}
 	switch activation {
+	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED:
+		if presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN || hasIntensity {
+			return textwire.Directives{}, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("default reasoning admits no explicit intensity or summary"))
+		}
+		// This exact base dialect's declared default remains non-thinking.
+		// It is not a caller DISABLED request or a claim of universal off support.
+		if provider == "deepseek" {
+			return textwire.Directives{ReasoningToggle: textwire.ReasoningToggleDisabled}, nil
+		}
+		return textwire.Directives{}, nil
 	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED:
 		if presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN || hasIntensity {
 			return textwire.Directives{}, cloudInvocationError(
@@ -302,7 +316,7 @@ func mapCloudTextWireDirectives(
 		if provider == "deepseek" {
 			return textwire.Directives{ReasoningToggle: textwire.ReasoningToggleDisabled}, nil
 		}
-		return textwire.Directives{}, nil
+		return textwire.Directives{}, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider %q has no admitted explicit off mapping", provider))
 	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE,
 		runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED:
 		if err := validateReasoningIntensity(reasoning); err != nil {
@@ -360,6 +374,9 @@ func (providerCloudTextDriver) NormalizeResponse(response CloudTextTransportResp
 	for _, item := range response.Items {
 		if item.Kind == textbehavior.OrderedItemText {
 			text.WriteString(item.Text)
+		} else if item.Kind == textbehavior.OrderedItemReasoningSummary && item.Text != "" {
+			// Authorized summaries remain separate ordered output; they cannot
+			// satisfy the primary text/tool result requirement below.
 		} else if item.Kind == textbehavior.OrderedItemToolCall && item.ToolCall != nil {
 			item.ToolCall = proto.Clone(item.ToolCall).(*runtimev1.ToolCall)
 			toolCalls = append(toolCalls, item.ToolCall)

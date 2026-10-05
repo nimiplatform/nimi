@@ -3904,6 +3904,7 @@ pub enum ReasoningEffort {
     REASONINGEFFORTMEDIUM,
     REASONINGEFFORTHIGH,
     REASONINGEFFORTMAXIMUM,
+    REASONINGEFFORTXHIGH,
 }
 
 impl Default for ReasoningEffort {
@@ -4545,6 +4546,7 @@ pub struct AIConfigEffectiveSelection {
     pub reasons: Vec<String>,
     pub cloud: Option<Box<AIConfigCloudResourceProjection>>,
     pub text_replay: Option<Box<TextReplayCompatibility>>,
+    pub reasoning_input: Option<Box<ReasoningInputCapabilities>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10655,6 +10657,13 @@ pub struct LocalAppTextTurnFailed {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextTurnReasoningSummary {
+    pub text: Option<String>,
+    pub item_index: Option<u32>,
+    pub item_completed: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppTextTurnToolCall {
     pub item_index: Option<u32>,
     pub tool_call: Option<Box<ToolCall>>,
@@ -12438,6 +12447,17 @@ pub struct ReasoningContinuityCarrier {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReasoningInputCapabilities {
+    pub follows_model_default: Option<bool>,
+    pub supports_disabled: Option<bool>,
+    pub supports_required: Option<bool>,
+    pub supports_adaptive: Option<bool>,
+    pub efforts: Vec<String>,
+    pub supports_budget: Option<bool>,
+    pub presentations: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReasoningSummary {
     pub text: Option<String>,
 }
@@ -13995,6 +14015,7 @@ pub struct StreamLocalAppTextTurnEvent {
     pub failed: Option<Box<LocalAppTextTurnFailed>>,
     pub tool_call: Option<Box<LocalAppTextTurnToolCall>>,
     pub reasoning_continuity: Option<Box<LocalAppTextTurnContinuity>>,
+    pub reasoning_summary: Option<Box<LocalAppTextTurnReasoningSummary>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14012,6 +14033,7 @@ pub struct StreamLocalAppTextTurnRequest {
     pub tool_choice: Option<ToolChoiceMode>,
     pub tool_choice_name: Option<String>,
     pub response_format: Option<Box<ResponseFormat>>,
+    pub reasoning: Option<Box<ReasoningConfig>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -22,14 +22,18 @@ var openAIResponses = &responsesProfile{
 	outputLimit:       true,
 	namedToolChoice:   true,
 	parallelToolCalls: true,
+	reasoningControls: true,
 	failure:           OpenAIResponsesFailure,
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.openai-responses-text-behaviors
 // OpenAIResponsesTextBehaviorRequestSerializer maps one exact text step to a
 // stateless store-false Responses request delivered over SSE in both modes.
-func OpenAIResponsesTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, _ bool) (textbehavior.SerializedRequest, error) {
-	return serializeResponsesRequest(openAIResponses, spec)
+func OpenAIResponsesTextBehaviorRequestSerializer(modelID string, spec *runtimev1.TextGenerateScenarioSpec, _ bool) (textbehavior.SerializedRequest, error) {
+	profile := *openAIResponses
+	profile.reasoningControls = true
+	profile.reasoningDisabled = modelID == "gpt-6-luna"
+	return serializeResponsesRequest(&profile, spec)
 }
 
 // OpenAIResponsesTextBehaviorStreamAssembler parses the Responses SSE stream.

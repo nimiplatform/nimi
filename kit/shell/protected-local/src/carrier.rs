@@ -409,6 +409,7 @@ pub struct LocalAppTextTurnRequest {
     pub tools: Vec<JsonValue>,
     pub tool_choice: Option<JsonValue>,
     pub response_format: Option<JsonValue>,
+    pub reasoning: Option<JsonValue>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

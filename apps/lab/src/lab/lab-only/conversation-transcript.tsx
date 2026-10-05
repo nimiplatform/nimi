@@ -5,6 +5,7 @@ import { Button, InlineAlert, LoadingSkeleton, StatusBadge } from '@nimiplatform
 import { useTranslation } from '../../shell/i18n/index.js';
 import { useLabRendererHost } from '../../renderer/context.js';
 import type { LabTextConversationDocument } from './text-conversation.js';
+import type { ConversationAssistantOutputItem } from '@nimiplatform/kit/features/chat/headless';
 
 /** Export the unchanged source document, including data not sent after a reset. */
 export function LabConversationExport(props: {
@@ -59,6 +60,7 @@ export type LabConversationDisplayMessage = {
   readonly text: string;
   readonly status?: 'failed' | 'stopped' | 'generating';
   readonly reasonCode?: string;
+  readonly outputItems?: readonly ConversationAssistantOutputItem[];
 };
 
 // The text-only transcript both conversation pages show.
@@ -84,6 +86,10 @@ export function LabConversationTranscript(props: {
               ) : null}
             </span>
             <p className="lab-conversation__text">{message.text || '…'}</p>
+            {message.outputItems?.some((item) => item.type === 'reasoning-summary') ? <details>
+              <summary>{t('CapabilityTests.reasoning.summary')}</summary>
+              {message.outputItems.filter((item) => item.type === 'reasoning-summary').map((item, index) => <p key={index} className="lab-conversation__text">{item.text}</p>)}
+            </details> : null}
           </li>
         ))}
       </ol>

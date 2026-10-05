@@ -8,6 +8,8 @@ import {
   TextareaField,
 } from '@nimiplatform/kit/ui';
 import { createNimiClientId } from '@nimiplatform/sdk';
+import type { NimiRuntimeAIReasoningOptions } from '@nimiplatform/sdk/ai';
+import { LabReasoningControls } from './reasoning-controls.js';
 
 import type { StudioRuntimeInspection } from '../../ai-studio-core/runtime-types.js';
 import { useStudioRunTargetSummary } from '../../ai-studio-core/section-ai-testing-run.js';
@@ -51,6 +53,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
   const [session, setSession] = useState<LabTextConversationController | null>(null);
   const [state, setState] = useState<LabTextConversationState>(INITIAL_LAB_TEXT_CONVERSATION_STATE);
   const [draft, setDraft] = useState('');
+  const [reasoning, setReasoning] = useState<NimiRuntimeAIReasoningOptions>();
   const [configOpen, setConfigOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -84,7 +87,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
   ];
 
   const send = () => {
-    if (!runTarget.canDispatch || !session?.send(draft)) return;
+    if (!runTarget.canDispatch || !session?.send(draft, reasoning)) return;
     setDraft('');
   };
 
@@ -120,6 +123,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
       <LabConversationTranscript messages={displayed} loading={conversation === null} />
 
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.textConversation.composer')}>
+        <LabReasoningControls value={reasoning} onChange={setReasoning} disabled={busy} />
         {conversation?.contextStart ? <InlineAlert tone="info">{t('CapabilityTests.textConversation.contextReset')}</InlineAlert> : null}
         <TextareaField
           rows={3}

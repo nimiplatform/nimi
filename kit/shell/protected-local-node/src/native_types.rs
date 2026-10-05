@@ -209,6 +209,7 @@ pub struct NativeTextTurnMessage {
 
 #[napi(object)]
 pub struct NativeTextTurnInput {
+    pub reasoning: Option<JsonValue>,
     pub messages: Vec<NativeTextTurnMessage>,
     pub temperature: Option<f64>,
     pub top_p: Option<f64>,

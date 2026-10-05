@@ -30,6 +30,7 @@ export type ConversationTurnRole = Extract<
  */
 export type ConversationAssistantOutputItem =
   | { type: 'text'; text: string }
+  | { type: 'reasoning-summary'; text: string }
   | { type: 'reasoning-continuity'; kind: string; version: number; payloadBase64: string };
 
 export type ConversationTurnHistoryMessage = {

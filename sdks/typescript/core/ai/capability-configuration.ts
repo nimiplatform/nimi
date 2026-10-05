@@ -1,4 +1,5 @@
 import { projectSpeechInputCapabilities, type NimiSpeechInputCapabilities } from './speech-input.js';
+import { projectReasoningInputCapabilities } from './reasoning.js';
 import { SpeechInputCapabilities } from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
 import type { NimiMusicInputCapabilities } from './music-input.js';
 import { projectRuntimeMusicInput } from './music-input-wire.js';
@@ -76,6 +77,7 @@ export type NimiSharedLocalAgentAIConfigSnapshot = NimiAIConfigSnapshot & {
 export type NimiAIConfigEffectiveState = 'ready' | 'missing' | 'blocked' | 'unavailable';
 
 export type NimiAIConfigEffectiveSelection = {
+  readonly reasoningInput?: import('./reasoning').NimiReasoningInputCapabilities;
   readonly textReplay?: NimiTextReplayCompatibility;
   readonly capabilityContract: string;
   readonly state: NimiAIConfigEffectiveState;
@@ -407,6 +409,7 @@ function createAppAIConfigOperations(
 
 function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelections'][number]): NimiAIConfigEffectiveSelection {
   const state = projectEffectiveState(value.state);
+  if (value.reasoningInput && (value.capabilityContract !== 'text.generate' || state !== 'ready')) return invalidConfiguration('Reasoning input selection is invalid');
   if (value.textReplay && (value.capabilityContract !== 'text.generate' || state !== 'ready' || value.textReplay.acceptedCarriers.length > 16)) return invalidConfiguration('Text replay selection is invalid');
   const replayIdentities = new Set<string>();
   for (const format of value.textReplay?.acceptedCarriers ?? []) {
@@ -433,6 +436,7 @@ function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelec
     state,
     resource,
     reasons: Object.freeze([...value.reasons]),
+    ...(value.reasoningInput ? { reasoningInput: projectReasoningInputCapabilities(value.reasoningInput, invalidConfiguration) } : {}),
     ...(value.textReplay ? { textReplay: {
       acceptedCarriers: value.textReplay.acceptedCarriers.map((format) => ({
         kind: requireText(format.kind, 'Text replay carrier kind is invalid'),

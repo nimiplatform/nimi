@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.17.0 — Reasoning transcript delivery (development)
+
+Pair SDK 0.20.0 with Kit/native 0.17.0, Rust carrier 0.9.0 and the matching Runtime. Omitted reasoning now keeps the selected implementation default; callers that explicitly need off must request `activation: disabled` and handle typed refusal when that target has no off mapping. Required effort includes `xhigh`. The protected text contract carries typed controls, separate authorized summaries and Runtime-owned input support projections.
+
+Persist summary items separately from final text, together with the unchanged ordered opaque continuity. Replay all returned items in order; do not edit summaries or opaque bytes. Kit conversation helpers retain these items on completed assistant turns. An explicit context reset projects only compatible visible content while the original records remain unchanged. These are 0.x public type changes; upgrade the complete package set together.
+
+
 ## Next minor (compatible additions)
 
 Installed App control accepts an optional `AbortSignal` for launch. The matching native binding cancels preparation/binding and cleans up suspended children; Desktop uses it when stopping a pending launch. Runtime owns the committed launch configuration and executable verification, so the carrier no longer repeats the executable hash before creating a suspended child.

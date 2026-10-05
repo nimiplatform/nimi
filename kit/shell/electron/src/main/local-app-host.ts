@@ -2240,8 +2240,8 @@ async function invokeScenarioExecute(
     const ids = new Set<string>();
     const items = output.items.map((item) => {
       if (!isPlainRecord(item)) throw untrustedRuntimeError();
-      if (item.type === 'text' && hasExactKeys(item, ['type', 'text'])) {
-        return Object.freeze({ type: 'text', text: boundedUtf8Content(item.text, 256 * 1024) });
+      if ((item.type === 'text' || item.type === 'reasoning-summary') && hasExactKeys(item, ['type', 'text'])) {
+        return Object.freeze({ type: item.type, text: boundedUtf8Content(item.text, 256 * 1024) });
       }
       if (item.type === 'reasoning-continuity' && hasExactKeys(item, ['type', 'carrier'])) {
         return Object.freeze({ type: 'reasoning-continuity', carrier: validateTextContinuity(item.carrier) });
@@ -2661,6 +2661,12 @@ function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
     if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'itemIndex', 'toolCall'])) throw untrustedRuntimeError();
     return Object.freeze({ type: 'tool-call', sequence: value.sequence, traceId,
       itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295), toolCall: validateTextToolCall(value.toolCall) });
+  }
+  if (value.type === 'reasoning-summary') {
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'itemIndex', 'text', 'itemCompleted'])
+      || typeof value.itemCompleted !== 'boolean' || typeof value.text !== 'string' || value.text === '' && !value.itemCompleted) throw untrustedRuntimeError();
+    return Object.freeze({ type: 'reasoning-summary', sequence: value.sequence, traceId,
+      itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295), text: value.text === '' ? '' : boundedUtf8Content(value.text, 64 * 1024), itemCompleted: value.itemCompleted });
   }
   if (value.type === 'reasoning-continuity') {
     if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'itemIndex', 'carrier'])) throw untrustedRuntimeError();

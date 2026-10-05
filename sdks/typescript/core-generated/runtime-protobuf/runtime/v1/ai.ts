@@ -3632,6 +3632,12 @@ export interface StreamLocalAppTextTurnRequest {
      * @generated from protobuf field: nimi.runtime.v1.ResponseFormat response_format = 13
      */
     responseFormat?: ResponseFormat;
+    /**
+     * Omission preserves the selected exact implementation's default.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ReasoningConfig reasoning = 14
+     */
+    reasoning?: ReasoningConfig;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppTextTurnDelta
@@ -3673,6 +3679,23 @@ export interface LocalAppTextTurnContinuity {
      * @generated from protobuf field: nimi.runtime.v1.ReasoningContinuityCarrier carrier = 2
      */
     carrier?: ReasoningContinuityCarrier;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppTextTurnReasoningSummary
+ */
+export interface LocalAppTextTurnReasoningSummary {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: uint32 item_index = 2
+     */
+    itemIndex: number;
+    /**
+     * @generated from protobuf field: bool item_completed = 3
+     */
+    itemCompleted: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppTextTurnCompleted
@@ -3745,6 +3768,12 @@ export interface StreamLocalAppTextTurnEvent {
          * @generated from protobuf field: nimi.runtime.v1.LocalAppTextTurnContinuity reasoning_continuity = 7
          */
         reasoningContinuity: LocalAppTextTurnContinuity;
+    } | {
+        oneofKind: "reasoningSummary";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppTextTurnReasoningSummary reasoning_summary = 8
+         */
+        reasoningSummary: LocalAppTextTurnReasoningSummary;
     } | {
         oneofKind: undefined;
     };
@@ -5113,7 +5142,11 @@ export enum ReasoningEffort {
     /**
      * @generated from protobuf enum value: REASONING_EFFORT_MAXIMUM = 5;
      */
-    MAXIMUM = 5
+    MAXIMUM = 5,
+    /**
+     * @generated from protobuf enum value: REASONING_EFFORT_XHIGH = 6;
+     */
+    XHIGH = 6
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ReasoningPresentation
@@ -15977,7 +16010,8 @@ class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextT
             { no: 10, name: "tools", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolSpec },
             { no: 11, name: "tool_choice", kind: "enum", T: () => ["nimi.runtime.v1.ToolChoiceMode", ToolChoiceMode, "TOOL_CHOICE_MODE_"] },
             { no: 12, name: "tool_choice_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 13, name: "response_format", kind: "message", T: () => ResponseFormat }
+            { no: 13, name: "response_format", kind: "message", T: () => ResponseFormat },
+            { no: 14, name: "reasoning", kind: "message", T: () => ReasoningConfig }
         ]);
     }
     create(value?: PartialMessage<StreamLocalAppTextTurnRequest>): StreamLocalAppTextTurnRequest {
@@ -16035,6 +16069,9 @@ class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextT
                 case /* nimi.runtime.v1.ResponseFormat response_format */ 13:
                     message.responseFormat = ResponseFormat.internalBinaryRead(reader, reader.uint32(), options, message.responseFormat);
                     break;
+                case /* nimi.runtime.v1.ReasoningConfig reasoning */ 14:
+                    message.reasoning = ReasoningConfig.internalBinaryRead(reader, reader.uint32(), options, message.reasoning);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -16086,6 +16123,9 @@ class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextT
         /* nimi.runtime.v1.ResponseFormat response_format = 13; */
         if (message.responseFormat)
             ResponseFormat.internalBinaryWrite(message.responseFormat, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasoningConfig reasoning = 14; */
+        if (message.reasoning)
+            ReasoningConfig.internalBinaryWrite(message.reasoning, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -16260,6 +16300,69 @@ class LocalAppTextTurnContinuity$Type extends MessageType<LocalAppTextTurnContin
  */
 export const LocalAppTextTurnContinuity = new LocalAppTextTurnContinuity$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppTextTurnReasoningSummary$Type extends MessageType<LocalAppTextTurnReasoningSummary> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppTextTurnReasoningSummary", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "item_index", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "item_completed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppTextTurnReasoningSummary>): LocalAppTextTurnReasoningSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        message.itemIndex = 0;
+        message.itemCompleted = false;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppTextTurnReasoningSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppTextTurnReasoningSummary): LocalAppTextTurnReasoningSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                case /* uint32 item_index */ 2:
+                    message.itemIndex = reader.uint32();
+                    break;
+                case /* bool item_completed */ 3:
+                    message.itemCompleted = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppTextTurnReasoningSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        /* uint32 item_index = 2; */
+        if (message.itemIndex !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.itemIndex);
+        /* bool item_completed = 3; */
+        if (message.itemCompleted !== false)
+            writer.tag(3, WireType.Varint).bool(message.itemCompleted);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppTextTurnReasoningSummary
+ */
+export const LocalAppTextTurnReasoningSummary = new LocalAppTextTurnReasoningSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppTextTurnCompleted$Type extends MessageType<LocalAppTextTurnCompleted> {
     constructor() {
         super("nimi.runtime.v1.LocalAppTextTurnCompleted", [
@@ -16378,7 +16481,8 @@ class StreamLocalAppTextTurnEvent$Type extends MessageType<StreamLocalAppTextTur
             { no: 4, name: "completed", kind: "message", oneof: "payload", T: () => LocalAppTextTurnCompleted },
             { no: 5, name: "failed", kind: "message", oneof: "payload", T: () => LocalAppTextTurnFailed },
             { no: 6, name: "tool_call", kind: "message", oneof: "payload", T: () => LocalAppTextTurnToolCall },
-            { no: 7, name: "reasoning_continuity", kind: "message", oneof: "payload", T: () => LocalAppTextTurnContinuity }
+            { no: 7, name: "reasoning_continuity", kind: "message", oneof: "payload", T: () => LocalAppTextTurnContinuity },
+            { no: 8, name: "reasoning_summary", kind: "message", oneof: "payload", T: () => LocalAppTextTurnReasoningSummary }
         ]);
     }
     create(value?: PartialMessage<StreamLocalAppTextTurnEvent>): StreamLocalAppTextTurnEvent {
@@ -16431,6 +16535,12 @@ class StreamLocalAppTextTurnEvent$Type extends MessageType<StreamLocalAppTextTur
                         reasoningContinuity: LocalAppTextTurnContinuity.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).reasoningContinuity)
                     };
                     break;
+                case /* nimi.runtime.v1.LocalAppTextTurnReasoningSummary reasoning_summary */ 8:
+                    message.payload = {
+                        oneofKind: "reasoningSummary",
+                        reasoningSummary: LocalAppTextTurnReasoningSummary.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).reasoningSummary)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -16464,6 +16574,9 @@ class StreamLocalAppTextTurnEvent$Type extends MessageType<StreamLocalAppTextTur
         /* nimi.runtime.v1.LocalAppTextTurnContinuity reasoning_continuity = 7; */
         if (message.payload.oneofKind === "reasoningContinuity")
             LocalAppTextTurnContinuity.internalBinaryWrite(message.payload.reasoningContinuity, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppTextTurnReasoningSummary reasoning_summary = 8; */
+        if (message.payload.oneofKind === "reasoningSummary")
+            LocalAppTextTurnReasoningSummary.internalBinaryWrite(message.payload.reasoningSummary, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

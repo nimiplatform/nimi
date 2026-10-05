@@ -1,5 +1,11 @@
 # SDK migration notes
 
+## 0.20.0 — Common Reasoning and protected App summaries (development)
+
+Use SDK 0.20.0 with Kit and native package 0.17.0, Rust carrier 0.9.0 and the matching Runtime. Omitted reasoning now preserves the selected implementation default. Callers that require reasoning off must explicitly request `activation: disabled` and handle typed refusal when the selected target has no off mapping. Required effort includes `xhigh`; the protected App model accepts the common typed controls through `parameters.reasoning`.
+
+The protected text contract carries authorized summary deltas and separate ordered summary items, plus Runtime-owned input support projections. Persist summaries separately from final text together with the unchanged opaque continuity. Replay returned items in order; do not edit summaries or opaque bytes. HIDDEN never exposes summary text. These are 0.x public type changes: upgrade the complete package set together.
+
 ## Next minor (compatible additions)
 
 Embedding requests add optional positive integer `dimensions` in the core AI client and protected `text-embed` spec. Use matching Runtime, SDK, Kit and native builds. The selected Runtime implementation admits the requested width; the first shortening group is OpenAI `text-embedding-3-small` and `text-embedding-3-large`. Omit the field for the captured native default. Unsupported compositions and out-of-range widths fail before execution. Returned vectors must match the input count and requested width, remain finite and include their Runtime-owned `spaceId`. Missing provider usage remains unspecified.

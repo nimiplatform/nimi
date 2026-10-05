@@ -113,7 +113,7 @@ function validateFaceSwapHistory(value: unknown, path: string): void {
 
 function validateTextExchangeItem(value: unknown, path: string): void {
   if (!isJsonObject(value)) historyError(path, 'requires an object');
-  if (value.type === 'text') {
+  if (value.type === 'text' || value.type === 'reasoning-summary') {
     requiredString(value.text, `${path}.text`);
     return;
   }

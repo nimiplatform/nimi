@@ -1,4 +1,5 @@
 import { projectSpeechInputCapabilities } from '../ai/speech-input.js';
+import { projectReasoningInputCapabilities } from '../ai/reasoning.js';
 import { projectMusicInputCapabilities } from '../ai/music-input.js';
 import { projectVoiceReferenceInput } from '../ai/voice-reference-input.js';
 import type {
@@ -259,7 +260,11 @@ function projectCapabilityIntent(value: unknown, index: number): void {
 
 function projectEffectiveSelection(value: unknown, index: number): void {
   const selection = asRecord(value);
-  assertExactProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(selection && Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : [])], `App AIConfig effective selection ${index}`);
+  assertExactProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(selection && Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(selection && Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : [])], `App AIConfig effective selection ${index}`);
+  if (selection && Object.hasOwn(selection, 'reasoningInput')) {
+    if (selection.capabilityContract !== 'text.generate' || selection.state !== 'ready') localAppProjectionError('reasoning input selection');
+    projectReasoningInputCapabilities(selection.reasoningInput, localAppProjectionError);
+  }
   if (selection && Object.hasOwn(selection, 'textReplay')) validateTextReplayProjection(selection.textReplay, selection.capabilityContract, selection.state);
   projectionText(selection.capabilityContract, `App AIConfig effective selection ${index} contract`);
   if (!['ready', 'missing', 'blocked', 'unavailable'].includes(String(selection.state))) {
