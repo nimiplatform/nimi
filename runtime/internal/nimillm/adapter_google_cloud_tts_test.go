@@ -87,8 +87,8 @@ func TestExecuteGoogleCloudTTS_ChirpRequestUsesVoiceNameWithoutModelName(t *test
 	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "audio-bytes" {
 		t.Fatalf("unexpected artifacts: %#v", artifacts)
 	}
-	if usage == nil || usage.GetComputeMs() <= 0 {
-		t.Fatalf("expected usage stats, got %#v", usage)
+	if usage != nil {
+		t.Fatalf("unreported usage must stay absent, got %#v", usage)
 	}
 }
 

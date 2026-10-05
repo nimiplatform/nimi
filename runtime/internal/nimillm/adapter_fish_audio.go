@@ -90,7 +90,7 @@ func ExecuteFishAudioTTS(
 		"audio_format":   strings.TrimSpace(spec.GetAudioFormat()),
 	})
 	ApplySpeechSpecMetadata(artifact, spec)
-	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
+	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
 func resolveFishAudioTTSPath() string {

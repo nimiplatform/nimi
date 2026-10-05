@@ -576,7 +576,7 @@ func TestBackendGenerateTextUsesAnthropicMessagesAPI(t *testing.T) {
 		_, _ = w.Write([]byte(`{
 			"content":[{"type":"text","text":"hello from anthropic"}],
 			"stop_reason":"end_turn",
-			"usage":{"input_tokens":4,"output_tokens":3}
+			"usage":{"input_tokens":4,"output_tokens":3,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}
 		}`))
 	}))
 	defer func() { server.Close() }()
@@ -723,14 +723,14 @@ func TestBackendStreamGenerateTextUsesAnthropicMessagesSSE(t *testing.T) {
 			t.Fatalf("decode request body: %v", err)
 		}
 		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("event: message_start\n"))
+		_, _ = w.Write([]byte("data: {\"message\":{\"usage\":{\"input_tokens\":6,\"output_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0}}}\n\n"))
 		_, _ = w.Write([]byte("event: content_block_delta\n"))
 		_, _ = w.Write([]byte("data: {\"delta\":{\"type\":\"text_delta\",\"text\":\"hello \"}}\n\n"))
 		_, _ = w.Write([]byte("event: content_block_delta\n"))
 		_, _ = w.Write([]byte("data: {\"delta\":{\"type\":\"text_delta\",\"text\":\"anthropic\"}}\n\n"))
 		_, _ = w.Write([]byte("event: message_delta\n"))
-		_, _ = w.Write([]byte("data: {\"delta\":{\"stop_reason\":\"end_turn\"}}\n\n"))
-		_, _ = w.Write([]byte("event: message_start\n"))
-		_, _ = w.Write([]byte("data: {\"message\":{\"usage\":{\"input_tokens\":6,\"output_tokens\":2}}}\n\n"))
+		_, _ = w.Write([]byte("data: {\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\n"))
 	}))
 	defer func() { server.Close() }()
 

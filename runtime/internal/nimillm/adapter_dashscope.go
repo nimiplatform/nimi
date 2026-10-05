@@ -89,7 +89,7 @@ func ExecuteAlibabaNative(
 			}
 			artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 			ApplyImageSpecMetadata(artifact, spec)
-			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 		}
 		return PollProviderTaskForArtifact(
 			ctx,
@@ -102,8 +102,6 @@ func ExecuteAlibabaNative(
 			submitPath,
 			queryPathTemplate,
 			ResolveImageArtifactMIME(spec, nil),
-			180,
-			spec.GetPrompt(),
 			func(artifact *runtimev1.ScenarioArtifact) {
 				ApplyImageSpecMetadata(artifact, spec)
 			},
@@ -197,15 +195,13 @@ func ExecuteAlibabaNative(
 			submitPath,
 			queryPathTemplate,
 			"video/mp4",
-			420,
-			VideoPrompt(spec),
 			func(artifact *runtimev1.ScenarioArtifact) {
 				ApplyVideoSpecMetadata(artifact, spec)
 			},
 			map[string]any{"mode": spec.GetMode().String()},
 		)
 		// Wan reports billed video duration, not token usage or compute time.
-		// The generic poller's text-token estimates are not provider usage.
+		// The shared poller leaves unreported token usage absent.
 		return artifacts, nil, providerJobID, err
 	case runtimev1.Modal_MODAL_TTS:
 		spec := scenarioSpeechSynthesizeSpec(req)
@@ -239,7 +235,11 @@ func ExecuteAlibabaNative(
 			"extensions":       scenarioExtensions,
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
+		var usage *runtimev1.UsageStats
+		if ttsContract == dashScopeTTSRequestContractQwenMultimodal {
+			usage = dashScopeQwenTTSUsage(body)
+		}
+		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 	case runtimev1.Modal_MODAL_STT:
 		return ExecuteDashScopeTranscribe(ctx, cfg, req, modelResolved)
 	default:
@@ -368,7 +368,7 @@ func ExecuteDashScopeTranscribe(
 	if text == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	usage := usageFromChatCompletionTranscription(responsePayload, audioBytes, text)
+	usage := reportedChatCompletionUsage(responsePayload)
 	artifactMeta := map[string]any{
 		"text":            text,
 		"adapter":         AdapterDashScopeChatTranscribe,

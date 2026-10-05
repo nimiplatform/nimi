@@ -163,7 +163,7 @@ func ExecuteGLMTask(
 		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 		ApplyVideoSpecMetadata(artifact, spec)
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(VideoPrompt(spec), artifactBytes, 420), providerJobID, nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, providerJobID, nil
 	}
 }
 
@@ -237,7 +237,7 @@ func ExecuteGLMNative(
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 		ApplyImageSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	case runtimev1.Modal_MODAL_TTS:
 		spec := scenarioSpeechSynthesizeSpec(req)
 		if spec == nil {
@@ -279,7 +279,7 @@ func ExecuteGLMNative(
 			"extensions":   scenarioExtensionPayloadForScenario(req),
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), body.Bytes, 120), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	case runtimev1.Modal_MODAL_STT:
 		spec := scenarioSpeechTranscribeSpec(req)
 		if spec == nil {
@@ -292,11 +292,6 @@ func ExecuteGLMNative(
 		text, err := ExecuteGLMTranscribe(ctx, JoinURL(baseURL, resolveGLMAPIPath(baseURL, "audio/transcriptions")), apiKey, modelResolved, spec, audioBytes, mimeType, scenarioExtensionPayloadForScenario(req))
 		if err != nil {
 			return nil, nil, "", err
-		}
-		usage := &runtimev1.UsageStats{
-			InputTokens:  MaxInt64(1, int64(len(audioBytes)/256)),
-			OutputTokens: EstimateTokens(text),
-			ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
 		}
 		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
 			"text":            text,
@@ -311,7 +306,7 @@ func ExecuteGLMNative(
 			"extensions":      scenarioExtensionPayloadForScenario(req),
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}

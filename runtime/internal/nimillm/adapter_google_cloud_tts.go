@@ -80,7 +80,7 @@ func ExecuteGoogleCloudTTS(
 		"extensions":     ext,
 	})
 	ApplySpeechSpecMetadata(artifact, spec)
-	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 100), "", nil
+	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
 func resolveGoogleCloudTTSInput(spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) map[string]any {

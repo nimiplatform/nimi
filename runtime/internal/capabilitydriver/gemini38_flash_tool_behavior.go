@@ -159,8 +159,8 @@ func Gemini38FlashToolNonStreamParser(payload []byte, spec *runtimev1.TextGenera
 			} `json:"message"`
 		} `json:"choices"`
 		Usage *struct {
-			PromptTokens     int64 `json:"prompt_tokens"`
-			CompletionTokens int64 `json:"completion_tokens"`
+			PromptTokens     *int64 `json:"prompt_tokens"`
+			CompletionTokens *int64 `json:"completion_tokens"`
 		} `json:"usage"`
 	}
 	if json.Unmarshal(payload, &envelope) != nil || len(envelope.Choices) != 1 ||
@@ -177,10 +177,13 @@ func Gemini38FlashToolNonStreamParser(payload []byte, spec *runtimev1.TextGenera
 	}
 	output := textbehavior.NormalizedResult{}
 	if envelope.Usage != nil {
-		if envelope.Usage.PromptTokens < 0 || envelope.Usage.CompletionTokens < 0 {
+		if (envelope.Usage.PromptTokens != nil && *envelope.Usage.PromptTokens < 0) ||
+			(envelope.Usage.CompletionTokens != nil && *envelope.Usage.CompletionTokens < 0) {
 			return textbehavior.NormalizedResult{}, gemini38OutputInvalid()
 		}
-		output.Usage = &runtimev1.UsageStats{InputTokens: envelope.Usage.PromptTokens, OutputTokens: envelope.Usage.CompletionTokens}
+		if envelope.Usage.PromptTokens != nil && envelope.Usage.CompletionTokens != nil {
+			output.Usage = &runtimev1.UsageStats{InputTokens: *envelope.Usage.PromptTokens, OutputTokens: *envelope.Usage.CompletionTokens}
+		}
 	}
 	if len(choice.Message.ToolCalls) == 0 {
 		if *choice.FinishReason != "stop" || choice.Message.Content == nil || strings.TrimSpace(*choice.Message.Content) == "" {

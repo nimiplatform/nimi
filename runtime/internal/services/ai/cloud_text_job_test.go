@@ -55,6 +55,8 @@ func TestCloudImageJobPersistsExactEffectiveInputsBeforeDispatch(t *testing.T) {
 
 func TestCloudImageJobCapturesCurrentAccountConnector(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
+	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
+	fixture.service.scenarioJobs = store
 	audit := auditlog.New(64, 64)
 	fixture.service.audit = audit
 	host := newControlledRemoteMediaHost(false)
@@ -79,8 +81,20 @@ func TestCloudImageJobCapturesCurrentAccountConnector(t *testing.T) {
 		t.Fatalf("captured job status = %s reason=%s", job.GetStatus(), job.GetReasonCode())
 	}
 	queryCtx := scenarioJobUserContext("nimi.desktop", "user-001")
-	if _, err := fixture.service.GetScenarioJob(queryCtx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()}); err != nil {
+	queried, err := fixture.service.GetScenarioJob(queryCtx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
+	if err != nil {
 		t.Fatalf("query captured job: %v", err)
+	}
+	if queried.GetJob().GetUsage() != nil {
+		t.Fatalf("unreported media usage was filled during publication: %v", queried.GetJob().GetUsage())
+	}
+	reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retained, found := reopened.get(job.GetJobId())
+	if !found || retained.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || retained.GetUsage() != nil {
+		t.Fatalf("durable media result changed absent usage: found=%v job=%v", found, retained)
 	}
 	artifacts, err := fixture.service.GetScenarioArtifacts(queryCtx, &runtimev1.GetScenarioArtifactsRequest{JobId: job.GetJobId()})
 	if err != nil || len(artifacts.GetArtifacts()) != 1 {

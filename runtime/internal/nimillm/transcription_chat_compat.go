@@ -168,29 +168,3 @@ func extractChatCompletionMessageText(payload map[string]any) string {
 	}
 	return strings.TrimSpace(strings.Join(parts, "\n"))
 }
-
-func usageFromChatCompletionTranscription(payload map[string]any, audio []byte, text string) *runtimev1.UsageStats {
-	if payload == nil {
-		return nil
-	}
-
-	usagePayload, ok := payload["usage"].(map[string]any)
-	if !ok {
-		return nil
-	}
-	inputTokens := ValueAsInt64(usagePayload["prompt_tokens"])
-	outputTokens := ValueAsInt64(usagePayload["completion_tokens"])
-	if outputTokens == 0 {
-		totalTokens := ValueAsInt64(usagePayload["total_tokens"])
-		if totalTokens > inputTokens {
-			outputTokens = totalTokens - inputTokens
-		}
-	}
-	if inputTokens == 0 && outputTokens == 0 {
-		return nil
-	}
-	return &runtimev1.UsageStats{
-		InputTokens:  inputTokens,
-		OutputTokens: outputTokens,
-	}
-}

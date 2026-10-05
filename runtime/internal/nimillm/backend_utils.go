@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -93,48 +94,35 @@ func StructToMap(input *structpb.Struct) map[string]any {
 	return result
 }
 
-// ArtifactUsage estimates usage stats for a media artifact.
-func ArtifactUsage(inputText string, artifactBytes []byte, computeMs int64) *runtimev1.UsageStats {
-	return &runtimev1.UsageStats{
-		InputTokens:  EstimateTokens(strings.TrimSpace(inputText)),
-		OutputTokens: estimateArtifactOutputTokens(artifactBytes),
-		ComputeMs:    computeMs,
+// @nimi-authority: rule.nimi.runtime.ai-provider.r087
+// reportedChatCompletionUsage keeps provider token counts distinct from absent
+// reports. Explicit completion zero is never replaced by a total or an estimate.
+func reportedChatCompletionUsage(payload map[string]any) *runtimev1.UsageStats {
+	raw := payload["usage"]
+	if raw == nil {
+		return nil
 	}
-}
-
-func estimateArtifactOutputTokens(artifactBytes []byte) int64 {
-	if len(artifactBytes) == 0 {
-		return 0
+	var reported struct {
+		Prompt     *int64 `json:"prompt_tokens"`
+		Completion *int64 `json:"completion_tokens"`
+		Total      *int64 `json:"total_tokens"`
 	}
-	contentType := strings.ToLower(strings.TrimSpace(http.DetectContentType(artifactBytes)))
-	if strings.HasPrefix(contentType, "text/") || contentType == "application/json" || contentType == "application/xml" {
-		return EstimateTokens(string(artifactBytes))
+	encoded, err := json.Marshal(raw)
+	if err != nil || json.Unmarshal(encoded, &reported) != nil ||
+		(reported.Prompt != nil && *reported.Prompt < 0) ||
+		(reported.Completion != nil && *reported.Completion < 0) ||
+		(reported.Total != nil && *reported.Total < 0) || reported.Prompt == nil {
+		return nil
 	}
-	// Binary artifacts do not carry meaningful text tokens; estimate from size
-	// so media outputs do not inherit arbitrary UTF-8 decoding artifacts.
-	return MaxInt64(1, int64(len(artifactBytes)+3)/4)
-}
-
-// EstimateUsage estimates usage stats from input/output text.
-func EstimateUsage(input string, output string) *runtimev1.UsageStats {
-	return &runtimev1.UsageStats{
-		InputTokens:  EstimateTokens(input),
-		OutputTokens: EstimateTokens(output),
-		ComputeMs:    MaxInt64(1, EstimateTokens(input)+EstimateTokens(output)),
+	output := reported.Completion
+	if output == nil && reported.Total != nil && *reported.Total >= *reported.Prompt {
+		derived := *reported.Total - *reported.Prompt
+		output = &derived
 	}
-}
-
-// EstimateTokens estimates token count from text.
-func EstimateTokens(text string) int64 {
-	if text == "" {
-		return 0
+	if output == nil {
+		return nil
 	}
-	runeCount := int64(len([]rune(text)))
-	estimated := runeCount * 3 / 4
-	if estimated < 1 {
-		return 1
-	}
-	return estimated
+	return &runtimev1.UsageStats{InputTokens: *reported.Prompt, OutputTokens: *output}
 }
 
 // ComposeInputText composes system prompt and chat messages into a single text.

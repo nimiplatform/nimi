@@ -219,9 +219,12 @@ func TestTypeSafeSystemOneNormalizesAnswersIntoSubmittedOrder(t *testing.T) {
 		t.Fatalf("usage = %+v", result.Usage)
 	}
 	for name, usage := range map[string]string{
-		"absent":    ``,
-		"malformed": `,"usage":{"input_tokens":"many"}`,
-		"negative":  `,"usage":{"input_tokens":-1,"output_tokens":0}`,
+		"empty":       `,"usage":{}`,
+		"input_only":  `,"usage":{"input_tokens":318}`,
+		"output_only": `,"usage":{"output_tokens":34}`,
+		"absent":      ``,
+		"malformed":   `,"usage":{"input_tokens":"many"}`,
+		"negative":    `,"usage":{"input_tokens":-1,"output_tokens":0}`,
 	} {
 		body := `{"answers":{"z_urgent":{"type":"noul","noul":1},"a_department":{"type":"choice","choice":"technical","probabilities":{"technical":1,"billing":0,"销售":0}}}` + usage + `}`
 		result, err := driver.NormalizeResponse(mapped, CloudDecideTransportResponse{Body: []byte(body)})

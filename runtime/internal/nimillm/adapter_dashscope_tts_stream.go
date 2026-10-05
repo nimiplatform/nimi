@@ -131,9 +131,8 @@ func (b *Backend) streamDashScopeRealtimeTTS(
 	readTimeout := dashScopeRealtimeTTSReadTimeout(scenarioExtensions)
 	var sequence uint64
 	var totalBytes int64
-	var usageCharacters int64
 	for {
-		payload, event, binary, err := receiveDashScopeRealtimeTTSFrame(ctx, connection, readTimeout)
+		_, event, binary, err := receiveDashScopeRealtimeTTSFrame(ctx, connection, readTimeout)
 		if err != nil {
 			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 		}
@@ -153,14 +152,11 @@ func (b *Backend) streamDashScopeRealtimeTTS(
 		}
 		switch event.name {
 		case "task-finished":
-			usageCharacters = dashScopeRealtimeTTSUsageCharacters(payload)
 			if sequence == 0 || totalBytes == 0 {
 				return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 			}
 			usage := &runtimev1.UsageStats{
-				InputTokens:  MaxInt64(EstimateTokens(spec.GetText()), usageCharacters),
-				OutputTokens: MaxInt64(1, (totalBytes+3)/4),
-				ComputeMs:    time.Since(startedAt).Milliseconds(),
+				ComputeMs: time.Since(startedAt).Milliseconds(),
 			}
 			return usage, runtimev1.FinishReason_FINISH_REASON_STOP, nil
 		case "task-failed":
@@ -415,12 +411,6 @@ func dashScopeRealtimeTTSReadTimeout(scenarioExtensions map[string]any) time.Dur
 		return 2 * time.Minute
 	}
 	return timeout
-}
-
-func dashScopeRealtimeTTSUsageCharacters(payload map[string]any) int64 {
-	payloadObject, _ := payload["payload"].(map[string]any)
-	usage, _ := payloadObject["usage"].(map[string]any)
-	return ValueAsInt64(usage["characters"])
 }
 
 func dashScopeRealtimeTTSError(header map[string]any) error {

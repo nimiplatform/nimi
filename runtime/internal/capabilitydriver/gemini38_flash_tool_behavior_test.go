@@ -42,6 +42,42 @@ func geminiToolResponse(t *testing.T, signature string) []byte {
 	return payload
 }
 
+func TestGemini38SignedToolUsagePreservesPresence(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		report any
+		want   *runtimev1.UsageStats
+	}{
+		{name: "absent"},
+		{name: "empty", report: map[string]any{}},
+		{name: "partial", report: map[string]any{"prompt_tokens": 3}},
+		{name: "zero", report: map[string]any{"prompt_tokens": 0, "completion_tokens": 0}, want: &runtimev1.UsageStats{}},
+		{name: "reported", report: map[string]any{"prompt_tokens": 3, "completion_tokens": 2}, want: &runtimev1.UsageStats{InputTokens: 3, OutputTokens: 2}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var wire map[string]any
+			if err := json.Unmarshal(geminiToolResponse(t, "original-opaque-signature"), &wire); err != nil {
+				t.Fatal(err)
+			}
+			if test.report != nil {
+				wire["usage"] = test.report
+			}
+			payload, err := json.Marshal(wire)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := Gemini38FlashToolNonStreamParser(payload, geminiToolTestSpec(t))
+			if err != nil || len(result.Items) != 2 || result.Items[0].ToolCall.GetId() != "function-call-1" ||
+				result.Items[0].ToolCall.GetArgumentsJson() != `{"centimeters":30}` || result.Items[1].ReasoningContinuity.GetKind() != gemini38ToolSignatureKind {
+				t.Fatalf("signed tool result=%+v err=%v", result, err)
+			}
+			if (result.Usage == nil) != (test.want == nil) || result.Usage.GetInputTokens() != test.want.GetInputTokens() || result.Usage.GetOutputTokens() != test.want.GetOutputTokens() {
+				t.Fatalf("usage=%v want=%v", result.Usage, test.want)
+			}
+		})
+	}
+}
+
 func TestGemini38ToolSignatureRoundTripKeepsCallAndResultOrdered(t *testing.T) {
 	spec := geminiToolTestSpec(t)
 	initial, err := Gemini38FlashRequestSerializer(spec, false)

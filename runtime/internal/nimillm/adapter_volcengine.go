@@ -98,7 +98,7 @@ func ExecuteBytedanceARKTask(
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 		ApplyImageSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	case runtimev1.Modal_MODAL_VIDEO:
 		spec := scenarioVideoSpec(req)
 		if spec == nil {
@@ -166,12 +166,12 @@ func ExecuteBytedanceARKTask(
 			}
 			artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 			ApplyVideoSpecMetadata(artifact, spec)
-			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 420), "", nil
+			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 		}
 		return PollProviderTaskForArtifact(
 			ctx, updater, jobID, baseURL, apiKey,
 			AdapterBytedanceARKTask, providerJobID, submitPath, queryPathTemplate,
-			"video/mp4", 420, VideoPrompt(spec),
+			"video/mp4",
 			func(artifact *runtimev1.ScenarioArtifact) {
 				ApplyVideoSpecMetadata(artifact, spec)
 			},

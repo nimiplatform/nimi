@@ -158,7 +158,7 @@ func ExecuteMiniMaxTask(
 				"extensions":   scenarioExtensions,
 			})
 			ApplySpeechSpecMetadata(artifact, spec)
-			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
+			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 		}
 		if firstOtherErr != nil {
 			return nil, nil, "", firstOtherErr
@@ -185,11 +185,6 @@ func ExecuteMiniMaxTask(
 		if err != nil {
 			return nil, nil, "", err
 		}
-		usage := &runtimev1.UsageStats{
-			InputTokens:  MaxInt64(1, int64(len(audioBytes)/256)),
-			OutputTokens: EstimateTokens(text),
-			ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
-		}
 		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
 			"text":            text,
 			"adapter":         AdapterMiniMaxTask,
@@ -204,7 +199,7 @@ func ExecuteMiniMaxTask(
 			"extensions":      StructToMap(extractScenarioExtensions(req)),
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	}
 
 	// MODAL_IMAGE / MODAL_VIDEO: async task submission + polling
@@ -357,12 +352,8 @@ func ExecuteMiniMaxTask(
 		if scenarioModal(req) == runtimev1.Modal_MODAL_VIDEO {
 			ApplyVideoSpecMetadata(artifact, scenarioVideoSpec(req))
 		}
-		computeMs := int64(180)
-		if scenarioModal(req) == runtimev1.Modal_MODAL_VIDEO {
-			computeMs = 420
-		}
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, providerJobID, nil
 	}
 }
 

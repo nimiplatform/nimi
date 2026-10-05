@@ -132,7 +132,7 @@ func remoteHostDriverInput(t *testing.T) (capabilitydriver.CloudTextDriver, capa
 	}
 	mapped, err := driver.MapRequest(target, &runtimev1.TextGenerateScenarioSpec{
 		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
-	}, nil, false)
+	}, nil, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

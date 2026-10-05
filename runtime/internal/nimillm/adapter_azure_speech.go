@@ -76,7 +76,7 @@ func ExecuteAzureSpeechTTS(
 		"extensions": ext,
 	})
 	ApplySpeechSpecMetadata(artifact, spec)
-	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(text, bodyBytes, 100), "", nil
+	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
 func buildAzureSSML(language, voiceName, text string) string {

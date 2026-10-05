@@ -589,21 +589,7 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 	if text == "" && len(toolCalls) == 0 {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	usagePayload := MapField(respBody, "usage")
-	promptTokens := ValueAsInt64(MapField(usagePayload, "prompt_tokens"))
-	completionTokens := ValueAsInt64(MapField(usagePayload, "completion_tokens"))
-	totalTokens := ValueAsInt64(MapField(usagePayload, "total_tokens"))
-	if completionTokens == 0 && totalTokens > promptTokens {
-		completionTokens = totalTokens - promptTokens
-	}
-	usage := &runtimev1.UsageStats{
-		InputTokens:  MaxInt64(0, promptTokens),
-		OutputTokens: MaxInt64(0, completionTokens),
-		ComputeMs:    0,
-	}
-	if usage.GetInputTokens() == 0 && usage.GetOutputTokens() == 0 {
-		usage = EstimateUsage(ComposeInputText(systemPrompt, input), text)
-	}
+	usage := reportedChatCompletionUsage(respBody)
 	finish := runtimev1.FinishReason_FINISH_REASON_STOP
 	if rawFinish := extractChatCompletionFinishReason(respBody); rawFinish != "" {
 		finish = MapOpenAIFinishReason(rawFinish)
@@ -669,11 +655,7 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 			} `json:"delta"`
 			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
-		Usage struct {
-			PromptTokens     int64 `json:"prompt_tokens"`
-			CompletionTokens int64 `json:"completion_tokens"`
-			TotalTokens      int64 `json:"total_tokens"`
-		} `json:"usage"`
+		Usage map[string]any `json:"usage"`
 	}
 
 	messages, err := buildTextChatMessages(ctx, systemPrompt, input, b)
@@ -766,7 +748,6 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 	}
 	defer func() { _ = response.Body.Close() }()
 
-	var outputBuilder strings.Builder
 	var usage *runtimev1.UsageStats
 	finish := runtimev1.FinishReason_FINISH_REASON_STOP
 	scanner := bufio.NewScanner(response.Body)
@@ -815,7 +796,6 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 			}
 			delta := chunk.Choices[0].Delta.Content
 			if delta != "" {
-				outputBuilder.WriteString(delta)
 				if handler.OnText != nil {
 					if err := handler.OnText(delta); err != nil {
 						return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
@@ -826,16 +806,8 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 				finish = MapOpenAIFinishReason(rawFinish)
 			}
 		}
-		if chunk.Usage.PromptTokens > 0 || chunk.Usage.CompletionTokens > 0 || chunk.Usage.TotalTokens > 0 {
-			outTokens := chunk.Usage.CompletionTokens
-			if outTokens == 0 && chunk.Usage.TotalTokens > chunk.Usage.PromptTokens {
-				outTokens = chunk.Usage.TotalTokens - chunk.Usage.PromptTokens
-			}
-			usage = &runtimev1.UsageStats{
-				InputTokens:  MaxInt64(0, chunk.Usage.PromptTokens),
-				OutputTokens: MaxInt64(0, outTokens),
-				ComputeMs:    0,
-			}
+		if reported := reportedChatCompletionUsage(map[string]any{"usage": chunk.Usage}); reported != nil {
+			usage = reported
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -855,10 +827,6 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 		)
 	}
 
-	outputText := outputBuilder.String()
-	if usage == nil {
-		usage = EstimateUsage(ComposeInputText(systemPrompt, input), outputText)
-	}
 	return usage, finish, nil
 }
 

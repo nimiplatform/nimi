@@ -1,6 +1,7 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -130,7 +131,7 @@ func TestMimoTranscribeUsesChatInputAudio(t *testing.T) {
 }
 
 func TestMimoSynthesizeUsesChatAudioAndDecodesMessageAudio(t *testing.T) {
-	audioBytes := []byte("RIFF....WAVEfmt mimo")
+	audioBytes := bytes.Repeat([]byte("RIFF....WAVEfmt mimo"), 4096)
 	audioB64 := base64.StdEncoding.EncodeToString(audioBytes)
 	var captured map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

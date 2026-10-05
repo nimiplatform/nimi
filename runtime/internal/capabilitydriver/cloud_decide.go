@@ -492,7 +492,7 @@ func systemOneUsage(raw json.RawMessage) *runtimev1.UsageStats {
 	}
 	input, inputPresent, inputValid := count("input_tokens")
 	output, outputPresent, outputValid := count("output_tokens")
-	if !inputValid || !outputValid || (!inputPresent && !outputPresent) {
+	if !inputValid || !outputValid || !inputPresent || !outputPresent {
 		return nil
 	}
 	return &runtimev1.UsageStats{InputTokens: input, OutputTokens: output}

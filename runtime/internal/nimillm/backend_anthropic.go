@@ -51,12 +51,9 @@ type anthropicContentBlock struct {
 }
 
 type anthropicMessageResponse struct {
-	Content    []anthropicContentBlock `json:"content"`
-	StopReason string                  `json:"stop_reason"`
-	Usage      struct {
-		InputTokens  int64 `json:"input_tokens"`
-		OutputTokens int64 `json:"output_tokens"`
-	} `json:"usage"`
+	Content    []anthropicContentBlock                 `json:"content"`
+	StopReason string                                  `json:"stop_reason"`
+	Usage      capabilitydriver.AnthropicReportedUsage `json:"usage"`
 }
 
 func (b *Backend) supportsAnthropicMessages() bool {
@@ -147,10 +144,7 @@ func (b *Backend) generateTextAnthropicMessages(
 	if text == "" && len(toolCalls) == 0 {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	usage := anthropicUsage(response.Usage.InputTokens, response.Usage.OutputTokens)
-	if usage == nil {
-		usage = EstimateUsage(ComposeInputText(systemPrompt, input), text)
-	}
+	usage := response.Usage.Stats()
 	return text, toolCalls, usage, anthropicFinishReason(response.StopReason), nil
 }
 
@@ -213,9 +207,8 @@ func (b *Backend) streamGenerateTextAnthropicMessages(
 	}
 	defer func() { _ = response.Body.Close() }()
 
-	var outputBuilder strings.Builder
 	var finish = runtimev1.FinishReason_FINISH_REASON_STOP
-	var usage *runtimev1.UsageStats
+	var usage capabilitydriver.AnthropicReportedUsage
 	var currentEvent string
 	scanner := bufio.NewScanner(response.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), anthropicMessageStreamLimit)
@@ -254,25 +247,31 @@ func (b *Backend) streamGenerateTextAnthropicMessages(
 			if text == "" {
 				continue
 			}
-			outputBuilder.WriteString(text)
 			if onDelta != nil {
 				if err := onDelta(text); err != nil {
 					return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 				}
 			}
 		case "message_delta":
-			if stop := strings.TrimSpace(ValueAsString(MapField(event, "delta.stop_reason"))); stop != "" {
+			var reported capabilitydriver.AnthropicReportedUsage
+			if encoded, err := json.Marshal(event["usage"]); err == nil && json.Unmarshal(encoded, &reported) == nil {
+				usage = usage.WithUpdate(reported)
+			}
+			if stop := strings.TrimSpace(ValueAsString(MapField(MapField(event, "delta"), "stop_reason"))); stop != "" {
 				finish = anthropicFinishReason(stop)
 			}
 		case "message_stop":
-			finish = anthropicFinishReason(strings.TrimSpace(ValueAsString(MapField(event, "stop_reason"))))
+			// The terminal marker carries no stop reason; retain message_delta.
 		case "message_start":
 			messagePayload := MapField(event, "message")
 			usagePayload := MapField(messagePayload, "usage")
-			usage = anthropicUsage(
-				ValueAsInt64(MapField(usagePayload, "input_tokens")),
-				ValueAsInt64(MapField(usagePayload, "output_tokens")),
-			)
+			var reported capabilitydriver.AnthropicReportedUsage
+			if encoded, err := json.Marshal(usagePayload); err == nil && json.Unmarshal(encoded, &reported) == nil {
+				usage = reported
+				// message_start output is provisional; only message_delta reports
+				// the cumulative output count for the completed message.
+				usage.Output = nil
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -283,10 +282,7 @@ func (b *Backend) streamGenerateTextAnthropicMessages(
 			grpcerr.ReasonOptions{Message: "provider stream could not be read"},
 		)
 	}
-	if usage == nil {
-		usage = EstimateUsage(ComposeInputText(systemPrompt, input), outputBuilder.String())
-	}
-	return usage, finish, nil
+	return usage.Stats(), finish, nil
 }
 
 func buildAnthropicMessages(input []*runtimev1.ChatMessage) ([]map[string]any, error) {
@@ -510,16 +506,5 @@ func anthropicFinishReason(reason string) runtimev1.FinishReason {
 		return runtimev1.FinishReason_FINISH_REASON_TOOL_CALL
 	default:
 		return runtimev1.FinishReason_FINISH_REASON_STOP
-	}
-}
-
-func anthropicUsage(inputTokens int64, outputTokens int64) *runtimev1.UsageStats {
-	if inputTokens == 0 && outputTokens == 0 {
-		return nil
-	}
-	return &runtimev1.UsageStats{
-		InputTokens:  MaxInt64(0, inputTokens),
-		OutputTokens: MaxInt64(0, outputTokens),
-		ComputeMs:    0,
 	}
 }

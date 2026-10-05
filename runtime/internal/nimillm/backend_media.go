@@ -326,8 +326,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 	if err != nil {
 		return nil, nil, err
 	}
-	usage := ArtifactUsage(prompt, payload, 180)
-	return payload, usage, nil
+	return payload, nil, nil
 }
 
 // GenerateVideo sends a video generation request.
@@ -411,8 +410,7 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 	if err != nil {
 		return nil, nil, err
 	}
-	usage := ArtifactUsage(prompt, payload, 420)
-	return payload, usage, nil
+	return payload, nil, nil
 }
 
 // GenerateMusic sends a music generation request.
@@ -429,7 +427,6 @@ func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runti
 		} `json:"output"`
 	}
 
-	prompt := strings.TrimSpace(spec.GetPrompt())
 	requestBody, err := buildMusicGenerationRequest(modelID, spec, scenarioExtensions)
 	if err != nil {
 		return nil, nil, err
@@ -453,8 +450,7 @@ func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runti
 	if err != nil {
 		return nil, nil, err
 	}
-	usage := ArtifactUsage(prompt, payload, 420)
-	return payload, usage, nil
+	return payload, nil, nil
 }
 
 type SpeechReferenceAudio struct {
@@ -512,7 +508,7 @@ type SpeechArtifactBody struct {
 // SynthesizeSpeechArtifactBody leaves a successful response open so Runtime
 // can stream it directly into custody without applying the inline read limit.
 func (b *Backend) SynthesizeSpeechArtifactBody(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any, references ...*SpeechReferenceAudio) (*SpeechArtifactBody, *runtimev1.UsageStats, error) {
-	request, text, err := buildSpeechSynthesisRequest(modelID, spec, scenarioExtensions)
+	request, _, err := buildSpeechSynthesisRequest(modelID, spec, scenarioExtensions)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -539,11 +535,7 @@ func (b *Backend) SynthesizeSpeechArtifactBody(ctx context.Context, modelID stri
 	if sizeBytes < 0 {
 		sizeBytes = 0
 	}
-	usage := &runtimev1.UsageStats{InputTokens: EstimateTokens(text), ComputeMs: 120}
-	if sizeBytes > 0 {
-		usage.OutputTokens = MaxInt64(1, (sizeBytes+3)/4)
-	}
-	return &SpeechArtifactBody{Body: response.Body, MIMEType: mimeType, SizeBytes: sizeBytes}, usage, nil
+	return &SpeechArtifactBody{Body: response.Body, MIMEType: mimeType, SizeBytes: sizeBytes}, nil, nil
 }
 
 // SynthesizeSpeech sends a text-to-speech request.
@@ -554,7 +546,7 @@ func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *ru
 	if b.supportsMimoChatCompletions() || isMimoModelID(modelID) {
 		return b.synthesizeMimoChat(ctx, modelID, spec, scenarioExtensions)
 	}
-	request, text, err := buildSpeechSynthesisRequest(modelID, spec, scenarioExtensions)
+	request, _, err := buildSpeechSynthesisRequest(modelID, spec, scenarioExtensions)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -562,8 +554,7 @@ func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *ru
 	if err != nil {
 		return nil, nil, err
 	}
-	usage := ArtifactUsage(text, payload, 120)
-	return payload, usage, nil
+	return payload, nil, nil
 }
 
 // StreamSynthesizeSpeech sends a provider-native streaming TTS request and
@@ -671,9 +662,7 @@ func (b *Backend) StreamSynthesizeSpeech(
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	usage := &runtimev1.UsageStats{
-		InputTokens:  EstimateTokens(text),
-		OutputTokens: MaxInt64(1, (totalBytes+3)/4),
-		ComputeMs:    time.Since(startedAt).Milliseconds(),
+		ComputeMs: time.Since(startedAt).Milliseconds(),
 	}
 	return usage, runtimev1.FinishReason_FINISH_REASON_STOP, nil
 }

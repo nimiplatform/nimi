@@ -25,9 +25,10 @@ import (
 // JSONOrBinaryBody holds a parsed HTTP response body that may be JSON text,
 // base64-decoded binary, or raw binary bytes.
 type JSONOrBinaryBody struct {
-	Bytes []byte
-	Text  string
-	MIME  string
+	Bytes    []byte
+	Text     string
+	MIME     string
+	RawUsage json.RawMessage
 }
 
 const maxJSONOrBinaryResponseBytes = 32 << 20
@@ -117,14 +118,23 @@ func decodeJSONOrBinaryResponse(response *http.Response) (*JSONOrBinaryBody, err
 	}
 	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
 	looksLikeJSON := len(raw) > 0 && (raw[0] == '{' || raw[0] == '[')
+	var rawUsage json.RawMessage
 	if strings.Contains(contentType, "application/json") || looksLikeJSON {
 		parsed := map[string]any{}
 		if unmarshalErr := json.Unmarshal(raw, &parsed); unmarshalErr == nil {
+			// Media extraction can replace Bytes with decoded audio. Keep only
+			// the reported usage envelope for the exact adapter to interpret.
+			var envelope struct {
+				Usage json.RawMessage `json:"usage"`
+			}
+			if json.Unmarshal(raw, &envelope) == nil {
+				rawUsage = envelope.Usage
+			}
 			if text := strings.TrimSpace(FirstNonEmpty(
 				ValueAsString(parsed["text"]),
 				ValueAsString(MapField(parsed["result"], "text")),
 			)); text != "" {
-				return &JSONOrBinaryBody{Bytes: []byte(text), Text: text, MIME: contentType}, nil
+				return &JSONOrBinaryBody{Bytes: []byte(text), Text: text, MIME: contentType, RawUsage: rawUsage}, nil
 			}
 			if b64 := strings.TrimSpace(FirstNonEmpty(
 				ValueAsString(parsed["audio"]),
@@ -138,12 +148,12 @@ func decodeJSONOrBinaryResponse(response *http.Response) (*JSONOrBinaryBody, err
 			)); b64 != "" {
 				decoded, ok := DecodeBase64ArtifactPayload(b64)
 				if ok {
-					return &JSONOrBinaryBody{Bytes: decoded, MIME: contentType}, nil
+					return &JSONOrBinaryBody{Bytes: decoded, MIME: contentType, RawUsage: rawUsage}, nil
 				}
 			}
 		}
 	}
-	return &JSONOrBinaryBody{Bytes: raw, MIME: contentType}, nil
+	return &JSONOrBinaryBody{Bytes: raw, MIME: contentType, RawUsage: rawUsage}, nil
 }
 
 func marshalJSONRequestBody(body any) ([]byte, error) {

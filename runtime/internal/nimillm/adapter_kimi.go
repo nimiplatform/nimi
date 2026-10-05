@@ -67,7 +67,7 @@ func ExecuteKimiImageChatMultimodal(
 	}
 	artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 	ApplyImageSpecMetadata(artifact, spec)
-	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
 // buildKimiImageChatPayload constructs the chat-completions payload for Kimi

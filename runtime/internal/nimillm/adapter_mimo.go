@@ -139,14 +139,7 @@ func (b *Backend) transcribeMimoChat(
 	if text == "" {
 		return "", nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	usage := usageFromChatCompletionTranscription(respBody, audio, text)
-	if usage == nil {
-		usage = &runtimev1.UsageStats{
-			InputTokens:  MaxInt64(1, int64(len(audio)/256)),
-			OutputTokens: EstimateTokens(text),
-			ComputeMs:    MaxInt64(10, int64(len(audio)/64)),
-		}
-	}
+	usage := reportedChatCompletionUsage(respBody)
 	return text, usage, nil
 }
 
@@ -258,10 +251,7 @@ func (b *Backend) synthesizeMimoChat(
 	if !ok {
 		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	usage := usageFromMimoSpeechResponse(respBody, text, payload)
-	if usage == nil {
-		usage = ArtifactUsage(text, payload, 120)
-	}
+	usage := reportedChatCompletionUsage(respBody)
 	return payload, usage, nil
 }
 
@@ -396,27 +386,4 @@ func extractMimoChatAudioData(payload map[string]any) string {
 		}
 	}
 	return strings.TrimSpace(ValueAsString(audio))
-}
-
-func usageFromMimoSpeechResponse(payload map[string]any, text string, audio []byte) *runtimev1.UsageStats {
-	usagePayload, ok := payload["usage"].(map[string]any)
-	if !ok {
-		return nil
-	}
-	inputTokens := ValueAsInt64(usagePayload["prompt_tokens"])
-	outputTokens := ValueAsInt64(usagePayload["completion_tokens"])
-	if outputTokens == 0 {
-		totalTokens := ValueAsInt64(usagePayload["total_tokens"])
-		if totalTokens > inputTokens {
-			outputTokens = totalTokens - inputTokens
-		}
-	}
-	if inputTokens == 0 && outputTokens == 0 {
-		return nil
-	}
-	return &runtimev1.UsageStats{
-		InputTokens:  inputTokens,
-		OutputTokens: MaxInt64(outputTokens, estimateArtifactOutputTokens(audio)),
-		ComputeMs:    MaxInt64(120, int64(len(text))*2),
-	}
 }

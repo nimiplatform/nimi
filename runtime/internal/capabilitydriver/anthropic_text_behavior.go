@@ -383,10 +383,7 @@ func (block anthropicBehaviorBlock) thinking() anthropicThinkingBlock {
 	return anthropicThinkingBlock{Type: block.Type, Thinking: block.Thinking, Signature: block.Signature, Data: block.Data}
 }
 
-type anthropicBehaviorUsage struct {
-	Input  int64 `json:"input_tokens"`
-	Output int64 `json:"output_tokens"`
-}
+type anthropicBehaviorUsage = AnthropicReportedUsage
 type anthropicBehaviorMessage struct {
 	Content []anthropicBehaviorBlock `json:"content"`
 	Stop    string                   `json:"stop_reason"`
@@ -491,6 +488,7 @@ func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 			return nil, anthropicBehaviorOutput("message start")
 		}
 		stream.started, stream.usage = true, event.Message.Usage
+		stream.usage.Output = nil
 		return nil, nil
 	}
 	if !stream.started {
@@ -578,7 +576,7 @@ func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 		if event.Delta.Stop != "" {
 			stream.stopReason = event.Delta.Stop
 		}
-		stream.usage.Output = event.Usage.Output
+		stream.usage = stream.usage.WithUpdate(event.Usage)
 		return nil, nil
 	case "message_stop":
 		if stream.stopReason == "" {
@@ -640,7 +638,7 @@ func finishAnthropicBehavior(assembler *textbehavior.OrderedStreamAssembler, sto
 			return textbehavior.NormalizedResult{}, anthropicBehaviorOutput("structured schema mismatch")
 		}
 	}
-	return textbehavior.NormalizedResult{Items: items, FinishReason: finish, Usage: &runtimev1.UsageStats{InputTokens: usage.Input, OutputTokens: usage.Output}}, nil
+	return textbehavior.NormalizedResult{Items: items, FinishReason: finish, Usage: usage.Stats()}, nil
 }
 
 func anthropicBehaviorInput(detail string) error {

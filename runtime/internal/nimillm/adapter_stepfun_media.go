@@ -80,7 +80,7 @@ func executeStepFunTTS(
 		"voice":    voiceRef,
 	})
 	ApplySpeechSpecMetadata(artifact, spec)
-	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
+	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
 func executeStepFunImage(
@@ -129,5 +129,5 @@ func executeStepFunImage(
 	}
 	artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 	ApplyImageSpecMetadata(artifact, spec)
-	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }

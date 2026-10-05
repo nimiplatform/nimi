@@ -117,7 +117,7 @@ func ExecuteStabilityMusic(
 	if body == nil {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	return musicArtifactsFromBody(AdapterStabilityMusic, body, spec, extensions, ""), ArtifactUsage(spec.GetPrompt(), body.Bytes, 480), "", nil
+	return musicArtifactsFromBody(AdapterStabilityMusic, body, spec, extensions, ""), nil, "", nil
 }
 
 func ExecuteSoundverseMusic(
@@ -171,7 +171,7 @@ func ExecuteSoundverseMusic(
 	if err != nil {
 		return nil, nil, "", err
 	}
-	return musicArtifactsFromBody(AdapterSoundverseMusic, body, spec, extensions, ""), ArtifactUsage(spec.GetPrompt(), body.Bytes, 420), "", nil
+	return musicArtifactsFromBody(AdapterSoundverseMusic, body, spec, extensions, ""), nil, "", nil
 }
 
 func ExecuteMubertMusic(
@@ -255,7 +255,7 @@ func ExecuteMubertMusic(
 			if err != nil {
 				return nil, nil, trackID, err
 			}
-			return musicArtifactsFromBody(AdapterMubertMusic, body, spec, extensions, trackID), ArtifactUsage(spec.GetPrompt(), body.Bytes, 420), trackID, nil
+			return musicArtifactsFromBody(AdapterMubertMusic, body, spec, extensions, trackID), nil, trackID, nil
 		}
 		if statusText == "failed" || statusText == "error" {
 			return nil, nil, trackID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -341,7 +341,7 @@ func ExecuteLoudlyMusic(
 	if err != nil {
 		return nil, nil, "", err
 	}
-	return musicArtifactsFromBody(AdapterLoudlyMusic, body, spec, extensions, ""), ArtifactUsage(spec.GetPrompt(), body.Bytes, 420), "", nil
+	return musicArtifactsFromBody(AdapterLoudlyMusic, body, spec, extensions, ""), nil, "", nil
 }
 
 func ExecuteLlamaMusic(
@@ -409,7 +409,7 @@ func ExecuteLlamaMusic(
 	for _, item := range candidates {
 		body, lastErr = DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, item.path), strings.TrimSpace(cfg.APIKey), item.payload, cfg.Headers)
 		if lastErr == nil {
-			return musicArtifactsFromBody(AdapterLlamaMusic, body, spec, extensions, ""), ArtifactUsage(spec.GetPrompt(), body.Bytes, 360), "", nil
+			return musicArtifactsFromBody(AdapterLlamaMusic, body, spec, extensions, ""), nil, "", nil
 		}
 		if grpcStatusCode(lastErr) != codes.NotFound {
 			break
@@ -458,7 +458,7 @@ func ExecuteSidecarMusic(
 	if err != nil {
 		return nil, nil, "", err
 	}
-	return musicArtifactsFromBody(AdapterSidecarMusic, body, spec, extensions, ""), ArtifactUsage(spec.GetPrompt(), body.Bytes, 360), "", nil
+	return musicArtifactsFromBody(AdapterSidecarMusic, body, spec, extensions, ""), nil, "", nil
 }
 
 func scenarioMusicSpec(req *runtimev1.SubmitScenarioJobRequest) *runtimev1.MusicGenerateScenarioSpec {

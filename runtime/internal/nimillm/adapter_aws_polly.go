@@ -83,7 +83,7 @@ func ExecuteAWSPollyTTS(
 		"extensions": ext,
 	})
 	ApplySpeechSpecMetadata(artifact, spec)
-	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 80), "", nil
+	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
 func resolveAWSPollyEngine(modelResolved string) string {

@@ -88,7 +88,7 @@ func ExecuteBytedanceOpenSpeech(
 			"mime_type":  body.MIME,
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 
 	case runtimev1.Modal_MODAL_STT:
 		spec := scenarioSpeechTranscribeSpec(req)

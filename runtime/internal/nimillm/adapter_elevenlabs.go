@@ -112,7 +112,7 @@ func ExecuteElevenLabsTTS(
 		"extensions":   scenarioExtensionPayloadForScenario(req),
 	})
 	ApplySpeechSpecMetadata(artifact, spec)
-	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), bodyBytes, 120), "", nil
+	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
 // doElevenLabsBinaryRequest performs a POST with JSON body and xi-api-key auth,

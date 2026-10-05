@@ -259,8 +259,6 @@ func PollProviderTaskForArtifact(
 	submitPath string,
 	queryPathTemplate string,
 	defaultMIME string,
-	computeMs int64,
-	prompt string,
 	applyMetadata func(*runtimev1.ScenarioArtifact),
 	extraArtifactMeta map[string]any,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
@@ -371,6 +369,6 @@ func PollProviderTaskForArtifact(
 			applyMetadata(artifact)
 		}
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, providerJobID, nil
 	}
 }

@@ -91,7 +91,7 @@ func TestAlibabaPollDeadlineCancelsInFlightRequestAndObservesCleanup(t *testing.
 	defer cancel()
 	var observed []ProviderTaskCleanupObservation
 	ctx = WithProviderTaskCleanupObserver(ctx, func(o ProviderTaskCleanupObservation) { observed = append(observed, o) })
-	_, _, _, err := PollProviderTaskForArtifact(ctx, noopJobStateUpdater{}, "job", server.URL, "key", AdapterAlibabaNative, "task-1", "/unused", "/api/v1/tasks/{task_id}", "video/mp4", 0, "prompt", nil, nil)
+	_, _, _, err := PollProviderTaskForArtifact(ctx, noopJobStateUpdater{}, "job", server.URL, "key", AdapterAlibabaNative, "task-1", "/unused", "/api/v1/tasks/{task_id}", "video/mp4", nil, nil)
 	if status.Code(err) != codes.DeadlineExceeded || cancels.Load() != 1 || polls.Load() != 2 || len(observed) != 1 || observed[0].Outcome != ProviderTaskCleanupCanceled {
 		t.Fatalf("err=%v cancels=%d polls=%d observed=%+v", err, cancels.Load(), polls.Load(), observed)
 	}

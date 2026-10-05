@@ -177,8 +177,6 @@ func TestPollProviderTaskForArtifactCancelsVolcengineTaskOnContextCancel(t *test
 		"/contents/generations/tasks",
 		"/contents/generations/tasks/{task_id}",
 		"video/mp4",
-		420,
-		"prompt",
 		nil,
 		nil,
 	)
@@ -246,8 +244,6 @@ func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
 		"/contents/generations/tasks",
 		"/contents/generations/tasks/{task_id}",
 		"video/mp4",
-		420,
-		"prompt",
 		nil,
 		nil,
 	)
@@ -264,8 +260,8 @@ func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
 	if metadata["adapter"] != AdapterBytedanceARKTask || metadata["response"] != nil || metadata["submit_endpoint"] != nil || metadata["query_endpoint"] != nil || metadata["uri"] != nil {
 		t.Fatalf("provider polling transport state escaped artifact metadata: %#v", metadata)
 	}
-	if usage == nil || usage.GetComputeMs() <= 0 {
-		t.Fatalf("expected usage stats, got=%v", usage)
+	if usage != nil {
+		t.Fatalf("unreported usage must stay absent, got=%v", usage)
 	}
 	if len(updater.calls) < 3 {
 		t.Fatalf("expected multiple poll state updates, got=%d", len(updater.calls))
@@ -316,8 +312,6 @@ func TestPollProviderTaskForArtifactFailedStatusUsesStructuredReason(t *testing.
 		"/contents/generations/tasks",
 		"/contents/generations/tasks/{task_id}",
 		"video/mp4",
-		420,
-		"prompt",
 		nil,
 		nil,
 	)
@@ -417,8 +411,6 @@ func TestPollProviderTaskForArtifactRetriesTransientErrorsWhenDetached(t *testin
 		"/contents/generations/tasks",
 		"/contents/generations/tasks/{task_id}",
 		"video/mp4",
-		420,
-		"prompt",
 		nil,
 		nil,
 	)
@@ -489,8 +481,6 @@ func TestPollProviderTaskForArtifactImmediateExitOnErrorWithDeadline(t *testing.
 		"/contents/generations/tasks",
 		"/contents/generations/tasks/{task_id}",
 		"video/mp4",
-		420,
-		"prompt",
 		nil,
 		nil,
 	)
@@ -573,8 +563,6 @@ func TestPollProviderTaskForArtifactPermanentErrorFailsFastWhenDetached(t *testi
 		"/contents/generations/tasks",
 		"/contents/generations/tasks/{task_id}",
 		"video/mp4",
-		420,
-		"prompt",
 		nil,
 		nil,
 	)

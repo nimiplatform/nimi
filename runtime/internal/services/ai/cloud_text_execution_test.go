@@ -69,6 +69,9 @@ func TestCloudTextExecutionResolvesCurrentAccountConnectorAndPreservesConfigurat
 	if err != nil || outputText(response.GetOutput()) != "from committed AIConfig" {
 		t.Fatalf("ExecuteScenario = %+v, %v", response, err)
 	}
+	if response.GetUsage() != nil {
+		t.Fatalf("unreported provider usage was filled during execution: %v", response.GetUsage())
+	}
 
 	failAuth.Store(true)
 	_, err = fixture.service.ExecuteScenario(ctx, request)

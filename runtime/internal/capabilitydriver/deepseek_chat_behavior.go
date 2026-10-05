@@ -81,8 +81,8 @@ type deepseekJSONEnvelope struct {
 		FinishReason *string              `json:"finish_reason"`
 	} `json:"choices"`
 	Usage *struct {
-		PromptTokens     int64 `json:"prompt_tokens"`
-		CompletionTokens int64 `json:"completion_tokens"`
+		PromptTokens     *int64 `json:"prompt_tokens"`
+		CompletionTokens *int64 `json:"completion_tokens"`
 	} `json:"usage"`
 }
 
@@ -91,7 +91,8 @@ func decodeDeepseekJSONEnvelope(payload []byte) (deepseekJSONEnvelope, error) {
 	if json.Unmarshal(payload, &value) != nil {
 		return value, deepseekJSONOutputError()
 	}
-	if value.Usage != nil && (value.Usage.PromptTokens < 0 || value.Usage.CompletionTokens < 0) {
+	if value.Usage != nil && ((value.Usage.PromptTokens != nil && *value.Usage.PromptTokens < 0) ||
+		(value.Usage.CompletionTokens != nil && *value.Usage.CompletionTokens < 0)) {
 		return value, deepseekJSONOutputError()
 	}
 	return value, nil
@@ -139,10 +140,10 @@ func deepseekJSONObject(text string) error {
 }
 
 func deepseekJSONUsage(value deepseekJSONEnvelope) *runtimev1.UsageStats {
-	if value.Usage == nil {
+	if value.Usage == nil || value.Usage.PromptTokens == nil || value.Usage.CompletionTokens == nil {
 		return nil
 	}
-	return &runtimev1.UsageStats{InputTokens: value.Usage.PromptTokens, OutputTokens: value.Usage.CompletionTokens}
+	return &runtimev1.UsageStats{InputTokens: *value.Usage.PromptTokens, OutputTokens: *value.Usage.CompletionTokens}
 }
 
 func DeepseekChatNonStreamParser(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {

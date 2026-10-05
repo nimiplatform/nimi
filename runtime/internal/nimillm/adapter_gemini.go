@@ -55,18 +55,14 @@ func ExecuteGeminiOperation(
 		"modal": strings.ToLower(scenarioModal(req).String()),
 	}
 	scenarioExtensions := StructToMap(extractScenarioExtensions(req))
-	prompt := ""
 	defaultMIME := ""
-	var computeMs int64
 	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_VIDEO:
 		spec := scenarioVideoSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		prompt = VideoPrompt(spec)
 		defaultMIME = "video/mp4"
-		computeMs = 420
 		submitPayload["prompt"] = VideoPrompt(spec)
 		submitPayload["negative_prompt"] = VideoNegativePrompt(spec)
 		submitPayload["mode"] = strings.ToLower(strings.TrimPrefix(spec.GetMode().String(), "VIDEO_MODE_"))
@@ -92,9 +88,7 @@ func ExecuteGeminiOperation(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		prompt = spec.GetText()
 		defaultMIME = ResolveSpeechArtifactMIME(spec, nil)
-		computeMs = 120
 		submitPayload["input"] = spec.GetText()
 		submitPayload["text"] = spec.GetText()
 		submitPayload["voice"] = scenarioVoiceRef(spec)
@@ -197,7 +191,6 @@ func ExecuteGeminiOperation(
 			artifactMeta["uri"] = artifactURI
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
-		var usage *runtimev1.UsageStats
 		if scenarioImageSpec(req) != nil {
 			ApplyImageSpecMetadata(artifact, scenarioImageSpec(req))
 		}
@@ -215,13 +208,9 @@ func ExecuteGeminiOperation(
 			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(artifact.GetMimeType())), "audio/") {
 				artifact.MimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
 			}
-			usage = ArtifactUsage(spec.GetText(), artifactBytes, computeMs)
-		}
-		if usage == nil {
-			usage = ArtifactUsage(prompt, artifactBytes, computeMs)
 		}
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.ScenarioArtifact{artifact}, usage, providerJobID, nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, providerJobID, nil
 	}
 }
 
@@ -575,7 +564,7 @@ func ExecuteGeminiTranscribe(
 	if text == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	usage := usageFromChatCompletionTranscription(responsePayload, audioBytes, text)
+	usage := reportedChatCompletionUsage(responsePayload)
 	artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
 		"text":            text,
 		"adapter":         AdapterGeminiChatTranscribe,

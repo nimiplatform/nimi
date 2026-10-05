@@ -88,12 +88,12 @@ func ExecuteFluxImage(
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 		ApplyImageSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	}
 	return PollProviderTaskForArtifact(
 		ctx, updater, jobID, baseURL, apiKey,
 		AdapterFluxNative, providerJobID, submitPath, queryPathTemplate,
-		"image/png", 180, strings.TrimSpace(spec.GetPrompt()),
+		"image/png",
 		func(artifact *runtimev1.ScenarioArtifact) {
 			ApplyImageSpecMetadata(artifact, spec)
 		},

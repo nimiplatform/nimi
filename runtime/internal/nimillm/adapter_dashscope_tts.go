@@ -1,6 +1,7 @@
 package nimillm
 
 import (
+	"encoding/json"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -12,6 +13,24 @@ const (
 	dashScopeTTSRequestContractQwenMultimodal dashScopeTTSRequestContract = iota
 	dashScopeTTSRequestContractCosyVoiceSpeechSynthesizer
 )
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r087
+// Qwen's native response distinguishes token counters from billed characters.
+// Keep explicit zero tokens; absent counters do not become zero estimates.
+func dashScopeQwenTTSUsage(body *JSONOrBinaryBody) *runtimev1.UsageStats {
+	if body == nil {
+		return nil
+	}
+	var usage *struct {
+		Input  *int64 `json:"input_tokens"`
+		Output *int64 `json:"output_tokens"`
+	}
+	if json.Unmarshal(body.RawUsage, &usage) != nil || usage == nil ||
+		usage.Input == nil || usage.Output == nil || *usage.Input < 0 || *usage.Output < 0 {
+		return nil
+	}
+	return &runtimev1.UsageStats{InputTokens: *usage.Input, OutputTokens: *usage.Output}
+}
 
 func (contract dashScopeTTSRequestContract) String() string {
 	switch contract {

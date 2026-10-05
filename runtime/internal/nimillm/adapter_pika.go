@@ -83,12 +83,12 @@ func ExecutePikaTask(
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, meta)
 		ApplyVideoSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(VideoPrompt(spec), artifactBytes, 420), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	}
 	return PollProviderTaskForArtifact(
 		ctx, updater, jobID, baseURL, apiKey,
 		AdapterPikaTask, providerJobID, submitPath, queryPathTemplate,
-		"video/mp4", 420, VideoPrompt(spec),
+		"video/mp4",
 		func(a *runtimev1.ScenarioArtifact) { ApplyVideoSpecMetadata(a, spec) }, nil,
 	)
 }

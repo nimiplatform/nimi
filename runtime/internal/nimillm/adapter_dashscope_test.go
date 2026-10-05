@@ -40,6 +40,50 @@ func TestAlibabaQwenTTSVolumePresence(t *testing.T) {
 	}
 }
 
+func TestAlibabaQwenTTSRetainsNativeReportedUsage(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		report any
+		want   *runtimev1.UsageStats
+	}{
+		{name: "absent"},
+		{name: "characters_only", report: map[string]any{"characters": 195}},
+		{name: "partial", report: map[string]any{"input_tokens": 3, "characters": 195}},
+		{name: "zero", report: map[string]any{"input_tokens": 0, "output_tokens": 0, "characters": 195}, want: &runtimev1.UsageStats{}},
+		{name: "decoded_audio_zero", report: map[string]any{"input_tokens": 0, "output_tokens": 0, "characters": 195}, want: &runtimev1.UsageStats{}},
+		{name: "reported", report: map[string]any{"input_tokens": 76, "output_tokens": 1045}, want: &runtimev1.UsageStats{InputTokens: 76, OutputTokens: 1045}},
+		{name: "negative", report: map[string]any{"input_tokens": -1, "output_tokens": 2}},
+		{name: "non_integer", report: map[string]any{"input_tokens": 1.5, "output_tokens": 2}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			audio := []byte("RIFF....WAVEfmt original provider audio")
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				response := map[string]any{
+					"output": map[string]any{"audio": map[string]any{"data": base64.StdEncoding.EncodeToString(audio)}},
+					"usage":  test.report,
+				}
+				if test.name == "decoded_audio_zero" {
+					delete(response, "output")
+					response["audio"] = base64.StdEncoding.EncodeToString(audio)
+				}
+				_ = json.NewEncoder(w).Encode(response)
+			}))
+			defer server.Close()
+			artifacts, usage, _, err := ExecuteAlibabaNative(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-api-key", AllowLoopbackEndpoint: true},
+				noopJobStateUpdater{}, "job", &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+					Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello"}}}},
+				"qwen3-tts-flash")
+			if err != nil || len(artifacts) != 1 || string(artifacts[0].GetBytes()) != string(audio) {
+				t.Fatalf("artifacts=%v err=%v", artifacts, err)
+			}
+			if (usage == nil) != (test.want == nil) || usage.GetInputTokens() != test.want.GetInputTokens() || usage.GetOutputTokens() != test.want.GetOutputTokens() || usage.GetComputeMs() != 0 {
+				t.Fatalf("usage=%v want=%v", usage, test.want)
+			}
+		})
+	}
+}
+
 func TestNativeOriginURL(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -361,6 +405,7 @@ func testBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 			errCh <- fmt.Errorf("send binary audio 2: %w", err)
 			return
 		}
+		time.Sleep(5 * time.Millisecond)
 		if err := websocket.JSON.Send(conn, map[string]any{
 			"header":  map[string]any{"event": "task-finished"},
 			"payload": map[string]any{"usage": map[string]any{"characters": 12}},
@@ -374,6 +419,7 @@ func testBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 
 	backend := newBackend("cloud-dashscope", server.URL, "test-api-key", nil, 10*time.Second, nil, false, true)
 	var chunks [][]byte
+	started := time.Now()
 	usage, finish, err := backend.StreamSynthesizeSpeech(context.Background(), model, &runtimev1.SpeechSynthesizeScenarioSpec{
 		Text:         "你好，Nimi。",
 		Language:     "zh",
@@ -406,8 +452,9 @@ func testBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 	if finish != runtimev1.FinishReason_FINISH_REASON_STOP {
 		t.Fatalf("finish=%s, want STOP", finish.String())
 	}
-	if usage == nil || usage.GetInputTokens() <= 0 || usage.GetOutputTokens() <= 0 {
-		t.Fatalf("usage must include estimated input/output, got %#v", usage)
+	if usage == nil || usage.GetInputTokens() != 0 || usage.GetOutputTokens() != 0 ||
+		usage.GetComputeMs() < 5 || usage.GetComputeMs() > time.Since(started).Milliseconds() {
+		t.Fatalf("usage must retain measured time without converting characters or bytes to tokens, got %#v", usage)
 	}
 	if len(chunks) != 2 || string(chunks[0]) != "dashscope-native-audio-1" || string(chunks[1]) != "dashscope-native-audio-2" {
 		t.Fatalf("unexpected chunks: %#v", chunks)

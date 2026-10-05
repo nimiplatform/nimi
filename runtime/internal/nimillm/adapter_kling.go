@@ -95,12 +95,12 @@ func executeKlingImageTask(
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, meta)
 		ApplyImageSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	}
 	return PollProviderTaskForArtifact(
 		ctx, updater, jobID, baseURL, apiKey,
 		AdapterKlingTask, providerJobID, submitPath, queryPathTemplate,
-		"image/png", 180, strings.TrimSpace(spec.GetPrompt()),
+		"image/png",
 		func(a *runtimev1.ScenarioArtifact) { ApplyImageSpecMetadata(a, spec) }, nil,
 	)
 }
@@ -161,12 +161,12 @@ func executeKlingVideoTask(
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, meta)
 		ApplyVideoSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(VideoPrompt(spec), artifactBytes, 420), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	}
 	return PollProviderTaskForArtifact(
 		ctx, updater, jobID, baseURL, apiKey,
 		AdapterKlingTask, providerJobID, submitPath, queryPathTemplate,
-		"video/mp4", 420, VideoPrompt(spec),
+		"video/mp4",
 		func(a *runtimev1.ScenarioArtifact) { ApplyVideoSpecMetadata(a, spec) }, nil,
 	)
 }
