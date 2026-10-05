@@ -1,6 +1,8 @@
 import { createContext } from 'react';
 
 import type { StudioParameterState, StudioParameterValue } from './parameters.js';
+import type { StudioCapabilityRunResult } from './runtime-types.js';
+import type { StudioRunConfigSnapshot, StudioRunHistoryRecord } from './history.js';
 
 export type StudioHistoryPanelScope = 'capability' | 'all' | 'media';
 
@@ -40,6 +42,8 @@ export type StudioHistoryActions = {
 };
 
 export const StudioHistoryActionsContext = createContext<StudioHistoryActions | null>(null);
+export const StudioHistoryResultContext = createContext<((result: StudioCapabilityRunResult, prompt: string,
+  runConfig?: StudioRunConfigSnapshot) => Promise<StudioRunHistoryRecord>) | null>(null);
 
 export type StudioHistoryPanelState = {
   readonly collapsed: boolean;

@@ -1,5 +1,6 @@
 import type { StudioAudioSeparation, StudioFaceSwap, StudioJsonValue, StudioMusicGeneration, StudioMusicTranscription, StudioSessionSummary, StudioTextDecisionAnswer, StudioTextExchangeStep, StudioVoiceConversion } from './runtime-types.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
+import { studioResultAssetReferences } from './managed-result-references.js';
 import type { NimiLocalAppSpeechTranscript, NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
 import type {
   StudioCapabilityRunResult,
@@ -294,6 +295,18 @@ export async function projectStudioManagedHistory(input: {
       if (result?.ok === true && (result.kind === 'text' || result.kind === 'vision-locate') && result.sourceImage) {
         const verification = await verifyStudioManagedArtifact(input.statArtifact, result.sourceImage, record);
         if (verification.status === 'unavailable') unavailableReason = verification.message;
+      }
+      // Inputs are part of the saved result too. Missing canonical sources or
+      // targets must not leave a seemingly complete, replayable music result.
+      if (result?.ok) {
+        const outputPaths = new Set(result.kind === 'artifacts'
+          ? (result.artifacts ?? (result.firstArtifact ? [result.firstArtifact] : [])).map(item => item.relativePath) : []);
+        for (const reference of studioResultAssetReferences(result)) {
+          if (outputPaths.has(reference.relativePath as string) || typeof reference.sha256 !== 'string'
+            || typeof reference.sizeBytes !== 'number') continue;
+          const verification = await verifyStudioManagedArtifact(input.statArtifact, reference as StudioManagedArtifact, record);
+          if (verification.status === 'unavailable' && !unavailableReason) unavailableReason = verification.message;
+        }
       }
       if (unavailableReason && record.status === 'ready') {
         projectedRecord = { ...record, status: 'unavailable', message: unavailableReason };

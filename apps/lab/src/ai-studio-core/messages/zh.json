@@ -4,7 +4,12 @@
     "close": "关闭",
     "copy": "复制",
     "copied": "已复制",
-    "copyFailed": "复制失败"
+    "copyFailed": "复制失败",
+    "exportFailed": "文件未能保存。请检查 App 存储和宿主是否可用，然后重试。",
+    "exportSaved": "文件已保存：{{path}}",
+    "exportSavedRevealFailed": "文件已保存到 {{path}}，但无法显示所在文件夹。请从此路径打开；再次导出会创建另一份文件。",
+    "assetRevealed": "已在文件夹中显示文件。",
+    "assetRevealFailed": "无法显示 {{path}} 所在的文件夹。文件未被修改，请在宿主可用后重试。"
   },
   "History": {
     "title": "历史",

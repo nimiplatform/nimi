@@ -1,7 +1,9 @@
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import type { JsonValue } from '@nimiplatform/sdk/types';
 import { createStudioRunHistoryResultSnapshot, restoreStudioCapabilityRunResult, type StudioRunHistoryResultSnapshot } from '../../ai-studio-core/history.js';
-import { validateManagedArtifact, validateStudioHistoryResult } from '../../ai-studio-core/history-policy.js';
+import { validateManagedArtifact, validateStudioHistoryResult, validateRunConfig } from '../../ai-studio-core/history-policy.js';
+import type { StudioRunConfigSnapshot } from '../../ai-studio-core/history.js';
+import { studioResultAssetPaths, studioResultAssetReferences } from '../../ai-studio-core/managed-result-references.js';
 import type { StudioAudioSeparationRequest, StudioCapabilityRunResult, StudioManagedArtifact } from '../../ai-studio-core/runtime-types.js';
 import { isAudioSeparationRequest } from '../../ai-studio-core/audio-separation-request.js';
 
@@ -15,6 +17,8 @@ export type MusicRecoveryEntry = {
   readonly targetAudio?: StudioManagedArtifact;
   readonly jobId?: string;
   readonly separationRequest?: StudioAudioSeparationRequest;
+  readonly prompt?: string;
+  readonly runConfig?: StudioRunConfigSnapshot;
 };
 export type MusicRecoveryCapability = 'music.generate' | 'music.transcribe' | 'audio.voice.convert' | 'audio.separate';
 const paths = { 'music.generate': 'studio/music-recovery.json', 'music.transcribe': 'studio/music-transcription-recovery.json', 'audio.voice.convert': 'studio/voice-convert-recovery.json', 'audio.separate': 'studio/audio-separation-recovery.json' };
@@ -29,16 +33,21 @@ export async function readMusicRecovery(storage: Storage, capability: MusicRecov
     if (code === 'not_found' || code === 'app_storage_entry_not_found') return [];
     throw cause;
   }
-  if (!Array.isArray(value) || value.length > 32) throw new Error('Invalid saved music recovery entries');
+  if (!Array.isArray(value)) throw new Error('Invalid saved music recovery entries');
   const ids = new Set<string>();
   for (const item of value) {
     if (!item || typeof item !== 'object' || typeof item.clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(item.clientSubmissionId)
       || ids.has(item.clientSubmissionId) || typeof item.createdAt !== 'string' || !Number.isFinite(Date.parse(item.createdAt))
-      || Object.keys(item).some((key) => !['clientSubmissionId', 'createdAt', 'message', 'result',
+      || Object.keys(item).some((key) => !['clientSubmissionId', 'createdAt', 'message', 'result', 'prompt', 'runConfig',
         ...(capability === 'music.generate' ? [] : ['sourceAudio']),
         ...(capability === 'audio.voice.convert' ? ['targetAudio'] : []),
         ...(capability === 'audio.separate' ? ['jobId', 'separationRequest'] : [])].includes(key))) throw new Error('Invalid saved music recovery entry');
     ids.add(item.clientSubmissionId);
+    if (item.prompt !== undefined && typeof item.prompt !== 'string') throw new Error('Invalid saved music prompt');
+    if (item.runConfig !== undefined) {
+      validateRunConfig(item.runConfig, 'music recovery request');
+      if (item.runConfig.target.capabilityId !== capability) throw new Error('Music recovery request has a different capability');
+    }
     if (item.separationRequest !== undefined && !isAudioSeparationRequest(item.separationRequest)) throw new Error('Invalid saved separation request');
     if (capability === 'audio.separate' && item.jobId !== undefined
       && (typeof item.jobId !== 'string' || item.jobId.length < 1 || item.jobId.length > 256 || item.jobId !== item.jobId.trim())) throw new Error('Invalid saved music recovery entry');
@@ -62,10 +71,10 @@ export async function readMusicRecovery(storage: Storage, capability: MusicRecov
 async function mutate(storage: Storage, update: (entries: readonly MusicRecoveryEntry[]) => MusicRecoveryEntry[], capability: MusicRecoveryCapability) {
   const next = mutationTail.then(async () => {
     const entries = update(await readMusicRecovery(storage, capability));
-    while (entries.length > 32 || new TextEncoder().encode(JSON.stringify(entries)).length > 240 * 1024) {
-      const obsolete = entries.findIndex((entry) => entry.result !== undefined);
-      if (obsolete < 0) throw new Error('Music recovery storage is full; review unfinished actions first.');
-      entries.splice(obsolete, 1);
+    // This is bounded recovery storage, not business-history retention. Never
+    // discard an unindexed result to make room for a newer author action.
+    if (new TextEncoder().encode(JSON.stringify(entries)).length > 240 * 1024) {
+      throw new Error('Music recovery storage is full; explicitly remove completed recovery entries after verifying their saved history.');
     }
     await storage.writeJson(paths[capability], JSON.parse(JSON.stringify(entries)) as JsonValue);
   });
@@ -73,12 +82,12 @@ async function mutate(storage: Storage, update: (entries: readonly MusicRecovery
   await next;
 }
 
-export async function beginMusicRecovery(storage: Storage, capability: MusicRecoveryCapability = 'music.generate', sourceAudio?: StudioManagedArtifact, targetAudio?: StudioManagedArtifact, separationRequest?: StudioAudioSeparationRequest): Promise<string> {
+export async function beginMusicRecovery(storage: Storage, capability: MusicRecoveryCapability = 'music.generate', sourceAudio?: StudioManagedArtifact, targetAudio?: StudioManagedArtifact, separationRequest?: StudioAudioSeparationRequest, runConfig?: StudioRunConfigSnapshot, prompt?: string): Promise<string> {
   if (capability !== 'music.generate') validateManagedArtifact(sourceAudio, 'music recovery source');
   if (targetAudio !== undefined) validateManagedArtifact(targetAudio, 'voice conversion recovery target');
   if (separationRequest !== undefined && (capability !== 'audio.separate' || !isAudioSeparationRequest(separationRequest))) throw new Error('Invalid separation request');
   const clientSubmissionId = crypto.randomUUID();
-  await mutate(storage, (entries) => [...entries, { clientSubmissionId, createdAt: new Date().toISOString(), ...(sourceAudio ? { sourceAudio } : {}), ...(targetAudio ? { targetAudio } : {}), ...(separationRequest ? { separationRequest } : {}) }], capability);
+  await mutate(storage, (entries) => [...entries, { clientSubmissionId, createdAt: new Date().toISOString(), ...(sourceAudio ? { sourceAudio } : {}), ...(targetAudio ? { targetAudio } : {}), ...(separationRequest ? { separationRequest } : {}), ...(runConfig ? { runConfig } : {}), ...(prompt === undefined ? {} : { prompt }) }], capability);
   return clientSubmissionId;
 }
 
@@ -107,12 +116,28 @@ export async function forgetMusicRecovery(storage: Storage, id: string, capabili
   await mutate(storage, (entries) => entries.filter((entry) => entry.clientSubmissionId !== id), capability);
 }
 
-export function restoreSavedMusicResult(entry: MusicRecoveryEntry, label: string, capability: MusicRecoveryCapability = 'music.generate'): StudioCapabilityRunResult | null {
+export async function restoreSavedMusicResult(entry: MusicRecoveryEntry, label: string, capability: MusicRecoveryCapability,
+  assets: Pick<NimiLocalAppClient['storage']['assets'], 'stat'>): Promise<StudioCapabilityRunResult | null> {
   if (!entry.result) return null;
+  await verifySavedMusicAssets(entry, assets);
   const result = restoreStudioCapabilityRunResult({ capabilityId: capability, result: entry.result, message: entry.message ?? '' }, () => label);
   if (capability === 'audio.separate' && entry.separationRequest && result?.ok && result.output.kind === 'artifacts' && result.output.audioSeparation) {
     return { ...result, output: { ...result.output,
       audioSeparation: { ...result.output.audioSeparation, request: entry.separationRequest } } };
   }
   return result;
+}
+
+export async function verifySavedMusicAssets(entry: MusicRecoveryEntry,
+  assets: Pick<NimiLocalAppClient['storage']['assets'], 'stat'>): Promise<void> {
+  if (!entry.result) return;
+  const refs = studioResultAssetReferences(entry.result);
+  for (const path of studioResultAssetPaths(entry.result)) {
+    const actual = await assets.stat(path);
+    for (const expected of refs.filter(ref => ref.relativePath === path)) {
+      if ((expected.sha256 !== undefined && actual.sha256 !== expected.sha256)
+        || (expected.sizeBytes !== undefined && actual.sizeBytes !== expected.sizeBytes)
+        || (expected.mediaType !== undefined && actual.mediaType !== expected.mediaType)) throw new Error('Saved music asset no longer matches its result');
+    }
+  }
 }

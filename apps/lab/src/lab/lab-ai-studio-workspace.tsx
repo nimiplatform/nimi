@@ -12,6 +12,9 @@ import {
   type StudioRunHistoryRecord,
 } from '../ai-studio-core/index.js';
 import { useLabRendererHost } from '../renderer/context.js';
+import type { LabCanonicalRendererBindings } from '../renderer/contract.js';
+import { studioResultAssetPaths, studioResultAssetReferences } from '../ai-studio-core/managed-result-references.js';
+import { readMusicRecovery, forgetMusicRecovery, type MusicRecoveryCapability } from '../studio-modules/studio-media/music-recovery.js';
 import {
   cleanupLabManagedArtifactPaths,
   persistLabRunHistoryWithArtifactCompensation,
@@ -22,20 +25,36 @@ import {
   clearLabManagedHistoryScope,
   deleteLabManagedHistoryRecord,
   reconcileLabManagedHistoryProjection,
+  withLabManagedHistoryOperation,
 } from './lab-managed-history.js';
 import { LabAIStudioAdapter } from './lab-ai-studio-adapter.js';
 
-export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
-  const rendererHost = useLabRendererHost();
-  return useMemo(() => {
+export function createLabAIStudioHistoryRepository(rendererHost: LabCanonicalRendererBindings): AIStudioHistoryRepository {
+    const loadRecoveryReferences = async () => {
+      const references = [];
+      for (const capability of ['music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'] as const) {
+        for (const entry of await readMusicRecovery(rendererHost.sdk.localAppClient.storage, capability)) {
+          references.push({ id: entry.clientSubmissionId, capabilityId: capability,
+            jobId: entry.result?.ok && 'jobId' in entry.result ? entry.result.jobId : entry.jobId,
+            complete: Boolean(entry.result?.ok), artifactPaths: [...new Set([
+              ...studioResultAssetPaths(entry.result),
+              ...(entry.sourceAudio ? [entry.sourceAudio.relativePath] : []),
+              ...(entry.targetAudio ? [entry.targetAudio.relativePath] : []),
+            ])] });
+        }
+      }
+      return references;
+    };
     const managedHistoryPort = {
       loadRunHistory: () => rendererHost.app.projection.runHistory(),
       loadImageHistory: () => rendererHost.app.projection.imageHistory(),
       removeAsset: (relativePath: string) => rendererHost.sdk.storage.assets.remove(relativePath),
       removeRunHistory: (runId: string) => rendererHost.app.commands.removeRunHistory(runId),
       removeImageHistory: (runId: string) => rendererHost.app.commands.removeImageHistory(runId),
-      clearRunHistory: (capabilityId?: string) => rendererHost.app.commands.clearRunHistory(capabilityId ? { capabilityId } : {}),
-      clearImageHistory: (capabilityId?: string) => rendererHost.app.commands.clearImageHistory(capabilityId ? { capabilityId } : {}),
+      loadRecoveryReferences,
+      forgetRecoveryReference: (reference: { id: string; capabilityId: string }) => forgetMusicRecovery(
+        rendererHost.sdk.localAppClient.storage, reference.id, reference.capabilityId as MusicRecoveryCapability),
+      projectHistory: (runs: StudioRunHistory, images: readonly LabImageHistoryRecord[]) => reconcile(runs, images),
     };
 
     const reconcile = (
@@ -57,19 +76,45 @@ export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
           message: 'image-history-load-failed',
           details: { error: errorMessage(error, 'Image history load failed.') },
         });
-        return [];
+        throw error;
       }
     };
 
     const loadProjection = async (
       runHistory?: StudioRunHistory,
       imageHistory?: readonly LabImageHistoryRecord[],
+      repairRecordId?: string,
     ): Promise<AIStudioHistoryProjection> => {
       const runs = runHistory ?? await rendererHost.app.projection.runHistory();
       const images = imageHistory ?? await loadImageHistory();
       const projection = await reconcile(runs, images);
+      // Main history is authoritative. Rebuild missing secondary rows from its
+      // complete result instead of treating a failed media append as data loss.
+      const savedIds = new Set(images.map(row => row.id));
+      for (const row of projection.imageHistory) if (repairRecordId && (row.runId || row.id) === repairRecordId && !savedIds.has(row.id)) {
+        await rendererHost.app.commands.appendImageHistory(row);
+      }
       return { runHistory: projection.runHistory, mediaHistory: projection.imageHistory };
     };
+
+    const retainedAssetPaths = async () => {
+      const [runs, images, recovery] = await Promise.all([
+        rendererHost.app.projection.runHistory(), loadImageHistory(), loadRecoveryReferences(),
+      ]);
+      return new Set([...Object.values(runs).flat().flatMap(record => studioResultAssetPaths(record.result)),
+        ...images.flatMap(row => row.relativePath ? [row.relativePath] : []), ...recovery.flatMap(item => item.artifactPaths)]);
+    };
+    const verifyRecordAssets = async (record: StudioRunHistoryRecord) => {
+      for (const reference of studioResultAssetReferences(record.result)) {
+        const actual = await rendererHost.sdk.storage.assets.stat(reference.relativePath as string);
+        if ((reference.sha256 !== undefined && reference.sha256 !== actual.sha256)
+          || (reference.sizeBytes !== undefined && reference.sizeBytes !== actual.sizeBytes)
+          || (reference.mediaType !== undefined && reference.mediaType !== actual.mediaType)) throw new Error('Saved result custody has changed');
+      }
+    };
+    const matchingRecord = (runs: StudioRunHistory, record: StudioRunHistoryRecord) => Object.values(runs).flat().find(existing =>
+      existing.id === record.id || (existing.capabilityId === record.capabilityId && existing.result?.ok && record.result?.ok
+        && 'jobId' in existing.result && 'jobId' in record.result && existing.result.jobId === record.result.jobId));
 
     const logRecordedResult = (
       result: StudioCapabilityRunResult,
@@ -103,6 +148,7 @@ export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
 
     return {
       async load() {
+        return withLabManagedHistoryOperation(async () => {
         try {
           return await loadProjection();
         } catch (error) {
@@ -114,12 +160,22 @@ export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
           });
           throw error;
         }
+        });
       },
       async persist({ result, record }) {
+        return withLabManagedHistoryOperation(async () => {
+        const priorRuns = await rendererHost.app.projection.runHistory();
+        const existing = matchingRecord(priorRuns, record);
+        if (existing) {
+          await verifyRecordAssets(existing);
+          return { ok: true as const, record: existing, projection: await loadProjection(priorRuns, undefined, existing.id) };
+        }
+        await verifyRecordAssets(record);
+        const protectedPaths = await retainedAssetPaths();
         const persisted = await persistLabRunHistoryWithArtifactCompensation(
           result,
           () => rendererHost.app.commands.appendRunHistory(record),
-          (relativePath) => rendererHost.sdk.storage.assets.remove(relativePath),
+          async (relativePath) => { if (!protectedPaths.has(relativePath)) await rendererHost.sdk.storage.assets.remove(relativePath); },
         );
         if (!persisted.ok) {
           void rendererHost.app.commands.rendererLog({
@@ -186,20 +242,26 @@ export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
                 error: errorMessage(error, 'Artifact index persistence failed.'),
               },
             });
-            imageHistory = await loadImageHistory();
+            throw error;
           }
         }
-        const projection = await loadProjection(persisted.value, imageHistory);
+        const projection = await loadProjection(persisted.value, imageHistory, record.id);
         logRecordedResult(result, record, artifactPersisted);
-        return { ok: true as const, projection };
+        return { ok: true as const, projection, record };
+        });
       },
       async appendRecord(record) {
-        return loadProjection(await rendererHost.app.commands.appendRunHistory(record));
+        return withLabManagedHistoryOperation(async () => {
+          const existing = matchingRecord(await rendererHost.app.projection.runHistory(), record);
+          await verifyRecordAssets(existing ?? record);
+          return loadProjection(existing ? undefined : await rendererHost.app.commands.appendRunHistory(record), undefined, existing?.id ?? record.id);
+        });
       },
-      cleanupArtifacts: (relativePaths) => cleanupLabManagedArtifactPaths(
-        relativePaths,
-        (relativePath) => rendererHost.sdk.storage.assets.remove(relativePath),
-      ),
+      cleanupArtifacts: (relativePaths) => withLabManagedHistoryOperation(async () => {
+        const protectedPaths = await retainedAssetPaths();
+        return cleanupLabManagedArtifactPaths(relativePaths.filter(path => !protectedPaths.has(path)),
+          (relativePath) => rendererHost.sdk.storage.assets.remove(relativePath));
+      }),
       async remove(recordId, deleteAssets) {
         let outcome;
         try {
@@ -225,7 +287,7 @@ export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
           completed: outcome.completed,
           skipped: outcome.skipped,
           failed: outcome.failed,
-          projection: await loadProjection(outcome.runHistory, outcome.imageHistory),
+          projection: { runHistory: outcome.runHistory, mediaHistory: outcome.imageHistory },
           issues: outcome.issues,
         };
       },
@@ -254,7 +316,7 @@ export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
           completed: outcome.completed,
           skipped: outcome.skipped,
           failed: outcome.failed,
-          projection: await loadProjection(outcome.runHistory, outcome.imageHistory),
+          projection: { runHistory: outcome.runHistory, mediaHistory: outcome.imageHistory },
           issues: outcome.issues,
         };
       },
@@ -279,7 +341,11 @@ export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
         }
       },
     };
-  }, [rendererHost]);
+}
+
+export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
+  const rendererHost = useLabRendererHost();
+  return useMemo(() => createLabAIStudioHistoryRepository(rendererHost), [rendererHost]);
 }
 
 export function LabAIStudioWorkspace({

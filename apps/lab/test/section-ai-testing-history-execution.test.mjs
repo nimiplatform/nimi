@@ -27,6 +27,8 @@ await build({
     contents: `export { SectionAITesting } from './src/ai-studio-core/section-ai-testing.tsx';
       export { TextStudioComposer } from './src/ai-studio-core/section-ai-testing-composer.tsx';
       export { TextStudioResultState } from './src/ai-studio-core/section-ai-testing-result.tsx';
+      export { MusicRecoveryPanel } from './src/studio-modules/studio-media/music-recovery-panel.tsx';
+      export { StudioHistoryResultContext } from './src/ai-studio-core/contexts.tsx';
       export { textStudioMediaInputAvailable } from './src/ai-studio-core/section-ai-testing-input.ts';
       export { AIStudioHostProvider } from './src/ai-studio-core/host-context.tsx';
       export { StudioCapabilityParameterContext } from './src/ai-studio-core/contexts.tsx';
@@ -37,7 +39,7 @@ await build({
   outfile:path.join(buildDir,'studio.mjs'), bundle:true, packages:'external',
   platform:'node', format:'esm', target:'es2022', jsx:'automatic', logLevel:'silent',
 });
-const { SectionAITesting, TextStudioComposer, TextStudioResultState, textStudioMediaInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
+const { SectionAITesting, TextStudioComposer, TextStudioResultState, MusicRecoveryPanel, StudioHistoryResultContext, textStudioMediaInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 
 test.after(async () => {
   dom.window.close();
@@ -650,5 +652,38 @@ test('saved separation range stays with its own submission across history, whole
     props.activeRun.result.output.audioSeparation.request = { kind: 'full-source' };
     await act(async () => render());
     assert.equal(range(), 'AudioSeparate.processedFullSource');
+  } finally { await act(async () => renderer.unmount()); }
+});
+
+test('music recovery opens success only after the workspace commits formal history', async () => {
+  // UI/storage workflow fixture, not a model or protected-App acceptance.
+  const asset = name => ({ relativePath: `synthetic/${name}.wav`, mediaType: 'audio/wav', sizeBytes: 58,
+    sha256: `sha256:${'a'.repeat(64)}`, previewSource: 'managed-asset' });
+  const sourceAudio = asset('source'), vocals = asset('vocals'), background = asset('background');
+  const separation = { sourceAudio, vocals, background, request: { kind: 'range', startSeconds: 2, endSeconds: 9 } };
+  const result = { ok: true, capabilityId: 'audio.separate', capabilityLabel: 'Synthetic', message: 'synthetic',
+    output: { kind: 'artifacts', jobId: 'synthetic-job', jobState: 'completed', artifactCount: 2,
+      artifacts: [vocals, background], firstArtifact: vocals, audioSeparation: separation } };
+  const entry = { clientSubmissionId: 'synthetic-recovery', createdAt: '2026-10-05T00:00:00Z', prompt: 'original prompt',
+    sourceAudio, message: result.message, result: { ok: true, summary: 'synthetic', ...result.output } };
+  const assets = new Map([sourceAudio, vocals, background].map(ref => [ref.relativePath, ref]));
+  const calls = [], deferred = Promise.withResolvers();
+  const host = { translate: key => key, locale: 'en',
+    app: { events: { subscribeAIConfigRefresh: () => () => {} } },
+    sdk: { storage: { readJson: async () => ({ value: [entry] }) }, assets: { stat: async path => assets.get(path) },
+      runCapability: async input => { calls.push(input); return result; } } };
+  const commits = [];
+  const commit = async (...args) => { commits.push(args); await deferred.promise; return { id: 'formal-record' }; };
+  const container = document.getElementById('root'), renderer = createRoot(container);
+  try {
+    await act(async () => renderer.render(createElement(AIStudioHostProvider, { value: host },
+      createElement(StudioHistoryResultContext.Provider, { value: commit }, createElement(MusicRecoveryPanel, { capability: 'audio.separate', disabled: false })))));
+    const open = [...container.querySelectorAll('button')].find(button => button.textContent === 'Music.openSaved');
+    await act(async () => open.click());
+    assert.equal(commits.length, 1); assert.equal(commits[0][0], result); assert.equal(commits[0][1], 'original prompt');
+    assert.equal(container.querySelector('[data-audio-separation-range]'), null, 'uncommitted result is not presented as saved');
+    await act(async () => { deferred.resolve(); await deferred.promise; });
+    assert.ok(container.querySelector('[data-audio-separation-range]'));
+    assert.equal(calls.length, 1); assert.equal(calls[0].parameters.recoverySubmissionId, 'synthetic-recovery');
   } finally { await act(async () => renderer.unmount()); }
 });

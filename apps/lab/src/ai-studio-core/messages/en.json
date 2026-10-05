@@ -4,7 +4,12 @@
     "close": "Close",
     "copy": "Copy",
     "copied": "Copied",
-    "copyFailed": "Copy failed"
+    "copyFailed": "Copy failed",
+    "exportFailed": "The file could not be saved. Check that App storage and the host are available, then try again.",
+    "exportSaved": "File saved: {{path}}",
+    "exportSavedRevealFailed": "The file was saved to {{path}}, but its folder could not be shown. Open it from this path. Exporting again creates another file.",
+    "assetRevealed": "File shown in folder.",
+    "assetRevealFailed": "The folder could not be shown for {{path}}. The file has not been changed; try again when the host is available."
   },
   "History": {
     "title": "History",

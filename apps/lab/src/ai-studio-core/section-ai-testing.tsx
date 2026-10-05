@@ -19,6 +19,7 @@ import {
 } from './section-ai-testing-input.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
 import { readStudioTextReplayMedia } from './text-media-replay.js';
+import { revealStudioAsset } from './section-ai-testing-output.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useStudioRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 import { StudioCapabilityParameterContext, StudioHistoryLoadContext, StudioHistoryPanelContext } from './contexts.js';
 
@@ -252,6 +253,13 @@ function TextStudioShell({
     setActiveRun(pendingRun);
     setExecutingRun(pendingRun);
     setCancelRequested(false);
+    const runConfig = createRunConfigSnapshot({
+      target: runTarget,
+      promptStyle: profile.controls.includes('tone') || profile.controls.includes('length')
+        ? effectiveTextStudioPromptStyle(runTarget) : null,
+      context: nextContext, attachmentCount,
+      requestParameters: registration.parameters.summarize(runEffectiveParameters),
+    });
     try {
       let result: StudioCapabilityRunResult;
       try {
@@ -277,6 +285,7 @@ function TextStudioShell({
           };
         } else result = await rendererHost.sdk.runCapability({
           capabilityId: capability.id,
+          recordedRunConfig: runConfig,
           prompt: usesVerbatimStudioPrompt(capability.id) || profile.rawPrompt || recordedInput
             ? displayPrompt
             : textStudioRuntimePrompt(displayPrompt, nextContext, directive),
@@ -305,15 +314,6 @@ function TextStudioShell({
           missingSurface: capability.missingSurface,
         };
       }
-      const runConfig = createRunConfigSnapshot({
-        target: runTarget,
-        promptStyle: profile.controls.includes('tone') || profile.controls.includes('length')
-          ? effectiveTextStudioPromptStyle(runTarget)
-          : null,
-        context: nextContext,
-        attachmentCount,
-        requestParameters: registration.parameters.summarize(runEffectiveParameters),
-      });
       const record = await onResult(result, displayPrompt, runConfig);
       // A result reaches the visible completed stage only after onResult has
       // finished its required custody/history work. Persistence failure throws
@@ -364,18 +364,18 @@ function TextStudioShell({
     if (currentResult.ok && currentResult.output.kind === 'artifacts') {
       const artifact = currentResult.output.firstArtifact;
       if (artifact?.relativePath) {
-        await rendererHost.sdk.revealLocalAppAsset(artifact.relativePath);
+        await revealStudioAsset(rendererHost, artifact.relativePath);
       }
       return;
     }
     if (currentResult.ok && currentResult.output.kind === 'text-annotation') {
-      await rendererHost.sdk.revealLocalAppAsset(currentResult.output.document.relativePath);
+      await revealStudioAsset(rendererHost, currentResult.output.document.relativePath);
       return;
     }
     const stamp = new Date(rendererHost.clock.now()).toISOString().replace(/[:.]/g, '-');
     const text = resultPlainText(currentResult, t);
     if (!text) return;
-    await downloadTextFile(rendererHost.app.commands, `${capability.id}-${stamp}.txt`, text);
+    await downloadTextFile(rendererHost, `${capability.id}-${stamp}.txt`, text);
   }
 
   // Selecting a history record is a read-only preview: it never writes the

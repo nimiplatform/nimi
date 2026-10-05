@@ -3161,6 +3161,41 @@ test('default profiles generate local-app carrier boundaries without Lab-only or
   }
 });
 
+test('generated Studio export reports actual saved facts, write failure and reveal failure through the typed host port', async () => {
+  const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'acme.export',
+    appTitle: 'Export App', packageName: 'export-app', features: ['studio-create'] });
+  const adapter = [...snapshot.filesByPath].find(([name]) => name.endsWith('/host-adapters.tsx'))[1].content;
+  assert.doesNotMatch(adapter, /downloadBlob|anchor\.click/u);
+  const start = adapter.indexOf('const exportText:');
+  const end = adapter.indexOf('const RUN_STATUS_LABEL_KEYS', start);
+  assert.ok(start >= 0 && end > start);
+  const source = stripTypeScriptTypes(adapter.slice(start, end), { mode: 'strip' });
+  for (const outcome of ['success', 'write-failed', 'reveal-failed']) {
+    const writes = [], reveals = [];
+    const run = vm.runInNewContext(`${source}\nexportText;`, { Blob, crypto, getNimiLocalAppClient: () => ({ storage: { assets: {
+      async write(input) {
+        if (outcome === 'write-failed') throw Error('storage rejected');
+        assert.equal(input.mediaType, 'text/plain');
+        assert.equal(input.overwrite, false);
+        const bytes = Buffer.from(await input.body.arrayBuffer());
+        writes.push({ ...input, bytes });
+        return { relativePath: input.relativePath, sizeBytes: bytes.length };
+      },
+      async reveal(relativePath) { reveals.push(relativePath); if (outcome === 'reveal-failed') throw Error('host unavailable'); return { revealed: true }; },
+    } } }) });
+    const result = await run({ filename: 'selected.txt', body: '真实已选结果' });
+    assert.equal(result.ok, outcome !== 'write-failed');
+    if (result.ok) {
+      assert.equal(writes.length, 1);
+      assert.equal(writes[0].bytes.toString('utf8'), '真实已选结果');
+      assert.equal(result.value.artifactPath, writes[0].relativePath);
+      assert.equal(result.value.byteSize, writes[0].bytes.length);
+      assert.equal(result.value.revealed, outcome === 'success');
+      assert.deepEqual(reveals, [writes[0].relativePath]);
+    } else { assert.equal(writes.length, 0); assert.equal(reveals.length, 0); }
+  }
+});
+
 
 test('generated connection gate shows plain guidance, opens Nimi and folds reason codes into technical details', async () => {
   const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'acme.gate', appTitle: 'Gate App', packageName: 'gate-app' });

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button, TextareaField } from '@nimiplatform/kit/ui';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioMusicGeneration } from './runtime-types.js';
+import { downloadTextFile } from './section-ai-testing-output.js';
 
 export function MusicGenerationNotice({ value }: { readonly value?: StudioMusicGeneration }) {
   const host = useAIStudioHost();
@@ -36,8 +37,7 @@ export function MusicGenerationNotice({ value }: { readonly value?: StudioMusicG
       <Button onClick={() => setExpanded((current) => !current)}>{t(expanded ? 'Music.hideScore' : 'Music.viewScore')}</Button>
       {expanded && score ? <>
         <TextareaField value={score} readOnly textareaClassName="min-h-40 font-mono" aria-label={t('Music.generatedPlan')} />
-        <Button onClick={() => void host.app.commands.exportText({ filename: 'generated-score.abc', body: score })
-          .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))}>{t('Music.exportScore')}</Button>
+        <Button onClick={() => void downloadTextFile(host, 'generated-score.abc', score)}>{t('Music.exportScore')}</Button>
       </> : null}
       {error ? <p role="alert">{error}</p> : null}
     </div> : null}

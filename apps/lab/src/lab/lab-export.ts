@@ -1,21 +1,12 @@
-import { exportShellSaveFile } from '@nimiplatform/kit/shell/renderer/bridge';
+import { getLabLocalAppClient } from '../shell/local-app-runtime-platform.js';
 
 export type LabExportSaveResult = {
   artifactPath: string;
   filename: string;
   byteSize: number;
+  revealed: boolean;
   mimeType?: string;
 };
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  const chunkSize = 0x8000;
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
-  }
-  return btoa(binary);
-}
 
 export async function saveLabExport(input: {
   filename: string;
@@ -23,13 +14,19 @@ export async function saveLabExport(input: {
   body: Blob | string;
 }): Promise<LabExportSaveResult> {
   const blob = typeof input.body === 'string'
-    ? new Blob([input.body], { type: input.mimeType || 'text/plain;charset=utf-8' })
+    ? new Blob([input.body], { type: input.mimeType || 'text/plain' })
     : input.body;
-  const dataBase64 = arrayBufferToBase64(await blob.arrayBuffer());
-  return exportShellSaveFile({
-    filename: input.filename,
-    mimeType: input.mimeType || blob.type || undefined,
-    dataBase64,
-    reveal: true,
-  });
+  const assets = getLabLocalAppClient().storage.assets;
+  const saved = await assets.write({ relativePath: `exports/${crypto.randomUUID()}/${input.filename}`,
+    body: blob, mediaType: input.mimeType || blob.type || undefined, overwrite: false });
+  let revealed = false;
+  try {
+    await assets.reveal(saved.relativePath);
+    revealed = true;
+  } catch {
+    // The write already completed. Preserve its facts even if the host cannot
+    // show the location; never repeat the write while retrying reveal.
+  }
+  return { artifactPath: saved.relativePath, filename: input.filename, byteSize: saved.sizeBytes,
+    revealed, ...(saved.mediaType ? { mimeType: saved.mediaType } : {}) };
 }

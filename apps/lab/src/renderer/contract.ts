@@ -27,7 +27,7 @@ import type {
   LabPreferences,
 } from '../lab/lab-preferences.js';
 import type { LabConversationJourneyResult } from '../lab/local-app-conversation-journey.js';
-import type { StudioRunHistory, StudioRunHistoryRecord } from '../ai-studio-core/index.js';
+import type { StudioRunHistory, StudioRunHistoryRecord, StudioTextExportResult } from '../ai-studio-core/index.js';
 import type {
   ClaimWorldTourViewerLaunchInput,
   OpenWorldTourWindowInput,
@@ -70,7 +70,7 @@ export interface LabRendererCommandPort {
   savePreferences(preferences: LabPreferences): Promise<void>;
   savePromptDraft(key: LabPromptDraftKey, prompt: string, enabled: boolean): Promise<LabPromptDraftSaveResult>;
   copyText(text: string): Promise<NimiRendererHostResult<{ readonly copied: boolean }>>;
-  exportText(input: { readonly filename: string; readonly body: string }): Promise<NimiRendererHostResult<{ readonly filename: string }>>;
+  exportText(input: { readonly filename: string; readonly body: string }): Promise<StudioTextExportResult>;
   resolveWorldTourFixture(input: ResolveWorldTourFixtureInput): Promise<ResolvedWorldTourFixture>;
   openWorldTourWindow(input: OpenWorldTourWindowInput): Promise<OpenWorldTourWindowResponse>;
   resumeWorldTour(signal: AbortSignal, onPartial: (message: string) => void): Promise<StudioCapabilityRunResult>;

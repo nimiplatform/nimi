@@ -1,3 +1,5 @@
+import { studioResultAssetPaths } from '../ai-studio-core/managed-result-references.js';
+
 export type LabArtifactPersistenceCandidate = {
   ok: boolean;
   capabilityId: string;
@@ -64,17 +66,7 @@ function persistenceErrorMessage(error: unknown, fallback: string): string {
 // App assets a successful result created and that only its history record
 // will reference: adopted media outputs or a saved result document.
 export function labRunOwnedAssetPaths(result: LabArtifactPersistenceCandidate): string[] {
-  if (shouldPersistLabArtifactRecord(result)) {
-    return [...new Set(
-      (result.output.artifacts?.length ? result.output.artifacts : [result.output.firstArtifact])
-        .map((artifact) => artifact.relativePath)
-        .filter((relativePath): relativePath is string => Boolean(relativePath)),
-    )];
-  }
-  const documentPath = result.ok && result.output?.kind === 'text-annotation' ? result.output.document?.relativePath : undefined;
-  if (result.ok && result.output?.kind === 'voice-asset' && result.output.preview) return [result.output.preview.relativePath];
-  if (result.ok && result.output?.kind === 'vision-locate' && result.output.sourceImage) return [result.output.sourceImage.relativePath];
-  return documentPath ? [documentPath] : [];
+  return result.ok ? studioResultAssetPaths(result.output) : [];
 }
 
 export async function cleanupLabManagedArtifacts(
@@ -134,7 +126,8 @@ export async function persistLabRunHistoryWithArtifactCompensation<T>(
     const persistenceMessage = persistenceErrorMessage(error, 'History persistence failed.');
     // A successful music result is already committed to the music recovery
     // document. Failure to index it in history must not delete its assets.
-    if (labRunOwnedAssetPaths(result).length === 0
+    if ((error as { historyPublicationUncertain?: unknown })?.historyPublicationUncertain === true
+      || labRunOwnedAssetPaths(result).length === 0
       || !result.output
       || (result.capabilityId === 'music.generate' && result.output.musicGeneration)
       || (result.capabilityId === 'music.transcribe' && result.output.musicTranscription)

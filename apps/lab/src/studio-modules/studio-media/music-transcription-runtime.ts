@@ -10,7 +10,7 @@ export async function runMusicTranscribe(context: StudioCapabilityRuntimeContext
   if (parameters?.recoverySubmissionId) {
     const entry = (await readMusicRecovery(client.storage, 'music.transcribe')).find(item => item.clientSubmissionId === parameters.recoverySubmissionId);
     if (!entry?.sourceAudio) throw new Error(context.host.translate('Music.recoveryMissing'));
-    const saved = restoreSavedMusicResult(entry, context.capability.label, 'music.transcribe');
+    const saved = await restoreSavedMusicResult(entry, context.capability.label, 'music.transcribe', client.storage.assets);
     if (saved) return saved;
     const found = await client.ai.scenarioJobs.lookupSubmission(entry.clientSubmissionId);
     const result = await context.host.runners.musicTranscriptionObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
@@ -50,7 +50,8 @@ export async function runMusicTranscribe(context: StudioCapabilityRuntimeContext
   try {
     signal?.throwIfAborted();
     if (adopted.sizeBytes !== prepared.sizeBytes || adopted.mediaType !== prepared.mimeType) throw new Error('Canonical source adoption changed metadata');
-    clientSubmissionId = await beginMusicRecovery(client.storage, 'music.transcribe', sourceAudio);
+    clientSubmissionId = await beginMusicRecovery(client.storage, 'music.transcribe', sourceAudio, undefined,
+      undefined, context.input.recordedRunConfig, context.input.prompt);
   } catch (cause) { await client.storage.assets.remove(adopted.relativePath); throw cause; }
   const api = client.ai;
   const scenarioClient = context.host.createScenarioJobClient({ ...api, scenarioJobs: { ...api.scenarioJobs,

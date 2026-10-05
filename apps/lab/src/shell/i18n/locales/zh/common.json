@@ -5,6 +5,15 @@
     "save": "保存",
     "language": "语言",
     "languageEnglish": "English",
-    "languageChinese": "中文"
+    "languageChinese": "中文",
+    "historyStorage": {
+      "documentTooLarge": "Lab 历史文档超过公开存储的 256 KiB 限额。已保存的历史未被替换。",
+      "invalidIndex": "Lab 历史索引无效，或使用了不受支持的存储格式。",
+      "invalidReference": "Lab 历史索引包含无效的分块引用。",
+      "missingChunk": "Lab 历史分块缺失或无效：{{path}}",
+      "incompleteChunks": "Lab 历史分块不完整。",
+      "verificationFailed": "Lab 历史内容校验失败。已保存的历史未被替换。",
+      "publicationUncertain": "暂时无法确认历史保存结果。内容与资产已保留，请在存储恢复可用后重试。"
+    }
   }
 }

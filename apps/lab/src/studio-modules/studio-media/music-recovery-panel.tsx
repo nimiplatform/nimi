@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { StudioHistoryResultContext, StudioHistoryPanelContext } from '../../ai-studio-core/contexts.js';
 import { Button } from '@nimiplatform/kit/ui';
 import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
 import { ArtifactMediaResult } from '../../ai-studio-core/section-ai-testing-output.js';
@@ -7,31 +8,59 @@ import { MusicTranscriptionNotice } from '../../ai-studio-core/section-ai-testin
 import { VoiceConversionNotice } from '../../ai-studio-core/section-ai-testing-voice-conversion-result.js';
 import { AudioSeparationNotice } from '../../ai-studio-core/section-ai-testing-audio-separation-result.js';
 import type { StudioCapabilityRunResult } from '../../ai-studio-core/runtime-types.js';
-import { forgetMusicRecovery, readMusicRecovery, type MusicRecoveryEntry, type MusicRecoveryCapability } from './music-recovery.js';
+import { forgetMusicRecovery, readMusicRecovery, verifySavedMusicAssets, type MusicRecoveryEntry, type MusicRecoveryCapability } from './music-recovery.js';
 
 export function MusicRecoveryPanel({ disabled, capability = 'music.generate' }: { readonly disabled: boolean; readonly capability?: MusicRecoveryCapability }) {
   const host = useAIStudioHost();
   const { translate: t } = host;
+  const commitResult = useContext(StudioHistoryResultContext);
+  const historyPanel = useContext(StudioHistoryPanelContext);
   const [entries, setEntries] = useState<readonly MusicRecoveryEntry[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<StudioCapabilityRunResult | null>(null);
+  const [unavailable, setUnavailable] = useState<ReadonlySet<string>>(new Set());
   const abort = useRef<AbortController | null>(null);
-  async function refresh() { setEntries(await readMusicRecovery(host.sdk.storage, capability)); }
+  async function snapshot() {
+    const next = await readMusicRecovery(host.sdk.storage, capability);
+    const missing = new Set<string>();
+    for (const entry of next) {
+      try { await verifySavedMusicAssets(entry, host.sdk.assets); }
+      catch { missing.add(entry.clientSubmissionId); }
+    }
+    return { entries: next, missing };
+  }
+  async function refresh() {
+    const next = await snapshot();
+    setEntries(next.entries); setUnavailable(next.missing);
+  }
   useEffect(() => {
     let active = true;
-    const load = () => void readMusicRecovery(host.sdk.storage, capability).then((value) => { if (active) setEntries(value); })
+    const load = () => void snapshot().then((value) => {
+      if (!active) return;
+      setEntries(value.entries); setUnavailable(value.missing);
+      setResult(previous => {
+        if (!previous?.ok || previous.output.kind !== 'artifacts') return previous;
+        const jobId = previous.output.jobId;
+        return value.entries.some(entry => entry.result?.ok && entry.result.kind === 'artifacts'
+          && entry.result.jobId === jobId && !value.missing.has(entry.clientSubmissionId)) ? previous : null;
+      });
+    })
       .catch((cause: unknown) => { if (active) setError(cause instanceof Error ? cause.message : String(cause)); });
     load();
     const unsubscribe = host.app.events.subscribeAIConfigRefresh(load);
     return () => { active = false; unsubscribe(); };
-  }, [host, disabled, capability]);
+  }, [host, disabled, capability, historyPanel?.imageRecords]);
   async function recover(entry: MusicRecoveryEntry) {
     const controller = new AbortController(); abort.current = controller;
     setBusy(true); setError(''); setResult(null);
     try {
       const next = await host.sdk.runCapability({ capabilityId: capability, prompt: '', signal: controller.signal,
         parameters: { recoverySubmissionId: entry.clientSubmissionId } });
+      if (next.ok) {
+        if (!commitResult) throw new Error(t('Music.historyOwnerUnavailable'));
+        await commitResult(next, entry.prompt ?? '', entry.runConfig);
+      }
       setResult(next);
       await refresh();
     } catch (cause) {
@@ -53,7 +82,7 @@ export function MusicRecoveryPanel({ disabled, capability = 'music.generate' }: 
     <div className="max-h-48 space-y-2 overflow-y-auto">
       {[...entries].reverse().map((entry) => <div key={entry.clientSubmissionId} className="flex flex-wrap items-center gap-2">
         <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString(host.locale)}</time>
-        <Button disabled={disabled || busy} onClick={() => void recover(entry)}>{t(entry.result ? 'Music.openSaved' : 'Music.recover')}</Button>
+        <Button disabled={disabled || busy || unavailable.has(entry.clientSubmissionId)} onClick={() => void recover(entry)}>{t(unavailable.has(entry.clientSubmissionId) ? 'Music.savedUnavailable' : entry.result ? 'Music.openSaved' : 'Music.recover')}</Button>
         <Button disabled={disabled || busy} onClick={() => void forgetMusicRecovery(host.sdk.storage, entry.clientSubmissionId, capability).then(() => {
           setResult(null); setError(''); return refresh();
         })
@@ -66,7 +95,7 @@ export function MusicRecoveryPanel({ disabled, capability = 'music.generate' }: 
       ? t('Music.recoveryJobNotFound') : result.message}</p> : null}
     {result?.ok && result.output.kind === 'artifacts' ? <div className="space-y-3">
       <MusicGenerationNotice value={result.output.musicGeneration} />
-      <MusicTranscriptionNotice value={result.output.musicTranscription} />
+      <MusicTranscriptionNotice value={result.output.musicTranscription} recordId={result.output.jobId} />
       <VoiceConversionNotice value={result.output.voiceConversion} />
       <AudioSeparationNotice value={result.output.audioSeparation} />
       {result.output.artifacts.filter((artifact) => !isTranscription && !isVoiceConversion && !isAudioSeparation && artifact.relativePath !== generatedScorePath).map((artifact) => <ArtifactMediaResult key={artifact.relativePath} artifact={artifact} fallbackLabel={artifact.relativePath} />)}

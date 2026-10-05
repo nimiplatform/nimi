@@ -6,6 +6,7 @@ import {
   StudioHistoryActionsContext,
   StudioHistoryLoadContext,
   StudioHistoryPanelContext,
+  StudioHistoryResultContext,
   type StudioCapabilityParameterStore,
   type StudioHistoryActions,
   type StudioHistoryLoadState,
@@ -34,7 +35,7 @@ export type AIStudioHistoryProjection = {
 };
 
 export type AIStudioHistoryPersistOutcome =
-  | { readonly ok: true; readonly projection: AIStudioHistoryProjection }
+  | { readonly ok: true; readonly projection: AIStudioHistoryProjection; readonly record?: StudioRunHistoryRecord }
   | {
       readonly ok: false;
       readonly message: string;
@@ -245,12 +246,14 @@ export function useAIStudioWorkspaceController({
       setProjection(outcome.projection);
       setHistoryIssue((current) => {
         if (!current || current.kind === 'load') return null;
-        const records = current.records.filter((pending) => pending.id !== record.id);
+        const records = current.records.filter((pending) => pending.id !== record.id
+          && !(pending.capabilityId === record.capabilityId && pending.result?.ok && record.result?.ok
+            && 'jobId' in pending.result && 'jobId' in record.result && pending.result.jobId === record.result.jobId));
         return records.length === 0 && current.cleanupPaths.length === 0
           ? null
           : { ...current, records };
       });
-      return record;
+      return outcome.record ?? record;
     }
     if (outcome.displayFailure) {
       const capability = registrations.find((item) => item.descriptor.id === result.capabilityId)?.descriptor;
@@ -354,6 +357,7 @@ export function AIStudioWorkspace({
       <StudioHistoryLoadContext.Provider value={controller.historyLoadState}>
         <StudioHistoryActionsContext.Provider value={controller.historyActions}>
           <StudioHistoryPanelContext.Provider value={controller.historyPanelState}>
+            <StudioHistoryResultContext.Provider value={controller.handleResult}>
             <SectionAITesting
               registration={registration}
               registrations={registrations}
@@ -369,6 +373,7 @@ export function AIStudioWorkspace({
               renderAIConfigPanel={renderAIConfigPanel}
               rootTestId={rootTestId}
             />
+            </StudioHistoryResultContext.Provider>
           </StudioHistoryPanelContext.Provider>
         </StudioHistoryActionsContext.Provider>
       </StudioHistoryLoadContext.Provider>

@@ -66,10 +66,7 @@ export {
 } from './run-target.js';
 export {
   DEFAULT_AI_STUDIO_HISTORY_PANEL_PREFERENCES,
-  STUDIO_HISTORY_LIMIT_BYTES,
-  STUDIO_HISTORY_LIMIT_PER_CAPABILITY,
-  STUDIO_HISTORY_LIMIT_TOTAL_RECORDS,
-  boundStudioRunHistoryWithRecord,
+  appendStudioRunHistoryRecord,
   cleanupStudioHistoryArtifacts,
   clearStudioRunHistory,
   clearStudioHistoryWithPolicy,
@@ -81,7 +78,6 @@ export {
   studioHistoryClearOutcomeTone,
   studioHistoryArtifactPaths,
   studioHistoryDocumentPaths,
-  studioHistoryEvictedDocumentPaths,
   studioHistoryFromRecords,
   type StudioHistoryPolicyMutationIssue,
   type StudioHistoryPolicyMutationOutcome,
@@ -203,6 +199,7 @@ export {
   useAIStudioHost,
   type AIStudioHostPort,
   type StudioHostCommandResult,
+  type StudioTextExportResult,
 } from './host-context.js';
 export { SectionAITesting } from './section-ai-testing.js';
 export type { SectionAITestingProps, StudioAIConfigPanelRenderInput } from './section-ai-testing-surface.js';

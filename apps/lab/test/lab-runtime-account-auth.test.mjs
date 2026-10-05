@@ -286,12 +286,14 @@ function readyRuntimeDependencies(client, overrides = {}) {
 }
 
 function fakeLocalAppClient(overrides = {}) {
+  const adoptedAssetMetadata = new Map();
   const unavailable = (name) => async () => {
     throw Object.assign(new Error(`${name} was not configured by this test.`), {
       reasonCode: 'TEST_METHOD_UNAVAILABLE',
     });
   };
   return {
+    adoptedAssetMetadata,
     ai: {
       text: {
         generateCandidate: overrides.generateCandidate ?? unavailable('text.generateCandidate'),
@@ -316,7 +318,15 @@ function fakeLocalAppClient(overrides = {}) {
     },
     storage: {
       assets: {
-        adoptArtifact: overrides.adoptArtifact ?? unavailable('storage.assets.adoptArtifact'),
+        adoptArtifact: async input => {
+          const metadata = await (overrides.adoptArtifact ?? unavailable('storage.assets.adoptArtifact'))(input);
+          adoptedAssetMetadata.set(metadata.relativePath, structuredClone(metadata));
+          return metadata;
+        },
+        stat: async path => {
+          if (!adoptedAssetMetadata.has(path)) throw Object.assign(new Error('missing test asset'), { code: 'not-found' });
+          return structuredClone(adoptedAssetMetadata.get(path));
+        },
         write: overrides.writeAsset ?? unavailable('storage.assets.write'),
         remove: overrides.removeAsset ?? unavailable('storage.assets.remove'),
       },
@@ -1617,7 +1627,8 @@ test('Lab transcription retains its canonical source and complete result across 
         sizeBytes: original ? 7680058 : artifact.sizeBytes, sha256: `sha256:${original ? 'a'.repeat(64) : artifact.sha256}` };
     },
   });
-  client.storage.assets.stat = async () => ({ relativePath: 'input/song.mp3', mediaType: 'audio/mpeg', sizeBytes: 1000 });
+  client.storage.assets.stat = async path => client.adoptedAssetMetadata.get(path)
+    ?? { relativePath: 'input/song.mp3', mediaType: 'audio/mpeg', sizeBytes: 1000 };
   client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
   client.storage.readJson = async path => { assert.equal(path, 'studio/music-transcription-recovery.json'); return { value: entries }; };
   client.storage.writeJson = async (path, value) => { assert.equal(path, 'studio/music-transcription-recovery.json'); entries = structuredClone(value); return { value }; };
@@ -1677,7 +1688,7 @@ test('Lab voice conversion retains its distinct inputs and complete result acros
         sizeBytes: original.sizeBytes, sha256: `sha256:${original.sha256}` };
     },
   });
-  client.storage.assets.stat = async (relativePath) => ({ relativePath,
+  client.storage.assets.stat = async (relativePath) => client.adoptedAssetMetadata.get(relativePath) ?? ({ relativePath,
     mediaType: relativePath.endsWith('vocal.mp3') ? 'audio/mpeg' : 'audio/flac', sizeBytes: 1000 });
   client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
   client.storage.readJson = async path => { assert.equal(path, 'studio/voice-convert-recovery.json'); return { value: entries }; };
@@ -1782,7 +1793,7 @@ function fakeAudioSeparationClient(overrides = {}) {
         sizeBytes: original ? 7680058 : stem.sizeBytes, sha256: `sha256:${original ? 'a'.repeat(64) : stem.sha256}` };
     },
   });
-  client.storage.assets.stat = async (relativePath) => ({ relativePath,
+  client.storage.assets.stat = async (relativePath) => client.adoptedAssetMetadata.get(relativePath) ?? ({ relativePath,
     mediaType: relativePath.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav', sizeBytes: 1000 });
   client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
   client.storage.readJson = async path => { assert.equal(path, 'studio/audio-separation-recovery.json'); return { value: entries }; };
@@ -1891,10 +1902,10 @@ test('Lab audio separation recovers only from its captured job identity after a 
   const musicRecovery = await import(pathToFileURL(path.join(buildModule(), 'studio-modules/studio-media/music-recovery.js')).href);
   const saved = structuredClone(getEntries()[0]);
   delete saved.result.audioSeparation.request;
-  assert.deepEqual(musicRecovery.restoreSavedMusicResult(saved, 'Separate', 'audio.separate').output.audioSeparation.request,
+  assert.deepEqual((await musicRecovery.restoreSavedMusicResult(saved, 'Separate', 'audio.separate', client.storage.assets)).output.audioSeparation.request,
     { kind: 'range', startSeconds: 2, endSeconds: 9 }, 'saved recovery uses its own recorded request');
   delete saved.separationRequest;
-  assert.equal(musicRecovery.restoreSavedMusicResult(saved, 'Separate', 'audio.separate').output.audioSeparation.request, undefined);
+  assert.equal((await musicRecovery.restoreSavedMusicResult(saved, 'Separate', 'audio.separate', client.storage.assets)).output.audioSeparation.request, undefined);
   assert.equal(runs, 1); assert.equal(submits, 1); assert.equal(observations, 1);
   assert.deepEqual(adoptions, ['source-converted', 'vocals-1', 'background-1']);
 });

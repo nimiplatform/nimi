@@ -97,6 +97,11 @@ export async function readLabStandardStorageJson(relativePath: string): Promise<
   }
 }
 
+export async function removeLabStandardStorageJson(relativePath: string): Promise<void> {
+  try { await getLabLocalAppClient().storage.removeJson(relativePath); }
+  catch (error) { if (!isNotFound(error)) throw error; }
+}
+
 export async function removeLabStandardStorageAsset(relativePath: string): Promise<void> {
   await getLabLocalAppClient().storage.assets.remove(relativePath);
 }

@@ -62,7 +62,7 @@ async function runMusicGenerate(context: StudioCapabilityRuntimeContext) {
   if (parameters?.recoverySubmissionId) {
     const entry = (await readMusicRecovery(context.host.client.storage)).find((item) => item.clientSubmissionId === parameters.recoverySubmissionId);
     if (!entry) throw new Error(context.host.translate('Music.recoveryMissing'));
-    const saved = restoreSavedMusicResult(entry, context.capability.label);
+    const saved = await restoreSavedMusicResult(entry, context.capability.label, 'music.generate', context.host.client.storage.assets);
     if (saved) return saved;
     const found = await context.host.client.ai.scenarioJobs.lookupSubmission(entry.clientSubmissionId);
     const result = await context.host.runners.musicObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
@@ -94,7 +94,8 @@ async function runMusicGenerate(context: StudioCapabilityRuntimeContext) {
     score = { artifactId: uploaded.artifactId, format: 'abc' };
   }
   // Record the author action before Submit, so a lost response remains recoverable.
-  const clientSubmissionId = await beginMusicRecovery(context.host.client.storage);
+  const clientSubmissionId = await beginMusicRecovery(context.host.client.storage, 'music.generate', undefined, undefined,
+    undefined, context.input.recordedRunConfig, context.input.prompt);
   const api = context.host.client.ai;
   const musicClient = context.host.createScenarioJobClient({ ...api, scenarioJobs: {
     ...api.scenarioJobs,

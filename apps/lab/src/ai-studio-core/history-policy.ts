@@ -1,15 +1,13 @@
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import { validateNimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
 import { isAudioSeparationRequest } from './audio-separation-request.js';
+import { studioResultAssetPaths } from './managed-result-references.js';
 
 import type { AIStudioHistoryPanelPreferences } from './workspace.js';
 import type { StudioRunHistory, StudioRunHistoryRecord } from './history.js';
 
-export const STUDIO_HISTORY_LIMIT_PER_CAPABILITY = 40;
-export const STUDIO_HISTORY_LIMIT_TOTAL_RECORDS = 160;
-export const STUDIO_HISTORY_LIMIT_BYTES = 240 * 1024;
-// One long input must not push every other capability out of the shared budget.
-export const STUDIO_HISTORY_INPUT_LIMIT_BYTES = 16 * 1024;
+// Existing records may truthfully carry a previously truncated input preview.
+const STORED_INPUT_PREVIEW_MAX_BYTES = 16 * 1024;
 
 export const DEFAULT_AI_STUDIO_HISTORY_PANEL_PREFERENCES: AIStudioHistoryPanelPreferences = Object.freeze({
   collapsed: true,
@@ -493,7 +491,7 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
   historyError(`${path}.kind`, `has unsupported value ${kind}`);
 }
 
-function validateRunConfig(value: unknown, path: string): void {
+export function validateRunConfig(value: unknown, path: string): void {
   if (!isJsonObject(value) || !isJsonObject(value.target) || !isJsonObject(value.promptControls)) {
     historyError(path, 'requires target and promptControls objects');
   }
@@ -530,7 +528,7 @@ function parseHistoryRecord(value: unknown, path: string, capabilityId: string):
     if (value.inputTruncated !== true) historyError(`${path}.inputTruncated`, 'requires true when present');
     const context = isJsonObject(value.runConfig) && isJsonObject(value.runConfig.promptControls) ? value.runConfig.promptControls.context : undefined;
     for (const [field, text] of [['prompt', value.prompt], ['runConfig.promptControls.context', context]] as const) {
-      if (typeof text === 'string' && utf8ByteLength(text) > STUDIO_HISTORY_INPUT_LIMIT_BYTES) historyError(`${path}.${field}`, 'exceeds the truncated input limit');
+      if (typeof text === 'string' && utf8ByteLength(text) > STORED_INPUT_PREVIEW_MAX_BYTES) historyError(`${path}.${field}`, 'exceeds the truncated input limit');
     }
   }
   return value as unknown as StudioRunHistoryRecord;
@@ -538,37 +536,6 @@ function parseHistoryRecord(value: unknown, path: string, capabilityId: string):
 
 function utf8ByteLength(text: string): number {
   return new TextEncoder().encode(text).byteLength;
-}
-
-// Keeps whole code points only, so a preview never ends in half a character.
-function boundedHistoryInput(text: string): { readonly text: string; readonly truncated: boolean } {
-  if (utf8ByteLength(text) <= STUDIO_HISTORY_INPUT_LIMIT_BYTES) return { text, truncated: false };
-  let bytes = 0;
-  let end = 0;
-  for (const character of text) {
-    const size = utf8ByteLength(character);
-    if (bytes + size > STUDIO_HISTORY_INPUT_LIMIT_BYTES) break;
-    bytes += size;
-    end += character.length;
-  }
-  return { text: text.slice(0, end), truncated: true };
-}
-
-// The stored copy keeps a bounded preview of long input text; the run that
-// produced the record keeps its complete input for the rest of the session.
-function boundStudioHistoryInput(record: StudioRunHistoryRecord): StudioRunHistoryRecord {
-  const prompt = boundedHistoryInput(record.prompt);
-  const context = record.runConfig?.promptControls.context;
-  const boundedContext = context === undefined ? undefined : boundedHistoryInput(context);
-  if (!prompt.truncated && !boundedContext?.truncated) return record;
-  return {
-    ...record,
-    prompt: prompt.text,
-    ...(record.runConfig && boundedContext
-      ? { runConfig: { ...record.runConfig, promptControls: { ...record.runConfig.promptControls, context: boundedContext.text } } }
-      : {}),
-    inputTruncated: true,
-  };
 }
 
 export function parseStudioRunHistory(value: unknown): StudioRunHistory {
@@ -601,41 +568,11 @@ export function studioHistoryFromRecords(records: readonly StudioRunHistoryRecor
   return history;
 }
 
-export function boundStudioRunHistoryWithRecord(history: StudioRunHistory, record: StudioRunHistoryRecord): StudioRunHistory {
-  // History has a smaller JSON budget than a long input or a complete Runtime
-  // Locate result. The stored copy keeps an input preview and the summary/Job
-  // reference without mutating the current full result.
-  let storedRecord = boundStudioHistoryInput(record);
-  if (storedRecord.result?.ok && storedRecord.result.kind === 'vision-locate' && storedRecord.result.result
-    && utf8ByteLength(JSON.stringify(studioHistoryFromRecords([storedRecord]))) > STUDIO_HISTORY_LIMIT_BYTES) {
-    const { result: _locations, ...reference } = storedRecord.result;
-    storedRecord = { ...storedRecord, result: reference };
-  }
-  // Every submitted candidate keeps its probability, so many large choices can
-  // outgrow the whole budget; the stored copy then keeps the summary alone.
-  if (storedRecord.result?.ok && storedRecord.result.kind === 'text-decision' && storedRecord.result.answers
-    && utf8ByteLength(JSON.stringify(studioHistoryFromRecords([storedRecord]))) > STUDIO_HISTORY_LIMIT_BYTES) {
-    const { answers: _answers, ...summary } = storedRecord.result;
-    storedRecord = { ...storedRecord, result: summary };
-  }
-  const counts = new Map<string, number>();
-  const retained = [storedRecord, ...flattenStudioHistoryRecords(history).filter((existing) => existing.id !== record.id)]
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
-    .filter((candidate) => {
-      const count = counts.get(candidate.capabilityId) ?? 0;
-      if (count >= STUDIO_HISTORY_LIMIT_PER_CAPABILITY) return false;
-      counts.set(candidate.capabilityId, count + 1);
-      return true;
-    })
-    .slice(0, STUDIO_HISTORY_LIMIT_TOTAL_RECORDS);
-  let next = studioHistoryFromRecords(retained);
-  while (new TextEncoder().encode(JSON.stringify(next)).byteLength > STUDIO_HISTORY_LIMIT_BYTES) {
-    if (retained.length <= 1) throw new Error('AI Studio history record exceeds the storage document limit.');
-    retained.pop();
-    next = studioHistoryFromRecords(retained);
-  }
-  if (!retained.some((candidate) => candidate.id === record.id)) throw new Error('AI Studio history could not retain the newly completed run.');
-  return next;
+// Saving a run never removes or shrinks another run. Storage splits complete
+// records across documents; only an explicit user action removes history.
+export function appendStudioRunHistoryRecord(history: StudioRunHistory, record: StudioRunHistoryRecord): StudioRunHistory {
+  return studioHistoryFromRecords([record, ...flattenStudioHistoryRecords(history).filter((existing) => existing.id !== record.id)]
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt)));
 }
 
 export function removeStudioRunHistoryRecord(history: StudioRunHistory, recordId: string): StudioRunHistory {
@@ -677,21 +614,9 @@ export type StudioHistoryMutationSubject = {
 };
 
 export function studioHistoryArtifactPaths(record: StudioRunHistoryRecord): string[] {
-  const result = record.result;
-  if (!result || result.ok === false) return [];
-  if (result.kind === 'text-annotation') return studioHistoryDocumentPaths(record);
-  if (result.kind === 'voice-asset') return result.preview ? [result.preview.relativePath] : [];
-  if (result.kind === 'vision-locate') return result.sourceImage ? [result.sourceImage.relativePath] : [];
-  if (result.kind !== 'artifacts') return [];
-  const artifacts = result.artifacts?.length ? result.artifacts : result.firstArtifact ? [result.firstArtifact] : [];
-  return artifacts.map((artifact) => artifact.relativePath).filter(Boolean);
+  return studioResultAssetPaths(record.result);
 }
 
-/**
- * Saved result documents that only the run history references. Unlike media
- * outputs, no media index or other App document keeps them reachable, so a
- * record leaving the bounded history also releases its document.
- */
 export function studioHistoryDocumentPaths(record: StudioRunHistoryRecord): string[] {
   const result = record.result;
   if (!result || result.ok === false) return [];
@@ -699,17 +624,6 @@ export function studioHistoryDocumentPaths(record: StudioRunHistoryRecord): stri
   if (result.kind === 'vision-locate') return result.sourceImage ? [result.sourceImage.relativePath] : [];
   if (result.kind !== 'text-annotation') return [];
   return result.document.relativePath ? [result.document.relativePath] : [];
-}
-
-export function studioHistoryEvictedDocumentPaths(
-  previous: StudioRunHistory,
-  added: StudioRunHistoryRecord,
-  retained: StudioRunHistory,
-): string[] {
-  const retainedPaths = new Set(flattenStudioHistoryRecords(retained).flatMap(studioHistoryDocumentPaths));
-  return [...new Set([...flattenStudioHistoryRecords(previous), added].flatMap(studioHistoryDocumentPaths))]
-    .filter((relativePath) => !retainedPaths.has(relativePath))
-    .sort((left, right) => left.localeCompare(right));
 }
 
 export async function cleanupStudioHistoryArtifacts(input: {
@@ -781,12 +695,14 @@ export async function removeStudioHistoryWithPolicy<TProjection>(input: {
   readonly history: StudioRunHistory;
   readonly recordId: string;
 } & StudioHistoryMutationPolicyPort<TProjection>): Promise<StudioHistoryPolicyMutationOutcome<TProjection>> {
-  const removed = mutationSubjects(input, input.history).filter((subject) => subject.id === input.recordId);
+  const subjects = mutationSubjects(input, input.history);
+  const removed = subjects.filter((subject) => subject.id === input.recordId);
+  const retainedPaths = new Set(subjects.filter(subject => subject.id !== input.recordId).flatMap(subject => subject.artifactPaths));
   const currentProjection = await input.project(input.history);
   if (removed.length === 0) return { completed: 0, skipped: 1, failed: 0, projection: currentProjection, issues: [] };
   if (input.deleteAssets) {
     const cleanup = await cleanupStudioHistoryArtifacts({
-      relativePaths: removed.flatMap((subject) => subject.artifactPaths),
+      relativePaths: removed.flatMap((subject) => subject.artifactPaths).filter(path => !retainedPaths.has(path)),
       removeArtifact: input.removeArtifact,
       isNotFound: input.isNotFound,
     });
@@ -821,7 +737,8 @@ export async function clearStudioHistoryWithPolicy<TProjection>(input: {
   readonly history: StudioRunHistory;
   readonly capabilityId: string | null;
 } & StudioHistoryMutationPolicyPort<TProjection>): Promise<StudioHistoryPolicyMutationOutcome<TProjection>> {
-  const removed = mutationSubjects(input, input.history).filter((subject) => (
+  const subjects = mutationSubjects(input, input.history);
+  const removed = subjects.filter((subject) => (
     input.capabilityId === null || subject.capabilityId === input.capabilityId
   ));
   if (!input.deleteAssets) {
@@ -846,9 +763,11 @@ export async function clearStudioHistoryWithPolicy<TProjection>(input: {
   let skipped = 0;
   let failed = 0;
   const issues: StudioHistoryPolicyMutationIssue[] = [];
+  const committedIds = new Set<string>();
   for (const subject of removed) {
+    const retainedPaths = new Set(subjects.filter(other => other.id !== subject.id && !committedIds.has(other.id)).flatMap(other => other.artifactPaths));
     const cleanup = await cleanupStudioHistoryArtifacts({
-      relativePaths: subject.artifactPaths,
+      relativePaths: subject.artifactPaths.filter(path => !retainedPaths.has(path)),
       removeArtifact: input.removeArtifact,
       isNotFound: input.isNotFound,
     });
@@ -861,6 +780,7 @@ export async function clearStudioHistoryWithPolicy<TProjection>(input: {
     try {
       await input.commit(next, [subject]);
       history = next;
+      committedIds.add(subject.id);
       completed += 1;
     } catch (error) {
       failed += 1;

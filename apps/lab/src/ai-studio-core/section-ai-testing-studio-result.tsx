@@ -45,7 +45,7 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
     return (
       <div className="studio-result__rich">
         <MusicGenerationNotice value={output.musicGeneration} />
-        <MusicTranscriptionNotice value={output.musicTranscription} />
+        <MusicTranscriptionNotice value={output.musicTranscription} recordId={output.jobId} />
         <VoiceConversionNotice value={output.voiceConversion} />
         <AudioSeparationNotice value={output.audioSeparation} />
         <FaceSwapNotice value={output.faceSwap} />

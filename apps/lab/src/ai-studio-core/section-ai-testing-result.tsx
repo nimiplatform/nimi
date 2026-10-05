@@ -17,7 +17,7 @@ import type { StudioCapabilityRegistration } from './module-registration.js';
 import { formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunIntentLabel, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
 import { studioNonSuccessReasonTitle, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage } from './non-success-presentation.js';
 import { ArtifactMediaPreview, ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
-import { EmbeddingResultBody, KnownJobNotice } from './section-ai-testing-output.js';
+import { EmbeddingResultBody, KnownJobNotice, revealStudioAsset } from './section-ai-testing-output.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly StudioRunPromptControlFact[] }) {
@@ -204,12 +204,12 @@ function TextStudioHistoryRecordResult({
   }
   function handleDownload() {
     if (managedArtifact?.relativePath) {
-      void rendererHost.sdk.revealLocalAppAsset(managedArtifact.relativePath);
+      void revealStudioAsset(rendererHost, managedArtifact.relativePath);
       return;
     }
     const stamp = record.createdAt.replace(/[:.]/g, '-');
     if (!exportText.trim()) return;
-    void downloadTextFile(rendererHost.app.commands, `${record.capabilityId}-${stamp}.txt`, exportText);
+    void downloadTextFile(rendererHost, `${record.capabilityId}-${stamp}.txt`, exportText);
   }
   let body: ReactNode;
   if (!snapshot) {
@@ -240,7 +240,7 @@ function TextStudioHistoryRecordResult({
       </div>
     );
   } else {
-    body = <TextStudioHistorySnapshotBody snapshot={snapshot}
+    body = <TextStudioHistorySnapshotBody snapshot={snapshot} recordId={record.id}
       submittedParameters={record.capabilityId === 'audio.separate' ? record.runConfig?.target.params : undefined} />;
   }
   return (
@@ -310,8 +310,8 @@ function TextStudioHistoryRecordResult({
   );
 }
 
-function TextStudioHistorySnapshotBody({ snapshot, submittedParameters }: {
-  snapshot: Extract<StudioRunHistoryResultSnapshot, { ok: true }>;
+function TextStudioHistorySnapshotBody({ snapshot, recordId, submittedParameters }: {
+  snapshot: Extract<StudioRunHistoryResultSnapshot, { ok: true }>; recordId: string;
   submittedParameters?: Readonly<Record<string, unknown>>;
 }) {
   const { translate: t } = useAIStudioHost();
@@ -358,7 +358,7 @@ function TextStudioHistorySnapshotBody({ snapshot, submittedParameters }: {
     return (
       <div className="studio-result__rich">
         <MusicGenerationNotice value={snapshot.musicGeneration} />
-        <MusicTranscriptionNotice value={snapshot.musicTranscription} />
+        <MusicTranscriptionNotice value={snapshot.musicTranscription} recordId={recordId} />
         <VoiceConversionNotice value={snapshot.voiceConversion} />
         <AudioSeparationNotice value={snapshot.audioSeparation} submittedParameters={submittedParameters} />
         <FaceSwapNotice value={snapshot.faceSwap} />

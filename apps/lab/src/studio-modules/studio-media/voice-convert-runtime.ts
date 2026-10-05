@@ -11,7 +11,7 @@ export async function runVoiceConvert(context: StudioCapabilityRuntimeContext) {
   if (parameters?.recoverySubmissionId) {
     const entry = (await readMusicRecovery(client.storage, 'audio.voice.convert')).find(item => item.clientSubmissionId === parameters.recoverySubmissionId);
     if (!entry?.sourceAudio) throw new Error(context.host.translate('Music.recoveryMissing'));
-    const saved = restoreSavedMusicResult(entry, context.capability.label, 'audio.voice.convert');
+    const saved = await restoreSavedMusicResult(entry, context.capability.label, 'audio.voice.convert', client.storage.assets);
     if (saved) return saved;
     const found = await client.ai.scenarioJobs.lookupSubmission(entry.clientSubmissionId);
     const result = await context.host.runners.voiceConversionObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
@@ -93,7 +93,8 @@ export async function runVoiceConvert(context: StudioCapabilityRuntimeContext) {
     if (adopted.sizeBytes !== preparedSource.sizeBytes || adopted.mediaType !== preparedSource.mimeType) throw new Error('Canonical source adoption changed metadata');
     if (preparedTarget && adoptedTarget
       && (adoptedTarget.sizeBytes !== preparedTarget.sizeBytes || adoptedTarget.mediaType !== preparedTarget.mimeType)) throw new Error('Canonical target adoption changed metadata');
-    clientSubmissionId = await beginMusicRecovery(client.storage, 'audio.voice.convert', sourceVocal, targetAudio);
+    clientSubmissionId = await beginMusicRecovery(client.storage, 'audio.voice.convert', sourceVocal, targetAudio,
+      undefined, context.input.recordedRunConfig, context.input.prompt);
   } catch (cause) {
     if (adoptedTarget) await client.storage.assets.remove(adoptedTarget.relativePath);
     await client.storage.assets.remove(adopted.relativePath);

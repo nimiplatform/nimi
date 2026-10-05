@@ -36,6 +36,10 @@ const separationRequestOutput = ts.transpileModule(read('src/ai-studio-core/audi
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 const separationRequestModuleUrl = `data:text/javascript;base64,${Buffer.from(separationRequestOutput).toString('base64')}`;
+const managedReferencesOutput = ts.transpileModule(read('src/ai-studio-core/managed-result-references.ts'), {
+  compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const managedReferencesModuleUrl = `data:text/javascript;base64,${Buffer.from(managedReferencesOutput).toString('base64')}`;
 const historyPolicySource = read('src/ai-studio-core/history-policy.ts');
 const historyPolicyOutput = ts.transpileModule(historyPolicySource, {
   compilerOptions: {
@@ -51,6 +55,9 @@ const historyPolicyOutput = ts.transpileModule(historyPolicySource, {
 ).replace(
   /from\s+['"]\.\/audio-separation-request\.js['"]/g,
   `from ${JSON.stringify(separationRequestModuleUrl)}`,
+).replace(
+  /from\s+['"]\.\/managed-result-references\.js['"]/g,
+  `from ${JSON.stringify(managedReferencesModuleUrl)}`,
 );
 const historyPolicyModuleUrl = `data:text/javascript;base64,${Buffer.from(historyPolicyOutput).toString('base64')}`;
 const { outputText } = ts.transpileModule(source, {

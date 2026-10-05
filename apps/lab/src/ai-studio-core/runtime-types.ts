@@ -1,5 +1,6 @@
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import type { StudioParameterValue } from './parameters.js';
+import type { StudioRunConfigSnapshot } from './history.js';
 import type { NimiLocalAppAudioInstrumentPartKind, NimiLocalAppVisionLocateResult, NimiLocalAppMusicGeneration, NimiLocalAppMusicTranscription, NimiLocalAppSpeechTranscript, NimiLocalAppTextAnnotationResult, NimiLocalAppVideoFaceSwapSummary, NimiLocalAppVoiceConversion } from '@nimiplatform/sdk/app';
 import type { NimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
 
@@ -183,6 +184,7 @@ export type StudioRuntimeInspection = {
 };
 
 export type StudioCapabilityRunInput = {
+  readonly recordedRunConfig?: StudioRunConfigSnapshot;
   readonly capabilityId: string;
   readonly prompt: string;
   readonly scenarioId?: string;

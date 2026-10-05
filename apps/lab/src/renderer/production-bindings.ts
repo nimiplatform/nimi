@@ -160,14 +160,7 @@ export function createLabProductionBindings(
         async nextRunIdentity() {
           return { runId: createNimiClientId('run'), createdAt: new Date().toISOString() };
         },
-        appendRunHistory: (record: Parameters<LabRendererCommandPort['appendRunHistory']>[0]) => appendLabRunHistory(record, (failures) => {
-          emitRuntimeLog({
-            level: 'warn',
-            area: 'lab-history',
-            message: 'history-evicted-document-cleanup-failed',
-            details: { failures: [...failures] },
-          } as Parameters<typeof emitRuntimeLog>[0]);
-        }),
+        appendRunHistory: appendLabRunHistory,
         removeRunHistory: removeLabRunHistoryRecord,
         async clearRunHistory(input: { readonly capabilityId?: string }) {
           return clearLabRunHistory(input.capabilityId);
@@ -199,16 +192,17 @@ export function createLabProductionBindings(
             return hostFailure<{ readonly copied: boolean }>('host-unavailable');
           }
         },
-        async exportText(input: { readonly filename: string; readonly body: string }) {
+        async exportText(input: { readonly filename: string; readonly body: string }): ReturnType<LabRendererCommandPort['exportText']> {
           try {
             const saved = await saveLabExport({
               filename: input.filename,
-              mimeType: 'text/plain;charset=utf-8',
+              mimeType: 'text/plain',
               body: input.body,
             });
-            return hostSuccess({ filename: saved.filename });
+            return { ok: true, value: { filename: saved.filename, artifactPath: saved.artifactPath,
+              byteSize: saved.byteSize, revealed: saved.revealed } };
           } catch {
-            return hostFailure<{ readonly filename: string }>('host-unavailable');
+            return { ok: false, error: { disposition: 'host-unavailable' } };
           }
         },
         resolveWorldTourFixture,

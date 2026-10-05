@@ -5,6 +5,10 @@ import test from 'node:test';
 import ts from 'typescript';
 
 const root = path.resolve(import.meta.dirname, '..');
+const managedReferencesOutput = ts.transpileModule(readFileSync(path.join(root, 'src/ai-studio-core/managed-result-references.ts'), 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const managedReferencesModuleUrl = `data:text/javascript;base64,${Buffer.from(managedReferencesOutput).toString('base64')}`;
 const source = readFileSync(path.join(root, 'src/lab/lab-artifact-persistence.ts'), 'utf8');
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: {
@@ -12,7 +16,10 @@ const { outputText } = ts.transpileModule(source, {
     target: ts.ScriptTarget.ES2022,
   },
 });
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`;
+const moduleUrl = `data:text/javascript;base64,${Buffer.from(outputText.replace(
+  /from\s+['"]\.\.\/ai-studio-core\/managed-result-references\.js['"]/g,
+  `from ${JSON.stringify(managedReferencesModuleUrl)}`,
+)).toString('base64')}`;
 const {
   cleanupLabManagedArtifactPaths,
   persistLabRunHistoryWithArtifactCompensation,
@@ -32,6 +39,9 @@ const sharedHistoryOutput = ts.transpileModule(sharedHistorySource, {
 }).outputText.replace(
   /from\s+['"]@nimiplatform\/sdk\/types['"]/g,
   `from ${JSON.stringify(sdkTypesStubUrl)}`,
+).replace(
+  /from\s+['"]\.\/managed-result-references\.js['"]/g,
+  `from ${JSON.stringify(managedReferencesModuleUrl)}`,
 );
 const sharedHistoryUrl = `data:text/javascript;base64,${Buffer.from(sharedHistoryOutput).toString('base64')}`;
 const sharedHistoryPolicySource = readFileSync(path.join(root, 'src/ai-studio-core/history-policy.ts'), 'utf8');
@@ -46,6 +56,9 @@ const sharedHistoryPolicyOutput = ts.transpileModule(sharedHistoryPolicySource, 
 ).replace(
   /from\s+['"]\.\/audio-separation-request\.js['"]/g,
   `from ${JSON.stringify(separationRequestModuleUrl)}`,
+).replace(
+  /from\s+['"]\.\/managed-result-references\.js['"]/g,
+  `from ${JSON.stringify(managedReferencesModuleUrl)}`,
 );
 const sharedHistoryPolicyUrl = `data:text/javascript;base64,${Buffer.from(sharedHistoryPolicyOutput).toString('base64')}`;
 const sharedHistoryFacadeUrl = `data:text/javascript;base64,${Buffer.from([
@@ -83,6 +96,9 @@ function managedHistoryPort(initial = {}) {
   const failingRunHistory = new Set();
   const failingImageHistory = new Set();
   const port = {
+    loadRecoveryReferences: async () => [],
+    forgetRecoveryReference: async () => {},
+    projectHistory: async (runs, images) => ({ runHistory: runs, imageHistory: images }),
     loadRunHistory: async () => structuredClone(runHistory),
     loadImageHistory: async () => structuredClone(imageHistory),
     async removeAsset(relativePath) {

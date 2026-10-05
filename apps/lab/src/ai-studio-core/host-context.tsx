@@ -12,6 +12,15 @@ export type StudioHostCommandResult<TValue extends object = Record<string, never
   | { readonly ok: true; readonly value?: TValue }
   | { readonly ok: false; readonly error?: unknown };
 
+export type StudioTextExportResult =
+  | { readonly ok: true; readonly value: {
+      readonly filename: string;
+      readonly artifactPath: string;
+      readonly byteSize: number;
+      readonly revealed: boolean;
+    } }
+  | { readonly ok: false; readonly error?: unknown };
+
 export type AIStudioHostPort = {
   readonly appTitle: string;
   readonly translate: (key: string, values?: Readonly<Record<string, unknown>>) => string;
@@ -37,7 +46,7 @@ export type AIStudioHostPort = {
     readonly commands: {
       readonly savePromptDraft: (key: StudioPromptDraftKey, prompt: string, enabled: boolean) => Promise<unknown>;
       readonly copyText: (text: string) => Promise<StudioHostCommandResult<{ readonly copied: boolean }>>;
-      readonly exportText: (input: { readonly filename: string; readonly body: string }) => Promise<unknown>;
+      readonly exportText: (input: { readonly filename: string; readonly body: string }) => Promise<StudioTextExportResult>;
     };
   };
   readonly sdk: {

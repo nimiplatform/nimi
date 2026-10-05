@@ -12,7 +12,7 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
   if (parameters?.recoverySubmissionId) {
     const entry = (await readMusicRecovery(client.storage, 'audio.separate')).find(item => item.clientSubmissionId === parameters.recoverySubmissionId);
     if (!entry?.sourceAudio) throw new Error(context.host.translate('Music.recoveryMissing'));
-    const saved = restoreSavedMusicResult(entry, context.capability.label, 'audio.separate');
+    const saved = await restoreSavedMusicResult(entry, context.capability.label, 'audio.separate', client.storage.assets);
     if (saved) return saved;
     if (!entry.jobId) throw new Error(context.host.translate('AudioSeparate.recoveryMissingJob'));
     const result = await context.host.runners.audioSeparationObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
@@ -65,7 +65,8 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
   try {
     signal?.throwIfAborted();
     if (adopted.sizeBytes !== separationInput.sizeBytes || adopted.mediaType !== separationInput.mimeType) throw new Error('Canonical source adoption changed metadata');
-    clientSubmissionId = await beginMusicRecovery(client.storage, 'audio.separate', sourceAudio, undefined, separationRequest);
+    clientSubmissionId = await beginMusicRecovery(client.storage, 'audio.separate', sourceAudio, undefined,
+      separationRequest, context.input.recordedRunConfig, context.input.prompt);
   } catch (cause) { await client.storage.assets.remove(adopted.relativePath); throw cause; }
   const scenarioClient = createStudioScenarioJobClient(context);
   let capturedJobId: string | undefined;

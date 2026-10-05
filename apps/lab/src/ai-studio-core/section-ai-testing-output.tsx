@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Dialog, DialogContent, DialogTitle, IconButton, nimiToast, Tooltip } from '@nimiplatform/kit/ui';
 import { Copy as CopyIcon, Download as DownloadIcon, Maximize2, X } from 'lucide-react';
-import { useAIStudioHost } from './host-context.js';
+import { useAIStudioHost, type AIStudioHostPort, type StudioTextExportResult } from './host-context.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
 import { openNimiLocalAppAssetMediaUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import { studioNonSuccessReasonTitle, type StudioTranslate } from './non-success-presentation.js';
@@ -186,7 +186,7 @@ export function RuntimeDiagnosticsActions({
   function handleDownloadDiagnostics() {
     if (!canExport) return;
     const stamp = new Date(rendererHost.clock.now()).toISOString().replace(/[:.]/g, '-');
-    void downloadTextFile(rendererHost.app.commands, `${filenameBase}-runtime-details-${stamp}.txt`, text);
+    void downloadTextFile(rendererHost, `${filenameBase}-runtime-details-${stamp}.txt`, text);
   }
   return (
     <div className="studio-diag__actions">
@@ -379,9 +379,33 @@ export function TextStudioOutputBody({ text }: { text: string }) {
 }
 
 export async function downloadTextFile(
-  commands: ReturnType<typeof useAIStudioHost>['app']['commands'],
+  host: Pick<AIStudioHostPort, 'app' | 'translate'>,
   filename: string,
   body: string,
-) {
-  await commands.exportText({ filename, body });
+): Promise<StudioTextExportResult> {
+  let result: StudioTextExportResult;
+  try {
+    result = await host.app.commands.exportText({ filename, body });
+  } catch (error) {
+    result = { ok: false, error };
+  }
+  if (!result.ok) {
+    nimiToast.danger(host.translate('Common.exportFailed'));
+  } else if (!result.value.revealed) {
+    nimiToast.warning(host.translate('Common.exportSavedRevealFailed', { path: result.value.artifactPath }), { durationMs: 12000 });
+  } else {
+    nimiToast.success(host.translate('Common.exportSaved', { path: result.value.artifactPath }));
+  }
+  return result;
+}
+
+export async function revealStudioAsset(host: Pick<AIStudioHostPort, 'sdk' | 'translate'>, relativePath: string): Promise<boolean> {
+  try {
+    await host.sdk.revealLocalAppAsset(relativePath);
+    nimiToast.success(host.translate('Common.assetRevealed'));
+    return true;
+  } catch {
+    nimiToast.danger(host.translate('Common.assetRevealFailed', { path: relativePath }));
+    return false;
+  }
 }

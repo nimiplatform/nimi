@@ -5,6 +5,15 @@
     "save": "Save",
     "language": "Language",
     "languageEnglish": "English",
-    "languageChinese": "中文"
+    "languageChinese": "中文",
+    "historyStorage": {
+      "documentTooLarge": "Lab history document exceeds the public 256 KiB limit. Saved history has not been replaced.",
+      "invalidIndex": "Lab run history index is invalid or uses an unsupported storage format.",
+      "invalidReference": "Lab run history index has an invalid chunk reference.",
+      "missingChunk": "Lab run history chunk is missing or invalid: {{path}}",
+      "incompleteChunks": "Lab run history chunks are incomplete.",
+      "verificationFailed": "Lab history content verification failed. Saved history has not been replaced.",
+      "publicationUncertain": "The history save could not be confirmed. Its content and assets are retained; retry when storage is available."
+    }
   }
 }

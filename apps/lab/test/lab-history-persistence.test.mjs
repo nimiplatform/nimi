@@ -35,22 +35,32 @@ function compileModule(relativePath, replacements) {
   return `data:text/javascript;base64,${Buffer.from(rewritten).toString('base64')}`;
 }
 
+const historyMessages=JSON.parse(readFileSync(path.join(root,'src/shell/i18n/locales/en/common.json'),'utf8'));
+const i18nModuleUrl=`data:text/javascript;base64,${Buffer.from(`
+ const messages=${JSON.stringify(historyMessages)};
+ export function t(key,args={}) { const text=key.split('.').reduce((value,part)=>value?.[part],messages); if(typeof text!=='string')throw Error('Missing test translation '+key);return text.replace(/{{(\\w+)}}/g,(_,name)=>String(args[name])); }
+`).toString('base64')}`;
+
 const standardStorageModuleUrl = compileModule('src/lab/lab-standard-storage.ts', [
   ['../shell/local-app-runtime-platform.js', clientModuleUrl],
 ]);
 const separationRequestModuleUrl = compileModule('src/ai-studio-core/audio-separation-request.ts', []);
+const managedReferencesModuleUrl = compileModule('src/ai-studio-core/managed-result-references.ts', []);
 const historyPolicyModuleUrl = compileModule('src/ai-studio-core/history-policy.ts', [
   ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
   ['@nimiplatform/sdk/app', sdkAppModuleUrl],
   ['./audio-separation-request.js', separationRequestModuleUrl],
+  ['./managed-result-references.js', managedReferencesModuleUrl],
 ]);
 const historyStorageModuleUrl = compileModule('src/lab/lab-history-storage.ts', [
+  ['../shell/i18n/index.js', i18nModuleUrl],
   ['../ai-studio-core/history-policy.js', historyPolicyModuleUrl],
   ['./lab-standard-storage.js', standardStorageModuleUrl],
 ]);
 const imageHistoryModuleUrl = compileModule('src/lab/lab-image-history.ts', [
   ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
   ['./lab-standard-storage.js', standardStorageModuleUrl],
+  ['./lab-history-storage.js', historyStorageModuleUrl],
 ]);
 const standardStorageModule = await import(standardStorageModuleUrl);
 const historyPolicyModule = await import(historyPolicyModuleUrl);
@@ -70,8 +80,12 @@ function createStorageClient(seed = {}) {
           const value = structuredClone(documents.get(relativePath));
           return { value, sizeBytes: Buffer.byteLength(JSON.stringify(value)) };
         },
+        // JSON entries and managed files are separate admitted storage surfaces.
+        assets: { async remove() { return { removed: false }; } },
+        async removeJson(relativePath) { return { removed: documents.delete(relativePath) }; },
         async writeJson(relativePath, value) {
           const body = JSON.stringify(value);
+          if (Buffer.byteLength(body) > 256 * 1024) throw new Error('public JSON limit');
           const stored = JSON.parse(body);
           documents.set(relativePath, stored);
           writes.push({ relativePath, value: stored });
@@ -127,7 +141,7 @@ function runRecord(id, createdAt, overrides = {}) {
   };
 }
 
-test('large Locate results retain a history reference without rejecting or truncating the current result', () => {
+test('large Locate results keep their complete saved result across document boundaries', () => {
   const result = {
     imageArtifactId:'image-1', width:1200, height:800,
     locations:Array.from({length:1000},()=>({type:'point',x:0.123,y:0.456,label:'a'.repeat(230)})),
@@ -137,48 +151,39 @@ test('large Locate results retain a history reference without rejecting or trunc
     result:{ok:true,kind:'vision-locate',summary:'1000 matches',jobId:'job-large',result},
   });
   const before = runRecord('previous', '2026-09-08T00:00:00.000Z');
-  const history = historyPolicyModule.boundStudioRunHistoryWithRecord({'text.generate':[before]},record);
+  const history = historyPolicyModule.appendStudioRunHistoryRecord({'text.generate':[before]},record);
   assert.equal(history['text.generate'][0].id, 'previous');
-  assert.deepEqual(history['vision.locate'][0].result,{ok:true,kind:'vision-locate',summary:'1000 matches',jobId:'job-large'});
+  assert.deepEqual(history['vision.locate'][0].result,record.result);
   assert.equal(record.result.result.locations.length,1000);
-  assert.ok(Buffer.byteLength(JSON.stringify(history)) <= historyPolicyModule.STUDIO_HISTORY_LIMIT_BYTES);
+  assert.ok(Buffer.byteLength(JSON.stringify(history)) > 240 * 1024);
   assert.deepEqual(historyPolicyModule.parseStudioRunHistory(JSON.parse(JSON.stringify(history))),JSON.parse(JSON.stringify(history)));
 });
 
-test('shared history policy enforces global count and byte bounds', () => {
+test('shared history saves beyond the old byte, per-capability and total bounds without eviction', () => {
   let history = {};
-  for (let index = 0; index < 161; index += 1) {
-    history = historyPolicyModule.boundStudioRunHistoryWithRecord(history, runRecord(
-      `run-${index}`,
+  for (let index = 0; index < 180; index += 1) {
+    history = historyPolicyModule.appendStudioRunHistoryRecord(history, runRecord(`run-${index}`,
       new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
-      { capabilityId: `capability.${index}` },
-    ));
+      { capabilityId: index % 2 ? 'text.generate' : 'text.annotate' }));
   }
-  const records = historyPolicyModule.flattenStudioHistoryRecords(history);
-  assert.equal(records.length, 160);
-  assert.equal(records.some((record) => record.id === 'run-160'), true);
-  assert.equal(records.some((record) => record.id === 'run-0'), false);
-
-  const oversized = runRecord('oversized', '2026-01-01T00:00:00.000Z');
-  assert.throws(
-    () => historyPolicyModule.boundStudioRunHistoryWithRecord({}, {
-      ...oversized,
-      result: { ...oversized.result, body: 'x'.repeat(241 * 1024) },
-    }),
-    /exceeds the storage document limit/,
-  );
+  assert.equal(historyPolicyModule.flattenStudioHistoryRecords(history).length,180);
+  assert.equal(history['text.generate'].length,90);
+  const oversized=runRecord('oversized','2026-02-01T00:00:00.000Z');
+  history=historyPolicyModule.appendStudioRunHistoryRecord(history,{...oversized,result:{...oversized.result,body:'x'.repeat(300*1024)}});
+  assert.equal(historyPolicyModule.flattenStudioHistoryRecords(history).length,181);
+  assert.equal(history['text.generate'][0].result.body.length,300*1024);
 });
 
-test('a long input keeps a bounded history preview instead of evicting other capabilities', () => {
+test('a long input and context are saved in full without evicting other capabilities', () => {
   let history = {};
   for (let index = 0; index < 30; index += 1) {
-    history = historyPolicyModule.boundStudioRunHistoryWithRecord(history, runRecord(
+    history = historyPolicyModule.appendStudioRunHistoryRecord(history, runRecord(
       `other-${index}`,
       new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
       { capabilityId: `capability.${index % 6}` },
     ));
   }
-  const limit = historyPolicyModule.STUDIO_HISTORY_INPUT_LIMIT_BYTES;
+  const limit = (16 * 1024);
   const base = runRecord('long-input', '2026-02-01T00:00:00.000Z');
   // The four-byte character straddles the limit, so the preview stops before it.
   const prompt = `${'a'.repeat(limit - 2)}🍰${'b'.repeat(200 * 1024)}`;
@@ -189,18 +194,18 @@ test('a long input keeps a bounded history preview instead of evicting other cap
     prompt,
     runConfig: { ...base.runConfig, promptControls: { ...base.runConfig.promptControls, contextAttached: true, context } },
   };
-  const next = historyPolicyModule.boundStudioRunHistoryWithRecord(history, record);
+  const next = historyPolicyModule.appendStudioRunHistoryRecord(history, record);
   assert.equal(historyPolicyModule.flattenStudioHistoryRecords(next).length, 31);
   const stored = next['text.annotate'][0];
-  assert.equal(stored.inputTruncated, true);
-  assert.equal(stored.prompt, 'a'.repeat(limit - 2));
-  assert.equal(stored.runConfig.promptControls.context, 'c'.repeat(limit));
+  assert.equal(stored.inputTruncated, undefined);
+  assert.equal(stored.prompt, prompt);
+  assert.equal(stored.runConfig.promptControls.context, context);
   assert.equal(record.prompt, prompt);
   assert.equal(record.inputTruncated, undefined);
   const roundTrip = JSON.parse(JSON.stringify(next));
   assert.deepEqual(historyPolicyModule.parseStudioRunHistory(roundTrip), roundTrip);
 
-  const short = historyPolicyModule.boundStudioRunHistoryWithRecord({}, runRecord('short', '2026-02-02T00:00:00.000Z'));
+  const short = historyPolicyModule.appendStudioRunHistoryRecord({}, runRecord('short', '2026-02-02T00:00:00.000Z'));
   assert.equal(short['text.generate'][0].inputTruncated, undefined);
   assert.throws(
     () => historyPolicyModule.parseStudioRunHistory({ 'text.generate': [{ ...runRecord('flag', '2026-02-03T00:00:00.000Z'), inputTruncated: false }] }),
@@ -322,7 +327,7 @@ test('run history persists optional snapshots, reloads them, and retries idempot
     await historyStorageModule.appendLabRunHistory(record);
     await historyStorageModule.appendLabRunHistory({ ...record, message: 'updated-message' });
 
-    const stored = storage.documents.get('lab-run-history.json');
+    const stored = await historyStorageModule.loadLabRunHistory();
     assertNoUndefined(stored);
     assert.equal(stored['text.generate'].length, 1);
     assert.equal(stored['text.generate'][0].message, 'updated-message');
@@ -495,7 +500,7 @@ test('run-history loading fails closed on a malformed capability list', async ()
   try {
     await assert.rejects(
       historyStorageModule.loadLabRunHistory(),
-      /requires an array/u,
+      /unsupported storage format/u,
     );
   } finally {
     delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__;
@@ -684,8 +689,8 @@ test('shared history codec accepts the new typed snapshots and keeps older embed
   reject((copy) => { copy['text.decide'][0].result.answers[0].kind = 'score'; }, /unsupported value/u);
 });
 
-test('a decision record keeps its spec as a bounded input and its answers only while they fit', () => {
-  const limit = historyPolicyModule.STUDIO_HISTORY_INPUT_LIMIT_BYTES;
+test('a large decision preserves its full spec and all candidate probabilities', () => {
+  const limit = (16 * 1024);
   const candidates = Array.from({ length: 255 }, (_, index) => `candidate-${String(index).padStart(3, '0')}-${'x'.repeat(48)}`);
   const answers = Array.from({ length: 64 }, (_, index) => ({
     questionId: `question-${index}`,
@@ -700,22 +705,18 @@ test('a decision record keeps its spec as a bounded input and its answers only w
     result: { ok: true, kind: 'text-decision', summary: 'question-0: candidate-000 0.75', questionCount: 64, answers },
   });
   const earlier = runRecord('earlier', '2026-09-01T00:00:00.000Z');
-  const next = historyPolicyModule.boundStudioRunHistoryWithRecord({ 'text.generate': [earlier] }, record);
+  const next = historyPolicyModule.appendStudioRunHistoryRecord({ 'text.generate': [earlier] }, record);
   const stored = next['text.decide'][0];
-  // The spec is a prompt like any other: a longer one keeps a marked preview.
-  assert.equal(stored.inputTruncated, true);
-  assert.equal(Buffer.byteLength(stored.prompt), limit);
-  // Every candidate keeps its probability, so these answers outgrow the whole
-  // budget; the stored copy keeps the summary and count, the run keeps them all.
-  assert.equal(stored.result.answers, undefined);
-  assert.equal(stored.result.questionCount, 64);
-  assert.equal(stored.result.summary, 'question-0: candidate-000 0.75');
+  assert.equal(stored.inputTruncated, undefined);
+  assert.equal(stored.prompt, spec);
+  assert.deepEqual(stored.result.answers, answers);
+  assert.equal(stored.result.questionCount,64);
   assert.equal(record.result.answers.length, 64);
   assert.equal(next['text.generate'][0].id, 'earlier');
   const roundTrip = JSON.parse(JSON.stringify(next));
   assert.deepEqual(historyPolicyModule.parseStudioRunHistory(roundTrip), roundTrip);
 
-  const small = historyPolicyModule.boundStudioRunHistoryWithRecord({}, { ...record, prompt: '{}', result: { ...record.result, questionCount: 1, answers: answers.slice(0, 1) } });
+  const small = historyPolicyModule.appendStudioRunHistoryRecord({}, { ...record, prompt: '{}', result: { ...record.result, questionCount: 1, answers: answers.slice(0, 1) } });
   assert.equal(small['text.decide'][0].result.answers.length, 1);
   assert.equal(small['text.decide'][0].inputTruncated, undefined);
 });
@@ -742,7 +743,7 @@ test('a video face swap history summary must keep consistent frame counts', () =
   assert.throws(() => historyPolicyModule.parseStudioRunHistory({ 'video.face_swap': [inconsistent] }), /inconsistent video facts/u);
 });
 
-test('automatic history bounding releases only annotation documents no retained record references', async () => {
+test('saving annotations never evicts records or cleans their documents', async () => {
   const storage = createStorageClient();
   const removed = [];
   const failures = [];
@@ -770,15 +771,178 @@ test('automatic history bounding releases only annotation documents no retained 
         (items) => failures.push(...items),
       );
     }
-    // Forty newer annotations evict the two older annotation records only.
-    assert.deepEqual(removed.sort(), ['studio/text-annotate/locked.json', 'studio/text-annotate/oldest.json']);
-    assert.equal(failures.length, 1);
-    assert.match(failures[0], /locked\.json: document locked/u);
-    const stored = await historyStorageModule.loadLabRunHistory();
-    assert.equal(stored['text.annotate'].length, 40);
-    assert.equal(stored['image.generate'].length, 1, 'media runs stay; annotation eviction never touches their assets');
-    assert.equal(removed.includes('media/image-generate/kept.asset'), false);
+    assert.equal(removed.some(path=>path.startsWith('studio/text-annotate/')), false);
+    assert.equal(failures.length,0);
+    const stored=await historyStorageModule.loadLabRunHistory();
+    assert.equal(stored['text.annotate'].length,42);
+    assert.equal(stored['image.generate'].length,1);
+    assert.equal(removed.includes('media/image-generate/kept.asset'),false);
   } finally {
     delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__;
   }
+});
+
+test('chunked history keeps cross-capability full input and results above 256 KiB', async()=>{
+ const storage=createStorageClient();globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__=storage.client;
+ try{
+  let history={};for(let i=0;i<180;i++)history=historyPolicyModule.appendStudioRunHistoryRecord(history,runRecord('retained-'+i,new Date(Date.UTC(2026,0,1,0,0,i)).toISOString()));
+  const long=runRecord('large','2026-02-01T00:00:00.000Z',{capabilityId:'text.annotate',prompt:'🍰\\"'.repeat(70000)});
+  history=historyPolicyModule.appendStudioRunHistoryRecord(history,long);
+  await historyStorageModule.saveLabRunHistory(history);
+  await historyStorageModule.appendLabRunHistory(runRecord('new-other','2026-03-01T00:00:00.000Z',{capabilityId:'audio.transcribe'}));
+  const read=await historyStorageModule.loadLabRunHistory();
+  assert.equal(Object.values(read).flat().length,182);assert.equal(read['text.generate'].length,180);assert.equal(read['text.annotate'][0].prompt,long.prompt);
+  assert.equal(read['audio.transcribe'][0].id,'new-other');
+  const index=storage.documents.get('lab-run-history.json');assert.equal(index.format,'lab-history-v1');assert.ok(index.chunks.length>1);
+  const roots=storage.writes.filter(x=>x.relativePath==='lab-run-history.json');
+  const replaced=roots[0].value.chunks;assert.ok(replaced.every(path=>!storage.documents.has(path)), 'replaced JSON chunks are removed via removeJson, not the asset interface');
+  for(const {value}of storage.writes)assert.ok(Buffer.byteLength(JSON.stringify(value))<=256*1024);
+ }finally{delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__}
+});
+
+test('chunk read/write and index publication failures leave the previous snapshot readable',async()=>{
+ const storage=createStorageClient();globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__=storage.client;
+ try{
+  await historyStorageModule.appendLabRunHistory(runRecord('old','2026-01-01T00:00:00.000Z'));
+  const original=structuredClone(storage.documents.get('lab-run-history.json'));
+  const write=storage.client.storage.writeJson;
+  for(const where of ['chunk','index']){
+   let parts=0;storage.client.storage.writeJson=async(path,value)=>{
+    if(where==='index'&&path==='lab-run-history.json'||where==='chunk'&&path!=='lab-run-history.json'&&++parts===2)throw Error('injected '+where+' failure');
+    return write(path,value);
+   };
+   await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new','2026-02-01T00:00:00.000Z',{prompt:'x'.repeat(300*1024)})),/injected/);
+   assert.deepEqual(storage.documents.get('lab-run-history.json'),original);
+   assert.deepEqual((await historyStorageModule.loadLabRunHistory())['text.generate'].map(x=>x.id),['old']);
+  }
+  storage.client.storage.writeJson=write;
+  const missing=original.chunks[0];const content=storage.documents.get(missing);storage.documents.delete(missing);
+  await assert.rejects(historyStorageModule.loadLabRunHistory(),/missing or invalid/);
+  await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('later','2026-03-01T00:00:00.000Z')),/missing or invalid/);
+  assert.deepEqual(storage.documents.get('lab-run-history.json'),original);storage.documents.set(missing,content);
+  const read=storage.client.storage.readJson;storage.client.storage.readJson=async path=>{if(path.includes('studio/history/')&&!original.chunks.includes(path))throw Error('staged read failed');return read(path)};
+  await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new','2026-02-01T00:00:00.000Z')),/staged read failed/);
+  assert.deepEqual(storage.documents.get('lab-run-history.json'),original);
+ }finally{delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__}
+});
+
+test('failed chunk writes, verification and root publication reclaim only the unpublished generation', async () => {
+  for (const failure of ['chunk', 'verify', 'root']) {
+    const storage = createStorageClient(); globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
+    try {
+      await historyStorageModule.appendLabRunHistory(runRecord('old', '2026-01-01T00:00:00Z'));
+      const prior = structuredClone(storage.documents.get('lab-run-history.json'));
+      storage.documents.set('unrelated.json', { keep: true });
+      const write = storage.client.storage.writeJson, read = storage.client.storage.readJson;
+      storage.client.storage.writeJson = async (path, value) => {
+        if (failure === 'chunk' && path.endsWith('/1.json')) throw Error('chunk fault');
+        if (failure === 'root' && path === 'lab-run-history.json') throw Error('root fault');
+        return write(path, value);
+      };
+      storage.client.storage.readJson = async path => {
+        const value = await read(path);
+        if (failure === 'verify' && /\/\d+\.json$/u.test(path) && !prior.chunks.includes(path)) {
+          return { ...value, value: { ...value.value, text: '!' + value.value.text } };
+        }
+        return value;
+      };
+      await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z', { prompt: 'x'.repeat(100000) })));
+      assert.deepEqual(storage.documents.get('lab-run-history.json'), prior);
+      const chunks = [...storage.documents.keys()].filter(path => /studio\/history\/run\/[^/]+\/\d+\.json$/u.test(path));
+      assert.deepEqual(chunks.sort(), [...prior.chunks].sort());
+      assert.deepEqual(storage.documents.get('unrelated.json'), { keep: true });
+      assert.equal(storage.documents.has('studio/history/run/maintenance.json'), false);
+    } finally { delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__; }
+  }
+});
+
+test('a committed root with a lost response is successful and its published chunks survive', async () => {
+  const storage = createStorageClient(); globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendLabRunHistory(runRecord('old', '2026-01-01T00:00:00Z'));
+    const prior = storage.documents.get('lab-run-history.json');
+    const write = storage.client.storage.writeJson;
+    storage.client.storage.writeJson = async (path, value) => {
+      const result = await write(path, value);
+      if (path === 'lab-run-history.json') throw Error('response lost after commit');
+      return result;
+    };
+    await historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z'));
+    const current = storage.documents.get('lab-run-history.json');
+    assert.notEqual(current.generation, prior.generation);
+    assert.ok(current.chunks.every(path => storage.documents.has(path)));
+    assert.ok(prior.chunks.every(path => !storage.documents.has(path)));
+    assert.equal((await historyStorageModule.loadLabRunHistory())['text.generate'].length, 2);
+  } finally { delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__; }
+});
+
+test('unknown root publication retains chunks until a read can identify the published generation', async () => {
+  const storage = createStorageClient(); globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendLabRunHistory(runRecord('old', '2026-01-01T00:00:00Z'));
+    const write = storage.client.storage.writeJson, read = storage.client.storage.readJson;
+    let unreadable = false;
+    storage.client.storage.writeJson = async (path, value) => {
+      const result = await write(path, value);
+      if (path === 'lab-run-history.json') { unreadable = true; throw Error('response lost'); }
+      return result;
+    };
+    storage.client.storage.readJson = async path => {
+      if (unreadable && path === 'lab-run-history.json') throw Error('read temporarily unavailable');
+      return read(path);
+    };
+    await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z')),
+      error => error.historyPublicationUncertain === true);
+    const current = storage.documents.get('lab-run-history.json');
+    assert.ok(current.chunks.every(path => storage.documents.has(path)));
+    assert.equal(storage.documents.has('studio/history/run/maintenance.json'), true);
+    unreadable = false;
+    assert.equal((await historyStorageModule.loadLabRunHistory())['text.generate'].length, 2);
+    assert.ok(current.chunks.every(path => storage.documents.has(path)));
+    assert.equal(storage.documents.has('studio/history/run/maintenance.json'), false);
+  } finally { delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__; }
+});
+
+test('old chunk cleanup and maintenance cleanup failures retry without changing committed history', async () => {
+  const storage = createStorageClient(); globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendLabRunHistory(runRecord('old', '2026-01-01T00:00:00Z'));
+    const prior = storage.documents.get('lab-run-history.json');
+    const remove = storage.client.storage.removeJson;
+    let fail = true;
+    storage.client.storage.removeJson = async path => {
+      if (fail && (prior.chunks.includes(path) || path.endsWith('/maintenance.json'))) throw Error('cleanup fault');
+      return remove(path);
+    };
+    await historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z'));
+    assert.equal(storage.documents.has('studio/history/run/maintenance.json'), true);
+    assert.ok(prior.chunks.some(path => storage.documents.has(path)));
+    fail = false;
+    assert.equal((await historyStorageModule.loadLabRunHistory())['text.generate'].length, 2);
+    assert.ok(prior.chunks.every(path => !storage.documents.has(path)));
+    assert.equal(storage.documents.has('studio/history/run/maintenance.json'), false);
+  } finally { delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__; }
+});
+
+test('image history also keeps more than eighty complete records in bounded chunks',async()=>{
+ const storage=createStorageClient();globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__=storage.client;
+ try{
+  const records=Array.from({length:90},(_,i)=>({id:'image-'+i,capabilityId:'image.generate',title:'x'.repeat(4000),status:'unavailable',createdAt:new Date(Date.UTC(2026,0,1,0,0,i)).toISOString()}));
+  await imageHistoryModule.saveLabImageHistory(records);
+  await imageHistoryModule.appendLabImageHistoryRecord({...records[0],id:'another'});
+  const all=await imageHistoryModule.loadLabImageHistory();assert.equal(all.length,91);assert.equal(all.find(x=>x.id==='image-89').title,records[89].title);
+  const index=storage.documents.get('lab-image-history.json');assert.ok(index.chunks.length>1);
+  storage.documents.delete(index.chunks[0]);await assert.rejects(imageHistoryModule.loadLabImageHistory(),/missing or invalid/);
+ }finally{delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__}
+});
+
+test('explicit deletion and scoped clear protect artifacts another retained record references',async()=>{
+ const artifact={relativePath:'media/shared.wav',mediaType:'audio/wav',sizeBytes:9,sha256:'sha256:'+'b'.repeat(64),previewSource:'managed-asset'};
+ const record=(id,cap)=>runRecord(id,'2026-01-01T00:00:00.000Z',{capabilityId:cap,result:{ok:true,kind:'artifacts',summary:'ready',artifactCount:1,artifacts:[artifact]}});
+ let history={'audio.synthesize':[record('a','audio.synthesize')],'audio.transcribe':[record('b','audio.transcribe')]};const removed=[];
+ const port={deleteAssets:true,removeArtifact:async p=>{removed.push(p)},commit:async next=>{history=next},project:async()=>history};
+ await historyPolicyModule.removeStudioHistoryWithPolicy({history,recordId:'a',...port});assert.deepEqual(removed,[]);assert.equal(history['audio.transcribe'][0].id,'b');
+ history={'audio.synthesize':[record('a','audio.synthesize')],'audio.transcribe':[record('b','audio.transcribe')]};
+ await historyPolicyModule.clearStudioHistoryWithPolicy({history,capabilityId:'audio.synthesize',...port});assert.deepEqual(removed,[]);assert.equal(history['audio.transcribe'][0].id,'b');
+ await historyPolicyModule.clearStudioHistoryWithPolicy({history,capabilityId:null,...port});assert.deepEqual(removed,['media/shared.wav']);assert.deepEqual(history,{});
 });
