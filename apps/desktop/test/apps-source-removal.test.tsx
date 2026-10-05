@@ -110,7 +110,11 @@ test('source removal confirms the exact sibling without changing the open source
     await act(async () => root.render(<TooltipProvider><AppsDetailView {...props} actionsDisabled /></TooltipProvider>));
     assert.equal(button().disabled, true);
   } finally {
-    await act(async () => root.unmount()); dom.window.close();
+    await act(async () => root.unmount());
+    // Radix dispatches its unmount autofocus event on the next task. Keep the
+    // window's Event constructors alive until that real cleanup has settled.
+    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0));
+    dom.window.close();
     for (const [key, descriptor] of previous) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);
       else Reflect.deleteProperty(globalThis, key);
