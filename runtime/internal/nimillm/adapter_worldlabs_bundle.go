@@ -19,9 +19,9 @@ func buildWorldLabsBundle(ctx context.Context, world map[string]any) ([]byte, er
 	assets := MapField(world, "assets")
 	splats := MapField(assets, "splats")
 	semantics := MapField(splats, "semantics_metadata")
-	scale := ValueAsFloat64(MapField(semantics, "metric_scale_factor"))
-	ground := ValueAsFloat64(MapField(semantics, "ground_plane_offset"))
-	if scale <= 0 || math.IsNaN(scale) || math.IsInf(scale, 0) || math.IsNaN(ground) || math.IsInf(ground, 0) {
+	scale, scalePresent := MapField(semantics, "metric_scale_factor").(float64)
+	ground, groundPresent := MapField(semantics, "ground_plane_offset").(float64)
+	if !scalePresent || !groundPresent || scale <= 0 || math.IsNaN(scale) || math.IsInf(scale, 0) || math.IsNaN(ground) || math.IsInf(ground, 0) {
 		return nil, fmt.Errorf("world scale metadata is unavailable or invalid")
 	}
 	worldID := strings.TrimSpace(ValueAsString(world["world_id"]))

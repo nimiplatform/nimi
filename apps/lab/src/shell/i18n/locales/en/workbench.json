@@ -47,6 +47,8 @@
     "savedOpenFailed": "World saved, but the viewer could not open. Use Open saved world to try again.",
     "worldArchive": "World archive",
     "openSaved": "Open saved world",
+    "openThisWorld": "Open this world",
+    "historyUnavailable": "This saved world could not be opened. Its archive must still match this history record.",
     "resume": "Continue last generation",
     "cancel": "Cancel generation",
     "canceled": "Generation canceled.",

@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { StudioParameterContract } from './parameters.js';
 import type { StudioParameterPanelProps } from './parameter-fields.js';
+import type { StudioRunHistoryRecord } from './history.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
 
@@ -62,6 +63,7 @@ export type StudioCapabilityRegistration<TCapabilityId extends string = string> 
   readonly runtimeMethod: string;
   readonly parameters: StudioParameterContract;
   readonly parameterPanel?: ComponentType<StudioParameterPanelProps>;
+  readonly historyActions?: ComponentType<{ readonly record: StudioRunHistoryRecord }>;
 };
 
 export type AIStudioModuleRegistration<

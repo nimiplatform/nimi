@@ -47,6 +47,8 @@
     "savedOpenFailed": "世界已保存，但查看器未能打开。请点击“打开已保存的世界”重试。",
     "worldArchive": "世界资产包",
     "openSaved": "打开已保存的世界",
+    "openThisWorld": "打开这个世界",
+    "historyUnavailable": "无法打开这个已保存的世界。其存档需要与这条历史记录一致。",
     "resume": "继续上次生成",
     "cancel": "取消生成",
     "canceled": "生成已取消。",

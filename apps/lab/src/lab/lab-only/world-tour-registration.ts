@@ -3,6 +3,7 @@ import type { StudioCapabilityRegistration } from '../../ai-studio-core/module-r
 import { EMPTY_STUDIO_PARAMETERS } from '../../ai-studio-core/parameters.js';
 import { labWorldTourDescriptor, type LabWorldTourCapabilityId } from './world-tour-descriptor.js';
 import { WorldTourActions } from '../world-tour/world-tour-actions.js';
+import { WorldTourHistoryActions } from '../world-tour/world-tour-history-actions.js';
 
 export const labWorldTourCapability = Object.freeze({
   descriptor: labWorldTourDescriptor,
@@ -14,4 +15,5 @@ export const labWorldTourCapability = Object.freeze({
   runtimeMethod: 'ai.scenarioJobs.submit',
   parameters: EMPTY_STUDIO_PARAMETERS,
   parameterPanel: WorldTourActions,
+  historyActions: WorldTourHistoryActions,
 } as const satisfies StudioCapabilityRegistration<LabWorldTourCapabilityId>);

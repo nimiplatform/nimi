@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ const worldLabsManifestMIME = "application/vnd.nimi.world+json"
 
 // ExecuteWorldLabsWorld executes a world generation scenario job against the
 // World Labs Marble API using provider-native async operation polling.
+// @nimi-authority: rule.nimi.runtime.ai-provider.r051
 func ExecuteWorldLabsWorld(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
@@ -51,7 +53,7 @@ func ExecuteWorldLabsWorld(
 	}
 	headers["WLT-Api-Key"] = apiKey
 
-	requestBody, promptText, err := buildWorldLabsGeneratePayload(spec, modelResolved)
+	requestBody, _, err := buildWorldLabsGeneratePayload(spec, modelResolved)
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -131,7 +133,8 @@ func ExecuteWorldLabsWorld(
 		}
 		bundle := BinaryArtifact(WorldBundleMIME, bundleBytes, map[string]any{"world_id": worldPayload["world_id"]})
 		updater.UpdatePollState(jobID, operationID, retryCount, nil, "")
-		return []*runtimev1.ScenarioArtifact{artifact, bundle}, ArtifactUsage(promptText, manifestBytes, 300000), operationID, nil
+		// World generation does not report token counts or compute time here.
+		return []*runtimev1.ScenarioArtifact{artifact, bundle}, nil, operationID, nil
 	}
 }
 
@@ -251,36 +254,85 @@ func worldLabsOperationError(payload map[string]any) error {
 }
 
 func fetchWorldLabsWorld(ctx context.Context, baseURL string, headers map[string]string, operationResp map[string]any) (map[string]any, error) {
-	worldID := strings.TrimSpace(FirstNonEmpty(
-		ValueAsString(MapField(MapField(operationResp["metadata"], "world_id"), "id")),
-		ValueAsString(MapField(operationResp["metadata"], "world_id")),
-		ValueAsString(MapField(operationResp["response"], "id")),
-		ValueAsString(MapField(operationResp["response"], "world_id")),
-	))
-	if worldID != "" {
-		getResp := map[string]any{}
-		if err := DoJSONRequestWithHeadersAndTimeout(
-			ctx,
-			http.MethodGet,
-			JoinURL(baseURL, "/marble/v1/worlds/"+worldID),
-			"",
-			nil,
-			&getResp,
-			headers,
-			30*time.Second,
-		); err == nil {
-			if world, ok := getResp["world"].(map[string]any); ok && len(world) > 0 {
-				return world, nil
-			}
-			if len(getResp) > 0 {
-				return getResp, nil
-			}
+	worldID, err := worldLabsOperationWorldID(operationResp)
+	if err != nil {
+		return nil, err
+	}
+	getResp := map[string]any{}
+	if err := DoJSONRequestWithHeadersAndTimeout(ctx, http.MethodGet, JoinURL(baseURL, "/marble/v1/worlds/"+worldID), "", nil, &getResp, headers, 30*time.Second); err != nil {
+		return nil, err
+	}
+	world, envelope, err := normalizeWorldLabsGetResponse(getResp, worldID)
+	if err != nil {
+		return nil, err
+	}
+	// Existing Runtime telemetry records which documented wire envelope was
+	// consumed, without logging credentials, asset URLs or the response body.
+	slog.Info("World Labs world response normalized", "envelope", envelope)
+	return world, nil
+}
+
+func worldLabsOperationWorldID(operation map[string]any) (string, error) {
+	invalid := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	worldID := ""
+	if value := MapField(operation["metadata"], "world_id"); value != nil {
+		id, ok := value.(string)
+		if !ok || id == "" || strings.TrimSpace(id) != id {
+			return "", invalid
+		}
+		worldID = id
+	}
+	response, _ := operation["response"].(map[string]any)
+	// The endpoint reference describes World.world_id; Quickstart describes
+	// Operation.response.id. Validate their context instead of guessing aliases.
+	_, hasID := response["id"]
+	_, hasWorldID := response["world_id"]
+	if hasID && hasWorldID {
+		return "", invalid
+	}
+	field := "world_id"
+	if hasID {
+		field = "id"
+	}
+	if value, present := response[field]; present {
+		id, ok := value.(string)
+		if !ok || id == "" || strings.TrimSpace(id) != id || (worldID != "" && worldID != id) {
+			return "", invalid
+		}
+		worldID = id
+	}
+	if worldID == "" {
+		return "", invalid
+	}
+	return worldID, nil
+}
+
+func normalizeWorldLabsGetResponse(response map[string]any, expectedWorldID string) (map[string]any, string, error) {
+	invalid := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	world := response
+	field, envelope := "world_id", "bare-world-id"
+	if value, wrapped := response["world"]; wrapped {
+		var ok bool
+		world, ok = value.(map[string]any)
+		if !ok || response["world_id"] != nil || response["id"] != nil || world["world_id"] != nil {
+			return nil, "", invalid
+		}
+		field, envelope = "id", "wrapped-world-id"
+	} else if response["id"] != nil {
+		return nil, "", invalid
+	}
+	id, ok := world[field].(string)
+	if !ok || id != expectedWorldID || id == "" || strings.TrimSpace(id) != id {
+		return nil, "", invalid
+	}
+	normalized := make(map[string]any, len(world))
+	for key, value := range world {
+		if key != "id" {
+			normalized[key] = value
 		}
 	}
-	if response, ok := operationResp["response"].(map[string]any); ok && len(response) > 0 {
-		return response, nil
-	}
-	return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	normalized["world_id"] = id
+	return normalized, envelope, nil
 }
 
 func buildWorldLabsManifest(world map[string]any, _ string) ([]byte, map[string]any, error) {
@@ -292,7 +344,7 @@ func buildWorldLabsManifest(world map[string]any, _ string) ([]byte, map[string]
 	imagery := MapField(assets, "imagery")
 	mesh := MapField(assets, "mesh")
 	manifest := map[string]any{
-		"world_id":           strings.TrimSpace(FirstNonEmpty(ValueAsString(world["world_id"]), ValueAsString(world["id"]))),
+		"world_id":           strings.TrimSpace(ValueAsString(world["world_id"])),
 		"display_name":       strings.TrimSpace(ValueAsString(world["display_name"])),
 		"world_marble_url":   strings.TrimSpace(ValueAsString(world["world_marble_url"])),
 		"caption":            strings.TrimSpace(ValueAsString(MapField(assets, "caption"))),

@@ -145,11 +145,13 @@ function historyResultToneClass(record: StudioRunHistoryRecord): string {
 }
 
 function TextStudioHistoryRecordResult({
+  registration,
   record,
   canRegenerate,
   onRegenerate,
   onUseAsDraft,
 }: {
+  registration: StudioCapabilityRegistration;
   record: StudioRunHistoryRecord;
   canRegenerate: boolean;
   onRegenerate: () => void;
@@ -158,6 +160,7 @@ function TextStudioHistoryRecordResult({
   const rendererHost = useAIStudioHost();
   const { translate: t } = useAIStudioHost();
   const snapshot = record.result;
+  const HistoryActions = registration.historyActions;
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
   const jobState = snapshot?.ok && 'jobState' in snapshot ? snapshot.jobState : undefined;
   const statusLabel = jobState === undefined
@@ -297,6 +300,7 @@ function TextStudioHistoryRecordResult({
         </div>
       </div>
       {requestSettingsOpen && hasRequestSettings ? <TextStudioRequestSettings record={record} /> : null}
+      {HistoryActions ? <HistoryActions key={record.id} record={record} /> : null}
       {body}
       {additionalDocumentsNotRetained ? <p className="studio-result__hint">{t('StudioShell.historyAdditionalDocumentsNotRetained')}</p> : null}
     </div>
@@ -495,7 +499,7 @@ export function TextStudioResultState({
               />
             </>
           ) : activeRun.record ? (
-            <TextStudioHistoryRecordResult record={activeRun.record} canRegenerate={canRegenerate} onRegenerate={onRegenerate} onUseAsDraft={onUseAsDraft} />
+            <TextStudioHistoryRecordResult registration={registration} record={activeRun.record} canRegenerate={canRegenerate} onRegenerate={onRegenerate} onUseAsDraft={onUseAsDraft} />
           ) : null}
         </article>
       </div>
