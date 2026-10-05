@@ -38,11 +38,17 @@ func TestGeminiInlineTranscribeDriverAdmitsOnlyBoundedWAV(t *testing.T) {
 	if err != nil || mapped.Adapter() != CloudMediaAdapterGeminiInteractionsTranscribe {
 		t.Fatalf("exact inline ASR mapping=%+v err=%v", mapped, err)
 	}
+	request.GetSpec().GetSpeechTranscribe().Timestamps = testBool(true)
+	request.GetSpec().GetSpeechTranscribe().ResponseFormat = "text"
+	if mapped, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone); err != nil || !mapped.Request().GetSpec().GetSpeechTranscribe().GetTimestamps() {
+		t.Fatalf("real word timestamps mapping=%+v err=%v", mapped, err)
+	}
 	cases := []struct {
 		name   string
 		mutate func(*runtimev1.SpeechTranscribeScenarioSpec)
 	}{
-		{"timestamps", func(s *runtimev1.SpeechTranscribeScenarioSpec) { s.Timestamps = testBool(true) }},
+		{"diarization", func(s *runtimev1.SpeechTranscribeScenarioSpec) { s.Diarization = testBool(true) }},
+		{"response format", func(s *runtimev1.SpeechTranscribeScenarioSpec) { s.ResponseFormat = "srt" }},
 		{"language", func(s *runtimev1.SpeechTranscribeScenarioSpec) { s.Language = "en" }},
 		{"hint", func(s *runtimev1.SpeechTranscribeScenarioSpec) { s.Prompt = "Nimi" }},
 		{"remote URL", func(s *runtimev1.SpeechTranscribeScenarioSpec) {

@@ -14,14 +14,14 @@ const maxGeminiInlineTranscribeWAVBytes = 2 * 1024 * 1024
 const maxGeminiInlineTranscribeDurationMS = 30_000
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r051
-// validateGeminiInlineTranscribeRequest admits a small stateless unary cell.
-// Files upload, remote URLs, timing, diarization and provider-side storage are
+// ValidateGeminiInlineTranscribeRequest admits a small stateless unary cell.
+// Files upload, remote URLs, diarization and provider-side storage are
 // not silently selected from an App's broader transcription request.
-func validateGeminiInlineTranscribeRequest(request *runtimev1.SubmitScenarioJobRequest, model string) error {
+func ValidateGeminiInlineTranscribeRequest(request *runtimev1.SubmitScenarioJobRequest, model string) error {
 	unsupported := func() error {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-			Message:    "Gemini 3.5 Transcribe currently supports only an inline mono 24 kHz PCM WAV of at most 30 seconds and a plain transcript; URLs, timestamps, diarization and hints are unavailable",
-			ActionHint: "provide_short_inline_wav_without_transcription_options",
+			Message:    "Gemini 3.5 Transcribe supports an inline mono 24 kHz PCM WAV of at most 30 seconds, with optional real word timestamps; URLs, diarization, language hints and vocabulary prompts are unavailable",
+			ActionHint: "provide_short_inline_wav_and_reset_unsupported_transcription_options",
 		})
 	}
 	if request == nil || request.GetSpec().GetSpeechTranscribe() == nil || model != geminiInlineTranscribeModel || len(request.GetExtensions()) > 0 {
@@ -29,8 +29,8 @@ func validateGeminiInlineTranscribeRequest(request *runtimev1.SubmitScenarioJobR
 	}
 	spec := request.GetSpec().GetSpeechTranscribe()
 	if strings.TrimSpace(spec.GetMimeType()) != "audio/wav" || strings.TrimSpace(spec.GetLanguage()) != "" ||
-		spec.GetTimestamps() || spec.GetDiarization() || spec.GetSpeakerCount() != 0 ||
-		strings.TrimSpace(spec.GetPrompt()) != "" || strings.TrimSpace(spec.GetResponseFormat()) != "" {
+		spec.GetDiarization() || spec.GetSpeakerCount() != 0 ||
+		strings.TrimSpace(spec.GetPrompt()) != "" || (spec.GetResponseFormat() != "" && spec.GetResponseFormat() != "text") {
 		return unsupported()
 	}
 	source, ok := spec.GetAudioSource().GetSource().(*runtimev1.SpeechTranscriptionAudioSource_AudioBytes)

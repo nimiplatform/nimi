@@ -641,7 +641,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		}
 	}
 	if d.provider == "gemini" && target.capabilityContract == "audio.transcribe" && target.providerModelID == geminiInlineTranscribeModel {
-		if err := validateGeminiInlineTranscribeRequest(mapped, target.providerModelID); err != nil {
+		if err := ValidateGeminiInlineTranscribeRequest(mapped, target.providerModelID); err != nil {
 			return nil, err
 		}
 		adapter = CloudMediaAdapterGeminiInteractionsTranscribe

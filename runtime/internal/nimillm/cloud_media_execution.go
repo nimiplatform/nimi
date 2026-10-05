@@ -7,7 +7,9 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -178,6 +180,7 @@ func mediaExecutionExtensions(request *runtimev1.SubmitScenarioJobRequest) *stru
 		namespace = "nimi.scenario.video.request"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
 		namespace = "nimi.scenario.speech_synthesize.request"
+	// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		namespace = "nimi.scenario.speech_transcribe.request"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
@@ -343,10 +346,14 @@ func (p *CloudProvider) executeGenericMediaWithTarget(
 			return nil, nil, "", err
 		}
 		text := transcript.GetText()
+		encoded, err := protojson.Marshal(transcript)
+		if err != nil {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
 		metadata := map[string]any{
 			"text":            text,
 			"adapter":         adapter,
-			"language":        strings.TrimSpace(spec.GetLanguage()),
+			"language":        transcript.GetLanguage(),
 			"timestamps":      spec.GetTimestamps(),
 			"diarization":     spec.GetDiarization(),
 			"speaker_count":   spec.GetSpeakerCount(),
@@ -357,8 +364,7 @@ func (p *CloudProvider) executeGenericMediaWithTarget(
 		if len(extensions) > 0 {
 			metadata["extensions"] = extensions
 		}
-		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), metadata)
-		ApplyTranscriptionSpecMetadata(artifact, spec)
+		artifact := BinaryArtifact(localexecution.SpeechTranscriptMIME, encoded, metadata)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:

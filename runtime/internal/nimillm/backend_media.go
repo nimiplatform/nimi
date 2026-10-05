@@ -16,6 +16,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
 const defaultProviderStreamReadBufferBytes = 16 * 1024
@@ -112,6 +113,7 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string, di
 }
 
 // Transcribe sends a speech-to-text request.
+// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 func (b *Backend) Transcribe(
 	ctx context.Context,
 	modelID string,
@@ -207,40 +209,36 @@ func (b *Backend) Transcribe(
 	defer func() { _ = response.Body.Close() }()
 
 	type transcriptionResponse struct {
-		Text     string                            `json:"text"`
-		Language string                            `json:"language"`
-		Words    []*runtimev1.SpeechTranscriptWord `json:"words"`
-		NoSpeech bool                              `json:"no_speech"`
+		Text     string `json:"text"`
+		Language string `json:"language"`
+		Words    []struct {
+			Text         string   `json:"text"`
+			StartSeconds *float64 `json:"start_seconds"`
+			EndSeconds   *float64 `json:"end_seconds"`
+		} `json:"words"`
+		NoSpeech bool `json:"no_speech"`
 	}
 	var out transcriptionResponse
 	if err := DecodeResponseJSON(response, &out); err != nil {
 		return nil, nil, err
 	}
-	text := strings.TrimSpace(out.Text)
-	if text == "" && !out.NoSpeech && !allowEmptyTranscript(scenarioExtensions) {
-		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-
-	usage := &runtimev1.UsageStats{
-		InputTokens:  MaxInt64(1, int64(len(audio)/256)),
-		OutputTokens: EstimateTokens(text),
-		ComputeMs:    MaxInt64(10, int64(len(audio)/64)),
-	}
 	status := runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED
-	if out.NoSpeech || text == "" {
+	if out.NoSpeech {
 		status = runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_NO_SPEECH
 	}
-	return &runtimev1.SpeechTranscript{Status: status, Text: text, Language: strings.TrimSpace(out.Language), Words: out.Words}, usage, nil
-}
-
-func allowEmptyTranscript(scenarioExtensions map[string]any) bool {
-	if len(scenarioExtensions) == 0 {
-		return false
+	transcript := &runtimev1.SpeechTranscript{Status: status, Text: strings.TrimSpace(out.Text), Language: strings.TrimSpace(out.Language)}
+	for _, word := range out.Words {
+		if word.StartSeconds == nil || word.EndSeconds == nil {
+			return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		transcript.Words = append(transcript.Words, &runtimev1.SpeechTranscriptWord{Text: word.Text, StartSeconds: *word.StartSeconds, EndSeconds: *word.EndSeconds})
 	}
-	return ValueAsBool(scenarioExtensions["nimi_first_run_baseline_probe"]) && ValueAsBool(FirstNonNil(
-		scenarioExtensions["nimi_allow_empty_transcript"],
-		scenarioExtensions["allow_empty_transcript"],
-	))
+	if err := localexecution.ValidateSpeechTranscript(transcript, spec.GetTimestamps()); err != nil {
+		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	// This compatibility response shape has no reported usage. Byte lengths,
+	// text estimates and guessed elapsed time are not provider usage facts.
+	return transcript, nil, nil
 }
 
 // ManagedMediaImageDiagnostics captures managed image execution diagnostics.

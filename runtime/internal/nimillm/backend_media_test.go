@@ -14,8 +14,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type fakeStreamingSpeechProvider struct{}
@@ -459,7 +461,7 @@ func TestBackendTranscribeRejectsEmptyTextByDefault(t *testing.T) {
 	}
 }
 
-func TestBackendTranscribeAllowsEmptyTextForFirstRunProbeExtension(t *testing.T) {
+func TestBackendTranscribeProbeFlagsCannotTurnEmptyTextIntoNoSpeech(t *testing.T) {
 	var capturedExtensions map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/v1/audio/transcriptions" {
@@ -506,14 +508,69 @@ func TestBackendTranscribeAllowsEmptyTextForFirstRunProbeExtension(t *testing.T)
 			"nimi_allow_empty_transcript":   true,
 		},
 	)
-	if err != nil {
-		t.Fatalf("Transcribe failed: %v", err)
-	}
-	if text.GetText() != "" {
-		t.Fatalf("expected empty transcript to be preserved, got %q", text)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID || text != nil {
+		t.Fatalf("empty output invented no_speech: %+v err=%v", text, err)
 	}
 	if !ValueAsBool(capturedExtensions["nimi_allow_empty_transcript"]) {
 		t.Fatalf("expected first-run allow-empty extension to be forwarded, got %#v", capturedExtensions)
+	}
+}
+
+func TestGenericTranscriptionPreservesParsedFactsAndAbsentUsage(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		payload string
+		timing  bool
+		valid   bool
+	}{
+		{"reported language and real zero", `{"text":"  Hello,  世界!\n","language":"zh","words":[{"text":"Hello","start_seconds":0,"end_seconds":0},{"text":"世界","start_seconds":0.2,"end_seconds":0.9}]}`, true, true},
+		{"language hint is not report", `{"text":"Hello."}`, false, true},
+		{"explicit no speech", `{"text":"","no_speech":true}`, true, true},
+		{"requested times missing", `{"text":"Hello."}`, true, false},
+		{"missing start is not zero", `{"text":"Hello","words":[{"text":"Hello","end_seconds":0}]}`, true, false},
+		{"missing end is not zero", `{"text":"Hello","words":[{"text":"Hello","start_seconds":0}]}`, true, false},
+		{"empty is not silence", `{"text":""}`, false, false},
+		{"contradictory silence", `{"text":"Hello","no_speech":true}`, false, false},
+		{"invalid interval", `{"text":"Hello","words":[{"text":"Hello","start_seconds":0.2,"end_seconds":0.1}]}`, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = io.WriteString(w, tc.payload)
+			}))
+			defer server.Close()
+			provider, target := openAITranscriptionTestTarget(server.URL, "compat-transcribe")
+			timestamps := tc.timing
+			req := openAITranscriptionTestRequest(&runtimev1.SpeechTranscribeScenarioSpec{Language: "en", Timestamps: &timestamps})
+			artifacts, usage, _, err := provider.executeGenericMediaWithTarget(context.Background(), req, "compat-transcribe", target, "openai_compat_adapter")
+			if !tc.valid {
+				if err == nil || len(artifacts) != 0 || usage != nil {
+					t.Fatalf("invalid response published: artifacts=%+v usage=%+v err=%v", artifacts, usage, err)
+				}
+				return
+			}
+			if err != nil || usage != nil || len(artifacts) != 1 || artifacts[0].GetMimeType() != localexecution.SpeechTranscriptMIME {
+				t.Fatalf("honest typed result artifacts=%+v usage=%+v err=%v", artifacts, usage, err)
+			}
+			transcript := &runtimev1.SpeechTranscript{}
+			if err := protojson.Unmarshal(artifacts[0].GetBytes(), transcript); err != nil {
+				t.Fatal(err)
+			}
+			switch tc.name {
+			case "reported language and real zero":
+				if transcript.GetText() != "Hello,  世界!" || transcript.GetLanguage() != "zh" || len(transcript.GetWords()) != 2 || transcript.Words[0].GetEndSeconds() != 0 || transcript.Words[1].GetEndSeconds() != 0.9 {
+					t.Fatalf("parsed facts lost: %+v", transcript)
+				}
+			case "language hint is not report":
+				if transcript.GetLanguage() != "" {
+					t.Fatalf("language invented from request: %+v", transcript)
+				}
+			case "explicit no speech":
+				if transcript.GetStatus() != runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_NO_SPEECH || transcript.GetText() != "" || len(transcript.GetWords()) != 0 {
+					t.Fatalf("explicit silence lost: %+v", transcript)
+				}
+			}
+		})
 	}
 }
 

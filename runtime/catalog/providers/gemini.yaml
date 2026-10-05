@@ -1,6 +1,6 @@
 version: 1
 provider: gemini
-catalog_version: 2026-10-03-gemini-preset-emotion
+catalog_version: 2026-10-03-gemini-word-timestamps
 inventory_mode: static_source
 default_text_model: gemini-3.8-flash
 models:
@@ -365,7 +365,7 @@ models:
   - model_id: gemini-3.5-transcribe
     provider: gemini
     model_type: stt
-    updated_at: 2026-09-29
+    updated_at: 2026-10-03
     capabilities:
       - audio.transcribe
     pricing:
@@ -374,11 +374,18 @@ models:
       output: "12.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M audio input and text output tokens, about $0.005/minute combined at Google's stated estimate. Nimi currently admits only short inline mono 24 kHz PCM WAV and plain transcript output with store=false; no Files upload or retained Interaction.
+      notes: Standard paid tier per 1M audio input and text output tokens, about $0.005/minute combined at Google's stated estimate. Nimi admits short inline mono 24 kHz PCM16 WAV up to 30 seconds and 2 MiB with store=false, returning the actual transcript and optional real word timestamps. No guessed detected language or no_speech, Files upload, retained Interaction, language/vocabulary hints or diarization.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe
       retrieved_at: 2026-09-29
       note: Exact unary Gemini 3.5 Transcribe model code, text output and finite audio-file processing limits.
+    transcription:
+      tiers:
+        - core_transcript
+        - timed_transcript
+      response_formats:
+        - text
+      supports_timestamps: true
   - model_id: lyria-3-clip-preview
     provider: gemini
     model_type: music
