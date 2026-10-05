@@ -4491,6 +4491,57 @@ models:
         total_size_bytes: 690308125
         host_requirement:
           accelerator: cuda
+  - model_id: grounding-dino-base-local
+    provider: local
+    model_type: vision
+    updated_at: 2026-10-04
+    capabilities:
+      - vision.locate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/IDEA-Research/grounding-dino-base/blob/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/README.md
+      retrieved_at: 2026-10-04
+      note: Official fixed Swin-B Transformers safetensors checkpoint; exact README declares Apache-2.0. The complete BERT tokenizer bundle does not contain added_tokens.json.
+    family: grounding-dino-base
+    install:
+      repo: IDEA-Research/grounding-dino-base
+      revision: 12bdfa3120f3e7ec7b434d90674b3396eccf88eb
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles:
+        - vision_model
+      license: Apache-2.0
+    variants:
+      - variant_id: local.vision.grounding-dino-base.f32.cuda
+        quant: F32
+        entry: model.safetensors
+        files:
+          - config.json
+          - model.safetensors
+          - preprocessor_config.json
+          - README.md
+          - special_tokens_map.json
+          - tokenizer_config.json
+          - tokenizer.json
+          - vocab.txt
+        hashes:
+          config.json: sha256:eda416dae6f49419ff831b1c190ec430a060b19aae688dbaf2425a075b650608
+          model.safetensors: sha256:5548f844c928c4b6f411fa8cbcc2bfa8dbbba437cb1d513975519f93c2a9ed21
+          preprocessor_config.json: sha256:8454179ba95e2ad22947835aad7b45862a601fc0055ab88bf1ee70892d3aea60
+          README.md: sha256:a0d03193076262a585dcb1edfe4b3b72fac678055008b688feb188cceb7f977d
+          special_tokens_map.json: sha256:b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3
+          tokenizer_config.json: sha256:d40ab645b68211910b9170d22433d43186a6ec8ee6fd10ba170524b25bf4fb56
+          tokenizer.json: sha256:d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66
+          vocab.txt: sha256:07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3
+        total_size_bytes: 934349912
+        host_requirement:
+          accelerator: cuda
   - model_id: asset-image-textenc-clip-l
     provider: local
     model_type: auxiliary
@@ -10102,23 +10153,25 @@ loadout_recipes:
           format: safetensors
           model_type: locateanything
           artifact_role: vision_model
-  - recipe_id: grounding-dino-tiny.vision-locate.box-v1
-    revision: "1"
-    title: Grounding DINO Tiny box localization
+  - recipe_id: grounding-dino.vision-locate.box-v2
+    revision: "2"
+    title: Grounding DINO box localization
     capability_contract: vision.locate
-    implementation_id: local.vision.locate.grounding-dino-tiny
+    implementation_id: local.vision.locate.grounding-dino
     driver_id: nimi.runtime.driver.grounding-dino
-    driver_dialect: grounding-dino/vision-locate/box-v1
+    driver_dialect: grounding-dino/vision-locate/box-v2
     default_options: {}
     supported_features: []
     custody: []
     slot_metadata:
       - slot_id: vision.model
-        display_label: Grounding DINO Tiny model
+        display_label: Grounding DINO model
         recommended_variant_ids:
           - local.vision.grounding-dino-tiny.f32.cuda
+          - local.vision.grounding-dino-base.f32.cuda
         recommended_content_ids:
           - sha256:0520bb2cf126ccce50c951f4413d2e799e2a0ad9fd711338a5eb5af4c9f5a0f5
+          - sha256:72eb48b597e26d55fd309b6859ecfab56efb76821b30f6b6c047a0d7bb193978
         model_contract:
           format: safetensors
           model_type: grounding-dino

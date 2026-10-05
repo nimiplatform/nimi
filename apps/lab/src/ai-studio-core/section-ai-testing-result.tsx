@@ -163,7 +163,9 @@ function TextStudioHistoryRecordResult({
   const HistoryActions = registration.historyActions;
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
   const jobState = snapshot?.ok && 'jobState' in snapshot ? snapshot.jobState : undefined;
-  const statusLabel = jobState === undefined
+  const statusLabel = record.status === 'ready' && snapshot?.ok && snapshot.kind === 'vision-locate' && snapshot.result
+    ? t('Studio.result.statCompleted')
+    : jobState === undefined
     ? rendererHost.app.projection.runStatusLabel(record.status)
     : jobState.toUpperCase() === 'COMPLETED' ? t('Studio.result.statCompleted')
       : jobState || t('Studio.result.stateUnknown');
@@ -310,7 +312,7 @@ function TextStudioHistoryRecordResult({
 function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioRunHistoryResultSnapshot, { ok: true }> }) {
   const { translate: t } = useAIStudioHost();
   if (snapshot.kind === 'vision-locate') return snapshot.result
-    ? <VisionLocateResultView output={{kind:'vision-locate', jobId:snapshot.jobId, result:snapshot.result}} />
+    ? <VisionLocateResultView output={{kind:'vision-locate', jobId:snapshot.jobId, result:snapshot.result, sourceImage:snapshot.sourceImage}} />
     : <><p>{snapshot.summary}</p><p className="studio-result__hint">{t('VisionLocate.historySummaryOnly')}</p><pre>{JSON.stringify({ jobId: snapshot.jobId }, null, 2)}</pre></>;
   if (snapshot.kind === 'text') {
     return <div className="studio-result__rich">

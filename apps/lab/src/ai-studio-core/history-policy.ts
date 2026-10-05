@@ -211,6 +211,10 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
   optionalString(value.traceId, `${path}.traceId`);
   if (kind === 'vision-locate') {
     requiredString(value.jobId, `${path}.jobId`);
+    if (value.sourceImage !== undefined) {
+      validateManagedArtifact(value.sourceImage, `${path}.sourceImage`);
+      if (!isJsonObject(value.sourceImage) || !['image/png','image/jpeg','image/webp','image/gif'].includes(String(value.sourceImage.mediaType))) historyError(`${path}.sourceImage`, 'requires the saved input image');
+    }
     const result = value.result;
     if (result === undefined) return;
     if (!isJsonObject(result) || typeof result.imageArtifactId !== 'string' || !result.imageArtifactId || !Number.isInteger(result.width) || (result.width as number) <= 0 || !Number.isInteger(result.height) || (result.height as number) <= 0 || !Array.isArray(result.locations)) historyError(path, 'requires a typed Locate result');
@@ -675,6 +679,7 @@ export function studioHistoryArtifactPaths(record: StudioRunHistoryRecord): stri
   if (!result || result.ok === false) return [];
   if (result.kind === 'text-annotation') return studioHistoryDocumentPaths(record);
   if (result.kind === 'voice-asset') return result.preview ? [result.preview.relativePath] : [];
+  if (result.kind === 'vision-locate') return result.sourceImage ? [result.sourceImage.relativePath] : [];
   if (result.kind !== 'artifacts') return [];
   const artifacts = result.artifacts?.length ? result.artifacts : result.firstArtifact ? [result.firstArtifact] : [];
   return artifacts.map((artifact) => artifact.relativePath).filter(Boolean);
@@ -689,6 +694,7 @@ export function studioHistoryDocumentPaths(record: StudioRunHistoryRecord): stri
   const result = record.result;
   if (!result || result.ok === false) return [];
   if (result.kind === 'voice-asset') return result.preview ? [result.preview.relativePath] : [];
+  if (result.kind === 'vision-locate') return result.sourceImage ? [result.sourceImage.relativePath] : [];
   if (result.kind !== 'text-annotation') return [];
   return result.document.relativePath ? [result.document.relativePath] : [];
 }

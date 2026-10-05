@@ -1788,3 +1788,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.realtime-plane
+  - id: rule.nimi.runtime.ai-provider.grounding-dino-swin-box-admission
+    kind: rule
+    title: Grounding DINO box v2 admits bounded compatible Swin and tokenizer structures
+    modality: must
+    statement: The local.vision.locate.grounding-dino implementation uses only grounding-dino/vision-locate/box-v2 with grounding-dino.vision-locate.box-v2 recipe revision 2 for its shared Windows amd64 CUDA BOX pipeline. This is a hard cut from the prior Tiny-only dialect, without a v1 alias, automatic migration, alternate Driver or Host fallback. Exact model admission comes from verified config and safetensors facts, not model names or catalog recommendations. It admits only the built-in GroundingDinoForObjectDetection class with d_model 256, BERT vocabulary and hidden dimensions 30522 and 768, unquantized F32 projection, decoder and box-head tensors, and either the Swin-T 96-dimensional, depth 2/2/6/2, head 3/6/12/24, window 7 structure or the Swin-B 128-dimensional, depth 2/2/18/2, head 4/8/16/32, window 12 structure. Omitted official Swin-T and BERT config values use their built-in defaults only within these exact structures; an explicit contradictory value is not reinterpreted. Each bundle supplies complete processor, tokenizer configuration, WordPiece tokenizer, vocabulary and special-token facts whose token identities agree with the captured BERT embedding rows. An added_tokens.json file is optional only because the complete tokenizer already carries those identities; when present its mapping must agree, and installation never fabricates it. One shared managed Transformers loader remains local-files-only with remote code disabled and safetensors required; no per-model adapter, parser or dependency profile is introduced. The existing artifact owner, canonical full-image coordinate frame, complete BOX validation and ScenarioJob lifecycle remain binding; POINT, Cloud, other architectures or precisions and other platforms are not admitted by this dialect.
+    condition: Whenever the Grounding DINO v2 recipe is prepared, bound, selected or executed, or its model files and compatibility are projected.
+    failure: Reject incompatible config, tensor, tokenizer, version, geometry or platform facts before successful binding or execution; never substitute a compatible-looking label, reinterpret v1, fabricate a token file, accept partial output, clamp invalid boxes or turn box centers into POINT results. Bounded one-time local version alignment preserves exact resource bindings and user data outside the product execution path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.vision-locate-contract

@@ -208,6 +208,30 @@ const ready = (client) => ({
   getLocalAppClient() { return client; },
 });
 
+test('vision locate retains the returned original artifact before exposing a persistable result', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const locate = { imageArtifactId: 'upload-1', width: 20, height: 10, locations: [{ type:'box', x1:0.1, y1:0.2, x2:0.4, y2:0.7, label:'cup' }] };
+  const fake = fakeClient({
+    submit: () => ({ job: job('job-locate','completed',{scenarioType:'vision-locate'}) }),
+    get: async () => ({ job: job('job-locate','completed',{scenarioType:'vision-locate'}), visionLocate:{...locate,imageArtifactId:`upload-${fake.calls.upload.length}`}, asset:null, voiceReference:null }),
+  });
+  const input = { capabilityId:'vision.locate', prompt:'the cup', parameters:{geometry:'box'}, attachments:[{id:'input',kind:'image',name:'cup.png',mimeType:'image/png',dataUrl:'data:image/png;base64,AQID'}] };
+  const result = await runLabCapability(input,ready(fake.client));
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.deepEqual(fake.calls.adopt,[{artifactId:'upload-1',relativePath:'media/vision-locate/job-locate/source.asset',overwrite:false}]);
+  assert.deepEqual(result.output.result,locate);
+  assert.equal(result.output.sourceImage.previewSource,'managed-asset');
+  const { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult } = await load('ai-studio-core/history.js');
+  const record = createStudioRunHistoryRecord({result,prompt:input.prompt,runId:'history',createdAt:'2026-10-04T00:00:00Z'});
+  assert.deepEqual(record.result.sourceImage,result.output.sourceImage);
+  assert.equal('imagePreviewUrl' in record.result,false,'temporary URLs never become stored image truth');
+  assert.deepEqual(restoreStudioCapabilityRunResult(record,()=> 'Locate').output.sourceImage,result.output.sourceImage);
+  fake.client.storage.assets.adoptArtifact = async () => { throw new Error('managed image save failed'); };
+  const failed = await runLabCapability(input,ready(fake.client));
+  assert.equal(failed.ok,false,'an unsaved input is not persistable success');
+  assert.match(failed.message,/managed image save failed/u);
+});
+
 // "The café sells 🍰 cake." counted in Unicode scalars: 🍰 is one scalar but
 // two UTF-16 code units, so "cake" starts at 17, not 18.
 const SAMPLE = 'The café sells 🍰 cake.';

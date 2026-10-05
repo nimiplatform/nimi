@@ -45,7 +45,7 @@ func TestGroundingDinoBoxResolvedAssemblyRetainsItsExactDriverAndProfile(t *test
 	}
 	profile := strings.Repeat("a", 64)
 	selected := &localexecution.SelectedLocalExecution{
-		LoadoutID: "grounding-dino-loadout", CapabilityContract: capabilitydriver.VisionLocateContract, RecipeID: capabilitydriver.GroundingDinoRecipeID, RecipeRevision: "1",
+		LoadoutID: "grounding-dino-loadout", CapabilityContract: capabilitydriver.VisionLocateContract, RecipeID: capabilitydriver.GroundingDinoRecipeID, RecipeRevision: "2",
 		DriverIdentity:         &runtimev1.CapabilityImplementationIdentity{ImplementationId: capabilitydriver.GroundingDinoImplementationID, DriverId: capabilitydriver.GroundingDinoDriverID, DriverDialect: capabilitydriver.GroundingDinoDriverDialect},
 		Requirements:           requirements,
 		ExactBindings:          []localexecution.ExactBinding{{RequirementID: capabilitydriver.GroundingDinoModelSlot, RequirementRole: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, ModelAssetID: "grounding-dino-model", AbsolutePath: filepath.Join(root, "model.safetensors"), BundleDir: root, DeclaredFiles: []string{"model.safetensors"}, VerifiedContentID: "sha256:" + strings.Repeat("b", 64), EntrySHA256: strings.Repeat("c", 64)}},

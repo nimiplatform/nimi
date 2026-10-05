@@ -15,6 +15,10 @@ sources:
     url: https://github.com/IDEA-Research/GroundingDINO/blob/main/LICENSE
     retrieved_at: 2026-09-29
     note: IDEA-Research's Apache-2.0 source license; the exact Hugging Face model card independently carries the Apache-2.0 model tag.
+  - source_id: grounding_dino_base_modelcard
+    url: https://huggingface.co/IDEA-Research/grounding-dino-base/blob/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/README.md
+    retrieved_at: 2026-10-04
+    note: Official fixed Swin-B Transformers safetensors checkpoint; exact README declares Apache-2.0. The complete BERT tokenizer bundle does not contain added_tokens.json.
 models:
   - model_id: locateanything-local
     model_type: vision
@@ -141,5 +145,42 @@ models:
           tokenizer.json: sha256:d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66
           vocab.txt: sha256:07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3
         total_size_bytes: 690308125
+        host_requirement:
+          accelerator: cuda
+  - model_id: grounding-dino-base-local
+    model_type: vision
+    family: grounding-dino-base
+    updated_at: 2026-10-04
+    capabilities: [vision.locate]
+    source_ids: [grounding_dino_base_modelcard, grounding_dino_project_license]
+    install:
+      repo: IDEA-Research/grounding-dino-base
+      revision: 12bdfa3120f3e7ec7b434d90674b3396eccf88eb # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles: [vision_model]
+      license: Apache-2.0
+    variants:
+      - variant_id: local.vision.grounding-dino-base.f32.cuda
+        quant: F32
+        files:
+          - config.json
+          - model.safetensors
+          - preprocessor_config.json
+          - README.md
+          - special_tokens_map.json
+          - tokenizer_config.json
+          - tokenizer.json
+          - vocab.txt
+        hashes:
+          config.json: sha256:eda416dae6f49419ff831b1c190ec430a060b19aae688dbaf2425a075b650608
+          model.safetensors: sha256:5548f844c928c4b6f411fa8cbcc2bfa8dbbba437cb1d513975519f93c2a9ed21
+          preprocessor_config.json: sha256:8454179ba95e2ad22947835aad7b45862a601fc0055ab88bf1ee70892d3aea60
+          README.md: sha256:a0d03193076262a585dcb1edfe4b3b72fac678055008b688feb188cceb7f977d
+          special_tokens_map.json: sha256:b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3
+          tokenizer_config.json: sha256:d40ab645b68211910b9170d22433d43186a6ec8ee6fd10ba170524b25bf4fb56
+          tokenizer.json: sha256:d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66
+          vocab.txt: sha256:07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3
+        total_size_bytes: 934349912
         host_requirement:
           accelerator: cuda

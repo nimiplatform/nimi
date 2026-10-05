@@ -49,10 +49,17 @@ export async function runVisionLocate(context: StudioCapabilityRuntimeContext) {
   });
   if (!result.visionLocate) throw new Error(t('VisionLocate.resultMissing'));
   const locate = localVisionResult(result.visionLocate);
+  // Only the original result association selects the image to retain. Commit
+  // its App-owned copy before publishing a persistable successful result.
+  const adopted = await context.host.client.storage.assets.adoptArtifact({
+    artifactId: locate.imageArtifactId, relativePath: `media/vision-locate/${result.job.jobId}/source.asset`, overwrite: false,
+  });
+  const sourceImage = { relativePath: adopted.relativePath, mediaType: adopted.mediaType, sizeBytes: adopted.sizeBytes,
+    sha256: adopted.sha256, displayName: image.name, previewSource: 'managed-asset' as const };
   return {
     ok: true as const, capabilityId: context.capability.id, capabilityLabel: context.capability.label,
     message: t(locate.locations.length ? 'VisionLocate.found' : 'VisionLocate.noMatch', { count: locate.locations.length }),
-    output: { kind: 'vision-locate' as const, jobId: result.job.jobId, result: locate, imagePreviewUrl: image.dataUrl },
+    output: { kind: 'vision-locate' as const, jobId: result.job.jobId, result: locate, sourceImage, imagePreviewUrl: image.dataUrl },
     trace: { traceId: result.traceId },
   };
 }

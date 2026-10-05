@@ -52,7 +52,7 @@ export type StudioRunConfigSnapshot = {
 };
 
 export type StudioRunHistoryResultSnapshot =
-  | { ok: true; kind: 'vision-locate'; summary: string; jobId: string; result?: NimiLocalAppVisionLocateResult; traceId?: string }
+  | { ok: true; kind: 'vision-locate'; summary: string; jobId: string; result?: NimiLocalAppVisionLocateResult; sourceImage?: StudioManagedArtifact; traceId?: string }
   | {
       ok: true;
       kind: 'text';
@@ -291,7 +291,7 @@ export async function projectStudioManagedHistory(input: {
         const verification = await verifyStudioManagedArtifact(input.statArtifact, result.document, record);
         if (verification.status === 'unavailable') unavailableReason = verification.message;
       }
-      if (result?.ok === true && result.kind === 'text' && result.sourceImage) {
+      if (result?.ok === true && (result.kind === 'text' || result.kind === 'vision-locate') && result.sourceImage) {
         const verification = await verifyStudioManagedArtifact(input.statArtifact, result.sourceImage, record);
         if (verification.status === 'unavailable') unavailableReason = verification.message;
       }
@@ -548,7 +548,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
 
   const trace = traceFields(result);
   const output = result.output;
-  if (output.kind === 'vision-locate') return { ok: true, kind: 'vision-locate', summary: result.message, jobId: output.jobId, result: output.result, ...trace };
+  if (output.kind === 'vision-locate') return { ok: true, kind: 'vision-locate', summary: result.message, jobId: output.jobId, result: output.result, ...(output.sourceImage ? { sourceImage: { ...output.sourceImage } } : {}), ...trace };
   if (output.kind === 'text') {
     return {
       ok: true,
@@ -726,7 +726,7 @@ export function restoreStudioCapabilityRunResult(
     message: record.message,
     ...(trace ? { trace } : {}),
   };
-  if (snapshot.kind === 'vision-locate') return snapshot.result ? { ...common, output: { kind: 'vision-locate', jobId: snapshot.jobId, result: snapshot.result } } : null;
+  if (snapshot.kind === 'vision-locate') return snapshot.result ? { ...common, output: { kind: 'vision-locate', jobId: snapshot.jobId, result: snapshot.result, ...(snapshot.sourceImage ? { sourceImage: { ...snapshot.sourceImage } } : {}) } } : null;
   if (snapshot.kind === 'text') {
     return {
       ...common,

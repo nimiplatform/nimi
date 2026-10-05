@@ -22,6 +22,7 @@ export type LabArtifactPersistenceCandidate = {
     voiceConversion?: { readonly lengthRelation: 'EXACT' | 'MODEL_FRAME_ROUNDING' };
     audioSeparation?: { readonly vocals: { readonly relativePath: string } };
     document?: { readonly relativePath?: string };
+    sourceImage?: { readonly relativePath: string };
   };
 };
 
@@ -72,6 +73,7 @@ export function labRunOwnedAssetPaths(result: LabArtifactPersistenceCandidate): 
   }
   const documentPath = result.ok && result.output?.kind === 'text-annotation' ? result.output.document?.relativePath : undefined;
   if (result.ok && result.output?.kind === 'voice-asset' && result.output.preview) return [result.output.preview.relativePath];
+  if (result.ok && result.output?.kind === 'vision-locate' && result.output.sourceImage) return [result.output.sourceImage.relativePath];
   return documentPath ? [documentPath] : [];
 }
 

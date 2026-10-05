@@ -312,6 +312,7 @@ test('history previews do not inherit another run status or cancellation target'
     // A persisted record takes a different rendering branch than session B.
     props.historySelectionRequest={requestId:2,record:{...record,id:'older-history'}};
     await act(async()=>{render();});
+    assert.ok(container.textContent.includes('Studio.result.statCompleted'), 'the saved complete BOX result is completed, not Runtime readiness');
     assert.equal(container.querySelector('.studio-result__pending'),null);
     assert.equal(button('StudioShell.cancelGeneration'),undefined);
     assert.equal(button('StudioShell.regenerate').disabled,true);
