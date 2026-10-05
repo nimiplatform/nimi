@@ -1818,8 +1818,13 @@ export async function reuseRuntimeSetupCurrent(
       });
       return attention(failure);
     }
+    const reusedConfiguration = {
+      candidateLoadoutId: selected.loadoutId,
+      candidateRevisionBaseline: selected.revision,
+      draft: { ...task.draft, route: 'local' as const },
+    };
     if (task.source.kind === 'runtime') {
-      updateLiveTask(store, taskId, { status: 'done', nextAction: 'return-to-source' });
+      updateLiveTask(store, taskId, { ...reusedConfiguration, status: 'done', nextAction: 'return-to-source' });
       return ok({ machineWrites: 0, ownerRouteSaved: false, alreadyLocalIntent: true, selectedLoadoutId });
     }
     const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => (
@@ -1831,7 +1836,7 @@ export async function reuseRuntimeSetupCurrent(
       machineSelected: task.failure?.machineSelected,
     });
     if (saved.status !== 'ok') return saved;
-    updateLiveTask(store, taskId, { status: 'done', nextAction: 'return-to-source', failure: undefined });
+    updateLiveTask(store, taskId, { ...reusedConfiguration, status: 'done', nextAction: 'return-to-source', failure: undefined });
     return ok({ machineWrites: 0, ownerRouteSaved: saved.value.saved, alreadyLocalIntent: !saved.value.saved, selectedLoadoutId });
   } catch (error) {
     const failure: RuntimeSetupRunnerFailure = {

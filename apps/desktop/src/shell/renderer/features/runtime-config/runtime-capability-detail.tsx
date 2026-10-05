@@ -33,7 +33,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { formatBytes } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
@@ -144,7 +143,6 @@ export function PendingSetupBanner(props: {
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
 export function RuntimeCapabilityDetail(props: Props) {
   const { t } = useTranslation();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [query, setQuery] = useState('');
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const label = displayRuntimeConfigCapabilityLabel(props.capability, t);
@@ -336,22 +334,19 @@ export function RuntimeCapabilityDetail(props: Props) {
                     </Button>
                   ) : null}
                   {props.selected ? (
-                    !isReady || props.capability === 'text.generate' ? (
+                    !isReady ? (
                       <Button
                         tone="primary"
                         disabled={props.busy || props.disabled}
                         onClick={() => {
-                          if (isReady) setActiveTab('chat');
-                          else if (props.status.task) props.onTask(props.status.task.taskId);
+                          if (props.status.task) props.onTask(props.status.task.taskId);
                           else void props.onStart(props.selected!.recipeId, props.selected);
                         }}
                       >
                         {t(
-                          !isReady
-                            ? props.status.state === 'unknown'
-                              ? 'runtimeConfig.setupTask.checkPreparation'
-                              : 'runtimeConfig.setupTask.repairSetup'
-                            : 'runtimeConfig.overview.openChat',
+                          props.status.state === 'unknown'
+                            ? 'runtimeConfig.setupTask.checkPreparation'
+                            : 'runtimeConfig.setupTask.repairSetup',
                         )}
                         <ArrowRight size={15} />
                       </Button>

@@ -2431,7 +2431,7 @@
     "preparingCount": "{{count}} 项准备中",
     "attentionCount": "{{count}} 项需处理",
     "apps": {
-      "title": "相关应用",
+      "title": "在应用中体验",
       "unavailable": "暂时无法读取应用信息。",
       "incomplete": "部分应用信息暂时无法读取。"
     },
@@ -2531,7 +2531,16 @@
     "viewRelatedTransfer": "查看关联任务",
     "relatedTransferUnavailable": "关联任务已不可用，请刷新下载列表查看最新状态。",
     "checkSyncStarted": "已启动检查与同步，请稍后刷新任务状态。",
-    "setupGroup": "设置任务",
+    "setupGroup": "AI 配置",
+    "setupCreatedAt": "创建于 {{at}}",
+    "configuredModel": "配置模型：{{name}}",
+    "modelLabel": "模型",
+    "modelsLoading": "正在读取配置模型…",
+    "modelsReadFailed": "暂时无法读取配置模型，请刷新重试。",
+    "modelsUnavailable": "无法确认这次配置的模型，请查看设置。",
+    "modelsSeeTransfers": "无法确认这次配置的完整模型列表，已关联的下载记录如下。",
+    "usedInstalledModels": "使用已安装模型，本次无需下载模型文件。",
+    "cloudNoDownload": "云端配置，无需下载本机模型。",
     "stage": {
       "queued": "排队中",
       "downloading": "下载中",

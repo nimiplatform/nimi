@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
@@ -94,7 +95,7 @@ export function RuntimeCapabilityAppsCard(props: {
                 <li key={entry.identity.appId}>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-3 rounded-[var(--nimi-radius-md)] px-2 py-1.5 text-left transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                    className="group flex w-full items-center gap-3 rounded-[var(--nimi-radius-md)] px-2 py-1.5 text-left transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                     title={entry.identity.displayName}
                     onClick={() => props.onOpen(entry)}
                     data-testid={`capability-app:${entry.identity.appId}`}
@@ -105,9 +106,14 @@ export function RuntimeCapabilityAppsCard(props: {
                       iconUrl={entry.iconUrl}
                       size="sm"
                     />
-                    <span className="min-w-0 flex-1 truncate text-sm text-[var(--nimi-text-primary)]">
+                    <span className="min-w-0 flex-1 truncate text-sm text-[var(--nimi-text-primary)] transition-colors group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:text-[var(--nimi-action-primary-bg)]">
                       {entry.identity.displayName}
                     </span>
+                    <ChevronRight
+                      size={14}
+                      className="shrink-0 -translate-x-1 text-[var(--nimi-text-muted)] opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
+                      aria-hidden="true"
+                    />
                   </button>
                 </li>
               ))}

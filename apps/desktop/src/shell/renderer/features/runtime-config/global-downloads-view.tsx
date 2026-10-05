@@ -6,6 +6,7 @@ import {
   LoadingSkeleton,
   NimiTabs,
   ScrollArea,
+  StatusBadge,
   Surface,
   Tooltip,
 } from '@nimiplatform/kit/ui';
@@ -31,21 +32,27 @@ import { useGlobalDownloads } from './global-downloads-context.js';
 import {
   appJobLane,
   DownloadTaskRow,
+  downloadModelName,
   environmentLane,
   environmentStage,
   groupTransferAttempts,
   interruptionReasonKey,
   setupTaskLane,
+  setupTaskStatusTone,
   transferLane,
   transferStage,
   type DownloadStage,
   type DownloadsLane,
 } from './global-downloads-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
+import { componentPresentation } from './runtime-config-setup-task-view.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { isDownloadTerminal } from './runtime-config-model-center-utils.js';
 import { getRuntimeSetupTaskStore, runtimeSetupTaskUnconfirmed, useRuntimeSetupTasks } from './runtime-setup-task-store.js';
 import { ModelTransferRecoveryActions } from './model-transfer-recovery-actions.js';
+import { useCapabilityInventory } from './runtime-capability-inventory.js';
+import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
+import { DownloadSetupModels } from './download-setup-models.js';
 
 const AppDownloadsDetail = lazy(async () => ({ default: (await import('../apps/apps-panel.js')).AppsPanel }));
 
@@ -149,6 +156,8 @@ export function GlobalDownloadsView() {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const store = getRuntimeSetupTaskStore();
   const snapshot = useRuntimeSetupTasks(store);
+  const inventory = useCapabilityInventory();
+  const modelLibrary = useRuntimeModelLibrary();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   // Cancelling a transfer with received bytes discards them; confirm that first.
@@ -220,13 +229,17 @@ export function GlobalDownloadsView() {
   );
   const usedTransfers = new Set<string>();
   const usedEnvironments = new Set<string>();
-  const transferRow = (item: (typeof transfers)[number], attempts = 1) => {
+  const transferRow = (item: (typeof transfers)[number], attempts = 1, embedded = false) => {
     const stage = transferStage(item);
+    const catalog = modelLibrary.data?.catalog ?? [];
+    const title = downloadModelName(item.modelAssetId, catalog)
+      ?? downloadModelName(item.sourceLabel, catalog)
+      ?? (item.sourceLabel || item.modelAssetId || item.installSessionId);
     return (
       <DownloadTaskRow
         key={item.installSessionId}
         testId={`download-model:${item.installSessionId}`}
-        title={item.sourceLabel || item.modelAssetId || item.installSessionId}
+        title={title}
         kind="model"
         lane={transferLane(item.state)}
         stage={stage}
@@ -236,6 +249,7 @@ export function GlobalDownloadsView() {
         etaSeconds={item.etaSeconds}
         at={item.updatedAt}
         attempts={attempts}
+        embedded={embedded}
         reason={stage === 'interrupted' ? t(interruptionReasonKey(`${item.message ?? ''} ${item.reasonCode ?? ''}`)) : undefined}
         technical={[item.sourceLabel, item.modelAssetId, item.message, item.reasonCode, item.relatedInstallSessionId ? `related=${item.relatedInstallSessionId}` : ''].filter(Boolean).join(' · ')}
       >
@@ -309,21 +323,26 @@ export function GlobalDownloadsView() {
       transferRow(group.latest)
     )
   );
-  const environmentRow = (item: (typeof environments)[number]) => {
+  const environmentRow = (item: (typeof environments)[number], embedded = false) => {
     const stage = environmentStage(item);
+    const component = componentPresentation(
+      { dependencyFamily: item.dependencyFamily, dependencyId: item.dependencyId, state: item.state },
+      t,
+    );
     return (
       <DownloadTaskRow
         key={item.jobId}
         testId={`download-environment:${item.jobId}`}
-        title={item.dependencyFamily}
+        title={component.name}
         kind="environment"
         lane={environmentLane(item)}
         stage={stage}
         bytes={item.bytesReceived}
         total={item.bytesTotal}
         at={item.updatedAt}
+        embedded={embedded}
         reason={stage === 'interrupted' ? t(interruptionReasonKey(`${item.failureDetail ?? ''} ${item.reasonCode ?? ''}`)) : undefined}
-        technical={[item.dependencyId, item.failureDetail, item.reasonCode].filter(Boolean).join(' · ')}
+        technical={[item.dependencyFamily, item.dependencyId, item.failureDetail, item.reasonCode].filter(Boolean).join(' · ')}
       >
         <div className="flex gap-2">
           {isNimiRuntimeLocalEnvironmentDependencyJobActiveState(item.state) ? (
@@ -418,6 +437,8 @@ export function GlobalDownloadsView() {
               leadingIcon={<RefreshCw size={14} />}
               onClick={() => {
                 void downloads?.refresh();
+                void inventory.refetch();
+                void modelLibrary.refetch();
               }}
             >
               {t('Common.refresh')}
@@ -505,25 +526,31 @@ export function GlobalDownloadsView() {
                 );
                 taskEnvironments.forEach((item) => usedEnvironments.add(item.jobId));
                 return (
-                  <section key={id} className="rounded-2xl bg-[var(--nimi-surface-card)] px-5 pb-1 pt-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
+                  <section key={id} className="rounded-2xl bg-[var(--nimi-surface-card)] px-5 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
                           {t('runtimeConfig.downloads.setupGroup')}
                         </p>
-                        <h2 className="font-semibold">
-                          {tasks[0]?.draft?.profileTitle ??
-                            displayRuntimeConfigCapabilityLabel(tasks[0]!.capabilityContract, t)}
-                        </h2>
-                        <p className="mt-0.5 text-xs text-[var(--nimi-text-secondary)]">
-                          {tasks
-                            .map((task) => `${displayRuntimeConfigCapabilityLabel(task.capabilityContract, t)} · ${t(`runtimeConfig.setupTask.status.${task.status}`)}`)
-                            .join(' · ')}
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                          <h2 className="font-semibold text-[var(--nimi-text-primary)]">
+                            {tasks[0]?.draft?.profileTitle ??
+                              displayRuntimeConfigCapabilityLabel(tasks[0]!.capabilityContract, t)}
+                          </h2>
+                          {[...new Set(tasks.map((task) => task.status))].map((status) => (
+                            <StatusBadge key={status} tone={setupTaskStatusTone(status)}>
+                              {t(`runtimeConfig.setupTask.status.${status}`)}
+                            </StatusBadge>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                          {t('runtimeConfig.downloads.setupCreatedAt', { at: new Date(tasks[0]!.createdAt).toLocaleString() })}
                         </p>
                       </div>
                       <Button
                         size="sm"
                         tone="secondary"
+                        className="shrink-0"
                         onClick={() => {
                           commands.runtimeConfigNavigation.openSetupTask(tasks[0]!.taskId);
                           setActiveTab('runtime');
@@ -532,15 +559,29 @@ export function GlobalDownloadsView() {
                         {t('runtimeConfig.downloads.openSetup')}
                       </Button>
                     </div>
-                    {taskTransfers.map((item) => transferRow(item))}
-                    {taskEnvironments.map(environmentRow)}
+                    {tasks.map((task) => <DownloadSetupModels
+                      key={task.taskId}
+                      task={task}
+                      showCapability={tasks.length > 1}
+                      loadouts={inventory.data?.aggregate.loadouts ?? []}
+                      assets={modelLibrary.data?.assets ?? []}
+                      catalog={modelLibrary.data?.catalog ?? []}
+                      loading={inventory.isPending || modelLibrary.isPending}
+                      unavailable={inventory.isError || modelLibrary.isError}
+                    />)}
+                    {taskTransfers.length + taskEnvironments.length > 0 ? (
+                      <div className="mt-2 border-t border-[var(--nimi-border-subtle)]">
+                        {taskTransfers.map((item) => transferRow(item, 1, true))}
+                        {taskEnvironments.map((item) => environmentRow(item, true))}
+                      </div>
+                    ) : null}
                   </section>
                 );
               })}
               {lane === 'active'
                 ? transfers.filter((item) => !usedTransfers.has(item.installSessionId)).map((item) => transferRow(item))
                 : groupTransferAttempts(transfers.filter((item) => !usedTransfers.has(item.installSessionId))).map(transferGroup)}
-              {environments.filter((item) => !usedEnvironments.has(item.jobId)).map(environmentRow)}
+              {environments.filter((item) => !usedEnvironments.has(item.jobId)).map((item) => environmentRow(item))}
               {(lane === 'active'
                 ? appJobs.map((job) => ({ job, attempts: 1 }))
                 : [...new Map(

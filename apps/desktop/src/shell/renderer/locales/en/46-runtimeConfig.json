@@ -2431,7 +2431,7 @@
     "preparingCount": "{{count}} preparing",
     "attentionCount": "{{count}} need attention",
     "apps": {
-      "title": "Apps that use this capability",
+      "title": "Try it in an app",
       "unavailable": "App information is temporarily unavailable.",
       "incomplete": "Some app information is temporarily unavailable."
     },
@@ -2532,6 +2532,15 @@
     "relatedTransferUnavailable": "The related task is no longer available. Refresh downloads to check its current state.",
     "checkSyncStarted": "Check & Sync has started. Refresh downloads shortly to see the updated task state.",
     "setupGroup": "Setup",
+    "setupCreatedAt": "Created {{at}}",
+    "configuredModel": "Configured model: {{name}}",
+    "modelLabel": "Model",
+    "modelsLoading": "Loading configured models…",
+    "modelsReadFailed": "Could not read configured models. Refresh to try again.",
+    "modelsUnavailable": "The model for this setup could not be confirmed. View settings for details.",
+    "modelsSeeTransfers": "The full model list for this setup could not be confirmed. Related downloads are listed below.",
+    "usedInstalledModels": "Used installed models. No model download was needed for this setup.",
+    "cloudNoDownload": "Cloud setup does not require a local model download.",
     "stage": {
       "queued": "Queued",
       "downloading": "Downloading",

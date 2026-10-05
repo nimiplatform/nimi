@@ -28,6 +28,7 @@ import {
   ProfileDetailStatsActionsBlock,
 } from './profile-detail-view-content-shell.js';
 import { ProfileDetailTabs } from './profile-detail-view-tabs.js';
+import { ProfileCountryField } from './profile-country-field.js';
 
 const SHOW_AVATAR_ONLINE_INDICATOR = false;
 
@@ -366,10 +367,12 @@ export function ProfileDetailViewContent(input: {
                                     value={draft.city}
                                     onChange={(value) => setDraft((current) => ({ ...current, city: value }))}
                                   />
-                                  <EditableField
-                                    label={t('Relationship.countryCode', { defaultValue: 'Country code' })}
+                                  <ProfileCountryField
+                                    label={t('Relationship.country', { defaultValue: 'Country or region' })}
+                                    emptyLabel={t('Relationship.countryNotSpecified', { defaultValue: 'Not specified' })}
+                                    locale={i18n.getCurrentLocale()}
                                     value={draft.countryCode}
-                                    onChange={(value) => setDraft((current) => ({ ...current, countryCode: value.toUpperCase() }))}
+                                    onChange={(value) => setDraft((current) => ({ ...current, countryCode: value }))}
                                   />
                                   <EditableField
                                     label={t('Relationship.gender', { defaultValue: 'Gender' })}

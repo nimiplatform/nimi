@@ -6,7 +6,7 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import { isNimiRuntimeLocalEnvironmentDependencyJobActiveState } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
-import { CircleAlert, LoaderCircle, PauseCircle, Settings2 } from 'lucide-react';
+import { Boxes, CircleAlert, LoaderCircle, Package, PauseCircle, Settings2 } from 'lucide-react';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes, formatDurationShort, formatTransferRate } from '../../components/download-format.js';
@@ -42,6 +42,17 @@ export function setupTaskLane(task: RuntimeSetupTask): DownloadsLane {
     : ['done', 'stopped'].includes(task.status)
       ? 'history'
       : 'active';
+}
+export function setupTaskStatusTone(
+  status: RuntimeSetupTask['status'],
+): 'neutral' | 'success' | 'warning' | 'danger' | 'info' {
+  switch (status) {
+    case 'done': return 'success';
+    case 'failed': return 'danger';
+    case 'needs-attention': return 'warning';
+    case 'stopped': return 'neutral';
+    default: return 'info';
+  }
 }
 export function downloadModelName(
   modelId: string,
@@ -126,23 +137,41 @@ export function DownloadTaskRow(
     testId: string;
     /** A real face for the object: app artwork, model tile, component tile. */
     leading?: ReactNode;
+    /**
+     * Nested inside an AI setup group: the group card already carries the
+     * identity, so the row keeps a small neutral glyph and tighter rhythm
+     * instead of another colored tile.
+     */
+    embedded?: boolean;
   }>,
 ) {
   const { t } = useTranslation();
   const stamp = props.at ? new Date(props.at) : null;
   const date = stamp && Number.isFinite(stamp.getTime()) ? stamp.toLocaleString() : '';
   const active = props.lane === 'active';
+  const embedded = props.embedded === true;
   const stageLabel = t(`runtimeConfig.downloads.stage.${props.stage}`);
   const StageIcon = props.stage === 'interrupted' ? CircleAlert : props.stage === 'paused' ? PauseCircle : active ? LoaderCircle : null;
   const known = typeof props.total === 'number' && props.total > 0;
+  const EmbeddedGlyph = props.kind === 'environment' ? Settings2 : props.kind === 'app' ? Package : Boxes;
+  const leading = props.leading ?? (embedded ? (
+    <span
+      aria-hidden="true"
+      className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)]"
+    >
+      <EmbeddedGlyph size={15} strokeWidth={1.8} />
+    </span>
+  ) : (
+    <IdentityTile seed={props.title} label={props.title} size="md" icon={props.kind === 'environment' ? Settings2 : undefined} className="mt-0.5" />
+  ));
   return (
     <article
       id={props.testId}
       tabIndex={-1}
-      className="flex gap-3 border-b border-[var(--nimi-border-subtle)] py-4 last:border-b-0 sm:gap-4"
+      className={`flex gap-3 border-b border-[var(--nimi-border-subtle)] ${embedded ? 'py-3' : 'py-4'} last:border-b-0 sm:gap-4`}
       data-testid={props.testId}
     >
-      {props.leading ?? <IdentityTile seed={props.title} label={props.title} size="md" icon={props.kind === 'environment' ? Settings2 : undefined} className="mt-0.5" />}
+      {leading}
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">

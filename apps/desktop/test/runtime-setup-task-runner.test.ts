@@ -898,6 +898,26 @@ test('reuseCurrent with an existing Local intent performs zero writes', async ()
   const writes = calls.filter((entry) => !entry.method.endsWith('.get') && !entry.method.includes('list'));
   assert.deepEqual(writes, []);
   assert.equal(store.getTask(taskId)?.status, 'done');
+  assert.equal(store.getTask(taskId)?.candidateLoadoutId, 'loadout-current');
+  assert.equal(store.getTask(taskId)?.candidateRevisionBaseline, 'r1');
+  assert.equal(store.getTask(taskId)?.draft?.route, 'local');
+});
+
+test('Desktop reuse keeps the exact configuration association after restart without machine writes', async () => {
+  const storage = createMemoryStorage();
+  const store = makeStore(storage);
+  const task = store.createTask({ capabilityContract: CAPABILITY, source: { kind: 'runtime', accountId: ACCOUNT } });
+  const calls: CallLog = [];
+  const state = baseState({
+    loadouts: [loadout({ loadoutId: 'reused', validationState: 'configured', revision: 'reused-revision' })],
+    selections: [{ capabilityContract: CAPABILITY, loadoutId: 'reused', effectiveDefaults: {} }],
+  });
+  assert.equal((await reuseRuntimeSetupCurrent(store, task.taskId, createPorts(state, calls))).status, 'ok');
+  const restored = makeStore(storage).getTask(task.taskId)!;
+  assert.equal(restored.candidateLoadoutId, 'reused');
+  assert.equal(restored.candidateRevisionBaseline, 'reused-revision');
+  assert.equal(restored.status, 'done');
+  assert.deepEqual(calls.filter((entry) => !entry.method.endsWith('.get') && !entry.method.includes('list')), []);
 });
 
 test('reuseCurrent only overwrites the owner AIConfig when the route must change', async () => {
