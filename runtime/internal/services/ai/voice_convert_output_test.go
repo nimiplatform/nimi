@@ -50,6 +50,19 @@ func TestVoiceConvertResultRejectsInconsistentLengthFacts(t *testing.T) {
 	}
 }
 
+func TestVoiceConversionResultAcceptsActualDriverSampleRate(t *testing.T) {
+	job := voiceConvertResultForTest(44100, 418950, 418816, runtimev1.VoiceConversionLengthRelation_VOICE_CONVERSION_LENGTH_RELATION_MODEL_FRAME_ROUNDING, -4)
+	job.VoiceConversion.VocalInfo.SampleRateHz = 44100
+	job.VoiceConversion.VocalInfo.DurationMs = 9496
+	if err := validateVoiceConvertResult(job); err != nil {
+		t.Fatalf("actual Seed-VC frame facts rejected: %v", err)
+	}
+	job.VoiceConversion.VocalInfo.SampleRateHz = 0
+	if err := validateVoiceConvertResult(job); err == nil {
+		t.Fatal("invalid output sample rate admitted")
+	}
+}
+
 func voiceConvertResultForTest(sourceRate uint32, sourceFrames, outFrames uint64, relation runtimev1.VoiceConversionLengthRelation, delta int64) *runtimev1.ScenarioJob {
 	return &runtimev1.ScenarioJob{
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT,

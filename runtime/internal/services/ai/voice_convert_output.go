@@ -121,7 +121,7 @@ func validateVoiceConvertResult(job *runtimev1.ScenarioJob) error {
 		return fmt.Errorf("voice conversion source facts are invalid")
 	}
 	v := value.GetVocalInfo()
-	if v.GetSampleRateHz() != 24000 || v.GetChannels() != 1 || v.GetFrameCount() == 0 || v.GetDurationMs() != int64(v.GetFrameCount()*1000/uint64(v.GetSampleRateHz())) {
+	if v.GetSampleRateHz() < 8000 || v.GetSampleRateHz() > 96000 || v.GetChannels() != 1 || v.GetFrameCount() == 0 || v.GetFrameCount() > uint64(v.GetSampleRateHz())*600 || v.GetDurationMs() != int64(v.GetFrameCount()*1000/uint64(v.GetSampleRateHz())) {
 		return fmt.Errorf("voice conversion vocal facts are invalid")
 	}
 	delta := value.GetDurationDeltaMs()

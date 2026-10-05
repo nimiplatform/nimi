@@ -1619,8 +1619,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 107 {
-		t.Fatalf("all Loadout recipes = %d, want 107", len(all))
+	if len(all) != 108 {
+		t.Fatalf("all Loadout recipes = %d, want 108", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {

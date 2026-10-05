@@ -1233,6 +1233,20 @@ units:
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
+  - id: rule.nimi.runtime.local-compute.seed-vc-svc-driver
+    kind: rule
+    title: Seed-VC v1_svc captures the complete fixed native resource bundle
+    modality: must
+    statement: Local audio.voice.convert admits the exact SeedVC-MLX safetensors distribution from snapshot 0d9b4039d0a8f4cd8de0dd57471376bfcc1c936c through implementation local.audio.voice.convert.seed-vc.audio-cpp, Driver nimi.runtime.driver.audio-cpp.seed-vc, dialect audio.cpp/seed-vc/voice-convert/v1 and import-only recipe seed-vc.v1-svc.audio-cpp.v1. One ModelAsset owns all fifteen safetensors components, thirteen JSON configurations and the README and license, with exact aggregate content identity, declared paths, bounded tensor and v1_svc architecture validation; five components execute the route while all fifteen are opened by the fixed audio.cpp 0.8.1 f2b4937306daa25f5c78520f3c626ed31495a37a package, and no unbound component may be discovered or substituted. Its Windows amd64 CUDA-13 invocation uses only task svc and route v1_svc with an owned singing source and independent owned reference audio, never speech conversion, presets, VoiceAssets, training or additional routes. Canonical source audio is bounded to 600 seconds and the reference to 25 seconds so the native reference truncation cannot silently change a supported input. Typed source ranges retain their original frame provenance. Invocation fixes f0_condition=true, auto_f0_adjust=false and length_adjust=1, maps absent or zero semitoneShift to zero and explicit supported shifts from -12 to 12 to the native semitone_shift, and never moves the source key toward the reference automatically. The complete model bundle, exact native package and CUDA selected sources, Driver identity, source and reference facts and actual invocation are captured in the existing ResolvedAssembly and verified on restoration and execution. Success publishes only the actual independent 44100 Hz mono float32 vocal and real AudioInfo, source range, bounded length relation and signed duration delta, without stretching or trimming output to manufacture equal length. The existing protected Job, custody, cancellation, private process shutdown and later retry paths remain in force. User import and the authorized local testing scope do not create curated weight delivery, broader distribution acceptance or a quality or performance guarantee.
+    condition: Whenever the exact Seed-VC group is configured, captured, restored or executed for singing conversion.
+    failure: Reject incomplete or different bundles, wrong tensors or config, external model paths, unsupported package or platform, invalid reference or shift, or malformed output; never open uncaptured route weights, silently truncate an admitted reference, auto-adjust pitch, substitute another voice carrier, publish partial success, or claim resource loading alone as singing conversion acceptance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.voice-conversion
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.hyperswap-1a-driver
     kind: rule
     title: HyperSwap 1a uses one exact ONNX group through the existing face contracts

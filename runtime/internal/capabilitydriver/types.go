@@ -1651,6 +1651,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: YuE2ImplementationID, DriverID: YuE2DriverID, DriverDialect: YuE2DriverDialect}}:                                                        YuE2AudioCppDriver{},
 		{CapabilityContract: MusicTranscribeCapabilityContract, Identity: Identity{ImplementationID: SheetSage2ImplementationID, DriverID: SheetSage2DriverID, DriverDialect: SheetSage2DriverDialect}}:                                    SheetSage2AudioCppDriver{},
 		{CapabilityContract: VoiceConvertCapabilityContract, Identity: Identity{ImplementationID: VeVo2ImplementationID, DriverID: VeVo2DriverID, DriverDialect: VeVo2DriverDialect}}:                                                      VeVo2AudioCppDriver{},
+		{CapabilityContract: VoiceConvertCapabilityContract, Identity: Identity{ImplementationID: SeedVCImplementationID, DriverID: SeedVCDriverID, DriverDialect: SeedVCDriverDialect}}:                                                   SeedVCAudioCppDriver{},
 		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: MiniMaxMusic3ImplementationID, DriverID: MiniMaxMusic3DriverID, DriverDialect: MiniMaxMusic3DriverDialect}}:                             MiniMaxMusic3AudioCppDriver{},
 	}
 	for key, driver := range audioCppSpeechProductionDrivers() {

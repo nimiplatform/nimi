@@ -822,6 +822,21 @@ loadout_recipes:
           format: gguf
           model_family: sheetsage2
           artifact_role: music_model
+  - recipe_id: seed-vc.v1-svc.audio-cpp.v1
+    revision: "1"
+    title: Seed-VC singing voice conversion
+    capability_contract: audio.voice.convert
+    implementation_id: local.audio.voice.convert.seed-vc.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.seed-vc
+    driver_dialect: audio.cpp/seed-vc/voice-convert/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: voice.model
+        display_label: Seed-VC v1_svc complete native assets
+        recommended_variant_ids: []
+        model_contract: { format: safetensors-bundle }
   - recipe_id: vevo2.audio-cpp.v1
     revision: "1"
     title: VeVo2 singing voice conversion (non-commercial)

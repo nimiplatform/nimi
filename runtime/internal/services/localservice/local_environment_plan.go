@@ -141,7 +141,7 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 		}
 		return "", "", false
 	case capabilitydriver.MiniMaxMusic3AudioCppDriver, capabilitydriver.YuE2AudioCppDriver, capabilitydriver.SheetSage2AudioCppDriver,
-		capabilitydriver.VeVo2AudioCppDriver, capabilitydriver.HTDemucsAudioCppDriver:
+		capabilitydriver.VeVo2AudioCppDriver, capabilitydriver.SeedVCAudioCppDriver, capabilitydriver.HTDemucsAudioCppDriver:
 		return "local-music-native", audioCppCUDAConsumerID, true
 	case capabilitydriver.Qwen3TTSAudioCppDriver:
 		return "local-speech-native", audioCppQwen3TTSCUDAConsumerID, true
