@@ -549,6 +549,19 @@ const environmentWith = (...states: string[]) => ({
   })),
 }) as unknown as NimiRuntimeLocalEnvironmentPlan;
 
+function assertReadyCurrentModel(html: string): void {
+  assert.match(html, /data-testid="capability-current-model"/);
+  assert.match(html, /Gemma 4 text generation/);
+  assert.match(html, /capability-state-badge[^>]*>[\s\S]*?runtimeConfig\.capabilities\.state\.ready</);
+  assert.match(html, /runtimeConfig\.product\.currentOnDevice/);
+  const changeModel = html.match(/<button\b[^>]*data-testid="capability-change-model"[^>]*>[\s\S]*?<\/button>/)?.[0];
+  assert.ok(changeModel, 'the ready current model offers a change-model action');
+  assert.match(changeModel, /runtimeConfig\.product\.changeModel/);
+  assert.doesNotMatch(changeModel, /\bdisabled(?:=|[\s>])/);
+  assert.doesNotMatch(html, /runtimeConfig\.overview\.openChat/);
+  assert.doesNotMatch(html, /runtimeConfig\.setupTask\.(?:repairSetup|checkPreparation)/);
+}
+
 test('a prepared capability keeps its model on one card and folds ready components into technical details', () => {
   const html = renderCapabilityOverview({
     selected: GEMMA_LOADOUT,
@@ -556,10 +569,8 @@ test('a prepared capability keeps its model on one card and folds ready componen
     environment: environmentWith('ready_managed'),
     status: { state: 'ready', replacement: false },
   });
-  assert.match(html, /capability-state-badge[^>]*>[\s\S]*?runtimeConfig\.capabilities\.state\.ready</);
-  assert.match(html, /runtimeConfig\.product\.currentOnDevice/);
+  assertReadyCurrentModel(html);
   assert.match(html, /aria-label="runtimeConfig\.product\.whatItDoes"><li[^>]*>[^<]+<\/li><li[^>]*>runtimeConfig\.product\.feature\.input-image</);
-  assert.match(html, /runtimeConfig\.overview\.openChat/);
   // Ready components are a technical detail, not a second status line.
   assert.doesNotMatch(html, /capability-environment-status/);
   assert.match(html, /capability-technical-details[\s\S]*runtimeConfig\.product\.technicalEnvironment[\s\S]*component-0/);
@@ -645,7 +656,7 @@ test('the review names Python components by family, shows offer terms, and block
   assert.doesNotMatch(refused, /Ready to use these settings|readyToUseSettings/);
 });
 
-test('inline preparation replaces an unavailable model card and keeps a ready current model usable', () => {
+test('inline preparation replaces an unavailable model card and retains the ready current model during replacement', () => {
   const pending = taskOn(makeStore(), { capabilityContract: 'text.generate', status: 'preparing', candidateLoadoutId: 'replacement' });
   const props = {
     selected: GEMMA_LOADOUT,
@@ -657,8 +668,9 @@ test('inline preparation replaces an unavailable model card and keeps a ready cu
   assert.doesNotMatch(repair, /capability-current-model|capability-pending-setup/);
   assert.equal((repair.match(/<h1/g) ?? []).length, 1);
   const replacement = renderCapabilityOverview({ ...props, status: { state: 'ready', task: pending, replacement: true } });
-  assert.match(replacement, /capability-current-model/);
-  assert.match(replacement, /runtimeConfig\.overview\.openChat/);
-  assert.match(replacement, /capability-preparation/);
+  assertReadyCurrentModel(replacement);
+  assert.match(replacement, /capability-preparation[\s\S]*embedded-preparation/);
+  assert.equal((replacement.match(/data-testid="capability-current-model"/g) ?? []).length, 1);
+  assert.equal((replacement.match(/<h1/g) ?? []).length, 1);
   assert.doesNotMatch(replacement, /capability-pending-setup/);
 });
