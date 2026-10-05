@@ -190,7 +190,7 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
       cancel: unavailableCarrier,
     },
     artifacts: { read: unavailableCarrier, upload: unavailableCarrier },
-    voiceAssets: { list: unavailableCarrier },
+    voiceAssets: { list: unavailableCarrier, delete: unavailableCarrier },
     videoSessions: {
       open: unavailableCarrier,
       submitFrame: unavailableCarrier,

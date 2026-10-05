@@ -1,0 +1,2 @@
+# Python 3.12: numerical WAV regression tests only; no model execution dependencies.
+numpy==1.26.4

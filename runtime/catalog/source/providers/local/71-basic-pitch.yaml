@@ -12,7 +12,7 @@ models:
     source_ids: [basic_pitch_official_040]
     install:
       repo: spotify/basic-pitch
-      revision: 9991303bba609a3b93089d13ec80d1d495083596
+      revision: 9991303bba609a3b93089d13ec80d1d495083596 # pragma: allowlist secret — public Spotify v0.4.0 source commit
       license: Apache-2.0
       provenance: Official Spotify Basic Pitch v0.4.0 icassp_2022 ONNX; retained license and NOTICE.
       install_kind: verified-github-commit-files

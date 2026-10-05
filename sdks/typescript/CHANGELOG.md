@@ -6,7 +6,6 @@ Use the complete matching Runtime, SDK 0.21.0, Kit/native 0.18.0 and Rust carrie
 
 The timeline uses original source frames with the captured range offset once. MIDI times are relative to that selected interval, using the declared 1 ms SMPTE encoding clock; its fixed note-on value and channels are encoding conventions, not measured dynamics or instrument identity. Preserve the original audio and both artifact references. Unsupported parts and ABC fail before publication; do not silently convert or omit outputs.
 
-
 ## 0.20.0 — Common Reasoning and protected App summaries (development)
 
 Use SDK 0.20.0 with Kit and native package 0.17.0, Rust carrier 0.9.0 and the matching Runtime. Omitted reasoning now preserves the selected implementation default. Callers that require reasoning off must explicitly request `activation: disabled` and handle typed refusal when the selected target has no off mapping. Required effort includes `xhigh`; the protected App model accepts the common typed controls through `parameters.reasoning`.

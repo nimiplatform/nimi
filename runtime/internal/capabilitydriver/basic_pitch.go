@@ -24,7 +24,7 @@ const (
 	BasicPitchRecipeID          = "basic-pitch.onnx-cpu.v1"
 	BasicPitchRequirementID     = "music.model"
 	BasicPitchEntry             = "basic_pitch/saved_models/icassp_2022/nmp.onnx"
-	BasicPitchModelSHA256       = "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec"
+	BasicPitchModelSHA256       = "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec" // pragma: allowlist secret -- public official ONNX file digest
 	BasicPitchVerifiedContentID = "sha256:24b5e2a22dbb7575cb3cdd999ac96f24eb5cac6a38df6fc32446fe3a5c96763a"
 )
 

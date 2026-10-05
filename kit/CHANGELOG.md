@@ -6,13 +6,11 @@ Use the complete matching Runtime, SDK 0.21.0, Kit/native 0.18.0 and Rust carrie
 
 The timeline uses original source frames with the captured range offset once. MIDI times are relative to that selected interval, using the declared 1 ms SMPTE encoding clock; its fixed note-on value and channels are encoding conventions, not measured dynamics or instrument identity. Preserve the original audio and both artifact references. Unsupported parts and ABC fail before publication; do not silently convert or omit outputs.
 
-
 ## 0.17.0 — Reasoning transcript delivery (development)
 
 Pair SDK 0.20.0 with Kit/native 0.17.0, Rust carrier 0.9.0 and the matching Runtime. Omitted reasoning now keeps the selected implementation default; callers that explicitly need off must request `activation: disabled` and handle typed refusal when that target has no off mapping. Required effort includes `xhigh`. The protected text contract carries typed controls, separate authorized summaries and Runtime-owned input support projections.
 
 Persist summary items separately from final text, together with the unchanged ordered opaque continuity. Replay all returned items in order; do not edit summaries or opaque bytes. Kit conversation helpers retain these items on completed assistant turns. An explicit context reset projects only compatible visible content while the original records remain unchanged. These are 0.x public type changes; upgrade the complete package set together.
-
 
 ## Next minor (compatible additions)
 

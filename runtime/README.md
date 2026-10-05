@@ -137,7 +137,12 @@ Health endpoints:
 
 From the repository root:
 
+Use Python 3.12 in an activated virtual environment. Install the pinned numerical
+test dependency before running the Python suite; this does not install models or
+change an execution profile.
+
 ```bash
+python -m pip install --requirement runtime/test-requirements.txt
 pnpm test:runtime:go
 pnpm test:runtime:python
 ```
