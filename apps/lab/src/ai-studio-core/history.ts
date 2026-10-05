@@ -1043,8 +1043,7 @@ export function getStudioRunResultTags(record: StudioRunHistoryRecord): string[]
   if (result.kind === 'text-exchange') return [result.scenario];
   if (result.kind === 'text-decision') return ['Decision', `${result.questionCount} question${result.questionCount === 1 ? '' : 's'}`];
   if (result.kind === 'session') return ['Session', result.ending];
-  if (result.kind === 'artifacts') return ['Ready'];
-  if (result.kind === 'transcript') return ['Ready'];
+  if (result.kind === 'artifacts' || result.kind === 'transcript') return [getStudioRunMetricSummary(record)];
   if (result.kind === 'voice-asset') return [result.creationSource];
   if (result.kind === 'vision-locate') return result.result ? ['Locate', String(result.result.locations.length)] : ['Locate'];
   return [`${result.voiceCount} voices`];

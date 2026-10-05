@@ -9,20 +9,13 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func geminiTTSModelAdmitted(model string) bool {
-	switch model {
-	case "gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts":
-		return true
-	default:
-		return false
-	}
-}
-
 const maxGeminiTTSAudioBase64Bytes = 44 * 1024 * 1024
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r051
 // ExecuteGeminiTTSGenerateContent uses Google's unary native TTS call. It
 // returns the WAV bytes as one body for Runtime custody, without creating a
 // provider-side Interaction or a synthetic completion event.
@@ -41,18 +34,20 @@ func ExecuteGeminiTTSGenerateContent(
 	if err != nil {
 		return nil, nil, "", err
 	}
+	if err := capabilitydriver.ValidateGeminiTTSGenerateContentRequest(req, model); err != nil {
+		return nil, nil, "", err
+	}
 	spec := scenarioSpeechSynthesizeSpec(req)
-	if !geminiTTSModelAdmitted(model) || spec == nil || spec.GetVoiceRef().GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET ||
-		spec.GetVoiceRef().GetPresetVoiceId() != "Kore" || strings.TrimSpace(spec.GetText()) == "" ||
-		(spec.GetLanguage() != "" && spec.GetLanguage() != "en" && spec.GetLanguage() != "zh") {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	part := map[string]any{"text": spec.GetText()}
+	if strings.TrimSpace(spec.GetEmotion()) != "" {
+		part["speech_metadata"] = map[string]any{"style": spec.GetEmotion()}
 	}
 	payload := map[string]any{
-		"contents": []map[string]any{{"role": "user", "parts": []map[string]any{{"text": spec.GetText()}}}},
+		"contents": []map[string]any{{"role": "user", "parts": []map[string]any{part}}},
 		"generationConfig": map[string]any{
 			"responseModalities": []string{"AUDIO"},
 			"speechConfig": map[string]any{
-				"voiceConfig": map[string]any{"voice": "Kore"},
+				"voiceConfig": map[string]any{"voice": spec.GetVoiceRef().GetPresetVoiceId()},
 			},
 		},
 	}

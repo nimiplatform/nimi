@@ -1,6 +1,6 @@
 version: 1
 provider: gemini
-catalog_version: 2026-10-03-gemini-stored-voice
+catalog_version: 2026-10-03-gemini-preset-emotion
 inventory_mode: static_source
 default_text_model: gemini-3.8-flash
 models:
@@ -315,14 +315,14 @@ models:
       output: "9.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore or an owned stored prompted voice as complete 24 kHz WAV. Voice design has its own provider-reported usage; synthesis prices do not estimate creation charges.
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker prebuilt voices with optional emotion mapped to speech_metadata.style, or an owned stored prompted voice without emotion, as complete 24 kHz WAV. Precise speed, pitch, volume, render hints, timing and streaming remain unsupported. Voice design has its own provider-reported usage; synthesis prices do not estimate creation charges.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
       retrieved_at: 2026-09-29
       note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
     features:
       - input.text
-    voice_set_id: gemini:gemini-3-8-kore-v2
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
     voice_discovery_mode: mixed
     voice_request_options:
       timing_modes:
@@ -330,13 +330,14 @@ models:
       audio_formats:
         - wav
       supports_language: true
+      supports_emotion: true
     voice_ref_kinds:
       - preset_voice_id
       - voice_asset_id
   - model_id: gemini-3.8-flash-lite-tts
     provider: gemini
     model_type: tts
-    updated_at: 2026-09-29
+    updated_at: 2026-10-03
     capabilities:
       - audio.synthesize
     pricing:
@@ -345,12 +346,12 @@ models:
       output: "6.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore WAV at 24 kHz.
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker prebuilt voices with optional emotion mapped to speech_metadata.style as complete 24 kHz WAV. Precise speed, pitch, volume, render hints, timing and streaming remain unsupported.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-lite-tts
       retrieved_at: 2026-09-29
       note: Stable Gemini 3.8 Flash-Lite TTS exact model code with the same native speech request schema and default WAV output.
-    voice_set_id: gemini:gemini-3-8-kore-v2
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
     voice_discovery_mode: static_catalog
     voice_request_options:
       timing_modes:
@@ -358,6 +359,7 @@ models:
       audio_formats:
         - wav
       supports_language: true
+      supports_emotion: true
     voice_ref_kinds:
       - preset_voice_id
   - model_id: gemini-3.5-transcribe
@@ -452,10 +454,416 @@ models:
       - input.image
     context_window_tokens: 8192
 voices:
+  - voice_id: Zephyr
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Zephyr
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Puck
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Puck
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Charon
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Charon
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
   - voice_id: Kore
-    voice_set_id: gemini:gemini-3-8-kore-v2
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
     provider: gemini
     name: Kore
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Fenrir
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Fenrir
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Leda
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Leda
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Orus
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Orus
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Aoede
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Aoede
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Callirrhoe
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Callirrhoe
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Autonoe
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Autonoe
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Enceladus
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Enceladus
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Iapetus
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Iapetus
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Umbriel
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Umbriel
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Algieba
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Algieba
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Despina
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Despina
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Erinome
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Erinome
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Algenib
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Algenib
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Rasalgethi
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Rasalgethi
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Laomedeia
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Laomedeia
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Achernar
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Achernar
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Alnilam
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Alnilam
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Schedar
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Schedar
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Gacrux
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Gacrux
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Pulcherrima
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Pulcherrima
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Achird
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Achird
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Zubenelgenubi
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Zubenelgenubi
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Vindemiatrix
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Vindemiatrix
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Sadachbia
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Sadachbia
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Sadaltager
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Sadaltager
+    langs:
+      - en
+      - zh
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+  - voice_id: Sulafat
+    voice_set_id: gemini:gemini-3-8-prebuilt-v3
+    provider: gemini
+    name: Sulafat
     langs:
       - en
       - zh

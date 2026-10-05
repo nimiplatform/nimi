@@ -97,6 +97,59 @@ func TestGeminiTTSAudioResultRejectsMalformedWAV(t *testing.T) {
 	}
 }
 
+func TestGeminiTTSGenerateContentKeepsEmotionSeparateFromVerbatimTranscript(t *testing.T) {
+	for _, tc := range []struct {
+		model, voice, text, language, emotion string
+	}{
+		{"gemini-3.8-flash-tts", "Puck", "  Hello, 世界!\n", "en", "warm and enthusiastic"},
+		{"gemini-3.8-flash-lite-tts", "Sulafat", "你好，欢迎回来。\n", "zh", "calm and relaxed"},
+	} {
+		t.Run(tc.model, func(t *testing.T) {
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				if r.URL.Path != "/v1beta/models/"+tc.model+":generateContent" {
+					t.Errorf("unexpected model path %s", r.URL.Path)
+				}
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+				}
+				contents, _ := body["contents"].([]any)
+				if len(contents) != 1 {
+					t.Errorf("contents=%+v", contents)
+					http.Error(w, "invalid content count", http.StatusBadRequest)
+					return
+				}
+				parts, _ := MapField(contents[0], "parts").([]any)
+				if len(parts) != 1 || MapField(parts[0], "text") != tc.text || MapField(MapField(parts[0], "speech_metadata"), "style") != tc.emotion {
+					t.Errorf("verbatim transcript/style mapping=%+v", parts)
+				}
+				voice := MapField(MapField(body["generationConfig"], "speechConfig"), "voiceConfig")
+				if MapField(voice, "voice") != tc.voice || MapField(voice, "prebuiltVoiceConfig") != nil {
+					t.Errorf("voice mapping=%+v", voice)
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{"candidates": []any{map[string]any{"finishReason": "STOP", "content": map[string]any{"parts": []any{map[string]any{"inlineData": map[string]any{"mimeType": "audio/wav", "data": base64.StdEncoding.EncodeToString(testGeminiTTSWAV())}}}}}}})
+			}))
+			defer server.Close()
+			spec := &runtimev1.SpeechSynthesizeScenarioSpec{Text: tc.text, Language: tc.language, Emotion: tc.emotion, VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: tc.voice}}}
+			req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: spec}}}
+			cfg := MediaAdapterConfig{BaseURL: server.URL + "/v1beta/openai", APIKey: "key", AllowLoopbackEndpoint: true}
+			if _, _, _, err := ExecuteGeminiTTSGenerateContent(context.Background(), cfg, req, tc.model); err != nil {
+				t.Fatal(err)
+			}
+			pitch := float32(0)
+			spec.Pitch = &pitch
+			if _, _, _, err := ExecuteGeminiTTSGenerateContent(context.Background(), cfg, req, tc.model); err == nil {
+				t.Fatal("Host accepted unsupported exact pitch")
+			}
+			if calls != 1 {
+				t.Fatalf("unsupported control reached provider: calls=%d", calls)
+			}
+		})
+	}
+}
+
 func TestGeminiTTSAudioResultRejectsValidPCM24Output(t *testing.T) {
 	wav := testGeminiTTSWAV()
 	binary.LittleEndian.PutUint32(wav[28:32], 72000)

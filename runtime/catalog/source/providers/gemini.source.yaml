@@ -1,6 +1,6 @@
 schema_version: 3
 provider: gemini
-catalog_version: 2026-10-03-gemini-stored-voice
+catalog_version: 2026-10-03-gemini-preset-emotion
 generated_target: runtime/catalog/providers/gemini.yaml
 runtime:
   inventory_mode: static_source
@@ -113,9 +113,9 @@ sources:
     retrieved_at: 2026-09-29
     note: Stable Gemini 3.8 Flash-Lite TTS exact model code with the same native speech request schema and default WAV output.
   - source_id: gemini_tts_guide
-    url: https://ai.google.dev/gemini-api/docs/speech-generation
-    retrieved_at: 2026-09-29
-    note: Native GenerateContent speech metadata and voice configuration, plus WAV 24 kHz mono output.
+    url: https://ai.google.dev/gemini-api/docs/generate-content/speech-generation
+    retrieved_at: 2026-10-03
+    note: Shared native GenerateContent schema for Flash and Flash-Lite, 30 prebuilt studio voices, verbatim text and turn-level speech_metadata.style, plus WAV 24 kHz mono output.
   - source_id: gemini_3_5_transcribe_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe
     retrieved_at: 2026-09-29
@@ -165,12 +165,70 @@ language_profiles:
   gemini_tts_en_zh_v2: [en, zh]
 
 voice_sets:
-  - voice_set_id: gemini-3-8-kore-v2
+  - voice_set_id: gemini-3-8-prebuilt-v3
     langs: [en, zh]
     source_ids: [gemini_3_8_flash_tts_doc, gemini_3_8_flash_lite_tts_doc, gemini_tts_guide]
     voices:
+      - voice_id: Zephyr
+        name: Zephyr
+      - voice_id: Puck
+        name: Puck
+      - voice_id: Charon
+        name: Charon
       - voice_id: Kore
         name: Kore
+      - voice_id: Fenrir
+        name: Fenrir
+      - voice_id: Leda
+        name: Leda
+      - voice_id: Orus
+        name: Orus
+      - voice_id: Aoede
+        name: Aoede
+      - voice_id: Callirrhoe
+        name: Callirrhoe
+      - voice_id: Autonoe
+        name: Autonoe
+      - voice_id: Enceladus
+        name: Enceladus
+      - voice_id: Iapetus
+        name: Iapetus
+      - voice_id: Umbriel
+        name: Umbriel
+      - voice_id: Algieba
+        name: Algieba
+      - voice_id: Despina
+        name: Despina
+      - voice_id: Erinome
+        name: Erinome
+      - voice_id: Algenib
+        name: Algenib
+      - voice_id: Rasalgethi
+        name: Rasalgethi
+      - voice_id: Laomedeia
+        name: Laomedeia
+      - voice_id: Achernar
+        name: Achernar
+      - voice_id: Alnilam
+        name: Alnilam
+      - voice_id: Schedar
+        name: Schedar
+      - voice_id: Gacrux
+        name: Gacrux
+      - voice_id: Pulcherrima
+        name: Pulcherrima
+      - voice_id: Achird
+        name: Achird
+      - voice_id: Zubenelgenubi
+        name: Zubenelgenubi
+      - voice_id: Vindemiatrix
+        name: Vindemiatrix
+      - voice_id: Sadachbia
+        name: Sadachbia
+      - voice_id: Sadaltager
+        name: Sadaltager
+      - voice_id: Sulafat
+        name: Sulafat
 
 selection_profiles:
   - profile_id: text.general
@@ -426,42 +484,44 @@ models:
     features: [input.text]
     voice:
       discovery_mode: mixed
-      voice_set_ref: gemini-3-8-kore-v2
+      voice_set_ref: gemini-3-8-prebuilt-v3
       supports_voice_ref_kinds: [preset_voice_id, voice_asset_id]
       langs_ref: gemini_tts_en_zh_v2
       request_options:
         timing_modes: [none]
         audio_formats: [wav]
         supports_language: true
+        supports_emotion: true
     pricing:
       unit: token
       input: "0.50"
       output: "9.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore or an owned stored prompted voice as complete 24 kHz WAV. Voice design has its own provider-reported usage; synthesis prices do not estimate creation charges.
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker prebuilt voices with optional emotion mapped to speech_metadata.style, or an owned stored prompted voice without emotion, as complete 24 kHz WAV. Precise speed, pitch, volume, render hints, timing and streaming remain unsupported. Voice design has its own provider-reported usage; synthesis prices do not estimate creation charges.
     source_ids: [gemini_3_8_flash_tts_doc, gemini_tts_guide, gemini_pricing_doc, gemini_voices_api, gemini_voice_design_doc]
 
   - model_id: gemini-3.8-flash-lite-tts
     model_type: tts
-    updated_at: 2026-09-29
+    updated_at: 2026-10-03
     capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
-      voice_set_ref: gemini-3-8-kore-v2
+      voice_set_ref: gemini-3-8-prebuilt-v3
       supports_voice_ref_kinds: [preset_voice_id]
       langs_ref: gemini_tts_en_zh_v2
       request_options:
         timing_modes: [none]
         audio_formats: [wav]
         supports_language: true
+        supports_emotion: true
     pricing:
       unit: token
       input: "0.50"
       output: "6.00"
       currency: USD
       as_of: 2026-09-29
-      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker Kore WAV at 24 kHz.
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker prebuilt voices with optional emotion mapped to speech_metadata.style as complete 24 kHz WAV. Precise speed, pitch, volume, render hints, timing and streaming remain unsupported.
     source_ids: [gemini_3_8_flash_lite_tts_doc, gemini_tts_guide, gemini_pricing_doc]
 
   - model_id: gemini-3.5-transcribe

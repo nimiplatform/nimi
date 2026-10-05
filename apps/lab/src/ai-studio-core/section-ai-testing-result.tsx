@@ -159,6 +159,11 @@ function TextStudioHistoryRecordResult({
   const { translate: t } = useAIStudioHost();
   const snapshot = record.result;
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
+  const jobState = snapshot?.ok && 'jobState' in snapshot ? snapshot.jobState : undefined;
+  const statusLabel = jobState === undefined
+    ? rendererHost.app.projection.runStatusLabel(record.status)
+    : jobState.toUpperCase() === 'COMPLETED' ? t('Studio.result.statCompleted')
+      : jobState || t('Studio.result.stateUnknown');
   const tags = blocked ? [studioNonSuccessReasonTitle(blocked.reason, t, record.capabilityId)] : getStudioRunResultTags(record);
   const intentLabel = getStudioRunIntentLabel(record);
   const toneClass = historyResultToneClass(record);
@@ -237,7 +242,7 @@ function TextStudioHistoryRecordResult({
       <div className="studio-history-result__head">
         <div className="studio-history-result__line">
           <StatusBadge tone={getStudioRunStatusTone(record.status)} shape="dot">
-            {blocked ? studioNonSuccessReasonTitle(blocked.reason, t) : rendererHost.app.projection.runStatusLabel(record.status)}
+            {blocked ? studioNonSuccessReasonTitle(blocked.reason, t) : statusLabel}
           </StatusBadge>
           <span className="studio-history-result__title-stack">
             <time dateTime={record.createdAt}>{t('StudioShell.runLabel')} / {formatStudioRunTimestamp(record.createdAt, new Date(rendererHost.clock.now()))}</time>

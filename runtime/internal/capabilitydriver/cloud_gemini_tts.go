@@ -19,12 +19,12 @@ func geminiTTSModelAdmitted(model string) bool {
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r051
-// The exact model admits Kore through GenerateContent and, for Flash, an
-// owned stored voice through Interactions. Both return complete 24 kHz WAV.
+// The exact models share the prebuilt GenerateContent dialect. Flash also
+// admits an owned stored voice through the separate Interactions dialect.
 func validateGeminiTTSRequest(request *runtimev1.SubmitScenarioJobRequest, model string, streamMode CloudMediaStreamMode) error {
-	voiceSupport := "the Kore preset"
+	voiceSupport := "a supported prebuilt voice and optional emotion"
 	if model == "gemini-3.8-flash-tts" {
-		voiceSupport = "the Kore preset or an owned stored voice"
+		voiceSupport += ", or an owned stored voice without emotion"
 	}
 	unsupported := func() error {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
@@ -39,7 +39,7 @@ func validateGeminiTTSRequest(request *runtimev1.SubmitScenarioJobRequest, model
 	spec := request.GetSpec().GetSpeechSynthesize()
 	ref := spec.GetVoiceRef()
 	custom := model == "gemini-3.8-flash-tts" && ref.GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF && strings.HasPrefix(ref.GetProviderVoiceRef(), "voice_") && !strings.ContainsAny(ref.GetProviderVoiceRef(), "/\\ \t\r\n")
-	preset := ref.GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET && ref.GetPresetVoiceId() == "Kore"
+	preset := ref.GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET && geminiTTSPresetVoiceAdmitted(ref.GetPresetVoiceId())
 	if (!custom && !preset) || strings.TrimSpace(spec.GetText()) == "" {
 		return unsupported()
 	}
@@ -47,10 +47,33 @@ func validateGeminiTTSRequest(request *runtimev1.SubmitScenarioJobRequest, model
 		(spec.GetAudioFormat() != "" && !strings.EqualFold(spec.GetAudioFormat(), "wav")) ||
 		(spec.SampleRateHz != nil && spec.GetSampleRateHz() != 24000) ||
 		spec.Speed != nil || spec.Pitch != nil || spec.Volume != nil ||
-		strings.TrimSpace(spec.GetEmotion()) != "" || spec.GetVoiceRenderHints() != nil ||
+		(custom && strings.TrimSpace(spec.GetEmotion()) != "") || spec.GetVoiceRenderHints() != nil ||
 		(spec.GetTimingMode() != runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_UNSPECIFIED &&
 			spec.GetTimingMode() != runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_NONE) {
 		return unsupported()
+	}
+	return nil
+}
+
+func geminiTTSPresetVoiceAdmitted(voice string) bool {
+	switch voice {
+	case "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe",
+		"Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar",
+		"Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat":
+		return true
+	default:
+		return false
+	}
+}
+
+// ValidateGeminiTTSGenerateContentRequest lets the Host enforce the exact
+// Driver dialect without maintaining a second model, voice or control list.
+func ValidateGeminiTTSGenerateContentRequest(request *runtimev1.SubmitScenarioJobRequest, model string) error {
+	if err := validateGeminiTTSRequest(request, model, CloudMediaStreamNone); err != nil {
+		return err
+	}
+	if request.GetSpec().GetSpeechSynthesize().GetVoiceRef().GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	return nil
 }
