@@ -40,3 +40,17 @@ test('video generation does not send an audio control before the user chooses on
     mode: 't2v',
   });
 });
+
+test('stored canonical audio restores the recorded source without retaining a recovery action', () => {
+  const registration = labStudioComposition.getCapability('audio.separate');
+  const saved = { sourceRelativePath:'imports/original-A.wav', sourceMimeType:'audio/wav', startSeconds:2, endSeconds:9, includeInstrumentParts:false, recoverySubmissionId:'completed-recovery' };
+  const source = { relativePath:'saved/canonical-A.wav', mediaType:'audio/wav', displayName:'A.wav' };
+  const restored = registration.parameters.restoreRecordedParameters(saved, { ok:true,kind:'artifacts',audioSeparation:{sourceAudio:source} });
+  assert.equal(restored.sourceRelativePath,source.relativePath);
+  assert.equal(restored.startSeconds,2);
+  assert.equal(restored.endSeconds,9);
+  assert.equal(restored.includeInstrumentParts,false);
+  assert.equal(restored.recoverySubmissionId,undefined);
+  assert.equal(registration.parameters.restoreRecordedParameters({startSeconds:2,endSeconds:9}),null);
+  assert.equal(registration.parameters.restoreRecordedParameters({...saved,startSeconds:null}),null);
+});

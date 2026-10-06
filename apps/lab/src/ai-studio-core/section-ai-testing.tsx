@@ -154,12 +154,42 @@ function TextStudioShell({
   const displayedRunPrompt = displayedRun?.prompt;
   // A parameter-owned input reruns the displayed run's recorded request, which
   // stays valid however the current parameters have changed since.
-  const displayedRunReplayable = useMemo(
-    () => registration.parameters.restoreRecordedParameters
-      ? Boolean(displayedRun?.record?.runConfig?.target.params && registration.parameters.restoreRecordedParameters(displayedRun.record.runConfig.target.params))
-      : !recordedInput || displayedRunPrompt === undefined || recordedInput.decode(displayedRunPrompt) !== null,
-    [displayedRun, displayedRunPrompt, recordedInput, registration.parameters],
-  );
+  const displayedRunParameters = useMemo(() => {
+    if (!displayedRun || displayedRun.record?.status === 'unavailable' || displayedRun.record?.inputTruncated) return null;
+    if (registration.parameters.restoreRecordedParameters) {
+      return registration.parameters.restoreRecordedParameters(
+        displayedRun.record?.runConfig?.target.params,
+        displayedRun.record?.result,
+        displayedRunPrompt,
+      );
+    }
+    if (recordedInput) {
+      const restored = displayedRunPrompt === undefined ? null : recordedInput.decode(displayedRunPrompt);
+      return restored ? { ...capabilityParameters, ...restored } : null;
+    }
+    // A parameter-owned media request needs an explicit restoration rule.
+    // The current draft is not a source for a historical request.
+    return profile.requiresParameterInput ? null : capabilityParameters;
+  }, [displayedRun, displayedRunPrompt, recordedInput, registration.parameters, profile.requiresParameterInput, capabilityParameters]);
+  const displayedRunReplayable = displayedRunParameters !== null
+    && (!profile.requiresParameterInput || registration.parameters.hasAlternativeInput(displayedRunParameters));
+  const replayAssetPaths = ['sourceRelativePath', 'targetRelativePath']
+    .map(key => displayedRunParameters?.[key])
+    .filter((value): value is string => typeof value === 'string' && value.length > 0);
+  const replayAssetKey = JSON.stringify([displayedRun?.id, ...replayAssetPaths]);
+  const [replayAssets, setReplayAssets] = useState<{ key: string; available: boolean } | null>(null);
+  useEffect(() => {
+    let active = true;
+    if (!displayedRunReplayable || replayAssetPaths.length === 0) return;
+    void Promise.all(replayAssetPaths.map(relativePath => rendererHost.sdk.assets.stat(relativePath))).then(
+      () => { if (active) setReplayAssets({ key: replayAssetKey, available: true }); },
+      () => { if (active) setReplayAssets({ key: replayAssetKey, available: false }); },
+    );
+    return () => { active = false; };
+  }, [displayedRunReplayable, replayAssetKey, rendererHost.sdk.assets]);
+  const replayAssetsChecking = replayAssetPaths.length > 0 && replayAssets?.key !== replayAssetKey;
+  const replayAssetsAvailable = replayAssetPaths.length === 0
+    || (replayAssets?.key === replayAssetKey && replayAssets.available);
 
   useEffect(() => {
     const error = historyLoad?.error ?? null;
@@ -202,18 +232,13 @@ function TextStudioShell({
   // Replaying a run whose input lives in its parameters rebuilds them from the
   // recorded request instead of reading the current parameters.
   function runParametersFor(replayedInput: string | null): StudioParameterValue | null {
-    if (replayedInput !== null && registration.parameters.restoreRecordedParameters) {
-      const saved = displayedRun?.record?.runConfig?.target.params;
-      return saved ? registration.parameters.restoreRecordedParameters(saved) : null;
-    }
-    if (replayedInput === null || !recordedInput) return capabilityParameters;
-    const restored = recordedInput.decode(replayedInput);
-    return restored ? { ...capabilityParameters, ...restored } : null;
+    return replayedInput === null ? capabilityParameters : displayedRunParameters;
   }
 
   async function run(nextPrompt = prompt, nextContext = context, replay = false) {
     if (abortControllerRef.current) return;
     if (replay && !textMediaReplayable) return;
+    if (replay && (!displayedRunReplayable || !replayAssetsAvailable)) return;
     const replayTextMedia = replay && capability.id === 'text.generate';
     let runAttachments = replayTextMedia ? [] : [...composerState.attachments];
     const attachmentCount = supportsMedia ? (replayTextMedia ? (savedTextMedia ? 1 : displayedAttachmentCount) : runAttachments.length) : 0;
@@ -398,9 +423,10 @@ function TextStudioShell({
   }
 
   function useHistoryRunAsDraft(record: StudioRunHistoryRecord) {
+    if (record.inputTruncated || record.status === 'unavailable') return;
     if (registration.parameters.restoreRecordedParameters) {
       const snapshot = record.runConfig?.target.params;
-      const restored = snapshot ? registration.parameters.restoreRecordedParameters(snapshot) : null;
+      const restored = registration.parameters.restoreRecordedParameters(snapshot, record.result, record.prompt);
       if (!restored || !parameterStore) return;
       parameterStore.setParameters(capability.id, restored);
     }
@@ -531,10 +557,10 @@ function TextStudioShell({
                 admission={admission}
                 intentLabel={displayedRun.record ? getStudioRunIntentLabel(displayedRun.record) : runTarget.intentLabel}
                 running={displayingExecution}
-                canRegenerate={!running && hasRequiredImage && textMediaReplayable && (recordedInput
-                  ? displayedRunReplayable
-                  : !profile.requiresParameterInput || hasAlternativeInput)}
-                regenerateHint={!running && !textMediaReplayable ? t('Studio.profiles.textGenerate.savedMediaUnavailable') : undefined}
+                canRegenerate={!running && hasRequiredImage && textMediaReplayable && displayedRunReplayable && replayAssetsAvailable}
+                regenerateHint={!running && !textMediaReplayable ? t('Studio.profiles.textGenerate.savedMediaUnavailable')
+                  : !running && replayAssetsChecking ? t('StudioShell.historyInputsChecking')
+                    : !running && (!displayedRunReplayable || !replayAssetsAvailable) ? t('StudioShell.historyInputsUnavailable') : undefined}
                 cancelRequested={displayingExecution && cancelRequested}
                 streamingText={displayingExecution ? streamingText : null}
                 verboseConsole={verboseConsole}

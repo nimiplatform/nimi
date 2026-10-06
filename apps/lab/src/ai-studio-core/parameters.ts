@@ -1,3 +1,5 @@
+import type { StudioRunHistoryResultSnapshot } from './history.js';
+
 export type StudioRunTargetSource = 'local' | 'cloud' | 'unknown';
 
 export type StudioParameterRouteState =
@@ -36,9 +38,10 @@ export type StudioParameterContract = {
   readonly presentation: (source: StudioRunTargetSource) => readonly StudioParameterPresentation[];
   readonly project: (source: StudioRunTargetSource, parameters: StudioParameterValue) => StudioParameterValue;
   readonly recordedInput?: StudioRecordedParameterInput;
-  // Rebuild the complete scalar request: an omitted saved control must stay
-  // omitted instead of borrowing a value from the live draft.
-  readonly restoreRecordedParameters?: (snapshot: Readonly<Record<string, unknown>>) => StudioParameterValue | null;
+  // Undefined means the saved request context is missing; {} means it was
+  // explicitly saved empty. Rebuild only a complete request from saved facts,
+  // without borrowing omitted controls or input from the live draft.
+  readonly restoreRecordedParameters?: (snapshot: Readonly<Record<string, unknown>> | undefined, result?: StudioRunHistoryResultSnapshot, recordedPrompt?: string) => StudioParameterValue | null;
 };
 
 export type TypedStudioParameterContract<TParameters extends object> = {
@@ -50,7 +53,7 @@ export type TypedStudioParameterContract<TParameters extends object> = {
     readonly encode: (parameters: TParameters) => string;
     readonly decode: (recorded: string) => Partial<TParameters> | null;
   };
-  readonly restoreRecordedParameters?: (snapshot: Readonly<Record<string, unknown>>) => TParameters | null;
+  readonly restoreRecordedParameters?: (snapshot: Readonly<Record<string, unknown>> | undefined, result?: StudioRunHistoryResultSnapshot, recordedPrompt?: string) => TParameters | null;
 };
 
 export const SUPPORTED_STUDIO_PARAMETER = Object.freeze({ kind: 'supported' } as const);
@@ -94,7 +97,7 @@ export function defineStudioParameters<TParameters extends object>(
   return Object.freeze({
     initial, summarize, hasAlternativeInput, presentation, project,
     ...(recordedInput ? { recordedInput } : {}),
-    ...(typed.restoreRecordedParameters ? { restoreRecordedParameters: (snapshot: Readonly<Record<string, unknown>>) => typed.restoreRecordedParameters!(snapshot) as StudioParameterValue | null } : {}),
+    ...(typed.restoreRecordedParameters ? { restoreRecordedParameters: (snapshot: Readonly<Record<string, unknown>> | undefined, result?: StudioRunHistoryResultSnapshot, recordedPrompt?: string) => typed.restoreRecordedParameters!(snapshot, result, recordedPrompt) as StudioParameterValue | null } : {}),
   });
 }
 

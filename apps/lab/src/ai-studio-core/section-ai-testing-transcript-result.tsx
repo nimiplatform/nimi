@@ -1,6 +1,7 @@
 import type { NimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
+import { Button } from '@nimiplatform/kit/ui';
 import { useAIStudioHost } from './host-context.js';
-import { TextStudioOutputBody } from './section-ai-testing-output.js';
+import { downloadTextFile, TextStudioOutputBody } from './section-ai-testing-output.js';
 
 const MAX_VISIBLE_WORDS = 400;
 
@@ -11,12 +12,20 @@ export function SpeechTranscriptResultView({
   readonly text: string;
   readonly transcription?: NimiLocalAppSpeechTranscript;
 }) {
-  const { translate: t } = useAIStudioHost();
+  const host = useAIStudioHost();
+  const { translate: t } = host;
   const words = transcription?.words ?? [];
   const visibleWords = words.slice(0, MAX_VISIBLE_WORDS);
   return (
     <section className="studio-result__rich" aria-label={t('StudioResults.transcript.title')}>
       <TextStudioOutputBody text={text} />
+      {transcription ? (
+        <Button size="sm" tone="secondary" onClick={() => void downloadTextFile(
+          host, 'speech-transcript.json', JSON.stringify(transcription, null, 2),
+        )}>
+          {t('StudioResults.transcript.exportComplete')}
+        </Button>
+      ) : null}
       {transcription?.language ? <p className="studio-result__hint">{t('StudioResults.transcript.detectedLanguage', { language: transcription.language })}</p> : null}
       {words.length > 0 ? (
         <details className="studio-annotation" open>

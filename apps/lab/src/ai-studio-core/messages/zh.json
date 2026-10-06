@@ -263,7 +263,9 @@
     "voiceDeleteCancel": "取消",
     "voiceDeleted": "此音色已删除。",
     "voiceUnavailable": "此音色当前不可用。",
-    "voiceDeleteFailed": "未能删除此音色，尚未将其标记为已删除。请重试。"
+    "voiceDeleteFailed": "未能删除此音色，尚未将其标记为已删除。请重试。",
+    "historyInputsUnavailable": "无法恢复这条记录的输入。请重新选择来源，再开始新请求。",
+    "historyInputsChecking": "正在检查已保存来源…"
   },
   "StudioModelConfig": {
     "drawerTitle": "App AI 配置",
@@ -392,7 +394,8 @@
       "word": "词",
       "start": "开始（秒）",
       "end": "结束（秒）",
-      "truncatedView": "此视图显示 {{total}} 个词中的前 {{shown}} 个。"
+      "truncatedView": "此视图显示 {{total}} 个词中的前 {{shown}} 个。",
+      "exportComplete": "导出完整转写 JSON"
     },
     "annotation": {
       "title": "文本注释",

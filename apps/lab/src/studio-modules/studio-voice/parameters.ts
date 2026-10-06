@@ -4,6 +4,7 @@ import {
   SUPPORTED_STUDIO_PARAMETER,
   defineStudioParameters,
 } from '../../ai-studio-core/parameters.js';
+import { audioMimeTypeFromUrl, isHttpsUrl } from './audio-url.js';
 
 export type StudioSpeechSynthesizeParameters = {
   voiceKind?: 'preset' | 'asset';
@@ -59,6 +60,7 @@ const LOCAL_TEXT_CLOUD_CONFIGURABLE = Object.freeze({
 export const studioSpeechSynthesizeParameters = defineStudioParameters<StudioSpeechSynthesizeParameters>({
   initial: () => ({}),
   restoreRecordedParameters: (snapshot) => {
+    if (!snapshot) return null;
     const strings = new Set(['voiceKind', 'voicePreset', 'voiceAssetId', 'language', 'audioFormat', 'emotion', 'timingMode']);
     const numbers = new Set(['sampleRateHz', 'speed', 'pitch', 'volume']);
     for (const [key, value] of Object.entries(snapshot)) {
@@ -87,6 +89,20 @@ export const studioSpeechSynthesizeParameters = defineStudioParameters<StudioSpe
 
 export const studioSpeechTranscribeParameters = defineStudioParameters<StudioSpeechTranscribeParameters>({
   initial: () => ({}),
+  restoreRecordedParameters: (snapshot, _result, recordedPrompt) => {
+    // File history retains a label, not bytes. Only a saved HTTPS URL and
+    // its complete scalar request can be replayed without a new selection.
+    if (!snapshot || !recordedPrompt || !isHttpsUrl(recordedPrompt)) return null;
+    const strings = new Set(['mimeType', 'language', 'prompt', 'responseFormat']);
+    for (const [key, value] of Object.entries(snapshot)) {
+      if (strings.has(key)) { if (typeof value !== 'string') return null; }
+      else if (key === 'timestamps' || key === 'diarization') { if (typeof value !== 'boolean') return null; }
+      else if (key === 'speakerCount') { if (!Number.isSafeInteger(value) || Number(value) < 0 || Number(value) > 32) return null; }
+      else return null;
+    }
+    if (!String(snapshot.mimeType ?? '').trim() && !audioMimeTypeFromUrl(recordedPrompt)) return null;
+    return { ...snapshot } as StudioSpeechTranscribeParameters;
+  },
   routeMatrix: {
     audioFile: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     mimeType: LOCAL_AND_CLOUD_STUDIO_PARAMETER,

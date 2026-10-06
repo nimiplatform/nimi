@@ -37,6 +37,8 @@ export function AudioSeparateFields(props: StudioParameterPanelProps) {
     const mimeType = extension === 'mp3' ? 'audio/mpeg' : extension === 'flac' ? 'audio/flac' : 'audio/wav';
     // Do not leave the previous import executable while its replacement is
     // still being copied. The composer requires committed input assets.
+    const { sourceRelativePath, sourceName, sourceMimeType, startSeconds, endSeconds, recoverySubmissionId, ...remaining } = parameters;
+    update(remaining);
     setBusy(true); setError('');
     try {
       async function* chunks() {
@@ -45,7 +47,7 @@ export function AudioSeparateFields(props: StudioParameterPanelProps) {
         finally { await reader.cancel(); reader.releaseLock(); }
       }
       const asset = await host.sdk.assets.write({ relativePath: `studio/music/imports/${crypto.randomUUID()}/source.${extension}`, body: chunks(), mediaType: mimeType, overwrite: false });
-      update({ ...parameters, sourceRelativePath: asset.relativePath, sourceName: file.name, sourceMimeType: mimeType });
+      update({ ...remaining, sourceRelativePath: asset.relativePath, sourceName: file.name, sourceMimeType: mimeType });
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(false); }
   }

@@ -263,7 +263,9 @@
     "voiceDeleteCancel": "Cancel",
     "voiceDeleted": "This voice has been deleted.",
     "voiceUnavailable": "This voice is currently unavailable.",
-    "voiceDeleteFailed": "The voice could not be deleted. It has not been marked as deleted. Try again."
+    "voiceDeleteFailed": "The voice could not be deleted. It has not been marked as deleted. Try again.",
+    "historyInputsUnavailable": "This recorded input cannot be restored. Select the source again to start a new request.",
+    "historyInputsChecking": "Checking the saved source…"
   },
   "StudioModelConfig": {
     "drawerTitle": "App AI configuration",
@@ -392,7 +394,8 @@
       "word": "Word",
       "start": "Start (s)",
       "end": "End (s)",
-      "truncatedView": "Showing the first {{shown}} of {{total}} words in this view."
+      "truncatedView": "Showing the first {{shown}} of {{total}} words in this view.",
+      "exportComplete": "Export complete transcript (JSON)"
     },
     "annotation": {
       "title": "Text annotation",

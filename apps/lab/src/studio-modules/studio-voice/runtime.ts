@@ -8,6 +8,7 @@ import {
   VoiceCreationSource,
 } from '@nimiplatform/sdk/runtime/generated';
 import type { StudioCapabilityRuntimeHandlers } from '../../ai-studio-core/runtime-dispatcher.js';
+import { audioMimeTypeFromUrl, isHttpsUrl } from './audio-url.js';
 import { listLabVoiceAssets } from '../../ai-studio-core/voice-assets.js';
 import {
   createStudioScenarioJobClient,
@@ -334,31 +335,6 @@ function speechVoiceReference(parameters: StudioSpeechSynthesizeParameters | und
     return { kind: 'voice_asset_id' as const, voiceAssetId: parameters.voiceAssetId.trim() };
   }
   return undefined;
-}
-
-function isHttpsUrl(value: string): boolean {
-  try {
-    return new URL(value).protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
-function audioMimeTypeFromUrl(value: string): string | null {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== 'https:') return null;
-    const extension = url.pathname.split('.').pop()?.toLowerCase();
-    if (extension === 'wav') return 'audio/wav';
-    if (extension === 'mp3') return 'audio/mpeg';
-    if (extension === 'm4a') return 'audio/mp4';
-    if (extension === 'ogg') return 'audio/ogg';
-    if (extension === 'webm') return 'audio/webm';
-    if (extension === 'flac') return 'audio/flac';
-    return null;
-  } catch {
-    return null;
-  }
 }
 
 function commaSeparatedTokens(value: string | undefined): string[] {

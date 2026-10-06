@@ -46,6 +46,14 @@ export function VoiceConvertFields(props: StudioParameterPanelProps) {
     const mimeType = extension === 'mp3' ? 'audio/mpeg' : extension === 'flac' ? 'audio/flac' : 'audio/wav';
     // Do not leave the previous import executable while its replacement is
     // still being copied. The composer requires committed input assets.
+    const remaining = { ...parameters };
+    delete remaining.recoverySubmissionId;
+    for (const field of kind === 'source'
+      ? ['sourceRelativePath', 'sourceName', 'sourceMimeType', 'sourceStartSeconds', 'sourceEndSeconds'] as const
+      : ['targetRelativePath', 'targetName', 'targetMimeType', 'targetStartSeconds', 'targetEndSeconds'] as const) {
+      delete remaining[field];
+    }
+    update(remaining);
     setBusy(kind); setError('');
     try {
       async function* chunks() {
@@ -55,8 +63,8 @@ export function VoiceConvertFields(props: StudioParameterPanelProps) {
       }
       const asset = await host.sdk.assets.write({ relativePath: `studio/music/imports/${crypto.randomUUID()}/${kind}.${extension}`, body: chunks(), mediaType: mimeType, overwrite: false });
       update(kind === 'source'
-        ? { ...parameters, sourceRelativePath: asset.relativePath, sourceName: file.name, sourceMimeType: mimeType }
-        : { ...parameters, targetKind: 'reference-audio', targetRelativePath: asset.relativePath, targetName: file.name, targetMimeType: mimeType });
+        ? { ...remaining, sourceRelativePath: asset.relativePath, sourceName: file.name, sourceMimeType: mimeType }
+        : { ...remaining, targetKind: 'reference-audio', targetRelativePath: asset.relativePath, targetName: file.name, targetMimeType: mimeType });
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(null); }
   }

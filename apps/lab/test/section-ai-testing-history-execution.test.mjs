@@ -33,6 +33,10 @@ await build({
       export { AIStudioHostProvider } from './src/ai-studio-core/host-context.tsx';
       export { StudioCapabilityParameterContext } from './src/ai-studio-core/contexts.tsx';
       export { labStudioComposition } from './src/lab/lab-studio-composition.ts';
+      export { createStudioRunHistoryRecord } from './src/ai-studio-core/history.ts';
+      export { createRunConfigSnapshot } from './src/ai-studio-core/section-ai-testing-run.ts';
+      export { parseStudioRunHistory } from './src/ai-studio-core/history-policy.ts';
+      export { studioVoiceRuntimeHandlers } from './src/studio-modules/studio-voice/runtime.ts';
       export { t as labTranslate } from './src/shell/i18n/index.ts';`,
     resolveDir:root, loader:'ts',
   },
@@ -40,6 +44,7 @@ await build({
   platform:'node', format:'esm', target:'es2022', jsx:'automatic', logLevel:'silent',
 });
 const { SectionAITesting, TextStudioComposer, TextStudioResultState, MusicRecoveryPanel, StudioHistoryResultContext, textStudioMediaInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
+const { createStudioRunHistoryRecord, createRunConfigSnapshot, parseStudioRunHistory, studioVoiceRuntimeHandlers } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 
 test.after(async () => {
   dom.window.close();
@@ -687,3 +692,229 @@ test('music recovery opens success only after the workspace commits formal histo
     assert.equal(calls.length, 1); assert.equal(calls[0].parameters.recoverySubmissionId, 'synthetic-recovery');
   } finally { await act(async () => renderer.unmount()); }
 });
+
+function savedReplayRecord(id, target, saved, output, prompt = '', saveConfig = true) {
+  const result = output
+    ? { ok:true, capabilityId:id, message:'Saved result', output }
+    : { ok:false, capabilityId:id, reason:'runtime-call-failed', message:'Saved request failed', actionHint:'Check the recorded source' };
+  const record = createStudioRunHistoryRecord({ result, prompt, runId:`saved-${id.replaceAll('.','-')}`, createdAt:'2026-10-06T00:00:00Z',
+    ...(saveConfig ? { runConfig:createRunConfigSnapshot({target,context:'',attachmentCount:0,requestParameters:saved}) } : {}) });
+  return parseStudioRunHistory(JSON.parse(JSON.stringify({[id]:[record]})))[id][0];
+}
+
+for (const item of [
+  { id:'music.transcribe', saved:{sourceRelativePath:'owned/A.wav',sourceMimeType:'audio/wav',requestedPart:'note-events',requestedFormats:['midi'],startSeconds:2,endSeconds:9}, live:{sourceRelativePath:'owned/B.wav',sourceMimeType:'audio/wav',requestedPart:'note-events',requestedFormats:['midi'],startSeconds:20,endSeconds:30} },
+  { id:'audio.separate', saved:{sourceRelativePath:'owned/A.wav',sourceMimeType:'audio/wav',startSeconds:2,endSeconds:9,includeInstrumentParts:false}, live:{sourceRelativePath:'owned/B.wav',sourceMimeType:'audio/wav',startSeconds:20,endSeconds:30,includeInstrumentParts:false} },
+]) {
+ test(`${item.id} parsed history dispatches saved A and range while the draft remains B`,async()=>{
+  const registration=labStudioComposition.getCapability(item.id), calls=[];let sourcePresent=true;
+  const target={capabilityId:item.id,capabilityContract:item.id,section:'music',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
+  const record=savedReplayRecord(item.id,target,item.saved);let parameters={...item.live};
+  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({effectiveSelections:[{capabilityContract:item.id,state:'ready',resource:{oneofKind:'local',local:{musicInput:{transcription:[{parts:['note-events'],formats:['midi'],supportsRange:true,maxSourceBytes:536870912,maxDurationSeconds:600}]}}}}]})},assets:{stat:async path=>{if(!sourcePresent || path!=='owned/A.wav')throw Error('unexpected source');return {relativePath:path}}},runCapability:input=>{const d=Promise.withResolvers();calls.push({input,...d});return d.promise}}};
+  const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[item.id]:[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
+  const container=document.getElementById('root'),renderer=createRoot(container);
+  const render=()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[item.id]:parameters},setParameters:(_id,next)=>{parameters=next;render()}}},createElement(SectionAITesting,props)))));
+  try {
+   await act(async()=>{render()});const regenerate=container.querySelector('button[aria-label="StudioShell.regenerate"]');assert.equal(regenerate.disabled,false);
+   await act(async()=>{regenerate.click()});assert.equal(calls.length,1);assert.deepEqual(calls[0].input.parameters,item.saved);assert.deepEqual(parameters,item.live);
+   await act(async()=>{calls[0].resolve({ok:false,capabilityId:item.id,reason:'runtime-canceled',message:'isolated request boundary',actionHint:''})});
+   props.historySelectionRequest={requestId:2,record:{...record,status:'unavailable'}};await act(async()=>{render()});assert.equal(container.querySelector('button[aria-label="StudioShell.regenerate"]').disabled,true);assert.match(container.textContent,/StudioShell.historyInputsUnavailable/);
+   sourcePresent=false;props.historySelectionRequest={requestId:3,record:{...record,id:'missing-source-record'}};await act(async()=>{render()});assert.equal(container.querySelector('button[aria-label="StudioShell.regenerate"]').disabled,true);assert.match(container.textContent,/StudioShell.historyInputsUnavailable/);
+  }finally{await act(async()=>renderer.unmount())}
+ });
+}
+
+test('ASR File history cannot borrow a newly selected file',async()=>{
+ const id='audio.transcribe',registration=labStudioComposition.getCapability(id),calls=[];
+ const target={capabilityId:id,capabilityContract:id,section:'voice',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
+ const record=savedReplayRecord(id,target,{audioFile:'A.wav (128 bytes)',mimeType:'audio/wav',timestamps:true});
+ const parameters={audioFile:{name:'B.wav',mimeType:'audio/wav',sizeBytes:128,bytes:new Uint8Array(128)},mimeType:'audio/wav',timestamps:false};
+ const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null},runCapability:input=>{calls.push(input);throw Error('historical File must not dispatch')}}};
+ const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[id]:[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
+ const container=document.getElementById('root'),renderer=createRoot(container);
+ try{await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[id]:parameters},setParameters:()=>{}}},createElement(SectionAITesting,props))))));const b=container.querySelector('button[aria-label="StudioShell.regenerate"]');assert.equal(b.disabled,true);await act(async()=>b.click());assert.equal(calls.length,0);assert.match(container.textContent,/StudioShell.historyInputsUnavailable/)}finally{await act(async()=>renderer.unmount())}
+});
+
+test('parsed ASR URL history restores URL A and all saved controls while File B remains the current draft', async () => {
+  const id = 'audio.transcribe', registration = labStudioComposition.getCapability(id), calls = [], runnerCalls = [], changes = [];
+  const target = { capabilityId:id, capabilityContract:id, section:'voice', source:'cloud', status:'configured', canDispatch:true,
+    intentLabel:'Cloud', detail:'configured', params:{}, paramsSummary:[], profileOrigin:null };
+  const url = 'https://audio.example.test/recording-A.wav?version=1';
+  const saved = { mimeType:'audio/wav', language:'en', timestamps:true, diarization:false, speakerCount:2,
+    prompt:'Nimi is a product name.', responseFormat:'text' };
+  const draft = { audioFile:{name:'B.wav',mimeType:'audio/wav',sizeBytes:3,bytes:new Uint8Array([8,9,10])},
+    mimeType:'audio/wav',language:'zh',timestamps:false,diarization:true,speakerCount:3,prompt:'Draft B context',responseFormat:'text' };
+  let parameters = draft;
+  const host = { appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},
+    app:{projection:{promptDraft:()=>({prompt:'https://audio.example.test/draft-B.wav'}),projectRunTarget:()=>target,runStatusLabel:s=>s},
+      events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},
+    sdk:{aiConfig:{get:async()=>null},runCapability:async input=>{
+      calls.push(input);
+      return studioVoiceRuntimeHandlers[id]({capability:registration.descriptor,input,prompt:input.prompt,scenarioId:'isolated-asr',host:{
+        appId:'lab',surfaceId:'ai-capabilities',client:{ai:{}},createScenarioJobClient:()=>({}),
+        runners:{speechTranscribe:async request=>{runnerCalls.push(request);return {ok:false,reason:'runtime-call-failed',message:'isolated request boundary',actionHint:''}}},
+        nonSuccess:(capability,reason,message)=>({ok:false,capabilityId:capability.id,reason,message,actionHint:''}),
+      }});
+    }} };
+  const record = savedReplayRecord(id,target,saved,undefined,url);
+  const props = {registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[id]:[record]},
+    historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
+  const container=document.getElementById('root'),renderer=createRoot(container);
+  const render=()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},
+    createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[id]:parameters},setParameters:(_id,next)=>{parameters=next;changes.push(next);render()}}},createElement(SectionAITesting,props)))));
+  const regenerate=()=>container.querySelector('button[aria-label="StudioShell.regenerate"]');
+  try {
+    await act(async()=>render()); assert.equal(regenerate().disabled,false);
+    await act(async()=>regenerate().click());
+    assert.equal(calls.length,1); assert.equal(calls[0].prompt,url); assert.deepEqual(calls[0].parameters,saved);
+    assert.equal(runnerCalls.length,1); assert.equal(runnerCalls[0].audioUrl,url); assert.equal(runnerCalls[0].audio,undefined);
+    for (const [key,value] of Object.entries(saved)) assert.deepEqual(runnerCalls[0][key],value,key);
+    assert.equal(calls[0].parameters.audioFile,undefined); assert.deepEqual(parameters,draft); assert.deepEqual(changes,[]);
+    const variants = [
+      {label:'speakerCount zero is preserved',params:{...saved,speakerCount:0},prompt:url,enabled:true},
+      {label:'speakerCount upper boundary is preserved',params:{...saved,speakerCount:32},prompt:url,enabled:true},
+      {label:'speakerCount below zero is rejected',params:{...saved,speakerCount:-1},prompt:url},
+      {label:'speakerCount above 32 is rejected',params:{...saved,speakerCount:33},prompt:url},
+      {label:'explicit empty controls with inferred MIME',params:{},prompt:url,enabled:true},
+      {label:'explicit MIME with an extensionless HTTPS URL',params:{mimeType:'audio/wav',timestamps:false},prompt:'https://audio.example.test/recording-A',enabled:true},
+      {label:'missing runConfig',params:saved,prompt:url,saveConfig:false},
+      {label:'missing URL',params:saved,prompt:''},
+      {label:'HTTP URL',params:saved,prompt:'http://audio.example.test/A.wav'},
+      {label:'unknown MIME without an extension',params:{timestamps:true},prompt:'https://audio.example.test/recording-A'},
+      {label:'File history even with a URL in the composer',params:{...saved,audioFile:'A.wav (128 bytes)'},prompt:url},
+      {label:'invalid scalar',params:{...saved,timestamps:'true'},prompt:url},
+    ];
+    for (const [index,item] of variants.entries()) {
+      const next = savedReplayRecord(id,target,item.params,undefined,item.prompt,item.saveConfig !== false);
+      props.historySelectionRequest={requestId:index+2,record:next}; await act(async()=>render());
+      assert.equal(regenerate().disabled,!item.enabled,item.label);
+      const count=calls.length;
+      const runnerCount=runnerCalls.length;
+      await act(async()=>regenerate().click());
+      assert.equal(calls.length,count+(item.enabled?1:0),item.label);
+      assert.equal(runnerCalls.length,runnerCount+(item.enabled?1:0),item.label);
+      if (item.enabled) {
+        assert.equal(calls.at(-1).prompt,item.prompt); assert.deepEqual(calls.at(-1).parameters,item.params);
+        assert.equal(runnerCalls.at(-1).audioUrl,item.prompt);
+        for (const [key,value] of Object.entries(item.params)) assert.deepEqual(runnerCalls.at(-1)[key],value,`${item.label}: ${key}`);
+      }
+      else assert.match(container.textContent,/StudioShell.historyInputsUnavailable/);
+      assert.deepEqual(parameters,draft);
+    }
+    props.historySelectionRequest={requestId:variants.length+2,record}; await act(async()=>render());
+    await act(async()=>container.querySelector('button[aria-label="StudioShell.useAsDraft"]').click());
+    assert.deepEqual(parameters,saved); assert.equal(parameters.audioFile,undefined);
+  } finally { await act(async()=>renderer.unmount()); }
+});
+
+test('parsed media histories require complete saved requests and distinguish absent from explicit empty controls', async () => {
+  const asset = name => ({relativePath:`owned/${name}.wav`,mediaType:'audio/wav',sizeBytes:58,
+    sha256:`sha256:${'a'.repeat(64)}`,previewSource:'managed-asset'});
+  const source=asset('A'),vocals=asset('vocals'),background=asset('background'),reference=asset('reference');
+  const info={sampleRateHz:44100,channels:2,frameCount:441000,durationMs:10000};
+  const output = media => ({kind:'artifacts',jobId:'saved-job',jobState:'completed',artifactCount:2,artifacts:[vocals,background],...media});
+  const separation = request => output({audioSeparation:{sourceAudio:source,vocals,background,...(request?{request}:{})}});
+  const score={relativePath:'owned/score.mid',mediaType:'audio/midi',sizeBytes:58,sha256:`sha256:${'a'.repeat(64)}`,previewSource:'managed-asset'};
+  const music={kind:'artifacts',jobId:'saved-job',jobState:'completed',artifactCount:1,artifacts:[score],musicTranscription:{sourceAudio:source,sourceInfo:info,
+    inputRange:{startFrame:88200,endFrame:220500},completeness:'complete',origin:'transcribed-estimate',scores:[{relativePath:score.relativePath,format:'midi',part:'note-events'}]}};
+  const voice={kind:'artifacts',jobId:'saved-job',jobState:'completed',artifactCount:1,artifacts:[vocals],voiceConversion:{sourceVocal:source,targetVoice:reference,
+    sourceInfo:info,inputRange:{startFrame:0,endFrame:441000},vocalInfo:info,vocal:vocals,lengthRelation:'EXACT',durationDeltaMs:0}};
+  const cases = [
+    {label:'music lacks runConfig',id:'music.transcribe',saved:{},output:music,saveConfig:false},
+    {label:'music explicitly empty controls',id:'music.transcribe',saved:{},output:music},
+    {label:'music lacks requestedPart',id:'music.transcribe',saved:{requestedFormats:['midi']},output:music},
+    {label:'music lacks requestedFormats',id:'music.transcribe',saved:{requestedPart:'note-events'},output:music},
+    {label:'music lacks source',id:'music.transcribe',saved:{requestedPart:'note-events',requestedFormats:['midi']}},
+    {label:'music invalid range',id:'music.transcribe',saved:{requestedPart:'note-events',requestedFormats:['midi'],startSeconds:5,endSeconds:2},output:music},
+    {label:'separation lacks runConfig and saved request',id:'audio.separate',saved:{},output:separation(),saveConfig:false},
+    {label:'separation explicitly empty means omitted controls',id:'audio.separate',saved:{},output:separation(),enabled:true},
+    {label:'separation recorded range alone is complete (real A shape)',id:'audio.separate',saved:{},output:separation({kind:'range',startSeconds:2,endSeconds:5}),saveConfig:false,enabled:true,range:[2,5]},
+    {label:'separation recorded full source is complete',id:'audio.separate',saved:{},output:separation({kind:'full-source'}),saveConfig:false,enabled:true},
+    {label:'separation lacks source',id:'audio.separate',saved:{startSeconds:2,endSeconds:5}},
+    {label:'voice lacks request controls',id:'audio.voice.convert',saved:{},output:voice,saveConfig:false},
+    {label:'voice lacks target kind and target fact',id:'audio.voice.convert',saved:{sourceRelativePath:source.relativePath,sourceMimeType:'audio/wav'}},
+  ];
+  const calls=[]; let sourcePresent=true;
+  const draft={sourceRelativePath:'owned/B.wav',sourceMimeType:'audio/wav',startSeconds:1,endSeconds:4,
+    requestedPart:'lead-sheet',requestedFormats:['abc'],targetKind:'reference-audio',targetRelativePath:'owned/B-target.wav',targetMimeType:'audio/wav',semitoneShift:4};
+  const container=document.getElementById('root'),renderer=createRoot(container);
+  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},
+    app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},
+      commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},
+    sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({effectiveSelections:[]})},listLocalAppVoiceAssets:async()=>[],listLocalAppPresetVoices:async()=>[],
+      assets:{stat:async path=>{if(!sourcePresent)throw Error('missing source');return {relativePath:path}}},
+      runCapability:async input=>{calls.push(input);return {ok:false,capabilityId:input.capabilityId,reason:'runtime-call-failed',message:'isolated request boundary',actionHint:''}}}};
+  let target,props;
+  const render=()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},
+    createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[props.registration.descriptor.id]:draft},setParameters:()=>{throw Error('history preview cannot mutate draft')}}},createElement(SectionAITesting,props)))));
+  const regenerate=()=>container.querySelector('button[aria-label="StudioShell.regenerate"]');
+  try {
+    for (const [index,item] of cases.entries()) {
+      const registration=labStudioComposition.getCapability(item.id);
+      target={capabilityId:item.id,capabilityContract:item.id,section:'music',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
+      const record=savedReplayRecord(item.id,target,item.saved,item.output,'',item.saveConfig !== false);
+      props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[item.id]:[record]},historySelectionRequest:{requestId:index+1,record},
+        onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
+      await act(async()=>render()); assert.equal(regenerate().disabled,!item.enabled,item.label);
+      const count=calls.length; await act(async()=>regenerate().click()); assert.equal(calls.length,count+(item.enabled?1:0),item.label);
+      if (item.enabled) {
+        assert.equal(calls.at(-1).parameters.sourceRelativePath,source.relativePath);
+        if (item.range) assert.deepEqual([calls.at(-1).parameters.startSeconds,calls.at(-1).parameters.endSeconds],item.range);
+      } else assert.match(container.textContent,/StudioShell.historyInputsUnavailable/);
+    }
+    const registration=labStudioComposition.getCapability('audio.separate');
+    target={...target,capabilityId:'audio.separate',capabilityContract:'audio.separate'};
+    const record=savedReplayRecord('audio.separate',target,{},separation({kind:'range',startSeconds:2,endSeconds:5}),'',false);
+    sourcePresent=false;
+    props={...props,registration,registrations:[registration],historySelectionRequest:{requestId:cases.length+1,record}};
+    await act(async()=>render()); assert.equal(regenerate().disabled,true); assert.match(container.textContent,/StudioShell.historyInputsUnavailable/);
+  } finally { await act(async()=>renderer.unmount()); }
+});
+
+for(const transcript of [
+ {status:'transcribed',text:Array.from({length:401},(_,i)=>`word${i}`).join(' '),language:'',words:Array.from({length:401},(_,i)=>({text:`word${i}`,startSeconds:i*.25,endSeconds:i*.25+.125}))},
+ {status:'no-speech',text:'',language:'',words:[]},
+]) {
+ test(`parsed ${transcript.status} history exports the complete typed transcript`,async()=>{
+  const id='audio.transcribe',registration=labStudioComposition.getCapability(id),exports=[],copies=[];
+  const target={capabilityId:id,capabilityContract:id,section:'voice',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
+  const record=savedReplayRecord(id,target,{timestamps:true},{kind:'transcript',text:transcript.text,transcription:transcript,jobId:'saved-asr-job',jobState:'completed',artifactCount:0});
+  assert.equal(record.result.charCount,transcript.text.length);assert.equal(record.result.transcription.words.length,transcript.words.length);
+  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async text=>{copies.push(text);return {ok:true}},exportText:async input=>{exports.push(input);return {ok:false,error:Error('isolated native export boundary')}}}},sdk:{aiConfig:{get:async()=>null},runCapability:()=>{throw Error('export never runs a model')}}};
+  const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[id]:[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
+  const container=document.getElementById('root'),renderer=createRoot(container);
+  try{await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(SectionAITesting,props)))));assert.equal(container.querySelectorAll('tbody tr').length,Math.min(400,transcript.words.length));
+   const exportButton=Array.from(container.querySelectorAll('button')).find(b=>b.textContent==='StudioResults.transcript.exportComplete');assert.ok(exportButton);await act(async()=>exportButton.click());assert.equal(exports.length,1);assert.deepEqual(JSON.parse(exports[0].body),transcript);assert.equal(exports[0].filename,'speech-transcript.json');
+   if(transcript.words.length){await act(async()=>container.querySelector('button[aria-label="StudioShell.copyGeneration"]').click());assert.equal(copies[0],transcript.text);assert.equal(JSON.parse(exports[0].body).words[0].startSeconds,0);assert.equal(JSON.parse(exports[0].body).words[400].text,'word400')}
+  }finally{await act(async()=>renderer.unmount())}
+ });
+}
+
+for(const item of [{id:'audio.separate',kind:'source'},{id:'audio.voice.convert',kind:'source'},{id:'audio.voice.convert',kind:'target'}]) {
+ for(const outcome of ['complete','failure']) {
+ test(`${item.id} ${item.kind} replacement ${outcome} blocks execution until its new reference commits`,async()=>{
+  const registration=labStudioComposition.getCapability(item.id),writes=[],calls=[];const transfer=Promise.withResolvers();
+  let parameters={sourceRelativePath:'owned/source-A.wav',sourceName:'source-A.wav',sourceMimeType:'audio/wav',...(item.id==='audio.voice.convert'?{targetKind:'reference-audio',targetRelativePath:'owned/target-A.wav',targetName:'target-A.wav',targetMimeType:'audio/wav',sourceStartSeconds:2,sourceEndSeconds:5,targetStartSeconds:1,targetEndSeconds:4}:{startSeconds:2,endSeconds:5,includeInstrumentParts:false})};
+  const target={capabilityId:item.id,capabilityContract:item.id,section:'music',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
+  const profile={sourceKinds:['singing'],targetKinds:['reference-audio'],maxSourceBytes:536870912,maxTargetBytes:536870912,maxSourceSeconds:600,maxTargetSeconds:25,supportsRange:true,supportsSemitoneShift:true,minSemitoneShift:-12,maxSemitoneShift:12};
+  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({effectiveSelections:[{capabilityContract:item.id,state:'ready',resource:{oneofKind:'local',local:{musicInput:{voiceConvert:[profile]}}}}]})},listLocalAppVoiceAssets:async()=>[],assets:{write:input=>{writes.push(input);return transfer.promise},remove:async()=>{throw Error('existing input assets must not be deleted')}},runCapability:input=>{calls.push(input);throw Error('a pending or failed replacement must not dispatch')}}};
+  const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{},historySelectionRequest:null,onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
+  const container=document.getElementById('root'),renderer=createRoot(container);
+  const render=()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[item.id]:parameters},setParameters:(_id,next)=>{parameters=next;render()}}},createElement(SectionAITesting,props)))));
+  const primary=()=>container.querySelector(`button[aria-label="${registration.profile.primaryLabelKey}"]`);
+  try{
+   await act(async()=>render());assert.equal(primary().disabled,false);
+   const file=new File([new Uint8Array(128)],'replacement-B.wav',{type:'audio/wav'});Object.defineProperty(file,'stream',{value:()=>new ReadableStream({start(controller){controller.enqueue(new Uint8Array(128));controller.close()}})});
+   const input=container.querySelectorAll('input[type=file]')[item.kind==='target'?1:0];Object.defineProperty(input,'files',{configurable:true,value:[file]});await act(async()=>input.dispatchEvent(new Event('change',{bubbles:true})));
+   assert.equal(writes.length,1);assert.equal(parameters[`${item.kind}RelativePath`],undefined);assert.equal(primary().disabled,true);
+   await act(async()=>container.querySelector('.studio-composer').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));assert.equal(calls.length,0);
+   if(outcome==='complete'){
+    await act(async()=>transfer.resolve({relativePath:`owned/${item.kind}-B.wav`}));assert.equal(parameters[`${item.kind}RelativePath`],`owned/${item.kind}-B.wav`);assert.equal(primary().disabled,false);
+    if(item.id==='audio.voice.convert'){assert.equal(parameters[item.kind==='source'?'targetRelativePath':'sourceRelativePath'],item.kind==='source'?'owned/target-A.wav':'owned/source-A.wav');assert.equal(parameters[`${item.kind}StartSeconds`],undefined)}else assert.equal(parameters.startSeconds,undefined);
+   }else{
+    await act(async()=>transfer.reject(Error('controlled storage failure')));assert.match(container.textContent,/controlled storage failure/);assert.equal(primary().disabled,true);assert.equal(calls.length,0);
+   }
+  }finally{await act(async()=>renderer.unmount())}
+ });
+ }
+}
