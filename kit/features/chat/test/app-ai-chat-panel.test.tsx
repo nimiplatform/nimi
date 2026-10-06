@@ -45,6 +45,7 @@ function makeSession(overrides: Partial<UseAppAiChatSessionResult> = {}): UseApp
     error: null,
     sendPrompt: vi.fn(async () => {}),
     cancelCurrent: vi.fn(),
+    cancelAndWait: vi.fn(async () => overrides.messages ?? []),
     resetMessages: vi.fn(),
     setMessages: vi.fn(),
     clearError: vi.fn(),

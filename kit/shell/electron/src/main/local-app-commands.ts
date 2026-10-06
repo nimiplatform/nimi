@@ -492,8 +492,8 @@ function validatePayload(
       assertExactKeys(payload, ['spec', 'timeoutMs', ...(Object.hasOwn(payload, 'clientSubmissionId') ? ['clientSubmissionId'] : [])], command);
       validateScenarioSpec(payload.spec, command, false);
       const clientSubmissionId = payload.clientSubmissionId;
-      if (clientSubmissionId !== undefined && (!['music-generate', 'music-transcribe', 'audio-voice-convert'].includes((payload.spec as { type: string }).type) || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
-        throw invalidPayload(command, 'invalid music clientSubmissionId');
+      if (clientSubmissionId !== undefined && (!['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes((payload.spec as { type: string }).type) || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
+        throw invalidPayload(command, 'invalid retained media clientSubmissionId');
       }
       return {
         spec: payload.spec as NimiElectronLocalAppRecord[string],

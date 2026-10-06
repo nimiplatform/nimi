@@ -168,7 +168,7 @@ pub(super) async fn submit_job(
     let spec = parse_job_spec(request.spec)?;
     if !request.client_submission_id.is_empty() {
         require_submission_id(&request.client_submission_id)?;
-        if !matches!(spec, JobSpec::MusicGenerate(_) | JobSpec::MusicTranscribe(_) | JobSpec::AudioVoiceConvert(_)) { return Err(invalid_payload()); }
+        if !matches!(spec, JobSpec::MusicGenerate(_) | JobSpec::MusicTranscribe(_) | JobSpec::AudioVoiceConvert(_) | JobSpec::VoiceCreate(_)) { return Err(invalid_payload()); }
     }
     let mut grpc_request = Request::new(ProtoSubmitJobRequest {
         spec: Some(spec),
@@ -1295,7 +1295,7 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         projected.as_object_mut().ok_or_else(untrusted)?.insert("audioSeparation".into(), value);
     }
     if job.recovery_expires_at.is_some() {
-        if !matches!(scenario_type, "music-generate" | "music-transcribe" | "audio-voice-convert") || !matches!(status, "completed" | "failed" | "canceled" | "timeout") { return Err(untrusted()); }
+        if !matches!(scenario_type, "music-generate" | "music-transcribe" | "audio-voice-convert" | "voice-create") || !matches!(status, "completed" | "failed" | "canceled" | "timeout") { return Err(untrusted()); }
         projected["recoveryExpiresAt"] = project_timestamp(job.recovery_expires_at)?;
     }
     if job.video_face_swap_summary.is_some() != (scenario_type == "video-face-swap" && status == "completed") { return Err(untrusted()); }

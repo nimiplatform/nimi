@@ -414,7 +414,8 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t
 		AuthorityClass:       localappop.AuthorityClassAppAccess,
 		OperationCapability:  localappop.AppOperationIDScenarioJobSubmit,
 	})
-	response, err := fixture.service.SubmitLocalAppScenarioJob(ctx, &runtimev1.SubmitLocalAppScenarioJobRequest{
+	request := &runtimev1.SubmitLocalAppScenarioJobRequest{
+		ClientSubmissionId: "voice-captured-action",
 		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate{
 			VoiceCreate: &runtimev1.LocalAppVoiceCreateJobSpec{
 				Source: &runtimev1.LocalAppVoiceCreateJobSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
@@ -423,7 +424,8 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t
 				}},
 			},
 		},
-	})
+	}
+	response, err := fixture.service.SubmitLocalAppScenarioJob(ctx, request)
 	if err != nil {
 		t.Fatalf("SubmitLocalAppScenarioJob: %v", err)
 	}
@@ -446,6 +448,10 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
 		job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
 		t.Fatalf("captured Cloud workflow status=%s reason=%s detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
+	}
+	repeated, retryErr := fixture.service.SubmitLocalAppScenarioJob(ctx, request)
+	if retryErr != nil || repeated.GetJob().GetJobId() != response.GetJob().GetJobId() || switchingStore.getCount.Load() != 1 {
+		t.Fatalf("voice recovery did not reuse captured Job: %v %v", repeated, retryErr)
 	}
 	if providerCalls.Load() != 1 {
 		t.Fatalf("provider calls = %d, want captured Cloud route to execute exactly once", providerCalls.Load())

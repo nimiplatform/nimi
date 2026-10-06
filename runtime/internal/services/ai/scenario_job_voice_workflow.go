@@ -29,6 +29,9 @@ func (s *Service) submitVoiceWorkflowJob(
 		return nil, err
 	}
 	if intent.IsLocal() {
+		if localAppMusicSubmissionFromContext(ctx) != nil {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+		}
 		return s.submitLocalVoiceWorkflowJob(ctx, req, intent, ignored)
 	}
 	if strings.TrimSpace(req.GetSpec().GetVoiceCreate().GetTargetModelId()) == "" {
@@ -48,6 +51,9 @@ func (s *Service) submitVoiceWorkflowJob(
 		return nil, err
 	}
 	defer effective.release()
+	if localAppMusicSubmissionFromContext(ctx) != nil && effective.resolution.OutputPersistence != "provider_persistent" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+	}
 	req = effective.request
 	timeout, err := scenarioJobTimeoutDuration(req, defaultSynthesizeTimeout, false)
 	if err != nil {
@@ -79,12 +85,15 @@ func (s *Service) submitVoiceWorkflowJob(
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
-	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCloudAssemblyChecked(
-		job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly,
+	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(
+		job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, nil, effective.resolvedAssembly, true, localAppMusicSubmissionFromContext(ctx),
 	)
 	if persistErr != nil {
 		cancel()
 		_ = s.discardPendingCloudCredentialCustody(job.GetJobId(), effective.resolvedAssembly.CredentialCustodyRef)
+		if persistErr == errLocalAppSubmissionConflict || persistErr == errMusicRecoveryCapacity || persistErr == errMusicRecoveryExpired {
+			return nil, localAppSubmissionError(persistErr)
+		}
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{Message: "Cloud voice ScenarioJob submission could not be persisted"})
 	}
 	if stored == nil {

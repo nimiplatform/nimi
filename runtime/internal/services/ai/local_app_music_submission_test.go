@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -148,4 +149,51 @@ func TestMusicSubmissionDurableLookupAndIngressAdmission(t *testing.T) {
 	foreign := localAppScenarioJobContextForSubject(accountservice.LocalAppOperationScenarioJobGet, localappop.AppOperationIDScenarioJobGet, "foreign")
 	_, err = svc.GetLocalAppScenarioJob(foreign, &runtimev1.GetLocalAppScenarioJobRequest{ClientSubmissionId: request.GetClientSubmissionId()})
 	assertLocalAppTextCandidateError(t, err, codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
+}
+
+func TestVoiceCreationSubmissionReusesJobBeforeConfigurationAndScopesOwner(t *testing.T) {
+	store := newScenarioJobStore()
+	ctx := localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit)
+	owner := localAppJobOwnerFromContext(ctx)
+	request := &runtimev1.SubmitLocalAppScenarioJobRequest{ClientSubmissionId: "reference-voice-action", Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate{VoiceCreate: &runtimev1.LocalAppVoiceCreateJobSpec{Source: &runtimev1.LocalAppVoiceCreateJobSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioUri: "https://assets.example.test/current.wav"}}}}}
+	submission, err := captureLocalAppMusicSubmission(request)
+	if err != nil || submission.ReservedBytes != voiceCreationRecoveryBytes {
+		t.Fatalf("submission=%v err=%v", submission, err)
+	}
+	job := &runtimev1.ScenarioJob{JobId: "voice-job", ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED}
+	_, created, err := store.createOwnedAndBindCapturedInputsChecked(job, nil, owner, "", nil, nil, false, submission)
+	if err != nil || !created {
+		t.Fatalf("create=%v err=%v", created, err)
+	}
+	// No AIConfig resolver or provider is installed: the same explicit action must
+	// recover the existing Job rather than create another paid provider voice.
+	svc := &Service{scenarioJobs: store}
+	response, err := svc.SubmitLocalAppScenarioJob(ctx, request)
+	if err != nil || response.GetJob().GetJobId() != "voice-job" || len(store.jobs) != 1 {
+		t.Fatalf("reuse=%v err=%v", response, err)
+	}
+	changed := proto.Clone(request).(*runtimev1.SubmitLocalAppScenarioJobRequest)
+	changed.GetVoiceCreate().GetReferenceAudio().ReferenceAudioUri = "https://assets.example.test/other.wav"
+	_, err = svc.SubmitLocalAppScenarioJob(ctx, changed)
+	assertLocalAppTextCandidateError(t, err, codes.AlreadyExists, runtimev1.ReasonCode_AI_MEDIA_IDEMPOTENCY_CONFLICT)
+	foreign := &localAppJobOwner{AccountID: owner.AccountID, RegisteredAppSubject: "other-app", ProducerAppID: owner.ProducerAppID}
+	if found, _ := store.getMusicSubmission(foreign, submission.ID, ""); found != nil {
+		t.Fatal("foreign owner recovered voice submission")
+	}
+}
+
+func TestVoiceCreationSubmissionDoesNotPromiseRecoveryForEphemeralLocalVoice(t *testing.T) {
+	svc := newTestService(nil)
+	svc.SetLocalExecutionResolver(&localVoiceExecutionResolver{selections: map[string]*localexecution.SelectedLocalExecution{
+		"voice.create": selectedLocalVoiceCreateExecutionForTest(t, "reference-recovery", "input.audio"),
+	}})
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1", appAIConfig("nimi.realm-persona-studio", localAppAIConfigIntent("voice.create"))); err != nil {
+		t.Fatal(err)
+	}
+	req := &runtimev1.SubmitLocalAppScenarioJobRequest{ClientSubmissionId: "local-voice-action", Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate{VoiceCreate: &runtimev1.LocalAppVoiceCreateJobSpec{Source: &runtimev1.LocalAppVoiceCreateJobSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioUri: "https://assets.example.test/current.wav"}}}}}
+	_, err := svc.SubmitLocalAppScenarioJob(localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit), req)
+	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+	if len(svc.scenarioJobs.jobs) != 0 {
+		t.Fatal("ephemeral voice recovery published a Job")
+	}
 }

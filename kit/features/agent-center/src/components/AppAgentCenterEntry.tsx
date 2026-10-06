@@ -17,6 +17,8 @@ import { AgentCenter } from './AgentCenter.js';
 
 type AppAgentCenterEntryClient = Pick<NimiLocalAppClient, 'agentConfigure'> & {
   readonly agents?: NimiLocalAppClient['agents'];
+  readonly ai?: NimiLocalAppClient['ai'];
+  readonly aiConfig?: NimiLocalAppClient['aiConfig'];
 };
 
 export type AppAgentCenterEntryProps = Readonly<{
@@ -137,6 +139,9 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
       ? createAppAgentCenterSession({
         handle: selectedHandle,
         client: props.client.agentConfigure,
+        ...(props.client.agents && props.client.ai && props.client.aiConfig ? {
+          referenceVoiceClient: { agentConfigure: props.client.agentConfigure, agents: props.client.agents, ai: props.client.ai, aiConfig: props.client.aiConfig },
+        } : {}),
         ...(props.conversationAnchorId
           && initialHandle === selectedHandle
           && !selectedExplicitly

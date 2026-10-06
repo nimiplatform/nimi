@@ -98,7 +98,7 @@ The AIConfig section mounts the public `model-config` owner surface in
 Local and Cloud candidates for every covered App. The same Manager client also
 supplies preset voice choices and bounded bindable custom VoiceAsset choices
 owned by the current protected session's account-plus-App tuple; VoiceAsset
-creation and deletion remain outside Agent Center. The shared-owner snapshot
+deletion remains outside Agent Center. An optional reference-voice journey receives the same canonical covered-App client, reads the exact Agent introduction sound sample, and on an explicit user action uses that App’s configured `voice.create` ScenarioJob. The current sound asset may be a greeting or a dedicated demo. It checks compatibility with shared speech settings, resumes retained submissions, then binds only a successful owner VoiceAsset through presentation CAS. Missing setup never changes a route or blocks text; no separate reference field, cloning registry or raw provider handle is admitted. The shared-owner snapshot
 supplies effective Local resource state; machine-default selection is not an Agent Center input. Cloud
 data movement and provider-cost information remain visible without adding a
 second Save gate.

@@ -26,6 +26,9 @@ type localAppMusicSubmission struct {
 
 const maxVoiceConvertOutputBytes int64 = 64 << 20
 
+// Includes bounded inline reference inputs and their captured transport encoding.
+const voiceCreationRecoveryBytes int64 = 64 << 20
+
 type localAppMusicSubmissionContextKey struct{}
 
 var errLocalAppSubmissionConflict = errors.New("client submission id already belongs to another request")
@@ -47,13 +50,16 @@ func captureLocalAppMusicSubmission(req *runtimev1.SubmitLocalAppScenarioJobRequ
 	if req.GetClientSubmissionId() == "" {
 		return nil, nil
 	}
-	if (req.GetMusicGenerate() == nil && req.GetMusicTranscribe() == nil && req.GetAudioVoiceConvert() == nil) || !validClientSubmissionID(req.GetClientSubmissionId()) {
+	if (req.GetMusicGenerate() == nil && req.GetMusicTranscribe() == nil && req.GetAudioVoiceConvert() == nil && req.GetVoiceCreate() == nil) || !validClientSubmissionID(req.GetClientSubmissionId()) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	// Includes every closed author input and the timeout; excludes no user field.
 	// Deterministic protobuf encoding avoids map ordering changing the identity.
 	canonical := req
 	reservation := maxMusicRecoveryOutputBytes
+	if req.GetVoiceCreate() != nil {
+		reservation = voiceCreationRecoveryBytes
+	}
 	if spec := req.GetMusicTranscribe(); spec != nil {
 		if err := validateMusicTranscriptionSpec(spec); err != nil {
 			return nil, err
@@ -104,6 +110,8 @@ func validateLocalAppMusicSubmission(value *localAppMusicSubmission, owner *loca
 		reservation = 64 << 20
 	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT:
 		reservation = maxVoiceConvertOutputBytes
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		reservation = voiceCreationRecoveryBytes
 	}
 	if !owner.valid() || reservation == 0 || value.ReservedBytes != reservation || !validClientSubmissionID(value.ID) || err != nil || len(digest) != sha256.Size || strings.ToLower(value.RequestSHA256) != value.RequestSHA256 {
 		return fmt.Errorf("invalid protected music submission binding")

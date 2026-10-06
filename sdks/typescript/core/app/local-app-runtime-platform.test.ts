@@ -2031,3 +2031,21 @@ test('work interruption preserves the expected turn fence and rejects malformed 
   assert.deepEqual(inputs, [{ ...scope, expectedTurnId: 'turn-current' }, scope]);
   await assert.rejects(() => client.conversation.interruptTurn({ ...scope, expectedTurnId: '' }));
 });
+
+
+test('reference voice action carries retained submission identity and expiry', async () => {
+  const base = standardShell([]); const calls: unknown[] = [];
+  const job = { jobId: 'reference-voice-job', scenarioType: 'voice-create', status: 'submitted', progressPercent: 0,
+    progressCurrentStep: 0, progressTotalSteps: 0, reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace',
+    createdAt: null, updatedAt: null, transcriptionText: '' };
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async submit(spec, options) { calls.push(options); return { job }; },
+    async get(id, action) { calls.push([id, action]); return { job, asset: null, voiceReference: null }; },
+  } } } });
+  await client.ai.scenarioJobs.submit({ type: 'voice-create', creationSource: 'reference-audio', referenceAudio: { type: 'uri', uri: 'https://assets.example.test/greeting.wav' }, referenceAudioMime: '', languageHints: [], preferredName: '', text: '' }, { clientSubmissionId: 'reference-action' });
+  assert.equal((calls[0] as {clientSubmissionId:string}).clientSubmissionId, 'reference-action');
+  assert.equal((await client.ai.scenarioJobs.lookupSubmission('reference-action')).job.jobId, job.jobId);
+  assert.deepEqual(calls[1], ['', 'reference-action']);
+  Object.assign(job, { status: 'failed', recoveryExpiresAt: { seconds: '1790086467', nanos: 0 } });
+  assert.ok((await client.ai.scenarioJobs.lookupSubmission('reference-action')).job.recoveryExpiresAt);
+});

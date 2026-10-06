@@ -1,3 +1,4 @@
+import { createAgentReferenceVoiceController, type AgentReferenceVoiceController } from './reference-voice.js';
 import {
   asNimiError,
   type NimiSharedLocalAgentAIConfigOptionsQuery,
@@ -8,6 +9,7 @@ import {
   type NimiLocalAppAgentAutonomyProjection,
   type NimiLocalAppAgentConfigureClient,
   type NimiLocalAppAgentHandle,
+  type NimiLocalAppClient,
   type NimiLocalAppAgentPresentationIntent,
   type NimiLocalAppAgentPresentationProfile,
   type NimiLocalAppAgentPresentationProjection,
@@ -178,6 +180,8 @@ type ResourcePackMutationResolution = Readonly<
 >;
 
 interface SessionTransport {
+  readonly referenceVoice: AgentReferenceVoiceController | null;
+  useReferenceVoice?: () => Promise<AgentCenterAppearanceProjection>;
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
   readonly resourcePackTargetController: AgentCenterResourcePackTargetController | null;
   readonly resourcePackPlacement: AgentCenterResourcePackPlacementAdapter | null;
@@ -344,6 +348,7 @@ class ManagerSession {
   #memoryPageToken = 0;
   #invalidated = false;
   #resourcePackTargetUnsubscribe: (() => void) | null = null;
+  #referenceVoiceUnsubscribe: (() => void) | null = null;
 
   constructor(
     private readonly transport: SessionTransport,
@@ -358,6 +363,10 @@ class ManagerSession {
       if (this.#invalidated) return;
       this.#replaceResourcePackTarget(transport.resourcePackTargetController!.getSnapshot());
     }) ?? null;
+    this.#referenceVoiceUnsubscribe = transport.referenceVoice?.subscribe(() => {
+      if (this.#invalidated) return;
+      this.#set({ ...this.#snapshot, state: { ...this.#snapshot.state, appearance: { ...this.#snapshot.state.appearance, referenceVoice: transport.referenceVoice!.getSnapshot() } } });
+    }) ?? null;
     const commitAppearance = async (task: () => Promise<AgentCenterAppearanceProjection>) => {
       this.#requireAvailable('replaceAppearance');
       const mutation = await this.#runMutation('replaceAppearance', task);
@@ -365,6 +374,7 @@ class ManagerSession {
     };
     const appearance = transport.appearanceAdapter;
     this.appearance = Object.freeze({
+      ...(transport.referenceVoice && transport.useReferenceVoice ? { useReferenceVoice: () => commitAppearance(transport.useReferenceVoice!), cancelReferenceVoice: () => transport.referenceVoice!.cancel() } : {}),
       ...(appearance?.replaceAvatar ? { replaceAvatar: (kind: 'live2d' | 'vrm') => commitAppearance(() => appearance.replaceAvatar!(kind)) } : {}),
       ...(appearance?.importBackground ? { importBackground: () => commitAppearance(() => appearance.importBackground!()) } : {}),
       ...(appearance?.setDefaultVoice ? { setDefaultVoice: (reference: string) => commitAppearance(() => appearance.setDefaultVoice!(reference)) } : {}),
@@ -456,6 +466,9 @@ class ManagerSession {
     this.#resourcePackTargetUnsubscribe?.();
     this.#resourcePackTargetUnsubscribe = null;
     this.transport.disposeResourcePack();
+    this.#referenceVoiceUnsubscribe?.();
+    this.#referenceVoiceUnsubscribe = null;
+    this.transport.referenceVoice?.dispose();
     const availability = allUnavailable('owner-rejected');
     this.#set({
       phase: 'degraded',
@@ -769,7 +782,9 @@ class ManagerSession {
   }
 
   #set(snapshot: AgentCenterSnapshot): void {
-    this.#snapshot = snapshot;
+    this.#snapshot = this.transport.referenceVoice
+      ? { ...snapshot, state: { ...snapshot.state, appearance: { ...snapshot.state.appearance, referenceVoice: this.transport.referenceVoice.getSnapshot() } } }
+      : snapshot;
     for (const listener of this.#listeners) listener();
   }
 
@@ -871,6 +886,8 @@ class ManagerSession {
 export interface CreateAppAgentCenterSessionInput {
   readonly handle: NimiLocalAppAgentHandle;
   readonly client: NimiLocalAppAgentConfigureClient;
+  /** The same canonical covered App client; only the reference-voice journey uses its AI operations. */
+  readonly referenceVoiceClient?: Pick<NimiLocalAppClient, 'agents' | 'ai' | 'aiConfig' | 'agentConfigure'>;
   readonly conversationAnchorId?: string;
   readonly hostMechanics?: AgentCenterHostMechanics | null;
   readonly resourcePackTargetController?: AgentCenterResourcePackTargetController | null;
@@ -884,6 +901,8 @@ export function createAppAgentCenterSession(
   input: CreateAppAgentCenterSessionInput,
 ): AgentCenterSession {
   const handle = input.handle;
+  if (input.referenceVoiceClient && input.referenceVoiceClient.agentConfigure !== input.client) throw new Error('Reference voice must use the same canonical App client.');
+  const referenceVoice = input.referenceVoiceClient ? createAgentReferenceVoiceController(input.referenceVoiceClient, handle) : null;
   let manager: ManagerSession | null = null;
   let presentation: NimiLocalAppAgentPresentationProjection | null = null;
   const resourcePackTargetController = input.resourcePackTargetController ?? null;
@@ -1082,13 +1101,13 @@ export function createAppAgentCenterSession(
 
   const projectCurrentAppearance = async (
     projection: NimiLocalAppAgentPresentationProjection,
-  ): Promise<AgentCenterAppearanceProjection> => projectAppAppearanceWithHostPreview(
-    projection,
-    voiceCatalog,
-    input.hostMechanics,
-    targetSnapshot(),
-    input.resourcePackPlacement?.availability ?? RESOURCE_PACK_PLACEMENT_UNAVAILABLE,
-  );
+  ): Promise<AgentCenterAppearanceProjection> => ({
+    ...await projectAppAppearanceWithHostPreview(
+      projection, voiceCatalog, input.hostMechanics, targetSnapshot(),
+      input.resourcePackPlacement?.availability ?? RESOURCE_PACK_PLACEMENT_UNAVAILABLE,
+    ),
+    ...(referenceVoice ? { referenceVoice: referenceVoice.getSnapshot() } : {}),
+  });
 
   const restoreResourcePackAfterKnownFailure = async (
     expectedRevision: string,
@@ -1147,6 +1166,7 @@ export function createAppAgentCenterSession(
         agentHandle: handle,
         ...(input.conversationAnchorId ? { conversationAnchorId: input.conversationAnchorId } : {}),
       }),
+      referenceVoice?.refresh(),
     ]);
     const errors: string[] = [];
     const collectError = (label: string, result: PromiseSettledResult<unknown>): void => {
@@ -1605,6 +1625,8 @@ export function createAppAgentCenterSession(
   };
 
   const transport: SessionTransport = {
+    referenceVoice,
+    ...(referenceVoice ? { useReferenceVoice: async () => projectCurrentAppearance(await adoptObservedPresentation(await referenceVoice.start())) } : {}),
     appearanceAdapter,
     resourcePackTargetController,
     resourcePackPlacement: input.resourcePackPlacement ?? null,

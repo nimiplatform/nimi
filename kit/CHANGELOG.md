@@ -1,5 +1,9 @@
 # Changelog
 
+## Next minor — explicit Agent reference voice (development)
+
+The current bound sound sample, including an opening line, can be cloned once through the existing App `voice.create` job and bound through Agent presentation CAS. No producer voice handle is imported and no shared route changes implicitly. Covered Apps pass the same canonical client to the Agent Center factory to enable the journey. The retained `clientSubmissionId` carrier and recovery-expiry projection now also admit provider-persistent Cloud `voice-create`; use matching Runtime, SDK and Kit/native builds. This is an additive next-minor capability, staged without a package publication.
+
 ## SDK 0.21.0 / Kit and native 0.18.0 — Estimated music notes (development)
 
 Use the complete matching Runtime, SDK 0.21.0, Kit/native 0.18.0 and Rust carrier 0.10.0 package set. `music.transcribe` adds `note-events` without changing the existing three part meanings. The public input/profile/result parsers admit its typed value; older clients cannot project this new closed-set part. Basic Pitch's exact Windows CPU profile supports MIDI, timeline or both and reports unknown completeness unless the engine supplies stronger evidence.

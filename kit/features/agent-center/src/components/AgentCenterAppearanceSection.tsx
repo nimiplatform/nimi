@@ -1,3 +1,4 @@
+import { AgentCenterReferenceVoiceSection } from './AgentCenterReferenceVoiceSection.js';
 import { Box, CheckCircle2, FolderOpen, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -600,6 +601,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
               </div>
             ) : null}
           </div>
+          <AgentCenterReferenceVoiceSection session={session} snapshot={snapshot} i18n={i18n} placementActions={placementActions} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-1">
               <span className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">{voiceCopy.avatarAutoplayLabel}</span>

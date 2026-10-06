@@ -499,6 +499,7 @@ export interface AgentCenterAppearanceProjection {
   readonly previousSelection?: AgentCenterPresentationIntent | null;
   readonly defaultVoiceReference?: string | null;
   readonly voiceCatalog?: AgentCenterVoiceCatalogProjection;
+  readonly referenceVoice?: AgentCenterReferenceVoiceProjection;
   readonly avatarAutoplay?: boolean;
   readonly avatarImportDisabled?: boolean;
   readonly backgroundImportDisabled?: boolean;
@@ -658,6 +659,7 @@ export interface AgentCenterAppearanceAssetAdmissionInput {
 }
 
 export interface AgentCenterPlacementActions {
+  readonly openReferenceVoiceSetup?: (scope: 'creation' | 'synthesis') => void;
   readonly close?: () => void;
   readonly openRuntimeSettings?: () => void;
   readonly openMachineLoadout?: (capabilityContract: string) => void;
@@ -792,6 +794,13 @@ export interface AgentCenterSnapshot {
 
 declare const AGENT_CENTER_SESSION: unique symbol;
 
+export type AgentCenterReferenceVoiceProjection = Readonly<{
+  phase: 'loading' | 'unavailable' | 'ready' | 'creating' | 'binding' | 'bound' | 'failed' | 'canceled';
+  sampleUrl: string | null;
+  reason: 'reference-missing' | 'creation-configuration-required' | 'synthesis-configuration-required' | 'reference-input-unsupported' | 'configuration-incompatible' | 'owner-unavailable' | 'creation-failed' | 'binding-unconfirmed' | null;
+  reasonCode: string | null;
+}>;
+
 export interface AgentCenterSession {
   readonly [AGENT_CENTER_SESSION]: true;
   getSnapshot(): AgentCenterSnapshot;
@@ -815,6 +824,8 @@ export interface AgentCenterSession {
     replaceAvatar?: (kind: 'live2d' | 'vrm') => Promise<void>;
     importBackground?: () => Promise<void>;
     setDefaultVoice?: (reference: string) => Promise<void>;
+    useReferenceVoice?: () => Promise<void>;
+    cancelReferenceVoice?: () => Promise<void>;
     setAvatarAutoplay?: (enabled: boolean) => Promise<void>;
     selectResourcePack?: () => Promise<void>;
     cancelResourcePackPreview?: () => void;

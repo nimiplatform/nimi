@@ -90,9 +90,11 @@ export function useAgentConversationRuntimeController(
             actionHint: 'retry_zhiyu_resource_pack_placement',
           }),
         } as const satisfies AgentCenterResourcePackPlacementAdapter;
+    const appClient = bindings.sdk.appProduct();
     return createAppAgentCenterSession({
       handle: agentHandle as NimiLocalAppAgentHandle,
-      client: bindings.sdk.appProduct().agentConfigure,
+      client: appClient.agentConfigure,
+      referenceVoiceClient: appClient,
       ...(activeTarget.conversationAnchorId
         ? { conversationAnchorId: activeTarget.conversationAnchorId }
         : {}),

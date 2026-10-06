@@ -1042,8 +1042,8 @@ export function submitNimiLocalAppScenarioJob(
   const command = AIC_COMMANDS.scenarioJobSubmit;
   const timeoutMs = options.timeoutMs ?? 0;
   const clientSubmissionId = options.clientSubmissionId;
-  if (clientSubmissionId !== undefined && (!['music-generate', 'music-transcribe', 'audio-voice-convert'].includes(spec.type) || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
-    throw invalidInput(command, 'clientSubmissionId requires music-generate and a bounded action id');
+  if (clientSubmissionId !== undefined && (!['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes(spec.type) || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
+    throw invalidInput(command, 'clientSubmissionId requires a supported retained media operation and a bounded action id');
   }
   return invokeChecked(command, { payload: {
     spec: canonicalScenarioSpec(spec, command),
@@ -2740,7 +2740,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
   const voiceConversion = record.voiceConversion === undefined ? undefined : validateNimiLocalAppVoiceConversion(record.voiceConversion, artifacts);
   const musicGeneration = record.musicGeneration === undefined ? undefined : validateNimiLocalAppMusicGeneration(record.musicGeneration, artifacts);
   const recoveryExpiresAt = record.recoveryExpiresAt === undefined ? undefined : parseScenarioTimestamp(record.recoveryExpiresAt, command);
-  if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe', 'audio-voice-convert'].includes(String(record.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) throw new Error(`${command}: music recovery expiry is invalid`);
+  if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes(String(record.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) throw new Error(`${command}: music recovery expiry is invalid`);
   return Object.freeze({
     ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),

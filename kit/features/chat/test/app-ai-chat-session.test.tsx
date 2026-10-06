@@ -455,7 +455,11 @@ describe('useAppAiChatSession', () => {
     it('a turn reset while streaming cannot end, free or report into the next turn', async () => {
       // The first turn ignores its cancellation until the test lets it end, so
       // it finishes only after the next turn has started.
-      const releaseFirst = Promise.withResolvers<void>();
+      let releaseFirstResolve!: () => void;
+      const releaseFirst = {
+        promise: new Promise<void>((resolve) => { releaseFirstResolve = resolve; }),
+        resolve: () => releaseFirstResolve(),
+      };
       const { ai, inputs, cancels } = localAppTextAI([
         async function* first() {
           yield { type: 'delta', sequence: '1', traceId: 'trace-1', text: 'First', itemIndex: 0 };

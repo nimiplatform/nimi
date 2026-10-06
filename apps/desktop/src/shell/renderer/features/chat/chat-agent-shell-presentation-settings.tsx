@@ -7,7 +7,7 @@ import {
   type AgentCenterSectionId,
 } from '@nimiplatform/kit/features/agent-center';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
+import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import {
   getRuntimeSetupTaskStore,
 } from '../runtime-config/runtime-setup-task-store.js';
@@ -38,6 +38,7 @@ export function resolveAgentCenterIdentityBadge(input: {
 
 export function AgentConversationSettingsContent({ input }: AgentConversationSettingsContentProps) {
   const { i18n } = useTranslation();
+  const sdk = useDesktopRendererSdk();
   const [activeSection, setActiveSection] = useState<AgentCenterSectionId>('overview');
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
@@ -55,6 +56,16 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
     openRuntimeSettings: () => {
       setActiveTab('runtime');
       runtimeConfigNavigation.openPage('aiSettings');
+    },
+    openReferenceVoiceSetup: (scope) => {
+      void currentDesktopAccountIdForSetup().then((accountId) => {
+        openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
+          capabilityContract: scope === 'creation' ? 'voice.create' : 'audio.synthesize',
+          source: { kind: scope === 'creation' ? 'app' : 'local-agent', accountId,
+            ...(scope === 'creation' ? { ownerAppId: sdk.appId() } : {}), returnFocus: 'chat:agent' },
+          openTask: (taskId) => { setActiveTab('runtime'); runtimeConfigNavigation.openSetupTask(taskId); },
+        });
+      });
     },
     openMachineLoadout: () => {
       // The shared LocalAgent owner opens its own setup task; the exact
@@ -74,7 +85,7 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
         });
       });
     },
-  }), [input.onCloseAgentCenter, runtimeConfigNavigation, setActiveTab]);
+  }), [input.onCloseAgentCenter, runtimeConfigNavigation, setActiveTab, sdk]);
   if (!input.runtimeAgentCenterAdapter) return null;
   return (
     <AgentCenter

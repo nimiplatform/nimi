@@ -1042,7 +1042,7 @@ function validateScenarioJobSubmitOptions(
   spec: NimiLocalAppScenarioJobSpec,
 ): NimiLocalAppScenarioJobSubmitOptions {
   assertExactKeys(options, ['timeoutMs', 'clientSubmissionId'], 'Scenario Job submit options');
-  if (options.clientSubmissionId !== undefined && !['music-generate', 'music-transcribe', 'audio-voice-convert'].includes(spec.type)) invalidAIInput('clientSubmissionId requires music-generate');
+  if (options.clientSubmissionId !== undefined && !['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes(spec.type)) invalidAIInput('clientSubmissionId requires a supported retained media operation');
   return Object.freeze({
     timeoutMs: boundedInteger(options.timeoutMs ?? 0, 'Scenario Job timeoutMs', 0, 2_147_483_647),
     ...(options.clientSubmissionId !== undefined ? { clientSubmissionId: validateClientSubmissionId(options.clientSubmissionId) } : {}),
@@ -1473,7 +1473,7 @@ function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
   const voiceConversion = record.voiceConversion === undefined ? undefined : validateNimiLocalAppVoiceConversion(record.voiceConversion, artifacts);
   const musicGeneration = record.musicGeneration === undefined ? undefined : validateNimiLocalAppMusicGeneration(record.musicGeneration, artifacts);
   const recoveryExpiresAt = record.recoveryExpiresAt === undefined ? undefined : projectTimestamp(record.recoveryExpiresAt, 'music recovery expiry');
-  if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe', 'audio-voice-convert'].includes(String(record.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) localAppProjectionError('music recovery expiry state');
+  if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes(String(record.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) localAppProjectionError('music recovery expiry state');
   return Object.freeze({
     ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(musicGeneration ? { musicGeneration } : {}),
