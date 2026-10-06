@@ -62,7 +62,7 @@ func assertRetiredTextTargetsFailBeforeDispatch(t *testing.T, providerID, active
 			activeListed = true
 			selected := fixture.service.projectCloudEffectiveSelection(context.Background(), "user-001", "text.generate", &runtimev1.AIConfigCloudIntent{
 				ConnectorRef: option.ConnectorRef, Implementation: option.Implementation, ProviderModelTarget: option.ProviderTarget,
-			})
+			}, nil)
 			if selected.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY {
 				t.Fatalf("explicitly reselected successor is not ready: %+v", selected)
 			}
@@ -84,7 +84,7 @@ func assertRetiredTextTargetsFailBeforeDispatch(t *testing.T, providerID, active
 				ConnectorRef:        fixture.connectorID,
 				Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: providerID, DriverId: "nimillm", DriverDialect: providerID},
 				ProviderModelTarget: target,
-			})
+			}, nil)
 			if selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
 				!slices.Equal(selection.GetReasons(), []string{runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE.String()}) {
 				t.Fatalf("retired text target is not blocked/stale: %+v", selection)
@@ -170,7 +170,7 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 					ConnectorRef:        activeOption.ConnectorRef,
 					Implementation:      activeOption.Implementation,
 					ProviderModelTarget: activeOption.ProviderTarget,
-				})
+				}, nil)
 				if reselected.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY || reselected.GetResource() == nil {
 					t.Fatalf("re-selected successor %s projection = %+v", tc.activeModel, reselected)
 				}
@@ -188,7 +188,7 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 					ImplementationId: tc.provider, DriverId: "nimillm", DriverDialect: tc.provider,
 				},
 				ProviderModelTarget: providerTarget,
-			})
+			}, nil)
 			if selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
 				!slices.Equal(selection.GetReasons(), []string{runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE.String()}) ||
 				selection.GetResource() != nil {
@@ -344,7 +344,7 @@ func TestRetiredHunyuanProviderFailsTypedWithoutDispatch(t *testing.T) {
 				ConnectorRef:        created.ConnectorID,
 				Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: "hunyuan", DriverId: "nimillm", DriverDialect: "hunyuan"},
 				ProviderModelTarget: providerTarget,
-			})
+			}, nil)
 			if selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
 				!slices.Equal(selection.GetReasons(), []string{runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE.String()}) ||
 				selection.GetResource() != nil {
@@ -453,7 +453,7 @@ func TestRetiredOpenAICodexProviderFailsTypedWithoutDispatch(t *testing.T) {
 	selection := svc.projectCloudEffectiveSelection(context.Background(), "user-001", "text.generate", &runtimev1.AIConfigCloudIntent{
 		ConnectorRef: created.ConnectorID, ProviderModelTarget: providerTarget,
 		Implementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: "openai_codex", DriverId: "nimillm", DriverDialect: "openai_codex"},
-	})
+	}, nil)
 	if selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED || selection.GetResource() != nil {
 		t.Fatalf("retired Codex projection = %+v", selection)
 	}

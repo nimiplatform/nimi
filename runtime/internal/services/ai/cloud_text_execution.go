@@ -116,6 +116,9 @@ func (s *Service) captureCloudTextEffectiveInputs(
 		return nil, err
 	}
 
+	if err := requireCloudRequiredFeatures(intent.RequiredFeatures, binding); err != nil {
+		return nil, err
+	}
 	// Catalog identity, when the Driver target carries one, is validated only
 	// against the captured connector/config snapshot. It performs no probe.
 	safeRemoteTarget := &nimillm.RemoteTarget{

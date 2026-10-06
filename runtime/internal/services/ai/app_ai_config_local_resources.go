@@ -81,7 +81,7 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 	result := make([]*runtimev1.AIConfigEffectiveSelection, 0, len(config.GetCapabilities()))
 	for _, capability := range config.GetCapabilities() {
 		if cloud := capability.GetCloud(); cloud != nil {
-			result = append(result, s.projectCloudEffectiveSelection(ctx, accountNamespace, capability.GetCapabilityContract(), cloud))
+			result = append(result, s.projectCloudEffectiveSelection(ctx, accountNamespace, capability.GetCapabilityContract(), cloud, capability.GetRequiredFeatures()))
 			continue
 		}
 		local := capability.GetLocal()
@@ -158,6 +158,7 @@ func (s *Service) projectCloudEffectiveSelection(
 	accountNamespace string,
 	capabilityContract string,
 	cloud *runtimev1.AIConfigCloudIntent,
+	requiredFeatures []string,
 ) *runtimev1.AIConfigEffectiveSelection {
 	selection := &runtimev1.AIConfigEffectiveSelection{CapabilityContract: capabilityContract}
 	if s == nil || s.connStore == nil || s.speechCatalog == nil {
@@ -216,6 +217,14 @@ func (s *Service) projectCloudEffectiveSelection(
 			MusicInput:          capabilitydriver.CloudMusicInputCapabilities(binding.Provider, binding.ProviderModelID, capabilityContract),
 		},
 	}}
+	if err := requireCloudRequiredFeatures(requiredFeatures, binding); err != nil {
+		selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+		selection.Reasons = []string{runtimev1.ReasonCode_AI_CONFIG_INVALID.String()}
+		selection.GetCloud().GetTarget().State = selection.State
+		selection.GetCloud().GetTarget().Reasons = append([]string(nil), selection.Reasons...)
+		selection.TextReplay = nil
+		selection.ReasoningInput = nil
+	}
 	return selection
 }
 

@@ -680,11 +680,11 @@ func TestChatGPTPlanAIConfigProjectsAccountAvailability(t *testing.T) {
 		option := options[model]
 		return &runtimev1.AIConfigCloudIntent{Implementation: option.Implementation, ConnectorRef: fixture.connectorID, ProviderModelTarget: option.ProviderTarget}
 	}
-	if selection := fixture.service.projectCloudEffectiveSelection(ctx, "user-001", "text.generate", intent("gpt-6-luna")); selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
+	if selection := fixture.service.projectCloudEffectiveSelection(ctx, "user-001", "text.generate", intent("gpt-6-luna"), nil); selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
 		len(selection.GetReasons()) != 1 || selection.GetReasons()[0] != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND.String() {
 		t.Fatalf("committed account-missing selection = %v", selection)
 	}
-	if selection := fixture.service.projectCloudEffectiveSelection(ctx, "user-001", "text.generate", intent("gpt-6-astra")); selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY {
+	if selection := fixture.service.projectCloudEffectiveSelection(ctx, "user-001", "text.generate", intent("gpt-6-astra"), nil); selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY {
 		t.Fatalf("committed account-listed selection = %v", selection)
 	}
 	// Near expiry a configuration read renews custody like the Connector

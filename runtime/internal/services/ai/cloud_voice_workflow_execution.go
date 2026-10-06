@@ -133,6 +133,9 @@ func (s *Service) captureCloudVoiceWorkflowEffectiveInputs(
 	if binding == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
+	if err := requireCloudRequiredFeatures(intent.RequiredFeatures, binding); err != nil {
+		return nil, err
+	}
 	applyRemoteModelCatalogBinding(safeTarget, binding)
 	voiceTarget := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
 		ConnectorID:          connectorRecord.ConnectorID,

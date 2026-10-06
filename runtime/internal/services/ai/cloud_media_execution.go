@@ -99,6 +99,9 @@ func (s *Service) resolveCloudMediaRouteComposition(
 	if binding == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
+	if err := requireCloudRequiredFeatures(intent.RequiredFeatures, binding); err != nil {
+		return nil, err
+	}
 	return &cloudMediaRouteComposition{
 		intent: intent, driver: driver, target: target,
 		connector: connectorRecord, binding: binding,
