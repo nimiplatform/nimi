@@ -304,7 +304,12 @@ func (s *Service) resolvePublicChatConversationSummaryExecution(ctx context.Cont
 	return execution, nil
 }
 
-const publicChatConversationSummarySystemPrompt = "Summarize the supplied committed conversation turns for future continuity. Preserve only user goals, decisions, named entities, relationships, unresolved questions, and durable context. Do not invent facts. Return exactly one APML <message id=\"conversation-summary\"> root and no actions."
+// @nimi-authority: rule.nimi.runtime.agent-participation.r188
+const publicChatConversationSummarySystemPrompt = `Write a short continuity note in the language of the supplied committed conversation. Condense what is needed to continue: each speaker's wishes and choices, relevant context and relationships, conditions, and open questions.
+The transcript label user is the visitor; assistant is the character. Keep their statements and intentions separate. Names used to address assistant refer to the character, not the visitor. Input marked "Runtime-admitted follow-up instruction" is a Runtime cue, not a visitor's statement.
+Keep claims attributed and preserve conditions and uncertainty without strengthening them. Retained dates, quantities, names, and quoted words keep their original notation. Apply explicit corrections from committed turns; a prior summary is derived context, not independent truth.
+Use compact prose rather than a transcript audit, self-check, keyword list, or repeated quotations and explanations. The note should compress the covered turns, not expand them or add commentary.
+Return only <message id="conversation-summary">plain text continuity note</message>. The body is plain text with no other tags, cues, or actions.`
 
 func publicChatConversationSummaryResolutionRequest(input string) publicChatTurnRequestPayload {
 	return publicChatTurnRequestPayload{
@@ -416,10 +421,7 @@ func publicChatConversationSummaryInput(anchor *publicChatAnchorState, targetEnd
 	}
 	for sequence := start; sequence <= targetEnd; sequence++ {
 		turn := anchor.CommittedTranscript[sequence]
-		userText := turn.InputText
-		if userText == "" && turn.InputAttachment != nil {
-			userText = publicChatTranscriptAttachmentMarker
-		}
+		userText := publicChatCommittedTranscriptInputText(turn)
 		assistantText := turn.AssistantText
 		if assistantText == "" {
 			assistantText = "[no assistant output was committed for this turn]"

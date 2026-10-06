@@ -252,7 +252,7 @@ units:
     kind: rule
     title: Materialization partition is singular and snapshot-bound
     modality: must
-    statement: Each new-contract materialization or derived rebuild invokes exactly one Runtime materialization projector over the target LocalAgent immutable snapshot and obtains one deterministic partition result that simultaneously yields the complete Runtime Character and World lorebook, typed non-lorebook Cognition ingestion units, provenance, and explicit omissions; Cognition never parses the raw snapshot or independently classifies always-on content.
+    statement: Each new-contract materialization or derived rebuild uses the singular Runtime materialization projector over the target LocalAgent immutable snapshot and obtains one deterministic partition result yielding the complete Runtime Character and World lorebook, typed non-lorebook Cognition ingestion units, provenance, and explicit omissions. Materialization or restore may hydrate compact names, declared aliases, exact source tuples, and opaque unit content identities as one complete optional projection for ordinary turn use; its failure remains explicit and yields no optional body without invalidating an already valid immutable snapshot, partition binding, lorebook, or base LocalAgent; Runtime retains no parallel optional-body corpus or index, and Cognition never parses the raw snapshot or independently classifies always-on content.
     condition: Whenever a LocalAgent is materialized or its derived lorebook or Cognition source corpus is rebuilt.
     failure: Reject the materialization or rebuild before ready state when the snapshot, partition, provenance, coverage, or output binding is missing, contradictory, non-deterministic, or produced by another parser.
     relations:
@@ -274,9 +274,9 @@ units:
     kind: rule
     title: Source Cognition is optional and never a full-source fallback
     modality: must
-    statement: Runtime consumes Cognition source candidates only after authorization and opaque per-Agent scope plus immutable snapshot validation and within an independent whole-unit budget; Bridge no_hits means a successful query returned no candidates, Runtime no_result means successful candidates were all rejected by Runtime guard or budget while the Bridge result remains preserved, and unconfigured, building, unavailable, or failed Cognition yields zero optional units without changing LocalAgent readiness or selecting another provider or model.
+    statement: Runtime consumes Cognition source candidates only after authorization, opaque per-Agent scope, immutable snapshot, partition, and unit content identity validation within the existing independent whole-unit budget. Explicit source references, full names, or declared aliases select uniquely bound sources before semantic supplements; shared bare RefIDs or name/alias collisions remain ambiguous rather than selecting an arbitrary source. Cognition owns and returns the unchanged optional body and provenance. Valid stored text can answer explicit selections independently of generation or query embedding readiness, with true source_ref, name, or alias basis and no invented vector score; semantic readiness and unconfigured, building, unavailable, failure, or no_hits remain separately preserved. Runtime no_result describes candidates rejected by its guard or budget and never rewrites the Bridge result, LocalAgent readiness, or execution route.
     condition: Whenever Runtime retrieves or plans optional Cognition source context.
-    failure: Reject mismatched candidates, merged outcomes, partial units, automatic route changes, Realm-current-source reads, cached cross-Agent results, and any full-source prompt fallback.
+    failure: Reject mismatched or corrupt candidates, ambiguous body reads, invented scores or semantic readiness, partial units, automatic route changes, Realm-current-source reads, cached cross-Agent results, and any full-source prompt fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.context-composition-plane

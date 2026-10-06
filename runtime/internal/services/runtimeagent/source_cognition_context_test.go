@@ -374,7 +374,7 @@ func TestSettingSourceCognitionBridgeReplaysMissingActiveSnapshot(t *testing.T) 
 		agents:                          map[string]*agentEntry{snapshot.LocalAgentRef: {Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: snapshot.LocalAgentRef, OwnerUserId: "owner-1", LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE, SourceContextStatus: localAgentSourceContextStatusV2(snapshot)}}},
 		publicChatSourceSnapshotResolve: func(context.Context, string) (localAgentSourceSnapshotV2, bool, error) { return snapshot, true, nil },
 		sourceCognitionLifecycleCtx:     lifecycleCtx,
-		sourceCognitionJobs:             make(map[string]struct{}),
+		sourceCognitionJobs:             make(map[string]bool),
 	}
 	svc.SetSourceCognitionBridge(bridge)
 	select {
@@ -397,7 +397,7 @@ func TestSettingSourceCognitionBridgePreservesReadyGeneration(t *testing.T) {
 		agents:                          map[string]*agentEntry{snapshot.LocalAgentRef: {Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: snapshot.LocalAgentRef, OwnerUserId: "owner-1", LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE, SourceContextStatus: localAgentSourceContextStatusV2(snapshot)}}},
 		publicChatSourceSnapshotResolve: func(context.Context, string) (localAgentSourceSnapshotV2, bool, error) { return snapshot, true, nil },
 		sourceCognitionLifecycleCtx:     lifecycleCtx,
-		sourceCognitionJobs:             make(map[string]struct{}),
+		sourceCognitionJobs:             make(map[string]bool),
 	}
 	svc.SetSourceCognitionBridge(bridge)
 	svc.sourceCognitionWG.Wait()
@@ -425,7 +425,7 @@ func TestSettingSourceCognitionBridgeReplaysZeroReadyGeneration(t *testing.T) {
 		}}},
 		publicChatSourceSnapshotResolve: func(context.Context, string) (localAgentSourceSnapshotV2, bool, error) { return snapshot, true, nil },
 		sourceCognitionLifecycleCtx:     lifecycleCtx,
-		sourceCognitionJobs:             make(map[string]struct{}),
+		sourceCognitionJobs:             make(map[string]bool),
 	}
 	svc.SetSourceCognitionBridge(bridge)
 	select {
@@ -436,6 +436,54 @@ func TestSettingSourceCognitionBridgeReplaysZeroReadyGeneration(t *testing.T) {
 	svc.sourceCognitionWG.Wait()
 	if bridge.ingestCalls != 1 || bridge.ingestedPartition != snapshot.Partition.PartitionHash {
 		t.Fatalf("zero-generation replay = %#v", bridge)
+	}
+}
+
+func TestSourceCognitionConfigChangeRetainsForceDuringActiveReplay(t *testing.T) {
+	snapshot := agentTurnContextTestSnapshot(t, "worldCharacter")
+	bridge := &sourceCognitionBridgeStub{inspectOutcome: cognitionservice.AgentSourceOutcome{
+		Status: "ready", ScopeID: sourceCognitionScopeID(snapshot.LocalAgentRef), SnapshotIdentity: snapshot.SnapshotHash,
+		PartitionIdentity: snapshot.Partition.PartitionHash, Generation: 3,
+		UnitCount: snapshot.Partition.UnitCount, OmissionCount: snapshot.Partition.OmissionCount,
+	}}
+	lifecycleCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	entered := make(chan struct{}, 1)
+	release := make(chan struct{})
+	svc := &Service{
+		sourceCognitionBridge: bridge,
+		agents: map[string]*agentEntry{snapshot.LocalAgentRef: {Agent: &runtimev1.LocalAgentRecord{
+			LocalAgentRef: snapshot.LocalAgentRef, OwnerUserId: "owner-1",
+			LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE, SourceContextStatus: localAgentSourceContextStatusV2(snapshot),
+		}}},
+		publicChatSourceSnapshotResolve: func(ctx context.Context, _ string) (localAgentSourceSnapshotV2, bool, error) {
+			select {
+			case entered <- struct{}{}:
+			default:
+			}
+			select {
+			case <-release:
+				return snapshot, true, nil
+			case <-ctx.Done():
+				return localAgentSourceSnapshotV2{}, false, ctx.Err()
+			}
+		},
+		sourceCognitionLifecycleCtx: lifecycleCtx,
+	}
+	svc.scheduleSourceCognitionRebuild("owner-1", snapshot.LocalAgentRef, false)
+	select {
+	case <-entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("startup source replay did not enter")
+	}
+	// A saved embedding change must rotate the old ready generation even when
+	// its startup validation is still running. Repeated requests can coalesce.
+	svc.scheduleActiveSourceCognitionRebuild(context.Background(), "owner-1", true)
+	svc.scheduleActiveSourceCognitionRebuild(context.Background(), "owner-1", true)
+	close(release)
+	svc.sourceCognitionWG.Wait()
+	if bridge.ingestCalls != 1 {
+		t.Fatalf("embedding configuration force was lost or duplicated during replay: ingestCalls=%d", bridge.ingestCalls)
 	}
 }
 
@@ -458,7 +506,7 @@ func TestSourceCognitionSearchFailureSchedulesSnapshotOnlyReplay(t *testing.T) {
 		agents:                          map[string]*agentEntry{snapshot.LocalAgentRef: {Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: snapshot.LocalAgentRef, OwnerUserId: "owner-1", LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE, SourceContextStatus: localAgentSourceContextStatusV2(snapshot)}}},
 		publicChatSourceSnapshotResolve: func(context.Context, string) (localAgentSourceSnapshotV2, bool, error) { return snapshot, true, nil },
 		sourceCognitionLifecycleCtx:     lifecycleCtx,
-		sourceCognitionJobs:             make(map[string]struct{}),
+		sourceCognitionJobs:             make(map[string]bool),
 	}
 	runtime := publicChatRuntime{svc: svc}
 	result := runtime.retrievePublicChatSourceCognition(context.Background(), publicChatAnchorState{OwnerUserID: "owner-1", LocalAgentRef: snapshot.LocalAgentRef}, source, agentTurnCurrentUserInput{Text: "missing generation"}, nil, nil, nil, publicChatAvailableActions{})
@@ -491,7 +539,7 @@ func TestSourceCognitionGenerationCountMismatchForcesSnapshotReplay(t *testing.T
 		agents:                          map[string]*agentEntry{snapshot.LocalAgentRef: {Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: snapshot.LocalAgentRef, OwnerUserId: "owner-1", LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE, SourceContextStatus: localAgentSourceContextStatusV2(snapshot)}}},
 		publicChatSourceSnapshotResolve: func(context.Context, string) (localAgentSourceSnapshotV2, bool, error) { return snapshot, true, nil },
 		sourceCognitionLifecycleCtx:     lifecycleCtx,
-		sourceCognitionJobs:             make(map[string]struct{}),
+		sourceCognitionJobs:             make(map[string]bool),
 	}
 	runtime := publicChatRuntime{svc: svc}
 	result := runtime.retrievePublicChatSourceCognition(context.Background(), publicChatAnchorState{OwnerUserID: "owner-1", LocalAgentRef: snapshot.LocalAgentRef}, source, agentTurnCurrentUserInput{Text: "missing stored row"}, nil, nil, nil, publicChatAvailableActions{})
@@ -539,7 +587,7 @@ func (s *sourceCognitionBridgeStub) IngestAgentSource(_ context.Context, _, _, s
 	return cognitionservice.AgentSourceOutcome{Status: "building", ScopeID: scopeID, SnapshotIdentity: snapshot, PartitionIdentity: partition, Generation: 1, UnitCount: uint32(len(units)), OmissionCount: uint32(len(omissions))}, nil
 }
 
-func (s *sourceCognitionBridgeStub) SearchAgentSource(_ context.Context, _, _, scopeID, snapshot string, _ string, _ int) (cognitionservice.AgentSourceOutcome, error) {
+func (s *sourceCognitionBridgeStub) SearchAgentSource(_ context.Context, _, _, scopeID, snapshot string, _ cognitionservice.AgentSourceQuery) (cognitionservice.AgentSourceOutcome, error) {
 	if s.searchErr != nil {
 		return cognitionservice.AgentSourceOutcome{}, s.searchErr
 	}
@@ -611,7 +659,7 @@ func TestDataRootHandoffClosesAndReopensRuntimeAgentAdmission(t *testing.T) {
 	chatCtx, chatCancel := context.WithCancel(context.Background())
 	service := &Service{
 		sourceCognitionLifecycleCtx: sourceCtx, sourceCognitionLifecycleCancel: sourceCancel,
-		sourceCognitionJobs:         make(map[string]struct{}),
+		sourceCognitionJobs:         make(map[string]bool),
 		cognitionMemoryLifecycleCtx: memoryCtx, cognitionMemoryLifecycleCancel: memoryCancel,
 		cognitionMemoryDraining: make(map[string]bool), cognitionMemoryDrainPending: make(map[string]bool),
 		chatAsyncLifecycleCtx: chatCtx, chatAsyncLifecycleCancel: chatCancel,

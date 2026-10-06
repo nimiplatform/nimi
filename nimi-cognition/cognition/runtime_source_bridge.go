@@ -39,15 +39,18 @@ type RuntimeSourceOwner struct {
 }
 
 type RuntimeSourceUnit struct {
-	UnitID         string
-	Category       string
-	SourcePath     string
-	SourceRef      RuntimeSourceRef
-	Text           string
-	ProvenanceRefs []string
-	Priority       int64
-	Embedding      []float64
-	Score          float64
+	UnitID           string
+	Category         string
+	SourcePath       string
+	SourceRef        RuntimeSourceRef
+	Text             string
+	ProvenanceRefs   []string
+	Priority         int64
+	Embedding        []float64
+	Score            float64
+	SelectionBasis   string
+	MatchedTerm      string
+	HasSemanticScore bool
 }
 
 type RuntimeSourceOmission struct {
@@ -82,6 +85,8 @@ type RuntimeSourceIngestionEnvelope struct {
 
 type RuntimeSourceOutcome struct {
 	Status            string
+	ExactStatus       string
+	GenerationStatus  string
 	ScopeID           string
 	SnapshotIdentity  string
 	PartitionIdentity string
@@ -270,6 +275,7 @@ func (s *RuntimeSourceBridge) SearchAgentSource(_ context.Context, auth RuntimeA
 				SchemaVersion: unit.SourceRef.SchemaVersion, ContentHash: unit.SourceRef.ContentHash,
 			},
 			Text: unit.Text, ProvenanceRefs: append([]string{}, unit.ProvenanceRefs...), Priority: unit.Priority, Score: unit.Score,
+			SelectionBasis: "embedding", HasSemanticScore: true,
 		})
 	}
 	return outcome, nil
@@ -353,6 +359,7 @@ func runtimeSourcePathIdentity(ref RuntimeSourceRef, sourcePath string) string {
 func runtimeSourceOutcomeFromState(state storage.RuntimeSourceState) RuntimeSourceOutcome {
 	return RuntimeSourceOutcome{
 		Status: state.Status, ScopeID: state.ScopeID, SnapshotIdentity: state.SnapshotIdentity,
+		GenerationStatus:  state.Status,
 		PartitionIdentity: state.PartitionIdentity, Generation: state.Generation,
 		UnitCount: uint32(state.UnitCount), OmissionCount: uint32(state.OmissionCount),
 	}

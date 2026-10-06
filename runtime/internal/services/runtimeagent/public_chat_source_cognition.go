@@ -37,6 +37,21 @@ func (r publicChatRuntime) retrieveLocalAgentSourceCognition(ctx context.Context
 	if r.svc == nil || r.svc.sourceCognitionBridge == nil {
 		return agentTurnCognitionInput{AdapterStatus: "unavailable", SelectionStatus: "unavailable"}
 	}
+	if err := validateLocalAgentTurnSourceViewV1(source); err != nil {
+		return agentTurnCognitionInput{AdapterStatus: "failure", SelectionStatus: "failure", ExactStatus: "failure"}
+	}
+	if err := validateLocalAgentTurnSourceCognitionMetadataV1(source); err != nil {
+		return agentTurnCognitionInput{AdapterStatus: "failure", SelectionStatus: "failure", ExactStatus: "failure", FailureReason: err.Error()}
+	}
+	matches := matchLocalAgentSourceReferencesV1(current.Text, source.SnapshotCandidateSourceRefs, source.NamedSourceRefs)
+	if matches.OverLimit || (len(matches.Ambiguous) > 0 && len(matches.Matches) == 0) {
+		status := "ambiguous"
+		if matches.OverLimit {
+			status = "over_limit"
+		}
+		return agentTurnCognitionInput{AdapterStatus: "not_requested", SelectionStatus: "no_result", ExactStatus: status, Ambiguous: matches.Ambiguous}
+	}
+	selections := sourceCognitionExactSelections(source, matches.Matches)
 	query := publicChatSourceCognitionQuery(source, current, transcript, conversationSummary, relationships, actions)
 	if query == "" {
 		return agentTurnCognitionInput{AdapterStatus: "failure", SelectionStatus: "failure"}
@@ -48,8 +63,7 @@ func (r publicChatRuntime) retrieveLocalAgentSourceCognition(ctx context.Context
 		localAgentRef,
 		scopeID,
 		source.SnapshotHash,
-		query,
-		publicChatSourceCognitionCandidateLimit,
+		cognitionservice.AgentSourceQuery{Text: query, PartitionIdentity: source.Partition.PartitionHash, UnitCount: source.Partition.UnitCount, OmissionCount: source.Partition.OmissionCount, ExactSourceRefs: selections, Limit: publicChatSourceCognitionCandidateLimit},
 	)
 	if err != nil {
 		r.svc.scheduleSourceCognitionRebuild(ownerUserID, localAgentRef, true)
@@ -62,16 +76,23 @@ func (r publicChatRuntime) retrieveLocalAgentSourceCognition(ctx context.Context
 	result := agentTurnCognitionInput{
 		AdapterStatus: outcome.Status, SelectionStatus: outcome.Status,
 		Generation: outcome.Generation, CandidateCount: uint32(len(outcome.Units)),
+		ExactStatus: outcome.ExactStatus, GenerationStatus: outcome.GenerationStatus, Ambiguous: matches.Ambiguous,
 	}
 	if outcome.Status != "ready" {
 		if outcome.Status == "failure" || outcome.Status == "unavailable" {
 			r.svc.scheduleSourceCognitionRebuild(ownerUserID, localAgentRef, false)
 		}
-		return result
+		if outcome.ExactStatus != "ready" {
+			return result
+		}
 	}
 	seen := make(map[string]struct{}, len(outcome.Units))
 	for _, candidate := range outcome.Units {
-		if len(result.Candidates) >= publicChatSourceCognitionSelectedLimit || math.IsNaN(candidate.Score) || math.IsInf(candidate.Score, 0) || candidate.Score < publicChatSourceCognitionMinimumScore {
+		exact := sourceCognitionCandidateMatchesSelection(candidate, selections)
+		semantic := candidate.SelectionBasis == "" || candidate.SelectionBasis == "embedding"
+		if len(result.Candidates) >= publicChatSourceCognitionSelectedLimit || math.IsNaN(candidate.Score) || math.IsInf(candidate.Score, 0) ||
+			(!exact && (!semantic || outcome.Status != "ready" || candidate.Score < publicChatSourceCognitionMinimumScore)) ||
+			(exact && !candidate.HasSemanticScore && candidate.Score != 0) || sourceCognitionCandidateIsAmbiguous(candidate, matches) {
 			continue
 		}
 		if _, duplicate := seen[candidate.UnitID]; duplicate {
@@ -83,6 +104,7 @@ func (r publicChatRuntime) retrieveLocalAgentSourceCognition(ctx context.Context
 			strings.TrimSpace(candidate.SourceRef.SchemaVersion) == "" || !isLowerSHA256V3(candidate.SourceRef.ContentHash) ||
 			!localAgentSourceCategoryMatchesRefKindV1(candidate.Category, candidate.SourceRef.Kind) ||
 			!localAgentSourceCandidateRefBelongsToTurnViewV1(source, candidate.SourceRef) ||
+			!localAgentSourceUnitBelongsToTurnViewV1(source, candidate) ||
 			validateLocalAgentCognitionProvenanceRefsV1(candidate.ProvenanceRefs) != nil {
 			continue
 		}
@@ -90,13 +112,65 @@ func (r publicChatRuntime) retrieveLocalAgentSourceCognition(ctx context.Context
 		result.Candidates = append(result.Candidates, agentTurnCognitionCandidateInput{
 			UnitID: candidate.UnitID, Category: candidate.Category, SourcePath: candidate.SourcePath,
 			SourceRef: agentTurnContextItemSourceRef{Kind: candidate.SourceRef.Kind, WorldID: candidate.SourceRef.WorldID, RefID: candidate.SourceRef.RefID, SchemaVersion: candidate.SourceRef.SchemaVersion, ContentHash: candidate.SourceRef.ContentHash},
-			Text:      candidate.Text, Priority: candidate.Priority, Score: candidate.Score,
+			Text:      candidate.Text, Priority: candidate.Priority, Score: candidate.Score, SelectionBasis: candidate.SelectionBasis, MatchedTerm: candidate.MatchedTerm, HasSemanticScore: candidate.HasSemanticScore,
 		})
 	}
 	if len(outcome.Units) > 0 && len(result.Candidates) == 0 {
 		result.SelectionStatus = "no_result"
+	} else if len(result.Candidates) > 0 {
+		result.SelectionStatus = "ready"
 	}
 	return result
+}
+
+func sourceCognitionExactSelections(source localAgentTurnSourceViewV1, matches []localAgentSourceReferenceMatchV1) []cognitionservice.AgentSourceSelection {
+	selections := make([]cognitionservice.AgentSourceSelection, 0, len(matches))
+	for _, match := range matches {
+		ref := match.SourceRef
+		selection := cognitionservice.AgentSourceSelection{SourceRef: cognitionservice.AgentSourceRef{Kind: ref.Kind, WorldID: ref.WorldID, RefID: ref.RefID, SchemaVersion: ref.SchemaVersion, ContentHash: ref.ContentHash}, Basis: match.Basis, Term: match.Term, Units: []cognitionservice.AgentSourceUnitBinding{}}
+		for _, unit := range source.CognitionUnitBindings {
+			if unit.SourceRef == ref {
+				selection.Units = append(selection.Units, cognitionservice.AgentSourceUnitBinding{UnitID: unit.UnitID, ContentHash: unit.ContentHash})
+			}
+		}
+		selections = append(selections, selection)
+	}
+	return selections
+}
+
+func sourceCognitionCandidateMatchesSelection(candidate cognitionservice.AgentSourceUnit, selections []cognitionservice.AgentSourceSelection) bool {
+	for _, selection := range selections {
+		if candidate.SourceRef == selection.SourceRef && candidate.SelectionBasis == selection.Basis && candidate.MatchedTerm == selection.Term {
+			return true
+		}
+	}
+	return false
+}
+
+func sourceCognitionCandidateIsAmbiguous(candidate cognitionservice.AgentSourceUnit, matches localAgentSourceReferenceMatchesV1) bool {
+	ref := agentTurnContextItemSourceRef{Kind: candidate.SourceRef.Kind, WorldID: candidate.SourceRef.WorldID, RefID: candidate.SourceRef.RefID, SchemaVersion: candidate.SourceRef.SchemaVersion, ContentHash: candidate.SourceRef.ContentHash}
+	for _, match := range matches.Matches {
+		if ref == match.SourceRef {
+			return false
+		}
+	}
+	for _, ambiguity := range matches.Ambiguous {
+		for _, ambiguousRef := range ambiguity.Refs {
+			if ref == ambiguousRef {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func localAgentSourceUnitBelongsToTurnViewV1(source localAgentTurnSourceViewV1, candidate cognitionservice.AgentSourceUnit) bool {
+	for _, binding := range source.CognitionUnitBindings {
+		if binding.UnitID == candidate.UnitID {
+			return binding.ContentHash == cognitionservice.AgentSourceUnitContentHash(candidate)
+		}
+	}
+	return false
 }
 
 func localAgentSourceCandidateRefBelongsToTurnViewV1(source localAgentTurnSourceViewV1, candidate cognitionservice.AgentSourceRef) bool {

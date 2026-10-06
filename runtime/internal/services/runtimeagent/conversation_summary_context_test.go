@@ -58,12 +58,46 @@ func TestConversationSummaryInputUsesCompleteCoveredTurns(t *testing.T) {
 	if !strings.Contains(text, "[turn 0]") || !strings.Contains(text, "[turn 1]") || strings.Contains(text, "[turn 2]") {
 		t.Fatalf("summary input coverage = %q", text)
 	}
+	// An addressed character name is not the visitor's identity, and dates
+	// must reach the model with the committed spelling, not a calendar rewrite.
+	anchor.CommittedTranscript[0].InputText = "伊哈，我想陪你坐会儿，不想赶着再办一串差事。"
+	anchor.CommittedTranscript[0].AssistantText = "那院子是二〇六年信里写的，我二一八年才收到。"
+	anchor.CommittedTranscript[1].Origin = publicChatTurnOriginFollowUp
+	anchor.CommittedTranscript[1].InputText = "Return to the unanswered question."
+	text, err = publicChatConversationSummaryInput(anchor, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, literal := range []string{
+		"user=" + anchor.CommittedTranscript[0].InputText,
+		"assistant=" + anchor.CommittedTranscript[0].AssistantText,
+		"user=Runtime-admitted follow-up instruction: Return to the unanswered question.",
+	} {
+		if !strings.Contains(text, literal) {
+			t.Fatalf("committed speaker/origin or literal content changed: %q", text)
+		}
+	}
+	if strings.Count(text, "Runtime-admitted follow-up instruction: ") != 1 || anchor.CommittedTranscript[1].InputText != "Return to the unanswered question." || anchor.CommittedTranscript[0].Origin != publicChatTurnOriginUser {
+		t.Fatalf("summary input changed committed text/origin or repeated its follow-up marker: %q", text)
+	}
+	eligible, err := publicChatEligibleCommittedTranscript(anchor.CommittedTranscript)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if eligible[0].UserText != anchor.CommittedTranscript[0].InputText || !strings.Contains(text, "user="+eligible[1].UserText) {
+		t.Fatalf("summary input diverged from committed-history speaker/origin framing: %q / %#v", text, eligible[:2])
+	}
 }
 
 func TestConversationSummaryOutputRequiresExactMessageOnlyEnvelope(t *testing.T) {
 	text, err := parsePublicChatConversationSummaryOutput(`<message id="conversation-summary">bounded summary</message>`)
 	if err != nil || text != "bounded summary" {
 		t.Fatalf("exact summary output = %q, %v", text, err)
+	}
+	const literalSummary = "来访者想陪伊哈坐会儿；伊哈愿意歇一歇。雅南说信写于二〇六年，她二一八年才收到；当年结七颗果，现在怎样还不知道。"
+	text, err = parsePublicChatConversationSummaryOutput(`<message id="conversation-summary">` + literalSummary + `</message>`)
+	if err != nil || text != literalSummary {
+		t.Fatalf("summary parser changed speaker attribution or literal content: %q, %v", text, err)
 	}
 	if _, err := parsePublicChatConversationSummaryOutput(`<message id="message-0">wrong id</message>`); err == nil || !strings.Contains(err.Error(), "message id") {
 		t.Fatalf("wrong summary message id was admitted: %v", err)
@@ -437,7 +471,7 @@ func TestConversationSummaryRunsAfterTurnTerminalAndReservationRelease(t *testin
 		req *PublicChatTurnExecutionRequest,
 		emit func(*runtimev1.StreamScenarioEvent) error,
 	) error {
-		isSummary := len(req.Messages) > 0 && strings.Contains(req.Messages[0].GetContent(), "Summarize the supplied committed conversation turns")
+		isSummary := len(req.Messages) > 0 && req.Messages[0].GetContent() == publicChatConversationSummarySystemPrompt
 		if isSummary {
 			completedBeforeSummary := false
 			for _, messageType := range capture.messageTypes() {

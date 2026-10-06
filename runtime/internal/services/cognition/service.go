@@ -17,14 +17,17 @@ import (
 )
 
 type AgentSourceUnit struct {
-	UnitID         string
-	Category       string
-	SourcePath     string
-	SourceRef      AgentSourceRef
-	Text           string
-	ProvenanceRefs []string
-	Priority       int64
-	Score          float64
+	UnitID           string
+	Category         string
+	SourcePath       string
+	SourceRef        AgentSourceRef
+	Text             string
+	ProvenanceRefs   []string
+	Priority         int64
+	Score            float64
+	SelectionBasis   string
+	MatchedTerm      string
+	HasSemanticScore bool
 }
 
 type AgentSourceOmission struct {
@@ -46,6 +49,8 @@ type AgentSourceRef struct {
 
 type AgentSourceOutcome struct {
 	Status            string
+	ExactStatus       string
+	GenerationStatus  string
 	ScopeID           string
 	SnapshotIdentity  string
 	PartitionIdentity string
@@ -212,12 +217,13 @@ func projectAgentSourceOmissions(omissions []AgentSourceOmission) []nimicognitio
 func projectAgentSourceOutcome(out nimicognition.RuntimeSourceOutcome) AgentSourceOutcome {
 	return AgentSourceOutcome{
 		Status: out.Status, ScopeID: out.ScopeID, SnapshotIdentity: out.SnapshotIdentity,
+		ExactStatus: out.ExactStatus, GenerationStatus: out.GenerationStatus,
 		PartitionIdentity: out.PartitionIdentity, Generation: out.Generation,
 		UnitCount: out.UnitCount, OmissionCount: out.OmissionCount,
 	}
 }
 
-func (s *Service) SearchAgentSource(ctx context.Context, accountID, localAgentRef, scopeID, snapshotIdentity, query string, limit int) (AgentSourceOutcome, error) {
+func (s *Service) searchAgentSourceSemantics(ctx context.Context, accountID, localAgentRef, scopeID, snapshotIdentity, query string, limit int) (AgentSourceOutcome, error) {
 	if s == nil || s.sourceBridge == nil {
 		return AgentSourceOutcome{Status: "unavailable", ScopeID: scopeID, SnapshotIdentity: snapshotIdentity}, nil
 	}
@@ -240,6 +246,9 @@ func (s *Service) SearchAgentSource(ctx context.Context, accountID, localAgentRe
 	if executionErr != nil && execution.Status == "ready" {
 		execution.Status = "failure"
 	}
+	if execution.Status == "ready" && len(execution.Vectors) != 1 {
+		execution.Status = "failure"
+	}
 	if executionErr != nil || execution.Status != "ready" || len(execution.Vectors) != 1 {
 		if s.logger != nil {
 			s.logger.Warn("source Cognition query embedding did not reach ready", "status", execution.Status, "error", executionErr)
@@ -256,7 +265,7 @@ func (s *Service) SearchAgentSource(ctx context.Context, accountID, localAgentRe
 	result := projectAgentSourceOutcome(out)
 	result.Units = make([]AgentSourceUnit, 0, len(out.Units))
 	for _, unit := range out.Units {
-		result.Units = append(result.Units, AgentSourceUnit{UnitID: unit.UnitID, Category: unit.Category, SourcePath: unit.SourcePath, SourceRef: AgentSourceRef{Kind: unit.SourceRef.Kind, WorldID: unit.SourceRef.WorldID, RefID: unit.SourceRef.RefID, SchemaVersion: unit.SourceRef.SchemaVersion, ContentHash: unit.SourceRef.ContentHash}, Text: unit.Text, ProvenanceRefs: append([]string{}, unit.ProvenanceRefs...), Priority: unit.Priority, Score: unit.Score})
+		result.Units = append(result.Units, projectAgentSourceUnit(unit))
 	}
 	return result, nil
 }

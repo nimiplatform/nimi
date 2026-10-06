@@ -33,17 +33,19 @@ func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChat
 	return &aiBackedPublicChatTurnExecutor{ai: ai}
 }
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.output-wire-plane
 const publicChatAPMLOutputContractPromptTemplate = `Runtime APML contract:
 - Output APML only. Begin exactly <message id="message-0">; no Markdown, JSON, fences, <think>, or other prose outside the message.
 %s
-- Text: <message id="message-0">reply text</message>. Never self-close <message>; all reply text stays inside <message>.
+- Text: <message id="message-0">reply text</message>. Never self-close <message>.
 - Optional inside <message>, at most one each (omit if unsure): <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, not emotion.
+- Cue example: <message id="message-0"><emotion>neutral</emotion><activity>listening</activity>reply text</message>. Put cues before </message>, never after it.
 - Voice: <action id="action-0" kind="voice"><prompt-payload kind="voice"><prompt-text>voice prompt</prompt-text></prompt-payload></action>.
 %s
 - Follow-up: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>instruction</prompt-text></effect></time-hook>.
 - No top-level emotion/activity. Message first; then action/time-hook/event-hook siblings; close all tags. FINAL: reply ONLY as <message id="message-0">reply text</message> unless a sibling is required.`
 
-const publicChatRoundOneRecallPrompt = `- If essential source facts are missing, instead output exactly <message id="message-0"><query>one bounded source question</query></message>. This Runtime-private recall is available at most once; the message may contain only the query request and never reply text/actions.`
+const publicChatRoundOneRecallPrompt = `- If essential source facts are missing, instead output exactly <message id="message-0"><query>one bounded source question</query></message>. Runtime-private recall: at most once; query only, no reply text/actions.`
 
 const publicChatRoundTwoFinalOnlyPrompt = `- Round 2 final-only: a Runtime-private recall result is already present. A second recall is forbidden; output the final user reply now.`
 

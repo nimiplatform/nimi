@@ -181,21 +181,28 @@ type agentTurnCurrentUserInput struct {
 }
 
 type agentTurnCognitionCandidateInput struct {
-	UnitID     string
-	Category   string
-	SourcePath string
-	SourceRef  agentTurnContextItemSourceRef
-	Text       string
-	Priority   int64
-	Score      float64
+	UnitID           string
+	Category         string
+	SourcePath       string
+	SourceRef        agentTurnContextItemSourceRef
+	Text             string
+	Priority         int64
+	Score            float64
+	SelectionBasis   string
+	MatchedTerm      string
+	HasSemanticScore bool
 }
 
 type agentTurnCognitionInput struct {
-	AdapterStatus   string
-	SelectionStatus string
-	Generation      uint64
-	CandidateCount  uint32
-	Candidates      []agentTurnCognitionCandidateInput
+	AdapterStatus    string
+	SelectionStatus  string
+	Generation       uint64
+	CandidateCount   uint32
+	Candidates       []agentTurnCognitionCandidateInput
+	ExactStatus      string
+	GenerationStatus string
+	Ambiguous        []localAgentSourceReferenceAmbiguityV1
+	FailureReason    string
 }
 
 type agentTurnPrivateRecallInput struct {
@@ -292,12 +299,25 @@ type agentTurnContextTranscriptManifestV1 struct {
 }
 
 type agentTurnContextCognitionManifestV1 struct {
-	AdapterStatus     string `json:"adapterStatus"`
-	SelectionStatus   string `json:"selectionStatus"`
-	Generation        uint64 `json:"generation"`
-	CandidateCount    uint32 `json:"candidateCount"`
-	IncludedUnitCount uint32 `json:"includedUnitCount"`
-	OmittedUnitCount  uint32 `json:"omittedUnitCount"`
+	AdapterStatus     string                                  `json:"adapterStatus"`
+	SelectionStatus   string                                  `json:"selectionStatus"`
+	Generation        uint64                                  `json:"generation"`
+	CandidateCount    uint32                                  `json:"candidateCount"`
+	IncludedUnitCount uint32                                  `json:"includedUnitCount"`
+	OmittedUnitCount  uint32                                  `json:"omittedUnitCount"`
+	ExactStatus       string                                  `json:"exactStatus,omitempty"`
+	GenerationStatus  string                                  `json:"generationStatus,omitempty"`
+	Ambiguous         []localAgentSourceReferenceAmbiguityV1  `json:"ambiguousReferences,omitempty"`
+	Selections        []agentTurnCognitionSelectionManifestV1 `json:"selections,omitempty"`
+	FailureReason     string                                  `json:"failureReason,omitempty"`
+}
+
+type agentTurnCognitionSelectionManifestV1 struct {
+	UnitID        string   `json:"unitId"`
+	Basis         string   `json:"basis"`
+	Term          string   `json:"term,omitempty"`
+	SemanticScore *float64 `json:"semanticScore,omitempty"`
+	Included      bool     `json:"included"`
 }
 
 type agentTurnContextConversationSummaryManifestV1 struct {

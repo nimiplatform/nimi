@@ -160,7 +160,7 @@ func (b *SQLiteBackend) InspectRuntimeSourceState(scopeID string) (RuntimeSource
 	if state.Generation == 0 {
 		return RuntimeSourceState{}, errors.New("storage: runtime source generation is corrupt")
 	}
-	if err := b.validateStoredRuntimeSourceUnits(scopeID, state); err != nil {
+	if err := b.validateStoredRuntimeSourceUnits(scopeID, state, true); err != nil {
 		return RuntimeSourceState{}, err
 	}
 	if err := b.validateStoredRuntimeSourceOmissions(scopeID, state.OmissionCount); err != nil {
@@ -169,7 +169,7 @@ func (b *SQLiteBackend) InspectRuntimeSourceState(scopeID string) (RuntimeSource
 	return state, nil
 }
 
-func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(scopeID string, state RuntimeSourceState) error {
+func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(scopeID string, state RuntimeSourceState, validateEmbeddings bool) error {
 	rows, err := b.db.Query(`SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
 	if err != nil {
 		return fmt.Errorf("storage: inspect runtime source units: %w", err)
@@ -184,6 +184,10 @@ func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(scopeID string, state R
 		}
 		if err := json.Unmarshal(rawProvenanceRefs, &unit.ProvenanceRefs); err != nil || unit.ProvenanceRefs == nil || !validStoredRuntimeSourceUnit(unit) {
 			return errors.New("storage: runtime source unit is corrupt")
+		}
+		if !validateEmbeddings {
+			count++
+			continue
 		}
 		if state.Status == "ready" {
 			if err := json.Unmarshal(rawEmbedding, &unit.Embedding); err != nil || len(unit.Embedding) != state.EmbeddingDimension || !finiteRuntimeSourceVector(unit.Embedding) {

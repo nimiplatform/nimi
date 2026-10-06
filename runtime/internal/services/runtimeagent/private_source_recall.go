@@ -135,7 +135,7 @@ func validateAgentTurnPrivateRecallInput(input *agentTurnPrivateRecallInput) err
 	}
 	seen := make(map[string]struct{}, len(input.Candidates))
 	for _, candidate := range input.Candidates {
-		if strings.TrimSpace(candidate.UnitID) == "" || strings.TrimSpace(candidate.Text) == "" || candidate.Score <= 0 {
+		if strings.TrimSpace(candidate.UnitID) == "" || strings.TrimSpace(candidate.Text) == "" || !validAgentTurnCognitionSelection(candidate) {
 			return fmt.Errorf("agent turn private recall candidate is invalid")
 		}
 		if _, duplicate := seen[candidate.UnitID]; duplicate {

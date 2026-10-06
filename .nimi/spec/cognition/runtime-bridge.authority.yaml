@@ -31,15 +31,15 @@ units:
   - id: definition.nimi.cognition.runtime-bridge.source-corpus
     kind: definition
     title: Cognition LocalAgent source corpus
-    meaning: A Cognition LocalAgent source corpus is the bounded set of typed non-lorebook source units and explicit omissions accepted from one Runtime materialization partition for one opaque per-Agent scope and immutable snapshot identity; it is derived state rather than Realm canonical source, Runtime snapshot, lorebook, Conversation, Memory, or Knowledge truth.
+    meaning: A Cognition LocalAgent source corpus is the bounded set of typed non-lorebook source units and explicit omissions accepted from one Runtime materialization partition for one opaque per-Agent scope and immutable snapshot identity; validated stored text can serve bounded Runtime-issued explicit source selections independently of semantic embeddings, and remains derived state rather than Realm canonical source, Runtime snapshot, lorebook, Conversation, Memory, or Knowledge truth.
   - id: definition.nimi.cognition.runtime-bridge.source-generation
     kind: definition
     title: Cognition source generation
-    meaning: A Cognition source generation is the scope-and-snapshot-bound ingestion, embedding, index, readiness, query, and candidate-hit lifecycle for one LocalAgent source corpus, with lexical and entity signals only auxiliary to formally admitted embedding readiness.
+    meaning: A Cognition source generation is the scope-and-snapshot-bound ingestion, embedding, index, semantic readiness, query, and candidate-hit lifecycle for one LocalAgent source corpus; semantic hits require formally admitted embeddings, while explicitly selected validated corpus text has distinct availability and never changes generation readiness.
   - id: definition.nimi.cognition.runtime-bridge.adapter-outcome
     kind: definition
     title: Cognition source adapter outcome
-    meaning: Cognition source adapter outcome preserves unconfigured, building, unavailable, failure, ready with candidates, or ready no_hits, where no_hits means only that a successful ready query returned no candidates and Runtime-owned no_result remains a later context-selection outcome.
+    meaning: Cognition source adapter outcome preserves semantic unconfigured, building, unavailable, failure, ready with candidates, or ready no_hits, and separately records exact-source ready or no_hits after a validated text read; exact success does not rewrite semantic failure or generation readiness, semantic no_hits requires a successful ready query, and Runtime-owned no_result remains a later context-selection outcome.
   - id: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary
     kind: definition
     title: Runtime-authorized Cognition Bridge boundary
@@ -158,7 +158,7 @@ units:
     kind: rule
     title: Source Cognition completeness is non-blocking
     modality: must
-    statement: Cognition source generation unconfigured, building, unavailable, or failure does not block an otherwise valid LocalAgent, and Runtime may continue with zero optional source candidates while preserving the exact adapter outcome; Cognition never selects or substitutes another provider, model, route, snapshot, or cached generation to manufacture readiness.
+    statement: Cognition source generation unconfigured, building, unavailable, or failure does not block an otherwise valid LocalAgent; Runtime preserves the exact semantic adapter outcome with zero semantic candidates and may independently consume authorized explicit selections from valid stored text. Cognition never selects or substitutes another provider, model, route, snapshot, or cached generation to manufacture readiness.
     condition: Whenever source Cognition roadmap state is evaluated as a current LocalAgent product prerequisite.
     failure: Remove the prerequisite and keep unavailable source Cognition capability explicit and distinct from the event-derived Memory lane.
     relations:
@@ -183,11 +183,11 @@ units:
         target: definition.nimi.cognition.runtime-bridge.source-corpus
   - id: rule.nimi.cognition.runtime-bridge.r013
     kind: rule
-    title: Source generation readiness is embedding gated
+    title: Source semantic generation readiness is embedding gated
     modality: must
-    statement: A source generation becomes ready only after complete envelope validation, required-unit ingestion, formally admitted text.embed execution, exact-dimension finite embeddings, complete index build, and scope plus snapshot identity agreement; lexical or entity signals remain auxiliary and cannot independently produce ready state or product hits.
+    statement: A source semantic generation becomes ready only after complete envelope validation, required-unit ingestion, formally admitted text.embed execution, exact-dimension finite embeddings, complete index build, and scope plus snapshot identity agreement; lexical or entity signals cannot independently create semantic hits or ready state. Complete validated stored corpus text may independently answer bounded Runtime-issued explicit source references, names, or declared aliases with its true selection basis and unit content identity, without a vector score unless an actual semantic query supplied one.
     condition: Whenever Cognition builds, restores, or reports source generation readiness.
-    failure: Preserve typed unconfigured, building, unavailable, or failure and return no optional candidates when any readiness condition is absent or invalid.
+    failure: Preserve typed semantic unconfigured, building, unavailable, or failure with zero semantic candidates whenever a readiness condition is absent or invalid; valid exact text remains independently available, while missing, corrupt, or mismatched text returns no exact body.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.embedding-resolution
@@ -197,7 +197,7 @@ units:
     kind: rule
     title: Source queries and hits are scope and snapshot bound
     modality: must
-    statement: Every source corpus, generation, query, candidate hit, rebuild, and deletion simultaneously matches the authorized opaque per-Agent scope and immutable snapshot identity, and equal semantic snapshot hashes or source template ids never authorize mutable generation sharing or cross-Agent hits.
+    statement: Every source corpus, generation, explicit text read, semantic query, candidate hit, rebuild, and deletion simultaneously matches the authorized opaque per-Agent scope and immutable snapshot identity; explicit reads additionally validate the immutable partition, complete unit and omission counts, exact source tuple, and snapshot-derived unit content identity. Equal semantic snapshot hashes or source template ids never authorize mutable generation sharing or cross-Agent hits.
     condition: Whenever Cognition stores, restores, queries, returns, rebuilds, or deletes LocalAgent source state.
     failure: Reject the operation with a typed validation or authorization failure and return no candidate from another scope, snapshot, or Realm-current source.
     relations:
@@ -209,9 +209,9 @@ units:
         target: definition.nimi.cognition.runtime-bridge.source-generation
   - id: rule.nimi.cognition.runtime-bridge.r015
     kind: rule
-    title: Adapter no_hits is successful zero candidates only
+    title: Semantic and exact source outcomes stay distinct
     modality: must
-    statement: Cognition returns no_hits only when a ready authorized query completes successfully with zero candidates; unconfigured, building, unavailable, timeout, validation, authorization, snapshot mismatch, scope mismatch, or internal failure retains its typed adapter outcome, while successful candidates later rejected by Runtime guard or budget remain a Runtime no_result decision and do not rewrite the Bridge outcome.
+    statement: Cognition returns semantic no_hits only when a ready authorized semantic query completes successfully with zero candidates; unconfigured, building, unavailable, timeout, validation, authorization, snapshot mismatch, scope mismatch, or internal failure retains its typed semantic outcome. A separately requested bounded exact text read reports its own ready or no_hits, preserves unchanged source and provenance with explicit selection basis, and never becomes a semantic fallback or invented vector result. Successful candidates later rejected by Runtime guard or budget remain a Runtime no_result decision and do not rewrite either Bridge outcome.
     condition: Whenever Cognition completes or fails a LocalAgent source query.
     failure: Reject an empty or synthetic success and preserve the actual typed adapter outcome for Runtime handling.
     relations:
@@ -223,7 +223,7 @@ units:
     modality: must
     statement: A missing, corrupt, or unready source generation is rebuilt only from the same typed envelope replayed by Runtime's singular projector for the target LocalAgent immutable snapshot and opaque scope, without Cognition reading the snapshot, rereading Realm, copying another Agent, or requesting a full-source prompt path.
     condition: Whenever a LocalAgent source generation is repaired or rebuilt.
-    failure: Keep the generation non-ready with the typed outcome and return zero optional candidates until a valid envelope completes.
+    failure: Keep the semantic generation non-ready with the typed outcome and zero semantic candidates until a valid envelope completes; independently valid stored exact text remains readable, while missing, corrupt, or mismatched corpus text yields zero exact bodies.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.source-corpus

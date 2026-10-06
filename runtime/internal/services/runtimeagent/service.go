@@ -102,7 +102,7 @@ type Service struct {
 	sourceCognitionLifecycleCtx              context.Context
 	sourceCognitionLifecycleCancel           context.CancelFunc
 	sourceCognitionWG                        sync.WaitGroup
-	sourceCognitionJobs                      map[string]struct{}
+	sourceCognitionJobs                      map[string]bool
 	cognitionMemoryStore                     *cognitionmemory.Store
 	cognitionMemoryBridge                    *cognitionmemory.Bridge
 	cognitionMemoryFacade                    *cognitionmemory.Facade
@@ -247,7 +247,7 @@ func newWithBackend(logger *slog.Logger, localStatePath string, backend *runtime
 		chatAsyncLifecycleCancel:                 chatAsyncLifecycleCancel,
 		sourceCognitionLifecycleCtx:              sourceCognitionLifecycleCtx,
 		sourceCognitionLifecycleCancel:           sourceCognitionLifecycleCancel,
-		sourceCognitionJobs:                      make(map[string]struct{}),
+		sourceCognitionJobs:                      make(map[string]bool),
 		cognitionMemoryLifecycleCtx:              cognitionMemoryLifecycleCtx,
 		cognitionMemoryLifecycleCancel:           cognitionMemoryLifecycleCancel,
 		cognitionMemoryDraining:                  make(map[string]bool),

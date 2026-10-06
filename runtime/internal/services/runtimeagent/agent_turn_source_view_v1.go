@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
 )
 
 // localAgentTurnSourceViewV1 is the immutable Runtime-owned turn projection
@@ -25,6 +26,10 @@ type localAgentTurnSourceViewV1 struct {
 	MaterializationContextHash  string
 	Partition                   localAgentSourcePartitionBindingV1
 	SnapshotCandidateSourceRefs []agentTurnContextItemSourceRef
+	NamedSourceRefs             []localAgentNamedSourceRefV1
+	CognitionUnitBindings       []localAgentSourceUnitBindingV1
+	CognitionMetadataStatus     string
+	CognitionMetadataFailure    string
 }
 
 func localAgentTurnSourceViewFromSnapshotV1(snapshot localAgentSourceSnapshotV2) (localAgentTurnSourceViewV1, error) {
@@ -60,6 +65,42 @@ func localAgentTurnSourceViewFromSnapshotV1(snapshot localAgentSourceSnapshotV2)
 	}
 	view.SnapshotCandidateSourceRefs = localAgentTurnCandidateSourceRefsV1(snapshot)
 	if err := validateLocalAgentTurnSourceViewV1(view); err != nil {
+		return localAgentTurnSourceViewV1{}, err
+	}
+	return localAgentTurnSourceViewWithCognitionMetadataV1(view, snapshot), nil
+}
+
+func localAgentTurnSourceViewWithCognitionMetadataV1(view localAgentTurnSourceViewV1, snapshot localAgentSourceSnapshotV2) localAgentTurnSourceViewV1 {
+	view.NamedSourceRefs, view.CognitionUnitBindings = nil, nil
+	view.CognitionMetadataStatus, view.CognitionMetadataFailure = "", ""
+	optional, err := hydrateLocalAgentTurnSourceCognitionMetadataV1(view, snapshot)
+	if err != nil {
+		view.CognitionMetadataStatus = "failure"
+		view.CognitionMetadataFailure = err.Error()
+		return view
+	}
+	return optional
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-service.r060
+func hydrateLocalAgentTurnSourceCognitionMetadataV1(view localAgentTurnSourceViewV1, snapshot localAgentSourceSnapshotV2) (localAgentTurnSourceViewV1, error) {
+	unitPartition, err := projectLocalAgentSourcePartitionV1(snapshot)
+	if err != nil {
+		return localAgentTurnSourceViewV1{}, fmt.Errorf("hydrate LocalAgent source unit identities: %w", err)
+	}
+	if unitPartition.PartitionHash != view.Partition.PartitionHash {
+		return localAgentTurnSourceViewV1{}, fmt.Errorf("hydrate LocalAgent source unit identities: invalid partition")
+	}
+	for _, unit := range cognitionUnitsFromPartition(unitPartition) {
+		view.CognitionUnitBindings = append(view.CognitionUnitBindings, localAgentSourceUnitBindingV1{UnitID: unit.UnitID, SourceRef: agentTurnContextItemSourceRef{Kind: unit.SourceRef.Kind, WorldID: unit.SourceRef.WorldID, RefID: unit.SourceRef.RefID, SchemaVersion: unit.SourceRef.SchemaVersion, ContentHash: unit.SourceRef.ContentHash}, ContentHash: cognitionservice.AgentSourceUnitContentHash(unit)})
+	}
+	var namesErr error
+	view.NamedSourceRefs, namesErr = localAgentTurnNamedSourceRefsV1(snapshot)
+	if namesErr != nil {
+		return localAgentTurnSourceViewV1{}, fmt.Errorf("hydrate LocalAgent source names: %w", namesErr)
+	}
+	view.CognitionMetadataStatus = "ready"
+	if err := validateLocalAgentTurnSourceCognitionMetadataV1(view); err != nil {
 		return localAgentTurnSourceViewV1{}, err
 	}
 	return view, nil
@@ -139,6 +180,41 @@ func validateLocalAgentTurnSourceViewV1(view localAgentTurnSourceViewV1) error {
 			return fmt.Errorf("LocalAgent turn source candidate ref is duplicated")
 		}
 		seen[key] = struct{}{}
+	}
+	return nil
+}
+
+func validateLocalAgentTurnSourceCognitionMetadataV1(view localAgentTurnSourceViewV1) error {
+	if view.CognitionMetadataStatus != "ready" {
+		return fmt.Errorf("LocalAgent optional source metadata %s: %s", view.CognitionMetadataStatus, view.CognitionMetadataFailure)
+	}
+	seen := make(map[string]struct{}, len(view.SnapshotCandidateSourceRefs))
+	for _, ref := range view.SnapshotCandidateSourceRefs {
+		seen[localAgentTurnSourceRefKeyV1(ref)] = struct{}{}
+	}
+	for _, named := range view.NamedSourceRefs {
+		if _, present := seen[localAgentTurnSourceRefKeyV1(named.SourceRef)]; !present ||
+			strings.TrimSpace(named.Name) == "" || strings.TrimSpace(named.Name) != named.Name {
+			return fmt.Errorf("LocalAgent turn source name binding is invalid")
+		}
+		for _, alias := range named.Aliases {
+			if strings.TrimSpace(alias) == "" || strings.TrimSpace(alias) != alias {
+				return fmt.Errorf("LocalAgent turn source alias is invalid")
+			}
+		}
+	}
+	if len(view.CognitionUnitBindings) != int(view.Partition.UnitCount) {
+		return fmt.Errorf("LocalAgent turn source unit binding count is invalid")
+	}
+	unitIDs := make(map[string]struct{}, len(view.CognitionUnitBindings))
+	for _, unit := range view.CognitionUnitBindings {
+		if _, present := seen[localAgentTurnSourceRefKeyV1(unit.SourceRef)]; !present || strings.TrimSpace(unit.UnitID) == "" || strings.TrimSpace(unit.UnitID) != unit.UnitID || !isLowerSHA256V3(unit.ContentHash) {
+			return fmt.Errorf("LocalAgent turn source unit binding is invalid")
+		}
+		if _, duplicate := unitIDs[unit.UnitID]; duplicate {
+			return fmt.Errorf("LocalAgent turn source unit binding is duplicated")
+		}
+		unitIDs[unit.UnitID] = struct{}{}
 	}
 	return nil
 }

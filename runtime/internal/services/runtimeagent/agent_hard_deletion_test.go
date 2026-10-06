@@ -531,7 +531,7 @@ func (b *lifecycleBlockingSourceCognitionBridge) IngestAgentSource(_ context.Con
 	return cognitionservice.AgentSourceOutcome{Status: "building", ScopeID: scopeID, SnapshotIdentity: snapshot, PartitionIdentity: partition, Generation: 1, UnitCount: uint32(len(units)), OmissionCount: uint32(len(omissions))}, nil
 }
 
-func (b *lifecycleBlockingSourceCognitionBridge) SearchAgentSource(context.Context, string, string, string, string, string, int) (cognitionservice.AgentSourceOutcome, error) {
+func (b *lifecycleBlockingSourceCognitionBridge) SearchAgentSource(context.Context, string, string, string, string, cognitionservice.AgentSourceQuery) (cognitionservice.AgentSourceOutcome, error) {
 	return cognitionservice.AgentSourceOutcome{}, nil
 }
 

@@ -14,7 +14,7 @@ import (
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r016
 type sourceCognitionBridge interface {
 	IngestAgentSource(context.Context, string, string, string, string, string, []cognitionservice.AgentSourceUnit, []cognitionservice.AgentSourceOmission) (cognitionservice.AgentSourceOutcome, error)
-	SearchAgentSource(context.Context, string, string, string, string, string, int) (cognitionservice.AgentSourceOutcome, error)
+	SearchAgentSource(context.Context, string, string, string, string, cognitionservice.AgentSourceQuery) (cognitionservice.AgentSourceOutcome, error)
 	InspectAgentSource(context.Context, string, string, string) (cognitionservice.AgentSourceOutcome, error)
 	DeleteAgentSource(context.Context, string, string, string) (cognitionservice.AgentSourceOutcome, error)
 }
@@ -85,6 +85,7 @@ func (s *Service) scheduleActiveSourceCognitionRebuild(ctx context.Context, acco
 	}
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-service.r060
 func (s *Service) scheduleSourceCognitionRebuild(accountID, localAgentRef string, force bool) {
 	if s == nil || s.sourceCognitionBridge == nil {
 		return
@@ -96,13 +97,17 @@ func (s *Service) scheduleSourceCognitionRebuild(accountID, localAgentRef string
 		return
 	}
 	if _, exists := s.sourceCognitionJobs[jobKey]; exists {
+		if force {
+			s.sourceCognitionJobs[jobKey] = true
+		}
 		s.sourceCognitionLifecycleMu.Unlock()
 		return
 	}
 	if s.sourceCognitionJobs == nil {
-		s.sourceCognitionJobs = make(map[string]struct{})
+		s.sourceCognitionJobs = make(map[string]bool)
 	}
-	s.sourceCognitionJobs[jobKey] = struct{}{}
+	// The value records a later force request, not the active job's own force.
+	s.sourceCognitionJobs[jobKey] = false
 	s.sourceCognitionWG.Add(1)
 	lifecycleCtx := s.sourceCognitionLifecycleCtx
 	if lifecycleCtx == nil {
@@ -112,8 +117,12 @@ func (s *Service) scheduleSourceCognitionRebuild(accountID, localAgentRef string
 	go func() {
 		defer func() {
 			s.sourceCognitionLifecycleMu.Lock()
+			forceAgain := s.sourceCognitionJobs[jobKey]
 			delete(s.sourceCognitionJobs, jobKey)
 			s.sourceCognitionLifecycleMu.Unlock()
+			if forceAgain {
+				s.scheduleSourceCognitionRebuild(accountID, localAgentRef, true)
+			}
 			s.sourceCognitionWG.Done()
 		}()
 		ctx, cancel := context.WithTimeout(lifecycleCtx, 5*time.Minute)

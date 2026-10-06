@@ -328,25 +328,29 @@ func publicChatEligibleCommittedTranscript(committed []publicChatCommittedTransc
 		if strings.TrimSpace(turn.AssistantText) == "" {
 			continue
 		}
-		inputText := turn.InputText
-		if turn.Origin == publicChatTurnOriginFollowUp {
-			inputText = "Runtime-admitted follow-up instruction: " + inputText
-		}
-		if inputText == "" && turn.InputAttachment != nil {
-			// The attachment bytes never re-enter later provider contexts (a
-			// route without vision would otherwise be poisoned by history);
-			// the model sees this truthful marker while the app-facing
-			// projection keeps the real media kind + artifact reference.
-			inputText = publicChatTranscriptAttachmentMarker
-		}
 		out = append(out, agentTurnTranscriptPairInput{
 			TurnID:        turn.TurnID,
 			Sequence:      turn.Sequence,
-			UserText:      inputText,
+			UserText:      publicChatCommittedTranscriptInputText(turn),
 			AssistantText: turn.AssistantText,
 		})
 	}
 	return out, nil
+}
+
+func publicChatCommittedTranscriptInputText(turn publicChatCommittedTranscriptTurn) string {
+	inputText := turn.InputText
+	if turn.Origin == publicChatTurnOriginFollowUp {
+		inputText = "Runtime-admitted follow-up instruction: " + inputText
+	}
+	if inputText == "" && turn.InputAttachment != nil {
+		// The attachment bytes never re-enter later provider contexts (a
+		// route without vision would otherwise be poisoned by history);
+		// the model sees this truthful marker while the app-facing
+		// projection keeps the real media kind + artifact reference.
+		inputText = publicChatTranscriptAttachmentMarker
+	}
+	return inputText
 }
 
 func publicChatAgentTurnConversationSummaryInput(session publicChatAnchorState, transcript []agentTurnTranscriptPairInput) (*agentTurnConversationSummaryInput, error) {
