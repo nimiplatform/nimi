@@ -88,12 +88,12 @@ func (lock *retainedFileLock) Close() error {
 	return errors.Join(listenerErr, unlockErr, closeErr)
 }
 
-func dialSourceRuntimeOwner(ctx context.Context, lockPath string) (net.Conn, error) {
+func dialSourceRuntimeOwner(ctx context.Context, lockPath string) (conn net.Conn, resultErr error) {
 	lockPath, err := sourceRuntimeLockPath(lockPath)
 	if err != nil {
 		return nil, err
 	}
-	conn, err := (&net.Dialer{}).DialContext(ctx, "unix", filepath.Join(filepath.Dir(lockPath), "control.sock"))
+	conn, err = (&net.Dialer{}).DialContext(ctx, "unix", filepath.Join(filepath.Dir(lockPath), "control.sock"))
 	if errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ECONNREFUSED) {
 		// The lock can precede the socket during startup. An unavailable
 		// control endpoint must not redirect stop to the installed service.
@@ -104,7 +104,17 @@ func dialSourceRuntimeOwner(ctx context.Context, lockPath string) (net.Conn, err
 		if openErr != nil {
 			return nil, openErr
 		}
-		defer file.Close()
+		defer func() {
+			if closeErr := file.Close(); closeErr != nil {
+				// A failed probe cleanup is not a definitive absence result.
+				// Preserve the original connection failure without authorizing
+				// the exit-3 fallback to an unrelated installed service.
+				if resultErr == errSourceRuntimeNotRunning {
+					resultErr = fmt.Errorf("source Runtime owner control is unavailable: %w", err)
+				}
+				resultErr = errors.Join(resultErr, fmt.Errorf("close source Runtime owner probe: %w", closeErr))
+			}
+		}()
 		if lockErr := unix.Flock(int(file.Fd()), unix.LOCK_EX|unix.LOCK_NB); lockErr != nil {
 			return nil, fmt.Errorf("source Runtime owner control is unavailable: %w", err)
 		}

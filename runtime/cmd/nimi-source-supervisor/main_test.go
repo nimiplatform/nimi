@@ -51,7 +51,7 @@ func TestSourceRuntimeOwnerLockIsAtomic(t *testing.T) {
 	if err := validateSourceSupervisorPrincipal(); err != nil {
 		t.Skipf("current test principal is not admitted: %v", err)
 	}
-	lockPath := filepath.Join(t.TempDir(), "source-runtime-supervisor.lock")
+	lockPath := testControlLockPath(t)
 	first, err := acquireSourceRuntimeOwnerLock(lockPath)
 	if err != nil {
 		t.Fatalf("acquire first owner lock: %v", err)
