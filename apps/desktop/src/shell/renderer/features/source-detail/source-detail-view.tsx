@@ -12,6 +12,9 @@ type SourceDetailViewProps = {
   onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
+  onCreateAnotherPartner?: () => void;
+  partners?: { localAgentRef: string; displayName: string; capturedAt?: string }[];
+  onSelectPartner?: (localAgentRef: string) => void;
   onStartChat?: (initialComposerText?: string) => void;
 };
 

@@ -187,12 +187,16 @@ export function useAiConversationPresentation(
     composerContent: centerComposer ? null : composerNode,
     setupDescription: input.setupPending
       ? null
+      : input.setupState.status === 'unavailable'
+        ? input.t('Chat.nimiSetupUnavailableDescription')
       : input.t('Chat.nimiIntentRequired', {
         defaultValue: 'Nimi can chat with you through an on-device or cloud model. Choose one to start chatting.',
       }),
     setupEyebrow: input.t('Chat.nimiSetupEyebrow', { defaultValue: 'Nimi Chat' }),
     setupTitle: input.setupPending
       ? input.t('Chat.nimiSetupLoadingTitle', { defaultValue: 'Preparing Nimi Chat…' })
+      : input.setupState.status === 'unavailable'
+        ? input.t('Chat.nimiSetupUnavailableTitle')
       : input.t('Chat.nimiSetupTitle', { defaultValue: 'Choose a model for Nimi' }),
     setupActionLabel: input.t('Chat.nimiSetupAction', { defaultValue: 'Choose a model' }),
     setupDiagnosticsLabel: input.t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),

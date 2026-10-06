@@ -1,4 +1,5 @@
 import { createDesktopExecutionNoticesHost } from './execution-notices-host.js';
+import { writeDesktopStderr } from './stderr-log.js';
 import { createDesktopHomeCommandPolicy } from './home-host-policy.js';
 import { installDesktopPermissionPolicy } from './desktop-permission-policy.js';
 import path from 'node:path';
@@ -272,7 +273,7 @@ async function configureDesktopHomeHostProfile(): Promise<boolean> {
       singleInstanceScope: app.getPath('userData'),
       temporaryEnvironment,
       reportCleanupFailure: (error) => {
-        process.stderr.write(`[desktop-home-profile] bootstrap-slot-cleanup:${desktopBootstrapFailureCode(error)}\n`);
+        writeDesktopStderr(`[desktop-home-profile] bootstrap-slot-cleanup:${desktopBootstrapFailureCode(error)}\n`);
       },
     });
     app.setPath('userData', profile.userData);
@@ -282,12 +283,12 @@ async function configureDesktopHomeHostProfile(): Promise<boolean> {
     homeHostProfile = profile;
     homeTemporaryEnvironment = temporaryEnvironment;
     if (profile.mode === 'bootstrap') {
-      process.stderr.write(`[desktop-home-profile] bootstrap:${profile.bootstrapReason ?? 'unavailable'}\n`);
+      writeDesktopStderr(`[desktop-home-profile] bootstrap:${profile.bootstrapReason ?? 'unavailable'}\n`);
     }
     return true;
   } catch (error) {
     const failureCode = desktopBootstrapFailureCode(error);
-    process.stderr.write(`[desktop-home-profile] ${failureCode}\n`);
+    writeDesktopStderr(`[desktop-home-profile] ${failureCode}\n`);
     dialog.showErrorBox(
       'Nimi could not prepare its startup profile',
       `Nimi could not prepare its temporary setup profile (${failureCode}). Close other Nimi windows or free the temporary folder, then open Nimi again.`,
@@ -373,7 +374,7 @@ async function checkDesktopHomeProfileScope(
   } catch {
     return false;
   }
-  process.stderr.write(`[desktop-home-profile] relaunch:${trigger}\n`);
+  writeDesktopStderr(`[desktop-home-profile] relaunch:${trigger}\n`);
   homeProfileWorkBlocked = true;
   homeRelaunchRequested = true;
   if (desktopStartupSettled) app.quit();
@@ -458,7 +459,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         // says nothing about stored-data compatibility or ordinary readiness.
         runtimeStartupFailure = desktopBootstrapFailureCode(error);
         homeProfileWorkBlocked = true;
-        process.stderr.write(`[desktop-bootstrap] runtime-start-failed:${runtimeStartupFailure}\n`);
+        writeDesktopStderr(`[desktop-bootstrap] runtime-start-failed:${runtimeStartupFailure}\n`);
       }
     }
     const runtimeLifecycleHost = macOSProductionService ?? fixedRuntimeLifecycleHost;
@@ -510,7 +511,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       // The refused root is never handed to Hosts, cleanup, or a Home profile;
       // only repair commands and the maintenance replacement stay reachable.
       dataRootOperationGate.close(NIMI_RUNTIME_STORED_DATA_UNSUPPORTED);
-      process.stderr.write(`[desktop-bootstrap] runtime-maintenance:${NIMI_RUNTIME_STORED_DATA_UNSUPPORTED}\n`);
+      writeDesktopStderr(`[desktop-bootstrap] runtime-maintenance:${NIMI_RUNTIME_STORED_DATA_UNSUPPORTED}\n`);
     } else {
       await productControlHost.bootstrapDataRootHandoff();
       if (homeHostProfile?.mode === 'bootstrap') {
@@ -600,7 +601,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       emitRendererEvent: emitDesktopMenuBarEvent,
       quit: () => app.quit(),
       reportError: (operation, error) => {
-        process.stderr.write(
+        writeDesktopStderr(
           `[desktop-menu-bar] ${normalizeText(operation) || 'operation'}:${desktopBootstrapFailureCode(error)}\n`,
         );
       },
@@ -870,9 +871,9 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
   } catch (error: unknown) {
     await shutdownBeforeQuit().catch(() => undefined);
     const failureCode = desktopBootstrapFailureCode(error);
-    process.stderr.write(`[desktop-bootstrap] ${failureCode}\n`);
+    writeDesktopStderr(`[desktop-bootstrap] ${failureCode}\n`);
     if (error instanceof DesktopSourceRuntimeUnavailableError) {
-      process.stderr.write(`[desktop-bootstrap] ${sourceRuntimeBootstrapFailureMessage(error.runtimeReasonCode)}\n`);
+      writeDesktopStderr(`[desktop-bootstrap] ${sourceRuntimeBootstrapFailureMessage(error.runtimeReasonCode)}\n`);
     }
     dialog.showErrorBox(
       'Nimi could not start safely',
@@ -1014,7 +1015,7 @@ async function shutdownBeforeQuit(): Promise<void> {
   if (registeredRuntimeBridge === runtimeBridge) registeredRuntimeBridge = undefined;
   for (const result of cleanupResults) {
     if (result.status === 'rejected') {
-      process.stderr.write(
+      writeDesktopStderr(
         `[desktop-shutdown] ${desktopBootstrapFailureCode(result.reason)}\n`,
       );
     }

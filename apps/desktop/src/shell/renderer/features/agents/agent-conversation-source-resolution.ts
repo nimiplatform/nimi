@@ -91,6 +91,7 @@ export async function resolveAgentTargetSourceRef(input: {
 // unrelated conversations. The ordinary App reference projection stays opaque.
 export async function resolveAgentTargetSnapshotForSourceRef(input: {
   sourceRef: CharacterSourceRefV3;
+  selectedLocalAgentRef?: string;
   ownerUserId: string;
   sdk: DesktopRendererSdkPort;
   isCurrent?: () => boolean;
@@ -101,7 +102,8 @@ export async function resolveAgentTargetSnapshotForSourceRef(input: {
   }
   const sourceKey = characterSourceRefKey(input.sourceRef);
   const agents = (await fetchLocalAgentList(ownerUserId, input.sdk))
-    .filter((agent) => agent.sourceKey === sourceKey);
+    .filter((agent) => agent.sourceKey === sourceKey
+      && (!input.selectedLocalAgentRef || agent.localAgentRef === input.selectedLocalAgentRef));
   if (agents.length !== 1 || input.isCurrent?.() === false) {
     return null;
   }

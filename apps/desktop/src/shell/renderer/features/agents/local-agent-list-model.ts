@@ -19,6 +19,7 @@ export type LocalAgentListItem = {
   displayName: string;
   sourceRef: NimiRuntimeAgentSourceRef;
   sourceKey: string;
+  capturedAt?: string;
 };
 
 export type LocalAgentSourceDiscoveryProjection = {
@@ -67,6 +68,7 @@ export function toLocalAgentListItem(
     displayName: normalizeText(agent.displayName) || sourceRef.id,
     sourceRef,
     sourceKey: characterSourceRefKey(sourceRef),
+    ...(agent.sourceContextStatus?.capturedAt ? { capturedAt: agent.sourceContextStatus.capturedAt } : {}),
   };
 }
 

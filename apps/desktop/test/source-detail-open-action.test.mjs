@@ -91,6 +91,7 @@ async function run(surface, posture = 'missing', action = 'open') {
     source, ownerUserId: 'owner-1', currentAction, currentSourceKey: characterSourceRefKey(sourceRef),
     appStore: { getState: () => ({ auth }) },
     sourceMaterialization: { sourceKey: characterSourceRefKey(sourceRef), phase: 'ready' },
+    materializationInFlight: { current: false },
     setSourceMaterialization: () => {}, i18n: { t: (_, options) => options?.defaultValue ?? '' },
     bindings: { sdk }, queryClient: { invalidateQueries: async () => {} },
     ensureCharacterSourceMaterialized, localAgentListQueryKey,
@@ -106,7 +107,8 @@ async function run(surface, posture = 'missing', action = 'open') {
   const handler = surface === 'source-detail'
     ? loadHandler(path.join(renderer, 'features/source-detail/source-detail-panel.tsx'), ['ensureCharacterSourceReady', action === 'create' ? 'handlePrimaryAction' : 'handleStartChat'], env)
     : loadHandler(path.join(renderer, 'features/world/world-detail.tsx'), ['handleOpenCharacterConversation'], env);
-  await handler(surface === 'source-detail' ? undefined : source);
+  if (surface === 'source-detail' && action === 'select') await handler(undefined, 'local-agent:second');
+  else await handler(surface === 'source-detail' ? undefined : source);
   return { surface, posture, events, materialized, opened: events.some((event) => event.startsWith('OPEN_CONVERSATION:')) };
 }
 
@@ -123,6 +125,13 @@ test('Source Detail Open uses the sole current target without creation', async (
   assert.equal(result.materialized, false);
   assert.equal(result.opened, true);
   assert.equal(result.events.filter((event) => event.startsWith('OPEN_CONVERSATION:')).length, 1);
+});
+test('explicit instance selection resolves only the chosen current partner when source matches are ambiguous', async () => {
+  const result = await run('source-detail', 'ambiguous', 'select');
+  assert.equal(result.materialized, false);
+  assert.equal(result.opened, true);
+  assert.equal(result.events.includes('resolve:local-agent:second'), true);
+  assert.equal(result.events.includes('resolve:local-agent:new-empty-partner'), false);
 });
 test('explicit creation materializes a missing partner without opening a conversation', async () => {
   const result = await run('source-detail', 'missing', 'create');

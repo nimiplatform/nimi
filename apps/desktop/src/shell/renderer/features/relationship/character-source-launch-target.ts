@@ -1,5 +1,6 @@
 import {
   characterSourceAmbiguousMessage,
+  characterSourceMaterializationMessage,
   discoverCharacterSourceLocalAgents,
   materializeCharacterSourceLocalAgent,
   resolveCharacterSourceRefV3,
@@ -68,5 +69,34 @@ export async function ensureCharacterSourceMaterialized(
   }
   if (committed.length !== 1) {
     throw new Error('Runtime materialization committed without one discoverable LocalAgent projection.');
+  }
+}
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r006
+export async function createAnotherCharacterSourcePartner(
+  source: CharacterSourceMaterializationInput,
+  ownerUserIdInput: string | null | undefined,
+  t: TFunction,
+  sdk: DesktopRendererSdkPort,
+  isCurrent: () => boolean,
+): Promise<void> {
+  const assertCurrent = () => { if (!isCurrent()) throw new Error('Source action expired'); };
+  assertCurrent();
+  const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
+  const sourceRef = resolveCharacterSourceRefV3(source);
+  if (!sourceRef) throw new Error(characterSourceMaterializationMessage(t));
+  const existing = await discoverCharacterSourceLocalAgents({ sourceRef }, ownerUserId, sdk);
+  assertCurrent();
+  const result = await materializeCharacterSourceLocalAgent({ sourceRef }, t, sdk);
+  assertCurrent();
+  if (existing.some(agent => agent.localAgentRef === result.localAgentRef)) {
+    throw new Error(t('SourceDetail.anotherPartnerNotConfirmed', { defaultValue: 'A new partner could not be confirmed. Refresh your partner list before trying again.' }));
+  }
+  const committed = await discoverCharacterSourceLocalAgents({ sourceRef }, ownerUserId, sdk);
+  assertCurrent();
+  if (!committed.some(agent => agent.localAgentRef === result.localAgentRef && agent.ownerUserId === ownerUserId
+    && agent.sourceKind === sourceRef.kind && agent.sourceWorldId === sourceRef.worldId
+    && agent.sourceId === sourceRef.id && agent.sourceHash === sourceRef.sourceHash)) {
+    throw new Error(t('SourceDetail.anotherPartnerListPending', { defaultValue: 'Your partner was created, but the partner list has not refreshed. Refresh the list before continuing.' }));
   }
 }

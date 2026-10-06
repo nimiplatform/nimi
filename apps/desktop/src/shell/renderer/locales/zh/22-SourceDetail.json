@@ -107,5 +107,14 @@
   "likes": "点赞",
   "partnerUnavailable": "此伙伴当前不可用，请从聊天列表选择可用的伙伴。",
   "noSourceSelected": "未选择人物",
-  "noSourceDataAvailable": "没有可用的人物资料"
+  "noSourceDataAvailable": "没有可用的人物资料",
+  "createAnotherPartner": "创建另一位伙伴",
+  "creatingAnotherPartner": "正在创建…",
+  "anotherPartnerHint": "按当前设定创建独立的新伙伴，已有伙伴和对话保留。",
+  "anotherPartnerCreated": "新伙伴已创建，请在本页选择伙伴。",
+  "anotherPartnerNotConfirmed": "未能确认新伙伴，请刷新伙伴列表后再试。",
+  "anotherPartnerListPending": "新伙伴已创建，但伙伴列表尚未刷新。请刷新列表后再继续。",
+  "choosePartner": "选择伙伴",
+  "partnerCreatedAt": "创建于 {{date}}",
+  "partnerCreationUnknown": "创建时间暂不可用"
 }

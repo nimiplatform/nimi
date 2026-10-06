@@ -44,6 +44,7 @@ import {
   DESKTOP_NIMI_APP_ID,
   desktopNimiTextIntentUsesChatGPTPlan,
   findDesktopNimiTextIntent,
+  resolveDesktopNimiChatSetupState,
   useDesktopNimiAppAIConfig,
 } from './chat-nimi-app-ai-config.js';
 import { runDesktopNimiTextCapability } from './chat-nimi-shell-runtime-adapter.js';
@@ -125,33 +126,11 @@ export function useAiConversationModeHost(
     [activeThreadId, threads],
   );
 
-  const setupState = useMemo(() => {
-    if (!textIntent) {
-      return {
-        mode: 'ai' as const,
-        status: 'setup-required' as const,
-        issues: appAIConfig.isPending
-          ? []
-          : [{
-            code: 'ai-capability-intent-required' as const,
-            detail: null,
-          }],
-        primaryAction: appAIConfig.isPending
-          ? null
-          : {
-            kind: 'open-settings' as const,
-            targetId: 'runtime-overview' as const,
-            returnToMode: 'ai' as const,
-          },
-      };
-    }
-    return {
-      mode: 'ai' as const,
-      status: 'ready' as const,
-      issues: [],
-      primaryAction: null,
-    };
-  }, [appAIConfig.isPending, textIntent]);
+  const setupState = useMemo(() => resolveDesktopNimiChatSetupState({
+    isPending: appAIConfig.isPending,
+    isError: appAIConfig.isError,
+    hasTextIntent: Boolean(textIntent),
+  }), [appAIConfig.isPending, appAIConfig.isError, textIntent]);
 
   const thinkingSupport = useMemo(() => ({
     supported: false,

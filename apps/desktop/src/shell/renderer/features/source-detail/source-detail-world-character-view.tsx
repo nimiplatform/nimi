@@ -30,6 +30,9 @@ type CharacterSourceDetailPageProps = {
   onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
+  onCreateAnotherPartner?: () => void;
+  partners?: { localAgentRef: string; displayName: string; capturedAt?: string }[];
+  onSelectPartner?: (localAgentRef: string) => void;
   onStartChat?: (initialComposerText?: string) => void;
   primaryActionJoining?: boolean;
 };
@@ -465,6 +468,8 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
   const primaryAction = describeCharacterPrimaryAction(source.sourceState, t);
   const canStartChat = primaryAction.action === 'open_partner';
   const primaryActionJoining = props.primaryActionJoining === true && !canStartChat;
+  const canCreateAnother = Boolean(props.onCreateAnotherPartner)
+    && (source.sourceState === 'local_agent_available' || source.sourceState === 'local_agent_ambiguous');
   const heroDescription = worldCharacterHeroDescription(source, t);
   const statItems = props.stats
     ? [
@@ -566,34 +571,72 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                       ))}
                     </div>
                   ) : null}
-                  <div data-testid="world-character-hero-actions" className="flex flex-wrap items-center justify-end gap-3 max-[720px]:justify-start">
-                    {canStartChat ? (
-                      <Button
-                        type="button"
-                        tone="primary"
-                        size="lg"
-                        onClick={() => props.onStartChat?.()}
-                        disabled={!props.onStartChat}
-                      >
-                        <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                        {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        tone="secondary"
-                        size="lg"
-                        onClick={props.onPrimaryAction}
-                        disabled={primaryAction.disabled || primaryActionJoining}
-                        data-source-state={source.sourceState}
-                        data-primary-action={primaryAction.action}
-                      >
-                        <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                        {primaryActionJoining
-                          ? t('SourceDetail.worldCharacter.primaryActionJoining', { defaultValue: 'Adding…' })
-                          : worldCharacterPrimaryActionLabel(primaryAction, t)}
-                      </Button>
-                    )}
+                  <div className="flex flex-col items-end gap-3 max-[720px]:items-start">
+                    <div data-testid="world-character-hero-actions" className="flex flex-wrap items-center justify-end gap-3 max-[720px]:justify-start">
+                      {canStartChat ? (
+                        <Button
+                          type="button"
+                          tone="primary"
+                          size="lg"
+                          onClick={() => props.onStartChat?.()}
+                          disabled={!props.onStartChat || props.primaryActionJoining}
+                        >
+                          <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                          {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          tone="secondary"
+                          size="lg"
+                          onClick={props.onPrimaryAction}
+                          disabled={primaryAction.disabled || primaryActionJoining}
+                          data-source-state={source.sourceState}
+                          data-primary-action={primaryAction.action}
+                        >
+                          <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                          {primaryActionJoining
+                            ? t('SourceDetail.worldCharacter.primaryActionJoining', { defaultValue: 'Adding…' })
+                            : worldCharacterPrimaryActionLabel(primaryAction, t)}
+                        </Button>
+                      )}
+                      {canCreateAnother ? (
+                        <Button
+                          type="button"
+                          tone="secondary"
+                          size="lg"
+                          onClick={props.onCreateAnotherPartner}
+                          disabled={props.primaryActionJoining}
+                          aria-describedby="source-another-partner-hint"
+                        >
+                          <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                          {props.primaryActionJoining
+                            ? t('SourceDetail.creatingAnotherPartner', { defaultValue: 'Creating…' })
+                            : t('SourceDetail.createAnotherPartner', { defaultValue: 'Create another partner' })}
+                        </Button>
+                      ) : null}
+                    </div>
+                    {canCreateAnother ? (
+                      <p id="source-another-partner-hint" className="max-w-[430px] text-sm leading-5 text-[var(--nimi-text-secondary)]">
+                        {t('SourceDetail.anotherPartnerHint', { defaultValue: 'Create an independent partner from the current setting. Existing partners and conversations are kept.' })}
+                      </p>
+                    ) : null}
+                    {(props.partners?.length ?? 0) > 1 && props.onSelectPartner ? (
+                      <div className="grid w-full gap-2">
+                        <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
+                          {t('SourceDetail.choosePartner', { defaultValue: 'Choose a partner' })}
+                        </p>
+                        {props.partners!.map(partner => (
+                          <Button key={partner.localAgentRef} type="button" tone="secondary"
+                            onClick={() => props.onSelectPartner?.(partner.localAgentRef)}
+                            disabled={props.primaryActionJoining} className="h-auto justify-start whitespace-normal py-2 text-left">
+                            {partner.displayName} · {partner.capturedAt
+                              ? t('SourceDetail.partnerCreatedAt', { defaultValue: 'Created {{date}}', date: new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(partner.capturedAt)) })
+                              : t('SourceDetail.partnerCreationUnknown', { defaultValue: 'Creation time unavailable' })}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>

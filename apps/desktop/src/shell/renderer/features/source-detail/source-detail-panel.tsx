@@ -11,7 +11,7 @@ import {
   resolveCharacterSourceState,
   type CharacterSourceDiscoveredLocalAgent,
 } from '../explore/character-source-materialization';
-import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
+import { createAnotherCharacterSourcePartner, ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import {
   fetchLocalAgentList,
   localAgentListQueryKey,
@@ -63,6 +63,7 @@ export function SourceDetailPanel({
     ownerUserId: string;
   } | null>(null);
   const currentAction = useRef<{ sourceKey: string; ownerUserId: string } | null>(null);
+  const materializationInFlight = useRef(false);
   const selectedSourceKey = selectedSourceRef ? characterSourceRefKey(selectedSourceRef) : '';
   currentAction.current = { sourceKey: selectedSourceKey, ownerUserId };
   useEffect(() => {
@@ -174,12 +175,11 @@ export function SourceDetailPanel({
     await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false });
   };
 
-  const handlePrimaryAction = async () => {
+  const handlePrimaryAction = async (another = false) => {
     if (!currentSourceKey) {
       return;
     }
-    if (sourceMaterialization?.sourceKey === currentSourceKey
-      && sourceMaterialization.ownerUserId === ownerUserId) {
+    if (materializationInFlight.current) {
       return;
     }
     const auth = appStore.getState().auth;
@@ -188,15 +188,24 @@ export function SourceDetailPanel({
       && currentAction.current?.sourceKey === currentSourceKey
       && currentAction.current?.ownerUserId === ownerUserId;
     if (!isCurrent()) return;
+    materializationInFlight.current = true;
     setSourceMaterialization({ sourceKey: currentSourceKey, ownerUserId });
     try {
-      await ensureCharacterSourceReady(isCurrent);
+      if (another) {
+        if (!source) throw new Error(characterSourceMaterializationMessage(i18n.t));
+        await createAnotherCharacterSourcePartner(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
+        await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
+        await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
+        await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false });
+      } else {
+        await ensureCharacterSourceReady(isCurrent);
+      }
       if (!isCurrent()) return;
       setFeedback({
         kind: 'success',
-        message: i18n.t('Explore.characterSourceMaterializedFeedback', {
-          defaultValue: 'Local agent created on this device.',
-        }),
+        message: another
+          ? i18n.t('SourceDetail.anotherPartnerCreated', { defaultValue: 'Another partner is ready. Choose it on this page.' })
+          : i18n.t('Explore.characterSourceMaterializedFeedback', { defaultValue: 'Local agent created on this device.' }),
       });
     } catch (error) {
       if (!isCurrent()) return;
@@ -205,12 +214,13 @@ export function SourceDetailPanel({
         message: characterSourceMaterializationFailureMessage(error, i18n.t),
       });
     } finally {
+      materializationInFlight.current = false;
       setSourceMaterialization((pending) => pending?.sourceKey === currentSourceKey && pending.ownerUserId === ownerUserId ? null : pending);
     }
   };
 
   // @nimi-authority: rule.nimi.runtime.agent-participation.r197
-  const handleStartChat = async (initialComposerText?: string) => {
+  const handleStartChat = async (initialComposerText?: string, selectedLocalAgentRef?: string) => {
     const auth = appStore.getState().auth;
     const isCurrent = () => auth.status === 'authenticated'
       && appStore.getState().auth === auth
@@ -222,6 +232,7 @@ export function SourceDetailPanel({
       const conversationTarget = source?.sourceRef
         ? await resolveAgentTargetSnapshotForSourceRef({
           sourceRef: source.sourceRef,
+          selectedLocalAgentRef,
           ownerUserId,
           sdk: bindings.sdk,
           isCurrent,
@@ -303,6 +314,9 @@ export function SourceDetailPanel({
         onPrimaryAction={() => {
           void handlePrimaryAction();
         }}
+        onCreateAnotherPartner={() => { void handlePrimaryAction(true); }}
+        partners={(localAgentListQuery.data ?? []).filter(agent => agent.sourceKey === currentSourceKey)}
+        onSelectPartner={(localAgentRef) => { void handleStartChat(undefined, localAgentRef); }}
         onStartChat={(initialComposerText) => {
           void handleStartChat(initialComposerText);
         }}

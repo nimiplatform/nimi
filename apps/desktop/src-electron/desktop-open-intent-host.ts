@@ -1,3 +1,4 @@
+import { writeDesktopStderr } from './stderr-log.js';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { lstat, readFile, rm } from 'node:fs/promises';
@@ -215,7 +216,7 @@ class ElectronDesktopOpenIntentHost {
     this.heartbeatWrite = this.heartbeatWrite
       .then(() => this.writePresence())
       .catch((error: unknown) => {
-        process.stderr.write(`[desktop-open] presence heartbeat failed: ${safeErrorMessage(error)}\n`);
+        writeDesktopStderr(`[desktop-open] presence heartbeat failed: ${safeErrorMessage(error)}\n`);
       });
   }
 
@@ -307,7 +308,7 @@ class ElectronDesktopOpenIntentHost {
           ...parseAvatarHostHandoffResult(result, handoff.command),
         });
       } catch (error) {
-        process.stderr.write(`[desktop-open] Avatar handoff failed: ${safeErrorMessage(error)}\n`);
+        writeDesktopStderr(`[desktop-open] Avatar handoff failed: ${safeErrorMessage(error)}\n`);
         writeJson(response, 400, { code: 'avatar-host-handoff-invalid' });
       }
       return;

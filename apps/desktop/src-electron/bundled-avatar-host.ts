@@ -1,3 +1,4 @@
+import { writeDesktopStderr } from './stderr-log.js';
 import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
@@ -445,11 +446,11 @@ export async function createDesktopElectronBundledAvatarHost(
     secureAvatarWindow(window, rendererUrl, releaseWindow);
     window.webContents.on('console-message', (event) => {
       if (event.level === 'warning' || event.level === 'error') {
-        process.stderr.write(`[desktop:avatar] ${event.level}: ${event.message}\n`);
+        writeDesktopStderr(`[desktop:avatar] ${event.level}: ${event.message}\n`);
       }
     });
     window.webContents.on('preload-error', (_event, _path, error) => {
-      process.stderr.write(`[desktop:avatar] preload failed: ${error.message}\n`);
+      writeDesktopStderr(`[desktop:avatar] preload failed: ${error.message}\n`);
     });
     window.webContents.on('render-process-gone', () => {
       if (!window.isDestroyed()) window.destroy();

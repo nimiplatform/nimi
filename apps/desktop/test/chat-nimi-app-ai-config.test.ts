@@ -10,7 +10,19 @@ import {
   desktopNimiTextIntentUsesChatGPTPlan,
   findDesktopNimiTextIntent,
   readDesktopNimiAppAIConfig,
+  resolveDesktopNimiChatSetupState,
 } from '../src/shell/renderer/features/chat/chat-nimi-app-ai-config.js';
+
+test('failed config reads are unavailable, not a request to overwrite the saved model', () => {
+  for (const hasTextIntent of [false, true]) {
+    assert.deepEqual(resolveDesktopNimiChatSetupState({ isPending: false, isError: true, hasTextIntent }), {
+      mode: 'ai', status: 'unavailable', issues: [], primaryAction: null,
+    });
+  }
+  assert.equal(resolveDesktopNimiChatSetupState({ isPending: false, isError: false, hasTextIntent: false })
+    .primaryAction?.kind, 'open-settings');
+  assert.equal(resolveDesktopNimiChatSetupState({ isPending: false, isError: false, hasTextIntent: true }).status, 'ready');
+});
 
 test('Desktop App AIConfig cache identity preserves one exact appId', () => {
   assert.deepEqual(desktopNimiAppAIConfigQueryKey('acme.widget'), [

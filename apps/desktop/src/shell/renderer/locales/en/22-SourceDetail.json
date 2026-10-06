@@ -107,5 +107,14 @@
   "likes": "Likes",
   "partnerUnavailable": "This partner is no longer available. Choose a current partner from the chat list.",
   "noSourceSelected": "No character selected",
-  "noSourceDataAvailable": "No character details available"
+  "noSourceDataAvailable": "No character details available",
+  "createAnotherPartner": "Create another partner",
+  "creatingAnotherPartner": "Creating…",
+  "anotherPartnerHint": "Create an independent partner from the current setting. Existing partners and conversations are kept.",
+  "anotherPartnerCreated": "Another partner is ready. Choose it on this page.",
+  "anotherPartnerNotConfirmed": "A new partner could not be confirmed. Refresh your partner list before trying again.",
+  "anotherPartnerListPending": "Your partner was created, but the partner list has not refreshed. Refresh the list before continuing.",
+  "choosePartner": "Choose a partner",
+  "partnerCreatedAt": "Created {{date}}",
+  "partnerCreationUnknown": "Creation time unavailable"
 }

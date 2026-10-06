@@ -50,6 +50,8 @@
   "nimiSetupEyebrow": "Nimi Chat",
   "nimiSetupTitle": "为 Nimi 选择一个模型",
   "nimiSetupLoadingTitle": "正在准备 Nimi Chat…",
+  "nimiSetupUnavailableTitle": "暂时无法读取 Nimi Chat 设置",
+  "nimiSetupUnavailableDescription": "未能读取已保存的模型设置。连接恢复后重新打开聊天即可，无需重新选择模型。",
   "nimiSetupAction": "选择模型",
     "nimiExecutionFailed": "Nimi Chat 未能完成这次请求。",
     "nimiCatalogStale": "保存的云端模型已经变更。请在 AI 能力中重新选择，再发送消息。",

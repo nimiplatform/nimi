@@ -8,9 +8,27 @@ import {
 } from '@nimiplatform/sdk/ai';
 import { nimiProviderUsesChatGPTPlan } from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import type { ConversationSetupState } from '@nimiplatform/kit/features/chat';
 
 export const DESKTOP_NIMI_APP_ID = 'nimi.desktop';
 const TEXT_GENERATE_CAPABILITY = 'text.generate';
+
+export function resolveDesktopNimiChatSetupState(input: {
+  isPending: boolean;
+  isError: boolean;
+  hasTextIntent: boolean;
+}): ConversationSetupState {
+  if (input.isError) return { mode: 'ai', status: 'unavailable', issues: [], primaryAction: null };
+  if (input.hasTextIntent) return { mode: 'ai', status: 'ready', issues: [], primaryAction: null };
+  return {
+    mode: 'ai',
+    status: 'setup-required',
+    issues: input.isPending ? [] : [{ code: 'ai-capability-intent-required', detail: null }],
+    primaryAction: input.isPending ? null : {
+      kind: 'open-settings', targetId: 'runtime-overview', returnToMode: 'ai',
+    },
+  };
+}
 
 export function findDesktopNimiTextIntent(
   config: NimiPortableAppAIConfig | null | undefined,

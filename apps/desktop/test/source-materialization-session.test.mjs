@@ -66,6 +66,7 @@ test('creation clicked by account A must not dispatch against switched account B
   const handler = loadCreationHandler({
     source, ownerUserId: 'account-A', currentAction, currentSourceKey: characterSourceRefKey(sourceRef),
     appStore: {getState: () => ({auth})}, sourceMaterialization: null,
+    materializationInFlight: {current: false},
     setSourceMaterialization: () => {}, i18n: {t: (_, options) => options?.defaultValue ?? ''},
     bindings: {sdk}, queryClient: {invalidateQueries: async () => {}},
     ensureCharacterSourceMaterialized, localAgentListQueryKey,

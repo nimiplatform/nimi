@@ -50,6 +50,8 @@
   "nimiSetupEyebrow": "Nimi Chat",
   "nimiSetupTitle": "Choose a model for Nimi",
   "nimiSetupLoadingTitle": "Preparing Nimi Chat…",
+  "nimiSetupUnavailableTitle": "Nimi Chat settings are unavailable",
+  "nimiSetupUnavailableDescription": "The saved model setting could not be read. Reopen Chat after the connection recovers; you do not need to choose a model again.",
   "nimiSetupAction": "Choose a model",
     "nimiExecutionFailed": "Nimi Chat could not complete this request.",
     "nimiCatalogStale": "The saved cloud model changed. Choose it again in AI Capabilities, then send your message.",

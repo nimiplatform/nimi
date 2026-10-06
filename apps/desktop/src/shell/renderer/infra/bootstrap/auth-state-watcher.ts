@@ -2,6 +2,8 @@ import { desktopBridge, type DesktopAccountSessionEvent, type DesktopAccountSess
 import { getOfflineCoordinator } from '../offline/coordinator';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
+import { getDesktopFormalAppClient } from '../sdk/desktop-nimi-client-session.js';
+import { recoverRuntimeAppSession } from './runtime-app-session-recovery.js';
 import {
   advanceRuntimeAccountStreamCursor,
   createRuntimeAccountStreamCursor,
@@ -16,6 +18,7 @@ let generation = 0;
 let retryAttempt = 0;
 let watcherRunning = false;
 let activeLifecycle: DesktopRendererLifecyclePort | null = null;
+let appSessionRecoveryRevision = 0;
 
 export function applyRuntimeAccountStatusProjection(
   status: DesktopAccountSessionStatus | DesktopAccountSessionEvent,
@@ -25,6 +28,11 @@ export function applyRuntimeAccountStatusProjection(
   >,
 ): void {
   const current = lifecycle.auth();
+  if (status.state !== current.status
+    || status.accountProjection?.accountId !== current.user?.id
+    || status.accountProjection?.realmEnvironmentId !== current.user?.realmEnvironmentId) {
+    appSessionRecoveryRevision += 1;
+  }
   lifecycle.applyRuntimeAccountProjection(
     projectRuntimeAccountAuthState(status, current.user),
   );
@@ -89,6 +97,7 @@ async function resyncAndSubscribe(
     if (runGeneration !== generation) return;
     getOfflineCoordinator().markRuntimeReachability('reachable');
     applyRuntimeAccountStatusProjection(status, lifecycle);
+    restoreAppSession(runGeneration, lifecycle);
     await openSubscription(runGeneration, status.sequence, lifecycle);
     if (runGeneration === generation && unsubscribe) {
       retryAttempt = 0;
@@ -141,7 +150,9 @@ async function openSubscription(
         return;
       }
       cursor = advance.cursor;
+      const previousRevision = appSessionRecoveryRevision;
       applyRuntimeAccountStatusProjection(event, lifecycle);
+      if (previousRevision !== appSessionRecoveryRevision) restoreAppSession(runGeneration, lifecycle);
     },
     onError: (error) => {
       logRendererEvent({
@@ -171,6 +182,7 @@ export function applyRuntimeAccountUnavailableProjection(
   lifecycle: DesktopRendererLifecyclePort,
   failureDetail?: string,
 ): void {
+  appSessionRecoveryRevision += 1;
   const current = lifecycle.auth();
   lifecycle.applyRuntimeAccountProjection({
     status: 'unavailable',
@@ -183,6 +195,25 @@ export function applyRuntimeAccountUnavailableProjection(
   lifecycle.clearAgentConversationAnchorBindings();
   void lifecycle.cancelAndClearQueries();
   getOfflineCoordinator().markRealmRestReachability('unknown');
+}
+
+function restoreAppSession(runGeneration: number, lifecycle: DesktopRendererLifecyclePort): void {
+  const revision = appSessionRecoveryRevision;
+  const isCurrent = () => runGeneration === generation && revision === appSessionRecoveryRevision;
+  void recoverRuntimeAppSession({
+    lifecycle,
+    readStatus: () => getDesktopFormalAppClient().auth.status(),
+    isCurrent,
+  }).catch((error: unknown) => {
+    if (!isCurrent()) return;
+    // App-session failure does not change the Runtime account projection.
+    logRendererEvent({
+      level: 'warn',
+      area: 'auth-state-watcher',
+      message: 'phase:runtime-app-session:unavailable',
+      details: { error: error instanceof Error ? error.message : String(error) },
+    });
+  });
 }
 
 function scheduleRetry(

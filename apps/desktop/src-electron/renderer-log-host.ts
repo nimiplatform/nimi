@@ -1,3 +1,5 @@
+import { writeDesktopStderr } from './stderr-log.js';
+
 const COMMAND = 'log_renderer_event' as const;
 const LOG_LEVELS = new Set(['debug', 'info', 'warn', 'error']);
 const LOG_PAYLOAD_KEYS = new Set([
@@ -36,9 +38,7 @@ export function createDesktopElectronRendererLogHost(input: {
   readonly writeStderr?: (line: string) => void;
 } = {}): DesktopElectronRendererLogHost {
   const verbose = input.verbose ?? rendererVerboseEnabled();
-  const writeStderr = input.writeStderr ?? ((line: string) => {
-    process.stderr.write(line);
-  });
+  const writeStderr = input.writeStderr ?? writeDesktopStderr;
 
   return {
     commandHandlers: {
