@@ -12,6 +12,10 @@ Pair SDK 0.20.0 with Kit/native 0.17.0, Rust carrier 0.9.0 and the matching Runt
 
 Persist summary items separately from final text, together with the unchanged ordered opaque continuity. Replay all returned items in order; do not edit summaries or opaque bytes. Kit conversation helpers retain these items on completed assistant turns. An explicit context reset projects only compatible visible content while the original records remain unchanged. These are 0.x public type changes; upgrade the complete package set together.
 
+## Next pre-1.0 hard cut — Image seeds
+
+The matching protected image carrier admits `-1` for randomness and `0..2147483647` for fixed seeds; omitted defaults and fixed zero remain distinct. Typed image results require a nonnegative concrete seed. Use the matching Runtime v4 image dialect, SDK and native package set. This contract restriction is a pre-1.0 breaking change; it does not migrate old Loadouts or add a legacy path.
+
 ## Next minor (compatible additions)
 
 The matching SDK adds `validateNimiLocalAppSpeechAlignment`; Kit re-exports it only through its SDK contract seam for the Electron Host. This new public validator is a compatible next-minor export. It validates the closed product-text structure before permitting spoken `token` fields; raw token/credential projections remain forbidden.

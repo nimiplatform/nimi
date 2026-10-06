@@ -1336,7 +1336,7 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
   assert.equal(calls.length, operations.length);
 });
 
-test('local-app image generation preserves the route-neutral safe integer seed carrier', async () => {
+test('local-app image generation preserves the random or nonnegative int32 seed carrier', async () => {
   const calls: string[] = [];
   const jobs = createNimiLocalAppClient({ standardShell: standardShell(calls) }).ai.scenarioJobs;
   const spec = {
@@ -1344,17 +1344,35 @@ test('local-app image generation preserves the route-neutral safe integer seed c
     prompt: 'hello', negativePrompt: '', size: '', aspectRatio: '', quality: '', style: '',
     referenceImages: [], referenceImageArtifactId: '', mask: '', responseFormat: '' as const,
   };
-  for (const seed of [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]) {
+  for (const seed of [0, 2_147_483_647]) {
     await assert.rejects(() => jobs.submit({ ...spec, seed }), isTypedOwnerUnavailable);
   }
   assert.deepEqual(calls, ['ai.scenarioJobs.submit', 'ai.scenarioJobs.submit']);
-  for (const seed of [Number.MIN_SAFE_INTEGER - 1, Number.MAX_SAFE_INTEGER + 1]) {
+  for (const seed of [-2, -2_147_483_648, 2_147_483_648, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]) {
     await assert.rejects(
       () => jobs.submit({ ...spec, seed }),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
     );
   }
   assert.deepEqual(calls, ['ai.scenarioJobs.submit', 'ai.scenarioJobs.submit']);
+});
+
+test('protected image Job preserves omitted, zero and random seed at the shell boundary', async () => {
+  const base = standardShell([]);
+  const captured: Array<number | undefined> = [];
+  const jobs = createNimiLocalAppClient({ standardShell: {
+    ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs, async submit(spec) {
+      assert.equal(spec.type, 'image-generate');
+      if (spec.type !== 'image-generate') throw new Error('expected image Job');
+      captured.push(spec.seed);
+      throw Object.assign(new Error('isolated owner boundary'), { reasonCode: 'local-app-owner-unavailable', retryable: false });
+    } } },
+  } }).ai.scenarioJobs;
+  for (const seed of [undefined, 0, -1]) {
+    await assert.rejects(jobs.submit({ type:'image-generate',prompt:'portrait',negativePrompt:'',size:'512x512',aspectRatio:'',quality:'',style:'',
+      referenceImages:[],referenceImageArtifactId:'',mask:'',responseFormat:'',...(seed === undefined ? {} : {seed}) }), isTypedOwnerUnavailable);
+  }
+  assert.deepEqual(captured, [undefined, 0, -1]);
 });
 
 test('protected synthesis alignment retains zero, validates typed units and survives the Runtime adapter', async () => {
@@ -1887,7 +1905,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
     runtime: adapter,
     head: { appId: 'app.test' },
     prompt: 'draw a moon',
-    seed: -2_147_483_648,
+    seed: 0,
     requestId: 'request-1',
     idempotencyKey: 'idempotency-1',
   });
@@ -1899,7 +1917,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
   assert.deepEqual(calls[0], ['submit', {
     type: 'image-generate', prompt: 'draw a moon', negativePrompt: '',
     size: '', aspectRatio: '', quality: '', style: '',
-    seed: -2_147_483_648,
+    seed: 0,
     referenceImages: [], referenceImageArtifactId: '', mask: '', responseFormat: '',
   }]);
   assert.deepEqual(calls.slice(1), [

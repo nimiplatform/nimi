@@ -10853,7 +10853,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v3
+    driver_dialect: stable-diffusion.cpp/image-generate/v4
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -10906,7 +10906,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v3
+    driver_dialect: stable-diffusion.cpp/image-generate/v4
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -10953,7 +10953,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v3
+    driver_dialect: stable-diffusion.cpp/image-generate/v4
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -11176,7 +11176,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v3
+    driver_dialect: stable-diffusion.cpp/image-generate/v4
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -11217,7 +11217,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v3
+    driver_dialect: stable-diffusion.cpp/image-generate/v4
     default_options: {}
     supported_features:
       - input.image

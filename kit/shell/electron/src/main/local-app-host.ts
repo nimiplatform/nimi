@@ -2577,7 +2577,7 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
     const sizeBytes = boundedInteger(entry.sizeBytes, 0, Number.MAX_SAFE_INTEGER);
     if (bytes.byteLength > 0 && sizeBytes !== bytes.byteLength) throw untrustedRuntimeError();
     const mimeType = boundedMime(entry.mimeType);
-    const seed = hasSeed ? boundedInteger(entry.seed, -2_147_483_648, 2_147_483_647) : undefined;
+    const seed = hasSeed ? boundedInteger(entry.seed, 0, 2_147_483_647) : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) throw untrustedRuntimeError();
     if (hasAlignment && !mimeType.startsWith('audio/')) throw untrustedRuntimeError();
     let speechAlignment;

@@ -2811,7 +2811,7 @@ function parseScenarioArtifacts(value: unknown, command: string): readonly NimiL
     const mimeType = requiredText(record.mimeType, 'mimeType', command, 128);
     if (!mimeType.includes('/')) throw new Error(`${command}: artifact mimeType is invalid`);
     const seed = hasSeed
-      ? boundedProjectionInteger(record.seed, -2_147_483_648, 2_147_483_647, command)
+      ? boundedProjectionInteger(record.seed, 0, 2_147_483_647, command)
       : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) throw new Error(`${command}: artifact seed is invalid`);
     if (hasAlignment && !mimeType.startsWith('audio/')) throw new Error(`${command}: speech alignment requires audio`);

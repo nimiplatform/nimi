@@ -90,23 +90,23 @@ func TestValidateLocalAppImageGenerateSpecPreservesRouteNeutralSeed(t *testing.T
 	}
 }
 
-func TestSubmitLocalAppImageJobReachesSelectedDriverWithNegativeSeed(t *testing.T) {
+func TestSubmitLocalAppImageJobReachesSelectedDriverWithFixedSeed(t *testing.T) {
 	svc := newTestService(nil)
 	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1",
 		appAIConfig("nimi.realm-persona-studio", localAppAIConfigIntent("image.generate"))); err != nil {
 		t.Fatalf("install Local App AIConfig: %v", err)
 	}
 	host := &localImageHostStub{}
-	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "local-app-negative-image-seed")})
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "local-app-fixed-image-seed")})
 	svc.SetLocalImageExecutionHost(host)
 	response, err := svc.SubmitLocalAppScenarioJob(
 		localAppScenarioDecisionContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit),
 		&runtimev1.SubmitLocalAppScenarioJobRequest{Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_ImageGenerate{
-			ImageGenerate: &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "image", Seed: testInt64(math.MinInt32)},
+			ImageGenerate: &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "image", Seed: testInt64(0)},
 		}},
 	)
 	if err != nil || response == nil || response.GetJob() == nil {
-		t.Fatalf("submit negative-seed Local App image Job response=%+v error=%v", response, err)
+		t.Fatalf("submit fixed-seed Local App image Job response=%+v error=%v", response, err)
 	}
 	captured, ok := svc.scenarioJobs.resolvedAssembly(response.GetJob().GetJobId())
 	if !ok {
@@ -125,8 +125,8 @@ func TestSubmitLocalAppImageJobReachesSelectedDriverWithNegativeSeed(t *testing.
 		t.Fatalf("captured plans=%d, want 1", len(host.plans))
 	}
 	requestPlan := host.plans[0].RequestPlan()
-	if requestPlan == nil || requestPlan.Seed() != math.MinInt32 {
-		t.Fatalf("captured request plan=%+v, want seed %d", requestPlan, math.MinInt32)
+	if requestPlan == nil || requestPlan.Seed() != 0 {
+		t.Fatalf("captured request plan=%+v, want seed %d", requestPlan, 0)
 	}
 }
 

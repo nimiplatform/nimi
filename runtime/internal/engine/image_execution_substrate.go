@@ -726,7 +726,7 @@ func directGOSDImageLoadOptions(load capabilitydriver.StableDiffusionCPPLoadPlan
 
 func imageGenerateRequest(address string, protocol managedimagebackend.Protocol, plan *capabilitydriver.ImageInvocationPlan, resolvedSeed int64) (managedimagebackend.ImageRequest, error) {
 	requestPlan := plan.RequestPlan()
-	if requestPlan == nil || resolvedSeed < math.MinInt32 || resolvedSeed > math.MaxInt32 || resolvedSeed == -1 {
+	if requestPlan == nil || resolvedSeed < 0 || resolvedSeed > math.MaxInt32 {
 		return managedimagebackend.ImageRequest{}, fmt.Errorf("image request plan is invalid")
 	}
 	load, ok := plan.LoadPlan().(capabilitydriver.StableDiffusionCPPLoadPlan)

@@ -226,7 +226,7 @@ func TestNormalizeLocalImageRequestExplicitZeroOverridesDefaults(t *testing.T) {
 }
 
 func TestNormalizeLocalImageRequestRejectsOutOfCarrierRangeSeed(t *testing.T) {
-	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
+	for _, seed := range []int64{-2, math.MinInt32, int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
 		got, err := normalizeLocalImageRequest(&runtimev1.ImageGenerateScenarioSpec{
 			Prompt: "image", Seed: testInt64(seed),
 		}, nil)
@@ -245,6 +245,7 @@ func TestNormalizeLocalImageRequestRejectsInvalidAIConfigImageOptions(t *testing
 		defaults map[string]any
 	}{
 		{name: "count", defaults: map[string]any{"n": 5.0}},
+		{name: "negative seed", defaults: map[string]any{"seed": -2.0}},
 		{name: "size", defaults: map[string]any{"size": "65x64"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -430,13 +431,13 @@ func TestLocalImageJobRejectsOutOfRangeTimeoutBeforeCaptureOrHost(t *testing.T) 
 }
 
 func TestLocalImageJobRejectsOutOfCarrierRangeSeedBeforePublicationOrHost(t *testing.T) {
-	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
+	for _, seed := range []int64{-2, math.MinInt32, int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
 		t.Run(fmt.Sprintf("seed_%d", seed), func(t *testing.T) {
 			svc := newTestService(nil)
 			host := &localImageHostStub{}
 			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, fmt.Sprintf("image-seed-%d", seed))})
 			svc.SetLocalImageExecutionHost(host)
-			request := localImageJobRequestForTest(1)
+			request := localImageJobRequestForTest(2)
 			request.Spec.GetImageGenerate().Seed = testInt64(seed)
 
 			response, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), request)

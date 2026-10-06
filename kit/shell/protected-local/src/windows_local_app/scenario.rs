@@ -657,6 +657,7 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
 }
 
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r063
 fn parse_image_spec(
     object: &Map<String, JsonValue>,
 ) -> Result<LocalAppImageGenerateScenarioSpec, LocalAppOperationError> {
@@ -697,7 +698,7 @@ fn parse_image_spec(
     let negative_prompt = optional_text_field(object, "negativePrompt", MAX_PROMPT_BYTES)?;
     let n = optional_integer_field(object, "n")?;
     let seed = optional_integer_field(object, "seed")?;
-    if n.is_some_and(|value| !(0..=4).contains(&value)) || seed.is_some_and(|value| value < 0) {
+    if n.is_some_and(|value| !(0..=4).contains(&value)) || seed.is_some_and(|value| !(-1..=i32::MAX as i64).contains(&value)) {
         return Err(invalid_payload());
     }
     let reference_images =
@@ -1380,6 +1381,7 @@ fn project_artifacts(
                 || artifact.sha256.len() > 128
                 || artifact.sha256.trim() != artifact.sha256
                 || (artifact.seed.is_some() && !artifact.mime_type.starts_with("image/"))
+                || artifact.seed.is_some_and(|value| value < 0)
                 || (!artifact.bytes.is_empty()
                     && artifact.size_bytes as usize != artifact.bytes.len())
             {
@@ -2163,6 +2165,30 @@ mod tests {
         let mut invalid_speed = speech.as_object().unwrap().clone();
         invalid_speed.insert("speed".to_string(), json!(4.1));
         assert!(parse_job_spec(JsonValue::Object(invalid_speed)).is_err());
+    }
+
+    #[test]
+    fn image_job_seed_preserves_random_sentinel_and_existing_fixed_inputs() {
+        let image = |seed| {
+            let mut value = json!({
+                "type": "image-generate", "prompt": "portrait", "negativePrompt": "",
+                "size": "512x512", "aspectRatio": "", "quality": "", "style": "",
+                "referenceImages": [], "referenceImageArtifactId": "", "mask": "", "responseFormat": ""
+            });
+            if let Some(seed) = seed {
+                value["seed"] = json!(seed);
+            }
+            value
+        };
+        for seed in [None, Some(-1_i64), Some(0), Some(i32::MAX as i64)] {
+            let JobSpec::ImageGenerate(parsed) = parse_job_spec(image(seed)).expect("admitted seed") else {
+                panic!("image Job spec");
+            };
+            assert_eq!(parsed.seed, seed);
+        }
+        for seed in [-2_i64, i32::MIN as i64, i32::MAX as i64 + 1] {
+            assert!(parse_job_spec(image(Some(seed))).is_err());
+        }
     }
 
     #[test]

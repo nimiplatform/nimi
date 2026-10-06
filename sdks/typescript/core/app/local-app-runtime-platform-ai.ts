@@ -963,7 +963,7 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       boundedToken(record.aspectRatio, 'image aspectRatio', 128);
       boundedToken(record.quality, 'image quality', 128);
       boundedToken(record.style, 'image style', 128);
-      optionalBoundedInteger(record.seed, 'image seed', Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
+      optionalBoundedInteger(record.seed, 'image seed', -1, 2_147_483_647);
       if (!Array.isArray(record.referenceImages) || record.referenceImages.length > 1) invalidAIInput('image referenceImages are invalid');
       record.referenceImages.forEach((value, index) => boundedHttpsUrl(value, `image reference ${index}`));
       if (typeof record.referenceImageArtifactId !== 'string') invalidAIInput('image referenceImageArtifactId is invalid');
@@ -1526,7 +1526,7 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
     if (bytes.byteLength > 0 && bytes.byteLength !== sizeBytes) localAppProjectionError('scenario artifact byte size');
     const mimeType = mimeProjection(record.mimeType);
     const seed = hasSeed
-      ? projectionInteger(record.seed, 'scenario artifact seed', -2_147_483_648, 2_147_483_647)
+      ? projectionInteger(record.seed, 'scenario artifact seed', 0, 2_147_483_647)
       : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) localAppProjectionError('scenario artifact seed mime');
     if (hasAlignment && !mimeType.startsWith('audio/')) localAppProjectionError('speech alignment requires audio');

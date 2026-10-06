@@ -420,7 +420,7 @@ func normalizeLocalImageRequest(
 	if cloned == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if cloned.Seed != nil && (cloned.GetSeed() < math.MinInt32 || cloned.GetSeed() > math.MaxInt32) {
+	if cloned.Seed != nil && (cloned.GetSeed() < -1 || cloned.GetSeed() > math.MaxInt32) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if defaults == nil || len(defaults.GetFields()) == 0 {
@@ -479,7 +479,7 @@ func normalizeLocalImageRequest(
 		case "seed":
 			if cloned.Seed == nil {
 				number, ok := finiteDefaultNumber(value)
-				if !ok || math.Trunc(number) != number || number < math.MinInt32 || number > math.MaxInt32 {
+				if !ok || math.Trunc(number) != number || number < -1 || number > math.MaxInt32 {
 					return nil, invalidAppAIConfigError()
 				}
 				cloned.Seed = proto.Int64(int64(number))
@@ -557,7 +557,7 @@ func (s *Service) executeCapturedLocalImage(
 }
 
 func localImageArtifact(effective *localImageEffectiveInputs, produced localexecution.ImageArtifact) *runtimev1.ScenarioArtifact {
-	if effective == nil || produced.Seed < math.MinInt32 || produced.Seed > math.MaxInt32 {
+	if effective == nil || produced.Seed < 0 || produced.Seed > math.MaxInt32 {
 		return nil
 	}
 	metadata := map[string]any{

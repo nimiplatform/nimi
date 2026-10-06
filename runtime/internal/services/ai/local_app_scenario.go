@@ -126,7 +126,7 @@ func projectLocalAppScenarioArtifact(artifact *runtimev1.ScenarioArtifact) (*run
 		return invalid()
 	}
 	if artifact.Seed != nil {
-		if !strings.HasPrefix(strings.ToLower(mimeType), "image/") {
+		if !strings.HasPrefix(strings.ToLower(mimeType), "image/") || artifact.GetSeed() < 0 {
 			return invalid()
 		}
 		concrete := artifact.GetSeed()

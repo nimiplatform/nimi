@@ -517,7 +517,7 @@ func TestStableDiffusionPlanOwnsResponseFormatAdmission(t *testing.T) {
 
 func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 	driver := StableDiffusionImageDriver{}
-	for _, seed := range []int64{math.MinInt32, math.MaxInt32} {
+	for _, seed := range []int64{-1, 0, math.MaxInt32} {
 		portable := stableDiffusionPortableForTest(t, map[string]any{
 			"modelFamily":      "z-image",
 			"executionOptions": map[string]any{"seed": seed},
@@ -529,7 +529,7 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 			t.Fatalf("portable seed %d default = %q", seed, got)
 		}
 	}
-	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
+	for _, seed := range []int64{-2, math.MinInt32, int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
 		portable := stableDiffusionPortableForTest(t, map[string]any{
 			"modelFamily":      "z-image",
 			"executionOptions": map[string]any{"seed": seed},
@@ -546,7 +546,7 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
 		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
 	}
-	for _, seed := range []int64{0, -1, math.MinInt32, math.MaxInt32} {
+	for _, seed := range []int64{0, -1, math.MaxInt32} {
 		plan, err := driver.PlanImageInvocation(ImageInvocationInput{
 			RecipeID:       "z-image",
 			PortableConfig: portable,
@@ -566,7 +566,7 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 	if err != nil || omitted == nil || omitted.RequestPlan().Seed() != 42 {
 		t.Fatalf("omitted request seed plan=%v err=%v", omitted, err)
 	}
-	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
+	for _, seed := range []int64{-2, math.MinInt32, int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
 		_, err := driver.PlanImageInvocation(ImageInvocationInput{
 			RecipeID:       "z-image",
 			PortableConfig: portable,

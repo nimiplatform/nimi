@@ -98,7 +98,7 @@ function ImageFields(props: StudioParameterPanelProps) {
     {
       field: 'seed',
       label: t('Studio.parameters.fields.seed'),
-      render: (routeDisabled) => <StudioNumberParameter current={parameters} field="seed" label={t('Studio.parameters.fields.seed')} onChange={update} disabled={props.disabled || routeDisabled} step={1} />,
+      render: (routeDisabled) => <StudioNumberParameter current={parameters} field="seed" label={t('Studio.parameters.fields.seed')} onChange={update} disabled={props.disabled || routeDisabled} min={-1} max={2147483647} step={1} />,
     },
     textField('aspectRatio', t('Studio.parameters.fields.aspectRatio')),
     textField('quality', t('Studio.parameters.fields.quality')),

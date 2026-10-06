@@ -404,7 +404,7 @@ func TestImageExecutionHostResolvesRandomBatchSeedBeforeDispatch(t *testing.T) {
 }
 
 func TestImageGenerateRequestPreservesSignedInt32Seed(t *testing.T) {
-	for _, seed := range []int64{0, -2, math.MinInt32, math.MaxInt32} {
+	for _, seed := range []int64{0, math.MaxInt32} {
 		plan := imagePlanForHostTestWithSeed(t, "seed", 1, seed)
 		request, err := imageGenerateRequest("127.0.0.1:43210", managedimagebackend.ProtocolManagedWrapper, plan, seed)
 		if err != nil {

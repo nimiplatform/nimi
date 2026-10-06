@@ -12,6 +12,12 @@ Use SDK 0.20.0 with Kit and native package 0.17.0, Rust carrier 0.9.0 and the ma
 
 The protected text contract carries authorized summary deltas and separate ordered summary items, plus Runtime-owned input support projections. Persist summaries separately from final text together with the unchanged opaque continuity. Replay returned items in order; do not edit summaries or opaque bytes. HIDDEN never exposes summary text. These are 0.x public type changes: upgrade the complete package set together.
 
+## Next pre-1.0 hard cut — Image seeds
+
+Image requests admit `-1` for randomness and `0..2147483647` for fixed seeds. Omission retains the committed default; zero stays fixed. Other negative values and overflowing batches fail before dispatch. Successful typed image artifacts carry nonnegative concrete seeds. The local stable-diffusion.cpp image dialect is v4; old Loadouts require explicit owner preparation and commitment of their bindings and options, with no automatic migration or legacy dialect.
+
+Use matching Runtime, SDK, Kit and native packages. This narrows an input contract and is a pre-1.0 breaking change, not a compatible type widening; the development package versions have not been publicly released by this delivery.
+
 ## Next minor (compatible additions)
 
 The matching SDK adds `validateNimiLocalAppSpeechAlignment`; Kit re-exports it only through its SDK contract seam for the Electron Host. This new public validator is a compatible next-minor export. It validates the closed product-text structure before permitting spoken `token` fields; raw token/credential projections remain forbidden.

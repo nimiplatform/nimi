@@ -24,7 +24,7 @@ import (
 const (
 	StableDiffusionImplementationID   = "local.image.generate.stable-diffusion-cpp"
 	StableDiffusionDriverID           = "nimi.runtime.driver.stable-diffusion-cpp"
-	StableDiffusionDriverDialect      = "stable-diffusion.cpp/image-generate/v3"
+	StableDiffusionDriverDialect      = "stable-diffusion.cpp/image-generate/v4"
 	StableDiffusionCapabilityContract = "image.generate"
 
 	StableDiffusionMainRequirementID            = "main.diffusion"
@@ -990,7 +990,7 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 	if request.prompt == "" || request.prompt != strings.TrimSpace(request.prompt) ||
 		!stableDiffusionDimension(request.width) || !stableDiffusionDimension(request.height) ||
 		request.steps < 1 || request.steps > 150 || math.IsNaN(request.cfgScale) || math.IsInf(request.cfgScale, 0) ||
-		request.cfgScale < 0 || request.cfgScale > 30 || request.seed < math.MinInt32 || request.seed > math.MaxInt32 ||
+		request.cfgScale < 0 || request.cfgScale > 30 || request.seed < -1 || request.seed > math.MaxInt32 ||
 		request.imageCount < 1 || request.imageCount > 4 ||
 		(request.sampler != "" && !stableDiffusionOptionToken(request.sampler)) ||
 		(request.scheduler != "" && !stableDiffusionOptionToken(request.scheduler)) {
@@ -1050,11 +1050,11 @@ func (stableDiffusionImageTranslator) resolveImageArtifactSeed(plan *ImageInvoca
 	if err != nil {
 		return 0, err
 	}
-	if index < 1 || int(index) > request.imageCount || baseSeed < math.MinInt32 || baseSeed > math.MaxInt32 || baseSeed == -1 {
+	if index < 1 || int(index) > request.imageCount || baseSeed < 0 || baseSeed > math.MaxInt32 {
 		return 0, fmt.Errorf("stable-diffusion artifact seed input is invalid")
 	}
 	seed := baseSeed + int64(index-1)
-	if seed < math.MinInt32 || seed > math.MaxInt32 {
+	if seed < 0 || seed > math.MaxInt32 {
 		return 0, fmt.Errorf("stable-diffusion artifact seed overflows signed int32")
 	}
 	return seed, nil
@@ -1093,7 +1093,7 @@ func (stableDiffusionImageTranslator) translateImageArtifact(plan *ImageInvocati
 		return ImageArtifact{}, fmt.Errorf("stable-diffusion result constraints are unavailable")
 	}
 	if observation.Index < 1 || int(observation.Index) > constraints.artifactCount || len(observation.Payload) == 0 ||
-		observation.Seed < math.MinInt32 || observation.Seed > math.MaxInt32 || observation.Seed == -1 ||
+		observation.Seed < 0 || observation.Seed > math.MaxInt32 ||
 		observation.Format != constraints.format || observation.Width != constraints.width || observation.Height != constraints.height {
 		return ImageArtifact{}, fmt.Errorf("stable-diffusion backend artifact violates result constraints")
 	}
@@ -1272,8 +1272,8 @@ func normalizeStableDiffusionImageRequest(
 	if spec.Seed != nil {
 		seed = spec.GetSeed()
 	}
-	if seed < math.MinInt32 || seed > math.MaxInt32 {
-		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate seed is outside the stable-diffusion.cpp signed-int32 range"))
+	if seed < -1 || seed > math.MaxInt32 {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate seed is outside the supported random-or-nonnegative signed-int32 range"))
 	}
 	if seed != -1 && seed+int64(imageCount-1) > math.MaxInt32 {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate batch seed progression overflows the stable-diffusion.cpp signed-int32 range"))
@@ -1428,7 +1428,7 @@ func stableDiffusionExecutionOptionsFromValue(
 		}
 	}
 	if field := fields["seed"]; field != nil {
-		value, ok := stableDiffusionInteger(field, math.MinInt32, math.MaxInt32)
+		value, ok := stableDiffusionInteger(field, -1, math.MaxInt32)
 		if !ok {
 			return stableDiffusionExecutionOptions{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 		}

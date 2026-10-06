@@ -217,7 +217,7 @@ function imageArtifactSeed(artifact: NimiRuntimeScenarioArtifact): number | unde
   const value = artifact.seed;
   if (value === undefined) return undefined;
   if (!Number.isSafeInteger(value)
-    || value < -2_147_483_648
+    || value < 0
     || value > 2_147_483_647) {
     throw new Error('Runtime image artifact returned an invalid concrete seed.');
   }
