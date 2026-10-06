@@ -338,6 +338,7 @@
       "recordingFormatError": "请选择非空、最长 4 秒、与会话输入采样率一致（16 或 24 kHz）的单声道 PCM16 WAV 录音。",
       "commitInput": "提交输入",
       "startResponse": "开始回应",
+      "continueResponse": "继续回应",
       "responseAlreadyPending": "已请求一次回应。请等待它结束，或关闭会话后再开始下一次。",
       "cancelResponse": "取消回应",
       "interrupt": "中断 {{track}}",

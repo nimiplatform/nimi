@@ -348,7 +348,8 @@ function LabAiRealtimeSurface({
             onClick={() => void run(() => sendRecording(false))}>{t('CapabilityTests.aiRealtime.submitRecordingOnly')}</Button> : null}
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('commit-input')}>{t('CapabilityTests.aiRealtime.commitInput')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy || state.responsePending || activeTracks.length > 0} onClick={() => void control('start-response')}>{t('CapabilityTests.aiRealtime.startResponse')}</Button>
-          <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('cancel-response')}>{t('CapabilityTests.aiRealtime.cancelResponse')}</Button>
+          <Button type="button" size="sm" tone="ghost" disabled={!open || busy || state.responsePending || activeTracks.length > 0 || state.tracks.length === 0} onClick={() => void control('continue-response')}>{t('CapabilityTests.aiRealtime.continueResponse')}</Button>
+          <Button type="button" size="sm" tone="ghost" disabled={!open || busy || activeTracks.length === 0} onClick={() => void control('cancel-response')}>{t('CapabilityTests.aiRealtime.cancelResponse')}</Button>
           {activeTracks.map((track) => (
             <Button key={track.outputTrackId} type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void run(() => sessionRef.current!.interrupt(track.outputTrackId))}>
               {t('CapabilityTests.aiRealtime.interrupt', { track: track.outputTrackId })}

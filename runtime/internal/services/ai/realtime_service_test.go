@@ -387,63 +387,86 @@ func TestInterruptedProviderResponseDoesNotPublishSuccessTerminal(t *testing.T) 
 	}
 }
 
-func TestRealtimeInterruptLinearizesBeforeConcurrentProviderDone(t *testing.T) {
-	driver, target := realtimeTestDashScopeDriver(t)
-	provider := &blockingRealtimeTestProvider{
-		realtimeTestProvider: newRealtimeTestProvider(),
-		sendStarted:          make(chan struct{}),
-		releaseSend:          make(chan struct{}),
-	}
-	stream, err := realtimecore.NewStream[*runtimev1.AiRealtimeEvent](realtimecore.Config{
-		RealtimeSessionID: "session", ChannelID: "channel", AdapterKind: "ai", Generation: 1, Capacity: 8,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	record := &realtimeSessionRecord{
-		sessionID: "session", channelID: "channel", generation: 1, appID: "app", subjectUserID: "account",
-		stream: stream, driver: realtimeTestProtocol(t, driver, target, capabilitydriver.CloudRealtimeOpen{}), provider: provider, ctx: context.Background(),
-		tracksByProvider: make(map[string]*realtimeOutputTrack), tracksByRuntime: make(map[string]*realtimeOutputTrack),
-	}
-	track := ensureRealtimeOutputTrack(record, "provider-response")
-	svc := &Service{realtimeSessions: newRealtimeSessionStore()}
-	svc.realtimeSessions.create(record)
-	ctx := metadata.NewIncomingContext(authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: "account"}), metadata.Pairs(metadataAppIDKey, "app"))
-	done := make(chan error, 1)
-	go func() {
-		_, err := svc.InterruptRealtimeOutput(ctx, &runtimev1.InterruptRealtimeOutputRequest{
-			RealtimeSessionId: "session", Generation: 1, OutputTrackId: track.outputTrackID,
+func TestRealtimeInterruptWaitsForNativeTerminalAndReportsCompletionRace(t *testing.T) {
+	for _, nativeStatus := range []string{"cancelled", "completed"} {
+		t.Run(nativeStatus, func(t *testing.T) {
+			driver, target := realtimeTestDashScopeDriver(t)
+			provider := &blockingRealtimeTestProvider{realtimeTestProvider: newRealtimeTestProvider(), sendStarted: make(chan struct{}), releaseSend: make(chan struct{})}
+			stream, err := realtimecore.NewStream[*runtimev1.AiRealtimeEvent](realtimecore.Config{RealtimeSessionID: "session", ChannelID: "channel", AdapterKind: "ai", Generation: 1, Capacity: 8})
+			if err != nil {
+				t.Fatal(err)
+			}
+			record := &realtimeSessionRecord{sessionID: "session", channelID: "channel", generation: 1, appID: "app", subjectUserID: "account", stream: stream, outputAudio: &runtimev1.AiRealtimeAudioFormat{MaximumFrameBytes: 4}, driver: realtimeTestProtocol(t, driver, target, capabilitydriver.CloudRealtimeOpen{}), provider: provider, ctx: context.Background(), pendingRequestID: "request", tracksByProvider: make(map[string]*realtimeOutputTrack), tracksByRuntime: make(map[string]*realtimeOutputTrack)}
+			if _, err := record.driver.Normalize([]byte(`{"type":"response.created","response":{"id":"provider-response"}}`)); err != nil {
+				t.Fatal(err)
+			}
+			track := ensureRealtimeOutputTrack(record, "provider-response")
+			svc := &Service{realtimeSessions: newRealtimeSessionStore()}
+			svc.realtimeSessions.create(record)
+			ctx := metadata.NewIncomingContext(authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: "account"}), metadata.Pairs(metadataAppIDKey, "app"))
+			done := make(chan error, 1)
+			go func() {
+				_, err := svc.InterruptRealtimeOutput(ctx, &runtimev1.InterruptRealtimeOutputRequest{RealtimeSessionId: "session", Generation: 1, OutputTrackId: track.outputTrackID})
+				done <- err
+			}()
+			select {
+			case <-provider.sendStarted:
+			case <-time.After(time.Second):
+				t.Fatal("interrupt did not reach provider")
+			}
+			close(provider.releaseSend)
+			select {
+			case err := <-done:
+				t.Fatalf("dispatch confirmed an unobserved native stop: %v", err)
+			case <-time.After(20 * time.Millisecond):
+			}
+			raw := fmt.Sprintf(`{"type":"response.done","response":{"id":"provider-response","status":"%s"}}`, nativeStatus)
+			if events, err := record.driver.Normalize([]byte(raw)); err != nil || len(events) != 0 {
+				t.Fatalf("native terminal bypassed waiting owner: %+v %v", events, err)
+			}
+			select {
+			case err := <-done:
+				if nativeStatus == "cancelled" && err != nil {
+					t.Fatal(err)
+				}
+				if nativeStatus == "completed" && status.Code(err) != codes.NotFound {
+					t.Fatalf("completion race fabricated cancel: %v", err)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("native terminal did not release waiter")
+			}
+			reader, release, err := stream.ClaimReader()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer release()
+			want := runtimev1.AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED
+			if nativeStatus == "completed" {
+				want = runtimev1.AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED
+			}
+			select {
+			case event := <-reader:
+				if event.GetOutputTrack().GetLifecycle() != want || event.GetRequestTerminal() != nil {
+					t.Fatalf("wrong terminal: %+v", event)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("track terminal missing")
+			}
+			if nativeStatus == "completed" {
+				select {
+				case event := <-reader:
+					if event.GetRequestTerminal() == nil || event.GetRequestTerminal().GetRequestId() != "request" {
+						t.Fatalf("completion terminal=%+v", event)
+					}
+				case <-time.After(time.Second):
+					t.Fatal("request completion missing")
+				}
+			}
+			svc.projectRealtimeProviderEvent(record, capabilitydriver.CloudRealtimeEvent{Kind: capabilitydriver.CloudRealtimeEventAudioDelta, ProviderResponseID: "provider-response", Audio: []byte{1, 2, 3, 4}})
+			if snapshot := stream.Snapshot(); snapshot.BufferedItems != 0 {
+				t.Fatalf("duplicate or late data escaped: %+v", snapshot)
+			}
 		})
-		done <- err
-	}()
-	select {
-	case <-provider.sendStarted:
-	case <-time.After(time.Second):
-		t.Fatal("interrupt did not reach provider")
-	}
-	svc.projectRealtimeProviderEvent(record, capabilitydriver.CloudRealtimeEvent{
-		Kind: capabilitydriver.CloudRealtimeEventResponseDone, ProviderResponseID: "provider-response",
-		ResponseStatus: capabilitydriver.CloudRealtimeResponseStatusCompleted,
-	})
-	close(provider.releaseSend)
-	if err := <-done; err != nil {
-		t.Fatalf("interrupt: %v", err)
-	}
-	reader, release, err := stream.ClaimReader()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer release()
-	select {
-	case event := <-reader:
-		if event.GetOutputTrack().GetLifecycle() != runtimev1.AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED || event.GetRequestTerminal() != nil {
-			t.Fatalf("interrupt race published success or wrong terminal: %+v", event)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("interrupt terminal was not published")
-	}
-	if snapshot := stream.Snapshot(); snapshot.BufferedItems != 0 {
-		t.Fatalf("provider done raced a second terminal into the stream: %+v", snapshot)
 	}
 }
 

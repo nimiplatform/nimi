@@ -32,6 +32,7 @@ func (s *Service) sendRealtimeEffect(record *realtimeSessionRecord, effect capab
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.gemini-live-owner-controls
+// @nimi-authority: rule.nimi.runtime.ai-provider.r116
 func (s *Service) finishRealtimeNativeStop(ctx context.Context, record *realtimeSessionRecord, track *realtimeOutputTrack, key string) error {
 	waitCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()

@@ -1068,6 +1068,29 @@ test('video Session reports owner termination and open failure without claiming 
 });
 
 // The event stream stays open until Close unless a test ends it on purpose.
+test('Lab Realtime Close waits for device release once before resolving', async () => {
+  const { createLabRealtimeController } = await load('lab/lab-only/ai-realtime-session.js');
+  const fake = fakeRealtime();
+  let releaseDevice;
+  const deviceReleased = new Promise((resolve) => { releaseDevice = resolve; });
+  let closeCount = 0;
+  const session = createLabRealtimeController({
+    client: fake.client, now: () => new Date(), createId: (prefix) => prefix, onState: () => {},
+    playback: { writeAudioFrame: async () => {}, finishOutputTrack: async () => {}, interruptOutputTrack: async () => {},
+      close: async () => { closeCount += 1; await deviceReleased; } },
+  });
+  await session.open({ instruction: '', turnDetection: 'server-vad', audioOutputEnabled: true });
+  let returned = false;
+  const closing = session.close().then(() => { returned = true; });
+  await waitFor(() => closeCount === 1, 'device closing');
+  assert.equal(returned, false, 'owner Close must not resolve with a live playback device');
+  releaseDevice();
+  await closing;
+  await session.close();
+  assert.equal(closeCount, 1);
+  assert.equal(session.getState().phase, 'closed');
+});
+
 function fakeRealtime({ events = [], openError, ackOk = true, endStream = false } = {}) {
   const calls = { open: [], append: [], control: [], interrupt: [], close: [] };
   let release;
@@ -1212,7 +1235,7 @@ test('direct AI Realtime reports the owner reason for a refused Local route, a r
   const releasedTracks = [];
   const ended = createLabRealtimeController({ client: ending.client, now: () => new Date(), createId: (prefix) => prefix, onState: () => {},
     playback: { writeAudioFrame: async () => {}, interruptOutputTrack: async () => { throw new Error('must not invent native interrupt'); },
-      finishOutputTrack: async (track) => { releasedTracks.push(track); } },
+      finishOutputTrack: async (track) => { releasedTracks.push(track); }, close: async () => {} },
   });
   await ended.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: false });
   await waitFor(() => ended.getState().phase === 'terminated', 'owner terminal');

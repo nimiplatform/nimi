@@ -338,6 +338,7 @@
       "recordingFormatError": "Choose a non-empty mono PCM16 WAV of at most 4 seconds matching the Session input rate (16 or 24 kHz).",
       "commitInput": "Commit input",
       "startResponse": "Start response",
+      "continueResponse": "Continue response",
       "responseAlreadyPending": "A response has already been requested. Wait for it to finish or close the Session before starting another.",
       "cancelResponse": "Cancel response",
       "interrupt": "Interrupt {{track}}",

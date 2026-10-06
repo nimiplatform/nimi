@@ -102,6 +102,7 @@ export type LabRealtimePlayback = {
   readonly writeAudioFrame: (input: { readonly outputTrackId: string; readonly frameSequence: string; readonly frame: Uint8Array; readonly format: NimiRealtimeAudioFormat }) => Promise<void>;
   readonly finishOutputTrack: (input: { readonly outputTrackId: string; readonly lifecycle: 'interrupted' | 'completed' | 'failed' }) => Promise<void>;
   readonly interruptOutputTrack: (input: { readonly outputTrackId: string }) => Promise<void>;
+  readonly close: () => Promise<void>;
 };
 
 /**
@@ -125,6 +126,8 @@ export function createLabRealtimeController(input: {
   let closeRequested = false;
   let pendingOpen: Promise<void> | null = null;
   let pendingClose: Promise<void> | null = null;
+  let pendingPlaybackClose: Promise<void> | null = null;
+  const closePlayback = () => pendingPlaybackClose ??= input.playback?.close() ?? Promise.resolve();
   let pendingResponseRequestId: string | null = null;
   const set = (patch: Partial<LabRealtimeState>) => {
     state = { ...state, ...patch };
@@ -154,6 +157,7 @@ export function createLabRealtimeController(input: {
     for (const entry of failedTracks) {
       void input.playback?.finishOutputTrack({ outputTrackId: entry.outputTrackId, lifecycle: 'failed' }).catch(() => undefined);
     }
+    void closePlayback().catch(() => undefined);
   };
   const track = (outputTrackId: string, requestId: string, patch: (current: LabRealtimeOutputTrack) => Partial<LabRealtimeOutputTrack>) => {
     const existing = state.tracks.find((entry) => entry.outputTrackId === outputTrackId)
@@ -232,6 +236,7 @@ export function createLabRealtimeController(input: {
     } finally {
       await cancelSubscription?.().catch(() => undefined);
       cancelSubscription = null;
+      await closePlayback();
     }
   };
 
