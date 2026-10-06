@@ -39,6 +39,15 @@ function managerActionAvailability() {
 }
 
 describe('renderer local-app standard-shell surface', () => {
+  it('carries a closed synthesis alignment through Job Get and rejects authority inside it', async () => {
+    let alignment: unknown={unit:'word',tokens:[{token:'Hello',startMs:0,endMs:480},{token:' ',startMs:480,endMs:500}]};
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__={invoke:async()=>({job:{jobId:'aligned-job',scenarioType:'speech-synthesize',status:'completed',progressPercent:100,progressCurrentStep:1,progressTotalSteps:1,reasonCode:'action-executed',reasonDetail:'',traceId:'trace',createdAt:null,updatedAt:null,transcriptionText:'',artifacts:[{artifactId:'aligned-audio',mimeType:'audio/wav',bytes:new Uint8Array(),sizeBytes:58,sha256:'digest',durationMs:1200,width:0,height:0,sampleRateHz:24000,channels:1,speechAlignment:alignment}]},asset:null,voiceReference:null}),listen:()=>()=>{}};
+    const surface=createNimiLocalAppStandardShellSurface().ai;
+    await expect(surface.scenarioJobs.get('aligned-job')).resolves.toMatchObject({job:{artifacts:[{speechAlignment:alignment}]}});
+    for(const invalid of [null,{unit:'word',tokens:[]},{unit:'word',tokens:[{token:'word',startMs:-1,endMs:480}]},{unit:'word',tokens:[{token:'word',startMs:0,endMs:480,accessToken:'forbidden'}]}]){
+      alignment=invalid;await expect(surface.scenarioJobs.get('aligned-job')).rejects.toBeDefined();
+    }
+  });
   it('preserves voice conversion profiles when the App selects its Local configuration', async () => {
     const option = { loadoutRef: 'loadout-convert-1', label: 'Voice conversion', capabilityContract: 'audio.voice.convert',
       implementation: { implementationId: 'convert.impl', driverId: 'convert.driver', driverDialect: 'convert/v1' },

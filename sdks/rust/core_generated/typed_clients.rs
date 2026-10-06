@@ -10532,6 +10532,7 @@ pub struct LocalAppScenarioArtifact {
     pub channels: Option<i32>,
     pub seed: Option<i32>,
     pub frame_count: Option<u64>,
+    pub speech_alignment: Option<Box<SpeechAlignment>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

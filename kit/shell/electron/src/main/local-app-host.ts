@@ -3,6 +3,7 @@ import {
   validateNimiLocalAppTextAnnotationResult,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, validateNimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGeneration, validateNimiLocalAppMusicTranscription, validateNimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult,
   type NimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
@@ -2567,9 +2568,10 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
   return Object.freeze(value.map((entry) => {
     if (!isPlainRecord(entry)) throw untrustedRuntimeError();
     const hasSeed = Object.hasOwn(entry, 'seed');
+    const hasAlignment = Object.hasOwn(entry, 'speechAlignment');
     if (!hasExactKeys(entry, [
       'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
-      'width', 'height', 'sampleRateHz', 'channels', ...(Object.hasOwn(entry, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []),
+      'width', 'height', 'sampleRateHz', 'channels', ...(Object.hasOwn(entry, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []), ...(hasAlignment ? ['speechAlignment'] : []),
     ])) throw untrustedRuntimeError();
     const bytes = decodeNativeBytes(entry.bytes, 32 * 1024 * 1024);
     const sizeBytes = boundedInteger(entry.sizeBytes, 0, Number.MAX_SAFE_INTEGER);
@@ -2577,6 +2579,11 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
     const mimeType = boundedMime(entry.mimeType);
     const seed = hasSeed ? boundedInteger(entry.seed, -2_147_483_648, 2_147_483_647) : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) throw untrustedRuntimeError();
+    if (hasAlignment && !mimeType.startsWith('audio/')) throw untrustedRuntimeError();
+    let speechAlignment;
+    if (hasAlignment) {
+      try { speechAlignment = validateNimiLocalAppSpeechAlignment(entry.speechAlignment); } catch { throw untrustedRuntimeError(); }
+    }
     const frameCount = entry.frameCount === undefined ? undefined : boundedInteger(entry.frameCount, 1, Number.MAX_SAFE_INTEGER);
     if (frameCount !== undefined && (!mimeType.startsWith('audio/') || !(Number(entry.sampleRateHz) > 0) || !(Number(entry.channels) > 0))) throw untrustedRuntimeError();
     return Object.freeze({
@@ -2592,6 +2599,7 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
       channels: boundedInteger(entry.channels, 0, Number.MAX_SAFE_INTEGER),
       ...(frameCount !== undefined ? { frameCount } : {}),
       ...(seed !== undefined ? { seed } : {}),
+      ...(speechAlignment ? { speechAlignment } : {}),
     }) as NimiElectronLocalAppRecord;
   }));
 }
@@ -3447,6 +3455,10 @@ function validateProjectionValue(value: unknown): void {
   }
   if (!isPlainRecord(value)) throw untrustedRuntimeError();
   for (const [key, entry] of Object.entries(value)) {
+    if (key === 'speechAlignment') {
+      try { validateNimiLocalAppSpeechAlignment(entry); } catch { throw untrustedRuntimeError(); }
+      continue;
+    }
     if (FORBIDDEN_PROJECTION_KEYS.has(key)) throw untrustedRuntimeError();
     validateProjectionValue(entry);
   }

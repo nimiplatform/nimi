@@ -9,6 +9,18 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('admits only closed typed alignment product tokens through native Job Get', async () => {
+    let alignment: unknown = {unit:'word',tokens:[{token:'Hello',startMs:0,endMs:480},{token:' ',startMs:480,endMs:500}]};
+    const job=()=>({jobId:'aligned-job',scenarioType:'speech-synthesize',status:'completed',progressPercent:100,progressCurrentStep:1,progressTotalSteps:1,reasonCode:'action-executed',reasonDetail:'',traceId:'trace',createdAt:null,updatedAt:null,transcriptionText:'',artifacts:[{artifactId:'aligned-audio',mimeType:'audio/wav',bytes:'',sizeBytes:58,sha256:'digest',durationMs:1200,width:0,height:0,sampleRateHz:24000,channels:1,speechAlignment:alignment}]});
+    const host=createNimiElectronLocalAppHostForBinding({...binding([]),localAppScenarioJobGet:async()=>({status:'ok' as const,value:{job:job(),asset:null,voiceReference:null}})});
+    await expect(host.scenarioJobGet({jobId:'aligned-job'})).resolves.toMatchObject({job:{artifacts:[{speechAlignment:alignment}]}});
+    for (const invalid of [null,{unit:'word',tokens:[]},{unit:'word',tokens:[{token:'word',startMs:-1,endMs:500}]},{unit:'word',tokens:[{token:'word',startMs:0,endMs:500,accessToken:'forbidden'}]}]) {
+      alignment=invalid;
+      await expect(host.scenarioJobGet({jobId:'aligned-job'})).rejects.toMatchObject({reasonCode:'runtime-service-untrusted'});
+    }
+    const raw=createNimiElectronLocalAppHostForBinding({...binding([]),localAppScenarioJobGet:async()=>({status:'ok' as const,value:{token:'raw-authority'}})});
+    await expect(raw.scenarioJobGet({jobId:'aligned-job'})).rejects.toMatchObject({reasonCode:'runtime-service-untrusted'});
+  });
   it('projects separate summary deltas and an empty seal through the native stream and sync output', async () => {
     const events = [
       { type:'reasoning-summary',sequence:'1',traceId:'summary',itemIndex:0,text:'Permitted summary',itemCompleted:false },

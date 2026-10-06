@@ -14,6 +14,10 @@ The protected text contract carries authorized summary deltas and separate order
 
 ## Next minor (compatible additions)
 
+The matching SDK adds `validateNimiLocalAppSpeechAlignment`; Kit re-exports it only through its SDK contract seam for the Electron Host. This new public validator is a compatible next-minor export. It validates the closed product-text structure before permitting spoken `token` fields; raw token/credential projections remain forbidden.
+
+Protected synthesized audio artifacts now retain the existing Runtime SpeechAlignment as a dedicated typed optional field. Matching Runtime, SDK, Kit and native builds are required; WORD results cannot silently lose timing. Zero milliseconds remain present, unknown units and malformed tokens fail closed, and raw credentials remain forbidden. This is a compatible public type widening staged for the next minor; this local development delivery does not publish a new package version.
+
 Embedding requests add optional positive integer `dimensions` in the core AI client and protected `text-embed` spec. Use matching Runtime, SDK, Kit and native builds. The selected Runtime implementation admits the requested width; the first shortening group is OpenAI `text-embedding-3-small` and `text-embedding-3-large`. Omit the field for the captured native default. Unsupported compositions and out-of-range widths fail before execution. Returned vectors must match the input count and requested width, remain finite and include their Runtime-owned `spaceId`. Missing provider usage remains unspecified.
 
 Protected music generation adds owned videoReference, and speech synthesis adds separate identityAudio/performanceAudio with exact transcript. Consume matching Runtime, Kit and native builds. Resource input profiles explicitly declare video mode and Driver speech limits; missing declarations fail closed. Reference-conditioned VoxCPM is currently supported by the Windows standard backend, without creating a reusable VoiceAsset.

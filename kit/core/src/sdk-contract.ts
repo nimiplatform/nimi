@@ -300,6 +300,7 @@ export type {
 // --- Protected App Agent + Desktop Open data surfaces ----------------------
 export {
   createNimiAgentRealtimeRuntimeClient,
+  validateNimiLocalAppSpeechAlignment,
   createNimiAiRealtimeRuntimeClient,
   createNimiLocalAppAIConsumptionRuntimeClient,
   createNimiLocalAppAgentConfigureRuntimeShell,

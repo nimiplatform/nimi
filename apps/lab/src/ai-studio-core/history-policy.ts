@@ -47,6 +47,19 @@ export function validateManagedArtifact(value: unknown, path: string): void {
   if (!/^sha256:[0-9a-f]{64}$/u.test(sha256)) historyError(`${path}.sha256`, 'requires a canonical SHA-256 digest');
   optionalString(value.displayName, `${path}.displayName`);
   if (value.previewSource !== 'managed-asset') historyError(`${path}.previewSource`, 'requires managed-asset');
+  if (value.speechAlignment !== undefined) {
+    const alignment = value.speechAlignment;
+    if (typeof value.mediaType !== 'string' || !value.mediaType.startsWith('audio/') || !isJsonObject(alignment) || typeof alignment.unit !== 'number' || ![1, 2].includes(alignment.unit) || !Array.isArray(alignment.tokens) || !alignment.tokens.length) historyError(path, 'requires typed audio alignment');
+    let start = 0, end = 0;
+    for (const token of alignment.tokens) {
+      if (!isJsonObject(token) || typeof token.token !== 'string' || token.token.length === 0 ||
+        typeof token.startMs !== 'string' || typeof token.endMs !== 'string' ||
+        !/^(0|[1-9]\d*)$/u.test(token.startMs) || !/^(0|[1-9]\d*)$/u.test(token.endMs)) historyError(path, 'has an invalid alignment token');
+      const nextStart = nonNegativeSafeInteger(Number(token.startMs), path), nextEnd = nonNegativeSafeInteger(Number(token.endMs), path);
+      if (nextStart < start || nextEnd < end || nextEnd < nextStart) historyError(path, 'has out-of-order alignment');
+      start = nextStart; end = nextEnd;
+    }
+  }
 }
 
 function boundedNonEmptyString(value: unknown, path: string, maxLength: number): string {

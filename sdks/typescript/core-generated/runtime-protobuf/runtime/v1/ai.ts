@@ -2743,6 +2743,13 @@ export interface LocalAppScenarioArtifact {
      * @generated from protobuf field: uint64 frame_count = 12
      */
     frameCount: string;
+    /**
+     * Actual synthesis alignment from the same owner audio artifact. No
+     * provider metadata or estimated timing crosses the protected boundary.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.SpeechAlignment speech_alignment = 13
+     */
+    speechAlignment?: SpeechAlignment;
 }
 /**
  * Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
@@ -13802,7 +13809,8 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
             { no: 9, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 10, name: "channels", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 11, name: "seed", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
-            { no: 12, name: "frame_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+            { no: 12, name: "frame_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 13, name: "speech_alignment", kind: "message", T: () => SpeechAlignment }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioArtifact>): LocalAppScenarioArtifact {
@@ -13863,6 +13871,9 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
                 case /* uint64 frame_count */ 12:
                     message.frameCount = reader.uint64().toString();
                     break;
+                case /* nimi.runtime.v1.SpeechAlignment speech_alignment */ 13:
+                    message.speechAlignment = SpeechAlignment.internalBinaryRead(reader, reader.uint32(), options, message.speechAlignment);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -13911,6 +13922,9 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
         /* uint64 frame_count = 12; */
         if (message.frameCount !== "0")
             writer.tag(12, WireType.Varint).uint64(message.frameCount);
+        /* nimi.runtime.v1.SpeechAlignment speech_alignment = 13; */
+        if (message.speechAlignment)
+            SpeechAlignment.internalBinaryWrite(message.speechAlignment, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

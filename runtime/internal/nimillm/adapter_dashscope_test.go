@@ -245,7 +245,7 @@ func testExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testin
 					Namespace: "nimi.scenario.speech_synthesize.request",
 					Payload: mustStructPBForNimillmTest(t, map[string]any{
 						"instruction":            "用温柔的语气，语速稍慢。",
-						"word_timestamp_enabled": true,
+						"word_timestamp_enabled": false,
 						"seed":                   17,
 					}),
 				},
@@ -260,7 +260,7 @@ func testExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testin
 						Speed:        testFloat32(0.9),
 						Pitch:        testFloat32(1.1),
 						Volume:       testFloat32(50),
-						TimingMode:   runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD,
+						TimingMode:   runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_NONE,
 						VoiceRenderHints: &runtimev1.VoiceRenderHints{
 							Speed: 1.2,
 						},
@@ -319,8 +319,8 @@ func testExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testin
 	if got := strings.TrimSpace(toString(input["instruction"])); got != "用温柔的语气，语速稍慢。" {
 		t.Fatalf("unexpected instruction: %q", got)
 	}
-	if !ValueAsBool(input["word_timestamp_enabled"]) {
-		t.Fatalf("expected word_timestamp_enabled=true, got=%#v", input["word_timestamp_enabled"])
+	if ValueAsBool(input["word_timestamp_enabled"]) {
+		t.Fatalf("expected no WORD timing, got=%#v", input["word_timestamp_enabled"])
 	}
 	hints, ok := input["language_hints"].([]any)
 	if !ok || len(hints) != 1 || strings.TrimSpace(toString(hints[0])) != "zh" {

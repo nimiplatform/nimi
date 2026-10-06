@@ -6753,7 +6753,7 @@ pub struct GenerateLocalAppTextCandidateResponse {
 /// Trimmed artifact projection for Local App scenario outputs. Runtime-private
 /// uri, producer, and owner fields are never projected; oversized payloads are
 /// retrieved through owned artifact adoption and App asset streaming.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppScenarioArtifact {
     #[prost(string, tag = "1")]
     pub artifact_id: ::prost::alloc::string::String,
@@ -6782,6 +6782,10 @@ pub struct LocalAppScenarioArtifact {
     /// Actual per-channel sample frames; zero means not observed or not audio.
     #[prost(uint64, tag = "12")]
     pub frame_count: u64,
+    /// Actual synthesis alignment from the same owner audio artifact. No
+    /// provider metadata or estimated timing crosses the protected boundary.
+    #[prost(message, optional, tag = "13")]
+    pub speech_alignment: ::core::option::Option<SpeechAlignment>,
 }
 /// Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

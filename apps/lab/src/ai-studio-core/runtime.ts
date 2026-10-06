@@ -244,6 +244,7 @@ export async function projectStudioArtifactRunnerResult(
           ? context.capability.label
           : `${context.capability.label} ${index + 1}`,
         previewSource: 'managed-asset',
+        ...(result.output.kind === 'audio-artifacts' && result.output.artifacts[index]?.speechAlignment ? { speechAlignment: result.output.artifacts[index]!.speechAlignment } : {}),
       });
     }
   } catch (error) {

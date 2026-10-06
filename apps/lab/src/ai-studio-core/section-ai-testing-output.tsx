@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Dialog, DialogContent, DialogTitle, IconButton, nimiToast, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, Dialog, DialogContent, DialogTitle, IconButton, nimiToast, Tooltip } from '@nimiplatform/kit/ui';
 import { Copy as CopyIcon, Download as DownloadIcon, Maximize2, X } from 'lucide-react';
 import { useAIStudioHost, type AIStudioHostPort, type StudioTextExportResult } from './host-context.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
@@ -299,6 +299,7 @@ export function ArtifactMediaPreview({
         {mediaLabel ? <figcaption className="studio-result__plain">{mediaLabel}</figcaption> : null}
         {media}
       </figure>
+      {branch === 'audio' && artifact?.speechAlignment ? <SpeechAlignmentResultView alignment={artifact.speechAlignment} /> : null}
       {isImage ? (
         <Dialog open={imagePreviewOpen} onOpenChange={(open) => { if (!open) setImagePreviewOpen(false); }}>
           <DialogContent
@@ -322,6 +323,22 @@ export function ArtifactMediaPreview({
       ) : null}
     </>
   );
+}
+
+export function SpeechAlignmentResultView({ alignment }: { readonly alignment: NonNullable<StudioArtifactPreviewSource['speechAlignment']> }) {
+  const host = useAIStudioHost(), t = host.translate;
+  const tokens = alignment.tokens, visible = tokens.slice(0, 400);
+  return <section className="studio-result__rich" aria-label={t('StudioResults.alignment.title')}>
+    <Button size="sm" tone="secondary" onClick={() => void downloadTextFile(host, 'speech-alignment.json', JSON.stringify(alignment, null, 2))}>{t('StudioResults.alignment.exportComplete')}</Button>
+    <details className="studio-annotation" open>
+      <summary>{t(alignment.unit === 1 ? 'StudioResults.alignment.wordTimes' : 'StudioResults.alignment.charTimes', { count: tokens.length })}</summary>
+      <p className="studio-result__hint">{t('StudioResults.alignment.timeHint')}</p>
+      <table className="studio-annotation__tokens"><thead><tr><th>#</th><th>{t('StudioResults.transcript.word')}</th><th>{t('StudioResults.transcript.start')}</th><th>{t('StudioResults.transcript.end')}</th></tr></thead>
+        <tbody>{visible.map((token, index) => <tr key={`${index}:${token.startMs}`}><td>{index + 1}</td><td>{token.token}</td><td>{(Number(token.startMs) / 1000).toFixed(3)}</td><td>{(Number(token.endMs) / 1000).toFixed(3)}</td></tr>)}</tbody>
+      </table>
+      {visible.length < tokens.length ? <p className="studio-result__hint">{t('StudioResults.transcript.truncatedView', { shown: visible.length, total: tokens.length })}</p> : null}
+    </details>
+  </section>;
 }
 
 export function ArtifactMediaResult({

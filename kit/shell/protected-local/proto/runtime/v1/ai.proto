@@ -1190,6 +1190,9 @@ message LocalAppScenarioArtifact {
   optional int32 seed = 11;
   // Actual per-channel sample frames; zero means not observed or not audio.
   uint64 frame_count = 12;
+  // Actual synthesis alignment from the same owner audio artifact. No
+  // provider metadata or estimated timing crosses the protected boundary.
+  SpeechAlignment speech_alignment = 13;
 }
 
 // Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.

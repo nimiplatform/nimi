@@ -85,6 +85,7 @@ import {
   assertExactProjectionKeys,
   assertNoAuthorityMaterial,
   assertSafeProjection,
+  projectLocalAppSpeechAlignment,
   localAppError,
   localAppProjectionError,
   projectionText,
@@ -272,6 +273,10 @@ export type NimiLocalAppScenarioArtifact = {
   readonly channels: number;
   readonly seed?: number;
   readonly frameCount?: number;
+  readonly speechAlignment?: {
+    readonly unit: 'word' | 'char';
+    readonly tokens: readonly { readonly token: string; readonly startMs: number; readonly endMs: number }[];
+  };
 };
 
 export type NimiLocalAppVideoFaceSwapSummary = {
@@ -1511,9 +1516,10 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
   return Object.freeze(value.map((entry) => {
     const record = asRecord(entry);
     const hasSeed = Boolean(record && Object.hasOwn(record, 'seed'));
+    const hasAlignment = Boolean(record && Object.hasOwn(record, 'speechAlignment'));
     assertExactProjectionKeys(record, [
       'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
-      'width', 'height', 'sampleRateHz', 'channels', ...(record && Object.hasOwn(record, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []),
+      'width', 'height', 'sampleRateHz', 'channels', ...(record && Object.hasOwn(record, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []), ...(hasAlignment ? ['speechAlignment'] : []),
     ], 'scenario artifact');
     const bytes = validateProjectionBytes(record.bytes, 'scenario artifact bytes');
     const sizeBytes = projectionInteger(record.sizeBytes, 'scenario artifact sizeBytes', 0, Number.MAX_SAFE_INTEGER);
@@ -1523,6 +1529,8 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
       ? projectionInteger(record.seed, 'scenario artifact seed', -2_147_483_648, 2_147_483_647)
       : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) localAppProjectionError('scenario artifact seed mime');
+    if (hasAlignment && !mimeType.startsWith('audio/')) localAppProjectionError('speech alignment requires audio');
+    const speechAlignment = hasAlignment ? projectLocalAppSpeechAlignment(record.speechAlignment) : undefined;
     const frameCount = record.frameCount === undefined ? undefined : projectionInteger(record.frameCount, 'audio frame count', 1, Number.MAX_SAFE_INTEGER);
     if (frameCount !== undefined && (!mimeType.startsWith('audio/') || !(Number(record.sampleRateHz) > 0) || !(Number(record.channels) > 0))) localAppProjectionError('audio frame count requires an audio format');
     return Object.freeze({
@@ -1538,6 +1546,7 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
       channels: projectionInteger(record.channels, 'scenario artifact channels', 0, Number.MAX_SAFE_INTEGER),
       ...(frameCount !== undefined ? { frameCount } : {}),
       ...(seed !== undefined ? { seed } : {}),
+      ...(speechAlignment ? { speechAlignment } : {}),
     });
   }));
 }
@@ -2097,6 +2106,10 @@ function projectRuntimeLocalArtifact(
     channels: artifact.channels,
     ...(BigInt(artifact.frameCount ?? '0') > 0n ? { frameCount: runtimeSafeInteger(artifact.frameCount, 'audio frames') } : {}),
     ...(artifact.seed !== undefined ? { seed: artifact.seed } : {}),
+    ...(artifact.speechAlignment ? { speechAlignment: {
+      unit: artifact.speechAlignment.unit === 1 ? 'word' : artifact.speechAlignment.unit === 2 ? 'char' : 'invalid',
+      tokens: artifact.speechAlignment.tokens.map(token => ({ token: token.token, startMs: runtimeSafeInteger(token.startMs, 'alignment start'), endMs: runtimeSafeInteger(token.endMs, 'alignment end') })),
+    } } : {}),
   };
 }
 
@@ -2424,7 +2437,10 @@ function runtimeVoiceAssetFromLocal(asset: NimiLocalAppVoiceAsset): NimiProtecte
 }
 
 function runtimeArtifactFromLocal(artifact: NimiLocalAppScenarioArtifact, bytes: Uint8Array = artifact.bytes, mimeType = artifact.mimeType, sizeBytes = artifact.sizeBytes): ScenarioArtifact {
-  return { artifactId: artifact.artifactId, mimeType, bytes, uri: '', sha256: artifact.sha256, sizeBytes: String(sizeBytes), durationMs: String(artifact.durationMs), fps: 0, width: artifact.width, height: artifact.height, sampleRateHz: artifact.sampleRateHz, channels: artifact.channels, frameCount: String(artifact.frameCount ?? 0), speechAlignment: undefined, metadata: undefined, seed: artifact.seed };
+  return { artifactId: artifact.artifactId, mimeType, bytes, uri: '', sha256: artifact.sha256, sizeBytes: String(sizeBytes), durationMs: String(artifact.durationMs), fps: 0, width: artifact.width, height: artifact.height, sampleRateHz: artifact.sampleRateHz, channels: artifact.channels, frameCount: String(artifact.frameCount ?? 0), speechAlignment: artifact.speechAlignment ? {
+    unit: artifact.speechAlignment.unit === 'word' ? 1 : 2,
+    tokens: artifact.speechAlignment.tokens.map(token => ({ token: token.token, startMs: String(token.startMs), endMs: String(token.endMs) })),
+  } : undefined, metadata: undefined, seed: artifact.seed };
 }
 
 function runtimeJobEventFromLocal(event: NimiLocalAppScenarioJobEvent): ScenarioJobEvent {

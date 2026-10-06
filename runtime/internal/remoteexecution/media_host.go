@@ -102,6 +102,18 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		}
 		return capabilitydriver.CloudMediaTransportResponse{}, err
 	}
+	if ctx.Err() != nil {
+		closeNimiArtifactBodies(result.ArtifactBodies)
+		return capabilitydriver.CloudMediaTransportResponse{}, ctx.Err()
+	}
+	if spec := request.Request().GetSpec().GetSpeechSynthesize(); spec != nil && spec.GetTimingMode() == runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD {
+		if len(result.Artifacts) != 1 || !strings.HasPrefix(result.Artifacts[0].GetMimeType(), "audio/") ||
+			!capabilitydriver.SpeechAlignmentValid(result.Artifacts[0].GetSpeechAlignment()) ||
+			result.Artifacts[0].GetSpeechAlignment().GetUnit() != runtimev1.SpeechAlignmentUnit_SPEECH_ALIGNMENT_UNIT_WORD {
+			closeNimiArtifactBodies(result.ArtifactBodies)
+			return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+		}
+	}
 	if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		closeNimiArtifactBodies(result.ArtifactBodies)
 		return capabilitydriver.CloudMediaTransportResponse{}, err

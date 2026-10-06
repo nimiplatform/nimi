@@ -1406,6 +1406,22 @@ fn project_artifacts(
             if artifact.frame_count > 0 {
                 projected["frameCount"] = json!(artifact.frame_count);
             }
+            if let Some(alignment) = artifact.speech_alignment {
+                if !artifact.mime_type.starts_with("audio/") || alignment.tokens.is_empty() {
+                    return Err(untrusted());
+                }
+                let unit = match alignment.unit { 1 => "word", 2 => "char", _ => return Err(untrusted()) };
+                let (mut previous_start, mut previous_end) = (0_i64, 0_i64);
+                let mut tokens = Vec::with_capacity(alignment.tokens.len());
+                for token in alignment.tokens {
+                    if token.token.is_empty() || token.start_ms < previous_start || token.end_ms < previous_end || token.end_ms < token.start_ms || token.end_ms > 9_007_199_254_740_991 {
+                        return Err(untrusted());
+                    }
+                    previous_start = token.start_ms; previous_end = token.end_ms;
+                    tokens.push(json!({"token": token.token, "startMs": token.start_ms, "endMs": token.end_ms}));
+                }
+                projected["speechAlignment"] = json!({"unit": unit, "tokens": tokens});
+            }
             Ok(projected)
         })
         .collect()
@@ -2207,6 +2223,26 @@ mod tests {
             ..Default::default()
         };
         assert!(project_artifacts(vec![non_image]).is_err());
+    }
+
+    #[test]
+    fn speech_alignment_projection_preserves_zero_and_rejects_missing_units() {
+        let audio = |unit| LocalAppScenarioArtifact {
+            artifact_id: "aligned-audio".to_string(), mime_type: "audio/wav".to_string(), size_bytes: 58,
+            speech_alignment: Some(crate::generated::SpeechAlignment { unit, tokens: vec![
+                crate::generated::SpeechAlignmentToken { token: "Hello".to_string(), start_ms: 0, end_ms: 400 },
+                crate::generated::SpeechAlignmentToken { token: " ".to_string(), start_ms: 400, end_ms: 650 },
+                crate::generated::SpeechAlignmentToken { token: "Nimi".to_string(), start_ms: 650, end_ms: 1050 },
+            ] }), ..Default::default()
+        };
+        let projected = project_artifacts(vec![audio(1)]).expect("typed alignment");
+        assert_eq!(projected[0]["speechAlignment"]["tokens"][0]["startMs"], json!(0));
+        assert_eq!(projected[0]["speechAlignment"]["tokens"][1]["token"], json!(" "));
+        assert!(project_artifacts(vec![audio(0)]).is_err());
+        let mut invalid = audio(1); invalid.speech_alignment.as_mut().unwrap().tokens[0].end_ms = -1;
+        assert!(project_artifacts(vec![invalid]).is_err());
+        let mut image = audio(1); image.mime_type = "image/png".to_string();
+        assert!(project_artifacts(vec![image]).is_err());
     }
 
     #[test]

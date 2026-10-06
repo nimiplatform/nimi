@@ -3,7 +3,6 @@ package nimillm
 import (
 	"context"
 	"crypto/rand"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -277,48 +276,8 @@ func sendFiniteASRAudio(connection *websocket.Conn, audio []byte, taskID string,
 }
 
 func finiteASRWAVInfo(audio []byte) (uint32, float64, error) {
-	if len(audio) < 44 || len(audio) > 32*1024*1024 || string(audio[:4]) != "RIFF" || string(audio[8:12]) != "WAVE" || uint64(binary.LittleEndian.Uint32(audio[4:8]))+8 != uint64(len(audio)) {
-		return 0, 0, finiteASRInvalidInput()
-	}
-	var rate uint32
-	var align uint16
-	var dataSize int
-	hasFormat := false
-	for offset := 12; offset < len(audio); {
-		if offset+8 > len(audio) {
-			return 0, 0, finiteASRInvalidInput()
-		}
-		size := int(binary.LittleEndian.Uint32(audio[offset+4 : offset+8]))
-		start := offset + 8
-		if size > len(audio)-start {
-			return 0, 0, finiteASRInvalidInput()
-		}
-		switch string(audio[offset : offset+4]) {
-		case "fmt ":
-			if hasFormat || size < 16 {
-				return 0, 0, finiteASRInvalidInput()
-			}
-			hasFormat = true
-			format := binary.LittleEndian.Uint16(audio[start : start+2])
-			channels := binary.LittleEndian.Uint16(audio[start+2 : start+4])
-			rate = binary.LittleEndian.Uint32(audio[start+4 : start+8])
-			align = binary.LittleEndian.Uint16(audio[start+12 : start+14])
-			bits := binary.LittleEndian.Uint16(audio[start+14 : start+16])
-			if format != 1 || channels != 1 || rate == 0 || (bits != 8 && bits != 16 && bits != 24 && bits != 32) || align != bits/8 || uint64(binary.LittleEndian.Uint32(audio[start+8:start+12])) != uint64(rate)*uint64(align) {
-				return 0, 0, finiteASRInvalidInput()
-			}
-		case "data":
-			if dataSize != 0 || size == 0 {
-				return 0, 0, finiteASRInvalidInput()
-			}
-			dataSize = size
-		}
-		offset = start + size + size%2
-		if offset > len(audio) {
-			return 0, 0, finiteASRInvalidInput()
-		}
-	}
-	if !hasFormat || dataSize == 0 || dataSize%int(align) != 0 {
+	rate, dataSize, align, err := inspectFiniteMonoPCMWAV(audio)
+	if err != nil {
 		return 0, 0, finiteASRInvalidInput()
 	}
 	duration := float64(dataSize) / (float64(rate) * float64(align))

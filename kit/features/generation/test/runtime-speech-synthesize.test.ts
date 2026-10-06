@@ -129,6 +129,15 @@ describe('runRuntimeSpeechSynthesize', () => {
     expect(result.output.artifacts[1]?.previewUrl).toBeUndefined();
   });
 
+  it('retains the complete typed synthesis alignment beside the audio', async () => {
+    const alignment = {unit:1,tokens:[{token:'Hello',startMs:'0',endMs:'400'},{token:'Nimi',startMs:'650',endMs:'1050'}]};
+    const artifact = audioArtifact({speechAlignment:alignment});
+    const result = await runRuntimeSpeechSynthesize(input(fakeClient({artifacts:[artifact]}).client));
+    if (!result.ok) throw new Error(result.message);
+    expect(result.output.firstArtifact?.speechAlignment).toEqual(alignment);
+    expect(result.output.firstArtifact?.speechAlignment).not.toBe(alignment);
+  });
+
   it('maps typed principal and invalid-input failures', async () => {
     const principal = fakeClient({ submitError: createNimiError({
       message: 'denied', reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED, actionHint: 'reauthenticate', source: 'runtime',

@@ -1357,6 +1357,27 @@ test('local-app image generation preserves the route-neutral safe integer seed c
   assert.deepEqual(calls, ['ai.scenarioJobs.submit', 'ai.scenarioJobs.submit']);
 });
 
+test('protected synthesis alignment retains zero, validates typed units and survives the Runtime adapter', async () => {
+  const base = standardShell([]);
+  const alignment = {unit:'word',tokens:[{token:'Hello',startMs:0,endMs:400},{token:' ',startMs:400,endMs:650},{token:'Nimi',startMs:650,endMs:1050}]};
+  const artifact = {artifactId:'aligned-audio',mimeType:'audio/wav',bytes:new Uint8Array(),sizeBytes:58,sha256:'digest',durationMs:1200,width:0,height:0,sampleRateHz:24000,channels:1,speechAlignment:alignment as unknown};
+  const job = {jobId:'aligned-job',scenarioType:'speech-synthesize',status:'completed',progressPercent:100,progressCurrentStep:1,progressTotalSteps:1,reasonCode:'',reasonDetail:'',traceId:'trace',artifacts:[artifact],createdAt:null,updatedAt:null,transcriptionText:''};
+  const client = createNimiLocalAppClient({standardShell:{...base,ai:{...base.ai,scenarioJobs:{...base.ai.scenarioJobs,async get(){return {job,asset:null,voiceReference:null}}}}}});
+  const get = await client.ai.scenarioJobs.get('aligned-job');
+  assert.deepEqual(get.job.artifacts[0]!.speechAlignment,alignment);
+  const runtime = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
+  const response = await runtime.getScenarioJob({jobId:'aligned-job'});
+  assert.equal(response.job!.artifacts[0]!.speechAlignment!.unit,1);
+  assert.equal(response.job!.artifacts[0]!.speechAlignment!.tokens[0]!.startMs,'0');
+  assert.equal(response.job!.artifacts[0]!.speechAlignment!.tokens[2]!.startMs,'650');
+  for (const invalid of [null,{unit:'word',tokens:[]},{unit:'other',tokens:alignment.tokens},{...alignment,accessToken:'forbidden'},{unit:'word',tokens:[{token:'x',endMs:400}]},{unit:'word',tokens:[{token:'x',startMs:-1,endMs:400}]},{unit:'word',tokens:[{token:'x',startMs:500,endMs:400}]}]) {
+    artifact.speechAlignment=invalid;
+    await assert.rejects(client.ai.scenarioJobs.get('aligned-job'));
+  }
+  artifact.speechAlignment=alignment;artifact.mimeType='image/png';
+  await assert.rejects(client.ai.scenarioJobs.get('aligned-job'));
+});
+
 test('local-app image generation admits one artifact custody carrier and rejects URL XOR', async () => {
   const calls: string[] = [];
   const jobs = createNimiLocalAppClient({ standardShell: standardShell(calls) }).ai.scenarioJobs;

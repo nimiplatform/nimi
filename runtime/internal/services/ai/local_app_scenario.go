@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -131,19 +132,30 @@ func projectLocalAppScenarioArtifact(artifact *runtimev1.ScenarioArtifact) (*run
 		concrete := artifact.GetSeed()
 		seed = &concrete
 	}
+	if artifact.SpeechAlignment != nil && (!strings.HasPrefix(mimeType, "audio/") || !capabilitydriver.SpeechAlignmentValid(artifact.SpeechAlignment)) {
+		return invalid()
+	}
 	return &runtimev1.LocalAppScenarioArtifact{
-		ArtifactId:   artifactID,
-		MimeType:     mimeType,
-		SizeBytes:    sizeBytes,
-		Sha256:       sha256,
-		DurationMs:   artifact.GetDurationMs(),
-		Width:        artifact.GetWidth(),
-		Height:       artifact.GetHeight(),
-		SampleRateHz: artifact.GetSampleRateHz(),
-		Channels:     artifact.GetChannels(),
-		FrameCount:   artifact.GetFrameCount(),
-		Seed:         seed,
+		ArtifactId:      artifactID,
+		MimeType:        mimeType,
+		SizeBytes:       sizeBytes,
+		Sha256:          sha256,
+		DurationMs:      artifact.GetDurationMs(),
+		Width:           artifact.GetWidth(),
+		Height:          artifact.GetHeight(),
+		SampleRateHz:    artifact.GetSampleRateHz(),
+		Channels:        artifact.GetChannels(),
+		FrameCount:      artifact.GetFrameCount(),
+		Seed:            seed,
+		SpeechAlignment: cloneLocalAppSpeechAlignment(artifact.SpeechAlignment),
 	}, nil
+}
+
+func cloneLocalAppSpeechAlignment(value *runtimev1.SpeechAlignment) *runtimev1.SpeechAlignment {
+	if value == nil {
+		return nil
+	}
+	return proto.Clone(value).(*runtimev1.SpeechAlignment)
 }
 
 func projectLocalAppScenarioArtifacts(artifacts []*runtimev1.ScenarioArtifact) ([]*runtimev1.LocalAppScenarioArtifact, error) {

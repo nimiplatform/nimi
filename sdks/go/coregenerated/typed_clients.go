@@ -6248,18 +6248,19 @@ type LocalAppPackagePreview struct {
 }
 
 type LocalAppScenarioArtifact struct {
-	ArtifactId   string `json:"artifact_id,omitempty"`
-	MimeType     string `json:"mime_type,omitempty"`
-	Bytes        []byte `json:"bytes,omitempty"`
-	SizeBytes    int64  `json:"size_bytes,omitempty"`
-	Sha256       string `json:"sha256,omitempty"`
-	DurationMs   int64  `json:"duration_ms,omitempty"`
-	Width        int32  `json:"width,omitempty"`
-	Height       int32  `json:"height,omitempty"`
-	SampleRateHz int32  `json:"sample_rate_hz,omitempty"`
-	Channels     int32  `json:"channels,omitempty"`
-	Seed         *int32 `json:"seed,omitempty"`
-	FrameCount   uint64 `json:"frame_count,omitempty"`
+	ArtifactId      string           `json:"artifact_id,omitempty"`
+	MimeType        string           `json:"mime_type,omitempty"`
+	Bytes           []byte           `json:"bytes,omitempty"`
+	SizeBytes       int64            `json:"size_bytes,omitempty"`
+	Sha256          string           `json:"sha256,omitempty"`
+	DurationMs      int64            `json:"duration_ms,omitempty"`
+	Width           int32            `json:"width,omitempty"`
+	Height          int32            `json:"height,omitempty"`
+	SampleRateHz    int32            `json:"sample_rate_hz,omitempty"`
+	Channels        int32            `json:"channels,omitempty"`
+	Seed            *int32           `json:"seed,omitempty"`
+	FrameCount      uint64           `json:"frame_count,omitempty"`
+	SpeechAlignment *SpeechAlignment `json:"speech_alignment,omitempty"`
 }
 
 type LocalAppScenarioJob struct {

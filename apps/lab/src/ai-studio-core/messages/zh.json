@@ -470,6 +470,13 @@
       "audioPreserved": "已保留音轨",
       "noAudio": "无音轨",
       "rerunHint": "记录不保存输入文件。重新运行时请再次选择。"
+    },
+    "alignment": {
+      "title": "合成语音时间",
+      "exportComplete": "导出完整合成时间 JSON",
+      "wordTimes": "词级时间 · {{count}} 个词项",
+      "charTimes": "字级时间 · {{count}} 个字项",
+      "timeHint": "时间以这段音频起点为零，单位为秒。"
     }
   }
 }

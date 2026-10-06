@@ -640,6 +640,14 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			adapter = CloudMediaAdapterGeminiTTSInteractions
 		}
 	}
+	if d.provider == "dashscope" && target.capabilityContract == "audio.synthesize" {
+		if err := ValidateCosyVoiceWordRequest(target.providerModelID, mapped.GetSpec().GetSpeechSynthesize()); err != nil {
+			return nil, err
+		}
+		if streamMode != CloudMediaStreamNone && mapped.GetSpec().GetSpeechSynthesize().GetTimingMode() == runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	}
 	if d.provider == "gemini" && target.capabilityContract == "audio.transcribe" && target.providerModelID == geminiInlineTranscribeModel {
 		if err := ValidateGeminiInlineTranscribeRequest(mapped, target.providerModelID); err != nil {
 			return nil, err

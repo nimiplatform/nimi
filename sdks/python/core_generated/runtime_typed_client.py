@@ -4290,6 +4290,7 @@ class LocalAppScenarioArtifact:
     channels: int | None = None
     seed: int | None = None
     frame_count: int | None = None
+    speech_alignment: SpeechAlignment | None = None
 
 @dataclass(frozen=True)
 class LocalAppScenarioJob:

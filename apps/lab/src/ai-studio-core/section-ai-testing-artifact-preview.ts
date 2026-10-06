@@ -1,3 +1,5 @@
+import type { StudioManagedArtifact } from './runtime-types.js';
+
 export type StudioArtifactPreviewSource = {
   relativePath?: string;
   mediaType?: string;
@@ -5,6 +7,7 @@ export type StudioArtifactPreviewSource = {
   displayName?: string;
   previewSource?: 'managed-asset';
   sizeBytes?: number;
+  speechAlignment?: StudioManagedArtifact['speechAlignment'];
 };
 
 export type StudioArtifactRenderBranch =

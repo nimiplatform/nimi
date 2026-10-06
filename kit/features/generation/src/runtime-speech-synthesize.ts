@@ -29,6 +29,7 @@ export type RuntimeSpeechSynthesizeArtifactSummary = {
   readonly previewUrl?: string;
   readonly previewSource: 'hosted-uri' | 'inline-bytes' | 'metadata-only';
   readonly sizeBytes?: number;
+  readonly speechAlignment?: NimiRuntimeScenarioArtifact['speechAlignment'];
 };
 
 export type RuntimeSpeechSynthesizeTrace = {
@@ -179,6 +180,10 @@ function toSpeechArtifactSummary(
     mimeType,
     ...(uri ? { uri } : {}),
     ...(sizeBytes > 0 ? { sizeBytes } : {}),
+    ...(artifact.speechAlignment ? { speechAlignment: {
+      unit: artifact.speechAlignment.unit,
+      tokens: artifact.speechAlignment.tokens.map(token => ({ ...token })),
+    } } : {}),
   };
   if (uri) {
     return { ...base, previewUrl: uri, previewSource: 'hosted-uri' };

@@ -213,6 +213,9 @@ func ExecuteAlibabaNative(
 		ttsContract := resolveDashScopeTTSRequestContract(modelResolved)
 		payload := buildAlibabaTTSPayload(modelResolved, spec, requestedVoice, scenarioExtensions, ttsContract)
 		ttsPath := resolveAlibabaTTSPath(ttsContract)
+		if spec.GetTimingMode() == runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD {
+			return executeCosyVoiceWordSynthesis(ctx, JoinURL(baseURL, ttsPath), apiKey, modelResolved, spec, payload)
+		}
 		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, ttsPath), apiKey, payload, nil)
 		if err != nil {
 			return nil, nil, "", err

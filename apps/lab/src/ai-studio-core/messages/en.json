@@ -470,6 +470,13 @@
       "audioPreserved": "audio kept",
       "noAudio": "no audio track",
       "rerunHint": "Input files are not saved with the record. Choose them again to rerun."
+    },
+    "alignment": {
+      "title": "Synthesis alignment",
+      "exportComplete": "Export complete synthesis timing (JSON)",
+      "wordTimes": "Word timing · {{count}} tokens",
+      "charTimes": "Character timing · {{count}} tokens",
+      "timeHint": "Times refer to the start of this audio, in seconds."
     }
   }
 }

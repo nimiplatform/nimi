@@ -1,3 +1,4 @@
+import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-contract';
 import type { NimiLocalAppAgentWorkShell, NimiLocalAppIntegrationShell } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
@@ -2799,9 +2800,10 @@ function parseScenarioArtifacts(value: unknown, command: string): readonly NimiL
   return Object.freeze(value.map((entry) => {
     const record = assertRecord(entry, `${command}: artifact is invalid`);
     const hasSeed = Object.hasOwn(record, 'seed');
+    const hasAlignment = Object.hasOwn(record, 'speechAlignment');
     assertProjectionKeys(record, [
       'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
-      'width', 'height', 'sampleRateHz', 'channels', ...(Object.hasOwn(record, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []),
+      'width', 'height', 'sampleRateHz', 'channels', ...(Object.hasOwn(record, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []), ...(hasAlignment ? ['speechAlignment'] : []),
     ], command, 'scenario artifact');
     const bytes = parseProjectionBytes(record.bytes, command);
     const sizeBytes = boundedProjectionInteger(record.sizeBytes, 0, Number.MAX_SAFE_INTEGER, command);
@@ -2812,6 +2814,8 @@ function parseScenarioArtifacts(value: unknown, command: string): readonly NimiL
       ? boundedProjectionInteger(record.seed, -2_147_483_648, 2_147_483_647, command)
       : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) throw new Error(`${command}: artifact seed is invalid`);
+    if (hasAlignment && !mimeType.startsWith('audio/')) throw new Error(`${command}: speech alignment requires audio`);
+    const speechAlignment = hasAlignment ? validateNimiLocalAppSpeechAlignment(record.speechAlignment) : undefined;
     const frameCount = record.frameCount === undefined ? undefined : boundedProjectionInteger(record.frameCount, 1, Number.MAX_SAFE_INTEGER, command);
     if (frameCount !== undefined && (!mimeType.startsWith('audio/') || !(Number(record.sampleRateHz) > 0) || !(Number(record.channels) > 0))) throw new Error(`${command}: audio frame format is invalid`);
     return Object.freeze({
@@ -2824,6 +2828,7 @@ function parseScenarioArtifacts(value: unknown, command: string): readonly NimiL
       channels: boundedProjectionInteger(record.channels, 0, Number.MAX_SAFE_INTEGER, command),
       ...(frameCount !== undefined ? { frameCount } : {}),
       ...(seed !== undefined ? { seed } : {}),
+      ...(speechAlignment ? { speechAlignment } : {}),
     }) as NimiLocalAppScenarioArtifact;
   }));
 }
@@ -4289,6 +4294,10 @@ function validateProjectionValue(value: JsonValue, command: string): void {
     throw new Error(`${command}: result is not JSON-compatible`);
   }
   for (const [key, entry] of Object.entries(value)) {
+    if (key === 'speechAlignment') {
+      validateNimiLocalAppSpeechAlignment(entry);
+      continue;
+    }
     if (FORBIDDEN_PROJECTION_KEYS.has(normalizeFieldName(key))) {
       throw new Error(`${command}: protected field ${key} is forbidden`);
     }

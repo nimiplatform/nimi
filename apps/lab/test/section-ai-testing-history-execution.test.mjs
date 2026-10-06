@@ -37,6 +37,8 @@ await build({
       export { createRunConfigSnapshot } from './src/ai-studio-core/section-ai-testing-run.ts';
       export { parseStudioRunHistory } from './src/ai-studio-core/history-policy.ts';
       export { studioVoiceRuntimeHandlers } from './src/studio-modules/studio-voice/runtime.ts';
+      export { SpeechAlignmentResultView } from './src/ai-studio-core/section-ai-testing-output.tsx';
+      export { restoreStudioCapabilityRunResult } from './src/ai-studio-core/history.ts';
       export { t as labTranslate } from './src/shell/i18n/index.ts';`,
     resolveDir:root, loader:'ts',
   },
@@ -45,6 +47,7 @@ await build({
 });
 const { SectionAITesting, TextStudioComposer, TextStudioResultState, MusicRecoveryPanel, StudioHistoryResultContext, textStudioMediaInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 const { createStudioRunHistoryRecord, createRunConfigSnapshot, parseStudioRunHistory, studioVoiceRuntimeHandlers } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
+const { SpeechAlignmentResultView, restoreStudioCapabilityRunResult } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 
 test.after(async () => {
   dom.window.close();
@@ -701,6 +704,28 @@ function savedReplayRecord(id, target, saved, output, prompt = '', saveConfig = 
     ...(saveConfig ? { runConfig:createRunConfigSnapshot({target,context:'',attachmentCount:0,requestParameters:saved}) } : {}) });
   return parseStudioRunHistory(JSON.parse(JSON.stringify({[id]:[record]})))[id][0];
 }
+
+test('saved synthesis alignment survives production history and exposes every typed token including zero', async () => {
+  const id='audio.synthesize';
+  const alignment={unit:1,tokens:Array.from({length:401},(_,index)=>({token:index===1?' ':`token${index}`,startMs:String(index*250),endMs:String(index*250+125)}))};
+  const artifact={relativePath:'owned/synthesized.wav',mediaType:'audio/wav',sizeBytes:58,sha256:`sha256:${'a'.repeat(64)}`,previewSource:'managed-asset',speechAlignment:alignment};
+  const target={capabilityId:id,capabilityContract:id,section:'voice',source:'cloud',status:'configured',canDispatch:true,intentLabel:'Cloud',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
+  const record=savedReplayRecord(id,target,{voiceKind:'preset',voicePreset:'longanyang',timingMode:'word'}, {kind:'artifacts',jobId:'saved-word-job',jobState:'completed',artifactCount:1,artifacts:[artifact],firstArtifact:artifact},'Hello Nimi.');
+  const result=restoreStudioCapabilityRunResult(record,()=>id);
+  assert.deepEqual(result.output.firstArtifact.speechAlignment,alignment);
+  const exports=[];const host={translate:key=>key,app:{commands:{exportText:async payload=>{exports.push(payload);return {ok:false,retryable:true,message:'isolated save boundary'}}}}};
+  const container=document.getElementById('root'),renderer=createRoot(container);
+  try {
+    await act(async()=>renderer.render(createElement(AIStudioHostProvider,{value:host},createElement(SpeechAlignmentResultView,{alignment:result.output.firstArtifact.speechAlignment}))));
+    assert.equal(container.querySelectorAll('tbody tr').length,400);
+    assert.equal(container.querySelector('tbody tr td:nth-child(3)').textContent,'0.000');
+    await act(async()=>Array.from(container.querySelectorAll('button')).find(b=>b.textContent==='StudioResults.alignment.exportComplete').click());
+    assert.deepEqual(JSON.parse(exports[0].body),alignment);
+    assert.equal(JSON.parse(exports[0].body).tokens[400].startMs,'100000');
+    const invalid=structuredClone(record);delete invalid.result.artifacts[0].speechAlignment.tokens[0].startMs;
+    assert.throws(()=>parseStudioRunHistory({[id]:[invalid]}));
+  } finally { await act(async()=>renderer.unmount()); }
+});
 
 for (const item of [
   { id:'music.transcribe', saved:{sourceRelativePath:'owned/A.wav',sourceMimeType:'audio/wav',requestedPart:'note-events',requestedFormats:['midi'],startSeconds:2,endSeconds:9}, live:{sourceRelativePath:'owned/B.wav',sourceMimeType:'audio/wav',requestedPart:'note-events',requestedFormats:['midi'],startSeconds:20,endSeconds:30} },

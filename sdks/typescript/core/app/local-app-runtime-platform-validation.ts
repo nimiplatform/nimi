@@ -1,6 +1,7 @@
 import { createNimiError } from '../../types';
 import { projectMusicInputCapabilities } from '../ai/music-input.js';
 import { isNimiLocalAppByteView } from './local-app-bytes.js';
+import type { NimiLocalAppScenarioArtifact } from './local-app-runtime-platform-ai.js';
 
 const FORBIDDEN_AUTHORITY_FIELDS = new Set([
   'account',
@@ -163,6 +164,11 @@ export function assertSafeProjection(value: unknown, seen = new Set<object>(), p
   const record = asRecord(value);
   if (!record) localAppProjectionError('unsafe object');
   for (const [key, entry] of Object.entries(record)) {
+    if (!productContent && key === 'speechAlignment') {
+      projectLocalAppSpeechAlignment(entry);
+      assertSafeProjection(entry, seen, true);
+      continue;
+    }
     if (!productContent && key === 'musicInput') {
       // This closed musical descriptor contains a generation profile list,
       // never an authority generation counter. Validate it before treating
@@ -176,6 +182,27 @@ export function assertSafeProjection(value: unknown, seen = new Set<object>(), p
     }
     assertSafeProjection(entry, seen, productContent);
   }
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r071
+// A spoken token is product text. Only this exact validated structure may
+// carry that field; arbitrary token/credential objects remain forbidden.
+export function projectLocalAppSpeechAlignment(value: unknown): NonNullable<NimiLocalAppScenarioArtifact['speechAlignment']> {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['unit', 'tokens'], 'speech alignment');
+  if ((record.unit !== 'word' && record.unit !== 'char') || !Array.isArray(record.tokens) || !record.tokens.length) localAppProjectionError('speech alignment units');
+  let previousStart = 0, previousEnd = 0;
+  const tokens = [];
+  for (let index = 0; index < record.tokens.length; index++) {
+    const token = asRecord(record.tokens[index]);
+    assertExactProjectionKeys(token, ['token', 'startMs', 'endMs'], 'speech alignment token');
+    if (typeof token.token !== 'string' || token.token.length === 0 || token.token.length > 256 * 1024 ||
+      typeof token.startMs !== 'number' || !Number.isSafeInteger(token.startMs) || token.startMs < previousStart ||
+      typeof token.endMs !== 'number' || !Number.isSafeInteger(token.endMs) || token.endMs < Math.max(token.startMs, previousEnd)) localAppProjectionError('speech alignment token facts');
+    previousStart = token.startMs; previousEnd = token.endMs;
+    tokens.push(Object.freeze({ token: token.token, startMs: token.startMs, endMs: token.endMs }));
+  }
+  return Object.freeze({ unit: record.unit, tokens: Object.freeze(tokens) });
 }
 
 export function assertNoAIConfigPrivateIdentity(

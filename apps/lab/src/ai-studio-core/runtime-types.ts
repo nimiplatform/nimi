@@ -2,7 +2,7 @@ import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/h
 import type { StudioParameterValue } from './parameters.js';
 import type { StudioRunConfigSnapshot } from './history.js';
 import type { NimiLocalAppAudioInstrumentPartKind, NimiLocalAppVisionLocateResult, NimiLocalAppMusicGeneration, NimiLocalAppMusicTranscription, NimiLocalAppSpeechTranscript, NimiLocalAppTextAnnotationResult, NimiLocalAppVideoFaceSwapSummary, NimiLocalAppVoiceConversion } from '@nimiplatform/sdk/app';
-import type { NimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeScenarioJob, NimiRuntimeScenarioArtifact } from '@nimiplatform/sdk/runtime';
 
 export type StudioRuntimeCapabilityDescriptor = {
   readonly id: string;
@@ -21,6 +21,7 @@ export type StudioManagedArtifact = {
   readonly sha256: string;
   readonly displayName?: string;
   readonly previewSource: 'managed-asset';
+  readonly speechAlignment?: NimiRuntimeScenarioArtifact['speechAlignment'];
 };
 
 export type StudioMusicGeneration = Pick<NimiLocalAppMusicGeneration, 'termination' | 'actualSeed' | 'audioInfo'> & {

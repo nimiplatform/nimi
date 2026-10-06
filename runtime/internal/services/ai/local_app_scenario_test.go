@@ -25,6 +25,28 @@ func localAppScenarioDecisionContext(operation accountservice.LocalAppOperation,
 	})
 }
 
+func TestLocalAppSpeechAlignmentProjectionPreservesZeroAndRejectsMalformedAudio(t *testing.T) {
+	alignment := &runtimev1.SpeechAlignment{Unit: runtimev1.SpeechAlignmentUnit_SPEECH_ALIGNMENT_UNIT_WORD, Tokens: []*runtimev1.SpeechAlignmentToken{{Token: "Hello", StartMs: 0, EndMs: 400}, {Token: " ", StartMs: 400, EndMs: 650}, {Token: "Nimi", StartMs: 650, EndMs: 1050}}}
+	artifact := &runtimev1.ScenarioArtifact{ArtifactId: "aligned-audio", MimeType: "audio/wav", SizeBytes: 58, SpeechAlignment: alignment}
+	projected, err := projectLocalAppScenarioArtifact(artifact)
+	if err != nil || projected.GetSpeechAlignment().GetTokens()[0].GetStartMs() != 0 || projected.GetSpeechAlignment().GetTokens()[1].GetToken() != " " || projected.GetSpeechAlignment().GetTokens()[2].GetStartMs() != 650 {
+		t.Fatalf("alignment projection = %v %v", projected, err)
+	}
+	alignment.Tokens[0].Token = "later mutation"
+	if projected.SpeechAlignment.Tokens[0].Token != "Hello" {
+		t.Fatal("alignment projection was not cloned")
+	}
+	alignment.Tokens[0].StartMs = -1
+	if _, err := projectLocalAppScenarioArtifact(artifact); err == nil {
+		t.Fatal("invalid timing projected")
+	}
+	alignment.Tokens[0].StartMs = 0
+	artifact.MimeType = "image/png"
+	if _, err := projectLocalAppScenarioArtifact(artifact); err == nil {
+		t.Fatal("image alignment projected")
+	}
+}
+
 func localAppScenarioExecuteContext() context.Context {
 	return localAppScenarioDecisionContext(accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute)
 }

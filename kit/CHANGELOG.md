@@ -14,6 +14,10 @@ Persist summary items separately from final text, together with the unchanged or
 
 ## Next minor (compatible additions)
 
+The matching SDK adds `validateNimiLocalAppSpeechAlignment`; Kit re-exports it only through its SDK contract seam for the Electron Host. This new public validator is a compatible next-minor export. It validates the closed product-text structure before permitting spoken `token` fields; raw token/credential projections remain forbidden.
+
+Speech synthesis summaries now retain the complete typed Runtime alignment beside the same audio artifact, including zero milliseconds. Use the matching Runtime, SDK and native builds; persist the audio reference together with alignment. This is a compatible type widening staged for the next minor, with no additional CosyVoice CHAR or realtime support.
+
 Installed App control accepts an optional `AbortSignal` for launch. The matching native binding cancels preparation/binding and cleans up suspended children; Desktop uses it when stopping a pending launch. Runtime owns the committed launch configuration and executable verification, so the carrier no longer repeats the executable hash before creating a suspended child.
 
 The generation consume helper adds optional embedding `dimensions`, and the protected native carrier retains its presence through the matching SDK and Runtime. This is a compatible next-minor addition. Runtime admits exact native shortening support and rejects unsupported Local or Cloud compositions; omitting the field retains the captured native default. Missing provider usage remains unspecified in the embedding summary.
