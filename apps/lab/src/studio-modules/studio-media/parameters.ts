@@ -248,7 +248,7 @@ export const studioVideoGenerateParameters = defineStudioParameters<StudioVideoG
 });
 
 export const studioMusicGenerateParameters = defineStudioParameters<StudioMusicGenerationParameters>({
-  initial: () => ({ lyrics: '[Verse]\n\n[Chorus]\n' }),
+  initial: () => ({}),
   routeMatrix: {
     lyrics: LOCAL_AND_CLOUD_STUDIO_PARAMETER, durationSeconds: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     seed: LOCAL_AND_CLOUD_STUDIO_PARAMETER, instrumental: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
