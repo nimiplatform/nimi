@@ -2,13 +2,13 @@ package ai
 
 import (
 	"context"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"strings"
 	"sync"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/realtimecore"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"google.golang.org/protobuf/proto"
@@ -41,7 +41,7 @@ type realtimeSessionRecord struct {
 	generation           uint64
 	appID                string
 	subjectUserID        string
-	ownerSessionID       protectedlocal.Identifier
+	ownerSessionID       accountservice.LocalAppSessionID
 	ownerInvalidated     <-chan struct{}
 	terminalDone         chan struct{}
 	terminalControl      *runtimev1.RealtimeControlStatus
@@ -85,7 +85,7 @@ const realtimeTerminalLimit = 256
 // Only the control receipt survives resource cleanup, never the live record.
 type realtimeSessionTerminal struct {
 	appID, subjectUserID string
-	ownerSessionID       protectedlocal.Identifier
+	ownerSessionID       accountservice.LocalAppSessionID
 	ownerInvalidated     <-chan struct{}
 	control              *runtimev1.RealtimeControlStatus
 	expiresAt            time.Time

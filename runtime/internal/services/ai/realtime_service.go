@@ -11,7 +11,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/realtimecore"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -553,7 +552,7 @@ func (s *Service) ReplayClosedRealtimeSession(ctx context.Context, req *runtimev
 	if err != nil || caller.appID != terminal.appID || caller.accountNamespace != terminal.subjectUserID {
 		return nil, false
 	}
-	var sessionID protectedlocal.Identifier
+	var sessionID accountservice.LocalAppSessionID
 	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
 		sessionID = decision.SessionID
 		select {

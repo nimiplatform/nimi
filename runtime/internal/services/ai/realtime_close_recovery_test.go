@@ -9,7 +9,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/realtimecore"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
@@ -28,7 +27,7 @@ func TestRealtimeTerminalReceiptBoundsAndOwnership(t *testing.T) {
 	now := time.Unix(1000, 0)
 	store.now = func() time.Time { return now }
 	invalidated := make(chan struct{})
-	var ownerSession protectedlocal.Identifier
+	var ownerSession accountservice.LocalAppSessionID
 	ownerSession[0] = 1
 	svc := &Service{realtimeSessions: store}
 	decision := accountservice.LocalAppCallerDecision{SessionID: ownerSession, AccountID: "account", AppID: "app", RegisteredAppSubject: "subject", SessionInvalidated: invalidated}
