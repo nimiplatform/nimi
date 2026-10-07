@@ -2,12 +2,75 @@ package nimillm
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/binary"
+	"fmt"
+	"log/slog"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.dashscope-voice-preview
+func projectDashScopeVoicePreview(response map[string]any, result *VoiceWorkflowResult) error {
+	output, _ := response["output"].(map[string]any)
+	raw, present := output["preview_audio"]
+	if !present {
+		return nil
+	}
+	var audio []byte
+	invalid := func(stage string) error {
+		// Diagnose only structure and format, never the audio, prompt or handle.
+		preview, _ := raw.(map[string]any)
+		format := "missing"
+		if value, present := preview["response_format"]; present {
+			format = "unrecognized"
+			if value == "wav" || value == "mp3" || value == "pcm" || value == "pcm16" {
+				format = value.(string)
+			}
+		}
+		if len(audio) == 0 {
+			if encoded, ok := preview["data"].(string); ok && len(encoded) <= maxGeminiTTSAudioBase64Bytes {
+				audio, _ = base64.StdEncoding.Strict().DecodeString(encoded)
+			}
+		}
+		attributes := []any{"stage", stage, "known_handle", result.ProviderVoiceRef != "", "format", format, "rate_type", fmt.Sprintf("%T", preview["sample_rate"]), "bytes", len(audio)}
+		if len(audio) >= 36 && string(audio[:4]) == "RIFF" && string(audio[8:12]) == "WAVE" && string(audio[12:16]) == "fmt " {
+			attributes = append(attributes, "declared_bytes", uint64(binary.LittleEndian.Uint32(audio[4:8]))+8, "wav_format", binary.LittleEndian.Uint16(audio[20:22]), "channels", binary.LittleEndian.Uint16(audio[22:24]), "sample_rate", binary.LittleEndian.Uint32(audio[24:28]), "bits", binary.LittleEndian.Uint16(audio[34:36]))
+		}
+		slog.Error("DashScope voice preview rejected", attributes...)
+		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, grpcerr.ReasonOptions{Message: "DashScope voice preview rejected: " + stage, ActionHint: "inspect_dashscope_voice_preview_" + stage})
+	}
+	preview, ok := raw.(map[string]any)
+	if !ok || ValueAsString(preview["response_format"]) != "wav" {
+		return invalid("format")
+	}
+	encoded, ok := preview["data"].(string)
+	if !ok || encoded == "" || len(encoded) > maxGeminiTTSAudioBase64Bytes {
+		return invalid("data")
+	}
+	rate, ok := preview["sample_rate"].(float64)
+	if !ok || rate < 1 || rate > 96000 || rate != float64(uint32(rate)) {
+		return invalid("sample_rate")
+	}
+	var err error
+	audio, err = base64.StdEncoding.Strict().DecodeString(encoded)
+	if err != nil {
+		return invalid("base64")
+	}
+	audio, err = finishCompletedDashScopeWAV(audio)
+	if err != nil {
+		return invalid("wav_completion")
+	}
+	wavRate, duration, err := finiteASRWAVInfo(audio)
+	if err != nil || duration <= 0 || float64(wavRate) != rate {
+		return invalid("wav")
+	}
+	result.PreviewAudio, result.PreviewMime = audio, "audio/wav"
+	return nil
+}
 
 func executeDashScopeVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
@@ -168,6 +231,10 @@ func buildDashScopeVoiceWorkflowPayload(req VoiceWorkflowRequest) (map[string]an
 			if parameters := dashScopeVoiceWorkflowParameters(req.Payload); len(parameters) > 0 {
 				payload["parameters"] = parameters
 			}
+		} else {
+			// The existing preview carrier owns a finite WAV, never unframed
+			// provider PCM or an implicit conversion after creation.
+			payload["parameters"] = map[string]any{"sample_rate": 24000, "response_format": "wav"}
 		}
 		return payload, nil
 	default:

@@ -99,7 +99,7 @@ func executeCosyVoiceWordSynthesis(ctx context.Context, endpoint, apiKey, model 
 		mime = ResolveSpeechArtifactMIME(spec, audio)
 	}
 	if mime == "audio/wav" {
-		audio, err = finishCosyVoiceWordWAV(audio)
+		audio, err = finishCompletedDashScopeWAV(audio)
 		if err != nil {
 			return nil, nil, requestID, invalidCosyVoiceWordOutput()
 		}

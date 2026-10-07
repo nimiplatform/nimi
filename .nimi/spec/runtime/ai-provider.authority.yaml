@@ -1812,3 +1812,13 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.dashscope-voice-preview
+    kind: rule
+    title: DashScope voice design preserves completed native preview WAVs
+    modality: must
+    statement: For an admitted DashScope text-description voice.create target, the Runtime Driver maps the native output.preview_audio data, sample_rate and response_format to one optional ordinary owned ScenarioJob preview artifact, verifies the returned WAV and its actual sampling rate, and shares terminal publication with the reusable VoiceAsset. A successful native voice-design JSON response containing the confirmed created voice reference and the complete inline preview is completion evidence for that preview, while the existing CosyVoice WORD path requires its actual successful SSE stop. Only the observed PCM16 WAV streaming data-length marker 2147483547 and its exactly matching RIFF length derived from the real prefix may be finalized to actual byte lengths after that evidence; every original sample and other chunk byte is retained without resampling, estimation or arbitrary header repair. Already finite valid WAV bytes remain unchanged, old saved files are never rewritten, and missing optional preview is not fabricated. Invalid present preview fails the exact Job while retaining the confirmed provider handle for the existing private unpublished cleanup and reconciliation owner.
+    condition: Whenever Runtime normalizes an admitted DashScope voice-design preview or finalizes the same native WAV length marker after confirmed completion.
+    failure: Reject malformed base64, incompatible format or sampling metadata, nonmatching or arbitrary length markers, incomplete PCM and unconfirmed completion without publishing a fake preview, changing models, creating a replacement request or exposing an unpublished provider handle.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

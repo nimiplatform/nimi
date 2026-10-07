@@ -42,8 +42,8 @@ func cosyVoiceWAVForTest(streaming, extraChunks bool) ([]byte, int) {
 	b = append(b, chunk("data", pcm)...)
 	binary.LittleEndian.PutUint32(b[4:8], uint32(len(b)-8))
 	if streaming {
-		binary.LittleEndian.PutUint32(b[4:8], cosyVoiceStreamingWAVDataSize+uint32(dataOffset))
-		binary.LittleEndian.PutUint32(b[dataOffset+4:dataOffset+8], cosyVoiceStreamingWAVDataSize)
+		binary.LittleEndian.PutUint32(b[4:8], dashScopeStreamingWAVDataSize+uint32(dataOffset))
+		binary.LittleEndian.PutUint32(b[dataOffset+4:dataOffset+8], dashScopeStreamingWAVDataSize)
 	} else if extraChunks {
 		b = append(b, chunk("LIST", []byte("INFO"))...)
 		binary.LittleEndian.PutUint32(b[4:8], uint32(len(b)-8))
@@ -55,7 +55,7 @@ func TestCosyVoiceWAVFinalizesOnlyKnownStreamingLengths(t *testing.T) {
 	for _, extra := range []bool{false, true} {
 		input, offset := cosyVoiceWAVForTest(true, extra)
 		original := append([]byte(nil), input...)
-		result, err := finishCosyVoiceWordWAV(input)
+		result, err := finishCompletedDashScopeWAV(input)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -79,7 +79,7 @@ func TestCosyVoiceWAVFinalizesOnlyKnownStreamingLengths(t *testing.T) {
 	}
 	for _, extra := range []bool{false, true} {
 		input, _ := cosyVoiceWAVForTest(false, extra)
-		result, err := finishCosyVoiceWordWAV(input)
+		result, err := finishCompletedDashScopeWAV(input)
 		if err != nil || !bytes.Equal(input, result) || &input[0] != &result[0] {
 			t.Fatalf("valid finite container changed: %v", err)
 		}
@@ -105,14 +105,14 @@ func TestCosyVoiceWAVRejectsUnknownMixedAndTruncatedContainers(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			b, o := cosyVoiceWAVForTest(true, false)
-			if out, err := finishCosyVoiceWordWAV(mutate(b, o)); err == nil || out != nil {
+			if out, err := finishCompletedDashScopeWAV(mutate(b, o)); err == nil || out != nil {
 				t.Fatal("bad streaming WAV became successful")
 			}
 		})
 	}
 	finite, _ := cosyVoiceWAVForTest(false, true)
 	for _, b := range [][]byte{finite[:len(finite)-1], append(finite, 1), append(finite[:44:44], finite[45:]...)} {
-		if out, err := finishCosyVoiceWordWAV(b); err == nil || out != nil {
+		if out, err := finishCompletedDashScopeWAV(b); err == nil || out != nil {
 			t.Fatal("truncated finite WAV was repaired")
 		}
 	}
@@ -164,7 +164,7 @@ func TestCosyVoiceFiniteWAVPreservesAdmittedPCMFormatAndChunkExtension(t *testin
 		binary.LittleEndian.PutUint16(b[34:36], bits)
 		binary.LittleEndian.PutUint16(b[32:34], bits/8)
 		binary.LittleEndian.PutUint32(b[28:32], 24000*uint32(bits/8))
-		out, err := finishCosyVoiceWordWAV(b)
+		out, err := finishCompletedDashScopeWAV(b)
 		if err != nil || !bytes.Equal(b, out) {
 			t.Fatalf("finite PCM%d changed: %v", bits, err)
 		}
@@ -174,7 +174,7 @@ func TestCosyVoiceFiniteWAVPreservesAdmittedPCMFormatAndChunkExtension(t *testin
 	extended = append(extended, b[36:]...)
 	binary.LittleEndian.PutUint32(extended[16:20], 18)
 	binary.LittleEndian.PutUint32(extended[4:8], uint32(len(extended)-8))
-	if out, err := finishCosyVoiceWordWAV(extended); err != nil || !bytes.Equal(out, extended) {
+	if out, err := finishCompletedDashScopeWAV(extended); err != nil || !bytes.Equal(out, extended) {
 		t.Fatalf("valid fmt extension changed: %v", err)
 	}
 }

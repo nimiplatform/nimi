@@ -114,11 +114,19 @@ func voiceWorkflowPost(
 	if statusText := strings.TrimSpace(ResolveAsyncTaskStatus(response)); statusText != "" {
 		metadata["provider_status"] = statusText
 	}
-	return VoiceWorkflowResult{
+	result := VoiceWorkflowResult{
 		ProviderJobID:    ExtractTaskIDFromAdapterPayload("voice:"+provider, response),
 		ProviderVoiceRef: providerVoiceRef,
 		Metadata:         metadata,
-	}, nil
+	}
+	if provider == "dashscope" && workflowType == "text_description" {
+		if err := projectDashScopeVoicePreview(response, &result); err != nil {
+			// The owner must retain this confirmed created handle even when its
+			// optional media is malformed, so unpublished cleanup can reconcile it.
+			return result, err
+		}
+	}
+	return result, nil
 }
 
 func executeSimpleVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig, provider string, defaults []string) (VoiceWorkflowResult, error) {

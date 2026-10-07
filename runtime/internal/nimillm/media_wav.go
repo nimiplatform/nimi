@@ -5,17 +5,20 @@ import (
 	"fmt"
 )
 
-// This is the data-length marker observed in complete CosyVoice SSE WAVs.
+// This exact data-length marker is observed in completed CosyVoice WORD and
+// DashScope voice-design preview WAVs.
 // RIFF's matching marker includes the actual prefix chunk headers/padding.
-const cosyVoiceStreamingWAVDataSize uint32 = 2147483547
+const dashScopeStreamingWAVDataSize uint32 = 2147483547
 
-// finishCosyVoiceWordWAV is called only after a valid complete SSE stop.
+// finishCompletedDashScopeWAV requires native completion evidence: a valid
+// CosyVoice SSE stop or a successful voice-design JSON result with a created
+// handle and its complete inline preview.
 // A streaming data chunk ends at EOF. Only its known length marker and its
 // structurally matching RIFF marker can be finalized; arbitrary mismatches fail.
 // PCM and all actual chunk bytes are retained, without resampling or estimating.
-// @nimi-authority: rule.nimi.runtime.ai-provider.r071
-func finishCosyVoiceWordWAV(audio []byte) ([]byte, error) {
-	invalid := func() ([]byte, error) { return nil, fmt.Errorf("invalid completed CosyVoice WAV") }
+// @nimi-authority: rule.nimi.runtime.ai-provider.dashscope-voice-preview
+func finishCompletedDashScopeWAV(audio []byte) ([]byte, error) {
+	invalid := func() ([]byte, error) { return nil, fmt.Errorf("invalid completed DashScope WAV") }
 	if len(audio) < 44 || len(audio) > 32*1024*1024 || string(audio[:4]) != "RIFF" || string(audio[8:12]) != "WAVE" {
 		return invalid()
 	}
@@ -29,7 +32,7 @@ func finishCosyVoiceWordWAV(audio []byte) ([]byte, error) {
 		size := binary.LittleEndian.Uint32(audio[offset+4 : offset+8])
 		start := offset + 8
 		if string(audio[offset:offset+4]) == "data" && !finite {
-			if !formatSeen || !geminiWAVPCM16(audio) || size != cosyVoiceStreamingWAVDataSize || uint64(riffSize) != uint64(size)+uint64(start-8) {
+			if !formatSeen || !geminiWAVPCM16(audio) || size != dashScopeStreamingWAVDataSize || uint64(riffSize) != uint64(size)+uint64(start-8) {
 				return invalid()
 			}
 			actual := len(audio) - start
