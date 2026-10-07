@@ -81,7 +81,12 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       table: 'local-adapter-routing',
       capability: 'audio.separate',
     }),
-    additionalRuntimeTables: Object.freeze([]),
+    additionalRuntimeTables: Object.freeze([
+      Object.freeze({
+        table: 'provider-capabilities',
+        capability: 'audio.separate',
+      }),
+    ]),
     i18nKeys: Object.freeze({
       title: 'AIConfig.capability.audioSeparate.title',
       subtitle: 'AIConfig.capability.audioSeparate.subtitle',

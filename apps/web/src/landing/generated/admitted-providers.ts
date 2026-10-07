@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: config/runtime-provider-catalog.yaml
- *   sha256: 3b4cb2d13b487510235c11016deda952e56cbc019eae09c0e985b6b711e7e0d9
+ *   sha256: 9b81afe83c26b2b275d972abb976773c15ac6fb4fb1f86834497b9644c921aa3
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -310,6 +310,14 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "soundverse",
     defaultEndpoint: "https://api.soundverse.ai",
+    defaultTextModel: null,
+    requiresExplicitEndpoint: false,
+    inventoryMode: "static_source",
+    sourceRule: "K-MCAT-027",
+  },
+  {
+    provider: "spaitial",
+    defaultEndpoint: "https://api.spaitial.ai",
     defaultTextModel: null,
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",

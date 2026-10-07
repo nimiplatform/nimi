@@ -2,9 +2,9 @@
  * @generated
  * Sources:
  *   config/runtime-provider-capabilities.yaml
- *     sha256: d31d6e9748e251b868aeb421e39f452bfbb57932e9ba8e50fe2be5a6cf9b61a6
+ *     sha256: 86d12f457ccbc5b783470665e7f6b6e99e575b37b9b4aecbd19287f680ce5970
  *   config/runtime-provider-catalog.yaml
- *     sha256: 3b4cb2d13b487510235c11016deda952e56cbc019eae09c0e985b6b711e7e0d9
+ *     sha256: 9b81afe83c26b2b275d972abb976773c15ac6fb4fb1f86834497b9644c921aa3
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -302,7 +302,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: false,
     endpointRequirement: "empty_string_only",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate", "video.generate", "vision.locate", "voice.create"],
+    capabilities: ["audio.separate", "audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate", "video.generate", "vision.locate", "voice.create"],
     sources: ["K-LOCAL-001", "K-LOCAL-002", "K-MCAT-027"],
   },
   {
@@ -490,6 +490,17 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
     capabilities: ["music.generate"],
+    sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
+  },
+  {
+    provider: "spaitial",
+    runtimePlane: "remote",
+    executionModule: "nimillm",
+    managedConnectorSupported: true,
+    inlineSupported: true,
+    endpointRequirement: "default_or_explicit",
+    inventoryMode: "static_source",
+    capabilities: [],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
