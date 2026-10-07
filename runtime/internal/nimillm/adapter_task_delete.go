@@ -33,6 +33,8 @@ func DeleteProviderAsyncTask(ctx context.Context, adapter string, providerJobID 
 			return ProviderTaskCleanupFailed, err
 		}
 		return ProviderTaskCleanupUnconfirmed, nil
+	case AdapterSpaitialNative:
+		return cancelSpaitialTask(ctx, providerJobID, cfg)
 	case AdapterAlibabaNative:
 		return cancelAlibabaTask(ctx, providerJobID, cfg)
 	default:

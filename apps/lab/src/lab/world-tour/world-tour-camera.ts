@@ -5,7 +5,7 @@ export type WorldTourCameraPreset = {
   quaternion: [number, number, number, number];
   fov: number;
   archiveSha256?: string;
-  navigation?: { mode: 'walk' | 'fly'; bodyHeight: number; radius: number };
+  navigation?: { mode: 'walk' | 'fly'; bodyHeight: number; radius: number; units?: never } | { mode: 'fly'; units: 'scene'; bodyHeight?: never; radius?: never };
 };
 
 export function parseWorldTourCameraPreset(value: unknown): WorldTourCameraPreset {
@@ -21,9 +21,14 @@ export function parseWorldTourCameraPreset(value: unknown): WorldTourCameraPrese
   let navigation: WorldTourCameraPreset['navigation'];
   if (value.navigation !== undefined) {
     const n = value.navigation;
+    if (isJsonObject(n) && n.mode === 'fly' && n.units === 'scene') {
+      if (n.bodyHeight !== undefined || n.radius !== undefined) throw new Error('world-tour-camera-preset-invalid');
+      navigation = { mode: 'fly', units: 'scene' };
+    } else {
     if (!isJsonObject(n) || (n.mode !== 'walk' && n.mode !== 'fly') || typeof n.bodyHeight !== 'number' || typeof n.radius !== 'number' ||
-        !Number.isFinite(n.bodyHeight) || !Number.isFinite(n.radius) || n.bodyHeight < 0.5 || n.bodyHeight > 2.4 || n.radius < 0.1 || n.radius > 0.4 || n.bodyHeight <= 2 * n.radius) throw new Error('world-tour-camera-preset-invalid');
+        n.units !== undefined || !Number.isFinite(n.bodyHeight) || !Number.isFinite(n.radius) || n.bodyHeight < 0.5 || n.bodyHeight > 2.4 || n.radius < 0.1 || n.radius > 0.4 || n.bodyHeight <= 2 * n.radius) throw new Error('world-tour-camera-preset-invalid');
     navigation = { mode: n.mode, bodyHeight: n.bodyHeight, radius: n.radius };
+    }
   }
   return { ...(value.archiveSha256 ? { archiveSha256: value.archiveSha256 } : {}), ...(navigation ? { navigation } : {}), position: value.position as WorldTourCameraPreset['position'], quaternion, fov: value.fov };
 }

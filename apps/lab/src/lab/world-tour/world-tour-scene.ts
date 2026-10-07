@@ -6,24 +6,33 @@ import { loadWorldCollisionGeometry, type WorldCollisionGeometry } from './world
 import { createWorldWalk, validateWorldBodySize, type WorldBodySize } from './world-tour-walk.js';
 import { createWorldObjectLayer } from './world-tour-objects.js';
 import type { WorldObjectInstance, WorldObjectTransform } from './world-tour-composition.js';
+import { nativeWorldBrowsingAnchor } from './world-tour-native-view.js';
 
-export type WorldNavigationState = { mode: 'walk' | 'fly' | null; available: boolean; issue: 'missing' | 'invalid' | 'clearance' | null; size: WorldBodySize; pending: boolean };
+export type WorldNavigationState = { mode: 'walk' | 'fly' | null; calibrationState?: 'calibrated' | 'uncalibrated'; available: boolean; issue: 'missing' | 'invalid' | 'clearance' | 'uncalibrated' | null; size: WorldBodySize; pending: boolean };
 
 export function createWorldTourScene(container: HTMLElement, world: WorldTourArchive, label: string, onNavigation?: (state: WorldNavigationState) => void,
   onObjects?: (items: WorldObjectInstance[]) => void, onSelection?: (id: string | null) => void) {
+  if ((world.calibrationState !== 'calibrated' && world.calibrationState !== 'uncalibrated') ||
+    (world.splatCoordinateSystem !== 'opencv' && world.splatCoordinateSystem !== 'spz-rub')) throw new Error('world-spatial-metadata-invalid');
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); renderer.setClearColor(0x17201d);
   const canvas = renderer.domElement; canvas.tabIndex = 0; canvas.setAttribute('aria-label', label); container.appendChild(canvas);
   const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(65, 1, 0.03, 1000);
   const spark = new SparkRenderer({ renderer }); scene.add(spark);
   const splat = new SplatMesh({ fileBytes: world.splatBytes, fileName: 'world.spz' });
-  splat.scale.setScalar(world.metricScaleFactor); splat.rotation.x = Math.PI; splat.position.y = world.groundPlaneOffset; scene.add(splat);
-  const origin = new THREE.Vector3(0, world.groundPlaneOffset, 0); camera.position.copy(origin);
+  const calibrated = world.calibrationState === 'calibrated';
+  // Spark 2.1's SPZ reader preserves encoded XYZ. RDF/OpenCV needs one X
+  // half-turn; the declared native SPZ RUB convention already matches Three.
+  splat.rotation.x = world.splatCoordinateSystem === 'opencv' ? Math.PI : 0;
+  if (calibrated) { splat.scale.setScalar(world.metricScaleFactor); splat.position.y = world.groundPlaneOffset; }
+  scene.add(splat);
+  const origin = new THREE.Vector3(0, calibrated ? world.groundPlaneOffset : 0, 0); camera.position.copy(origin);
+  let sceneFlightSpeed = 1.6;
   let geometry: WorldCollisionGeometry | undefined;
   let walk: Awaited<ReturnType<typeof createWorldWalk>> | undefined;
   let size: WorldBodySize = { bodyHeight: 1.7, radius: 0.25 };
   let mode: 'walk' | 'fly' | null = null;
-  let issue: WorldNavigationState['issue'] = world.colliderBytes ? null : 'missing';
+  let issue: WorldNavigationState['issue'] = calibrated ? world.colliderBytes ? null : 'missing' : 'uncalibrated';
   let pending = true, disposed = false, frame = 0;
   const keys = new Set<string>();
   const controls = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight']);
@@ -33,7 +42,7 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
   const objects = createWorldObjectLayer(scene, camera, canvas, items => onObjects?.(items), id => onSelection?.(id), active => { objectDragging = active; clearInput(); });
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8a9ab2, 2));
   const objectLight = new THREE.DirectionalLight(0xffffff, 2); objectLight.position.set(2, 5, 3); scene.add(objectLight);
-  const readNavigation = (): WorldNavigationState => ({ mode, available: Boolean(walk?.available), issue, size: { ...size }, pending });
+  const readNavigation = (): WorldNavigationState => ({ mode, calibrationState: world.calibrationState, available: Boolean(walk?.available), issue, size: { ...size }, pending });
   const changed = () => onNavigation?.(readNavigation());
   const reset = () => {
     clearInput();
@@ -50,6 +59,7 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     changed();
   };
   const setBodySize = async (next: WorldBodySize) => {
+    if (!calibrated) throw new Error('world-not-calibrated');
     validateWorldBodySize(next);
     if (disposed || pending || !geometry) throw new Error('world-walk-unavailable');
     clearInput(); pending = true; changed();
@@ -87,7 +97,7 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     if (disposed) return;
     const delta = Math.min((now - lastTime) / 1000, 0.1); lastTime = now;
     velocity.set(Number(keys.has('KeyD')) - Number(keys.has('KeyA')), 0, Number(keys.has('KeyS')) - Number(keys.has('KeyW')));
-    const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 4 : 1.6;
+    const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2.5 : 1) * (calibrated ? 1.6 : sceneFlightSpeed);
     if (mode === 'walk' && walk && !pending && !objectDragging) {
       const yaw = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ').y;
       if (velocity.lengthSq()) velocity.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
@@ -101,8 +111,8 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
   };
   const ready = (async () => {
     await splat.initialized;
-    if (world.colliderBytes) {
-      try { geometry = await loadWorldCollisionGeometry(world.colliderBytes, world.metricScaleFactor, world.groundPlaneOffset);
+    if (calibrated && world.colliderBytes) {
+      try { geometry = await loadWorldCollisionGeometry(world.colliderBytes, world.metricScaleFactor, world.groundPlaneOffset, world.splatCoordinateSystem);
         const loaded = await createWorldWalk(geometry, origin, size);
         if (disposed) { loaded.dispose(); return; }
         walk = loaded; issue = walk.available ? null : 'clearance';
@@ -111,11 +121,18 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     if (disposed) return;
     pending = false;
     if (walk?.available) { mode = 'walk'; camera.position.copy(walk.reset()); }
+    if (!calibrated) {
+      const anchor = nativeWorldBrowsingAnchor(splat.getBoundingBox(), splat);
+      origin.copy(anchor.origin); camera.position.copy(origin);
+      sceneFlightSpeed = anchor.speed;
+      mode = 'fly';
+    }
     changed(); tick(performance.now());
   })();
   return {
     ready, reset, setMode, setBodySize, readNavigation, clearInput, objects,
     suggestedObjectTransform: (): WorldObjectTransform => {
+      if (!calibrated) throw new Error('world-not-calibrated');
       const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); forward.y = 0;
       if (forward.lengthSq() < 0.01) forward.set(0, 0, -1); forward.normalize();
       const position = camera.position.clone().addScaledVector(forward, 2);
@@ -124,11 +141,13 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     },
     readState: () => ({ navigation: readNavigation(), walk: walk?.readState(), inputKeys: [...keys], disposed }),
     readPose: (): WorldTourCameraPreset => ({ position: camera.position.toArray(), quaternion: camera.quaternion.toArray(), fov: camera.fov,
-      ...(world.archiveSha256 ? { archiveSha256: world.archiveSha256 } : {}), ...(mode ? { navigation: { mode, ...size } } : {}) }),
+      ...(world.archiveSha256 ? { archiveSha256: world.archiveSha256 } : {}), ...(mode ? { navigation: calibrated ? { mode, ...size } : { mode: 'fly' as const, units: 'scene' as const } } : {}) }),
     applyPose: async (pose: WorldTourCameraPreset) => {
       assertWorldCameraArchive(pose, world.archiveSha256);
       if (!mode && !pose.navigation) throw new Error('world-navigation-mode-required');
-      if (pose.navigation && (pose.navigation.bodyHeight !== size.bodyHeight || pose.navigation.radius !== size.radius)) await setBodySize(pose.navigation);
+      if (!calibrated && (pose.archiveSha256 !== world.archiveSha256 || pose.navigation?.units !== 'scene')) throw new Error('world-camera-units-mismatch');
+      if (calibrated && pose.navigation?.units === 'scene') throw new Error('world-camera-units-mismatch');
+      if (pose.navigation && pose.navigation.units !== 'scene' && (pose.navigation.bodyHeight !== size.bodyHeight || pose.navigation.radius !== size.radius)) await setBodySize(pose.navigation);
       const nextMode = pose.navigation?.mode ?? mode!;
       if (nextMode === 'walk') { if (!walk?.available) throw new Error('world-walk-unavailable'); walk.applyEye(new THREE.Vector3().fromArray(pose.position)); }
       clearInput(); mode = nextMode; camera.position.fromArray(pose.position); camera.quaternion.fromArray(pose.quaternion).normalize(); camera.fov = pose.fov;

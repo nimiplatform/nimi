@@ -53,6 +53,7 @@ entries:
   - providers_46
   - providers_47
   - providers_48
+  - providers_49
 providers:
   - provider: anthropic
     runtime_plane: remote
@@ -348,6 +349,7 @@ providers:
     endpoint_requirement: empty_string_only
     inventory_mode: static_source
     capabilities:
+      - audio.separate
       - audio.synthesize
       - audio.transcribe
       - audio.voice.convert
@@ -600,6 +602,19 @@ providers:
     inventory_mode: static_source
     capabilities:
       - music.generate
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: spaitial
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    inventory_mode: static_source
+    capabilities:
+      - world.generate
     sources:
       - K-MCAT-027
       - K-CONN-008

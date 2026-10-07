@@ -1,0 +1,25 @@
+version: 1
+provider: spaitial
+catalog_version: 2026-10-06-echo-standard-v1
+inventory_mode: static_source
+models:
+  - model_id: default
+    provider: spaitial
+    model_type: world
+    updated_at: 2026-10-06
+    capabilities:
+      - world.generate
+    pricing:
+      unit: request
+      input: variable_by_prompt_type
+      output: "160"
+      currency: SPAITIAL_CREDITS
+      as_of: 2026-10-06
+      notes: Standard world generation costs 160 credits; text-to-image preprocessing is additionally charged. This is documented pricing, not measured usage.
+    source_ref:
+      url: https://docs.spaitial.ai/api/llm-skills
+      retrieved_at: 2026-10-06
+      note: Official text, owned file and panorama inputs, private worlds, polling, idempotency and authenticated artifact proxies.
+    features:
+      - input.image
+voices: []

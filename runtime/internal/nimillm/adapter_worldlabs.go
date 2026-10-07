@@ -80,8 +80,6 @@ func ExecuteWorldLabsWorld(
 	initialDelay := providerPollDelay(0)
 	updater.UpdatePollState(jobID, operationID, 0, timestamppb.New(time.Now().UTC().Add(initialDelay)), "")
 	retryCount := int32(0)
-	consecutiveErrors := int32(0)
-	detached := isDetachedPollContext(ctx)
 	for {
 		if ctx.Err() != nil {
 			return nil, nil, operationID, providerPollContextError(ctx.Err())
@@ -89,23 +87,12 @@ func ExecuteWorldLabsWorld(
 		retryCount++
 		operationResp := map[string]any{}
 		pollURL := JoinURL(baseURL, "/marble/v1/operations/"+operationID)
-		if err := doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, pollURL, "", nil, &operationResp, headers, 30*time.Second, AdapterWorldLabsNative); err != nil {
-			if detached && ctx.Err() == nil && isTransientPollError(err) {
-				consecutiveErrors++
-				if consecutiveErrors >= maxDetachedPollConsecutiveErrors {
-					updater.UpdatePollState(jobID, operationID, retryCount, nil, err.Error())
-					return nil, nil, operationID, err
-				}
-				delay := providerPollDelay(retryCount)
-				updater.UpdatePollState(jobID, operationID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
-				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
-					return nil, nil, operationID, providerPollContextError(sleepErr)
-				}
-				continue
-			}
+		if err := retryWorldProviderRead(ctx, func() error {
+			operationResp = map[string]any{}
+			return doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, pollURL, "", nil, &operationResp, headers, 30*time.Second, AdapterWorldLabsNative)
+		}); err != nil {
 			return nil, nil, operationID, err
 		}
-		consecutiveErrors = 0
 
 		done, _ := operationResp["done"].(bool)
 		if !done {
@@ -278,7 +265,10 @@ func fetchWorldLabsWorld(ctx context.Context, baseURL string, headers map[string
 		return nil, err
 	}
 	getResp := map[string]any{}
-	if err := doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, JoinURL(baseURL, "/marble/v1/worlds/"+worldID), "", nil, &getResp, headers, 30*time.Second, AdapterWorldLabsNative); err != nil {
+	if err := retryWorldProviderRead(ctx, func() error {
+		getResp = map[string]any{}
+		return doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, JoinURL(baseURL, "/marble/v1/worlds/"+worldID), "", nil, &getResp, headers, 30*time.Second, AdapterWorldLabsNative)
+	}); err != nil {
 		return nil, err
 	}
 	world, envelope, err := normalizeWorldLabsGetResponse(getResp, worldID)

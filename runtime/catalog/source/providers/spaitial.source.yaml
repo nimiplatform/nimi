@@ -1,0 +1,38 @@
+schema_version: 3
+provider: spaitial
+catalog_version: 2026-10-06-echo-standard-v1
+generated_target: runtime/catalog/providers/spaitial.yaml
+runtime:
+  inventory_mode: static_source
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://api.spaitial.ai
+  requires_explicit_endpoint: false
+defaults:
+  provider: spaitial
+  model_type: world
+  capabilities: []
+  pricing:
+    unit: request
+    input: variable_by_prompt_type
+    output: 160
+    currency: SPAITIAL_CREDITS
+    as_of: 2026-10-06
+    notes: Standard world generation costs 160 credits; text-to-image preprocessing is additionally charged. This is documented pricing, not measured usage.
+sources:
+  - source_id: spaitial_api_reference
+    url: https://docs.spaitial.ai/api/llm-skills
+    retrieved_at: 2026-10-06
+    note: Official text, owned file and panorama inputs, private worlds, polling, idempotency and authenticated artifact proxies.
+  - source_id: spaitial_api_openapi
+    url: https://api.spaitial.ai/v1/openapi.json
+    retrieved_at: 2026-10-06
+    note: Closed v1 request schemas; default is the explicit Standard target. Image input has no additional prompt field.
+models:
+  - model_id: default
+    model_type: world
+    updated_at: 2026-10-06
+    capabilities: [world.generate]
+    features: [input.image]
+    source_ids: [spaitial_api_reference, spaitial_api_openapi]

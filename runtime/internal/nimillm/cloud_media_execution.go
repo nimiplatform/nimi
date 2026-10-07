@@ -132,6 +132,8 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		artifacts, usage, providerJobID, err = ExecuteMubertMusic(ctx, cfg, updater, privateJobID, request, modelID)
 	case "loudly_music_adapter":
 		artifacts, usage, providerJobID, err = ExecuteLoudlyMusic(ctx, cfg, request, modelID)
+	case "spaitial_world_adapter":
+		return ExecuteSpaitialWorld(ctx, cfg, updater, privateJobID, request, modelID)
 	case "worldlabs_world_adapter":
 		artifacts, usage, providerJobID, err = ExecuteWorldLabsWorld(ctx, cfg, updater, privateJobID, request, modelID)
 	case "openai_compat_adapter", "mimo_chat_synthesize_adapter", "mimo_chat_transcribe_adapter":

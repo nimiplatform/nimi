@@ -239,6 +239,7 @@
   }
 
   .world-tour-scene-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+  .world-tour-scene-workspace:has(> .world-tour-viewport:only-child) { grid-template-columns: minmax(0, 1fr); }
   .world-tour-objects { min-width: 0; max-height: max(420px, calc(100dvh - 250px)); overflow: auto; padding: 0 4px 8px 16px; border-left: 1px solid currentColor; color: var(--nimi-text-primary); }
   .world-tour-objects-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
   .world-tour-objects h3 { margin: 0; font-size: 15px; font-weight: 600; }

@@ -23,3 +23,9 @@ test('new navigation viewpoints retain body/mode and exact archive identity with
  for(const navigation of [{mode:'auto',bodyHeight:1.7,radius:.25},{mode:'walk',bodyHeight:.5,radius:.4}])assert.throws(()=>parseWorldTourCameraPreset({...pose,navigation}));
  const legacy={position:[0,.2,0],quaternion:[0,0,0,1],fov:65};assert.deepEqual(parseWorldTourCameraPreset(legacy),legacy);assertWorldCameraArchive(legacy,pose.archiveSha256);
 });
+
+test('uncalibrated viewpoints preserve explicit scene units without body measurements',()=>{
+ const pose={position:[1,2,3],quaternion:[0,0,0,1],fov:65,archiveSha256:`sha256:${'c'.repeat(64)}`,navigation:{mode:'fly',units:'scene'}};
+ assert.deepEqual(parseWorldTourCameraPreset(pose),pose);
+ for(const navigation of [{mode:'walk',units:'scene'},{mode:'fly',units:'scene',bodyHeight:1.7},{mode:'fly',units:'scene',radius:.25}])assert.throws(()=>parseWorldTourCameraPreset({...pose,navigation}));
+});

@@ -250,8 +250,8 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		return nil, cloudMediaDriverError(capabilityContract, err)
 	}
 	effectiveRequest = mapped.Request()
-	if mapped.Adapter() == capabilitydriver.CloudMediaAdapterWorldLabsNative {
-		if err := nimillm.ValidateWorldLabsRequestFields(effectiveRequest.GetSpec().GetWorldGenerate()); err != nil {
+	if effectiveRequest.GetSpec().GetWorldGenerate() != nil {
+		if err := nimillm.ValidateCloudWorldRequestFields(target.Provider(), effectiveRequest.GetSpec().GetWorldGenerate()); err != nil {
 			return nil, err
 		}
 	}
@@ -283,7 +283,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		}
 		digest := sha256.Sum256(payload)
 		imageReference = &nimillm.ImageReference{ArtifactID: artifactID, MIMEType: mimeType, Bytes: payload, SHA256: hex.EncodeToString(digest[:])}
-		if captureErr := nimillm.ValidateWorldLabsImageReference(spec, imageReference); captureErr != nil {
+		if captureErr := nimillm.ValidateCloudWorldImageReference(target.Provider(), spec, imageReference); captureErr != nil {
 			return nil, captureErr
 		}
 	}

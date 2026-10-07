@@ -75,6 +75,7 @@ const (
 	CloudMediaAdapterMubertMusic             = "mubert_music_adapter"
 	CloudMediaAdapterLoudlyMusic             = "loudly_music_adapter"
 	CloudMediaAdapterWorldLabsNative         = "worldlabs_world_adapter"
+	CloudMediaAdapterSpaitialNative          = "spaitial_world_adapter"
 	CloudMediaAdapterDashScopeVoiceWorkflow  = "dashscope_voice_workflow_adapter"
 	CloudMediaAdapterElevenLabsVoiceWorkflow = "elevenlabs_voice_workflow_adapter"
 	CloudMediaAdapterFishAudioVoiceWorkflow  = "fish_audio_voice_workflow_adapter"
@@ -477,7 +478,7 @@ func NewProductionCloudMediaRegistry() *CloudMediaRegistry {
 
 func providerSupportsAnyCloudMedia(record providerregistry.ProviderRecord) bool {
 	return record.SupportsImage || record.SupportsVideo || record.SupportsTTS || record.SupportsSTT ||
-		record.SupportsMusic || record.SupportsVoiceReferenceAudio || record.SupportsVoiceTextDescription || record.ID == "worldlabs"
+		record.SupportsMusic || record.SupportsVoiceReferenceAudio || record.SupportsVoiceTextDescription || (record.ID == "worldlabs" || record.ID == "spaitial")
 }
 
 // Resolve validates an exact target through one provider Driver. Provider is
@@ -529,6 +530,9 @@ func (d providerCloudMediaDriver) ValidateTarget(identity Identity, raw *structp
 	if !ok {
 		return CloudMediaTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider model identity is required"))
 	}
+	if provider == "spaitial" && providerModelID != "default" {
+		return CloudMediaTarget{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+	}
 	remoteModelCatalogID, ok := exactCloudTargetText(raw, "remoteModelCatalogId")
 	if !ok {
 		return CloudMediaTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("remote model catalog identity is required"))
@@ -563,7 +567,7 @@ func cloudMediaCapabilitySupported(record providerregistry.ProviderRecord, capab
 	case "music.generate":
 		return record.SupportsMusic
 	case "world.generate":
-		return record.ID == "worldlabs"
+		return (record.ID == "worldlabs" || record.ID == "spaitial")
 	case "voice.create":
 		return record.SupportsVoiceReferenceAudio || record.SupportsVoiceTextDescription
 	case "voice_asset.delete":
@@ -963,6 +967,8 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 		return CloudMediaAdapterLoudlyMusic
 	case "worldlabs":
 		return CloudMediaAdapterWorldLabsNative
+	case "spaitial":
+		return CloudMediaAdapterSpaitialNative
 	}
 	return CloudMediaAdapterOpenAICompat
 }
@@ -1021,7 +1027,7 @@ func CloudMediaUsesDetachedPolling(scenarioType runtimev1.ScenarioType, adapter 
 
 func cloudMediaDetachedPolling(scenarioType runtimev1.ScenarioType, adapter string) bool {
 	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE {
-		return adapter == CloudMediaAdapterWorldLabsNative
+		return adapter == CloudMediaAdapterWorldLabsNative || adapter == CloudMediaAdapterSpaitialNative
 	}
 	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
 		return false

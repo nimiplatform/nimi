@@ -12,6 +12,23 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+func TestSpaitialStandardUsesExactWorldDriverWithoutHQFallback(t *testing.T) {
+	driver, target := cloudMediaDriverTarget(t, "spaitial", "default", "world.generate")
+	request := &runtimev1.SubmitScenarioJobRequest{
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE,
+		Spec:         &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{TextPrompt: "A reading room."}}},
+	}
+	mapped, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone)
+	if err != nil || mapped.Adapter() != CloudMediaAdapterSpaitialNative || mapped.ProviderModelID() != "default" || !mapped.DetachedPolling() {
+		t.Fatalf("Standard world mapping: %+v err=%v", mapped, err)
+	}
+	bad, _ := structpb.NewStruct(map[string]any{"provider": "spaitial", "providerModelId": "Echo 2 (HQ)", "remoteModelCatalogId": "catalog-hq"})
+	_, err = driver.ValidateTarget(Identity{ImplementationID: "cloud.world.generate.spaitial", DriverID: "nimi.runtime.driver.spaitial", DriverDialect: "provider/media-v1"}, bad, "world.generate")
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+		t.Fatalf("HQ must be rejected by exact model admission: %v", err)
+	}
+}
+
 func TestDashScopeFiniteASRCapturesExactTransport(t *testing.T) {
 	for _, model := range []string{"qwen-audio-3.0-asr-flash-streaming", "fun-asr-realtime", "fun-asr-realtime-2026-02-28", "fun-asr-realtime-2025-09-15"} {
 		driver, target := cloudMediaDriverTarget(t, "dashscope", model, "audio.transcribe")

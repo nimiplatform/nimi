@@ -33,7 +33,8 @@ func buildWorldLabsBundle(ctx context.Context, world map[string]any) ([]byte, er
 		"worldId": worldID, "displayName": ValueAsString(world["display_name"]),
 		"caption":               ValueAsString(MapField(assets, "caption")),
 		"splatCoordinateSystem": "opencv", "metricScaleFactor": scale, "groundPlaneOffset": ground,
-		"splatResolution": "500k",
+		"calibrationState": "calibrated",
+		"splatResolution":  "500k",
 	}
 	files := []struct {
 		key, name, uri string

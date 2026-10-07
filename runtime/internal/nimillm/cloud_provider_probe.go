@@ -59,6 +59,9 @@ func (p *CloudProvider) ProbeConnector(ctx context.Context, providerID string, e
 	if strings.TrimSpace(providerID) == "google_veo" {
 		return p.probeGoogleVeoConnector(ctx, endpoint, apiKey)
 	}
+	if strings.TrimSpace(providerID) == "spaitial" {
+		return p.probeSpaitialConnector(ctx, endpoint, apiKey)
+	}
 	backend, _, err := p.ResolveProbeBackend(providerID, endpoint, apiKey, headers)
 	if err != nil {
 		return err

@@ -11,6 +11,7 @@ function room(ceiling=3,wall=true,floorY=0){
 test('collider metric transform is scale then ground alignment and X half-turn without defaults',()=>{
  const p=new THREE.Vector3(1,2,4).applyMatrix4(worldSpatialTransform(2,3));assert.ok(p.distanceTo(new THREE.Vector3(2,-1,-8))<1e-10);
  for(const [s,g]of [[0,0],[NaN,0],[1,NaN]])assert.throws(()=>worldSpatialTransform(s,g));
+ const native=new THREE.Vector3(1,2,4).applyMatrix4(worldSpatialTransform(2,3,'spz-rub'));assert.ok(native.distanceTo(new THREE.Vector3(2,7,8))<1e-10,'native RUB was half-turned again');
  assert.throws(()=>validateEmbeddedCollider(new Uint8Array(23)));
  const json=new TextEncoder().encode(JSON.stringify({asset:{version:'2.0'},buffers:[{uri:'https://example.invalid/mesh.bin'}]}));const n=Math.ceil(json.length/4)*4;const b=new Uint8Array(20+n);const d=new DataView(b.buffer);d.setUint32(0,0x46546c67,true);d.setUint32(4,2,true);d.setUint32(8,b.length,true);d.setUint32(12,n,true);d.setUint32(16,0x4e4f534a,true);b.fill(32,20);b.set(json,20);assert.throws(()=>validateEmbeddedCollider(b),/external-resource/);
 });

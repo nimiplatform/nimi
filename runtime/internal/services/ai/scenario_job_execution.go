@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -62,6 +63,7 @@ func (s *Service) executeScenarioAsyncJob(
 	}
 
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
+		capabilitydriver.CloseArtifactBodies(result.ArtifactBodies)
 		return
 	}
 	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
@@ -86,16 +88,15 @@ func (s *Service) executeScenarioAsyncJob(
 		}
 	}
 	if custodyErr != nil {
-		if _, ok, _ := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED, func(job *runtimev1.ScenarioJob) {
-			job.ProviderJobId = ""
-			job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
-			job.ReasonDetail = "Runtime artifact custody failed"
-			job.ReasonMetadata = nil
-			job.RetryCount = 0
-			job.NextPollAt = nil
-		}); !ok && s.logger != nil {
-			s.logger.Warn("scenario job transition to FAILED after artifact custody failure failed", "job_id", jobID, "error", custodyErr)
+		if ctx.Err() != nil {
+			custodyErr = ctx.Err()
 		}
+		if !errors.Is(custodyErr, context.Canceled) && !errors.Is(custodyErr, context.DeadlineExceeded) &&
+			status.Code(custodyErr) != codes.Canceled && status.Code(custodyErr) != codes.DeadlineExceeded {
+			custodyErr = grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+				grpcerr.ReasonOptions{Message: "Runtime artifact custody failed"})
+		}
+		s.finishScenarioAsyncJobFailure(ctx, jobID, effective, custodyErr)
 		return
 	}
 	if _, ok, _ := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {

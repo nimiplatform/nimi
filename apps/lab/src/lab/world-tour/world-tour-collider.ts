@@ -3,10 +3,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export type WorldCollisionGeometry = { vertices: Float32Array; indices: Uint32Array; bounds: THREE.Box3 };
 
-export function worldSpatialTransform(scale: number, ground: number): THREE.Matrix4 {
-  if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(ground)) throw new Error('world-spatial-metadata-invalid');
+export function worldSpatialTransform(scale: number, ground: number, coordinateSystem: 'opencv' | 'spz-rub' = 'opencv'): THREE.Matrix4 {
+  if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(ground) || (coordinateSystem !== 'opencv' && coordinateSystem !== 'spz-rub')) throw new Error('world-spatial-metadata-invalid');
   return new THREE.Matrix4().compose(new THREE.Vector3(0, ground, 0),
-    new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI), new THREE.Vector3(scale, scale, scale));
+    new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), coordinateSystem === 'opencv' ? Math.PI : 0), new THREE.Vector3(scale, scale, scale));
 }
 
 export function validateEmbeddedCollider(bytes: Uint8Array): void {
@@ -25,7 +25,7 @@ export function validateEmbeddedCollider(bytes: Uint8Array): void {
   visit(json);
 }
 
-export async function loadWorldCollisionGeometry(bytes: Uint8Array, scale: number, ground: number): Promise<WorldCollisionGeometry> {
+export async function loadWorldCollisionGeometry(bytes: Uint8Array, scale: number, ground: number, coordinateSystem: 'opencv' | 'spz-rub' = 'opencv'): Promise<WorldCollisionGeometry> {
   validateEmbeddedCollider(bytes);
   const manager = new THREE.LoadingManager();
   manager.setURLModifier(url => {
@@ -33,7 +33,7 @@ export async function loadWorldCollisionGeometry(bytes: Uint8Array, scale: numbe
     return url;
   });
   const gltf = await new GLTFLoader(manager).parseAsync(bytes.slice().buffer, '');
-  const transform = worldSpatialTransform(scale, ground);
+  const transform = worldSpatialTransform(scale, ground, coordinateSystem);
   const positions: number[] = [], indices: number[] = [];
   const bounds = new THREE.Box3(); const point = new THREE.Vector3();
   try {

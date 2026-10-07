@@ -283,13 +283,13 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 			}
 		}
 	}
-	if err := validateCloudResolvedAssemblyRequest(assembly); err != nil {
+	if err := validateCloudResolvedAssemblyRequest(assembly, provider); err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly) error {
+func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly, provider string) error {
 	unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
 	if assembly.MusicVideoReference != nil && (assembly.RequestKind != cloudResolvedRequestMedia || assembly.CapabilityContract != "music.generate") {
 		return fmt.Errorf("music video capture is outside its contract")
@@ -337,7 +337,7 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly) error
 		if reference := assembly.ImageReference; reference != nil {
 			var err error
 			if world := request.GetSpec().GetWorldGenerate(); world != nil && world.GetImagePrompt() != nil {
-				err = nimillm.ValidateWorldLabsImageReference(world, reference)
+				err = nimillm.ValidateCloudWorldImageReference(provider, world, reference)
 			} else if imageSpec != nil {
 				err = nimillm.ValidateGeminiImageReferenceRequest(imageSpec, reference)
 			} else {

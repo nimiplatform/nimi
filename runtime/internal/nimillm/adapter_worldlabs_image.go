@@ -3,8 +3,6 @@ package nimillm
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"io"
 	"mime"
 	"net/http"
@@ -13,7 +11,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/mediaimage"
 	"google.golang.org/grpc/codes"
 )
 
@@ -26,27 +23,7 @@ func ValidateWorldLabsImageReference(spec *runtimev1.WorldGenerateScenarioSpec, 
 	if err := ValidateWorldLabsRequestFields(spec); err != nil {
 		return err
 	}
-	image := spec.GetImagePrompt()
-	id := image.GetContent().GetArtifactId()
-	if image == nil || id == "" || reference == nil || reference.ArtifactID != id || len(reference.Bytes) == 0 ||
-		(image.GetProjection() != runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_ORDINARY && image.GetProjection() != runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360) {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
-	}
-	if len(reference.Bytes) > worldLabsImageMaxBytes {
-		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
-	}
-	digest := sha256.Sum256(reference.Bytes)
-	if reference.SHA256 != hex.EncodeToString(digest[:]) {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
-	}
-	info, err := mediaimage.Inspect(reference.Bytes, worldLabsImageMaxBytes, 16<<20)
-	if err != nil || (info.Format != "png" && info.Format != "jpeg" && info.Format != "webp") || reference.MIMEType != "image/"+info.Format {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
-	}
-	if info.Orientation != 1 || (image.GetProjection() == runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360 && info.Width != 2*info.Height) {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-	}
-	return nil
+	return validateWorldImageReference(spec, reference, worldLabsImageMaxBytes)
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r029
@@ -107,7 +84,7 @@ func uploadWorldLabsImage(ctx context.Context, baseURL string, controlHeaders ma
 	if err != nil {
 		return "", MapProviderRequestError(err)
 	}
-	defer result.Body.Close()
+	defer func() { _ = result.Body.Close() }()
 	if result.StatusCode < 200 || result.StatusCode >= 300 {
 		return "", MapProviderHTTPError(result.StatusCode, nil)
 	}
