@@ -11,12 +11,15 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/realtimecore"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -121,6 +124,9 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		inputsByProvider: make(map[string]realtimeInputIdentity),
 		terminalInputs:   make(map[string]struct{}),
 		tracksByProvider: make(map[string]*realtimeOutputTrack), tracksByRuntime: make(map[string]*realtimeOutputTrack),
+	}
+	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
+		realtime.ownerSessionID, realtime.ownerInvalidated = decision.SessionID, decision.SessionInvalidated
 	}
 	if !s.realtimeSessions.create(realtime) {
 		cancel()
@@ -508,14 +514,58 @@ func (s *Service) InterruptRealtimeOutput(ctx context.Context, req *runtimev1.In
 	return &runtimev1.InterruptRealtimeOutputResponse{Ack: &runtimev1.Ack{Ok: true}, Control: realtimeControl(record, runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_READY, 0, "")}, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r116
 func (s *Service) CloseRealtimeSession(ctx context.Context, req *runtimev1.CloseRealtimeSessionRequest) (*runtimev1.CloseRealtimeSessionResponse, error) {
+	if response, ok := s.ReplayClosedRealtimeSession(ctx, req); ok {
+		return response, nil
+	}
 	record, err := s.authorizedRealtimeRecord(ctx, req.GetRealtimeSessionId(), req.GetGeneration())
 	if err != nil {
+		// Termination may have moved the record between the first lookup and authorization.
+		if response, ok := s.ReplayClosedRealtimeSession(ctx, req); ok {
+			return response, nil
+		}
 		return nil, err
 	}
-	control := realtimeControl(record, runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_CLOSED, runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_CANCELLED, "")
 	s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_ACTION_EXECUTED, realtimecore.TerminalCancelled)
+	select {
+	case <-ctx.Done():
+		return nil, status.FromContextError(ctx.Err()).Err()
+	case <-record.terminalDone:
+	}
+	record.mu.Lock()
+	control := proto.Clone(record.terminalControl).(*runtimev1.RealtimeControlStatus)
+	record.mu.Unlock()
 	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: control}, nil
+}
+
+// ReplayClosedRealtimeSession is an internal owner proof for protected ingress,
+// not a public RPC. Fresh admission and the original technical session still apply.
+func (s *Service) ReplayClosedRealtimeSession(ctx context.Context, req *runtimev1.CloseRealtimeSessionRequest) (*runtimev1.CloseRealtimeSessionResponse, bool) {
+	if s == nil || s.realtimeSessions == nil || req.GetGeneration() == 0 {
+		return nil, false
+	}
+	terminal, ok := s.realtimeSessions.terminal(req.GetRealtimeSessionId())
+	if !ok || terminal.control.GetGeneration() != req.GetGeneration() {
+		return nil, false
+	}
+	caller, err := realtimeAppCaller(ctx)
+	if err != nil || caller.appID != terminal.appID || caller.accountNamespace != terminal.subjectUserID {
+		return nil, false
+	}
+	var sessionID protectedlocal.Identifier
+	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
+		sessionID = decision.SessionID
+		select {
+		case <-decision.SessionInvalidated:
+			return nil, false
+		default:
+		}
+	}
+	if sessionID != terminal.ownerSessionID {
+		return nil, false
+	}
+	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: terminal.control}, true
 }
 
 func (s *Service) runRealtimeProvider(record *realtimeSessionRecord) {
@@ -1070,6 +1120,9 @@ func (s *Service) terminalizeRealtimeSession(record *realtimeSessionRecord, reas
 		return
 	}
 	record.closed = true
+	if record.terminalDone == nil {
+		record.terminalDone = make(chan struct{})
+	}
 	if s.logger != nil {
 		if terminal == realtimecore.TerminalCancelled || terminal == realtimecore.TerminalRuntimeShutdown || terminal == realtimecore.TerminalStaleGeneration {
 			s.logger.Info("AI Realtime session terminal", "reason_code", reason.String(), "terminal_reason", string(terminal))
@@ -1100,7 +1153,6 @@ func (s *Service) terminalizeRealtimeSession(record *realtimeSessionRecord, reas
 		Event:   &runtimev1.AiRealtimeEvent_SessionTerminal{SessionTerminal: &runtimev1.AiRealtimeSessionTerminal{ReasonCode: reason}},
 	}
 	record.mu.Unlock()
-	s.realtimeSessions.remove(record.sessionID)
 	if record.cancel != nil {
 		record.cancel()
 	}
@@ -1111,6 +1163,11 @@ func (s *Service) terminalizeRealtimeSession(record *realtimeSessionRecord, reas
 		record.driver.Close()
 	}
 	_ = record.stream.PublishTerminal(record.generation, event, terminal)
+	record.mu.Lock()
+	record.terminalControl = event.Control
+	s.realtimeSessions.finish(record, event.Control)
+	close(record.terminalDone)
+	record.mu.Unlock()
 }
 
 func (s *Service) authorizedRealtimeRecord(ctx context.Context, sessionID string, generation uint64) (*realtimeSessionRecord, error) {

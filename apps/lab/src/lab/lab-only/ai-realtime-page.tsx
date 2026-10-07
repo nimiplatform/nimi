@@ -121,6 +121,7 @@ function LabAiRealtimeSurface({
   };
 
   const recordSummary = (session: LabRealtimeController) => {
+    if (!['closed', 'terminated'].includes(session.getState().phase)) return;
     const summary = labRealtimeSessionSummary(session.getState());
     record({
       ok: true,
@@ -134,7 +135,7 @@ function LabAiRealtimeSurface({
   // An owner-ended Session is recorded with its terminal reason.
   useEffect(() => {
     const session = sessionRef.current;
-    if (state.phase === 'terminated' && session && state.scope) {
+    if ((state.phase === 'terminated' || state.phase === 'interrupted') && session && state.scope) {
       void stopCapture();
       recordSummary(session);
     }
@@ -145,8 +146,8 @@ function LabAiRealtimeSurface({
     void captureRef.current?.stop().catch(() => undefined);
     captureRef.current = null;
     const session = sessionRef.current;
-    if (session && (session.getState().phase === 'open' || session.getState().phase === 'opening')) {
-      void session.close().then(() => recordSummary(session), () => recordSummary(session));
+    if (session && !['idle', 'closed', 'terminated'].includes(session.getState().phase)) {
+      void session.dispose().then(() => recordSummary(session), () => recordSummary(session));
     }
     void media.playback.close().catch(() => undefined);
   }, []);
@@ -154,7 +155,7 @@ function LabAiRealtimeSurface({
   const phase = state.phase;
   const open = phase === 'open';
   useEffect(() => {
-    if (phase === 'closed' || phase === 'terminated') setRecordingSubmitted(false);
+    if (phase === 'closed' || phase === 'terminated' || phase === 'interrupted') setRecordingSubmitted(false);
   }, [phase]);
 
   async function openSession() {
@@ -280,12 +281,13 @@ function LabAiRealtimeSurface({
       {runTarget.source === 'local' ? <InlineAlert tone="info">{t('CapabilityTests.aiRealtime.localRouteNote')}</InlineAlert> : null}
       {!runTarget.canDispatch ? <InlineAlert tone="warning">{runTarget.detail}</InlineAlert> : null}
 
+      {phase === 'interrupted' ? <InlineAlert tone="warning">{t('CapabilityTests.aiRealtime.closeUnconfirmed')}</InlineAlert> : null}
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.openSection')}>
         <TextareaField rows={2} value={instruction} disabled={phase !== 'idle' && phase !== 'closed' && phase !== 'terminated'} aria-label={t('CapabilityTests.aiRealtime.instruction')} onChange={(event) => setInstruction(event.currentTarget.value)} />
         <div className="lab-realtime__row">
           <SelectField
             value={turnDetection}
-            disabled={phase === 'open' || phase === 'opening'}
+            disabled={['open', 'opening', 'closing', 'interrupted'].includes(phase)}
             aria-label={t('CapabilityTests.aiRealtime.turnDetection')}
             options={[
               { value: 'manual', label: t('CapabilityTests.aiRealtime.manual') },
@@ -307,13 +309,13 @@ function LabAiRealtimeSurface({
           <span className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.inputFormat', { rate: inputSampleRate / 1000, bytes: inputSampleRate * 2 * 20 / 1000 })}</span>
         </div>
         <div className="lab-realtime__row">
-          <Button type="button" size="sm" tone="primary" disabled={busy || phase === 'open' || phase === 'opening' || phase === 'closing' || !runTarget.canDispatch} onClick={() => void openSession()}>
+          <Button type="button" size="sm" tone="primary" disabled={busy || phase === 'open' || phase === 'opening' || phase === 'closing' || phase === 'interrupted' || !runTarget.canDispatch} onClick={() => void openSession()}>
             {t(phase === 'opening' ? 'CapabilityTests.aiRealtime.opening' : 'CapabilityTests.aiRealtime.open')}
           </Button>
-          <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void run(closeSession)}>
+          <Button type="button" size="sm" tone="ghost" disabled={(!open && phase !== 'interrupted') || busy} onClick={() => void run(closeSession)}>
             {t('CapabilityTests.aiRealtime.close')}
           </Button>
-          <StatusBadge tone={open ? 'success' : phase === 'terminated' ? 'warning' : 'neutral'} shape="dot">{t(`CapabilityTests.aiRealtime.phase.${phase}`)}</StatusBadge>
+          <StatusBadge tone={open ? 'success' : phase === 'terminated' || phase === 'interrupted' ? 'warning' : 'neutral'} shape="dot">{t(`CapabilityTests.aiRealtime.phase.${phase}`)}</StatusBadge>
           {state.control ? (
             <span className="lab-realtime__meta">
               {t('CapabilityTests.aiRealtime.control', {

@@ -1247,8 +1247,11 @@ test('direct AI Realtime reports the owner reason for a refused Local route, a r
   const silent = fakeRealtime({ endStream: true });
   const dropped = createLabRealtimeController({ client: silent.client, now: () => new Date(), createId: (prefix) => prefix, onState: () => {} });
   await dropped.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: false });
-  await waitFor(() => dropped.getState().phase === 'terminated', 'ended stream');
+  await waitFor(() => dropped.getState().phase === 'interrupted', 'ended stream');
   assert.equal(dropped.getState().terminalReason, 'event-stream-ended', 'an event stream that ends is not a successful close');
+  await dropped.close();
+  assert.equal(silent.calls.close.length, 1);
+  assert.equal(dropped.getState().phase, 'closed');
 });
 
 // Holds an owner call until the test releases it, so Close can happen first.
@@ -1949,3 +1952,92 @@ test('unsupported inputs and options direct the user to change the request befor
   assert.equal(studioNonSuccessReasonUserMessage('runtime-call-failed', t, 'image.generate', diagnostics), 'NonSuccess.message.modalityUnsupported');
   assert.equal(studioNonSuccessReasonUserAction('runtime-call-failed', t, 'image.generate', diagnostics), 'NonSuccess.action.modalityUnsupported');
 });
+
+for (const ending of ['eof', 'throw']) {
+  test('Realtime ' + ending + ' retains its scope for Close retry and dispose without replay', async () => {
+    const { createLabRealtimeController } = await load('lab/lab-only/ai-realtime-session.js');
+    const fake = fakeRealtime();
+    fake.client.subscribe = async () => ({ async *[Symbol.asyncIterator]() { if (ending === 'throw') throw Error('reader lost'); }, async cancel() {} });
+    const originalClose = fake.client.close;
+    let attempts = 0;
+    fake.client.close = async scope => { attempts++; if (attempts === 1) throw Error('close transport lost'); return originalClose(scope); };
+    const session = createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:p=>p,onState:()=>{}});
+    await session.open({instruction:'original',turnDetection:'manual',audioOutputEnabled:false});
+    await waitFor(()=>session.getState().phase==='interrupted','observation failure');
+    const scope = session.getState().scope;
+    await assert.rejects(session.close(),/close transport lost/);
+    assert.equal(session.getState().phase,'interrupted');
+    assert.deepEqual(session.getState().scope,scope);
+    await session.dispose();
+    assert.equal(session.getState().phase,'closed');
+    assert.equal(attempts,2);
+    assert.deepEqual(fake.calls.close,[scope]);
+    assert.equal(fake.calls.open.length,1);
+    assert.equal(fake.calls.append.length,0);
+    assert.equal(fake.calls.control.length,0);
+    await session.close();assert.equal(attempts,2);
+  });
+}
+test('Realtime confirmed terminal and explicit connection revocation need no duplicate Close', async()=>{
+  const { createLabRealtimeController } = await load('lab/lab-only/ai-realtime-session.js');
+  for(const revoked of [false,true]){
+    const fake=fakeRealtime({events:[{type:'session-terminal',reasonCode:'owner-ended'}],endStream:true});
+    if(revoked)fake.client.subscribe=async()=>({async *[Symbol.asyncIterator](){throw Object.assign(Error('revoked'),{reasonCode:'revoked'});},async cancel(){}});
+    const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:p=>p,onState:()=>{}});
+    await session.open({instruction:'',turnDetection:'manual',audioOutputEnabled:false});
+    await waitFor(()=>session.getState().phase==='terminated','confirmed termination');
+    await session.close();await session.dispose();assert.equal(fake.calls.close.length,0);
+  }
+});
+test('Realtime unconfirmed Close acknowledgement stays retryable',async()=>{
+  const { createLabRealtimeController } = await load('lab/lab-only/ai-realtime-session.js');
+  const fake=fakeRealtime({endStream:true});const close=fake.client.close;let attempts=0;
+  fake.client.close=async scope=>{attempts++;if(attempts===1)return{ack:{ok:false,reasonCode:'unconfirmed',actionHint:''},control:{lifecycle:'ready'}};return close(scope)};
+  const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:p=>p,onState:()=>{}});
+  await session.open({instruction:'',turnDetection:'manual',audioOutputEnabled:false});
+  await waitFor(()=>session.getState().phase==='interrupted','ended reader');
+  await assert.rejects(session.close());assert.equal(session.getState().phase,'interrupted');
+  await session.close();assert.equal(session.getState().phase,'closed');assert.equal(attempts,2);
+});
+
+test('Realtime Close timeout is bounded and a retry cannot be overwritten by a late first reply', {timeout:8000},async()=>{
+ const {createLabRealtimeController}=await load('lab/lab-only/ai-realtime-session.js');
+ const fake=fakeRealtime({endStream:true}),close=fake.client.close,pending=Promise.withResolvers();let attempts=0;
+ fake.client.close=scope=>++attempts===1?pending.promise:close(scope);
+ const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:p=>p,onState:()=>{}});
+ await session.open({instruction:'',turnDetection:'manual',audioOutputEnabled:false});
+ await waitFor(()=>session.getState().phase==='interrupted','reader ended');
+ await assert.rejects(session.close(),e=>e.reasonCode==='close-timeout');assert.equal(session.getState().phase,'interrupted');
+ await session.dispose();assert.equal(session.getState().phase,'closed');
+ pending.resolve({ack:{ok:false,reasonCode:'late',actionHint:''},control:{lifecycle:'ready'}});
+ await new Promise(r=>setImmediate(r));assert.equal(session.getState().phase,'closed');assert.equal(attempts,2);
+ assert.equal(fake.calls.open.length,1);assert.equal(fake.calls.append.length,0);
+});
+test('Realtime dispose closes an interrupted scope without replaying Open or input',async()=>{
+ const {createLabRealtimeController}=await load('lab/lab-only/ai-realtime-session.js');const fake=fakeRealtime({endStream:true});
+ const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:p=>p,onState:()=>{}});
+ await session.open({instruction:'',turnDetection:'manual',audioOutputEnabled:false});await waitFor(()=>session.getState().phase==='interrupted','reader ended');
+ const scope=session.getState().scope;await session.dispose();assert.deepEqual(fake.calls.close,[scope]);assert.equal(fake.calls.open.length,1);assert.equal(fake.calls.append.length,0);
+});
+
+test('Realtime lost Close reply recovers only from an owner terminal receipt',async()=>{
+ const {createLabRealtimeController,labRealtimeSessionSummary}=await load('lab/lab-only/ai-realtime-session.js');
+ const fake=fakeRealtime({endStream:true}),close=fake.client.close;let receipt,ownerLive=true,attempts=0;
+ fake.client.close=async scope=>{attempts++;if(ownerLive){receipt=await close(scope);ownerLive=false;throw Error('reply lost after owner close');}return structuredClone(receipt);};
+ const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:p=>p,onState:()=>{}});
+ await session.open({instruction:'',turnDetection:'manual',audioOutputEnabled:false});await waitFor(()=>session.getState().phase==='interrupted','reader ended');
+ const scope=session.getState().scope;
+ await assert.rejects(session.close(),/reply lost/);assert.equal(ownerLive,false);assert.equal(session.getState().phase,'interrupted');assert.throws(()=>labRealtimeSessionSummary(session.getState()));
+ await session.close();assert.equal(session.getState().phase,'closed');assert.equal(labRealtimeSessionSummary(session.getState()).ending,'closed');
+ assert.deepEqual(fake.calls.close,[scope]);assert.equal(attempts,2);assert.equal(fake.calls.open.length,1);assert.equal(fake.calls.append.length,0);assert.equal(fake.calls.control.length,0);
+});
+
+for(const reasonCode of ['APP_SCOPE_FORBIDDEN','AI_REALTIME_SESSION_NOT_FOUND']){
+ test('Realtime '+reasonCode+' alone cannot assert a closed owner',async()=>{
+  const {createLabRealtimeController,labRealtimeSessionSummary}=await load('lab/lab-only/ai-realtime-session.js');
+  const fake=fakeRealtime({endStream:true});fake.client.close=async()=>{throw Object.assign(Error(reasonCode),{reasonCode});};
+  const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:p=>p,onState:()=>{}});
+  await session.open({instruction:'',turnDetection:'manual',audioOutputEnabled:false});await waitFor(()=>session.getState().phase==='interrupted','reader ended');
+  await assert.rejects(session.close());assert.equal(session.getState().phase,'interrupted');assert.throws(()=>labRealtimeSessionSummary(session.getState()));
+ });
+}

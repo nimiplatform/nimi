@@ -37,7 +37,7 @@ export type LabRealtimeOutputTrack = {
 export type LabRealtimeLogEntry = { readonly index: number; readonly kind: string; readonly detail: string };
 
 export type LabRealtimeState = {
-  readonly phase: 'idle' | 'opening' | 'open' | 'closing' | 'closed' | 'terminated';
+  readonly phase: 'idle' | 'opening' | 'open' | 'closing' | 'closed' | 'terminated' | 'interrupted';
   readonly responsePending: boolean;
   readonly scope?: Scope;
   readonly control?: NimiRealtimeControlStatus;
@@ -108,7 +108,7 @@ export type LabRealtimePlayback = {
 /**
  * Direct App AI Realtime Session for Lab tests. It never selects an Agent or
  * Agent conversation; the App AIConfig route decides whether Open is admitted,
- * and an ended event stream is reported as its terminal reason, not success.
+ * and an interrupted reader keeps its exact scope until owner closure is confirmed.
  */
 export function createLabRealtimeController(input: {
   readonly client: NimiAiRealtimeClient;
@@ -124,6 +124,7 @@ export function createLabRealtimeController(input: {
   // before Open returns is kept here, and the Open flow closes the Session the
   // owner returns instead of leaving it open with nobody holding it.
   let closeRequested = false;
+  let ownerEnded = false;
   let pendingOpen: Promise<void> | null = null;
   let pendingClose: Promise<void> | null = null;
   let pendingPlaybackClose: Promise<void> | null = null;
@@ -147,17 +148,33 @@ export function createLabRealtimeController(input: {
   };
   const finish = (phase: 'closed' | 'terminated', terminalReason: string, error?: string) => {
     if (state.phase === 'closed' || state.phase === 'terminated') return;
+    ownerEnded = true;
     pendingResponseRequestId = null;
     const failedTracks = phase === 'terminated' ? state.tracks.filter((entry) => entry.lifecycle === 'active') : [];
     set({ phase, responsePending: false, terminalReason, endedAt: input.now().toISOString(),
       ...(phase === 'terminated' ? { tracks: state.tracks.map((entry) => entry.lifecycle === 'active'
         ? { ...entry, lifecycle: 'failed' as const, reasonCode: terminalReason } : entry) } : {}),
-      ...(error ? { error } : {}) });
+      error });
     // A failed Session releases local playback. This is not a native interrupt acknowledgement.
     for (const entry of failedTracks) {
       void input.playback?.finishOutputTrack({ outputTrackId: entry.outputTrackId, lifecycle: 'failed' }).catch(() => undefined);
     }
     void closePlayback().catch(() => undefined);
+  };
+  const observationInterrupted = (reason: string, error?: string) => {
+    pendingResponseRequestId = null;
+    set({ phase: 'interrupted', responsePending: false, terminalReason: reason, ...(error ? { error } : {}) });
+    void closePlayback().catch(() => undefined);
+  };
+  const revoked = (error: unknown) => ['revoked', 'account-changed', 'runtime-restarted', 'process-replaced', 'project-changed']
+    .includes(reasonCodeOf(error, ''));
+  const boundedOwnerClose = async (scope: Scope) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([input.client.close(scope), new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(Object.assign(new Error(t('CapabilityTests.aiRealtime.closeTimedOut')), { reasonCode: 'close-timeout' })), 5000);
+      })]);
+    } finally { if (timer !== undefined) clearTimeout(timer); }
   };
   const track = (outputTrackId: string, requestId: string, patch: (current: LabRealtimeOutputTrack) => Partial<LabRealtimeOutputTrack>) => {
     const existing = state.tracks.find((entry) => entry.outputTrackId === outputTrackId)
@@ -200,8 +217,9 @@ export function createLabRealtimeController(input: {
       set({ transcripts: [...transcripts, { utteranceId: event.utteranceId, text: event.text, final: event.final }] });
     } else if (event.type === 'request-terminal' || event.type === 'failure') {
       settleResponse(event.requestId);
-    } else if (event.type === 'session-terminal' && state.phase !== 'closing') {
-      finish('terminated', event.reasonCode || 'session-terminal');
+    } else if (event.type === 'session-terminal') {
+      ownerEnded = true;
+      if (state.phase !== 'closing') finish('terminated', event.reasonCode || 'session-terminal');
     }
   };
 
@@ -211,27 +229,35 @@ export function createLabRealtimeController(input: {
         if (state.scope !== scope) return;
         set({ control: envelope.control });
         await apply(envelope.event);
-        if ((envelope.control.lifecycle === 'closed' || envelope.control.lifecycle === 'failed') && state.phase === 'open') {
-          finish('terminated', envelope.control.terminalReason || envelope.control.lifecycle);
+        if (envelope.control.lifecycle === 'closed' || envelope.control.lifecycle === 'failed') {
+          ownerEnded = true;
+          if (state.phase === 'open') finish('terminated', envelope.control.terminalReason || envelope.control.lifecycle);
         }
       }
-      if (state.phase === 'open' && state.scope === scope) finish('terminated', state.control?.terminalReason || 'event-stream-ended');
+      if (state.phase === 'open' && state.scope === scope) observationInterrupted('event-stream-ended');
     } catch (error) {
-      if (state.phase === 'open' && state.scope === scope) finish('terminated', reasonCodeOf(error, 'event-stream-failed'), describeError(error));
+      if (state.phase === 'open' && state.scope === scope) {
+        if (revoked(error)) finish('terminated', reasonCodeOf(error, 'revoked'), describeError(error));
+        else observationInterrupted(reasonCodeOf(error, 'event-stream-failed'), describeError(error));
+      }
     }
   };
 
   const closeScope = async (scope: Scope, fallbackReason: string) => {
     set({ phase: 'closing', scope });
     try {
-      const result = await input.client.close(scope);
+      const result = await boundedOwnerClose(scope);
       set({ control: result.control });
       log('close', result.ack.ok
         ? t(`${LOG}.ackWithReason`, { reason: result.control.terminalReason || result.control.lifecycle })
         : t(`${LOG}.rejected`, { reasonCode: result.ack.reasonCode }));
-      finish('closed', result.control.terminalReason || fallbackReason);
+      if (result.control.lifecycle !== 'closed' && result.control.lifecycle !== 'failed') {
+        throw Object.assign(new Error(t('CapabilityTests.aiRealtime.closeUnconfirmed')), { reasonCode: result.ack.reasonCode || 'close-unconfirmed' });
+      }
+      finish(result.control.lifecycle === 'closed' ? 'closed' : 'terminated', result.control.terminalReason || fallbackReason);
     } catch (error) {
-      finish('terminated', reasonCodeOf(error, 'close-failed'), describeError(error));
+      if (ownerEnded || revoked(error)) finish('terminated', reasonCodeOf(error, 'close-failed'), describeError(error));
+      else observationInterrupted(reasonCodeOf(error, 'close-failed'), describeError(error));
       throw error;
     } finally {
       await cancelSubscription?.().catch(() => undefined);
@@ -259,7 +285,7 @@ export function createLabRealtimeController(input: {
     if (closeRequested) {
       count('closed-during-open');
       // A failed close is already recorded in the terminal state.
-      await closeScope(scope, 'closed-during-open').catch(() => undefined);
+      await closeScope(scope, 'closed-during-open');
       return;
     }
     set({ phase: 'open', scope, control: opened.control, negotiatedInputAudio: opened.negotiatedInputAudio, negotiatedOutputAudio: opened.negotiatedOutputAudio });
@@ -269,8 +295,11 @@ export function createLabRealtimeController(input: {
     } catch (error) {
       // A close that started meanwhile owns the Session's end.
       if (state.phase !== 'open' || state.scope !== scope) return;
-      finish('terminated', reasonCodeOf(error, 'subscribe-failed'), describeError(error));
-      await input.client.close(scope).catch(() => undefined);
+      if (revoked(error)) finish('terminated', reasonCodeOf(error, 'revoked'), describeError(error));
+      else {
+        observationInterrupted(reasonCodeOf(error, 'subscribe-failed'), describeError(error));
+        await closeScope(scope, 'subscribe-failed').catch(() => undefined);
+      }
       throw error;
     }
     if (state.phase !== 'open' || state.scope !== scope) {
@@ -279,6 +308,20 @@ export function createLabRealtimeController(input: {
     }
     cancelSubscription = () => subscription.cancel();
     void pump(subscription, scope);
+  };
+
+  const closeSession = async (): Promise<void> => {
+    if (pendingClose) return pendingClose;
+    if (state.phase === 'closed' || state.phase === 'terminated' || ownerEnded) return;
+    closeRequested = true;
+    let closing: Promise<void>;
+    if (state.phase === 'opening' && pendingOpen) {
+      set({ phase: 'closing' });
+      closing = pendingOpen.then(() => undefined, (error) => { if (state.scope && !ownerEnded) throw error; });
+    } else if (state.scope) closing = closeScope(state.scope, 'closed-by-user');
+    else { finish('closed', 'closed-before-open'); return; }
+    pendingClose = closing;
+    try { await closing; } finally { if (pendingClose === closing) pendingClose = null; }
   };
 
   return {
@@ -343,28 +386,15 @@ export function createLabRealtimeController(input: {
       await input.playback?.interruptOutputTrack({ outputTrackId }).catch(() => undefined);
       count('interrupt');
     },
-    // While Open is pending this resolves once the returned Session is closed.
-    async close(): Promise<void> {
-      if (pendingClose) return pendingClose;
-      if (state.phase === 'closed' || state.phase === 'terminated') return;
-      closeRequested = true;
-      if (state.phase === 'opening' && pendingOpen) {
-        set({ phase: 'closing' });
-        pendingClose = pendingOpen.then(() => undefined, () => undefined);
-      } else if (state.scope) {
-        pendingClose = closeScope(state.scope, 'closed-by-user');
-      } else {
-        finish('closed', 'closed-before-open');
-        return;
-      }
-      return pendingClose;
-    },
+    close: closeSession,
+    dispose: closeSession,
   };
 }
 
 export type LabRealtimeController = ReturnType<typeof createLabRealtimeController>;
 
 export function labRealtimeSessionSummary(state: LabRealtimeState): StudioSessionSummary {
+  if (state.phase !== 'closed' && state.phase !== 'terminated') throw new Error(t('CapabilityTests.aiRealtime.closeUnconfirmed'));
   return {
     capabilityContract: 'realtime.interact',
     startedAt: state.startedAt ?? new Date(0).toISOString(),

@@ -1,6 +1,9 @@
 package ai
 
-import "testing"
+import (
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"testing"
+)
 
 func TestRealtimeSessionStoreKeepsIndependentSessionsAndRemovesExactlyOne(t *testing.T) {
 	store := newRealtimeSessionStore()
@@ -12,9 +15,7 @@ func TestRealtimeSessionStoreKeepsIndependentSessionsAndRemovesExactlyOne(t *tes
 	if got, ok := store.get("session-a"); !ok || got != first {
 		t.Fatalf("first session = %+v found=%v", got, ok)
 	}
-	if removed := store.remove("session-a"); removed != first {
-		t.Fatalf("removed = %+v", removed)
-	}
+	store.finish(first, &runtimev1.RealtimeControlStatus{RealtimeSessionId: "session-a", Generation: 1, Lifecycle: runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_CLOSED})
 	if _, ok := store.get("session-a"); ok {
 		t.Fatal("removed session remains visible")
 	}

@@ -320,7 +320,8 @@
         "open": "已打开",
         "closing": "正在关闭",
         "closed": "已关闭",
-        "terminated": "已被所有者结束"
+        "terminated": "已被所有者结束",
+        "interrupted": "观察已中断"
       },
       "control": "{{lifecycle}} · 背压 {{backpressure}} · 缓冲 {{buffered}}/{{capacity}}",
       "inputSection": "输入与控制",
@@ -375,7 +376,9 @@
         "rejected": "已拒绝 {{reasonCode}}",
         "rejectedWithHint": "已拒绝 {{reasonCode}}（{{hint}}）",
         "sessionOpened": "{{id}} 第 {{generation}} 代"
-      }
+      },
+      "closeUnconfirmed": "尚未确认会话已关闭。请先关闭此会话再新建；关闭失败时可重试。",
+      "closeTimedOut": "关闭请求超时，尚未确认会话已关闭。"
     },
     "jobs": {
       "streamEnded": "任务 {{jobId}} 仍为 {{status}}；它的事件流在终态之前结束。",

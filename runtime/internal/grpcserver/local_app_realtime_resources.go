@@ -26,13 +26,17 @@ type protectedLocalAppAIRealtimeRevoker interface {
 	RevokeProtectedLocalAppAIRealtimeSession(string)
 }
 
+type protectedLocalAppAIRealtimeTerminalOwner interface {
+	ReplayClosedRealtimeSession(context.Context, *runtimev1.CloseRealtimeSessionRequest) (*runtimev1.CloseRealtimeSessionResponse, bool)
+}
+
 type protectedLocalAppVideoSessionRevoker interface{ RevokeProtectedLocalAppVideoSession(string) }
 
 type protectedLocalAppAgentRealtimeRevoker interface {
 	RevokeProtectedLocalAppAgentRealtimeSession(string)
 }
 
-func authorizeProtectedLocalAppRealtimeResource(ctx context.Context, connection *protectedlocal.LocalAppConnection, method string, request any) error {
+func authorizeProtectedLocalAppRealtimeResource(ctx context.Context, connection *protectedlocal.LocalAppConnection, method string, request any, servers ...any) error {
 	key := protectedLocalAppRealtimeResourceKey(method, request)
 	if key == "" || protectedLocalAppRealtimeOpenMethod(method) {
 		return nil
@@ -43,10 +47,24 @@ func authorizeProtectedLocalAppRealtimeResource(ctx context.Context, connection 
 	}
 	handle := protectedlocal.LocalAppSessionHandle{SessionID: decision.SessionID}
 	current, currentOK := connection.Session()
-	if !currentOK || current.SessionID != handle.SessionID || !connection.SessionOwnsResource(current, key) {
+	if !currentOK || current.SessionID != handle.SessionID {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
-	return nil
+	if connection.SessionOwnsResource(current, key) {
+		return nil
+	}
+	// An absent binding alone proves nothing. Only the actual AI owner may
+	// attest an already released, same-generation resource for this Close.
+	if method == protectedCloseAIRealtimeMethod && len(servers) == 1 {
+		if owner, ok := servers[0].(protectedLocalAppAIRealtimeTerminalOwner); ok {
+			if req, ok := request.(*runtimev1.CloseRealtimeSessionRequest); ok {
+				if _, found := owner.ReplayClosedRealtimeSession(ctx, req); found {
+					return nil
+				}
+			}
+		}
+	}
+	return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 }
 
 func updateProtectedLocalAppRealtimeResource(

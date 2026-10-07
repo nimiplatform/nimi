@@ -320,7 +320,8 @@
         "open": "Open",
         "closing": "Closing",
         "closed": "Closed",
-        "terminated": "Ended by owner"
+        "terminated": "Ended by owner",
+        "interrupted": "Observation interrupted"
       },
       "control": "{{lifecycle}} · backpressure {{backpressure}} · buffer {{buffered}}/{{capacity}}",
       "inputSection": "Input and controls",
@@ -375,7 +376,9 @@
         "rejected": "rejected {{reasonCode}}",
         "rejectedWithHint": "rejected {{reasonCode}} ({{hint}})",
         "sessionOpened": "{{id}} generation {{generation}}"
-      }
+      },
+      "closeUnconfirmed": "Session closure is not confirmed. Close this Session before opening another; retry Close if it fails.",
+      "closeTimedOut": "The close request timed out. Session closure is not confirmed."
     },
     "jobs": {
       "streamEnded": "Job {{jobId}} is still {{status}}; its event stream ended before a terminal state.",

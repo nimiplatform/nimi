@@ -30,6 +30,10 @@ type RealtimeSession interface {
 	Close() error
 }
 
+type RealtimeHost interface {
+	Open(context.Context, string, connector.ConnectorRecord, string, RealtimeProviderTarget, capabilitydriver.CloudRealtimeTransport) (RealtimeSession, error)
+}
+
 type ProviderRealtimeHost struct {
 	connectors    *connector.ConnectorStore
 	allowLoopback bool

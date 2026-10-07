@@ -422,7 +422,7 @@ func newUnaryProtectedLocalAppTransportInterceptor(admissions ...protectedLocalA
 		if err != nil {
 			return nil, err
 		}
-		if err := authorizeProtectedLocalAppRealtimeResource(authorizedContext, connection, info.FullMethod, req); err != nil {
+		if err := authorizeProtectedLocalAppRealtimeResource(authorizedContext, connection, info.FullMethod, req, info.Server); err != nil {
 			return nil, err
 		}
 		if protectedLocalAppOwnerEnabled(info.FullMethod, req, ingress) {

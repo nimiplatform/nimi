@@ -106,7 +106,7 @@ type Service struct {
 	remoteEmbedHost                        remoteexecution.EmbedHost
 	remoteDecideHost                       remoteexecution.DecideHost
 	remoteMediaHost                        remoteexecution.MediaHost
-	remoteRealtimeHost                     *remoteexecution.ProviderRealtimeHost
+	remoteRealtimeHost                     remoteexecution.RealtimeHost
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
 	allowLoopback                          bool
@@ -400,6 +400,14 @@ func (s *Service) SetRemoteEmbedExecutionHost(host remoteexecution.EmbedHost) {
 func (s *Service) SetRemoteMediaExecutionHost(host remoteexecution.MediaHost) {
 	if s != nil && host != nil {
 		s.remoteMediaHost = host
+	}
+}
+
+// SetRemoteRealtimeExecutionHost wires only the transport, following the other
+// Remote Host seams. Admission, Driver selection and session ownership stay here.
+func (s *Service) SetRemoteRealtimeExecutionHost(host remoteexecution.RealtimeHost) {
+	if s != nil && host != nil {
+		s.remoteRealtimeHost = host
 	}
 }
 
