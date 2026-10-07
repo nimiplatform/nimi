@@ -18,7 +18,7 @@ import {
   usesVerbatimStudioPrompt,
 } from './section-ai-testing-input.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
-import { readStudioTextReplayMedia } from './text-media-replay.js';
+import { readStudioTextReplayMedia, readStudioLocateReplayImage } from './text-media-replay.js';
 import { revealStudioAsset } from './section-ai-testing-output.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useStudioRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 import { StudioCapabilityParameterContext, StudioHistoryLoadContext, StudioHistoryPanelContext } from './contexts.js';
@@ -131,11 +131,13 @@ function TextStudioShell({
       : null)
     : lastResult?.capabilityId === capability.id ? lastResult : null;
   const headerResult = hasActiveRun ? currentResult : null;
-  const savedTextMedia = (currentResult?.ok && currentResult.output.kind === 'text' ? currentResult.output.sourceImage : undefined)
+  const savedTextMedia = (currentResult?.ok && (currentResult.output.kind === 'text' || currentResult.output.kind === 'vision-locate') ? currentResult.output.sourceImage : undefined)
     ?? displayedRun?.replayMedia;
   const displayedAttachmentCount = displayedRun?.record?.runConfig?.promptControls.attachmentCount
     ?? displayedRun?.attachmentCount ?? (savedTextMedia ? 1 : 0);
-  const textMediaReplayable = capability.id !== 'text.generate' ||
+  const textMediaReplayable = capability.id === 'vision.locate'
+    ? Boolean(savedTextMedia) && displayedRun?.record?.status !== 'unavailable'
+    : capability.id !== 'text.generate' ||
     (displayedAttachmentCount === 0 && !savedTextMedia) ||
     (displayedAttachmentCount <= 1 && Boolean(savedTextMedia) && displayedRun?.record?.status !== 'unavailable');
   const runTarget = useStudioRunTargetSummary(registration, runtime);
@@ -239,7 +241,7 @@ function TextStudioShell({
     if (abortControllerRef.current) return;
     if (replay && !textMediaReplayable) return;
     if (replay && (!displayedRunReplayable || !replayAssetsAvailable)) return;
-    const replayTextMedia = replay && capability.id === 'text.generate';
+    const replayTextMedia = replay && (capability.id === 'text.generate' || capability.id === 'vision.locate');
     let runAttachments = replayTextMedia ? [] : [...composerState.attachments];
     const attachmentCount = supportsMedia ? (replayTextMedia ? (savedTextMedia ? 1 : displayedAttachmentCount) : runAttachments.length) : 0;
     const runParameters = runParametersFor(replay ? nextPrompt : null);
@@ -257,7 +259,7 @@ function TextStudioShell({
     if (!hasStudioCapabilityRunInput({ requiresPrompt, prompt: displayPrompt, hasAlternativeInput: runHasAlternativeInput })) return;
     if ((capability.id === 'music.transcribe' || capability.id === 'audio.voice.convert' || capability.id === 'audio.separate') && !runHasAlternativeInput) return;
     if (profile.requiresParameterInput && !runHasAlternativeInput) return;
-    if (!hasRequiredImage) return;
+    if (!(replay && capability.id === 'vision.locate' ? Boolean(savedTextMedia) : hasRequiredImage)) return;
     if (!runTarget.canDispatch) return;
     const runSeq = runSeqRef.current + 1;
     runSeqRef.current = runSeq;
@@ -290,7 +292,8 @@ function TextStudioShell({
       try {
         if (replayTextMedia && savedTextMedia) {
           try {
-            runAttachments = [await readStudioTextReplayMedia(rendererHost.sdk.assets, savedTextMedia, abortController.signal)];
+            const readSaved = capability.id === 'vision.locate' ? readStudioLocateReplayImage : readStudioTextReplayMedia;
+            runAttachments = [await readSaved(rendererHost.sdk.assets, savedTextMedia, abortController.signal)];
           } catch (error) {
             if (abortController.signal.aborted) throw error;
             throw new Error(t('Studio.profiles.textGenerate.savedMediaUnavailable'));
@@ -559,7 +562,7 @@ function TextStudioShell({
                 admission={admission}
                 intentLabel={displayedRun.record ? getStudioRunIntentLabel(displayedRun.record) : runTarget.intentLabel}
                 running={displayingExecution}
-                canRegenerate={!running && hasRequiredImage && textMediaReplayable && displayedRunReplayable && replayAssetsAvailable}
+                canRegenerate={!running && (capability.id !== 'vision.locate' || Boolean(savedTextMedia)) && textMediaReplayable && displayedRunReplayable && replayAssetsAvailable}
                 regenerateHint={!running && !textMediaReplayable ? t('Studio.profiles.textGenerate.savedMediaUnavailable')
                   : !running && replayAssetsChecking ? t('StudioShell.historyInputsChecking')
                     : !running && (!displayedRunReplayable || !replayAssetsAvailable) ? t('StudioShell.historyInputsUnavailable') : undefined}

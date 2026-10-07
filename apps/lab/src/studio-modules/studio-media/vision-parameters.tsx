@@ -4,6 +4,7 @@ import { StudioParameterField, type StudioParameterPanelProps } from '../../ai-s
 import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
 
 export const studioVisionLocateParameters = defineStudioParameters<{ geometry: 'box' | 'point' }>({
+  restoreRecordedParameters: (snapshot) => snapshot?.geometry === 'box' || snapshot?.geometry === 'point' ? { geometry: snapshot.geometry } : null,
   initial: () => ({ geometry: 'box' }), routeMatrix: { geometry: LOCAL_ONLY_STUDIO_PARAMETER },
 });
 

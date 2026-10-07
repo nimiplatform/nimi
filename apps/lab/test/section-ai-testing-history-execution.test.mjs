@@ -253,16 +253,19 @@ test('history previews do not inherit another run status or cancellation target'
   const target = {
     capabilityId:'vision.locate', capabilityContract:'vision.locate', section:'image',
     source:'local', status:'configured', canDispatch:true, intentLabel:'Local', detail:'configured',
-    params:{}, paramsSummary:[], profileOrigin:null,
+    params:{geometry:'box'}, paramsSummary:[], profileOrigin:null,
   };
+  const savedBytes = new TextEncoder().encode('image content');
+  const savedSource = {relativePath:'media/vision/b.png',mediaType:'image/png',sizeBytes:savedBytes.length,sha256:'sha256:'+createHash('sha256').update(savedBytes).digest('hex'),displayName:'saved-b.png',previewSource:'managed-asset'};
+  const secondStarted=Promise.withResolvers(), thirdStarted=Promise.withResolvers();
   const savedResult = {
     ok:true, capabilityId:'vision.locate', capabilityLabel:'Locate', message:'saved B',
-    output:{kind:'vision-locate',jobId:'job-b',result:{imageArtifactId:'image-b',width:1200,height:800,locations:[]}},
+    output:{kind:'vision-locate',sourceImage:savedSource,jobId:'job-b',result:{imageArtifactId:'image-b',width:1200,height:800,locations:[]}},
   };
   const record = {
     id:'history-b', capabilityId:'vision.locate', createdAt:'2026-09-09T00:00:00.000Z',
     prompt:'the button', status:'ready', message:'saved B',
-    result:{ok:true,kind:'vision-locate',jobId:'job-b',summary:'saved B',result:savedResult.output.result},
+    result:{ok:true,kind:'vision-locate',sourceImage:savedSource,jobId:'job-b',summary:'saved B',result:savedResult.output.result},
     runConfig:{target,promptControls:{context:'',contextAttached:false,attachmentCount:1}},
   };
   const calls = [];
@@ -273,8 +276,8 @@ test('history previews do not inherit another run status or cancellation target'
       events:{subscribeAIConfigRefresh:()=>()=>{}},
       commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>{}},
     },
-    sdk:{aiConfig:{get:async()=>null},runCapability(input){
-      const deferred=Promise.withResolvers(); calls.push({input,...deferred}); return deferred.promise;
+    sdk:{aiConfig:{get:async()=>null},assets:{stat:async()=>savedSource,read:async()=>({asset:savedSource,body:{async *[Symbol.asyncIterator](){yield savedBytes}}})},runCapability(input){
+      const deferred=Promise.withResolvers(); calls.push({input,...deferred}); if(calls.length===2)secondStarted.resolve(); if(calls.length===3)thirdStarted.resolve(); return deferred.promise;
     }},
   };
   const container = document.getElementById('root');
@@ -310,7 +313,7 @@ test('history previews do not inherit another run status or cancellation target'
     assert.equal(calls[0].input.attachments[0].name,'gui.png');
     await act(async()=>{calls[0].resolve(savedResult);});
     // B is now a completed current-session result. Start A, then select B.
-    await act(async()=>{button('StudioShell.regenerate').click();});
+    await act(async()=>{button('StudioShell.regenerate').click();await secondStarted.promise;});
     assert.equal(calls.length,2);
     props.historySelectionRequest={requestId:1,record};
     await act(async()=>{render();});
@@ -337,9 +340,11 @@ test('history previews do not inherit another run status or cancellation target'
     await act(async()=>{calls[1].resolve({ok:false,capabilityId:'vision.locate',reason:'runtime-canceled',message:'canceled A'});});
     props.historySelectionRequest={requestId:3,record:{...record,id:'older-history'}};
     await act(async()=>{render();button('Studio.composer.removeAttachment').click();});
-    assert.equal(button('StudioShell.regenerate').disabled,true);
-    await act(async()=>{button('StudioShell.regenerate').click();});
-    assert.equal(calls.length,2);
+    assert.equal(button('StudioShell.regenerate').disabled,false, 'clearing the draft must not discard the saved history source');
+    await act(async()=>{button('StudioShell.regenerate').click();await thirdStarted.promise;});
+    assert.equal(calls.length,3);
+    assert.equal(calls[2].input.attachments[0].name,'saved-b.png');
+    await act(async()=>calls[2].resolve({ok:false,capabilityId:'vision.locate',reason:'runtime-canceled',message:'test end'}));
   } finally {
     await act(async()=>{renderer.unmount();});
   }
@@ -942,4 +947,35 @@ for(const item of [{id:'audio.separate',kind:'source'},{id:'audio.voice.convert'
   }finally{await act(async()=>renderer.unmount())}
  });
  }
+}
+
+for(const geometry of ['box','point']) for(const withDraft of [false,true]) {
+ test('Locate history restores its own image and '+geometry+' with current draft '+withDraft, {timeout:10000}, async()=>{
+  const registration=labStudioComposition.getCapability('vision.locate');
+  const target={capabilityId:'vision.locate',capabilityContract:'vision.locate',section:'image',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{geometry},paramsSummary:[],profileOrigin:null};
+  const bytes=new TextEncoder().encode('saved image A'),source={relativePath:'media/vision-locate/a/source.asset',mediaType:'image/png',sizeBytes:bytes.length,sha256:'sha256:'+createHash('sha256').update(bytes).digest('hex'),displayName:'saved-A.png',previewSource:'managed-asset'};
+  const record={id:'locate-a',capabilityId:'vision.locate',createdAt:'2026-10-07T00:00:00Z',prompt:'query A',status:'ready',message:'saved',
+   result:{ok:true,kind:'vision-locate',summary:'A',jobId:'a',sourceImage:source,result:{width:10,height:10,imageArtifactId:'a',locations:[]}},
+   runConfig:{target,promptControls:{context:'',contextAttached:false,attachmentCount:1}}};
+  const calls=[],reads=[];const complete=Promise.withResolvers();
+  const host={appTitle:'Lab',translate:k=>k,locale:'en',clock:{now:()=>Date.now()},
+   app:{projection:{promptDraft:()=>({prompt:'draft B'}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>{}}},
+   sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({})},assets:{stat:async()=>source,read:async({relativePath})=>{reads.push(relativePath);return{asset:source,body:{async *[Symbol.asyncIterator](){yield bytes}}}}},runCapability:async input=>{calls.push(input);return{ok:false,capabilityId:'vision.locate',reason:'runtime-call-failed',message:'test transport boundary',actionHint:''}}}};
+  const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{'vision.locate':[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>{complete.resolve();return null},verboseConsole:false,draftPersistence:false};
+  const container=document.getElementById('root'),renderer=createRoot(container),previousReader=globalThis.FileReader;
+  const parameterStore={state:{'vision.locate':{geometry:geometry==='box'?'point':'box'}},setParameters(){}};
+  const render=()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(StudioCapabilityParameterContext.Provider,{value:parameterStore},createElement(SectionAITesting,props)))));
+  const button=k=>[...container.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')===k||b.textContent.trim()===k);
+  try{
+   await act(async()=>render());
+   if(withDraft){const finished=Promise.withResolvers();globalThis.FileReader=class extends dom.window.FileReader{constructor(){super();this.addEventListener('loadend',finished.resolve,{once:true})}};
+    await act(async()=>{button('VisionLocate.chooseImage').click();const input=document.querySelector('input[type="file"]');Object.defineProperty(input,'files',{value:[new dom.window.File(['draft B'],'current-B.png',{type:'image/png'})]});input.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await finished.promise});globalThis.FileReader=previousReader;
+    props.historySelectionRequest={requestId:2,record};await act(async()=>render());
+   }
+   assert.equal(button('StudioShell.regenerate').disabled,false);
+   await act(async()=>{button('StudioShell.regenerate').click();await complete.promise});
+   assert.equal(calls.length,1);assert.equal(calls[0].attachments[0].name,'saved-A.png');assert.equal(calls[0].attachments[0].dataUrl,'data:image/png;base64,'+Buffer.from(bytes).toString('base64'));assert.equal(calls[0].parameters.geometry,geometry);assert.ok(calls[0].prompt.includes('query A'));assert.deepEqual(reads,[source.relativePath]);
+   const missing=structuredClone(record);delete missing.result.sourceImage;props.historySelectionRequest={requestId:3,record:missing};await act(async()=>render());assert.equal(button('StudioShell.regenerate').disabled,true);
+  }finally{globalThis.FileReader=previousReader;await act(async()=>renderer.unmount())}
+ });
 }

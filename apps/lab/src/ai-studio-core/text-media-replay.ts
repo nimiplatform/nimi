@@ -4,12 +4,16 @@ import type { StudioManagedArtifact } from './runtime-types.js';
 import { studioDocumentSha256 } from './text-annotation-document.js';
 
 /** Restore the saved input, never the current composer's unrelated attachment. */
-export async function readStudioTextReplayMedia(
-  assets: Pick<NimiLocalAppAssetsClient, 'read'>,
-  source: StudioManagedArtifact,
-  signal: AbortSignal,
-): Promise<BrowserDataUrlAttachment> {
-  if (!source.mediaType || !['image/jpeg', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(source.mediaType)
+export function readStudioTextReplayMedia(assets: Pick<NimiLocalAppAssetsClient, 'read'>, source: StudioManagedArtifact, signal: AbortSignal): Promise<BrowserDataUrlAttachment> {
+  return readStudioOwnedReplayMedia(assets, source, signal, ['image/jpeg', 'audio/wav', 'audio/mpeg', 'video/mp4']);
+}
+
+export function readStudioLocateReplayImage(assets: Pick<NimiLocalAppAssetsClient, 'read'>, source: StudioManagedArtifact, signal: AbortSignal): Promise<BrowserDataUrlAttachment> {
+  return readStudioOwnedReplayMedia(assets, source, signal, ['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+}
+
+async function readStudioOwnedReplayMedia(assets: Pick<NimiLocalAppAssetsClient, 'read'>, source: StudioManagedArtifact, signal: AbortSignal, acceptedMimeTypes: readonly string[]): Promise<BrowserDataUrlAttachment> {
+  if (!source.mediaType || !acceptedMimeTypes.includes(source.mediaType)
     || !Number.isSafeInteger(source.sizeBytes) || source.sizeBytes < 1 || source.sizeBytes > 32 * 1024 * 1024) {
     throw new Error('Saved input media is invalid');
   }
