@@ -4459,6 +4459,19 @@ impl Default for WorldEntityRefKindV3 {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorldImageProjection {
+    WORLDIMAGEPROJECTIONUNSPECIFIED,
+    WORLDIMAGEPROJECTIONORDINARY,
+    WORLDIMAGEPROJECTIONEQUIRECTANGULAR360,
+}
+
+impl Default for WorldImageProjection {
+    fn default() -> Self {
+        Self::WORLDIMAGEPROJECTIONUNSPECIFIED
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AIConfig {
     pub owner: Option<Box<AIConfigOwner>>,
@@ -10715,6 +10728,7 @@ pub struct LocalAppVoiceCreateJobSpec {
 pub struct LocalAppWorldGenerateJobSpec {
     pub prompt: Option<String>,
     pub display_name: Option<String>,
+    pub image: Option<Box<WorldGenerateOwnedImageInput>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15242,11 +15256,13 @@ pub struct WorldEntityRefV3 {
 pub struct WorldGenerateAssetSource {
     pub uri: Option<String>,
     pub media_asset_id: Option<String>,
+    pub artifact_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldGenerateImagePrompt {
     pub content: Option<Box<WorldGenerateAssetSource>>,
+    pub projection: Option<WorldImageProjection>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15258,6 +15274,12 @@ pub struct WorldGenerateMultiImagePrompt {
 pub struct WorldGenerateMultiImageReference {
     pub azimuth: Option<i32>,
     pub content: Option<Box<WorldGenerateAssetSource>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldGenerateOwnedImageInput {
+    pub artifact_id: Option<String>,
+    pub projection: Option<WorldImageProjection>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

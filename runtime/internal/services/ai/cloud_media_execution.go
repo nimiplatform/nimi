@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -249,6 +250,11 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		return nil, cloudMediaDriverError(capabilityContract, err)
 	}
 	effectiveRequest = mapped.Request()
+	if mapped.Adapter() == capabilitydriver.CloudMediaAdapterWorldLabsNative {
+		if err := nimillm.ValidateWorldLabsRequestFields(effectiveRequest.GetSpec().GetWorldGenerate()); err != nil {
+			return nil, err
+		}
+	}
 	// @nimi-authority: rule.nimi.runtime.ai-provider.gemini-owned-image-reference
 	var imageReference *nimillm.ImageReference
 	if spec := effectiveRequest.GetSpec().GetImageGenerate(); spec != nil && spec.GetReferenceImageArtifactId() != "" {
@@ -262,6 +268,22 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 			Bytes: payload, SHA256: hex.EncodeToString(digest[:]),
 		}
 		if captureErr := nimillm.ValidateGeminiImageReferenceRequest(spec, imageReference); captureErr != nil {
+			return nil, captureErr
+		}
+	}
+	// @nimi-authority: rule.nimi.runtime.ai-provider.r029
+	if spec := effectiveRequest.GetSpec().GetWorldGenerate(); spec != nil && spec.GetImagePrompt() != nil {
+		if binding == nil || !slices.Contains(binding.Features, "input.image") {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
+		}
+		artifactID := spec.GetImagePrompt().GetContent().GetArtifactId()
+		payload, mimeType, captureErr := s.resolveOwnedImageArtifactBytes(ctx, effectiveRequest.GetHead(), artifactID)
+		if captureErr != nil {
+			return nil, captureErr
+		}
+		digest := sha256.Sum256(payload)
+		imageReference = &nimillm.ImageReference{ArtifactID: artifactID, MIMEType: mimeType, Bytes: payload, SHA256: hex.EncodeToString(digest[:])}
+		if captureErr := nimillm.ValidateWorldLabsImageReference(spec, imageReference); captureErr != nil {
 			return nil, captureErr
 		}
 	}

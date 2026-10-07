@@ -1,6 +1,6 @@
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import type { StudioParameterValue } from './parameters.js';
-import type { StudioRunConfigSnapshot } from './history.js';
+import type { StudioRunConfigSnapshot, StudioRunHistoryRecord } from './history.js';
 import type { NimiLocalAppAudioInstrumentPartKind, NimiLocalAppVisionLocateResult, NimiLocalAppMusicGeneration, NimiLocalAppMusicTranscription, NimiLocalAppSpeechTranscript, NimiLocalAppTextAnnotationResult, NimiLocalAppVideoFaceSwapSummary, NimiLocalAppVoiceConversion } from '@nimiplatform/sdk/app';
 import type { NimiRuntimeScenarioJob, NimiRuntimeScenarioArtifact } from '@nimiplatform/sdk/runtime';
 
@@ -125,7 +125,7 @@ export type StudioTypedOutput =
   | { readonly kind: 'text'; readonly text: string; readonly finishReason: string; readonly inputTokens?: number; readonly outputTokens?: number; readonly totalTokens?: number; readonly streamed: boolean; readonly sourceImage?: StudioManagedArtifact }
   // spaceId is absent only on records saved before the result retained it.
   | { readonly kind: 'embedding'; readonly vectorCount: number; readonly dimensions: number; readonly spaceId?: string; readonly sample: number[]; readonly totalTokens?: number }
-  | { readonly kind: 'artifacts'; readonly musicGeneration?: StudioMusicGeneration; readonly musicTranscription?: StudioMusicTranscription; readonly voiceConversion?: StudioVoiceConversion; readonly audioSeparation?: StudioAudioSeparation; readonly faceSwap?: StudioFaceSwap; readonly jobId: string; readonly jobState: string; readonly artifactCount: number; readonly artifacts: StudioManagedArtifact[]; readonly firstArtifact?: StudioManagedArtifact }
+  | { readonly kind: 'artifacts'; readonly sourceImage?: StudioManagedArtifact; readonly musicGeneration?: StudioMusicGeneration; readonly musicTranscription?: StudioMusicTranscription; readonly voiceConversion?: StudioVoiceConversion; readonly audioSeparation?: StudioAudioSeparation; readonly faceSwap?: StudioFaceSwap; readonly jobId: string; readonly jobState: string; readonly artifactCount: number; readonly artifacts: StudioManagedArtifact[]; readonly firstArtifact?: StudioManagedArtifact }
   // The complete annotation lives in the saved document; it is attached only
   // after the current run or a verified read of that document.
   | { readonly kind: 'text-annotation'; readonly jobId: string; readonly jobState: string; readonly language: string; readonly documentCount: number; readonly tokenCount: number; readonly sentenceCount: number; readonly document: StudioManagedArtifact; readonly annotation?: NimiLocalAppTextAnnotationResult }
@@ -137,6 +137,7 @@ export type StudioTypedOutput =
   | { readonly kind: 'voice-catalog'; readonly voiceCount: number; readonly sample: Array<{ readonly voiceId: string; readonly creationSource: string; readonly status: string }> };
 
 export type StudioTypedSuccess = {
+  readonly recordedHistory?: StudioRunHistoryRecord;
   readonly ok: true;
   readonly capabilityId: string;
   readonly capabilityLabel: string;
@@ -165,6 +166,7 @@ export type StudioNonSuccessDiagnostics = {
 };
 
 export type StudioNonSuccess = {
+  readonly recordedHistory?: StudioRunHistoryRecord;
   readonly ok: false;
   readonly capabilityId: string;
   readonly reason: StudioNonSuccessReason;
@@ -186,6 +188,8 @@ export type StudioRuntimeInspection = {
 
 export type StudioCapabilityRunInput = {
   readonly recordedRunConfig?: StudioRunConfigSnapshot;
+  readonly recordedCreatedAt?: string;
+  readonly recordedPrompt?: string;
   readonly capabilityId: string;
   readonly prompt: string;
   readonly scenarioId?: string;

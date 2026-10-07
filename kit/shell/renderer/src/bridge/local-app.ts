@@ -242,7 +242,7 @@ export type NimiLocalAppScenarioJobSpec =
   | NimiLocalAppMusicGenerateSpec
   | NimiLocalAppMusicTranscribeSpec
   | NimiLocalAppVoiceConvertSpec
-  | { readonly type: 'world-generate'; readonly prompt: string; readonly displayName: string };
+  | { readonly type: 'world-generate'; readonly prompt?: string; readonly displayName: string; readonly image?: { readonly artifactId: string; readonly projection: 'ordinary' | 'equirectangular-360' } };
 
 export type NimiLocalAppScenarioJobSubmitOptions = {
   readonly timeoutMs?: number;

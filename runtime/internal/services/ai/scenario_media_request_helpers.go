@@ -155,7 +155,9 @@ func validateWorldGenerateScenarioSpec(spec *runtimev1.WorldGenerateScenarioSpec
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
 	case *runtimev1.WorldGenerateScenarioSpec_ImagePrompt:
-		if conditioning.ImagePrompt == nil || validateWorldGenerateAssetSource(conditioning.ImagePrompt.GetContent()) != nil {
+		if conditioning.ImagePrompt == nil || len(conditioning.ImagePrompt.ProtoReflect().GetUnknown()) != 0 ||
+			!localAppBoundedIdentifier(conditioning.ImagePrompt.GetContent().GetArtifactId()) ||
+			(conditioning.ImagePrompt.GetProjection() != runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_ORDINARY && conditioning.ImagePrompt.GetProjection() != runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360) {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
 	case *runtimev1.WorldGenerateScenarioSpec_MultiImagePrompt:

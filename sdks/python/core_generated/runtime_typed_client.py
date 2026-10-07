@@ -238,6 +238,7 @@ VoiceOutputMode = Literal["VOICE_OUTPUT_MODE_UNSPECIFIED", "VOICE_OUTPUT_MODE_NA
 VoiceReferenceKind = Literal["VOICE_REFERENCE_KIND_UNSPECIFIED", "VOICE_REFERENCE_KIND_PRESET", "VOICE_REFERENCE_KIND_VOICE_ASSET", "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"]
 WorkspaceMembershipState = Literal["WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED", "WORKSPACE_MEMBERSHIP_STATE_ACTIVE", "WORKSPACE_MEMBERSHIP_STATE_SUSPENDED", "WORKSPACE_MEMBERSHIP_STATE_REVOKED", "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN"]
 WorldEntityRefKindV3 = Literal["WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED", "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"]
+WorldImageProjection = Literal["WORLD_IMAGE_PROJECTION_UNSPECIFIED", "WORLD_IMAGE_PROJECTION_ORDINARY", "WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360"]
 
 @dataclass(frozen=True)
 class AIConfig:
@@ -4453,6 +4454,7 @@ class LocalAppVoiceCreateJobSpec:
 class LocalAppWorldGenerateJobSpec:
     prompt: str | None = None
     display_name: str | None = None
+    image: WorldGenerateOwnedImageInput | None = None
 
 @dataclass(frozen=True)
 class LocalAuditEvent:
@@ -7463,10 +7465,12 @@ class WorldEntityRefV3:
 class WorldGenerateAssetSource:
     uri: str | None = None
     media_asset_id: str | None = None
+    artifact_id: str | None = None
 
 @dataclass(frozen=True)
 class WorldGenerateImagePrompt:
     content: WorldGenerateAssetSource | None = None
+    projection: WorldImageProjection | None = None
 
 @dataclass(frozen=True)
 class WorldGenerateMultiImagePrompt:
@@ -7476,6 +7480,11 @@ class WorldGenerateMultiImagePrompt:
 class WorldGenerateMultiImageReference:
     azimuth: int | None = None
     content: WorldGenerateAssetSource | None = None
+
+@dataclass(frozen=True)
+class WorldGenerateOwnedImageInput:
+    artifact_id: str | None = None
+    projection: WorldImageProjection | None = None
 
 @dataclass(frozen=True)
 class WorldGenerateResult:

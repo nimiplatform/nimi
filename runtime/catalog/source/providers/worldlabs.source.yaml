@@ -1,6 +1,6 @@
 schema_version: 3
 provider: worldlabs
-catalog_version: 2026-04-17-worldlabs-v1
+catalog_version: 2026-10-06-worldlabs-owned-image-v1
 generated_target: runtime/catalog/providers/worldlabs.yaml
 runtime:
   inventory_mode: static_source
@@ -39,12 +39,22 @@ sources:
     retrieved_at: 2026-04-17
     note: API credit pricing for Marble 1.1 and Marble 1.1 Plus.
 
+  - source_id: worldlabs_image_prompt_guidelines
+    url: https://docs.worldlabs.ai/marble/create/prompt-guides/index
+    retrieved_at: 2026-10-06
+    note: Official bounded PNG, JPEG and WebP image input and 360 equirectangular geometry.
+  - source_id: worldlabs_api_prepare_upload
+    url: https://docs.worldlabs.ai/api/reference/media-assets/prepare-upload
+    retrieved_at: 2026-10-06
+    note: Runtime-owned media asset preparation and signed upload before world generation.
+
 models:
   - model_id: marble-1.1
     model_type: world
-    updated_at: 2026-04-17
+    updated_at: 2026-10-06
     capabilities: [world.generate]
-    source_ids: [worldlabs_api_quickstart, worldlabs_api_generate_world, worldlabs_api_get_world, worldlabs_api_pricing]
+    features: [input.image]
+    source_ids: [worldlabs_api_quickstart, worldlabs_api_generate_world, worldlabs_api_get_world, worldlabs_api_pricing, worldlabs_image_prompt_guidelines, worldlabs_api_prepare_upload]
     pricing:
       unit: request
       input: variable_by_prompt_type
@@ -55,9 +65,10 @@ models:
 
   - model_id: marble-1.1-plus
     model_type: world
-    updated_at: 2026-04-17
+    updated_at: 2026-10-06
     capabilities: [world.generate]
-    source_ids: [worldlabs_api_quickstart, worldlabs_api_generate_world, worldlabs_api_get_world, worldlabs_api_pricing]
+    features: [input.image]
+    source_ids: [worldlabs_api_quickstart, worldlabs_api_generate_world, worldlabs_api_get_world, worldlabs_api_pricing, worldlabs_image_prompt_guidelines, worldlabs_api_prepare_upload]
     pricing:
       unit: request
       input: variable_by_prompt_type

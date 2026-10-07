@@ -1367,8 +1367,14 @@ function assertScenarioSpec(value: unknown, command: string, execute: boolean): 
       return;
     case 'music-generate': validateMusicSpec(value, command); return;
     case 'world-generate':
-      assertExactKeys(value, ['type', 'prompt', 'displayName'], command);
-      requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
+      assertAllowedKeys(value, ['type', 'prompt', 'displayName', 'image'], ['type', 'displayName'], command);
+      optionalExactText(value.prompt, 'prompt', command, 32 * 1024);
+      if (value.image !== undefined) {
+        if (!isPlainRecord(value.image)) throw invalidPayload(command, 'World image is invalid');
+        assertExactKeys(value.image, ['artifactId', 'projection'], command);
+        if (!optionalBoundedIdentifier(value.image.artifactId, 'artifactId', command) ||
+            !['ordinary', 'equirectangular-360'].includes(String(value.image.projection))) throw invalidPayload(command, 'World image requires its owned artifact and explicit projection');
+      } else requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
       optionalExactText(value.displayName, 'displayName', command, 256);
       return;
     default: throw invalidPayload(command, 'job scenario type is invalid');

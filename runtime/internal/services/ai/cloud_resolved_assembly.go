@@ -335,14 +335,22 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly) error
 		}
 		imageSpec := request.GetSpec().GetImageGenerate()
 		if reference := assembly.ImageReference; reference != nil {
-			if imageSpec == nil {
+			var err error
+			if world := request.GetSpec().GetWorldGenerate(); world != nil && world.GetImagePrompt() != nil {
+				err = nimillm.ValidateWorldLabsImageReference(world, reference)
+			} else if imageSpec != nil {
+				err = nimillm.ValidateGeminiImageReferenceRequest(imageSpec, reference)
+			} else {
 				return fmt.Errorf("Cloud image capture does not match request")
 			}
-			if err := nimillm.ValidateGeminiImageReferenceRequest(imageSpec, reference); err != nil {
+			if err != nil {
 				return fmt.Errorf("Cloud image captured input is invalid: %w", err)
 			}
 		} else if imageSpec != nil && imageSpec.GetReferenceImageArtifactId() != "" && assembly.CredentialCustodyRef != "" {
 			return fmt.Errorf("Cloud image captured input is missing")
+		}
+		if world := request.GetSpec().GetWorldGenerate(); world != nil && world.GetImagePrompt() != nil && assembly.ImageReference == nil && assembly.CredentialCustodyRef != "" {
+			return fmt.Errorf("Cloud World image capture is missing")
 		}
 		music := request.GetSpec().GetMusicGenerate()
 		if reference := assembly.MusicVideoReference; reference != nil {

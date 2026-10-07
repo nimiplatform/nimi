@@ -5964,7 +5964,7 @@ pub struct AudioVoiceConvertResult {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WorldGenerateAssetSource {
-    #[prost(oneof = "world_generate_asset_source::Source", tags = "1, 2")]
+    #[prost(oneof = "world_generate_asset_source::Source", tags = "1, 2, 3")]
     pub source: ::core::option::Option<world_generate_asset_source::Source>,
 }
 /// Nested message and enum types in `WorldGenerateAssetSource`.
@@ -5975,12 +5975,23 @@ pub mod world_generate_asset_source {
         Uri(::prost::alloc::string::String),
         #[prost(string, tag = "2")]
         MediaAssetId(::prost::alloc::string::String),
+        #[prost(string, tag = "3")]
+        ArtifactId(::prost::alloc::string::String),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WorldGenerateImagePrompt {
     #[prost(message, optional, tag = "1")]
     pub content: ::core::option::Option<WorldGenerateAssetSource>,
+    #[prost(enumeration = "WorldImageProjection", tag = "2")]
+    pub projection: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldGenerateOwnedImageInput {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "WorldImageProjection", tag = "2")]
+    pub projection: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WorldGenerateMultiImageReference {
@@ -7026,7 +7037,7 @@ pub struct LocalAppMusicGenerateJobSpec {
     #[prost(message, optional, tag = "10")]
     pub video_reference: ::core::option::Option<MusicVideoReference>,
 }
-/// Text-conditioned world generation. Provider selection and asset retrieval
+/// Text or an owned image with explicit projection. Provider upload and asset retrieval
 /// remain Runtime-owned; the result is a portable world archive artifact.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppWorldGenerateJobSpec {
@@ -7034,6 +7045,8 @@ pub struct LocalAppWorldGenerateJobSpec {
     pub prompt: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub display_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub image: ::core::option::Option<WorldGenerateOwnedImageInput>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitLocalAppScenarioJobRequest {
@@ -8841,6 +8854,38 @@ impl VoiceConversionLengthRelation {
             "VOICE_CONVERSION_LENGTH_RELATION_EXACT" => Some(Self::Exact),
             "VOICE_CONVERSION_LENGTH_RELATION_MODEL_FRAME_ROUNDING" => {
                 Some(Self::ModelFrameRounding)
+            }
+            _ => None,
+        }
+    }
+}
+/// Explicit user intent; 2:1 dimensions alone do not establish a 360 panorama.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorldImageProjection {
+    Unspecified = 0,
+    Ordinary = 1,
+    Equirectangular360 = 2,
+}
+impl WorldImageProjection {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "WORLD_IMAGE_PROJECTION_UNSPECIFIED",
+            Self::Ordinary => "WORLD_IMAGE_PROJECTION_ORDINARY",
+            Self::Equirectangular360 => "WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORLD_IMAGE_PROJECTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORLD_IMAGE_PROJECTION_ORDINARY" => Some(Self::Ordinary),
+            "WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360" => {
+                Some(Self::Equirectangular360)
             }
             _ => None,
         }

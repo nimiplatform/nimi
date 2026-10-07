@@ -55,7 +55,21 @@
     "noPendingWorld": "没有需要继续的世界生成任务。",
     "pendingInvalid": "已保存的世界任务标识无效。",
     "pendingExists": "已有世界生成任务。请在“参数”中点击“继续上次生成”获取结果。",
-    "noSavedWorld": "请先生成一个世界，保存后可以随时重新打开。"
+    "noSavedWorld": "请先生成一个世界，保存后可以随时重新打开。",
+    "inputMode": "输入方式",
+    "textInput": "文字",
+    "imageInput": "普通图",
+    "panoInput": "360 等距全景",
+    "chooseImage": "选择世界源图",
+    "sourcePreview": "本次世界生成的源图",
+    "sourceUnavailable": "源图缺失或已改变，无法预览或重新使用。",
+    "sourceRequired": "请选择一张源图；文字可留空。",
+    "savingSource": "正在保存源图…",
+    "imageLimits": "PNG、JPEG 或 WebP，最多 20 MB、16 MP；请先将图片方向处理为正向。",
+    "panoLimits": "请选择覆盖完整 360°×180° 的正向等距全景，尺寸必须为 2:1。宽高比本身不能证明全景内容；最多 20 MB、16 MP。",
+    "originalInputUnknown": "该记录未保存完整原请求快照。原输入未知，仍可打开已保存世界。",
+    "submissionUnknown": "提交回执缺失，尚无可观察的 Job ID。原请求已保留，不能自动再次生成。",
+    "archiveInvalid": "已保存世界与此 Job 的归档身份不符。"
   },
   "Studio": {
     "profiles": {

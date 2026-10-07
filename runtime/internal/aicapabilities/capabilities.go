@@ -70,6 +70,9 @@ var standardizedFeaturesByCapability = map[string]map[string]struct{}{
 	VideoGenerate: {
 		FeatureInputImage: {},
 	},
+	WorldGenerate: {
+		FeatureInputImage: {},
+	},
 	MusicGenerate: {
 		FeatureInputAudio: {},
 	},

@@ -25,7 +25,7 @@ use crate::generated::{
     LocalAppScenarioJob, LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec,
     LocalAppSpeechTranscribeJobSpec, LocalAppTextEmbedScenarioSpec, LocalAppTextEmbedOutput, LocalAppTextTurnFailed,
     LocalAppVideoGenerateJobSpec, LocalAppVideoGenerationOptions, LocalAppVoiceAsset,
-    LocalAppVoiceCreateJobSpec, LocalAppWorldGenerateJobSpec, MusicAudioInput,
+    LocalAppVoiceCreateJobSpec, LocalAppWorldGenerateJobSpec, WorldGenerateOwnedImageInput, WorldImageProjection, MusicAudioInput,
     ReadLocalAppArtifactRequest as ProtoReadArtifactRequest, ScenarioJobEventType,
     ScenarioJobStatus, ScenarioType, SpeechTimingMode, SpeechTranscriptionAudioSource,
     SubmitLocalAppScenarioJobRequest as ProtoSubmitJobRequest,
@@ -646,9 +646,23 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
         "music-transcribe" => Ok(JobSpec::MusicTranscribe(music_transcription::parse(&object)?)),
         "audio-voice-convert" => Ok(JobSpec::AudioVoiceConvert(voice_convert::parse(&object)?)),
         "world-generate" => {
-            exact_keys(&object, &["type", "prompt", "displayName"])?;
+            allowed_keys(&object, &["type", "prompt", "displayName", "image"], &["type", "displayName"])?;
+            let image = if let Some(value) = object.get("image") {
+                let fields = value.as_object().ok_or_else(invalid_payload)?;
+                exact_keys(fields, &["artifactId", "projection"])?;
+                let artifact_id = required_text_field(fields, "artifactId", MAX_IDENTIFIER_BYTES)?;
+                require_identifier(&artifact_id)?;
+                let projection = match string_field(fields, "projection")? {
+                    "ordinary" => WorldImageProjection::Ordinary,
+                    "equirectangular-360" => WorldImageProjection::Equirectangular360,
+                    _ => return Err(invalid_payload()),
+                };
+                Some(WorldGenerateOwnedImageInput { artifact_id, projection: projection as i32 })
+            } else { None };
+            let prompt = optional_text_field(&object, "prompt", MAX_PROMPT_BYTES)?;
+            if image.is_none() && prompt.trim().is_empty() { return Err(invalid_payload()); }
             Ok(JobSpec::WorldGenerate(LocalAppWorldGenerateJobSpec {
-                prompt: required_text_field(&object, "prompt", MAX_PROMPT_BYTES)?,
+                prompt, image,
                 display_name: optional_text_field(&object, "displayName", 256)?,
             }))
         }
@@ -2294,6 +2308,12 @@ mod tests {
         assert!(parse_job_spec(json!({
             "type": "world-generate", "prompt": "a botanical conservatory", "displayName": "Garden", "provider": "forbidden"
         })).is_err());
+        for projection in ["ordinary", "equirectangular-360"] {
+            assert!(parse_job_spec(json!({"type":"world-generate","prompt":"","displayName":"","image":{"artifactId":"owned-image","projection":projection}})).is_ok());
+        }
+        for image in [json!({"artifactId":"owned-image"}), json!({"artifactId":"owned-image","projection":"auto"}), json!({"artifactId":"owned-image","projection":"ordinary","uri":"https://example.invalid/input.png"}), json!({"mediaAssetId":"provider-id","projection":"ordinary"})] {
+            assert!(parse_job_spec(json!({"type":"world-generate","prompt":"","displayName":"","image":image})).is_err());
+        }
 
         assert!(parse_job_spec(json!({
             "type": "music-generate",

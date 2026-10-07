@@ -55,7 +55,21 @@
     "noPendingWorld": "There is no unfinished world generation to continue.",
     "pendingInvalid": "The saved world task reference is invalid.",
     "pendingExists": "A world task is already submitted. Use Continue last generation in Parameters to retrieve its result.",
-    "noSavedWorld": "Generate a world first. It will be saved here for your next visit."
+    "noSavedWorld": "Generate a world first. It will be saved here for your next visit.",
+    "inputMode": "Input method",
+    "textInput": "Text",
+    "imageInput": "Ordinary image",
+    "panoInput": "360 equirectangular panorama",
+    "chooseImage": "Choose world source image",
+    "sourcePreview": "Source image for this world",
+    "sourceUnavailable": "The source is missing or changed and cannot be previewed or reused.",
+    "sourceRequired": "Choose one source image. Text may be left empty.",
+    "savingSource": "Saving source image…",
+    "imageLimits": "PNG, JPEG or WebP, up to 20 MB and 16 MP. Normalize image orientation to upright first.",
+    "panoLimits": "Choose an upright, full 360°×180° equirectangular panorama with exactly 2:1 dimensions. The ratio alone does not establish panorama content. Up to 20 MB and 16 MP.",
+    "originalInputUnknown": "This record has no complete original request snapshot. Its input is unknown; the saved world can still be opened.",
+    "submissionUnknown": "The Submit receipt is missing and no Job ID is known. The original request is retained; generation cannot be retried automatically.",
+    "archiveInvalid": "The saved archive does not match this Job."
   },
   "Studio": {
     "profiles": {

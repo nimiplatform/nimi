@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -53,12 +54,22 @@ func ExecuteWorldLabsWorld(
 	}
 	headers["WLT-Api-Key"] = apiKey
 
-	requestBody, _, err := buildWorldLabsGeneratePayload(spec, modelResolved)
+	if utf8.RuneCountInString(spec.GetTextPrompt()) > 2000 {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	imageID := ""
+	if spec.GetImagePrompt() != nil {
+		imageID, err = uploadWorldLabsImage(ctx, baseURL, headers, spec)
+		if err != nil {
+			return nil, nil, "", err
+		}
+	}
+	requestBody, _, err := buildWorldLabsGeneratePayload(spec, modelResolved, imageID)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	submitResp := map[string]any{}
-	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, "/marble/v1/worlds:generate"), "", requestBody, &submitResp, headers); err != nil {
+	if err := doJSONRequestWithHeadersAndObservation(ctx, http.MethodPost, JoinURL(baseURL, "/marble/v1/worlds:generate"), "", requestBody, &submitResp, headers, 0, AdapterWorldLabsNative); err != nil {
 		return nil, nil, "", err
 	}
 	operationID := strings.TrimSpace(ValueAsString(submitResp["operation_id"]))
@@ -78,7 +89,7 @@ func ExecuteWorldLabsWorld(
 		retryCount++
 		operationResp := map[string]any{}
 		pollURL := JoinURL(baseURL, "/marble/v1/operations/"+operationID)
-		if err := DoJSONRequestWithHeadersAndTimeout(ctx, http.MethodGet, pollURL, "", nil, &operationResp, headers, 30*time.Second); err != nil {
+		if err := doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, pollURL, "", nil, &operationResp, headers, 30*time.Second, AdapterWorldLabsNative); err != nil {
 			if detached && ctx.Err() == nil && isTransientPollError(err) {
 				consecutiveErrors++
 				if consecutiveErrors >= maxDetachedPollConsecutiveErrors {
@@ -138,7 +149,7 @@ func ExecuteWorldLabsWorld(
 	}
 }
 
-func buildWorldLabsGeneratePayload(spec *runtimev1.WorldGenerateScenarioSpec, modelResolved string) (map[string]any, string, error) {
+func buildWorldLabsGeneratePayload(spec *runtimev1.WorldGenerateScenarioSpec, modelResolved, uploadedImageID string) (map[string]any, string, error) {
 	if spec == nil {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -153,7 +164,15 @@ func buildWorldLabsGeneratePayload(spec *runtimev1.WorldGenerateScenarioSpec, mo
 		worldPrompt["text_prompt"] = textPrompt
 	case *runtimev1.WorldGenerateScenarioSpec_ImagePrompt:
 		worldPrompt["type"] = "image"
-		worldPrompt["image_prompt"] = worldLabsAssetSourcePayload(conditioning.ImagePrompt.GetContent())
+		if uploadedImageID == "" || conditioning.ImagePrompt == nil {
+			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		projection := conditioning.ImagePrompt.GetProjection()
+		if projection != runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_ORDINARY && projection != runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360 {
+			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		worldPrompt["image_prompt"] = map[string]any{"source": "media_asset", "media_asset_id": uploadedImageID}
+		worldPrompt["is_pano"] = projection == runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360
 		if textPrompt != "" {
 			worldPrompt["text_prompt"] = textPrompt
 		}
@@ -259,7 +278,7 @@ func fetchWorldLabsWorld(ctx context.Context, baseURL string, headers map[string
 		return nil, err
 	}
 	getResp := map[string]any{}
-	if err := DoJSONRequestWithHeadersAndTimeout(ctx, http.MethodGet, JoinURL(baseURL, "/marble/v1/worlds/"+worldID), "", nil, &getResp, headers, 30*time.Second); err != nil {
+	if err := doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, JoinURL(baseURL, "/marble/v1/worlds/"+worldID), "", nil, &getResp, headers, 30*time.Second, AdapterWorldLabsNative); err != nil {
 		return nil, err
 	}
 	world, envelope, err := normalizeWorldLabsGetResponse(getResp, worldID)

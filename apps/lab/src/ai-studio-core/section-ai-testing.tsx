@@ -311,7 +311,9 @@ function TextStudioShell({
         } else result = await rendererHost.sdk.runCapability({
           capabilityId: capability.id,
           recordedRunConfig: runConfig,
-          prompt: usesVerbatimStudioPrompt(capability.id) || profile.rawPrompt || recordedInput
+          recordedCreatedAt: pendingRun.createdAt,
+          recordedPrompt: displayPrompt,
+          prompt: (capability.id === 'world.generate' && runHasAlternativeInput && !displayPrompt && !nextContext.trim()) || usesVerbatimStudioPrompt(capability.id) || profile.rawPrompt || recordedInput
             ? displayPrompt
             : textStudioRuntimePrompt(displayPrompt, nextContext, directive),
           scenarioId: preset.id,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { WorldInputPreview } from './world-tour-input-panel.js';
 import { Button, InlineAlert } from '@nimiplatform/kit/ui';
 import type { StudioRunHistoryRecord } from '../../ai-studio-core/history.js';
 import { useLabRendererHost } from '../../renderer/context.js';
@@ -17,7 +18,10 @@ export function WorldTourHistoryActions({ record }: { readonly record: StudioRun
     catch { setError(true); }
     finally { setOpening(false); }
   };
+  const source = record.result?.ok && record.result.kind === 'artifacts' ? record.result.sourceImage : undefined;
   return <div className="world-tour-history-actions">
+    {!record.runConfig ? <InlineAlert tone="warning">{t('WorldTour.originalInputUnknown')}</InlineAlert> : null}
+    {source ? <WorldInputPreview source={source} /> : null}
     <Button type="button" tone="secondary" size="sm" disabled={opening} onClick={() => void open()}>{t('WorldTour.openThisWorld')}</Button>
     {error ? <InlineAlert tone="warning">{t('WorldTour.historyUnavailable')}</InlineAlert> : null}
   </div>;

@@ -82,6 +82,7 @@ export type StudioRunHistoryResultSnapshot =
   | {
       ok: true;
       kind: 'artifacts';
+      sourceImage?: StudioManagedArtifact;
       musicGeneration?: StudioMusicGeneration;
       musicTranscription?: StudioMusicTranscription;
       voiceConversion?: StudioVoiceConversion;
@@ -648,6 +649,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
     return {
       ok: true,
       kind: 'artifacts',
+      ...(output.sourceImage ? { sourceImage: { ...output.sourceImage } } : {}),
       ...(output.musicGeneration ? { musicGeneration: output.musicGeneration } : {}),
       ...(output.musicTranscription ? { musicTranscription: output.musicTranscription } : {}),
       ...(output.voiceConversion ? { voiceConversion: output.voiceConversion } : {}),
@@ -821,6 +823,7 @@ export function restoreStudioCapabilityRunResult(
       ...common,
       output: {
         kind: 'artifacts',
+        ...(snapshot.sourceImage ? { sourceImage: { ...snapshot.sourceImage } } : {}),
         ...(snapshot.musicGeneration ? { musicGeneration: snapshot.musicGeneration } : {}),
         ...(snapshot.musicTranscription ? { musicTranscription: snapshot.musicTranscription } : {}),
         ...(snapshot.voiceConversion ? { voiceConversion: snapshot.voiceConversion } : {}),

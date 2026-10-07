@@ -617,11 +617,25 @@ message WorldGenerateAssetSource {
   oneof source {
     string uri = 1;
     string media_asset_id = 2;
+    string artifact_id = 3;
   }
+}
+
+// Explicit user intent; 2:1 dimensions alone do not establish a 360 panorama.
+enum WorldImageProjection {
+  WORLD_IMAGE_PROJECTION_UNSPECIFIED = 0;
+  WORLD_IMAGE_PROJECTION_ORDINARY = 1;
+  WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360 = 2;
 }
 
 message WorldGenerateImagePrompt {
   WorldGenerateAssetSource content = 1;
+  WorldImageProjection projection = 2;
+}
+
+message WorldGenerateOwnedImageInput {
+  string artifact_id = 1;
+  WorldImageProjection projection = 2;
 }
 
 message WorldGenerateMultiImageReference {
@@ -1335,11 +1349,12 @@ message LocalAppMusicGenerateJobSpec {
   MusicVideoReference video_reference = 10;
 }
 
-// Text-conditioned world generation. Provider selection and asset retrieval
+// Text or an owned image with explicit projection. Provider upload and asset retrieval
 // remain Runtime-owned; the result is a portable world archive artifact.
 message LocalAppWorldGenerateJobSpec {
   string prompt = 1;
   string display_name = 2;
+  WorldGenerateOwnedImageInput image = 3;
 }
 
 message SubmitLocalAppScenarioJobRequest {

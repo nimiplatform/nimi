@@ -1,12 +1,12 @@
 version: 1
 provider: worldlabs
-catalog_version: 2026-04-17-worldlabs-v1
+catalog_version: 2026-10-06-worldlabs-owned-image-v1
 inventory_mode: static_source
 models:
   - model_id: marble-1.1
     provider: worldlabs
     model_type: world
-    updated_at: 2026-04-17
+    updated_at: 2026-10-06
     capabilities:
       - world.generate
     pricing:
@@ -20,10 +20,12 @@ models:
       url: https://docs.worldlabs.ai/api
       retrieved_at: 2026-04-17
       note: Official World API quickstart documenting marble-1.1 and marble-1.1-plus generation flows.
+    features:
+      - input.image
   - model_id: marble-1.1-plus
     provider: worldlabs
     model_type: world
-    updated_at: 2026-04-17
+    updated_at: 2026-10-06
     capabilities:
       - world.generate
     pricing:
@@ -37,4 +39,6 @@ models:
       url: https://docs.worldlabs.ai/api
       retrieved_at: 2026-04-17
       note: Official World API quickstart documenting marble-1.1 and marble-1.1-plus generation flows.
+    features:
+      - input.image
 voices: []

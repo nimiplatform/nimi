@@ -8476,6 +8476,7 @@
       "WorldGenerateImagePrompt",
       "WorldGenerateMultiImagePrompt",
       "WorldGenerateMultiImageReference",
+      "WorldGenerateOwnedImageInput",
       "WorldGenerateResult",
       "WorldGenerateScenarioSpec",
       "WorldGenerateSemanticsMetadata",
@@ -8681,7 +8682,8 @@
       "VoiceOutputMode",
       "VoiceReferenceKind",
       "WorkspaceMembershipState",
-      "WorldEntityRefKindV3"
+      "WorldEntityRefKindV3",
+      "WorldImageProjection"
     ],
     "message_schemas": [
       {
@@ -28874,6 +28876,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "image",
+            "type": "WorldGenerateOwnedImageInput",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -43697,6 +43706,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -43710,6 +43726,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "projection",
+            "type": "WorldImageProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -43740,6 +43763,26 @@
           {
             "name": "content",
             "type": "WorldGenerateAssetSource",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "WorldGenerateOwnedImageInput",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "projection",
+            "type": "WorldImageProjection",
             "repeated": false,
             "optional": false,
             "number": 2
@@ -46454,6 +46497,15 @@
           "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
+        "name": "WorldImageProjection",
+        "values": [
+          "WORLD_IMAGE_PROJECTION_UNSPECIFIED",
+          "WORLD_IMAGE_PROJECTION_ORDINARY",
+          "WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       }
     ]
   },

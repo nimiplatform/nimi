@@ -1205,6 +1205,12 @@ export interface WorldGenerateAssetSource {
          */
         mediaAssetId: string;
     } | {
+        oneofKind: "artifactId";
+        /**
+         * @generated from protobuf field: string artifact_id = 3
+         */
+        artifactId: string;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -1216,6 +1222,23 @@ export interface WorldGenerateImagePrompt {
      * @generated from protobuf field: nimi.runtime.v1.WorldGenerateAssetSource content = 1
      */
     content?: WorldGenerateAssetSource;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorldImageProjection projection = 2
+     */
+    projection: WorldImageProjection;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WorldGenerateOwnedImageInput
+ */
+export interface WorldGenerateOwnedImageInput {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorldImageProjection projection = 2
+     */
+    projection: WorldImageProjection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.WorldGenerateMultiImageReference
@@ -3201,7 +3224,7 @@ export interface LocalAppMusicGenerateJobSpec {
     videoReference?: MusicVideoReference;
 }
 /**
- * Text-conditioned world generation. Provider selection and asset retrieval
+ * Text or an owned image with explicit projection. Provider upload and asset retrieval
  * remain Runtime-owned; the result is a portable world archive artifact.
  *
  * @generated from protobuf message nimi.runtime.v1.LocalAppWorldGenerateJobSpec
@@ -3215,6 +3238,10 @@ export interface LocalAppWorldGenerateJobSpec {
      * @generated from protobuf field: string display_name = 2
      */
     displayName: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorldGenerateOwnedImageInput image = 3
+     */
+    image?: WorldGenerateOwnedImageInput;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitLocalAppScenarioJobRequest
@@ -5553,6 +5580,25 @@ export enum VoiceConversionLengthRelation {
      * @generated from protobuf enum value: VOICE_CONVERSION_LENGTH_RELATION_MODEL_FRAME_ROUNDING = 2;
      */
     MODEL_FRAME_ROUNDING = 2
+}
+/**
+ * Explicit user intent; 2:1 dimensions alone do not establish a 360 panorama.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.WorldImageProjection
+ */
+export enum WorldImageProjection {
+    /**
+     * @generated from protobuf enum value: WORLD_IMAGE_PROJECTION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: WORLD_IMAGE_PROJECTION_ORDINARY = 1;
+     */
+    ORDINARY = 1,
+    /**
+     * @generated from protobuf enum value: WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360 = 2;
+     */
+    EQUIRECTANGULAR_360 = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.VisionLocateGeometry
@@ -9103,7 +9149,8 @@ class WorldGenerateAssetSource$Type extends MessageType<WorldGenerateAssetSource
     constructor() {
         super("nimi.runtime.v1.WorldGenerateAssetSource", [
             { no: 1, name: "uri", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "media_asset_id", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "media_asset_id", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "artifact_id", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<WorldGenerateAssetSource>): WorldGenerateAssetSource {
@@ -9130,6 +9177,12 @@ class WorldGenerateAssetSource$Type extends MessageType<WorldGenerateAssetSource
                         mediaAssetId: reader.string()
                     };
                     break;
+                case /* string artifact_id */ 3:
+                    message.source = {
+                        oneofKind: "artifactId",
+                        artifactId: reader.string()
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9148,6 +9201,9 @@ class WorldGenerateAssetSource$Type extends MessageType<WorldGenerateAssetSource
         /* string media_asset_id = 2; */
         if (message.source.oneofKind === "mediaAssetId")
             writer.tag(2, WireType.LengthDelimited).string(message.source.mediaAssetId);
+        /* string artifact_id = 3; */
+        if (message.source.oneofKind === "artifactId")
+            writer.tag(3, WireType.LengthDelimited).string(message.source.artifactId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9162,11 +9218,13 @@ export const WorldGenerateAssetSource = new WorldGenerateAssetSource$Type();
 class WorldGenerateImagePrompt$Type extends MessageType<WorldGenerateImagePrompt> {
     constructor() {
         super("nimi.runtime.v1.WorldGenerateImagePrompt", [
-            { no: 1, name: "content", kind: "message", T: () => WorldGenerateAssetSource }
+            { no: 1, name: "content", kind: "message", T: () => WorldGenerateAssetSource },
+            { no: 2, name: "projection", kind: "enum", T: () => ["nimi.runtime.v1.WorldImageProjection", WorldImageProjection, "WORLD_IMAGE_PROJECTION_"] }
         ]);
     }
     create(value?: PartialMessage<WorldGenerateImagePrompt>): WorldGenerateImagePrompt {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.projection = 0;
         if (value !== undefined)
             reflectionMergePartial<WorldGenerateImagePrompt>(this, message, value);
         return message;
@@ -9178,6 +9236,9 @@ class WorldGenerateImagePrompt$Type extends MessageType<WorldGenerateImagePrompt
             switch (fieldNo) {
                 case /* nimi.runtime.v1.WorldGenerateAssetSource content */ 1:
                     message.content = WorldGenerateAssetSource.internalBinaryRead(reader, reader.uint32(), options, message.content);
+                    break;
+                case /* nimi.runtime.v1.WorldImageProjection projection */ 2:
+                    message.projection = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -9194,6 +9255,9 @@ class WorldGenerateImagePrompt$Type extends MessageType<WorldGenerateImagePrompt
         /* nimi.runtime.v1.WorldGenerateAssetSource content = 1; */
         if (message.content)
             WorldGenerateAssetSource.internalBinaryWrite(message.content, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.WorldImageProjection projection = 2; */
+        if (message.projection !== 0)
+            writer.tag(2, WireType.Varint).int32(message.projection);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9204,6 +9268,61 @@ class WorldGenerateImagePrompt$Type extends MessageType<WorldGenerateImagePrompt
  * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateImagePrompt
  */
 export const WorldGenerateImagePrompt = new WorldGenerateImagePrompt$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WorldGenerateOwnedImageInput$Type extends MessageType<WorldGenerateOwnedImageInput> {
+    constructor() {
+        super("nimi.runtime.v1.WorldGenerateOwnedImageInput", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "projection", kind: "enum", T: () => ["nimi.runtime.v1.WorldImageProjection", WorldImageProjection, "WORLD_IMAGE_PROJECTION_"] }
+        ]);
+    }
+    create(value?: PartialMessage<WorldGenerateOwnedImageInput>): WorldGenerateOwnedImageInput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.projection = 0;
+        if (value !== undefined)
+            reflectionMergePartial<WorldGenerateOwnedImageInput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldGenerateOwnedImageInput): WorldGenerateOwnedImageInput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.WorldImageProjection projection */ 2:
+                    message.projection = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WorldGenerateOwnedImageInput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* nimi.runtime.v1.WorldImageProjection projection = 2; */
+        if (message.projection !== 0)
+            writer.tag(2, WireType.Varint).int32(message.projection);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateOwnedImageInput
+ */
+export const WorldGenerateOwnedImageInput = new WorldGenerateOwnedImageInput$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class WorldGenerateMultiImageReference$Type extends MessageType<WorldGenerateMultiImageReference> {
     constructor() {
@@ -15087,7 +15206,8 @@ class LocalAppWorldGenerateJobSpec$Type extends MessageType<LocalAppWorldGenerat
     constructor() {
         super("nimi.runtime.v1.LocalAppWorldGenerateJobSpec", [
             { no: 1, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "image", kind: "message", T: () => WorldGenerateOwnedImageInput }
         ]);
     }
     create(value?: PartialMessage<LocalAppWorldGenerateJobSpec>): LocalAppWorldGenerateJobSpec {
@@ -15109,6 +15229,9 @@ class LocalAppWorldGenerateJobSpec$Type extends MessageType<LocalAppWorldGenerat
                 case /* string display_name */ 2:
                     message.displayName = reader.string();
                     break;
+                case /* nimi.runtime.v1.WorldGenerateOwnedImageInput image */ 3:
+                    message.image = WorldGenerateOwnedImageInput.internalBinaryRead(reader, reader.uint32(), options, message.image);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -15127,6 +15250,9 @@ class LocalAppWorldGenerateJobSpec$Type extends MessageType<LocalAppWorldGenerat
         /* string display_name = 2; */
         if (message.displayName !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        /* nimi.runtime.v1.WorldGenerateOwnedImageInput image = 3; */
+        if (message.image)
+            WorldGenerateOwnedImageInput.internalBinaryWrite(message.image, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

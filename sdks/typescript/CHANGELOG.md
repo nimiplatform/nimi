@@ -1,5 +1,11 @@
 # SDK migration notes
 
+## SDK 0.21.0 / Kit and native 0.18.0 — Owned World image inputs (development)
+
+The compatible input widening belongs to this unpublished minor development set. Use the newly built matching Runtime, SDK, Kit/native and Rust carrier 0.10.0 packages; a matching version label alone does not identify their contents. `world-generate` now accepts `image: { artifactId, projection }`, where projection is `ordinary` or `equirectangular-360`. Upload image bytes through the existing protected artifact upload first; prompt may be omitted when an image is present. Text-only requests still require a prompt. App paths, data URLs, provider IDs and implicit panorama detection are not inputs. Runtime captures the owned bytes before publishing the Job and performs provider upload privately. PNG/JPEG/WebP are bounded to 20 MB and 16 MP with upright orientation; panorama intent additionally requires 2:1 geometry.
+
+World results remain portable ZIP artifacts. Persist the original App source, prompt, configuration and creation time for recovery, observe an existing Job instead of submitting again, and retain unknown submission receipts without automatic replay.
+
 ## Next minor — explicit Agent reference voice (development)
 
 The current bound sound sample, including an opening line, can be cloned once through the existing App `voice.create` job and bound through Agent presentation CAS. No producer voice handle is imported and no shared route changes implicitly. Covered Apps pass the same canonical client to the Agent Center factory to enable the journey. The retained `clientSubmissionId` carrier and recovery-expiry projection now also admit provider-persistent Cloud `voice-create`; use matching Runtime, SDK and Kit/native builds. This is an additive next-minor capability, staged without a package publication.

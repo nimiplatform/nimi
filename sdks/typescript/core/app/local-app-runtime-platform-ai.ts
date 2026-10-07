@@ -33,6 +33,7 @@ import {
   VoiceCreationSource,
   VoiceReferenceKind,
   VisionLocateGeometry,
+  WorldImageProjection,
   type CancelLocalAppScenarioJobRequest,
   type ChatContentPart,
   type CancelLocalAppScenarioJobResponse,
@@ -159,7 +160,7 @@ export type NimiLocalAppScenarioJobSpec =
   | { readonly type: 'image-face-swap'; readonly referenceImageArtifactId: string; readonly targetImageArtifactId: string }
   | { readonly type: 'video-face-swap'; readonly referenceImageArtifactId: string; readonly targetVideoArtifactId: string; readonly noFacePolicy: 'fail' | 'preserve-frame' }
   | { readonly type: 'vision-locate'; readonly imageArtifactId: string; readonly query: string; readonly geometry: 'box' | 'point' }
-  | { readonly type: 'world-generate'; readonly prompt: string; readonly displayName: string }
+  | { readonly type: 'world-generate'; readonly prompt?: string; readonly displayName: string; readonly image?: { readonly artifactId: string; readonly projection: 'ordinary' | 'equirectangular-360' } }
   | {
       readonly type: 'video-generate';
       readonly prompt: string;
@@ -1027,8 +1028,15 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       break;
     case 'world-generate':
       if (execute) invalidAIInput('world-generate is not a synchronous spec');
-      assertExactKeys(record, ['type', 'prompt', 'displayName'], 'world spec');
-      boundedContent(record.prompt, 'world prompt', 32 * 1024);
+      assertExactKeys(record, ['type', 'prompt', 'displayName', 'image'], 'world spec');
+      if (record.prompt !== undefined) optionalBoundedText(record.prompt, 'world prompt', 32 * 1024);
+      if (record.image !== undefined) {
+        const image = asRecord(record.image);
+        if (!image) invalidAIInput('world image is invalid');
+        assertExactKeys(image, ['artifactId', 'projection'], 'world image');
+        boundedIdentifier(image.artifactId, 'world image artifactId');
+        if (image.projection !== 'ordinary' && image.projection !== 'equirectangular-360') invalidAIInput('world projection is required');
+      } else boundedContent(record.prompt, 'world prompt', 32 * 1024);
       optionalBoundedText(record.displayName, 'world displayName', 256);
       break;
     default:
@@ -1923,7 +1931,7 @@ function runtimeLocalJobSpec(
         musicGenerate: runtimeMusicGenerateSpec(spec),
       };
     case 'world-generate':
-      return { oneofKind: 'worldGenerate', worldGenerate: { prompt: spec.prompt, displayName: spec.displayName } };
+      return { oneofKind: 'worldGenerate', worldGenerate: { prompt: spec.prompt ?? '', displayName: spec.displayName, ...(spec.image ? { image: { artifactId: spec.image.artifactId, projection: spec.image.projection === 'ordinary' ? WorldImageProjection.ORDINARY : WorldImageProjection.EQUIRECTANGULAR_360 } } : {}) } };
   }
 }
 
@@ -2325,10 +2333,16 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
       return localMusicGenerateSpec(spec.musicGenerate);
     case 'worldGenerate':
       requireScenarioType(request, ScenarioType.WORLD_GENERATE);
-      if (spec.worldGenerate.conditioning.oneofKind !== undefined || spec.worldGenerate.tags.length > 0 || spec.worldGenerate.seed !== '0') {
-        return adapterInputError('Local App worlds accept text conditioning only');
+      if (spec.worldGenerate.tags.length > 0 || spec.worldGenerate.seed !== '0') return adapterInputError('Local App worlds do not accept tags or seed');
+      { const conditioning = spec.worldGenerate.conditioning; let image;
+        if (conditioning.oneofKind !== undefined) {
+          if (conditioning.oneofKind !== 'imagePrompt' || conditioning.imagePrompt.content?.source.oneofKind !== 'artifactId') return adapterInputError('Local App worlds require an owned image');
+          const projection = conditioning.imagePrompt.projection;
+          if (projection !== WorldImageProjection.ORDINARY && projection !== WorldImageProjection.EQUIRECTANGULAR_360) return adapterInputError('World projection is required');
+          image = { artifactId: conditioning.imagePrompt.content.source.artifactId, projection: projection === WorldImageProjection.ORDINARY ? 'ordinary' as const : 'equirectangular-360' as const };
+        }
+        return validateScenarioSpec({ type: 'world-generate', prompt: spec.worldGenerate.textPrompt, displayName: spec.worldGenerate.displayName, ...(image ? { image } : {}) }, false);
       }
-      return validateScenarioSpec({ type: 'world-generate', prompt: spec.worldGenerate.textPrompt, displayName: spec.worldGenerate.displayName }, false);
     default:
       return adapterInputError(`Scenario type ${spec.oneofKind} is unavailable to Local Apps`);
   }

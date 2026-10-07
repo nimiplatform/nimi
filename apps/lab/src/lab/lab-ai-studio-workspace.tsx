@@ -1,3 +1,4 @@
+import { worldTourRecoveryReferences } from './world-tour/world-tour-runtime.js';
 import { useMemo, type ComponentProps } from 'react';
 
 import {
@@ -31,7 +32,7 @@ import { LabAIStudioAdapter } from './lab-ai-studio-adapter.js';
 
 export function createLabAIStudioHistoryRepository(rendererHost: LabCanonicalRendererBindings): AIStudioHistoryRepository {
     const loadRecoveryReferences = async () => {
-      const references = [];
+      const references = [...await worldTourRecoveryReferences(rendererHost.sdk.localAppClient.storage)];
       for (const capability of ['music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'] as const) {
         for (const entry of await readMusicRecovery(rendererHost.sdk.localAppClient.storage, capability)) {
           references.push({ id: entry.clientSubmissionId, capabilityId: capability,

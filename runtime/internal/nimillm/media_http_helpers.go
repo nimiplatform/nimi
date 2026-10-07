@@ -293,6 +293,18 @@ func DoJSONRequestWithHeadersAndTimeout(
 	headers map[string]string,
 	timeout time.Duration,
 ) error {
+	return doJSONRequestWithHeadersAndObservation(ctx, method, targetURL, apiKey, body, target, headers, timeout, "")
+}
+
+func doJSONRequestWithHeadersAndObservation(
+	ctx context.Context,
+	method, targetURL, apiKey string,
+	body any,
+	target *map[string]any,
+	headers map[string]string,
+	timeout time.Duration,
+	observationBackend string,
+) error {
 	var requestBody io.Reader
 	if body != nil {
 		raw, err := marshalJSONRequestBody(body)
@@ -316,7 +328,14 @@ func DoJSONRequestWithHeadersAndTimeout(
 	if trimmedAPIKey := strings.TrimSpace(apiKey); trimmedAPIKey != "" {
 		request.Header.Set("Authorization", "Bearer "+trimmedAPIKey)
 	}
+	var observation *providerHTTPObservation
+	if observationBackend != "" {
+		request, observation = observeProviderHTTP(observationBackend, 0, request)
+	}
 	response, err := client.Do(request)
+	if observation != nil {
+		observation.finish(response, err)
+	}
 	if err != nil {
 		return MapProviderRequestError(err)
 	}

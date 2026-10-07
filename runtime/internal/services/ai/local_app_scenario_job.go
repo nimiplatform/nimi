@@ -447,13 +447,24 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextAnnotate{TextAnnotate: cloneTextAnnotationSpec(spec.TextAnnotate)}}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_WorldGenerate:
 		world := spec.WorldGenerate
-		if world == nil || !localAppExactText(world.GetPrompt(), maxLocalAppScenarioPromptBytes) ||
+		if world == nil || !localAppOptionalExactText(world.GetPrompt(), maxLocalAppScenarioPromptBytes) ||
+			(world.GetImage() == nil && strings.TrimSpace(world.GetPrompt()) == "") ||
 			!localAppOptionalExactText(world.GetDisplayName(), 256) {
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{
-			TextPrompt: world.GetPrompt(), DisplayName: world.GetDisplayName(),
-		}}}, runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, nil
+		mapped := &runtimev1.WorldGenerateScenarioSpec{TextPrompt: world.GetPrompt(), DisplayName: world.GetDisplayName()}
+		if image := world.GetImage(); image != nil {
+			if len(image.ProtoReflect().GetUnknown()) != 0 || !localAppBoundedIdentifier(image.GetArtifactId()) {
+				return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			}
+			mapped.Conditioning = &runtimev1.WorldGenerateScenarioSpec_ImagePrompt{ImagePrompt: &runtimev1.WorldGenerateImagePrompt{
+				Content: &runtimev1.WorldGenerateAssetSource{Source: &runtimev1.WorldGenerateAssetSource_ArtifactId{ArtifactId: image.GetArtifactId()}}, Projection: image.GetProjection(),
+			}}
+		}
+		if err := validateWorldGenerateScenarioSpec(mapped); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: mapped}}, runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_ImageGenerate:
 		image, err := validateLocalAppImageGenerateSpec(spec.ImageGenerate)
 		if err != nil {

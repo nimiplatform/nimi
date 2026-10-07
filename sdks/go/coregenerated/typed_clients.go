@@ -2243,6 +2243,14 @@ const (
 	WORLDENTITYREFKINDV3WORLDENTITY WorldEntityRefKindV3 = "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"
 )
 
+type WorldImageProjection string
+
+const (
+	WORLDIMAGEPROJECTIONUNSPECIFIED        WorldImageProjection = "WORLD_IMAGE_PROJECTION_UNSPECIFIED"
+	WORLDIMAGEPROJECTIONORDINARY           WorldImageProjection = "WORLD_IMAGE_PROJECTION_ORDINARY"
+	WORLDIMAGEPROJECTIONEQUIRECTANGULAR360 WorldImageProjection = "WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360"
+)
+
 type AIConfig struct {
 	Owner        *AIConfigOwner             `json:"owner,omitempty"`
 	Capabilities []AIConfigCapabilityIntent `json:"capabilities,omitempty"`
@@ -6421,8 +6429,9 @@ type LocalAppVoiceCreateJobSpec struct {
 }
 
 type LocalAppWorldGenerateJobSpec struct {
-	Prompt      string `json:"prompt,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
+	Prompt      string                        `json:"prompt,omitempty"`
+	DisplayName string                        `json:"display_name,omitempty"`
+	Image       *WorldGenerateOwnedImageInput `json:"image,omitempty"`
 }
 
 type LocalAuditEvent struct {
@@ -9419,10 +9428,12 @@ type WorldEntityRefV3 struct {
 type WorldGenerateAssetSource struct {
 	Uri          string `json:"uri,omitempty"`
 	MediaAssetId string `json:"media_asset_id,omitempty"`
+	ArtifactId   string `json:"artifact_id,omitempty"`
 }
 
 type WorldGenerateImagePrompt struct {
-	Content *WorldGenerateAssetSource `json:"content,omitempty"`
+	Content    *WorldGenerateAssetSource `json:"content,omitempty"`
+	Projection WorldImageProjection      `json:"projection,omitempty"`
 }
 
 type WorldGenerateMultiImagePrompt struct {
@@ -9432,6 +9443,11 @@ type WorldGenerateMultiImagePrompt struct {
 type WorldGenerateMultiImageReference struct {
 	Azimuth int32                     `json:"azimuth,omitempty"`
 	Content *WorldGenerateAssetSource `json:"content,omitempty"`
+}
+
+type WorldGenerateOwnedImageInput struct {
+	ArtifactId string               `json:"artifact_id,omitempty"`
+	Projection WorldImageProjection `json:"projection,omitempty"`
 }
 
 type WorldGenerateResult struct {

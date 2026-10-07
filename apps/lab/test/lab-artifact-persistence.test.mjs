@@ -683,3 +683,43 @@ test('voice preview shares saved history verification, compensation and asset de
   assert.equal(deleted.completed, 1);
   assert.deepEqual(assetCalls, [preview.relativePath]);
 });
+
+const { createStudioRunHistoryRecord } = await import(sharedHistoryUrl);
+const { parseStudioRunHistory, studioHistoryArtifactPaths } = await import(sharedHistoryPolicyUrl);
+
+for (const inputMode of ['ordinary', 'equirectangular-360']) {
+  for (const reason of ['runtime-call-failed', 'runtime-canceled']) {
+    test('retained ' + inputMode + ' ' + reason + ' protects shared owned input until its last history reference is removed', async () => {
+      const source = { relativePath: 'world-tour/inputs/11111111-2222-4333-8444-555555555555.png', mediaType: 'image/png',
+        sizeBytes: 24, sha256: 'sha256:' + 'a'.repeat(64), previewSource: 'managed-asset' };
+      const archive = { relativePath: 'world-tour/success-a/world.zip', mediaType: 'application/vnd.nimi.world+zip',
+        sizeBytes: 48, sha256: 'sha256:' + 'b'.repeat(64), previewSource: 'managed-asset' };
+      const params = { inputMode, sourceRelativePath: source.relativePath, sourceSizeBytes: source.sizeBytes,
+        sourceSHA256: source.sha256, sourceMediaType: source.mediaType, sourceWidth: 512, sourceHeight: inputMode === 'ordinary' ? 512 : 256 };
+      const runConfig = { target: { capabilityId: 'world.generate', capabilityContract: 'world.generate', section: 'world',
+        status: 'configured', source: 'cloud', intentLabel: 'Cloud', detail: 'captured target', params, paramsSummary: [], profileOrigin: null },
+        promptControls: { contextAttached: false, context: '', attachmentCount: 0 } };
+      const a = createStudioRunHistoryRecord({ runId: 'success-a', createdAt: '2026-10-07T00:00:00Z', prompt: '', runConfig,
+        result: { ok: true, capabilityId: 'world.generate', message: 'saved', output: { kind: 'artifacts', artifactCount: 1,
+          jobId: 'success-a', jobState: 'completed', artifacts: [archive], firstArtifact: archive, sourceImage: source } } });
+      const b = createStudioRunHistoryRecord({ runId: 'failed-b', createdAt: '2026-10-07T00:01:00Z', prompt: '', runConfig,
+        result: { ok: false, capabilityId: 'world.generate', message: 'retained terminal failure', reason, actionHint: 'retry-explicitly' } });
+      const history = parseStudioRunHistory(JSON.parse(JSON.stringify({ 'world.generate': [a, b] })));
+      assert.deepEqual(studioHistoryArtifactPaths(history['world.generate'][1]), [source.relativePath]);
+      const state = managedHistoryPort({ runHistory: history, imageHistory: [], assets: [source.relativePath, archive.relativePath] });
+      const first = await deleteLabManagedHistoryRecord(state.port, 'success-a', true);
+      assert.equal(first.completed, 1);
+      assert.deepEqual(state.assetCalls, [archive.relativePath]);
+      assert.equal(state.assets.has(source.relativePath), true);
+      assert.deepEqual(first.runHistory['world.generate'].map(x => x.id), ['failed-b']);
+      const last = await deleteLabManagedHistoryRecord(state.port, 'failed-b', true);
+      assert.equal(last.completed, 1);
+      assert.equal(state.assets.size, 0);
+      assert.deepEqual(state.assetCalls, [archive.relativePath, source.relativePath]);
+      for (const invalid of [{ ...params, sourceSHA256: 'unknown' }, { ...params, sourceRelativePath: '../diagnostic.png' },
+        { ...params, inputMode: 'text' }, { sourceRelativePath: source.relativePath }]) {
+        assert.deepEqual(studioHistoryArtifactPaths({ ...b, runConfig: { ...runConfig, target: { ...runConfig.target, params: invalid } } }), []);
+      }
+    });
+  }
+}

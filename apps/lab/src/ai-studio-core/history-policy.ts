@@ -1,7 +1,7 @@
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import { validateNimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
 import { isAudioSeparationRequest } from './audio-separation-request.js';
-import { studioResultAssetPaths } from './managed-result-references.js';
+import { studioResultAssetPaths, studioWorldInputSource } from './managed-result-references.js';
 
 import type { AIStudioHistoryPanelPreferences } from './workspace.js';
 import type { StudioRunHistory, StudioRunHistoryRecord } from './history.js';
@@ -313,6 +313,7 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
     return;
   }
   if (kind === 'artifacts') {
+    if (value.sourceImage !== undefined) validateManagedArtifact(value.sourceImage, `${path}.sourceImage`);
     requiredString(value.jobId, `${path}.jobId`);
     requiredString(value.jobState, `${path}.jobState`);
     nonNegativeNumber(value.artifactCount, `${path}.artifactCount`);
@@ -627,7 +628,9 @@ export type StudioHistoryMutationSubject = {
 };
 
 export function studioHistoryArtifactPaths(record: StudioRunHistoryRecord): string[] {
-  return studioResultAssetPaths(record.result);
+  const params = record.runConfig?.target.params;
+  const source = record.capabilityId === 'world.generate' && params ? studioWorldInputSource(params) : undefined;
+  return [...new Set([...studioResultAssetPaths(record.result), ...(source ? [source.relativePath] : [])])];
 }
 
 export function studioHistoryDocumentPaths(record: StudioRunHistoryRecord): string[] {

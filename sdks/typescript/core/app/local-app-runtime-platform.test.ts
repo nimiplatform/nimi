@@ -1585,6 +1585,25 @@ test('local-app World jobs carry text through the async SDK and reject provider 
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID');
 });
 
+test('World owned image projection is explicit and foreign carriers fail before transport', async () => {
+  const calls: unknown[] = []; const base = standardShell([]);
+  const job = { jobId: 'world-image', scenarioType: 'world-generate' as const, status: 'submitted' as const,
+    progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0, reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace-world-image', createdAt: null, updatedAt: null, transcriptionText: '' };
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async submit(spec) { calls.push(spec); return { job }; },
+  } } } });
+  for (const projection of ['ordinary', 'equirectangular-360'] as const) {
+    const spec = { type: 'world-generate' as const, displayName: '', image: { artifactId: 'owned-image', projection } };
+    await client.ai.scenarioJobs.submit(spec); assert.deepEqual(calls.at(-1), spec);
+  }
+  for (const image of [{ artifactId: 'owned-image' }, { artifactId: 'owned-image', projection: 'auto' },
+    { artifactId: 'owned-image', projection: 'ordinary', uri: 'https://example.invalid/source.png' }, { mediaAssetId: 'provider-id', projection: 'ordinary' }]) {
+    await assert.rejects(() => client.ai.scenarioJobs.submit({ type: 'world-generate', prompt: '', displayName: '', image } as never),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID');
+  }
+  assert.equal(calls.length, 2);
+});
+
 test('local-app Music adapter carries prompt, lyrics and bounded duration through the protected async carrier', async () => {
   const calls: unknown[] = [];
   const base = standardShell([]);

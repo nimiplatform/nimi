@@ -22,6 +22,43 @@ func captureProviderLogs(t *testing.T) *bytes.Buffer {
 	return &buffer
 }
 
+func TestWorldLabsJSONObservationIdentifiesTransportStageWithoutSensitiveData(t *testing.T) {
+	logs := captureProviderLogs(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/drop" {
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			_ = conn.Close()
+			return
+		}
+		w.WriteHeader(http.StatusPaymentRequired)
+		_, _ = w.Write([]byte(`{"detail":"private provider body"}`))
+	}))
+	defer server.Close()
+	ctx := WithMediaAdapterEndpointPolicy(context.Background(), MediaAdapterConfig{AllowLoopbackEndpoint: true})
+	for _, path := range []string{"/drop", "/credits"} {
+		var result map[string]any
+		err := doJSONRequestWithHeadersAndObservation(ctx, http.MethodPost, server.URL+path+"?token=private-query", "", map[string]any{"world_prompt": "private prompt"}, &result, map[string]string{"WLT-Api-Key": "private-credential"}, time.Second, AdapterWorldLabsNative)
+		if err == nil {
+			t.Fatal("failed provider request succeeded")
+		}
+	}
+	text := logs.String()
+	for _, want := range []string{"backend=worldlabs_world_adapter", "phase=awaiting_response", "failure_class=", "status=402"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %q: %s", want, text)
+		}
+	}
+	for _, secret := range []string{"private-query", "private prompt", "private-credential", "private provider body"} {
+		if strings.Contains(text, secret) {
+			t.Fatalf("sensitive provider diagnostic leaked %q", secret)
+		}
+	}
+}
+
 // A provider failure names how far the request got, the status and the
 // provider's request ID, and never the credential, query or body.
 func TestProviderHTTPObservationRecordsPhasesWithoutSecrets(t *testing.T) {

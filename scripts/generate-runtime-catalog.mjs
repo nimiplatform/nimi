@@ -75,6 +75,7 @@ const allowedFeaturesByCapability = new Map([
   ['text.generate', new Set(['input.image', 'input.audio', 'input.video'])],
   ['image.generate', new Set(['input.image', 'input.mask'])],
   ['video.generate', new Set(['input.image'])],
+  ['world.generate', new Set(['input.image'])],
   ['music.generate', new Set(['input.audio'])],
   ['voice.create', new Set(['input.text', 'input.audio'])],
 ]);

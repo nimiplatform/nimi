@@ -226,7 +226,7 @@ export function useAIStudioWorkspaceController({
     setLastResult(result);
     const identity = await historyRepository.nextIdentity();
     const status = historyRepository.statusForResult?.(result);
-    const record = createStudioRunHistoryRecord({
+    const record = result.recordedHistory ?? createStudioRunHistoryRecord({
       result,
       prompt,
       runId: identity.runId,

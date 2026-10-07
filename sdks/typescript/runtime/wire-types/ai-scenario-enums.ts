@@ -588,3 +588,9 @@ export enum WorldEntityRefKindV3 {
   UNSPECIFIED = 0,
   WORLD_ENTITY = 1,
 }
+
+export enum WorldImageProjection {
+  UNSPECIFIED = 0,
+  ORDINARY = 1,
+  EQUIRECTANGULAR_360 = 2,
+}
