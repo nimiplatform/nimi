@@ -30,7 +30,7 @@ export function WorldTourViewerRoute() {
   }, [query, rendererHost, t]);
 
   return (
-    <section className="product-area" data-testid={labTestIds.worldTourViewerRoot}>
+    <section className="product-area world-tour-viewer" data-testid={labTestIds.worldTourViewerRoot}>
       <h1 className="world-tour-page-title">{t('WorldTour.viewerTitle')}</h1>
       {error ? (
         <InlineAlert tone="warning">

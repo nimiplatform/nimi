@@ -6,6 +6,8 @@ import { useLabRendererHost } from '../../renderer/context.js';
 import { readWorldTourArchive } from './world-tour-archive.js';
 import type { WorldNavigationState, createWorldTourScene } from './world-tour-scene.js';
 import { parseWorldTourCameraPreset } from './world-tour-camera.js';
+import { WorldTourObjectsPanel } from './world-tour-objects-panel.js';
+import type { WorldObjectInstance, WorldCompositionIdentity } from './world-tour-composition.js';
 
 type WorldTourViewerCanvasProps = {
   fixture: ResolvedWorldTourFixture;
@@ -23,21 +25,25 @@ export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
   const [radius, setRadius] = useState('0.25');
   const viewport = useRef<HTMLDivElement>(null);
   const controls = useRef<ReturnType<typeof createWorldTourScene> | null>(null);
+  const [editor, setEditor] = useState<{ scene: ReturnType<typeof createWorldTourScene>; identity: WorldCompositionIdentity } | null>(null);
+  const [objects, setObjects] = useState<WorldObjectInstance[]>([]), [selectedObject, setSelectedObject] = useState<string | null>(null);
 
   useEffect(() => {
     let canceled = false;
     let scene: ReturnType<typeof createWorldTourScene> | undefined;
     setReady(false);
+    setEditor(null); setObjects([]); setSelectedObject(null);
     setError(null);
     void (async () => {
       const world = await readWorldTourArchive(fixture.archivePath, rendererHost.sdk.storage.assets);
       const { createWorldTourScene } = await import('./world-tour-scene.js');
       if (canceled || !viewport.current) return;
       setTitle(world.displayName);
-      scene = createWorldTourScene(viewport.current, world, t('WorldTour.sceneLabel'), state => { if (!canceled) { setNavigation(state); setBodyHeight(String(state.size.bodyHeight)); setRadius(String(state.size.radius)); } });
+      scene = createWorldTourScene(viewport.current, world, t('WorldTour.sceneLabel'), state => { if (!canceled) { setNavigation(state); setBodyHeight(String(state.size.bodyHeight)); setRadius(String(state.size.radius)); } },
+        items => { if (!canceled) setObjects(items); }, id => { if (!canceled) setSelectedObject(id); });
       controls.current = scene;
       await scene.ready;
-      if (!canceled) setReady(true);
+      if (!canceled) { setReady(true); if (world.archiveSha256) setEditor({ scene, identity: { archivePath: fixture.archivePath, archiveSha256: world.archiveSha256 } }); }
     })().catch((cause: unknown) => {
       if (!canceled) setError(t('WorldTour.loadFailed', { detail: cause instanceof Error ? cause.message : String(cause) }));
     });
@@ -98,8 +104,11 @@ export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
         <Button tone="secondary" disabled={!ready || navigation.pending || navigation.issue === 'missing' || navigation.issue === 'invalid'} onClick={() => void applySize()}>{t('WorldTour.applyBodySize')}</Button>
       </div>
       {ready && navigation.issue ? <InlineAlert tone="warning">{t(navigation.issue === 'clearance' ? 'WorldTour.noSafeSpawn' : 'WorldTour.colliderUnavailable')}</InlineAlert> : null}
-      <div className="world-tour-viewport" ref={viewport} aria-busy={!ready && !error}>
-        {!ready && !error ? <p className="world-tour-loading" role="status">{t('WorldTour.loading')}</p> : null}
+      <div className="world-tour-scene-workspace">
+        <div className="world-tour-viewport" ref={viewport} aria-busy={!ready && !error}>
+          {!ready && !error ? <p className="world-tour-loading" role="status">{t('WorldTour.loading')}</p> : null}
+        </div>
+        {editor ? <WorldTourObjectsPanel key={fixture.archivePath} scene={editor.scene} identity={editor.identity} items={objects} selectedId={selectedObject} /> : null}
       </div>
       <p className="world-tour-controls">{t(navigation.mode === 'walk' ? 'WorldTour.walkHelp' : 'WorldTour.controlHelp')}</p>
       {error ? <InlineAlert tone="danger">{error}</InlineAlert> : null}

@@ -4,10 +4,13 @@ import type { WorldTourArchive } from './world-tour-archive.js';
 import { assertWorldCameraArchive, type WorldTourCameraPreset } from './world-tour-camera.js';
 import { loadWorldCollisionGeometry, type WorldCollisionGeometry } from './world-tour-collider.js';
 import { createWorldWalk, validateWorldBodySize, type WorldBodySize } from './world-tour-walk.js';
+import { createWorldObjectLayer } from './world-tour-objects.js';
+import type { WorldObjectInstance, WorldObjectTransform } from './world-tour-composition.js';
 
 export type WorldNavigationState = { mode: 'walk' | 'fly' | null; available: boolean; issue: 'missing' | 'invalid' | 'clearance' | null; size: WorldBodySize; pending: boolean };
 
-export function createWorldTourScene(container: HTMLElement, world: WorldTourArchive, label: string, onNavigation?: (state: WorldNavigationState) => void) {
+export function createWorldTourScene(container: HTMLElement, world: WorldTourArchive, label: string, onNavigation?: (state: WorldNavigationState) => void,
+  onObjects?: (items: WorldObjectInstance[]) => void, onSelection?: (id: string | null) => void) {
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); renderer.setClearColor(0x17201d);
   const canvas = renderer.domElement; canvas.tabIndex = 0; canvas.setAttribute('aria-label', label); container.appendChild(canvas);
@@ -25,7 +28,11 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
   const keys = new Set<string>();
   const controls = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight']);
   let drag: { id: number; x: number; y: number } | null = null;
-  const clearInput = () => { keys.clear(); if (drag && canvas.hasPointerCapture(drag.id)) canvas.releasePointerCapture(drag.id); drag = null; };
+  const clearInput = () => { const captured = drag; drag = null; keys.clear(); if (captured && canvas.hasPointerCapture(captured.id)) canvas.releasePointerCapture(captured.id); };
+  let objectDragging = false;
+  const objects = createWorldObjectLayer(scene, camera, canvas, items => onObjects?.(items), id => onSelection?.(id), active => { objectDragging = active; clearInput(); });
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a9ab2, 2));
+  const objectLight = new THREE.DirectionalLight(0xffffff, 2); objectLight.position.set(2, 5, 3); scene.add(objectLight);
   const readNavigation = (): WorldNavigationState => ({ mode, available: Boolean(walk?.available), issue, size: { ...size }, pending });
   const changed = () => onNavigation?.(readNavigation());
   const reset = () => {
@@ -60,7 +67,7 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     renderer.setSize(width, height); camera.aspect = width / height; camera.updateProjectionMatrix();
   };
   const observer = new ResizeObserver(resize); observer.observe(container); resize();
-  const down = (event: PointerEvent) => { if (event.button !== 0) return; canvas.focus(); canvas.setPointerCapture(event.pointerId); drag = { id: event.pointerId, x: event.clientX, y: event.clientY }; };
+  const down = (event: PointerEvent) => { if (event.button !== 0 || objects.interceptPointer()) return; canvas.focus(); canvas.setPointerCapture(event.pointerId); drag = { id: event.pointerId, x: event.clientX, y: event.clientY }; };
   const move = (event: PointerEvent) => {
     if (!drag || drag.id !== event.pointerId) return;
     const rotation = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
@@ -69,7 +76,7 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     camera.quaternion.setFromEuler(rotation); drag.x = event.clientX; drag.y = event.clientY;
   };
   const up = () => { drag = null; };
-  const keydown = (event: KeyboardEvent) => { if (document.activeElement !== canvas || !controls.has(event.code)) return; event.preventDefault(); keys.add(event.code); };
+  const keydown = (event: KeyboardEvent) => { if (document.activeElement !== canvas || objectDragging || !controls.has(event.code)) return; event.preventDefault(); keys.add(event.code); };
   const keyup = (event: KeyboardEvent) => { keys.delete(event.code); };
   const visibility = () => { if (document.visibilityState !== 'visible') clearInput(); };
   canvas.addEventListener('pointerdown', down); canvas.addEventListener('pointermove', move); canvas.addEventListener('pointerup', up);
@@ -81,11 +88,11 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     const delta = Math.min((now - lastTime) / 1000, 0.1); lastTime = now;
     velocity.set(Number(keys.has('KeyD')) - Number(keys.has('KeyA')), 0, Number(keys.has('KeyS')) - Number(keys.has('KeyW')));
     const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 4 : 1.6;
-    if (mode === 'walk' && walk && !pending) {
+    if (mode === 'walk' && walk && !pending && !objectDragging) {
       const yaw = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ').y;
       if (velocity.lengthSq()) velocity.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
       if (velocity.lengthSq()) camera.position.copy(walk.move(velocity, delta, speed));
-    } else if (mode === 'fly' && !pending) {
+    } else if (mode === 'fly' && !pending && !objectDragging) {
       if (velocity.lengthSq()) velocity.normalize().applyQuaternion(camera.quaternion);
       velocity.y += Number(keys.has('KeyE')) - Number(keys.has('KeyQ'));
       if (velocity.lengthSq()) camera.position.addScaledVector(velocity.normalize(), delta * speed);
@@ -107,7 +114,14 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     changed(); tick(performance.now());
   })();
   return {
-    ready, reset, setMode, setBodySize, readNavigation, clearInput,
+    ready, reset, setMode, setBodySize, readNavigation, clearInput, objects,
+    suggestedObjectTransform: (): WorldObjectTransform => {
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); forward.y = 0;
+      if (forward.lengthSq() < 0.01) forward.set(0, 0, -1); forward.normalize();
+      const position = camera.position.clone().addScaledVector(forward, 2);
+      position.y = mode === 'walk' && walk?.readState().grounded ? camera.position.y - size.bodyHeight + 0.15 : camera.position.y - 0.5;
+      return { position: position.toArray(), rotation: [0, 0, 0], scale: [1, 1, 1] };
+    },
     readState: () => ({ navigation: readNavigation(), walk: walk?.readState(), inputKeys: [...keys], disposed }),
     readPose: (): WorldTourCameraPreset => ({ position: camera.position.toArray(), quaternion: camera.quaternion.toArray(), fov: camera.fov,
       ...(world.archiveSha256 ? { archiveSha256: world.archiveSha256 } : {}), ...(mode ? { navigation: { mode, ...size } } : {}) }),
@@ -125,7 +139,7 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
       canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move); canvas.removeEventListener('pointerup', up);
       canvas.removeEventListener('lostpointercapture', up); canvas.removeEventListener('keydown', keydown); canvas.removeEventListener('blur', clearInput);
       window.removeEventListener('keyup', keyup); window.removeEventListener('blur', clearInput); document.removeEventListener('visibilitychange', visibility);
-      walk?.dispose(); splat.dispose(); spark.dispose(); renderer.dispose(); canvas.remove();
+      objects.dispose(); walk?.dispose(); splat.dispose(); spark.dispose(); renderer.dispose(); canvas.remove();
     },
   };
 }

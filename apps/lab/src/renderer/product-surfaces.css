@@ -165,6 +165,17 @@
     font-size: 24px;
   }
 
+  .world-tour-viewer {
+    height: 100dvh;
+    min-height: 0;
+    align-content: start;
+    grid-auto-rows: max-content;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-color: var(--nimi-border-subtle) transparent;
+  }
+
   .world-tour-actions {
     display: flex;
     flex-wrap: wrap;
@@ -225,6 +236,31 @@
     color: var(--nimi-text-secondary);
     font-size: 13px;
     line-height: 1.5;
+  }
+
+  .world-tour-scene-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+  .world-tour-objects { min-width: 0; max-height: max(420px, calc(100dvh - 250px)); overflow: auto; padding: 0 4px 8px 16px; border-left: 1px solid currentColor; color: var(--nimi-text-primary); }
+  .world-tour-objects-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .world-tour-objects h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .world-tour-objects-heading span { font-size: 12px; color: var(--nimi-text-secondary); }
+  .world-tour-object-file { display: grid; gap: 8px; font-size: 13px; font-weight: 600; }
+  .world-tour-object-file input { width: 100%; min-width: 0; font-size: 12px; font-weight: 400; }
+  .world-tour-object-note { margin: 10px 0 14px; color: var(--nimi-text-secondary); font-size: 12px; line-height: 1.5; }
+  .world-tour-object-list { list-style: none; margin: 12px 0 16px; padding: 0; }
+  .world-tour-object-list button { width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--nimi-text-primary); text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+  .world-tour-object-list button:hover { background: rgba(20, 118, 212, 0.06); }
+  .world-tour-object-list button[aria-pressed="true"] { background: rgba(20, 118, 212, 0.12); font-weight: 600; }
+  .world-tour-object-list button:focus-visible, .world-tour-objects input:focus-visible { outline: 2px solid var(--nimi-text-primary); outline-offset: 2px; }
+  .world-tour-object-dimensions { font-size: 12px; font-variant-numeric: tabular-nums; margin: 12px 0; }
+  .world-tour-object-transform { margin: 12px 0; padding: 0; border: 0; }
+  .world-tour-object-transform legend { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .world-tour-object-transform > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .world-tour-object-transform label { display: grid; gap: 4px; min-width: 0; color: var(--nimi-text-secondary); font-size: 11px; }
+  .world-tour-object-transform input { width: 100%; min-width: 0; border: 1px solid rgba(107, 114, 128, 0.25); border-radius: 8px; padding: 7px 6px; background: rgba(255, 255, 255, 0.65); color: var(--nimi-text-primary); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .world-tour-objects .lab-actions { gap: 6px; }
+  @media (max-width: 900px) {
+    .world-tour-scene-workspace { grid-template-columns: minmax(0, 1fr); }
+    .world-tour-objects { max-height: none; padding: 16px 0 0; border-left: 0; border-top: 1px solid currentColor; }
   }
 
   @container nimi-workbench-surface (max-width: 640px) {
