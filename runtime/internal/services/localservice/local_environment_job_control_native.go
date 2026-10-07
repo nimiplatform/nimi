@@ -18,6 +18,14 @@ func (s *Service) executeNativeAudioCPPEnvironmentDependencyJob(ctx context.Cont
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
+	platform := ""
+	if parts := strings.Split(job.EnvironmentKey, "|"); len(parts) == 3 {
+		platform = parts[2]
+	}
+	identity, identityErr := engine.AudioCppPackageForPlatform(platform)
+	if identityErr != nil || !stringSliceContains(audioCppSelectedConsumersForPlatform(platform), consumer) {
+		return localEnvironmentDependencyJobResult{State: localEnvironmentStateUnsupported, SourceKind: localEnvironmentSourceUnavailable, AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"}, nil
+	}
 	mgr := s.engineManagerOrNil()
 	if mgr == nil {
 		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
@@ -28,7 +36,7 @@ func (s *Service) executeNativeAudioCPPEnvironmentDependencyJob(ctx context.Cont
 		return localEnvironmentDependencyJobResult{}, err
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateVerifying)
-	if strings.TrimSpace(status.BinaryPath) == "" || !strings.EqualFold(strings.TrimSpace(status.SHA256), engine.AudioCppPackageArchiveSHA256) {
+	if status.Platform != platform || strings.TrimSpace(status.BinaryPath) == "" || !strings.EqualFold(strings.TrimSpace(status.SHA256), identity.ArchiveSHA256) {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateRepairRequired,
 			SourceKind:      localEnvironmentSourceManaged,
@@ -42,13 +50,13 @@ func (s *Service) executeNativeAudioCPPEnvironmentDependencyJob(ctx context.Cont
 		Version:       engine.AudioCppSelectedSourceVersion,
 		CompatibilityEvidence: []string{
 			strings.TrimSpace(status.Detail),
-			"asset=" + engine.AudioCppPackageAssetName,
-			"archive_sha256=" + engine.AudioCppPackageArchiveSHA256,
-			"accelerator_plane=cuda13",
+			"asset=" + identity.AssetName,
+			"archive_sha256=" + identity.ArchiveSHA256,
+			"accelerator_plane=" + identity.AcceleratorPlane,
 		},
 		VerifiedArtifacts: normalizeStringSlice([]string{strings.TrimSpace(status.BinaryPath)}),
-		Hashes:            map[string]string{"archive_sha256": engine.AudioCppPackageArchiveSHA256},
-		SelectedConsumers: audioCppSelectedConsumers(),
+		Hashes:            map[string]string{"archive_sha256": identity.ArchiveSHA256},
+		SelectedConsumers: audioCppSelectedConsumersForPlatform(platform),
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }

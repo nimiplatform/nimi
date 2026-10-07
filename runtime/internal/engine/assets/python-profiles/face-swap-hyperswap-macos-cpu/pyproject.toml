@@ -1,0 +1,47 @@
+[project]
+name = "nimi-hyperswap-macos-profile"
+version = "0.0.0"
+requires-python = "==3.12.13"
+dependencies = [
+  "av==18.1.0",
+  "insightface==0.7.3",
+  "numpy==1.26.4",
+  "onnx==1.22.0",
+  "onnxruntime==1.28.0",
+  "opencv-python-headless==4.11.0.86",
+  "pillow==12.3.0",
+  "scikit-image==0.26.0",
+  "scipy==1.17.1",
+]
+
+[tool.uv]
+constraint-dependencies = [
+  "charset-normalizer==3.5.1",
+  "fonttools==4.64.0",
+  "idna==3.19",
+  "imageio==2.37.4",
+  "lazy-loader==0.5",
+  "matplotlib==3.11.1",
+  "networkx==3.6.1",
+  "protobuf==7.36.1",
+  "pyparsing==3.3.2",
+  "scikit-learn==1.9.0",
+  "stringzilla==5.1.2",
+  "threadpoolctl==3.6.0",
+  "tqdm==4.70.0",
+  "urllib3==2.7.0",
+  "wcwidth==0.8.3",
+]
+environments = ["sys_platform == 'darwin' and platform_machine == 'arm64'"]
+# InsightFace builds a Cython extension in an isolated environment. Its build
+# inputs must stay exact independently of the locked runtime dependencies.
+build-constraint-dependencies = [
+  "setuptools==84.0.0",
+  "numpy==1.26.4",
+  "cython==3.3.0",
+]
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true

@@ -36,10 +36,16 @@ func verifyFaceSwapDriverBundle(root string) error {
 	return nil
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.hyperswap-1a-driver
 func verifyFaceSwapProfileProbe(probe pythonDependencyProfileProbe, identity PythonDependencyProfileIdentity) error {
-	if identity.PlatformTuple != "windows/amd64" || identity.AcceleratorPlane != "cuda" || identity.CUDAABI != "cu13" || identity.TorchVersion != "" ||
-		probe.ONNXRuntimeVersion != "1.28.0" || probe.TorchVersion != "" || probe.CUDAABI != "13" || probe.Device != "cuda" || probe.Allocation != 1 || len(probe.InstalledDistributions) == 0 {
-		return fmt.Errorf("face replacement dependency profile did not execute with its exact ONNX Runtime CUDA composition")
+	if identity.TorchVersion != "" || probe.ONNXRuntimeVersion != "1.28.0" || probe.TorchVersion != "" || probe.Allocation != 1 || len(probe.InstalledDistributions) == 0 {
+		return fmt.Errorf("face replacement dependency profile did not execute with its exact ONNX Runtime composition")
 	}
-	return nil
+	if identity.PlatformTuple == "windows/amd64" && identity.AcceleratorPlane == "cuda" && identity.CUDAABI == "cu13" && probe.CUDAABI == "13" && probe.Device == "cuda" {
+		return nil
+	}
+	if identity.PlatformTuple == "darwin/arm64" && identity.AcceleratorPlane == "cpu" && identity.CUDAABI == "" && probe.CUDAABI == "" && probe.Device == "cpu" {
+		return nil
+	}
+	return fmt.Errorf("face replacement profile accelerator does not match its exact platform")
 }

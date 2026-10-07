@@ -277,6 +277,8 @@ func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmen
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-text"}, true
 	case "stable-diffusion.cpp.metal", stableDiffusionCUDAConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-image-native"}, true
+	case audioCppVeVo2CPUConsumerID:
+		return localEnvironmentConsumerRequirement{ConsumerID: audioCppVeVo2CPUConsumerID, PackID: "local-music-native-cpu"}, true
 	case audioCppCUDAConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-music-native"}, true
 	case audioCppQwen3TTSCUDAConsumerID:

@@ -27,6 +27,13 @@ const (
 
 type HyperSwapImageDriver struct{}
 
+func (d HyperSwapImageDriver) ProjectRecipeForHost(recipe string, opts *structpb.Struct, features []string, platform string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if platform != "windows/amd64" && platform != "darwin/arm64" {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return d.ProjectRecipe(recipe, opts, features)
+}
+
 func (HyperSwapImageDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
 }
@@ -125,7 +132,7 @@ func (d HyperSwapImageDriver) ValidateCombination(r []*runtimev1.LocalCapability
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 func (HyperSwapImageDriver) PlanImageFaceSwapInvocation(platform, recipe string, ref, target []byte, b []InvocationExactBinding, deps []InvocationExactDependencySource) (*ImageFaceSwapInvocationPlan, error) {
-	if platform != "windows/amd64" || recipe != HyperSwapImageRecipeID || len(ref) == 0 || len(target) == 0 {
+	if (platform != "windows/amd64" && platform != "darwin/arm64") || recipe != HyperSwapImageRecipeID || len(ref) == 0 || len(target) == 0 {
 		return nil, fmt.Errorf("HyperSwap image capture is unsupported or incomplete")
 	}
 	models, err := planHyperSwapModels(b, deps)
@@ -149,6 +156,13 @@ func planHyperSwapModels(b []InvocationExactBinding, deps []InvocationExactDepen
 }
 
 type HyperSwapVideoDriver struct{ HyperSwapImageDriver }
+
+func (d HyperSwapVideoDriver) ProjectRecipeForHost(recipe string, opts *structpb.Struct, features []string, platform string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if platform != "windows/amd64" && platform != "darwin/arm64" {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return d.ProjectRecipe(recipe, opts, features)
+}
 
 func (d HyperSwapVideoDriver) ImplementationSupportedFeatures(recipe string) ([]string, runtimev1.LocalCapabilityReason) {
 	if recipe != HyperSwapVideoRecipeID {
@@ -184,7 +198,7 @@ func (d HyperSwapVideoDriver) ProjectModelAssetBinding(i ModelAssetBindingInput)
 	return d.HyperSwapImageDriver.ProjectModelAssetBinding(i)
 }
 func (HyperSwapVideoDriver) PlanVideoFaceSwapSession(platform, recipe string, ref []byte, b []InvocationExactBinding, deps []InvocationExactDependencySource) (FaceSwapModelPlan, error) {
-	if platform != "windows/amd64" || recipe != HyperSwapVideoRecipeID || len(ref) == 0 {
+	if (platform != "windows/amd64" && platform != "darwin/arm64") || recipe != HyperSwapVideoRecipeID || len(ref) == 0 {
 		return FaceSwapModelPlan{}, fmt.Errorf("unsupported HyperSwap Session capture")
 	}
 	return planHyperSwapModels(b, deps)

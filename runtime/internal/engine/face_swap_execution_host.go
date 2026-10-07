@@ -57,6 +57,7 @@ func (host *FaceSwapExecutionHost) AdmitImageFaceSwap(plan *capabilitydriver.Ima
 	return host.admitModels(plan.Models())
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.hyperswap-1a-driver
 func (host *FaceSwapExecutionHost) admitModels(plan capabilitydriver.FaceSwapModelPlan) error {
 	if host == nil || host.manager == nil || len(plan.Bindings) != 3 || (plan.Backend != capabilitydriver.FaceSwapBackendInsightFace && plan.Backend != capabilitydriver.FaceSwapBackendHyperSwap) {
 		return fmt.Errorf("face replacement Host has no captured model plan")
@@ -66,10 +67,15 @@ func (host *FaceSwapExecutionHost) admitModels(plan capabilitydriver.FaceSwapMod
 		return err
 	}
 	identity := manifest.Identity
-	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" {
-		return fmt.Errorf("face replacement Host requires windows/amd64")
+	plane := "cuda"
+	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" && plan.Backend == capabilitydriver.FaceSwapBackendHyperSwap {
+		plane = "cpu"
 	}
-	if identity.PlatformTuple != "windows/amd64" || identity.AcceleratorPlane != "cuda" ||
+	expected, err := ResolvePythonDependencyProfileIdentity(FaceSwapConsumerID, runtime.GOOS+"/"+runtime.GOARCH, plane)
+	if err != nil {
+		return fmt.Errorf("face replacement Host profile: %w", err)
+	}
+	if identity != expected ||
 		identity.ProfileDigest != plan.ProfileDigest || identity.DriverBundleDigest != plan.DriverBundleDigest || identity.DriverProtocol != capabilitydriver.InsightFaceProtocol || manifest.ValidationConsumer != FaceSwapConsumerID {
 		return fmt.Errorf("captured face replacement profile is not admitted on this Host")
 	}

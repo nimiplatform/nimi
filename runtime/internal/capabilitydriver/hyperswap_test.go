@@ -48,9 +48,24 @@ func TestHyperSwapCapturedPlanRequiresCompleteExactGroupAndProfile(t *testing.T)
 		bindings = append(bindings, InvocationExactBinding{RequirementID: slot, AbsolutePath: filepath.Join(root, slot), VerifiedContentID: "content-" + slot, EntrySHA256: hyperSwapDigest(slot)})
 	}
 	deps := []InvocationExactDependencySource{{DependencyFamily: "python.package-set", ConsumerScope: InsightFaceConsumerID, CanonicalRoot: root, SelectedSourceRecordID: "source", Version: "profile", Hashes: map[string]string{"profile_digest": "profile", "driver_bundle_sha256": "bundle"}}}
-	p, e := (HyperSwapVideoDriver{}).PlanVideoFaceSwapSession("windows/amd64", HyperSwapVideoRecipeID, []byte("owned reference fixture"), bindings, deps)
-	if e != nil || p.Backend != FaceSwapBackendHyperSwap {
-		t.Fatal(p, e)
+	for _, host := range []string{"windows/amd64", "darwin/arm64"} {
+		p, e := (HyperSwapVideoDriver{}).PlanVideoFaceSwapSession(host, HyperSwapVideoRecipeID, []byte("owned reference fixture"), bindings, deps)
+		if e != nil || p.Backend != FaceSwapBackendHyperSwap {
+			t.Fatal(p, e)
+		}
+		image, err := (HyperSwapImageDriver{}).PlanImageFaceSwapInvocation(host, HyperSwapImageRecipeID, []byte("reference"), []byte("target"), bindings, deps)
+		if err != nil || image.Backend != FaceSwapBackendHyperSwap {
+			t.Fatal("native image capture unavailable", host, err)
+		}
+		video, err := (HyperSwapVideoDriver{}).PlanVideoFaceSwapInvocation(host, HyperSwapVideoRecipeID, []byte("reference"), []byte("target"), "preserve_frame", bindings, deps)
+		if err != nil || video.Models.Backend != FaceSwapBackendHyperSwap {
+			t.Fatal("finite video capture unavailable", host, err)
+		}
+	}
+	for _, host := range []string{"darwin/amd64", "linux/amd64", "windows/arm64"} {
+		if _, err := (HyperSwapVideoDriver{}).PlanVideoFaceSwapSession(host, HyperSwapVideoRecipeID, []byte("reference"), bindings, deps); err == nil {
+			t.Fatal("unadmitted host accepted", host)
+		}
 	}
 	bindings[1].EntrySHA256 = HyperSwapSwapperSHA
 	if _, e := planHyperSwapModels(bindings, deps); e == nil {
@@ -58,6 +73,29 @@ func TestHyperSwapCapturedPlanRequiresCompleteExactGroupAndProfile(t *testing.T)
 	}
 	if _, e := planHyperSwapModels(bindings, nil); e == nil {
 		t.Fatal("missing profile accepted")
+	}
+}
+
+func TestHyperSwapMacProjectionDoesNotAdmitOtherFaceBackends(t *testing.T) {
+	for _, platform := range []string{"windows/amd64", "darwin/arm64"} {
+		for _, recipe := range []string{HyperSwapImageRecipeID, HyperSwapVideoRecipeID} {
+			var requirements []*runtimev1.LocalCapabilityRequirement
+			var reason runtimev1.LocalCapabilityReason
+			if recipe == HyperSwapImageRecipeID {
+				requirements, reason = (HyperSwapImageDriver{}).ProjectRecipeForHost(recipe, nil, nil, platform)
+			} else {
+				requirements, reason = (HyperSwapVideoDriver{}).ProjectRecipeForHost(recipe, nil, nil, platform)
+			}
+			if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) != 3 {
+				t.Fatal("exact group missing from native projection", recipe, platform, reason)
+			}
+		}
+	}
+	if _, reason := (InsightFaceImageDriver{}).ProjectRecipeForHost(InsightFaceRecipeID, nil, nil, "darwin/arm64"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
+		t.Fatal("INSwapper image inherited Mac support")
+	}
+	if _, reason := (InsightFaceVideoDriver{}).ProjectRecipeForHost(InsightFaceVideoRecipeID, nil, nil, "darwin/arm64"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
+		t.Fatal("INSwapper video inherited Mac support")
 	}
 }
 

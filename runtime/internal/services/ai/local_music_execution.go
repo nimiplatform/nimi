@@ -176,6 +176,7 @@ func validSelectedMusicExecution(selected *localexecution.SelectedLocalExecution
 
 var audioCppSelectedSourceVersionPattern = regexp.MustCompile(`^release-([0-9]+\.[0-9]+\.[0-9]+)@[0-9a-f]{40}$`)
 
+// @nimi-authority: rule.nimi.runtime.local-compute.vevo2-macos-cpu
 func audioCppRuntimePackageInput(selected *localexecution.SelectedLocalExecution) (capabilitydriver.AudioCppRuntimePackageInput, error) {
 	var result capabilitydriver.AudioCppRuntimePackageInput
 	for _, source := range selected.ExactDependencySources {
@@ -189,10 +190,18 @@ func audioCppRuntimePackageInput(selected *localexecution.SelectedLocalExecution
 			}
 			result.AudioCppVersion = version[1]
 			result.AudioCppPackageID = capabilitydriver.AudioCppWindowsCUDA13PackageID
+			executableName := "audiocpp_cli.exe"
+			if source.ConsumerScope == "audio.cpp.vevo2.cpu" {
+				if selected.CapabilityContract != capabilitydriver.VoiceConvertCapabilityContract || selected.DriverIdentity.GetDriverId() != capabilitydriver.VeVo2DriverID || source.Version != "release-0.8.1@f2b4937306daa25f5c78520f3c626ed31495a37a" {
+					return result, fmt.Errorf("Mac audio.cpp source does not belong to VeVo2")
+				}
+				result.AudioCppPackageID = capabilitydriver.AudioCppMacOSPackageID
+				executableName = "audiocpp_cli"
+			}
 			result.AudioCppSelectedSourceRecordID = source.SelectedSourceRecordID
 			result.AudioCppRoot = source.CanonicalRoot
 			for _, artifact := range source.VerifiedArtifacts {
-				if strings.EqualFold(filepath.Base(artifact), "audiocpp_cli.exe") {
+				if filepath.Base(artifact) == executableName {
 					result.AudioCppExecutablePath = artifact
 					break
 				}
@@ -203,7 +212,11 @@ func audioCppRuntimePackageInput(selected *localexecution.SelectedLocalExecution
 			result.CUDA13Root = source.CanonicalRoot
 		}
 	}
-	if result.AudioCppSelectedSourceRecordID == "" || result.AudioCppExecutablePath == "" || result.CUDA13SelectedSourceRecordID == "" {
+	cudaReady := result.CUDA13SelectedSourceRecordID != ""
+	if result.AudioCppPackageID == capabilitydriver.AudioCppMacOSPackageID {
+		cudaReady = result.CUDA13SelectedSourceRecordID == "" && result.CUDA13DependencyID == "" && result.CUDA13Root == ""
+	}
+	if result.AudioCppSelectedSourceRecordID == "" || result.AudioCppExecutablePath == "" || !cudaReady {
 		return capabilitydriver.AudioCppRuntimePackageInput{}, fmt.Errorf("audio.cpp package/CUDA13 selected-source pair is incomplete")
 	}
 	return result, nil

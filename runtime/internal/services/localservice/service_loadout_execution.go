@@ -419,6 +419,16 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 		if consumer == "llama.cpp.cuda" {
 			required = append(required, requiredDependency{family: localEnvironmentFamilyCUDA, dependencyID: cudaUserSpaceRuntimeDependencyID})
 		}
+	case capabilitydriver.VeVo2AudioCppDriver:
+		_, resolvedConsumer, ok := localEnvironmentTargetForDriver(typed, host)
+		if !ok {
+			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "VeVo2 native package is unsupported on this host", nil)
+		}
+		consumer = resolvedConsumer
+		required = append(required, requiredDependency{family: localEnvironmentFamilyNativeAudioCPP, dependencyID: "audio.cpp.package"})
+		if consumer == audioCppCUDAConsumerID {
+			required = append(required, requiredDependency{family: localEnvironmentFamilyCUDA, dependencyID: cuda13UserSpaceRuntimeDependencyID})
+		}
 	case capabilitydriver.StableDiffusionImageDriver, capabilitydriver.StableDiffusionVideoDriver:
 		_, resolvedConsumer, ok := localEnvironmentTargetForDriver(typed, host)
 		if !ok {
@@ -435,7 +445,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 			consumer = audioCppCUDAConsumerID
 		case strings.TrimSpace(capabilityContract) == capabilitydriver.MusicTranscribeCapabilityContract && identity.GetDriverId() == capabilitydriver.SheetSage2DriverID:
 			consumer = audioCppCUDAConsumerID
-		case strings.TrimSpace(capabilityContract) == capabilitydriver.VoiceConvertCapabilityContract && (identity.GetDriverId() == capabilitydriver.VeVo2DriverID || identity.GetDriverId() == capabilitydriver.SeedVCDriverID):
+		case strings.TrimSpace(capabilityContract) == capabilitydriver.VoiceConvertCapabilityContract && identity.GetDriverId() == capabilitydriver.SeedVCDriverID:
 			consumer = audioCppCUDAConsumerID
 		case strings.TrimSpace(capabilityContract) == capabilitydriver.AudioSeparateContract && identity.GetDriverId() == capabilitydriver.HTDemucsDriverID:
 			consumer = audioCppCUDAConsumerID
@@ -466,7 +476,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 			expectedVersion := engine.AudioCppSelectedSourceVersion
 			mgr := s.engineManagerOrNil()
 			recordRoot := filepath.Clean(strings.TrimSpace(record.CanonicalRoot))
-			expectedBinaryPath := filepath.Join(recordRoot, engine.AudioCppCLIExecutableName)
+			expectedBinaryPath := filepath.Join(recordRoot, engine.AudioCppCLIExecutableForPlatform(host.OS+"/"+host.Arch))
 			artifactMatches := false
 			for _, artifact := range normalizeStringSlice(record.VerifiedArtifacts) {
 				candidate := localEnvironmentSelectedSourceArtifactLocalPath(recordRoot, true, artifact)

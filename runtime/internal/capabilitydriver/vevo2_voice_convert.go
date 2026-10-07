@@ -18,6 +18,7 @@ const (
 	VeVo2DriverDialect             = "audio.cpp/vevo2/voice-convert/v1"
 	VeVo2RecipeID                  = "vevo2.audio-cpp.v1"
 	VeVo2RequirementID             = "voice.model"
+	AudioCppMacOSPackageID         = "audio-cpp-0.8.1-darwin-arm64-cpu-metal"
 	VeVo2VerifiedContentID         = "sha256:f80a70facaaecfcf1aa417ef16ef091318c5e789b24c16a741233c64a72fcee8"
 	VeVo2ModelBytes                = int64(3242124800)
 )
@@ -36,6 +37,15 @@ func (VeVo2AudioCppDriver) ImplementationSupportedFeatures(recipe string) ([]str
 func (d VeVo2AudioCppDriver) ProjectRecipe(recipe string, options *structpb.Struct, features []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	return d.Interpret(InterpretInput{RecipeID: recipe, PortableConfig: options, SupportedFeatures: features})
 }
+
+// @nimi-authority: rule.nimi.runtime.local-compute.vevo2-macos-cpu
+func (d VeVo2AudioCppDriver) ProjectRecipeForHost(recipe string, options *structpb.Struct, features []string, platform string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if platform != "windows/amd64" && platform != "darwin/arm64" {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return d.ProjectRecipe(recipe, options, features)
+}
+
 func (VeVo2AudioCppDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	if input.RecipeID != VeVo2RecipeID || !musicStructIsEmpty(input.PortableConfig) {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
@@ -103,7 +113,7 @@ func (VeVo2AudioCppDriver) PlanVoiceConvertInvocation(input VoiceConvertInvocati
 	shift := request.GetSemitoneShift()
 	outPath := filepath.Join(input.StagingDir, "vocal.wav")
 	hasher := sha256.New()
-	for _, value := range append(invocationExactBindingIdentity(binding), pkg.AudioCppVersion, pkg.AudioCppSelectedSourceRecordID, pkg.CUDA13SelectedSourceRecordID, VeVo2DriverDialect) {
+	for _, value := range append(invocationExactBindingIdentity(binding), pkg.AudioCppVersion, pkg.AudioCppPackageID, pkg.AudioCppSelectedSourceRecordID, pkg.CUDA13SelectedSourceRecordID, VeVo2DriverDialect) {
 		_, _ = hasher.Write([]byte(value))
 		_, _ = hasher.Write([]byte{0})
 	}
@@ -114,8 +124,12 @@ func (VeVo2AudioCppDriver) PlanVoiceConvertInvocation(input VoiceConvertInvocati
 		cuda13SelectedSourceRecordID: pkg.CUDA13SelectedSourceRecordID, cuda13Root: pkg.CUDA13Root,
 		stagingWAVPath: outPath, expectedSampleRate: 24000, expectedChannels: 1, expectedBitsPerSample: 32}
 	plan.voiceConvert = &voiceConvertPlan{sourcePath: input.SourcePath, targetPath: input.TargetPath, outPath: outPath, request: request, sourceInfo: sourceInfo, targetInfo: targetInfo}
+	backend := "cuda"
+	if pkg.AudioCppPackageID == AudioCppMacOSPackageID {
+		backend = "cpu"
+	}
 	usePitchShift := shift != 0
-	args := []string{"--task", "svc", "--family", "vevo2", "--task-route", "style_preserved_svc", "--model", binding.AbsolutePath, "--backend", "cuda",
+	args := []string{"--task", "svc", "--family", "vevo2", "--task-route", "style_preserved_svc", "--model", binding.AbsolutePath, "--backend", backend,
 		"--source-audio", input.SourcePath, "--target-voice", input.TargetPath, "--seed", "42", "--num-inference-steps", "32",
 		"--request-option", "use_pitch_shift=" + strconv.FormatBool(usePitchShift),
 		"--request-option", "source_shift_steps=" + strconv.FormatInt(int64(shift), 10),

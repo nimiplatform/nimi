@@ -105,7 +105,15 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			return "local-music-notes", engine.BasicPitchConsumerID, true
 		}
 		return "", "", false
-	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver, capabilitydriver.HyperSwapImageDriver, capabilitydriver.HyperSwapVideoDriver:
+	case capabilitydriver.HyperSwapImageDriver, capabilitydriver.HyperSwapVideoDriver:
+		if strings.EqualFold(host.OS, "darwin") && strings.EqualFold(host.Arch, "arm64") {
+			return "local-face-swap", engine.FaceSwapConsumerID, true
+		}
+		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") && localEnvironmentHostSupportsCUDA(host) {
+			return "local-face-swap", engine.FaceSwapConsumerID, true
+		}
+		return "", "", false
+	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver:
 		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") && localEnvironmentHostSupportsCUDA(host) {
 			return "local-face-swap", engine.FaceSwapConsumerID, true
 		}
@@ -141,8 +149,16 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 		}
 		return "", "", false
 	case capabilitydriver.MiniMaxMusic3AudioCppDriver, capabilitydriver.YuE2AudioCppDriver, capabilitydriver.SheetSage2AudioCppDriver,
-		capabilitydriver.VeVo2AudioCppDriver, capabilitydriver.SeedVCAudioCppDriver, capabilitydriver.HTDemucsAudioCppDriver:
+		capabilitydriver.SeedVCAudioCppDriver, capabilitydriver.HTDemucsAudioCppDriver:
 		return "local-music-native", audioCppCUDAConsumerID, true
+	case capabilitydriver.VeVo2AudioCppDriver:
+		if host.OS == "darwin" && host.Arch == "arm64" {
+			return "local-music-native-cpu", audioCppVeVo2CPUConsumerID, true
+		}
+		if host.OS == "windows" && host.Arch == "amd64" && localEnvironmentHostSupportsCUDA(host) {
+			return "local-music-native", audioCppCUDAConsumerID, true
+		}
+		return "", "", false
 	case capabilitydriver.Qwen3TTSAudioCppDriver:
 		return "local-speech-native", audioCppQwen3TTSCUDAConsumerID, true
 	case capabilitydriver.AudioCppSpeechRegisteredDriver:
@@ -493,6 +509,13 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 			return dep
 		}
 	}
+	if family == localEnvironmentFamilyNativeAudioCPP {
+		if _, err := engine.AudioCppPackageForPlatform(platformTuple); err != nil || !stringSliceContains(audioCppSelectedConsumersForPlatform(platformTuple), consumerScope) {
+			dep.State, dep.SourceKind, dep.ReasonCode = localEnvironmentStateUnsupported, localEnvironmentSourceUnavailable, "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
+			dep.ConfirmationRequired = false
+			return dep
+		}
+	}
 	if family == localEnvironmentFamilyMediaCodec && !engine.MediaCodecSupported(hostState.OS, hostState.Arch) {
 		dep.State, dep.SourceKind, dep.ReasonCode = localEnvironmentStateUnsupported, localEnvironmentSourceUnavailable, "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
 		dep.ConfirmationRequired = false
@@ -749,6 +772,8 @@ func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool
 	switch trimmed {
 	case engine.VisionLocateConsumerID + ".cuda", engine.GroundingDinoConsumerID + ".cuda", engine.TextDecisionConsumerID + ".cuda":
 		return true
+	case audioCppVeVo2CPUConsumerID:
+		return false
 	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID:
 		return true
 	default:
@@ -792,6 +817,7 @@ func localComputePackByID(packID string) (localComputePackDefinition, bool) {
 
 func localComputePackDefinitions() []localComputePackDefinition {
 	return []localComputePackDefinition{
+		{PackID: "local-music-native-cpu", ProductLabel: "Local singing voice conversion", RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeAudioCPP}, CloudOnlyImpact: "none"},
 		{PackID: "local-audio-separation", ProductLabel: "Audio separation", RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet}, CloudOnlyImpact: "none"},
 		{PackID: "local-music-notes", ProductLabel: "Music note estimation", RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet}, CloudOnlyImpact: "none"},
 		{

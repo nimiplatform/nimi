@@ -48,13 +48,16 @@ func TestLocalEnvironmentTargetForDriverUsesRuntimeDriverContract(t *testing.T) 
 		{name: "stable diffusion video CUDA", driver: capabilitydriver.StableDiffusionVideoDriver{}, host: localEnvironmentHostProfileState{OS: "windows", Arch: "amd64", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-image-native", wantConsumer: stableDiffusionCUDAConsumerID, wantOK: true},
 		{name: "stable diffusion Windows CPU is not a target", driver: capabilitydriver.StableDiffusionImageDriver{}, host: localEnvironmentHostProfileState{OS: "windows", Arch: "amd64"}},
 		{name: "qwen tts", driver: capabilitydriver.Qwen3TTSDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python", wantOK: true},
+		{name: "HyperSwap image Mac CPU", driver: capabilitydriver.HyperSwapImageDriver{}, host: localEnvironmentHostProfileState{OS: "darwin", Arch: "arm64"}, wantPack: "local-face-swap", wantConsumer: "media.face-swap.insightface.python", wantOK: true},
+		{name: "HyperSwap video Mac CPU", driver: capabilitydriver.HyperSwapVideoDriver{}, host: localEnvironmentHostProfileState{OS: "darwin", Arch: "arm64"}, wantPack: "local-face-swap", wantConsumer: "media.face-swap.insightface.python", wantOK: true},
+		{name: "INSwapper remains unsupported on Mac", driver: capabilitydriver.InsightFaceImageDriver{}, host: localEnvironmentHostProfileState{OS: "darwin", Arch: "arm64"}},
 		{name: "qwen tts audio.cpp", driver: capabilitydriver.Qwen3TTSAudioCppDriver{}, host: localEnvironmentHostProfileState{OS: "windows", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-speech-native", wantConsumer: audioCppQwen3TTSCUDAConsumerID, wantOK: true},
 		{name: "qwen voice create", driver: capabilitydriver.Qwen3VoiceCreateDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python", wantOK: true},
 		{name: "qwen voice library", driver: capabilitydriver.Qwen3VoiceLibraryDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python", wantOK: true},
 		{name: "voxcpm", driver: capabilitydriver.VoxCPMDriver{}, wantPack: "local-speech", wantConsumer: "speech.voxcpm.python", wantOK: true},
 		{name: "qwen asr", driver: capabilitydriver.Qwen3ASRDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr.python", wantOK: true},
 		{name: "qwen transformers asr", driver: capabilitydriver.Qwen3ASRTransformersDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr-transformers.python", wantOK: true},
-		{name: "vevo2 voice convert", driver: capabilitydriver.VeVo2AudioCppDriver{}, wantPack: "local-music-native", wantConsumer: audioCppCUDAConsumerID, wantOK: true},
+		{name: "vevo2 voice convert", driver: capabilitydriver.VeVo2AudioCppDriver{}, host: localEnvironmentHostProfileState{OS: "windows", Arch: "amd64", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-music-native", wantConsumer: audioCppCUDAConsumerID, wantOK: true},
 		{name: "htdemucs separation", driver: capabilitydriver.HTDemucsAudioCppDriver{}, wantPack: "local-music-native", wantConsumer: audioCppCUDAConsumerID, wantOK: true},
 	}
 	for _, test := range tests {

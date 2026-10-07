@@ -143,9 +143,9 @@ func ResolvePythonDependencyProfileIdentity(consumer string, platformTuple strin
 		return PythonDependencyProfileIdentity{}, err
 	}
 	torchIdentity := PythonTorchWheelDependencyIdentity{AcceleratorPlane: trimmedPlane}
-	if trimmedConsumer == FaceSwapConsumerID {
+	if trimmedConsumer == FaceSwapConsumerID && trimmedPlane == "cuda" {
 		torchIdentity.CUDAABI = "cu13"
-	} else if trimmedConsumer != TextAnnotationConsumerID && trimmedConsumer != BasicPitchConsumerID && trimmedConsumer != SpleeterConsumerID {
+	} else if trimmedConsumer != FaceSwapConsumerID && trimmedConsumer != TextAnnotationConsumerID && trimmedConsumer != BasicPitchConsumerID && trimmedConsumer != SpleeterConsumerID {
 		torchIdentity, err = ResolvePythonTorchWheelDependencyIdentity(trimmedConsumer + "." + trimmedPlane)
 		if err != nil {
 			return PythonDependencyProfileIdentity{}, err
@@ -245,10 +245,13 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 	case TextDecisionConsumerID:
 		return textDecisionPythonSourceLabel(platformTuple, acceleratorPlane)
 	case FaceSwapConsumerID:
-		if platformTuple != "windows/amd64" || acceleratorPlane != "cuda" {
-			return "", fmt.Errorf("face replacement profile requires windows/amd64 NVIDIA CUDA")
+		if platformTuple == "windows/amd64" && acceleratorPlane == "cuda" {
+			return "face-swap-insightface-cu13", nil
 		}
-		return "face-swap-insightface-cu13", nil
+		if platformTuple == "darwin/arm64" && acceleratorPlane == "cpu" {
+			return "face-swap-hyperswap-macos-cpu", nil
+		}
+		return "", fmt.Errorf("face replacement profile requires Windows amd64 CUDA or macOS arm64 CPU")
 	case VisionLocateConsumerID:
 		backend, err := visionPythonBackend(platformTuple, acceleratorPlane)
 		if err != nil {

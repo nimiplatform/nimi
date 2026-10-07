@@ -275,7 +275,7 @@ func runAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.MusicInvo
 		}
 	}
 	observer := plan.NewOutputObserver()
-	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.PrimaryStagingOutputPath(), modelBindings: []capabilitydriver.InvocationExactBinding{plan.ModelBinding()}, outputObserver: observer})
+	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), nativeCPU: plan.AudioCppPackageID() == capabilitydriver.AudioCppMacOSPackageID, args: args, stagingOutputPath: plan.PrimaryStagingOutputPath(), modelBindings: []capabilitydriver.InvocationExactBinding{plan.ModelBinding()}, outputObserver: observer})
 	if err != nil {
 		cleanupAudioCppStaging(plan.StagingOutputPaths()...)
 		return localexecution.MusicResult{}, err
@@ -317,9 +317,17 @@ func audioCppCLIArgs(plan *capabilitydriver.MusicInvocationPlan) ([]string, erro
 	return plan.CLIArgs(), nil
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.vevo2-macos-cpu
 func validateAudioCppMusicPlan(plan *capabilitydriver.MusicInvocationPlan) error {
-	if plan == nil || plan.ProcessKey() == "" || len(plan.CLIArgs()) == 0 || plan.AudioCppPackageID() != capabilitydriver.AudioCppWindowsCUDA13PackageID || plan.CUDA13DependencyID() != capabilitydriver.AudioCppCUDA13RuntimeDependencyID || plan.AudioCppSelectedSourceRecordID() == "" || plan.CUDA13SelectedSourceRecordID() == "" || !filepath.IsAbs(plan.AudioCppExecutablePath()) || !filepath.IsAbs(plan.CUDA13Root()) || !filepath.IsAbs(plan.ModelRoot()) || !filepath.IsAbs(plan.PrimaryStagingOutputPath()) {
+	if plan == nil || plan.ProcessKey() == "" || len(plan.CLIArgs()) == 0 || plan.AudioCppSelectedSourceRecordID() == "" || !filepath.IsAbs(plan.AudioCppExecutablePath()) || !filepath.IsAbs(plan.ModelRoot()) || !filepath.IsAbs(plan.PrimaryStagingOutputPath()) {
 		return fmt.Errorf("audio.cpp Music invocation plan is incomplete")
+	}
+	if plan.AudioCppPackageID() == capabilitydriver.AudioCppMacOSPackageID {
+		if currentGOOS() != "darwin" || currentGOARCH() != "arm64" || !plan.IsVoiceConvert() || plan.DriverIdentity().DriverID != capabilitydriver.VeVo2DriverID || plan.RecipeID() != capabilitydriver.VeVo2RecipeID || plan.CUDA13DependencyID() != "" || plan.CUDA13SelectedSourceRecordID() != "" || plan.CUDA13Root() != "" || filepath.Base(plan.AudioCppExecutablePath()) != "audiocpp_cli" || !audioCppArgsContainPair(plan.CLIArgs(), "--backend", "cpu") {
+			return fmt.Errorf("Mac VeVo2 CPU invocation capture is invalid")
+		}
+	} else if plan.AudioCppPackageID() != capabilitydriver.AudioCppWindowsCUDA13PackageID || plan.CUDA13DependencyID() != capabilitydriver.AudioCppCUDA13RuntimeDependencyID || plan.CUDA13SelectedSourceRecordID() == "" || !filepath.IsAbs(plan.CUDA13Root()) {
+		return fmt.Errorf("audio.cpp CUDA invocation capture is invalid")
 	}
 	return nil
 }

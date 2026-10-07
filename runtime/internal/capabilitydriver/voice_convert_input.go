@@ -16,8 +16,17 @@ func validateNativeVoiceConvertInput(input VoiceConvertInvocationInput, maxTarge
 		return nil, nil, nil, invocationError(kind, fmt.Errorf("voice conversion %s", message))
 	}
 	pkg := input.Package
-	if pkg.AudioCppVersion != AudioCppMusicPackageVersion || pkg.AudioCppPackageID != AudioCppWindowsCUDA13PackageID || pkg.CUDA13DependencyID != AudioCppCUDA13RuntimeDependencyID || strings.TrimSpace(pkg.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(pkg.CUDA13SelectedSourceRecordID) == "" || !filepath.IsAbs(pkg.AudioCppRoot) || !filepath.IsAbs(pkg.AudioCppExecutablePath) || !filepath.IsAbs(pkg.CUDA13Root) || !musicPathWithin(pkg.AudioCppRoot, pkg.AudioCppExecutablePath) || !strings.EqualFold(filepath.Base(pkg.AudioCppExecutablePath), "audiocpp_cli.exe") {
-		return bad(InvocationFailureInvalidConfig, "requires the captured audio.cpp 0.8.1 CUDA package")
+	packageValid := pkg.AudioCppVersion == AudioCppMusicPackageVersion && strings.TrimSpace(pkg.AudioCppSelectedSourceRecordID) != "" && filepath.IsAbs(pkg.AudioCppRoot) && filepath.IsAbs(pkg.AudioCppExecutablePath) && musicPathWithin(pkg.AudioCppRoot, pkg.AudioCppExecutablePath)
+	switch pkg.AudioCppPackageID {
+	case AudioCppWindowsCUDA13PackageID:
+		packageValid = packageValid && pkg.CUDA13DependencyID == AudioCppCUDA13RuntimeDependencyID && strings.TrimSpace(pkg.CUDA13SelectedSourceRecordID) != "" && filepath.IsAbs(pkg.CUDA13Root) && filepath.Base(pkg.AudioCppExecutablePath) == "audiocpp_cli.exe"
+	case AudioCppMacOSPackageID:
+		packageValid = packageValid && input.RecipeID == VeVo2RecipeID && pkg.CUDA13DependencyID == "" && pkg.CUDA13SelectedSourceRecordID == "" && pkg.CUDA13Root == "" && filepath.Base(pkg.AudioCppExecutablePath) == "audiocpp_cli"
+	default:
+		packageValid = false
+	}
+	if !packageValid {
+		return bad(InvocationFailureInvalidConfig, "requires the exact captured native package and route")
 	}
 	if !filepath.IsAbs(input.StagingDir) || filepath.Clean(input.SourcePath) != filepath.Join(filepath.Clean(input.StagingDir), "source.wav") {
 		return bad(InvocationFailureInvalidConfig, "requires a private canonical source.wav")

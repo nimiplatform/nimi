@@ -12,6 +12,7 @@ const (
 	cuda13UserSpaceRuntimeDependencyID = engine.NVIDIACUDA13UserSpaceRuntimeDependencyID
 	stableDiffusionCUDAConsumerID      = "stable-diffusion.cpp.cuda"
 	audioCppCUDAConsumerID             = "audio.cpp.cuda"
+	audioCppVeVo2CPUConsumerID         = "audio.cpp.vevo2.cpu"
 	audioCppQwen3TTSCUDAConsumerID     = "audio.cpp.qwen3-tts.cuda"
 	audioCppInflectTTSConsumerID       = "audio.cpp.inflect-v2.tts.cuda"
 )
@@ -29,6 +30,9 @@ func audioCppSelectedConsumers() []string {
 
 func audioCppConsumerIDKnown(consumer string) bool {
 	consumer = strings.TrimSpace(consumer)
+	if consumer == audioCppVeVo2CPUConsumerID {
+		return true
+	}
 	for _, candidate := range audioCppSelectedConsumers() {
 		if candidate == consumer {
 			return true
@@ -58,4 +62,14 @@ func runtimeDependencyReasonCode(state string) string {
 	default:
 		return "LOCAL_RUNTIME_DEPENDENCY_UNAVAILABLE"
 	}
+}
+
+func audioCppSelectedConsumersForPlatform(platform string) []string {
+	if platform == "darwin/arm64" {
+		return []string{audioCppVeVo2CPUConsumerID}
+	}
+	if platform == "windows/amd64" {
+		return audioCppSelectedConsumers()
+	}
+	return nil
 }

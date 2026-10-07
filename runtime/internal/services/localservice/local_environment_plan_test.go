@@ -482,6 +482,9 @@ func TestResolveLocalEnvironmentPlanAudioCppRequiresNativePackageAndCUDA13Only(t
 }
 
 func TestSelectedMusicExecutionCapturesBothExactSelectedSources(t *testing.T) {
+	previousOS, previousArch := localRuntimeGOOS, localRuntimeGOARCH
+	localRuntimeGOOS, localRuntimeGOARCH = "windows", "amd64"
+	t.Cleanup(func() { localRuntimeGOOS, localRuntimeGOARCH = previousOS, previousArch })
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 	manager := &mockEngineManager{}

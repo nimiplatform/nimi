@@ -39,8 +39,9 @@ func (m *Manager) ensureAudioCppBinaryDependency(ctx context.Context, cfg Engine
 	if cfg.Version != AudioCppPackageVersion {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("unsupported audio.cpp package version %q", cfg.Version)
 	}
-	if currentGOOS() != "windows" || currentGOARCH() != "amd64" {
-		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package is unsupported on %s/%s", currentGOOS(), currentGOARCH())
+	identity, err := AudioCppPackageForPlatform(currentGOOS() + "/" + currentGOARCH())
+	if err != nil {
+		return EngineBinaryDependencyStatus{}, err
 	}
 	if m.registry.PendingRebase(EngineAudioCPP, cfg.Version) {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("%w: engine=%s version=%s", ErrEngineRegistryReconciliationRequired, EngineAudioCPP, cfg.Version)
@@ -63,8 +64,8 @@ func (m *Manager) ensureAudioCppBinaryDependency(ctx context.Context, cfg Engine
 	}
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	archivePath := filepath.Join(tmpDir, AudioCppPackageAssetName)
-	archiveHash, err := downloadURLToFileWithProgress(ctx, AudioCppPackageArchiveURL, archivePath, downloadProgressFromContext(ctx))
+	archivePath := filepath.Join(tmpDir, identity.AssetName)
+	archiveHash, err := downloadURLToFileWithProgress(ctx, identity.ArchiveURL, archivePath, downloadProgressFromContext(ctx))
 	if err != nil {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("download audio.cpp package: %w", err)
 	}
@@ -72,21 +73,21 @@ func (m *Manager) ensureAudioCppBinaryDependency(ctx context.Context, cfg Engine
 	if err != nil {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("stat audio.cpp package archive: %w", err)
 	}
-	if archiveInfo.Size() != AudioCppPackageArchiveBytes {
-		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package archive size mismatch: expected=%d actual=%d", AudioCppPackageArchiveBytes, archiveInfo.Size())
+	if archiveInfo.Size() != identity.ArchiveBytes {
+		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package archive size mismatch: expected=%d actual=%d", identity.ArchiveBytes, archiveInfo.Size())
 	}
-	if !strings.EqualFold(archiveHash, AudioCppPackageArchiveSHA256) {
-		return EngineBinaryDependencyStatus{}, fmt.Errorf("%w: expected=%s actual=%s", ErrEngineBinaryHashMismatch, AudioCppPackageArchiveSHA256, archiveHash)
+	if !strings.EqualFold(archiveHash, identity.ArchiveSHA256) {
+		return EngineBinaryDependencyStatus{}, fmt.Errorf("%w: expected=%s actual=%s", ErrEngineBinaryHashMismatch, identity.ArchiveSHA256, archiveHash)
 	}
 
 	admittedDir := filepath.Join(tmpDir, "admitted")
 	if err := os.MkdirAll(admittedDir, 0o755); err != nil {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("create audio.cpp admitted root: %w", err)
 	}
-	if err := extractAudioCppAdmittedPackageFiles(archivePath, admittedDir); err != nil {
+	if err := extractAudioCppPackageFiles(archivePath, admittedDir, identity); err != nil {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("extract admitted audio.cpp package files: %w", err)
 	}
-	for _, name := range audioCppPackageAdmittedFiles {
+	for _, name := range identity.AdmittedFiles {
 		if _, err := os.Stat(filepath.Join(admittedDir, name)); err != nil {
 			return EngineBinaryDependencyStatus{}, fmt.Errorf("verify audio.cpp package artifact %s: %w", name, err)
 		}
@@ -94,12 +95,12 @@ func (m *Manager) ensureAudioCppBinaryDependency(ctx context.Context, cfg Engine
 	if err := installManagedBinaryPayload(targetDir, admittedDir); err != nil {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("promote audio.cpp package: %w", err)
 	}
-	binaryPath := filepath.Join(targetDir, AudioCppCLIExecutableName)
+	binaryPath := filepath.Join(targetDir, identity.ExecutableName)
 	binarySHA256, err := sha256File(binaryPath)
 	if err != nil {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("hash promoted audio.cpp CLI: %w", err)
 	}
-	packageFileSHA256, err := audioCppPackageFileSHA256(targetDir)
+	packageFileSHA256, err := audioCppFilesSHA256(targetDir, identity.AdmittedFiles)
 	if err != nil {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("hash promoted audio.cpp package: %w", err)
 	}
@@ -107,12 +108,12 @@ func (m *Manager) ensureAudioCppBinaryDependency(ctx context.Context, cfg Engine
 		Engine:             EngineAudioCPP,
 		Version:            cfg.Version,
 		BinaryPath:         binaryPath,
-		SHA256:             AudioCppPackageArchiveSHA256,
+		SHA256:             identity.ArchiveSHA256,
 		BinarySHA256:       binarySHA256,
 		AudioCppFileSHA256: packageFileSHA256,
-		Platform:           "windows/amd64",
-		AssetName:          AudioCppPackageAssetName,
-		AcceleratorPlane:   "cuda13",
+		Platform:           identity.Platform,
+		AssetName:          identity.AssetName,
+		AcceleratorPlane:   identity.AcceleratorPlane,
 		InstalledAt:        time.Now().UTC().Format(time.RFC3339),
 	}); err != nil {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("persist audio.cpp package registry entry: %w", err)
@@ -194,18 +195,19 @@ func (m *Manager) audioCppStatusFromRegistryEntry(entry *RegistryEntry) (EngineB
 	if entry == nil || entry.Engine != EngineAudioCPP || strings.TrimSpace(entry.Version) != AudioCppPackageVersion {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package registry entry is missing")
 	}
-	if !strings.EqualFold(strings.TrimSpace(entry.Platform), "windows/amd64") || currentGOOS() != "windows" || currentGOARCH() != "amd64" {
+	identity, err := AudioCppPackageForPlatform(currentGOOS() + "/" + currentGOARCH())
+	if err != nil || entry.Platform != identity.Platform {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package platform does not match the current host")
 	}
 	binaryPath := strings.TrimSpace(entry.BinaryPath)
-	if binaryPath == "" {
+	if binaryPath == "" || filepath.Base(binaryPath) != identity.ExecutableName {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package binary path is missing")
 	}
 	root := filepath.Dir(binaryPath)
-	if len(entry.AudioCppFileSHA256) != len(audioCppPackageAdmittedFiles) {
+	if len(entry.AudioCppFileSHA256) != len(identity.AdmittedFiles) {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package file evidence is incomplete")
 	}
-	for _, name := range audioCppPackageAdmittedFiles {
+	for _, name := range identity.AdmittedFiles {
 		artifactPath := filepath.Join(root, name)
 		info, err := os.Lstat(artifactPath)
 		if err != nil {
@@ -220,7 +222,7 @@ func (m *Manager) audioCppStatusFromRegistryEntry(entry *RegistryEntry) (EngineB
 			return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package artifact %s SHA-256 evidence mismatch", name)
 		}
 	}
-	for _, rejected := range []string{"audiocpp_server.exe", "tools", "model_specs"} {
+	for _, rejected := range []string{"audiocpp_server.exe", "audiocpp_server", "audiocpp_gguf", "tools", "model_specs"} {
 		if _, err := os.Stat(filepath.Join(root, rejected)); err == nil {
 			return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package contains rejected product entrypoint %s", rejected)
 		} else if !os.IsNotExist(err) {
@@ -231,17 +233,17 @@ func (m *Manager) audioCppStatusFromRegistryEntry(entry *RegistryEntry) (EngineB
 	if err != nil {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("stat audio.cpp CLI: %w", err)
 	}
-	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
-		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp CLI must be a regular non-symlink file")
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || identity.Platform == "darwin/arm64" && info.Mode().Perm()&0111 == 0 {
+		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp CLI must be a regular executable non-symlink file")
 	}
-	if !strings.EqualFold(strings.TrimSpace(entry.SHA256), AudioCppPackageArchiveSHA256) || strings.TrimSpace(entry.AssetName) != AudioCppPackageAssetName || strings.TrimSpace(entry.AcceleratorPlane) != "cuda13" {
+	if !strings.EqualFold(strings.TrimSpace(entry.SHA256), identity.ArchiveSHA256) || strings.TrimSpace(entry.AssetName) != identity.AssetName || strings.TrimSpace(entry.AcceleratorPlane) != identity.AcceleratorPlane {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package source identity mismatch")
 	}
 	binaryDigest, err := sha256File(binaryPath)
 	if err != nil || strings.TrimSpace(entry.BinarySHA256) == "" || !strings.EqualFold(binaryDigest, strings.TrimSpace(entry.BinarySHA256)) {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package binary SHA-256 evidence mismatch")
 	}
-	if !strings.EqualFold(strings.TrimSpace(entry.AudioCppFileSHA256[AudioCppCLIExecutableName]), strings.TrimSpace(entry.BinarySHA256)) {
+	if !strings.EqualFold(strings.TrimSpace(entry.AudioCppFileSHA256[identity.ExecutableName]), strings.TrimSpace(entry.BinarySHA256)) {
 		return EngineBinaryDependencyStatus{}, fmt.Errorf("audio.cpp package CLI evidence is inconsistent")
 	}
 	return EngineBinaryDependencyStatus{
@@ -249,17 +251,21 @@ func (m *Manager) audioCppStatusFromRegistryEntry(entry *RegistryEntry) (EngineB
 		Version:          AudioCppPackageVersion,
 		BinaryPath:       binaryPath,
 		BinarySizeBytes:  info.Size(),
-		SHA256:           AudioCppPackageArchiveSHA256,
-		Platform:         "windows/amd64",
-		AssetName:        AudioCppPackageAssetName,
-		AcceleratorPlane: "cuda13",
-		Detail:           "audio.cpp v0.8.1 official CUDA 13.3 CLI package verified and promoted",
+		SHA256:           identity.ArchiveSHA256,
+		Platform:         identity.Platform,
+		AssetName:        identity.AssetName,
+		AcceleratorPlane: identity.AcceleratorPlane,
+		Detail:           "audio.cpp v0.8.1 official " + identity.Platform + " CLI package verified and promoted",
 	}, nil
 }
 
 func audioCppPackageFileSHA256(root string) (map[string]string, error) {
-	result := make(map[string]string, len(audioCppPackageAdmittedFiles))
-	for _, name := range audioCppPackageAdmittedFiles {
+	return audioCppFilesSHA256(root, audioCppPackageAdmittedFiles)
+}
+
+func audioCppFilesSHA256(root string, files []string) (map[string]string, error) {
+	result := make(map[string]string, len(files))
+	for _, name := range files {
 		digest, err := sha256File(filepath.Join(root, name))
 		if err != nil {
 			return nil, err

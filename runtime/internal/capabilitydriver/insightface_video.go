@@ -20,6 +20,13 @@ const (
 // The independent video Driver shares the exact ONNX Model Contract only.
 type InsightFaceVideoDriver struct{ InsightFaceImageDriver }
 
+func (driver InsightFaceVideoDriver) ProjectRecipeForHost(recipe string, options *structpb.Struct, features []string, platform string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if platform != "windows/amd64" {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return driver.ProjectRecipe(recipe, options, features)
+}
+
 func (driver InsightFaceVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	return driver.ProjectRecipe(input.RecipeID, input.PortableConfig, input.SupportedFeatures)
 }

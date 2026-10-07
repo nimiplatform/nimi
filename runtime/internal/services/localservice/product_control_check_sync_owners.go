@@ -1018,7 +1018,7 @@ func productControlCheckSyncEnvironmentMaterialSupportsRecord(record localEnviro
 		locator, ok := localEnvironmentOwnerRelativeLocator(dataRoot, record.CanonicalRoot)
 		return ok && match("engine_package", string(engine.EngineLlama)+"/"+version, locator, "", true)
 	case localEnvironmentFamilyNativeAudioCPP:
-		binaryPath := filepath.Join(record.CanonicalRoot, engine.AudioCppCLIExecutableName)
+		binaryPath := filepath.Join(record.CanonicalRoot, engine.AudioCppCLIExecutableForPlatform(localRuntimeGOOS+"/"+localRuntimeGOARCH))
 		if !stringSliceContains(record.VerifiedArtifacts, binaryPath) {
 			return false
 		}

@@ -53,6 +53,18 @@ def one_face(detector, image, role: str):
     return Face(bbox=boxes[0, :4], det_score=boxes[0, 4], kps=landmarks[0])
 
 
+# @nimi-authority: rule.nimi.runtime.local-compute.hyperswap-1a-driver
+def execution_environment():
+    import platform
+    import sys
+
+    if sys.platform == "win32" and platform.machine().lower() in ("amd64", "x86_64"):
+        return "CUDAExecutionProvider", "cuda", "13"
+    if sys.platform == "darwin" and platform.machine().lower() == "arm64":
+        return "CPUExecutionProvider", "cpu", ""
+    raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "The face execution platform is not admitted")
+
+
 class FaceSwapWorker:
     """One serial Host owns this worker; only model sessions may remain resident."""
 
@@ -71,6 +83,9 @@ class FaceSwapWorker:
             return self._models
         self._identity, self._models = None, None
         try:
+            provider, plane, _ = execution_environment()
+            if plane == "cpu" and self.backend != "hyperswap-1a":
+                raise FaceSwapError("AI_MEDIA_OPTION_UNSUPPORTED", "The macOS CPU profile admits only HyperSwap 1a")
             os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
             import numpy as np
             import onnx
@@ -79,7 +94,8 @@ class FaceSwapWorker:
             from insightface.model_zoo.inswapper import INSwapper
             from insightface.model_zoo.retinaface import RetinaFace
 
-            ort.preload_dlls(directory="")
+            if plane == "cuda":
+                ort.preload_dlls(directory="")
 
             class CheckedSession(ort.InferenceSession):
                 def run(self, output_names, input_feed, run_options=None):
@@ -122,13 +138,14 @@ class FaceSwapWorker:
                 del model
                 options = ort.SessionOptions()
                 options.log_severity_level = 3
-                graph_enabled = index in (0, 2)
-                session = CheckedSession(path, sess_options=options, providers=[("CUDAExecutionProvider", {"enable_cuda_graph": "1"} if graph_enabled else {})])
+                graph_enabled = plane == "cuda" and index in (0, 2)
+                providers = [(provider, {"enable_cuda_graph": "1"} if graph_enabled else {})] if plane == "cuda" else [provider]
+                session = CheckedSession(path, sess_options=options, providers=providers)
                 session.graph_enabled = graph_enabled
                 session.graph_binding = None
                 session.disable_fallback()
-                if "CUDAExecutionProvider" not in session.get_providers():
-                    raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "The selected CUDA execution provider is unavailable")
+                if provider not in session.get_providers() or (plane == "cpu" and session.get_providers() != [provider]):
+                    raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "The exact selected execution provider is unavailable")
                 sessions.append(session)
             detector = RetinaFace(model_file=paths[0], session=sessions[0])
             detector.prepare(ctx_id=0, input_size=(640, 640), det_thresh=0.5)
@@ -283,7 +300,7 @@ def decode_hyperswap_pixels(prediction):
 
 
 def probe_environment():
-    """Execute a real CUDA operation for managed dependency activation."""
+    """Execute a real operation on the exact native dependency plane."""
     import importlib.metadata as metadata
     import json
     import platform
@@ -295,21 +312,24 @@ def probe_environment():
     import onnx
     import onnxruntime as ort
 
-    ort.preload_dlls(directory="")
+    provider, plane, cuda_abi = execution_environment()
+    if plane == "cuda":
+        ort.preload_dlls(directory="")
     value_info = lambda name: onnx.helper.make_tensor_value_info(name, onnx.TensorProto.FLOAT, [1, 1])
     graph = onnx.helper.make_graph([onnx.helper.make_node("MatMul", ["a", "b"], ["out"])], "cuda-activation", [value_info("a"), value_info("b")], [value_info("out")])
     model = onnx.helper.make_model(graph, opset_imports=[onnx.helper.make_opsetid("", 17)], ir_version=10)
     options = ort.SessionOptions()
-    options.add_session_config_entry("session.disable_cpu_ep_fallback", "1")
-    session = ort.InferenceSession(model.SerializeToString(), sess_options=options, providers=["CUDAExecutionProvider"])
+    if plane == "cuda":
+        options.add_session_config_entry("session.disable_cpu_ep_fallback", "1")
+    session = ort.InferenceSession(model.SerializeToString(), sess_options=options, providers=[provider])
     session.disable_fallback()
-    if "CUDAExecutionProvider" not in session.get_providers():
-        raise RuntimeError("CUDA execution is unavailable")
+    if provider not in session.get_providers() or (plane == "cpu" and session.get_providers() != [provider]):
+        raise RuntimeError("The exact native execution provider is unavailable")
     result = session.run(None, {"a": np.ones((1, 1), np.float32), "b": np.ones((1, 1), np.float32)})[0]
     print(json.dumps({
         "python_version": platform.python_version(), "python_cache_tag": sys.implementation.cache_tag,
         "python_soabi": sysconfig.get_config_var("SOABI") or "", "python_platform": sys.platform,
         "python_machine": platform.machine(), "python_pointer_bits": struct.calcsize("P") * 8,
-        "onnxruntime_version": ort.__version__, "cuda_abi": "13", "device": "cuda",
+        "onnxruntime_version": ort.__version__, "cuda_abi": cuda_abi, "device": plane,
         "allocation": float(result[0, 0]), "installed_distributions": sorted({f"{d.metadata['Name']}=={d.version}" for d in metadata.distributions() if d.metadata.get("Name")}),
     }))

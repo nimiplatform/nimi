@@ -28,6 +28,7 @@ type audioCppProcessSpec struct {
 	workingDir        string
 	cuda13Root        string
 	pythonProfileRoot string
+	nativeCPU         bool
 	args              []string
 	stagingOutputPath string
 	modelBindings     []capabilitydriver.InvocationExactBinding
@@ -46,6 +47,10 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 	if spec.pythonProfileRoot != "" {
 		if !filepath.IsAbs(spec.pythonProfileRoot) || spec.workingDir != spec.pythonProfileRoot || spec.executablePath != managedPythonPath(spec.pythonProfileRoot) || spec.cuda13Root != "" {
 			return audioCppProcessOutcome{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("Python music process capture is invalid"))
+		}
+	} else if spec.nativeCPU {
+		if currentGOOS() != "darwin" || currentGOARCH() != "arm64" || spec.cuda13Root != "" || filepath.Dir(spec.executablePath) != spec.workingDir || filepath.Base(spec.executablePath) != "audiocpp_cli" || !audioCppArgsContainPair(spec.args, "--backend", "cpu") {
+			return audioCppProcessOutcome{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp Mac CPU process capture is invalid"))
 		}
 	} else if !filepath.IsAbs(spec.cuda13Root) {
 		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp CUDA process capture is invalid"))
@@ -72,6 +77,8 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 	configureManagedCommand(command)
 	if spec.pythonProfileRoot != "" {
 		command.Env = managedCommandProcessEnvironment(os.Environ(), pythonDependencyProfileReadOnlyEnv())
+	} else if spec.nativeCPU {
+		command.Env = os.Environ()
 	} else {
 		command.Env = append(os.Environ(), "PATH="+spec.cuda13Root+string(os.PathListSeparator)+spec.workingDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	}
