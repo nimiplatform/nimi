@@ -15,7 +15,8 @@
       "maxLargestAppChunkBytes": 180000,
       "maxLargestVendorChunkBytes": 850000,
       "vendorChunkBudgets": {
-        "vendor-spark-": 5100000
+        "vendor-spark-": 5100000,
+        "vendor-rapier-": 4500000
       }
     }
   }

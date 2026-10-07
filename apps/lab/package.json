@@ -19,6 +19,7 @@
     "validate": "node scripts/validate.mjs"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "0.21.0",
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@sparkjsdev/spark": "2.1.0",

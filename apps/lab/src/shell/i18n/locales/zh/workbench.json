@@ -69,7 +69,22 @@
     "panoLimits": "请选择覆盖完整 360°×180° 的正向等距全景，尺寸必须为 2:1。宽高比本身不能证明全景内容；最多 20 MB、16 MP。",
     "originalInputUnknown": "该记录未保存完整原请求快照。原输入未知，仍可打开已保存世界。",
     "submissionUnknown": "提交回执缺失，尚无可观察的 Job ID。原请求已保留，不能自动再次生成。",
-    "archiveInvalid": "已保存世界与此 Job 的归档身份不符。"
+    "archiveInvalid": "已保存世界与此 Job 的归档身份不符。",
+    "navigation": "漫游模式",
+    "walkMode": "行走",
+    "flyMode": "飞行",
+    "walkActive": "行走中 · 胶囊碰撞",
+    "flyActive": "飞行中 · 自由浏览",
+    "chooseMode": "请选择漫游模式",
+    "bodyHeight": "身体高度（米）",
+    "bodyRadius": "身体半径（米）",
+    "applyBodySize": "应用身体尺寸",
+    "walkUnavailable": "此身体尺寸没有可验证的安全行走位置。请选择飞行或调整尺寸。",
+    "bodySizeInvalid": "身体尺寸无效或几何尚未就绪。高度须为0.5–2.4米，半径0.1–0.4米，且高度大于直径。",
+    "noSafeSpawn": "当前几何无法容纳此身体尺寸并提供安全地面与净空。行走暂不可用；可调整尺寸或明确选择飞行。世界尺度保持原元数据。",
+    "colliderUnavailable": "归档缺少可用碰撞几何。行走不可用；可明确选择飞行。",
+    "unsafePreset": "该视点属于另一归档，或在当前行走模式/身体尺寸下不安全。旧视点可在明确选择飞行后恢复。",
+    "walkHelp": "拖动环顾 · W A S D 沿地面移动 · Shift 加速。墙体和无支撑边缘会阻挡。点击场景后使用键盘。切换行走或重置会回到验证过的起点。"
   },
   "Studio": {
     "profiles": {

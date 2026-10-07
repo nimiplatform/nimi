@@ -69,7 +69,22 @@
     "panoLimits": "Choose an upright, full 360°×180° equirectangular panorama with exactly 2:1 dimensions. The ratio alone does not establish panorama content. Up to 20 MB and 16 MP.",
     "originalInputUnknown": "This record has no complete original request snapshot. Its input is unknown; the saved world can still be opened.",
     "submissionUnknown": "The Submit receipt is missing and no Job ID is known. The original request is retained; generation cannot be retried automatically.",
-    "archiveInvalid": "The saved archive does not match this Job."
+    "archiveInvalid": "The saved archive does not match this Job.",
+    "navigation": "Navigation mode",
+    "walkMode": "Walk",
+    "flyMode": "Fly",
+    "walkActive": "Walking · capsule collisions",
+    "flyActive": "Flying · free navigation",
+    "chooseMode": "Choose a navigation mode",
+    "bodyHeight": "Body height (m)",
+    "bodyRadius": "Body radius (m)",
+    "applyBodySize": "Apply body size",
+    "walkUnavailable": "No verified safe walking position fits this body. Choose flying or adjust its size.",
+    "bodySizeInvalid": "Invalid body dimensions or geometry not ready. Height 0.5–2.4 m, radius 0.1–0.4 m; height must exceed diameter.",
+    "noSafeSpawn": "This geometry has no verified ground and clearance for the selected body. Walking is unavailable; adjust body size or explicitly choose flying. World metadata scale is preserved.",
+    "colliderUnavailable": "The archive has no usable collision geometry. Walking is unavailable; explicitly choose flying.",
+    "unsafePreset": "This viewpoint belongs to another archive or is unsafe for the current walking mode/body. Legacy viewpoints may be restored after explicitly selecting flight.",
+    "walkHelp": "Drag to look · W A S D to walk along the ground · Shift to speed up. Walls and unsupported edges block movement. Click the scene for keyboard control. Entering walk mode or resetting returns to a verified starting point."
   },
   "Studio": {
     "profiles": {

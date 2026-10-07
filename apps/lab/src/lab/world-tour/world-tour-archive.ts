@@ -7,6 +7,9 @@ export type WorldTourArchive = {
   splatBytes: Uint8Array;
   metricScaleFactor: number;
   groundPlaneOffset: number;
+  colliderBytes?: Uint8Array;
+  colliderIssue?: string;
+  archiveSha256?: string;
 };
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r102
@@ -27,6 +30,7 @@ export function parseWorldTourArchive(bytes: Uint8Array): WorldTourArchive {
     splatBytes: files[value.splatPath]!,
     metricScaleFactor: value.metricScaleFactor,
     groundPlaneOffset: value.groundPlaneOffset,
+    ...(typeof value.colliderPath === 'string' && files[value.colliderPath]?.byteLength ? { colliderBytes: files[value.colliderPath] } : { colliderIssue: 'missing' }),
   };
 }
 
@@ -38,5 +42,5 @@ export async function readWorldTourArchive(relativePath: string, assets: Pick<Ni
   const bytes = new Uint8Array(length);
   let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  return parseWorldTourArchive(bytes);
+  return { ...parseWorldTourArchive(bytes), archiveSha256: result.asset.sha256 };
 }
