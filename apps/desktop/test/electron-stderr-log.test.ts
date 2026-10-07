@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createRequire } from 'node:module';
 import { Writable } from 'node:stream';
+import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 
 import { createDesktopStderrWriter } from '../src-electron/stderr-log.js';
@@ -62,7 +63,7 @@ test('Desktop stderr handles asynchronous stream errors without retrying the fai
 test('renderer recovery logs survive a real closed stderr pipe and allow normal exit', { timeout: 10_000 }, async (t) => {
   const require = createRequire(import.meta.url);
   const hostUrl = new URL('../src-electron/renderer-log-host.ts', import.meta.url).href;
-  const child = spawn(process.execPath, ['--import', require.resolve('tsx'), '--input-type=module', '-e', String.raw`
+  const child = spawn(process.execPath, ['--import', pathToFileURL(require.resolve('tsx')).href, '--input-type=module', '-e', String.raw`
     import { errorMonitor } from 'node:events';
     import { createDesktopElectronRendererLogHost } from ${JSON.stringify(hostUrl)};
     const host = createDesktopElectronRendererLogHost({ verbose: false });

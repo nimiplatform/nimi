@@ -253,7 +253,7 @@ jobs:
         if: needs.changes.outputs.windows_runtime_changed == 'true'
         working-directory: runtime
         run: |
-          go test -count=1 -timeout=15m ./cmd/nimi ./internal/appstorage ./internal/daemon ./internal/daemonctl ./internal/engine ./internal/entrypoint ./internal/nimiappinstall ./internal/nimiappnative ./internal/nimiapppackage ./internal/protectedlocal ./internal/services/localservice ./tools/repair-local-agent-chat
+          go test -count=1 -timeout=15m ./cmd/nimi ./cmd/nimi-source-supervisor ./internal/appstorage ./internal/daemon ./internal/daemonctl ./internal/engine ./internal/entrypoint ./internal/nimiappinstall ./internal/nimiappnative ./internal/nimiapppackage ./internal/protectedlocal ./internal/services/localservice ./tools/repair-local-agent-chat
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go test -count=1 -timeout=10m ./internal/grpcserver -run 'Test(ResolveWindowsProfileImagePath|ProtectedProductControlRootReadsCurrentWindowsProfileMapping)'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -309,7 +309,7 @@ jobs:
 
       - name: Check Darwin Runtime and model storage
         run: |
-          go -C runtime test -count=1 -timeout=5m ./internal/protectedlocal ./internal/services/localservice
+          go -C runtime test -count=1 -timeout=5m ./cmd/nimi-source-supervisor ./internal/protectedlocal ./internal/services/localservice
           go -C runtime test -count=1 -timeout=5m -tags=nimi_macos_source_local_development ./internal/protectedlocal
 
       - name: Check default and source native carriers

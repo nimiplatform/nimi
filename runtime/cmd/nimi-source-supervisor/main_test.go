@@ -48,9 +48,8 @@ func TestSourceRuntimeOwnerLockIsAtomic(t *testing.T) {
 	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
 		t.Skip("source Runtime owner lock is platform-native")
 	}
-	if err := validateSourceSupervisorPrincipal(); err != nil {
-		t.Skipf("current test principal is not admitted: %v", err)
-	}
+	// Lock mutual exclusion is independent of launch admission. Production run
+	// still validates its principal; native CI must exercise the actual lock.
 	lockPath := testControlLockPath(t)
 	first, err := acquireSourceRuntimeOwnerLock(lockPath)
 	if err != nil {
