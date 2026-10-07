@@ -38,7 +38,7 @@ func runBasicPitchProcess(ctx context.Context, plan *capabilitydriver.MusicInvoc
 		return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, err)
 	}
 	p := plan.PythonTranscription()
-	identity, err := ResolvePythonDependencyProfileIdentity(p.ConsumerID, "windows/amd64", "cpu")
+	identity, err := ResolvePythonDependencyProfileIdentity(p.ConsumerID, currentGOOS()+"/"+currentGOARCH(), "cpu")
 	if err != nil {
 		return localexecution.MusicResult{}, executionFailure(localexecution.FailureLoad, err)
 	}

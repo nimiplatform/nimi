@@ -40,8 +40,9 @@ func verifyBasicPitchDriverBundle(root string) error {
 	return nil
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.basic-pitch-onnx-note-events
 func verifyBasicPitchProfileProbe(probe pythonDependencyProfileProbe, identity PythonDependencyProfileIdentity) error {
-	if identity.PlatformTuple != "windows/amd64" || identity.AcceleratorPlane != "cpu" || identity.TorchVersion != "" || identity.CUDAABI != "" || probe.TorchVersion != "" || probe.CUDAABI != "" || probe.Device != "cpu" || probe.Allocation != 1 || probe.ONNXRuntimeVersion != "1.20.1" || len(probe.InstalledDistributions) == 0 {
+	if (identity.PlatformTuple != "windows/amd64" && identity.PlatformTuple != "darwin/arm64") || identity.AcceleratorPlane != "cpu" || identity.TorchVersion != "" || identity.CUDAABI != "" || probe.TorchVersion != "" || probe.CUDAABI != "" || probe.Device != "cpu" || probe.Allocation != 1 || probe.ONNXRuntimeVersion != "1.20.1" || len(probe.InstalledDistributions) == 0 {
 		return fmt.Errorf("Basic Pitch profile did not verify its exact ONNX CPU composition")
 	}
 	return nil

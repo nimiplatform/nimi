@@ -3,6 +3,7 @@ package capabilitydriver
 import (
 	"math"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -58,6 +59,59 @@ func TestBasicPitchNotesUseOneRangeOffsetAndTheSameMIDISequence(t *testing.T) {
 	}
 }
 
+func TestBasicPitchInvocationCapturesNativeInterpreterAndExactProfile(t *testing.T) {
+	root := t.TempDir()
+	profileRoot := filepath.Join(root, "profile")
+	input := MusicTranscriptionInvocationInput{
+		LoadoutID: "basic-pitch-test", RecipeID: BasicPitchRecipeID,
+		ExactBindings: []InvocationExactBinding{{RequirementID: BasicPitchRequirementID, VerifiedContentID: BasicPitchVerifiedContentID, EntrySHA256: BasicPitchModelSHA256,
+			BundleDir: root, AbsolutePath: filepath.Join(root, filepath.FromSlash(BasicPitchEntry)), DeclaredFiles: []string{"LICENSE", "NOTICE", BasicPitchEntry}}},
+		DependencySources: []InvocationExactDependencySource{{DependencyFamily: "python.package-set", ConsumerScope: BasicPitchConsumerID, CanonicalRoot: profileRoot, SelectedSourceRecordID: "exact-source", Version: "exact-profile",
+			Hashes: map[string]string{"profile_digest": "exact-profile", "driver_bundle_sha256": strings.Repeat("a", 64)}}},
+		Request: &runtimev1.MusicTranscribeScenarioSpec{SourceAudio: &runtimev1.MusicAudioInput{ArtifactId: "owned-source"},
+			RequestedParts:   []runtimev1.MusicTranscriptionPart{runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_NOTE_EVENTS},
+			RequestedFormats: []runtimev1.MusicTranscriptionFormat{runtimev1.MusicTranscriptionFormat_MUSIC_TRANSCRIPTION_FORMAT_MIDI, runtimev1.MusicTranscriptionFormat_MUSIC_TRANSCRIPTION_FORMAT_TIMELINE}},
+		SourceInfo: &runtimev1.LocalAppAudioInfo{SampleRateHz: 22050, Channels: 1, FrameCount: 220500}, StagingDir: root, SourcePath: filepath.Join(root, "source.wav"),
+	}
+	plan, err := (BasicPitchDriver{}).PlanMusicTranscriptionInvocation(input)
+	platform := runtime.GOOS + "/" + runtime.GOARCH
+	if platform != "windows/amd64" && platform != "darwin/arm64" {
+		if err == nil {
+			t.Fatal("unadmitted execution host accepted")
+		}
+		return
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	bin, err := basicPitchInterpreterPath(profileRoot, platform)
+	if err != nil || plan.PythonTranscription().InterpreterPath != bin || plan.CLIArgs()[0] != filepath.Join(profileRoot, "basic_pitch_driver.py") {
+		t.Fatal("native interpreter/Driver capture is incorrect", plan.PythonTranscription(), err)
+	}
+	if plan.AudioCppPackageID() != "" || plan.CUDA13DependencyID() != "" || plan.TranscriptionRequest().GetSourceAudio().GetRange().GetEndFrame() != input.SourceInfo.FrameCount {
+		t.Fatal("CPU transcription substrate or source capture changed")
+	}
+	input.DependencySources[0].Version = "other-profile"
+	input.DependencySources[0].Hashes["profile_digest"] = "other-profile"
+	changed, err := (BasicPitchDriver{}).PlanMusicTranscriptionInvocation(input)
+	if err != nil || changed.ProcessKey() == plan.ProcessKey() || plan.PythonTranscription().ProfileDigest != "exact-profile" {
+		t.Fatal("profile identity was not captured immutably", err)
+	}
+}
+
+func TestBasicPitchInterpreterPathsArePlatformBound(t *testing.T) {
+	root := t.TempDir()
+	for platform, suffix := range map[string]string{"windows/amd64": filepath.Join("Scripts", "python.exe"), "darwin/arm64": filepath.Join("bin", "python")} {
+		path, err := basicPitchInterpreterPath(root, platform)
+		if err != nil || path != filepath.Join(root, suffix) {
+			t.Fatalf("%s interpreter: %q %v", platform, path, err)
+		}
+	}
+	if _, err := basicPitchInterpreterPath(root, "darwin/amd64"); err == nil {
+		t.Fatal("Intel Mac interpreter admitted")
+	}
+}
+
 func TestBasicPitchProfileHasOnlyImplementedOutputAndHostCombinations(t *testing.T) {
 	d := BasicPitchDriver{}
 	for _, path := range []string{"LICENSE", "NOTICE"} {
@@ -65,8 +119,16 @@ func TestBasicPitchProfileHasOnlyImplementedOutputAndHostCombinations(t *testing
 			t.Fatal("rights file violates the shared positive probe budget")
 		}
 	}
-	if _, reason := d.ProjectRecipeForHost(BasicPitchRecipeID, nil, nil, "darwin/arm64"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
-		t.Fatal("unsupported host admitted")
+	for _, platform := range []string{"windows/amd64", "darwin/arm64"} {
+		requirements, reason := d.ProjectRecipeForHost(BasicPitchRecipeID, nil, nil, platform)
+		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) != 1 || requirements[0].GetRequirementId() != BasicPitchRequirementID {
+			t.Fatalf("supported host %s lost its exact model requirement: %v", platform, reason)
+		}
+	}
+	for _, platform := range []string{"darwin/amd64", "windows/arm64", "linux/arm64", "linux/amd64"} {
+		if _, reason := d.ProjectRecipeForHost(BasicPitchRecipeID, nil, nil, platform); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
+			t.Fatalf("unsupported host %s admitted", platform)
+		}
 	}
 	p := d.MusicInputCapabilities().GetTranscription()[0]
 	if len(p.GetParts()) != 1 || p.GetParts()[0] != "note-events" || len(p.GetFormats()) != 2 {

@@ -221,10 +221,17 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 		}
 		return "audio-spleeter-cpu", nil
 	case BasicPitchConsumerID:
-		if platformTuple != "windows/amd64" || acceleratorPlane != "cpu" {
-			return "", fmt.Errorf("Basic Pitch profile requires windows/amd64 CPU")
+		if acceleratorPlane != "cpu" {
+			return "", fmt.Errorf("Basic Pitch profile requires CPU")
 		}
-		return "music-basic-pitch-cpu", nil
+		switch platformTuple {
+		case "windows/amd64":
+			return "music-basic-pitch-cpu", nil
+		case "darwin/arm64":
+			return "music-basic-pitch-macos-cpu", nil
+		default:
+			return "", fmt.Errorf("Basic Pitch profile requires windows/amd64 or darwin/arm64")
+		}
 	case TextAnnotationConsumerID:
 		if acceleratorPlane != "cpu" {
 			return "", fmt.Errorf("text annotation profile requires CPU")

@@ -1637,8 +1637,9 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		}
 	}
 	basicPitch := byID[capabilitydriver.BasicPitchRecipeID]
-	if basicPitch == nil || basicPitch.GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
-		t.Fatalf("Windows CPU Basic Pitch must not become supported on macOS: %+v", basicPitch)
+	if basicPitch == nil || basicPitch.GetApplicability() == runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED ||
+		basicPitch.GetImplementation().GetDriverDialect() != capabilitydriver.BasicPitchDriverDialect || len(basicPitch.GetSlots()) != 1 || basicPitch.GetSlots()[0].GetSlotId() != capabilitydriver.BasicPitchRequirementID {
+		t.Fatalf("Mac CPU Basic Pitch lost its exact model projection: %+v", basicPitch)
 	}
 	groundingDino := byID[capabilitydriver.GroundingDinoRecipeID]
 	if groundingDino == nil || groundingDino.GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED || len(groundingDino.GetSlots()) != 1 {

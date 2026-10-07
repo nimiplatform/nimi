@@ -101,7 +101,7 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 		}
 		return "", "", false
 	case capabilitydriver.BasicPitchDriver:
-		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") {
+		if (strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64")) || (strings.EqualFold(host.OS, "darwin") && strings.EqualFold(host.Arch, "arm64")) {
 			return "local-music-notes", engine.BasicPitchConsumerID, true
 		}
 		return "", "", false

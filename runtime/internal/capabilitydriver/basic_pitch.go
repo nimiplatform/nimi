@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -48,7 +49,7 @@ func (d BasicPitchDriver) ProjectRecipe(recipe string, options *structpb.Struct,
 }
 
 func (d BasicPitchDriver) ProjectRecipeForHost(recipe string, options *structpb.Struct, features []string, platformTuple string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	if platformTuple != "windows/amd64" {
+	if platformTuple != "windows/amd64" && platformTuple != "darwin/arm64" {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
 	return d.ProjectRecipe(recipe, options, features)
@@ -198,9 +199,13 @@ func (BasicPitchDriver) PlanMusicTranscriptionInvocation(input MusicTranscriptio
 		}
 	}
 	if profile == nil || !filepath.IsAbs(profile.CanonicalRoot) || filepath.Clean(profile.CanonicalRoot) != profile.CanonicalRoot || profile.SelectedSourceRecordID == "" || profile.Version == "" || profile.Version != profile.Hashes["profile_digest"] || len(profile.Hashes["driver_bundle_sha256"]) != 64 {
-		return bad(InvocationFailureInvalidConfig, "requires the captured Windows cp312 ONNX CPU profile")
+		return bad(InvocationFailureInvalidConfig, "requires the captured cp312 ONNX CPU profile")
 	}
-	pythonPlan := &PythonInvocationPlan{ConsumerID: BasicPitchConsumerID, ProfileRoot: profile.CanonicalRoot, ProfileDigest: profile.Version, DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], SelectedSourceRecordID: profile.SelectedSourceRecordID, InterpreterPath: filepath.Join(profile.CanonicalRoot, "Scripts", "python.exe"), ScriptPath: filepath.Join(profile.CanonicalRoot, "basic_pitch_driver.py")}
+	interpreterPath, err := basicPitchInterpreterPath(profile.CanonicalRoot, runtime.GOOS+"/"+runtime.GOARCH)
+	if err != nil {
+		return bad(InvocationFailureUnsupported, err.Error())
+	}
+	pythonPlan := &PythonInvocationPlan{ConsumerID: BasicPitchConsumerID, ProfileRoot: profile.CanonicalRoot, ProfileDigest: profile.Version, DriverBundleDigest: profile.Hashes["driver_bundle_sha256"], SelectedSourceRecordID: profile.SelectedSourceRecordID, InterpreterPath: interpreterPath, ScriptPath: filepath.Join(profile.CanonicalRoot, "basic_pitch_driver.py")}
 	hasher := sha256.New()
 	for _, value := range append(invocationExactBindingIdentity(binding), profile.SelectedSourceRecordID, profile.Version, pythonPlan.DriverBundleDigest, BasicPitchDriverDialect) {
 		_, _ = hasher.Write([]byte(value))
@@ -213,4 +218,15 @@ func (BasicPitchDriver) PlanMusicTranscriptionInvocation(input MusicTranscriptio
 	}}
 	plan.cliArgs = []string{pythonPlan.ScriptPath, "--model", binding.AbsolutePath, "--audio", input.SourcePath, "--output", plan.transcription.eventsPath}
 	return plan, nil
+}
+
+func basicPitchInterpreterPath(profileRoot, platformTuple string) (string, error) {
+	switch platformTuple {
+	case "windows/amd64":
+		return filepath.Join(profileRoot, "Scripts", "python.exe"), nil
+	case "darwin/arm64":
+		return filepath.Join(profileRoot, "bin", "python"), nil
+	default:
+		return "", fmt.Errorf("ONNX CPU execution is unsupported on %s", platformTuple)
+	}
 }
