@@ -77,7 +77,7 @@ func (s *scenarioJobStore) admitMusicRecoveryLocked(extraBytes int64, jobSlot bo
 		if isTerminalScenarioJobStatus(record.job.GetStatus()) && !record.executionStarted && len(record.musicOutputReservations) == 0 {
 			continue
 		}
-		remaining := max(int64(0), record.musicSubmission.ReservedBytes-byJob[id])
+		remaining := max(int64(0), musicRecoveryOutputReservation(record.musicSubmission, record.cloudAssembly)-byJob[id])
 		if !charge(remaining) {
 			return errMusicRecoveryCapacity
 		}
@@ -108,8 +108,8 @@ func (s *scenarioJobStore) admitMusicRecoveryLocked(extraBytes int64, jobSlot bo
 	return nil
 }
 
-// Scores are the only inline music execution payload. Count their durable
-// base64 representation as retained media while the Job snapshot exists.
+// Inline execution payloads remain charged while their durable Job capture exists.
+// Cloud voice requests already contain the encoded reference; count those exact bytes.
 func musicCapturedInputBytes(assembly *localResolvedAssembly, cloud *cloudResolvedAssembly) int64 {
 	var result int64
 	if assembly != nil && assembly.Request.Kind == "music.generate" {
@@ -118,7 +118,23 @@ func musicCapturedInputBytes(assembly *localResolvedAssembly, cloud *cloudResolv
 	if cloud != nil && cloud.MusicReference != nil {
 		result += int64((len(cloud.MusicReference.Bytes) + 2) / 3 * 4)
 	}
+	if cloud != nil && cloud.MusicVideoReference != nil {
+		result += int64((len(cloud.MusicVideoReference.Bytes) + 2) / 3 * 4)
+	}
+	if cloud != nil && cloud.RequestKind == cloudResolvedRequestVoiceWorkflow {
+		result += int64(len(cloud.Request))
+	}
 	return result
+}
+
+// Voice creation reserves input encoding and output together. Once the capture
+// is measured separately, only the unproduced output remainder stays reserved.
+func musicRecoveryOutputReservation(submission *localAppMusicSubmission, cloud *cloudResolvedAssembly) int64 {
+	bound := submission.ReservedBytes
+	if cloud != nil && cloud.RequestKind == cloudResolvedRequestVoiceWorkflow {
+		bound -= int64(len(cloud.Request))
+	}
+	return max(int64(0), bound)
 }
 
 func (s *scenarioJobStore) beginMusicImport(id string, bound int64) (func(), error) {
@@ -153,7 +169,8 @@ func (s *scenarioJobStore) musicArtifactAdmission(jobID string, artifactID strin
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested {
 		return time.Time{}, nil, errMusicRecoveryExpired
 	}
-	if size <= 0 || size > record.musicSubmission.ReservedBytes {
+	outputBound := musicRecoveryOutputReservation(record.musicSubmission, record.cloudAssembly)
+	if size <= 0 || size > outputBound {
 		return time.Time{}, nil, errMusicRecoveryCapacity
 	}
 	if s.musicArtifacts == nil {
@@ -175,7 +192,7 @@ func (s *scenarioJobStore) musicArtifactAdmission(jobID string, artifactID strin
 		}
 		other += max(int64(0), bound-resident[id].SizeBytes)
 	}
-	if other > record.musicSubmission.ReservedBytes-size {
+	if other > outputBound-size {
 		return time.Time{}, nil, errMusicRecoveryCapacity
 	}
 	if record.musicOutputReservations == nil {
