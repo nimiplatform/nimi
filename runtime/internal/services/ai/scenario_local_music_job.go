@@ -80,18 +80,23 @@ func (s *Service) submitLocalMusicScenarioJob(ctx context.Context, req *runtimev
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localMusicJobOrder.reserve()
-	go s.runLocalMusicScenarioJob(jobCtx, jobID, ticket)
+	go s.runLocalMusicScenarioJob(jobCtx, jobID, ticket, func() { cleanupLocalMusicPlan(effective.plan) })
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 
-func (s *Service) runLocalMusicScenarioJob(ctx context.Context, jobID string, ticket *localMediaSubmissionTicket) {
+func (s *Service) runLocalMusicScenarioJob(ctx context.Context, jobID string, ticket *localMediaSubmissionTicket, cleanupStaging func()) {
 	if ticket != nil {
 		defer ticket.release()
 	}
 	if !s.scenarioJobs.startExecution(jobID) {
+		if s.scenarioJobs.canCleanUnstartedLocalStaging(jobID) {
+			cleanupStaging()
+		}
 		return
 	}
+	// The publisher owns these paths even if QUEUED persistence or reconstruction fails.
 	defer s.finishScenarioJobExecution(jobID)
+	defer cleanupStaging()
 	if _, ok, err := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); err != nil || !ok {
 		if err != nil {
 			s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, err)
@@ -113,7 +118,6 @@ func (s *Service) runLocalMusicScenarioJob(ctx context.Context, jobID string, ti
 		return
 	}
 	effective.head = cloneScenarioHead(job.GetHead())
-	defer cleanupLocalMusicPlan(effective.plan)
 	if err := ticket.wait(ctx); err != nil {
 		s.finishLocalMusicJobFailure(ctx, jobID, err)
 		return

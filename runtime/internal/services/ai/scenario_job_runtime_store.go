@@ -1111,6 +1111,15 @@ func (s *scenarioJobStore) acquireModelAssetUsesFor(jobID string, assembly *loca
 	return releases, nil
 }
 
+// A declined duplicate must not remove paths still in use by the claimed executor.
+// Terminal/canceled state is stable: no later startExecution can claim that Job.
+func (s *scenarioJobStore) canCleanUnstartedLocalStaging(jobID string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	record := s.jobs[strings.TrimSpace(jobID)]
+	return record == nil || (record.job != nil && !record.executionStarted && (isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested))
+}
+
 func (s *scenarioJobStore) startExecution(jobID string) bool {
 	id := strings.TrimSpace(jobID)
 	if id == "" {

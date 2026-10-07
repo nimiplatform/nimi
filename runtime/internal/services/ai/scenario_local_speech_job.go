@@ -102,18 +102,23 @@ func (s *Service) submitLocalSpeechScenarioJob(ctx context.Context, req *runtime
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localSpeechJobOrder.reserve()
-	go s.runLocalSpeechScenarioJob(jobCtx, jobID, ticket)
+	go s.runLocalSpeechScenarioJob(jobCtx, jobID, ticket, func() { cleanupLocalSpeechStagingPaths(effective.stagingPaths) })
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 
-func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, ticket *localSpeechSubmissionTicket) {
+func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, ticket *localSpeechSubmissionTicket, cleanupStaging func()) {
 	if ticket != nil {
 		defer ticket.release()
 	}
 	if !s.scenarioJobs.startExecution(jobID) {
+		if s.scenarioJobs.canCleanUnstartedLocalStaging(jobID) {
+			cleanupStaging()
+		}
 		return
 	}
+	// The publisher owns these paths even if QUEUED persistence or reconstruction fails.
 	defer s.finishScenarioJobExecution(jobID)
+	defer cleanupStaging()
 	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
 		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
 		return
@@ -135,7 +140,6 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 		return
 	}
 	effective.head = cloneScenarioHead(job.GetHead())
-	defer cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 	_, err = ticket.wait(ctx)
 	if err != nil {
 		s.finishLocalSpeechJobFailure(ctx, jobID, err)
