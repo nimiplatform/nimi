@@ -176,7 +176,9 @@ export async function terminateLocalDevelopmentProcessTree(
     ], { windowsHide: true, stdio: 'ignore' });
     const code = await waitForChildExit(terminator, 10_000);
     if (code !== 0) throw new Error('local-development-process-cleanup-failed');
-    await waitForChildExit(child, 10_000);
+    if (await waitForChildExit(child, 10_000) === null) {
+      throw new Error('local-development-process-cleanup-failed');
+    }
     return;
   }
   try {

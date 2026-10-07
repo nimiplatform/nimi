@@ -72,6 +72,7 @@ const RESTARTABLE_RUN_STATES = new Set([
   'registration-removed',
   'stopped',
 ]);
+type RunReleasePolicy = 'required' | 'quit-after-process-exit';
 
 type RunStatus = {
   readonly schemaVersion: 1;
@@ -194,6 +195,7 @@ export class ElectronLocalDevelopmentHost {
   private endpoint = '';
   private shutdownPromise: Promise<void> | undefined;
   private shutdownComplete = false;
+  private closing = false;
   private readonly presencePublisher: DesktopElectronLocalDevelopmentPresencePublisher;
   // Only a caller that can read the owner-only presence file (the official
   // launcher, as this OS user) can present it; other local callers get 401.
@@ -254,6 +256,7 @@ export class ElectronLocalDevelopmentHost {
 
   // @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
   async startRegistrationHandle(registrationHandle: string): Promise<boolean> {
+    if (this.closing) throw new Error('local-development-owner-closing');
     if (!/^[0-9a-f]{64}$/u.test(registrationHandle)) return false;
     // Reuse and focus only the exact supervised source; pending launches keep
     // waiting for their own handler without starting a second Host.
@@ -315,6 +318,7 @@ export class ElectronLocalDevelopmentHost {
   }
 
   shutdown(): Promise<void> {
+    this.closing = true;
     if (this.shutdownComplete) return Promise.resolve();
     if (this.shutdownPromise) return this.shutdownPromise;
     const attempt = this.performShutdown()
@@ -332,7 +336,13 @@ export class ElectronLocalDevelopmentHost {
 
   private async performShutdown(): Promise<void> {
     const failures: unknown[] = [];
-    const stopped = await Promise.allSettled([...this.runs.values()].map((run) => this.stopRun(run, 'stopped')));
+    const stopped = await Promise.allSettled([...this.runs.values()].map(async (run) => {
+      // An explicit Stop may already be releasing Runtime metadata. Wait for
+      // that attempt, then apply quit's narrower policy with fresh process
+      // cleanup; its failure is not evidence that owned children survived.
+      if (run.stopPromise) await run.stopPromise.catch(() => undefined);
+      await this.stopRun(run, 'stopped', 'quit-after-process-exit');
+    }));
     for (const result of stopped) {
       if (result.status === 'rejected') failures.push(result.reason);
     }
@@ -468,6 +478,7 @@ export class ElectronLocalDevelopmentHost {
     desktopManaged = false,
     existingRegistrationHandle?: string,
   ): Promise<RunStatus> {
+    if (this.closing) throw new Error('local-development-owner-closing');
     let plan: ElectronLocalDevelopmentPlan;
     try {
       plan = await resolveElectronLocalDevelopmentPlan(projectRoot, appId, shell);
@@ -475,6 +486,7 @@ export class ElectronLocalDevelopmentHost {
       if (error instanceof ElectronLocalDevelopmentPlanError) throw error;
       throw new Error('local-development-project-changed', { cause: error });
     }
+    if (this.closing) throw new Error('local-development-owner-closing');
     const activeRuns = [...this.runs.values()].filter((candidate) => (
       !candidate.stopped
       && (
@@ -1135,50 +1147,50 @@ export class ElectronLocalDevelopmentHost {
     return child;
   }
 
-  private stopRun(run: RunContext, state: string): Promise<void> {
+  private stopRun(run: RunContext, state: string, releasePolicy: RunReleasePolicy = 'required'): Promise<void> {
     if (run.stopped && run.stoppedCleanupComplete && !run.pendingEndRunRegistrationHandle) {
       return Promise.resolve();
     }
     if (run.stopPromise) return run.stopPromise;
-    const stopping = this.stopRunAfterCurrentTeardown(run, state).finally(() => {
+    const stopping = this.stopRunAfterCurrentTeardown(run, state, releasePolicy).finally(() => {
       if (run.stopPromise === stopping) run.stopPromise = undefined;
     });
     run.stopPromise = stopping;
     return stopping;
   }
 
-  private async stopRunAfterCurrentTeardown(run: RunContext, state: string): Promise<void> {
+  private async stopRunAfterCurrentTeardown(run: RunContext, state: string, releasePolicy: RunReleasePolicy): Promise<void> {
     const currentTeardown = run.teardownPromise;
     if (currentTeardown) await currentTeardown;
     if (run.stopped && run.stoppedCleanupComplete && !run.pendingEndRunRegistrationHandle) return;
-    await this.stopRunOnce(run, state);
+    await this.stopRunOnce(run, state, releasePolicy);
   }
 
-  private async stopRunOnce(run: RunContext, state: string): Promise<void> {
+  private async stopRunOnce(run: RunContext, state: string, releasePolicy: RunReleasePolicy): Promise<void> {
     run.stopped = true;
     run.stoppedCleanupComplete = false;
     this.clearLauncherLease(run);
     try {
-      await this.teardownRun(run, true);
+      await this.teardownRun(run, true, releasePolicy);
     } catch (error) {
-      setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
+      const code = reason(error) === 'local-development-run-release-failed'
+        ? 'local-development-run-release-failed' : 'local-development-process-cleanup-failed';
+      setRunState(run, 'cleanup-failed', code, code, false);
       throw error;
     }
     run.stoppedCleanupComplete = true;
     setRunState(run, state, 'Development run stopped', undefined, false);
   }
 
-  private async teardownRun(run: RunContext, endRun: boolean): Promise<void> {
+  private async teardownRun(run: RunContext, endRun: boolean, releasePolicy: RunReleasePolicy = 'required'): Promise<void> {
     if (endRun && run.registrationHandle) {
       run.pendingEndRunRegistrationHandle ??= run.registrationHandle;
       run.registrationHandle = undefined;
     }
-    const failures: unknown[] = [];
-    try {
-      await this.stopRunProcesses(run);
-    } catch (error) {
-      failures.push(error);
-    }
+    // endRun also drops the native process entry. Never release it while any
+    // owned build, renderer or Host cleanup is unconfirmed: a retry must retain
+    // the exact process ownership it needs to prevent an orphan.
+    await this.stopRunProcesses(run);
     const pendingEndRunRegistrationHandle = run.pendingEndRunRegistrationHandle;
     if (pendingEndRunRegistrationHandle) {
       try {
@@ -1187,11 +1199,17 @@ export class ElectronLocalDevelopmentHost {
           run.pendingEndRunRegistrationHandle = undefined;
         }
       } catch (error) {
-        failures.push(error);
+        const code = reason(error);
+        if (releasePolicy === 'quit-after-process-exit' && isLocalDevelopmentRuntimeTransportFailure(code)) {
+          // Only quit may finish after confirmed local cleanup and a known
+          // Runtime transport failure. Keep the pending release, do not claim
+          // that Runtime acknowledged it, and disclose only the closed code.
+          appendLog(run, 'supervisor', `Owned processes stopped; Runtime run release unavailable (${code})`);
+          process.stderr.write(`[local-development-shutdown] stage=run-release code=${code}\n`);
+          return;
+        }
+        throw new Error('local-development-run-release-failed', { cause: error });
       }
-    }
-    if (failures.length > 0) {
-      throw new AggregateError(failures, 'local-development-process-cleanup-failed');
     }
   }
 

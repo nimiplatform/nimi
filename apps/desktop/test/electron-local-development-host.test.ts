@@ -129,6 +129,116 @@ function activeRun() {
 }
 
 describe('Desktop Electron local-development registration host', () => {
+  it('quits after confirmed process cleanup when only Runtime run release is unavailable', async (context) => {
+    let terminated = 0;
+    let ended = 0;
+    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-quit-contract-'));
+    context.after(() => rm(home, { recursive: true, force: true }));
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => { terminated++; },
+      endRun: async () => {
+        ended++;
+        throw Object.assign(new Error(`private handle ${HANDLE} and proof ${SUPERVISOR}`), { reasonCode: 'runtime-service-unavailable' });
+      },
+    }), home);
+    const run = activeRun();
+    const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>> };
+    internal.runs.set(run.status.runId, run);
+    await host.shutdown();
+    assert.equal(terminated, 1);
+    assert.equal(ended, 2, 'existing idempotent transport retry is bounded');
+    assert.equal(run.stoppedCleanupComplete, true);
+    assert.equal(run.pendingEndRunRegistrationHandle, HANDLE, 'no fabricated Runtime acknowledgment');
+    assert.match(run.status.logs[0]!.message, /Owned processes stopped; Runtime run release unavailable/u);
+    assert.equal(JSON.stringify(run.status.logs).includes(HANDLE), false);
+    assert.equal(JSON.stringify(run.status.logs).includes(SUPERVISOR), false);
+    await assert.rejects(host.startRegistrationHandle(HANDLE), /local-development-owner-closing/u,
+      'a later installed-owner quit failure must not permit a new untracked development child');
+  });
+
+  it('keeps explicit Stop strict for unavailable Runtime metadata and distinguishes its failure stage', async (context) => {
+    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-quit-contract-'));
+    context.after(() => rm(home, { recursive: true, force: true }));
+    const host = new ElectronLocalDevelopmentHost(control({
+      endRun: async () => { throw Object.assign(new Error('unavailable'), { reasonCode: 'runtime-service-unavailable' }); },
+    }), home);
+    const run = activeRun();
+    const internal = host as unknown as { stopRun(context: typeof run, state: string): Promise<void> };
+    await assert.rejects(internal.stopRun(run, 'stopped'), /local-development-run-release-failed/u);
+    assert.equal(run.stoppedCleanupComplete, false);
+    assert.equal(run.pendingEndRunRegistrationHandle, HANDLE);
+    assert.equal(run.status.reasonCode, 'local-development-run-release-failed');
+  });
+
+  it('does not release native process ownership or permit quit after unconfirmed child cleanup', async (context) => {
+    let childAlive = true;
+    let ended = 0;
+    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-quit-contract-'));
+    context.after(() => rm(home, { recursive: true, force: true }));
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => {
+        if (childAlive) throw Object.assign(new Error('unavailable'), { reasonCode: 'runtime-service-unavailable' });
+      },
+      endRun: async () => { ended++; },
+    }), home);
+    const run = activeRun();
+    const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>> };
+    internal.runs.set(run.status.runId, run);
+    await assert.rejects(host.shutdown(), /local-development-supervisor-shutdown-failed/u);
+    assert.equal(ended, 0, 'endRun would discard the native process entry needed by a retry');
+    assert.equal(host.hasActiveRuns(), true);
+    assert.equal(run.pendingEndRunRegistrationHandle, HANDLE);
+    childAlive = false;
+    await host.shutdown();
+    assert.equal(ended, 1);
+    assert.equal(run.stoppedCleanupComplete, true);
+  });
+
+  it('does not treat unrelated lease errors as proof of Runtime unavailability', async (context) => {
+    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-quit-contract-'));
+    context.after(() => rm(home, { recursive: true, force: true }));
+    const host = new ElectronLocalDevelopmentHost(control({ endRun: async () => { throw new Error('LOCAL_APP_SESSION_REVOKED'); } }), home);
+    const run = activeRun();
+    const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>> };
+    internal.runs.set(run.status.runId, run);
+    await assert.rejects(host.shutdown(), /local-development-supervisor-shutdown-failed/u);
+    assert.equal(run.stoppedCleanupComplete, false);
+    assert.equal(run.pendingEndRunRegistrationHandle, HANDLE);
+  });
+
+  it('waits for an overlapping strict Stop before applying quit process and metadata policies', async (context) => {
+    let release!: () => void;
+    let markStarted!: () => void;
+    const blocked = new Promise<void>((resolve) => { release = resolve; });
+    const started = new Promise<void>((resolve) => { markStarted = resolve; });
+    let ended = 0;
+    let terminated = 0;
+    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-quit-contract-'));
+    context.after(() => rm(home, { recursive: true, force: true }));
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => { terminated++; },
+      endRun: async () => {
+        if (++ended === 1) { markStarted(); await blocked; }
+        throw Object.assign(new Error('unavailable'), { reasonCode: 'runtime-service-unavailable' });
+      },
+    }), home);
+    const run = activeRun();
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+      stopRun(context: typeof run, state: string): Promise<void>;
+    };
+    internal.runs.set(run.status.runId, run);
+    const stopping = assert.rejects(internal.stopRun(run, 'stopped'), /local-development-run-release-failed/u);
+    await started;
+    const quitting = host.shutdown();
+    release();
+    await stopping;
+    await quitting;
+    assert.equal(terminated, 2);
+    assert.equal(ended, 4);
+    assert.equal(run.stoppedCleanupComplete, true);
+  });
+
   it('observes exact scope facts while idle and does not stop a Host after an unconfirmed access read', async () => {
     const observations: DesktopExecutorObservation[] = [];
     let access: Awaited<ReturnType<NimiElectronLocalDevelopmentControl['access']>> | Error = { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` };
