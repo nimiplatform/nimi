@@ -21,6 +21,7 @@ import {
 import { formatBytes } from '../../components/download-format.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { Button, useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
+import { useDesktopFormalSessionRecovery } from '../../app-shell/routes/desktop-formal-session.js';
 import {
   NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,
   isNimiProductControlRepairRoutedState,
@@ -60,6 +61,7 @@ async function loadRepairProjection(
 export function SupportRepairSection(props: { onNavigateToRecovery: () => void }) {
   const { t } = useTranslation();
   const repair = useDesktopRendererCommands().supportRepair;
+  const recoverSession = useDesktopFormalSessionRecovery();
   const loadProjection = useCallback(() => loadRepairProjection(repair), [repair]);
   const projection = useSupportProjection(loadProjection, {
     failClosedMessage: t('Support.repairProjectionUnavailable'),
@@ -141,6 +143,13 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
         ) : null}
       </SupportCard>
 
+      {recoverSession ? (
+        <SupportCard title={t('Support.localSessionTitle')} description={t('Support.localSessionDescription')} testId="support-local-session">
+          <Button size="sm" data-testid="support-local-session-retry" onClick={recoverSession}>
+            {t('Bootstrap.localSessionRetry')}
+          </Button>
+        </SupportCard>
+      ) : null}
       <SupportAppHostCacheCard />
       <SupportDataRootCleanupCard dirs={dirs} dirsError={dirsError} />
     </SupportSectionShell>

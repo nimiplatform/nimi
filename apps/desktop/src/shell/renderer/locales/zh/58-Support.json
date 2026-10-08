@@ -1,4 +1,6 @@
 {
+  "localSessionTitle": "当前账号的服务",
+  "localSessionDescription": "账号服务无法响应时，可在这里重新连接。当前 Home 界面将返回首页；已中断的操作不会自动重试。",
   "surfaceTitle": "支持",
   "sidebarSectionLabel": "支持",
   "sectionRepair": "修复",

@@ -1,4 +1,6 @@
 {
+  "localSessionTitle": "Current account services",
+  "localSessionDescription": "If account services stop responding, reconnect them here. The current Home window will return to its home page; interrupted operations won't be retried automatically.",
   "surfaceTitle": "Support",
   "sidebarSectionLabel": "Support",
   "sectionRepair": "Repair",

@@ -14,6 +14,7 @@ import { DesktopRecoveryActions, SharedStatusShell, STATUS_SHELL_PRIMARY_BUTTON,
 import { RuntimeMaintenanceRecoveryScreen } from './runtime-maintenance-recovery';
 import { retryRuntimeAccountConnectionNow } from '../../infra/bootstrap/auth-state-watcher.js';
 import type { DesktopHomeProfileStatus } from '../../bridge/runtime-bridge/product-control.js';
+import { DesktopFormalSessionGate } from './desktop-formal-session-gate.js';
 
 const LoginPage = lazy(async () => {
   const mod = await import('../../features/auth/login-page');
@@ -356,9 +357,11 @@ function DesktopOrdinaryShellGate() {
   if (!homeProfile) return <RuntimeLoadingScreen />;
   if (!homeProfile.workAllowed) return <HomeProfileRepairScreen />;
   return (
-    <Suspense fallback={<RuntimeLoadingScreen />}>
-      <ReadyDesktopShell />
-    </Suspense>
+    <DesktopFormalSessionGate>
+      <Suspense fallback={<RuntimeLoadingScreen />}>
+        <ReadyDesktopShell />
+      </Suspense>
+    </DesktopFormalSessionGate>
   );
 }
 

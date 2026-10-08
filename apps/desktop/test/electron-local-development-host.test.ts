@@ -1,5 +1,6 @@
 import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -1312,6 +1313,119 @@ describe('Desktop Electron local-development registration host', () => {
 
     await cleanupHost.endRunWithTransportRetry(HANDLE, SUPERVISOR);
     assert.equal(calls, 2);
+  });
+
+  it('allows Home shutdown after local processes stop while preserving the unconfirmed offline Runtime receipt', async () => {
+    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-offline-shutdown-'));
+    const order: string[] = [];
+    let removed = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => { order.push('terminate'); },
+      endRun: async () => {
+        order.push('end-run');
+        throw new Error('runtime-service-unavailable');
+      },
+      removeRegistration: async () => { removed += 1; },
+    }), home);
+    const run = activeRun();
+    Reflect.get(host, 'runs').set(run.status.runId, run);
+    try {
+      await host.shutdown();
+      assert.deepEqual(order, ['terminate', 'end-run', 'end-run']);
+      assert.equal(run.stopped, true);
+      assert.equal(run.registrationHandle, undefined);
+      assert.equal(run.pendingEndRunRegistrationHandle, HANDLE);
+      assert.equal(run.stoppedCleanupComplete, true);
+      assert.equal(removed, 0);
+      await host.shutdown();
+      assert.equal(order.length, 3);
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses shutdown while a real owned process remains alive, then permits a safe retry', { timeout: 10_000 }, async () => {
+    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-failed-shutdown-'));
+    const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
+      stdio: 'ignore', windowsHide: true,
+    });
+    const exited = new Promise<void>((resolve) => child.once('exit', () => resolve()));
+    await new Promise<void>((resolve, reject) => {
+      child.once('spawn', resolve);
+      child.once('error', reject);
+    });
+    let terminationFails = true;
+    let endRunCalls = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => {
+        // The same unavailable code in local cleanup must not excuse a live
+        // or unconfirmed process; only endRun after safe cleanup may defer.
+        if (terminationFails) throw new Error('runtime-service-unavailable');
+        child.kill();
+        await exited;
+      },
+      endRun: async () => { endRunCalls += 1; },
+    }), home);
+    const run = activeRun();
+    Reflect.get(host, 'runs').set(run.status.runId, run);
+    try {
+      await assert.rejects(host.shutdown(), /local-development-supervisor-shutdown-failed/u);
+      assert.equal(child.exitCode, null);
+      assert.equal(child.signalCode, null);
+      assert.doesNotThrow(() => process.kill(child.pid!, 0));
+      assert.equal(endRunCalls, 0);
+      assert.equal(run.pendingEndRunRegistrationHandle, HANDLE);
+      assert.equal(run.stoppedCleanupComplete, false);
+      assert.equal(host.hasActiveRuns(), true);
+      terminationFails = false;
+      await host.shutdown();
+      assert.ok(child.exitCode !== null || child.signalCode !== null);
+      assert.equal(endRunCalls, 1);
+      assert.equal(run.pendingEndRunRegistrationHandle, undefined);
+      assert.equal(run.stoppedCleanupComplete, true);
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill();
+      await exited;
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+
+  it('does not excuse denied or unknown endRun failures during Home shutdown', async () => {
+    const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-untrusted-shutdown-'));
+    try {
+      for (const code of ['runtime-permission-denied', 'unknown-run-release-error']) {
+        const host = new ElectronLocalDevelopmentHost(control({
+          endRun: async () => { throw new Error(code); },
+        }), home);
+        const run = activeRun();
+        Reflect.get(host, 'runs').set(run.status.runId, run);
+        await assert.rejects(host.shutdown(), /local-development-supervisor-shutdown-failed/u);
+        assert.equal(run.pendingEndRunRegistrationHandle, HANDLE);
+        assert.equal(run.stoppedCleanupComplete, false);
+      }
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+
+  it('requires the real Runtime receipt for selector Stop and data-root handoff, and retries it after recovery', async () => {
+    const host = new ElectronLocalDevelopmentHost(control({
+      endRun: async () => { throw new Error('runtime-service-unavailable'); },
+    }), '/tmp');
+    const run = activeRun();
+    Reflect.get(host, 'runs').set(run.status.runId, run);
+    Reflect.get(host, 'registrationSelectors').set('dev-project-example', HANDLE);
+    await assert.rejects(host.invoke('local_development_run_stop', {
+      payload: { selector: 'dev-project-example' },
+    }), /local-development-run-release-failed/u);
+    await assert.rejects(host.quiesceDataRoot(), /local-development-data-root-quiesce-failed/u);
+    assert.equal(run.pendingEndRunRegistrationHandle, HANDLE);
+    Reflect.get(host, 'control').endRun = async () => undefined;
+    assert.deepEqual(await host.invoke('local_development_run_stop', {
+      payload: { selector: 'dev-project-example' },
+    }), { selector: 'dev-project-example', stopped: true });
+    assert.equal(run.pendingEndRunRegistrationHandle, undefined);
+    assert.equal(run.stoppedCleanupComplete, true);
   });
 
   it('ends the run when the launcher stops renewing its lease', async () => {
