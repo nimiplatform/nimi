@@ -131,6 +131,7 @@ func (s *Service) submitScenarioAsyncJob(
 
 // @nimi-authority: rule.nimi.runtime.service-operations.r066
 const extendedCloudVideoJobTimeout = 8 * time.Minute
+const wan27TextVideoJobTimeout = 15 * time.Minute
 
 func exactExtendedCloudVideoJob(scenarioType runtimev1.ScenarioType, provider, model string) bool {
 	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
@@ -154,14 +155,18 @@ func exactExtendedCloudVideoJob(scenarioType runtimev1.ScenarioType, provider, m
 func cloudMediaJobTimeoutDuration(req *runtimev1.SubmitScenarioJobRequest, provider, model string) (time.Duration, error) {
 	scenarioType := req.GetScenarioType()
 	if exactExtendedCloudVideoJob(scenarioType, provider, model) {
+		limit := extendedCloudVideoJobTimeout
+		if provider == "dashscope" && model == "wan2.7-t2v" {
+			limit = wan27TextVideoJobTimeout
+		}
 		if timeoutMS := req.GetHead().GetTimeoutMs(); timeoutMS != 0 {
 			duration := time.Duration(timeoutMS) * time.Millisecond
-			if duration <= 0 || duration > extendedCloudVideoJobTimeout {
+			if duration <= 0 || duration > limit {
 				return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 			}
 			return duration, nil
 		}
-		return extendedCloudVideoJobTimeout, nil
+		return limit, nil
 	}
 	return scenarioJobTimeoutDuration(req, defaultCloudMediaJobTimeout(scenarioType, provider, model), false)
 }

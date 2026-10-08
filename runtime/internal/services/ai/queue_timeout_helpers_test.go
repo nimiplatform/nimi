@@ -225,16 +225,22 @@ func TestGoogleVeo31CloudVideoDeadlineCoversDocumentedPeakLatency(t *testing.T) 
 
 func TestWan27CloudVideoDeadlineCoversQueueAndArtifactCustody(t *testing.T) {
 	for _, model := range []string{"wan2.7-t2v", "wan2.7-i2v"} {
-		for _, ms := range []int32{0, 1, 120000, 480000, 480001, -1} {
+		limit := int32(480000)
+		defaultTimeout := 8 * time.Minute
+		if model == "wan2.7-t2v" {
+			limit = 900000
+			defaultTimeout = 15 * time.Minute
+		}
+		for _, ms := range []int32{0, 1, 120000, 480000, 480001, 900000, 900001, -1} {
 			req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, Head: &runtimev1.ScenarioRequestHead{TimeoutMs: ms}}
 			got, err := cloudMediaJobTimeoutDuration(req, "dashscope", model)
-			if ms < 0 || ms > 480000 {
+			if ms < 0 || ms > limit {
 				if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || got != 0 {
 					t.Fatalf("invalid deadline accepted: %s %d %s %v", model, ms, got, err)
 				}
 				continue
 			}
-			want := 8 * time.Minute
+			want := defaultTimeout
 			if ms > 0 {
 				want = time.Duration(ms) * time.Millisecond
 			}
