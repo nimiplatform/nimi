@@ -401,6 +401,8 @@ describe('ChatComposer', () => {
     expect(container.querySelector('[data-chat-composer-layout="stacked"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-voice="true"]')).toBeNull();
     expect(container.querySelector('[data-chat-composer-attach="true"]')).toBeNull();
-    expect(container.querySelector('[data-chat-composer-send="true"]')).toBeTruthy();
+    expect(container.querySelector('[data-chat-composer-toolbar="true"]')).toBeNull();
+    const textareaRow = container.querySelector('[data-chat-composer-textarea-row="true"]');
+    expect(textareaRow?.querySelector('[data-chat-composer-send="true"]')).toBeTruthy();
   });
 });

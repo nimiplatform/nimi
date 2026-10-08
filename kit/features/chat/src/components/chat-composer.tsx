@@ -257,6 +257,16 @@ export function ChatComposer<TAttachment = never>({
     </button>
   ) : null;
 
+  // A stacked toolbar whose only control is the send button adds an empty
+  // second row; in that case the send button rides at the trailing edge of
+  // the input line instead.
+  const stackedSendInline = isStacked
+    && !leadingSlot
+    && !hasStackedLeadingActions
+    && !hasMeta
+    && !attachmentButtonNode
+    && !trailingSlot;
+
   return (
     <div className={className} data-chat-composer-layout={layout}>
       <form
@@ -299,6 +309,12 @@ export function ChatComposer<TAttachment = never>({
         ) : null}
 
         {isStacked ? (
+          stackedSendInline ? (
+            <div data-chat-composer-textarea-row="true" className="flex items-end gap-2">
+              {textareaNode}
+              {sendButtonNode}
+            </div>
+          ) : (
           <div className="flex flex-col gap-1">
             <div data-chat-composer-textarea-row="true">
               {textareaNode}
@@ -352,6 +368,7 @@ export function ChatComposer<TAttachment = never>({
               </div>
             </div>
           </div>
+          )
         ) : (
           <>
             <div className="flex items-end gap-2.5">
