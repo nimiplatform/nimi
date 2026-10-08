@@ -161,6 +161,15 @@ func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListL
 		var contextDriver capabilitydriver.TextContextOptionDriver
 		if driver, reason := s.capabilityDrivers.Resolve(recipe.CapabilityContract, identity); reason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED && driver != nil {
 			contextDriver, _ = driver.(capabilitydriver.TextContextOptionDriver)
+			// @nimi-authority: rule.nimi.runtime.local-compute.vevo2-macos-cpu
+			// A CPU weight offer is not admission of a Windows CPU execution plane.
+			if _, isVeVo2 := driver.(capabilitydriver.VeVo2AudioCppDriver); isVeVo2 {
+				if _, _, supported := localEnvironmentTargetForDriver(driver, localEnvironmentHostProfileFromDeviceProfile(hostProfile)); !supported {
+					applicability = runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED
+					reasons = append(reasons, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE)
+				}
+			}
+
 			if hostDriver, ok := driver.(capabilitydriver.HostPlatformRecipeDriver); ok {
 				platformTuple := strings.ToLower(strings.TrimSpace(localRuntimeGOOS)) + "/" + strings.ToLower(strings.TrimSpace(localRuntimeGOARCH))
 				if _, hostReason := hostDriver.ProjectRecipeForHost(recipe.RecipeID, options, authoringFeatures, platformTuple); hostReason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {

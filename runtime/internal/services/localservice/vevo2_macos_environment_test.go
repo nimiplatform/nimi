@@ -1,11 +1,47 @@
 package localservice
 
 import (
+	"context"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"path/filepath"
 	"testing"
 )
+
+func TestVeVo2MacCatalogRecipeProjectsCPUOfferWithoutWindowsCPUAdmission(t *testing.T) {
+	previousOS, previousArch := localRuntimeGOOS, localRuntimeGOARCH
+	t.Cleanup(func() { localRuntimeGOOS, localRuntimeGOARCH = previousOS, previousArch })
+	svc := newLocalEnvironmentTestService(t)
+	defer svc.Close()
+	localRuntimeGOOS, localRuntimeGOARCH = "darwin", "arm64"
+	listed, err := svc.ListLoadoutRecipes(context.Background(), &runtimev1.ListLoadoutRecipesRequest{CapabilityContract: capabilitydriver.VoiceConvertCapabilityContract})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var vevo *runtimev1.LoadoutRecipeDescriptor
+	for _, recipe := range listed.GetRecipes() {
+		if recipe.GetRecipeId() == capabilitydriver.VeVo2RecipeID {
+			vevo = recipe
+		}
+	}
+	if vevo == nil || vevo.GetApplicability() == runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
+		t.Fatalf("Mac CPU offer remained blocked: %+v", vevo)
+	}
+	if len(vevo.GetSlots()) != 1 {
+		t.Fatal("changed VeVo2 slot count")
+	}
+	if _, _, supported := localEnvironmentTargetForDriver(capabilitydriver.VeVo2AudioCppDriver{}, localEnvironmentHostProfileState{OS: "windows", Arch: "amd64"}); supported {
+		t.Fatal("Windows CPU execution plane was admitted")
+	}
+	if _, _, supported := localEnvironmentTargetForDriver(capabilitydriver.VeVo2AudioCppDriver{}, localEnvironmentHostProfileState{OS: "windows", Arch: "amd64", GPUAvailable: true, GPUVendor: "nvidia"}); !supported {
+		t.Fatal("existing Windows CUDA plane was removed")
+	}
+	variants := vevo.GetSlots()[0].GetRecommendedVariantIds()
+	if len(variants) != 1 || variants[0] != "local.audio.voice.convert.vevo2.audio-cpp.q8.cpu" {
+		t.Fatalf("Mac chose CUDA variant: %v", variants)
+	}
+}
 
 func TestVeVo2MacPlanAndCaptureHaveOnlyVerifiedNativeSource(t *testing.T) {
 	previousOS, previousArch := localRuntimeGOOS, localRuntimeGOARCH

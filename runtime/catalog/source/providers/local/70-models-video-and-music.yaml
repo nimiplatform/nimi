@@ -302,6 +302,16 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 17179869184
+      - variant_id: local.audio.voice.convert.vevo2.audio-cpp.q8.cpu
+        quant: Q8_0
+        entry: Vevo2-GGUF/vevo2-q8_0.gguf
+        files: [Vevo2-GGUF/vevo2-q8_0.gguf]
+        hashes:
+          Vevo2-GGUF/vevo2-q8_0.gguf: sha256:f80a70facaaecfcf1aa417ef16ef091318c5e789b24c16a741233c64a72fcee8
+        total_size_bytes: 3242124800
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 17179869184
     fitness:
       param_count: 3000000000
       context_length: 0

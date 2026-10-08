@@ -849,7 +849,7 @@ loadout_recipes:
     slot_metadata:
       - slot_id: voice.model
         display_label: VeVo2 q8 (CC-BY-NC-ND-4.0)
-        recommended_variant_ids: [local.audio.voice.convert.vevo2.audio-cpp.q8.cuda]
+        recommended_variant_ids: [local.audio.voice.convert.vevo2.audio-cpp.q8.cuda, local.audio.voice.convert.vevo2.audio-cpp.q8.cpu]
         model_contract:
           format: gguf
           model_family: vevo2
