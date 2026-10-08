@@ -292,7 +292,7 @@ export function ProfileImportWizard(props: ProfileImportWizardProps) {
                 {t('runtimeConfig.profiles.importLibraryFile', { defaultValue: 'Choose a setup file' })}
               </Button>
               <p className="mt-2 text-xs text-[var(--nimi-text-secondary)]">
-                {t('runtimeConfig.profiles.importLibraryDrop', { defaultValue: 'Or drop the file here' })}
+                {t('runtimeConfig.profiles.importLibraryFormat', { defaultValue: 'Supports JSON setup files (.json)' })}
               </p>
             </div>
           )}

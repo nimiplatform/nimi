@@ -47,6 +47,9 @@ import {
 } from './runtime-config-loadout-model-picker.js';
 import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell.js';
 import { localizedAssetUnhealthyReason } from './runtime-config-reason-messages.js';
+import { loadoutValidationMessages } from './runtime-loadout-validation.js';
+import { LOADOUT_ENVIRONMENT_KEY } from './runtime-local-model-status.js';
+import { configurationShortId } from './runtime-local-model-list.js';
 import type {
   RuntimeConfigLoadoutNavigationContext,
   RuntimeConfigModelMarketContext,
@@ -77,6 +80,9 @@ type PendingRecommendedInstall = {
 };
 export function SavedConfigsView(props: {
   readonly contextual?: boolean;
+  /** Open this exact saved configuration without selecting or changing it. */
+  readonly initialLoadoutId?: string;
+  readonly backLabel?: string;
   readonly capabilityContract?: string;
   readonly navigationContext: RuntimeConfigLoadoutNavigationContext | null;
   readonly onBack: () => void;
@@ -106,7 +112,7 @@ export function SavedConfigsView(props: {
   const [createAxes, setCreateAxes] = useState<Record<string, string>>({});
   const [pickerSlotId, setPickerSlotId] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, EditDraft>>({});
-  const [manageLoadoutId, setManageLoadoutId] = useState<string | null>(null);
+  const [manageLoadoutId, setManageLoadoutId] = useState<string | null>(props.initialLoadoutId ?? null);
   const [, setImpactRevision] = useState(0);
   const [pendingInstall, setPendingInstall] = useState<PendingRecommendedInstall | null>(null);
   const pendingImpact = impactState.current();
@@ -148,6 +154,7 @@ export function SavedConfigsView(props: {
     void Promise.all([
       queryClient.invalidateQueries({ queryKey: ['app-ai-config'] }),
       queryClient.invalidateQueries({ queryKey: CAPABILITY_INVENTORY_KEY }),
+      queryClient.invalidateQueries({ queryKey: LOADOUT_ENVIRONMENT_KEY }),
       queryClient.invalidateQueries({ queryKey: ['desktop', 'machine-local-ai-config-selections'] }),
     ]);
   }, [queryClient]);
@@ -481,7 +488,7 @@ export function SavedConfigsView(props: {
         actions={(
           <>
             <Button size="sm" tone="ghost" data-testid="saved-configs-back" onClick={props.onBack}>
-              {props.contextual ? t('runtimeConfig.product.backToCustomization') : t('runtimeConfig.aiSettings.savedConfigsBack', { defaultValue: 'Back to AI Settings' })}
+              {props.backLabel ?? (props.contextual ? t('runtimeConfig.product.backToCustomization') : t('runtimeConfig.aiSettings.savedConfigsBack', { defaultValue: 'Back to AI Settings' }))}
             </Button>
             <Button size="sm" tone="primary" onClick={() => beginCreate(activeCapability || undefined)}>{t('runtimeConfig.loadouts.create')}</Button>
           </>
@@ -498,6 +505,9 @@ export function SavedConfigsView(props: {
             <p className="mt-2 break-all">{technicalError}</p>
           </details>
         </InlineAlert>
+      ) : null}
+      {!loading && !technicalError && props.initialLoadoutId && !aggregate?.loadouts.some((item) => item.loadoutId === props.initialLoadoutId) ? (
+        <InlineAlert tone="warning">{t('runtimeConfig.localModels.configurationMissing')}</InlineAlert>
       ) : null}
       {loading ? <LoadingSkeleton lines={5} label={t('Common.loading', { defaultValue: 'Loading…' })} /> : capabilities.length > 0 ? (
         <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="machine-loadouts-list">
@@ -759,13 +769,19 @@ export function SavedConfigsView(props: {
         kind="drawer"
         size="M"
         title={manageLoadout?.displayName ?? ''}
-        onClose={() => setManageLoadoutId(null)}
+        onClose={() => props.initialLoadoutId ? props.onBack() : setManageLoadoutId(null)}
+        footer={props.initialLoadoutId ? (
+          <Button tone="secondary" onClick={props.onBack} data-testid="model-configuration-back">
+            {props.backLabel ?? t('runtimeConfig.localModels.backToModels')}
+          </Button>
+        ) : undefined}
         panelClassName="flex max-h-screen flex-col overflow-hidden"
         contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden px-0 py-0"
       >
         <ScrollShell className="flex-1 px-6 py-2">
           {manageLoadout && manageDraft ? (
             <div className="grid gap-5 py-2" data-testid={`loadout-manage:${manageLoadout.loadoutId}`}>
+              <p className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.localModels.configurationId', { id: configurationShortId(manageLoadout, aggregate?.loadouts ?? []) })}</p>
               <div className="grid gap-1 text-sm">
                 <span>{t('runtimeConfig.loadouts.name')}</span>
                 <div className="flex gap-2">
@@ -804,7 +820,7 @@ export function SavedConfigsView(props: {
                     <div key={axis.slotId} className="grid gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                          <span>{axis.displayLabel}</span>
+                          <LoadoutSlotLabel slot={axis} />
                           {axis.modelAssetId ? (
                             <StatusBadge tone={healthy ? 'success' : 'warning'} shape="soft">
                               {t(healthy ? 'runtimeConfig.loadouts.axisStatus.verified' : 'runtimeConfig.loadouts.axisStatus.attention')}
@@ -815,7 +831,8 @@ export function SavedConfigsView(props: {
                         {error ? <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{t('runtimeConfig.loadouts.incompatibleSummary')}</p> : null}
                       </div>
                       <SelectField
-                        value={manageDraft.modelAssetIds[axis.slotId] || LOADOUT_UNSET_MODEL_OPTION_VALUE}
+                        value={manageDraft.modelAssetIds[axis.slotId] || (axis.presence === 'optional-conditional' ? LOADOUT_UNSET_MODEL_OPTION_VALUE : '')}
+                        placeholder={t('runtimeConfig.loadouts.chooseModels')}
                         options={[
                           ...(axis.presence === 'optional-conditional'
                             ? [{ value: LOADOUT_UNSET_MODEL_OPTION_VALUE, label: t('runtimeConfig.loadouts.unresolved') }]
@@ -848,13 +865,15 @@ export function SavedConfigsView(props: {
                 compact
               />
 
-              {manageLoadout.reasons.length > 0 ? (
-                <p className="break-all text-xs text-[var(--nimi-status-danger)]">{manageLoadout.reasons.join(', ')}</p>
-              ) : null}
+              {loadoutValidationMessages(manageLoadout, t).map((message) => (
+                <p key={message} className="text-sm text-[var(--nimi-status-warning)]">{message}</p>
+              ))}
 
               <details className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3 text-xs text-[var(--nimi-text-muted)]" data-testid="loadout-execution-supply">
                 <summary className="cursor-pointer font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
                 <div className="mt-3 grid gap-3">
+                  <p>{t('runtimeConfig.localModels.configurationId', { id: manageLoadout.loadoutId })}</p>
+                  {manageLoadout.reasons.length > 0 ? <p className="break-all">{manageLoadout.reasons.join(', ')}</p> : null}
                   <p>{manageLoadout.capabilityContract} · {manageLoadout.recipeId}@{manageLoadout.recipeRevision} · {manageLoadout.implementation.driverDialect}</p>
                   <p>{t('runtimeConfig.loadouts.implementationSupportedFeatures')}: {manageLoadout.implementationSupportedFeatures.length > 0 ? manageLoadout.implementationSupportedFeatures.join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>
                   <p>{t('runtimeConfig.loadouts.configuredFeatures')}: {manageLoadout.configuredFeatures.length > 0 ? manageLoadout.configuredFeatures.join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>

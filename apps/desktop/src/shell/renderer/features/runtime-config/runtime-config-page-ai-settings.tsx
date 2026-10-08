@@ -7,14 +7,12 @@ import {
   Surface,
 } from '@nimiplatform/kit/ui';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
-import { useQueryClient } from '@tanstack/react-query';
 import { CircleDashed, LoaderCircle, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
-import { desktopNimiAppAIConfigQueryKey } from '../chat/chat-nimi-app-ai-config.js';
 import { RuntimeCapabilityApps, useCapabilityAppsColumn } from './runtime-capability-apps.js';
 import { RuntimeCapabilityDetail } from './runtime-capability-detail.js';
 import {
@@ -43,6 +41,8 @@ import type {
 import { RuntimeConfigSetupTaskView } from './runtime-config-setup-task-view.js';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types.js';
 import { RuntimeLocalModelListSection } from './runtime-local-model-list-section.js';
+import type { LocalModelConfiguration } from './runtime-local-model-list.js';
+import { SavedConfigsView } from './runtime-config-page-loadouts.js';
 import {
   CONVERSATION_CAPABILITY,
   type RuntimeProfileQuickStartConversation,
@@ -61,7 +61,6 @@ import {
 import {
   createRuntimeSetupCandidate,
   resolveRuntimeSetupPreparation,
-  reuseRuntimeSetupCurrent,
   runRuntimeSetupPreparation,
 } from './runtime-setup-task-runner.js';
 import { getRuntimeSetupTaskStore, type RuntimeSetupTaskDraft } from './runtime-setup-task-store.js';
@@ -110,9 +109,7 @@ export function RailStatusMark(props: { readonly state: CapabilityPreparationSta
 export function AiSettingsPage(props: AiSettingsPageProps) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
-  const queryClient = useQueryClient();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const inventory = useCapabilityInventory();
   const library = useRuntimeModelLibrary();
@@ -121,6 +118,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const ports = useMemo(() => createRuntimeSetupTaskRunnerPorts(sdk, localEnvironment), [sdk, localEnvironment]);
   const [capability, setCapability] = useState<string | null>(null);
   const [section, setSection] = useState('overview');
+  const [modelConfiguration, setModelConfiguration] = useState<LocalModelConfiguration | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<RuntimeSetupFailureNotice | null>(null);
   const [homeRevision, setHomeRevision] = useState(0);
@@ -130,6 +128,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const label = (id: string) => displayRuntimeConfigCapabilityLabel(id, t);
   useEffect(() => {
     if (props.profileUseOwner) {
+      setModelConfiguration(null);
       setCapability(null);
       setSection('overview');
     }
@@ -138,6 +137,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     if (props.actionFocus?.focus !== 'runtime-config-action-focus.saved-configs') return;
     const target = props.savedConfigsContext?.capabilityContract ?? inventory.capabilities[0];
     if (!target) return;
+    setModelConfiguration(null);
     setCapability(target);
     setSection('saved');
     props.onClearActionFocus();
@@ -146,6 +146,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   useEffect(() => {
     const target = props.savedConfigsContext?.capabilityContract;
     if (target && !props.actionFocus) {
+      setModelConfiguration(null);
       setCapability(target);
       setSection('overview');
       // Returning from acquisition refreshes files and choices without selecting a model.
@@ -366,11 +367,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       setBusy(false);
     }
   };
-  // The conversation quick start reads the same preparation facts as the rail
-  // and, separately, whether Nimi Chat already routes to Local (read inside
-  // the card). Reusing the current machine configuration never creates or
-  // selects a Loadout and never installs; its only possible write is the
-  // Nimi Chat route.
+  // The first-setup fallback reads the same preparation facts as the rail.
   const conversationEntry = railEntries.find((entry) => entry.id === CONVERSATION_CAPABILITY);
   const conversation: RuntimeProfileQuickStartConversation = {
     pending: inventory.isPending,
@@ -382,29 +379,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         tasks: inventory.tasks,
         unavailable: inventory.isError,
       }),
-    model: conversationEntry?.model ?? '',
-    onOpenChat: () => {
-      setChatMode('ai');
-      setActiveTab('chat');
-    },
-    onUseInChat: async () => {
-      const task = store.createTask({
-        capabilityContract: CONVERSATION_CAPABILITY,
-        source: {
-          kind: 'app',
-          ownerAppId: sdk.appId(),
-          accountId: await currentDesktopAccountIdForSetup(),
-          returnFocus: 'chat',
-        },
-      });
-      const result = await reuseRuntimeSetupCurrent(store, task.taskId, ports);
-      if (result.status !== 'ok') {
-        openSetupTask(task.taskId);
-        return { ok: false, message: runtimeSetupFailureText(result.failure, t) };
-      }
-      await queryClient.invalidateQueries({ queryKey: desktopNimiAppAIConfigQueryKey(sdk.appId()) });
-      return { ok: true };
-    },
     onOpenDetail: () => openCapability(CONVERSATION_CAPABILITY),
     onOpenTask: props.onOpenSetupTask,
     onRetry: () => {
@@ -412,6 +386,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     },
   };
   const onHome = () => {
+    setModelConfiguration(null);
     props.onCloseSetupTask();
     props.onCloseSavedConfigs();
     setCapability(null);
@@ -421,6 +396,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     void inventory.refetch();
   };
   const openCapability = (id: string) => {
+    setModelConfiguration(null);
     props.onCloseSetupTask();
     props.onCloseSavedConfigs();
     setCapability(id);
@@ -430,6 +406,14 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       capability: id, inventory: inventory.data, tasks: inventory.tasks, unavailable: inventory.isError,
     }).task;
     if (pending?.source.kind === 'runtime' && !pending.draft?.profileUseId) openSetupTask(pending.taskId);
+  };
+  // Model rows keep their exact Loadout identity; opening one never changes the default.
+  const openModelConfiguration = (configuration: LocalModelConfiguration) => {
+    props.onCloseSetupTask();
+    props.onCloseSavedConfigs();
+    setCapability(configuration.capability);
+    setModelConfiguration(configuration);
+    setError(null);
   };
   const onReturnToSource = () => {
     const target = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
@@ -486,10 +470,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           className="px-4 pb-3 pt-5 text-left"
           data-testid="ai-capabilities-home"
         >
-          <span className="block text-lg font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.capabilities.title')}
+          <span className="flex items-end justify-between gap-2">
+            <span className="text-lg font-semibold text-[var(--nimi-text-primary)]">
+              {t('runtimeConfig.capabilities.title')}
+            </span>
+            <span className="pb-0.5 text-right text-xs text-[var(--nimi-text-secondary)]">{railSummary}</span>
           </span>
-          <span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{railSummary}</span>
         </button>
         <ScrollArea
           className="min-h-0 flex-1"
@@ -616,6 +602,18 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                 onReturnToSource={onReturnToSource}
               />
             )
+          ) : modelConfiguration ? (
+            <SavedConfigsView
+              key={modelConfiguration.loadoutId}
+              contextual
+              capabilityContract={modelConfiguration.capability}
+              initialLoadoutId={modelConfiguration.loadoutId}
+              navigationContext={null}
+              backLabel={t('runtimeConfig.localModels.backToModels')}
+              onBack={onHome}
+              onOpenAdvancedDiagnostics={props.onOpenAdvancedDiagnostics}
+              onOpenModelMarket={props.onOpenModelMarket}
+            />
           ) : !visibleCapability ? (
             <div className="space-y-6">
               <RuntimeConfigAiSettingsProfilesSection
@@ -623,6 +621,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                 title={t('runtimeConfig.product.setupsTitle')}
                 lead={inventory.isPending ? '' : railSummary}
                 conversation={conversation}
+                capabilities={railEntries}
+                onOpenCapability={openCapability}
                 store={store}
                 ports={ports}
                 runtimeWritesDisabled={props.runtimeWritesDisabled}
@@ -643,6 +643,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     }}
                     tasks={inventory.tasks}
                     onOpenCapability={openCapability}
+                    onOpenConfiguration={openModelConfiguration}
+                    onOpenTask={openSetupTask}
                     onOpenModelFiles={props.onOpenModelFiles}
                   />
                 }

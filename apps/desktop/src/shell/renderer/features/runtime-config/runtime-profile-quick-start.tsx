@@ -10,42 +10,64 @@ import {
   Download,
   LoaderCircle,
   MessageSquare,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { findDesktopNimiTextIntent, useDesktopNimiAppAIConfig } from '../chat/chat-nimi-app-ai-config.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
 import {
+  capabilityIcon,
   contextFitReduced,
   formatContextTokens,
   modelDisplayTitle,
   recipeRecommendedContextFit,
   recipeResourceSummary,
 } from './runtime-capability-presentation.js';
+import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
 import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 
 /** The capability the on-device conversation quick start is about. */
 export const CONVERSATION_CAPABILITY = 'text.generate';
 
+// Mirrors the kit AmbientBackground mesh recipe through the shared ambient
+// tokens. AmbientBackground itself is not importable here: the desktop
+// node:test pipeline compiles kit/ui source with classic JSX, which that
+// component does not survive (same constraint as the first-run chrome).
+const QUICK_START_MESH_STYLE: CSSProperties = {
+  background: [
+    'radial-gradient(ellipse at 0% 0%, var(--nimi-ambient-mesh-color-1) 0%, transparent 50%)',
+    'radial-gradient(ellipse at 100% 0%, var(--nimi-ambient-mesh-color-2) 0%, transparent 50%)',
+    'radial-gradient(ellipse at 100% 100%, var(--nimi-ambient-mesh-color-3) 0%, transparent 50%)',
+    'radial-gradient(ellipse at 0% 100%, var(--nimi-ambient-mesh-color-4) 0%, transparent 50%)',
+    'linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%)',
+  ].join(', '),
+};
+
+const PRIMARY_ICON_TILE_STYLE: CSSProperties = {
+  background:
+    'linear-gradient(135deg, color-mix(in srgb, var(--nimi-action-primary-bg) 72%, #ffffff) 0%, var(--nimi-action-primary-bg) 100%)',
+  boxShadow: '0 10px 24px color-mix(in srgb, var(--nimi-action-primary-bg) 32%, transparent)',
+};
+
+export type RuntimeOverviewCapability = {
+  readonly id: string;
+  readonly model: string;
+  readonly state: ReturnType<typeof capabilityPreparationState>;
+};
+
 /**
  * What the quick start knows about the current on-device conversation
  * preparation, read from the same inventory as the capability rail, plus
- * the actions it may take. Whether Nimi Chat already routes to Local is a
- * separate owner fact and is read inside the card.
+ * the actions it may take when no capability is prepared yet.
  */
 export type RuntimeProfileQuickStartConversation = {
   readonly pending: boolean;
   readonly preparation: ReturnType<typeof capabilityPreparationState>;
-  /** Short title of the current default model for text generation, when prepared. */
-  readonly model: string;
-  readonly onOpenChat: () => void;
-  /** Reuses the current machine configuration for Nimi Chat: no machine write, only the owner route. */
-  readonly onUseInChat: () => Promise<{ readonly ok: true } | { readonly ok: false; readonly message: string }>;
   readonly onOpenDetail: () => void;
   readonly onOpenTask: (taskId: string) => void;
   readonly onRetry: () => void;
@@ -104,16 +126,16 @@ export function recommendedPortableProfile(
 }
 
 /**
- * The on-device conversation quick start is a state component, not a fixed
- * recommendation. It answers three questions: can I chat on this device,
- * with which model, and where do I start. Readiness comes from the same
- * machine preparation facts as the capability rail; whether Nimi Chat
- * already uses that preparation is read from the Nimi Chat owner AIConfig.
- * Recommended files on the device are only ever "files on device".
+ * Overview readiness uses the same entries as the capability rail. Each
+ * prepared capability gets its model and entry point; when none are ready,
+ * the conversation quick start guides the first setup. Ready entries all
+ * open their capability details, without projecting app-specific usage.
  */
 export function RuntimeProfileQuickStart(props: {
   readonly disabled: boolean;
   readonly conversation: RuntimeProfileQuickStartConversation;
+  readonly capabilities: readonly RuntimeOverviewCapability[];
+  readonly onOpenCapability: (capability: string) => void;
   readonly onUse: (profile: NimiPortableAIProfile) => void;
 }) {
   const { t } = useTranslation();
@@ -126,7 +148,58 @@ export function RuntimeProfileQuickStart(props: {
       </QuickStartShell>
     );
   }
-  if (state === 'ready') return <ReadyQuickStart conversation={conversation} disabled={props.disabled} />;
+  const ready = props.capabilities.filter((entry) => entry.state.state === 'ready');
+  if (ready.length > 0) {
+    return (
+      <QuickStartShell icon={Sparkles} state="ready">
+        <div className="space-y-1">
+          <QuickStartTitle>{t('runtimeConfig.quickStart.readyTitle')}</QuickStartTitle>
+        </div>
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
+          {ready.map((entry) => {
+            const Icon = capabilityIcon(entry.id);
+            const label = displayRuntimeConfigCapabilityLabel(entry.id, t);
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                className="group flex items-center gap-3 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 text-left shadow-[var(--nimi-elevation-base)] transition-[box-shadow,transform] duration-200 hover:shadow-[var(--nimi-elevation-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)] motion-safe:hover:-translate-y-0.5"
+                data-ready-capability={entry.id}
+                aria-label={t('runtimeConfig.quickStart.viewCapability', { capability: label })}
+                onClick={() => props.onOpenCapability(entry.id)}
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]">
+                  <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1 space-y-1.5">
+                  <span className="block truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{label}</span>
+                  {entry.model ? (
+                    <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2 py-0.5 text-xs font-medium text-[var(--nimi-status-success-soft-text)]">
+                      <Check size={12} className="shrink-0" aria-hidden="true" />
+                      <span className="truncate">{entry.model}</span>
+                    </span>
+                  ) : null}
+                  {entry.state.replacement && entry.state.task ? (
+                    <Fact tone="pending">
+                      {t('runtimeConfig.capabilities.replacement')} · {t(`runtimeConfig.setupTask.status.${entry.state.task.status}`)}
+                    </Fact>
+                  ) : null}
+                </span>
+                <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--nimi-text-muted)] transition-colors duration-200 group-hover:text-[var(--nimi-action-primary-bg)]">
+                  {t('runtimeConfig.quickStart.view')}
+                  <ArrowRight
+                    size={14}
+                    aria-hidden="true"
+                    className="transition-transform duration-200 group-hover:translate-x-0.5"
+                  />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </QuickStartShell>
+    );
+  }
   if (state === 'preparing') {
     const task = conversation.preparation.task;
     return (
@@ -189,21 +262,24 @@ function QuickStartShell(props: {
   readonly children: ReactNode;
 }) {
   const Icon = props.icon;
-  const iconClass =
-    props.state === 'attention'
-      ? 'text-[var(--nimi-status-warning)]'
-      : props.state === 'unknown'
-        ? 'text-[var(--nimi-text-muted)]'
-        : 'text-[var(--nimi-action-primary-bg)]';
+  const attention = props.state === 'attention';
+  const muted = props.state === 'unknown';
+  const iconTileClass = attention
+    ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
+    : muted
+      ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-[var(--nimi-elevation-base)]'
+      : 'text-[var(--nimi-action-primary-text)]';
   return (
     <section
-      className="rounded-2xl bg-[var(--nimi-surface-active)] p-5 lg:p-6"
+      className="rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-border-subtle)] p-5 shadow-[var(--nimi-elevation-base)] lg:p-6"
+      style={QUICK_START_MESH_STYLE}
       data-testid="ai-profile-quick-start"
       data-quick-start-state={props.state}
     >
       <div className="flex flex-wrap items-start gap-5">
         <span
-          className={`flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--nimi-surface-card)] ${iconClass}`}
+          className={`flex size-14 shrink-0 items-center justify-center rounded-2xl ${iconTileClass}`}
+          style={attention || muted ? undefined : PRIMARY_ICON_TILE_STYLE}
         >
           <Icon
             size={28}
@@ -219,7 +295,7 @@ function QuickStartShell(props: {
 }
 
 function QuickStartTitle(props: { readonly children: ReactNode }) {
-  return <h2 className="text-lg font-semibold">{props.children}</h2>;
+  return <h2 className="text-xl font-bold text-[var(--nimi-text-primary)]">{props.children}</h2>;
 }
 
 function Fact(props: { readonly tone: 'good' | 'muted' | 'pending'; readonly children: ReactNode }) {
@@ -234,91 +310,6 @@ function Fact(props: { readonly tone: 'good' | 'muted' | 'pending'; readonly chi
       )}
       {props.children}
     </span>
-  );
-}
-
-/**
- * Machine preparation is ready. The remaining question is whether Nimi Chat
- * already routes text generation to Local; if not, the action is the no-write
- * reuse of the current machine configuration, which saves only that route.
- */
-function ReadyQuickStart(props: {
-  readonly conversation: RuntimeProfileQuickStartConversation;
-  readonly disabled: boolean;
-}) {
-  const { t } = useTranslation();
-  const sdk = useDesktopRendererSdk();
-  const { conversation } = props;
-  const appConfig = useDesktopNimiAppAIConfig(sdk.appId());
-  const chatLocal = findDesktopNimiTextIntent(appConfig.data?.config)?.route.oneofKind === 'local';
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const useInChat = async () => {
-    setBusy(true);
-    setError('');
-    try {
-      const result = await conversation.onUseInChat();
-      if (!result.ok) setError(result.message);
-      else await appConfig.refetch();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
-    } finally {
-      setBusy(false);
-    }
-  };
-  const replacement = conversation.preparation.replacement ? conversation.preparation.task : undefined;
-  const model = conversation.model;
-  return (
-    <QuickStartShell icon={MessageSquare} state="ready">
-      <QuickStartTitle>{t('runtimeConfig.quickStart.readyTitle')}</QuickStartTitle>
-      {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-        {model ? (
-          <span className="flex items-center gap-2 font-medium text-[var(--nimi-text-primary)]">
-            <IdentityTile seed={model.split(/\s+/u)[0] ?? model} label={model} size="sm" />
-            {model}
-          </span>
-        ) : null}
-        <Fact tone="good">{t('runtimeConfig.quickStart.readyDefault')}</Fact>
-        {appConfig.isPending ? (
-          <Fact tone="pending">{t('Common.loading')}</Fact>
-        ) : appConfig.isError ? (
-          <Fact tone="muted">{t('runtimeConfig.quickStart.chatUnknown')}</Fact>
-        ) : chatLocal ? (
-          <Fact tone="good">{t('runtimeConfig.quickStart.chatUsesLocal')}</Fact>
-        ) : (
-          <Fact tone="muted">{t('runtimeConfig.quickStart.chatNotLocal')}</Fact>
-        )}
-        {replacement ? (
-          <Fact tone="pending">
-            {t('runtimeConfig.capabilities.replacement')} · {t(`runtimeConfig.setupTask.status.${replacement.status}`)}
-          </Fact>
-        ) : null}
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {chatLocal || appConfig.isError ? (
-          <Button tone="primary" onClick={conversation.onOpenChat} data-testid="ai-profile-quick-start-open-chat">
-            {t('runtimeConfig.quickStart.openChat')}
-            <ArrowRight size={15} />
-          </Button>
-        ) : (
-          <Button
-            tone="primary"
-            disabled={busy || props.disabled || appConfig.isPending}
-            onClick={() => {
-              void useInChat();
-            }}
-            data-testid="ai-profile-quick-start-use-in-chat"
-          >
-            {busy ? t('Common.loading') : t('runtimeConfig.quickStart.useInChat')}
-            <ArrowRight size={15} />
-          </Button>
-        )}
-        <Button tone="ghost" size="sm" onClick={conversation.onOpenDetail} data-testid="ai-profile-quick-start-detail">
-          {t('runtimeConfig.quickStart.viewDetail')}
-        </Button>
-      </div>
-    </QuickStartShell>
   );
 }
 

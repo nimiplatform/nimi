@@ -19,6 +19,7 @@ import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useAppsDownloads } from '../apps/apps-downloads-context.js';
 import { packageJobIsTerminal } from '../apps/apps-downloads-observer.js';
 import { CAPABILITY_INVENTORY_KEY } from './runtime-capability-inventory.js';
+import { LOADOUT_ENVIRONMENT_KEY } from './runtime-local-model-status.js';
 import { createRuntimeConfigLocalEnvironmentClient, RuntimeDownloadActivityContext } from './runtime-config-local-environment-sdk-service.js';
 import { isDownloadTerminal } from './runtime-config-model-center-utils.js';
 import { RUNTIME_MODEL_LIBRARY_KEY } from './use-runtime-model-library.js';
@@ -116,6 +117,7 @@ export function GlobalDownloadsProvider({ children }: PropsWithChildren) {
           .join(';');
         if (phaseSignature.current && phaseSignature.current !== signature) {
           void queryClient.invalidateQueries({ queryKey: CAPABILITY_INVENTORY_KEY });
+          void queryClient.invalidateQueries({ queryKey: LOADOUT_ENVIRONMENT_KEY });
           void queryClient.invalidateQueries({ queryKey: RUNTIME_MODEL_LIBRARY_KEY });
           void queryClient.invalidateQueries({ queryKey: ['desktop', 'apps-overview'] });
         }

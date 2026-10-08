@@ -37,6 +37,10 @@ export type LocalModelConfiguration = {
   readonly isDefault: boolean;
   /** How this variant participates in the configuration. */
   readonly role: LocalModelSlotRole;
+  /** Exact references survive grouping by content and configuration identity. */
+  readonly references: readonly { readonly modelAssetId: string; readonly slotId: string; readonly role: LocalModelSlotRole }[];
+  readonly primaryModels: readonly string[];
+  readonly createdAt: string;
 };
 
 export type LocalModelVariant = {
@@ -50,6 +54,8 @@ export type LocalModelVariant = {
   readonly format: string | null;
   readonly sizeBytes: number;
   readonly fileCount: number;
+  /** Earliest time this content was added to the device; empty when the runtime did not record one. */
+  readonly addedAt: string;
   /** True when neither the catalog, a recipe slot nor a saved configuration identifies a use. */
   readonly useNotIdentified: boolean;
   readonly configurableFor: readonly LocalModelConfigurable[];
@@ -138,6 +144,7 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
   }
   const selectedByCapability = new Map(input.selections.map((item) => [item.capabilityContract, item.loadoutId]));
   const recipeTitleById = new Map(input.recipes.map((recipe) => [recipe.recipeId, modelDisplayTitle(recipe.title)]));
+  const assetById = new Map(input.assets.map((asset) => [asset.modelAssetId, asset]));
 
   // asset id -> configurable uses, from recipe slot offers that resolve to an installed asset
   const configurableByAsset = new Map<string, LocalModelConfigurable[]>();
@@ -165,6 +172,12 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
   // asset id -> titles of the model setups it serves as a companion, in Loadout order
   const companionServedByAsset = new Map<string, string[]>();
   for (const loadout of input.loadouts) {
+    const primaryModels = loadout.modelAxes.filter((axis) => localModelSlotRole(axis.slotId) === 'model').flatMap((axis) => {
+      const asset = assetById.get(axis.modelAssetId);
+      if (!asset) return [];
+      const naming = variantTitle(asset, descriptorByContent.get(asset.contentId));
+      return [[naming.title, naming.quantLabel].filter(Boolean).join(' · ')];
+    });
     for (const axis of loadout.modelAxes) {
       if (!axis.modelAssetId) continue;
       const role = localModelSlotRole(axis.slotId);
@@ -177,16 +190,18 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
         }
       }
       const list = configurationsByAsset.get(axis.modelAssetId) ?? [];
-      if (list.some((item) => item.loadoutId === loadout.loadoutId)) continue;
-      list.push({
+      const configuration: LocalModelConfiguration = {
         loadoutId: loadout.loadoutId,
         capability: loadout.capabilityContract,
         displayName: loadout.displayName,
         validationState: loadout.validationState,
         isDefault: selectedByCapability.get(loadout.capabilityContract) === loadout.loadoutId,
         role,
-      });
-      configurationsByAsset.set(axis.modelAssetId, list);
+        references: [{ modelAssetId: axis.modelAssetId, slotId: axis.slotId, role }],
+        primaryModels: [...new Set(primaryModels)],
+        createdAt: loadout.createdAt ?? '',
+      };
+      configurationsByAsset.set(axis.modelAssetId, mergeConfigurations(list, [configuration]));
     }
   }
 
@@ -204,9 +219,10 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
         variant: {
           ...existing.variant,
           assetIds: [...existing.variant.assetIds, asset.modelAssetId],
+          addedAt: earliestTimestamp(existing.variant.addedAt, asset.createdAt),
           useNotIdentified: existing.variant.useNotIdentified && configurableFor.length === 0 && configurations.length === 0,
           configurableFor: mergeConfigurable(existing.variant.configurableFor, configurableFor),
-          configurations: [...existing.variant.configurations, ...configurations],
+          configurations: mergeConfigurations(existing.variant.configurations, configurations),
         },
       });
       continue;
@@ -225,6 +241,7 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
         format: presentation.format,
         sizeBytes: asset.totalSizeBytes,
         fileCount: asset.files.length,
+        addedAt: asset.createdAt,
         useNotIdentified: !descriptor && configurableFor.length === 0 && configurations.length === 0,
         configurableFor: sortConfigurable(configurableFor),
         configurations,
@@ -258,6 +275,7 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
     }))
     .sort((left, right) => {
       const rank = (entry: LocalModelEntry) => {
+        if (entry.variants.every(isCompanionVariant)) return 4;
         if (entry.variants.some((variant) => variant.configurations.some((item) => item.isDefault))) return 0;
         if (entry.variants.some((variant) => variant.configurations.length > 0)) return 1;
         if (entry.variants.every((variant) => variant.useNotIdentified)) return 3;
@@ -265,6 +283,42 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
       };
       return rank(left) - rank(right) || left.title.localeCompare(right.title);
     });
+}
+
+export function isCompanionVariant(variant: LocalModelVariant): boolean {
+  const roles = [...variant.configurableFor, ...variant.configurations].map((item) => item.role);
+  return roles.length > 0 && roles.every((role) => role === 'companion');
+}
+
+/** The earlier of two ISO timestamps; empty values never win. */
+function earliestTimestamp(left: string, right: string): string {
+  if (!left) return right;
+  if (!right) return left;
+  return left <= right ? left : right;
+}
+
+function mergeConfigurations(left: readonly LocalModelConfiguration[], right: readonly LocalModelConfiguration[]): LocalModelConfiguration[] {
+  const merged = new Map(left.map((item) => [item.loadoutId, item]));
+  for (const item of right) {
+    const existing = merged.get(item.loadoutId);
+    if (!existing) { merged.set(item.loadoutId, item); continue; }
+    const references = [...existing.references];
+    for (const reference of item.references) {
+      if (!references.some((known) => known.modelAssetId === reference.modelAssetId && known.slotId === reference.slotId)) references.push(reference);
+    }
+    merged.set(item.loadoutId, { ...existing, references, role: references.some((reference) => reference.role === 'model') ? 'model' : 'companion' });
+  }
+  return [...merged.values()];
+}
+
+/** A stable, unambiguous label even when names, models and timestamps coincide. */
+export function configurationShortId(configuration: Pick<LocalModelConfiguration, 'loadoutId'>, configurations: readonly Pick<LocalModelConfiguration, 'loadoutId'>[]): string {
+  const id = configuration.loadoutId;
+  for (let length = Math.min(8, id.length); length < id.length; length += 1) {
+    const suffix = id.slice(-length);
+    if (!configurations.some((item) => item.loadoutId !== id && item.loadoutId.endsWith(suffix))) return suffix;
+  }
+  return id;
 }
 
 function mergeConfigurable(
@@ -295,7 +349,7 @@ function sortConfigurations(items: readonly LocalModelConfiguration[]): LocalMod
     (left, right) =>
       Number(right.isDefault) - Number(left.isDefault) ||
       left.capability.localeCompare(right.capability) ||
-      left.displayName.localeCompare(right.displayName),
+      left.displayName.localeCompare(right.displayName) || left.createdAt.localeCompare(right.createdAt) || left.loadoutId.localeCompare(right.loadoutId),
   );
 }
 

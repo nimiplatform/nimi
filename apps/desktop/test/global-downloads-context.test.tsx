@@ -83,10 +83,13 @@ test('local task creation wakes idle Downloads before appearing in Runtime and r
     await act(async () => { pending[0]!(failure); await first; await settle(); });
     assert.equal(await first, failure, 'observer must preserve the install error');
     assert.equal(timer?.delay, 2_000, 'one rejection must not stop observing the other pending install');
+    const cachedEnvironmentKey = ['runtime', 'loadout-environment', 'saved-loadout', 'unchanged-revision'];
+    queryClient.setQueryData(cachedEnvironmentKey, { state: 'ready' });
     transfers = [{ installSessionId: 'new-transfer', state: 'running' }];
     await act(async () => { timer?.callback(); await settle(); });
     assert.equal(downloads.activeCount, 1);
     assert.equal(downloads.transfers[0]?.installSessionId, 'new-transfer');
+    assert.equal(queryClient.getQueryState(cachedEnvironmentKey)?.isInvalidated, true, 'Runtime task changes invalidate saved configuration environment checks');
     transfers = [{ installSessionId: 'new-transfer', state: 'cancelled' }];
     const cancelled = new Error('second install cancelled');
     await act(async () => { pending[1]!(cancelled); await second; await settle(); });

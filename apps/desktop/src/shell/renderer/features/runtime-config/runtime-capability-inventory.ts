@@ -1,5 +1,4 @@
 import {
-  isNimiRuntimeLocalEnvironmentDependencyReadyState,
   type NimiLoadoutRecipe,
   type NimiMachineLoadouts,
   type NimiRuntimeLocalEnvironmentPlan,
@@ -10,6 +9,7 @@ import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { useRuntimeSetupTasks, type RuntimeSetupTask } from './runtime-setup-task-store.js';
 import { RUNTIME_MODEL_LIBRARY_KEY } from './use-runtime-model-library.js';
+import { LOADOUT_ENVIRONMENT_KEY, loadoutPreparationStatus } from './runtime-local-model-status.js';
 
 export const CAPABILITY_INVENTORY_KEY = ['runtime', 'capability-inventory'] as const;
 const CAPABILITY_PRESENTATION_ORDER = [
@@ -59,18 +59,16 @@ export function capabilityPreparationState(input: {
   const selected = input.inventory.aggregate.loadouts.find((item) => item.loadoutId === selectedId);
   const environment = input.inventory.environments[input.capability];
   const configured = selected?.validationState === 'configured';
-  const ready =
-    configured &&
-    environment &&
-    environment.state !== 'unsupported' &&
-    environment.dependencies.every(
-      (item) => !item.required || isNimiRuntimeLocalEnvironmentDependencyReadyState(item.state),
-    );
+  const preparation = selected ? loadoutPreparationStatus({
+    loadout: selected,
+    check: environment ? { kind: 'checked', plan: environment } : { kind: 'failed' },
+    tasks: input.tasks,
+  }) : undefined;
   // A replacement is an unfinished task that has actually chosen a different
   // loadout. A draft that has not picked anything yet is not a replacement,
   // so the rail keeps showing the current model alone.
   const replacement = !!task?.candidateLoadoutId && task.candidateLoadoutId !== selectedId;
-  if (ready) return { state: 'ready', task, replacement };
+  if (preparation?.state === 'ready') return { state: 'ready', task, replacement };
   if (task?.status === 'preparing' || task?.status === 'committing')
     return { state: 'preparing', task, replacement: false };
   if (task?.status === 'failed' || task?.status === 'needs-attention')
@@ -120,6 +118,7 @@ export function useCapabilityInventory() {
   useEffect(() => {
     void queryClient.invalidateQueries({ queryKey: CAPABILITY_INVENTORY_KEY });
     void queryClient.invalidateQueries({ queryKey: RUNTIME_MODEL_LIBRARY_KEY });
+    void queryClient.invalidateQueries({ queryKey: LOADOUT_ENVIRONMENT_KEY });
   }, [queryClient, revision]);
   const capabilities = useMemo(
     () =>

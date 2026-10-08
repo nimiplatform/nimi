@@ -184,9 +184,6 @@ export function ProfileExportPanel(props: {
         <h2 className="text-xl font-semibold tracking-tight text-[var(--nimi-text-primary)]">
           {t('runtimeConfig.profiles.share.title', { defaultValue: 'Share my model setup' })}
         </h2>
-        <p className="text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
-          {t('runtimeConfig.profiles.share.lead', { defaultValue: 'Create a setup file to send to a colleague or another computer. It only says which model each use runs; the model files themselves are not included.' })}
-        </p>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1 text-xs text-[var(--nimi-text-secondary)]">
           <Lock size={13} strokeWidth={2} aria-hidden="true" className="text-[var(--nimi-status-success)]" />
           {t('runtimeConfig.profiles.share.privacyPill', { defaultValue: 'Never includes local paths, account details, or secrets' })}
@@ -308,11 +305,6 @@ export function ProfileExportPanel(props: {
             </Surface>
           ) : null}
 
-          {inventory ? (
-            <p className="px-1 text-xs leading-relaxed text-[var(--nimi-text-muted)]">
-              {t('runtimeConfig.profiles.share.notConfiguredNote', { defaultValue: 'Uses without a chosen model are not in the file. To share them, pick a model in AI Capabilities first.' })}
-            </p>
-          ) : null}
         </div>
 
         <Surface tone="card" className="space-y-4 p-4 lg:sticky lg:top-4" data-testid="runtime-profile-share-summary">
@@ -357,6 +349,9 @@ export function ProfileExportPanel(props: {
             >
               {t('runtimeConfig.profiles.share.exportAction', { defaultValue: 'Export setup file' })}
             </Button>
+            <p className="text-center text-xs text-[var(--nimi-text-muted)]">
+              {t('runtimeConfig.profiles.share.exportScopeHint', { defaultValue: 'Only shares settings, not model files.' })}
+            </p>
             <p className="text-center text-xs text-[var(--nimi-text-muted)]">
               {t('runtimeConfig.profiles.share.exportHint', {
                 defaultValue: 'Opens in Nimi via “{{action}}”',

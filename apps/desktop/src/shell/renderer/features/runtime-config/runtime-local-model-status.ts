@@ -24,6 +24,7 @@ export type LoadoutPreparationReason =
   | 'preparing'
   | 'task-failed'
   | 'configuration-incomplete'
+  | 'configuration-blocked'
   | 'environment-unsupported'
   | 'environment-missing'
   | 'not-checked'
@@ -38,6 +39,16 @@ export type LoadoutPreparationStatus = {
   readonly task?: RuntimeSetupTask;
 };
 
+export const LOADOUT_ENVIRONMENT_KEY = ['runtime', 'loadout-environment'] as const;
+
+/** Environment facts are independent of configuration validation and task history. */
+export function loadoutEnvironmentSummary(check: LoadoutEnvironmentCheck) {
+  if (check.kind !== 'checked') return undefined;
+  const required = check.plan.dependencies.filter((item) => item.required);
+  const missing = required.filter((item) => !isNimiRuntimeLocalEnvironmentDependencyReadyState(item.state));
+  return { count: required.length, ready: required.length - missing.length, missingDependencyIds: missing.map((item) => item.dependencyId) };
+}
+
 export function loadoutPreparationStatus(input: {
   readonly loadout: Pick<NimiMachineLoadout, 'loadoutId' | 'capabilityContract' | 'validationState'>;
   readonly check: LoadoutEnvironmentCheck;
@@ -48,18 +59,27 @@ export function loadoutPreparationStatus(input: {
     .find(
       (item) =>
         item.capabilityContract === input.loadout.capabilityContract &&
-        item.candidateLoadoutId === input.loadout.loadoutId,
+        item.candidateLoadoutId === input.loadout.loadoutId &&
+        item.status !== 'draft' && item.status !== 'review',
     );
   const task =
     latest && !['done', 'stopped'].includes(latest.status) && !latest.supersededBy ? latest : undefined;
+  const environment = loadoutEnvironmentSummary(input.check);
+  const missingDependencyIds = environment?.missingDependencyIds ?? [];
+  // A task can fail after machine preparation succeeds (for example while
+  // saving an App's route). Keep that task visible without negating readiness.
+  if (input.loadout.validationState === 'configured' && input.check.kind === 'checked'
+    && input.check.plan.state !== 'unsupported' && missingDependencyIds.length === 0) {
+    return { state: 'ready', reason: 'ready', missingDependencyIds, task };
+  }
   if (task?.status === 'preparing' || task?.status === 'committing') {
-    return { state: 'preparing', reason: 'preparing', missingDependencyIds: [], task };
+    return { state: 'preparing', reason: 'preparing', missingDependencyIds, task };
   }
   if (task?.status === 'failed' || task?.status === 'needs-attention') {
-    return { state: 'attention', reason: 'task-failed', missingDependencyIds: [], task };
+    return { state: 'attention', reason: 'task-failed', missingDependencyIds, task };
   }
   if (input.loadout.validationState !== 'configured') {
-    return { state: 'attention', reason: 'configuration-incomplete', missingDependencyIds: [], task };
+    return { state: 'attention', reason: input.loadout.validationState === 'blocked' ? 'configuration-blocked' : 'configuration-incomplete', missingDependencyIds, task };
   }
   switch (input.check.kind) {
     case 'not-checked':
@@ -71,13 +91,10 @@ export function loadoutPreparationStatus(input: {
     case 'checked': {
       const plan = input.check.plan;
       if (plan.state === 'unsupported') {
-        return { state: 'attention', reason: 'environment-unsupported', missingDependencyIds: [], task };
+        return { state: 'attention', reason: 'environment-unsupported', missingDependencyIds, task };
       }
-      const missing = plan.dependencies
-        .filter((item) => item.required && !isNimiRuntimeLocalEnvironmentDependencyReadyState(item.state))
-        .map((item) => item.dependencyId);
-      if (missing.length > 0) {
-        return { state: 'attention', reason: 'environment-missing', missingDependencyIds: missing, task };
+      if (missingDependencyIds.length > 0) {
+        return { state: 'attention', reason: 'environment-missing', missingDependencyIds, task };
       }
       return { state: 'ready', reason: 'ready', missingDependencyIds: [], task };
     }

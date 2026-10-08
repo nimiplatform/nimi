@@ -1,6 +1,7 @@
 import {
   RuntimeProfileQuickStart,
   type RuntimeProfileQuickStartConversation,
+  type RuntimeOverviewCapability,
 } from './runtime-profile-quick-start.js';
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
 
@@ -77,6 +78,8 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
   readonly lead: string;
   /** Current on-device conversation preparation and the actions the quick start can take. */
   readonly conversation: RuntimeProfileQuickStartConversation;
+  readonly capabilities: readonly RuntimeOverviewCapability[];
+  readonly onOpenCapability: (capability: string) => void;
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
   readonly runtimeWritesDisabled: boolean;
@@ -184,6 +187,8 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
             <RuntimeProfileQuickStart
               disabled={props.runtimeWritesDisabled}
               conversation={props.conversation}
+              capabilities={props.capabilities}
+              onOpenCapability={props.onOpenCapability}
               onUse={(source) =>
                 setMode({
                   kind: 'use',

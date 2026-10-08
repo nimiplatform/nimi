@@ -14,8 +14,10 @@ import {
 import {
   buildLocalModelList,
   configurableCapabilities,
+  configurationShortId,
+  isCompanionVariant,
 } from '../src/shell/renderer/features/runtime-config/runtime-local-model-list.js';
-import { loadoutPreparationStatus } from '../src/shell/renderer/features/runtime-config/runtime-local-model-status.js';
+import { loadoutPreparationStatus, loadoutEnvironmentSummary } from '../src/shell/renderer/features/runtime-config/runtime-local-model-status.js';
 import type { RuntimeSetupTask } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-store.js';
 
 const asset = (id: string, contentId: string, entry = `${id}.gguf`): NimiRuntimeModelAssetRecord =>
@@ -332,7 +334,7 @@ test('an incomplete configuration needs attention before any environment fact ap
   assert.equal(status.reason, 'configuration-incomplete');
 });
 
-test('a setup task targeting this Loadout reports preparing or attention, and only for this Loadout', () => {
+test('task history cannot negate a ready configuration, but an unprepared configuration reports its own task', () => {
   const task = (status: RuntimeSetupTask['status'], candidate: string): RuntimeSetupTask => ({
     taskId: `t-${candidate}`,
     capabilityContract: 'text.generate',
@@ -345,10 +347,73 @@ test('a setup task targeting this Loadout reports preparing or attention, and on
     updatedAt: '1',
   });
   const readyPlan = plan([{ id: 'llama', required: true, state: 'ready_managed' }]);
-  assert.equal(loadoutPreparationStatus({ loadout: configured, check: { kind: 'checked', plan: readyPlan }, tasks: [task('preparing', 'L')] }).state, 'preparing');
-  assert.equal(loadoutPreparationStatus({ loadout: configured, check: { kind: 'checked', plan: readyPlan }, tasks: [task('failed', 'L')] }).state, 'attention');
+  for (const status of ['preparing', 'committing', 'failed', 'needs-attention'] as const) {
+    const result = loadoutPreparationStatus({ loadout: configured, check: { kind: 'checked', plan: readyPlan }, tasks: [task(status, 'L')] });
+    assert.equal(result.state, 'ready');
+    assert.equal(result.task?.status, status, 'unfinished task remains available separately');
+  }
+  const missingPlan = plan([{ id: 'llama', required: true, state: 'missing' }]);
+  assert.equal(loadoutPreparationStatus({ loadout: configured, check: { kind: 'checked', plan: missingPlan }, tasks: [task('preparing', 'L')] }).state, 'preparing');
+  assert.equal(loadoutPreparationStatus({ loadout: configured, check: { kind: 'checked', plan: missingPlan }, tasks: [task('failed', 'L')] }).state, 'attention');
   assert.equal(loadoutPreparationStatus({ loadout: configured, check: { kind: 'checked', plan: readyPlan }, tasks: [task('preparing', 'OTHER')] }).state, 'ready');
   assert.equal(loadoutPreparationStatus({ loadout: configured, check: { kind: 'checked', plan: readyPlan }, tasks: [task('done', 'L')] }).state, 'ready');
+});
+
+test('one configuration keeps every slot and asset reference without duplicating the row', () => {
+  const list = buildLocalModelList({
+    assets: [asset('a1', 'shared'), asset('a2', 'shared')], catalog: [], recipes: [], selections: [],
+    loadouts: [loadout('L', 'text.generate', [
+      { slotId: 'companion.one', modelAssetId: 'a1' },
+      { slotId: 'main.model', modelAssetId: 'a1' },
+      { slotId: 'companion.two', modelAssetId: 'a2' },
+    ])],
+  });
+  const variant = list[0]!.variants[0]!;
+  assert.equal(variant.configurations.length, 1);
+  assert.equal(variant.configurations[0]!.role, 'model');
+  assert.equal(variant.configurations[0]!.references.length, 3);
+  assert.equal(isCompanionVariant(variant), false);
+});
+
+test('same-name short identifiers remain distinct even when their last eight characters match', () => {
+  const list = buildLocalModelList({
+    assets: [asset('a', 'c')], catalog: [], recipes: [], selections: [],
+    loadouts: ['a-12345678', 'b-12345678'].map((id) => loadout(id, 'text.generate', [{ slotId: 'main.model', modelAssetId: 'a' }], 'Same')),
+  });
+  const configurations = list[0]!.variants[0]!.configurations;
+  assert.equal(new Set(configurations.map((item) => configurationShortId(item, configurations))).size, 2);
+});
+
+test('incomplete, blocked and preparing configurations retain the real component counts', () => {
+  const check = { kind: 'checked' as const, plan: plan([
+    { id: 'engine', required: true, state: 'missing' },
+    { id: 'driver', required: true, state: 'ready_managed' },
+    { id: 'optional', required: false, state: 'missing' },
+  ]) };
+  for (const validationState of ['configured', 'unresolved', 'blocked'] as const) {
+    for (const tasks of [[], [{ taskId: 't', capabilityContract: 'text.generate', candidateLoadoutId: 'L', status: 'preparing' } as RuntimeSetupTask]]) {
+      const result = loadoutPreparationStatus({ loadout: { ...configured, validationState }, check, tasks });
+      assert.deepEqual(result.missingDependencyIds, ['engine']);
+      assert.deepEqual(loadoutEnvironmentSummary(check), { ready: 1, count: 2, missingDependencyIds: ['engine'] });
+    }
+  }
+  assert.equal(loadoutEnvironmentSummary({ kind: 'failed' }), undefined);
+  assert.equal(loadoutEnvironmentSummary({ kind: 'not-checked' }), undefined);
+});
+
+test('the rail and configuration agree with active or failed tasks for the same selection', () => {
+  for (const validationState of ['configured', 'unresolved', 'blocked'] as const) {
+    for (const dependency of ['ready_managed', 'missing']) {
+      for (const status of ['preparing', 'committing', 'failed', 'needs-attention', 'draft', 'review', 'done'] as const) {
+        const current = { ...configured, validationState };
+        const environment = plan([{ id: 'engine', required: true, state: dependency }]);
+        const tasks = [{ taskId: 't', capabilityContract: 'text.generate', candidateLoadoutId: 'L', status } as RuntimeSetupTask];
+        const inventory = { aggregate: { loadouts: [current], selections: [{ capabilityContract: 'text.generate', loadoutId: 'L' }] }, environments: { 'text.generate': environment } } as unknown as CapabilityInventory;
+        assert.equal(loadoutPreparationStatus({ loadout: current, check: { kind: 'checked', plan: environment }, tasks }).state,
+          capabilityPreparationState({ capability: 'text.generate', inventory, tasks }).state, `${validationState}/${dependency}/${status}`);
+      }
+    }
+  }
 });
 
 test('the same Loadout and plan yield the same state as the capability rail', () => {
