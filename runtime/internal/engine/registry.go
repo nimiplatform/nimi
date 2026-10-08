@@ -351,7 +351,11 @@ func registryBinaryPathForOwnerIdentity(root string, kind EngineKind, version st
 	case EngineLlama:
 		return filepath.Join(root, string(EngineLlama), version, llamaBinaryName()), true, nil
 	case EngineAudioCPP:
-		return filepath.Join(root, string(EngineAudioCPP), version, AudioCppCLIExecutableName), true, nil
+		identity, err := AudioCppPackageForPlatform(currentGOOS() + "/" + currentGOARCH())
+		if err != nil {
+			return "", false, err
+		}
+		return filepath.Join(root, string(EngineAudioCPP), version, identity.ExecutableName), true, nil
 	default:
 		return "", false, nil
 	}

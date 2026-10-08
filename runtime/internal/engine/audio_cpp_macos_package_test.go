@@ -109,3 +109,36 @@ func TestAudioCppMacRegistryRejectsTamperedLicenseAndWindowsIdentity(t *testing.
 		t.Fatal("tampered cohort passed owner verification")
 	}
 }
+
+func TestAudioCppRegistryPersistsCurrentHostExecutableWithoutRebase(t *testing.T) {
+	identity, err := AudioCppPackageForPlatform(currentGOOS() + "/" + currentGOARCH())
+	if err != nil {
+		t.Skip("audio.cpp cohort is not supported on this host")
+	}
+	root := t.TempDir()
+	registry, err := NewRegistry(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := &RegistryEntry{Engine: EngineAudioCPP, Version: AudioCppPackageVersion,
+		Platform: identity.Platform, BinaryPath: filepath.Join(root, string(EngineAudioCPP), AudioCppPackageVersion, identity.ExecutableName)}
+	if err := registry.Put(entry); err != nil {
+		t.Fatalf("formal package registration failed: %v", err)
+	}
+	reloaded, err := NewRegistry(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := reloaded.Get(EngineAudioCPP, AudioCppPackageVersion)
+	if got == nil || got.BinaryPath != entry.BinaryPath || reloaded.PendingRebase(EngineAudioCPP, AudioCppPackageVersion) || len(reloaded.Conflicts()) != 0 {
+		t.Fatalf("valid package became unavailable after reload: %+v", got)
+	}
+	wrong := *entry
+	wrong.BinaryPath = filepath.Join(filepath.Dir(entry.BinaryPath), "other-cli")
+	if err := registry.Put(&wrong); err == nil {
+		t.Fatal("substituted executable passed fixed owner layout")
+	}
+	if got := registry.Get(EngineAudioCPP, AudioCppPackageVersion); got == nil || got.BinaryPath != entry.BinaryPath {
+		t.Fatal("rejected registration replaced the valid owner entry")
+	}
+}
