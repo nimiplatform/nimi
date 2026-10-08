@@ -86,9 +86,9 @@ try {
     ...windowsElectronPackagerOptions({
       dir: sourceRoot,
       electronVersion,
-      icon: path.join(desktopRoot, 'src', 'shell', 'renderer', 'assets', 'favicon.ico'),
+      icon: path.join(desktopRoot, 'assets', 'nimi-home-symbol.ico'),
       out: packageRoot,
-      resource: path.join(desktopRoot, 'src', 'shell', 'renderer', 'assets', 'favicon-32x32.png'),
+      resource: path.join(desktopRoot, 'assets', 'nimi-home-symbol.ico'),
       version,
     }),
     // Fuses are sealed by the Authenticode signature, so they are set on the
@@ -127,7 +127,7 @@ try {
   const asarPath = path.join(packagedRoot, 'resources', 'app.asar');
   const mainSource = extractFile(asarPath, 'dist-electron/main.js').toString('utf8');
   assertWindowsElectronAsarInventory(listPackage(asarPath, { isPack: false }), mainSource);
-  await requireFile(path.join(packagedRoot, 'resources', 'favicon-32x32.png'));
+  await requireFile(path.join(packagedRoot, 'resources', 'nimi-home-symbol.ico'));
   await writeFile(
     path.join(packagedRoot, WINDOWS_ELECTRON_LAYOUT_NOTICE),
     windowsElectronCandidateNotice({ electronVersion, version }),

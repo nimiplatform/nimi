@@ -1,4 +1,4 @@
-import nimiLogoImage from '../assets/logo.png';
+import nimiLogoImage from '../assets/nimi-logo.png';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 type DesktopPresenceRailProps = {

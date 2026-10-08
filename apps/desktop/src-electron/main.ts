@@ -226,6 +226,9 @@ let maintenanceRelaunchRequested = false;
 let desktopStartupSettled = false;
 
 app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
+if (process.platform === 'win32') {
+  app.setAppUserModelId(APP_ID);
+}
 if (SOURCE_PER_USER_RUNTIME_D2) {
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.once(signal, () => app.quit());
@@ -1048,7 +1051,10 @@ async function createMainWindow(): Promise<BrowserWindow> {
     height: 940,
     minWidth: 390,
     minHeight: 600,
-    title: 'Nimi',
+    title: 'Nimi Home',
+    icon: createDesktopIcon(),
+    // Register Windows taskbar identity and icon before Explorer sees the window.
+    show: process.platform !== 'win32',
     autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
@@ -1058,6 +1064,12 @@ async function createMainWindow(): Promise<BrowserWindow> {
     },
   });
   mainWindow = window;
+  if (process.platform === 'win32') {
+    window.setAppDetails({
+      appId: APP_ID,
+      appIconPath: desktopIconPath(),
+    });
+  }
   window.on('close', (event) => {
     if (!quitCleanupComplete && menuBarHost?.hideMainWindowOnClose()) {
       event.preventDefault();
@@ -1088,6 +1100,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     menuBarHost?.setWindowVisible(false);
   });
   secureDesktopWindow(window);
+  if (process.platform === 'win32') window.show();
   await window.loadURL(rendererUrl || appOriginProtocol.rendererUrl('desktop'));
   return window;
 }
@@ -1299,17 +1312,27 @@ function emitDesktopMenuBarEvent(
   );
 }
 
-function createDesktopMenuBarIcon(): Electron.NativeImage {
-  const iconPath = app.isPackaged
+function desktopIconPath(): string {
+  if (process.platform === 'win32') {
+    return app.isPackaged
+      ? path.join(process.resourcesPath, 'nimi-home-symbol.ico')
+      : path.join(appRoot, 'assets', 'nimi-home-symbol.ico');
+  }
+  return app.isPackaged
     ? path.join(process.resourcesPath, 'favicon-32x32.png')
     : path.join(appRoot, 'src', 'shell', 'renderer', 'assets', 'favicon-32x32.png');
-  const icon = nativeImage
-    .createFromPath(iconPath)
-    .resize({ width: 18, height: 18 });
+}
+
+function createDesktopIcon(): Electron.NativeImage {
+  const icon = nativeImage.createFromPath(desktopIconPath());
   if (icon.isEmpty()) {
-    throw new Error('desktop-menu-bar-icon-unavailable');
+    throw new Error('desktop-icon-unavailable');
   }
   return icon;
+}
+
+function createDesktopMenuBarIcon(): Electron.NativeImage {
+  return createDesktopIcon().resize({ width: 18, height: 18 });
 }
 
 function normalizeText(value: unknown): string {
