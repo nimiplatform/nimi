@@ -1122,6 +1122,10 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 			if assembly.LoadPlan.Kind != "music-transcription" || assembly.DriverIdentity.ImplementationID != capabilitydriver.BasicPitchImplementationID || p.ConsumerID != capabilitydriver.BasicPitchConsumerID || p.ProfileDigest == "" || p.DriverBundleDigest == "" || p.SelectedSourceRecordID == "" || !filepath.IsAbs(p.ProfileRoot) || m.AudioCppPackageID != "" || m.AudioCppSelectedSourceRecordID != "" || m.CUDA13DependencyID != "" || m.CUDA13SelectedSourceRecordID != "" {
 				return fmt.Errorf("Python music assembly substrate is invalid")
 			}
+		} else if assembly.LoadPlan.Music.AudioCppPackageID == capabilitydriver.AudioCppMacOSPackageID {
+			if err := validateMacVoiceConvertAssemblyPackage(assembly); err != nil {
+				return err
+			}
 		} else if assembly.LoadPlan.Music.AudioCppSelectedSourceRecordID == "" || assembly.LoadPlan.Music.CUDA13SelectedSourceRecordID == "" {
 			return fmt.Errorf("audio.cpp music package capture is incomplete")
 		}
@@ -1136,6 +1140,26 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		}
 	default:
 		return fmt.Errorf("local ResolvedAssembly load plan kind %q is unsupported", assembly.LoadPlan.Kind)
+	}
+	return nil
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.vevo2-macos-cpu
+func validateMacVoiceConvertAssemblyPackage(assembly *localResolvedAssembly) error {
+	m := assembly.LoadPlan.Music
+	if assembly.LoadPlan.Kind != "music-voice-convert" || assembly.Request.Kind != capabilitydriver.VoiceConvertCapabilityContract ||
+		assembly.CapabilityContract != capabilitydriver.VoiceConvertCapabilityContract || assembly.RecipeID != capabilitydriver.VeVo2RecipeID ||
+		assembly.DriverIdentity.ImplementationID != capabilitydriver.VeVo2ImplementationID || assembly.DriverIdentity.DriverID != capabilitydriver.VeVo2DriverID ||
+		assembly.DriverIdentity.DriverDialect != capabilitydriver.VeVo2DriverDialect || len(assembly.DependencySources) != 1 ||
+		m.CUDA13DependencyID != "" || m.CUDA13SelectedSourceRecordID != "" || m.CUDA13Root != "" {
+		return fmt.Errorf("Mac audio.cpp voice conversion assembly route is invalid")
+	}
+	pkg, err := audioCppRuntimePackageInput(selectedLocalExecutionFromResolvedAssembly(assembly))
+	if err != nil || pkg.AudioCppPackageID != capabilitydriver.AudioCppMacOSPackageID ||
+		pkg.AudioCppSelectedSourceRecordID != m.AudioCppSelectedSourceRecordID || pkg.AudioCppRoot != m.AudioCppRoot ||
+		pkg.AudioCppExecutablePath != m.AudioCppExecutablePath || !filepath.IsAbs(pkg.AudioCppRoot) ||
+		!filepath.IsAbs(pkg.AudioCppExecutablePath) {
+		return fmt.Errorf("Mac audio.cpp voice conversion assembly package capture is incomplete")
 	}
 	return nil
 }
