@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { SelectField } from '@nimiplatform/kit/ui';
 
 // ISO 3166-1 alpha-2 values; Intl supplies the localized country/region names.
 const COUNTRY_CODES = `AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ
@@ -14,6 +15,10 @@ QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ
 TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ
 VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW`.split(/\s+/);
 
+// SelectField drops empty-string options (Radix reserves '' for the
+// placeholder), so the "not specified" choice uses a sentinel value.
+const UNSPECIFIED_VALUE = '__unspecified__';
+
 export function ProfileCountryField(input: {
   label: string;
   emptyLabel: string;
@@ -21,27 +26,34 @@ export function ProfileCountryField(input: {
   locale: string;
   onChange: (value: string) => void;
 }) {
+  const value = input.value.trim().toUpperCase();
   const options = useMemo(() => {
     const names = new Intl.DisplayNames([input.locale], { type: 'region' });
     const collator = new Intl.Collator(input.locale);
-    return COUNTRY_CODES.map((code) => ({ code, label: names.of(code) || code }))
+    const countryOptions = COUNTRY_CODES.map((code) => ({ value: code, label: names.of(code) || code }))
       .sort((left, right) => collator.compare(left.label, right.label));
-  }, [input.locale]);
-  const value = input.value.trim().toUpperCase();
+    const allOptions: Array<{ value: string; label: string; disabled?: boolean }> = [
+      { value: UNSPECIFIED_VALUE, label: input.emptyLabel },
+      ...countryOptions,
+    ];
+    if (value && !COUNTRY_CODES.includes(value)) {
+      allOptions.push({ value, label: value, disabled: true });
+    }
+    return allOptions;
+  }, [input.locale, input.emptyLabel, value]);
 
   return (
-    <label className="block">
+    <div className="block">
       <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">{input.label}</span>
-      <select
-        autoComplete="country"
-        value={value}
-        onChange={(event) => input.onChange(event.target.value)}
-        className="mt-1.5 w-full rounded-2xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-4 py-3 text-sm text-[var(--nimi-field-text)] outline-none transition focus:border-[var(--nimi-action-primary-bg)] focus:ring-4 focus:ring-[var(--nimi-action-primary-bg)]/10"
-      >
-        <option value="">{input.emptyLabel}</option>
-        {value && !COUNTRY_CODES.includes(value) ? <option value={value} disabled>{value}</option> : null}
-        {options.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}
-      </select>
-    </label>
+      <SelectField
+        aria-label={input.label}
+        name="country"
+        className="mt-1.5"
+        selectClassName="text-sm"
+        options={options}
+        value={value || UNSPECIFIED_VALUE}
+        onValueChange={(next) => input.onChange(next === UNSPECIFIED_VALUE ? '' : next)}
+      />
+    </div>
   );
 }

@@ -24,6 +24,23 @@
   "eligibilityUnavailable": "Unavailable",
   "eligible": "Eligible",
   "notEligible": "Not eligible",
+  "eligibilityTier": {
+    "FREE": "Free",
+    "PRO": "Pro",
+    "MAX": "Max"
+  },
+  "eligibilityStatus": {
+    "ACTIVE": "Active",
+    "CANCELED": "Canceled",
+    "PAST_DUE": "Past due",
+    "PAUSED": "Paused"
+  },
+  "eligibilityDescription": {
+    "personaAndWorld": "Persona creation is available without a subscription, and world creation is authorized.",
+    "personaOnly": "Persona creation is available without a subscription.",
+    "worldOnly": "World creation is authorized.",
+    "none": "No creation capabilities are currently available on this account."
+  },
   "updateSuccess": "Profile updated",
   "updateError": "Failed to update profile",
   "avatarUnsupportedFormat": "Unsupported avatar format. Use PNG, JPEG, GIF, or WebP.",

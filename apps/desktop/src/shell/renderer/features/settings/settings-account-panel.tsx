@@ -72,8 +72,17 @@ export function ProfilePage() {
     : eligibilityQuery.isError
       ? t('Profile.eligibilityLoadError')
       : eligibility
-        ? `${eligibility.tier} · ${eligibility.status}`
+        ? `${t(`Profile.eligibilityTier.${eligibility.tier}`, { defaultValue: eligibility.tier })} · ${t(`Profile.eligibilityStatus.${eligibility.status}`, { defaultValue: eligibility.status })}`
         : t('Profile.eligibilityLoadError');
+  const eligibilityDescription = eligibility
+    ? eligibility.canCreatePersonaCharacter && eligibility.canCreateWorld
+      ? t('Profile.eligibilityDescription.personaAndWorld')
+      : eligibility.canCreatePersonaCharacter
+        ? t('Profile.eligibilityDescription.personaOnly')
+        : eligibility.canCreateWorld
+          ? t('Profile.eligibilityDescription.worldOnly')
+          : t('Profile.eligibilityDescription.none')
+    : null;
   const eligibilityBadgeText = eligibilityState === 'loading'
     ? t('Profile.eligibilityLoadingStatus')
     : eligibilityState === 'unavailable'
@@ -392,8 +401,8 @@ export function ProfilePage() {
             </div>
             <StatusBadge status={eligibilityBadgeStatus} text={eligibilityBadgeText} />
           </div>
-          {eligibility?.message ? (
-            <p className="mt-4 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{eligibility.message}</p>
+          {eligibilityDescription ? (
+            <p className="mt-4 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{eligibilityDescription}</p>
           ) : null}
         </Card>
       </Section>

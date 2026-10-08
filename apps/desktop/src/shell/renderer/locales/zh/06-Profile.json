@@ -24,6 +24,23 @@
   "eligibilityUnavailable": "暂不可用",
   "eligible": "符合资格",
   "notEligible": "不符合资格",
+  "eligibilityTier": {
+    "FREE": "免费版",
+    "PRO": "Pro",
+    "MAX": "Max"
+  },
+  "eligibilityStatus": {
+    "ACTIVE": "生效中",
+    "CANCELED": "已取消",
+    "PAST_DUE": "已逾期",
+    "PAUSED": "已暂停"
+  },
+  "eligibilityDescription": {
+    "personaAndWorld": "无需订阅即可创建 Persona，并已获得世界创作授权。",
+    "personaOnly": "无需订阅即可创建 Persona。",
+    "worldOnly": "已获得世界创作授权。",
+    "none": "当前账号暂无可用的创作权限。"
+  },
   "updateSuccess": "资料已更新",
   "updateError": "更新资料失败",
   "avatarUnsupportedFormat": "不支持的头像格式，请使用 PNG、JPEG、GIF 或 WebP。",

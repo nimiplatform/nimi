@@ -362,17 +362,17 @@ export function ProfileDetailViewContent(input: {
                                   </div>
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                  <EditableField
-                                    label={t('Relationship.city', { defaultValue: 'City' })}
-                                    value={draft.city}
-                                    onChange={(value) => setDraft((current) => ({ ...current, city: value }))}
-                                  />
                                   <ProfileCountryField
                                     label={t('Relationship.country', { defaultValue: 'Country or region' })}
                                     emptyLabel={t('Relationship.countryNotSpecified', { defaultValue: 'Not specified' })}
                                     locale={i18n.getCurrentLocale()}
                                     value={draft.countryCode}
                                     onChange={(value) => setDraft((current) => ({ ...current, countryCode: value }))}
+                                  />
+                                  <EditableField
+                                    label={t('Relationship.city', { defaultValue: 'City' })}
+                                    value={draft.city}
+                                    onChange={(value) => setDraft((current) => ({ ...current, city: value }))}
                                   />
                                   <EditableField
                                     label={t('Relationship.gender', { defaultValue: 'Gender' })}
