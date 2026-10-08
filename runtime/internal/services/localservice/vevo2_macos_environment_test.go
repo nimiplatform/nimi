@@ -6,8 +6,71 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
+
+func TestVeVo2MacConfirmedPreparationStartsFreshWithoutRewritingFailedJob(t *testing.T) {
+	for _, scenario := range []string{"fresh", "wrong-host", "selected-source", "retained-source-record", "repair-lock", "missing-plan"} {
+		t.Run(scenario, func(t *testing.T) {
+			svc := newLocalEnvironmentTestService(t)
+			defer svc.Close()
+			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-music-native-cpu",
+				ConsumerScope: audioCppVeVo2CPUConsumerID, HostProfile: localEnvironmentAppleSilicon128GBProfile(), RuntimeDataRoot: t.TempDir()})
+			dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeAudioCPP)
+			dep.State = localEnvironmentStateFailed
+			if scenario == "wrong-host" {
+				dep.EnvironmentKey = localEnvironmentFamilyNativeAudioCPP + "|audio.cpp.package|windows/amd64"
+			}
+			if scenario == "repair-lock" {
+				dep.State = localEnvironmentStateRepairRequired
+			}
+			old := localEnvironmentDependencyJobState{JobID: "original-initial-setup-failure", EnvironmentKey: dep.EnvironmentKey,
+				DependencyFamily: dep.DependencyFamily, DependencyID: dep.DependencyID, ConsumerScope: dep.ConsumerScope,
+				State: localEnvironmentStateFailed, SourceKind: localEnvironmentSourceManaged, Retryable: false,
+				ReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED", RecoveryDisposition: localEnvironmentJobRecoveryNotRetryable,
+				UpdatedAt: "2026-10-08T05:03:39Z"}
+			if scenario == "selected-source" {
+				old.SelectedSourceRecordID = "existing-selected-source"
+			}
+			if scenario == "retained-source-record" {
+				svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{RecordID: "repair-owned-source",
+					EnvironmentKey: dep.EnvironmentKey, DependencyFamily: dep.DependencyFamily, DependencyID: dep.DependencyID,
+					SelectedConsumers: []string{dep.ConsumerScope}, RepairState: localEnvironmentRepairRequired})
+			}
+			svc.mu.Lock()
+			svc.localEnvironmentDependencyJobs[old.JobID] = old
+			if scenario == "missing-plan" {
+				svc.localEnvironmentPlanDependencyContracts = nil
+			}
+			svc.mu.Unlock()
+			actions, err := svc.prepareLocalEnvironmentPlanApplyActions(localEnvironmentPlan{Dependencies: []localEnvironmentPlanDependency{dep}})
+			if scenario != "fresh" {
+				if err == nil {
+					t.Fatalf("%s incorrectly admitted fresh setup: %+v", scenario, actions)
+				}
+			} else {
+				if err != nil || len(actions) != 1 || actions[0].Kind != localEnvironmentPlanApplyStart {
+					t.Fatalf("new explicit preparation was blocked: %+v %v", actions, err)
+				}
+				if _, err := svc.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{JobId: old.JobID, Confirmed: true}); err == nil {
+					t.Fatal("old deterministic job became retryable")
+				}
+				started, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+					EnvironmentKey: dep.EnvironmentKey, DependencyFamily: dep.DependencyFamily, DependencyId: dep.DependencyID,
+					ConsumerScope: dep.ConsumerScope, SourceKind: dep.SourceKind, Confirmed: true})
+				if err != nil || started.GetJob().GetJobId() == "" || started.GetJob().GetJobId() == old.JobID {
+					t.Fatalf("fresh Start did not create an independent job: %+v %v", started, err)
+				}
+				awaitLocalEnvironmentDependencyJobTerminal(t, svc, started.GetJob().GetJobId())
+			}
+			retained, _ := svc.localEnvironmentDependencyJob(old.JobID)
+			if !reflect.DeepEqual(retained, old) {
+				t.Fatal("preparation changed the original failed job")
+			}
+		})
+	}
+}
 
 func TestVeVo2MacCatalogRecipeProjectsCPUOfferWithoutWindowsCPUAdmission(t *testing.T) {
 	previousOS, previousArch := localRuntimeGOOS, localRuntimeGOARCH

@@ -224,6 +224,16 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 			}
 			actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyRepair, Dependency: dep})
 		case localEnvironmentStateFailed, localEnvironmentStateCancelled:
+			// An explicit current Mac CPU plan may start a new acquisition after
+			// a failed initial setup. The old terminal job remains non-retryable;
+			// selected or repair-locked supply must still use its repair owner.
+			if hasJob && s.macAudioCPPInitialSetupCanStartFresh(dep, job) {
+				if err := s.validateLocalEnvironmentPlanStartDependency(dep); err != nil {
+					return nil, err
+				}
+				actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyStart, Dependency: dep})
+				continue
+			}
 			if hasJob &&
 				strings.TrimSpace(job.State) == localEnvironmentStateFailed &&
 				(dep.DependencyFamily == localEnvironmentFamilyNativeSDCPP || dep.DependencyFamily == localEnvironmentFamilyNativeAudioCPP) &&
@@ -261,6 +271,22 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 		}
 	}
 	return actions, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.r051
+func (s *Service) macAudioCPPInitialSetupCanStartFresh(dep localEnvironmentPlanDependency, job localEnvironmentDependencyJobState) bool {
+	if dep.State != localEnvironmentStateFailed || job.State != localEnvironmentStateFailed || job.Retryable ||
+		job.RecoveryDisposition != localEnvironmentJobRecoveryNotRetryable || job.SelectedSourceRecordID != "" ||
+		dep.DependencyFamily != localEnvironmentFamilyNativeAudioCPP || dep.DependencyID != "audio.cpp.package" ||
+		dep.ConsumerScope != audioCppVeVo2CPUConsumerID ||
+		dep.EnvironmentKey != localEnvironmentKey(dep.DependencyFamily, dep.DependencyID, "", "darwin/arm64", "") {
+		return false
+	}
+	if _, admitted := s.localEnvironmentPlanDependencyContract(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope); !admitted {
+		return false
+	}
+	_, selected := s.localEnvironmentSelectedSourceRecordForRepair(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope)
+	return !selected
 }
 
 func (s *Service) validateLocalEnvironmentPlanStartDependency(dep localEnvironmentPlanDependency) error {
