@@ -62,6 +62,9 @@ func (p *CloudProvider) ProbeConnector(ctx context.Context, providerID string, e
 	if strings.TrimSpace(providerID) == "spaitial" {
 		return p.probeSpaitialConnector(ctx, endpoint, apiKey)
 	}
+	if strings.TrimSpace(providerID) == "worldlabs" {
+		return p.probeWorldLabsConnector(ctx, endpoint, apiKey, headers)
+	}
 	backend, _, err := p.ResolveProbeBackend(providerID, endpoint, apiKey, headers)
 	if err != nil {
 		return err
