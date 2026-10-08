@@ -138,6 +138,13 @@ func providerRequestID(header http.Header) string {
 	return ""
 }
 
+func providerDiagnosticID(value string) string {
+	if providerRequestIDPattern.MatchString(value) {
+		return value
+	}
+	return ""
+}
+
 // logProviderStreamFailure records a response stream that broke after the
 // provider accepted the request, with the time since the request started. A
 // caller cancellation is not a provider failure.

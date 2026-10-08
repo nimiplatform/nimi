@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -280,6 +281,9 @@ func PollProviderTaskForArtifact(
 	retryCount := int32(0)
 	consecutiveErrors := int32(0)
 	detached := isDetachedPollContext(ctx)
+	observeVideo := adapter == AdapterAlibabaNative && defaultMIME == "video/mp4" && providerDiagnosticID(providerJobID) != ""
+	started := time.Now()
+	lastStatus := ""
 	for {
 		if ctx.Err() != nil {
 			cleanup()
@@ -288,7 +292,13 @@ func PollProviderTaskForArtifact(
 		retryCount++
 		pollResp := map[string]any{}
 		pollPath := ResolveTaskQueryPath(queryPathTemplate, providerJobID)
-		if err := DoJSONRequest(ctx, http.MethodGet, JoinURL(baseURL, pollPath), apiKey, nil, &pollResp); err != nil {
+		var pollErr error
+		if observeVideo {
+			pollErr = doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, JoinURL(baseURL, pollPath), apiKey, nil, &pollResp, nil, 0, "dashscope-video")
+		} else {
+			pollErr = DoJSONRequest(ctx, http.MethodGet, JoinURL(baseURL, pollPath), apiKey, nil, &pollResp)
+		}
+		if err := pollErr; err != nil {
 			if ctx.Err() != nil {
 				return nil, nil, providerJobID, providerPollContextError(ctx.Err())
 			}
@@ -314,6 +324,16 @@ func PollProviderTaskForArtifact(
 		}
 		consecutiveErrors = 0
 		statusText := ResolveAsyncTaskStatus(pollResp)
+		if observeVideo && statusText != lastStatus {
+			status := "unknown"
+			if IsAsyncTaskPendingStatus(statusText) || IsAsyncTaskCanceledStatus(statusText) || IsAsyncTaskExpiredStatus(statusText) || IsAsyncTaskFailedStatus(statusText) || statusText == "succeeded" {
+				status = statusText
+			}
+			slog.Info("DashScope video task status", "private_request_id", jobID, "provider_task_id", providerDiagnosticID(providerJobID),
+				"request_id", providerDiagnosticID(ValueAsString(pollResp["request_id"])), "status", status, "poll_attempt", retryCount,
+				"elapsed_ms", time.Since(started).Milliseconds())
+			lastStatus = statusText
+		}
 		if IsAsyncTaskPendingStatus(statusText) {
 			if providerPollRetryLimitReached(ctx, retryCount) {
 				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())

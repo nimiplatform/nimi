@@ -2,10 +2,12 @@ package nimillm
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 
@@ -160,10 +162,15 @@ func ExecuteAlibabaNative(
 			}
 		}
 		submitResp := map[string]any{}
-		if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp, dashScopeAsyncTaskHeaders()); err != nil {
+		started := time.Now()
+		slog.Info("DashScope video submit started", "private_request_id", jobID, "model", modelResolved)
+		if err := doJSONRequestWithHeadersAndObservation(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp, dashScopeAsyncTaskHeaders(), 0, "dashscope-video"); err != nil {
 			return nil, nil, "", err
 		}
 		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterAlibabaNative, submitResp)
+		slog.Info("DashScope video submit returned", "private_request_id", jobID,
+			"provider_task_id", providerDiagnosticID(providerJobID), "request_id", providerDiagnosticID(ValueAsString(submitResp["request_id"])),
+			"elapsed_ms", time.Since(started).Milliseconds())
 		if providerJobID == "" {
 			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
 			if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {

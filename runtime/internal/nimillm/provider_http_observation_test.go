@@ -3,6 +3,7 @@ package nimillm
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func captureProviderLogs(t *testing.T) *bytes.Buffer {
@@ -56,6 +59,109 @@ func TestWorldLabsJSONObservationIdentifiesTransportStageWithoutSensitiveData(t 
 		if strings.Contains(text, secret) {
 			t.Fatalf("sensitive provider diagnostic leaked %q", secret)
 		}
+	}
+}
+
+func TestDashScopeVideoObservationsSeparateSubmitPollAndArtifactFailures(t *testing.T) {
+	for _, failure := range []string{"", "submit", "poll", "artifact"} {
+		t.Run("failure_"+failure, func(t *testing.T) {
+			logs := captureProviderLogs(t)
+			polls := 0
+			var server *httptest.Server
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("x-request-id", "request-header-1")
+				stage := ""
+				switch r.URL.Path {
+				case "/api/v1/services/aigc/video-generation/video-synthesis":
+					stage = "submit"
+				case "/api/v1/tasks/task-video-1":
+					stage = "poll"
+				case "/private-signed-path.mp4":
+					stage = "artifact"
+				default:
+					http.NotFound(w, r)
+					return
+				}
+				if stage == failure {
+					w.WriteHeader(http.StatusServiceUnavailable)
+					_, _ = w.Write([]byte(`{"message":"private raw response body"}`))
+					return
+				}
+				if stage == "artifact" {
+					w.Header().Set("Content-Type", "video/mp4")
+					_, _ = w.Write([]byte("video-body"))
+					return
+				}
+				status := "PENDING"
+				if stage == "poll" {
+					polls++
+					if polls == 3 {
+						status = "RUNNING"
+					} else if polls > 3 {
+						status = "SUCCEEDED"
+					}
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"request_id": "request-body-1",
+					"output": map[string]any{"task_id": "task-video-1", "task_status": status,
+						"video_url": server.URL + "/private-signed-path.mp4?access_token=private-query"},
+				})
+			}))
+			defer server.Close()
+			ctx := WithProviderPollWait(loopbackProviderTestContext(context.Background()), func(context.Context, time.Duration) error { return nil })
+			result, err := (&CloudProvider{}).ExecuteMediaAdapter(ctx, AdapterAlibabaNative, "trace-video-1",
+				&runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+					Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+						Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+						Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+							Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "private prompt"}},
+					}}}}, "wan2.7-t2v", &RemoteTarget{Endpoint: server.URL, APIKey: "private-credential", AllowLoopback: true}, noopJobStateUpdater{})
+			if (err != nil) != (failure != "") {
+				t.Fatalf("failure=%q error=%v", failure, err)
+			}
+			for _, body := range result.ArtifactBodies {
+				if body.Stream != nil {
+					_ = body.Stream.Close()
+				}
+			}
+			text := logs.String()
+			for _, secret := range []string{"private-credential", "private prompt", "private raw response body", "private-signed-path", "private-query", "access_token"} {
+				if strings.Contains(text, secret) {
+					t.Fatalf("provider diagnostic leaked %q", secret)
+				}
+			}
+			if !strings.Contains(text, "DashScope video submit started") || !strings.Contains(text, "phase=response") {
+				t.Fatalf("submit phase missing: %s", text)
+			}
+			if failure == "submit" {
+				if strings.Contains(text, "DashScope video submit returned") || strings.Contains(text, "DashScope video artifact fetch") {
+					t.Fatalf("submit failure reached a later stage: %s", text)
+				}
+				return
+			}
+			if !strings.Contains(text, "provider_task_id=task-video-1") || !strings.Contains(text, "request_id=request-body-1") {
+				t.Fatalf("confirmed provider identity missing: %s", text)
+			}
+			if failure == "poll" {
+				if !strings.Contains(text, "path=/api/v1/tasks/task-video-1") || strings.Contains(text, "DashScope video artifact fetch") {
+					t.Fatalf("poll failure stage incorrect: %s", text)
+				}
+				return
+			}
+			for _, status := range []string{"pending", "running", "succeeded"} {
+				if strings.Count(text, "status="+status) != 1 {
+					t.Fatalf("status transition %q missing or repeated: %s", status, text)
+				}
+			}
+			opened := "true"
+			if failure == "artifact" {
+				opened = "false"
+			}
+			if !strings.Contains(text, "DashScope video artifact fetch started") || !strings.Contains(text, "opened="+opened) {
+				t.Fatalf("artifact opening stage incorrect: %s", text)
+			}
+		})
 	}
 }
 

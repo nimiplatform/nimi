@@ -3,7 +3,9 @@ package nimillm
 import (
 	"context"
 	"io"
+	"log/slog"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -143,12 +145,21 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 	}
 	var bodies map[string]*MediaArtifactBody
 	if err == nil {
+		observedVideo := adapter == AdapterAlibabaNative && request.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE
+		started := time.Now()
+		if observedVideo {
+			slog.Info("DashScope video artifact fetch started", "private_request_id", privateJobID, "provider_task_id", providerDiagnosticID(providerJobID), "artifact_count", len(artifacts))
+		}
 		if adapter == AdapterGoogleVeoOperation {
 			bodies, err = detachMediaArtifactBodiesWithOpener(ctx, artifacts, func(ctx context.Context, uri string) (io.ReadCloser, string, int64, error) {
 				return openGoogleVeoArtifactStream(ctx, uri, cfg.APIKey)
 			})
 		} else {
 			bodies, err = detachMediaArtifactBodies(ctx, artifacts)
+		}
+		if observedVideo {
+			slog.Info("DashScope video artifact fetch returned", "private_request_id", privateJobID, "provider_task_id", providerDiagnosticID(providerJobID),
+				"elapsed_ms", time.Since(started).Milliseconds(), "opened", err == nil)
 		}
 	}
 	return MediaExecutionResult{
