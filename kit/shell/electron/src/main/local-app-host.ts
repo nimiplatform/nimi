@@ -114,6 +114,10 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppIntegrationPutConnection',
   'localAppIntegrationRemoveConnection',
   'localAppIntegrationSetPermission',
+  'localAppIntegrationStartConnectionSetup',
+  'localAppIntegrationGetConnectionSetup',
+  'localAppIntegrationSubmitConnectionSetup',
+  'localAppIntegrationCancelConnectionSetup',
   'localAppConversationOpen',
   'localAppConversationSendTurn',
   'localAppConversationAttachmentUpload',
@@ -493,6 +497,10 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppIntegrationPutConnection: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppIntegrationRemoveConnection: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppIntegrationSetPermission: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppIntegrationStartConnectionSetup: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppIntegrationGetConnectionSetup: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppIntegrationSubmitConnectionSetup: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppIntegrationCancelConnectionSetup: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationAttachmentUpload: (input: NimiElectronLocalAppConversationAttachmentUploadBindingInput) => Promise<NativeLocalAppOutcome>;
@@ -639,6 +647,10 @@ export type NimiElectronLocalAppHost = {
   readonly integrationPutConnection: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly integrationRemoveConnection: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly integrationSetPermission: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly integrationStartConnectionSetup: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly integrationGetConnectionSetup: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly integrationSubmitConnectionSetup: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly integrationCancelConnectionSetup: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationAttachmentUpload: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -1314,6 +1326,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   integrationPutConnection(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppIntegrationPutConnection(input)); }
   integrationRemoveConnection(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppIntegrationRemoveConnection(input)); }
   integrationSetPermission(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppIntegrationSetPermission(input)); }
+  integrationStartConnectionSetup(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppIntegrationStartConnectionSetup(input)); }
+  integrationGetConnectionSetup(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppIntegrationGetConnectionSetup(input)); }
+  integrationSubmitConnectionSetup(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppIntegrationSubmitConnectionSetup(input)); }
+  integrationCancelConnectionSetup(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppIntegrationCancelConnectionSetup(input)); }
   conversationOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeConversationOpen(() => this.binding.localAppConversationOpen(input));
   }
@@ -1859,6 +1875,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   integrationPutConnection(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().integrationPutConnection(input); }
   integrationRemoveConnection(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().integrationRemoveConnection(input); }
   integrationSetPermission(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().integrationSetPermission(input); }
+  integrationStartConnectionSetup(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().integrationStartConnectionSetup(input); }
+  integrationGetConnectionSetup(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().integrationGetConnectionSetup(input); }
+  integrationSubmitConnectionSetup(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().integrationSubmitConnectionSetup(input); }
+  integrationCancelConnectionSetup(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().integrationCancelConnectionSetup(input); }
   conversationOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationOpen(input);
   }

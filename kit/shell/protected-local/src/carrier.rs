@@ -2061,6 +2061,18 @@ pub trait NimiLocalAppSession: Send + Sync {
         &self,
         request: JsonValue,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_start_connection_setup(
+        &self, request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_get_connection_setup(
+        &self, request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_submit_connection_setup(
+        &self, request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_cancel_connection_setup(
+        &self, request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn conversation_open(
         &self,
         request: LocalAppConversationOpenRequest,

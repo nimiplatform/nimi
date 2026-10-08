@@ -4,7 +4,63 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 )
+
+func TestSessionCommitOrdersInvalidationRotationAndRevocation(t *testing.T) {
+	for _, stop := range []string{"invalidate", "rotate", "revoke"} {
+		for _, commitFirst := range []bool{false, true} {
+			t.Run(stop+map[bool]string{false: "/stop-first", true: "/commit-first"}[commitFirst], func(t *testing.T) {
+				connection := newLocalAppTestConnection(t, 0x51)
+				first := LocalAppSessionHandle{SessionID: localAppTestIdentifier(0x52), SessionProof: localAppTestIdentifier(0x53)}
+				next := LocalAppSessionHandle{SessionID: localAppTestIdentifier(0x54), SessionProof: localAppTestIdentifier(0x55)}
+				if err := connection.BindSession(first); err != nil {
+					t.Fatal(err)
+				}
+				stopping := func() {
+					switch stop {
+					case "invalidate":
+						connection.InvalidateSession(first)
+					case "rotate":
+						if err := connection.RotateSession(first, next); err != nil {
+							t.Error(err)
+						}
+					case "revoke":
+						connection.Revoke()
+					}
+				}
+				committed := false
+				if !commitFirst {
+					stopping()
+					if err := connection.CommitSession(first.SessionID, func() error { committed = true; return nil }); err == nil || committed {
+						t.Fatal("stopped scope published")
+					}
+					return
+				}
+				entered, release, finished := make(chan struct{}), make(chan struct{}), make(chan error, 1)
+				go func() {
+					finished <- connection.CommitSession(first.SessionID, func() error { close(entered); <-release; committed = true; return nil })
+				}()
+				<-entered
+				stopped := make(chan struct{})
+				go func() { stopping(); close(stopped) }()
+				select {
+				case <-stopped:
+					t.Fatal("session stop crossed a held commit fence")
+				case <-time.After(20 * time.Millisecond):
+				}
+				close(release)
+				if err := <-finished; err != nil || !committed {
+					t.Fatalf("legal commit failed: %v", err)
+				}
+				<-stopped
+				if err := connection.CommitSession(first.SessionID, func() error { t.Error("old scope committed again"); return nil }); err == nil {
+					t.Fatal("old scope stayed live")
+				}
+			})
+		}
+	}
+}
 
 func TestLocalAppCarrierPromotesBootstrapToSession(t *testing.T) {
 	connection := newLocalAppTestConnection(t, 0x41)

@@ -28,6 +28,30 @@ func (s *Service) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.authenticatedRuntimeGenerationLocked()
+}
+
+// @nimi-authority: rule.nimi.runtime.integration.final-publication
+// This fence shares the account owner's generation mutation lock, rather than
+// waiting for an App session watcher to observe its invalidation signal. The
+// callback is a short final publication; it must not call back into Account.
+func (s *Service) CommitAuthenticatedRuntimeGeneration(ctx context.Context, accountID, realmID string, generation uint64, commit func() error) (bool, error) {
+	if s == nil || !s.isActivated() || commit == nil {
+		return false, nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	projection, current, _, live := s.authenticatedRuntimeGenerationLocked()
+	if !live || generation == 0 || current != generation || projection.GetAccountId() != accountID || projection.GetRealmEnvironmentId() != realmID {
+		return false, nil
+	}
+	return true, commit()
+}
+
+func (s *Service) authenticatedRuntimeGenerationLocked() (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
 	// Refresh is a credential transaction, not an identity replacement. Keep
 	// only a previously authenticated, still-unexpired generation available
 	// while it runs (or safely waits before dispatch). Cold expired custody and

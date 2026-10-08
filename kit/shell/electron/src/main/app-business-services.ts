@@ -253,6 +253,10 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
       putConnection: input => request('integrationPutConnection', input),
       removeConnection: input => request('integrationRemoveConnection', input),
       setPermission: input => request('integrationSetPermission', input),
+      startConnectionSetup: input => request('integrationStartConnectionSetup', input),
+      getConnectionSetup: input => request('integrationGetConnectionSetup', input),
+      submitConnectionSetup: input => request('integrationSubmitConnectionSetup', input),
+      cancelConnectionSetup: input => request('integrationCancelConnectionSetup', input),
     }),
     aiConfig: createNimiLocalAppAIConfigClient({
       get: () => request('aiConfigGet'),

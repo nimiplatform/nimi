@@ -762,6 +762,10 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       putConnection: input => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationPutConnection'], input as unknown as JsonObject),
       removeConnection: input => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationRemoveConnection'], input as unknown as JsonObject),
       setPermission: input => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationSetPermission'], input as unknown as JsonObject),
+      startConnectionSetup: input => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationStartConnectionSetup'], input as unknown as JsonObject),
+      getConnectionSetup: input => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationGetConnectionSetup'], input as unknown as JsonObject),
+      submitConnectionSetup: input => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationSubmitConnectionSetup'], input as unknown as JsonObject),
+      cancelConnectionSetup: input => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationCancelConnectionSetup'], input as unknown as JsonObject),
     },
     conversation: {
       open: openNimiLocalAppConversation,

@@ -2085,6 +2085,42 @@
           "response_type": "SetIntegrationPermissionResponse",
           "request_stream": false,
           "response_stream": false
+        },
+        {
+          "name": "StartIntegrationConnectionSetup",
+          "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup",
+          "kind": "unary",
+          "request_type": "StartIntegrationConnectionSetupRequest",
+          "response_type": "StartIntegrationConnectionSetupResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetIntegrationConnectionSetup",
+          "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup",
+          "kind": "unary",
+          "request_type": "GetIntegrationConnectionSetupRequest",
+          "response_type": "GetIntegrationConnectionSetupResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubmitIntegrationConnectionSetup",
+          "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup",
+          "kind": "unary",
+          "request_type": "SubmitIntegrationConnectionSetupRequest",
+          "response_type": "SubmitIntegrationConnectionSetupResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CancelIntegrationConnectionSetup",
+          "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup",
+          "kind": "unary",
+          "request_type": "CancelIntegrationConnectionSetupRequest",
+          "response_type": "CancelIntegrationConnectionSetupResponse",
+          "request_stream": false,
+          "response_stream": false
         }
       ]
     },
@@ -2834,8 +2870,10 @@
     "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens",
     "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
     "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall",
+    "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup",
     "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
     "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall",
+    "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup",
     "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement",
     "/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall",
     "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls",
@@ -2846,6 +2884,8 @@
     "/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider",
     "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection",
     "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission",
+    "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup",
+    "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup",
     "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
     "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
     "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
@@ -4540,6 +4580,14 @@
       "response_type": "CancelIntegrationCallResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup",
+      "service": "RuntimeIntegrationService",
+      "method": "CancelIntegrationConnectionSetup",
+      "kind": "unary",
+      "request_type": "CancelIntegrationConnectionSetupRequest",
+      "response_type": "CancelIntegrationConnectionSetupResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
       "service": "RuntimeIntegrationService",
       "method": "CompleteIntegrationProvider",
@@ -4554,6 +4602,14 @@
       "kind": "unary",
       "request_type": "GetIntegrationCallRequest",
       "response_type": "GetIntegrationCallResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup",
+      "service": "RuntimeIntegrationService",
+      "method": "GetIntegrationConnectionSetup",
+      "kind": "unary",
+      "request_type": "GetIntegrationConnectionSetupRequest",
+      "response_type": "GetIntegrationConnectionSetupResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement",
@@ -4634,6 +4690,22 @@
       "kind": "unary",
       "request_type": "SetIntegrationPermissionRequest",
       "response_type": "SetIntegrationPermissionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup",
+      "service": "RuntimeIntegrationService",
+      "method": "StartIntegrationConnectionSetup",
+      "kind": "unary",
+      "request_type": "StartIntegrationConnectionSetupRequest",
+      "response_type": "StartIntegrationConnectionSetupResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup",
+      "service": "RuntimeIntegrationService",
+      "method": "SubmitIntegrationConnectionSetup",
+      "kind": "unary",
+      "request_type": "SubmitIntegrationConnectionSetupRequest",
+      "response_type": "SubmitIntegrationConnectionSetupResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
@@ -6742,6 +6814,14 @@
       "response_type": "CancelIntegrationCallResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup",
+      "service": "RuntimeIntegrationService",
+      "method": "CancelIntegrationConnectionSetup",
+      "kind": "unary",
+      "request_type": "CancelIntegrationConnectionSetupRequest",
+      "response_type": "CancelIntegrationConnectionSetupResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
       "service": "RuntimeIntegrationService",
       "method": "CompleteIntegrationProvider",
@@ -6756,6 +6836,14 @@
       "kind": "unary",
       "request_type": "GetIntegrationCallRequest",
       "response_type": "GetIntegrationCallResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup",
+      "service": "RuntimeIntegrationService",
+      "method": "GetIntegrationConnectionSetup",
+      "kind": "unary",
+      "request_type": "GetIntegrationConnectionSetupRequest",
+      "response_type": "GetIntegrationConnectionSetupResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement",
@@ -6836,6 +6924,22 @@
       "kind": "unary",
       "request_type": "SetIntegrationPermissionRequest",
       "response_type": "SetIntegrationPermissionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup",
+      "service": "RuntimeIntegrationService",
+      "method": "StartIntegrationConnectionSetup",
+      "kind": "unary",
+      "request_type": "StartIntegrationConnectionSetupRequest",
+      "response_type": "StartIntegrationConnectionSetupResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup",
+      "service": "RuntimeIntegrationService",
+      "method": "SubmitIntegrationConnectionSetup",
+      "kind": "unary",
+      "request_type": "SubmitIntegrationConnectionSetupRequest",
+      "response_type": "SubmitIntegrationConnectionSetupResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
@@ -7443,6 +7547,8 @@
       "CancelHookResponse",
       "CancelIntegrationCallRequest",
       "CancelIntegrationCallResponse",
+      "CancelIntegrationConnectionSetupRequest",
+      "CancelIntegrationConnectionSetupResponse",
       "CancelLocalAppAgentWorkRequest",
       "CancelLocalAppAgentWorkResponse",
       "CancelLocalAppScenarioJobRequest",
@@ -7639,6 +7745,8 @@
       "GetDeveloperModeStatusResponse",
       "GetIntegrationCallRequest",
       "GetIntegrationCallResponse",
+      "GetIntegrationConnectionSetupRequest",
+      "GetIntegrationConnectionSetupResponse",
       "GetIntegrationManagementRequest",
       "GetIntegrationManagementResponse",
       "GetLoadoutRequest",
@@ -7706,11 +7814,19 @@
       "InstallModelFromPlanRequest",
       "InstallModelFromPlanResponse",
       "IntegrationCall",
+      "IntegrationConnectionConfig",
+      "IntegrationConnectionSetup",
       "IntegrationConsumer",
+      "IntegrationFeishuConfig",
+      "IntegrationMcpConfig",
+      "IntegrationOneBotV11Config",
       "IntegrationOperation",
       "IntegrationPermission",
       "IntegrationProviderCall",
+      "IntegrationQQOfficialConfig",
       "IntegrationTarget",
+      "IntegrationTelegramConfig",
+      "IntegrationWeixinConfig",
       "InterruptLocalAppAgentRealtimeOutputRequest",
       "InterruptLocalAppAgentRealtimeOutputResponse",
       "InterruptLocalAppConversationTurnRequest",
@@ -8195,6 +8311,8 @@
       "StartAppPackageUninstallResponse",
       "StartAppPackageUpdateRequest",
       "StartAppPackageUpdateResponse",
+      "StartIntegrationConnectionSetupRequest",
+      "StartIntegrationConnectionSetupResponse",
       "StartLocalAppAgentWorkRequest",
       "StartLocalAppAgentWorkResponse",
       "StartLocalAppPackageInstallRequest",
@@ -8212,6 +8330,8 @@
       "StreamScenarioRequest",
       "SubmitDelegatedApprovalDecisionRequest",
       "SubmitDelegatedApprovalDecisionResponse",
+      "SubmitIntegrationConnectionSetupRequest",
+      "SubmitIntegrationConnectionSetupResponse",
       "SubmitLocalAppAgentWorkToolResultRequest",
       "SubmitLocalAppAgentWorkToolResultResponse",
       "SubmitLocalAppScenarioJobRequest",
@@ -8452,6 +8572,7 @@
       "HookAdmissionState",
       "HookEffect",
       "HookTriggerFamily",
+      "IntegrationConnectionSetupAction",
       "LoadoutValidationState",
       "LocalAgentCapabilityParticipationRole",
       "LocalAppAgentAutonomyMode",
@@ -14201,6 +14322,32 @@
           {
             "name": "call",
             "type": "IntegrationCall",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "CancelIntegrationConnectionSetupRequest",
+        "fields": [
+          {
+            "name": "setup_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "CancelIntegrationConnectionSetupResponse",
+        "fields": [
+          {
+            "name": "setup",
+            "type": "IntegrationConnectionSetup",
             "repeated": false,
             "optional": false,
             "number": 1
@@ -20048,6 +20195,32 @@
         "source_file": "proto/runtime/v1/integration.proto"
       },
       {
+        "name": "GetIntegrationConnectionSetupRequest",
+        "fields": [
+          {
+            "name": "setup_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "GetIntegrationConnectionSetupResponse",
+        "fields": [
+          {
+            "name": "setup",
+            "type": "IntegrationConnectionSetup",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
         "name": "GetIntegrationManagementRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/integration.proto"
@@ -21420,6 +21593,123 @@
         "source_file": "proto/runtime/v1/integration.proto"
       },
       {
+        "name": "IntegrationConnectionConfig",
+        "fields": [
+          {
+            "name": "mcp",
+            "type": "IntegrationMcpConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "telegram",
+            "type": "IntegrationTelegramConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "weixin",
+            "type": "IntegrationWeixinConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "feishu",
+            "type": "IntegrationFeishuConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "qq_official",
+            "type": "IntegrationQQOfficialConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "onebot_v11",
+            "type": "IntegrationOneBotV11Config",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "IntegrationConnectionSetup",
+        "fields": [
+          {
+            "name": "setup_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "adapter",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "target_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "qr_code_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "verification_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "account_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "error_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
         "name": "IntegrationConsumer",
         "fields": [
           {
@@ -21449,6 +21739,59 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "IntegrationFeishuConfig",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "setup_mode",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "IntegrationMcpConfig",
+        "fields": [
+          {
+            "name": "endpoint",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "IntegrationOneBotV11Config",
+        "fields": [
+          {
+            "name": "listener",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "self_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/integration.proto"
@@ -21584,6 +21927,19 @@
         "source_file": "proto/runtime/v1/integration.proto"
       },
       {
+        "name": "IntegrationQQOfficialConfig",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
         "name": "IntegrationTarget",
         "fields": [
           {
@@ -21650,6 +22006,16 @@
             "number": 9
           }
         ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "IntegrationTelegramConfig",
+        "fields": [],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "IntegrationWeixinConfig",
+        "fields": [],
         "source_file": "proto/runtime/v1/integration.proto"
       },
       {
@@ -33878,13 +34244,6 @@
             "number": 2
           },
           {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
             "name": "display_name",
             "type": "string",
             "repeated": false,
@@ -33904,6 +34263,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "config",
+            "type": "IntegrationConnectionConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/integration.proto"
@@ -38817,6 +39183,60 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "StartIntegrationConnectionSetupRequest",
+        "fields": [
+          {
+            "name": "target_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "adapter",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "account_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "config",
+            "type": "IntegrationConnectionConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "StartIntegrationConnectionSetupResponse",
+        "fields": [
+          {
+            "name": "setup",
+            "type": "IntegrationConnectionSetup",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
         "name": "StartLocalAppAgentWorkRequest",
         "fields": [
           {
@@ -39371,6 +39791,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
+        "name": "SubmitIntegrationConnectionSetupRequest",
+        "fields": [
+          {
+            "name": "setup_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "secret",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "verification_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "action",
+            "type": "IntegrationConnectionSetupAction",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "SubmitIntegrationConnectionSetupResponse",
+        "fields": [
+          {
+            "name": "setup",
+            "type": "IntegrationConnectionSetup",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
       },
       {
         "name": "SubmitLocalAppAgentWorkToolResultRequest",
@@ -44877,6 +45344,14 @@
           "HOOK_TRIGGER_FAMILY_UNSPECIFIED"
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "IntegrationConnectionSetupAction",
+        "values": [
+          "INTEGRATION_CONNECTION_SETUP_ACTION_UNSPECIFIED",
+          "INTEGRATION_CONNECTION_SETUP_ACTION_CREATE_NEW_TARGET"
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
       },
       {
         "name": "LoadoutValidationState",

@@ -1782,6 +1782,18 @@ impl Default for HookTriggerFamily {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum IntegrationConnectionSetupAction {
+    INTEGRATIONCONNECTIONSETUPACTIONUNSPECIFIED,
+    INTEGRATIONCONNECTIONSETUPACTIONCREATENEWTARGET,
+}
+
+impl Default for IntegrationConnectionSetupAction {
+    fn default() -> Self {
+        Self::INTEGRATIONCONNECTIONSETUPACTIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LoadoutValidationState {
     LOADOUTVALIDATIONSTATEUNSPECIFIED,
     LOADOUTVALIDATIONSTATECONFIGURED,
@@ -5998,6 +6010,16 @@ pub struct CancelIntegrationCallResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelIntegrationConnectionSetupRequest {
+    pub setup_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelIntegrationConnectionSetupResponse {
+    pub setup: Option<Box<IntegrationConnectionSetup>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CancelLocalAppAgentWorkRequest {
     pub agent_handle: Option<String>,
     pub execution_id: Option<String>,
@@ -8137,6 +8159,16 @@ pub struct GetIntegrationCallResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetIntegrationConnectionSetupRequest {
+    pub setup_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetIntegrationConnectionSetupResponse {
+    pub setup: Option<Box<IntegrationConnectionSetup>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetIntegrationManagementRequest {
 
 }
@@ -8818,11 +8850,51 @@ pub struct IntegrationCall {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationConnectionConfig {
+    pub mcp: Option<Box<IntegrationMcpConfig>>,
+    pub telegram: Option<Box<IntegrationTelegramConfig>>,
+    pub weixin: Option<Box<IntegrationWeixinConfig>>,
+    pub feishu: Option<Box<IntegrationFeishuConfig>>,
+    pub qq_official: Option<Box<IntegrationQQOfficialConfig>>,
+    pub onebot_v11: Option<Box<IntegrationOneBotV11Config>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationConnectionSetup {
+    pub setup_id: Option<String>,
+    pub adapter: Option<String>,
+    pub target_ref: Option<String>,
+    pub status: Option<String>,
+    pub expires_at: Option<String>,
+    pub qr_code_url: Option<String>,
+    pub verification_url: Option<String>,
+    pub account_label: Option<String>,
+    pub error_code: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct IntegrationConsumer {
     pub consumer_ref: Option<String>,
     pub app_id: Option<String>,
     pub display_name: Option<String>,
     pub source_kind: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationFeishuConfig {
+    pub app_id: Option<String>,
+    pub setup_mode: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationMcpConfig {
+    pub endpoint: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationOneBotV11Config {
+    pub listener: Option<String>,
+    pub self_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8854,6 +8926,11 @@ pub struct IntegrationProviderCall {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationQQOfficialConfig {
+    pub app_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct IntegrationTarget {
     pub target_ref: Option<String>,
     pub integration_id: Option<String>,
@@ -8864,6 +8941,16 @@ pub struct IntegrationTarget {
     pub operations: Vec<Box<IntegrationOperation>>,
     pub skill: Option<String>,
     pub permitted_operations: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationTelegramConfig {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationWeixinConfig {
+
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12110,10 +12197,10 @@ pub struct PutArtifactResponse {
 pub struct PutIntegrationConnectionRequest {
     pub target_ref: Option<String>,
     pub adapter: Option<String>,
-    pub endpoint: Option<String>,
     pub display_name: Option<String>,
     pub account_label: Option<String>,
     pub secret: Option<String>,
+    pub config: Option<Box<IntegrationConnectionConfig>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13940,6 +14027,20 @@ pub struct StartAppPackageUpdateResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartIntegrationConnectionSetupRequest {
+    pub target_ref: Option<String>,
+    pub adapter: Option<String>,
+    pub display_name: Option<String>,
+    pub account_label: Option<String>,
+    pub config: Option<Box<IntegrationConnectionConfig>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartIntegrationConnectionSetupResponse {
+    pub setup: Option<Box<IntegrationConnectionSetup>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartLocalAppAgentWorkRequest {
     pub agent_handle: Option<String>,
     pub request_id: Option<String>,
@@ -14086,6 +14187,19 @@ pub struct SubmitDelegatedApprovalDecisionRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubmitDelegatedApprovalDecisionResponse {
     pub approval_request: Option<Box<DelegatedApprovalRequest>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitIntegrationConnectionSetupRequest {
+    pub setup_id: Option<String>,
+    pub secret: Option<String>,
+    pub verification_code: Option<String>,
+    pub action: Option<IntegrationConnectionSetupAction>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitIntegrationConnectionSetupResponse {
+    pub setup: Option<Box<IntegrationConnectionSetup>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]

@@ -1648,6 +1648,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CancelIntegrationCallResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup",
+        service: "RuntimeIntegrationService",
+        method: "CancelIntegrationConnectionSetup",
+        kind: "unary",
+        request_type: "CancelIntegrationConnectionSetupRequest",
+        response_type: "CancelIntegrationConnectionSetupResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
         service: "RuntimeIntegrationService",
         method: "CompleteIntegrationProvider",
@@ -1662,6 +1670,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "GetIntegrationCallRequest",
         response_type: "GetIntegrationCallResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup",
+        service: "RuntimeIntegrationService",
+        method: "GetIntegrationConnectionSetup",
+        kind: "unary",
+        request_type: "GetIntegrationConnectionSetupRequest",
+        response_type: "GetIntegrationConnectionSetupResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement",
@@ -1742,6 +1758,22 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "SetIntegrationPermissionRequest",
         response_type: "SetIntegrationPermissionResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup",
+        service: "RuntimeIntegrationService",
+        method: "StartIntegrationConnectionSetup",
+        kind: "unary",
+        request_type: "StartIntegrationConnectionSetupRequest",
+        response_type: "StartIntegrationConnectionSetupResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup",
+        service: "RuntimeIntegrationService",
+        method: "SubmitIntegrationConnectionSetup",
+        kind: "unary",
+        request_type: "SubmitIntegrationConnectionSetupRequest",
+        response_type: "SubmitIntegrationConnectionSetupResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",

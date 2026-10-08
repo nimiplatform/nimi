@@ -383,6 +383,28 @@ func (connection *LocalAppConnection) SessionInvalidated(handle LocalAppSessionH
 	return connection.sessionInvalidated.done, true
 }
 
+// @nimi-authority: rule.nimi.runtime.integration.final-publication
+// CommitSession serializes a short owner publication with rotation, explicit
+// invalidation and connection revocation. The caller must first perform exact
+// protected admission; this private fence grants no operation or resource right.
+// The callback must not reacquire sessionMu or perform network or large IO.
+func (connection *LocalAppConnection) CommitSession(sessionID Identifier, commit func() error) error {
+	if connection == nil || sessionID == (Identifier{}) || commit == nil {
+		return fmt.Errorf("local-app publication session is unavailable")
+	}
+	connection.sessionMu.RLock()
+	defer connection.sessionMu.RUnlock()
+	if !connection.live.Load() || connection.session == nil || connection.session.SessionID != sessionID || connection.sessionInvalidated == nil {
+		return fmt.Errorf("local-app publication session is unavailable")
+	}
+	select {
+	case <-connection.sessionInvalidated.done:
+		return fmt.Errorf("local-app publication session is invalidated")
+	default:
+	}
+	return commit()
+}
+
 // InvalidateSession closes the current technical-session fence without
 // terminating the still-verified Host connection. Explicit rebinding may
 // subsequently install a fresh session after complete owner revalidation.
@@ -494,14 +516,15 @@ func (connection *LocalAppConnection) RotateSession(previous LocalAppSessionHand
 }
 
 func (connection *LocalAppConnection) Revoke() {
-	if connection == nil || !connection.live.CompareAndSwap(true, false) {
+	if connection == nil {
+		return
+	}
+	connection.sessionMu.Lock()
+	if !connection.live.CompareAndSwap(true, false) {
+		connection.sessionMu.Unlock()
 		return
 	}
 	close(connection.done)
-	if connection.liveness != nil {
-		_ = connection.liveness.Close()
-	}
-	connection.sessionMu.Lock()
 	sessionInvalidation := connection.sessionInvalidated
 	resources := make([]func(), 0, len(connection.sessionResources))
 	for _, cleanup := range connection.sessionResources {
@@ -511,8 +534,11 @@ func (connection *LocalAppConnection) Revoke() {
 	connection.sessionInvalidated = nil
 	connection.sessionResources = nil
 	connection.directAuthorized = false
-	connection.sessionMu.Unlock()
 	sessionInvalidation.invalidate()
+	connection.sessionMu.Unlock()
+	if connection.liveness != nil {
+		_ = connection.liveness.Close()
+	}
 	connection.revokeMu.Lock()
 	hooks := append([]func(){}, connection.hooks...)
 	connection.hooks = nil

@@ -1,4 +1,5 @@
-import type { ListIntegrationCatalogRequest, ListIntegrationCatalogResponse, ListIntegrationConnectionsRequest, ListIntegrationConnectionsResponse, InvokeIntegrationCallRequest, InvokeIntegrationCallResponse, GetIntegrationCallRequest, GetIntegrationCallResponse, ListIntegrationCallsRequest, ListIntegrationCallsResponse, CancelIntegrationCallRequest, CancelIntegrationCallResponse, RegisterIntegrationProviderRequest, RegisterIntegrationProviderResponse, UnregisterIntegrationProviderRequest, UnregisterIntegrationProviderResponse, PollIntegrationProviderRequest, PollIntegrationProviderResponse, CompleteIntegrationProviderRequest, CompleteIntegrationProviderResponse, GetIntegrationManagementRequest, GetIntegrationManagementResponse, PutIntegrationConnectionRequest, PutIntegrationConnectionResponse, RemoveIntegrationConnectionRequest, RemoveIntegrationConnectionResponse, SetIntegrationPermissionRequest, SetIntegrationPermissionResponse, IntegrationOperation, IntegrationTarget, IntegrationPermission, IntegrationConsumer, IntegrationCall, IntegrationProviderCall } from '../../core-generated/runtime-protobuf/runtime/v1/integration.js';
+import { IntegrationConnectionSetupAction } from '../../core-generated/runtime-protobuf/runtime/v1/integration.js';
+import type { ListIntegrationCatalogRequest, ListIntegrationCatalogResponse, ListIntegrationConnectionsRequest, ListIntegrationConnectionsResponse, InvokeIntegrationCallRequest, InvokeIntegrationCallResponse, GetIntegrationCallRequest, GetIntegrationCallResponse, ListIntegrationCallsRequest, ListIntegrationCallsResponse, CancelIntegrationCallRequest, CancelIntegrationCallResponse, RegisterIntegrationProviderRequest, RegisterIntegrationProviderResponse, UnregisterIntegrationProviderRequest, UnregisterIntegrationProviderResponse, PollIntegrationProviderRequest, PollIntegrationProviderResponse, CompleteIntegrationProviderRequest, CompleteIntegrationProviderResponse, GetIntegrationManagementRequest, GetIntegrationManagementResponse, PutIntegrationConnectionRequest, PutIntegrationConnectionResponse, RemoveIntegrationConnectionRequest, RemoveIntegrationConnectionResponse, SetIntegrationPermissionRequest, SetIntegrationPermissionResponse, IntegrationOperation, IntegrationTarget, IntegrationPermission, IntegrationConsumer, IntegrationCall, IntegrationProviderCall, IntegrationConnectionConfig, IntegrationConnectionSetup, StartIntegrationConnectionSetupRequest, GetIntegrationConnectionSetupRequest, SubmitIntegrationConnectionSetupRequest, CancelIntegrationConnectionSetupRequest } from '../../core-generated/runtime-protobuf/runtime/v1/integration.js';
 import type { RuntimeTypedClient } from '../../core-generated/runtime-typed-client.js';
 import { asRecord, assertExactKeys, assertExactProjectionKeys, localAppError, localAppProjectionError } from './local-app-runtime-platform-validation.js';
 
@@ -18,10 +19,28 @@ export type NimiIntegrationRegisterIntegrationProviderInput = Readonly<RegisterI
 export type NimiIntegrationUnregisterIntegrationProviderInput = Readonly<UnregisterIntegrationProviderRequest>;
 export type NimiIntegrationPollIntegrationProviderInput = Readonly<PollIntegrationProviderRequest>;
 export type NimiIntegrationCompleteIntegrationProviderInput = Readonly<CompleteIntegrationProviderRequest>;
-export type NimiIntegrationPutIntegrationConnectionInput = Readonly<PutIntegrationConnectionRequest>;
+export type NimiIntegrationConnectionConfig =
+  | { readonly mcp: { readonly endpoint: string } }
+  | { readonly telegram: Readonly<Record<string, never>> }
+  | { readonly weixin: Readonly<Record<string, never>> }
+  | { readonly feishu: { readonly setupMode: 'manual'; readonly appId: string } | { readonly setupMode: 'create'; readonly appId?: never } }
+  | { readonly qqOfficial: { readonly appId: string } }
+  | { readonly onebotV11: { readonly listener: string; readonly selfId: string } };
+export type NimiIntegrationConnectionSetup = Readonly<Omit<IntegrationConnectionSetup, 'expiresAt' | 'status'>> & { readonly expiresAt: string; readonly status: 'awaiting-input' | 'awaiting-confirmation' | 'awaiting-new-target' | 'verifying' | 'completed' | 'already-bound' | 'failed' | 'canceled' | 'expired' };
+// Weixin may omit the local display name; Runtime names the verified account.
+// Other adapters still require their existing nonempty display name.
+export type NimiIntegrationPutIntegrationConnectionInput = Readonly<Omit<PutIntegrationConnectionRequest, 'config' | 'displayName'>> & { readonly displayName?: string; readonly config: NimiIntegrationConnectionConfig };
+export type NimiIntegrationStartConnectionSetupInput = Readonly<Omit<StartIntegrationConnectionSetupRequest, 'config' | 'displayName'>> & { readonly displayName?: string; readonly config: NimiIntegrationConnectionConfig };
+export type NimiIntegrationGetConnectionSetupInput = Readonly<GetIntegrationConnectionSetupRequest>;
+export type NimiIntegrationSubmitConnectionSetupInput = Readonly<Omit<SubmitIntegrationConnectionSetupRequest, 'action'>> & { readonly action?: 'create-new-target' };
+export type NimiIntegrationCancelConnectionSetupInput = Readonly<CancelIntegrationConnectionSetupRequest>;
 export type NimiIntegrationRemoveIntegrationConnectionInput = Readonly<RemoveIntegrationConnectionRequest>;
 export type NimiIntegrationSetIntegrationPermissionInput = Readonly<SetIntegrationPermissionRequest>;
 export type NimiLocalAppIntegrationShell = {
+  readonly startConnectionSetup: (input: NimiIntegrationStartConnectionSetupInput) => Promise<unknown>;
+  readonly getConnectionSetup: (input: NimiIntegrationGetConnectionSetupInput) => Promise<unknown>;
+  readonly submitConnectionSetup: (input: NimiIntegrationSubmitConnectionSetupInput) => Promise<unknown>;
+  readonly cancelConnectionSetup: (input: NimiIntegrationCancelConnectionSetupInput) => Promise<unknown>;
   readonly listCatalog: () => Promise<unknown>;
   readonly listConnections: () => Promise<unknown>;
   readonly invoke: (input: NimiIntegrationInvokeIntegrationCallInput) => Promise<unknown>;
@@ -38,6 +57,10 @@ export type NimiLocalAppIntegrationShell = {
   readonly setPermission: (input: NimiIntegrationSetIntegrationPermissionInput) => Promise<unknown>;
 };
 export type NimiLocalAppIntegrationClient = {
+  readonly startConnectionSetup: (input: NimiIntegrationStartConnectionSetupInput) => Promise<NimiIntegrationConnectionSetup>;
+  readonly getConnectionSetup: (input: NimiIntegrationGetConnectionSetupInput) => Promise<NimiIntegrationConnectionSetup>;
+  readonly submitConnectionSetup: (input: NimiIntegrationSubmitConnectionSetupInput) => Promise<NimiIntegrationConnectionSetup>;
+  readonly cancelConnectionSetup: (input: NimiIntegrationCancelConnectionSetupInput) => Promise<NimiIntegrationConnectionSetup>;
   readonly listCatalog: () => Promise<readonly NimiIntegrationTarget[]>;
   readonly listConnections: () => Promise<readonly NimiIntegrationTarget[]>;
   readonly invoke: (input: NimiIntegrationInvokeIntegrationCallInput) => Promise<NimiIntegrationCall>;
@@ -54,25 +77,56 @@ export type NimiLocalAppIntegrationClient = {
   readonly setPermission: (input: NimiIntegrationSetIntegrationPermissionInput) => Promise<NimiIntegrationPermission>;
 };
 export type NimiLocalAppIntegrationMethod = keyof NimiLocalAppIntegrationShell;
-const INPUT_KEYS: Record<NimiLocalAppIntegrationMethod, readonly string[]> = {"listCatalog": [], "listConnections": [], "invoke": ["targetRef", "operation", "inputJson"], "getCall": ["callId"], "listCalls": ["limit"], "cancelCall": ["callId"], "registerProvider": ["integrationId", "displayName", "operations", "skill"], "unregisterProvider": ["targetRef"], "pollProvider": ["waitMs"], "completeProvider": ["callId", "resultJson", "errorCode"], "getManagement": [], "putConnection": ["targetRef", "adapter", "endpoint", "displayName", "accountLabel", "secret"], "removeConnection": ["targetRef"], "setPermission": ["consumerRef", "targetRef", "operations"]};
+const INPUT_KEYS: Record<NimiLocalAppIntegrationMethod, readonly string[]> = {"listCatalog": [], "listConnections": [], "invoke": ["targetRef", "operation", "inputJson"], "getCall": ["callId"], "listCalls": ["limit"], "cancelCall": ["callId"], "registerProvider": ["integrationId", "displayName", "operations", "skill"], "unregisterProvider": ["targetRef"], "pollProvider": ["waitMs"], "completeProvider": ["callId", "resultJson", "errorCode"], "getManagement": [], "putConnection": ["targetRef", "adapter", "displayName", "accountLabel", "secret", "config"], "startConnectionSetup": ["targetRef", "adapter", "displayName", "accountLabel", "config"], "getConnectionSetup": ["setupId"], "submitConnectionSetup": ["setupId", "secret", "verificationCode", "action"], "cancelConnectionSetup": ["setupId"], "removeConnection": ["targetRef"], "setPermission": ["consumerRef", "targetRef", "operations"]};
 export function validateNimiLocalAppIntegrationInput(method: NimiLocalAppIntegrationMethod, value: unknown): Record<string, unknown> {
   const record = asRecord(value);
   const input = record ? { ...record } : undefined;
+  const connectionInput = method === 'putConnection' || method === 'startConnectionSetup';
+  if (connectionInput && input?.adapter === 'weixin' && input.displayName === undefined) input.displayName = '';
+  if (method === 'submitConnectionSetup' && input && input.action === undefined) input.action = '';
   assertExactKeys(input, INPUT_KEYS[method], 'Integration input');
   if (new TextEncoder().encode(JSON.stringify(input)).byteLength > 33 * 1024 * 1024) return invalid();
   for (const key of INPUT_KEYS[method]) {
-    if (key === 'limit' || key === 'waitMs') { const max = key === 'limit' ? 100 : 25000; if (!Number.isSafeInteger(input[key]) || Number(input[key]) < 0 || Number(input[key]) > max) return invalid(); }
+    if (key === 'action') { if (input.action !== '' && input.action !== 'create-new-target') return invalid(); }
+    else if (key === 'config') { input.config = validateConnectionConfig(String(input.adapter), input.config); }
+    else if (key === 'limit' || key === 'waitMs') { const max = key === 'limit' ? 100 : 25000; if (!Number.isSafeInteger(input[key]) || Number(input[key]) < 0 || Number(input[key]) > max) return invalid(); }
     else if (key === 'operations') {
       if (!Array.isArray(input[key]) || input[key].length > 128) return invalid();
       if (method === 'registerProvider') input[key] = input[key].map(v => operation(v, false));
       else { const names = input[key].map(v => text(v, 256, false)); if (new Set(names).size !== names.length) return invalid(); }
-    } else { const bound = key === 'resultJson' ? 1024 * 1024 : key === 'inputJson' ? 256 * 1024 : key === 'skill' ? 32768 : key === 'secret' ? 16384 : key === 'endpoint' ? 4096 : 512; text(input[key], bound, ['skill','resultJson','errorCode','secret','endpoint','accountLabel'].includes(key) || (method === 'putConnection' && key === 'targetRef')); }
+    } else { const bound = key === 'resultJson' ? 1024 * 1024 : key === 'inputJson' ? 256 * 1024 : key === 'skill' ? 32768 : key === 'secret' ? 16384 : key === 'endpoint' ? 4096 : connectionInput && key === 'displayName' ? 256 : 512; text(input[key], bound, ['skill','resultJson','errorCode','secret','endpoint','accountLabel','verificationCode'].includes(key) || (connectionInput && (key === 'targetRef' || (key === 'displayName' && input.adapter === 'weixin')))); }
   }
   for (const key of ['inputJson', 'resultJson']) if (input[key]) { try { JSON.parse(String(input[key])); } catch { return invalid(); } }
-  if (method === 'putConnection' && !['mcp','telegram'].includes(String(input.adapter))) return invalid();
+  if (['putConnection','startConnectionSetup'].includes(method) && !['mcp','telegram','weixin','feishu','qq-official','onebot-v11'].includes(String(input.adapter))) return invalid();
+  if (method === 'submitConnectionSetup' && input.action === 'create-new-target' && (input.secret !== '' || input.verificationCode !== '')) return invalid();
   return input;
 }
 function invalid(): never { return localAppError('Integration input is invalid.', 'SDK_LOCAL_APP_INPUT_INVALID', 'provide_valid_integration_input'); }
+function validateConnectionConfig(adapter: string, value: unknown): NimiIntegrationConnectionConfig {
+  const row = asRecord(value);
+  const key = ({ mcp: 'mcp', telegram: 'telegram', weixin: 'weixin', feishu: 'feishu', 'qq-official': 'qqOfficial', 'onebot-v11': 'onebotV11' } as Record<string,string>)[adapter];
+  if (!key) return invalid();
+  assertExactKeys(row,[key],'Integration configuration');
+  const detail = asRecord(row[key]);
+  if (!detail) return invalid();
+  const keys = key === 'mcp' ? ['endpoint'] : key === 'feishu' ? detail.setupMode === 'create' ? ['setupMode'] : ['setupMode','appId'] : key === 'qqOfficial' ? ['appId'] : key === 'onebotV11' ? ['listener','selfId'] : [];
+  assertExactKeys(detail,keys,'Integration adapter configuration');
+  for (const field of keys) text(detail[field],field === 'endpoint' ? 4096 : 256);
+  if (key === 'feishu' && !['manual','create'].includes(String(detail.setupMode))) return invalid();
+  return Object.freeze({ [key]: Object.freeze({ ...detail }) }) as NimiIntegrationConnectionConfig;
+}
+function wireConnectionConfig(config: NimiIntegrationConnectionConfig): IntegrationConnectionConfig {
+  if ('feishu' in config) return { feishu: { setupMode: config.feishu.setupMode, appId: config.feishu.appId ?? '' } };
+  return config;
+}
+function setup(value: unknown): NimiIntegrationConnectionSetup {
+  const row = asRecord(value);
+  assertExactProjectionKeys(row,['setupId','adapter','targetRef','status','expiresAt','qrCodeUrl','verificationUrl','accountLabel','errorCode'],'Integration setup');
+  for (const key of ['setupId','adapter','targetRef','qrCodeUrl','verificationUrl','accountLabel','errorCode']) text(row[key],key.endsWith('Url') ? 4096 : 512,!['setupId','adapter'].includes(key),true);
+  if (!['mcp','telegram','weixin','feishu','qq-official','onebot-v11'].includes(String(row.adapter)) || !['awaiting-input','awaiting-confirmation','awaiting-new-target','verifying','completed','already-bound','failed','canceled','expired'].includes(String(row.status)) || typeof row.expiresAt !== 'string' || !Number.isFinite(Date.parse(row.expiresAt))) return localAppProjectionError('Integration setup');
+  if (['already-bound','awaiting-new-target'].includes(String(row.status)) && (row.adapter !== 'weixin' || !row.targetRef || !row.accountLabel || row.errorCode || row.qrCodeUrl || row.verificationUrl)) return localAppProjectionError('Integration setup');
+  return Object.freeze({ ...row }) as NimiIntegrationConnectionSetup;
+}
 function text(value: unknown, bound: number, empty = false, projection = false): string {
   if (typeof value !== 'string' || (!empty && !value.trim()) || value.includes('\0') || new TextEncoder().encode(value).byteLength > bound) return projection ? localAppProjectionError('Integration text') : invalid();
   return value;
@@ -89,7 +143,7 @@ function operation(value: unknown, projection = true): NimiIntegrationOperation 
 function target(value: unknown): NimiIntegrationTarget {
   const row = asRecord(value); assertExactProjectionKeys(row, ['targetRef','integrationId','displayName','accountLabel','kind','available','operations','skill','permittedOperations'], 'Integration target');
   for (const key of ['targetRef','integrationId','displayName','accountLabel','skill']) text(row[key], key === 'skill' ? 32768 : 512, ['skill','accountLabel'].includes(key), true);
-  if (!['mcp','telegram','app'].includes(String(row.kind)) || typeof row.available !== 'boolean') return localAppProjectionError('Integration target');
+  if (!['mcp','telegram','app','weixin','feishu','qq-official','onebot-v11'].includes(String(row.kind)) || typeof row.available !== 'boolean') return localAppProjectionError('Integration target');
   return Object.freeze({ ...row, operations: Object.freeze(list(row.operations,128).map(v => operation(v))), permittedOperations: Object.freeze(list(row.permittedOperations,128).map(v => text(v,256,false,true))) }) as NimiIntegrationTarget;
 }
 function call(value: unknown): NimiIntegrationCall {
@@ -119,6 +173,7 @@ function consumer(value: unknown): NimiIntegrationConsumer {
 }
 function project(method: NimiLocalAppIntegrationMethod, value: unknown): unknown {
   const row = asRecord(value);
+  if (method.endsWith('ConnectionSetup')) { assertExactProjectionKeys(row,['setup'],'Integration setup response'); return setup(row.setup); }
   if (['listCatalog','listConnections'].includes(method)) { const key = method === 'listCatalog' ? 'targets' : 'connections'; assertExactProjectionKeys(row,[key],'Integration listing'); return Object.freeze(list(row[key]).map(target)); }
   if (['invoke','getCall','cancelCall'].includes(method)) { assertExactProjectionKeys(row,['call'],'Integration call response'); return call(row.call); }
   if (method === 'listCalls') { assertExactProjectionKeys(row,['calls'],'Integration history'); return Object.freeze(list(row.calls,100).map(call)); }
@@ -141,7 +196,7 @@ export function createNimiLocalAppIntegrationClient(shell: NimiLocalAppIntegrati
     return project(method,result);
   }]))) as NimiLocalAppIntegrationClient;
 }
-export type NimiLocalAppIntegrationRuntime = Pick<RuntimeTypedClient, 'listIntegrationCatalog' | 'listIntegrationConnections' | 'invokeIntegrationCall' | 'getIntegrationCall' | 'listIntegrationCalls' | 'cancelIntegrationCall' | 'registerIntegrationProvider' | 'unregisterIntegrationProvider' | 'pollIntegrationProvider' | 'completeIntegrationProvider' | 'getIntegrationManagement' | 'putIntegrationConnection' | 'removeIntegrationConnection' | 'setIntegrationPermission'>;
+export type NimiLocalAppIntegrationRuntime = Pick<RuntimeTypedClient, 'listIntegrationCatalog' | 'listIntegrationConnections' | 'invokeIntegrationCall' | 'getIntegrationCall' | 'listIntegrationCalls' | 'cancelIntegrationCall' | 'registerIntegrationProvider' | 'unregisterIntegrationProvider' | 'pollIntegrationProvider' | 'completeIntegrationProvider' | 'getIntegrationManagement' | 'putIntegrationConnection' | 'removeIntegrationConnection' | 'setIntegrationPermission' | 'startIntegrationConnectionSetup' | 'getIntegrationConnectionSetup' | 'submitIntegrationConnectionSetup' | 'cancelIntegrationConnectionSetup'>;
 export function createNimiLocalAppIntegrationRuntimeClient(runtime: NimiLocalAppIntegrationRuntime): NimiLocalAppIntegrationClient {
   return createNimiLocalAppIntegrationClient(createNimiLocalAppIntegrationRuntimeShell(runtime));
 }
@@ -161,8 +216,12 @@ export function createNimiLocalAppIntegrationRuntimeShell(runtime: NimiLocalAppI
     pollProvider: async (input) => { return await runtime.pollIntegrationProvider(input); },
     completeProvider: async (input) => { return await runtime.completeIntegrationProvider(input); },
     getManagement: async () => { const value = await runtime.getIntegrationManagement({}); return { ...value, permissions: value.permissions.map(wirePermission), calls: value.calls.map(wireCall) }; },
-    putConnection: async (input) => { return await runtime.putIntegrationConnection(input); },
+    putConnection: async (input) => { return await runtime.putIntegrationConnection({ ...input, displayName: input.displayName ?? '', config: wireConnectionConfig(input.config) }); },
     removeConnection: async (input) => { return await runtime.removeIntegrationConnection(input); },
     setPermission: async (input) => { const value = await runtime.setIntegrationPermission(input); return { permission: wirePermission(value.permission) }; },
+    startConnectionSetup: async input => { const value = await runtime.startIntegrationConnectionSetup({ ...input, displayName: input.displayName ?? '', config: wireConnectionConfig(input.config) }); if (!value.setup) return localAppProjectionError('Integration setup'); return { setup: { ...value.setup, expiresAt: timestamp(value.setup.expiresAt) } }; },
+    getConnectionSetup: async input => { const value = await runtime.getIntegrationConnectionSetup(input); if (!value.setup) return localAppProjectionError('Integration setup'); return { setup: { ...value.setup, expiresAt: timestamp(value.setup.expiresAt) } }; },
+    submitConnectionSetup: async input => { const value = await runtime.submitIntegrationConnectionSetup({ ...input, action: input.action === 'create-new-target' ? IntegrationConnectionSetupAction.CREATE_NEW_TARGET : IntegrationConnectionSetupAction.UNSPECIFIED }); if (!value.setup) return localAppProjectionError('Integration setup'); return { setup: { ...value.setup, expiresAt: timestamp(value.setup.expiresAt) } }; },
+    cancelConnectionSetup: async input => { const value = await runtime.cancelIntegrationConnectionSetup(input); if (!value.setup) return localAppProjectionError('Integration setup'); return { setup: { ...value.setup, expiresAt: timestamp(value.setup.expiresAt) } }; },
   };
 }

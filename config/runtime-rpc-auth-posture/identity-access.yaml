@@ -176,3 +176,12 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentRunAccess
     posture: protected_origin_required
+
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup
+    posture: protected_origin_required

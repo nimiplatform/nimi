@@ -1045,6 +1045,7 @@ async function boundDesktopShutdownCleanup(
   }
 }
 
+// @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-002
 async function createMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
     width: 1440,
@@ -1061,6 +1062,9 @@ async function createMainWindow(): Promise<BrowserWindow> {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // The mounted Desktop Open listener must keep its readiness heartbeat
+      // while Home is hidden/minimized, so another App can wake it once.
+      backgroundThrottling: false,
     },
   });
   mainWindow = window;

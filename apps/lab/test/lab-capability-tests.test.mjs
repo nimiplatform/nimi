@@ -208,6 +208,55 @@ const ready = (client) => ({
   getLocalAppClient() { return client; },
 });
 
+test('Chat Stream stopped during Runtime inspection cannot dispatch a later formal text stream', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  let release, entered;
+  const projection = new Promise(resolve => { release = resolve; });
+  const inspecting = new Promise(resolve => { entered = resolve; });
+  const fake = fakeClient({ streamTurn: () => assert.fail('stopped turn dispatched') });
+  const controller = new AbortController();
+  const run = runLabCapability({ capabilityId: 'chat.stream', prompt: 'Selected message', signal: controller.signal }, {
+    ...ready(fake.client), getRuntimeProjection() { entered(); return projection; },
+  });
+  await inspecting; controller.abort(); release({ status: 'ready', mode: 'local-app' });
+  const result = await run;
+  assert.equal(result.ok, false); assert.match(result.reason, /canceled|aborted/u);
+  assert.equal(fake.calls.streamTurn.length, 0);
+});
+
+test('Chat Stream cancellation while its formal subscription is pending cancels that actual subscription and emits no late text', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  let release, entered, cancellations = 0;
+  const pending = new Promise(resolve => { release = resolve; });
+  const dispatched = new Promise(resolve => { entered = resolve; });
+  const client = { ai: { text: { async streamTurn() { entered(); return pending; } } } };
+  const controller = new AbortController(); const partials = [];
+  const run = runLabCapability({ capabilityId: 'chat.stream', prompt: 'Selected message', signal: controller.signal, onPartial: text => partials.push(text) }, ready(client));
+  await dispatched; controller.abort(); release({
+    async *[Symbol.asyncIterator]() { yield { type: 'delta', text: 'late text', sequence: '1', itemIndex: 0, traceId: 'fixture-trace' }; },
+    async cancel() { cancellations++; },
+  });
+  const result = await run;
+  assert.equal(result.ok, false); assert.match(result.reason, /canceled|aborted/u);
+  assert.equal(cancellations, 1); assert.deepEqual(partials, []);
+});
+
+test('Chat Stream stopped before a delayed formal event never publishes its late delta', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  let release, entered, cancellations = 0;
+  const delayed = new Promise(resolve => { release = resolve; });
+  const reading = new Promise(resolve => { entered = resolve; });
+  const client = { ai: { text: { async streamTurn() { return {
+    async *[Symbol.asyncIterator]() { entered(); await delayed; yield { type: 'delta', text: 'late text', sequence: '1', itemIndex: 0, traceId: 'fixture-trace' }; },
+    async cancel() { cancellations++; },
+  }; } } } };
+  const controller = new AbortController(); const partials = [];
+  const run = runLabCapability({ capabilityId: 'chat.stream', prompt: 'Selected message', signal: controller.signal, onPartial: text => partials.push(text) }, ready(client));
+  await reading; controller.abort(); release(); const result = await run;
+  assert.equal(result.ok, false); assert.match(result.reason, /canceled|aborted/u);
+  assert.equal(cancellations, 1); assert.deepEqual(partials, []);
+});
+
 test('vision locate retains the returned original artifact before exposing a persistable result', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const locate = { imageArtifactId: 'upload-1', width: 20, height: 10, locations: [{ type:'box', x1:0.1, y1:0.2, x2:0.4, y2:0.7, label:'cup' }] };

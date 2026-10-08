@@ -26,6 +26,14 @@ func (s *Service) Close() error {
 }
 
 func (s *Service) cancelOwnedWorkLocked() {
+	for _, setup := range s.setups {
+		if setup.cancel != nil {
+			setup.cancel()
+		}
+		if activeSetupStatus(setup.view.Status) {
+			setup.view.Status = "canceled"
+		}
+	}
 	for _, p := range s.providers {
 		p.cancel()
 	}
@@ -38,6 +46,12 @@ func (s *Service) cancelOwnedWorkLocked() {
 	}
 	for _, r := range s.receivers {
 		r.cancel()
+	}
+	for _, r := range s.nativeReceivers {
+		r.cancel()
+	}
+	for _, b := range s.onebotBridges {
+		b.cancel()
 	}
 }
 func (s *Service) clearTerminalCallsLocked() {
@@ -70,6 +84,7 @@ func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
 			s.mu.Lock()
 			s.providers = map[string]*provider{}
 			s.receivers = map[string]*telegramReceiver{}
+			s.nativeReceivers = map[string]*nativeReceiver{}
 			s.clearTerminalCallsLocked()
 			close(done)
 			if s.resumePending && !s.closed {

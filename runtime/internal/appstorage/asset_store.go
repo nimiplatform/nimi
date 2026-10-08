@@ -105,6 +105,11 @@ type VerifiedAssetInput struct {
 	Body      io.ReadCloser
 }
 
+// AssetCommitGuard belongs to the calling Runtime resource owner. It must
+// invoke commit synchronously while holding its permission/cancellation fence.
+// Candidate preparation and quota reconciliation have already finished.
+type AssetCommitGuard func(prepared AssetRecord, commit func() error) error
+
 type assetDiskMetadata struct {
 	MediaType  string    `json:"media_type,omitempty"`
 	SizeBytes  int64     `json:"size_bytes"`
@@ -160,7 +165,7 @@ func (store *AssetStore) Write(
 	overwrite bool,
 	source io.ReadCloser,
 ) (AssetRecord, error) {
-	return store.write(ctx, owner, relativePath, mediaType, overwrite, source, nil)
+	return store.write(ctx, owner, relativePath, mediaType, overwrite, source, nil, nil)
 }
 
 func (store *AssetStore) Adopt(
@@ -171,7 +176,19 @@ func (store *AssetStore) Adopt(
 	input VerifiedAssetInput,
 ) (AssetRecord, error) {
 	verification := &assetVerification{SizeBytes: input.SizeBytes, SHA256: strings.ToLower(strings.TrimSpace(input.SHA256))}
-	return store.write(ctx, owner, relativePath, input.MediaType, overwrite, input.Body, verification)
+	return store.write(ctx, owner, relativePath, input.MediaType, overwrite, input.Body, verification, nil)
+}
+
+// @nimi-authority: rule.nimi.runtime.app-surface.integration-asset-commit
+func (store *AssetStore) AdoptGuarded(ctx context.Context, owner ManagedOwner, relativePath string, input VerifiedAssetInput, guard AssetCommitGuard) (AssetRecord, error) {
+	if guard == nil {
+		if input.Body != nil {
+			_ = input.Body.Close()
+		}
+		return AssetRecord{}, ErrAssetUnavailable
+	}
+	verification := &assetVerification{SizeBytes: input.SizeBytes, SHA256: strings.ToLower(strings.TrimSpace(input.SHA256))}
+	return store.write(ctx, owner, relativePath, input.MediaType, false, input.Body, verification, guard)
 }
 
 type assetVerification struct {
@@ -187,6 +204,7 @@ func (store *AssetStore) write(
 	overwrite bool,
 	source io.ReadCloser,
 	verification *assetVerification,
+	guard AssetCommitGuard,
 ) (AssetRecord, error) {
 	if ctx == nil || source == nil {
 		return AssetRecord{}, ErrAssetUnavailable
@@ -309,11 +327,32 @@ func (store *AssetStore) write(
 	if _, err := ensureManagedParent(objectsRoot, target, true); err != nil {
 		return AssetRecord{}, ErrAssetUnavailable
 	}
-	if err := commitAssetCandidate(candidatePath, target); err != nil {
-		return AssetRecord{}, fmt.Errorf("%w: commit asset payload: %v", ErrAssetUnavailable, err)
+	publish := func() (AssetRecord, error) {
+		if err := ctx.Err(); err != nil {
+			return AssetRecord{}, err
+		}
+		if committed {
+			return AssetRecord{}, ErrAssetUnavailable
+		}
+		if err := commitAssetCandidate(candidatePath, target); err != nil {
+			return AssetRecord{}, fmt.Errorf("%w: commit asset payload: %v", ErrAssetUnavailable, err)
+		}
+		committed = true
+		return metadata.public(normalizedPath), nil
 	}
-	committed = true
-	return metadata.public(normalizedPath), nil
+	if guard == nil {
+		return publish()
+	}
+	var result AssetRecord
+	err = guard(metadata.public(normalizedPath), func() error {
+		var publishErr error
+		result, publishErr = publish()
+		return publishErr
+	})
+	if err == nil && !committed {
+		return AssetRecord{}, ErrAssetUnavailable
+	}
+	return result, err
 }
 
 func (store *AssetStore) Stat(ctx context.Context, owner ManagedOwner, relativePath string) (AssetRecord, error) {

@@ -42,7 +42,7 @@ func TestTelegramConcurrentConnectionsUseOneActualBotIdentity(t *testing.T) {
 		go func(secret string) {
 			defer wg.Done()
 			<-start
-			_, err := s.PutIntegrationConnection(ctx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", DisplayName: "Test connection", Secret: secret})
+			_, err := s.PutIntegrationConnection(ctx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", Config: &runtimev1.IntegrationConnectionConfig{Telegram: &runtimev1.IntegrationTelegramConfig{}}, DisplayName: "Test connection", Secret: secret})
 			if err == nil {
 				accepted.Add(1)
 			} else if status.Code(err) == codes.AlreadyExists && strings.Contains(err.Error(), "INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED") {
@@ -74,7 +74,7 @@ func TestTelegramConcurrentConnectionsUseOneActualBotIdentity(t *testing.T) {
 	}
 	// Display names cannot merge different upstream accounts.
 	botID.Store(778)
-	if _, err := s.PutIntegrationConnection(ctx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", DisplayName: "Test connection", Secret: "another-bot"}); err != nil {
+	if _, err := s.PutIntegrationConnection(ctx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", Config: &runtimev1.IntegrationConnectionConfig{Telegram: &runtimev1.IntegrationTelegramConfig{}}, DisplayName: "Test connection", Secret: "another-bot"}); err != nil {
 		t.Fatalf("distinct bot identity was rejected: %v", err)
 	}
 }
@@ -86,6 +86,7 @@ func TestTelegramExplicitVerificationPreservesTargetPermissionAndCursor(t *testi
 	consumer := testDecision("consumer", 4)
 	target := saveTelegramTestTarget(t, s)
 	target.TelegramBotID = 0
+	target.Identity = "telegram:777"
 	if err := s.saveTarget(context.Background(), target); err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +101,7 @@ func TestTelegramExplicitVerificationPreservesTargetPermissionAndCursor(t *testi
 	if _, err := s.InvokeIntegrationCall(testContext(consumer, localappop.OperationIntegrationCallInvoke), &runtimev1.InvokeIntegrationCallRequest{TargetRef: target.Public.TargetRef, Operation: "telegram.updates.read", InputJson: `{"chatIds":["1"]}`}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("unverified identity dispatched: %v", err)
 	}
-	request := &runtimev1.PutIntegrationConnectionRequest{TargetRef: target.Public.TargetRef, Adapter: "telegram", DisplayName: target.Public.DisplayName}
+	request := &runtimev1.PutIntegrationConnectionRequest{TargetRef: target.Public.TargetRef, Adapter: "telegram", Config: &runtimev1.IntegrationConnectionConfig{Telegram: &runtimev1.IntegrationTelegramConfig{}}, DisplayName: target.Public.DisplayName}
 	ctx := desktopIntegrationContext(t, localappop.OperationIntegrationConnectionPut)
 	verified, err := s.PutIntegrationConnection(ctx, request)
 	if err != nil || verified.GetConnection().GetTargetRef() != target.Public.TargetRef || !verified.GetConnection().GetAvailable() {

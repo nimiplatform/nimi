@@ -15,6 +15,10 @@ type runtimeAccountGenerationBinder interface {
 	BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool)
 }
 
+type runtimeAccountGenerationCommitter interface {
+	CommitAuthenticatedRuntimeGeneration(context.Context, string, string, uint64, func() error) (bool, error)
+}
+
 // authenticatedRuntimeAccount resolves the current Runtime-owned account
 // partition used by active local-development operations.
 func (s *Service) bindAuthenticatedRuntimeAccount(ctx context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {

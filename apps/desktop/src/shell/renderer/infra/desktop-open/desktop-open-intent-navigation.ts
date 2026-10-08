@@ -57,6 +57,10 @@ export function applyDesktopOpenIntentToAppStore(
       store.setActiveTab('settings');
       return;
     }
+    case 'open-integrations': {
+      store.setActiveTab('home', 'integrations');
+      return;
+    }
   }
 }
 

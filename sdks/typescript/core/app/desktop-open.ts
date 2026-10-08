@@ -59,11 +59,17 @@ export type NimiDesktopOpenSettingsIntent = {
   readonly section: NimiDesktopOpenSettingsSection;
 };
 
+// @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-003
+export type NimiDesktopOpenIntegrationsIntent = {
+  readonly kind: 'open-integrations';
+};
+
 export type NimiDesktopOpenIntent =
   | NimiDesktopOpenExploreIntent
   | NimiDesktopOpenRuntimeConfigIntent
   | NimiDesktopOpenAppsIntent
-  | NimiDesktopOpenSettingsIntent;
+  | NimiDesktopOpenSettingsIntent
+  | NimiDesktopOpenIntegrationsIntent;
 
 export type NimiDesktopOpenIntentKind = NimiDesktopOpenIntent['kind'];
 
@@ -258,6 +264,9 @@ export function parseNimiDesktopOpenIntent(value: unknown): NimiDesktopOpenInten
       return parseAppsIntent(record);
     case 'open-settings':
       return parseSettingsIntent(record);
+    case 'open-integrations':
+      assertAllowedFields(record, ['kind'], 'DesktopOpenIntent integrations intent');
+      return { kind: 'open-integrations' };
     case 'open-url':
       throw invalid('DesktopOpenIntent does not admit raw URL payloads.', 'intent.kind');
     default:
@@ -345,6 +354,7 @@ function parseIntentKind(value: unknown, field: string): NimiDesktopOpenIntentKi
     || kind === 'open-runtime-config'
     || kind === 'open-apps'
     || kind === 'open-settings'
+    || kind === 'open-integrations'
   ) {
     return kind;
   }

@@ -598,7 +598,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(realm.chat, ['list'], 'realm.chat');
   assertExactMethodNamespace(realm.personaCharacter, ['listOwned', 'getOwned', 'create', 'replace', 'delete'], 'realm.personaCharacter');
   assertExactMethodNamespace(realm.realtime, ['open', 'subscribe', 'ack', 'closeSubscription', 'closeChannel'], 'realm.realtime');
-  assertExactMethodNamespace(standardShell.integration, ['listCatalog', 'listConnections', 'invoke', 'getCall', 'listCalls', 'cancelCall', 'registerProvider', 'unregisterProvider', 'pollProvider', 'completeProvider', 'getManagement', 'putConnection', 'removeConnection', 'setPermission'], 'integration');
+  assertExactMethodNamespace(standardShell.integration, ['listCatalog', 'listConnections', 'invoke', 'getCall', 'listCalls', 'cancelCall', 'registerProvider', 'unregisterProvider', 'pollProvider', 'completeProvider', 'getManagement', 'putConnection', 'removeConnection', 'setPermission', 'startConnectionSetup', 'getConnectionSetup', 'submitConnectionSetup', 'cancelConnectionSetup'], 'integration');
   assertExactMethodNamespace(standardShell.agentWork, ['listReferences', 'start', 'get', 'status', 'listToolCalls', 'submitToolResult', 'cancel', 'subscribe'], 'agentWork');
   assertExactMethodNamespace(standardShell.agents, ['listReferences', 'getIntroduction'], 'agents');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'renderVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');

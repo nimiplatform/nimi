@@ -25,6 +25,7 @@ import { loadLabAIConfigSummary } from '../lab/lab-ai-config.js';
 import { runLabConversationJourney } from '../lab/local-app-conversation-journey.js';
 import { saveLabExport } from '../lab/lab-export.js';
 import { appendLabRunHistory, clearLabRunHistory, loadLabRunHistory, removeLabRunHistoryRecord } from '../lab/lab-history-storage.js';
+import { appendLabIntegrationHistory, loadLabIntegrationHistory, removeLabIntegrationHistory } from '../lab/integrations/integration-history.js';
 import {
   appendLabImageHistoryRecord,
   clearLabImageHistory,
@@ -148,6 +149,7 @@ export function createLabProductionBindings(
           executor: loadLabRunHistory,
           options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
         }),
+        integrationHistory: loadLabIntegrationHistory,
         imageHistory: () => requestWithRetry({
           executor: loadLabImageHistory,
           options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
@@ -162,6 +164,8 @@ export function createLabProductionBindings(
           return { runId: createNimiClientId('run'), createdAt: new Date().toISOString() };
         },
         appendRunHistory: appendLabRunHistory,
+        appendIntegrationHistory: appendLabIntegrationHistory,
+        removeIntegrationHistory: removeLabIntegrationHistory,
         removeRunHistory: removeLabRunHistoryRecord,
         async clearRunHistory(input: { readonly capabilityId?: string }) {
           return clearLabRunHistory(input.capabilityId);

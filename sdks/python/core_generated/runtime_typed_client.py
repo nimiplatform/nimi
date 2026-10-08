@@ -145,6 +145,7 @@ GpuMemoryModel = Literal["GPU_MEMORY_MODEL_UNSPECIFIED", "GPU_MEMORY_MODEL_DISCR
 HookAdmissionState = Literal["HOOK_ADMISSION_STATE_UNSPECIFIED"]
 HookEffect = Literal["HOOK_EFFECT_UNSPECIFIED"]
 HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
+IntegrationConnectionSetupAction = Literal["INTEGRATION_CONNECTION_SETUP_ACTION_UNSPECIFIED", "INTEGRATION_CONNECTION_SETUP_ACTION_CREATE_NEW_TARGET"]
 LoadoutValidationState = Literal["LOADOUT_VALIDATION_STATE_UNSPECIFIED", "LOADOUT_VALIDATION_STATE_CONFIGURED", "LOADOUT_VALIDATION_STATE_UNRESOLVED", "LOADOUT_VALIDATION_STATE_BLOCKED"]
 LocalAgentCapabilityParticipationRole = Literal["LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
@@ -1335,6 +1336,14 @@ class CancelIntegrationCallRequest:
 @dataclass(frozen=True)
 class CancelIntegrationCallResponse:
     call: IntegrationCall | None = None
+
+@dataclass(frozen=True)
+class CancelIntegrationConnectionSetupRequest:
+    setup_id: str | None = None
+
+@dataclass(frozen=True)
+class CancelIntegrationConnectionSetupResponse:
+    setup: IntegrationConnectionSetup | None = None
 
 @dataclass(frozen=True)
 class CancelLocalAppAgentWorkRequest:
@@ -2598,6 +2607,14 @@ class GetIntegrationCallResponse:
     call: IntegrationCall | None = None
 
 @dataclass(frozen=True)
+class GetIntegrationConnectionSetupRequest:
+    setup_id: str | None = None
+
+@dataclass(frozen=True)
+class GetIntegrationConnectionSetupResponse:
+    setup: IntegrationConnectionSetup | None = None
+
+@dataclass(frozen=True)
 class GetIntegrationManagementRequest:
     pass
 
@@ -2949,11 +2966,46 @@ class IntegrationCall:
     account_label: str | None = None
 
 @dataclass(frozen=True)
+class IntegrationConnectionConfig:
+    mcp: IntegrationMcpConfig | None = None
+    telegram: IntegrationTelegramConfig | None = None
+    weixin: IntegrationWeixinConfig | None = None
+    feishu: IntegrationFeishuConfig | None = None
+    qq_official: IntegrationQQOfficialConfig | None = None
+    onebot_v11: IntegrationOneBotV11Config | None = None
+
+@dataclass(frozen=True)
+class IntegrationConnectionSetup:
+    setup_id: str | None = None
+    adapter: str | None = None
+    target_ref: str | None = None
+    status: str | None = None
+    expires_at: str | None = None
+    qr_code_url: str | None = None
+    verification_url: str | None = None
+    account_label: str | None = None
+    error_code: str | None = None
+
+@dataclass(frozen=True)
 class IntegrationConsumer:
     consumer_ref: str | None = None
     app_id: str | None = None
     display_name: str | None = None
     source_kind: str | None = None
+
+@dataclass(frozen=True)
+class IntegrationFeishuConfig:
+    app_id: str | None = None
+    setup_mode: str | None = None
+
+@dataclass(frozen=True)
+class IntegrationMcpConfig:
+    endpoint: str | None = None
+
+@dataclass(frozen=True)
+class IntegrationOneBotV11Config:
+    listener: str | None = None
+    self_id: str | None = None
 
 @dataclass(frozen=True)
 class IntegrationOperation:
@@ -2981,6 +3033,10 @@ class IntegrationProviderCall:
     consumer_display_name: str | None = None
 
 @dataclass(frozen=True)
+class IntegrationQQOfficialConfig:
+    app_id: str | None = None
+
+@dataclass(frozen=True)
 class IntegrationTarget:
     target_ref: str | None = None
     integration_id: str | None = None
@@ -2991,6 +3047,14 @@ class IntegrationTarget:
     operations: tuple[IntegrationOperation, ...] = field(default_factory=tuple)
     skill: str | None = None
     permitted_operations: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class IntegrationTelegramConfig:
+    pass
+
+@dataclass(frozen=True)
+class IntegrationWeixinConfig:
+    pass
 
 @dataclass(frozen=True)
 class InterruptLocalAppAgentRealtimeOutputRequest:
@@ -5443,10 +5507,10 @@ class PutArtifactResponse:
 class PutIntegrationConnectionRequest:
     target_ref: str | None = None
     adapter: str | None = None
-    endpoint: str | None = None
     display_name: str | None = None
     account_label: str | None = None
     secret: str | None = None
+    config: IntegrationConnectionConfig | None = None
 
 @dataclass(frozen=True)
 class PutIntegrationConnectionResponse:
@@ -6505,6 +6569,18 @@ class StartAppPackageUpdateResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class StartIntegrationConnectionSetupRequest:
+    target_ref: str | None = None
+    adapter: str | None = None
+    display_name: str | None = None
+    account_label: str | None = None
+    config: IntegrationConnectionConfig | None = None
+
+@dataclass(frozen=True)
+class StartIntegrationConnectionSetupResponse:
+    setup: IntegrationConnectionSetup | None = None
+
+@dataclass(frozen=True)
 class StartLocalAppAgentWorkRequest:
     agent_handle: str | None = None
     request_id: str | None = None
@@ -6620,6 +6696,17 @@ class SubmitDelegatedApprovalDecisionRequest:
 @dataclass(frozen=True)
 class SubmitDelegatedApprovalDecisionResponse:
     approval_request: DelegatedApprovalRequest | None = None
+
+@dataclass(frozen=True)
+class SubmitIntegrationConnectionSetupRequest:
+    setup_id: str | None = None
+    secret: str | None = None
+    verification_code: str | None = None
+    action: IntegrationConnectionSetupAction | None = None
+
+@dataclass(frozen=True)
+class SubmitIntegrationConnectionSetupResponse:
+    setup: IntegrationConnectionSetup | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppAgentWorkToolResultRequest:
@@ -8351,6 +8438,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelIntegrationCallResponse, raw)
 
+    async def cancel_integration_connection_setup(self, request: CancelIntegrationConnectionSetupRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelIntegrationConnectionSetupResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CancelIntegrationConnectionSetupResponse, raw)
+
     async def complete_integration_provider(self, request: CompleteIntegrationProviderRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CompleteIntegrationProviderResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CompleteIntegrationProviderResponse, raw)
@@ -8358,6 +8449,10 @@ class RuntimeTypedClient:
     async def get_integration_call(self, request: GetIntegrationCallRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetIntegrationCallResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetIntegrationCallResponse, raw)
+
+    async def get_integration_connection_setup(self, request: GetIntegrationConnectionSetupRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetIntegrationConnectionSetupResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetIntegrationConnectionSetupResponse, raw)
 
     async def get_integration_management(self, request: GetIntegrationManagementRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetIntegrationManagementResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -8398,6 +8493,14 @@ class RuntimeTypedClient:
     async def set_integration_permission(self, request: SetIntegrationPermissionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetIntegrationPermissionResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetIntegrationPermissionResponse, raw)
+
+    async def start_integration_connection_setup(self, request: StartIntegrationConnectionSetupRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StartIntegrationConnectionSetupResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(StartIntegrationConnectionSetupResponse, raw)
+
+    async def submit_integration_connection_setup(self, request: SubmitIntegrationConnectionSetupRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitIntegrationConnectionSetupResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SubmitIntegrationConnectionSetupResponse, raw)
 
     async def unregister_integration_provider(self, request: UnregisterIntegrationProviderRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UnregisterIntegrationProviderResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

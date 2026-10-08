@@ -52,7 +52,7 @@ func (s *Service) readTelegramUpdates(ctx context.Context, t target, secret, inp
 		return "", adapterError("INTEGRATION_INPUT_INVALID")
 	}
 	s.mu.Lock()
-	if s.closed || s.quiesced.Load() {
+	if s.closed || s.quiesced.Load() || s.removing[t.Public.TargetRef] {
 		s.mu.Unlock()
 		return "", context.Canceled
 	}

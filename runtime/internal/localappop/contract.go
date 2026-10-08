@@ -126,6 +126,10 @@ const (
 	IngressIntegrationConnectionPut
 	IngressIntegrationConnectionRemove
 	IngressIntegrationPermissionSet
+	IngressIntegrationConnectionSetupStart
+	IngressIntegrationConnectionSetupGet
+	IngressIntegrationConnectionSetupSubmit
+	IngressIntegrationConnectionSetupCancel
 
 	IngressStorageJSONRead
 	IngressStorageJSONWrite
@@ -252,6 +256,10 @@ const (
 	OperationIntegrationConnectionPut
 	OperationIntegrationConnectionRemove
 	OperationIntegrationPermissionSet
+	OperationIntegrationConnectionSetupStart
+	OperationIntegrationConnectionSetupGet
+	OperationIntegrationConnectionSetupSubmit
+	OperationIntegrationConnectionSetupCancel
 
 	OperationStorageJSONRead
 	OperationStorageJSONWrite
@@ -355,28 +363,32 @@ const (
 )
 
 const (
-	AppOperationIDAgentWorkReferenceList        = "runtime.agent.work.reference.list"
-	AppOperationIDAgentWorkStart                = "runtime.agent.work.start"
-	AppOperationIDAgentWorkGet                  = "runtime.agent.work.get"
-	AppOperationIDAgentWorkStatusGet            = "runtime.agent.work.status.get"
-	AppOperationIDAgentWorkToolCallsList        = "runtime.agent.work.tool-calls.list"
-	AppOperationIDAgentWorkToolResultSubmit     = "runtime.agent.work.tool-result.submit"
-	AppOperationIDAgentWorkCancel               = "runtime.agent.work.cancel"
-	AppOperationIDAgentWorkEventsSubscribe      = "runtime.agent.work.events.subscribe"
-	AppOperationIDIntegrationCatalogList        = "runtime.integration.catalog.list"
-	AppOperationIDIntegrationConnectionList     = "runtime.integration.connection.list"
-	AppOperationIDIntegrationCallInvoke         = "runtime.integration.call.invoke"
-	AppOperationIDIntegrationCallGet            = "runtime.integration.call.get"
-	AppOperationIDIntegrationCallList           = "runtime.integration.call.list"
-	AppOperationIDIntegrationCallCancel         = "runtime.integration.call.cancel"
-	AppOperationIDIntegrationProviderRegister   = "runtime.integration.provider.register"
-	AppOperationIDIntegrationProviderUnregister = "runtime.integration.provider.unregister"
-	AppOperationIDIntegrationProviderPoll       = "runtime.integration.provider.poll"
-	AppOperationIDIntegrationProviderComplete   = "runtime.integration.provider.complete"
-	AppOperationIDIntegrationManagementGet      = "runtime.integration.management.get"
-	AppOperationIDIntegrationConnectionPut      = "runtime.integration.connection.put"
-	AppOperationIDIntegrationConnectionRemove   = "runtime.integration.connection.remove"
-	AppOperationIDIntegrationPermissionSet      = "runtime.integration.permission.set"
+	AppOperationIDAgentWorkReferenceList           = "runtime.agent.work.reference.list"
+	AppOperationIDAgentWorkStart                   = "runtime.agent.work.start"
+	AppOperationIDAgentWorkGet                     = "runtime.agent.work.get"
+	AppOperationIDAgentWorkStatusGet               = "runtime.agent.work.status.get"
+	AppOperationIDAgentWorkToolCallsList           = "runtime.agent.work.tool-calls.list"
+	AppOperationIDAgentWorkToolResultSubmit        = "runtime.agent.work.tool-result.submit"
+	AppOperationIDAgentWorkCancel                  = "runtime.agent.work.cancel"
+	AppOperationIDAgentWorkEventsSubscribe         = "runtime.agent.work.events.subscribe"
+	AppOperationIDIntegrationCatalogList           = "runtime.integration.catalog.list"
+	AppOperationIDIntegrationConnectionList        = "runtime.integration.connection.list"
+	AppOperationIDIntegrationCallInvoke            = "runtime.integration.call.invoke"
+	AppOperationIDIntegrationCallGet               = "runtime.integration.call.get"
+	AppOperationIDIntegrationCallList              = "runtime.integration.call.list"
+	AppOperationIDIntegrationCallCancel            = "runtime.integration.call.cancel"
+	AppOperationIDIntegrationProviderRegister      = "runtime.integration.provider.register"
+	AppOperationIDIntegrationProviderUnregister    = "runtime.integration.provider.unregister"
+	AppOperationIDIntegrationProviderPoll          = "runtime.integration.provider.poll"
+	AppOperationIDIntegrationProviderComplete      = "runtime.integration.provider.complete"
+	AppOperationIDIntegrationManagementGet         = "runtime.integration.management.get"
+	AppOperationIDIntegrationConnectionPut         = "runtime.integration.connection.put"
+	AppOperationIDIntegrationConnectionRemove      = "runtime.integration.connection.remove"
+	AppOperationIDIntegrationPermissionSet         = "runtime.integration.permission.set"
+	AppOperationIDIntegrationConnectionSetupStart  = "runtime.integration.connection.setup.start"
+	AppOperationIDIntegrationConnectionSetupGet    = "runtime.integration.connection.setup.get"
+	AppOperationIDIntegrationConnectionSetupSubmit = "runtime.integration.connection.setup.submit"
+	AppOperationIDIntegrationConnectionSetupCancel = "runtime.integration.connection.setup.cancel"
 )
 
 type contractRow struct {
@@ -415,6 +427,10 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressIntegrationConnectionPut, OperationIntegrationConnectionPut, AppOperationIDIntegrationConnectionPut, AuthorityClassAppAccess, "integration.manage"},
 	{IngressIntegrationConnectionRemove, OperationIntegrationConnectionRemove, AppOperationIDIntegrationConnectionRemove, AuthorityClassAppAccess, "integration.manage"},
 	{IngressIntegrationPermissionSet, OperationIntegrationPermissionSet, AppOperationIDIntegrationPermissionSet, AuthorityClassAppAccess, "integration.manage"},
+	{IngressIntegrationConnectionSetupStart, OperationIntegrationConnectionSetupStart, AppOperationIDIntegrationConnectionSetupStart, AuthorityClassAppAccess, "integration.manage"},
+	{IngressIntegrationConnectionSetupGet, OperationIntegrationConnectionSetupGet, AppOperationIDIntegrationConnectionSetupGet, AuthorityClassAppAccess, "integration.manage"},
+	{IngressIntegrationConnectionSetupSubmit, OperationIntegrationConnectionSetupSubmit, AppOperationIDIntegrationConnectionSetupSubmit, AuthorityClassAppAccess, "integration.manage"},
+	{IngressIntegrationConnectionSetupCancel, OperationIntegrationConnectionSetupCancel, AppOperationIDIntegrationConnectionSetupCancel, AuthorityClassAppAccess, "integration.manage"},
 
 	{IngressStorageJSONRead, OperationStorageJSONRead, "runtime.app-storage.json.read", AuthorityClassBase, ""},
 	{IngressStorageJSONWrite, OperationStorageJSONWrite, "runtime.app-storage.json.write", AuthorityClassBase, ""},

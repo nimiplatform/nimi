@@ -73,7 +73,7 @@ export interface IntegrationTarget {
      */
     accountLabel: string;
     /**
-     * "mcp", "telegram", or "app".
+     * mcp, telegram, app, weixin, feishu, qq-official, or onebot-v11.
      *
      * @generated from protobuf field: string kind = 5
      */
@@ -470,10 +470,6 @@ export interface PutIntegrationConnectionRequest {
      */
     adapter: string;
     /**
-     * @generated from protobuf field: string endpoint = 3
-     */
-    endpoint: string;
-    /**
      * @generated from protobuf field: string display_name = 4
      */
     displayName: string;
@@ -487,6 +483,10 @@ export interface PutIntegrationConnectionRequest {
      * @generated from protobuf field: string secret = 6
      */
     secret: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationConnectionConfig config = 7
+     */
+    config?: IntegrationConnectionConfig;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.PutIntegrationConnectionResponse
@@ -496,6 +496,243 @@ export interface PutIntegrationConnectionResponse {
      * @generated from protobuf field: nimi.runtime.v1.IntegrationTarget connection = 1
      */
     connection?: IntegrationTarget;
+}
+/**
+ * Exactly one adapter-matching field is allowed. Credentials never enter this
+ * closed non-secret configuration or a consumer-visible projection.
+ *
+ * @generated from protobuf message nimi.runtime.v1.IntegrationConnectionConfig
+ */
+export interface IntegrationConnectionConfig {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationMcpConfig mcp = 1
+     */
+    mcp?: IntegrationMcpConfig;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationTelegramConfig telegram = 2
+     */
+    telegram?: IntegrationTelegramConfig;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationWeixinConfig weixin = 3
+     */
+    weixin?: IntegrationWeixinConfig;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationFeishuConfig feishu = 4
+     */
+    feishu?: IntegrationFeishuConfig;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationQQOfficialConfig qq_official = 5
+     */
+    qqOfficial?: IntegrationQQOfficialConfig;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationOneBotV11Config onebot_v11 = 6
+     */
+    onebotV11?: IntegrationOneBotV11Config;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.IntegrationMcpConfig
+ */
+export interface IntegrationMcpConfig {
+    /**
+     * @generated from protobuf field: string endpoint = 1
+     */
+    endpoint: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.IntegrationTelegramConfig
+ */
+export interface IntegrationTelegramConfig {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.IntegrationWeixinConfig
+ */
+export interface IntegrationWeixinConfig {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.IntegrationFeishuConfig
+ */
+export interface IntegrationFeishuConfig {
+    /**
+     * manual requires app_id; create starts domestic official QR registration
+     * without pre-existing credentials. Completed connection uses manual mode.
+     *
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string setup_mode = 2
+     */
+    setupMode: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.IntegrationQQOfficialConfig
+ */
+export interface IntegrationQQOfficialConfig {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.IntegrationOneBotV11Config
+ */
+export interface IntegrationOneBotV11Config {
+    /**
+     * @generated from protobuf field: string listener = 1
+     */
+    listener: string;
+    /**
+     * @generated from protobuf field: string self_id = 2
+     */
+    selfId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.IntegrationConnectionSetup
+ */
+export interface IntegrationConnectionSetup {
+    /**
+     * @generated from protobuf field: string setup_id = 1
+     */
+    setupId: string;
+    /**
+     * @generated from protobuf field: string adapter = 2
+     */
+    adapter: string;
+    /**
+     * @generated from protobuf field: string target_ref = 3
+     */
+    targetRef: string;
+    /**
+     * awaiting-input, awaiting-confirmation, awaiting-new-target, verifying,
+     * completed, already-bound,
+     * failed, canceled, or expired. already-bound is an exact Weixin refresh
+     * no-op: no credential or generation changes. Setup grants no permission.
+     *
+     * @generated from protobuf field: string status = 4
+     */
+    status: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 5
+     */
+    expiresAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string qr_code_url = 6
+     */
+    qrCodeUrl: string;
+    /**
+     * @generated from protobuf field: string verification_url = 7
+     */
+    verificationUrl: string;
+    /**
+     * @generated from protobuf field: string account_label = 8
+     */
+    accountLabel: string;
+    /**
+     * @generated from protobuf field: string error_code = 9
+     */
+    errorCode: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StartIntegrationConnectionSetupRequest
+ */
+export interface StartIntegrationConnectionSetupRequest {
+    /**
+     * @generated from protobuf field: string target_ref = 1
+     */
+    targetRef: string;
+    /**
+     * @generated from protobuf field: string adapter = 2
+     */
+    adapter: string;
+    /**
+     * @generated from protobuf field: string display_name = 3
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: string account_label = 4
+     */
+    accountLabel: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationConnectionConfig config = 5
+     */
+    config?: IntegrationConnectionConfig;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StartIntegrationConnectionSetupResponse
+ */
+export interface StartIntegrationConnectionSetupResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationConnectionSetup setup = 1
+     */
+    setup?: IntegrationConnectionSetup;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetIntegrationConnectionSetupRequest
+ */
+export interface GetIntegrationConnectionSetupRequest {
+    /**
+     * @generated from protobuf field: string setup_id = 1
+     */
+    setupId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetIntegrationConnectionSetupResponse
+ */
+export interface GetIntegrationConnectionSetupResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationConnectionSetup setup = 1
+     */
+    setup?: IntegrationConnectionSetup;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest
+ */
+export interface SubmitIntegrationConnectionSetupRequest {
+    /**
+     * @generated from protobuf field: string setup_id = 1
+     */
+    setupId: string;
+    /**
+     * @generated from protobuf field: string secret = 2
+     */
+    secret: string;
+    /**
+     * @generated from protobuf field: string verification_code = 3
+     */
+    verificationCode: string;
+    /**
+     * Mutually exclusive with secret and verification_code.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationConnectionSetupAction action = 4
+     */
+    action: IntegrationConnectionSetupAction;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse
+ */
+export interface SubmitIntegrationConnectionSetupResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationConnectionSetup setup = 1
+     */
+    setup?: IntegrationConnectionSetup;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CancelIntegrationConnectionSetupRequest
+ */
+export interface CancelIntegrationConnectionSetupRequest {
+    /**
+     * @generated from protobuf field: string setup_id = 1
+     */
+    setupId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CancelIntegrationConnectionSetupResponse
+ */
+export interface CancelIntegrationConnectionSetupResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationConnectionSetup setup = 1
+     */
+    setup?: IntegrationConnectionSetup;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RemoveIntegrationConnectionRequest
@@ -542,6 +779,22 @@ export interface SetIntegrationPermissionResponse {
      * @generated from protobuf field: nimi.runtime.v1.IntegrationPermission permission = 1
      */
     permission?: IntegrationPermission;
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.IntegrationConnectionSetupAction
+ */
+export enum IntegrationConnectionSetupAction {
+    /**
+     * @generated from protobuf enum value: INTEGRATION_CONNECTION_SETUP_ACTION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * Explicit Home confirmation of a verified different-bot candidate.
+     * Creates a new target with no inherited permission; preserves the original.
+     *
+     * @generated from protobuf enum value: INTEGRATION_CONNECTION_SETUP_ACTION_CREATE_NEW_TARGET = 1;
+     */
+    CREATE_NEW_TARGET = 1
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
@@ -2191,17 +2444,16 @@ class PutIntegrationConnectionRequest$Type extends MessageType<PutIntegrationCon
         super("nimi.runtime.v1.PutIntegrationConnectionRequest", [
             { no: 1, name: "target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "adapter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "account_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "secret", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "secret", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "config", kind: "message", T: () => IntegrationConnectionConfig }
         ]);
     }
     create(value?: PartialMessage<PutIntegrationConnectionRequest>): PutIntegrationConnectionRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.targetRef = "";
         message.adapter = "";
-        message.endpoint = "";
         message.displayName = "";
         message.accountLabel = "";
         message.secret = "";
@@ -2220,9 +2472,6 @@ class PutIntegrationConnectionRequest$Type extends MessageType<PutIntegrationCon
                 case /* string adapter */ 2:
                     message.adapter = reader.string();
                     break;
-                case /* string endpoint */ 3:
-                    message.endpoint = reader.string();
-                    break;
                 case /* string display_name */ 4:
                     message.displayName = reader.string();
                     break;
@@ -2231,6 +2480,9 @@ class PutIntegrationConnectionRequest$Type extends MessageType<PutIntegrationCon
                     break;
                 case /* string secret */ 6:
                     message.secret = reader.string();
+                    break;
+                case /* nimi.runtime.v1.IntegrationConnectionConfig config */ 7:
+                    message.config = IntegrationConnectionConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2250,9 +2502,6 @@ class PutIntegrationConnectionRequest$Type extends MessageType<PutIntegrationCon
         /* string adapter = 2; */
         if (message.adapter !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.adapter);
-        /* string endpoint = 3; */
-        if (message.endpoint !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.endpoint);
         /* string display_name = 4; */
         if (message.displayName !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.displayName);
@@ -2262,6 +2511,9 @@ class PutIntegrationConnectionRequest$Type extends MessageType<PutIntegrationCon
         /* string secret = 6; */
         if (message.secret !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.secret);
+        /* nimi.runtime.v1.IntegrationConnectionConfig config = 7; */
+        if (message.config)
+            IntegrationConnectionConfig.internalBinaryWrite(message.config, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2318,6 +2570,904 @@ class PutIntegrationConnectionResponse$Type extends MessageType<PutIntegrationCo
  * @generated MessageType for protobuf message nimi.runtime.v1.PutIntegrationConnectionResponse
  */
 export const PutIntegrationConnectionResponse = new PutIntegrationConnectionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IntegrationConnectionConfig$Type extends MessageType<IntegrationConnectionConfig> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationConnectionConfig", [
+            { no: 1, name: "mcp", kind: "message", T: () => IntegrationMcpConfig },
+            { no: 2, name: "telegram", kind: "message", T: () => IntegrationTelegramConfig },
+            { no: 3, name: "weixin", kind: "message", T: () => IntegrationWeixinConfig },
+            { no: 4, name: "feishu", kind: "message", T: () => IntegrationFeishuConfig },
+            { no: 5, name: "qq_official", kind: "message", T: () => IntegrationQQOfficialConfig },
+            { no: 6, name: "onebot_v11", kind: "message", T: () => IntegrationOneBotV11Config }
+        ]);
+    }
+    create(value?: PartialMessage<IntegrationConnectionConfig>): IntegrationConnectionConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationConnectionConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationConnectionConfig): IntegrationConnectionConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.IntegrationMcpConfig mcp */ 1:
+                    message.mcp = IntegrationMcpConfig.internalBinaryRead(reader, reader.uint32(), options, message.mcp);
+                    break;
+                case /* nimi.runtime.v1.IntegrationTelegramConfig telegram */ 2:
+                    message.telegram = IntegrationTelegramConfig.internalBinaryRead(reader, reader.uint32(), options, message.telegram);
+                    break;
+                case /* nimi.runtime.v1.IntegrationWeixinConfig weixin */ 3:
+                    message.weixin = IntegrationWeixinConfig.internalBinaryRead(reader, reader.uint32(), options, message.weixin);
+                    break;
+                case /* nimi.runtime.v1.IntegrationFeishuConfig feishu */ 4:
+                    message.feishu = IntegrationFeishuConfig.internalBinaryRead(reader, reader.uint32(), options, message.feishu);
+                    break;
+                case /* nimi.runtime.v1.IntegrationQQOfficialConfig qq_official */ 5:
+                    message.qqOfficial = IntegrationQQOfficialConfig.internalBinaryRead(reader, reader.uint32(), options, message.qqOfficial);
+                    break;
+                case /* nimi.runtime.v1.IntegrationOneBotV11Config onebot_v11 */ 6:
+                    message.onebotV11 = IntegrationOneBotV11Config.internalBinaryRead(reader, reader.uint32(), options, message.onebotV11);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationConnectionConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.IntegrationMcpConfig mcp = 1; */
+        if (message.mcp)
+            IntegrationMcpConfig.internalBinaryWrite(message.mcp, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.IntegrationTelegramConfig telegram = 2; */
+        if (message.telegram)
+            IntegrationTelegramConfig.internalBinaryWrite(message.telegram, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.IntegrationWeixinConfig weixin = 3; */
+        if (message.weixin)
+            IntegrationWeixinConfig.internalBinaryWrite(message.weixin, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.IntegrationFeishuConfig feishu = 4; */
+        if (message.feishu)
+            IntegrationFeishuConfig.internalBinaryWrite(message.feishu, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.IntegrationQQOfficialConfig qq_official = 5; */
+        if (message.qqOfficial)
+            IntegrationQQOfficialConfig.internalBinaryWrite(message.qqOfficial, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.IntegrationOneBotV11Config onebot_v11 = 6; */
+        if (message.onebotV11)
+            IntegrationOneBotV11Config.internalBinaryWrite(message.onebotV11, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationConnectionConfig
+ */
+export const IntegrationConnectionConfig = new IntegrationConnectionConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IntegrationMcpConfig$Type extends MessageType<IntegrationMcpConfig> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationMcpConfig", [
+            { no: 1, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<IntegrationMcpConfig>): IntegrationMcpConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.endpoint = "";
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationMcpConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationMcpConfig): IntegrationMcpConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string endpoint */ 1:
+                    message.endpoint = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationMcpConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string endpoint = 1; */
+        if (message.endpoint !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.endpoint);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationMcpConfig
+ */
+export const IntegrationMcpConfig = new IntegrationMcpConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IntegrationTelegramConfig$Type extends MessageType<IntegrationTelegramConfig> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationTelegramConfig", []);
+    }
+    create(value?: PartialMessage<IntegrationTelegramConfig>): IntegrationTelegramConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationTelegramConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationTelegramConfig): IntegrationTelegramConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationTelegramConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationTelegramConfig
+ */
+export const IntegrationTelegramConfig = new IntegrationTelegramConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IntegrationWeixinConfig$Type extends MessageType<IntegrationWeixinConfig> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationWeixinConfig", []);
+    }
+    create(value?: PartialMessage<IntegrationWeixinConfig>): IntegrationWeixinConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationWeixinConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationWeixinConfig): IntegrationWeixinConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationWeixinConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationWeixinConfig
+ */
+export const IntegrationWeixinConfig = new IntegrationWeixinConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IntegrationFeishuConfig$Type extends MessageType<IntegrationFeishuConfig> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationFeishuConfig", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "setup_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<IntegrationFeishuConfig>): IntegrationFeishuConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.setupMode = "";
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationFeishuConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationFeishuConfig): IntegrationFeishuConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* string setup_mode */ 2:
+                    message.setupMode = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationFeishuConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* string setup_mode = 2; */
+        if (message.setupMode !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.setupMode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationFeishuConfig
+ */
+export const IntegrationFeishuConfig = new IntegrationFeishuConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IntegrationQQOfficialConfig$Type extends MessageType<IntegrationQQOfficialConfig> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationQQOfficialConfig", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<IntegrationQQOfficialConfig>): IntegrationQQOfficialConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationQQOfficialConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationQQOfficialConfig): IntegrationQQOfficialConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationQQOfficialConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationQQOfficialConfig
+ */
+export const IntegrationQQOfficialConfig = new IntegrationQQOfficialConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IntegrationOneBotV11Config$Type extends MessageType<IntegrationOneBotV11Config> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationOneBotV11Config", [
+            { no: 1, name: "listener", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "self_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<IntegrationOneBotV11Config>): IntegrationOneBotV11Config {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.listener = "";
+        message.selfId = "";
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationOneBotV11Config>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationOneBotV11Config): IntegrationOneBotV11Config {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string listener */ 1:
+                    message.listener = reader.string();
+                    break;
+                case /* string self_id */ 2:
+                    message.selfId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationOneBotV11Config, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string listener = 1; */
+        if (message.listener !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.listener);
+        /* string self_id = 2; */
+        if (message.selfId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.selfId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationOneBotV11Config
+ */
+export const IntegrationOneBotV11Config = new IntegrationOneBotV11Config$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IntegrationConnectionSetup$Type extends MessageType<IntegrationConnectionSetup> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationConnectionSetup", [
+            { no: 1, name: "setup_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "adapter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "expires_at", kind: "message", T: () => Timestamp },
+            { no: 6, name: "qr_code_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "verification_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "account_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "error_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<IntegrationConnectionSetup>): IntegrationConnectionSetup {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.setupId = "";
+        message.adapter = "";
+        message.targetRef = "";
+        message.status = "";
+        message.qrCodeUrl = "";
+        message.verificationUrl = "";
+        message.accountLabel = "";
+        message.errorCode = "";
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationConnectionSetup>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationConnectionSetup): IntegrationConnectionSetup {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string setup_id */ 1:
+                    message.setupId = reader.string();
+                    break;
+                case /* string adapter */ 2:
+                    message.adapter = reader.string();
+                    break;
+                case /* string target_ref */ 3:
+                    message.targetRef = reader.string();
+                    break;
+                case /* string status */ 4:
+                    message.status = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp expires_at */ 5:
+                    message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
+                    break;
+                case /* string qr_code_url */ 6:
+                    message.qrCodeUrl = reader.string();
+                    break;
+                case /* string verification_url */ 7:
+                    message.verificationUrl = reader.string();
+                    break;
+                case /* string account_label */ 8:
+                    message.accountLabel = reader.string();
+                    break;
+                case /* string error_code */ 9:
+                    message.errorCode = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationConnectionSetup, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string setup_id = 1; */
+        if (message.setupId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.setupId);
+        /* string adapter = 2; */
+        if (message.adapter !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.adapter);
+        /* string target_ref = 3; */
+        if (message.targetRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.targetRef);
+        /* string status = 4; */
+        if (message.status !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.status);
+        /* google.protobuf.Timestamp expires_at = 5; */
+        if (message.expiresAt)
+            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* string qr_code_url = 6; */
+        if (message.qrCodeUrl !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.qrCodeUrl);
+        /* string verification_url = 7; */
+        if (message.verificationUrl !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.verificationUrl);
+        /* string account_label = 8; */
+        if (message.accountLabel !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.accountLabel);
+        /* string error_code = 9; */
+        if (message.errorCode !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.errorCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationConnectionSetup
+ */
+export const IntegrationConnectionSetup = new IntegrationConnectionSetup$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StartIntegrationConnectionSetupRequest$Type extends MessageType<StartIntegrationConnectionSetupRequest> {
+    constructor() {
+        super("nimi.runtime.v1.StartIntegrationConnectionSetupRequest", [
+            { no: 1, name: "target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "adapter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "account_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "config", kind: "message", T: () => IntegrationConnectionConfig }
+        ]);
+    }
+    create(value?: PartialMessage<StartIntegrationConnectionSetupRequest>): StartIntegrationConnectionSetupRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.targetRef = "";
+        message.adapter = "";
+        message.displayName = "";
+        message.accountLabel = "";
+        if (value !== undefined)
+            reflectionMergePartial<StartIntegrationConnectionSetupRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StartIntegrationConnectionSetupRequest): StartIntegrationConnectionSetupRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string target_ref */ 1:
+                    message.targetRef = reader.string();
+                    break;
+                case /* string adapter */ 2:
+                    message.adapter = reader.string();
+                    break;
+                case /* string display_name */ 3:
+                    message.displayName = reader.string();
+                    break;
+                case /* string account_label */ 4:
+                    message.accountLabel = reader.string();
+                    break;
+                case /* nimi.runtime.v1.IntegrationConnectionConfig config */ 5:
+                    message.config = IntegrationConnectionConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StartIntegrationConnectionSetupRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string target_ref = 1; */
+        if (message.targetRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.targetRef);
+        /* string adapter = 2; */
+        if (message.adapter !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.adapter);
+        /* string display_name = 3; */
+        if (message.displayName !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.displayName);
+        /* string account_label = 4; */
+        if (message.accountLabel !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.accountLabel);
+        /* nimi.runtime.v1.IntegrationConnectionConfig config = 5; */
+        if (message.config)
+            IntegrationConnectionConfig.internalBinaryWrite(message.config, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StartIntegrationConnectionSetupRequest
+ */
+export const StartIntegrationConnectionSetupRequest = new StartIntegrationConnectionSetupRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StartIntegrationConnectionSetupResponse$Type extends MessageType<StartIntegrationConnectionSetupResponse> {
+    constructor() {
+        super("nimi.runtime.v1.StartIntegrationConnectionSetupResponse", [
+            { no: 1, name: "setup", kind: "message", T: () => IntegrationConnectionSetup }
+        ]);
+    }
+    create(value?: PartialMessage<StartIntegrationConnectionSetupResponse>): StartIntegrationConnectionSetupResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<StartIntegrationConnectionSetupResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StartIntegrationConnectionSetupResponse): StartIntegrationConnectionSetupResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.IntegrationConnectionSetup setup */ 1:
+                    message.setup = IntegrationConnectionSetup.internalBinaryRead(reader, reader.uint32(), options, message.setup);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StartIntegrationConnectionSetupResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.IntegrationConnectionSetup setup = 1; */
+        if (message.setup)
+            IntegrationConnectionSetup.internalBinaryWrite(message.setup, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StartIntegrationConnectionSetupResponse
+ */
+export const StartIntegrationConnectionSetupResponse = new StartIntegrationConnectionSetupResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetIntegrationConnectionSetupRequest$Type extends MessageType<GetIntegrationConnectionSetupRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetIntegrationConnectionSetupRequest", [
+            { no: 1, name: "setup_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetIntegrationConnectionSetupRequest>): GetIntegrationConnectionSetupRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.setupId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetIntegrationConnectionSetupRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetIntegrationConnectionSetupRequest): GetIntegrationConnectionSetupRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string setup_id */ 1:
+                    message.setupId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetIntegrationConnectionSetupRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string setup_id = 1; */
+        if (message.setupId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.setupId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetIntegrationConnectionSetupRequest
+ */
+export const GetIntegrationConnectionSetupRequest = new GetIntegrationConnectionSetupRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetIntegrationConnectionSetupResponse$Type extends MessageType<GetIntegrationConnectionSetupResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetIntegrationConnectionSetupResponse", [
+            { no: 1, name: "setup", kind: "message", T: () => IntegrationConnectionSetup }
+        ]);
+    }
+    create(value?: PartialMessage<GetIntegrationConnectionSetupResponse>): GetIntegrationConnectionSetupResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetIntegrationConnectionSetupResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetIntegrationConnectionSetupResponse): GetIntegrationConnectionSetupResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.IntegrationConnectionSetup setup */ 1:
+                    message.setup = IntegrationConnectionSetup.internalBinaryRead(reader, reader.uint32(), options, message.setup);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetIntegrationConnectionSetupResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.IntegrationConnectionSetup setup = 1; */
+        if (message.setup)
+            IntegrationConnectionSetup.internalBinaryWrite(message.setup, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetIntegrationConnectionSetupResponse
+ */
+export const GetIntegrationConnectionSetupResponse = new GetIntegrationConnectionSetupResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubmitIntegrationConnectionSetupRequest$Type extends MessageType<SubmitIntegrationConnectionSetupRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest", [
+            { no: 1, name: "setup_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "secret", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "verification_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.IntegrationConnectionSetupAction", IntegrationConnectionSetupAction, "INTEGRATION_CONNECTION_SETUP_ACTION_"] }
+        ]);
+    }
+    create(value?: PartialMessage<SubmitIntegrationConnectionSetupRequest>): SubmitIntegrationConnectionSetupRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.setupId = "";
+        message.secret = "";
+        message.verificationCode = "";
+        message.action = 0;
+        if (value !== undefined)
+            reflectionMergePartial<SubmitIntegrationConnectionSetupRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubmitIntegrationConnectionSetupRequest): SubmitIntegrationConnectionSetupRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string setup_id */ 1:
+                    message.setupId = reader.string();
+                    break;
+                case /* string secret */ 2:
+                    message.secret = reader.string();
+                    break;
+                case /* string verification_code */ 3:
+                    message.verificationCode = reader.string();
+                    break;
+                case /* nimi.runtime.v1.IntegrationConnectionSetupAction action */ 4:
+                    message.action = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubmitIntegrationConnectionSetupRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string setup_id = 1; */
+        if (message.setupId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.setupId);
+        /* string secret = 2; */
+        if (message.secret !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.secret);
+        /* string verification_code = 3; */
+        if (message.verificationCode !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.verificationCode);
+        /* nimi.runtime.v1.IntegrationConnectionSetupAction action = 4; */
+        if (message.action !== 0)
+            writer.tag(4, WireType.Varint).int32(message.action);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest
+ */
+export const SubmitIntegrationConnectionSetupRequest = new SubmitIntegrationConnectionSetupRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubmitIntegrationConnectionSetupResponse$Type extends MessageType<SubmitIntegrationConnectionSetupResponse> {
+    constructor() {
+        super("nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse", [
+            { no: 1, name: "setup", kind: "message", T: () => IntegrationConnectionSetup }
+        ]);
+    }
+    create(value?: PartialMessage<SubmitIntegrationConnectionSetupResponse>): SubmitIntegrationConnectionSetupResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<SubmitIntegrationConnectionSetupResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubmitIntegrationConnectionSetupResponse): SubmitIntegrationConnectionSetupResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.IntegrationConnectionSetup setup */ 1:
+                    message.setup = IntegrationConnectionSetup.internalBinaryRead(reader, reader.uint32(), options, message.setup);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubmitIntegrationConnectionSetupResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.IntegrationConnectionSetup setup = 1; */
+        if (message.setup)
+            IntegrationConnectionSetup.internalBinaryWrite(message.setup, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse
+ */
+export const SubmitIntegrationConnectionSetupResponse = new SubmitIntegrationConnectionSetupResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CancelIntegrationConnectionSetupRequest$Type extends MessageType<CancelIntegrationConnectionSetupRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CancelIntegrationConnectionSetupRequest", [
+            { no: 1, name: "setup_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CancelIntegrationConnectionSetupRequest>): CancelIntegrationConnectionSetupRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.setupId = "";
+        if (value !== undefined)
+            reflectionMergePartial<CancelIntegrationConnectionSetupRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelIntegrationConnectionSetupRequest): CancelIntegrationConnectionSetupRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string setup_id */ 1:
+                    message.setupId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CancelIntegrationConnectionSetupRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string setup_id = 1; */
+        if (message.setupId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.setupId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelIntegrationConnectionSetupRequest
+ */
+export const CancelIntegrationConnectionSetupRequest = new CancelIntegrationConnectionSetupRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CancelIntegrationConnectionSetupResponse$Type extends MessageType<CancelIntegrationConnectionSetupResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CancelIntegrationConnectionSetupResponse", [
+            { no: 1, name: "setup", kind: "message", T: () => IntegrationConnectionSetup }
+        ]);
+    }
+    create(value?: PartialMessage<CancelIntegrationConnectionSetupResponse>): CancelIntegrationConnectionSetupResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<CancelIntegrationConnectionSetupResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelIntegrationConnectionSetupResponse): CancelIntegrationConnectionSetupResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.IntegrationConnectionSetup setup */ 1:
+                    message.setup = IntegrationConnectionSetup.internalBinaryRead(reader, reader.uint32(), options, message.setup);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CancelIntegrationConnectionSetupResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.IntegrationConnectionSetup setup = 1; */
+        if (message.setup)
+            IntegrationConnectionSetup.internalBinaryWrite(message.setup, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelIntegrationConnectionSetupResponse
+ */
+export const CancelIntegrationConnectionSetupResponse = new CancelIntegrationConnectionSetupResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RemoveIntegrationConnectionRequest$Type extends MessageType<RemoveIntegrationConnectionRequest> {
     constructor() {

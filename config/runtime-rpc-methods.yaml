@@ -884,3 +884,24 @@ services:
         authority_status: admitted_local_app
         transport_disposition: protected_local_app_host_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission
+
+      - name: StartIntegrationConnectionSetup
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup
+      - name: GetIntegrationConnectionSetup
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup
+      - name: SubmitIntegrationConnectionSetup
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup
+      - name: CancelIntegrationConnectionSetup
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup

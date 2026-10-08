@@ -1118,6 +1118,38 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
             integration::set_permission(self.checked_channel()?, request).await
         })
     }
+    fn integration_start_connection_setup(
+        &self, request: serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            integration::start_connection_setup(self.checked_channel()?, request).await
+        })
+    }
+    fn integration_get_connection_setup(
+        &self, request: serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            integration::get_connection_setup(self.checked_channel()?, request).await
+        })
+    }
+    fn integration_submit_connection_setup(
+        &self, request: serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            integration::submit_connection_setup(self.checked_channel()?, request).await
+        })
+    }
+    fn integration_cancel_connection_setup(
+        &self, request: serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            integration::cancel_connection_setup(self.checked_channel()?, request).await
+        })
+    }
     fn conversation_open(
         &self,
         request: LocalAppConversationOpenRequest,

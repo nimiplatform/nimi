@@ -110,6 +110,7 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
     requestId: 'desktop-open-20260708-0008',
     intent: { kind: 'open-settings', section: 'profile' },
   },
+  {schemaVersion:1,sourceApp:'nimi.lab',sourceHost:'desktop-electron-local-app-host',requestId:'desktop-open-20261005-0200',intent:{kind:'open-integrations'}},
 ];
 describe('Desktop Open Intent SDK parser', () => {
   it('accepts admitted golden envelopes', () => {

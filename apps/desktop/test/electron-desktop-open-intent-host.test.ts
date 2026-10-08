@@ -45,6 +45,7 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
   let now = Date.parse('2026-07-19T10:00:00.000Z');
   let focusCount = 0;
   const emitted: NimiDesktopOpenIntentEnvelope[] = [];
+  const diagnostics: string[] = [];
   const avatarRequests: DesktopAvatarHostHandoffDispatch[] = [];
   const placementRequests: unknown[] = [];
   let descriptor: {
@@ -61,6 +62,7 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
     now: () => now,
     heartbeatIntervalMs: 60_000,
     readinessTtlMs: 10_000,
+    writeStderr: (line) => { diagnostics.push(line); },
     focusMainWindow: async () => { focusCount += 1; },
     emitIntent: (value) => emitted.push(value),
     avatarHostHandoff: async (dispatch) => {
@@ -145,6 +147,10 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
     });
     assert.equal(focusCount, 0);
     assert.deepEqual(emitted, []);
+
+    assert.deepEqual(diagnostics.map((line) => JSON.parse(line.slice('[desktop-open] '.length))), [{
+      stage: 'renderer-not-ready', ready: false, heartbeatAgeMs: null,
+    }]);
 
     const placement = await post(
       descriptor.endpoint,
@@ -234,9 +240,43 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
       actionHint: 'wait_for_desktop_ready',
     });
     assert.equal(focusCount, 1);
+    assert.deepEqual(JSON.parse(diagnostics.at(-1)!.slice('[desktop-open] '.length)), {
+      stage: 'renderer-heartbeat-expired', ready: true, heartbeatAgeMs: 10_001,
+    });
   } finally {
     await host.shutdown();
     await assert.rejects(readFile(descriptorPath, 'utf8'), { code: 'ENOENT' });
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('Desktop Open dispatch failure remains rejected and records only finite owner state', async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-desktop-open-dispatch-')));
+  const diagnostics: string[] = [];
+  const now = Date.parse('2026-10-06T12:00:00.000Z');
+  let emitted = false;
+  const host = await createDesktopElectronOpenIntentHost({
+    homeDirectory: home,
+    now: () => now,
+    writeStderr: (line) => { diagnostics.push(line); },
+    focusMainWindow: async () => { throw new Error('PRIVATE_FOCUS_ERROR'); },
+    emitIntent: () => { emitted = true; },
+  });
+  try {
+    const descriptor = JSON.parse(await readFile(path.join(home, '.nimi', 'run', 'desktop', 'open-intent', 'presence.v1.json'), 'utf8'));
+    host.commandHandlers.desktop_open_intent_set_ready({ command: 'desktop_open_intent_set_ready', payload: { ready: true } });
+    const result = await post(descriptor.endpoint, descriptor.token, envelope);
+    assert.equal((await result.json()).reasonCode, 'desktop-open-desktop-not-ready');
+    assert.equal(emitted, false);
+    assert.deepEqual(JSON.parse(diagnostics[0]!.slice('[desktop-open] '.length)), {
+      stage: 'desktop-dispatch-failed', ready: true, heartbeatAgeMs: 0,
+    });
+    assert.doesNotMatch(diagnostics.join(''), /PRIVATE_FOCUS_ERROR|nimi\.zhiyu|desktop-open-zhiyu-test-1|open-explore/);
+    const next = await post(descriptor.endpoint, descriptor.token, envelope);
+    assert.equal((await next.json()).reasonCode, 'desktop-open-desktop-not-ready');
+    assert.equal(JSON.parse(diagnostics[1]!.slice('[desktop-open] '.length)).stage, 'renderer-not-ready');
+  } finally {
+    await host.shutdown();
     await rm(home, { recursive: true, force: true });
   }
 });

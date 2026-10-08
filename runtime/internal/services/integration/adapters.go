@@ -18,9 +18,35 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 )
 
 type adapterError string
+
+type adapterPhaseError struct {
+	cause   error
+	outcome effectOutcome
+}
+
+func (e adapterPhaseError) Error() string { return e.cause.Error() }
+func (e adapterPhaseError) Unwrap() error { return e.cause }
+func phaseOutcome(err error) effectOutcome {
+	var phase adapterPhaseError
+	if errors.As(err, &phase) {
+		return phase.outcome
+	}
+	return notDispatched
+}
+
+// @nimi-authority: rule.nimi.runtime.integration.effect-outcome
+type effectOutcome uint8
+
+const (
+	notDispatched effectOutcome = iota
+	providerRejected
+	providerConfirmed
+	effectUnknown
+)
 
 func (e adapterError) Error() string { return string(e) }
 func publicAdapterError(err error) string {
@@ -117,13 +143,17 @@ func (s *Service) mcpSession(ctx context.Context, endpoint, secret string) (*mcp
 	})
 	return mcpClient.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: endpoint, HTTPClient: &client, MaxRetries: -1, DisableStandaloneSSE: true, MaxEventSize: maxOutput}, nil)
 }
-func (s *Service) configure(ctx context.Context, account, id string, req *runtimev1.PutIntegrationConnectionRequest, secret string) (target, error) {
-	t := target{Account: account, Endpoint: req.Endpoint, Public: &runtimev1.IntegrationTarget{TargetRef: id, IntegrationId: req.Adapter, DisplayName: req.DisplayName, AccountLabel: req.AccountLabel, Kind: req.Adapter, Available: true}}
+func (s *Service) configureInitialAdapter(ctx context.Context, account, id string, req *runtimev1.PutIntegrationConnectionRequest, secret string) (target, error) {
+	if err := validateConnectionConfig(req.Adapter, req.Config); err != nil {
+		return target{}, err
+	}
+	t := target{Account: account, Config: proto.Clone(req.Config).(*runtimev1.IntegrationConnectionConfig), Public: &runtimev1.IntegrationTarget{TargetRef: id, IntegrationId: req.Adapter, DisplayName: req.DisplayName, AccountLabel: req.AccountLabel, Kind: req.Adapter, Available: true}}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	switch req.Adapter {
 	case "mcp":
-		session, err := s.mcpSession(ctx, req.Endpoint, secret)
+		t.Identity = "mcp:" + req.Config.Mcp.Endpoint
+		session, err := s.mcpSession(ctx, req.Config.Mcp.Endpoint, secret)
 		if err != nil {
 			return target{}, failure(codes.Unavailable, publicAdapterError(err))
 		}
@@ -153,7 +183,7 @@ func (s *Service) configure(ctx context.Context, account, id string, req *runtim
 			}
 		}
 	case "telegram":
-		if req.Endpoint != "" || secret == "" {
+		if secret == "" {
 			return target{}, failure(codes.InvalidArgument, "INTEGRATION_TELEGRAM_CONFIGURATION_INVALID")
 		}
 		var me struct {
@@ -167,6 +197,7 @@ func (s *Service) configure(ctx context.Context, account, id string, req *runtim
 			return target{}, failure(codes.FailedPrecondition, "INTEGRATION_TELEGRAM_IDENTITY_INVALID")
 		}
 		t.TelegramBotID = me.ID
+		t.Identity = "telegram:" + strconv.FormatInt(me.ID, 10)
 		var webhook struct {
 			URL string `json:"url"`
 		}
@@ -179,6 +210,9 @@ func (s *Service) configure(ctx context.Context, account, id string, req *runtim
 		t.Public.AccountLabel = "@" + me.Username
 		t.Public.Operations = telegramOperations()
 	default:
+		if isNativeAdapter(req.Adapter) {
+			return target{}, failure(codes.Unavailable, "INTEGRATION_ADAPTER_NOT_READY")
+		}
 		return target{}, failure(codes.InvalidArgument, "INTEGRATION_ADAPTER_UNSUPPORTED")
 	}
 	if err := validateOperations(t.Public.Operations); err != nil {
@@ -206,29 +240,31 @@ func (s *Service) captureCredential(t target) (string, error) {
 	}
 	return secret, nil
 }
-func (s *Service) execute(ctx context.Context, t target, op *runtimev1.IntegrationOperation, input, secret string) (string, bool, error) {
+func (s *Service) executeInitialAdapter(ctx context.Context, t target, op *runtimev1.IntegrationOperation, input, secret string) (string, effectOutcome, error) {
 	if err := ctx.Err(); err != nil {
-		return "", false, err
+		return "", notDispatched, err
 	}
 	switch t.Public.Kind {
 	case "mcp":
-		session, err := s.mcpSession(ctx, t.Endpoint, secret)
+		session, err := s.mcpSession(ctx, t.Config.GetMcp().GetEndpoint(), secret)
 		if err != nil {
-			return "", false, mcpFailure(err, adapterError("INTEGRATION_MCP_INITIALIZE_FAILED"))
+			return "", notDispatched, mcpFailure(err, adapterError("INTEGRATION_MCP_INITIALIZE_FAILED"))
 		}
 		defer func() { _ = session.Close() }()
 		if err := ctx.Err(); err != nil {
-			return "", false, err
+			return "", notDispatched, err
 		}
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: op.Name, Arguments: json.RawMessage(input)})
 		if err != nil {
-			return "", true, mcpFailure(err, adapterError("INTEGRATION_MCP_CALL_FAILED"))
+			return "", effectUnknown, mcpFailure(err, adapterError("INTEGRATION_MCP_CALL_FAILED"))
 		}
 		if result.NeedsInput() || result.InputRequests != nil {
-			return "", true, adapterError("INTEGRATION_INTERACTION_UNSUPPORTED")
+			return "", effectUnknown, adapterError("INTEGRATION_INTERACTION_UNSUPPORTED")
 		}
 		if result.IsError {
-			return "", true, adapterError("INTEGRATION_PROVIDER_FAILED")
+			// MCP isError reports a failed tool execution, not a contractual
+			// guarantee that the business tool produced no side effect.
+			return "", effectUnknown, adapterError("INTEGRATION_PROVIDER_FAILED")
 		}
 		var encoded []byte
 		if result.StructuredContent != nil {
@@ -236,14 +272,14 @@ func (s *Service) execute(ctx context.Context, t target, op *runtimev1.Integrati
 		} else {
 			encoded, err = json.Marshal(map[string]any{"content": result.Content})
 		}
-		return string(encoded), true, err
+		return string(encoded), providerConfirmed, err
 	case "telegram":
 		if secret == "" {
-			return "", false, adapterError("INTEGRATION_CREDENTIAL_UNAVAILABLE")
+			return "", notDispatched, adapterError("INTEGRATION_CREDENTIAL_UNAVAILABLE")
 		}
 		if op.Name == "telegram.updates.read" {
 			result, err := s.readTelegramUpdates(ctx, t, secret, input)
-			return result, false, err
+			return result, notDispatched, err
 		}
 		if op.Name == "telegram.sendMessage" {
 			var inputValue struct {
@@ -251,7 +287,7 @@ func (s *Service) execute(ctx context.Context, t target, op *runtimev1.Integrati
 				Text   string `json:"text"`
 			}
 			if json.Unmarshal([]byte(input), &inputValue) != nil {
-				return "", false, adapterError("INTEGRATION_INPUT_INVALID")
+				return "", notDispatched, adapterError("INTEGRATION_INPUT_INVALID")
 			}
 			var result struct {
 				MessageID int64  `json:"message_id"`
@@ -263,13 +299,22 @@ func (s *Service) execute(ctx context.Context, t target, op *runtimev1.Integrati
 			}
 			dispatched, err := s.telegramRequest(ctx, secret, "sendMessage", map[string]any{"chat_id": inputValue.ChatID, "text": inputValue.Text}, &result)
 			if err != nil {
-				return "", dispatched, err
+				outcome := notDispatched
+				if dispatched {
+					outcome = effectUnknown
+				} else if errors.Is(err, adapterError("INTEGRATION_PROVIDER_REJECTED")) {
+					outcome = providerRejected
+				}
+				return "", outcome, err
+			}
+			if result.MessageID <= 0 {
+				return "", effectUnknown, adapterError("INTEGRATION_RESPONSE_INVALID")
 			}
 			encoded, err := json.Marshal(map[string]any{"messageId": result.MessageID, "chatId": strconv.FormatInt(result.Chat.ID, 10), "date": result.Date, "text": result.Text})
-			return string(encoded), dispatched, err
+			return string(encoded), providerConfirmed, err
 		}
 	}
-	return "", false, adapterError("INTEGRATION_ADAPTER_UNSUPPORTED")
+	return "", notDispatched, adapterError("INTEGRATION_ADAPTER_UNSUPPORTED")
 }
 func (s *Service) telegramRequest(ctx context.Context, token, method string, args any, result any) (bool, error) {
 	if err := ctx.Err(); err != nil {

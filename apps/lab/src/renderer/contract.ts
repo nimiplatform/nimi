@@ -20,6 +20,7 @@ import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.j
 import type { StudioCapabilityRunInput, StudioCapabilityRunResult } from '../ai-studio-core/runtime-types.js';
 import type { LabAIConfigSummary } from '../lab/lab-ai-config.js';
 import type { LabImageHistoryRecord } from '../lab/lab-image-history.js';
+import type { LabIntegrationHistoryRecord } from '../lab/integrations/integration-history.js';
 import type {
   LabPromptDraftKey,
   LabPromptDraftLoadResult,
@@ -53,6 +54,7 @@ export interface LabRendererProjectionPort {
   aiConfigSummary(): Promise<LabAIConfigSummary>;
   runHistory(): Promise<StudioRunHistory>;
   imageHistory(): Promise<readonly LabImageHistoryRecord[]>;
+  integrationHistory(): Promise<readonly LabIntegrationHistoryRecord[]>;
   ecosystemReference(): LabEcosystemReferenceProjection | null;
   personaReference(): LabPersonaReferenceProjection | null;
   preferences(): LabPreferences;
@@ -63,6 +65,8 @@ export interface LabRendererCommandPort {
   nextRunIdentity(): Promise<{ readonly runId: string; readonly createdAt: string }>;
   appendRunHistory(record: StudioRunHistoryRecord): Promise<StudioRunHistory>;
   removeRunHistory(recordId: string): Promise<StudioRunHistory>;
+  appendIntegrationHistory(record: LabIntegrationHistoryRecord): Promise<readonly LabIntegrationHistoryRecord[]>;
+  removeIntegrationHistory(recordId: string): Promise<readonly LabIntegrationHistoryRecord[]>;
   clearRunHistory(input: { readonly capabilityId?: string }): Promise<StudioRunHistory>;
   appendImageHistory(record: LabImageHistoryRecord): Promise<readonly LabImageHistoryRecord[]>;
   removeImageHistory(runId: string): Promise<readonly LabImageHistoryRecord[]>;

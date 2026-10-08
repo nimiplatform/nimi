@@ -42,7 +42,7 @@ func (r integrationTestRegistrations) DescribeConsumer(_ context.Context, subjec
 	return Consumer{}, false, nil
 }
 
-func TestIntegrationCompatibleConnectionRetainsPermissionAndRejectsCredentialRebind(t *testing.T) {
+func TestIntegrationVerifiedSameIdentityRefreshRetainsTargetAndPermission(t *testing.T) {
 	s := newIntegrationTestService(t, testRoundTripper(func(req *http.Request) (*http.Response, error) {
 		if strings.HasSuffix(req.URL.Path, "/getMe") {
 			return jsonResponse(map[string]any{"ok": true, "result": map[string]any{"id": 7, "username": "test-bot"}}), nil
@@ -53,13 +53,13 @@ func TestIntegrationCompatibleConnectionRetainsPermissionAndRejectsCredentialReb
 		return nil, fmt.Errorf("unexpected test request")
 	}))
 	putCtx := desktopIntegrationContext(t, localappop.OperationIntegrationConnectionPut)
-	created, err := s.PutIntegrationConnection(putCtx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", DisplayName: "original", Secret: "fixed-token"})
+	created, err := s.PutIntegrationConnection(putCtx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", Config: &runtimev1.IntegrationConnectionConfig{Telegram: &runtimev1.IntegrationTelegramConfig{}}, DisplayName: "original", Secret: "fixed-token"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	consumer := testDecision("consumer", 9)
 	grantTestTarget(t, s, consumer, created.Connection.TargetRef, "telegram.sendMessage")
-	next := &runtimev1.PutIntegrationConnectionRequest{TargetRef: created.Connection.TargetRef, Adapter: "telegram", DisplayName: "renamed"}
+	next := &runtimev1.PutIntegrationConnectionRequest{TargetRef: created.Connection.TargetRef, Adapter: "telegram", Config: &runtimev1.IntegrationConnectionConfig{Telegram: &runtimev1.IntegrationTelegramConfig{}}, DisplayName: "renamed"}
 	if _, err := s.PutIntegrationConnection(putCtx, next); err != nil {
 		t.Fatal(err)
 	}
@@ -67,12 +67,16 @@ func TestIntegrationCompatibleConnectionRetainsPermissionAndRejectsCredentialReb
 		t.Fatal("compatible rename revoked permission")
 	}
 	next.Secret = "different-token"
-	if _, err := s.PutIntegrationConnection(putCtx, next); status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("credential rebound existing target: %v", err)
+	if _, err := s.PutIntegrationConnection(putCtx, next); err != nil {
+		t.Fatalf("verified same identity refresh failed: %v", err)
 	}
 	secret, _, err := s.secrets.ReadSecret("integration:" + next.TargetRef)
-	if err != nil || secret != "fixed-token" {
-		t.Fatalf("failed update changed custody: %q %v", secret, err)
+	if err != nil || secret != "different-token" {
+		t.Fatalf("verified refresh did not update custody: %q %v", secret, err)
+	}
+	stored, err := s.loadTarget(context.Background(), consumer.AccountID, next.TargetRef)
+	if err != nil || stored.CredentialGeneration != 2 || !s.permitted(context.Background(), consumer.AccountID, consumer.RegisteredAppSubject, next.TargetRef, "telegram.sendMessage") {
+		t.Fatalf("refresh lost generation or permission: %v %v", stored, err)
 	}
 }
 

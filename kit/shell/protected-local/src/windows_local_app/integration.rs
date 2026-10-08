@@ -331,31 +331,131 @@ pub(super) async fn put_connection(
     channel: Channel,
     input: Value,
 ) -> Result<Value, LocalAppOperationError> {
-    exact(
-        &input,
-        &[
-            "targetRef",
-            "adapter",
-            "endpoint",
-            "displayName",
-            "accountLabel",
-            "secret",
-        ],
-    )?;
-    let request = PutIntegrationConnectionRequest {
-        target_ref: text(&input, "targetRef", 512, true)?,
-        adapter: text(&input, "adapter", 16, false)?,
-        endpoint: text(&input, "endpoint", 4096, true)?,
-        display_name: text(&input, "displayName", 512, false)?,
-        account_label: text(&input, "accountLabel", 512, true)?,
-        secret: text(&input, "secret", 16384, true)?,
-    };
+    let request = put_connection_request(input)?;
     let response = crate::grpc_limits::runtime_integration_client(channel)
         .put_integration_connection(request)
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
     Ok(json!({"connection":target(response.connection.ok_or_else(untrusted)?)}))
+}
+
+// @nimi-authority: rule.nimi.runtime.integration.connection-setup
+fn connection_input(mut input: Value) -> Value {
+    if input["adapter"] == "weixin" {
+        if let Some(row) = input.as_object_mut() {
+            row.entry("displayName").or_insert(json!(""));
+        }
+    }
+    input
+}
+
+fn put_connection_request(input: Value) -> Result<PutIntegrationConnectionRequest, LocalAppOperationError> {
+    let input = connection_input(input);
+    exact(
+        &input,
+        &[
+            "targetRef",
+            "adapter",
+            "displayName",
+            "accountLabel",
+            "secret",
+            "config",
+        ],
+    )?;
+    Ok(PutIntegrationConnectionRequest {
+        target_ref: text(&input, "targetRef", 512, true)?,
+        adapter: text(&input, "adapter", 16, false)?,
+        display_name: text(&input, "displayName", 256, input["adapter"] == "weixin")?,
+        account_label: text(&input, "accountLabel", 512, true)?,
+        secret: text(&input, "secret", 16384, true)?,
+        config: Some(config(&input)?),
+    })
+}
+
+// @nimi-authority: rule.nimi.runtime.integration.connection-setup
+fn config(input: &Value) -> Result<IntegrationConnectionConfig, LocalAppOperationError> {
+    let adapter = text(input, "adapter", 16, false)?;
+    let key = match adapter.as_str() {
+        "mcp" => "mcp", "telegram" => "telegram", "weixin" => "weixin",
+        "feishu" => "feishu", "qq-official" => "qqOfficial", "onebot-v11" => "onebotV11",
+        _ => return Err(invalid_payload()),
+    };
+    exact(&input["config"], &[key])?;
+    let value = &input["config"][key];
+    let mut config = IntegrationConnectionConfig::default();
+    match key {
+        "mcp" => { exact(value, &["endpoint"])?; config.mcp = Some(IntegrationMcpConfig { endpoint: text(value, "endpoint", 4096, false)? }); }
+        "telegram" => { exact(value, &[])?; config.telegram = Some(IntegrationTelegramConfig {}); }
+        "weixin" => { exact(value, &[])?; config.weixin = Some(IntegrationWeixinConfig {}); }
+        "feishu" => {
+            let mode = text(value,"setupMode",16,false)?;
+            let app_id = match mode.as_str() {
+                "manual" => { exact(value,&["setupMode","appId"])?; text(value,"appId",256,false)? }
+                "create" => { exact(value,&["setupMode"])?; String::new() }
+                _ => return Err(invalid_payload()),
+            };
+            config.feishu = Some(IntegrationFeishuConfig { app_id, setup_mode: mode });
+        }
+        "qqOfficial" => { exact(value, &["appId"])?; config.qq_official = Some(IntegrationQqOfficialConfig { app_id: text(value, "appId", 256, false)? }); }
+        "onebotV11" => { exact(value, &["listener", "selfId"])?; config.onebot_v11 = Some(IntegrationOneBotV11Config { listener: text(value, "listener", 256, false)?, self_id: text(value, "selfId", 256, false)? }); }
+        _ => return Err(invalid_payload()),
+    }
+    Ok(config)
+}
+
+// @nimi-authority: rule.nimi.runtime.integration.connection-setup
+fn setup(value: IntegrationConnectionSetup) -> Result<Value, LocalAppOperationError> {
+    if (value.status == "already-bound" || value.status == "awaiting-new-target") && (value.adapter != "weixin" || value.target_ref.is_empty() || value.account_label.is_empty() || !value.error_code.is_empty() || !value.qr_code_url.is_empty() || !value.verification_url.is_empty()) {
+        return Err(untrusted());
+    }
+    Ok(json!({"setupId":value.setup_id,"adapter":value.adapter,"targetRef":value.target_ref,"status":value.status,"expiresAt":timestamp(value.expires_at)?,"qrCodeUrl":value.qr_code_url,"verificationUrl":value.verification_url,"accountLabel":value.account_label,"errorCode":value.error_code}))
+}
+
+pub(super) async fn start_connection_setup(channel: Channel, input: Value) -> Result<Value, LocalAppOperationError> {
+    let request = start_connection_setup_request(input)?;
+    let response = crate::grpc_limits::runtime_integration_client(channel).start_integration_connection_setup(request).await.map_err(local_app_error_from_status)?.into_inner();
+    Ok(json!({"setup":setup(response.setup.ok_or_else(untrusted)?)?}))
+}
+fn start_connection_setup_request(input: Value) -> Result<StartIntegrationConnectionSetupRequest, LocalAppOperationError> {
+    let input = connection_input(input);
+    exact(&input, &["targetRef", "adapter", "displayName", "accountLabel", "config"])?;
+    Ok(StartIntegrationConnectionSetupRequest {
+        target_ref: text(&input, "targetRef", 512, true)?, adapter: text(&input, "adapter", 16, false)?,
+        display_name: text(&input, "displayName", 256, input["adapter"] == "weixin")?, account_label: text(&input, "accountLabel", 256, true)?, config: Some(config(&input)?),
+    })
+}
+pub(super) async fn get_connection_setup(channel: Channel, input: Value) -> Result<Value, LocalAppOperationError> {
+    exact(&input, &["setupId"])?;
+    let request = GetIntegrationConnectionSetupRequest { setup_id: text(&input, "setupId", 512, false)? };
+    let response = crate::grpc_limits::runtime_integration_client(channel).get_integration_connection_setup(request).await.map_err(local_app_error_from_status)?.into_inner();
+    Ok(json!({"setup":setup(response.setup.ok_or_else(untrusted)?)?}))
+}
+pub(super) async fn submit_connection_setup(channel: Channel, input: Value) -> Result<Value, LocalAppOperationError> {
+    let request = submit_connection_setup_request(input)?;
+    let response = crate::grpc_limits::runtime_integration_client(channel).submit_integration_connection_setup(request).await.map_err(local_app_error_from_status)?.into_inner();
+    Ok(json!({"setup":setup(response.setup.ok_or_else(untrusted)?)?}))
+}
+// @nimi-authority: rule.nimi.runtime.integration.connection-setup
+fn submit_connection_setup_request(input: Value) -> Result<SubmitIntegrationConnectionSetupRequest, LocalAppOperationError> {
+    exact(&input, &["setupId", "secret", "verificationCode", "action"])?;
+    let action = match text(&input, "action", 32, true)?.as_str() {
+        "" => IntegrationConnectionSetupAction::Unspecified,
+        "create-new-target" => IntegrationConnectionSetupAction::CreateNewTarget,
+        _ => return Err(invalid_payload()),
+    };
+    let secret = text(&input, "secret", 16384, true)?;
+    let verification_code = text(&input, "verificationCode", 256, true)?;
+    if action == IntegrationConnectionSetupAction::CreateNewTarget && (!secret.is_empty() || !verification_code.is_empty()) {
+        return Err(invalid_payload());
+    }
+    Ok(SubmitIntegrationConnectionSetupRequest { setup_id: text(&input, "setupId", 512, false)?, secret, verification_code, action: action as i32 })
+}
+pub(super) async fn cancel_connection_setup(channel: Channel, input: Value) -> Result<Value, LocalAppOperationError> {
+    exact(&input, &["setupId"])?;
+    let request = CancelIntegrationConnectionSetupRequest { setup_id: text(&input, "setupId", 512, false)? };
+    let response = crate::grpc_limits::runtime_integration_client(channel).cancel_integration_connection_setup(request).await.map_err(local_app_error_from_status)?.into_inner();
+    Ok(json!({"setup":setup(response.setup.ok_or_else(untrusted)?)?}))
 }
 pub(super) async fn remove_connection(
     channel: Channel,
@@ -393,6 +493,78 @@ pub(super) async fn set_permission(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn weixin_new_target_confirmation_has_closed_typed_action() {
+        for (action, expected) in [("", IntegrationConnectionSetupAction::Unspecified), ("create-new-target", IntegrationConnectionSetupAction::CreateNewTarget)] {
+            let request = submit_connection_setup_request(json!({"setupId":"iset_exact","secret":"","verificationCode":"","action":action})).expect("typed confirmation");
+            assert_eq!(request.action, expected as i32);
+        }
+        for invalid in [json!({"setupId":"iset_exact","secret":"","verificationCode":"","action":"replace"}),json!({"setupId":"iset_exact","secret":"private","verificationCode":"","action":"create-new-target"}),json!({"setupId":"iset_exact","secret":"","verificationCode":"123456","action":"create-new-target"}),json!({"setupId":"iset_exact","secret":"","verificationCode":"","action":1}),json!({"setupId":"iset_exact","secret":"","verificationCode":"","action":"create-new-target","confirm":true})] {
+            assert!(submit_connection_setup_request(invalid).is_err());
+        }
+        let pending = IntegrationConnectionSetup { setup_id:"iset_exact".into(),adapter:"weixin".into(),target_ref:"icon_original".into(),status:"awaiting-new-target".into(),account_label:"candidate@im.bot".into(),expires_at:Some(prost_types::Timestamp{seconds:1791288000,nanos:0}),..Default::default() };
+        assert_eq!(setup(pending.clone()).unwrap()["status"],"awaiting-new-target");
+        for changed in [IntegrationConnectionSetup{target_ref:String::new(),..pending.clone()},IntegrationConnectionSetup{adapter:"feishu".into(),..pending.clone()},IntegrationConnectionSetup{account_label:String::new(),..pending.clone()},IntegrationConnectionSetup{error_code:"FAILED".into(),..pending.clone()},IntegrationConnectionSetup{qr_code_url:"private".into(),..pending.clone()}] {
+            assert!(setup(changed).is_err());
+        }
+    }
+    #[test]
+    fn weixin_already_bound_is_a_distinct_exact_target_projection() {
+        let bound = IntegrationConnectionSetup {
+            setup_id: "iset_exact".into(), adapter: "weixin".into(), target_ref: "icon_exact".into(),
+            status: "already-bound".into(), account_label: "bot@im.bot".into(),
+            expires_at: Some(prost_types::Timestamp { seconds: 1791288000, nanos: 0 }),
+            ..Default::default()
+        };
+        let projected = setup(bound.clone()).expect("bound result");
+        assert_eq!(projected["status"], "already-bound");
+        assert_eq!(projected["targetRef"], "icon_exact");
+        for changed in [IntegrationConnectionSetup { target_ref: String::new(), ..bound.clone() }, IntegrationConnectionSetup { adapter: "feishu".into(), ..bound.clone() }, IntegrationConnectionSetup { verification_url: "https://liteapp.weixin.qq.com/private".into(), ..bound.clone() }] {
+            assert!(setup(changed).is_err());
+        }
+    }
+    #[test]
+    fn weixin_nameless_input_builds_real_typed_setup_and_put_requests() {
+        let input=json!({"targetRef":"","adapter":"weixin","accountLabel":"","config":{"weixin":{}}});
+        for name in [None,Some("")] {
+            let mut setup=input.clone();
+            if let Some(name)=name { setup["displayName"]=json!(name); }
+            let request=start_connection_setup_request(setup.clone()).expect("Weixin setup");
+            assert_eq!(request.display_name,"");
+            assert!(request.config.unwrap().weixin.is_some());
+            setup["secret"]=json!("");
+            let request=put_connection_request(setup).expect("Weixin put input");
+            assert_eq!(request.display_name,"");
+            assert!(request.config.unwrap().weixin.is_some());
+        }
+        for name in [json!(null),json!(12),json!("x".repeat(257)),json!("invalid\0name")] {
+            let mut invalid=input.clone();invalid["displayName"]=name;
+            assert!(start_connection_setup_request(invalid).is_err());
+        }
+        let mut extra=input;extra["nickname"]=json!("unverified");
+        assert!(start_connection_setup_request(extra).is_err());
+    }
+    #[test]
+    fn other_adapter_names_remain_required_in_setup_and_put_requests() {
+        for (adapter,config) in [("mcp",json!({"mcp":{"endpoint":"https://example.com/mcp"}})),("telegram",json!({"telegram":{}})),("feishu",json!({"feishu":{"setupMode":"create"}})),("qq-official",json!({"qqOfficial":{"appId":"actual"}})),("onebot-v11",json!({"onebotV11":{"listener":"127.0.0.1:46373","selfId":"123"}}))] {
+            for name in [None,Some("")] {
+                let mut input=json!({"targetRef":"","adapter":adapter,"accountLabel":"","config":config});
+                if let Some(name)=name {input["displayName"]=json!(name)}
+                assert!(start_connection_setup_request(input.clone()).is_err());
+                input["secret"]=json!("");assert!(put_connection_request(input).is_err());
+            }
+        }
+    }
+    #[test]
+    fn feishu_manual_and_qr_creation_keep_distinct_closed_configuration() {
+        let manual=config(&json!({"adapter":"feishu","config":{"feishu":{"setupMode":"manual","appId":"cli_actual"}}})).expect("manual");
+        assert_eq!(manual.feishu.unwrap().app_id,"cli_actual");
+        let create=config(&json!({"adapter":"feishu","config":{"feishu":{"setupMode":"create"}}})).expect("QR creation");
+        assert_eq!(create.feishu.unwrap().app_id,"");
+        for detail in [json!({"setupMode":"create","appId":"existing"}),json!({"setupMode":"manual"}),json!({"setupMode":"create","secret":"private"})] {
+            assert!(config(&json!({"adapter":"feishu","config":{"feishu":detail}})).is_err());
+        }
+    }
     #[test]
     fn schemas_allow_64k_and_boolean_with_a_33mib_aggregate_boundary() {
         let schema = json!({"type":"object","description":"x".repeat(48 * 1024)}).to_string();

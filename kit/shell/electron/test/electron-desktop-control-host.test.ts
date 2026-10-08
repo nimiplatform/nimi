@@ -92,7 +92,7 @@ describe('Electron verified Desktop control host', () => {
     await host.sessionStatus();
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationPutConnection'];
     const error = await dispatchElectronLocalAppCommand({ host, command,
-      payload: { targetRef: '', adapter: 'telegram', endpoint: '', displayName: 'Existing bot', accountLabel: 'Work', secret: 'fixture-secret' },
+      payload: { targetRef: '', adapter: 'telegram', config: { telegram: {} }, displayName: 'Existing bot', accountLabel: 'Work', secret: 'fixture-secret' },
     }).then(() => { throw new Error('expected owner rejection'); }, error => error);
     const rendered = toShellBridgeNimiError(toSerializedElectronShellError(error));
     expect(rendered.reasonCode).toBe('local-app-operation-unavailable');

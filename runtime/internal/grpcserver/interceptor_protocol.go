@@ -150,7 +150,10 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
 		"/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection",
 		"/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection",
-		"/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission":
+		"/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission",
+		"/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup",
+		"/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup",
+		"/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup":
 		return true
 
 	case "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",

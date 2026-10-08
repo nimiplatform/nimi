@@ -146,6 +146,10 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationPutConnection'], 'integrationPutConnection'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationRemoveConnection'], 'integrationRemoveConnection'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationSetPermission'], 'integrationSetPermission'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationStartConnectionSetup'], 'integrationStartConnectionSetup'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationGetConnectionSetup'], 'integrationGetConnectionSetup'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationSubmitConnectionSetup'], 'integrationSubmitConnectionSetup'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationCancelConnectionSetup'], 'integrationCancelConnectionSetup'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationAttachmentUpload'], 'conversationAttachmentUpload'],
@@ -711,6 +715,10 @@ function validatePayload(
     case 'integrationPutConnection': return validateNimiLocalAppIntegrationInput('putConnection', payload) as NimiElectronLocalAppRecord;
     case 'integrationRemoveConnection': return validateNimiLocalAppIntegrationInput('removeConnection', payload) as NimiElectronLocalAppRecord;
     case 'integrationSetPermission': return validateNimiLocalAppIntegrationInput('setPermission', payload) as NimiElectronLocalAppRecord;
+    case 'integrationStartConnectionSetup': return validateNimiLocalAppIntegrationInput('startConnectionSetup', payload) as NimiElectronLocalAppRecord;
+    case 'integrationGetConnectionSetup': return validateNimiLocalAppIntegrationInput('getConnectionSetup', payload) as NimiElectronLocalAppRecord;
+    case 'integrationSubmitConnectionSetup': return validateNimiLocalAppIntegrationInput('submitConnectionSetup', payload) as NimiElectronLocalAppRecord;
+    case 'integrationCancelConnectionSetup': return validateNimiLocalAppIntegrationInput('cancelConnectionSetup', payload) as NimiElectronLocalAppRecord;
     case 'conversationOpen':
       return identifiers(payload, ['agentHandle'], command);
     case 'conversationSendTurn': {

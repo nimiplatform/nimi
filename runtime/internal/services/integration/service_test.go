@@ -34,6 +34,14 @@ func (f testRevalidator) AuthorizeLocalAppIngress(ctx context.Context, i localap
 	return f(ctx, i)
 }
 
+func (f testRevalidator) CommitLocalAppIngress(ctx context.Context, i localappop.Ingress, commit func(context.Context) error) error {
+	authorized, err := f(ctx, i)
+	if err != nil {
+		return err
+	}
+	return commit(authorized)
+}
+
 type testSecrets struct {
 	mu     sync.Mutex
 	values map[string]string
@@ -137,7 +145,7 @@ func grantTestTarget(t *testing.T, s *Service, d accountservice.LocalAppCallerDe
 }
 func saveTelegramTestTarget(t *testing.T, s *Service) target {
 	t.Helper()
-	target := target{Account: "test-account", TelegramBotID: 123, Public: &runtimev1.IntegrationTarget{TargetRef: "test-telegram", IntegrationId: "telegram", Kind: "telegram", DisplayName: "Test Telegram", Operations: telegramOperations()}}
+	target := target{Account: "test-account", TelegramBotID: 123, Identity: "telegram:123", Config: &runtimev1.IntegrationConnectionConfig{Telegram: &runtimev1.IntegrationTelegramConfig{}}, CredentialGeneration: 1, Public: &runtimev1.IntegrationTarget{TargetRef: "test-telegram", IntegrationId: "telegram", Kind: "telegram", DisplayName: "Test Telegram", Operations: telegramOperations()}}
 	if err := s.saveTarget(context.Background(), target); err != nil {
 		t.Fatal(err)
 	}
@@ -467,7 +475,7 @@ func TestIntegrationMCPUnknownWriteIsNotRetried(t *testing.T) {
 		}
 	}))
 	d := testDecision("consumer", 1)
-	target := target{Account: d.AccountID, Endpoint: "https://mcp.test.invalid", Public: &runtimev1.IntegrationTarget{TargetRef: "test-mcp", Kind: "mcp", IntegrationId: "mcp", Operations: []*runtimev1.IntegrationOperation{testOperation("write")}}}
+	target := target{Account: d.AccountID, Config: &runtimev1.IntegrationConnectionConfig{Mcp: &runtimev1.IntegrationMcpConfig{Endpoint: "https://mcp.test.invalid"}}, Public: &runtimev1.IntegrationTarget{TargetRef: "test-mcp", Kind: "mcp", IntegrationId: "mcp", Operations: []*runtimev1.IntegrationOperation{testOperation("write")}}}
 	if err := s.saveTarget(context.Background(), target); err != nil {
 		t.Fatal(err)
 	}

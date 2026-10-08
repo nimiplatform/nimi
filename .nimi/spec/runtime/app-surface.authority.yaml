@@ -2,6 +2,18 @@ format: nimicoding.authority/v2
 owner: team.runtime
 scope: runtime.app-surface
 units:
+  - id: rule.nimi.runtime.app-surface.integration-asset-commit
+    kind: rule
+    title: Integration media candidates publish under the source permission guard
+    modality: must
+    statement: App Storage accepts an internal Runtime-owned prepared-source handoff for Integration media using only the protected-derived current account and Registered App Subject. It finishes download, copying, validation and candidate preparation before invoking the Integration final publication guard, and the guard encloses the actual atomic publication while serialized with source operation revocation and single-call cancellation; checking permission and releasing protection before rename is invalid. Normal path, stream, integrity, quota and free-space checks remain in force, lock order permits neither network work nor unbounded copying inside the source guard, failed or stopped candidates are removed and uncharged, and successful publication retains the actual saved asset fact.
+    condition: Whenever Integration media is adopted into the calling App managed assets.
+    failure: Reject a missing guard, stale owner or source permission and clean unpublished candidates without exposing a partial or foreign asset.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-projection-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
   - id: definition.nimi.runtime.app-surface.app-lifecycle-plane
     kind: definition
     title: Runtime app lifecycle plane

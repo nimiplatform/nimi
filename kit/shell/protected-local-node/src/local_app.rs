@@ -3635,3 +3635,23 @@ pub async fn local_app_integration_remove_connection(input: JsonValue) -> Native
 pub async fn local_app_integration_set_permission(input: JsonValue) -> NativeJsonOutcome {
     invoke_agent(|session| async move { session.integration_set_permission(input).await }).await
 }
+
+#[napi(js_name = "localAppIntegrationStartConnectionSetup")]
+pub async fn local_app_integration_start_connection_setup(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_start_connection_setup(input).await }).await
+}
+
+#[napi(js_name = "localAppIntegrationGetConnectionSetup")]
+pub async fn local_app_integration_get_connection_setup(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_get_connection_setup(input).await }).await
+}
+
+#[napi(js_name = "localAppIntegrationSubmitConnectionSetup")]
+pub async fn local_app_integration_submit_connection_setup(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_submit_connection_setup(input).await }).await
+}
+
+#[napi(js_name = "localAppIntegrationCancelConnectionSetup")]
+pub async fn local_app_integration_cancel_connection_setup(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_cancel_connection_setup(input).await }).await
+}

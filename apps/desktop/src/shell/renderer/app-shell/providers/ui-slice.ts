@@ -105,6 +105,7 @@ type UiSlice = Pick<AppStoreState,
   | 'appsDetailNavigationRevision'
   | 'activityFocusPostId'
   | 'homeEntryRevision'
+  | 'homeEntryDestination'
   | 'profileDetailOverlayOpen'
   | 'chatProfilePanelTarget'
   | 'offlineTier'
@@ -183,6 +184,7 @@ export function createUiSlice(
     appsDetailNavigationRevision: 0,
     activityFocusPostId: null,
     homeEntryRevision: 0,
+    homeEntryDestination: 'overview',
     profileDetailOverlayOpen: false,
     chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
@@ -190,12 +192,12 @@ export function createUiSlice(
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
     setRuntimeMaintenance: (reasonCode) => set({ runtimeMaintenance: reasonCode }),
-    setActiveTab: (tab) => {
+    setActiveTab: (tab, homeDestination = 'overview') => {
       startTransition(() => {
         set((state) => ({
           activeTab: tab,
           navigationBackStack: [],
-          ...(tab === 'home' ? { homeEntryRevision: state.homeEntryRevision + 1 } : {}),
+          ...(tab === 'home' ? { homeEntryRevision: state.homeEntryRevision + 1, homeEntryDestination: homeDestination } : {}),
         }));
       });
     },

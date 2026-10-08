@@ -646,6 +646,10 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     integrationPutConnection: record => integration.putConnection(record as never) as Promise<NimiElectronLocalAppRecord>,
     integrationRemoveConnection: record => integration.removeConnection(record as never) as Promise<NimiElectronLocalAppRecord>,
     integrationSetPermission: record => integration.setPermission(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationStartConnectionSetup: record => integration.startConnectionSetup(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationGetConnectionSetup: record => integration.getConnectionSetup(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationSubmitConnectionSetup: record => integration.submitConnectionSetup(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationCancelConnectionSetup: record => integration.cancelConnectionSetup(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationOpen: (record) => conversation.open(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationSendTurn: (record) => conversation.send(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationAttachmentUpload: (record) => conversation.uploadAttachment({
@@ -1229,6 +1233,7 @@ async function runBoundedFormalHostOperation<T>(
   }
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r017
 function wrapFormalHost(
   host: FormalAppHostOperations,
   invalidateResources: () => Promise<void>,
@@ -1248,6 +1253,15 @@ function wrapFormalHost(
       }
       await rebindSession();
       invalidated = false;
+    }).catch((error: unknown) => {
+      // Retain the first failed technical recovery reason before later
+      // business calls hit the invalidated gate. Never log error messages,
+      // metadata, App/account selectors, payloads or credentials.
+      const reasonCode = error instanceof NimiElectronLocalAppHostError
+        && FORMAL_REBIND_DIAGNOSTIC_REASONS.has(error.reasonCode)
+        ? error.reasonCode : 'runtime-operation-failed';
+      console.warn('[nimi-shell] formal App session rebind failed', { reasonCode });
+      throw error;
     }).finally(() => {
       renewalInFlight = undefined;
     });
@@ -1292,9 +1306,16 @@ function wrapFormalHost(
 // Only a technical readiness probe may complete across a replacement scope.
 const FORMAL_SESSION_RETRY_SAFE_METHODS: ReadonlySet<keyof NimiElectronLocalAppHost> = new Set(['sessionStatus']);
 
+const FORMAL_REBIND_DIAGNOSTIC_REASONS: ReadonlySet<string> = new Set([
+  'session-invalid', 'revoked', 'presence-expired', 'runtime-unauthenticated', 'account-changed',
+  'local-app-snapshot-unavailable', 'local-app-access-denied', 'local-app-operation-unavailable',
+  'local-app-owner-unavailable', 'runtime-service-unavailable', 'runtime-service-untrusted',
+  'contract-invalid', 'timeout', 'canceled',
+]);
+
 function isFormalSessionInvalid(error: unknown): error is NimiElectronLocalAppHostError {
   return error instanceof NimiElectronLocalAppHostError && [
-    'session-invalid', 'revoked', 'presence-expired', 'runtime-unauthenticated',
+    'session-invalid', 'revoked', 'presence-expired', 'runtime-unauthenticated', 'account-changed',
   ].includes(error.reasonCode);
 }
 

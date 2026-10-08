@@ -393,6 +393,29 @@ func localAppAssetOwner(decision accountservice.LocalAppCallerDecision) appstora
 	return appstorage.ManagedOwner{AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject}
 }
 
+// @nimi-authority: rule.nimi.runtime.app-surface.integration-asset-commit
+// These are private constructor-injected Runtime owner seams. Integration
+// supplies an owner already derived from its admitted consumer decision;
+// neither method is an App RPC or accepts a renderer-selected partition.
+func (s *Service) OpenOwnedIntegrationAsset(ctx context.Context, owner appstorage.ManagedOwner, relativePath string) (*appstorage.AssetSource, error) {
+	store, err := s.localAppAssets()
+	if err != nil {
+		return nil, err
+	}
+	return store.Open(ctx, owner, relativePath)
+}
+
+func (s *Service) AdoptOwnedIntegrationMedia(ctx context.Context, owner appstorage.ManagedOwner, relativePath string, input appstorage.VerifiedAssetInput, guard appstorage.AssetCommitGuard) (appstorage.AssetRecord, error) {
+	store, err := s.localAppAssets()
+	if err != nil {
+		if input.Body != nil {
+			_ = input.Body.Close()
+		}
+		return appstorage.AssetRecord{}, err
+	}
+	return store.AdoptGuarded(ctx, owner, relativePath, input, guard)
+}
+
 func projectLocalAppAsset(record appstorage.AssetRecord) *runtimev1.LocalAppAssetRecord {
 	return &runtimev1.LocalAppAssetRecord{
 		RelativePath: record.RelativePath,

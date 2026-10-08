@@ -351,6 +351,7 @@ export type {
   NimiDesktopOpenRuntimeConfigIntent,
   NimiDesktopOpenRuntimeConfigPage,
   NimiDesktopOpenSettingsIntent,
+  NimiDesktopOpenIntegrationsIntent,
   NimiDesktopOpenSettingsSection,
   NimiDesktopOpenSourceHost,
   NimiAgentRealtimeClient,
@@ -411,7 +412,7 @@ export { createNimiLocalAppAgentWorkClient, createNimiLocalAppAgentWorkRuntimeCl
 export type { NimiLocalAppAgentWorkClient, NimiLocalAppAgentWorkShell, NimiLocalAppAgentWorkStartInput, NimiLocalAppAgentWorkScope, NimiLocalAppAgentWorkSubscribeInput, NimiLocalAppAgentWorkToolResultInput } from '@nimiplatform/sdk';
 
 export { createNimiLocalAppIntegrationClient, createNimiLocalAppIntegrationRuntimeClient, createNimiLocalAppIntegrationRuntimeShell, validateNimiLocalAppIntegrationInput } from '@nimiplatform/sdk';
-export type { NimiLocalAppIntegrationClient, NimiLocalAppIntegrationShell, NimiLocalAppIntegrationMethod } from '@nimiplatform/sdk';
+export type { NimiLocalAppIntegrationClient, NimiLocalAppIntegrationShell, NimiLocalAppIntegrationMethod, NimiIntegrationConnectionConfig, NimiIntegrationConnectionSetup, NimiIntegrationStartConnectionSetupInput, NimiIntegrationGetConnectionSetupInput, NimiIntegrationSubmitConnectionSetupInput, NimiIntegrationCancelConnectionSetupInput } from '@nimiplatform/sdk';
 
 export { createNimiLocalAppWorldCoreClient, createNimiLocalAppActivityClient } from '@nimiplatform/sdk';
 

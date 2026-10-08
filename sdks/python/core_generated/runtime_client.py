@@ -1640,6 +1640,14 @@ RUNTIME_METHODS = [
     "response_type": "CancelIntegrationCallResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup",
+    "service": "RuntimeIntegrationService",
+    "method": "CancelIntegrationConnectionSetup",
+    "kind": "unary",
+    "request_type": "CancelIntegrationConnectionSetupRequest",
+    "response_type": "CancelIntegrationConnectionSetupResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
     "service": "RuntimeIntegrationService",
     "method": "CompleteIntegrationProvider",
@@ -1654,6 +1662,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "GetIntegrationCallRequest",
     "response_type": "GetIntegrationCallResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup",
+    "service": "RuntimeIntegrationService",
+    "method": "GetIntegrationConnectionSetup",
+    "kind": "unary",
+    "request_type": "GetIntegrationConnectionSetupRequest",
+    "response_type": "GetIntegrationConnectionSetupResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement",
@@ -1734,6 +1750,22 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "SetIntegrationPermissionRequest",
     "response_type": "SetIntegrationPermissionResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup",
+    "service": "RuntimeIntegrationService",
+    "method": "StartIntegrationConnectionSetup",
+    "kind": "unary",
+    "request_type": "StartIntegrationConnectionSetupRequest",
+    "response_type": "StartIntegrationConnectionSetupResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup",
+    "service": "RuntimeIntegrationService",
+    "method": "SubmitIntegrationConnectionSetup",
+    "kind": "unary",
+    "request_type": "SubmitIntegrationConnectionSetupRequest",
+    "response_type": "SubmitIntegrationConnectionSetupResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",

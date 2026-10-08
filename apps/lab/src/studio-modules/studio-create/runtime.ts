@@ -286,6 +286,7 @@ async function* streamLocalAppTextEvents(
     ...textSpec.input.map((message) => ({ role: 'user' as const, text: message.content })),
   ];
   const seed = localTextSeed(textSpec.seed);
+  if (signal?.aborted) throw studioAbortError();
   const subscription = await context.host.client.ai.text.streamTurn({
     messages,
     ...(textSpec.temperature !== undefined ? { temperature: textSpec.temperature } : {}),
@@ -309,6 +310,7 @@ async function* streamLocalAppTextEvents(
     let started = false;
     let textItemOpened = false;
     for await (const event of subscription) {
+      if (signal?.aborted) throw studioAbortError();
       // This one-turn text surface has no follow-up turn to carry opaque state into.
       if (event.type === 'reasoning-continuity') continue;
       if (event.type === 'reasoning-summary') {

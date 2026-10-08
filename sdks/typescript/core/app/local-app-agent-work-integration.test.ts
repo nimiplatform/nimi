@@ -2,11 +2,88 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createNimiLocalAppAgentWorkClient, type NimiLocalAppAgentWorkShell } from './local-app-runtime-platform-agent-work.js';
 import { createNimiLocalAppConversationClient } from './local-app-runtime-platform-conversation.js';
-import { createNimiLocalAppIntegrationClient, type NimiLocalAppIntegrationShell } from './local-app-runtime-platform-integration.js';
+import { createNimiLocalAppIntegrationClient, createNimiLocalAppIntegrationRuntimeClient, validateNimiLocalAppIntegrationInput, type NimiLocalAppIntegrationRuntime, type NimiLocalAppIntegrationShell } from './local-app-runtime-platform-integration.js';
 import type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
 import { validateAgentWork } from './local-app-agent-work-input.js';
 
+test('Integration setup carries one closed adapter configuration and excludes credentials from projections', async () => {
+  let dispatched=0;
+  let view:unknown={setupId:'iset_1',adapter:'feishu',targetRef:'',status:'awaiting-input',expiresAt:'2026-10-05T12:00:00.000Z',qrCodeUrl:'',verificationUrl:'',accountLabel:'',errorCode:''};
+  const client=createNimiLocalAppIntegrationClient({startConnectionSetup:async()=>{dispatched++;return {setup:view};}} as unknown as NimiLocalAppIntegrationShell);
+  const input={targetRef:'',adapter:'feishu',displayName:'Bot',accountLabel:'',config:{feishu:{setupMode:'manual' as const,appId:'cli_123'}}};
+  const setup=await client.startConnectionSetup(input);assert.equal(setup.status,'awaiting-input');assert.equal(Object.hasOwn(setup,'secret'),false);
+  for(const config of [{qqOfficial:{appId:'123'}},{feishu:{appId:'cli_123',secret:'must-not-pass'}},{feishu:{appId:'cli_123'},weixin:{}}])await assert.rejects(client.startConnectionSetup({...input,config} as never));
+  await client.startConnectionSetup({...input,config:{feishu:{setupMode:'create'}}});
+  await assert.rejects(client.startConnectionSetup({...input,config:{feishu:{setupMode:'create',appId:'must-not-pass'}}} as never));
+  await assert.rejects(client.startConnectionSetup({...input,endpoint:'https://legacy.invalid'} as never));assert.equal(dispatched,2);
+  view={...(view as object),secret:'private'};await assert.rejects(client.startConnectionSetup(input));
+});
+
 const agentHandle = `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle;
+
+test('Weixin new-target confirmation is a closed explicit action through shell and Runtime', async () => {
+  const pending = {setupId:'iset_pending',adapter:'weixin',targetRef:'icon_original',status:'awaiting-new-target',expiresAt:{seconds:'1791288000',nanos:0},qrCodeUrl:'',verificationUrl:'',accountLabel:'candidate@im.bot',errorCode:''};
+  const requests: unknown[] = [];
+  const runtime = createNimiLocalAppIntegrationRuntimeClient({
+    getIntegrationConnectionSetup:async()=>({setup:pending}),
+    submitIntegrationConnectionSetup:async request=>{requests.push(request);return {setup:{...pending,status:'verifying'}};},
+  } as NimiLocalAppIntegrationRuntime);
+  const value = await runtime.getConnectionSetup({setupId:pending.setupId});
+  assert.equal(value.status,'awaiting-new-target');
+  const input = {setupId:pending.setupId,secret:'',verificationCode:''};
+  await runtime.submitConnectionSetup(input);
+  await runtime.submitConnectionSetup({...input,action:'create-new-target'});
+  assert.deepEqual(requests,[{...input,action:0},{...input,action:1}]);
+  let projected:unknown=value;
+  const carrierInputs:unknown[]=[];
+  const shell = createNimiLocalAppIntegrationClient({
+    getConnectionSetup:async()=>({setup:projected}),
+    submitConnectionSetup:async request=>{carrierInputs.push(request);return {setup:{...value,status:'verifying'}};},
+  } as unknown as NimiLocalAppIntegrationShell);
+  assert.deepEqual(await shell.getConnectionSetup({setupId:pending.setupId}),value);
+  await shell.submitConnectionSetup(input);
+  await shell.submitConnectionSetup({...input,action:'create-new-target'});
+  assert.deepEqual(carrierInputs,[{...input,action:''},{...input,action:'create-new-target'}]);
+  for(const invalid of [{action:'replace'},{action:1},{action:null},{action:'create-new-target',secret:'private'},{action:'create-new-target',verificationCode:'123456'},{action:'create-new-target',confirm:true}]) {
+    await assert.rejects(runtime.submitConnectionSetup({...input,...invalid} as never));
+    await assert.rejects(shell.submitConnectionSetup({...input,...invalid} as never));
+  }
+  assert.equal(requests.length,2);assert.equal(carrierInputs.length,2);
+  for(const invalid of [{targetRef:''},{adapter:'feishu'},{accountLabel:''},{errorCode:'FAILED'},{qrCodeUrl:'private'},{verificationUrl:'https://liteapp.weixin.qq.com/private'},{secret:'private'}]) {
+    projected={...value,...invalid};await assert.rejects(shell.getConnectionSetup({setupId:pending.setupId}));
+  }
+});
+
+test('Weixin already-bound stays a distinct terminal result through Runtime and shell SDK projections', async () => {
+  const bound = {setupId:'iset_exact',adapter:'weixin',targetRef:'icon_exact',status:'already-bound',expiresAt:{seconds:'1791288000',nanos:0},qrCodeUrl:'',verificationUrl:'',accountLabel:'bot@im.bot',errorCode:''};
+  const runtimeClient = createNimiLocalAppIntegrationRuntimeClient({getIntegrationConnectionSetup:async()=>({setup:bound})} as unknown as NimiLocalAppIntegrationRuntime);
+  const value = await runtimeClient.getConnectionSetup({setupId:bound.setupId});
+  assert.equal(value.status,'already-bound'); assert.equal(value.targetRef,bound.targetRef);
+  let projected:unknown=value;
+  const shellClient=createNimiLocalAppIntegrationClient({getConnectionSetup:async()=>({setup:projected})} as unknown as NimiLocalAppIntegrationShell);
+  assert.deepEqual(await shellClient.getConnectionSetup({setupId:bound.setupId}),value);
+  for (const invalid of [{targetRef:''},{adapter:'feishu'},{accountLabel:''},{errorCode:'FAILED'},{verificationUrl:'https://liteapp.weixin.qq.com/private'},{secret:'private'}]) {
+    projected={...value,...invalid}; await assert.rejects(shellClient.getConnectionSetup({setupId:bound.setupId}));
+  }
+});
+
+test('Weixin may omit a name through the formal SDK Runtime carrier while other adapters keep required names', async()=>{
+  const requests: unknown[]=[];
+  const client=createNimiLocalAppIntegrationRuntimeClient({startIntegrationConnectionSetup:async request=>{
+    requests.push(request);
+    return {setup:{setupId:'iset_actual',adapter:'weixin',targetRef:'',status:'verifying',expiresAt:{seconds:'1791288000',nanos:0},qrCodeUrl:'',verificationUrl:'',accountLabel:'',errorCode:''}};
+  }} as NimiLocalAppIntegrationRuntime);
+  const input={targetRef:'',adapter:'weixin',accountLabel:'',config:{weixin:{}}};
+  for(const name of [undefined,''])await client.startConnectionSetup({...input,...(name===undefined?{}:{displayName:name})});
+  assert.deepEqual(requests,[{...input,displayName:''},{...input,displayName:''}]);
+  assert.equal(validateNimiLocalAppIntegrationInput('putConnection',{...input,secret:''}).displayName,'');
+  for(const name of [null,1,'x'.repeat(257),'invalid\0name'])assert.throws(()=>validateNimiLocalAppIntegrationInput('startConnectionSetup',{...input,displayName:name}));
+  for(const [adapter,config] of [['mcp',{mcp:{endpoint:'https://example.com/mcp'}}],['feishu',{feishu:{setupMode:'create'}}],['qq-official',{qqOfficial:{appId:'actual'}}],['telegram',{telegram:{}}],['onebot-v11',{onebotV11:{listener:'127.0.0.1:46373',selfId:'123'}}]] as const){
+    await assert.rejects(client.startConnectionSetup({...input,adapter,config,displayName:''}));
+    assert.throws(()=>validateNimiLocalAppIntegrationInput('putConnection',{...input,adapter,config,displayName:'',secret:''}));
+  }
+  assert.equal(requests.length,2,'invalid names never reach Runtime');
+});
 const scope = { agentHandle, executionId: 'execution-1' };
 const execution = { executionId: 'execution-1', workId: 'work-1', state: 'succeeded', outputText: 'A complete result.', reasonCode: '', message: '', sequence: '4' };
 const call = { callId: 'call-1', targetRef: 'target-1', operation: 'save', status: 'accepted', resultJson: '', errorCode: '', consumerDisplayName: 'Consumer', createdAt: null, updatedAt: null, targetDisplayName: 'Documents', accountLabel: 'Workspace' };

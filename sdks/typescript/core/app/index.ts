@@ -57,6 +57,7 @@ export type {
   NimiDesktopOpenRuntimeConfigIntent,
   NimiDesktopOpenRuntimeConfigPage,
   NimiDesktopOpenSettingsIntent,
+  NimiDesktopOpenIntegrationsIntent,
   NimiDesktopOpenSettingsSection,
   NimiDesktopOpenSourceHost,
 } from './desktop-open.js';

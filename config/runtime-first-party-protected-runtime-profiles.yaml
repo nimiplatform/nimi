@@ -244,6 +244,10 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection
       - method_id: /nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection
       - method_id: /nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup
   - profile_id: bundled_avatar_v1
     identity_class: avatar
     app_id: nimi.avatar

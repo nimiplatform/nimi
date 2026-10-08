@@ -19,20 +19,24 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeIntegrationService_ListIntegrationCatalog_FullMethodName        = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog"
-	RuntimeIntegrationService_ListIntegrationConnections_FullMethodName    = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections"
-	RuntimeIntegrationService_InvokeIntegrationCall_FullMethodName         = "/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall"
-	RuntimeIntegrationService_GetIntegrationCall_FullMethodName            = "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall"
-	RuntimeIntegrationService_ListIntegrationCalls_FullMethodName          = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls"
-	RuntimeIntegrationService_CancelIntegrationCall_FullMethodName         = "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall"
-	RuntimeIntegrationService_RegisterIntegrationProvider_FullMethodName   = "/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider"
-	RuntimeIntegrationService_UnregisterIntegrationProvider_FullMethodName = "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider"
-	RuntimeIntegrationService_PollIntegrationProvider_FullMethodName       = "/nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider"
-	RuntimeIntegrationService_CompleteIntegrationProvider_FullMethodName   = "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider"
-	RuntimeIntegrationService_GetIntegrationManagement_FullMethodName      = "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement"
-	RuntimeIntegrationService_PutIntegrationConnection_FullMethodName      = "/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection"
-	RuntimeIntegrationService_RemoveIntegrationConnection_FullMethodName   = "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection"
-	RuntimeIntegrationService_SetIntegrationPermission_FullMethodName      = "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission"
+	RuntimeIntegrationService_ListIntegrationCatalog_FullMethodName           = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog"
+	RuntimeIntegrationService_ListIntegrationConnections_FullMethodName       = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections"
+	RuntimeIntegrationService_InvokeIntegrationCall_FullMethodName            = "/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall"
+	RuntimeIntegrationService_GetIntegrationCall_FullMethodName               = "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall"
+	RuntimeIntegrationService_ListIntegrationCalls_FullMethodName             = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls"
+	RuntimeIntegrationService_CancelIntegrationCall_FullMethodName            = "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall"
+	RuntimeIntegrationService_RegisterIntegrationProvider_FullMethodName      = "/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider"
+	RuntimeIntegrationService_UnregisterIntegrationProvider_FullMethodName    = "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider"
+	RuntimeIntegrationService_PollIntegrationProvider_FullMethodName          = "/nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider"
+	RuntimeIntegrationService_CompleteIntegrationProvider_FullMethodName      = "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider"
+	RuntimeIntegrationService_GetIntegrationManagement_FullMethodName         = "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement"
+	RuntimeIntegrationService_PutIntegrationConnection_FullMethodName         = "/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection"
+	RuntimeIntegrationService_RemoveIntegrationConnection_FullMethodName      = "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection"
+	RuntimeIntegrationService_SetIntegrationPermission_FullMethodName         = "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission"
+	RuntimeIntegrationService_StartIntegrationConnectionSetup_FullMethodName  = "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup"
+	RuntimeIntegrationService_GetIntegrationConnectionSetup_FullMethodName    = "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup"
+	RuntimeIntegrationService_SubmitIntegrationConnectionSetup_FullMethodName = "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup"
+	RuntimeIntegrationService_CancelIntegrationConnectionSetup_FullMethodName = "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup"
 )
 
 // RuntimeIntegrationServiceClient is the client API for RuntimeIntegrationService service.
@@ -53,6 +57,10 @@ type RuntimeIntegrationServiceClient interface {
 	PutIntegrationConnection(ctx context.Context, in *PutIntegrationConnectionRequest, opts ...grpc.CallOption) (*PutIntegrationConnectionResponse, error)
 	RemoveIntegrationConnection(ctx context.Context, in *RemoveIntegrationConnectionRequest, opts ...grpc.CallOption) (*RemoveIntegrationConnectionResponse, error)
 	SetIntegrationPermission(ctx context.Context, in *SetIntegrationPermissionRequest, opts ...grpc.CallOption) (*SetIntegrationPermissionResponse, error)
+	StartIntegrationConnectionSetup(ctx context.Context, in *StartIntegrationConnectionSetupRequest, opts ...grpc.CallOption) (*StartIntegrationConnectionSetupResponse, error)
+	GetIntegrationConnectionSetup(ctx context.Context, in *GetIntegrationConnectionSetupRequest, opts ...grpc.CallOption) (*GetIntegrationConnectionSetupResponse, error)
+	SubmitIntegrationConnectionSetup(ctx context.Context, in *SubmitIntegrationConnectionSetupRequest, opts ...grpc.CallOption) (*SubmitIntegrationConnectionSetupResponse, error)
+	CancelIntegrationConnectionSetup(ctx context.Context, in *CancelIntegrationConnectionSetupRequest, opts ...grpc.CallOption) (*CancelIntegrationConnectionSetupResponse, error)
 }
 
 type runtimeIntegrationServiceClient struct {
@@ -203,6 +211,46 @@ func (c *runtimeIntegrationServiceClient) SetIntegrationPermission(ctx context.C
 	return out, nil
 }
 
+func (c *runtimeIntegrationServiceClient) StartIntegrationConnectionSetup(ctx context.Context, in *StartIntegrationConnectionSetupRequest, opts ...grpc.CallOption) (*StartIntegrationConnectionSetupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartIntegrationConnectionSetupResponse)
+	err := c.cc.Invoke(ctx, RuntimeIntegrationService_StartIntegrationConnectionSetup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeIntegrationServiceClient) GetIntegrationConnectionSetup(ctx context.Context, in *GetIntegrationConnectionSetupRequest, opts ...grpc.CallOption) (*GetIntegrationConnectionSetupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetIntegrationConnectionSetupResponse)
+	err := c.cc.Invoke(ctx, RuntimeIntegrationService_GetIntegrationConnectionSetup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeIntegrationServiceClient) SubmitIntegrationConnectionSetup(ctx context.Context, in *SubmitIntegrationConnectionSetupRequest, opts ...grpc.CallOption) (*SubmitIntegrationConnectionSetupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitIntegrationConnectionSetupResponse)
+	err := c.cc.Invoke(ctx, RuntimeIntegrationService_SubmitIntegrationConnectionSetup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeIntegrationServiceClient) CancelIntegrationConnectionSetup(ctx context.Context, in *CancelIntegrationConnectionSetupRequest, opts ...grpc.CallOption) (*CancelIntegrationConnectionSetupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelIntegrationConnectionSetupResponse)
+	err := c.cc.Invoke(ctx, RuntimeIntegrationService_CancelIntegrationConnectionSetup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeIntegrationServiceServer is the server API for RuntimeIntegrationService service.
 // All implementations should embed UnimplementedRuntimeIntegrationServiceServer
 // for forward compatibility.
@@ -221,6 +269,10 @@ type RuntimeIntegrationServiceServer interface {
 	PutIntegrationConnection(context.Context, *PutIntegrationConnectionRequest) (*PutIntegrationConnectionResponse, error)
 	RemoveIntegrationConnection(context.Context, *RemoveIntegrationConnectionRequest) (*RemoveIntegrationConnectionResponse, error)
 	SetIntegrationPermission(context.Context, *SetIntegrationPermissionRequest) (*SetIntegrationPermissionResponse, error)
+	StartIntegrationConnectionSetup(context.Context, *StartIntegrationConnectionSetupRequest) (*StartIntegrationConnectionSetupResponse, error)
+	GetIntegrationConnectionSetup(context.Context, *GetIntegrationConnectionSetupRequest) (*GetIntegrationConnectionSetupResponse, error)
+	SubmitIntegrationConnectionSetup(context.Context, *SubmitIntegrationConnectionSetupRequest) (*SubmitIntegrationConnectionSetupResponse, error)
+	CancelIntegrationConnectionSetup(context.Context, *CancelIntegrationConnectionSetupRequest) (*CancelIntegrationConnectionSetupResponse, error)
 }
 
 // UnimplementedRuntimeIntegrationServiceServer should be embedded to have
@@ -271,6 +323,18 @@ func (UnimplementedRuntimeIntegrationServiceServer) RemoveIntegrationConnection(
 }
 func (UnimplementedRuntimeIntegrationServiceServer) SetIntegrationPermission(context.Context, *SetIntegrationPermissionRequest) (*SetIntegrationPermissionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetIntegrationPermission not implemented")
+}
+func (UnimplementedRuntimeIntegrationServiceServer) StartIntegrationConnectionSetup(context.Context, *StartIntegrationConnectionSetupRequest) (*StartIntegrationConnectionSetupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartIntegrationConnectionSetup not implemented")
+}
+func (UnimplementedRuntimeIntegrationServiceServer) GetIntegrationConnectionSetup(context.Context, *GetIntegrationConnectionSetupRequest) (*GetIntegrationConnectionSetupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetIntegrationConnectionSetup not implemented")
+}
+func (UnimplementedRuntimeIntegrationServiceServer) SubmitIntegrationConnectionSetup(context.Context, *SubmitIntegrationConnectionSetupRequest) (*SubmitIntegrationConnectionSetupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitIntegrationConnectionSetup not implemented")
+}
+func (UnimplementedRuntimeIntegrationServiceServer) CancelIntegrationConnectionSetup(context.Context, *CancelIntegrationConnectionSetupRequest) (*CancelIntegrationConnectionSetupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelIntegrationConnectionSetup not implemented")
 }
 func (UnimplementedRuntimeIntegrationServiceServer) testEmbeddedByValue() {}
 
@@ -544,6 +608,78 @@ func _RuntimeIntegrationService_SetIntegrationPermission_Handler(srv interface{}
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeIntegrationService_StartIntegrationConnectionSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartIntegrationConnectionSetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeIntegrationServiceServer).StartIntegrationConnectionSetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeIntegrationService_StartIntegrationConnectionSetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeIntegrationServiceServer).StartIntegrationConnectionSetup(ctx, req.(*StartIntegrationConnectionSetupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeIntegrationService_GetIntegrationConnectionSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetIntegrationConnectionSetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeIntegrationServiceServer).GetIntegrationConnectionSetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeIntegrationService_GetIntegrationConnectionSetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeIntegrationServiceServer).GetIntegrationConnectionSetup(ctx, req.(*GetIntegrationConnectionSetupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeIntegrationService_SubmitIntegrationConnectionSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitIntegrationConnectionSetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeIntegrationServiceServer).SubmitIntegrationConnectionSetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeIntegrationService_SubmitIntegrationConnectionSetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeIntegrationServiceServer).SubmitIntegrationConnectionSetup(ctx, req.(*SubmitIntegrationConnectionSetupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeIntegrationService_CancelIntegrationConnectionSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelIntegrationConnectionSetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeIntegrationServiceServer).CancelIntegrationConnectionSetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeIntegrationService_CancelIntegrationConnectionSetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeIntegrationServiceServer).CancelIntegrationConnectionSetup(ctx, req.(*CancelIntegrationConnectionSetupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeIntegrationService_ServiceDesc is the grpc.ServiceDesc for RuntimeIntegrationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -606,6 +742,22 @@ var RuntimeIntegrationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetIntegrationPermission",
 			Handler:    _RuntimeIntegrationService_SetIntegrationPermission_Handler,
+		},
+		{
+			MethodName: "StartIntegrationConnectionSetup",
+			Handler:    _RuntimeIntegrationService_StartIntegrationConnectionSetup_Handler,
+		},
+		{
+			MethodName: "GetIntegrationConnectionSetup",
+			Handler:    _RuntimeIntegrationService_GetIntegrationConnectionSetup_Handler,
+		},
+		{
+			MethodName: "SubmitIntegrationConnectionSetup",
+			Handler:    _RuntimeIntegrationService_SubmitIntegrationConnectionSetup_Handler,
+		},
+		{
+			MethodName: "CancelIntegrationConnectionSetup",
+			Handler:    _RuntimeIntegrationService_CancelIntegrationConnectionSetup_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -993,7 +993,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if localAppKernel != nil {
 		integrationSources.store = localAppKernel.Registrations()
 	}
-	integrationSvc, err := integration.New(integration.Options{Backend: backend, Audit: auditStore, Logger: logger, Secrets: integrationSecrets, Revalidator: appSvc, Registrations: integrationSources, DesktopTransport: accountservice.VerifiedDesktopTransport})
+	integrationSvc, err := integration.New(integration.Options{Backend: backend, Audit: auditStore, Logger: logger, Secrets: integrationSecrets, Revalidator: appSvc, Registrations: integrationSources, DesktopTransport: accountservice.VerifiedDesktopTransport, Assets: appSvc})
 	if err != nil {
 		return nil, fmt.Errorf("initialize Integration owner: %w", err)
 	}

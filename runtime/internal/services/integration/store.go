@@ -29,6 +29,9 @@ func (s *Service) loadTarget(ctx context.Context, account, id string) (target, e
 	if err := json.Unmarshal([]byte(raw), &t); err != nil || t.Public == nil {
 		return t, failure(codes.Unavailable, "INTEGRATION_TARGET_UNAVAILABLE")
 	}
+	if isNativeAdapter(t.Public.Kind) {
+		t.Public.Operations = nativeOperations(t.Public.Kind)
+	}
 	return t, nil
 }
 
@@ -80,7 +83,15 @@ func (s *Service) targets(ctx context.Context, d accountservice.LocalAppCallerDe
 			continue
 		}
 		p := proto.Clone(t.Public).(*runtimev1.IntegrationTarget)
+		if isNativeAdapter(p.Kind) {
+			// Built-in descriptors belong to the current Runtime, not to a saved
+			// connection row. No stored configuration or credential is migrated.
+			p.Operations = nativeOperations(p.Kind)
+		}
 		p.Available = true
+		if isNativeAdapter(p.Kind) && (s.adapters[p.Kind].configure == nil || s.adapters[p.Kind].execute == nil) {
+			p.Available = false
+		}
 		if p.Kind == "telegram" && t.TelegramBotID <= 0 {
 			p.Available = false
 		}
@@ -273,7 +284,7 @@ func (s *Service) checkTelegramIdentityLocked(ctx context.Context, t target) err
 	if t.Public.Kind != "telegram" {
 		return nil
 	}
-	rows, err := s.backend.DB().QueryContext(ctx, `SELECT config_json FROM runtime_integration_target WHERE account_id=?`, t.Account)
+	rows, err := s.backend.DB().QueryContext(ctx, `SELECT config_json FROM runtime_integration_target`)
 	if err != nil {
 		return failure(codes.Unavailable, "INTEGRATION_TARGET_UNAVAILABLE")
 	}
@@ -508,12 +519,22 @@ func (s *Service) PutIntegrationConnection(ctx context.Context, req *runtimev1.P
 		return nil, err
 	}
 	record.bind(d)
-	if req == nil || len(strings.TrimSpace(req.DisplayName)) == 0 || len(req.DisplayName) > 256 || len(req.AccountLabel) > 256 || len(req.Secret) > 16384 {
+	return s.putConnection(ctx, d, req, record, func(commit func(context.Context) error) error {
+		return s.commitManagementLocked(ctx, d, localappop.IngressIntegrationConnectionPut, commit)
+	}, nil)
+}
+
+func (s *Service) putConnection(ctx context.Context, d accountservice.LocalAppCallerDecision, req *runtimev1.PutIntegrationConnectionRequest, record *operationAudit, guard func(func(context.Context) error) error, committed func(target)) (*runtimev1.PutIntegrationConnectionResponse, error) {
+	if req == nil || !validConnectionDisplayName(req.Adapter, req.DisplayName) || len(req.AccountLabel) > 256 || len(req.Secret) > 16384 {
 		return nil, failure(codes.InvalidArgument, "INTEGRATION_INPUT_INVALID")
+	}
+	if err := validateConnectionConfig(req.Adapter, req.Config); err != nil {
+		return nil, err
 	}
 	record.set("adapter", req.Adapter)
 	id := req.TargetRef
 	var previous *target
+	oldSecret := ""
 	if id == "" {
 		id = "icon_" + ulid.Make().String()
 		record.set("disposition", "created")
@@ -524,30 +545,27 @@ func (s *Service) PutIntegrationConnection(ctx context.Context, req *runtimev1.P
 			return nil, err
 		}
 		previous = &old
-		if old.Public.Kind != req.Adapter || old.Endpoint != req.Endpoint {
+		if old.Public.Kind != req.Adapter || !proto.Equal(old.Config, req.Config) {
 			return nil, failure(codes.FailedPrecondition, "INTEGRATION_NEW_TARGET_REQUIRED")
+		}
+		oldSecret, err = s.captureCredential(old)
+		if err != nil {
+			return nil, err
 		}
 	}
 	secret := req.Secret
-	if previous != nil {
-		storedSecret := ""
-		if s.secrets != nil {
-			storedSecret, _, err = s.secrets.ReadSecret("integration:" + id)
-			if err != nil {
-				return nil, failure(codes.Unavailable, "INTEGRATION_CREDENTIAL_UNAVAILABLE")
-			}
-		}
-		if secret != "" && secret != storedSecret {
-			return nil, failure(codes.FailedPrecondition, "INTEGRATION_NEW_TARGET_REQUIRED")
-		}
-		secret = storedSecret
+	if previous != nil && secret == "" {
+		secret = oldSecret
 	}
 	record.set("target_ref", id)
 	t, err := s.configure(ctx, d.AccountID, id, req, secret)
 	if err != nil {
 		return nil, err
 	}
-	if previous != nil && !compatibleOperations(previous.Public.Operations, t.Public.Operations) {
+	if previous != nil && (previous.Identity != t.Identity || !compatibleOperations(previous.Public.Operations, t.Public.Operations) || (req.Adapter == "mcp" && oldSecret != secret)) {
+		if req.Adapter == "weixin" {
+			s.logger.Info("Weixin setup decision", "stage", "refresh-admission", "identity_equal", previous.Identity == t.Identity, "operations_compatible", compatibleOperations(previous.Public.Operations, t.Public.Operations))
+		}
 		return nil, failure(codes.FailedPrecondition, "INTEGRATION_NEW_TARGET_REQUIRED")
 	}
 	s.mu.Lock()
@@ -555,40 +573,85 @@ func (s *Service) PutIntegrationConnection(ctx context.Context, req *runtimev1.P
 	if s.closed || s.quiesced.Load() {
 		return nil, failure(codes.Unavailable, "INTEGRATION_UNAVAILABLE")
 	}
+	t.CredentialGeneration = 1
+	if s.removing[id] {
+		return nil, failure(codes.Unavailable, "INTEGRATION_RECEIVER_DRAINING")
+	}
 	if previous != nil {
-		current, err := s.loadTarget(ctx, d.AccountID, id)
-		if err != nil {
-			return nil, err
+		current, e := s.loadTarget(ctx, d.AccountID, id)
+		if e != nil {
+			return nil, e
 		}
-		currentSecret, err := s.captureCredential(current)
-		if err != nil {
-			return nil, err
+		currentSecret, e := s.captureCredential(current)
+		if e != nil {
+			return nil, e
 		}
-		if current.Public.Kind != req.Adapter || current.Endpoint != req.Endpoint || currentSecret != secret || !compatibleOperations(current.Public.Operations, t.Public.Operations) {
-			return nil, failure(codes.FailedPrecondition, "INTEGRATION_NEW_TARGET_REQUIRED")
+		if current.CredentialGeneration != previous.CredentialGeneration || !proto.Equal(current.Config, req.Config) || current.Identity != t.Identity || currentSecret != oldSecret || !compatibleOperations(current.Public.Operations, t.Public.Operations) {
+			return nil, failure(codes.FailedPrecondition, "INTEGRATION_CONFIGURATION_CHANGED")
+		}
+		t.CredentialGeneration = current.CredentialGeneration
+		if req.Adapter == "weixin" && strings.TrimSpace(req.DisplayName) == "" {
+			// A nameless same-identity refresh retains the current stored label,
+			// including a prior explicit remark, after the identity recheck.
+			t.Public.DisplayName = current.Public.DisplayName
+		}
+		if secret != oldSecret || committed != nil {
+			t.CredentialGeneration++
 		}
 	}
 	if err := s.checkTelegramIdentityLocked(ctx, t); err != nil {
 		return nil, err
 	}
-	if previous == nil && secret != "" {
-		if s.secrets == nil {
-			return nil, failure(codes.Unavailable, "INTEGRATION_CUSTODY_UNAVAILABLE")
-		}
-		if err := s.secrets.WriteSecret("integration:"+id, secret); err != nil {
-			return nil, failure(codes.Unavailable, "INTEGRATION_CUSTODY_UNAVAILABLE")
-		}
+	if err := s.checkNativeIdentityLocked(ctx, t); err != nil {
+		return nil, err
 	}
-	// The connection row and its audit result commit together; a failed commit
-	// withdraws the newly stored credential as before.
-	if err := s.saveTargetRecorded(ctx, t, record); err != nil {
-		if previous == nil && secret != "" && s.secrets != nil {
-			_ = s.secrets.DeleteSecret("integration:" + id)
+	err = guard(func(commitCtx context.Context) error {
+		if secret != oldSecret {
+			if s.secrets == nil {
+				return failure(codes.Unavailable, "INTEGRATION_CUSTODY_UNAVAILABLE")
+			}
+			if err := s.secrets.WriteSecret("integration:"+id, secret); err != nil {
+				return failure(codes.Unavailable, "INTEGRATION_CUSTODY_UNAVAILABLE")
+			}
 		}
-		if errors.Is(err, auditlog.ErrUnrecorded) {
-			return nil, s.auditUnavailable(err)
+		if e := s.saveTargetRecorded(commitCtx, t, record); e != nil {
+			if secret != oldSecret && s.secrets != nil {
+				if previous == nil {
+					_ = s.secrets.DeleteSecret("integration:" + id)
+				} else {
+					_ = s.secrets.WriteSecret("integration:"+id, oldSecret)
+				}
+			}
+			if errors.Is(e, auditlog.ErrUnrecorded) {
+				return s.auditUnavailable(e)
+			}
+			return fmt.Errorf("integration save connection: %w", e)
 		}
-		return nil, fmt.Errorf("integration save connection: %w", err)
+		if previous != nil && t.CredentialGeneration != previous.CredentialGeneration {
+			for _, c := range s.calls {
+				if c.target.Public.TargetRef == id {
+					s.cancelInvocationLocked(c)
+				}
+			}
+			if r := s.receivers[id]; r != nil {
+				r.cancel()
+				// Keep the canceled receiver until done closes. A new generation
+				// cannot open a second upstream receiver while the old one drains.
+			}
+			if r := s.nativeReceivers[id]; r != nil {
+				r.cancel()
+			}
+			if b := s.onebotBridges[id]; b != nil {
+				b.cancel()
+			}
+		}
+		if committed != nil {
+			committed(t)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return &runtimev1.PutIntegrationConnectionResponse{Connection: t.Public}, nil
 }
@@ -613,33 +676,64 @@ func (s *Service) RemoveIntegrationConnection(ctx context.Context, req *runtimev
 	if t.Public.Kind == "app" {
 		return nil, failure(codes.InvalidArgument, "INTEGRATION_PROVIDER_TARGET")
 	}
+	if s.removing[t.Public.TargetRef] {
+		return nil, failure(codes.Unavailable, "INTEGRATION_RECEIVER_DRAINING")
+	}
+	// Keep the target and identity reserved while draining, but let a receiver
+	// already entering Accept acquire s.mu and observe its canceled lease.
+	s.removing[t.Public.TargetRef] = true
+	defer delete(s.removing, t.Public.TargetRef)
 	record.set("adapter", t.Public.Kind)
 	for _, c := range s.calls {
 		if c.decision.AccountID == d.AccountID && c.target.Public.TargetRef == t.Public.TargetRef {
 			s.cancelInvocationLocked(c)
 		}
 	}
-	// Drain this connection's receiver before deleting its cursor/cache, so
-	// a late accepted poll cannot recreate records for a removed target.
+	var draining []<-chan struct{}
 	if r := s.receivers[t.Public.TargetRef]; r != nil {
 		r.cancel()
-		stopCtx, stopCancel := context.WithTimeout(ctx, terminalRecordTimeout)
-		defer stopCancel()
-		select {
-		case <-stopCtx.Done():
-			return nil, failure(codes.Unavailable, "INTEGRATION_RECEIVER_UNAVAILABLE")
-		case <-r.done:
-		}
-		delete(s.receivers, t.Public.TargetRef)
+		draining = append(draining, r.done)
 	}
-	// The removal and its audit result commit in one transaction.
-	err = s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		for _, table := range []string{"runtime_integration_permission", "runtime_integration_update", "runtime_integration_receiver", "runtime_integration_target"} {
-			if _, err := tx.ExecContext(ctx, `DELETE FROM `+table+` WHERE account_id=? AND target_ref=?`, d.AccountID, t.Public.TargetRef); err != nil {
-				return err
+	if r := s.nativeReceivers[t.Public.TargetRef]; r != nil {
+		r.cancel()
+		draining = append(draining, r.done)
+	}
+	if b := s.onebotBridges[t.Public.TargetRef]; b != nil {
+		b.cancel()
+		draining = append(draining, b.done)
+	}
+	stopCtx, stopCancel := context.WithTimeout(ctx, terminalRecordTimeout)
+	defer stopCancel()
+	err = func() error {
+		s.mu.Unlock()
+		defer s.mu.Lock()
+		for _, done := range draining {
+			select {
+			case <-stopCtx.Done():
+				return failure(codes.Unavailable, "INTEGRATION_RECEIVER_UNAVAILABLE")
+			case <-done:
 			}
 		}
-		return record.commitTx(ctx, tx)
+		return nil
+	}()
+	if err != nil {
+		return nil, err
+	}
+	delete(s.receivers, t.Public.TargetRef)
+	delete(s.nativeReceivers, t.Public.TargetRef)
+	if s.closed || s.quiesced.Load() {
+		return nil, failure(codes.Unavailable, "INTEGRATION_UNAVAILABLE")
+	}
+	// The removal and its audit result commit in one transaction.
+	err = s.commitManagementLocked(ctx, d, localappop.IngressIntegrationConnectionRemove, func(commitCtx context.Context) error {
+		return s.backend.WriteTx(commitCtx, func(tx *sql.Tx) error {
+			for _, table := range []string{"runtime_integration_permission", "runtime_integration_update", "runtime_integration_receiver", "runtime_integration_target"} {
+				if _, err := tx.ExecContext(commitCtx, `DELETE FROM `+table+` WHERE account_id=? AND target_ref=?`, d.AccountID, t.Public.TargetRef); err != nil {
+					return err
+				}
+			}
+			return record.commitTx(commitCtx, tx)
+		})
 	})
 	if err != nil {
 		if errors.Is(err, auditlog.ErrUnrecorded) {

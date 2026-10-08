@@ -7,6 +7,7 @@ test('a native operation-unavailable error retains the concrete connection decis
     details: { command: 'nimi.shell.localApp.integrationPutConnection', reasonMetadata: { integration_reason: 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED' } },
   });
   assert.equal(integrationErrorCode(error), 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED');
+  assert.equal(integrationErrorCode({ details: { reasonMetadata: { integration_reason: 'INTEGRATION_IDENTITY_ALREADY_CONNECTED' } } }), 'INTEGRATION_IDENTITY_ALREADY_CONNECTED');
   assert.equal(integrationErrorCode({ details: { reasonMetadata: { integration_reason: 'INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT' } } }), 'INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT');
 });
 

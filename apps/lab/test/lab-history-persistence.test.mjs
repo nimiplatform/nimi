@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import ts from 'typescript';
+import { cleanupBehaviorModules, importBehaviorModule } from './lab-contract/helpers.mjs';
+test.after(cleanupBehaviorModules);
 
 const root = path.resolve(import.meta.dirname, '..');
 const clientModuleUrl = `data:text/javascript;base64,${Buffer.from(`
@@ -95,6 +97,31 @@ function createStorageClient(seed = {}) {
     },
   };
 }
+
+test('native reply normal and stop-late facts save, reopen and serialize without unapproved source or draft previews',async()=>{
+ const {createNativeReplyController}=await importBehaviorModule('lab/integrations/native-reply-controller.js');
+ const source='PRIVATE_SOURCE_SENTINEL😀',draft='PRIVATE_DRAFT_SENTINEL😀';
+ for(const late of [false,true])for(const saveBodies of [false,true]){
+  const storage=createStorageClient();globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__=storage.client;
+  let resolveInference,entered;const inference=new Promise(resolve=>{resolveInference=resolve});const started=new Promise(resolve=>{entered=resolve});let recorded=0,dispatches=0;
+  const controller=createNativeReplyController({targetRef:'original-target',adapter:'qq-official',event:{eventId:'actual-source',replyRef:'actual-source-ref',segments:[{kind:'text',text:source}]},currentScope:()=>true,authStatus:async()=>({sessionBound:true}),
+   prepareAI:async()=>({runId:'actual-run',createdAt:'2026-10-06T10:00:00Z'}),generate:()=>{entered();return inference},
+   recordAI:async record=>{recorded++;await historyStorageModule.appendLabRunHistory(record)},
+   integration:{invoke:()=>{dispatches++;assert.fail('inference is not send authorization')},getCall:()=>assert.fail(),cancelCall:()=>assert.fail()},recordIntegration:()=>assert.fail(),onState:()=>{}});
+  try{
+   const run=controller.generate(saveBodies);await started;if(late)controller.stop();
+   resolveInference({ok:true,capabilityId:'chat.stream',capabilityLabel:'Chat Stream',message:'Actual inference completed.',output:{kind:'text',text:draft,finishReason:'stop',streamed:true,inputTokens:9,outputTokens:5,totalTokens:14},trace:{traceId:'actual-trace'}});await run;
+   assert.equal(recorded,1);assert.equal(dispatches,0);assert.equal(controller.getState().draft,late?'':draft);
+   if(late)assert.equal(controller.send(),null);
+   const reopened=await historyStorageModule.loadLabRunHistory();const record=reopened['chat.stream'][0];
+   assert.equal(record.id,'actual-run');assert.equal(record.status,'ready');assert.equal(record.result.traceId,'actual-trace');assert.equal(record.result.finishReason,'stop');assert.equal(record.result.charCount,draft.length);assert.equal(record.result.totalTokens,14);
+   const saved=JSON.stringify([...storage.documents.values()]);const exported=JSON.stringify(reopened);
+   for(const text of [saved,exported]){assert.equal(text.includes('PRIVATE_SOURCE_SENTINEL'),saveBodies);assert.equal(text.includes('PRIVATE_DRAFT_SENTINEL'),saveBodies)}
+   assert.deepEqual(historyPolicyModule.parseStudioRunHistory(JSON.parse(exported)),reopened);
+   assert.equal(record.result.body,saveBodies?draft:'');assert.equal(record.result.summary,saveBodies?draft:'');
+  }finally{await controller.dispose();delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__}
+ }
+});
 
 function runRecord(id, createdAt, overrides = {}) {
   return {

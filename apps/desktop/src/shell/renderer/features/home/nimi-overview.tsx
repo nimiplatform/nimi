@@ -105,8 +105,9 @@ export function NimiOverview() {
   // The Message center is a Home-internal view; every Home entry, including
   // the Logo while Home is already open, shows the overview.
   const homeEntryRevision = useAppStore((state) => state.homeEntryRevision);
-  const [view, setView] = useState<'overview' | 'center' | 'integrations'>('overview');
-  useEffect(() => setView('overview'), [homeEntryRevision]);
+  const homeEntryDestination = useAppStore((state) => state.homeEntryDestination);
+  const [view, setView] = useState<'overview' | 'center' | 'integrations'>(homeEntryDestination);
+  useEffect(() => setView(homeEntryDestination), [homeEntryRevision, homeEntryDestination]);
   const [centerFilter, setCenterFilter] = useState<HomeMessageFilter>('all');
   const [centerSource, setCenterSource] = useState<string | null>(null);
   const health = useQuery({

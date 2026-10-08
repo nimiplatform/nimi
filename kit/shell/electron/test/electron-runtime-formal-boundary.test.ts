@@ -50,7 +50,8 @@ const formalUnaryMethods = [
   ...['ListIntegrationCatalog', 'ListIntegrationConnections', 'InvokeIntegrationCall', 'GetIntegrationCall',
     'ListIntegrationCalls', 'CancelIntegrationCall', 'RegisterIntegrationProvider', 'UnregisterIntegrationProvider',
     'PollIntegrationProvider', 'CompleteIntegrationProvider', 'GetIntegrationManagement', 'PutIntegrationConnection',
-    'RemoveIntegrationConnection', 'SetIntegrationPermission'].map(name => `/nimi.runtime.v1.RuntimeIntegrationService/${name}`),
+    'RemoveIntegrationConnection', 'SetIntegrationPermission', 'StartIntegrationConnectionSetup', 'GetIntegrationConnectionSetup',
+    'SubmitIntegrationConnectionSetup', 'CancelIntegrationConnectionSetup'].map(name => `/nimi.runtime.v1.RuntimeIntegrationService/${name}`),
   ...['PutAppActivity', 'ListAppActivities', 'MarkAppActivityRead', 'CompleteAppActivityOpenRequest', 'ResolveAppActivityOpenLaunch']
     .map(name => `/nimi.runtime.v1.RuntimeAppActivityService/${name}`),
   ...['OpenVideoSession', 'SubmitVideoSessionFrame', 'ReadVideoSessionResult', 'CloseVideoSession']

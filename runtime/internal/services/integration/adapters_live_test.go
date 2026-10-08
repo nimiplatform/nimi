@@ -30,7 +30,7 @@ func TestLiveMCPPublicDocumentation(t *testing.T) {
 	}
 	_ = session.Close()
 	target, err := s.configure(ctx, "", "", &runtimev1.PutIntegrationConnectionRequest{
-		Adapter: "mcp", Endpoint: "https://learn.microsoft.com/api/mcp", DisplayName: "Public documentation diagnostic",
+		Adapter: "mcp", Config: &runtimev1.IntegrationConnectionConfig{Mcp: &runtimev1.IntegrationMcpConfig{Endpoint: "https://learn.microsoft.com/api/mcp"}}, DisplayName: "Public documentation diagnostic",
 	}, "")
 	if err != nil {
 		t.Fatal(err)

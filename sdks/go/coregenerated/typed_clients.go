@@ -1005,6 +1005,13 @@ const (
 	HOOKTRIGGERFAMILYUNSPECIFIED HookTriggerFamily = "HOOK_TRIGGER_FAMILY_UNSPECIFIED"
 )
 
+type IntegrationConnectionSetupAction string
+
+const (
+	INTEGRATIONCONNECTIONSETUPACTIONUNSPECIFIED     IntegrationConnectionSetupAction = "INTEGRATION_CONNECTION_SETUP_ACTION_UNSPECIFIED"
+	INTEGRATIONCONNECTIONSETUPACTIONCREATENEWTARGET IntegrationConnectionSetupAction = "INTEGRATION_CONNECTION_SETUP_ACTION_CREATE_NEW_TARGET"
+)
+
 type LoadoutValidationState string
 
 const (
@@ -3341,6 +3348,14 @@ type CancelIntegrationCallResponse struct {
 	Call *IntegrationCall `json:"call,omitempty"`
 }
 
+type CancelIntegrationConnectionSetupRequest struct {
+	SetupId string `json:"setup_id,omitempty"`
+}
+
+type CancelIntegrationConnectionSetupResponse struct {
+	Setup *IntegrationConnectionSetup `json:"setup,omitempty"`
+}
+
 type CancelLocalAppAgentWorkRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	ExecutionId string `json:"execution_id,omitempty"`
@@ -4596,6 +4611,14 @@ type GetIntegrationCallResponse struct {
 	Call *IntegrationCall `json:"call,omitempty"`
 }
 
+type GetIntegrationConnectionSetupRequest struct {
+	SetupId string `json:"setup_id,omitempty"`
+}
+
+type GetIntegrationConnectionSetupResponse struct {
+	Setup *IntegrationConnectionSetup `json:"setup,omitempty"`
+}
+
 type GetIntegrationManagementRequest struct {
 }
 
@@ -4937,11 +4960,46 @@ type IntegrationCall struct {
 	AccountLabel        string `json:"account_label,omitempty"`
 }
 
+type IntegrationConnectionConfig struct {
+	Mcp        *IntegrationMcpConfig        `json:"mcp,omitempty"`
+	Telegram   *IntegrationTelegramConfig   `json:"telegram,omitempty"`
+	Weixin     *IntegrationWeixinConfig     `json:"weixin,omitempty"`
+	Feishu     *IntegrationFeishuConfig     `json:"feishu,omitempty"`
+	QqOfficial *IntegrationQQOfficialConfig `json:"qq_official,omitempty"`
+	OnebotV11  *IntegrationOneBotV11Config  `json:"onebot_v11,omitempty"`
+}
+
+type IntegrationConnectionSetup struct {
+	SetupId         string `json:"setup_id,omitempty"`
+	Adapter         string `json:"adapter,omitempty"`
+	TargetRef       string `json:"target_ref,omitempty"`
+	Status          string `json:"status,omitempty"`
+	ExpiresAt       string `json:"expires_at,omitempty"`
+	QrCodeUrl       string `json:"qr_code_url,omitempty"`
+	VerificationUrl string `json:"verification_url,omitempty"`
+	AccountLabel    string `json:"account_label,omitempty"`
+	ErrorCode       string `json:"error_code,omitempty"`
+}
+
 type IntegrationConsumer struct {
 	ConsumerRef string `json:"consumer_ref,omitempty"`
 	AppId       string `json:"app_id,omitempty"`
 	DisplayName string `json:"display_name,omitempty"`
 	SourceKind  string `json:"source_kind,omitempty"`
+}
+
+type IntegrationFeishuConfig struct {
+	AppId     string `json:"app_id,omitempty"`
+	SetupMode string `json:"setup_mode,omitempty"`
+}
+
+type IntegrationMcpConfig struct {
+	Endpoint string `json:"endpoint,omitempty"`
+}
+
+type IntegrationOneBotV11Config struct {
+	Listener string `json:"listener,omitempty"`
+	SelfId   string `json:"self_id,omitempty"`
 }
 
 type IntegrationOperation struct {
@@ -4969,6 +5027,10 @@ type IntegrationProviderCall struct {
 	ConsumerDisplayName string `json:"consumer_display_name,omitempty"`
 }
 
+type IntegrationQQOfficialConfig struct {
+	AppId string `json:"app_id,omitempty"`
+}
+
 type IntegrationTarget struct {
 	TargetRef           string                 `json:"target_ref,omitempty"`
 	IntegrationId       string                 `json:"integration_id,omitempty"`
@@ -4979,6 +5041,12 @@ type IntegrationTarget struct {
 	Operations          []IntegrationOperation `json:"operations,omitempty"`
 	Skill               string                 `json:"skill,omitempty"`
 	PermittedOperations []string               `json:"permitted_operations,omitempty"`
+}
+
+type IntegrationTelegramConfig struct {
+}
+
+type IntegrationWeixinConfig struct {
 }
 
 type InterruptLocalAppAgentRealtimeOutputRequest struct {
@@ -7415,12 +7483,12 @@ type PutArtifactResponse struct {
 }
 
 type PutIntegrationConnectionRequest struct {
-	TargetRef    string `json:"target_ref,omitempty"`
-	Adapter      string `json:"adapter,omitempty"`
-	Endpoint     string `json:"endpoint,omitempty"`
-	DisplayName  string `json:"display_name,omitempty"`
-	AccountLabel string `json:"account_label,omitempty"`
-	Secret       string `json:"secret,omitempty"`
+	TargetRef    string                       `json:"target_ref,omitempty"`
+	Adapter      string                       `json:"adapter,omitempty"`
+	DisplayName  string                       `json:"display_name,omitempty"`
+	AccountLabel string                       `json:"account_label,omitempty"`
+	Secret       string                       `json:"secret,omitempty"`
+	Config       *IntegrationConnectionConfig `json:"config,omitempty"`
 }
 
 type PutIntegrationConnectionResponse struct {
@@ -8472,6 +8540,18 @@ type StartAppPackageUpdateResponse struct {
 	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
 }
 
+type StartIntegrationConnectionSetupRequest struct {
+	TargetRef    string                       `json:"target_ref,omitempty"`
+	Adapter      string                       `json:"adapter,omitempty"`
+	DisplayName  string                       `json:"display_name,omitempty"`
+	AccountLabel string                       `json:"account_label,omitempty"`
+	Config       *IntegrationConnectionConfig `json:"config,omitempty"`
+}
+
+type StartIntegrationConnectionSetupResponse struct {
+	Setup *IntegrationConnectionSetup `json:"setup,omitempty"`
+}
+
 type StartLocalAppAgentWorkRequest struct {
 	AgentHandle string                  `json:"agent_handle,omitempty"`
 	RequestId   string                  `json:"request_id,omitempty"`
@@ -8586,6 +8666,17 @@ type SubmitDelegatedApprovalDecisionRequest struct {
 
 type SubmitDelegatedApprovalDecisionResponse struct {
 	ApprovalRequest *DelegatedApprovalRequest `json:"approval_request,omitempty"`
+}
+
+type SubmitIntegrationConnectionSetupRequest struct {
+	SetupId          string                           `json:"setup_id,omitempty"`
+	Secret           string                           `json:"secret,omitempty"`
+	VerificationCode string                           `json:"verification_code,omitempty"`
+	Action           IntegrationConnectionSetupAction `json:"action,omitempty"`
+}
+
+type SubmitIntegrationConnectionSetupResponse struct {
+	Setup *IntegrationConnectionSetup `json:"setup,omitempty"`
 }
 
 type SubmitLocalAppAgentWorkToolResultRequest struct {
@@ -11202,6 +11293,14 @@ func (c RuntimeTypedClient) CancelIntegrationCall(ctx context.Context, request C
 	return decodeRuntimeTypedResponse[CancelIntegrationCallResponse](raw, "CancelIntegrationCallResponse")
 }
 
+func (c RuntimeTypedClient) CancelIntegrationConnectionSetup(ctx context.Context, request CancelIntegrationConnectionSetupRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelIntegrationConnectionSetupResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup", request, metadata, timeoutMS)
+	if err != nil {
+		return CancelIntegrationConnectionSetupResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CancelIntegrationConnectionSetupResponse](raw, "CancelIntegrationConnectionSetupResponse")
+}
+
 func (c RuntimeTypedClient) CompleteIntegrationProvider(ctx context.Context, request CompleteIntegrationProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CompleteIntegrationProviderResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider", request, metadata, timeoutMS)
 	if err != nil {
@@ -11216,6 +11315,14 @@ func (c RuntimeTypedClient) GetIntegrationCall(ctx context.Context, request GetI
 		return GetIntegrationCallResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetIntegrationCallResponse](raw, "GetIntegrationCallResponse")
+}
+
+func (c RuntimeTypedClient) GetIntegrationConnectionSetup(ctx context.Context, request GetIntegrationConnectionSetupRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetIntegrationConnectionSetupResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup", request, metadata, timeoutMS)
+	if err != nil {
+		return GetIntegrationConnectionSetupResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetIntegrationConnectionSetupResponse](raw, "GetIntegrationConnectionSetupResponse")
 }
 
 func (c RuntimeTypedClient) GetIntegrationManagement(ctx context.Context, request GetIntegrationManagementRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetIntegrationManagementResponse, error) {
@@ -11296,6 +11403,22 @@ func (c RuntimeTypedClient) SetIntegrationPermission(ctx context.Context, reques
 		return SetIntegrationPermissionResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SetIntegrationPermissionResponse](raw, "SetIntegrationPermissionResponse")
+}
+
+func (c RuntimeTypedClient) StartIntegrationConnectionSetup(ctx context.Context, request StartIntegrationConnectionSetupRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartIntegrationConnectionSetupResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup", request, metadata, timeoutMS)
+	if err != nil {
+		return StartIntegrationConnectionSetupResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[StartIntegrationConnectionSetupResponse](raw, "StartIntegrationConnectionSetupResponse")
+}
+
+func (c RuntimeTypedClient) SubmitIntegrationConnectionSetup(ctx context.Context, request SubmitIntegrationConnectionSetupRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitIntegrationConnectionSetupResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup", request, metadata, timeoutMS)
+	if err != nil {
+		return SubmitIntegrationConnectionSetupResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SubmitIntegrationConnectionSetupResponse](raw, "SubmitIntegrationConnectionSetupResponse")
 }
 
 func (c RuntimeTypedClient) UnregisterIntegrationProvider(ctx context.Context, request UnregisterIntegrationProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UnregisterIntegrationProviderResponse, error) {

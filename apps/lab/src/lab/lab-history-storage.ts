@@ -12,16 +12,16 @@ const JSON_DOCUMENT_LIMIT_BYTES = 256 * 1024;
 // serialized text also supports one record larger than a document.
 const CHUNK_TEXT_LENGTH = 32 * 1024;
 const runHistoryMutationQueue = { tail: Promise.resolve() };
-type HistoryIndex = { readonly format: 'lab-history-v1'; readonly kind: 'run' | 'media'; readonly generation: string;
+type HistoryIndex = { readonly format: 'lab-history-v1'; readonly kind: 'run' | 'media' | 'integration'; readonly generation: string;
   readonly chunks: readonly string[]; readonly textBytes: number };
 type HistoryChunk = { readonly format: 'lab-history-chunk-v1'; readonly text: string };
 type HistoryGeneration = { readonly generation: string; readonly parts: number };
-type HistoryMaintenance = { readonly format: 'lab-history-maintenance-v1'; readonly kind: 'run' | 'media';
+type HistoryMaintenance = { readonly format: 'lab-history-maintenance-v1'; readonly kind: 'run' | 'media' | 'integration';
   readonly generations: readonly HistoryGeneration[] };
 const GENERATION_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 
-function maintenancePath(kind: 'run' | 'media'): string { return `studio/history/${kind}/maintenance.json`; }
-async function readMaintenance(kind: 'run' | 'media'): Promise<HistoryMaintenance | undefined> {
+function maintenancePath(kind: 'run' | 'media' | 'integration'): string { return `studio/history/${kind}/maintenance.json`; }
+async function readMaintenance(kind: 'run' | 'media' | 'integration'): Promise<HistoryMaintenance | undefined> {
   const value = await readLabStandardStorageJson(maintenancePath(kind)) as Partial<HistoryMaintenance> | undefined;
   if (value === undefined) return undefined;
   if (!value || value.format !== 'lab-history-maintenance-v1' || value.kind !== kind || !Array.isArray(value.generations)
@@ -39,7 +39,7 @@ async function readMaintenance(kind: 'run' | 'media'): Promise<HistoryMaintenanc
 
 // Only generations this writer recorded are eligible for internal JSON cleanup.
 // JSON and asset paths are separate public storage domains.
-export async function retryLabHistoryChunkCleanup(rootPath: 'lab-run-history.json' | 'lab-image-history.json', kind: 'run' | 'media'): Promise<void> {
+export async function retryLabHistoryChunkCleanup(rootPath: 'lab-run-history.json' | 'lab-image-history.json' | 'lab-integration-history.json', kind: 'run' | 'media' | 'integration'): Promise<void> {
   const maintenance = await readMaintenance(kind);
   if (!maintenance) return;
   const root = await readLabStandardStorageJson(rootPath);
@@ -62,7 +62,7 @@ export async function retryLabHistoryChunkCleanup(rootPath: 'lab-run-history.jso
   } catch { /* Retry the same known generations on the next repository action. */ }
 }
 
-function enqueueHistoryMutation<T>(operation: () => Promise<T>): Promise<T> {
+export function enqueueHistoryMutation<T>(operation: () => Promise<T>): Promise<T> {
   const result = runHistoryMutationQueue.tail.then(operation, operation);
   runHistoryMutationQueue.tail = result.then(() => undefined, () => undefined);
   return result;
@@ -72,7 +72,7 @@ function checkDocument(value: unknown): void {
     throw new Error(t('Common.historyStorage.documentTooLarge'));
   }
 }
-function parseIndex(value: unknown, kind: 'run' | 'media'): HistoryIndex {
+function parseIndex(value: unknown, kind: 'run' | 'media' | 'integration'): HistoryIndex {
   const index = value as Partial<HistoryIndex> | undefined;
   if (!index || index.format !== 'lab-history-v1' || index.kind !== kind
     || typeof index.generation !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(index.generation)
@@ -90,7 +90,7 @@ function parseIndex(value: unknown, kind: 'run' | 'media'): HistoryIndex {
 
 /** Complete immutable business documents, also used by one-time operator
  * conversion. The product reader accepts only this format. */
-export function encodeLabHistoryDocuments(value: unknown, kind: 'run' | 'media'): {
+export function encodeLabHistoryDocuments(value: unknown, kind: 'run' | 'media' | 'integration'): {
   readonly index: HistoryIndex; readonly chunks: readonly HistoryChunk[];
 } {
   const text = JSON.stringify(value);
@@ -108,7 +108,7 @@ export function encodeLabHistoryDocuments(value: unknown, kind: 'run' | 'media')
   checkDocument(index);
   return { index, chunks };
 }
-export async function readLabHistoryDocuments(value: unknown, kind: 'run' | 'media'): Promise<unknown> {
+export async function readLabHistoryDocuments(value: unknown, kind: 'run' | 'media' | 'integration'): Promise<unknown> {
   const index = parseIndex(value, kind);
   const parts: string[] = [];
   for (const path of index.chunks) {
@@ -142,7 +142,7 @@ export async function loadLabRunHistory(): Promise<StudioRunHistory> {
   return enqueueHistoryMutation(async () => (await readSnapshot()).history);
 }
 export async function writeLabHistoryDocuments(
-  rootPath: 'lab-run-history.json' | 'lab-image-history.json', kind: 'run' | 'media', value: unknown,
+  rootPath: 'lab-run-history.json' | 'lab-image-history.json' | 'lab-integration-history.json', kind: 'run' | 'media' | 'integration', value: unknown,
   previous: unknown,
 ): Promise<void> {
   const prior = previous === undefined ? undefined : parseIndex(previous, kind);

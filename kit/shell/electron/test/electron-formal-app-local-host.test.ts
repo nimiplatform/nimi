@@ -83,6 +83,97 @@ function control(profile: 'desktop' | 'avatar') {
 }
 
 describe('Electron formal App local host', () => {
+  it.each(['desktop', 'avatar'] as const)('recovers account change on %s without replaying the old business read', async (profile) => {
+    const calls: string[] = [];
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      calls.push(input.methodId);
+      if (input.methodId.endsWith('/ListLocalAppAgentReferences')) {
+        if (calls.length === 1) throw new NimiElectronDesktopControlHostError('LOCAL_APP_ACCOUNT_CHANGED', false);
+        return new Uint8Array();
+      }
+      if (input.methodId.endsWith('/RebindLocalAppSession') || input.methodId.endsWith('/OpenLocalAppSession')) {
+        return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+          state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+          currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+        }));
+      }
+      throw new Error(`Unexpected method ${input.methodId}`);
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: `nimi.${profile}`,
+      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAvatarUnary']: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      await expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'account-changed' });
+      expect(calls).toEqual([
+        '/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences',
+        '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
+      ]);
+      await expect(owner.host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+      await expect(owner.host.agentReferenceList()).resolves.toEqual([]);
+      expect(calls.filter(method => method.endsWith('/ListLocalAppAgentReferences'))).toHaveLength(2);
+    } finally { await owner.dispose(); }
+  });
+
+  it('retries a failed rebind only through technical status, coalesces concurrent recovery and fences old results', async () => {
+    let finishOld!: (value: Uint8Array) => void;
+    let finishRebind!: () => void;
+    const rebindWaiting = new Promise<void>(resolve => { finishRebind = resolve; });
+    let reads = 0, rebinds = 0, opens = 0;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const ready = () => OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+      state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+      currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+    }));
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (input.methodId.endsWith('/ListLocalAppAgentReferences')) {
+        reads++;
+        if (reads === 1) return new Promise<Uint8Array>(resolve => { finishOld = resolve; });
+        if (reads === 2) throw new NimiElectronDesktopControlHostError('LOCAL_APP_ACCOUNT_CHANGED', false);
+        return new Uint8Array();
+      }
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
+        if (++rebinds === 1) throw new NimiElectronDesktopControlHostError('LOCAL_APP_SNAPSHOT_UNAVAILABLE', false, { secret: 'must-not-log' });
+        await rebindWaiting;
+        return ready();
+      }
+      if (input.methodId.endsWith('/OpenLocalAppSession')) { opens++; return ready(); }
+      throw new Error(`Unexpected method ${input.methodId}`);
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile: 'desktop', appId: 'nimi.desktop',
+      control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      const old = expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      await vi.waitFor(() => expect(reads).toBe(1));
+      const changed = expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'account-changed' });
+      await vi.waitFor(() => expect(reads).toBe(2));
+      expect(rebinds).toBe(0); // Actual old carrier must settle before scope replacement.
+      finishOld(new Uint8Array());
+      await old; await changed;
+      expect(rebinds).toBe(1);
+      expect(warn).toHaveBeenCalledExactlyOnceWith('[nimi-shell] formal App session rebind failed', { reasonCode: 'local-app-snapshot-unavailable' });
+      await expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      await expect(owner.host.renewTechnicalSession()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      expect(reads).toBe(2); expect(rebinds).toBe(1);
+
+      const first = owner.host.sessionStatus(), second = owner.host.sessionStatus();
+      await vi.waitFor(() => expect(rebinds).toBe(2));
+      await expect(owner.host.conversationOpen({ agentHandle: `agent_ref_${'A'.repeat(43)}` })).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      expect(opens).toBe(0);
+      finishRebind();
+      await expect(first).resolves.toMatchObject({ state: 'ready' });
+      await expect(second).resolves.toMatchObject({ state: 'ready' });
+      expect(rebinds).toBe(2); expect(opens).toBe(2); expect(reads).toBe(2);
+      await expect(owner.host.agentReferenceList()).resolves.toEqual([]);
+      expect(reads).toBe(3);
+    } finally {
+      finishOld?.(new Uint8Array()); finishRebind();
+      await owner.dispose(); warn.mockRestore();
+    }
+  });
+
   it('keeps the Desktop named reference resolver on the same pending-call and rebind barrier', async () => {
     let finish!: (response: Uint8Array) => void;
     let resolverCalls = 0;

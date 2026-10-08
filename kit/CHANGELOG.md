@@ -10,6 +10,14 @@ World results remain portable ZIP artifacts. Persist the original App source, pr
 
 The current bound sound sample, including an opening line, can be cloned once through the existing App `voice.create` job and bound through Agent presentation CAS. No producer voice handle is imported and no shared route changes implicitly. Covered Apps pass the same canonical client to the Agent Center factory to enable the journey. The retained `clientSubmissionId` carrier and recovery-expiry projection now also admit provider-persistent Cloud `voice-create`; use matching Runtime, SDK and Kit/native builds. This is an additive next-minor capability, staged without a package publication.
 
+## Next minor — Native Integration carrier (0.x breaking change, development)
+
+Weixin connection setup and put input may omit `displayName`; the matching Runtime names the verified account after confirmation. The formal Kit/native carrier preserves absence as the protobuf empty string, while other adapters still require a nonempty name. Use matching SDK, Kit/native and Runtime builds; this input widening is a 0.x minor with version assignment deferred to release work.
+
+Use matching Runtime, SDK, Kit and native builds. Integration connection input replaces top-level `endpoint` with the selected adapter's closed `config` object; MCP callers supply `{ mcp: { endpoint } }` and Telegram callers supply `{ telegram: {} }`. Reconfigure historical local connections explicitly with a one-time tool or Home; no compatibility path or automatic migration is provided.
+
+The public carrier adds four trusted connection setup methods and the parameter-free `open-integrations` navigation intent. Ordinary App consumers receive sanitized target descriptors and their own call facts; credentials and management stay in verified Home. The four new platform IDs are frozen, while absent real adapter handlers return unavailable. These export and input changes are classified as a 0.x minor; package version assignment is deferred to release work.
+
 ## SDK 0.21.0 / Kit and native 0.18.0 — Estimated music notes (development)
 
 Use the complete matching Runtime, SDK 0.21.0, Kit/native 0.18.0 and Rust carrier 0.10.0 package set. `music.transcribe` adds `note-events` without changing the existing three part meanings. The public input/profile/result parsers admit its typed value; older clients cannot project this new closed-set part. Basic Pitch's exact Windows CPU profile supports MIDI, timeline or both and reports unknown completeness unless the engine supplies stronger evidence.

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
@@ -42,15 +43,22 @@ const terminalRecordTimeout = 5 * time.Second
 type Backend interface {
 	DB() *sql.DB
 	WriteTx(context.Context, func(*sql.Tx) error) error
+	WithSerializedWriter(context.Context, func(context.Context) error) error
 }
 type Revalidator interface {
 	AuthorizeLocalAppIngress(context.Context, localappop.Ingress) (context.Context, error)
+	CommitLocalAppIngress(context.Context, localappop.Ingress, func(context.Context) error) error
 }
 type Consumer struct{ Subject, AppID, DisplayName, SourceKind string }
 type Registrations interface {
 	Consumers(context.Context) ([]Consumer, error)
 	// DescribeConsumer is display-only and may describe an ineligible subject.
 	DescribeConsumer(context.Context, string) (Consumer, bool, error)
+}
+
+type AssetCustody interface {
+	OpenOwnedIntegrationAsset(context.Context, appstorage.ManagedOwner, string) (*appstorage.AssetSource, error)
+	AdoptOwnedIntegrationMedia(context.Context, appstorage.ManagedOwner, string, appstorage.VerifiedAssetInput, appstorage.AssetCommitGuard) (appstorage.AssetRecord, error)
 }
 type Options struct {
 	Backend Backend
@@ -62,16 +70,21 @@ type Options struct {
 	Revalidator   Revalidator
 	Registrations Registrations
 	HTTPClient    *http.Client
+	Assets        AssetCustody
 	// DesktopTransport reports the verified protected Desktop transport. When
 	// absent, Desktop-only management fails closed.
 	DesktopTransport func(context.Context) bool
 }
 type target struct {
-	Account       string                       `json:"account"`
-	Subject       string                       `json:"subject,omitempty"`
-	Endpoint      string                       `json:"endpoint,omitempty"`
-	TelegramBotID int64                        `json:"telegramBotId,omitempty"`
-	Public        *runtimev1.IntegrationTarget `json:"public"`
+	Account              string                                 `json:"account"`
+	Subject              string                                 `json:"subject,omitempty"`
+	TelegramBotID        int64                                  `json:"telegramBotId,omitempty"`
+	CredentialGeneration uint64                                 `json:"credentialGeneration,omitempty"`
+	Config               *runtimev1.IntegrationConnectionConfig `json:"config,omitempty"`
+	Identity             string                                 `json:"identity,omitempty"`
+	OnebotImplementation string                                 `json:"onebotImplementation,omitempty"`
+	OnebotVersion        string                                 `json:"onebotVersion,omitempty"`
+	Public               *runtimev1.IntegrationTarget           `json:"public"`
 }
 type invocation struct {
 	decision        accountservice.LocalAppCallerDecision
@@ -95,30 +108,38 @@ type provider struct {
 	ctx      context.Context
 	cancel   context.CancelFunc
 }
+type invocationContextKey struct{}
 
 // @nimi-authority: rule.nimi.runtime.integration.fixed-operations
 type Service struct {
 	runtimev1.UnimplementedRuntimeIntegrationServiceServer
-	backend       Backend
-	audit         *auditlog.Store
-	logger        *slog.Logger
-	secrets       connector.SecretStore
-	revalidator   Revalidator
-	registrations Registrations
-	desktop       func(context.Context) bool
-	http          *http.Client
-	ctx           context.Context
-	cancel        context.CancelFunc
-	mu            sync.Mutex
-	providers     map[string]*provider
-	calls         map[string]*invocation
-	receivers     map[string]*telegramReceiver
-	workers       sync.WaitGroup
-	closed        bool
-	quiesced      atomic.Bool
-	closeDone     chan struct{}
-	drainDone     chan struct{}
-	resumePending bool
+	backend         Backend
+	audit           *auditlog.Store
+	logger          *slog.Logger
+	secrets         connector.SecretStore
+	revalidator     Revalidator
+	registrations   Registrations
+	desktop         func(context.Context) bool
+	http            *http.Client
+	assets          AssetCustody
+	ctx             context.Context
+	cancel          context.CancelFunc
+	mu              sync.Mutex
+	providers       map[string]*provider
+	calls           map[string]*invocation
+	receivers       map[string]*telegramReceiver
+	setups          map[string]*connectionSetup
+	adapters        map[string]integrationAdapter
+	nativeReceivers map[string]*nativeReceiver
+	removing        map[string]bool
+	workers         sync.WaitGroup
+	closed          bool
+	quiesced        atomic.Bool
+	closeDone       chan struct{}
+	drainDone       chan struct{}
+	resumePending   bool
+	nativeEncoding  nativeEncodingBudget
+	onebotBridges   map[string]*onebotBridge
 }
 
 func New(o Options) (*Service, error) {
@@ -137,7 +158,11 @@ func New(o Options) (*Service, error) {
 		client = &http.Client{Timeout: 90 * time.Second}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &Service{backend: o.Backend, audit: o.Audit, logger: logger, secrets: o.Secrets, revalidator: o.Revalidator, registrations: o.Registrations, desktop: o.DesktopTransport, http: client, ctx: ctx, cancel: cancel, providers: map[string]*provider{}, calls: map[string]*invocation{}, receivers: map[string]*telegramReceiver{}, closeDone: make(chan struct{})}
+	s := &Service{backend: o.Backend, audit: o.Audit, logger: logger, secrets: o.Secrets, revalidator: o.Revalidator, registrations: o.Registrations, desktop: o.DesktopTransport, http: client, assets: o.Assets, ctx: ctx, cancel: cancel, providers: map[string]*provider{}, calls: map[string]*invocation{}, receivers: map[string]*telegramReceiver{}, closeDone: make(chan struct{})}
+	s.setups = map[string]*connectionSetup{}
+	s.adapters = s.adapterRegistry()
+	s.nativeReceivers = map[string]*nativeReceiver{}
+	s.removing = map[string]bool{}
 	// A new Runtime does not resume any previously accepted operation.
 	if _, err := s.backend.DB().ExecContext(ctx, `UPDATE runtime_integration_call SET status='unconfirmed', error_code='EXECUTOR_RESTARTED' WHERE status='accepted'`); err != nil {
 		cancel()
@@ -306,6 +331,9 @@ func (s *Service) InvokeIntegrationCall(ctx context.Context, req *runtimev1.Invo
 	}
 	// Configuration commits, revocation and admission share this mutation
 	// boundary. The immutable target and credential are fixed before acceptance.
+	if s.removing[req.TargetRef] {
+		return nil, failure(codes.Unavailable, "INTEGRATION_RECEIVER_DRAINING")
+	}
 	t, err := s.loadTarget(ctx, d.AccountID, req.TargetRef)
 	if err != nil {
 		return nil, err
@@ -354,6 +382,7 @@ func (s *Service) InvokeIntegrationCall(ctx context.Context, req *runtimev1.Invo
 	}
 	execCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
 	c := &invocation{decision: d, ctx: execCtx, cancel: cancel, target: t, op: op, input: req.InputJson, credential: credential, fact: fact, providerSession: providerSession, done: make(chan struct{})}
+	c.ctx = context.WithValue(execCtx, invocationContextKey{}, c)
 	s.calls[fact.CallId] = c
 	s.workers.Add(1)
 	go s.run(c)
@@ -399,15 +428,15 @@ func (s *Service) run(c *invocation) {
 			return
 		}
 	}
-	result, dispatched, err := s.execute(c.ctx, c.target, c.op, c.input, c.credential)
+	result, outcome, err := s.execute(c.ctx, c.target, c.op, c.input, c.credential)
 	if err != nil {
 		state := "failed"
-		if dispatched && c.op.Effect == "write" {
+		if (outcome == effectUnknown || outcome == providerConfirmed) && c.op.Effect == "write" {
 			state = "unconfirmed"
-		} else if c.ctx.Err() != nil {
+		} else if outcome != providerRejected && c.ctx.Err() != nil {
 			state = "canceled"
 		}
-		s.finish(c, state, "", publicAdapterError(err))
+		s.finishExternal(c, state, "", publicAdapterError(err))
 		return
 	}
 	value, err := decodeJSON(result, maxOutput)
@@ -419,10 +448,66 @@ func (s *Service) run(c *invocation) {
 		if c.op.Effect == "write" {
 			state = "unconfirmed"
 		}
-		s.finish(c, state, "", "INTEGRATION_RESULT_INVALID")
+		s.finishExternal(c, state, "", "INTEGRATION_RESULT_INVALID")
 		return
 	}
-	s.finish(c, "completed", result, "")
+	s.finishExternal(c, "completed", result, "")
+}
+
+// @nimi-authority: rule.nimi.runtime.integration.final-publication
+func (s *Service) withCallCommitLocked(c *invocation, commit func(context.Context) error) error {
+	if s.closed || s.quiesced.Load() || s.removing[c.target.Public.TargetRef] || c.cancelRequested || c.ctx.Err() != nil || closed(c.decision.SessionInvalidated) || c.fact.Status != "accepted" || s.revalidator == nil {
+		return adapterError("INTEGRATION_SCOPE_ENDED")
+	}
+	current, err := s.loadTarget(c.ctx, c.decision.AccountID, c.target.Public.TargetRef)
+	if err != nil || current.CredentialGeneration != c.target.CredentialGeneration || !s.permitted(c.ctx, c.decision.AccountID, c.decision.RegisteredAppSubject, c.target.Public.TargetRef, c.op.Name) {
+		return adapterError("INTEGRATION_SCOPE_ENDED")
+	}
+	return s.backend.WithSerializedWriter(c.ctx, func(writerCtx context.Context) error {
+		return s.revalidator.CommitLocalAppIngress(writerCtx, localappop.IngressIntegrationCallInvoke, func(authorized context.Context) error {
+			next, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
+			if !ok || !sameScope(c.decision, next) || c.ctx.Err() != nil || c.cancelRequested || closed(c.decision.SessionInvalidated) {
+				return adapterError("INTEGRATION_SCOPE_ENDED")
+			}
+			return commit(authorized)
+		})
+	})
+}
+
+// Admission linearizes against actual Account/session invalidation, target
+// changes, permission revocation and cancellation. Network IO stays outside.
+// @nimi-authority: rule.nimi.runtime.integration.admission
+func (s *Service) admitExternalPhase(c *invocation) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !time.Now().Before(c.decision.ExpiresAt) {
+		return adapterError("INTEGRATION_SCOPE_ENDED")
+	}
+	if err := s.withCallCommitLocked(c, func(context.Context) error { return nil }); err != nil {
+		return adapterError("INTEGRATION_SCOPE_ENDED")
+	}
+	return nil
+}
+
+func (s *Service) finishExternal(c *invocation, state, result, reason string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if c.fact.Status != "accepted" {
+		return false
+	}
+	if c.op.Effect == "read" && state == "completed" {
+		accepted := false
+		err := s.withCallCommitLocked(c, func(commitCtx context.Context) error {
+			accepted = s.finishLockedInContext(commitCtx, c, state, result, reason, nil)
+			return nil
+		})
+		if err == nil {
+			return accepted
+		}
+		s.cancelInvocationLocked(c)
+		return s.finishLocked(c, "canceled", "", "INTEGRATION_SCOPE_ENDED", nil)
+	}
+	return s.finishLocked(c, state, result, reason, nil)
 }
 func (s *Service) finish(c *invocation, state, result, reason string) bool {
 	s.mu.Lock()
@@ -431,13 +516,17 @@ func (s *Service) finish(c *invocation, state, result, reason string) bool {
 }
 
 func (s *Service) finishLocked(c *invocation, state, result, reason string, record *operationAudit) bool {
+	return s.finishLockedInContext(context.Background(), c, state, result, reason, record)
+}
+
+func (s *Service) finishLockedInContext(ctx context.Context, c *invocation, state, result, reason string, record *operationAudit) bool {
 	if c.fact.Status != "accepted" {
 		return false
 	}
 	c.input, c.credential = "", ""
 	c.fact.Status, c.fact.ResultJson, c.fact.ErrorCode = state, result, reason
 	c.fact.UpdatedAt = timestamppb.Now()
-	recordCtx, cancel := context.WithTimeout(context.Background(), terminalRecordTimeout)
+	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), terminalRecordTimeout)
 	defer cancel()
 	accepted := true
 	if err := s.saveFact(recordCtx, c.decision, c.fact, record); err != nil {

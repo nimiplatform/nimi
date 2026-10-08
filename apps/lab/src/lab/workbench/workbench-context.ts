@@ -5,6 +5,7 @@ export type WorkbenchView =
   | { kind: 'ui-recipes' }
   | { kind: 'app-access' }
   | { kind: 'activity' }
+  | { kind: 'integrations' }
   | { kind: 'agent-center' }
   | { kind: 'agent-conversation' }
   | { kind: 'agent-realtime' }

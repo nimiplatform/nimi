@@ -153,6 +153,7 @@ export type AppStoreState = {
   activityFocusPostId: string | null;
   /** Bumped on every entry to Home (including the Logo while Home is open); Home then shows its overview. */
   homeEntryRevision: number;
+  homeEntryDestination: 'overview' | 'integrations';
   profileDetailOverlayOpen: boolean;
   chatProfilePanelTarget: 'self' | 'other' | null;
   offlineTier: OfflineTier;
@@ -167,7 +168,7 @@ export type AppStoreState = {
   clearAuthSession: () => void;
   setRuntimeField: (key: keyof RuntimeFieldMap, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
-  setActiveTab: (tab: AppTab) => void;
+  setActiveTab: (tab: AppTab, homeDestination?: 'overview' | 'integrations') => void;
   setChatMode: (mode: ConversationMode) => void;
   setChatThinkingPreference: (preference: ChatThinkingPreference) => void;
   setChatSourceFilter: (filter: ConversationSourceFilter) => void;

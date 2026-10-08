@@ -22,6 +22,7 @@ import {
   writeStorageTextTo,
 } from '@nimiplatform/kit/core/storage-json';
 
+import enIntegrations from './locales/en/integrations.json' with { type: 'json' };
 import enActivity from './locales/en/activity.json' with { type: 'json' };
 import enAppAccess from './locales/en/app-access.json' with { type: 'json' };
 import enAuth from './locales/en/auth.json' with { type: 'json' };
@@ -39,6 +40,7 @@ import { studioCreateMessageBundles } from '../../studio-modules/studio-create/m
 import { studioMediaMessageBundles } from '../../studio-modules/studio-media/messages/index.js';
 import { studioVoiceMessageBundles } from '../../studio-modules/studio-voice/messages/index.js';
 
+import zhIntegrations from './locales/zh/integrations.json' with { type: 'json' };
 import zhActivity from './locales/zh/activity.json' with { type: 'json' };
 import zhAppAccess from './locales/zh/app-access.json' with { type: 'json' };
 import zhAuth from './locales/zh/auth.json' with { type: 'json' };
@@ -62,6 +64,7 @@ const RESOURCES: Record<SupportedLocale, Record<string, unknown>> = {
     studioMediaMessageBundles.en,
     studioVoiceMessageBundles.en,
     enActivity,
+    enIntegrations,
     enAppAccess,
     enAuth,
     enCapabilityTests,
@@ -77,6 +80,7 @@ const RESOURCES: Record<SupportedLocale, Record<string, unknown>> = {
     studioMediaMessageBundles.zh,
     studioVoiceMessageBundles.zh,
     zhActivity,
+    zhIntegrations,
     zhAppAccess,
     zhAuth,
     zhCapabilityTests,

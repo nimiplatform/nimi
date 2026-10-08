@@ -150,7 +150,7 @@ func TestIntegrationConnectionMutationsRecordOneResult(t *testing.T) {
 	putCtx := desktopIntegrationContext(t, localappop.OperationIntegrationConnectionPut)
 	removeCtx := desktopIntegrationContext(t, localappop.OperationIntegrationConnectionRemove)
 
-	created, err := s.PutIntegrationConnection(putCtx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", DisplayName: "original", Secret: "bot-token-secret-value"})
+	created, err := s.PutIntegrationConnection(putCtx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", Config: &runtimev1.IntegrationConnectionConfig{Telegram: &runtimev1.IntegrationTelegramConfig{}}, DisplayName: "original", Secret: "bot-token-secret-value"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,14 +159,14 @@ func TestIntegrationConnectionMutationsRecordOneResult(t *testing.T) {
 	if put["target_ref"].GetStringValue() != created.Connection.TargetRef || put["adapter"].GetStringValue() != "telegram" || put["disposition"].GetStringValue() != "created" {
 		t.Fatalf("connection put record = %v", put)
 	}
-	if _, err := s.PutIntegrationConnection(putCtx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", DisplayName: " "}); status.Code(err) != codes.InvalidArgument {
+	if _, err := s.PutIntegrationConnection(putCtx, &runtimev1.PutIntegrationConnectionRequest{Adapter: "telegram", Config: &runtimev1.IntegrationConnectionConfig{Telegram: &runtimev1.IntegrationTelegramConfig{}}, DisplayName: " "}); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("invalid connection put = %v", err)
 	}
 	requireIntegrationAuditCount(t, s, "integration.connection.put", 1, 1)
 
 	// An unrecordable update leaves the stored connection unchanged.
 	unblock := blockIntegrationAudit(t, s)
-	_, err = s.PutIntegrationConnection(putCtx, &runtimev1.PutIntegrationConnectionRequest{TargetRef: created.Connection.TargetRef, Adapter: "telegram", DisplayName: "renamed"})
+	_, err = s.PutIntegrationConnection(putCtx, &runtimev1.PutIntegrationConnectionRequest{TargetRef: created.Connection.TargetRef, Adapter: "telegram", Config: &runtimev1.IntegrationConnectionConfig{Telegram: &runtimev1.IntegrationTelegramConfig{}}, DisplayName: "renamed"})
 	requireIntegrationAuditUnavailable(t, err)
 	if stored, err := s.loadTarget(context.Background(), "test-account", created.Connection.TargetRef); err != nil || stored.Public.DisplayName != "original" {
 		t.Fatalf("unrecordable update changed the connection: %v %v", stored.Public, err)

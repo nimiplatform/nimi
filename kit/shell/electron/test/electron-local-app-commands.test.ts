@@ -15,6 +15,19 @@ import { dispatchElectronLocalAppCommand, invalidateElectronLocalAppCommandResou
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('carries a nameless Weixin setup/put through formal Kit command admission without widening other adapters', async()=>{
+    const calls: unknown[]=[];
+    const host={...localAppHost(calls),integrationStartConnectionSetup:async (input: unknown)=>{calls.push(['setup',input]);return {}},integrationPutConnection:async(input: unknown)=>{calls.push(['put',input]);return {}}};
+    const input={targetRef:'',adapter:'weixin',accountLabel:'',config:{weixin:{}}};
+    for(const name of [undefined,'']){
+      const payload={...input,...(name===undefined?{}:{displayName:name})};
+      await dispatchElectronLocalAppCommand({host,command:NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationStartConnectionSetup'],payload});
+      await dispatchElectronLocalAppCommand({host,command:NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationPutConnection'],payload:{...payload,secret:''}});
+    }
+    expect(calls).toEqual([['setup',{...input,displayName:''}],['put',{...input,displayName:'',secret:''}],['setup',{...input,displayName:''}],['put',{...input,displayName:'',secret:''}]]);
+    for(const displayName of ['',undefined])await expect(dispatchElectronLocalAppCommand({host,command:NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationStartConnectionSetup'],payload:{...input,adapter:'feishu',config:{feishu:{setupMode:'create'}},...(displayName===undefined?{}:{displayName})}})).rejects.toMatchObject({reasonCode:'invalid-payload'});
+    expect(calls).toHaveLength(4);
+  });
   it('preserves music submission identity and admits exactly one read-only lookup selector', async () => {
     const calls: unknown[] = [];
     const host = { ...localAppHost(calls), async scenarioJobGet(input: Record<string, unknown>) { calls.push(['scenarioJobGet', input]); return { job: null, asset: null, voiceReference: null }; } };
@@ -1622,6 +1635,10 @@ function localAppHost(calls: unknown[]) {
     integrationPutConnection: async () => ({}),
     integrationRemoveConnection: async () => ({}),
     integrationSetPermission: async () => ({}),
+    integrationStartConnectionSetup: async () => ({}),
+    integrationGetConnectionSetup: async () => ({}),
+    integrationSubmitConnectionSetup: async () => ({}),
+    integrationCancelConnectionSetup: async () => ({}),
     conversationOpen: unavailable('conversationOpen', calls),
     conversationSendTurn: unavailable('conversationSendTurn', calls),
     conversationAttachmentUpload: unavailable('conversationAttachmentUpload', calls),

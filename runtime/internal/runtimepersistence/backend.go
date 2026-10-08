@@ -98,6 +98,41 @@ type writeRequest struct {
 	res chan error
 }
 
+type writerContextKey struct{}
+type writerReservation struct {
+	backend *Backend
+	live    atomic.Bool
+}
+
+// WithSerializedWriter reserves the existing writer lane before an owner takes
+// its commit fences. Synchronous WriteTx calls using the supplied context run
+// in that lane, including the actual SQL commit. The context must not escape
+// the callback or be used concurrently. After admission we await completion
+// even on cancellation, so the caller cannot release fences around live work.
+func (b *Backend) WithSerializedWriter(ctx context.Context, fn func(context.Context) error) error {
+	if fn == nil {
+		return nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if reservation, ok := ctx.Value(writerContextKey{}).(*writerReservation); ok && reservation.backend == b {
+		if !reservation.live.Load() {
+			return sql.ErrConnDone
+		}
+		return fn(ctx)
+	}
+	return b.runSerializedWait(ctx, func(ctx context.Context) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		reservation := &writerReservation{backend: b}
+		reservation.live.Store(true)
+		defer reservation.live.Store(false)
+		return fn(context.WithValue(ctx, writerContextKey{}, reservation))
+	}, true)
+}
+
 func Open(logger *slog.Logger, localStatePath string) (*Backend, error) {
 	if logger == nil {
 		logger = slog.Default()
@@ -161,6 +196,12 @@ func (b *Backend) WriteTx(ctx context.Context, fn func(*sql.Tx) error) error {
 	}
 	if ctx == nil {
 		ctx = context.Background()
+	}
+	if reservation, ok := ctx.Value(writerContextKey{}).(*writerReservation); ok && reservation.backend == b {
+		if !reservation.live.Load() {
+			return sql.ErrConnDone
+		}
+		return b.executeWrite(ctx, fn)
 	}
 	return b.runSerialized(ctx, func(ctx context.Context) error {
 		return b.executeWrite(ctx, fn)
@@ -232,6 +273,10 @@ func (b *Backend) runWriteLoop() {
 }
 
 func (b *Backend) runSerialized(ctx context.Context, op func(context.Context) error) (err error) {
+	return b.runSerializedWait(ctx, op, false)
+}
+
+func (b *Backend) runSerializedWait(ctx context.Context, op func(context.Context) error, awaitCompletion bool) (err error) {
 	if op == nil {
 		return nil
 	}
@@ -255,6 +300,9 @@ func (b *Backend) runSerialized(ctx context.Context, op func(context.Context) er
 	case b.writeCh <- req:
 	case <-ctx.Done():
 		return ctx.Err()
+	}
+	if awaitCompletion {
+		return <-req.res
 	}
 	select {
 	case err := <-req.res:

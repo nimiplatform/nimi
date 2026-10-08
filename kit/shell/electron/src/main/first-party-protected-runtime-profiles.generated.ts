@@ -228,6 +228,10 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup": { kind: "unary" },
     },
   },
   "bundled_avatar_v1": {

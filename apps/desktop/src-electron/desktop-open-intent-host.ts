@@ -72,6 +72,7 @@ export async function createDesktopElectronOpenIntentHost(input: {
   readonly now?: () => number;
   readonly heartbeatIntervalMs?: number;
   readonly readinessTtlMs?: number;
+  readonly writeStderr?: (line: string) => void;
 }): Promise<DesktopElectronOpenIntentHost> {
   const host = new ElectronDesktopOpenIntentHost(input);
   await host.start();
@@ -116,6 +117,7 @@ class ElectronDesktopOpenIntentHost {
     readonly now?: () => number;
     readonly heartbeatIntervalMs?: number;
     readonly readinessTtlMs?: number;
+    readonly writeStderr?: (line: string) => void;
   }) {
     this.descriptorPath = path.join(
       path.resolve(input.homeDirectory),
@@ -133,6 +135,7 @@ class ElectronDesktopOpenIntentHost {
   async start(): Promise<void> {
     this.server = createServer((request, response) => {
       void this.handleHttp(request, response).catch(() => {
+        this.reportReadinessRejection('intent-handler-failed');
         if (!response.headersSent) {
           writeJson(response, 200, rejected(
             this.bridgeId,
@@ -337,6 +340,7 @@ class ElectronDesktopOpenIntentHost {
       await this.input.focusMainWindow();
       this.input.emitIntent(parsed.value);
     } catch {
+      this.reportReadinessRejection('desktop-dispatch-failed');
       this.ready = false;
       this.lastReadyHeartbeatMs = undefined;
       writeJson(response, 200, rejected(
@@ -374,13 +378,35 @@ class ElectronDesktopOpenIntentHost {
   }
 
   private isRendererReady(): boolean {
-    if (!this.ready || this.lastReadyHeartbeatMs === undefined) return false;
+    if (!this.ready || this.lastReadyHeartbeatMs === undefined) {
+      this.reportReadinessRejection('renderer-not-ready');
+      return false;
+    }
     if (this.now() - this.lastReadyHeartbeatMs > this.readinessTtlMs) {
+      this.reportReadinessRejection('renderer-heartbeat-expired');
       this.ready = false;
       this.lastReadyHeartbeatMs = undefined;
       return false;
     }
     return true;
+  }
+
+  private reportReadinessRejection(stage:
+    | 'renderer-not-ready'
+    | 'renderer-heartbeat-expired'
+    | 'desktop-dispatch-failed'
+    | 'intent-handler-failed'
+  ): void {
+    // Only owner state enters this diagnostic, never an intent, identity or error body.
+    const heartbeatAgeMs = this.lastReadyHeartbeatMs === undefined
+      ? null
+      : Math.max(0, this.now() - this.lastReadyHeartbeatMs);
+    const writeStderr = this.input.writeStderr ?? ((line: string) => process.stderr.write(line));
+    writeStderr(`[desktop-open] ${JSON.stringify({
+      stage,
+      ready: this.ready,
+      heartbeatAgeMs,
+    })}\n`);
   }
 
   private async removePresenceIfOwned(): Promise<void> {

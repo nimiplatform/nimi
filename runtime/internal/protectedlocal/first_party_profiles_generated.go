@@ -458,6 +458,14 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup":
+			return FirstPartyMethodUnary, true
 		}
 	case "bundled_avatar_v1":
 		switch methodID {
@@ -847,6 +855,10 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup", Kind: FirstPartyMethodUnary},
 		}
 	case "bundled_avatar_v1":
 		return []FirstPartyProfileMethodEntry{

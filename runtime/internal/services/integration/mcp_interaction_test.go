@@ -43,7 +43,7 @@ func TestIntegrationMCPInputRequiredIsUnsupportedWithoutRetryOrStateExposure(t *
 				}
 			}))
 			d := testDecision("consumer", 1)
-			target := target{Account: d.AccountID, Endpoint: "https://mcp.test.invalid", Public: &runtimev1.IntegrationTarget{TargetRef: "test-mcp", Kind: "mcp", IntegrationId: "mcp", Operations: []*runtimev1.IntegrationOperation{testOperation(effect)}}}
+			target := target{Account: d.AccountID, Config: &runtimev1.IntegrationConnectionConfig{Mcp: &runtimev1.IntegrationMcpConfig{Endpoint: "https://mcp.test.invalid"}}, Public: &runtimev1.IntegrationTarget{TargetRef: "test-mcp", Kind: "mcp", IntegrationId: "mcp", Operations: []*runtimev1.IntegrationOperation{testOperation(effect)}}}
 			if err := s.saveTarget(context.Background(), target); err != nil {
 				t.Fatal(err)
 			}

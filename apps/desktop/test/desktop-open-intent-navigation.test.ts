@@ -50,6 +50,7 @@ const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
   { rowId: 'target.app-ai-models', intent: { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' }, expected: { activeTab: 'apps', appId: 'nimi.example', appsSection: 'ai-models' } },
 
   { rowId: 'target.settings-profile', intent: { kind: 'open-settings', section: 'profile' }, expected: { activeTab: 'settings', section: 'profile' } },
+  { rowId: 'target.integrations', intent: { kind: 'open-integrations' }, expected: { activeTab: 'home', section: 'integrations' } },
 ];
 
 class MemoryStorage implements Storage {
@@ -139,6 +140,10 @@ for (const target of DESKTOP_OPEN_TARGETS) {
     applyDesktopOpenIntentToAppStore(target.intent);
 
     const appState = productionAppStore.getState();
+    if (target.rowId === 'target.integrations') {
+      assert.equal(appState.homeEntryDestination, 'integrations');
+      assert.ok(appState.homeEntryRevision > 0);
+    }
     assert.equal(
       appState.activeTab,
       target.rowId === 'target.runtime-connector' ? 'cloud' : target.expected.activeTab,

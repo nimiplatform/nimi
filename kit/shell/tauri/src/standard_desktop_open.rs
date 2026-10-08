@@ -452,6 +452,10 @@ fn parse_desktop_open_intent(value: Value) -> Result<Value, DesktopOpenIntentHos
         "open-runtime-config" => parse_runtime_config_intent(record),
         "open-apps" => parse_apps_intent(record),
         "open-settings" => parse_settings_intent(record),
+        "open-integrations" => {
+            assert_allowed_fields(record, &["kind"], "integrations intent")?;
+            Ok(json!({ "kind": "open-integrations" }))
+        }
         "open-url" => Err(invalid_parse(
             "DesktopOpenIntent does not admit raw URL payloads",
         )),
@@ -644,7 +648,7 @@ fn parse_bridge_result(
             let applied_target = required_result_string(record.get("appliedTarget"))?;
             if !matches!(
                 applied_target.as_str(),
-                "open-explore" | "open-runtime-config" | "open-apps" | "open-settings"
+                "open-explore" | "open-runtime-config" | "open-apps" | "open-settings" | "open-integrations"
             ) {
                 return Err("desktop-open-intent-invalid");
             }

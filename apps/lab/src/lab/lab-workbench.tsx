@@ -33,6 +33,9 @@ function restoredInitialCapabilityId(preferences: LabPreferences): LabCapability
 const SettingsRoute = lazy(async () => ({
   default: (await import('../shell/routes/settings-route.js')).SettingsRoute,
 }));
+const LabIntegrationsPanel = lazy(async () => ({
+  default: (await import('./integrations/integrations-panel.js')).LabIntegrationsPanel,
+}));
 const LabActivityPanel = lazy(async () => ({
   default: (await import('./activity/lab-activity-panel.js')).LabActivityPanel,
 }));
@@ -71,6 +74,7 @@ type LabWorkbenchNavigationId = LabCapabilityId
   | 'agent-realtime'
   | 'app-access'
   | 'activity'
+  | 'integrations'
   | 'ui-recipes';
 
 export function LabWorkbench(_props: LabWorkbenchProps) {
@@ -164,6 +168,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
     },
   ], [t]);
   const bottomNavigationItems = useMemo<readonly WorkbenchNavigationItem<LabWorkbenchNavigationId>[]>(() => [
+    { id: 'integrations', label: t('Integrations.title'), icon: Cable },
     { id: 'activity', label: t('Activity.title'), icon: Inbox },
     { id: 'app-access', label: t('AppAccess.page.title'), icon: Cable },
     { id: 'ui-recipes', label: t('Workbench.uiRecipes'), icon: Boxes },
@@ -177,6 +182,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
     ? view.capabilityId
     : view.kind === 'app-access'
       || view.kind === 'activity'
+      || view.kind === 'integrations'
       || view.kind === 'ui-recipes'
       || view.kind === 'agent-center'
       || view.kind === 'agent-conversation'
@@ -186,6 +192,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
   const selectNavigationView = (id: LabWorkbenchNavigationId) => {
     if (id === 'app-access'
       || id === 'activity'
+      || id === 'integrations'
       || id === 'ui-recipes'
       || id === 'agent-center'
       || id === 'agent-conversation'
@@ -224,6 +231,8 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
         <Suspense fallback={<LoadingFallback />}>
           <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={rendererHost.sdk.localAppClient} /></div>
         </Suspense>
+      ) : view.kind === 'integrations' ? (
+        <Suspense fallback={<LoadingFallback />}><LabIntegrationsPanel recordAI={studioController.appendHistoryRecord} /></Suspense>
       ) : view.kind === 'activity' ? (
         <Suspense fallback={<LoadingFallback />}><LabActivityPanel /></Suspense>
       ) : view.kind === 'app-access' ? (

@@ -60,6 +60,18 @@ fn creator_trial_is_not_an_admitted_desktop_open_target() {
 }
 
 #[test]
+fn integrations_navigation_accepts_no_management_or_platform_arguments() {
+    let accepted = compose_envelope_for_source("nimi.lab", json!({"intent":{"kind":"open-integrations"}})).expect("public Home navigation");
+    assert_eq!(accepted["intent"], json!({"kind":"open-integrations"}));
+    for field in ["targetRef", "secret", "adapter", "accountId"] {
+        let mut intent = json!({"kind":"open-integrations"});
+        intent[field] = json!("injected");
+        let error = compose_envelope_for_source("nimi.lab", json!({"intent":intent})).expect_err("parameter-free target");
+        assert_eq!(error.reason_code(), "desktop-open-intent-invalid");
+    }
+}
+
+#[test]
 fn renderer_request_rejects_invalid_intent_before_descriptor_io() {
     let result = compose_envelope_for_source(
         "nimi.tauri",

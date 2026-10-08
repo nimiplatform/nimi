@@ -597,6 +597,10 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationIntegrationConnectionPut,
 		localappop.OperationIntegrationConnectionRemove,
 		localappop.OperationIntegrationPermissionSet,
+		localappop.OperationIntegrationConnectionSetupStart,
+		localappop.OperationIntegrationConnectionSetupGet,
+		localappop.OperationIntegrationConnectionSetupSubmit,
+		localappop.OperationIntegrationConnectionSetupCancel,
 		localappop.OperationAgentIntroductionGet,
 		localappop.OperationAgentReferenceList,
 		localappop.OperationConversationOpen,
@@ -681,6 +685,41 @@ func bindLocalAppSessionInvalidation(ctx context.Context, invalidated <-chan str
 		}
 	}()
 	return bound
+}
+
+// @nimi-authority: rule.nimi.runtime.integration.final-publication
+// CommitLocalAppIngress retains the technical-session fence across a short
+// resource-owner commit. Exact operation admission is revalidated first;
+// resource permission remains the caller owner's responsibility.
+func (s *Service) CommitLocalAppIngress(ctx context.Context, ingress localappop.Ingress, commit func(context.Context) error) error {
+	authorized, err := s.AuthorizeLocalAppIngress(ctx, ingress)
+	if err != nil {
+		return err
+	}
+	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
+	connection, bound := protectedlocal.LocalAppConnectionFromContext(ctx)
+	if !ok || !bound || connection == nil || commit == nil {
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	account, available := s.accountSecurity.(runtimeAccountGenerationCommitter)
+	if !available {
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+	}
+	// Integration reserves its persistence writer before this Account fence,
+	// matching Account audit mutation order. No callback re-enters admission
+	// or performs external network I/O; the actual local commit stays fenced.
+	accepted, err := account.CommitAuthenticatedRuntimeGeneration(ctx, decision.AccountID, decision.RealmEnvironmentID, decision.AccountGeneration, func() error {
+		return connection.CommitSession(decision.SessionID, func() error {
+			if ctx.Err() != nil || !s.now().UTC().Before(decision.ExpiresAt) {
+				return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+			}
+			return commit(authorized)
+		})
+	})
+	if !accepted && err == nil {
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+	}
+	return err
 }
 
 func localAppIngressError(err error) error {

@@ -172,6 +172,11 @@ export enum FinishReason {
   ERROR = 5,
 }
 
+export enum IntegrationConnectionSetupAction {
+  UNSPECIFIED = 0,
+  CREATE_NEW_TARGET = 1,
+}
+
 export enum LoadoutValidationState {
   UNSPECIFIED = 0,
   CONFIGURED = 1,

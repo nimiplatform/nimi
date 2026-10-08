@@ -282,6 +282,10 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       putConnection: touched('integration.putConnection'),
       removeConnection: touched('integration.removeConnection'),
       setPermission: touched('integration.setPermission'),
+      startConnectionSetup: touched('integration.startConnectionSetup'),
+      getConnectionSetup: touched('integration.getConnectionSetup'),
+      submitConnectionSetup: touched('integration.submitConnectionSetup'),
+      cancelConnectionSetup: touched('integration.cancelConnectionSetup'),
     },
     conversation: {
       open: touched('conversation.open'),

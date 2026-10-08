@@ -25,7 +25,7 @@ message IntegrationTarget {
   string integration_id = 2;
   string display_name = 3;
   string account_label = 4;
-  // "mcp", "telegram", or "app".
+  // mcp, telegram, app, weixin, feishu, qq-official, or onebot-v11.
   string kind = 5;
   bool available = 6;
   repeated IntegrationOperation operations = 7;
@@ -125,13 +125,80 @@ message PutIntegrationConnectionRequest {
   // Empty creates a new connection. Updates retain only an identical target.
   string target_ref = 1;
   string adapter = 2;
-  string endpoint = 3;
+  reserved 3;
+  reserved "endpoint";
   string display_name = 4;
   string account_label = 5;
   // Write-only credential sent only from trusted Home into Runtime custody.
   string secret = 6;
+  IntegrationConnectionConfig config = 7;
 }
 message PutIntegrationConnectionResponse { IntegrationTarget connection = 1; }
+// Exactly one adapter-matching field is allowed. Credentials never enter this
+// closed non-secret configuration or a consumer-visible projection.
+message IntegrationConnectionConfig {
+  IntegrationMcpConfig mcp = 1;
+  IntegrationTelegramConfig telegram = 2;
+  IntegrationWeixinConfig weixin = 3;
+  IntegrationFeishuConfig feishu = 4;
+  IntegrationQQOfficialConfig qq_official = 5;
+  IntegrationOneBotV11Config onebot_v11 = 6;
+}
+message IntegrationMcpConfig { string endpoint = 1; }
+message IntegrationTelegramConfig {}
+message IntegrationWeixinConfig {}
+message IntegrationFeishuConfig {
+  // manual requires app_id; create starts domestic official QR registration
+  // without pre-existing credentials. Completed connection uses manual mode.
+  string app_id = 1;
+  string setup_mode = 2;
+}
+message IntegrationQQOfficialConfig { string app_id = 1; }
+message IntegrationOneBotV11Config {
+  string listener = 1;
+  string self_id = 2;
+}
+message IntegrationConnectionSetup {
+  string setup_id = 1;
+  string adapter = 2;
+  string target_ref = 3;
+  // awaiting-input, awaiting-confirmation, awaiting-new-target, verifying,
+  // completed, already-bound,
+  // failed, canceled, or expired. already-bound is an exact Weixin refresh
+  // no-op: no credential or generation changes. Setup grants no permission.
+  string status = 4;
+  google.protobuf.Timestamp expires_at = 5;
+  string qr_code_url = 6;
+  string verification_url = 7;
+  string account_label = 8;
+  string error_code = 9;
+}
+message StartIntegrationConnectionSetupRequest {
+  string target_ref = 1;
+  string adapter = 2;
+  string display_name = 3;
+  string account_label = 4;
+  IntegrationConnectionConfig config = 5;
+}
+message StartIntegrationConnectionSetupResponse { IntegrationConnectionSetup setup = 1; }
+message GetIntegrationConnectionSetupRequest { string setup_id = 1; }
+message GetIntegrationConnectionSetupResponse { IntegrationConnectionSetup setup = 1; }
+enum IntegrationConnectionSetupAction {
+  INTEGRATION_CONNECTION_SETUP_ACTION_UNSPECIFIED = 0;
+  // Explicit Home confirmation of a verified different-bot candidate.
+  // Creates a new target with no inherited permission; preserves the original.
+  INTEGRATION_CONNECTION_SETUP_ACTION_CREATE_NEW_TARGET = 1;
+}
+message SubmitIntegrationConnectionSetupRequest {
+  string setup_id = 1;
+  string secret = 2;
+  string verification_code = 3;
+  // Mutually exclusive with secret and verification_code.
+  IntegrationConnectionSetupAction action = 4;
+}
+message SubmitIntegrationConnectionSetupResponse { IntegrationConnectionSetup setup = 1; }
+message CancelIntegrationConnectionSetupRequest { string setup_id = 1; }
+message CancelIntegrationConnectionSetupResponse { IntegrationConnectionSetup setup = 1; }
 message RemoveIntegrationConnectionRequest { string target_ref = 1; }
 message RemoveIntegrationConnectionResponse { bool removed = 1; }
 message SetIntegrationPermissionRequest {
@@ -157,4 +224,8 @@ service RuntimeIntegrationService {
   rpc PutIntegrationConnection(PutIntegrationConnectionRequest) returns (PutIntegrationConnectionResponse);
   rpc RemoveIntegrationConnection(RemoveIntegrationConnectionRequest) returns (RemoveIntegrationConnectionResponse);
   rpc SetIntegrationPermission(SetIntegrationPermissionRequest) returns (SetIntegrationPermissionResponse);
+  rpc StartIntegrationConnectionSetup(StartIntegrationConnectionSetupRequest) returns (StartIntegrationConnectionSetupResponse);
+  rpc GetIntegrationConnectionSetup(GetIntegrationConnectionSetupRequest) returns (GetIntegrationConnectionSetupResponse);
+  rpc SubmitIntegrationConnectionSetup(SubmitIntegrationConnectionSetupRequest) returns (SubmitIntegrationConnectionSetupResponse);
+  rpc CancelIntegrationConnectionSetup(CancelIntegrationConnectionSetupRequest) returns (CancelIntegrationConnectionSetupResponse);
 }
