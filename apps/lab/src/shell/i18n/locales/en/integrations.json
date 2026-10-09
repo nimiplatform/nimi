@@ -1,5 +1,6 @@
 {
   "Integrations": {
+    "historyUpdating": "This call is still updating its record. Wait for it to finish, or stop receiving and wait for cancellation, before querying or removing it.",
     "referenceRelation": {
       "parent": "Replied-to message",
       "root": "Root message"
@@ -26,13 +27,13 @@
     "waitStopped": "Waiting stopped. The saved call remains queryable; a write may already have taken effect.",
     "noResend": "An unconfirmed write is never resent automatically. Check the original call or handle it manually.",
     "history": "Integration call history",
-    "bodyPrivacy": "History saves call facts and asset ownership by default. Save private request and result bodies only with the explicit action below.",
+    "bodyPrivacy": "History saves call facts and recorded attachment paths by default. Private request and result bodies need the explicit save action below.",
     "saveBody": "Save current private bodies",
     "bodySaved": "The currently available private bodies were saved to this call's history.",
     "noHistory": "No Integration calls saved.",
     "export": "Export JSON",
     "observe": "Check original call",
-    "remove": "Remove history and saved media",
+    "remove": "Remove history record",
     "unavailable": "The Integration service is unavailable.",
     "effects": {
       "read": "Read",
@@ -106,7 +107,8 @@
       "INTEGRATION_WEIXIN_PROVIDER_REJECTED": "WeChat rejected this request. Check the account and the selected person’s current message context.",
       "INTEGRATION_MEDIA_INVALID": "The media does not meet the platform’s type, size, image dimensions or filename requirements.",
       "INTEGRATION_MEDIA_INTEGRITY_INVALID": "Media bytes do not match the known source size, type or digest. Check the source or select the owned asset again.",
-      "INTEGRATION_NETWORK_FAILED": "The network request failed. A write may be unconfirmed; check its outcome before creating another send."
+      "INTEGRATION_NETWORK_FAILED": "The network request failed. A write may be unconfirmed; check its outcome before creating another send.",
+      "INTEGRATION_FEISHU_MESSAGE_TOO_LARGE": "The Feishu request is too large after UTF-8 encoding and JSON escaping (text: 150 KiB; card: 30 KiB). Shorten it and send explicitly."
     },
     "messageRequired": "Enter message text.",
     "cardJson": "Feishu card JSON",
@@ -168,7 +170,33 @@
       "aiFact": "AI: {{id}} · {{status}} · trace {{trace}}",
       "integrationFact": "Message call: {{id}} · {{status}}",
       "factBoundary": "AI facts use the existing AI history; sending has its own Integration call. Stop discards send eligibility and requests cancellation. An already-issued message may still have an effect; its real outcome stays in Integration history. Unknown sends are not retried.",
-      "phases": { "generating": "Generating; no message has been requested.", "draft": "Draft ready for review; sending requires your separate action.", "sending": "Reply requested once; waiting for the actual outcome.", "stopped": "Stopped. No draft can be sent from this generation.", "sent": "The message call completed. This does not prove recipient delivery.", "failed": "The action did not produce a sendable draft or a confirmed message." }
-    }
+      "phases": {
+        "generating": "Generating; no message has been requested.",
+        "draft": "Draft ready for review; sending requires your separate action.",
+        "sending": "Reply requested once; waiting for the actual outcome.",
+        "stopped": "Stopped. No draft can be sent from this generation.",
+        "sent": "The message call completed. This does not prove recipient delivery.",
+        "failed": "The action did not produce a sendable draft or a confirmed message."
+      }
+    },
+    "stopReceive": "Stop receiving",
+    "receiving": "Receiving",
+    "receiveIdle": "Reception stopped",
+    "receivedCount": "Received {{count}} messages in this view.",
+    "historyLoadFailed": "Saved history could not be loaded: {{detail}}",
+    "receiveStopping": "Waiting stopped; reconciling call facts",
+    "historyRemoveHelp": "Removing a record keeps the files. Manage them in Current Lab files.",
+    "historicalFilesHelp": "Attachment paths saved with this call. Files may have been removed or replaced; use Current Lab files to manage the files that exist now. Removing this record does not remove files.",
+    "currentFiles": "Current Lab files",
+    "currentFilesHelp": "Files owned by this Lab instance, including received media and exports at any managed path. View or open a file location here; deleting a current file does not erase its historical call facts.",
+    "noCurrentFiles": "No current Lab files.",
+    "viewCurrentFile": "View current file",
+    "removeCurrentFile": "Delete current file",
+    "filesLoadFailed": "Lab files could not be loaded. Refresh to try again.",
+    "fileRemoveFailed": "The current file could not be deleted. Check the file and try again.",
+    "currentFileUnavailable": "The current file could not be opened. Refresh the file list and check it again.",
+    "exportFailed": "History export failed. Check Lab file access and try again.",
+    "exportSaved": "History saved: {{path}}",
+    "exportSavedRevealFailed": "History saved to {{path}}, but its location could not be opened. Use the button below to try opening its location again."
   }
 }

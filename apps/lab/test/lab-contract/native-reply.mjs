@@ -27,6 +27,15 @@ test('AI draft requires distinct review/send and consumes one exact-source dispa
  assert.equal(calls.messageRecords[0].inputJson,'');assert.equal(calls.messageRecords[0].resultJson,'');
 });
 
+test('an issued AI reply holds same-scope history through disposal and late actual cancellation facts',async()=>{
+ const {integrationHistoryWork}=await importBehaviorModule('lab/integrations/integration-history-work.js');const scope={};const work=integrationHistoryWork(scope);
+ const invoked=deferred(),canceled=deferred();const observations=[];
+ const {controller}=await fixture({holdIntegrationFact:id=>work.hold(id),integration:{invoke:()=>invoked.promise,getCall:()=>assert.fail('terminal fixture queried'),cancelCall:()=>canceled.promise},recordIntegration:async(_input,call)=>observations.push(call.status)});
+ await controller.generate();const sending=controller.send();invoked.resolve(messageFact('accepted'));for(let i=0;i<8;i++)await Promise.resolve();
+ assert.equal(integrationHistoryWork(scope).busy('ic_reply'),true);const disposed=controller.dispose();assert.equal(work.busy('ic_reply'),true);
+ canceled.resolve(messageFact('unconfirmed'));await sending;await disposed;assert.deepEqual(observations,['accepted','unconfirmed']);assert.equal(work.busy('ic_reply'),false);
+});
+
 test('AI facts use existing history codec and exclude source/draft bodies unless explicitly saved',async()=>{
  const{parseStudioRunHistory}=await importBehaviorModule('ai-studio-core/history-policy.js');
  for(const saveBodies of [false,true]){

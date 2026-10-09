@@ -11,6 +11,7 @@ import { createNativeReplyController, INITIAL_NATIVE_REPLY_STATE, nativeReplyPro
 import type { NativeEvent } from './native-message-model.js';
 import { NativeMessageContent } from './native-message-content.js';
 import type { StudioRunHistoryRecord } from '../../ai-studio-core/history.js';
+import { integrationHistoryWork } from './integration-history-work.js';
 
 export function NativeReplyPanel({ target, event, externalBusy, setBusy, recordAI, recordCall }: {
   target: NimiIntegrationTarget; event: NativeEvent | null; externalBusy: boolean;
@@ -33,6 +34,7 @@ export function NativeReplyPanel({ target, event, externalBusy, setBusy, recordA
     const session = createNativeReplyController({
       targetRef: target.targetRef, adapter: target.kind, event,
       currentScope: () => currentHost.current === host,
+      holdIntegrationFact: callId => integrationHistoryWork(host).hold(callId),
       authStatus: () => host.sdk.localAppClient.auth.status(),
       prepareAI: async () => {
         const [config, summary, identity] = await Promise.all([

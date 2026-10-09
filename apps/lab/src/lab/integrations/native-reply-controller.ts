@@ -40,6 +40,7 @@ export function nativeReplyAIRecord(input: Parameters<typeof createStudioRunHist
 export function createNativeReplyController(input: {
   targetRef: string; adapter: string; event: NativeEvent;
   currentScope: () => boolean;
+  holdIntegrationFact?: (callId:string)=>()=>void;
   authStatus: () => Promise<NimiAppAuthProjection>;
   prepareAI: () => Promise<{ runId: string; createdAt: string; runConfig: StudioRunConfigSnapshot }>;
   generate: (request: StudioCapabilityRunInput) => Promise<StudioCapabilityRunResult>;
@@ -114,13 +115,14 @@ export function createNativeReplyController(input: {
       const version = ++generation; const controller = new AbortController(); pending = controller;
       set({ phase: 'sending', draft: '', error: '' });
       return track((async () => {
-        let observed: NimiIntegrationCall | null = null;
+        let observed: NimiIntegrationCall | null = null;let releaseFact=()=>{};
         try {
           if (!await requireCurrent(version, controller.signal)) return;
           const inputJson = JSON.stringify({ replyRef: input.event.replyRef, body: { kind: 'text', text } });
           await runLabIntegrationCall({
-            client: input.integration, targetRef: input.targetRef, operation: `${input.adapter}.messages.reply`, inputJson, signal: controller.signal,
+            client: input.integration, targetRef: input.targetRef, operation: `${input.adapter}.messages.reply`, inputJson, signal: controller.signal,currentScope:scopeCurrent,
             observed: async call => {
+              if(!observed&&scopeCurrent())releaseFact=input.holdIntegrationFact?.(call.callId)||(()=>{});
               if (observed && terminal(observed) && !terminal(call)) return;
               observed = call;
               if (scopeCurrent()) await input.recordIntegration(inputJson, call);
@@ -131,7 +133,7 @@ export function createNativeReplyController(input: {
             },
           });
         } catch (cause) { fail(version, controller.signal, cause); }
-        finally { if (pending === controller) pending = null; }
+        finally { releaseFact();if (pending === controller) pending = null; }
       })());
     },
     stop,

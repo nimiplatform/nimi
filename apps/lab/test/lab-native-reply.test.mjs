@@ -10,8 +10,9 @@ import { build } from 'esbuild';
 // Real React composition, isolated public port fixtures. This is not model,
 // platform or Desktop-supervised Lab acceptance.
 const root=path.resolve(import.meta.dirname,'..');
-const{JSDOM}=createRequire(path.resolve(root,'../../kit/package.json'))('jsdom');
+const{JSDOM}=createRequire(path.resolve(root,'package.json'))('jsdom');
 const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost/'});
+dom.window.HTMLElement.prototype.scrollIntoView=function(){};
 for(const key of ['window','document','HTMLElement','Element','Node','Event'])globalThis[key]=dom.window[key];
 Object.defineProperty(globalThis,'navigator',{configurable:true,value:dom.window.navigator});
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
@@ -141,7 +142,7 @@ test('actual Lab first receive needs no peer ID, preserves optional filters, and
  host.app.projection.integrationHistory=async()=>[];host.app.commands.appendIntegrationHistory=async()=>[];
  host.sdk.localAppClient.integration.invoke=async request=>{reads.push(request);return{...fact('accepted'),targetRef:source.targetRef,operation:'weixin.updates.read'}};
  host.sdk.localAppClient.integration.getCall=()=>held.promise;
- host.sdk.localAppClient.integration.cancelCall=async request=>{calls.cancels.push(request);return{...fact('canceled'),operation:'weixin.updates.read'}};
+ host.sdk.localAppClient.integration.cancelCall=async request=>{calls.cancels.push(request);return{...fact('canceled'),targetRef:source.targetRef,operation:'weixin.updates.read'}};
  const renderer=createRoot(document.getElementById('root'));
  try{
   await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async record=>{await host.app.commands.appendRunHistory(record)}}))));
@@ -154,10 +155,112 @@ test('actual Lab first receive needs no peer ID, preserves optional filters, and
   await click(i18n.t('Integrations.startReceive'));
   assert.equal(reads.length,1);assert.equal(reads[0].operation,'weixin.updates.read');assert.deepEqual(JSON.parse(reads[0].inputJson),{conversations:[],cursor:'',waitMs:25000});
   assert.equal(calls.messages.length,0,'receiving cannot send');
-  await click(i18n.t('Integrations.stop'));
+  await click(i18n.t('Integrations.stopReceive'));
   await act(async()=>held.resolve({...fact('canceled'),operation:'weixin.updates.read'}));
   assert.equal(calls.cancels.length,1);assert.equal(reads.length,1,'stopping cannot restart receiving');
  }finally{await act(async()=>renderer.unmount())}
+});
+
+test('ordinary late acceptance and cancellation keep actual facts without publishing a stopped read body',async()=>{
+ for(const terminal of ['canceled','completed','unconfirmed']){
+  const {host}=fixture();const held=deferred();const saved=[];
+  const source={...target,kind:'weixin',operations:[{name:'weixin.updates.read'}],permittedOperations:['weixin.updates.read']};
+  host.sdk.localAppClient.integration.listConnections=async()=>[source];host.app.projection.integrationHistory=async()=>[];
+  host.app.commands.appendIntegrationHistory=async record=>{saved.push(record);return [record]};
+  host.sdk.localAppClient.integration.invoke=()=>held.promise;
+  host.sdk.localAppClient.integration.cancelCall=async()=>({...fact(terminal),operation:'weixin.updates.read',resultJson:'{"private":"late-private-body","cursor":"late","events":[]}'});
+  const renderer=createRoot(document.getElementById('root'));
+  try{
+   await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async()=>{}}))));
+   const choice=document.querySelector('select');await act(async()=>{choice.value=source.targetRef;choice.dispatchEvent(new Event('change',{bubbles:true}))});
+   await click(i18n.t('Integrations.startReceive'));await click(i18n.t('Integrations.stopReceive'));
+   await act(async()=>held.resolve({...fact('accepted'),operation:'weixin.updates.read'}));
+   assert.deepEqual(saved.map(record=>record.status),['accepted',terminal]);assert.equal(saved.at(-1).callId,'ic_actual');
+   assert.equal(saved.every(record=>record.inputJson===''&&record.resultJson===''),true);
+   assert.match(document.querySelector('[data-testid="integration-reception"]').textContent,new RegExp(i18n.t(`Integrations.states.${terminal}`),'u'));
+   assert.equal(document.body.textContent.includes('late-private-body'),false);assert.equal(button(i18n.t('Integrations.startReceive')).disabled,false);
+  }finally{await act(async()=>renderer.unmount())}
+ }
+});
+
+test('a connection-list failure leaves independently loaded saved history visible and exportable',async()=>{
+ const {host}=fixture();const record={kind:'integration',id:'ic_saved',callId:'ic_saved',adapter:'weixin',targetRef:'old-target',targetDisplayName:'Saved account',operation:'weixin.updates.read',status:'completed',createdAt:'2026-10-06T10:00:00Z',inputJson:'',resultJson:'',errorCode:'',assetPaths:[]};
+ host.sdk.localAppClient.integration.listConnections=async()=>{throw new Error('Connection lookup failed')};host.app.projection.integrationHistory=async()=>[record];
+ let exported='';host.app.commands.exportText=async input=>{exported=input.body;return{ok:true,value:{filename:input.filename,artifactPath:'exports/fixture/history.json',byteSize:new TextEncoder().encode(input.body).byteLength,revealed:true}}};
+ const renderer=createRoot(document.getElementById('root'));
+ try{
+  await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async()=>{}}))));
+  assert.match(document.body.textContent,/Connection lookup failed/u);assert.match(document.body.textContent,/Saved account/u);
+  await click(i18n.t('Integrations.export'));assert.equal(JSON.parse(exported).records[0].callId,'ic_saved');
+  await click(i18n.t('Integrations.viewSaved'));assert.match(document.querySelector('[data-testid="integration-saved-record"]').textContent,/ic_saved/u);
+ }finally{await act(async()=>renderer.unmount())}
+});
+
+test('history read failure presents an unknown state, without claiming the saved history is empty',async()=>{
+ const {host}=fixture();host.sdk.localAppClient.integration.listConnections=async()=>[];host.app.projection.integrationHistory=async()=>{throw new Error('History permission unavailable')};
+ const renderer=createRoot(document.getElementById('root'));
+ try{await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async()=>{}}))));assert.match(document.body.textContent,/History permission unavailable/u);assert.equal(document.body.textContent.includes(i18n.t('Integrations.noHistory')),false);}
+ finally{await act(async()=>renderer.unmount())}
+});
+
+test('history removal waits for pending reception and query writes, then the removed record cannot revive automatically',async()=>{
+ const {host}=fixture();const stopped=deferred();const queried=deferred();let records=[];let appends=0;let removes=0;
+ const source={...target,kind:'weixin',operations:[{name:'weixin.updates.read'}],permittedOperations:['weixin.updates.read']};
+ const read=status=>({...fact(status),operation:'weixin.updates.read'});
+ host.sdk.localAppClient.integration.listConnections=async()=>[source];host.app.projection.integrationHistory=async()=>records;
+ host.sdk.localAppClient.integration.invoke=async()=>read('accepted');host.sdk.localAppClient.integration.cancelCall=()=>stopped.promise;host.sdk.localAppClient.integration.getCall=()=>queried.promise;
+ host.app.commands.appendIntegrationHistory=async record=>{appends++;records=[record];return records};host.app.commands.removeIntegrationHistory=async()=>{removes++;records=[];return records};
+ const renderer=createRoot(document.getElementById('root'));
+ try{
+  await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async()=>{}}))));
+  const choice=document.querySelector('select');await act(async()=>{choice.value=source.targetRef;choice.dispatchEvent(new Event('change',{bubbles:true}))});
+  await click(i18n.t('Integrations.startReceive'));assert.equal(button(i18n.t('Integrations.remove')).disabled,true);assert.equal(button(i18n.t('Integrations.observe')).disabled,true);
+  await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},null)));
+  await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async()=>{}}))));
+  assert.equal(button(i18n.t('Integrations.remove')).disabled,true,'a remounted view must share the old call hold until its late facts drain');
+  await act(async()=>{stopped.resolve(read('canceled'));queried.resolve(read('canceled'))});
+  const laterQuery=deferred();host.sdk.localAppClient.integration.getCall=()=>laterQuery.promise;
+  await click(i18n.t('Integrations.observe'));assert.equal(button(i18n.t('Integrations.remove')).disabled,true,'same-row query must fence removal until its append drains');
+  await act(async()=>laterQuery.resolve(read('canceled')));
+  await click(i18n.t('Integrations.remove'));assert.equal(removes,1);assert.equal(records.length,0);
+  const afterDelete=appends;await act(async()=>new Promise(resolve=>setTimeout(resolve,550)));assert.equal(appends,afterDelete);assert.equal(records.length,0);
+ }finally{await act(async()=>renderer.unmount());stopped.resolve(read('canceled'));queried.resolve(read('canceled'));}
+});
+
+test('bounded reception allows source selection, drafts and explicit media/save while keeping the foreground receipt separate',async()=>{
+ const {host,calls}=fixture();const readPending=deferred();const writePending=deferred();let readCount=0;let writes=0;const records=[];
+ const incoming={...event('incoming'),conversation:{kind:'private',id:'specified'},segments:[{kind:'text',text:'actual fixture input'},{kind:'file',mediaRef:'source-media',fileName:'received.txt',mediaType:'text/plain',sizeBytes:10}],references:[]};
+ const source={...target,kind:'weixin',operations:['updates.read','messages.reply','media.fetch'].map(name=>({name:`weixin.${name}`})),permittedOperations:['weixin.updates.read','weixin.messages.reply','weixin.media.fetch']};
+ const actual=(id,operation,status,resultJson='')=>({...fact(status),callId:id,operation,resultJson});
+ host.sdk.localAppClient.integration.listConnections=async()=>[source];host.app.projection.integrationHistory=async()=>[];
+ host.app.commands.appendIntegrationHistory=async record=>{records.push(record);return [...new Map(records.map(item=>[item.id,item])).values()]};
+ host.sdk.localAppClient.integration.invoke=async request=>{
+  if(request.operation==='weixin.updates.read'){readCount++;return readCount===1?actual('read-1',request.operation,'completed',JSON.stringify({cursor:'reader-next',events:[incoming],coverageGap:''})):readPending.promise;}
+  writes++;return actual('write-1',request.operation,'accepted');
+ };
+ host.sdk.localAppClient.integration.getCall=()=>writePending.promise;
+ host.sdk.localAppClient.integration.cancelCall=async({callId})=>actual(callId,callId.startsWith('read')?'weixin.updates.read':'weixin.media.fetch','canceled');
+ const renderer=createRoot(document.getElementById('root'));
+ try{
+  await act(async()=>renderer.render(createElement(LabRendererProvider,{bindings:host},createElement(LabIntegrationsPanel,{recordAI:async record=>calls.aiRecords.push(record)}))));
+  const choice=document.querySelector('select');await act(async()=>{choice.value=source.targetRef;choice.dispatchEvent(new Event('change',{bubbles:true}))});
+  await click(i18n.t('Integrations.startReceive'));assert.equal(readCount,2);assert.equal(button(i18n.t('Integrations.startReceive')).disabled,true);
+  await select(0);assert.equal(button('Generate draft').disabled,false);await click('Generate draft');assert.equal(calls.ai.length,1);assert.equal(writes,0);
+  assert.equal(pane().querySelector('textarea').disabled,false);await click('Stop and discard draft');
+  await click(i18n.t('Integrations.saveReceivedBatch'));assert.equal(records.some(record=>record.callId==='read-1'&&record.resultJson.includes('actual fixture input')),true);
+  const pathInput=[...document.querySelectorAll('input')].find(input=>input.placeholder==='received/image.png');
+  await act(async()=>{Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype,'value').set.call(pathInput,'received/file.txt');pathInput.dispatchEvent(new Event('input',{bubbles:true}))});
+  const media=[...document.querySelectorAll('article button')].find(button=>button.textContent===i18n.t('Integrations.saveMedia'));
+  assert.ok(media);assert.equal(media.disabled,false);await act(async()=>media.click());assert.equal(writes,1);
+  assert.equal(button(i18n.t('Integrations.stopReceive')).disabled,false,'foreground action must not hide reception stop');
+  await click(i18n.t('Integrations.stopReceive'));
+  await act(async()=>readPending.resolve(actual('read-2','weixin.updates.read','accepted')));
+  assert.match(document.querySelector('[data-testid="integration-call"]').textContent,/write-1/u);
+  assert.equal(document.querySelector('[data-testid="integration-call"]').textContent.includes('read-2'),false);
+  await act(async()=>writePending.resolve(actual('write-1','weixin.media.fetch','completed')));
+  assert.equal(writes,1);assert.equal(readCount,2);assert.ok(document.querySelector('[data-testid="integration-call"] [role=status]'));
+  const statuses=[...document.querySelectorAll('[data-testid="integration-reception"] > p[role=status]')];assert.equal(statuses.length,2);assert.equal(statuses.some(status=>status.textContent.includes('actual fixture input')),false);
+ }finally{await act(async()=>renderer.unmount());readPending.resolve(actual('read-2','weixin.updates.read','canceled'));writePending.resolve(actual('write-1','weixin.media.fetch','canceled'));}
 });
 
 test('UI stop and changing selected source keep an old inference from replacing the new draft',async()=>{

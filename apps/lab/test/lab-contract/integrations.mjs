@@ -207,3 +207,43 @@ test('a late private result after stop cannot update history or start another bu
 test('a completed fact keeps its result and an unconfirmed fact is never automatically resent',async()=>{
  const {runLabIntegrationCall}=await runner();for(const status of ['completed','unconfirmed']){let sends=0;const saved=[];await runLabIntegrationCall({client:{invoke:async()=>{sends++;return call(status,status==='completed'?'{}':'');},getCall:()=>assert.fail('terminal call polled'),cancelCall:()=>assert.fail('terminal call canceled')},targetRef:'icon_actual',operation:'feishu.media.fetch',inputJson:'{}',signal:new AbortController().signal,accepted:async value=>{saved.push(value.status);},completed:async value=>{saved.push(value.status);}});assert.equal(sends,1);assert.deepEqual(saved,[status,status]);}
 });
+
+test('ordinary stopped calls retain the late call ID and actual cancellation outcome as facts only',async()=>{
+ const {runLabIntegrationCall}=await runner();const {integrationHistoryRecord,mergeIntegrationHistoryRecord}=await model();
+ for(const status of ['canceled','completed','unconfirmed']){
+  const invoked=deferred(),signal=new AbortController();let record;let dispatches=0;let publications=0;
+  const work=runLabIntegrationCall({client:{invoke:()=>{dispatches++;return invoked.promise},getCall:()=>assert.fail('stopped call polled'),cancelCall:async()=>call(status,'{"private":"late","cursor":"late","events":[{"body":"late"}]}')},targetRef:'icon_actual',operation:'feishu.media.fetch',inputJson:'{"private":"input"}',signal:signal.signal,
+   observed:async next=>{record=mergeIntegrationHistoryRecord(record,integrationHistoryRecord(target,'{}',next));},accepted:async()=>{publications++},completed:async()=>{publications++}});
+  signal.abort();invoked.resolve(call());await work;
+  assert.equal(record.callId,'ic_actual');assert.equal(record.status,status);assert.equal(record.inputJson,'');assert.equal(record.resultJson,'');assert.equal(publications,0);assert.equal(dispatches,1);
+ }
+});
+
+test('history terminal facts stay monotonic and fact-only observation preserves explicitly saved content',async()=>{
+ const {integrationHistoryRecord,mergeIntegrationHistoryRecord}=await model();
+ const saved=integrationHistoryRecord(target,'{"private":"saved-input"}',call('completed','{"private":"saved-result"}'),true);
+ const accepted=integrationHistoryRecord(target,'{}',call());
+ assert.deepEqual(mergeIntegrationHistoryRecord(saved,accepted),saved);
+ const facts=integrationHistoryRecord(target,'{}',call('completed'));
+ const observed=mergeIntegrationHistoryRecord(saved,facts);assert.equal(observed.inputJson,saved.inputJson);assert.equal(observed.resultJson,saved.resultJson);
+ assert.throws(()=>mergeIntegrationHistoryRecord(saved,{...facts,targetRef:'another-target'}));
+});
+
+test('an accepted cancellation acknowledgment is reconciled finitely as facts without reopening publication',async t=>{
+ const {runLabIntegrationCall}=await runner();
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const terminal of ['canceled','completed','unconfirmed','accepted']){
+  const controller=new AbortController(),invoked=deferred();const facts=[];let queries=0,publications=0;
+  const work=runLabIntegrationCall({client:{invoke:()=>invoked.promise,cancelCall:async()=>call('accepted'),getCall:async()=>{queries++;return call(terminal,'{"private":"late-body","events":[],"cursor":"late"}')}},targetRef:'icon_actual',operation:'feishu.media.fetch',inputJson:'{}',signal:controller.signal,observed:async value=>facts.push(value.status),accepted:async()=>{publications++},completed:async()=>{publications++}});
+  controller.abort();invoked.resolve(call());
+  for(let i=0;i<22;i++){await new Promise(resolve=>setImmediate(resolve));t.mock.timers.tick(500)}
+  await work;assert.equal(queries,terminal==='accepted'?20:1);assert.equal(facts.at(-1),terminal);assert.equal(publications,0);
+ }
+});
+
+test('cancel fact reconciliation stops querying and observing when the original App scope ends',async t=>{
+ const {runLabIntegrationCall}=await runner();t.mock.timers.enable({apis:['setTimeout']});
+ const controller=new AbortController(),invoked=deferred();let current=true,queries=0;const facts=[];
+ const work=runLabIntegrationCall({client:{invoke:()=>invoked.promise,cancelCall:async()=>call('accepted'),getCall:async()=>{queries++;current=false;return call('completed','{"private":"old-scope"}')}},targetRef:'icon_actual',operation:'feishu.media.fetch',inputJson:'{}',signal:controller.signal,currentScope:()=>current,observed:async next=>facts.push(next.status),accepted:async()=>assert.fail('stopped publication'),completed:async()=>assert.fail('late business publication')});
+ controller.abort();invoked.resolve(call());for(let i=0;i<4;i++){await new Promise(resolve=>setImmediate(resolve));t.mock.timers.tick(500)}await work;assert.equal(queries,1);assert.deepEqual(facts,['accepted','accepted']);
+});

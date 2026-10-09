@@ -1,5 +1,6 @@
 {
   "Integrations": {
+    "historyUpdating": "此调用仍在更新记录。请等待结束，或停止接收并等待取消结果，再查询或移除。",
     "referenceRelation": {
       "parent": "回复的父消息",
       "root": "会话根消息"
@@ -26,13 +27,13 @@
     "waitStopped": "已停止等待，仍可查询已保存的原调用；写操作可能已经生效。",
     "noResend": "结果未确认的写操作不会自动重发。请查询原调用或人工处理。",
     "history": "Integration 调用历史",
-    "bodyPrivacy": "历史默认只保存调用事实与资产归属。私密请求和结果正文需使用下方动作明确保存。",
+    "bodyPrivacy": "历史默认保存调用事实和已记录的附件路径。私密请求和结果正文需使用下方动作保存。",
     "saveBody": "保存当前私密正文",
     "bodySaved": "当前可用的私密正文已保存到这条调用历史。",
     "noHistory": "暂无保存的 Integration 调用。",
     "export": "导出 JSON",
     "observe": "查询原调用",
-    "remove": "移除历史及保存的媒体",
+    "remove": "移除历史记录",
     "unavailable": "Integration 服务不可用。",
     "effects": {
       "read": "读取",
@@ -106,7 +107,8 @@
       "INTEGRATION_WEIXIN_PROVIDER_REJECTED": "微信拒绝了请求，请检查账号和所选对象的当前消息上下文。",
       "INTEGRATION_MEDIA_INVALID": "媒体不符合平台的类型、大小、图片尺寸或文件名要求。",
       "INTEGRATION_MEDIA_INTEGRITY_INVALID": "媒体字节与已知源大小、类型或摘要不符。请检查源内容或重新选择拥有资产。",
-      "INTEGRATION_NETWORK_FAILED": "网络请求失败。写入结果可能未确认；创建新的发送前请先检查原调用结果。"
+      "INTEGRATION_NETWORK_FAILED": "网络请求失败。写入结果可能未确认；创建新的发送前请先检查原调用结果。",
+      "INTEGRATION_FEISHU_MESSAGE_TOO_LARGE": "飞书请求经 UTF-8 编码与 JSON 转义后超出上限（文字 150 KiB、卡片 30 KiB）。请缩短后明确发送。"
     },
     "messageRequired": "请填写消息正文。",
     "cardJson": "飞书卡片 JSON",
@@ -168,7 +170,33 @@
       "aiFact": "AI：{{id}} · {{status}} · trace {{trace}}",
       "integrationFact": "消息调用：{{id}} · {{status}}",
       "factBoundary": "AI 事实保存在既有 AI 历史，发送有独立的 Integration 调用。停止会丢弃本轮发送资格并请求取消。已经派发的消息仍可能产生效果，其真实结果保留在 Integration 历史。未知发送不会重试。",
-      "phases": { "generating": "正在生成，尚未请求发送消息。", "draft": "草稿等待检查，发送需要另一次明确操作。", "sending": "已请求回复一次，等待真实结果。", "stopped": "已停止，本轮草稿不能再发送。", "sent": "消息调用已完成，不代表接收方已收到。", "failed": "本次操作没有得到可发送草稿或已确认的消息。" }
-    }
+      "phases": {
+        "generating": "正在生成，尚未请求发送消息。",
+        "draft": "草稿等待检查，发送需要另一次明确操作。",
+        "sending": "已请求回复一次，等待真实结果。",
+        "stopped": "已停止，本轮草稿不能再发送。",
+        "sent": "消息调用已完成，不代表接收方已收到。",
+        "failed": "本次操作没有得到可发送草稿或已确认的消息。"
+      }
+    },
+    "stopReceive": "停止接收",
+    "receiving": "正在接收",
+    "receiveIdle": "接收已停止",
+    "receivedCount": "当前页面已收到 {{count}} 条消息。",
+    "historyLoadFailed": "保存的历史加载失败：{{detail}}",
+    "receiveStopping": "已停止等待，正在核对调用事实",
+    "historyRemoveHelp": "移除记录不会删除文件，请在「当前 Lab 文件」中管理文件。",
+    "historicalFilesHelp": "这是此调用保存的附件路径。文件可能已删除或替换；请在「当前 Lab 文件」中管理现在的文件。移除此记录不会删除文件。",
+    "currentFiles": "当前 Lab 文件",
+    "currentFilesHelp": "当前 Lab 实例保存的文件，包含任意受管路径下的收到的媒体和导出文件。可以查看、打开文件位置或删除当前文件；删除文件不会清除历史调用事实。",
+    "noCurrentFiles": "暂无当前 Lab 文件。",
+    "viewCurrentFile": "查看当前文件",
+    "removeCurrentFile": "删除当前文件",
+    "filesLoadFailed": "无法加载 Lab 文件，请刷新后重试。",
+    "fileRemoveFailed": "无法删除当前文件，请检查文件后重试。",
+    "currentFileUnavailable": "无法打开当前文件，请刷新文件列表并重新检查。",
+    "exportFailed": "历史导出失败。请检查 Lab 文件访问后重试。",
+    "exportSaved": "历史已保存到：{{path}}",
+    "exportSavedRevealFailed": "历史已保存到 {{path}}，但未能打开文件位置。请使用下方按钮重新定位。"
   }
 }

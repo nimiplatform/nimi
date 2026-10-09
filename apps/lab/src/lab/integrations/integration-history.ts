@@ -1,7 +1,7 @@
 import { enqueueHistoryMutation, readLabHistoryDocuments, retryLabHistoryChunkCleanup, writeLabHistoryDocuments } from '../lab-history-storage.js';
 import { readLabStandardStorageJson } from '../lab-standard-storage.js';
 
-import { parseLabIntegrationHistory, type LabIntegrationHistoryRecord } from './integration-history-model.js';
+import { mergeIntegrationHistoryRecord, parseLabIntegrationHistory, type LabIntegrationHistoryRecord } from './integration-history-model.js';
 export { parseLabIntegrationHistory, integrationHistoryRecord, observeIntegrationHistory, exportLabIntegrationHistory, savedIntegrationHistoryRecord, type LabIntegrationHistoryRecord } from './integration-history-model.js';
 const ROOT = 'lab-integration-history.json';
 async function readSnapshot() {
@@ -15,7 +15,8 @@ export function loadLabIntegrationHistory(): Promise<readonly LabIntegrationHist
 export function appendLabIntegrationHistory(record: LabIntegrationHistoryRecord): Promise<readonly LabIntegrationHistoryRecord[]> {
   return enqueueHistoryMutation(async () => {
     const previous = await readSnapshot();
-    const records = parseLabIntegrationHistory([record,...previous.records.filter(item => item.id !== record.id)]);
+    const merged = mergeIntegrationHistoryRecord(previous.records.find(item => item.id === record.id),record);
+    const records = parseLabIntegrationHistory([merged,...previous.records.filter(item => item.id !== record.id)]);
     await writeLabHistoryDocuments(ROOT,'integration',records,previous.index); return records;
   });
 }

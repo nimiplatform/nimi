@@ -47,6 +47,15 @@ export function exportLabIntegrationHistory(records: readonly LabIntegrationHist
   return JSON.stringify({ format:'nimi-lab-integration-history-v1',records:parseLabIntegrationHistory(records) },null,2);
 }
 
+// Fact updates cannot erase an explicitly saved snapshot or move a terminal
+// call back to accepted when a concurrent, earlier observation arrives late.
+export function mergeIntegrationHistoryRecord(previous: LabIntegrationHistoryRecord | undefined, next: LabIntegrationHistoryRecord): LabIntegrationHistoryRecord {
+  if (!previous) return next;
+  if (previous.callId !== next.callId || previous.targetRef !== next.targetRef || previous.operation !== next.operation || previous.adapter !== next.adapter) throw new Error('Integration call attribution changed.');
+  if (previous.status !== 'accepted' && next.status === 'accepted') return previous;
+  return parseLabIntegrationHistory([{ ...next, inputJson: next.inputJson || previous.inputJson, resultJson: next.resultJson || previous.resultJson, assetPaths: [...new Set([...previous.assetPaths,...next.assetPaths])] }])[0]!;
+}
+
 // This is an App-owned saved snapshot, independent of current Runtime scope,
 // connection availability or private result retention. It never queries a call.
 export function savedIntegrationHistoryRecord(records: readonly LabIntegrationHistoryRecord[], id: string): LabIntegrationHistoryRecord | undefined {

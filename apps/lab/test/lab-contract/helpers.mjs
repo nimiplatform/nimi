@@ -49,6 +49,8 @@ function buildBehaviorModules() {
     'src/lab/activity/lab-activity-model.ts',
     'src/lab/integrations/integration-history-model.ts',
     'src/lab/integrations/integration-run.ts',
+    'src/lab/integrations/integration-history-work.ts',
+    'src/lab/integrations/integrations-panel.tsx',
     'src/lab/integrations/native-message-model.ts',
     'src/lab/integrations/native-message-content.tsx',
     'src/lab/integrations/native-reply-controller.ts',
