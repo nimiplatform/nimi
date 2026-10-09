@@ -37,7 +37,7 @@
 
 ## Nimi App acceptance
 
-- For real Nimi App acceptance or renderer debugging, read `.agents/skills/nimi-app-acceptance/SKILL.md`. Use Desktop-supervised Electron and that App's exact loopback development CDP target; direct Vite or another App's renderer is not acceptance. Native and owner UI remain outside CDP.
+- For real Nimi Home or App acceptance or renderer debugging, read `.agents/skills/nimi-app-acceptance/SKILL.md`. Prefer each product's exact loopback development CDP target for its web UI, including Home; launch Apps through Desktop-supervised Electron. Use Computer Use for native windows, system dialogs, and behavior CDP cannot cover. Direct Vite, another product's renderer, private-interface calls, or permission bypasses do not establish acceptance.
 
 <!-- nimicoding:managed:agents:start -->
 # Nimi Coding Managed Block
