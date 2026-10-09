@@ -67,13 +67,19 @@ describe('Electron protected local-app host', () => {
     },
   );
 
-  it.each(['local-app-operation-unavailable', 'local-app-owner-unavailable'])('preserves bounded Integration metadata on %s', async (reasonCode) => {
+  it.each([
+    ['local-app-operation-unavailable', 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED'],
+    ['local-app-owner-unavailable', 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED'],
+    ['local-app-operation-unavailable', 'INTEGRATION_CONFIGURATION_INVALID'],
+    ['local-app-operation-unavailable', 'INTEGRATION_IDENTITY_ALREADY_CONNECTED'],
+    ['local-app-owner-unavailable', 'INTEGRATION_FEISHU_REGISTRATION_DENIED'],
+  ])('preserves bounded Integration metadata on %s: %s', async (reasonCode, integrationReason) => {
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
       localAppIntegrationPutConnection: async () => ({ status: 'error' as const, reasonCode, retryable: false,
-        reasonMetadata: { integration_reason: 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED' } }),
+        reasonMetadata: { integration_reason: integrationReason } }),
     });
     await expect(host.integrationPutConnection({})).rejects.toMatchObject({ reasonCode,
-      reasonMetadata: { integration_reason: 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED' } });
+      reasonMetadata: { integration_reason: integrationReason } });
   });
 
   it.each([

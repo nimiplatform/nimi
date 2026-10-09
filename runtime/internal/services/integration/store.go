@@ -428,11 +428,13 @@ func (s *Service) SetIntegrationPermission(ctx context.Context, req *runtimev1.S
 		return nil, err
 	}
 	// The grant row and its audit result commit in one transaction.
-	err = s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO runtime_integration_permission(account_id,consumer_subject,target_ref,operations_json) VALUES(?,?,?,?) ON CONFLICT(account_id,consumer_subject,target_ref) DO UPDATE SET operations_json=excluded.operations_json`, d.AccountID, subject, req.TargetRef, string(raw)); err != nil {
-			return err
-		}
-		return record.commitTx(ctx, tx)
+	err = s.commitManagementLocked(ctx, d, localappop.IngressIntegrationPermissionSet, func(current context.Context) error {
+		return s.backend.WriteTx(current, func(tx *sql.Tx) error {
+			if _, err := tx.ExecContext(current, `INSERT INTO runtime_integration_permission(account_id,consumer_subject,target_ref,operations_json) VALUES(?,?,?,?) ON CONFLICT(account_id,consumer_subject,target_ref) DO UPDATE SET operations_json=excluded.operations_json`, d.AccountID, subject, req.TargetRef, string(raw)); err != nil {
+				return err
+			}
+			return record.commitTx(current, tx)
+		})
 	})
 	if err != nil {
 		return nil, s.permissionCommitFailure(err)
@@ -493,11 +495,13 @@ func (s *Service) revokeIntegrationPermission(ctx context.Context, d accountserv
 		return nil, failure(codes.NotFound, "INTEGRATION_PERMISSION_NOT_FOUND")
 	}
 	// The revocation and its audit result commit in one transaction.
-	if err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		if _, err := tx.ExecContext(ctx, `UPDATE runtime_integration_permission SET operations_json='[]' WHERE account_id=? AND consumer_subject=? AND target_ref=?`, d.AccountID, subject, req.TargetRef); err != nil {
-			return err
-		}
-		return record.commitTx(ctx, tx)
+	if err := s.commitManagementLocked(ctx, d, localappop.IngressIntegrationPermissionSet, func(current context.Context) error {
+		return s.backend.WriteTx(current, func(tx *sql.Tx) error {
+			if _, err := tx.ExecContext(current, `UPDATE runtime_integration_permission SET operations_json='[]' WHERE account_id=? AND consumer_subject=? AND target_ref=?`, d.AccountID, subject, req.TargetRef); err != nil {
+				return err
+			}
+			return record.commitTx(current, tx)
+		})
 	}); err != nil {
 		return nil, s.permissionCommitFailure(err)
 	}

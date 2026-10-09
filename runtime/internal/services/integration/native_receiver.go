@@ -64,7 +64,9 @@ func (s *Service) readNativeUpdates(ctx context.Context, t target, secret, input
 	}
 	receiver := s.nativeReceivers[t.Public.TargetRef]
 	effectiveCursor := params.Cursor
-	if receiver == nil || receiver.ctx.Err() != nil {
+	// A canceled receiver keeps ownership until its upstream worker has drained.
+	// Cancellation and reader join/leave use s.mu before the feed lock.
+	if receiver == nil || closed(receiver.done) {
 		feed := newNativeFeed()
 		if receiver != nil && receiver.generation == t.CredentialGeneration {
 			feed = receiver.feed
@@ -91,7 +93,9 @@ func (s *Service) readNativeUpdates(ctx context.Context, t target, secret, input
 			if err := adapter.receive(r.ctx, t, secret, r.feed); err != nil {
 				r.feed.fail(err)
 			}
+			s.mu.Lock()
 			r.cancel()
+			s.mu.Unlock()
 		}(receiver)
 	} else {
 		receiver.feed.mu.Lock()
@@ -104,6 +108,8 @@ func (s *Service) readNativeUpdates(ctx context.Context, t target, secret, input
 	}
 	s.mu.Unlock()
 	defer func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
 		receiver.feed.mu.Lock()
 		receiver.feed.readers--
 		delete(receiver.feed.leases, call)
@@ -128,6 +134,9 @@ func (s *Service) commitNativeFeed(feed *nativeFeed, commit func() error) error 
 	}
 	feed.mu.Unlock()
 	for _, call := range leases {
+		if !call.decision.ExpiresAt.IsZero() && !time.Now().Before(call.decision.ExpiresAt) {
+			continue
+		}
 		err := s.withCallCommitLocked(call, func(context.Context) error {
 			feed.mu.Lock()
 			defer feed.mu.Unlock()

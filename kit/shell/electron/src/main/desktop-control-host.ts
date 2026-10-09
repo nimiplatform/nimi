@@ -1,3 +1,4 @@
+import { isIntegrationOwnerReasonMetadata } from './integration-owner-errors.js';
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import type { RuntimeGrpcBridgeStream, RuntimeGrpcBridgeStreamHandlers } from './types.js';
@@ -523,18 +524,6 @@ function nativeError(value: {
   );
 }
 
-const INTEGRATION_CONNECTION_ERROR_REASONS: ReadonlySet<string> = new Set([
-  'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED',
-  'INTEGRATION_TELEGRAM_VERIFICATION_REQUIRED',
-  'INTEGRATION_TELEGRAM_IDENTITY_INVALID',
-  'INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT',
-  'INTEGRATION_NEW_TARGET_REQUIRED',
-  'INTEGRATION_CREDENTIAL_UNAVAILABLE',
-  'INTEGRATION_CUSTODY_UNAVAILABLE',
-  'INTEGRATION_PROVIDER_REJECTED',
-  'INTEGRATION_DISCOVERY_FAILED',
-  'INTEGRATION_ENDPOINT_INVALID',
-]);
 
 function boundedReasonMetadata(value: unknown, reasonCode: string): Readonly<Record<string, string>> {
   if (value === undefined) return {};
@@ -542,8 +531,7 @@ function boundedReasonMetadata(value: unknown, reasonCode: string): Readonly<Rec
   const metadata: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (key === 'integration_reason') {
-      if (['LOCAL_APP_OPERATION_UNAVAILABLE', 'LOCAL_APP_OWNER_UNAVAILABLE', 'local-app-operation-unavailable', 'local-app-owner-unavailable'].includes(reasonCode)
-        && typeof entry === 'string' && INTEGRATION_CONNECTION_ERROR_REASONS.has(entry)) metadata[key] = entry;
+      if (isIntegrationOwnerReasonMetadata(reasonCode, entry)) metadata[key] = entry;
       continue;
     }
     if (!['permission_id', 'permission_reason', 'permission_admission', 'diagnostic_stage',

@@ -527,6 +527,11 @@ func (s *Service) receiveWeixin(ctx context.Context, t target, secret string, fe
 	feed.mu.Unlock()
 	firstResponse := true
 	for {
+		// The next destructive poll acknowledges the captured upstream position.
+		// Admit an effective reader now, independently of cancellation watchers.
+		if err := s.admitNativeReception(feed); err != nil {
+			return err
+		}
 		requestCtx, cancel := context.WithTimeout(ctx, 40*time.Second)
 		// The fixed official GetUpdatesResp declares ret and errcode optional.
 		// HTTP/envelope checks and any present nonzero code still fail closed.
@@ -557,10 +562,15 @@ func (s *Service) receiveWeixin(ctx context.Context, t target, secret string, fe
 		}
 		// Only the next request commits the upstream position. No next poll is
 		// made after cancellation or a failed normalized buffer commit.
-		cursor = response.Cursor
-		feed.mu.Lock()
-		feed.upstreamCursor = cursor
-		feed.mu.Unlock()
+		if response.Cursor != "" {
+			if err := s.commitNativeFeed(feed, func() error {
+				feed.upstreamCursor = response.Cursor
+				return nil
+			}); err != nil {
+				return err
+			}
+			cursor = response.Cursor
+		}
 		if err := waitPlatformPoll(ctx, 100*time.Millisecond); err != nil {
 			return err
 		}

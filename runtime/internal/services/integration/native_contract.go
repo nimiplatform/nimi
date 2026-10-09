@@ -61,17 +61,24 @@ func nativeOperations(adapter string) []*runtimev1.IntegrationOperation {
 		sendRequired = append(sendRequired, "contextRef")
 		sendDescription = "Send once to the exact conversation using a current received-message context. Active pushing without context is unavailable."
 	}
+	if adapter == "feishu" {
+		sendDescription += " The final UTF-8 platform request (including JSON escaping) is limited to 150 KiB for text and 30 KiB for cards; expanded card templates and styles also remain subject to provider limits."
+	}
 	makeOp := func(name, description, effect string, input, output any) *runtimev1.IntegrationOperation {
 		return &runtimev1.IntegrationOperation{Name: adapter + "." + name, Description: description, InputSchemaJson: schemaJSON(input), OutputSchemaJson: schemaJSON(output), Effect: effect, SupportsCancel: true, RetryPolicy: "none"}
 	}
+	replyDescription := "Reply once using a current Runtime-owned incoming message reference."
+	if adapter == "feishu" {
+		replyDescription += " The final UTF-8 platform request is limited to 150 KiB for text and 30 KiB for cards, including JSON escaping; provider-expanded templates and styles may impose a tighter limit."
+	}
 	operations := []*runtimev1.IntegrationOperation{
 		makeOp("messages.send", sendDescription, "write", schemaObject(map[string]any{"conversation": conversation, "body": body, "contextRef": schemaText(512)}, sendRequired...), effectOutput),
-		makeOp("messages.reply", "Reply once using a current Runtime-owned incoming message reference.", "write", schemaObject(map[string]any{"replyRef": schemaText(512), "body": body}, "replyRef", "body"), effectOutput),
+		makeOp("messages.reply", replyDescription, "write", schemaObject(map[string]any{"replyRef": schemaText(512), "body": body}, "replyRef", "body"), effectOutput),
 		makeOp("updates.read", "Read new messages from this permitted connection using an independent cursor. Omitted or empty conversations receives all its new messages; nonempty filters select this reader's view and are not permissions.", "read", schemaObject(map[string]any{"cursor": map[string]any{"type": "string", "maxLength": 1024}, "waitMs": map[string]any{"type": "integer", "minimum": 0, "maximum": 25000}, "conversations": map[string]any{"type": "array", "minItems": 0, "maxItems": 64, "uniqueItems": true, "items": schemaText(512)}}), schemaObject(map[string]any{"cursor": schemaText(1024), "events": map[string]any{"type": "array", "maxItems": 32, "items": nativeEventSchema()}, "coverageGap": map[string]any{"type": "string", "enum": []string{"", "restart", "reconnect"}}}, "cursor", "events", "coverageGap")),
 		makeOp("media.fetch", "Save the referenced inbound media as a new asset in the invoking App partition.", "read", schemaObject(map[string]any{"mediaRef": schemaText(512), "relativePath": schemaText(1024)}, "mediaRef", "relativePath"), schemaObject(map[string]any{"asset": schemaObject(map[string]any{"relativePath": schemaText(1024), "sha256": schemaText(128), "mediaType": schemaText(128), "sizeBytes": map[string]any{"type": "integer", "minimum": 1, "maximum": maxMediaBytes}, "createdAt": schemaText(64), "modifiedAt": schemaText(64)}, "relativePath", "sha256", "mediaType", "sizeBytes", "createdAt", "modifiedAt"), "integrity": map[string]any{"type": "string", "enum": []string{"protocol-authenticated", "transport-and-local-digest", "decrypted-unverified"}}}, "asset", "integrity")),
 	}
 	if adapter == "feishu" {
-		operations = append(operations, makeOp("messages.update", "Update one existing Feishu text or interactive card message.", "write", schemaObject(map[string]any{"messageId": schemaText(256), "body": map[string]any{"oneOf": []any{bodies[0], schemaObject(map[string]any{"kind": map[string]any{"const": "card"}, "cardJson": schemaText(65536)}, "kind", "cardJson")}}}, "messageId", "body"), effectOutput))
+		operations = append(operations, makeOp("messages.update", "Update one existing Feishu text or interactive card message. The final UTF-8 request, including JSON escaping, is limited to 150 KiB for PUT text and 30 KiB for PATCH cards; provider-expanded styles remain subject to platform limits.", "write", schemaObject(map[string]any{"messageId": schemaText(256), "body": map[string]any{"oneOf": []any{bodies[0], schemaObject(map[string]any{"kind": map[string]any{"const": "card"}, "cardJson": schemaText(65536)}, "kind", "cardJson")}}}, "messageId", "body"), effectOutput))
 	}
 	return operations
 }

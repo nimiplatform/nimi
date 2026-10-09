@@ -179,38 +179,68 @@ async fn invoke_inner(
             RawBytesCodec,
         )
         .await
-        .map_err(|status| {
-            let retryable = matches!(
-                status.code(),
-                tonic::Code::Unavailable
-                    | tonic::Code::DeadlineExceeded
-                    | tonic::Code::Cancelled
-                    | tonic::Code::ResourceExhausted
-            );
-            let reason = if bundled_avatar {
-                crate::grpc_status::bundled_avatar_runtime_reason(&status)
-            } else {
-                crate::grpc_status::runtime_reason(&status)
-            };
-            match reason {
-                Some(reason) => DesktopUnaryError::new(reason, retryable).with_reason_metadata(
-                    crate::grpc_status::desktop_runtime_reason_metadata(&status),
-                ),
-                None => match status.code() {
-                    tonic::Code::Unavailable
-                    | tonic::Code::DeadlineExceeded
-                    | tonic::Code::Cancelled => {
-                        DesktopUnaryError::new("runtime-service-unavailable", retryable)
-                    }
-                    _ => DesktopUnaryError::new(
-                        crate::grpc_status::RUNTIME_SERVICE_ERROR_UNCLASSIFIED,
-                        retryable,
-                    )
-                    .with_reason_metadata(
-                        crate::grpc_status::unclassified_status_metadata(&status),
-                    ),
-                },
-            }
-        })?;
+        .map_err(|status| runtime_status_error(status, bundled_avatar))?;
     Ok(response.into_inner())
+}
+
+pub(crate) fn runtime_status_error(
+    status: tonic::Status,
+    bundled_avatar: bool,
+) -> DesktopUnaryError {
+    let retryable = matches!(
+        status.code(),
+        tonic::Code::Unavailable
+            | tonic::Code::DeadlineExceeded
+            | tonic::Code::Cancelled
+            | tonic::Code::ResourceExhausted
+    );
+    let reason = if bundled_avatar {
+        crate::grpc_status::bundled_avatar_runtime_reason(&status)
+    } else {
+        crate::grpc_status::runtime_reason(&status)
+    };
+    match reason {
+        Some(reason) => DesktopUnaryError::new(reason, retryable)
+            .with_reason_metadata(crate::grpc_status::desktop_runtime_reason_metadata(&status)),
+        None => match status.code() {
+            tonic::Code::Unavailable | tonic::Code::DeadlineExceeded | tonic::Code::Cancelled => {
+                DesktopUnaryError::new("runtime-service-unavailable", retryable)
+            }
+            _ => DesktopUnaryError::new(
+                crate::grpc_status::RUNTIME_SERVICE_ERROR_UNCLASSIFIED,
+                retryable,
+            )
+            .with_reason_metadata(crate::grpc_status::unclassified_status_metadata(&status)),
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_typed_owner_reason_keeps_transport_fail_closed() {
+        for code in [tonic::Code::InvalidArgument, tonic::Code::Internal] {
+            let error = runtime_status_error(tonic::Status::new(code, "private failure"), false);
+            assert_eq!(error.reason_code(), "runtime-service-error-unclassified");
+            assert_eq!(
+                error.reason_metadata().get("grpc_status_code"),
+                Some(&(code as i32).to_string())
+            );
+            assert!(!error
+                .reason_metadata()
+                .values()
+                .any(|value| value.contains("private")));
+        }
+        for code in [
+            tonic::Code::Unavailable,
+            tonic::Code::DeadlineExceeded,
+            tonic::Code::Cancelled,
+        ] {
+            let error = runtime_status_error(tonic::Status::new(code, "private failure"), false);
+            assert_eq!(error.reason_code(), "runtime-service-unavailable");
+            assert!(error.retryable());
+        }
+    }
 }

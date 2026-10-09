@@ -1,3 +1,4 @@
+import { isIntegrationOwnerReasonMetadata } from './integration-owner-errors.js';
 import {
   NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS,
   validateNimiLocalAppTextAnnotationResult,
@@ -3374,18 +3375,6 @@ function validateConversationVoice(value: unknown): NimiElectronLocalAppRecord {
   }) as NimiElectronLocalAppRecord;
 }
 
-const INTEGRATION_CONNECTION_ERROR_REASONS: ReadonlySet<string> = new Set([
-  'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED',
-  'INTEGRATION_TELEGRAM_VERIFICATION_REQUIRED',
-  'INTEGRATION_TELEGRAM_IDENTITY_INVALID',
-  'INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT',
-  'INTEGRATION_NEW_TARGET_REQUIRED',
-  'INTEGRATION_CREDENTIAL_UNAVAILABLE',
-  'INTEGRATION_CUSTODY_UNAVAILABLE',
-  'INTEGRATION_PROVIDER_REJECTED',
-  'INTEGRATION_DISCOVERY_FAILED',
-  'INTEGRATION_ENDPOINT_INVALID',
-]);
 
 function validateReasonMetadata(value: unknown, reasonCode: string): Readonly<Record<string, string>> {
   if (value === undefined) return {};
@@ -3395,8 +3384,7 @@ function validateReasonMetadata(value: unknown, reasonCode: string): Readonly<Re
   const metadata: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (key === 'integration_reason') {
-      if (['local-app-operation-unavailable', 'local-app-owner-unavailable'].includes(reasonCode)
-        && typeof entry === 'string' && INTEGRATION_CONNECTION_ERROR_REASONS.has(entry)) metadata[key] = entry;
+      if (isIntegrationOwnerReasonMetadata(reasonCode, entry)) metadata[key] = entry;
       continue;
     }
     if (!ADMITTED_REASON_METADATA_KEYS.has(key)

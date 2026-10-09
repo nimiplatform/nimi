@@ -170,6 +170,8 @@ func New(o Options) (*Service, error) {
 	}
 	return s, nil
 }
+
+// @nimi-authority: rule.nimi.runtime.protected-session.r018
 func failure(code codes.Code, message string) error {
 	// These are operation-owner failures, not loss of the consumer's protected
 	// transport. Typed reasons keep a provider outage or configuration conflict
@@ -178,7 +180,8 @@ func failure(code codes.Code, message string) error {
 	switch code {
 	case codes.Unavailable, codes.DeadlineExceeded:
 		return grpcerr.WithReasonCodeOptions(code, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE, options)
-	case codes.FailedPrecondition, codes.AlreadyExists:
+	case codes.InvalidArgument, codes.NotFound, codes.PermissionDenied,
+		codes.ResourceExhausted, codes.Canceled, codes.FailedPrecondition, codes.AlreadyExists:
 		return grpcerr.WithReasonCodeOptions(code, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, options)
 	default:
 		return status.Error(code, message)

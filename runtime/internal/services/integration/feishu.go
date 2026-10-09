@@ -248,6 +248,9 @@ func (s *Service) executeFeishu(ctx context.Context, t target, op *runtimev1.Int
 	default:
 		return "", notDispatched, adapterError("INTEGRATION_OPERATION_UNSUPPORTED")
 	}
+	if err := validateFeishuMessageRequest(request, msgType); err != nil {
+		return "", notDispatched, err
+	}
 	if err := s.admitExternalPhase(call); err != nil {
 		return "", notDispatched, err
 	}
@@ -275,6 +278,21 @@ func (s *Service) executeFeishu(ctx context.Context, t target, op *runtimev1.Int
 		confirmation = "provider-accepted"
 	}
 	return schemaJSON(map[string]string{"confirmation": confirmation, "messageId": messageID}), providerConfirmed, nil
+}
+
+// The pinned official SDK documents create/reply text at 150 KiB and cards
+// at 30 KiB; PUT text is 150 KiB and PATCH cards are 30 KiB independently.
+// Count the serialized platform request, including UTF-8 and outer escaping.
+func validateFeishuMessageRequest(request *larkcore.ApiReq, msgType string) error {
+	limit := 150 * 1024
+	if msgType == "interactive" {
+		limit = 30 * 1024
+	}
+	data, err := json.Marshal(request.Body)
+	if err != nil || len(data) > limit {
+		return adapterError("INTEGRATION_FEISHU_MESSAGE_TOO_LARGE")
+	}
+	return nil
 }
 
 func (s *Service) feishuContent(c *invocation, t target, secret, token string, body nativeBody) (string, string, error) {

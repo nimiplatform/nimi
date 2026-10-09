@@ -449,6 +449,7 @@ fn status_is_retryable(code: Code) -> bool {
 }
 
 // @nimi-authority: rule.nimi.runtime.integration.fixed-operations
+// @nimi-authority: rule.nimi.runtime.protected-session.r018
 fn integration_reason_metadata(info: &GoogleRpcErrorInfo) -> Option<&str> {
     if info.domain != ERROR_INFO_DOMAIN
         || !matches!(
@@ -461,7 +462,69 @@ fn integration_reason_metadata(info: &GoogleRpcErrorInfo) -> Option<&str> {
     let value = info.metadata.get("integration_reason")?;
     matches!(
         value.as_str(),
-        "INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED"
+        "INTEGRATION_ACCESS_DENIED"
+            | "INTEGRATION_ADAPTER_NOT_READY"
+            | "INTEGRATION_ADAPTER_UNSUPPORTED"
+            | "INTEGRATION_AUDIT_UNAVAILABLE"
+            | "INTEGRATION_CALL_LIMIT"
+            | "INTEGRATION_CALL_NOT_FOUND"
+            | "INTEGRATION_CALL_RECORD_UNAVAILABLE"
+            | "INTEGRATION_CANCELED"
+            | "INTEGRATION_COMPLETION_NOT_ACCEPTED"
+            | "INTEGRATION_CONFIGURATION_CHANGED"
+            | "INTEGRATION_CONFIGURATION_INVALID"
+            | "INTEGRATION_CONSUMER_NOT_FOUND"
+            | "INTEGRATION_CREDENTIAL_EXPIRED"
+            | "INTEGRATION_ERROR_BOUNDS"
+            | "INTEGRATION_EXECUTOR_FAILED"
+            | "INTEGRATION_FEISHU_IDENTITY_INVALID"
+            | "INTEGRATION_FEISHU_PROVIDER_REJECTED"
+            | "INTEGRATION_FEISHU_REGISTRATION_DENIED"
+            | "INTEGRATION_FEISHU_REGISTRATION_INVALID"
+            | "INTEGRATION_FEISHU_REGISTRATION_REJECTED"
+            | "INTEGRATION_FEISHU_REQUEST_FAILED"
+            | "INTEGRATION_FEISHU_SETUP_REQUIRED"
+            | "INTEGRATION_IDENTITY_ALREADY_CONNECTED"
+            | "INTEGRATION_IDENTITY_UNVERIFIED"
+            | "INTEGRATION_INPUT_INVALID"
+            | "INTEGRATION_JSON_INVALID"
+            | "INTEGRATION_MANAGEMENT_DENIED"
+            | "INTEGRATION_NETWORK_FAILED"
+            | "INTEGRATION_ONEBOT_AUTH_REQUIRED"
+            | "INTEGRATION_ONEBOT_IDENTITY_INVALID"
+            | "INTEGRATION_OPERATION_INVALID"
+            | "INTEGRATION_OPERATION_NOT_FOUND"
+            | "INTEGRATION_OPERATIONS_BOUNDS"
+            | "INTEGRATION_PAGE_LIMIT"
+            | "INTEGRATION_PAYLOAD_BOUNDS"
+            | "INTEGRATION_PERMISSION_INVALID"
+            | "INTEGRATION_PERMISSION_NOT_FOUND"
+            | "INTEGRATION_PERMISSION_REQUIRED"
+            | "INTEGRATION_PERMISSION_UNAVAILABLE"
+            | "INTEGRATION_PROVIDER_ALREADY_ACTIVE"
+            | "INTEGRATION_PROVIDER_BEHAVIOR_UNSUPPORTED"
+            | "INTEGRATION_PROVIDER_CONTRACT_CHANGED"
+            | "INTEGRATION_PROVIDER_INPUT_INVALID"
+            | "INTEGRATION_PROVIDER_NOT_FOUND"
+            | "INTEGRATION_PROVIDER_TARGET"
+            | "INTEGRATION_PROVIDER_UNAVAILABLE"
+            | "INTEGRATION_QQ_SECRET_REQUIRED"
+            | "INTEGRATION_RATE_LIMITED"
+            | "INTEGRATION_RECEIVER_DRAINING"
+            | "INTEGRATION_RECEIVER_UNAVAILABLE"
+            | "INTEGRATION_REGISTRATIONS_UNAVAILABLE"
+            | "INTEGRATION_SCHEMA_INVALID"
+            | "INTEGRATION_SCHEMA_MISMATCH"
+            | "INTEGRATION_SCOPE_ENDED"
+            | "INTEGRATION_SETUP_EXPIRED"
+            | "INTEGRATION_SETUP_LIMIT"
+            | "INTEGRATION_SETUP_NOT_AWAITING_INPUT"
+            | "INTEGRATION_SETUP_NOT_FOUND"
+            | "INTEGRATION_SETUP_STOPPED"
+            | "INTEGRATION_TARGET_NOT_FOUND"
+            | "INTEGRATION_TARGET_UNAVAILABLE"
+            | "INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED"
+            | "INTEGRATION_TELEGRAM_CONFIGURATION_INVALID"
             | "INTEGRATION_TELEGRAM_VERIFICATION_REQUIRED"
             | "INTEGRATION_TELEGRAM_IDENTITY_INVALID"
             | "INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT"
@@ -471,6 +534,14 @@ fn integration_reason_metadata(info: &GoogleRpcErrorInfo) -> Option<&str> {
             | "INTEGRATION_PROVIDER_REJECTED"
             | "INTEGRATION_DISCOVERY_FAILED"
             | "INTEGRATION_ENDPOINT_INVALID"
+            | "INTEGRATION_TIMEOUT"
+            | "INTEGRATION_UNAVAILABLE"
+            | "INTEGRATION_WAIT_LIMIT"
+            | "INTEGRATION_WEIXIN_IDENTITY_INVALID"
+            | "INTEGRATION_WEIXIN_PROVIDER_REJECTED"
+            | "INTEGRATION_WEIXIN_QR_INVALID"
+            | "INTEGRATION_WEIXIN_QR_REJECTED"
+            | "INTEGRATION_WEIXIN_SETUP_REQUIRED"
     )
     .then_some(value.as_str())
 }
@@ -512,6 +583,57 @@ mod tests {
             assert_eq!(error.reason_code(), expected);
             assert_eq!(error.reason_metadata(), &metadata);
             assert!(!error.to_string().contains("private"));
+        }
+    }
+
+    #[test]
+    fn go_invalid_configuration_status_reaches_actual_desktop_and_app_carriers() {
+        use base64::Engine;
+        let wire = base64::engine::general_purpose::STANDARD
+            .decode(include_str!("../testdata/integration-invalid-configuration-status.b64").trim())
+            .unwrap();
+        let decoded = GoogleRpcStatus::decode(wire.as_slice()).unwrap();
+        assert_eq!(decoded.code, Code::InvalidArgument as i32);
+        let status = Status::with_details(Code::InvalidArgument, decoded.message, wire.into());
+        let metadata = BTreeMap::from([(
+            "integration_reason".to_string(),
+            "INTEGRATION_CONFIGURATION_INVALID".to_string(),
+        )]);
+        let desktop: crate::DesktopFirstPartyProductError =
+            crate::desktop_unary::runtime_status_error(status.clone(), false).into();
+        assert_eq!(desktop.reason_code(), "LOCAL_APP_OPERATION_UNAVAILABLE");
+        assert_eq!(desktop.reason_metadata(), &metadata);
+        assert!(!desktop.retryable());
+        let app = local_app_error_from_status(status);
+        assert_eq!(app.reason_code(), LocalAppReasonCode::OperationUnavailable);
+        assert_eq!(app.reason_metadata(), &metadata);
+    }
+
+    #[test]
+    fn integration_input_resource_and_stop_refusals_keep_bounded_owner_metadata() {
+        for (code, value) in [
+            (Code::InvalidArgument, "INTEGRATION_INPUT_INVALID"),
+            (Code::NotFound, "INTEGRATION_TARGET_NOT_FOUND"),
+            (Code::PermissionDenied, "INTEGRATION_PERMISSION_REQUIRED"),
+            (Code::ResourceExhausted, "INTEGRATION_SETUP_LIMIT"),
+            (Code::Cancelled, "INTEGRATION_SETUP_STOPPED"),
+        ] {
+            let status = integration_status(
+                ERROR_INFO_DOMAIN,
+                "LOCAL_APP_OPERATION_UNAVAILABLE",
+                value,
+                code,
+            );
+            let desktop = crate::desktop_unary::runtime_status_error(status.clone(), false);
+            assert_eq!(desktop.reason_code(), "LOCAL_APP_OPERATION_UNAVAILABLE");
+            assert_eq!(
+                desktop.reason_metadata(),
+                &BTreeMap::from([("integration_reason".to_string(), value.to_string())])
+            );
+            let app = local_app_error_from_status(status);
+            assert_eq!(app.reason_code(), LocalAppReasonCode::OperationUnavailable);
+            assert_eq!(app.reason_metadata(), desktop.reason_metadata());
+            assert!(!desktop.reason_metadata().contains_key("provider_message"));
         }
     }
 
