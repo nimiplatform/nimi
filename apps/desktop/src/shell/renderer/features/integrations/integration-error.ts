@@ -3,6 +3,8 @@
 const connectionReasons = new Set([
   'INTEGRATION_ADAPTER_NOT_READY',
   'INTEGRATION_CONFIGURATION_CHANGED',
+  'INTEGRATION_CONFIGURATION_INVALID',
+  'INTEGRATION_INPUT_INVALID',
   'INTEGRATION_IDENTITY_ALREADY_CONNECTED',
   'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED',
   'INTEGRATION_TELEGRAM_VERIFICATION_REQUIRED',
@@ -37,4 +39,11 @@ export function integrationErrorCode(cause: unknown): string | undefined {
   const reason = error.details?.reasonMetadata?.integration_reason;
   if (typeof reason === 'string' && connectionReasons.has(reason)) return reason;
   return undefined;
+}
+
+export function integrationErrorTranslationKey(code: string, adapter: string): string {
+  if (code === 'INTEGRATION_INPUT_INVALID' && adapter === 'weixin') return 'Integrations.verificationInvalid';
+  return code === 'INTEGRATION_CONFIGURATION_INVALID' && adapter === 'onebot-v11'
+    ? 'Integrations.configurationInvalidOnebot'
+    : `Integrations.errors.${code}`;
 }

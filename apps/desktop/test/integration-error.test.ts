@@ -8,6 +8,7 @@ test('a native operation-unavailable error retains the concrete connection decis
   });
   assert.equal(integrationErrorCode(error), 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED');
   assert.equal(integrationErrorCode({ details: { reasonMetadata: { integration_reason: 'INTEGRATION_IDENTITY_ALREADY_CONNECTED' } } }), 'INTEGRATION_IDENTITY_ALREADY_CONNECTED');
+  assert.equal(integrationErrorCode({ details: { reasonMetadata: { integration_reason: 'INTEGRATION_CONFIGURATION_INVALID' } } }), 'INTEGRATION_CONFIGURATION_INVALID');
   assert.equal(integrationErrorCode({ details: { reasonMetadata: { integration_reason: 'INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT' } } }), 'INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT');
 });
 
