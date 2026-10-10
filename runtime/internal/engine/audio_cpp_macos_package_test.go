@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -70,8 +71,19 @@ func TestAudioCppMacArchiveAdmitsOnlyExecutableAndLicense(t *testing.T) {
 				t.Fatalf("unexpected admitted files: %v %v", files, err)
 			}
 			info, err := os.Stat(filepath.Join(dest, "audiocpp_cli"))
-			if err != nil || info.Mode().Perm() != 0755 {
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Windows represents only the read-only mode bit. Actual Unix
+			// execution permission remains an assertion on a Unix test Host.
+			if runtime.GOOS != "windows" && info.Mode().Perm() != 0755 {
 				t.Fatal("upstream CLI mode was not materialized")
+			}
+			for _, name := range identity.AdmittedFiles {
+				content, err := os.ReadFile(filepath.Join(dest, name))
+				if err != nil || string(content) != "owned" {
+					t.Fatalf("archive contents were not retained: %s: %v", name, err)
+				}
 			}
 		})
 	}
