@@ -942,6 +942,7 @@ type ExecutionResubmitDisposition string
 const (
 	EXECUTIONRESUBMITDISPOSITIONUNSPECIFIED       ExecutionResubmitDisposition = "EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED"
 	EXECUTIONRESUBMITDISPOSITIONCALLERMAYRESUBMIT ExecutionResubmitDisposition = "EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT"
+	EXECUTIONRESUBMITDISPOSITIONOUTCOMEUNCERTAIN  ExecutionResubmitDisposition = "EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN"
 )
 
 type ExternalPrincipalType string
@@ -1895,6 +1896,11 @@ const (
 	APPACTIVITYAGENTUNAVAILABLE                     ReasonCode = "APP_ACTIVITY_AGENT_UNAVAILABLE"
 	APPACTIVITYUNAVAILABLE                          ReasonCode = "APP_ACTIVITY_UNAVAILABLE"
 	APPACTIVITYOPENREQUESTUNAVAILABLE               ReasonCode = "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE"
+	AIJOBCAPACITYEXCEEDED                           ReasonCode = "AI_JOB_CAPACITY_EXCEEDED"
+	AIEXECUTIONRESOURCELIMITEXCEEDED                ReasonCode = "AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED"
+	AIRESULTUNAVAILABLE                             ReasonCode = "AI_RESULT_UNAVAILABLE"
+	AIPROVIDERTASKCANCELED                          ReasonCode = "AI_PROVIDER_TASK_CANCELED"
+	AIPROVIDERTASKEXPIRED                           ReasonCode = "AI_PROVIDER_TASK_EXPIRED"
 )
 
 type ReasoningActivation string
@@ -1986,6 +1992,25 @@ const (
 	SCENARIOJOBSTATUSFAILED      ScenarioJobStatus = "SCENARIO_JOB_STATUS_FAILED"
 	SCENARIOJOBSTATUSCANCELED    ScenarioJobStatus = "SCENARIO_JOB_STATUS_CANCELED"
 	SCENARIOJOBSTATUSTIMEOUT     ScenarioJobStatus = "SCENARIO_JOB_STATUS_TIMEOUT"
+)
+
+type ScenarioJobStopOutcome string
+
+const (
+	SCENARIOJOBSTOPOUTCOMEUNSPECIFIED   ScenarioJobStopOutcome = "SCENARIO_JOB_STOP_OUTCOME_UNSPECIFIED"
+	SCENARIOJOBSTOPOUTCOMENOTDISPATCHED ScenarioJobStopOutcome = "SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED"
+	SCENARIOJOBSTOPOUTCOMECONFIRMED     ScenarioJobStopOutcome = "SCENARIO_JOB_STOP_OUTCOME_CONFIRMED"
+	SCENARIOJOBSTOPOUTCOMEUNCONFIRMED   ScenarioJobStopOutcome = "SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED"
+)
+
+type ScenarioJobSubmissionOutcome string
+
+const (
+	SCENARIOJOBSUBMISSIONOUTCOMEUNSPECIFIED   ScenarioJobSubmissionOutcome = "SCENARIO_JOB_SUBMISSION_OUTCOME_UNSPECIFIED"
+	SCENARIOJOBSUBMISSIONOUTCOMENOTDISPATCHED ScenarioJobSubmissionOutcome = "SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED"
+	SCENARIOJOBSUBMISSIONOUTCOMEUNKNOWN       ScenarioJobSubmissionOutcome = "SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN"
+	SCENARIOJOBSUBMISSIONOUTCOMEACCEPTED      ScenarioJobSubmissionOutcome = "SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED"
+	SCENARIOJOBSUBMISSIONOUTCOMEREJECTED      ScenarioJobSubmissionOutcome = "SCENARIO_JOB_SUBMISSION_OUTCOME_REJECTED"
 )
 
 type ScenarioType string
@@ -4298,19 +4323,17 @@ type ErrorInfo struct {
 }
 
 type ExecuteLocalAppScenarioRequest struct {
-	TextEmbed     *LocalAppTextEmbedScenarioSpec     `json:"text_embed,omitempty"`
-	ImageGenerate *LocalAppImageGenerateScenarioSpec `json:"image_generate,omitempty"`
-	TextGenerate  *StreamLocalAppTextTurnRequest     `json:"text_generate,omitempty"`
-	TextDecide    *TextDecideScenarioSpec            `json:"text_decide,omitempty"`
-	TimeoutMs     int32                              `json:"timeout_ms,omitempty"`
+	TextEmbed    *LocalAppTextEmbedScenarioSpec `json:"text_embed,omitempty"`
+	TextGenerate *StreamLocalAppTextTurnRequest `json:"text_generate,omitempty"`
+	TextDecide   *TextDecideScenarioSpec        `json:"text_decide,omitempty"`
+	TimeoutMs    int32                          `json:"timeout_ms,omitempty"`
 }
 
 type ExecuteLocalAppScenarioResponse struct {
-	TextEmbed     *LocalAppTextEmbedOutput     `json:"text_embed,omitempty"`
-	ImageGenerate *LocalAppImageGenerateOutput `json:"image_generate,omitempty"`
-	TraceId       string                       `json:"trace_id,omitempty"`
-	TextGenerate  *LocalAppTextGenerateOutput  `json:"text_generate,omitempty"`
-	TextDecide    *TextDecisionResult          `json:"text_decide,omitempty"`
+	TextEmbed    *LocalAppTextEmbedOutput    `json:"text_embed,omitempty"`
+	TraceId      string                      `json:"trace_id,omitempty"`
+	TextGenerate *LocalAppTextGenerateOutput `json:"text_generate,omitempty"`
+	TextDecide   *TextDecisionResult         `json:"text_decide,omitempty"`
 }
 
 type ExecuteScenarioRequest struct {
@@ -4714,10 +4737,11 @@ type GetLocalAppScenarioJobRequest struct {
 }
 
 type GetLocalAppScenarioJobResponse struct {
-	Job            *LocalAppScenarioJob `json:"job,omitempty"`
-	Asset          *LocalAppVoiceAsset  `json:"asset,omitempty"`
-	VoiceReference *VoiceReference      `json:"voice_reference,omitempty"`
-	VisionLocate   *VisionLocateResult  `json:"vision_locate,omitempty"`
+	Job              *LocalAppScenarioJob         `json:"job,omitempty"`
+	Asset            *LocalAppVoiceAsset          `json:"asset,omitempty"`
+	VoiceReference   *VoiceReference              `json:"voice_reference,omitempty"`
+	VisionLocate     *VisionLocateResult          `json:"vision_locate,omitempty"`
+	ObservationIssue *ScenarioJobObservationIssue `json:"observation_issue,omitempty"`
 }
 
 type GetLocalAppSharedLocalAgentAIConfigRequest struct {
@@ -4801,10 +4825,11 @@ type GetScenarioJobRequest struct {
 }
 
 type GetScenarioJobResponse struct {
-	Job            *ScenarioJob        `json:"job,omitempty"`
-	Asset          *VoiceAsset         `json:"asset,omitempty"`
-	VoiceReference *VoiceReference     `json:"voice_reference,omitempty"`
-	VisionLocate   *VisionLocateResult `json:"vision_locate,omitempty"`
+	Job              *ScenarioJob                 `json:"job,omitempty"`
+	Asset            *VoiceAsset                  `json:"asset,omitempty"`
+	VoiceReference   *VoiceReference              `json:"voice_reference,omitempty"`
+	VisionLocate     *VisionLocateResult          `json:"vision_locate,omitempty"`
+	ObservationIssue *ScenarioJobObservationIssue `json:"observation_issue,omitempty"`
 }
 
 type GetSharedLocalAgentAIConfigRequest struct {
@@ -6272,10 +6297,6 @@ type LocalAppEmbodimentVoiceTiming struct {
 	CorrelationRef   string                       `json:"correlation_ref,omitempty"`
 }
 
-type LocalAppImageGenerateOutput struct {
-	Artifacts []LocalAppScenarioArtifact `json:"artifacts,omitempty"`
-}
-
 type LocalAppImageGenerateScenarioSpec struct {
 	Prompt                   string   `json:"prompt,omitempty"`
 	NegativePrompt           string   `json:"negative_prompt,omitempty"`
@@ -6340,28 +6361,30 @@ type LocalAppScenarioArtifact struct {
 }
 
 type LocalAppScenarioJob struct {
-	JobId                string                     `json:"job_id,omitempty"`
-	ScenarioType         ScenarioType               `json:"scenario_type,omitempty"`
-	Status               ScenarioJobStatus          `json:"status,omitempty"`
-	ProgressPercent      int32                      `json:"progress_percent,omitempty"`
-	ProgressCurrentStep  int32                      `json:"progress_current_step,omitempty"`
-	ProgressTotalSteps   int32                      `json:"progress_total_steps,omitempty"`
-	ReasonCode           ReasonCode                 `json:"reason_code,omitempty"`
-	ReasonDetail         string                     `json:"reason_detail,omitempty"`
-	Artifacts            []LocalAppScenarioArtifact `json:"artifacts,omitempty"`
-	TraceId              string                     `json:"trace_id,omitempty"`
-	CreatedAt            string                     `json:"created_at,omitempty"`
-	UpdatedAt            string                     `json:"updated_at,omitempty"`
-	TranscriptionText    string                     `json:"transcription_text,omitempty"`
-	Interruption         *ExecutionInterruption     `json:"interruption,omitempty"`
-	VideoFaceSwapSummary *VideoFaceSwapSummary      `json:"video_face_swap_summary,omitempty"`
-	Transcription        *SpeechTranscript          `json:"transcription,omitempty"`
-	AudioSeparation      *AudioSeparation           `json:"audio_separation,omitempty"`
-	TextAnnotation       *TextAnnotationResult      `json:"text_annotation,omitempty"`
-	RecoveryExpiresAt    string                     `json:"recovery_expires_at,omitempty"`
-	MusicGeneration      *MusicGeneration           `json:"music_generation,omitempty"`
-	MusicTranscription   *MusicTranscription        `json:"music_transcription,omitempty"`
-	VoiceConversion      *VoiceConversion           `json:"voice_conversion,omitempty"`
+	JobId                string                       `json:"job_id,omitempty"`
+	ScenarioType         ScenarioType                 `json:"scenario_type,omitempty"`
+	Status               ScenarioJobStatus            `json:"status,omitempty"`
+	ProgressPercent      int32                        `json:"progress_percent,omitempty"`
+	ProgressCurrentStep  int32                        `json:"progress_current_step,omitempty"`
+	ProgressTotalSteps   int32                        `json:"progress_total_steps,omitempty"`
+	ReasonCode           ReasonCode                   `json:"reason_code,omitempty"`
+	ReasonDetail         string                       `json:"reason_detail,omitempty"`
+	Artifacts            []LocalAppScenarioArtifact   `json:"artifacts,omitempty"`
+	TraceId              string                       `json:"trace_id,omitempty"`
+	CreatedAt            string                       `json:"created_at,omitempty"`
+	UpdatedAt            string                       `json:"updated_at,omitempty"`
+	TranscriptionText    string                       `json:"transcription_text,omitempty"`
+	Interruption         *ExecutionInterruption       `json:"interruption,omitempty"`
+	VideoFaceSwapSummary *VideoFaceSwapSummary        `json:"video_face_swap_summary,omitempty"`
+	Transcription        *SpeechTranscript            `json:"transcription,omitempty"`
+	AudioSeparation      *AudioSeparation             `json:"audio_separation,omitempty"`
+	TextAnnotation       *TextAnnotationResult        `json:"text_annotation,omitempty"`
+	RecoveryExpiresAt    string                       `json:"recovery_expires_at,omitempty"`
+	MusicGeneration      *MusicGeneration             `json:"music_generation,omitempty"`
+	MusicTranscription   *MusicTranscription          `json:"music_transcription,omitempty"`
+	VoiceConversion      *VoiceConversion             `json:"voice_conversion,omitempty"`
+	SubmissionOutcome    ScenarioJobSubmissionOutcome `json:"submission_outcome,omitempty"`
+	StopOutcome          ScenarioJobStopOutcome       `json:"stop_outcome,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -8162,6 +8185,8 @@ type ScenarioJob struct {
 	MusicGeneration        *MusicGeneration               `json:"music_generation,omitempty"`
 	MusicTranscription     *MusicTranscription            `json:"music_transcription,omitempty"`
 	VoiceConversion        *VoiceConversion               `json:"voice_conversion,omitempty"`
+	SubmissionOutcome      ScenarioJobSubmissionOutcome   `json:"submission_outcome,omitempty"`
+	StopOutcome            ScenarioJobStopOutcome         `json:"stop_outcome,omitempty"`
 }
 
 type ScenarioJobEvent struct {
@@ -8170,6 +8195,11 @@ type ScenarioJobEvent struct {
 	TraceId   string               `json:"trace_id,omitempty"`
 	Timestamp string               `json:"timestamp,omitempty"`
 	Job       *ScenarioJob         `json:"job,omitempty"`
+}
+
+type ScenarioJobObservationIssue struct {
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	ObservedAt string     `json:"observed_at,omitempty"`
 }
 
 type ScenarioOutput struct {

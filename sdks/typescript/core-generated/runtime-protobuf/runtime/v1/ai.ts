@@ -513,6 +513,8 @@ export interface ScenarioRequestHead {
      */
     subjectUserId: string;
     /**
+     * SYNC/STREAM technical call budget; ASYNC_JOB admits absent/0 only.
+     *
      * @generated from protobuf field: int32 timeout_ms = 6
      */
     timeoutMs: number;
@@ -2864,12 +2866,6 @@ export interface ExecuteLocalAppScenarioRequest {
          */
         textEmbed: LocalAppTextEmbedScenarioSpec;
     } | {
-        oneofKind: "imageGenerate";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.LocalAppImageGenerateScenarioSpec image_generate = 2
-         */
-        imageGenerate: LocalAppImageGenerateScenarioSpec;
-    } | {
         oneofKind: "textGenerate";
         /**
          * Reuse the single text-turn input for synchronous text generation.
@@ -2915,15 +2911,6 @@ export interface LocalAppTextEmbedOutput {
     usage?: UsageStats;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAppImageGenerateOutput
- */
-export interface LocalAppImageGenerateOutput {
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppScenarioArtifact artifacts = 1
-     */
-    artifacts: LocalAppScenarioArtifact[];
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppTextGenerateOutput
  */
 export interface LocalAppTextGenerateOutput {
@@ -2951,12 +2938,6 @@ export interface ExecuteLocalAppScenarioResponse {
          * @generated from protobuf field: nimi.runtime.v1.LocalAppTextEmbedOutput text_embed = 1
          */
         textEmbed: LocalAppTextEmbedOutput;
-    } | {
-        oneofKind: "imageGenerate";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.LocalAppImageGenerateOutput image_generate = 2
-         */
-        imageGenerate: LocalAppImageGenerateOutput;
     } | {
         oneofKind: "textGenerate";
         /**
@@ -3338,16 +3319,17 @@ export interface SubmitLocalAppScenarioJobRequest {
         oneofKind: undefined;
     };
     /**
-     * Canonical Job deadline in milliseconds. Zero keeps Runtime's
-     * capability-owned default; no other ScenarioRequestHead field is exposed.
+     * Withdrawn Job control: absent/0 only; every nonzero value is rejected
+     * before route/capture/dispatch. Never controls a technical call budget.
      *
-     * @generated from protobuf field: int32 timeout_ms = 9
+     * @deprecated
+     * @generated from protobuf field: int32 timeout_ms = 9 [deprecated = true]
      */
     timeoutMs: number;
     /**
-     * Optional owner-scoped identity for music generation, transcription or
-     * voice conversion. Reuse with different input is rejected; lookup never
-     * executes work.
+     * Optional owner-scoped action identity for every supported ASYNC_JOB.
+     * Different complete input conflicts; pure identity lookup never executes.
+     * This field alone does not extend result retention.
      *
      * @generated from protobuf field: string client_submission_id = 16
      */
@@ -3467,6 +3449,14 @@ export interface LocalAppScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.VoiceConversion voice_conversion = 22
      */
     voiceConversion?: VoiceConversion;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScenarioJobSubmissionOutcome submission_outcome = 23
+     */
+    submissionOutcome: ScenarioJobSubmissionOutcome;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome = 24
+     */
+    stopOutcome: ScenarioJobStopOutcome;
 }
 /**
  * Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -3549,6 +3539,10 @@ export interface GetLocalAppScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.VisionLocateResult vision_locate = 4
      */
     visionLocate?: VisionLocateResult;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScenarioJobObservationIssue observation_issue = 5
+     */
+    observationIssue?: ScenarioJobObservationIssue;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CancelLocalAppScenarioJobRequest
@@ -4186,6 +4180,21 @@ export interface StreamScenarioEvent {
     };
 }
 /**
+ * Response-local failed observation, not a Job failure or freshness guarantee.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ScenarioJobObservationIssue
+ */
+export interface ScenarioJobObservationIssue {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 1
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp observed_at = 2
+     */
+    observedAt?: Timestamp;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ScenarioArtifact
  */
 export interface ScenarioArtifact {
@@ -4404,6 +4413,16 @@ export interface ScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.VoiceConversion voice_conversion = 33
      */
     voiceConversion?: VoiceConversion;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScenarioJobSubmissionOutcome submission_outcome = 34
+     */
+    submissionOutcome: ScenarioJobSubmissionOutcome;
+    /**
+     * Present only for CANCELED, whether local Cancel or confirmed provider cancellation.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome = 35
+     */
+    stopOutcome: ScenarioJobStopOutcome;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -4487,6 +4506,10 @@ export interface GetScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.VisionLocateResult vision_locate = 4
      */
     visionLocate?: VisionLocateResult;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScenarioJobObservationIssue observation_issue = 5
+     */
+    observationIssue?: ScenarioJobObservationIssue;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CancelScenarioJobRequest
@@ -5223,7 +5246,13 @@ export enum ExecutionResubmitDisposition {
     /**
      * @generated from protobuf enum value: EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT = 1;
      */
-    CALLER_MAY_RESUBMIT = 1
+    CALLER_MAY_RESUBMIT = 1,
+    /**
+     * Original external execution may still have taken effect; never auto-retry.
+     *
+     * @generated from protobuf enum value: EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN = 2;
+     */
+    OUTCOME_UNCERTAIN = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.StreamEventType
@@ -5754,6 +5783,54 @@ export enum CanonicalChannelMode {
      * @generated from protobuf enum value: CANONICAL_CHANNEL_MODE_STEREO_TO_MONO = 3;
      */
     STEREO_TO_MONO = 3
+}
+/**
+ * CP-0 proposal: generic execution facts, never provider phases.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.ScenarioJobSubmissionOutcome
+ */
+export enum ScenarioJobSubmissionOutcome {
+    /**
+     * @generated from protobuf enum value: SCENARIO_JOB_SUBMISSION_OUTCOME_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED = 1;
+     */
+    NOT_DISPATCHED = 1,
+    /**
+     * @generated from protobuf enum value: SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN = 2;
+     */
+    UNKNOWN = 2,
+    /**
+     * @generated from protobuf enum value: SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED = 3;
+     */
+    ACCEPTED = 3,
+    /**
+     * @generated from protobuf enum value: SCENARIO_JOB_SUBMISSION_OUTCOME_REJECTED = 4;
+     */
+    REJECTED = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.ScenarioJobStopOutcome
+ */
+export enum ScenarioJobStopOutcome {
+    /**
+     * @generated from protobuf enum value: SCENARIO_JOB_STOP_OUTCOME_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED = 1;
+     */
+    NOT_DISPATCHED = 1,
+    /**
+     * @generated from protobuf enum value: SCENARIO_JOB_STOP_OUTCOME_CONFIRMED = 2;
+     */
+    CONFIRMED = 2,
+    /**
+     * @generated from protobuf enum value: SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED = 3;
+     */
+    UNCONFIRMED = 3
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioJobStatus
@@ -14261,7 +14338,6 @@ class ExecuteLocalAppScenarioRequest$Type extends MessageType<ExecuteLocalAppSce
     constructor() {
         super("nimi.runtime.v1.ExecuteLocalAppScenarioRequest", [
             { no: 1, name: "text_embed", kind: "message", oneof: "spec", T: () => LocalAppTextEmbedScenarioSpec },
-            { no: 2, name: "image_generate", kind: "message", oneof: "spec", T: () => LocalAppImageGenerateScenarioSpec },
             { no: 3, name: "text_generate", kind: "message", oneof: "spec", T: () => StreamLocalAppTextTurnRequest },
             { no: 4, name: "text_decide", kind: "message", oneof: "spec", T: () => TextDecideScenarioSpec },
             { no: 5, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
@@ -14284,12 +14360,6 @@ class ExecuteLocalAppScenarioRequest$Type extends MessageType<ExecuteLocalAppSce
                     message.spec = {
                         oneofKind: "textEmbed",
                         textEmbed: LocalAppTextEmbedScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).textEmbed)
-                    };
-                    break;
-                case /* nimi.runtime.v1.LocalAppImageGenerateScenarioSpec image_generate */ 2:
-                    message.spec = {
-                        oneofKind: "imageGenerate",
-                        imageGenerate: LocalAppImageGenerateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).imageGenerate)
                     };
                     break;
                 case /* nimi.runtime.v1.StreamLocalAppTextTurnRequest text_generate */ 3:
@@ -14322,9 +14392,6 @@ class ExecuteLocalAppScenarioRequest$Type extends MessageType<ExecuteLocalAppSce
         /* nimi.runtime.v1.LocalAppTextEmbedScenarioSpec text_embed = 1; */
         if (message.spec.oneofKind === "textEmbed")
             LocalAppTextEmbedScenarioSpec.internalBinaryWrite(message.spec.textEmbed, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAppImageGenerateScenarioSpec image_generate = 2; */
-        if (message.spec.oneofKind === "imageGenerate")
-            LocalAppImageGenerateScenarioSpec.internalBinaryWrite(message.spec.imageGenerate, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.StreamLocalAppTextTurnRequest text_generate = 3; */
         if (message.spec.oneofKind === "textGenerate")
             StreamLocalAppTextTurnRequest.internalBinaryWrite(message.spec.textGenerate, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
@@ -14407,53 +14474,6 @@ class LocalAppTextEmbedOutput$Type extends MessageType<LocalAppTextEmbedOutput> 
  */
 export const LocalAppTextEmbedOutput = new LocalAppTextEmbedOutput$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppImageGenerateOutput$Type extends MessageType<LocalAppImageGenerateOutput> {
-    constructor() {
-        super("nimi.runtime.v1.LocalAppImageGenerateOutput", [
-            { no: 1, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppScenarioArtifact }
-        ]);
-    }
-    create(value?: PartialMessage<LocalAppImageGenerateOutput>): LocalAppImageGenerateOutput {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.artifacts = [];
-        if (value !== undefined)
-            reflectionMergePartial<LocalAppImageGenerateOutput>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppImageGenerateOutput): LocalAppImageGenerateOutput {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.LocalAppScenarioArtifact artifacts */ 1:
-                    message.artifacts.push(LocalAppScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalAppImageGenerateOutput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.LocalAppScenarioArtifact artifacts = 1; */
-        for (let i = 0; i < message.artifacts.length; i++)
-            LocalAppScenarioArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppImageGenerateOutput
- */
-export const LocalAppImageGenerateOutput = new LocalAppImageGenerateOutput$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppTextGenerateOutput$Type extends MessageType<LocalAppTextGenerateOutput> {
     constructor() {
         super("nimi.runtime.v1.LocalAppTextGenerateOutput", [
@@ -14513,7 +14533,6 @@ class ExecuteLocalAppScenarioResponse$Type extends MessageType<ExecuteLocalAppSc
     constructor() {
         super("nimi.runtime.v1.ExecuteLocalAppScenarioResponse", [
             { no: 1, name: "text_embed", kind: "message", oneof: "output", T: () => LocalAppTextEmbedOutput },
-            { no: 2, name: "image_generate", kind: "message", oneof: "output", T: () => LocalAppImageGenerateOutput },
             { no: 4, name: "text_generate", kind: "message", oneof: "output", T: () => LocalAppTextGenerateOutput },
             { no: 5, name: "text_decide", kind: "message", oneof: "output", T: () => TextDecisionResult },
             { no: 3, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -14536,12 +14555,6 @@ class ExecuteLocalAppScenarioResponse$Type extends MessageType<ExecuteLocalAppSc
                     message.output = {
                         oneofKind: "textEmbed",
                         textEmbed: LocalAppTextEmbedOutput.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).textEmbed)
-                    };
-                    break;
-                case /* nimi.runtime.v1.LocalAppImageGenerateOutput image_generate */ 2:
-                    message.output = {
-                        oneofKind: "imageGenerate",
-                        imageGenerate: LocalAppImageGenerateOutput.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).imageGenerate)
                     };
                     break;
                 case /* nimi.runtime.v1.LocalAppTextGenerateOutput text_generate */ 4:
@@ -14574,9 +14587,6 @@ class ExecuteLocalAppScenarioResponse$Type extends MessageType<ExecuteLocalAppSc
         /* nimi.runtime.v1.LocalAppTextEmbedOutput text_embed = 1; */
         if (message.output.oneofKind === "textEmbed")
             LocalAppTextEmbedOutput.internalBinaryWrite(message.output.textEmbed, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAppImageGenerateOutput image_generate = 2; */
-        if (message.output.oneofKind === "imageGenerate")
-            LocalAppImageGenerateOutput.internalBinaryWrite(message.output.imageGenerate, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         /* string trace_id = 3; */
         if (message.traceId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.traceId);
@@ -15383,7 +15393,7 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                         audioVoiceConvert: AudioVoiceConvertScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).audioVoiceConvert)
                     };
                     break;
-                case /* int32 timeout_ms */ 9:
+                case /* int32 timeout_ms = 9 [deprecated = true] */ 9:
                     message.timeoutMs = reader.int32();
                     break;
                 case /* string client_submission_id */ 16:
@@ -15419,7 +15429,7 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* nimi.runtime.v1.LocalAppMusicGenerateJobSpec music_generate = 8; */
         if (message.spec.oneofKind === "musicGenerate")
             LocalAppMusicGenerateJobSpec.internalBinaryWrite(message.spec.musicGenerate, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* int32 timeout_ms = 9; */
+        /* int32 timeout_ms = 9 [deprecated = true]; */
         if (message.timeoutMs !== 0)
             writer.tag(9, WireType.Varint).int32(message.timeoutMs);
         /* nimi.runtime.v1.LocalAppWorldGenerateJobSpec world_generate = 10; */
@@ -15484,7 +15494,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
             { no: 19, name: "recovery_expires_at", kind: "message", T: () => Timestamp },
             { no: 20, name: "music_generation", kind: "message", T: () => MusicGeneration },
             { no: 21, name: "music_transcription", kind: "message", T: () => MusicTranscription },
-            { no: 22, name: "voice_conversion", kind: "message", T: () => VoiceConversion }
+            { no: 22, name: "voice_conversion", kind: "message", T: () => VoiceConversion },
+            { no: 23, name: "submission_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobSubmissionOutcome", ScenarioJobSubmissionOutcome, "SCENARIO_JOB_SUBMISSION_OUTCOME_"] },
+            { no: 24, name: "stop_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobStopOutcome", ScenarioJobStopOutcome, "SCENARIO_JOB_STOP_OUTCOME_"] }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioJob>): LocalAppScenarioJob {
@@ -15500,6 +15512,8 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         message.artifacts = [];
         message.traceId = "";
         message.transcriptionText = "";
+        message.submissionOutcome = 0;
+        message.stopOutcome = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAppScenarioJob>(this, message, value);
         return message;
@@ -15574,6 +15588,12 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
                     break;
                 case /* nimi.runtime.v1.VoiceConversion voice_conversion */ 22:
                     message.voiceConversion = VoiceConversion.internalBinaryRead(reader, reader.uint32(), options, message.voiceConversion);
+                    break;
+                case /* nimi.runtime.v1.ScenarioJobSubmissionOutcome submission_outcome */ 23:
+                    message.submissionOutcome = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome */ 24:
+                    message.stopOutcome = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -15653,6 +15673,12 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         /* nimi.runtime.v1.VoiceConversion voice_conversion = 22; */
         if (message.voiceConversion)
             VoiceConversion.internalBinaryWrite(message.voiceConversion, writer.tag(22, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ScenarioJobSubmissionOutcome submission_outcome = 23; */
+        if (message.submissionOutcome !== 0)
+            writer.tag(23, WireType.Varint).int32(message.submissionOutcome);
+        /* nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome = 24; */
+        if (message.stopOutcome !== 0)
+            writer.tag(24, WireType.Varint).int32(message.stopOutcome);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -15855,7 +15881,8 @@ class GetLocalAppScenarioJobResponse$Type extends MessageType<GetLocalAppScenari
             { no: 1, name: "job", kind: "message", T: () => LocalAppScenarioJob },
             { no: 2, name: "asset", kind: "message", T: () => LocalAppVoiceAsset },
             { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference },
-            { no: 4, name: "vision_locate", kind: "message", T: () => VisionLocateResult }
+            { no: 4, name: "vision_locate", kind: "message", T: () => VisionLocateResult },
+            { no: 5, name: "observation_issue", kind: "message", T: () => ScenarioJobObservationIssue }
         ]);
     }
     create(value?: PartialMessage<GetLocalAppScenarioJobResponse>): GetLocalAppScenarioJobResponse {
@@ -15881,6 +15908,9 @@ class GetLocalAppScenarioJobResponse$Type extends MessageType<GetLocalAppScenari
                 case /* nimi.runtime.v1.VisionLocateResult vision_locate */ 4:
                     message.visionLocate = VisionLocateResult.internalBinaryRead(reader, reader.uint32(), options, message.visionLocate);
                     break;
+                case /* nimi.runtime.v1.ScenarioJobObservationIssue observation_issue */ 5:
+                    message.observationIssue = ScenarioJobObservationIssue.internalBinaryRead(reader, reader.uint32(), options, message.observationIssue);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -15905,6 +15935,9 @@ class GetLocalAppScenarioJobResponse$Type extends MessageType<GetLocalAppScenari
         /* nimi.runtime.v1.VisionLocateResult vision_locate = 4; */
         if (message.visionLocate)
             VisionLocateResult.internalBinaryWrite(message.visionLocate, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ScenarioJobObservationIssue observation_issue = 5; */
+        if (message.observationIssue)
+            ScenarioJobObservationIssue.internalBinaryWrite(message.observationIssue, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -17856,6 +17889,60 @@ class StreamScenarioEvent$Type extends MessageType<StreamScenarioEvent> {
  */
 export const StreamScenarioEvent = new StreamScenarioEvent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ScenarioJobObservationIssue$Type extends MessageType<ScenarioJobObservationIssue> {
+    constructor() {
+        super("nimi.runtime.v1.ScenarioJobObservationIssue", [
+            { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 2, name: "observed_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<ScenarioJobObservationIssue>): ScenarioJobObservationIssue {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ScenarioJobObservationIssue>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScenarioJobObservationIssue): ScenarioJobObservationIssue {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 1:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp observed_at */ 2:
+                    message.observedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.observedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScenarioJobObservationIssue, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ReasonCode reason_code = 1; */
+        if (message.reasonCode !== 0)
+            writer.tag(1, WireType.Varint).int32(message.reasonCode);
+        /* google.protobuf.Timestamp observed_at = 2; */
+        if (message.observedAt)
+            Timestamp.internalBinaryWrite(message.observedAt, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ScenarioJobObservationIssue
+ */
+export const ScenarioJobObservationIssue = new ScenarioJobObservationIssue$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
     constructor() {
         super("nimi.runtime.v1.ScenarioArtifact", [
@@ -18055,7 +18142,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 30, name: "recovery_expires_at", kind: "message", T: () => Timestamp },
             { no: 31, name: "music_generation", kind: "message", T: () => MusicGeneration },
             { no: 32, name: "music_transcription", kind: "message", T: () => MusicTranscription },
-            { no: 33, name: "voice_conversion", kind: "message", T: () => VoiceConversion }
+            { no: 33, name: "voice_conversion", kind: "message", T: () => VoiceConversion },
+            { no: 34, name: "submission_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobSubmissionOutcome", ScenarioJobSubmissionOutcome, "SCENARIO_JOB_SUBMISSION_OUTCOME_"] },
+            { no: 35, name: "stop_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobStopOutcome", ScenarioJobStopOutcome, "SCENARIO_JOB_STOP_OUTCOME_"] }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -18077,6 +18166,8 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         message.progressCurrentStep = 0;
         message.progressTotalSteps = 0;
         message.transcriptionText = "";
+        message.submissionOutcome = 0;
+        message.stopOutcome = 0;
         if (value !== undefined)
             reflectionMergePartial<ScenarioJob>(this, message, value);
         return message;
@@ -18184,6 +18275,12 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                     break;
                 case /* nimi.runtime.v1.VoiceConversion voice_conversion */ 33:
                     message.voiceConversion = VoiceConversion.internalBinaryRead(reader, reader.uint32(), options, message.voiceConversion);
+                    break;
+                case /* nimi.runtime.v1.ScenarioJobSubmissionOutcome submission_outcome */ 34:
+                    message.submissionOutcome = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome */ 35:
+                    message.stopOutcome = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -18296,6 +18393,12 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* nimi.runtime.v1.VoiceConversion voice_conversion = 33; */
         if (message.voiceConversion)
             VoiceConversion.internalBinaryWrite(message.voiceConversion, writer.tag(33, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ScenarioJobSubmissionOutcome submission_outcome = 34; */
+        if (message.submissionOutcome !== 0)
+            writer.tag(34, WireType.Varint).int32(message.submissionOutcome);
+        /* nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome = 35; */
+        if (message.stopOutcome !== 0)
+            writer.tag(35, WireType.Varint).int32(message.stopOutcome);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -18523,7 +18626,8 @@ class GetScenarioJobResponse$Type extends MessageType<GetScenarioJobResponse> {
             { no: 1, name: "job", kind: "message", T: () => ScenarioJob },
             { no: 2, name: "asset", kind: "message", T: () => VoiceAsset },
             { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference },
-            { no: 4, name: "vision_locate", kind: "message", T: () => VisionLocateResult }
+            { no: 4, name: "vision_locate", kind: "message", T: () => VisionLocateResult },
+            { no: 5, name: "observation_issue", kind: "message", T: () => ScenarioJobObservationIssue }
         ]);
     }
     create(value?: PartialMessage<GetScenarioJobResponse>): GetScenarioJobResponse {
@@ -18549,6 +18653,9 @@ class GetScenarioJobResponse$Type extends MessageType<GetScenarioJobResponse> {
                 case /* nimi.runtime.v1.VisionLocateResult vision_locate */ 4:
                     message.visionLocate = VisionLocateResult.internalBinaryRead(reader, reader.uint32(), options, message.visionLocate);
                     break;
+                case /* nimi.runtime.v1.ScenarioJobObservationIssue observation_issue */ 5:
+                    message.observationIssue = ScenarioJobObservationIssue.internalBinaryRead(reader, reader.uint32(), options, message.observationIssue);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -18573,6 +18680,9 @@ class GetScenarioJobResponse$Type extends MessageType<GetScenarioJobResponse> {
         /* nimi.runtime.v1.VisionLocateResult vision_locate = 4; */
         if (message.visionLocate)
             VisionLocateResult.internalBinaryWrite(message.visionLocate, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ScenarioJobObservationIssue observation_issue = 5; */
+        if (message.observationIssue)
+            ScenarioJobObservationIssue.internalBinaryWrite(message.observationIssue, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

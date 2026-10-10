@@ -561,6 +561,15 @@ pub enum ReasonCode {
     AppActivityAgentUnavailable = 760,
     AppActivityUnavailable = 761,
     AppActivityOpenRequestUnavailable = 762,
+    /// Job owner count/serialized captured bytes or private work capacity exhausted.
+    AiJobCapacityExceeded = 770,
+    /// Actual Local/Host resource instance terminated, never external Job age.
+    AiExecutionResourceLimitExceeded = 771,
+    /// Definitive loss of the complete original result; never a transient read.
+    AiResultUnavailable = 772,
+    /// Confirmed original provider task terminal, not an App Cancel or local budget.
+    AiProviderTaskCanceled = 773,
+    AiProviderTaskExpired = 774,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -957,6 +966,13 @@ impl ReasonCode {
             Self::AppActivityOpenRequestUnavailable => {
                 "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE"
             }
+            Self::AiJobCapacityExceeded => "AI_JOB_CAPACITY_EXCEEDED",
+            Self::AiExecutionResourceLimitExceeded => {
+                "AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED"
+            }
+            Self::AiResultUnavailable => "AI_RESULT_UNAVAILABLE",
+            Self::AiProviderTaskCanceled => "AI_PROVIDER_TASK_CANCELED",
+            Self::AiProviderTaskExpired => "AI_PROVIDER_TASK_EXPIRED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1422,6 +1438,13 @@ impl ReasonCode {
             "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE" => {
                 Some(Self::AppActivityOpenRequestUnavailable)
             }
+            "AI_JOB_CAPACITY_EXCEEDED" => Some(Self::AiJobCapacityExceeded),
+            "AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED" => {
+                Some(Self::AiExecutionResourceLimitExceeded)
+            }
+            "AI_RESULT_UNAVAILABLE" => Some(Self::AiResultUnavailable),
+            "AI_PROVIDER_TASK_CANCELED" => Some(Self::AiProviderTaskCanceled),
+            "AI_PROVIDER_TASK_EXPIRED" => Some(Self::AiProviderTaskExpired),
             _ => None,
         }
     }
@@ -5600,6 +5623,7 @@ pub struct ScenarioRequestHead {
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub subject_user_id: ::prost::alloc::string::String,
+    /// SYNC/STREAM technical call budget; ASYNC_JOB admits absent/0 only.
     #[prost(int32, tag = "6")]
     pub timeout_ms: i32,
 }
@@ -6844,7 +6868,7 @@ pub struct ExecuteLocalAppScenarioRequest {
     /// deadline stays distinguishable from the caller canceling the call.
     #[prost(int32, tag = "5")]
     pub timeout_ms: i32,
-    #[prost(oneof = "execute_local_app_scenario_request::Spec", tags = "1, 2, 3, 4")]
+    #[prost(oneof = "execute_local_app_scenario_request::Spec", tags = "1, 3, 4")]
     pub spec: ::core::option::Option<execute_local_app_scenario_request::Spec>,
 }
 /// Nested message and enum types in `ExecuteLocalAppScenarioRequest`.
@@ -6853,8 +6877,6 @@ pub mod execute_local_app_scenario_request {
     pub enum Spec {
         #[prost(message, tag = "1")]
         TextEmbed(super::LocalAppTextEmbedScenarioSpec),
-        #[prost(message, tag = "2")]
-        ImageGenerate(super::LocalAppImageGenerateScenarioSpec),
         /// Reuse the single text-turn input for synchronous text generation.
         #[prost(message, tag = "3")]
         TextGenerate(super::StreamLocalAppTextTurnRequest),
@@ -6873,11 +6895,6 @@ pub struct LocalAppTextEmbedOutput {
     pub usage: ::core::option::Option<UsageStats>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppImageGenerateOutput {
-    #[prost(message, repeated, tag = "1")]
-    pub artifacts: ::prost::alloc::vec::Vec<LocalAppScenarioArtifact>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppTextGenerateOutput {
     /// Only text and function ToolCall items are admitted at this App boundary.
     #[prost(message, repeated, tag = "1")]
@@ -6889,7 +6906,7 @@ pub struct LocalAppTextGenerateOutput {
 pub struct ExecuteLocalAppScenarioResponse {
     #[prost(string, tag = "3")]
     pub trace_id: ::prost::alloc::string::String,
-    #[prost(oneof = "execute_local_app_scenario_response::Output", tags = "1, 2, 4, 5")]
+    #[prost(oneof = "execute_local_app_scenario_response::Output", tags = "1, 4, 5")]
     pub output: ::core::option::Option<execute_local_app_scenario_response::Output>,
 }
 /// Nested message and enum types in `ExecuteLocalAppScenarioResponse`.
@@ -6898,8 +6915,6 @@ pub mod execute_local_app_scenario_response {
     pub enum Output {
         #[prost(message, tag = "1")]
         TextEmbed(super::LocalAppTextEmbedOutput),
-        #[prost(message, tag = "2")]
-        ImageGenerate(super::LocalAppImageGenerateOutput),
         #[prost(message, tag = "4")]
         TextGenerate(super::LocalAppTextGenerateOutput),
         #[prost(message, tag = "5")]
@@ -7050,13 +7065,14 @@ pub struct LocalAppWorldGenerateJobSpec {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitLocalAppScenarioJobRequest {
-    /// Canonical Job deadline in milliseconds. Zero keeps Runtime's
-    /// capability-owned default; no other ScenarioRequestHead field is exposed.
+    /// Withdrawn Job control: absent/0 only; every nonzero value is rejected
+    /// before route/capture/dispatch. Never controls a technical call budget.
+    #[deprecated]
     #[prost(int32, tag = "9")]
     pub timeout_ms: i32,
-    /// Optional owner-scoped identity for music generation, transcription or
-    /// voice conversion. Reuse with different input is rejected; lookup never
-    /// executes work.
+    /// Optional owner-scoped action identity for every supported ASYNC_JOB.
+    /// Different complete input conflicts; pure identity lookup never executes.
+    /// This field alone does not extend result retention.
     #[prost(string, tag = "16")]
     pub client_submission_id: ::prost::alloc::string::String,
     #[prost(
@@ -7158,6 +7174,10 @@ pub struct LocalAppScenarioJob {
     /// Present only for a completed AUDIO_VOICE_CONVERT Job.
     #[prost(message, optional, tag = "22")]
     pub voice_conversion: ::core::option::Option<VoiceConversion>,
+    #[prost(enumeration = "ScenarioJobSubmissionOutcome", tag = "23")]
+    pub submission_outcome: i32,
+    #[prost(enumeration = "ScenarioJobStopOutcome", tag = "24")]
+    pub stop_outcome: i32,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -7202,6 +7222,8 @@ pub struct GetLocalAppScenarioJobResponse {
     /// Present only for a successfully completed VISION_LOCATE Job.
     #[prost(message, optional, tag = "4")]
     pub vision_locate: ::core::option::Option<VisionLocateResult>,
+    #[prost(message, optional, tag = "5")]
+    pub observation_issue: ::core::option::Option<ScenarioJobObservationIssue>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelLocalAppScenarioJobRequest {
@@ -7546,6 +7568,14 @@ pub mod stream_scenario_event {
         Failed(super::ScenarioStreamFailed),
     }
 }
+/// Response-local failed observation, not a Job failure or freshness guarantee.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScenarioJobObservationIssue {
+    #[prost(enumeration = "ReasonCode", tag = "1")]
+    pub reason_code: i32,
+    #[prost(message, optional, tag = "2")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioArtifact {
     #[prost(string, tag = "1")]
@@ -7658,6 +7688,11 @@ pub struct ScenarioJob {
     pub music_transcription: ::core::option::Option<MusicTranscription>,
     #[prost(message, optional, tag = "33")]
     pub voice_conversion: ::core::option::Option<VoiceConversion>,
+    #[prost(enumeration = "ScenarioJobSubmissionOutcome", tag = "34")]
+    pub submission_outcome: i32,
+    /// Present only for CANCELED, whether local Cancel or confirmed provider cancellation.
+    #[prost(enumeration = "ScenarioJobStopOutcome", tag = "35")]
+    pub stop_outcome: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -7704,6 +7739,8 @@ pub struct GetScenarioJobResponse {
     /// Get-only terminal result; absent from Submit and Job event snapshots.
     #[prost(message, optional, tag = "4")]
     pub vision_locate: ::core::option::Option<VisionLocateResult>,
+    #[prost(message, optional, tag = "5")]
+    pub observation_issue: ::core::option::Option<ScenarioJobObservationIssue>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelScenarioJobRequest {
@@ -8304,6 +8341,8 @@ impl ExecutionInterruptionCause {
 pub enum ExecutionResubmitDisposition {
     Unspecified = 0,
     CallerMayResubmit = 1,
+    /// Original external execution may still have taken effect; never auto-retry.
+    OutcomeUncertain = 2,
 }
 impl ExecutionResubmitDisposition {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -8316,6 +8355,7 @@ impl ExecutionResubmitDisposition {
             Self::CallerMayResubmit => {
                 "EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT"
             }
+            Self::OutcomeUncertain => "EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -8324,6 +8364,9 @@ impl ExecutionResubmitDisposition {
             "EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED" => Some(Self::Unspecified),
             "EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT" => {
                 Some(Self::CallerMayResubmit)
+            }
+            "EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN" => {
+                Some(Self::OutcomeUncertain)
             }
             _ => None,
         }
@@ -9132,6 +9175,74 @@ impl CanonicalChannelMode {
             "CANONICAL_CHANNEL_MODE_PRESERVE" => Some(Self::Preserve),
             "CANONICAL_CHANNEL_MODE_MONO_TO_STEREO" => Some(Self::MonoToStereo),
             "CANONICAL_CHANNEL_MODE_STEREO_TO_MONO" => Some(Self::StereoToMono),
+            _ => None,
+        }
+    }
+}
+/// CP-0 proposal: generic execution facts, never provider phases.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ScenarioJobSubmissionOutcome {
+    Unspecified = 0,
+    NotDispatched = 1,
+    Unknown = 2,
+    Accepted = 3,
+    Rejected = 4,
+}
+impl ScenarioJobSubmissionOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCENARIO_JOB_SUBMISSION_OUTCOME_UNSPECIFIED",
+            Self::NotDispatched => "SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED",
+            Self::Unknown => "SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN",
+            Self::Accepted => "SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED",
+            Self::Rejected => "SCENARIO_JOB_SUBMISSION_OUTCOME_REJECTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCENARIO_JOB_SUBMISSION_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED" => Some(Self::NotDispatched),
+            "SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN" => Some(Self::Unknown),
+            "SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED" => Some(Self::Accepted),
+            "SCENARIO_JOB_SUBMISSION_OUTCOME_REJECTED" => Some(Self::Rejected),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ScenarioJobStopOutcome {
+    Unspecified = 0,
+    NotDispatched = 1,
+    Confirmed = 2,
+    Unconfirmed = 3,
+}
+impl ScenarioJobStopOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCENARIO_JOB_STOP_OUTCOME_UNSPECIFIED",
+            Self::NotDispatched => "SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED",
+            Self::Confirmed => "SCENARIO_JOB_STOP_OUTCOME_CONFIRMED",
+            Self::Unconfirmed => "SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCENARIO_JOB_STOP_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED" => Some(Self::NotDispatched),
+            "SCENARIO_JOB_STOP_OUTCOME_CONFIRMED" => Some(Self::Confirmed),
+            "SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED" => Some(Self::Unconfirmed),
             _ => None,
         }
     }

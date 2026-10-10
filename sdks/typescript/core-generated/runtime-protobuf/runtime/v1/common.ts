@@ -1562,7 +1562,35 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE = 762;
      */
-    APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE = 762
+    APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE = 762,
+    /**
+     * Job owner count/serialized captured bytes or private work capacity exhausted.
+     *
+     * @generated from protobuf enum value: AI_JOB_CAPACITY_EXCEEDED = 770;
+     */
+    AI_JOB_CAPACITY_EXCEEDED = 770,
+    /**
+     * Actual Local/Host resource instance terminated, never external Job age.
+     *
+     * @generated from protobuf enum value: AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED = 771;
+     */
+    AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED = 771,
+    /**
+     * Definitive loss of the complete original result; never a transient read.
+     *
+     * @generated from protobuf enum value: AI_RESULT_UNAVAILABLE = 772;
+     */
+    AI_RESULT_UNAVAILABLE = 772,
+    /**
+     * Confirmed original provider task terminal, not an App Cancel or local budget.
+     *
+     * @generated from protobuf enum value: AI_PROVIDER_TASK_CANCELED = 773;
+     */
+    AI_PROVIDER_TASK_CANCELED = 773,
+    /**
+     * @generated from protobuf enum value: AI_PROVIDER_TASK_EXPIRED = 774;
+     */
+    AI_PROVIDER_TASK_EXPIRED = 774
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

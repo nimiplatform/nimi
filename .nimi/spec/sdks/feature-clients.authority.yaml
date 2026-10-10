@@ -85,9 +85,9 @@ units:
     kind: rule
     title: Job and stream projections keep upstream semantics
     modality: must
-    statement: ScenarioJob-related adapter methods keep submit, query, cancel, and subscribe semantics consistent with the Runtime job surface, and streaming done and finish reasons are projected completely to the caller without silently swallowing business terminal states.
+    statement: ScenarioJob submit, Get, cancel, identity lookup and subscribe projections preserve the common Runtime contract and complete terminal Get response, including response-level typed or resource results and observation issues; formal artifact and ScenarioOutput readers remain independent. Every generic SDK or Kit observer uses caller-controlled Get cadence with one documented backend-independent default even while an event subscription remains healthy; events may accelerate display but never replace Get or supply Get-only success results. At least one terminal Get is retained, including when Submit returns an already terminal Job. Observer detach releases subscriptions and timers without implicit Cancel; a helper that explicitly cancels on caller request states that behavior and uses common Cancel. No consumer needs provider, route, native phase, refresh or result-acquisition branching, no Job business timeout option is exposed, and streaming terminal facts remain fully projected.
     condition: Whenever adapter job methods or stream terminals are projected.
-    failure: Reject inconsistent job semantics and silently dropped terminal states.
+    failure: Reject lost full Get results, subscription-only dead wait, backend-dependent cadence or API branching, implicit observer cancellation, or silently dropped stream terminal facts.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-adapter-plane

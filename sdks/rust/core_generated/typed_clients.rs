@@ -1638,6 +1638,7 @@ impl Default for ExecutionMode {
 pub enum ExecutionResubmitDisposition {
     EXECUTIONRESUBMITDISPOSITIONUNSPECIFIED,
     EXECUTIONRESUBMITDISPOSITIONCALLERMAYRESUBMIT,
+    EXECUTIONRESUBMITDISPOSITIONOUTCOMEUNCERTAIN,
 }
 
 impl Default for ExecutionResubmitDisposition {
@@ -3263,6 +3264,16 @@ pub enum ReasonCode {
     APPACTIVITYUNAVAILABLE,
     #[serde(rename = "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE")]
     APPACTIVITYOPENREQUESTUNAVAILABLE,
+    #[serde(rename = "AI_JOB_CAPACITY_EXCEEDED")]
+    AIJOBCAPACITYEXCEEDED,
+    #[serde(rename = "AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED")]
+    AIEXECUTIONRESOURCELIMITEXCEEDED,
+    #[serde(rename = "AI_RESULT_UNAVAILABLE")]
+    AIRESULTUNAVAILABLE,
+    #[serde(rename = "AI_PROVIDER_TASK_CANCELED")]
+    AIPROVIDERTASKCANCELED,
+    #[serde(rename = "AI_PROVIDER_TASK_EXPIRED")]
+    AIPROVIDERTASKEXPIRED,
 }
 
 impl Default for ReasonCode {
@@ -3890,6 +3901,16 @@ impl ReasonCode {
             "APPACTIVITYUNAVAILABLE" => Some(Self::APPACTIVITYUNAVAILABLE),
             "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE" => Some(Self::APPACTIVITYOPENREQUESTUNAVAILABLE),
             "APPACTIVITYOPENREQUESTUNAVAILABLE" => Some(Self::APPACTIVITYOPENREQUESTUNAVAILABLE),
+            "AI_JOB_CAPACITY_EXCEEDED" => Some(Self::AIJOBCAPACITYEXCEEDED),
+            "AIJOBCAPACITYEXCEEDED" => Some(Self::AIJOBCAPACITYEXCEEDED),
+            "AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED" => Some(Self::AIEXECUTIONRESOURCELIMITEXCEEDED),
+            "AIEXECUTIONRESOURCELIMITEXCEEDED" => Some(Self::AIEXECUTIONRESOURCELIMITEXCEEDED),
+            "AI_RESULT_UNAVAILABLE" => Some(Self::AIRESULTUNAVAILABLE),
+            "AIRESULTUNAVAILABLE" => Some(Self::AIRESULTUNAVAILABLE),
+            "AI_PROVIDER_TASK_CANCELED" => Some(Self::AIPROVIDERTASKCANCELED),
+            "AIPROVIDERTASKCANCELED" => Some(Self::AIPROVIDERTASKCANCELED),
+            "AI_PROVIDER_TASK_EXPIRED" => Some(Self::AIPROVIDERTASKEXPIRED),
+            "AIPROVIDERTASKEXPIRED" => Some(Self::AIPROVIDERTASKEXPIRED),
             _ => None,
         }
     }
@@ -4071,6 +4092,35 @@ pub enum ScenarioJobStatus {
 impl Default for ScenarioJobStatus {
     fn default() -> Self {
         Self::SCENARIOJOBSTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ScenarioJobStopOutcome {
+    SCENARIOJOBSTOPOUTCOMEUNSPECIFIED,
+    SCENARIOJOBSTOPOUTCOMENOTDISPATCHED,
+    SCENARIOJOBSTOPOUTCOMECONFIRMED,
+    SCENARIOJOBSTOPOUTCOMEUNCONFIRMED,
+}
+
+impl Default for ScenarioJobStopOutcome {
+    fn default() -> Self {
+        Self::SCENARIOJOBSTOPOUTCOMEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ScenarioJobSubmissionOutcome {
+    SCENARIOJOBSUBMISSIONOUTCOMEUNSPECIFIED,
+    SCENARIOJOBSUBMISSIONOUTCOMENOTDISPATCHED,
+    SCENARIOJOBSUBMISSIONOUTCOMEUNKNOWN,
+    SCENARIOJOBSUBMISSIONOUTCOMEACCEPTED,
+    SCENARIOJOBSUBMISSIONOUTCOMEREJECTED,
+}
+
+impl Default for ScenarioJobSubmissionOutcome {
+    fn default() -> Self {
+        Self::SCENARIOJOBSUBMISSIONOUTCOMEUNSPECIFIED
     }
 }
 
@@ -7563,7 +7613,6 @@ impl ErrorInfo {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ExecuteLocalAppScenarioRequest {
     pub text_embed: Option<Box<LocalAppTextEmbedScenarioSpec>>,
-    pub image_generate: Option<Box<LocalAppImageGenerateScenarioSpec>>,
     pub text_generate: Option<Box<StreamLocalAppTextTurnRequest>>,
     pub text_decide: Option<Box<TextDecideScenarioSpec>>,
     pub timeout_ms: Option<i32>,
@@ -7572,7 +7621,6 @@ pub struct ExecuteLocalAppScenarioRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ExecuteLocalAppScenarioResponse {
     pub text_embed: Option<Box<LocalAppTextEmbedOutput>>,
-    pub image_generate: Option<Box<LocalAppImageGenerateOutput>>,
     pub trace_id: Option<String>,
     pub text_generate: Option<Box<LocalAppTextGenerateOutput>>,
     pub text_decide: Option<Box<TextDecisionResult>>,
@@ -8348,6 +8396,7 @@ pub struct GetLocalAppScenarioJobResponse {
     pub asset: Option<Box<LocalAppVoiceAsset>>,
     pub voice_reference: Option<Box<VoiceReference>>,
     pub vision_locate: Option<Box<VisionLocateResult>>,
+    pub observation_issue: Option<Box<ScenarioJobObservationIssue>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8651,6 +8700,7 @@ pub struct GetScenarioJobResponse {
     pub asset: Option<Box<VoiceAsset>>,
     pub voice_reference: Option<Box<VoiceReference>>,
     pub vision_locate: Option<Box<VisionLocateResult>>,
+    pub observation_issue: Option<Box<ScenarioJobObservationIssue>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10564,11 +10614,6 @@ pub struct LocalAppEmbodimentVoiceTiming {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppImageGenerateOutput {
-    pub artifacts: Vec<Box<LocalAppScenarioArtifact>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppImageGenerateScenarioSpec {
     pub prompt: Option<String>,
     pub negative_prompt: Option<String>,
@@ -10659,6 +10704,8 @@ pub struct LocalAppScenarioJob {
     pub music_generation: Option<Box<MusicGeneration>>,
     pub music_transcription: Option<Box<MusicTranscription>>,
     pub voice_conversion: Option<Box<VoiceConversion>>,
+    pub submission_outcome: Option<ScenarioJobSubmissionOutcome>,
+    pub stop_outcome: Option<ScenarioJobStopOutcome>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13460,6 +13507,8 @@ pub struct ScenarioJob {
     pub music_generation: Option<Box<MusicGeneration>>,
     pub music_transcription: Option<Box<MusicTranscription>>,
     pub voice_conversion: Option<Box<VoiceConversion>>,
+    pub submission_outcome: Option<ScenarioJobSubmissionOutcome>,
+    pub stop_outcome: Option<ScenarioJobStopOutcome>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13469,6 +13518,12 @@ pub struct ScenarioJobEvent {
     pub trace_id: Option<String>,
     pub timestamp: Option<String>,
     pub job: Option<Box<ScenarioJob>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ScenarioJobObservationIssue {
+    pub reason_code: Option<ReasonCode>,
+    pub observed_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

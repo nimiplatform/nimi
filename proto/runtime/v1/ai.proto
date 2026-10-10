@@ -100,6 +100,8 @@ enum ExecutionInterruptionCause {
 enum ExecutionResubmitDisposition {
   EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED = 0;
   EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT = 1;
+  // Original external execution may still have taken effect; never auto-retry.
+  EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN = 2;
 }
 
 // Presence of this message is the canonical typed INTERRUPTED disposition. It
@@ -339,6 +341,7 @@ message ScenarioRequestHead {
   string subject_user_id = 2;
   reserved 3, 4, 5;
   reserved "model_id", "route_policy", "fallback";
+  // SYNC/STREAM technical call budget; ASYNC_JOB admits absent/0 only.
   int32 timeout_ms = 6;
   reserved 7, 8;
   reserved "connector_id", "target_ref";
@@ -1235,7 +1238,6 @@ message LocalAppImageGenerateScenarioSpec {
 message ExecuteLocalAppScenarioRequest {
   oneof spec {
     LocalAppTextEmbedScenarioSpec text_embed = 1;
-    LocalAppImageGenerateScenarioSpec image_generate = 2;
     // Reuse the single text-turn input for synchronous text generation.
     StreamLocalAppTextTurnRequest text_generate = 3;
     TextDecideScenarioSpec text_decide = 4;
@@ -1244,6 +1246,8 @@ message ExecuteLocalAppScenarioRequest {
   // capability-owned default. Runtime owns this deadline, so an elapsed
   // deadline stays distinguishable from the caller canceling the call.
   int32 timeout_ms = 5;
+  reserved 2;
+  reserved "image_generate";
 }
 
 message LocalAppTextEmbedOutput {
@@ -1251,10 +1255,6 @@ message LocalAppTextEmbedOutput {
   string space_id = 2;
   // Optional provider-reported usage for Cloud embedding; absence is unknown.
   UsageStats usage = 3;
-}
-
-message LocalAppImageGenerateOutput {
-  repeated LocalAppScenarioArtifact artifacts = 1;
 }
 
 message LocalAppTextGenerateOutput {
@@ -1266,11 +1266,12 @@ message LocalAppTextGenerateOutput {
 message ExecuteLocalAppScenarioResponse {
   oneof output {
     LocalAppTextEmbedOutput text_embed = 1;
-    LocalAppImageGenerateOutput image_generate = 2;
     LocalAppTextGenerateOutput text_generate = 4;
     TextDecisionResult text_decide = 5;
   }
   string trace_id = 3;
+  reserved 2;
+  reserved "image_generate";
 }
 
 // Asynchronous closed-set Job specs admitted for SubmitLocalAppScenarioJob.
@@ -1374,12 +1375,12 @@ message SubmitLocalAppScenarioJobRequest {
     MusicTranscribeScenarioSpec music_transcribe = 17;
     AudioVoiceConvertScenarioSpec audio_voice_convert = 18;
   }
-  // Canonical Job deadline in milliseconds. Zero keeps Runtime's
-  // capability-owned default; no other ScenarioRequestHead field is exposed.
-  int32 timeout_ms = 9;
-  // Optional owner-scoped identity for music generation, transcription or
-  // voice conversion. Reuse with different input is rejected; lookup never
-  // executes work.
+  // Withdrawn Job control: absent/0 only; every nonzero value is rejected
+  // before route/capture/dispatch. Never controls a technical call budget.
+  int32 timeout_ms = 9 [deprecated = true];
+  // Optional owner-scoped action identity for every supported ASYNC_JOB.
+  // Different complete input conflicts; pure identity lookup never executes.
+  // This field alone does not extend result retention.
   string client_submission_id = 16;
   reserved 5, 6;
   reserved "voice_clone", "voice_design";
@@ -1421,6 +1422,8 @@ message LocalAppScenarioJob {
   MusicTranscription music_transcription = 21;
   // Present only for a completed AUDIO_VOICE_CONVERT Job.
   VoiceConversion voice_conversion = 22;
+  ScenarioJobSubmissionOutcome submission_outcome = 23;
+  ScenarioJobStopOutcome stop_outcome = 24;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -1456,6 +1459,7 @@ message GetLocalAppScenarioJobResponse {
   VoiceReference voice_reference = 3;
   // Present only for a successfully completed VISION_LOCATE Job.
   VisionLocateResult vision_locate = 4;
+  ScenarioJobObservationIssue observation_issue = 5;
 }
 
 message CancelLocalAppScenarioJobRequest {
@@ -1700,6 +1704,28 @@ message StreamScenarioEvent {
   }
 }
 
+// CP-0 proposal: generic execution facts, never provider phases.
+enum ScenarioJobSubmissionOutcome {
+  SCENARIO_JOB_SUBMISSION_OUTCOME_UNSPECIFIED = 0;
+  SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED = 1;
+  SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN = 2;
+  SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED = 3;
+  SCENARIO_JOB_SUBMISSION_OUTCOME_REJECTED = 4;
+}
+
+enum ScenarioJobStopOutcome {
+  SCENARIO_JOB_STOP_OUTCOME_UNSPECIFIED = 0;
+  SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED = 1;
+  SCENARIO_JOB_STOP_OUTCOME_CONFIRMED = 2;
+  SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED = 3;
+}
+
+// Response-local failed observation, not a Job failure or freshness guarantee.
+message ScenarioJobObservationIssue {
+  ReasonCode reason_code = 1;
+  google.protobuf.Timestamp observed_at = 2;
+}
+
 enum ScenarioJobStatus {
   SCENARIO_JOB_STATUS_UNSPECIFIED = 0;
   SCENARIO_JOB_STATUS_SUBMITTED = 1;
@@ -1784,6 +1810,9 @@ message ScenarioJob {
   MusicGeneration music_generation = 31;
   MusicTranscription music_transcription = 32;
   VoiceConversion voice_conversion = 33;
+  ScenarioJobSubmissionOutcome submission_outcome = 34;
+  // Present only for CANCELED, whether local Cancel or confirmed provider cancellation.
+  ScenarioJobStopOutcome stop_outcome = 35;
 }
 
 message SubmitScenarioJobRequest {
@@ -1815,6 +1844,7 @@ message GetScenarioJobResponse {
   VoiceReference voice_reference = 3;
   // Get-only terminal result; absent from Submit and Job event snapshots.
   VisionLocateResult vision_locate = 4;
+  ScenarioJobObservationIssue observation_issue = 5;
 }
 
 message CancelScenarioJobRequest {

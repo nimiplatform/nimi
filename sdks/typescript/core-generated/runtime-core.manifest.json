@@ -8145,7 +8145,6 @@
       "LocalAppEmbodimentPosture",
       "LocalAppEmbodimentSnapshot",
       "LocalAppEmbodimentVoiceTiming",
-      "LocalAppImageGenerateOutput",
       "LocalAppImageGenerateScenarioSpec",
       "LocalAppMusicGenerateJobSpec",
       "LocalAppPackagePreview",
@@ -8392,6 +8391,7 @@
       "ScenarioExtension",
       "ScenarioJob",
       "ScenarioJobEvent",
+      "ScenarioJobObservationIssue",
       "ScenarioOutput",
       "ScenarioProfile",
       "ScenarioRequestHead",
@@ -8777,6 +8777,8 @@
       "RuntimeServiceMode",
       "ScenarioJobEventType",
       "ScenarioJobStatus",
+      "ScenarioJobStopOutcome",
+      "ScenarioJobSubmissionOutcome",
       "ScenarioType",
       "SchedulingState",
       "SensitivityClass",
@@ -18942,13 +18944,6 @@
             "number": 1
           },
           {
-            "name": "image_generate",
-            "type": "LocalAppImageGenerateScenarioSpec",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
             "name": "text_generate",
             "type": "StreamLocalAppTextTurnRequest",
             "repeated": false,
@@ -18981,13 +18976,6 @@
             "repeated": false,
             "optional": false,
             "number": 1
-          },
-          {
-            "name": "image_generate",
-            "type": "LocalAppImageGenerateOutput",
-            "repeated": false,
-            "optional": false,
-            "number": 2
           },
           {
             "name": "trace_id",
@@ -20770,6 +20758,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "observation_issue",
+            "type": "ScenarioJobObservationIssue",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -21134,6 +21129,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "observation_issue",
+            "type": "ScenarioJobObservationIssue",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -28019,19 +28021,6 @@
         "source_file": "proto/runtime/v1/agent_embodiment.proto"
       },
       {
-        "name": "LocalAppImageGenerateOutput",
-        "fields": [
-          {
-            "name": "artifacts",
-            "type": "LocalAppScenarioArtifact",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
         "name": "LocalAppImageGenerateScenarioSpec",
         "fields": [
           {
@@ -28568,6 +28557,20 @@
             "repeated": false,
             "optional": false,
             "number": 22
+          },
+          {
+            "name": "submission_outcome",
+            "type": "ScenarioJobSubmissionOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 23
+          },
+          {
+            "name": "stop_outcome",
+            "type": "ScenarioJobStopOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 24
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -37707,6 +37710,20 @@
             "repeated": false,
             "optional": false,
             "number": 33
+          },
+          {
+            "name": "submission_outcome",
+            "type": "ScenarioJobSubmissionOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 34
+          },
+          {
+            "name": "stop_outcome",
+            "type": "ScenarioJobStopOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 35
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -37748,6 +37765,26 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ScenarioJobObservationIssue",
+        "fields": [
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -45561,7 +45598,8 @@
         "name": "ExecutionResubmitDisposition",
         "values": [
           "EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED",
-          "EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT"
+          "EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT",
+          "EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
@@ -46580,7 +46618,12 @@
           "APP_ACTIVITY_CURSOR_EXPIRED",
           "APP_ACTIVITY_AGENT_UNAVAILABLE",
           "APP_ACTIVITY_UNAVAILABLE",
-          "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE"
+          "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE",
+          "AI_JOB_CAPACITY_EXCEEDED",
+          "AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED",
+          "AI_RESULT_UNAVAILABLE",
+          "AI_PROVIDER_TASK_CANCELED",
+          "AI_PROVIDER_TASK_EXPIRED"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },
@@ -46681,6 +46724,27 @@
           "SCENARIO_JOB_STATUS_FAILED",
           "SCENARIO_JOB_STATUS_CANCELED",
           "SCENARIO_JOB_STATUS_TIMEOUT"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ScenarioJobStopOutcome",
+        "values": [
+          "SCENARIO_JOB_STOP_OUTCOME_UNSPECIFIED",
+          "SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED",
+          "SCENARIO_JOB_STOP_OUTCOME_CONFIRMED",
+          "SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ScenarioJobSubmissionOutcome",
+        "values": [
+          "SCENARIO_JOB_SUBMISSION_OUTCOME_UNSPECIFIED",
+          "SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED",
+          "SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN",
+          "SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED",
+          "SCENARIO_JOB_SUBMISSION_OUTCOME_REJECTED"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },

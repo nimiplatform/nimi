@@ -25,5 +25,36 @@
     "breakingFromPrevious": [],
     "adjudication": "No breaking difference from the replaced snapshot under the PACKAGE rules. Every definition published at sdk/v0.15.0 but absent from that snapshot (including SCENARIO_TYPE_AUDIO_SEPARATE, SCENARIO_TYPE_TEXT_ANNOTATE and reference_audio_input) is now protected. npm provenance of every listed npm artifact and crates.io trusted publishing of both crates name this commit; it is the current npm latest SDK/Kit wire."
   },
-  "declaredBreaking": []
+  "declaredBreaking": [
+    {
+      "rule": "PACKAGE_MESSAGE_NO_DELETE",
+      "path": "runtime/v1/ai.proto",
+      "message": "Previously present message \"LocalAppImageGenerateOutput\" was deleted from package \"nimi.runtime.v1\".",
+      "reason": "Remove the unreachable protected SYNC image contract; public image generation remains ASYNC_JOB with formal typed results. Reserve deleted field numbers and names. This is an explicitly documented 0.x minor wire hard cut.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "SDK 0.21.0 / Kit and native 0.18.0 \u2014 Unified asynchronous Job lifecycle (development)"
+      }
+    },
+    {
+      "rule": "FIELD_NO_DELETE",
+      "path": "runtime/v1/ai.proto",
+      "message": "Previously present field \"2\" with name \"image_generate\" on message \"ExecuteLocalAppScenarioRequest\" was deleted.",
+      "reason": "Remove the unreachable protected SYNC image contract; public image generation remains ASYNC_JOB with formal typed results. Reserve deleted field numbers and names. This is an explicitly documented 0.x minor wire hard cut.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "SDK 0.21.0 / Kit and native 0.18.0 \u2014 Unified asynchronous Job lifecycle (development)"
+      }
+    },
+    {
+      "rule": "FIELD_NO_DELETE",
+      "path": "runtime/v1/ai.proto",
+      "message": "Previously present field \"2\" with name \"image_generate\" on message \"ExecuteLocalAppScenarioResponse\" was deleted.",
+      "reason": "Remove the unreachable protected SYNC image contract; public image generation remains ASYNC_JOB with formal typed results. Reserve deleted field numbers and names. This is an explicitly documented 0.x minor wire hard cut.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "SDK 0.21.0 / Kit and native 0.18.0 \u2014 Unified asynchronous Job lifecycle (development)"
+      }
+    }
+  ]
 }

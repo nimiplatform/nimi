@@ -516,6 +516,16 @@ enum ReasonCode {
   APP_ACTIVITY_UNAVAILABLE = 761;
   APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE = 762;
 
+  // Job owner count/serialized captured bytes or private work capacity exhausted.
+  AI_JOB_CAPACITY_EXCEEDED = 770;
+  // Actual Local/Host resource instance terminated, never external Job age.
+  AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED = 771;
+  // Definitive loss of the complete original result; never a transient read.
+  AI_RESULT_UNAVAILABLE = 772;
+  // Confirmed original provider task terminal, not an App Cancel or local budget.
+  AI_PROVIDER_TASK_CANCELED = 773;
+  AI_PROVIDER_TASK_EXPIRED = 774;
+
   // Reserved: old values of renumbered codes.
   // 104=APP_SCOPE_FORBIDDEN→503, 106=APP_SCOPE_REVOKED→504,
   // 203=AI_PROVIDER_TIMEOUT→394,
