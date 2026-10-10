@@ -85,6 +85,7 @@
     "pre-release": "pnpm check:actionlint && pnpm proto:breaking && pnpm proto:drift-check && pnpm proto:lint && node scripts/with-workspace-surfaces.mjs -- pnpm run pre-release:prepared && pnpm test:runtime:go && pnpm test:runtime:python && pnpm check:runtime-golangci-lint && pnpm check:cognition-golangci-lint && pnpm check:runtime-govulncheck && pnpm check:license-file-map",
     "pre-release:prepared": "pnpm build:all && pnpm check:bundle-size && pnpm test:workspace:full && pnpm check:examples && pnpm check:sdk-kit-pack-audit",
     "release:component:pack": "node scripts/release/build-component-package.mjs",
+    "release:product-update:manifest": "node scripts/release/build-product-update-manifest.mjs",
     "check:platform-catalog-drift": "node scripts/check-platform-catalog-drift.mjs",
     "check:runtime-selection-freshness": "node scripts/check-runtime-selection-freshness.mjs",
     "check:runtime-provider-capability-token-canonicalization": "node scripts/check-runtime-provider-capability-token-canonicalization.mjs",
@@ -186,7 +187,11 @@
     "nimicoding:sync": "pnpm exec nimicoding sync --check",
     "check:nimi-coding-seed-sync": "pnpm nimicoding:sync",
     "nimicoding:doctor": "pnpm exec nimicoding doctor",
-    "kit:preview": "pnpm --filter @nimiplatform/kit preview"
+    "kit:preview": "pnpm --filter @nimiplatform/kit preview",
+    "build:windows:product": "pnpm --filter @nimiplatform/desktop build:windows:release",
+    "release:product:prepare-target": "node scripts/release/prepare-product-release-target.mjs",
+    "release:product:validate": "node scripts/release/validate-product-release.mjs",
+    "release:product:publish": "node scripts/release/publish-product-release.mjs"
   },
   "dependencies": {
     "yaml": "2.9.1"

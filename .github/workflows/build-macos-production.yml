@@ -2,6 +2,17 @@ name: macOS production candidate
 run-name: macOS candidate ${{ github.ref_name }} at ${{ github.sha }}
 
 on:
+  workflow_call:
+    inputs:
+      source_ref:
+        required: true
+        type: string
+      prepare_product:
+        default: false
+        type: boolean
+      release_admission:
+        default: ''
+        type: string
   push:
     branches: [dev, main]
     paths:
@@ -38,10 +49,11 @@ jobs:
     uses: ./.github/workflows/release-security.yml
     with:
       component: macos-production
+      source_ref: ${{ inputs.source_ref || github.sha }}
 
   candidate:
     needs: security
-    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+    if: inputs.prepare_product || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
     runs-on: macos-15
     timeout-minutes: 180
     env:
@@ -56,9 +68,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ inputs.source_ref || github.sha }}
+          fetch-depth: 0
+      - name: Require sealed product trust before signing work
+        if: inputs.prepare_product || inputs.realm_target == 'production'
+        run: node -e "import('./scripts/lib/product-release-assets.mjs').then(m => m.requireProductReleaseTrust())"
       - name: Require Apple Silicon and select the sealed Realm target
         env:
-          REALM_TARGET: ${{ inputs.realm_target || 'local-acceptance' }}
+          REALM_TARGET: ${{ inputs.prepare_product && 'production' || inputs.realm_target || 'local-acceptance' }}
         run: |
           set -euo pipefail
           test "$(uname -m)" = arm64
@@ -132,11 +149,38 @@ jobs:
           rm -f "${p12_path}"
       - name: Build, sign, notarize and staple the production candidate
         run: pnpm build:macos:release
+      - name: Prepare exact product release assets
+        if: inputs.prepare_product
+        env:
+          RELEASE_ADMISSION: ${{ inputs.release_admission }}
+          PRODUCT_SIGNING_KEY: ${{ secrets.NIMI_PRODUCT_UPDATE_SIGNING_KEY_PEM }}
+        run: |
+          set -euo pipefail
+          test -n "${PRODUCT_SIGNING_KEY}"
+          key_file="${RUNNER_TEMP}/nimi-product-signing.pem"
+          admission_file="${RUNNER_TEMP}/nimi-product-admission.json"
+          printf '%s' "${PRODUCT_SIGNING_KEY}" > "${key_file}"
+          chmod 600 "${key_file}"
+          printf '%s' "${RELEASE_ADMISSION}" > "${admission_file}"
+          candidate=".nimi/local/macos-electron-release/${NIMI_MACOS_RELEASE_ID}"
+          asset="$(node -e "const p=require('./${candidate}/release-build-identity.json'); process.stdout.write(p.asset.name)")"
+          pnpm release:product:prepare-target -- --identity "${candidate}/release-build-identity.json" --asset "${candidate}/${asset}" --admission "${admission_file}" --signing-key "${key_file}" --source "$(git rev-parse HEAD)" --output .nimi/local/product-release/macos-arm64
+          rm -f "${key_file}" "${admission_file}"
+      - name: Upload complete Mac product release inputs
+        if: inputs.prepare_product
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nimi-product-macos-arm64-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .nimi/local/product-release/macos-arm64/*
+          include-hidden-files: true
+          if-no-files-found: error
       - name: Upload only the signed installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nimi-macos-arm64-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.realm_target || 'local-acceptance' }}
-          path: .nimi/local/macos-electron-release/ci-${{ github.run_id }}-${{ github.run_attempt }}/*.pkg
+          path: |
+            .nimi/local/macos-electron-release/ci-${{ github.run_id }}-${{ github.run_attempt }}/*.pkg
+            .nimi/local/macos-electron-release/ci-${{ github.run_id }}-${{ github.run_attempt }}/release-build-identity.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
@@ -156,6 +200,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -f "${RUNNER_TEMP}/nimi-signing.p12"
+          rm -f "${RUNNER_TEMP}/nimi-product-signing.pem" "${RUNNER_TEMP}/nimi-product-admission.json"
           keychain_path="${RUNNER_TEMP}/nimi-signing.keychain-db"
           if [[ -f "${keychain_path}" ]]; then
             security delete-keychain "${keychain_path}"

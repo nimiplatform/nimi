@@ -1,0 +1,181 @@
+name: Nimi product release
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact main source SHA; package version is the product version
+        required: true
+        type: string
+      release_admission:
+        description: Platform release admission JSON with releaseId sourceRevision channel times and both target compatibility values
+        required: true
+        type: string
+      publish:
+        description: Publish the validated draft as immutable after both platforms are ready
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nimi-product-release
+  cancel-in-progress: false
+
+jobs:
+  input:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Validate admitted immutable source and metadata
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_ADMISSION: ${{ inputs.release_admission }}
+          PRODUCT_SIGNING_KEY: ${{ secrets.NIMI_PRODUCT_UPDATE_SIGNING_KEY_PEM }}
+        run: |
+          set -euo pipefail
+          [[ "${SOURCE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "${SOURCE_SHA}"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "${SOURCE_SHA}" origin/main
+          test -n "${PRODUCT_SIGNING_KEY}"
+          node --input-type=module -e "import {requireProductSigningKey,validateProductReleaseAdmission} from './scripts/lib/product-release-assets.mjs'; import fs from 'node:fs'; requireProductSigningKey(process.env.PRODUCT_SIGNING_KEY); validateProductReleaseAdmission(JSON.parse(process.env.RELEASE_ADMISSION),{version:JSON.parse(fs.readFileSync('apps/desktop/package.json')).version,sourceRevision:process.env.SOURCE_SHA});"
+
+  security:
+    needs: input
+    uses: ./.github/workflows/release-security.yml
+    with:
+      component: macos-production
+      source_ref: ${{ inputs.source_sha }}
+
+  macos:
+    needs: input
+    uses: ./.github/workflows/build-macos-production.yml
+    with:
+      source_ref: ${{ inputs.source_sha }}
+      prepare_product: true
+      release_admission: ${{ inputs.release_admission }}
+    secrets: inherit
+
+  windows:
+    needs: [input, security]
+    runs-on: windows-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+      - name: Install locked workspace and NSIS toolchain
+        shell: pwsh
+        run: |
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          choco install nsis --version=3.11 --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Add-Content $env:GITHUB_PATH 'C:\Program Files (x86)\NSIS'
+      - name: Build unsigned complete product and authenticated final metadata
+        shell: pwsh
+        env:
+          PRODUCT_SIGNING_KEY: ${{ secrets.NIMI_PRODUCT_UPDATE_SIGNING_KEY_PEM }}
+          RELEASE_ADMISSION: ${{ inputs.release_admission }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PRODUCT_SIGNING_KEY)) { throw 'Product signing custody is unavailable' }
+          $keyFile = Join-Path $env:RUNNER_TEMP 'nimi-product-signing.pem'
+          $admissionFile = Join-Path $env:RUNNER_TEMP 'nimi-product-admission.json'
+          try {
+            [IO.File]::WriteAllText($keyFile, $env:PRODUCT_SIGNING_KEY)
+            [IO.File]::WriteAllText($admissionFile, $env:RELEASE_ADMISSION)
+            pnpm build:windows:product --identity-signing-key $keyFile
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+            $root = 'apps/desktop/dist/windows/product'
+            $asset = "Nimi-$version-windows-amd64.exe"
+            pnpm release:product:prepare-target -- --identity "$root/$asset.identity.json" --asset "$root/$asset" --inventory "$root/nimi-installed-windows-amd64.json" --admission $admissionFile --signing-key $keyFile --source $env:SOURCE_SHA --output .nimi/local/product-release/windows-amd64
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally { Remove-Item $keyFile, $admissionFile -Force -ErrorAction SilentlyContinue }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nimi-product-windows-amd64-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .nimi/local/product-release/windows-amd64/*
+          include-hidden-files: true
+          if-no-files-found: error
+
+  assemble:
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: nimi-product-*-${{ github.run_id }}-${{ github.run_attempt }}
+          merge-multiple: true
+          path: .nimi/local/product-release/ready
+      - name: Verify every final asset before publication
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: node scripts/release/validate-product-release.mjs --directory .nimi/local/product-release/ready --source "${SOURCE_SHA}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nimi-product-ready-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .nimi/local/product-release/ready/*
+          include-hidden-files: true
+          if-no-files-found: error
+
+  publish:
+    needs: assemble
+    if: inputs.publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: nimi-product-ready-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .nimi/local/product-release/ready
+      - name: Stage draft upload verify and immutable publish
+        env:
+          GH_TOKEN: ${{ secrets.NIMI_GITHUB_RELEASES_TOKEN }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN}"
+          printf '%s\n' 'Nimi public Beta. This release contains the admitted macOS arm64 PKG and Windows x86_64 unsigned installer with authenticated product metadata. See the compatibility and recovery material before installing.' > "${RUNNER_TEMP}/nimi-release-notes.txt"
+          node scripts/release/publish-product-release.mjs --directory .nimi/local/product-release/ready --source "${SOURCE_SHA}" --notes "${RUNNER_TEMP}/nimi-release-notes.txt"
