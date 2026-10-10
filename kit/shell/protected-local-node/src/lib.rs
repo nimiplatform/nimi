@@ -1204,7 +1204,10 @@ pub async fn desktop_terminate_local_development_host(
         Some(value) => value,
         None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
     };
-    #[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
+    #[cfg(any(
+        all(target_os = "macos", feature = "macos-source-local-development"),
+        all(target_os = "windows", feature = "windows-source-local-development")
+    ))]
     {
         return match nimi_shell_protected_local::terminate_source_local_development_host(
             supervisor_run_id,
@@ -1213,12 +1216,18 @@ pub async fn desktop_terminate_local_development_host(
             Err(error) => NativeJsonOutcome::host_error(error),
         };
     }
-    #[cfg(not(all(target_os = "windows", feature = "windows-source-local-development")))]
+    #[cfg(not(any(
+        all(target_os = "macos", feature = "macos-source-local-development"),
+        all(target_os = "windows", feature = "windows-source-local-development")
+    )))]
     let control = match current_or_open_desktop_control().await {
         Ok(control) => control,
         Err(error) => return NativeJsonOutcome::host_error(error),
     };
-    #[cfg(not(all(target_os = "windows", feature = "windows-source-local-development")))]
+    #[cfg(not(any(
+        all(target_os = "macos", feature = "macos-source-local-development"),
+        all(target_os = "windows", feature = "windows-source-local-development")
+    )))]
     match control.terminate_local_development_host(supervisor_run_id) {
         Ok(()) => NativeJsonOutcome::success(json!({ "terminated": true })),
         Err(error) => NativeJsonOutcome::host_error(error),
@@ -1471,6 +1480,38 @@ mod desktop_transport_invalidation_tests {
 mod desktop_control_cache_tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[cfg(any(
+        all(target_os = "macos", feature = "macos-source-local-development"),
+        all(target_os = "windows", feature = "windows-source-local-development")
+    ))]
+    #[tokio::test(flavor = "current_thread")]
+    async fn terminate_owned_host_does_not_open_runtime_control() {
+        // Hold the transport cache lock: local cleanup must not even consult
+        // this cache, whether Runtime is absent, reconnecting, or unavailable.
+        let _cache = DESKTOP_CONTROL.lock().await;
+        for _ in 0..2 {
+            let outcome = tokio::time::timeout(
+                Duration::from_millis(100),
+                desktop_terminate_local_development_host(NativeLocalDevelopmentRunInput {
+                    supervisor_run_id: encode_identifier(&[73; 32]),
+                }),
+            )
+            .await
+            .expect("local termination must not wait for Runtime control");
+            assert_eq!(outcome.status, "ok");
+            assert_eq!(outcome.value, Some(json!({ "terminated": true })));
+        }
+        let invalid = desktop_terminate_local_development_host(NativeLocalDevelopmentRunInput {
+            supervisor_run_id: encode_identifier(&[0; 32]),
+        })
+        .await;
+        assert_eq!(invalid.status, "error");
+        assert_eq!(
+            invalid.reason_code.as_deref(),
+            Some("runtime-service-untrusted")
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn concurrent_cache_misses_open_once_and_share_control() {

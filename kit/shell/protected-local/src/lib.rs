@@ -220,6 +220,8 @@ pub use local_development::{
 };
 #[cfg(target_os = "macos")]
 pub use macos_data_root::{prepare_fixed_runtime_data_root, FixedRuntimeDataRootError};
+#[cfg(all(target_os = "macos", feature = "macos-source-local-development"))]
+pub use macos_service_control::terminate_source_local_development_host;
 #[cfg(target_os = "macos")]
 pub use macos_service_control::{macos_runtime_service_registration, MacOsUnixSocketCarrier};
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};

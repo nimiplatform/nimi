@@ -208,6 +208,7 @@ impl SupervisedDevelopmentProcess {
         if status == 0 {
             Ok(())
         } else {
+            self.terminated.store(false, Ordering::Release);
             Err(
                 untrusted().with_reason_metadata(std::collections::BTreeMap::from([(
                     "native_errno".into(),
@@ -411,6 +412,20 @@ fn untrusted() -> NimiHostError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn failed_termination_remains_retryable() {
+        let process = SupervisedDevelopmentProcess {
+            // Native termination rejects zero before attempting any signal.
+            pid: 0,
+            process_events: std::fs::File::open("/dev/null").unwrap().into(),
+            terminated: AtomicBool::new(false),
+        };
+        for _ in 0..2 {
+            assert!(process.terminate().is_err());
+            assert!(!process.terminated.load(Ordering::Acquire));
+        }
+    }
 
     #[test]
     fn installed_child_starts_suspended_and_retains_its_real_exit_status() {

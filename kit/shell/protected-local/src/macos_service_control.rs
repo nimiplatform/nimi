@@ -566,17 +566,33 @@ impl NimiDesktopControl for MacOSDesktopControl {
         &self,
         supervisor_run_id: [u8; 32],
     ) -> Result<(), NimiHostError> {
-        if supervisor_run_id == [0u8; 32] {
-            return Err(untrusted_host());
-        }
-        let process = self
-            .development_processes
-            .lock()
-            .map_err(|_| untrusted_host())?
-            .remove(&supervisor_run_id);
-        drop(process);
-        Ok(())
+        terminate_development_host(&self.development_processes, supervisor_run_id)
     }
+}
+
+// @nimi-authority: rule.nimi.desktop.bridge-ipc.r001
+fn terminate_development_host(
+    registry: &SupervisedDevelopmentRegistry,
+    supervisor_run_id: [u8; 32],
+) -> Result<(), NimiHostError> {
+    if supervisor_run_id == [0u8; 32] {
+        return Err(untrusted_host());
+    }
+    let mut processes = registry.lock().map_err(|_| untrusted_host())?;
+    if let Some(entry) = processes.get(&supervisor_run_id) {
+        entry.process.terminate()?;
+    }
+    // Retain ownership on failure so quit can retry the same child safely.
+    processes.remove(&supervisor_run_id);
+    Ok(())
+}
+
+#[cfg(feature = "macos-source-local-development")]
+pub fn terminate_source_local_development_host(
+    supervisor_run_id: [u8; 32],
+) -> Result<(), NimiHostError> {
+    // The retained local process registry survives Runtime transport loss.
+    terminate_development_host(&development_process_registry(), supervisor_run_id)
 }
 
 #[cfg(feature = "macos-source-local-development")]
