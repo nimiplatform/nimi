@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readYamlWithFragments } from '../../../scripts/lib/read-yaml-with-fragments.mjs';
@@ -22,6 +23,20 @@ export function readYaml(rel) {
   return readYamlWithFragments(path.join(repoRoot, rel));
 }
 
+function writeGeneratedFile(abs, content) {
+  if (existsSync(abs) && readFileSync(abs, 'utf8') === content) return;
+  mkdirSync(path.dirname(abs), { recursive: true });
+  // Replace a completed file rather than truncating a projection that a
+  // Windows reader may still have open. Failed generation preserves that file.
+  const temporary = `${abs}.tmp-${process.pid}-${randomUUID()}`;
+  try {
+    writeFileSync(temporary, content, { encoding: 'utf8', flag: 'wx' });
+    renameSync(temporary, abs);
+  } finally {
+    if (existsSync(temporary)) unlinkSync(temporary);
+  }
+}
+
 export function writeJson(rel, value) {
   const abs = path.join(repoRoot, rel);
   const rendered = `${JSON.stringify(value, null, 2)}\n`;
@@ -35,8 +50,7 @@ export function writeJson(rel, value) {
     }
     return;
   }
-  mkdirSync(path.dirname(abs), { recursive: true });
-  writeFileSync(abs, rendered, 'utf8');
+  writeGeneratedFile(abs, rendered);
 }
 
 export function writeText(rel, rendered) {
@@ -52,6 +66,5 @@ export function writeText(rel, rendered) {
     }
     return;
   }
-  mkdirSync(path.dirname(abs), { recursive: true });
-  writeFileSync(abs, content, 'utf8');
+  writeGeneratedFile(abs, content);
 }
