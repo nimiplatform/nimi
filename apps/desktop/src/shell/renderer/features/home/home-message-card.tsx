@@ -1,6 +1,6 @@
 import { AppCardSurface, Button, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
 import { NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE } from '@nimiplatform/sdk/app';
-import { ArrowUpCircle, ArrowUpRight, CircleAlert, Download, Play, X } from 'lucide-react';
+import { ArrowUpCircle, ArrowUpRight, Check, CircleAlert, Download, Play, X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
@@ -258,9 +258,8 @@ function MessageTime({ message, now }: { message: HomeMessage; now: Date }) {
   );
 }
 
-function MessageHeading({ message, variant, context }: {
+function MessageHeading({ message, context }: {
   message: HomeMessage;
-  variant: 'home' | 'center';
   context: HomeMessageCardContext;
 }) {
   const { t } = useTranslation();
@@ -276,10 +275,7 @@ function MessageHeading({ message, variant, context }: {
         <span className="truncate">{association ? `${messageSourceLabel(message, t)} · ${association}` : messageSourceLabel(message, t)}</span>
       </p>
       <div className="mt-0.5 flex items-baseline gap-2">
-        <h3
-          className={`min-w-0 flex-1 text-sm ${unread ? 'font-semibold' : 'font-medium'} ${variant === 'home' ? 'truncate' : 'break-words'}`}
-          title={variant === 'home' ? title : undefined}
-        >
+        <h3 className={`min-w-0 flex-1 break-words text-sm ${unread ? 'font-semibold' : 'font-medium'}`}>
           {unread ? <span className="sr-only">{`${t('runtimeConfig.overview.appActivity.unread')} `}</span> : null}
           {title}
         </h3>
@@ -289,11 +285,136 @@ function MessageHeading({ message, variant, context }: {
   );
 }
 
-export function HomeMessageCard({ message, variant, context, placement, onShowOnHome, onOpenSettings }: {
+function HoverActionButton({ label, disabled, onClick, children }: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex size-[26px] items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-base)] transition-colors hover:text-[var(--nimi-text-primary)] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Compact Home preview row: title and time on one line, source and summary on the next; actions surface on hover or focus. */
+function HomeMessageCardCompact({ message, context }: {
   message: HomeMessage;
-  variant: 'home' | 'center';
   context: HomeMessageCardContext;
-  /** Center only: where the message stands relative to the Home preview. */
+}) {
+  const { t } = useTranslation();
+  const activityId = message.sourceKind === 'app' || message.sourceKind === 'runtime-agent' ? message.record.activityId : null;
+  const busy = activityId ? context.busy[activityId] : undefined;
+  const notice = activityId ? context.notices[activityId] : undefined;
+  const summary = messageSummary(message, t);
+  const open = openLabel(message, busy, t);
+  const progress = message.sourceKind === 'system' ? message.system.progress : null;
+  const title = messageTitle(message, t);
+  const unread = isUnread(message);
+  const association = message.sourceKind === 'app' && message.record.agent
+    ? t('runtimeConfig.overview.appActivity.withAgent', { agent: message.record.agent.displayName })
+    : null;
+  const hasBadges = message.sourceKind === 'system'
+    || (message.sourceKind !== 'realm-post'
+      && ((message.record.kind === 'todo' && Boolean(message.record.todoState)) || message.record.userView.needsAttention));
+  const actions: ReactNode[] = [];
+  if (unread) {
+    actions.push(
+      <HoverActionButton key="read" label={t('runtimeConfig.overview.appActivity.markRead')} disabled={Boolean(busy)} onClick={() => context.onMarkRead(message)}>
+        <Check size={13} strokeWidth={2.5} aria-hidden="true" />
+      </HoverActionButton>,
+    );
+  }
+  if (open) {
+    actions.push(
+      <HoverActionButton key="open" label={open} disabled={Boolean(busy)} onClick={() => context.onOpen(message)}>
+        <ArrowUpRight size={13} strokeWidth={2.5} aria-hidden="true" />
+      </HoverActionButton>,
+    );
+  }
+  if (context.canHide && isHideableMessage(message)) {
+    actions.push(
+      <HoverActionButton key="hide" label={t('runtimeConfig.overview.messages.hide')} onClick={() => context.onHide([message])}>
+        <X size={13} strokeWidth={2.5} aria-hidden="true" />
+      </HoverActionButton>,
+    );
+  }
+  const titlePad = ['', 'pr-8', 'pr-16', 'pr-24'][actions.length] ?? 'pr-24';
+  return (
+    <AppCardSurface
+      kind="promoted-glass"
+      as="article"
+      aria-label={title}
+      className="group/message relative flex items-center gap-3 rounded-[20px] px-3.5 py-2.5"
+      data-testid={`home-message:${message.key}`}
+      data-unread={unread ? 'true' : 'false'}
+    >
+      <MessageSourceIcon message={message} context={context} />
+      <div className="min-w-0 flex-1">
+        <div className={`flex items-baseline gap-2 ${titlePad}`}>
+          <h3 className={`min-w-0 flex-1 truncate text-sm ${unread ? 'font-semibold' : 'font-medium'}`} title={title}>
+            {unread ? <span className="sr-only">{`${t('runtimeConfig.overview.appActivity.unread')} `}</span> : null}
+            {title}
+          </h3>
+          <MessageTime message={message} now={context.now} />
+        </div>
+        <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
+          {unread ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--nimi-status-info)]" aria-hidden="true" /> : null}
+          <span className="max-w-[45%] shrink-0 truncate">
+            {association ? `${messageSourceLabel(message, t)} · ${association}` : messageSourceLabel(message, t)}
+          </span>
+          {summary ? (
+            <>
+              <span aria-hidden="true" className="shrink-0">·</span>
+              <span className="min-w-0 flex-1 truncate text-[var(--nimi-text-secondary)]">{summary}</span>
+            </>
+          ) : null}
+        </p>
+        {progress && progress.max > 0 ? (
+          <ProgressIndicator value={progress.value} max={progress.max} className="mt-1.5" aria-label={title} />
+        ) : null}
+        {message.sourceKind === 'app' && !message.record.source.available ? (
+          <p className="mt-1 text-xs text-[var(--nimi-status-warning)]">
+            {t('runtimeConfig.overview.appActivity.sourceUnavailable', { source: messageSourceLabel(message, t) })}
+          </p>
+        ) : null}
+        {hasBadges ? (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <StateBadges message={message} />
+          </div>
+        ) : null}
+        {notice ? (
+          <p
+            role="status"
+            className={`mt-1 text-xs ${notice.tone === 'warning' ? 'text-[var(--nimi-status-warning)]' : 'text-[var(--nimi-text-secondary)]'}`}
+          >
+            {notice.text}
+          </p>
+        ) : null}
+      </div>
+      <MediaThumb message={message} />
+      {actions.length ? (
+        <div className="absolute right-1.5 top-1.5 z-10 flex gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100">
+          {actions}
+        </div>
+      ) : null}
+    </AppCardSurface>
+  );
+}
+
+/** Full card used by the Message center: complete summary, badges and inline actions. */
+function HomeMessageCardCenter({ message, context, placement, onShowOnHome, onOpenSettings }: {
+  message: HomeMessage;
+  context: HomeMessageCardContext;
+  /** Where the message stands relative to the Home preview. */
   placement?: HomeMessagePlacement;
   onShowOnHome?: () => void;
   onOpenSettings?: () => void;
@@ -315,14 +436,11 @@ export function HomeMessageCard({ message, variant, context, placement, onShowOn
       data-testid={`home-message:${message.key}`}
       data-unread={isUnread(message) ? 'true' : 'false'}
     >
-      {variant === 'home' && context.canHide && isHideableMessage(message) ? (
-        <HideButton label={t('runtimeConfig.overview.messages.hide')} onClick={() => context.onHide([message])} />
-      ) : null}
       <MessageSourceIcon message={message} context={context} />
       <div className="min-w-0 flex-1">
-        <MessageHeading message={message} variant={variant} context={context} />
+        <MessageHeading message={message} context={context} />
         {summary ? (
-          <p className={`mt-0.5 text-[13px] text-[var(--nimi-text-secondary)] ${variant === 'home' ? 'line-clamp-3' : 'whitespace-pre-line break-words'}`}>
+          <p className="mt-0.5 whitespace-pre-line break-words text-[13px] text-[var(--nimi-text-secondary)]">
             {summary}
           </p>
         ) : null}
@@ -363,7 +481,7 @@ export function HomeMessageCard({ message, variant, context, placement, onShowOn
             {notice.text}
           </p>
         ) : null}
-        {variant === 'center' && placement === 'hidden' ? (
+        {placement === 'hidden' ? (
           <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.overview.messages.hiddenFromHome')}
             {onShowOnHome ? (
@@ -377,7 +495,7 @@ export function HomeMessageCard({ message, variant, context, placement, onShowOn
             ) : null}
           </p>
         ) : null}
-        {variant === 'center' && placement === 'source-off' ? (
+        {placement === 'source-off' ? (
           <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.overview.messages.sourceOffHome')}
             {onOpenSettings ? (
@@ -394,6 +512,29 @@ export function HomeMessageCard({ message, variant, context, placement, onShowOn
       </div>
       <MediaThumb message={message} />
     </AppCardSurface>
+  );
+}
+
+export function HomeMessageCard({ message, variant, context, placement, onShowOnHome, onOpenSettings }: {
+  message: HomeMessage;
+  variant: 'home' | 'center';
+  context: HomeMessageCardContext;
+  /** Center only: where the message stands relative to the Home preview. */
+  placement?: HomeMessagePlacement;
+  onShowOnHome?: () => void;
+  onOpenSettings?: () => void;
+}) {
+  if (variant === 'home') {
+    return <HomeMessageCardCompact message={message} context={context} />;
+  }
+  return (
+    <HomeMessageCardCenter
+      message={message}
+      context={context}
+      placement={placement}
+      onShowOnHome={onShowOnHome}
+      onOpenSettings={onOpenSettings}
+    />
   );
 }
 
@@ -451,7 +592,7 @@ export function HomeMessageStack({ group, context, onExpand, autoFocus, onAutoFo
           type="button"
           aria-expanded={false}
           onClick={onExpand}
-          className="flex w-full gap-3 rounded-[20px] px-3.5 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+          className="flex w-full gap-3 rounded-[20px] px-3.5 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
         >
           <MessageSourceIcon message={lead} context={context} />
           <span className="min-w-0 flex-1">
@@ -464,8 +605,8 @@ export function HomeMessageStack({ group, context, onExpand, autoFocus, onAutoFo
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">{messageTitle(lead, t)}</span>
               <MessageTime message={lead} now={context.now} />
             </span>
-            {summary ? <span className="mt-0.5 line-clamp-2 block text-[13px] text-[var(--nimi-text-secondary)]">{summary}</span> : null}
-            <span className="mt-1.5 block text-xs font-medium text-[var(--nimi-action-primary-bg)]">
+            {summary ? <span className="mt-0.5 line-clamp-1 block text-[13px] text-[var(--nimi-text-secondary)]">{summary}</span> : null}
+            <span className="mt-1 block text-xs font-medium text-[var(--nimi-action-primary-bg)]">
               {t('runtimeConfig.overview.messages.moreInGroup', { count: others })}
             </span>
           </span>

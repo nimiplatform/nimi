@@ -52,6 +52,8 @@ import {
 } from './runtime-setup-task-runner.js';
 import { RuntimeSetupTaskCloudPanel } from './runtime-config-setup-task-cloud.js';
 import { SetupTaskAdvancedSection } from './runtime-config-setup-task-advanced.js';
+import { componentPresentation } from './runtime-environment-presentation.js';
+import { RuntimeConfigurationEnvironment } from './runtime-configuration-environment.js';
 import { RuntimeSetupFailureMessage } from './runtime-setup-failure-message.js';
 
 function useSetupTaskTransferProgress(
@@ -187,38 +189,6 @@ function Disclosure(props: {
       <div className="mt-2 pl-5">{props.children}</div>
     </details>
   );
-}
-
-/**
- * Friendly naming for a runtime component. Known ids map to product names
- * and a plain-language state; unknown ids fall back to the raw identifier so
- * nothing is hidden, and the raw ids stay available under technical details.
- */
-export function componentPresentation(
-  item: { readonly dependencyFamily: string; readonly dependencyId: string; readonly state: string },
-  t: (key: string, options?: Record<string, unknown>) => string,
-): {
-  readonly name: string;
-  readonly family: string;
-  readonly purpose: string;
-  readonly state: string;
-  readonly tone: 'success' | 'warning' | 'info' | 'neutral';
-} {
-  // Exact ids that carry a digest (a Python environment or package set) are
-  // named by their family; the raw id stays under technical details.
-  const familyName = t(`runtimeConfig.setupTask.componentFamilyName.${item.dependencyFamily}`, { defaultValue: '' });
-  const name = t(`runtimeConfig.setupTask.component.${item.dependencyId}`, { defaultValue: familyName || item.dependencyId });
-  const family = t(`runtimeConfig.setupTask.componentFamily.${item.dependencyFamily}`, { defaultValue: '' });
-  const purpose = t(`runtimeConfig.setupTask.componentPurpose.${item.dependencyFamily}`, { defaultValue: '' });
-  const state = t(`runtimeConfig.setupTask.componentState.${item.state}`, {
-    defaultValue: t(`runtimeConfig.downloads.environment.${item.state}`, { defaultValue: item.state }),
-  });
-  const tone = item.state === 'ready_managed' || item.state === 'ready_system' || item.state === 'ready' || item.state === 'already_satisfied'
-    ? 'success'
-    : item.state === 'failed' || item.state === 'repair_required' || item.state === 'unsupported'
-      ? 'warning'
-      : 'info';
-  return { name, family, purpose, state, tone };
 }
 
 /**
@@ -626,7 +596,11 @@ export function PreparationProgress(props: {
         {stages.map((item, index) => (
           <li key={item} className="flex items-center gap-2">
             <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${index === stageIndex ? 'bg-[var(--nimi-action-primary-bg)] font-medium text-[var(--nimi-action-primary-text)]' : index < stageIndex ? 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]' : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)]'}`} aria-current={index === stageIndex ? 'step' : undefined}>
-              {index < stageIndex ? <CheckCircle2 size={12} aria-hidden="true" /> : index === stageIndex ? <LoaderCircle size={12} className="animate-spin" aria-hidden="true" /> : null}
+              {index < stageIndex ? (
+                <CheckCircle2 size={12} aria-hidden="true" />
+              ) : index === stageIndex ? (
+                <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
+              ) : null}
               {t(`runtimeConfig.setupTask.${item === 'download' ? 'downloadQueue.downloadAndVerify' : item === 'finish' ? 'downloadQueue.finish' : 'stages.components'}`)}
             </span>
             {index < stages.length - 1 ? <ChevronRight size={12} aria-hidden="true" className="text-[var(--nimi-text-muted)]" /> : null}
@@ -708,6 +682,9 @@ export function RuntimeConfigSetupTaskView(props: {
   const planning = useRef(false);
   const [reuseMessage, setReuseMessage] = useState('');
   const [actionError, setActionError] = useState('');
+  const [candidateEnvironment, setCandidateEnvironment] = useState<{ loadoutId: string; state: string } | null>(null);
+  const candidateReadiness = !task?.candidateLoadoutId ? 'unknown'
+    : candidateEnvironment?.loadoutId === task.candidateLoadoutId ? candidateEnvironment.state : 'checking';
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const advancedBaseline = useRef<RuntimeSetupTask['draft']>(undefined);
   const [candidateInfo, setCandidateInfo] = useState<{
@@ -1288,17 +1265,19 @@ export function RuntimeConfigSetupTaskView(props: {
       case 'prepared':
         return (
           <div className="space-y-3" data-testid="runtime-setup-task-prepared">
-            <InlineAlert tone="success">
+            <InlineAlert tone={candidateReadiness === 'ready' ? 'success' : candidateReadiness === 'checking' ? 'info' : 'warning'}>
               <div className="font-semibold text-[var(--nimi-text-primary)]">
-                {t('runtimeConfig.setupTask.preparedTitle', { defaultValue: 'Prepared, not in use' })}
+                {candidateReadiness === 'ready'
+                  ? t('runtimeConfig.setupTask.preparedTitle')
+                  : t(`runtimeConfig.environment.${candidateReadiness === 'checking' ? 'candidateChecking' : 'candidateNeedsCheck'}`)}
               </div>
               <div>
-                {t('runtimeConfig.setupTask.preparedDescription', { defaultValue: 'The configuration is ready. The current selection is unchanged.' })}
+                {t(candidateReadiness === 'ready' ? 'runtimeConfig.setupTask.preparedDescription' : 'runtimeConfig.environment.candidateRecheckDescription')}
               </div>
             </InlineAlert>
             <div className="flex flex-wrap gap-2">
-              <Button tone="primary" disabled={busy} onClick={onReverify}>
-                {t('runtimeConfig.setupTask.usePrepared', { defaultValue: 'Use this configuration' })}
+              <Button tone="primary" disabled={busy || candidateReadiness === 'checking'} onClick={onReverify}>
+                {t(candidateReadiness === 'ready' ? 'runtimeConfig.setupTask.usePrepared' : 'runtimeConfig.setupTask.checkPreparation')}
               </Button>
               <Button tone="secondary" onClick={props.onClose}>
                 {t('runtimeConfig.setupTask.back', { defaultValue: 'Back' })}
@@ -1442,7 +1421,9 @@ export function RuntimeConfigSetupTaskView(props: {
   return (
     <section className={`min-w-0 ${props.embedded ? 'space-y-5' : 'space-y-6'}`} data-testid="runtime-setup-task-view" aria-label={t('runtimeConfig.setupTask.title', { defaultValue: 'Setup task' })}>
       {/* First, so the spacing utility never leaves a trailing margin under the visible content. */}
-      <span className="sr-only" role="status">{task ? t(`runtimeConfig.setupTask.status.${task.status}`, { defaultValue: task.status }) : ''}</span>
+      <span className="sr-only" role="status">{task?.status === 'prepared' && candidateReadiness !== 'ready'
+        ? t(`runtimeConfig.environment.${candidateReadiness === 'checking' ? 'candidateChecking' : 'candidateNeedsCheck'}`)
+        : task ? t(`runtimeConfig.setupTask.status.${task.status}`, { defaultValue: task.status }) : ''}</span>
       {planLeads ? null : props.embedded ? (
         <div className="flex items-start gap-3">
           <h2 className="min-w-0 flex-1 text-base font-semibold leading-7">{t('runtimeConfig.setupTask.inlineTitle', { defaultValue: 'Model setup' })}</h2>
@@ -1481,6 +1462,18 @@ export function RuntimeConfigSetupTaskView(props: {
       ) : null}
       {planLeads ? null : notices}
       {renderContent()}
+      {task?.candidateLoadoutId && !['draft', 'review', 'done', 'stopped'].includes(task.status) ? (
+        <RuntimeConfigurationEnvironment
+          key={task.candidateLoadoutId}
+          capability={task.capabilityContract}
+          loadoutId={task.candidateLoadoutId}
+          revision={task.candidateRevisionBaseline}
+          disabled={busy}
+          polling={task.status === 'preparing' || task.status === 'committing'}
+          candidate
+          onReadiness={setCandidateEnvironment}
+        />
+      ) : null}
     </section>
   );
 }

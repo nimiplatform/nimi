@@ -414,6 +414,7 @@
     "runDiagnosticsDescription": "Desktop 宿主报告的最近一次受监督运行详情。",
     "runMessage": "消息",
     "runReasonCode": "原因码",
+    "otherDevelopmentSources": "其他本地开发注册（{{count}}）",
     "otherSourcesLabel": "其他来源",
     "otherSourcesDownloadTitle": "线上版本可下载",
     "otherSourcesRegistryInstalledTitle": "线上版本已安装",

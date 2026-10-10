@@ -41,6 +41,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const activePage = model.activePage;
+  const workspaceActive = activePage === 'aiSettings' || activePage === 'advancedDiagnostics';
   const browseContext = activePage === 'modelLibrary' && model.modelMarketContext?.kind === 'browse'
     ? model.modelMarketContext
     : null;
@@ -87,9 +88,17 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   const runtimeStatus = model.runtimeStatus || state.local.status;
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-2">
-      <div className={activePage === 'aiSettings' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
+      <div className={workspaceActive ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
         <Suspense fallback={<RuntimeSkeletonBlock className="h-64 w-full" />}>
           <AiSettingsPage
+            advancedDiagnostics={activePage === 'advancedDiagnostics' ? {
+              content: (
+                <Suspense fallback={<RuntimeSkeletonBlock className="h-64 w-full" />}>
+                  <AdvancedDiagnosticsPage model={model} />
+                </Suspense>
+              ),
+              onClose: () => model.onChangePage('aiSettings'),
+            } : undefined}
             runtimeWritesDisabled={model.runtimeWritesDisabled}
             focusedTaskId={model.setupTaskFocus?.taskId ?? null}
             actionFocus={state.actionFocus}
@@ -111,7 +120,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           />
         </Suspense>
       </div>
-      {activePage !== 'aiSettings' ? (
+      {!workspaceActive ? (
         <Surface
           as="main"
           tone="panel"
@@ -141,7 +150,6 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                 />
               ) : null}
               {activePage === 'cloudServices' ? <CloudServicesPage model={model} state={state} /> : null}
-              {activePage === 'advancedDiagnostics' ? <AdvancedDiagnosticsPage model={model} /> : null}
             </Suspense>
           </ScrollArea>
         </Surface>

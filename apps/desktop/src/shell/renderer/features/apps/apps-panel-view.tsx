@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type MouseEvent,
   type ReactElement,
 } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,11 +22,8 @@ import {
   ListFilter,
   LoaderCircle,
   MoreHorizontal,
-  PackageOpen,
-  Play,
   Plus,
   SearchX,
-  Square,
   X,
 } from 'lucide-react';
 import {
@@ -35,6 +33,7 @@ import {
   IconButton,
   InlineAlert,
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
   ScrollArea,
@@ -44,7 +43,6 @@ import {
   type NimiMenuItem,
 } from '@nimiplatform/kit/ui';
 import {
-  actionPlanForEntry,
   appsActionsLocked,
   hasAvailableCatalogUpdate,
   pendingActionForApp,
@@ -81,7 +79,6 @@ import type {
   DesktopAppsEntry,
   DesktopAppsPanelProjection,
   DesktopAppsProjectionSource,
-  DesktopAppSourceClass,
 } from './apps-panel-projection.js';
 import {
   markAppUpdateAutoPrompted,
@@ -442,7 +439,7 @@ function AppsRail({
         </Popover>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1" contentClassName="px-2 pb-2">
+      <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="px-2 pb-2">
         {projection === null ? (
           <div className="space-y-1.5 px-1 py-2" aria-label={t('Apps.loading')}>
             {Array.from({ length: 6 }).map((_, index) => (
@@ -533,31 +530,13 @@ function RailDownloadsEntry({
   );
 }
 
-const RAIL_SOURCE_GLYPH: Readonly<Record<Exclude<DesktopAppSourceClass, 'verified'>, {
-  readonly icon: typeof Code2;
-  readonly labelKey: string;
-  readonly className: string;
-}>> = Object.freeze({
-  local_development: {
-    icon: Code2,
-    labelKey: 'Apps.sourceBadge.localDevelopment',
-    className: 'text-[color:var(--nimi-text-muted)]',
-  },
-  user_imported: {
-    icon: PackageOpen,
-    labelKey: 'Apps.sourceBadge.userImported',
-    className: 'text-[var(--nimi-status-info-soft-text)]',
-  },
-});
-
-function RailSourceGlyph({ source }: { readonly source: Exclude<DesktopAppSourceClass, 'verified'> }): ReactElement {
+/** Marks a merged rail row that also carries a local-development registration; other source kinds stay silent in the rail. */
+function RailSourceGlyph(): ReactElement {
   const { t } = useTranslation();
-  const meta = RAIL_SOURCE_GLYPH[source];
-  const Icon = meta.icon;
   return (
-    <span title={t(meta.labelKey)} className={`inline-flex h-6 w-6 shrink-0 items-center justify-center ${meta.className}`}>
-      <Icon className="h-3 w-3" aria-hidden="true" />
-      <span className="sr-only">{t(meta.labelKey)}</span>
+    <span title={t('Apps.sourceBadge.localDevelopment')} className="inline-flex h-6 w-6 shrink-0 items-center justify-center text-[color:var(--nimi-text-muted)]">
+      <Code2 className="h-3 w-3" aria-hidden="true" />
+      <span className="sr-only">{t('Apps.sourceBadge.localDevelopment')}</span>
     </span>
   );
 }
@@ -608,6 +587,8 @@ const RailGroupRow = memo(function RailGroupRow({
   const primary = group.primary;
   const visual = appRunVisualState(primary.run?.state ?? null);
   const transition = appRunTransition(visual, activeAction);
+  // A not-yet-installed Catalog row keeps a muted, Steam-like look.
+  const notInstalled = primary.committedRelease === null && primary.localDevelopment === null;
   const { menuItems, confirmElement } = useAppEntryMenu({
     entry: primary,
     actionsDisabled,
@@ -615,131 +596,125 @@ const RailGroupRow = memo(function RailGroupRow({
     activeAction,
     onAction,
   });
+  const rowButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPoint, setMenuPoint] = useState<{ readonly x: number; readonly y: number } | null>(null);
+
+  const openContextMenu = (event: MouseEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    let point = { x: event.clientX, y: event.clientY };
+    if (point.x === 0 && point.y === 0) {
+      // A keyboard-triggered context menu carries no pointer position;
+      // anchor it to the row instead of the window corner.
+      const rect = event.currentTarget.getBoundingClientRect();
+      point = { x: rect.right, y: rect.top };
+    }
+    setMenuPoint(point);
+    setMenuOpen(true);
+  };
+
   return (
     <div className="group/rail-row relative" data-rail-group={group.appId}>
-      <div className={`flex w-full min-w-0 items-center rounded-lg transition-colors ${active
-        ? 'bg-[var(--nimi-surface-active)]'
-        : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
-      }`}>
-        <button
-          type="button"
-          data-app-row
-          data-testid={`apps-rail-app-${group.appId}`}
-          tabIndex={tabIndex}
-          onClick={() => onAction('details')}
-          onKeyDown={onKeyDown}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg py-1.5 pl-2 pr-1 text-left focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+      <Popover
+        open={menuOpen}
+        onOpenChange={(next) => {
+          setMenuOpen(next);
+          if (!next) setMenuPoint(null);
+        }}
+      >
+        <div
+          className={`flex w-full min-w-0 items-center rounded-lg transition-colors ${active
+            ? 'bg-[var(--nimi-surface-active)]'
+            : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
+          }`}
+          onContextMenu={openContextMenu}
         >
-          <AppArtworkIcon
-            appId={group.appId}
-            displayName={group.displayName}
-            iconUrl={group.iconUrl}
-            size="xs"
-          />
-          <span className={`min-w-0 flex-1 truncate text-[13px] leading-5 ${visual === 'running' ? 'font-semibold text-[color:var(--nimi-text-primary)]' : 'font-medium text-[color:var(--nimi-text-primary)]'}`}>
-            {group.displayName}
-          </span>
-          {transition ? (
-            <span data-rail-transition={transition} className="inline-flex shrink-0 items-center gap-1 text-[var(--nimi-action-primary-bg)]">
-              <LoaderCircle className="h-3 w-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-              <span className="sr-only">{t(`Apps.runState.${transition}`)}</span>
+          <button
+            type="button"
+            ref={rowButtonRef}
+            data-app-row
+            data-testid={`apps-rail-app-${group.appId}`}
+            tabIndex={tabIndex}
+            onClick={() => onAction('details')}
+            onKeyDown={onKeyDown}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-lg py-1.5 pl-2 pr-1 text-left focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+          >
+            <AppArtworkIcon
+              appId={group.appId}
+              displayName={group.displayName}
+              iconUrl={group.iconUrl}
+              size="xs"
+              className={notInstalled ? 'opacity-60' : ''}
+            />
+            <span className={`min-w-0 flex-1 truncate text-[13px] leading-5 ${notInstalled
+              ? 'font-medium text-[color:var(--nimi-text-muted)]'
+              : visual === 'running'
+                ? 'font-semibold text-[color:var(--nimi-text-primary)]'
+                : 'font-medium text-[color:var(--nimi-text-primary)]'
+            }`}>
+              {group.displayName}
             </span>
-          ) : visual === 'running' ? (
-            <span className="inline-flex shrink-0 items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-success)]" aria-hidden="true" />
-              <span className="sr-only">{t('Apps.runState.running')}</span>
-            </span>
-          ) : visual === 'failed' ? (
-            <span className="inline-flex shrink-0 items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-danger)]" aria-hidden="true" />
-              <span className="sr-only">{t('Apps.runState.failed')}</span>
-            </span>
-          ) : null}
-          {/* Reserve the action slots so hover and keyboard focus never resize the label. */}
-          <span className="inline-flex min-w-12 shrink-0 items-center justify-end group-hover/rail-row:invisible group-focus-within/rail-row:invisible group-has-[[aria-expanded=true]]/rail-row:invisible">
-            {group.sourceClasses.length > 1
-              ? group.sourceClasses.filter((source) => source !== 'verified').map((source) => <RailSourceGlyph key={source} source={source} />)
-              : null}
-          </span>
-        </button>
-        <span className="invisible absolute right-1 top-1/2 inline-flex -translate-y-1/2 items-center group-hover/rail-row:visible group-focus-within/rail-row:visible group-has-[[aria-expanded=true]]/rail-row:visible">
-          <RailQuickAction
-            entry={primary}
-            activeAction={activeAction}
-            actionsDisabled={actionsDisabled}
-            onAction={onAction}
-          />
-          <Popover>
-            <PopoverTrigger asChild>
-              <IconButton
-                data-testid={`apps-rail-app-${group.appId}-menu`}
-                icon={<MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />}
-                tone="ghost"
-                size="sm"
-                aria-label={t('Apps.library.cardMenuLabel')}
-                title={t('Apps.library.cardMenuLabel')}
-                className="h-6 w-6 min-h-0"
-              />
-            </PopoverTrigger>
-            <PopoverContent align="end" sideOffset={6} className="p-1">
-              <ActionMenu items={menuItems} ariaLabel={t('Apps.library.cardMenuLabel')} />
-            </PopoverContent>
-          </Popover>
-        </span>
-      </div>
+            {transition ? (
+              <span data-rail-transition={transition} className="inline-flex shrink-0 items-center gap-1 text-[var(--nimi-action-primary-bg)]">
+                <LoaderCircle className="h-3 w-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                <span className="sr-only">{t(`Apps.runState.${transition}`)}</span>
+              </span>
+            ) : visual === 'running' ? (
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-success)]" aria-hidden="true" />
+                <span className="sr-only">{t('Apps.runState.running')}</span>
+              </span>
+            ) : visual === 'failed' ? (
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-danger)]" aria-hidden="true" />
+                <span className="sr-only">{t('Apps.runState.failed')}</span>
+              </span>
+            ) : null}
+            {group.sourceClasses.length > 1 && group.sourceClasses.includes('local_development') ? (
+              <span className="inline-flex shrink-0 items-center justify-end group-focus-within/rail-row:hidden group-has-[[aria-expanded=true]]/rail-row:hidden">
+                <RailSourceGlyph />
+              </span>
+            ) : null}
+          </button>
+          {/* Actions live in the row's context menu; the ⋯ stays out of the
+              mouse flow and only appears for keyboard focus so it never
+              competes with the name for the narrow row. */}
+          <PopoverTrigger asChild>
+            <IconButton
+              data-testid={`apps-rail-app-${group.appId}-menu`}
+              icon={<MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />}
+              tone="ghost"
+              size="sm"
+              aria-label={t('Apps.library.cardMenuLabel')}
+              title={t('Apps.library.cardMenuLabel')}
+              className="mr-1 hidden h-6 w-6 min-h-0 shrink-0 group-focus-within/rail-row:inline-flex group-has-[[aria-expanded=true]]/rail-row:inline-flex"
+            />
+          </PopoverTrigger>
+        </div>
+        {menuPoint ? (
+          <PopoverAnchor asChild>
+            <span aria-hidden="true" className="pointer-events-none fixed h-0 w-0" style={{ left: menuPoint.x, top: menuPoint.y }} />
+          </PopoverAnchor>
+        ) : null}
+        <PopoverContent
+          align={menuPoint ? 'start' : 'end'}
+          sideOffset={menuPoint ? 2 : 6}
+          className="p-1"
+          onCloseAutoFocus={(event) => {
+            // The ⋯ trigger hides again once the menu closes; return focus to
+            // the row so keyboard users keep their place.
+            event.preventDefault();
+            rowButtonRef.current?.focus();
+          }}
+        >
+          <ActionMenu items={menuItems} ariaLabel={t('Apps.library.cardMenuLabel')} />
+        </PopoverContent>
+      </Popover>
       {confirmElement}
     </div>
   );
 }, railGroupRowPropsEqual);
-
-/** Compact icon-only twin of AppRowActionButton for the merged rail rows. */
-function RailQuickAction({
-  entry,
-  activeAction,
-  actionsDisabled,
-  onAction,
-}: {
-  readonly entry: DesktopAppsEntry;
-  readonly activeAction: AppCardActionId | null;
-  readonly actionsDisabled: boolean;
-  readonly onAction: (action: AppCardActionId) => void;
-}): ReactElement | null {
-  const { t } = useTranslation();
-  const visual = appRunVisualState(entry.run?.state ?? null);
-  const plan = actionPlanForEntry(entry);
-  if (!plan.primary) return null;
-  // The row's status spinner already carries a launch or stop in progress.
-  if (appRunTransition(visual, activeAction)) return null;
-  if (plan.primary.id === 'stop') {
-    return (
-      <IconButton
-        data-testid={`apps-rail-app-${entry.identity.appId}-stop`}
-        icon={<Square className="h-3.5 w-3.5" aria-hidden="true" />}
-        tone="ghost"
-        size="sm"
-        disabled={actionsDisabled}
-        aria-label={t('Apps.action.stop')}
-        title={t('Apps.action.stop')}
-        className="h-6 w-6 min-h-0"
-        onClick={() => onAction('stop')}
-      />
-    );
-  }
-  const launchLabel = t(entry.committedRelease && entry.run?.state === 'running' ? 'Apps.action.focus' : visual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch');
-  return (
-    <IconButton
-      data-testid={`apps-rail-app-${entry.identity.appId}-launch`}
-      icon={activeAction === 'launch' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Play className="h-3.5 w-3.5" aria-hidden="true" />}
-      tone="ghost"
-      size="sm"
-      disabled={actionsDisabled}
-      aria-label={launchLabel}
-      title={launchLabel}
-      className="h-6 w-6 min-h-0"
-      onClick={() => onAction('launch')}
-    />
-  );
-}
 
 function AppsHome({
   projection,

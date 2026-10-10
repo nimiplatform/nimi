@@ -57,6 +57,7 @@ const PRIMARY_ICON_TILE_STYLE: CSSProperties = {
 export type RuntimeOverviewCapability = {
   readonly id: string;
   readonly model: string;
+  readonly taskModel?: string;
   readonly state: ReturnType<typeof capabilityPreparationState>;
 };
 
@@ -159,39 +160,47 @@ export function RuntimeProfileQuickStart(props: {
           {ready.map((entry) => {
             const Icon = capabilityIcon(entry.id);
             const label = displayRuntimeConfigCapabilityLabel(entry.id, t);
+            const candidateTask = entry.state.replacement ? entry.state.task : undefined;
+            const candidateActive = candidateTask?.status === 'preparing' || candidateTask?.status === 'committing';
             return (
               <button
                 key={entry.id}
                 type="button"
-                className="group flex items-center gap-3 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 text-left shadow-[var(--nimi-elevation-base)] transition-[box-shadow,transform] duration-200 hover:shadow-[var(--nimi-elevation-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)] motion-safe:hover:-translate-y-0.5"
+                className="group flex flex-col items-start gap-3 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 text-left shadow-[var(--nimi-elevation-base)] transition-[box-shadow,transform] duration-200 hover:shadow-[var(--nimi-elevation-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)] motion-safe:hover:-translate-y-0.5"
                 data-ready-capability={entry.id}
                 aria-label={t('runtimeConfig.quickStart.viewCapability', { capability: label })}
                 onClick={() => props.onOpenCapability(entry.id)}
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]">
-                  <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
+                <span className="flex w-full items-center gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]">
+                    <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1 whitespace-normal break-words text-sm font-semibold leading-5 text-[var(--nimi-text-primary)]">{label}</span>
+                  <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--nimi-text-muted)] transition-colors duration-200 group-hover:text-[var(--nimi-action-primary-bg)]">
+                    {t('runtimeConfig.quickStart.view')}
+                    <ArrowRight size={14} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                  </span>
                 </span>
-                <span className="min-w-0 flex-1 space-y-1.5">
-                  <span className="block truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{label}</span>
+                <span className="block w-full min-w-0 space-y-2">
                   {entry.model ? (
-                    <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2 py-0.5 text-xs font-medium text-[var(--nimi-status-success-soft-text)]">
+                    <span data-current-model className="inline-flex max-w-full items-center gap-1 rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2 py-0.5 text-xs font-medium text-[var(--nimi-status-success-soft-text)]" title={t('runtimeConfig.quickStart.defaultModel', { model: entry.model })}>
                       <Check size={12} className="shrink-0" aria-hidden="true" />
-                      <span className="truncate">{entry.model}</span>
+                      <span className="truncate">{t('runtimeConfig.quickStart.defaultModel', { model: entry.model })}</span>
                     </span>
                   ) : null}
-                  {entry.state.replacement && entry.state.task ? (
-                    <Fact tone="pending">
-                      {t('runtimeConfig.capabilities.replacement')} · {t(`runtimeConfig.setupTask.status.${entry.state.task.status}`)}
-                    </Fact>
+                  {candidateTask && candidateActive ? (
+                    <span data-candidate-configuration={candidateTask.status} className="block space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2 text-xs text-[var(--nimi-text-secondary)]">
+                      <span className="block whitespace-normal break-words">
+                        {entry.taskModel
+                          ? t('runtimeConfig.quickStart.otherConfigurationModel', { model: entry.taskModel })
+                          : t('runtimeConfig.quickStart.otherConfiguration')}
+                      </span>
+                      <span className="flex items-start gap-1.5">
+                        <LoaderCircle size={12} aria-hidden="true" className="mt-0.5 shrink-0 animate-spin text-[var(--nimi-status-info)]" />
+                        <span>{t(`runtimeConfig.setupTask.status.${candidateTask.status}`)}</span>
+                      </span>
+                    </span>
                   ) : null}
-                </span>
-                <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--nimi-text-muted)] transition-colors duration-200 group-hover:text-[var(--nimi-action-primary-bg)]">
-                  {t('runtimeConfig.quickStart.view')}
-                  <ArrowRight
-                    size={14}
-                    aria-hidden="true"
-                    className="transition-transform duration-200 group-hover:translate-x-0.5"
-                  />
                 </span>
               </button>
             );

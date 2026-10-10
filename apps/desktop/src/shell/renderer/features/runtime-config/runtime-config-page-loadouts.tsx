@@ -30,6 +30,7 @@ import {
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { CAPABILITY_INVENTORY_KEY } from './runtime-capability-inventory.js';
+import { RuntimeConfigurationEnvironment } from './runtime-configuration-environment.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { runtimeConfigLoadoutCatalogBadge } from './runtime-config-loadout-catalog-badge.js';
 import {
@@ -86,7 +87,8 @@ export function SavedConfigsView(props: {
   readonly capabilityContract?: string;
   readonly navigationContext: RuntimeConfigLoadoutNavigationContext | null;
   readonly onBack: () => void;
-  readonly onOpenAdvancedDiagnostics?: () => void;
+  readonly environmentWritesDisabled?: boolean;
+  readonly onPrepareEnvironment?: (loadout: NimiMachineLoadout) => void;
   readonly onOpenModelMarket: (context: RuntimeConfigModelMarketContext) => void;
 }) {
   const { t } = useTranslation();
@@ -895,9 +897,14 @@ export function SavedConfigsView(props: {
                 </div>
               </details>
 
-              {props.onOpenAdvancedDiagnostics ? (
-                <div><Button size="sm" tone="ghost" onClick={props.onOpenAdvancedDiagnostics}>{t('runtimeConfig.loadouts.viewInEnvironment')}</Button></div>
-              ) : null}
+              <RuntimeConfigurationEnvironment
+                key={manageLoadout.loadoutId}
+                capability={manageLoadout.capabilityContract}
+                loadoutId={manageLoadout.loadoutId}
+                revision={manageLoadout.revision}
+                disabled={Boolean(busy) || props.environmentWritesDisabled === true}
+                onPrepare={props.onPrepareEnvironment ? () => props.onPrepareEnvironment!(manageLoadout) : undefined}
+              />
 
               <div className="flex justify-end border-t border-[var(--nimi-border-subtle)] pt-4">
                 <Button size="sm" tone="danger" disabled={Boolean(busy)} onClick={() => requestDelete(manageLoadout)}>{t('runtimeConfig.loadouts.delete')}</Button>

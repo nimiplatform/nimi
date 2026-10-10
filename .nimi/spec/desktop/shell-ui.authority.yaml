@@ -276,7 +276,7 @@ units:
     kind: rule
     title: Capability and settings sidebars reuse the shared family
     modality: must
-    statement: "AI Capabilities uses the Apps-style master-detail composition through existing Kit sidebar primitives: the left capability list stays navigable in every preparation state, the default right pane hosts Profile quick start, and selection opens a stable capability detail. Settings keeps its shared sidebar family; capability details expose model choices and advanced controls in context without a new sidebar or visual system."
+    statement: "AI Capabilities uses the Apps-style master-detail composition through existing Kit sidebar primitives: the left capability list stays navigable in every preparation state, the default right pane hosts Profile quick start, and selection opens a stable capability detail. Advanced & Diagnostics is a secondary item in that same left sidebar; opening it, including through external deep links, replaces only the right pane, preserves capability navigation and marks the diagnostic item as the current selection. Settings keeps its shared sidebar family; capability details expose model choices and advanced controls in context without a new sidebar or visual system. Capability-specific runtime dependencies and their operations stay with the exact model configuration in capability details; Services & Components manages shared components and system services without a centralized capability-environment list."
     condition: Whenever Desktop renders an internal feature sidebar.
     failure: Reject an unregistered sidebar family or misclassification of the Chat rail.
     relations:

@@ -270,7 +270,7 @@ function LocalDevelopmentAppsDetailView({
 
   return (
     <div data-testid="apps-detail-body" className="flex min-h-0 flex-1 flex-col">
-      <header className="shrink-0 px-5 pt-4 sm:px-7 sm:pt-5">
+      <header className="mx-auto w-full max-w-6xl shrink-0 px-5 pt-4 sm:px-7 sm:pt-5">
         <Button
           data-testid="apps-detail-back"
           tone="ghost"
@@ -363,7 +363,7 @@ function LocalDevelopmentAppsDetailView({
         />
       </header>
 
-      <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent">
+      <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent [&>div]:!block">
         <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-7">
           {actionError ? <AppsActionErrorAlert error={actionError} className="mb-5" /> : null}
 
@@ -647,7 +647,7 @@ function InstalledAppsDetailView({
 
   return (
     <div data-testid="apps-detail-body" data-installed-detail className="flex min-h-0 flex-1 flex-col">
-      <header className="shrink-0 px-5 pt-4 sm:px-7 sm:pt-5">
+      <header className="mx-auto w-full max-w-6xl shrink-0 px-5 pt-4 sm:px-7 sm:pt-5">
         <Button
           data-testid="apps-detail-back"
           tone="ghost"
@@ -764,7 +764,7 @@ function InstalledAppsDetailView({
         />
       </header>
 
-      <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent">
+      <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent [&>div]:!block">
         <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-7">
           {actionError ? <AppsActionErrorAlert error={actionError} className="mb-5" /> : null}
           {activeTab === 'overview' ? (
@@ -845,13 +845,6 @@ const SOURCE_TILE_ICON = Object.freeze({
   verified: BadgeCheck,
 } as const);
 
-/**
- * Other sources of the same App, surfaced above the fold as one compact row
- * per source. Each row states what the source means for the user (a
- * downloadable Registry build, a registered local-development project, an
- * installed copy) and links to that source's own page; install, run, and
- * removal stay independent per source.
- */
 /** Sits beside 启动中 so a slow start can be abandoned without the ⋯ menu. */
 function AppsStartingStopButton({ testId, disabled, onStop }: {
   readonly testId: string;
@@ -867,6 +860,11 @@ function AppsStartingStopButton({ testId, disabled, onStop }: {
   );
 }
 
+/**
+ * Other sources preserve their own actions. Local-development registrations
+ * sit in a collapsed, height-bounded list so accumulated registrations do not
+ * push the usage guide out of view.
+ */
 function AppSourcesBanner({ entries, onOpenEntry, onRemoveSource, actionsDisabled, className = '' }: {
   readonly entries: readonly DesktopAppsEntry[];
   readonly onOpenEntry: (entryKey: string) => void;
@@ -878,67 +876,80 @@ function AppSourcesBanner({ entries, onOpenEntry, onRemoveSource, actionsDisable
   const [removingEntryKey, setRemovingEntryKey] = useState<string | null>(null);
   const removingEntry = entries.find((entry) => entry.identity.entryKey === removingEntryKey && entry.localDevelopment);
   if (entries.length === 0) return null;
+  const localSources = entries.filter((sourceEntry) => sourceEntry.localDevelopment);
+  const packageSources = entries.filter((sourceEntry) => !sourceEntry.localDevelopment);
+  const renderSource = (sourceEntry: DesktopAppsEntry) => {
+    const source = appSourceForEntry(sourceEntry);
+    const downloadable = source === 'verified' && !sourceEntry.committedRelease;
+    const Icon = downloadable ? Download : SOURCE_TILE_ICON[source];
+    const headlineKey = source === 'verified'
+      ? (downloadable ? 'Apps.detail.otherSourcesDownloadTitle' : 'Apps.detail.otherSourcesRegistryInstalledTitle')
+      : source === 'local_development'
+        ? 'Apps.detail.otherSourcesLocalDevTitle'
+        : 'Apps.detail.otherSourcesImportedTitle';
+    const statusText = sourceEntry.committedRelease
+      ? t('Apps.version.installed', { version: sourceEntry.committedRelease.version })
+      : sourceEntry.localDevelopment
+        ? sourceEntry.localDevelopment.canonicalProjectRoot
+        : t('Apps.version.notInstalled');
+    return (
+      <li key={sourceEntry.identity.entryKey} className="flex flex-wrap items-center gap-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-[1_1_12rem]">
+          <p className="text-sm font-medium leading-5 text-[color:var(--nimi-text-primary)]">{t(headlineKey)}</p>
+          <p className="truncate text-xs leading-4 text-[color:var(--nimi-text-secondary)]">{statusText}</p>
+          {sourceEntry.localDevelopment ? (
+            <p className="text-xs leading-4 text-[color:var(--nimi-text-secondary)]">
+              {t('Apps.detail.registeredAt')} · {formatTimestamp(sourceEntry.localDevelopment.registeredAtUnixMs, i18n.language)}
+            </p>
+          ) : null}
+        </div>
+        <Button
+          tone="secondary"
+          size="sm"
+          className="shrink-0"
+          data-testid={`apps-source-entry-${sourceEntry.identity.entryKey}`}
+          onClick={() => onOpenEntry(sourceEntry.identity.entryKey)}
+        >
+          {t('Apps.detail.viewSource')}
+          <ChevronRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
+        </Button>
+        {sourceEntry.localDevelopment && onRemoveSource ? (
+          <Button
+            tone="ghost"
+            size="sm"
+            disabled={actionsDisabled}
+            data-testid={`apps-remove-source-${sourceEntry.identity.entryKey}`}
+            onClick={() => setRemovingEntryKey(sourceEntry.identity.entryKey)}
+          >
+            <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+            {t('Apps.action.removeDevelopment')}
+          </Button>
+        ) : null}
+      </li>
+    );
+  };
   return (
     <section
       data-testid="apps-other-sources"
       aria-label={t('Apps.detail.otherSourcesLabel')}
       className={`rounded-xl border border-[color:var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] px-3.5 py-2.5 ${className}`}
     >
-      <ul className="space-y-2">
-        {entries.map((sourceEntry) => {
-          const source = appSourceForEntry(sourceEntry);
-          const downloadable = source === 'verified' && !sourceEntry.committedRelease;
-          const Icon = downloadable ? Download : SOURCE_TILE_ICON[source];
-          const headlineKey = source === 'verified'
-            ? (downloadable ? 'Apps.detail.otherSourcesDownloadTitle' : 'Apps.detail.otherSourcesRegistryInstalledTitle')
-            : source === 'local_development'
-              ? 'Apps.detail.otherSourcesLocalDevTitle'
-              : 'Apps.detail.otherSourcesImportedTitle';
-          const statusText = sourceEntry.committedRelease
-            ? t('Apps.version.installed', { version: sourceEntry.committedRelease.version })
-            : sourceEntry.localDevelopment
-              ? sourceEntry.localDevelopment.canonicalProjectRoot
-              : t('Apps.version.notInstalled');
-          return (
-            <li key={sourceEntry.identity.entryKey} className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
-                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium leading-5 text-[color:var(--nimi-text-primary)]">{t(headlineKey)}</p>
-                <p className="truncate text-xs leading-4 text-[color:var(--nimi-text-secondary)]">{statusText}</p>
-                {sourceEntry.localDevelopment ? (
-                  <p className="text-xs leading-4 text-[color:var(--nimi-text-secondary)]">
-                    {t('Apps.detail.registeredAt')} · {formatTimestamp(sourceEntry.localDevelopment.registeredAtUnixMs, i18n.language)}
-                  </p>
-                ) : null}
-              </div>
-              <Button
-                tone="secondary"
-                size="sm"
-                className="shrink-0"
-                data-testid={`apps-source-entry-${sourceEntry.identity.entryKey}`}
-                onClick={() => onOpenEntry(sourceEntry.identity.entryKey)}
-              >
-                {t('Apps.detail.viewSource')}
-                <ChevronRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
-              </Button>
-              {sourceEntry.localDevelopment && onRemoveSource ? (
-                <Button
-                  tone="ghost"
-                  size="sm"
-                  disabled={actionsDisabled}
-                  data-testid={`apps-remove-source-${sourceEntry.identity.entryKey}`}
-                  onClick={() => setRemovingEntryKey(sourceEntry.identity.entryKey)}
-                >
-                  <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                  {t('Apps.action.removeDevelopment')}
-                </Button>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+      {packageSources.length > 0 ? (
+        <ul className="space-y-2">{packageSources.map(renderSource)}</ul>
+      ) : null}
+      {localSources.length > 0 ? (
+        <details data-testid="apps-other-development-sources" className={packageSources.length > 0 ? 'mt-2' : ''}>
+          <summary className="cursor-pointer rounded-md text-sm font-medium text-[color:var(--nimi-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-action-primary-bg)]">
+            {t('Apps.detail.otherDevelopmentSources', { count: localSources.length })}
+          </summary>
+          <ScrollArea className="mt-3 max-h-64" viewportClassName="overscroll-contain [&>div]:!block" contentClassName="pr-1">
+            <ul className="space-y-2">{localSources.map(renderSource)}</ul>
+          </ScrollArea>
+        </details>
+      ) : null}
       <ConfirmDialog
         open={Boolean(removingEntry)}
         title={t('Apps.confirm.removeDevelopment.title')}

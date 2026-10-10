@@ -11,6 +11,7 @@ import {
   type NimiLoadoutRecipe,
   type NimiMachineLoadout,
   type NimiRuntimeLocalEnvironmentPlan,
+  type NimiRuntimeLocalEnvironmentDependencyJob,
   type NimiRuntimeLocalVerifiedAssetDescriptor,
   type NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
@@ -47,6 +48,7 @@ import {
   recipeOfferSummary,
 } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel, displayRuntimeConfigCapabilityUsage } from './runtime-config-capability-labels.js';
+import { RuntimeEnvironmentCheck, RuntimeEnvironmentDependencies, type RuntimeEnvironmentActions } from './runtime-environment-details.js';
 import { SavedConfigsView } from './runtime-config-page-loadouts.js';
 import type {
   RuntimeConfigLoadoutNavigationContext,
@@ -68,6 +70,8 @@ type Props = {
   modelsLoading?: boolean;
   modelsError?: boolean;
   environment?: NimiRuntimeLocalEnvironmentPlan;
+  environmentJobs?: readonly NimiRuntimeLocalEnvironmentDependencyJob[];
+  environmentActions?: RuntimeEnvironmentActions;
   status: ReturnType<typeof capabilityPreparationState>;
   /** Model the in-flight setup works on; '' when its candidate is not known. */
   taskModel: string;
@@ -170,12 +174,12 @@ export function RuntimeCapabilityDetail(props: Props) {
   const isReady = props.status.state === 'ready';
   // The same dependency reading as the capability list, so the card and the rail agree.
   const environmentReady =
-    !!props.environment &&
+    !!props.environment && props.environment.state !== 'unsupported' &&
     props.environment.dependencies.every(
       (d) => !d.required || isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state),
     );
   const readyDependencies =
-    props.environment?.dependencies.filter((d) => isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state)).length ?? 0;
+    props.environment?.dependencies.filter((d) => d.required && isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state)).length ?? 0;
   const chipSize = identity.sizeBytes ?? downloadedSummary?.installedBytes ?? null;
   const versionChip = [identity.versionShort, chipSize ? t('runtimeConfig.product.aboutSize', { size: formatBytes(chipSize) }) : '']
     .filter(Boolean)
@@ -218,7 +222,8 @@ export function RuntimeCapabilityDetail(props: Props) {
         capabilityContract={props.capability}
         navigationContext={props.navigationContext ?? { capabilityContract: props.capability }}
         onBack={() => props.onSection('advanced')}
-        onOpenAdvancedDiagnostics={props.onDiagnostics}
+        environmentWritesDisabled={props.disabled}
+        onPrepareEnvironment={(loadout) => { void props.onStart(loadout.recipeId, loadout); }}
         onOpenModelMarket={props.onModelMarket}
       />
     );
@@ -282,6 +287,7 @@ export function RuntimeCapabilityDetail(props: Props) {
             <section
               className="overflow-hidden rounded-2xl bg-[var(--nimi-surface-card)]"
               data-testid="capability-current-model"
+              data-loadout-id={props.selected?.loadoutId}
             >
               <div className="flex flex-wrap items-start gap-x-6 gap-y-4 p-5 lg:p-6">
                 <div className="flex min-w-[16rem] flex-1 items-start gap-4">
@@ -393,19 +399,21 @@ export function RuntimeCapabilityDetail(props: Props) {
                           {t('runtimeConfig.capabilities.environment')}
                         </span>
                         <span className="text-[var(--nimi-text-secondary)]">
-                          {t('runtimeConfig.capabilities.environmentSummary', {
-                            ready: readyDependencies,
-                            count: props.environment.dependencies.length,
-                          })}
+                          {props.environment.state === 'unsupported'
+                            ? t('runtimeConfig.environment.localCapabilityStateUnsupported')
+                            : t('runtimeConfig.capabilities.environmentSummary', {
+                              ready: readyDependencies,
+                              count: props.environment.dependencies.filter(d => d.required).length,
+                            })}
                         </span>
                       </p>
-                      <Button tone="ghost" size="sm" className="-mr-2" onClick={props.onDiagnostics}>
-                        {t('runtimeConfig.nav.advancedDiagnostics')}
-                        <ChevronRight size={14} />
-                      </Button>
+                      <RuntimeEnvironmentCheck actions={props.environmentActions} />
                     </div>
-                    <EnvironmentDependencies
+                    <RuntimeEnvironmentDependencies
                       environment={props.environment}
+                      jobs={props.environmentJobs}
+                      actions={props.environmentActions}
+                      disabled={props.disabled}
                       className={needsAttention ? 'mt-2 pl-[calc(15px+0.5rem)]' : 'mt-2'}
                     />
                   </div>
@@ -453,16 +461,13 @@ export function RuntimeCapabilityDetail(props: Props) {
                           {t('runtimeConfig.product.technicalEnvironment')}
                         </h3>
                         {props.environment ? (
-                          <EnvironmentDependencies environment={props.environment} className="mt-2.5" />
+                          <RuntimeEnvironmentDependencies environment={props.environment} jobs={props.environmentJobs} actions={props.environmentActions} disabled={props.disabled} className="mt-2.5" />
                         ) : (
                           <p className="mt-2.5 text-xs text-[var(--nimi-text-secondary)]">
                             {t('runtimeConfig.capabilities.state.unknown')}
                           </p>
                         )}
-                        <Button tone="ghost" size="sm" className="-ml-3 mt-2" onClick={props.onDiagnostics}>
-                          {t('runtimeConfig.nav.advancedDiagnostics')}
-                          <ChevronRight size={14} />
-                        </Button>
+                        <RuntimeEnvironmentCheck actions={props.environmentActions} />
                       </div>
                     )}
                   </div>
@@ -791,34 +796,5 @@ function ModelChoiceCard(props: {
         </ul>
       ) : null}
     </article>
-  );
-}
-
-/** Each runtime component of the capability's environment with its own state. */
-function EnvironmentDependencies(props: {
-  readonly environment: NimiRuntimeLocalEnvironmentPlan;
-  readonly className?: string;
-}) {
-  const { t } = useTranslation();
-  return (
-    <ul className={`space-y-1.5 text-xs ${props.className ?? ''}`}>
-      {props.environment.dependencies.map((item) => {
-        const ready = isNimiRuntimeLocalEnvironmentDependencyReadyState(item.state);
-        return (
-          <li
-            key={`${item.dependencyFamily}:${item.dependencyId}`}
-            className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5"
-          >
-            <span className="min-w-0 break-all font-mono text-[var(--nimi-text-primary)]">{item.dependencyId}</span>
-            <span
-              className={`inline-flex shrink-0 items-center gap-1 ${ready ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-secondary)]'}`}
-            >
-              {ready ? <Check size={12} aria-hidden="true" /> : null}
-              {t(`runtimeConfig.downloads.environment.${item.state}`, { defaultValue: item.state })}
-            </span>
-          </li>
-        );
-      })}
-    </ul>
   );
 }

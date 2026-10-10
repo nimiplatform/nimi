@@ -414,6 +414,7 @@
     "runDiagnosticsDescription": "Latest supervised run detail reported by the Desktop host.",
     "runMessage": "Message",
     "runReasonCode": "Reason code",
+    "otherDevelopmentSources": "Other local development registrations ({{count}})",
     "otherSourcesLabel": "Other sources",
     "otherSourcesDownloadTitle": "Online version available",
     "otherSourcesRegistryInstalledTitle": "Online version installed",

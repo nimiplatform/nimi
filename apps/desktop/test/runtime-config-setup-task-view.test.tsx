@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createInstance } from 'i18next';
+import { I18nextProvider } from 'react-i18next';
 import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalEnvironmentPlan, NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import { TooltipProvider } from '@nimiplatform/kit/ui';
 import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store';
@@ -22,6 +24,49 @@ import type { RuntimeSetupPreparationPlan, RuntimeSetupRunnerPorts } from '../sr
 (globalThis as { React?: typeof React }).React = React;
 
 const I18N_RESOURCE = { instance: { t: (key: string) => key } } as never;
+
+test('ready overview prioritizes the default and shows only active candidate preparation', async () => {
+  const i18n = createInstance();
+  await i18n.init({ lng: 'en', resources: { en: { translation: { runtimeConfig: {
+    quickStart: { defaultModel: 'Default · {{model}}', otherConfigurationModel: 'Another configuration · {{model}}' },
+    setupTask: { status: { prepared: 'Prepared, not in use', preparing: 'Preparing', committing: 'Applying', failed: 'Failed', 'needs-attention': 'Needs attention' } },
+  } } } } });
+  for (const status of ['prepared', 'preparing', 'committing', 'failed', 'needs-attention'] as const) {
+    const task = taskOn(makeStore(), { capabilityContract: 'image.generate', status, candidateLoadoutId: 'B' });
+    const markup = renderToStaticMarkup(
+      <I18nextProvider i18n={i18n}>
+        <RuntimeProfileQuickStart
+          disabled={false}
+          conversation={{ pending: false, preparation: { state: 'unset', replacement: false }, onOpenDetail: () => {}, onOpenTask: () => {}, onRetry: () => {} }}
+          capabilities={[{ id: 'image.generate', model: 'Current model A', taskModel: 'Candidate model B', state: { state: 'ready', task, replacement: true } }]}
+          onOpenCapability={() => {}}
+          onUse={() => {}}
+        />
+      </I18nextProvider>,
+    );
+    const defaultSection = markup.match(/data-current-model[\s\S]*?(?=<span data-candidate-configuration|<\/button>)/u)?.[0];
+    assert.ok(defaultSection);
+    assert.match(defaultSection, /Default · Current model A/u);
+    assert.doesNotMatch(defaultSection, /Candidate model B|Prepared, not in use/u);
+    if (status === 'preparing' || status === 'committing') {
+      assert.match(markup, /Another configuration · Candidate model B/u);
+      assert.match(markup, new RegExp(`data-candidate-configuration="${status}"`, 'u'));
+      assert.match(markup, /animate-spin/u);
+    } else {
+      assert.doesNotMatch(markup, /data-candidate-configuration|Candidate model B|Prepared, not in use|animate-spin/u, status);
+    }
+  }
+  // A failure saving the consumer route after Select still describes the new default.
+  const selected = taskOn(makeStore(), { capabilityContract: 'image.generate', status: 'failed', candidateLoadoutId: 'B' });
+  const markup = renderView(<RuntimeProfileQuickStart
+    disabled={false}
+    conversation={{ pending: false, preparation: { state: 'unset', replacement: false }, onOpenDetail: () => {}, onOpenTask: () => {}, onRetry: () => {} }}
+    capabilities={[{ id: 'image.generate', model: 'Current model B', state: { state: 'ready', task: selected, replacement: false } }]}
+    onOpenCapability={() => {}}
+    onUse={() => {}}
+  />);
+  assert.doesNotMatch(markup, /data-candidate-configuration|animate-spin/u);
+});
 
 test('sequential setup keeps completed and waiting files visible across transfer switches and remounts', () => {
   const store = makeStore();
@@ -391,7 +436,7 @@ test('the conversation quick start explains a missing model file instead of show
 });
 
 test('the review shell names the setup, opens straight on the summary card, and explains components in plain words', async () => {
-  const { componentPresentation } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view');
+  const { componentPresentation } = await import('../src/shell/renderer/features/runtime-config/runtime-environment-presentation');
   const t = (key: string, options?: Record<string, unknown>) => (typeof options?.defaultValue === 'string' ? options.defaultValue : key);
   // Known ids get product names and a plain state; unknown ids stay visible verbatim.
   const known = componentPresentation({ dependencyFamily: 'native-engine-package.llama', dependencyId: 'llama.cpp.package', state: 'needs_confirmation' }, t);
@@ -602,7 +647,7 @@ test('a downloaded recipe offers enable without being labeled as the current mod
 });
 
 test('the review names Python components by family, shows offer terms, and blocks a candidate without a managed environment', async () => {
-  const { componentPresentation } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view');
+  const { componentPresentation } = await import('../src/shell/renderer/features/runtime-config/runtime-environment-presentation');
   const { readFileSync } = await import('node:fs');
   const en = JSON.parse(readFileSync(new URL('../src/shell/renderer/locales/en/46-runtimeConfig.json', import.meta.url), 'utf8')) as Record<string, unknown>;
   // Mirrors i18next's lookup of keys whose last segment contains dots.
@@ -672,4 +717,26 @@ test('inline preparation replaces an unavailable model card and retains the read
   assert.equal((replacement.match(/data-testid="capability-current-model"/g) ?? []).length, 1);
   assert.equal((replacement.match(/<h1/g) ?? []).length, 1);
   assert.doesNotMatch(replacement, /capability-pending-setup/);
+});
+
+test('unsupported optional acceleration stays a detail while an unsupported plan is never ready', () => {
+  const readyEnvironment = environmentWith('ready_managed', 'unsupported');
+  const optionalEnvironment = { ...readyEnvironment, dependencies: readyEnvironment.dependencies.map((dependency, index) => ({ ...dependency, required: index === 0 })) };
+  const ready = renderCapabilityOverview({ selected: GEMMA_LOADOUT, recipes: [GEMMA_RECIPE], environment: optionalEnvironment, status: { state: 'ready', replacement: false } });
+  assertReadyCurrentModel(ready);
+  assert.doesNotMatch(ready, /capability-environment-status/);
+  assert.match(ready, /runtimeConfig\.local\.optional/);
+  const unsupported = renderCapabilityOverview({ selected: GEMMA_LOADOUT, recipes: [GEMMA_RECIPE], environment: { ...environmentWith(), state: 'unsupported' }, status: { state: 'attention', reason: 'unsupported', replacement: false } });
+  assert.match(unsupported, /capability-environment-status[\s\S]*localCapabilityStateUnsupported/);
+  assert.doesNotMatch(unsupported, /capabilities\.environmentSummary/);
+});
+
+test('a historical prepared candidate does not claim current readiness before its exact environment is checked', () => {
+  const store = makeStore();
+  const task = taskOn(store, { capabilityContract: 'image.generate', status: 'prepared', candidateLoadoutId: 'candidate-exact' });
+  const html = renderView(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={fakePorts()} onClose={() => {}} embedded />);
+  assert.match(html, /candidateChecking/);
+  assert.match(html, /candidateRecheckDescription/);
+  assert.match(html, /configuration-environment[^>]*data-loadout-id="candidate-exact"/);
+  assert.doesNotMatch(html, /The configuration is ready|Use this configuration|Prepared, not in use/);
 });

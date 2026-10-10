@@ -5,28 +5,15 @@ import type {
   NimiRuntimeLocalEnvironmentPlan,
   NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
-import { createNimiError } from '@nimiplatform/sdk/types';
 
+import { observeRuntimeEnvironment } from '../src/shell/renderer/features/runtime-config/runtime-environment-observation.js';
 import {
-  resolveRuntimeConfigLocalEnvironmentPlan,
-} from '../src/shell/renderer/features/runtime-config/runtime-config-local-capability-environment-service.js';
-import {
-  canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan,
-  isRuntimeConfigLocalCapabilitySelectionMissing,
-  projectRuntimeConfigLocalCapabilityEnvironmentState,
-  RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES,
-  resolveRuntimeConfigLocalCapabilityConfirmationProjection,
-  submitRuntimeConfigLocalCapabilityEnvironmentPlan,
-} from '../src/shell/renderer/features/runtime-config/runtime-config-local-capability-environment-panel.js';
-
-test('missing local model selection is recognized from the typed Runtime reason', () => {
-  assert.equal(isRuntimeConfigLocalCapabilitySelectionMissing(createNimiError({
-    message: 'No selection',
-    reasonCode: 'AI_LOCAL_SELECTION_NOT_FOUND',
-    source: 'runtime',
-  })), true);
-  assert.equal(isRuntimeConfigLocalCapabilitySelectionMissing(new Error('AI_LOCAL_SELECTION_NOT_FOUND')), false);
-});
+  canApplyRuntimeEnvironmentPlan,
+  cancelRuntimeEnvironmentDependencyJob,
+  projectRuntimeEnvironmentState,
+  runtimeEnvironmentConfirmation,
+  applyRuntimeEnvironmentPlan,
+} from '../src/shell/renderer/features/runtime-config/runtime-environment-state.js';
 
 function environmentDependency(input: Partial<NimiRuntimeLocalEnvironmentPlanDependency> & {
   readonly dependencyFamily: string;
@@ -100,65 +87,6 @@ function dependencyJob(input: {
   };
 }
 
-test('local environment service submits only the capability contract to Runtime', async () => {
-  const capabilities = [
-    'text.generate',
-    'text.annotate',
-    'text.embed',
-    'image.generate',
-    'image.face_swap',
-    'video.face_swap',
-    'vision.locate',
-    'video.generate',
-    'audio.synthesize',
-    'audio.transcribe',
-    'audio.separate',
-    'voice.create',
-    'music.generate',
-  ] as const;
-  const requests: unknown[] = [];
-
-  for (const capabilityContract of capabilities) {
-    const expectedPlan = { planId: `plan-${capabilityContract}` };
-    const result = await resolveRuntimeConfigLocalEnvironmentPlan({
-      capabilityContract,
-      localEnvironment: {
-        async resolveEnvironmentPlan(request) {
-          requests.push(request);
-          return expectedPlan as never;
-        },
-      },
-    });
-    assert.equal(result.plan, expectedPlan);
-    assert.deepEqual(result.resolution, { capabilityContract });
-  }
-
-  assert.deepEqual(requests, capabilities.map((capabilityContract) => ({ capabilityContract })));
-});
-
-test('Desktop Local AI environment includes embedding and face replacement cards', () => {
-  assert.deepEqual(
-    RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES.map(({ capabilityContract }) => capabilityContract),
-    [
-      'text.generate',
-    'text.annotate',
-      'text.embed',
-      'image.generate',
-      'image.face_swap',
-      'video.face_swap',
-      'vision.locate',
-      'video.generate',
-      'audio.synthesize',
-      'audio.transcribe',
-      'audio.separate',
-      'voice.create',
-      'music.generate',
-      'music.transcribe',
-      'audio.voice.convert',
-    ],
-  );
-});
-
 test('local capability setup leaves mixed repair, retry, and start admission to Runtime', () => {
   const runtime = environmentDependency({ dependencyFamily: 'python-runtime', state: 'repair_required' });
   const profile = environmentDependency({ dependencyFamily: 'python-profile', state: 'failed' });
@@ -166,7 +94,7 @@ test('local capability setup leaves mixed repair, retry, and start admission to 
   const failedProfileJob = dependencyJob({ dependency: profile, state: 'failed' });
   const activeTorchJob = dependencyJob({ dependency: torch, state: 'installing' });
 
-  assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(
+  assert.equal(canApplyRuntimeEnvironmentPlan(
     environmentPlan([runtime, profile, torch]),
     [failedProfileJob, activeTorchJob],
   ), true);
@@ -177,14 +105,14 @@ test('local capability environment presents Runtime-owned ready, active, and att
   const missing = environmentDependency({ dependencyFamily: 'python-profile', state: 'missing' });
   const active = dependencyJob({ dependency: missing, state: 'installing' });
 
-  assert.deepEqual(projectRuntimeConfigLocalCapabilityEnvironmentState(environmentPlan([ready]), []), {
+  assert.deepEqual(projectRuntimeEnvironmentState(environmentPlan([ready]), []), {
     state: 'ready',
     requiredCount: 1,
     attentionCount: 0,
     activeJobs: [],
   });
-  assert.equal(projectRuntimeConfigLocalCapabilityEnvironmentState(environmentPlan([ready, missing]), []).state, 'attention');
-  assert.equal(projectRuntimeConfigLocalCapabilityEnvironmentState(environmentPlan([ready, missing]), [active]).state, 'active');
+  assert.equal(projectRuntimeEnvironmentState(environmentPlan([ready, missing]), []).state, 'attention');
+  assert.equal(projectRuntimeEnvironmentState(environmentPlan([ready, missing]), [active]).state, 'active');
 });
 
 test('local capability plan apply visibility binds active jobs to the exact consumer', () => {
@@ -201,8 +129,8 @@ test('local capability plan apply visibility binds active jobs to the exact cons
   const asrJob = dependencyJob({ dependency: asr, state: 'installing', jobId: 'asr-job', updatedAt: '2026-08-10T00:02:00.000Z' });
   const ttsJob = dependencyJob({ dependency: tts, state: 'installing', jobId: 'tts-job', updatedAt: '2026-08-10T00:01:00.000Z' });
 
-  assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(environmentPlan([tts]), [asrJob]), true);
-  assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(environmentPlan([tts]), [asrJob, ttsJob]), false);
+  assert.equal(canApplyRuntimeEnvironmentPlan(environmentPlan([tts]), [asrJob]), true);
+  assert.equal(canApplyRuntimeEnvironmentPlan(environmentPlan([tts]), [asrJob, ttsJob]), false);
 });
 
 test('local capability plan apply follows current missing state over a historical non-retryable job', () => {
@@ -217,7 +145,7 @@ test('local capability plan apply follows current missing state over a historica
     recoveryDisposition: 'not_retryable',
   });
 
-  assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(
+  assert.equal(canApplyRuntimeEnvironmentPlan(
     environmentPlan([dependency]),
     [historicalJob],
   ), true);
@@ -237,7 +165,7 @@ test('local capability confirmation consumes only Runtime-owned plan facts', () 
     sourceOwners: ['RuntimeLocalService'],
     noSystemMutation: true,
   };
-  assert.deepEqual(resolveRuntimeConfigLocalCapabilityConfirmationProjection(plan), {
+  assert.deepEqual(runtimeEnvironmentConfirmation(plan), {
     families: 'python.runtime, python-profile',
     aggregateSizeKnown: false,
     aggregateSizeBytes: 0,
@@ -259,7 +187,7 @@ test('local capability setup fails closed on an incomplete Runtime-owned confirm
   ];
 
   for (const incomplete of incompletePlans) {
-    assert.equal(canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan(incomplete, []), false);
+    assert.equal(canApplyRuntimeEnvironmentPlan(incomplete, []), false);
   }
 });
 
@@ -274,7 +202,7 @@ test('one confirmed local capability action submits one Runtime-owned complete p
   } as const;
   const calls: unknown[] = [];
 
-  await submitRuntimeConfigLocalCapabilityEnvironmentPlan({
+  await applyRuntimeEnvironmentPlan({
     async applyEnvironmentPlan(input, options) {
       calls.push([input, options]);
       return { plan, jobs: [] };
@@ -286,4 +214,44 @@ test('one confirmed local capability action submits one Runtime-owned complete p
     expectedPlanId: plan.planId,
     confirmed: true,
   }, { caller: 'core' }]]);
+});
+
+
+test('configuration observation binds the exact loadout and filters jobs by dependency consumer', async () => {
+  const dependency = environmentDependency({ dependencyFamily: 'python.runtime', state: 'installing' });
+  const own = dependencyJob({ dependency, state: 'installing', jobId: 'own' });
+  const unrelated = { ...own, jobId: 'other', consumerScope: 'another-config', updatedAt: '2026-08-11T00:00:00.000Z' };
+  const requests: unknown[] = [];
+  const resolution = { capabilityContract: 'audio.synthesize', candidateLoadoutId: 'exact-saved-or-candidate' };
+  const result = await observeRuntimeEnvironment({
+    resolveEnvironmentPlan: async request => { requests.push(request); return environmentPlan([dependency]); },
+    listEnvironmentDependencyJobs: async () => [own, unrelated],
+  }, resolution);
+  assert.deepEqual(requests, [resolution]);
+  assert.deepEqual(result.jobs.map(job => job.jobId), ['own']);
+});
+
+test('shared component observation requires no capability selection', async () => {
+  const requests: unknown[] = [];
+  await observeRuntimeEnvironment({
+    resolveEnvironmentPlan: async request => { requests.push(request); return environmentPlan([]); },
+    listEnvironmentDependencyJobs: async () => [],
+  }, { mediaCodec: true });
+  assert.deepEqual(requests, [{ mediaCodec: true }]);
+});
+
+test('configuration cancellation refuses unrelated, terminal and superseded jobs before writing', async () => {
+  const dependency = environmentDependency({ dependencyFamily: 'python.runtime', state: 'installing' });
+  const active = dependencyJob({ dependency, state: 'installing', jobId: 'active' });
+  const unrelated = { ...active, jobId: 'unrelated', consumerScope: 'other-consumer' };
+  const old = { ...active, jobId: 'old', updatedAt: '2026-08-09T00:00:00.000Z' };
+  const terminal = { ...active, jobId: 'terminal', state: 'failed' };
+  const calls: unknown[] = [];
+  const client = { cancelEnvironmentDependencyJob: async (request: unknown, options: unknown) => { calls.push([request, options]); return active; } };
+  for (const [jobs, id] of [[[unrelated], 'unrelated'], [[active, old], 'old'], [[terminal], 'terminal']] as const) {
+    await assert.rejects(cancelRuntimeEnvironmentDependencyJob(client, environmentPlan([dependency]), jobs, id), /OUTSIDE_CONFIGURATION/);
+  }
+  assert.equal(calls.length, 0);
+  await cancelRuntimeEnvironmentDependencyJob(client, environmentPlan([dependency]), [active], 'active');
+  assert.deepEqual(calls, [[{ jobId: 'active' }, { caller: 'core' }]]);
 });

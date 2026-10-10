@@ -5,11 +5,9 @@ import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import { Button, DaemonStatusBadge } from './runtime-config-primitives';
 import {
-  StatusDot,
   TOKEN_PANEL_CARD,
   TOKEN_TEXT_MUTED,
   TOKEN_TEXT_PRIMARY,
-  TOKEN_TEXT_SECONDARY,
   TONE_STYLES,
 } from './runtime-config-runtime-page-ui';
 import { ServerIcon } from './runtime-config-diagnostics-icons';
@@ -64,10 +62,6 @@ export function RuntimeDaemonServiceCard(props: {
               </h2>
               <DaemonStatusBadge running={daemonRunning} />
             </div>
-            <p className={cn('mt-0.5 flex items-center gap-1.5 text-xs', TOKEN_TEXT_SECONDARY)}>
-              <StatusDot tone={daemonRunning ? 'success' : 'danger'} />
-              {t('runtimeConfig.overview.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}
-            </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -86,16 +80,20 @@ export function RuntimeDaemonServiceCard(props: {
       </div>
 
       <div className="relative mx-5 mt-4 grid grid-cols-1 gap-x-4 gap-y-3 border-t border-[var(--nimi-border-subtle)] py-3.5 sm:grid-cols-3">
-        <DaemonMetaItem
-          label={t('runtimeConfig.overview.grpc', { defaultValue: 'gRPC' })}
-          value={model.runtimeDaemonStatus?.grpcAddr || '—'}
-          mono
-        />
-        <DaemonMetaItem
-          label={t('runtimeConfig.overview.pid', { defaultValue: 'PID' })}
-          value={model.runtimeDaemonStatus?.pid || '-'}
-          mono
-        />
+        {model.runtimeDaemonStatus?.version ? (
+          <DaemonMetaItem
+            label={t('runtimeConfig.overview.version', { defaultValue: 'Version' })}
+            value={model.runtimeDaemonStatus.version}
+            mono
+          />
+        ) : null}
+        {model.runtimeDaemonStatus?.pid ? (
+          <DaemonMetaItem
+            label={t('runtimeConfig.overview.pid', { defaultValue: 'PID' })}
+            value={model.runtimeDaemonStatus.pid}
+            mono
+          />
+        ) : null}
         <DaemonMetaItem
           label={t('runtimeConfig.overview.lastCheck', { defaultValue: 'Last check' })}
           value={model.runtimeDaemonUpdatedAt ? i18n.formatDateTime(model.runtimeDaemonUpdatedAt) : '-'}

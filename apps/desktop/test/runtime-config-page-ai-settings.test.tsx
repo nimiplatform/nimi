@@ -224,4 +224,6 @@ test('the capability rail marks each state with one labeled mark and no badge te
   }
   assert.match(renderToStaticMarkup(React.createElement(RailStatusMark, { state: 'attention', label: 'x' })), /status-warning/u);
   assert.match(renderToStaticMarkup(React.createElement(RailStatusMark, { state: 'preparing', label: 'x' })), /animate-spin/u);
+  assert.doesNotMatch(renderToStaticMarkup(React.createElement(RailStatusMark, { state: 'ready', label: 'x' })), /animate-spin/u);
+  assert.match(renderToStaticMarkup(React.createElement(RailStatusMark, { state: 'ready', label: 'x', preparingReplacement: true })), /animate-spin/u);
 });

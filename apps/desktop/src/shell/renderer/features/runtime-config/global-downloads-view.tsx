@@ -45,7 +45,7 @@ import {
   type DownloadsLane,
 } from './global-downloads-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
-import { componentPresentation } from './runtime-config-setup-task-view.js';
+import { componentPresentation } from './runtime-environment-presentation.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { isDownloadTerminal } from './runtime-config-model-center-utils.js';
 import { getRuntimeSetupTaskStore, runtimeSetupTaskUnconfirmed, useRuntimeSetupTasks } from './runtime-setup-task-store.js';

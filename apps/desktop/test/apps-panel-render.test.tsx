@@ -467,6 +467,46 @@ test('Apps rail keeps running Apps in a 运行中 section and home orders them f
   assert.ok(markup.includes('停止'), 'expected stop action copy for the running app');
 });
 
+test('Apps rail rows keep actions in a context menu instead of hover buttons', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [entry(), verifiedLabEntry()], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  assert.equal(markup.includes('min-w-12'), false, 'no reserved hover-action slot narrows the rail name');
+  assert.equal(/data-testid="apps-rail-app-[^"]+-(launch|stop)"/.test(markup), false, 'rail rows carry no hover quick actions');
+  const menuButton = markup.match(/<button[^>]*data-testid="apps-rail-app-nimi\.lab-menu"[^>]*>/)?.[0] ?? '';
+  assert.ok(menuButton, 'the rail row keeps its menu trigger');
+  assert.ok(menuButton.includes('group-focus-within/rail-row:inline-flex'), 'the menu trigger reveals itself for keyboard focus');
+});
+
+test('Apps rail dims not-installed rows and leaves imported sources unmarked', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const installed = installedRuntimeEntry();
+  const imported: DesktopAppsEntry = {
+    ...installed,
+    identity: { ...installed.identity, entryKey: 'user_imported:example.catalog-app', sourceClass: 'user_imported' },
+    committedRelease: { ...installed.committedRelease!, sourceClass: AppPackageSourceClass.USER_IMPORTED },
+    packageJob: null,
+  };
+  const catalogOnly = catalogRuntimeEntry();
+  const merged = renderView(baseProps({
+    projection: { status: 'loaded', entries: [imported, catalogOnly], catalogStatus: 'loaded', runtimeError: null },
+  }));
+  const mergedRow = merged.match(/<button[^>]*data-testid="apps-rail-app-example\.catalog-app"[\s\S]*?<\/button>/)?.[0] ?? '';
+  assert.ok(mergedRow, 'imported and catalog sources merge into one rail row');
+  assert.equal(mergedRow.includes('本地导入'), false, 'the imported source no longer marks the rail row');
+  assert.equal(mergedRow.includes('opacity-60'), false, 'an installed row keeps full-strength artwork');
+
+  const notInstalled = renderView(baseProps({
+    projection: { status: 'loaded', entries: [catalogOnly], catalogStatus: 'loaded', runtimeError: null },
+  }));
+  const catalogRow = notInstalled.match(/<button[^>]*data-testid="apps-rail-app-example\.catalog-app"[\s\S]*?<\/button>/)?.[0] ?? '';
+  assert.ok(catalogRow.includes('text-[color:var(--nimi-text-muted)]'), 'a not-installed row mutes its name');
+  assert.ok(catalogRow.includes('opacity-60'), 'a not-installed row dims its artwork');
+});
+
 test('Apps home surfaces only actionable App AIConfig postures', async () => {
   await initI18n();
   await changeLocale('zh');
@@ -826,8 +866,8 @@ test('An action locks only its own App while other Apps stay available', async (
   assert.equal(launches.length, 1, 'installed App appears once on the merged home');
   assert.ok(!launches[0]!.includes(' disabled=""'), 'another App launching leaves this launch available');
   assert.ok(!launches[0]!.includes('aria-busy="true"'), 'other App is not launching');
-  const railLaunch = buttons.find((button) => button.includes(`data-testid="apps-rail-app-${installed.identity.appId}-launch"`));
-  assert.ok(railLaunch && !railLaunch.includes(' disabled=""'), 'rail quick launch stays available');
+  assert.ok(home.includes(`data-testid="apps-rail-app-${installed.identity.appId}"`), 'the rail row stays rendered');
+  assert.ok(!home.includes(`data-testid="apps-rail-app-${installed.identity.appId}-launch"`), 'rail actions live in the row context menu, not a hover button');
   const starting = buttons.filter((button) => button.includes(`data-testid="apps-entry-${launching.identity.entryKey}-starting"`));
   assert.equal(starting.length, 1, 'the launching App shows its progress on its own button');
   assert.ok(starting[0]!.includes('aria-busy="true"'));
@@ -862,7 +902,7 @@ test('A launch shows its progress once, on the pressed button, and a stop never 
     assert.equal(spinnerCount(row), 1, `${state}: exactly one spinner in the row`);
     assert.ok(row.includes('Nimi Access 不可用'), `${state}: access stays an independent fact`);
     assert.ok(home.includes(`data-rail-transition="${transition}"`), `${state}: the rail keeps its own compact indicator`);
-    assert.equal(home.includes(`data-testid="apps-rail-app-${installed.identity.appId}-launch"`), false, `${state}: no second rail spinner`);
+    assert.equal(home.includes(`data-testid="apps-rail-app-${installed.identity.appId}-launch"`), false, `${state}: the rail keeps only its compact indicator`);
 
     const detail = renderView(baseProps({
       projection: { status: 'loaded', entries: [installed], catalogStatus: 'not-implemented', runtimeError: null },

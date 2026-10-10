@@ -113,10 +113,12 @@ export function AmbientBackground<T extends ElementType = 'div'>(
           data-nimi-ambient-layer="halo"
           style={{
             ...HALO_BASE_STYLE,
-            width: 500,
-            height: 500,
-            top: -100,
-            left: -100,
+            // Anchored fully off-canvas: only the outer blur glow enters the
+            // viewport, so no disc rim can read as a stray blob between cards.
+            width: 720,
+            height: 720,
+            top: -720,
+            left: -720,
             background: 'var(--nimi-ambient-mesh-color-1)',
           }}
         />
@@ -126,10 +128,10 @@ export function AmbientBackground<T extends ElementType = 'div'>(
           data-nimi-ambient-layer="halo"
           style={{
             ...HALO_BASE_STYLE,
-            width: 600,
-            height: 600,
-            bottom: -100,
-            right: '5%',
+            width: 800,
+            height: 800,
+            bottom: -800,
+            right: -800,
             background: 'var(--nimi-ambient-mesh-color-3)',
             animationDelay: '-5s',
           }}
@@ -140,10 +142,10 @@ export function AmbientBackground<T extends ElementType = 'div'>(
           data-nimi-ambient-layer="halo"
           style={{
             ...HALO_BASE_STYLE,
-            width: 400,
-            height: 400,
-            top: '20%',
-            left: '30%',
+            width: 600,
+            height: 600,
+            top: -600,
+            right: '18%',
             background: 'var(--nimi-ambient-mesh-color-2)',
             animationDelay: '-10s',
           }}

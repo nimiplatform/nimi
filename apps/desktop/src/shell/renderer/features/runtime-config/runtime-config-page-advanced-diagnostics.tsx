@@ -12,10 +12,10 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PillTabs, Surface, cn } from '@nimiplatform/kit/ui';
+import { NimiTabs, Surface, cn } from '@nimiplatform/kit/ui';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import type { RuntimeAdvancedDiagnosticsPane } from './runtime-config-state-types';
-import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
+import { RuntimePageHeader } from './runtime-config-page-shell';
 import { EnvironmentDataTab } from './runtime-config-environment-data-tab';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
 import { GlobalAuditSection } from './runtime-config-global-audit-section.js';
@@ -30,7 +30,7 @@ import {
   SystemResourcesSection,
   UsageEstimateSection,
 } from './runtime-config-diagnostics-load-usage';
-import { RuntimeConfigLocalCapabilityEnvironmentPanel } from './runtime-config-local-capability-environment-panel.js';
+import { RuntimeSharedComponentsPanel } from './runtime-shared-components-panel.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   TOKEN_PANEL_CARD,
@@ -51,6 +51,7 @@ const SUB_PANES: Array<{ id: AdvancedDiagnosticsPaneId; labelKey: string; defaul
   { id: 'data', labelKey: 'runtimeConfig.advanced.dataTab', defaultLabel: 'Data & Storage' },
 ];
 
+// @nimi-authority: rule.nimi.desktop.shell-ui.r023
 export function AdvancedDiagnosticsPage({ model }: AdvancedDiagnosticsPageProps) {
   const { t } = useTranslation();
   const auditData = useGlobalAuditData(true);
@@ -63,34 +64,31 @@ export function AdvancedDiagnosticsPage({ model }: AdvancedDiagnosticsPageProps)
   }, [paneRequest]);
 
   return (
-    <RuntimePageShell>
+    <div className="min-w-0 space-y-6" data-testid="runtime-advanced-diagnostics">
       <RuntimePageHeader
         title={t('runtimeConfig.nav.advancedDiagnostics', { defaultValue: 'Advanced & Diagnostics' })}
         description={t('runtimeConfig.advanced.description', {
           defaultValue: 'Runtime services, components, activity, access, and storage for this machine.',
         })}
-        actions={(
-          <div data-testid="runtime-advanced-subtabs">
-            <PillTabs
-              size="sm"
-              ariaLabel={t('runtimeConfig.nav.advancedDiagnostics', { defaultValue: 'Advanced & Diagnostics' })}
-              items={SUB_PANES.map((tab) => ({
-                value: tab.id,
-                label: t(tab.labelKey, { defaultValue: tab.defaultLabel }),
-              }))}
-              value={pane}
-              onValueChange={(value) => setPane(value as AdvancedDiagnosticsPaneId)}
-            />
-          </div>
-        )}
       />
+      <div data-testid="runtime-advanced-subtabs" className="min-w-0">
+        <NimiTabs
+          className="flex-wrap"
+          ariaLabel={t('runtimeConfig.nav.advancedDiagnostics', { defaultValue: 'Advanced & Diagnostics' })}
+          items={SUB_PANES.map((tab) => ({
+            value: tab.id,
+            label: t(tab.labelKey, { defaultValue: tab.defaultLabel }),
+          }))}
+          value={pane}
+          onValueChange={(value) => setPane(value as AdvancedDiagnosticsPaneId)}
+        />
+      </div>
 
       {pane === 'services' ? (
         <div data-testid={E2E_IDS.runtimeAdvancedPane('services')} className="grid gap-4">
           <RuntimeDaemonServiceCard model={model} />
-          <RuntimeConfigLocalCapabilityEnvironmentPanel
+          <RuntimeSharedComponentsPanel
             writesDisabled={model.runtimeWritesDisabled}
-            onOpenAiSettings={() => model.onChangePage('aiSettings')}
           />
           <SystemResourcesSection />
           <RuntimeHealthSection
@@ -162,6 +160,6 @@ export function AdvancedDiagnosticsPage({ model }: AdvancedDiagnosticsPageProps)
           <EnvironmentDataTab />
         </div>
       ) : null}
-    </RuntimePageShell>
+    </div>
   );
 }

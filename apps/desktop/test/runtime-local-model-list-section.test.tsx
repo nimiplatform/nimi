@@ -100,6 +100,7 @@ function createFakeSdk(incompleteExamples = false) {
   const rpc = new Proxy({
     listModelAssets: async () => ({ assets: [wireAsset('gemma-q4', 'c1', 'gemma-4-e2b-it-Q4_K_M.gguf'), wireAsset('mystery', 'c-mystery', 'mystery.safetensors'), wireAsset('image-model', 'c-image', 'image.gguf'), wireAsset('encoder', 'c-encoder', 'encoder.gguf')], nextPageToken: '' }),
     listVerifiedAssets: async () => ({ assets: [], nextPageToken: '' }),
+    listLocalEnvironmentDependencyJobs: async () => ({ jobs: [] }),
     resolveLocalEnvironmentPlan: async (request: { capabilityContract: string; candidateLoadoutId: string }) => {
       calls.environmentPlans.push(request.candidateLoadoutId);
       if (failedChecks.has(request.candidateLoadoutId)) throw new Error('runtime unavailable');
@@ -130,12 +131,17 @@ async function withHome(run: (ui: {
   document: Document;
   calls: ReturnType<typeof createFakeSdk>['calls'];
   failCheck: (loadoutId: string) => void;
+  passCheck: (loadoutId: string) => void;
   setDependencyState: (loadoutId: string, state: string) => void;
   recheck: (loadoutId: string) => Promise<void>;
   click: (selector: string) => Promise<void>;
   waitFor: (selector: string, predicate?: (element: HTMLElement) => boolean) => Promise<HTMLElement>;
-}) => Promise<void>, incompleteExamples = false) {
+}) => Promise<void>, incompleteExamples = false, diagnosticsInitiallyOpen = false) {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
+  dom.window.HTMLElement.prototype.scrollTo = function(options?: ScrollToOptions | number, y?: number) {
+    this.scrollTop = typeof options === 'number' ? y ?? 0 : options?.top ?? 0;
+    this.scrollLeft = typeof options === 'number' ? options : options?.left ?? 0;
+  };
   class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
   const values = {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator, localStorage: dom.window.localStorage,
@@ -164,6 +170,30 @@ async function withHome(run: (ui: {
   const bindings = { app: { commands: {} }, sdk } as unknown as DesktopCanonicalRendererBindings;
   const root = createRoot(dom.window.document.getElementById('root')!);
   const noop = () => undefined;
+  function WorkspaceHarness() {
+    const [diagnostics, setDiagnostics] = React.useState(diagnosticsInitiallyOpen);
+    return <AiSettingsPage
+      advancedDiagnostics={diagnostics ? {
+        content: <div data-testid="diagnostics-test-content" />,
+        onClose: () => setDiagnostics(false),
+      } : undefined}
+      runtimeWritesDisabled={false}
+      focusedTaskId={null}
+      actionFocus={undefined}
+      savedConfigsContext={null}
+      profileUseOwner={null}
+      onOpenSetupTask={noop}
+      onCloseSetupTask={noop}
+      onOpenModelFiles={noop}
+      onOpenSavedConfigs={noop}
+      onOpenModelMarket={noop}
+      onOpenAdvancedDiagnostics={() => setDiagnostics(true)}
+      onOpenCloudServices={noop}
+      onClearActionFocus={noop}
+      onCloseProfileUseOwner={noop}
+      onCloseSavedConfigs={noop}
+    />;
+  }
   const tick = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 15)); });
   const waitFor = async (selector: string, predicate: (element: HTMLElement) => boolean = () => true) => {
     for (let attempt = 0; attempt < 200; attempt += 1) {
@@ -181,23 +211,7 @@ async function withHome(run: (ui: {
             <AppStoreProvider store={store}>
               <DesktopRendererBindingProvider bindings={bindings}>
                 <TooltipProvider>
-                <AiSettingsPage
-                  runtimeWritesDisabled={false}
-                  focusedTaskId={null}
-                  actionFocus={undefined}
-                  savedConfigsContext={null}
-                  profileUseOwner={null}
-                  onOpenSetupTask={noop}
-                  onCloseSetupTask={noop}
-                  onOpenModelFiles={noop}
-                  onOpenSavedConfigs={noop}
-                  onOpenModelMarket={noop}
-                  onOpenAdvancedDiagnostics={noop}
-                  onOpenCloudServices={noop}
-                  onClearActionFocus={noop}
-                  onCloseProfileUseOwner={noop}
-                  onCloseSavedConfigs={noop}
-                />
+                <WorkspaceHarness />
                 </TooltipProvider>
               </DesktopRendererBindingProvider>
             </AppStoreProvider>
@@ -209,6 +223,7 @@ async function withHome(run: (ui: {
       document: dom.window.document,
       calls,
       failCheck: (loadoutId) => { failedChecks.add(loadoutId); },
+      passCheck: (loadoutId) => { failedChecks.delete(loadoutId); },
       setDependencyState: (loadoutId, state) => { dependencyStates.set(loadoutId, state); },
       recheck: async (loadoutId) => {
         await act(async () => {
@@ -232,6 +247,29 @@ async function withHome(run: (ui: {
     }
   }
 }
+
+test('diagnostics shares the right pane, preserves the capability rail and returns directly to details or home', async () => {
+  await withHome(async (ui) => {
+    await ui.waitFor('[data-testid="diagnostics-test-content"]');
+    const row = await ui.waitFor('[data-testid="ai-capability:text.generate"]');
+    const detailPane = ui.document.querySelector('[data-testid="ai-capabilities-detail-pane"]')!;
+    assert.ok(detailPane.contains(ui.document.querySelector('[data-testid="diagnostics-test-content"]')));
+    assert.equal(ui.document.querySelector('[data-testid="ai-capabilities-advanced-diagnostics"]')?.getAttribute('aria-current'), 'page');
+    assert.equal(row.getAttribute('aria-current'), null);
+    await ui.click('[data-testid="ai-capability:text.generate"]');
+    await ui.waitFor('[data-testid="ai-capability-detail:text.generate"]');
+    assert.equal(ui.document.querySelector('[data-testid="diagnostics-test-content"]'), null);
+    assert.strictEqual(ui.document.querySelector('[data-testid="ai-capability:text.generate"]'), row);
+    assert.equal(row.getAttribute('aria-current'), 'page');
+    await ui.click('[data-testid="ai-capabilities-advanced-diagnostics"]');
+    await ui.waitFor('[data-testid="diagnostics-test-content"]');
+    await ui.click('[data-testid="ai-capabilities-home"]');
+    await ui.waitFor('[data-testid="ai-profile-quick-start"]');
+    assert.equal(ui.document.querySelector('[data-testid="diagnostics-test-content"]'), null);
+    assert.strictEqual(ui.document.querySelector('[data-testid="ai-capability:text.generate"]'), row);
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  }, false, true);
+});
 
 test('the home lists on-device models, expands with read-only candidate checks, refreshes and opens setup without any Loadout write', async () => {
   await withHome(async (ui) => {
@@ -277,7 +315,7 @@ test('the home lists on-device models, expands with read-only candidate checks, 
 
     assert.deepEqual(ui.calls.loadoutWrites, []);
     const rpcMethods = [...new Set(ui.calls.rpc)].sort();
-    assert.deepEqual(rpcMethods.filter((name) => !['listModelAssets', 'listVerifiedAssets', 'resolveLocalEnvironmentPlan', 'then'].includes(name)), [], `only read RPCs are allowed, saw ${rpcMethods.join(', ')}`);
+    assert.deepEqual(rpcMethods.filter((name) => !['listModelAssets', 'listVerifiedAssets', 'resolveLocalEnvironmentPlan', 'listLocalEnvironmentDependencyJobs', 'then'].includes(name)), [], `only read RPCs are allowed, saw ${rpcMethods.join(', ')}`);
   });
 });
 
@@ -352,4 +390,25 @@ test('same-name incomplete configurations show distinct identities, real counts 
     await ui.waitFor('[data-testid="local-model-list"]');
     assert.deepEqual(ui.calls.loadoutWrites, []);
   }, true);
+});
+
+test('current configuration checks its own dependencies, fails visibly and recovers without a write', async () => {
+  await withHome(async ui => {
+    await ui.waitFor('[data-testid="ai-capability:text.generate"]');
+    await ui.click('[data-testid="ai-capability:text.generate"]');
+    await ui.waitFor('[data-testid="capability-current-model"]', element => element.getAttribute('data-loadout-id') === 'L-default');
+    await ui.click('[data-testid="capability-technical-details"] > summary');
+    await ui.waitFor('[data-testid="configuration-environment-refresh"]', element => !element.hasAttribute('disabled'));
+    assert.ok(ui.calls.environmentPlans.includes('L-default'), 'the selected configuration is checked explicitly');
+    assert.equal(ui.document.querySelector('[data-testid="runtime-local-capability-environment"]'), null);
+    ui.failCheck('L-default');
+    await ui.click('[data-testid="configuration-environment-refresh"]');
+    await ui.waitFor('[data-testid="capability-state-badge"]', element => element.textContent?.includes('state.unknown') === true);
+    assert.match(ui.document.body.textContent ?? '', /configurationCheckFailed/);
+    ui.passCheck('L-default');
+    await ui.click('[data-testid="configuration-environment-refresh"]');
+    await ui.waitFor('[data-testid="capability-state-badge"]', element => element.textContent?.includes('state.ready') === true);
+    assert.doesNotMatch(ui.document.body.textContent ?? '', /configurationCheckFailed/);
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  });
 });
