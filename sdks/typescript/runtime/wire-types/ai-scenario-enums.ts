@@ -155,6 +155,7 @@ export enum ExecutionMode {
 export enum ExecutionResubmitDisposition {
   UNSPECIFIED = 0,
   CALLER_MAY_RESUBMIT = 1,
+  OUTCOME_UNCERTAIN = 2,
 }
 
 export enum FaceSwapNoFacePolicy {
@@ -392,6 +393,21 @@ export enum ScenarioJobStatus {
   FAILED = 5,
   CANCELED = 6,
   TIMEOUT = 7,
+}
+
+export enum ScenarioJobStopOutcome {
+  UNSPECIFIED = 0,
+  NOT_DISPATCHED = 1,
+  CONFIRMED = 2,
+  UNCONFIRMED = 3,
+}
+
+export enum ScenarioJobSubmissionOutcome {
+  UNSPECIFIED = 0,
+  NOT_DISPATCHED = 1,
+  UNKNOWN = 2,
+  ACCEPTED = 3,
+  REJECTED = 4,
 }
 
 export enum ScenarioType {

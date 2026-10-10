@@ -6,7 +6,7 @@ import { asRecord, assertExactProjectionKeys, localAppProjectionError } from './
 
 export type NimiLocalAppExecutionInterruption = {
   readonly cause: 'runtime-restart';
-  readonly resubmitDisposition: 'caller-may-resubmit';
+  readonly resubmitDisposition: 'caller-may-resubmit' | 'outcome-uncertain';
 };
 
 export type NimiLocalAppVisionLocation = { readonly label?: string } & (
@@ -26,18 +26,18 @@ export function projectLocalExecutionInterruption(value: unknown, reasonCode: un
   if (present !== (reasonCode === 'ai-execution-interrupted') || (present && status !== 'failed')) localAppProjectionError('Job interruption does not match failure');
   if (!present) return undefined;
   assertExactProjectionKeys(value, ['cause', 'resubmitDisposition'], 'Job interruption');
-  if (value.cause !== 'runtime-restart' || value.resubmitDisposition !== 'caller-may-resubmit') localAppProjectionError('Job interruption');
-  return Object.freeze({ cause: 'runtime-restart', resubmitDisposition: 'caller-may-resubmit' });
+  if (value.cause !== 'runtime-restart' || (value.resubmitDisposition !== 'caller-may-resubmit' && value.resubmitDisposition !== 'outcome-uncertain')) localAppProjectionError('Job interruption');
+  return Object.freeze({ cause: 'runtime-restart', resubmitDisposition: value.resubmitDisposition });
 }
 
 export function localInterruptionFromRuntime(value: ExecutionInterruption | undefined): NimiLocalAppExecutionInterruption | undefined {
   if (!value) return undefined;
-  if (value.cause !== ExecutionInterruptionCause.RUNTIME_RESTART || value.resubmitDisposition !== ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT) localAppProjectionError('Runtime Job interruption');
-  return { cause: 'runtime-restart', resubmitDisposition: 'caller-may-resubmit' };
+  if (value.cause !== ExecutionInterruptionCause.RUNTIME_RESTART || ![ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT, ExecutionResubmitDisposition.OUTCOME_UNCERTAIN].includes(value.resubmitDisposition)) localAppProjectionError('Runtime Job interruption');
+  return { cause: 'runtime-restart', resubmitDisposition: value.resubmitDisposition === ExecutionResubmitDisposition.OUTCOME_UNCERTAIN ? 'outcome-uncertain' : 'caller-may-resubmit' };
 }
 
 export function runtimeInterruptionFromLocal(value: NimiLocalAppExecutionInterruption | undefined): ExecutionInterruption | undefined {
-  return value ? { cause: ExecutionInterruptionCause.RUNTIME_RESTART, resubmitDisposition: ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT } : undefined;
+  return value ? { cause: ExecutionInterruptionCause.RUNTIME_RESTART, resubmitDisposition: value.resubmitDisposition === 'outcome-uncertain' ? ExecutionResubmitDisposition.OUTCOME_UNCERTAIN : ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT } : undefined;
 }
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r102

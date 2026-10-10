@@ -475,3 +475,26 @@ Include the selected SDK, Kit, App Tools and Runtime versions, the actual App
 operation, expected/observed behavior, and a bounded reproduction.
 
 Licensed under [Apache-2.0](LICENSE).
+
+
+### Observing and canceling Jobs
+
+All Job runners and observers use `getIntervalMs` (default `1000` milliseconds,
+positive integer) to query the same original Job even when an event subscription
+is healthy and silent. Gets are serialized. `onObservation` receives each full
+Get, including a transient `observationIssue`; the issue does not change the Job
+status. `runNimiRuntimeScenarioJob` and `observeNimiRuntimeScenarioJob` return that
+complete terminal response as `response`, including typed outer results.
+
+A runner's `signal` is an explicit user Cancel request. Use its
+`observationSignal` for view disposal, navigation or stopping observation. For
+`observeNimiRuntimeScenarioJob`, `signal` only
+detaches and optional `cancelSignal` requests Cancel explicitly. Cancel rejection
+is reported as an observation error with the original Job ID, without a fabricated
+terminal state. A successful Cancel still requires a full terminal Get. Technical
+`callOptions` budgets remain independent of Job lifetime.
+
+Save the business action before Submit and persist its returned Job ID. Reopen
+by original ID or submission lookup; missing or expired actions never trigger a
+new Submit. Observers do not own App history or media custody. Read/adopt results
+through their formal typed, artifact or resource owners while retention permits.

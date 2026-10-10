@@ -23,6 +23,8 @@ import {
   RoutePolicy,
   ScenarioJobEventType,
   ScenarioJobStatus,
+  ScenarioJobSubmissionOutcome,
+  ScenarioJobStopOutcome,
   ScenarioType,
   SpeechTimingMode,
   SpeechTranscriptStatus,
@@ -124,7 +126,6 @@ export type NimiLocalAppImageGenerateSpec = {
 export type NimiLocalAppScenarioExecuteSpec =
   | (NimiLocalAppTextTurnInput & { readonly type: 'text-generate' })
   | { readonly type: 'text-embed'; readonly inputs: readonly string[]; readonly dimensions?: number }
-  | NimiLocalAppImageGenerateSpec
   | NimiLocalAppTextDecideSpec;
 
 /**
@@ -252,7 +253,6 @@ export type NimiLocalAppScenarioJobSpec =
   | NimiLocalAppVoiceConvertSpec;
 
 export type NimiLocalAppScenarioJobSubmitOptions = {
-  readonly timeoutMs?: number;
   readonly clientSubmissionId?: string;
 };
 
@@ -290,6 +290,8 @@ export type NimiLocalAppVideoFaceSwapSummary = {
 };
 
 export type NimiLocalAppScenarioJob = {
+  readonly submissionOutcome?: 'not-dispatched' | 'unknown' | 'accepted' | 'rejected';
+  readonly stopOutcome?: 'not-dispatched' | 'confirmed' | 'unconfirmed';
   readonly musicGeneration?: NimiLocalAppMusicGeneration;
   readonly musicTranscription?: NimiLocalAppMusicTranscription;
   readonly voiceConversion?: NimiLocalAppVoiceConversion;
@@ -331,7 +333,6 @@ export type NimiLocalAppTextDecideResult = {
 export type NimiLocalAppScenarioExecuteResult =
   | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
   | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string; readonly usage?: NimiUsage }; readonly traceId: string }
-  | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string }
   | NimiLocalAppTextDecideResult;
 
 export type NimiLocalAppScenarioJobSubmitResult = {
@@ -339,6 +340,7 @@ export type NimiLocalAppScenarioJobSubmitResult = {
 };
 
 export type NimiLocalAppScenarioJobGetResult = {
+  readonly observationIssue?: { readonly reasonCode: string; readonly observedAt: NimiLocalAppScenarioTimestamp };
   readonly job: NimiLocalAppScenarioJob;
   readonly visionLocate?: NimiLocalAppVisionLocateResult;
   readonly asset: NimiLocalAppVoiceAsset | null;
@@ -614,7 +616,7 @@ export function createNimiLocalAppAIConsumptionClient(
       submit: async (spec, options = {}) => projectScenarioJobSubmit(
         await shell.scenarioJobs.submit(
           detachScenarioJobSpecBytes(validateScenarioSpec(spec, false)),
-          validateScenarioJobSubmitOptions(options, spec),
+          validateScenarioJobSubmitOptions(options),
         ),
       ),
       get: async (jobId) => projectScenarioJobGet(
@@ -697,7 +699,7 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
       async submit(spec, options = {}) {
         const response = await runtime.submitLocalAppScenarioJob({
           spec: runtimeLocalJobSpec(spec),
-          timeoutMs: options.timeoutMs ?? 0,
+          timeoutMs: 0,
           clientSubmissionId: options.clientSubmissionId ?? '',
         });
         return { job: projectRuntimeLocalJob(requiredRuntimeValue(response.job, 'scenario Job')) };
@@ -706,6 +708,7 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
         const response = await runtime.getLocalAppScenarioJob({ jobId, clientSubmissionId });
         return {
           ...(response.visionLocate ? { visionLocate: localVisionLocateFromRuntime(response.visionLocate) } : {}),
+          ...(response.observationIssue ? { observationIssue: { reasonCode: runtimeReasonToken(response.observationIssue.reasonCode), observedAt: plainRuntimeTimestamp(response.observationIssue.observedAt) } } : {}),
           job: projectRuntimeLocalJob(requiredRuntimeValue(response.job, 'scenario Job')),
           asset: response.asset ? projectRuntimeLocalAppVoiceAsset(response.asset) : null,
           voiceReference: response.voiceReference
@@ -832,10 +835,11 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
   const client: NimiProtectedLocalScenarioJobClient = {
     terminalVoiceAssetProjection: 'protected-local',
     async submitScenarioJob(request) {
+      if (request.head?.timeoutMs !== undefined && request.head.timeoutMs !== 0) {
+        invalidAIInput('Scenario Job business timeout is no longer supported');
+      }
       const spec = localJobSpecFromRuntimeRequest(request);
-      const result = await ai.scenarioJobs.submit(spec, {
-        timeoutMs: boundedInteger(request.head?.timeoutMs ?? 0, 'Scenario Job timeoutMs', 0, 2_147_483_647),
-      });
+      const result = await ai.scenarioJobs.submit(spec, request.idempotencyKey ? { clientSubmissionId: validateClientSubmissionId(request.idempotencyKey) } : {});
       return {
         job: runtimeJobFromLocal(result.job),
       };
@@ -845,6 +849,7 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
       const result = await ai.scenarioJobs.get(request.jobId);
       return {
         ...(result.visionLocate ? { visionLocate: runtimeVisionLocateFromLocal(result.visionLocate) } : {}),
+        ...(result.observationIssue ? { observationIssue: { reasonCode: runtimeReasonCode(result.observationIssue.reasonCode), observedAt: runtimeTimestamp(result.observationIssue.observedAt) } } : {}),
         job: runtimeJobFromLocal(result.job),
         asset: result.asset ? runtimeVoiceAssetFromLocal(result.asset) : undefined,
         voiceReference: result.voiceReference ? {
@@ -861,17 +866,24 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
       const result = await ai.scenarioJobs.cancel(request.jobId, request.reason);
       return { job: runtimeJobFromLocal(result.job) };
     },
-    subscribeScenarioJobEvents(request) {
+    subscribeScenarioJobEvents(request, options) {
       assertExactKeys(request, ['jobId'], 'local-app Scenario Job subscribe request');
       return {
         async *[Symbol.asyncIterator](): AsyncIterator<ScenarioJobEvent> {
           const subscription = await ai.scenarioJobs.subscribe(request.jobId);
+          let closing: Promise<void> | undefined;
+          const close = () => closing ??= subscription.cancel();
+          const abort = () => { void close().catch(() => undefined); };
+          options?.signal?.addEventListener('abort', abort, { once: true });
+          if (options?.signal?.aborted) abort();
           try {
             for await (const event of subscription) {
+              if (options?.signal?.aborted) break;
               yield runtimeJobEventFromLocal(event);
             }
           } finally {
-            await subscription.cancel();
+            options?.signal?.removeEventListener('abort', abort);
+            await close();
           }
         },
       };
@@ -956,6 +968,7 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
         ...(record.dimensions !== undefined ? { dimensions: record.dimensions } : {}),
       }) as T;
     case 'image-generate':
+      if (execute) invalidAIInput('image-generate requires an async Job');
       assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'strength', 'responseFormat'], 'image spec');
       boundedContent(record.prompt, 'image prompt', 32 * 1024);
       optionalBoundedText(record.negativePrompt, 'image negativePrompt', 32 * 1024);
@@ -1047,12 +1060,9 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
 
 function validateScenarioJobSubmitOptions(
   options: NimiLocalAppScenarioJobSubmitOptions,
-  spec: NimiLocalAppScenarioJobSpec,
 ): NimiLocalAppScenarioJobSubmitOptions {
-  assertExactKeys(options, ['timeoutMs', 'clientSubmissionId'], 'Scenario Job submit options');
-  if (options.clientSubmissionId !== undefined && !['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes(spec.type)) invalidAIInput('clientSubmissionId requires a supported retained media operation');
+  assertExactKeys(options, ['clientSubmissionId'], 'Scenario Job submit options');
   return Object.freeze({
-    timeoutMs: boundedInteger(options.timeoutMs ?? 0, 'Scenario Job timeoutMs', 0, 2_147_483_647),
     ...(options.clientSubmissionId !== undefined ? { clientSubmissionId: validateClientSubmissionId(options.clientSubmissionId) } : {}),
   });
 }
@@ -1415,10 +1425,6 @@ function projectScenarioExecute(
     const usage = output.usage === undefined ? undefined : projectEmbeddingUsage(output.usage);
     return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors), spaceId, ...(usage ? { usage } : {}) }), traceId });
   }
-  if (output.type === 'image-generate') {
-    assertExactProjectionKeys(output, ['type', 'artifacts'], 'image execute output');
-    return Object.freeze({ output: Object.freeze({ type: 'image-generate', artifacts: projectArtifacts(output.artifacts) }), traceId });
-  }
   return localAppProjectionError('scenario execute output type');
 }
 
@@ -1430,7 +1436,8 @@ function projectScenarioJobSubmit(value: unknown): NimiLocalAppScenarioJobSubmit
 
 function projectScenarioJobGet(value: unknown): NimiLocalAppScenarioJobGetResult {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['job', 'asset', 'voiceReference', ...(record && Object.hasOwn(record, 'visionLocate') ? ['visionLocate'] : [])], 'scenario Job result');
+  assertExactProjectionKeys(record, ['job', 'asset', 'voiceReference', ...(record && Object.hasOwn(record, 'visionLocate') ? ['visionLocate'] : []), ...(record && Object.hasOwn(record, 'observationIssue') ? ['observationIssue'] : [])], 'scenario Job result');
+  const observationIssue = record.observationIssue === undefined ? undefined : projectJobObservationIssue(record.observationIssue);
   const job = projectScenarioJob(record.job);
   const visionLocate = record.visionLocate === undefined ? undefined : projectVisionLocateResult(record.visionLocate);
   if ((job.scenarioType === 'vision-locate' && job.status === 'completed') !== (visionLocate !== undefined) || (visionLocate && job.artifacts.length !== 0)) localAppProjectionError('Locate terminal result');
@@ -1445,6 +1452,7 @@ function projectScenarioJobGet(value: unknown): NimiLocalAppScenarioJobGetResult
     job,
     asset,
     voiceReference,
+    ...(observationIssue ? { observationIssue } : {}),
     ...(visionLocate ? { visionLocate } : {}),
   });
 }
@@ -1457,7 +1465,7 @@ function projectScenarioJobEnvelope(value: unknown): { readonly job: NimiLocalAp
 
 function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, [...(record && Object.hasOwn(record, 'recoveryExpiresAt') ? ['recoveryExpiresAt'] : []), 'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt', 'transcriptionText', ...(record && Object.hasOwn(record, 'textAnnotation') ? ['textAnnotation'] : []), ...(record && Object.hasOwn(record, 'audioSeparation') ? ['audioSeparation'] : []), ...(record && Object.hasOwn(record, 'musicGeneration') ? ['musicGeneration'] : []), ...(record && Object.hasOwn(record, 'musicTranscription') ? ['musicTranscription'] : []), ...(record && Object.hasOwn(record, 'voiceConversion') ? ['voiceConversion'] : []), ...(record && Object.hasOwn(record, 'transcription') ? ['transcription'] : []), ...(record && Object.hasOwn(record, 'interruption') ? ['interruption'] : []), ...(record && Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : [])], 'scenario Job');
+  assertExactProjectionKeys(record, [...(record && Object.hasOwn(record, 'submissionOutcome') ? ['submissionOutcome'] : []), ...(record && Object.hasOwn(record, 'stopOutcome') ? ['stopOutcome'] : []), ...(record && Object.hasOwn(record, 'recoveryExpiresAt') ? ['recoveryExpiresAt'] : []), 'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt', 'transcriptionText', ...(record && Object.hasOwn(record, 'textAnnotation') ? ['textAnnotation'] : []), ...(record && Object.hasOwn(record, 'audioSeparation') ? ['audioSeparation'] : []), ...(record && Object.hasOwn(record, 'musicGeneration') ? ['musicGeneration'] : []), ...(record && Object.hasOwn(record, 'musicTranscription') ? ['musicTranscription'] : []), ...(record && Object.hasOwn(record, 'voiceConversion') ? ['voiceConversion'] : []), ...(record && Object.hasOwn(record, 'transcription') ? ['transcription'] : []), ...(record && Object.hasOwn(record, 'interruption') ? ['interruption'] : []), ...(record && Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : [])], 'scenario Job');
   assertSafeProjection(record);
   if (!LOCAL_SCENARIO_TYPES.includes(record.scenarioType as never) || !LOCAL_JOB_STATUSES.includes(record.status as never)) localAppProjectionError('scenario Job enum');
   const current = projectionInteger(record.progressCurrentStep, 'scenario Job current step', 0, Number.MAX_SAFE_INTEGER);
@@ -1483,6 +1491,7 @@ function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
   const recoveryExpiresAt = record.recoveryExpiresAt === undefined ? undefined : projectTimestamp(record.recoveryExpiresAt, 'music recovery expiry');
   if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes(String(record.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) localAppProjectionError('music recovery expiry state');
   return Object.freeze({
+    ...projectJobFacts(record),
     ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(musicGeneration ? { musicGeneration } : {}),
     ...(musicTranscription ? { musicTranscription } : {}),
@@ -1506,6 +1515,47 @@ function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
     updatedAt: projectTimestamp(record.updatedAt, 'scenario Job updatedAt'),
     transcriptionText: optionalProjectionContent(record.transcriptionText, 'scenario Job transcriptionText', 1 << 20),
   }) as NimiLocalAppScenarioJob;
+}
+
+const SUBMISSION_OUTCOMES = [undefined, 'not-dispatched', 'unknown', 'accepted', 'rejected'] as const;
+const STOP_OUTCOMES = [undefined, 'not-dispatched', 'confirmed', 'unconfirmed'] as const;
+
+function localJobFactsFromRuntime(job: LocalAppScenarioJob): Pick<NimiLocalAppScenarioJob, 'submissionOutcome' | 'stopOutcome'> {
+  const submission = job.submissionOutcome ?? 0;
+  const stop = job.stopOutcome ?? 0;
+  if (!Number.isInteger(submission) || submission < 0 || submission >= SUBMISSION_OUTCOMES.length
+    || !Number.isInteger(stop) || stop < 0 || stop >= STOP_OUTCOMES.length) localAppProjectionError('Job outcome enum');
+  return { ...(submission ? { submissionOutcome: SUBMISSION_OUTCOMES[submission] } : {}), ...(stop ? { stopOutcome: STOP_OUTCOMES[stop] } : {}) };
+}
+
+function projectJobFacts(record: Record<string, unknown>): Pick<NimiLocalAppScenarioJob, 'submissionOutcome' | 'stopOutcome'> {
+  const submission = record.submissionOutcome as NimiLocalAppScenarioJob['submissionOutcome'];
+  const stop = record.stopOutcome as NimiLocalAppScenarioJob['stopOutcome'];
+  if (!SUBMISSION_OUTCOMES.includes(submission) || !STOP_OUTCOMES.includes(stop)) localAppProjectionError('Job outcome enum');
+  if (record.status !== 'canceled' && stop !== undefined) localAppProjectionError('uncanceled Job stop facts');
+  if (submission !== undefined) {
+    const valid = record.status === 'submitted' || record.status === 'queued' ? submission === 'not-dispatched'
+      : record.status === 'running' ? submission === 'unknown' || submission === 'accepted'
+      : record.status === 'completed' ? submission === 'accepted'
+      : record.status === 'timeout' ? submission !== 'rejected'
+      : record.status === 'canceled' ? submission === 'not-dispatched' ? stop === 'not-dispatched'
+        : submission === 'unknown' ? stop === 'unconfirmed' : stop === 'confirmed' || stop === 'unconfirmed'
+      : record.status === 'failed';
+    if (!valid) localAppProjectionError('Job outcome combination');
+    if (record.reasonCode === 'ai-provider-task-canceled' && (record.status !== 'canceled' || submission !== 'accepted' || stop !== 'confirmed')) localAppProjectionError('provider cancellation facts');
+    if (record.reasonCode === 'ai-provider-task-expired' && (record.status !== 'timeout' || submission !== 'accepted')) localAppProjectionError('provider expiration facts');
+  }
+  return { ...(submission !== undefined ? { submissionOutcome: submission } : {}), ...(stop !== undefined ? { stopOutcome: stop } : {}) };
+}
+
+function projectJobObservationIssue(value: unknown): NonNullable<NimiLocalAppScenarioJobGetResult['observationIssue']> {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['reasonCode', 'observedAt'], 'Job observation issue');
+  const reasonCode = boundedProjectionText(record.reasonCode, 'observation reason', 128);
+  if (runtimeReasonCode(reasonCode) === RuntimeReasonCode.REASON_CODE_UNSPECIFIED) localAppProjectionError('observation reason');
+  const observedAt = projectTimestamp(record.observedAt, 'observation timestamp');
+  if (!observedAt) localAppProjectionError('observation timestamp');
+  return Object.freeze({ reasonCode, observedAt });
 }
 
 function projectVideoFaceSwapSummary(value: unknown): NimiLocalAppVideoFaceSwapSummary {
@@ -1793,7 +1843,7 @@ function runtimeExecuteRequest(spec: NimiLocalAppScenarioExecuteShellSpec, timeo
   if (spec.type === 'text-decide') {
     return { spec: { oneofKind: 'textDecide', textDecide: runtimeTextDecideSpec(spec) }, timeoutMs };
   }
-  return { spec: { oneofKind: 'imageGenerate', imageGenerate: runtimeImageSpec(spec) }, timeoutMs };
+  return invalidAIInput('unsupported synchronous Scenario spec');
 }
 
 function runtimeLocalJobSpec(
@@ -2055,14 +2105,6 @@ function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenario
         },
         traceId: response.traceId,
       };
-    case 'imageGenerate':
-      return {
-        output: {
-          type: 'image-generate',
-          artifacts: response.output.imageGenerate.artifacts.map(projectRuntimeLocalArtifact),
-        },
-        traceId: response.traceId,
-      };
     case 'textDecide':
       return { output: localTextDecideOutputFromRuntime(response.output.textDecide), traceId: response.traceId };
     default:
@@ -2073,6 +2115,7 @@ function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenario
 function projectRuntimeLocalJob(job: LocalAppScenarioJob): unknown {
   const interruption = localInterruptionFromRuntime(job.interruption);
   return {
+    ...localJobFactsFromRuntime(job),
     ...(job.videoFaceSwapSummary ? { videoFaceSwapSummary: { ...job.videoFaceSwapSummary, durationUs: runtimeSafeInteger(job.videoFaceSwapSummary.durationUs, 'video duration') } } : {}),
     ...(interruption ? { interruption } : {}),
     jobId: job.jobId,
@@ -2423,6 +2466,8 @@ function runtimeJobFromLocal(job: NimiLocalAppScenarioJob): ScenarioJob {
     ...(job.interruption ? { interruption: runtimeInterruptionFromLocal(job.interruption) } : {}),
     jobId: job.jobId, head: undefined, scenarioType: runtimeScenarioType(job.scenarioType), executionMode: ExecutionMode.ASYNC_JOB,
     routeDecision: RoutePolicy.UNSPECIFIED, modelResolved: '', status: runtimeJobStatus(job.status), providerJobId: '',
+    submissionOutcome: SUBMISSION_OUTCOMES.indexOf(job.submissionOutcome) as ScenarioJobSubmissionOutcome,
+    stopOutcome: STOP_OUTCOMES.indexOf(job.stopOutcome) as ScenarioJobStopOutcome,
     reasonCode: runtimeReasonCode(job.reasonCode), reasonDetail: job.reasonDetail, retryCount: 0,
     createdAt: runtimeTimestamp(job.createdAt), updatedAt: runtimeTimestamp(job.updatedAt), nextPollAt: undefined,
     recoveryExpiresAt: runtimeTimestamp(job.recoveryExpiresAt ?? null),

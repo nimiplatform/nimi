@@ -3,7 +3,6 @@ import { createNimiError, ReasonCode } from '../../types';
 export interface NimiRuntimeScenarioJobHeadBuilderInput {
   readonly appId: string;
   readonly subjectUserId?: string;
-  readonly timeoutMs?: number;
 }
 
 export interface NimiRuntimeScenarioJobIdentityInput {
@@ -18,10 +17,13 @@ export function buildNimiRuntimeScenarioJobHead(input: NimiRuntimeScenarioJobHea
   readonly subjectUserId: string;
   readonly timeoutMs: number;
 } {
+  if (Object.keys(input).some((key) => !['appId', 'subjectUserId'].includes(key))) {
+    throw runtimeJobBuilderError('SDK_GENERATION_RUNTIME_JOB_OPTION_UNSUPPORTED', 'Runtime Job business timeout and unknown head options are not supported', 'remove_job_business_timeout');
+  }
   return {
     appId: requireText(input.appId, 'Runtime scenario job head requires appId'),
     subjectUserId: normalizedText(input.subjectUserId),
-    timeoutMs: positiveTimeoutMs(input.timeoutMs),
+    timeoutMs: 0,
   };
 }
 
@@ -33,23 +35,12 @@ export function buildNimiRuntimeScenarioJobIdentity(input: NimiRuntimeScenarioJo
   const capabilityId = requireText(input.capabilityId, 'Runtime scenario job identity requires capabilityId');
   const scenarioId = stableIdPart(requireText(input.scenarioId, 'Runtime scenario job identity requires scenarioId'));
   const nonce = normalizedText(input.nonce) || randomNonce();
-  const key = `${appId}:${capabilityId}:${scenarioId}:${nonce}`;
+  const key = [appId, capabilityId, scenarioId, nonce].map(stableIdPart).join('_');
+  if (key.length > 128) throw runtimeJobBuilderError('SDK_GENERATION_RUNTIME_JOB_IDENTITY_INVALID', 'Runtime Job action identity exceeds 128 ASCII characters', 'provide_shorter_action_identity_components');
   return {
     requestId: key,
     idempotencyKey: key,
   };
-}
-
-function positiveTimeoutMs(value: unknown): number {
-  const timeoutMs = value === undefined ? 120_000 : Number(value);
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    throw runtimeJobBuilderError(
-      'SDK_GENERATION_RUNTIME_JOB_TIMEOUT_INVALID',
-      'Runtime scenario job head timeoutMs must be a positive number',
-      'provide_runtime_job_timeout',
-    );
-  }
-  return Math.floor(timeoutMs);
 }
 
 function requireText(value: unknown, message: string): string {
@@ -61,7 +52,7 @@ function requireText(value: unknown, message: string): string {
 }
 
 function stableIdPart(value: string): string {
-  return value.trim().replace(/[^a-zA-Z0-9._:-]+/g, '-').replace(/^-+|-+$/g, '') || 'default';
+  return value.trim().replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'default';
 }
 
 function randomNonce(): string {

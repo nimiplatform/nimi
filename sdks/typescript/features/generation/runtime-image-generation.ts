@@ -5,7 +5,7 @@ import {
   type ScenarioJob,
   type ScenarioOutput,
 } from '../../core-generated/runtime-typed-client';
-import { runNimiRuntimeScenarioJob, type NimiScenarioJobClient } from '../../runtime/scenario-jobs';
+import { runNimiRuntimeScenarioJob, type NimiScenarioJobClient, type NimiRuntimeScenarioJobObservation } from '../../runtime/scenario-jobs';
 import { createNimiError, ReasonCode } from '../../types';
 import { buildNimiRuntimeGenerationSubmitRequest, type NimiRuntimeGenerationHeadInput } from './runtime-generation-build';
 import { createNimiImageGenerationScenario } from './runtime-scenarios';
@@ -34,6 +34,9 @@ export interface NimiRuntimeImageGenerationInput {
   readonly labels?: Readonly<Record<string, string>>;
   readonly extensions?: readonly ScenarioExtension[];
   readonly callOptions?: RuntimeTypedCallOptions;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
@@ -44,6 +47,7 @@ export interface NimiRuntimeImageGenerationOutput {
 }
 
 export interface NimiRuntimeImageGenerationResult extends NimiRuntimeImageGenerationOutput {
+  readonly response: NimiRuntimeScenarioJobObservation;
   readonly job: ScenarioJob;
   readonly traceId?: string;
   readonly output?: ScenarioOutput;
@@ -80,6 +84,9 @@ export async function runNimiRuntimeImageGeneration(
     }),
     callOptions: input.callOptions,
     signal: input.signal,
+    observationSignal: input.observationSignal,
+    getIntervalMs: input.getIntervalMs,
+    onObservation: input.onObservation,
     abortReason: input.abortReason,
     onJobUpdate: input.onJobUpdate,
   });
@@ -87,6 +94,7 @@ export async function runNimiRuntimeImageGeneration(
   const jobArtifacts = result.artifacts.filter(isRuntimeImageArtifact);
   return {
     artifacts: jobArtifacts.length > 0 ? jobArtifacts : generated.artifacts,
+    response: result.response,
     job: result.job,
     traceId: result.traceId || result.job.traceId || undefined,
     output: result.output,

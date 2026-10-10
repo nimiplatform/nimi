@@ -26,6 +26,7 @@ import {
   runNimiRuntimeScenarioJob,
   withNimiRuntimeIdempotencyMetadata,
   type NimiScenarioJobClient,
+  type NimiRuntimeScenarioJobObservation,
 } from '../../runtime/scenario-jobs';
 import {
   createNimiSpeechSynthesisScenario,
@@ -185,7 +186,7 @@ export interface NimiRuntimeGenerationJobEvent {
 
 export interface NimiRuntimeGenerationSurface {
   submit(input: NimiRuntimeGenerationSubmitInput): Promise<NimiGenerationJob>;
-  get(jobId: string): Promise<NimiGenerationJob>;
+  get(jobId: string): Promise<GetScenarioJobResponse>;
   cancel(jobId: string, reason: string): Promise<NimiGenerationJob>;
   artifacts(jobId: string): Promise<readonly NimiGenerationArtifact[]>;
   readArtifactBytes(artifactId: string): Promise<ReadArtifactBytesResponse>;
@@ -218,6 +219,9 @@ export interface NimiRuntimeSpeechSynthesisInput {
   readonly labels?: Readonly<Record<string, string>>;
   readonly extensions?: NimiRuntimeGenerationSubmitInput['extensions'];
   readonly callOptions?: RuntimeTypedCallOptions;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
@@ -228,6 +232,7 @@ export interface NimiRuntimeSpeechSynthesisOutput {
 }
 
 export interface NimiRuntimeSpeechSynthesisResult extends NimiRuntimeSpeechSynthesisOutput {
+  readonly response: NimiRuntimeScenarioJobObservation;
   readonly job: ScenarioJob;
   readonly traceId?: string;
   readonly output?: ScenarioOutput;
@@ -249,6 +254,9 @@ export interface NimiRuntimeSpeechTranscriptionInput {
   readonly labels?: Readonly<Record<string, string>>;
   readonly extensions?: NimiRuntimeGenerationSubmitInput['extensions'];
   readonly callOptions?: RuntimeTypedCallOptions;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
@@ -261,6 +269,7 @@ export interface NimiRuntimeSpeechTranscriptionOutput {
 }
 
 export interface NimiRuntimeSpeechTranscriptionResult extends NimiRuntimeSpeechTranscriptionOutput {
+  readonly response: NimiRuntimeScenarioJobObservation;
   readonly job: ScenarioJob;
   readonly traceId?: string;
   readonly output?: ScenarioOutput;
@@ -279,6 +288,9 @@ export interface NimiRuntimeVideoGenerationInput {
   readonly labels?: Readonly<Record<string, string>>;
   readonly extensions?: NimiRuntimeGenerationSubmitInput['extensions'];
   readonly callOptions?: RuntimeTypedCallOptions;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
@@ -289,6 +301,7 @@ export interface NimiRuntimeVideoGenerationOutput {
 }
 
 export interface NimiRuntimeVideoGenerationResult extends NimiRuntimeVideoGenerationOutput {
+  readonly response: NimiRuntimeScenarioJobObservation;
   readonly job: ScenarioJob;
   readonly traceId?: string;
   readonly output?: ScenarioOutput;
@@ -311,7 +324,8 @@ export function createNimiRuntimeGenerationClient(
       const response = await clients.ai.getScenarioJob({
         jobId: requireText(jobId, 'Runtime generation get requires jobId', 'provide_generation_job_id'),
       }, options.callOptions);
-      return requireRuntimeJob(response.job, 'getScenarioJob');
+      requireRuntimeJob(response.job, 'getScenarioJob');
+      return response;
     },
     async cancel(jobId, reason) {
       const request = {
@@ -379,12 +393,16 @@ export async function runNimiRuntimeSpeechSynthesis(
     }),
     callOptions: input.callOptions,
     signal: input.signal,
+    observationSignal: input.observationSignal,
+    getIntervalMs: input.getIntervalMs,
+    onObservation: input.onObservation,
     abortReason: input.abortReason,
     onJobUpdate: input.onJobUpdate,
   });
   const synthesis = extractNimiRuntimeSpeechSynthesisOutput(result.output);
   return {
     artifacts: synthesis.artifacts,
+    response: result.response,
     job: result.job,
     traceId: result.traceId || result.job.traceId || undefined,
     output: result.output,
@@ -444,6 +462,9 @@ export async function runNimiRuntimeSpeechTranscription(
     }),
     callOptions: input.callOptions,
     signal: input.signal,
+    observationSignal: input.observationSignal,
+    getIntervalMs: input.getIntervalMs,
+    onObservation: input.onObservation,
     abortReason: input.abortReason,
     onJobUpdate: input.onJobUpdate,
   });
@@ -455,6 +476,7 @@ export async function runNimiRuntimeSpeechTranscription(
     ...(transcription.transcription ? { transcription: transcription.transcription } : {}),
     text: transcription.text,
     artifacts: result.artifacts.length > 0 ? result.artifacts : transcription.artifacts,
+    response: result.response,
     job: result.job,
     traceId: result.traceId || result.job.traceId || undefined,
     output: result.output,
@@ -483,12 +505,16 @@ export async function runNimiRuntimeVideoGeneration(
     }),
     callOptions: input.callOptions,
     signal: input.signal,
+    observationSignal: input.observationSignal,
+    getIntervalMs: input.getIntervalMs,
+    onObservation: input.onObservation,
     abortReason: input.abortReason,
     onJobUpdate: input.onJobUpdate,
   });
   const video = extractNimiRuntimeVideoGenerationOutput(result.output);
   return {
     artifacts: result.artifacts.length > 0 ? result.artifacts : video.artifacts,
+    response: result.response,
     job: result.job,
     traceId: result.traceId || result.job.traceId || undefined,
     output: result.output,

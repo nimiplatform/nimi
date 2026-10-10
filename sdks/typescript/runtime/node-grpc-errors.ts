@@ -126,7 +126,7 @@ export function normalizeServiceError(grpc: GrpcModule, error: ServiceError): Ni
   const structured = parseStructuredGrpcDetails(error);
   const retryableTransportCancelled = isRetryableTransportCancelledError(grpc, error, structured);
   const retryableByStatus = isRetryableGrpcError(grpc, error);
-  const retryable = typeof structured?.retryable === 'boolean'
+  const retryable = structured?.interruption?.resubmitDisposition === 'outcome-uncertain' ? false : typeof structured?.retryable === 'boolean'
     ? structured.retryable
     : structured?.interruption?.resubmitDisposition === 'caller-may-resubmit'
       || retryableByStatus || retryableTransportCancelled;
@@ -360,10 +360,10 @@ function parseGoogleProtobufAny(bytes: Uint8Array): ParsedGrpcStatusDetail | nul
 function parseRuntimeExecutionInterruption(bytes: Uint8Array): NimiExecutionInterruption {
   const interruption = RuntimeExecutionInterruption.fromBinary(bytes);
   if (interruption.cause !== ExecutionInterruptionCause.RUNTIME_RESTART
-    || interruption.resubmitDisposition !== ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT) {
+    || ![ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT, ExecutionResubmitDisposition.OUTCOME_UNCERTAIN].includes(interruption.resubmitDisposition)) {
     throw new Error('invalid nimi.runtime.v1 ExecutionInterruption');
   }
-  return { cause: 'runtime-restart', resubmitDisposition: 'caller-may-resubmit' };
+  return { cause: 'runtime-restart', resubmitDisposition: interruption.resubmitDisposition === ExecutionResubmitDisposition.OUTCOME_UNCERTAIN ? 'outcome-uncertain' : 'caller-may-resubmit' };
 }
 
 function parseGoogleRpcErrorInfo(bytes: Uint8Array): Omit<StructuredGrpcDetails, 'message'> | null {

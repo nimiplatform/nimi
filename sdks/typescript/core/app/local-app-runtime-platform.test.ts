@@ -105,6 +105,32 @@ test('voice deletion validates the id and requires an exact confirmed owner resu
   await assert.rejects(failed.delete('voice-id'), (error) => error === failure);
 });
 
+test('Job facts and observation issues preserve uncertainty without changing status', async () => {
+  const base = standardShell([]);
+  let job: Record<string, unknown> = { jobId: 'original-job', scenarioType: 'image-generate', status: 'running',
+    submissionOutcome: 'accepted', progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0,
+    reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace', createdAt: null, updatedAt: null, transcriptionText: '' };
+  const issue = { reasonCode: 'ai-provider-timeout', observedAt: { seconds: '123', nanos: 0 } };
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async get() { return { job, observationIssue: issue, asset: null, voiceReference: null }; },
+  } } } });
+  const observed = await client.ai.scenarioJobs.get('original-job');
+  assert.equal(observed.job.status, 'running');
+  assert.equal(observed.job.submissionOutcome, 'accepted');
+  assert.deepEqual(observed.observationIssue, issue);
+  job = { ...job, status: 'canceled', submissionOutcome: 'unknown', stopOutcome: 'confirmed' };
+  await assert.rejects(client.ai.scenarioJobs.get('original-job'));
+  job.stopOutcome = 'unconfirmed';
+  assert.equal((await client.ai.scenarioJobs.get('original-job')).job.stopOutcome, 'unconfirmed');
+  job.submissionOutcome = 'provider-pending';
+  await assert.rejects(client.ai.scenarioJobs.get('original-job'));
+  delete job.submissionOutcome;
+  delete job.stopOutcome;
+  const historical = await client.ai.scenarioJobs.get('original-job');
+  assert.equal(historical.job.submissionOutcome, undefined);
+  assert.equal(historical.job.stopOutcome, undefined);
+});
+
 test('music action identity survives the shell carrier and lookup never submits', async () => {
   const calls: unknown[] = [];
   const base = standardShell([]);
@@ -112,7 +138,7 @@ test('music action identity survives the shell carrier and lookup never submits'
     progressCurrentStep: 0, progressTotalSteps: 0, reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace',
     createdAt: null, updatedAt: null, transcriptionText: '' };
   const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
-    async submit(spec, options) { calls.push(['submit', spec, options]); return { job }; },
+    async submit(spec, options) { calls.push(['submit', spec, options]); return { job: { ...job, scenarioType: spec.type } }; },
     async get(id, action) { calls.push(['get', id, action]); return { job, asset: null, voiceReference: null }; },
   } } } });
   const spec = { type: 'music-generate' as const, prompt: 'warm ballad', lyrics: 'keep the melody' };
@@ -124,8 +150,13 @@ test('music action identity survives the shell carrier and lookup never submits'
     await assert.rejects(client.ai.scenarioJobs.lookupSubmission(id));
     await assert.rejects(client.ai.scenarioJobs.submit(spec, {clientSubmissionId:id}));
   }
-  await assert.rejects(client.ai.scenarioJobs.submit({ type:'image-generate', prompt:'image' }, {clientSubmissionId:'image-action'}));
   assert.equal(calls.length, 2);
+  await client.ai.scenarioJobs.submit({ type:'vision-locate', imageArtifactId:'image-input', query:'center', geometry:'point' }, {clientSubmissionId:'locate-action'});
+  assert.deepEqual((calls[2] as unknown[])[2], { clientSubmissionId: 'locate-action' });
+  for (const timeoutMs of [0, -1, 1000]) {
+    await assert.rejects(client.ai.scenarioJobs.submit(spec, { timeoutMs } as never));
+  }
+  assert.equal(calls.length, 3);
 });
 
 test('image face replacement uses owned artifact Job input and rejects extra selectors', async () => {
@@ -1578,13 +1609,13 @@ test('local-app World jobs carry text through the async SDK and reject provider 
   assert.deepEqual(await client.ai.scenarioJobs.submit(spec), { job });
   const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
   await adapter.submitScenarioJob({
-    head: { appId: 'nimi.lab', subjectUserId: '', timeoutMs: 300_000 },
+    head: { appId: 'nimi.lab', subjectUserId: '', timeoutMs: 0 },
     scenarioType: ScenarioType.WORLD_GENERATE, executionMode: ExecutionMode.ASYNC_JOB,
     spec: { spec: { oneofKind: 'worldGenerate', worldGenerate: {
       textPrompt: spec.prompt, displayName: spec.displayName, tags: [], seed: '0', conditioning: { oneofKind: undefined },
     } } }, requestId: 'request-world', idempotencyKey: 'idempotency-world', labels: {}, extensions: [],
   });
-  assert.deepEqual(calls[1], [spec, { timeoutMs: 300_000 }]);
+  assert.deepEqual(calls[1], [spec, { clientSubmissionId: 'idempotency-world' }]);
   await assert.rejects(() => client.ai.scenarioJobs.submit({ ...spec, provider: 'worldlabs' } as never),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID');
 });
@@ -1631,7 +1662,7 @@ test('local-app Music adapter carries prompt, lyrics and bounded duration throug
   });
   const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
   const request: SubmitScenarioJobRequest = {
-    head: { appId: 'nimi.lab', subjectUserId: '', timeoutMs: 5_000 },
+    head: { appId: 'nimi.lab', subjectUserId: '', timeoutMs: 0 },
     scenarioType: ScenarioType.MUSIC_GENERATE,
     executionMode: ExecutionMode.ASYNC_JOB,
     spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { prompt: 'bright synth-pop', negativePrompt: '', lyrics: '[Verse]\nCity lights.', style: '', title: '', durationSeconds: 0, instrumental: false, scoreConditioning: 0, returnGeneratedScore: false } } },
@@ -1640,10 +1671,10 @@ test('local-app Music adapter carries prompt, lyrics and bounded duration throug
   await adapter.submitScenarioJob(request);
   assert.deepEqual(calls, [[
     { type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.', instrumental: false, returnGeneratedScore: false },
-    { timeoutMs: 5_000 },
+    { clientSubmissionId: 'idempotency-music' },
   ]]);
   await adapter.submitScenarioJob({ ...request, spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { ...request.spec!.spec!.musicGenerate, durationSeconds: 120 } } } });
-  assert.deepEqual(calls[1], [{ type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.', durationSeconds: 120, instrumental: false, returnGeneratedScore: false }, { timeoutMs: 5_000 }]);
+  assert.deepEqual(calls[1], [{ type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.', durationSeconds: 120, instrumental: false, returnGeneratedScore: false }, { clientSubmissionId: 'idempotency-music' }]);
   await assert.rejects(
     () => adapter.submitScenarioJob({ ...request, spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { ...request.spec!.spec!.musicGenerate, durationSeconds: 601 } } } }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',

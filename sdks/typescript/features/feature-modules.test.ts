@@ -218,7 +218,9 @@ test('Runtime-bound generation client uses Scenario jobs and Runtime artifacts',
   assert.equal(submitRequests[0]?.executionMode, ExecutionMode.ASYNC_JOB);
   assert.equal(submitOptions[0]?.metadata?.idempotencyKey, 'idempotency-1');
   assert.equal(submitRequests[0]?.spec?.spec.oneofKind, 'imageGenerate');
-  assert.equal((await runtime.get('job-runtime-1')).artifacts[0]?.kind, 'image');
+  const observation = await runtime.get('job-runtime-1');
+  assert.equal(observation.job?.artifacts[0]?.mimeType, 'image/png');
+  assert.equal(observation.job?.status, ScenarioJobStatus.COMPLETED);
   assert.equal((await runtime.artifacts('job-runtime-1'))[0]?.uri, 'runtime://artifact-1');
   assert.deepEqual([...(await runtime.readArtifactBytes('artifact-1')).bytes], [1, 2, 3]);
 

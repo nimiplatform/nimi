@@ -10,7 +10,6 @@ import { toRuntimeScenario, type NimiRuntimeGenerationScenario } from './runtime
 export interface NimiRuntimeGenerationHeadInput {
   readonly appId: string;
   readonly subjectUserId?: string;
-  readonly timeoutMs?: number;
 }
 
 export interface NimiRuntimeGenerationSubmitInput {
@@ -44,10 +43,15 @@ export function buildNimiRuntimeGenerationSubmitRequest(
 }
 
 function toRuntimeHead(input: NimiRuntimeGenerationHeadInput): ScenarioRequestHead {
+  // Accept the wire's reserved zero check slot when this is composed with the
+  // canonical Job-head builder; it never supplies an execution deadline.
+  if ('timeoutMs' in input && input.timeoutMs !== 0) {
+    throw createNimiError({ message: 'Job business timeout is no longer supported', reasonCode: 'AI_MEDIA_OPTION_UNSUPPORTED', actionHint: 'remove_job_business_timeout', source: 'sdk' });
+  }
   return {
     appId: requireText(input.appId, 'Runtime generation head requires appId', 'provide_generation_app_id'),
     subjectUserId: normalizeText(input.subjectUserId),
-    timeoutMs: Number(input.timeoutMs ?? 0),
+    timeoutMs: 0,
   };
 }
 

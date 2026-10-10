@@ -178,7 +178,7 @@ test('Runtime scenario job runner follows submit, event stream, artifact lookup,
   assert.deepEqual(result.artifacts, [{ artifactId: 'artifact-1' }]);
 });
 
-test('Runtime voice job runner uses one terminal Get as the result and artifact snapshot', async () => {
+test('Runtime voice job runner fetches one full Get when idempotent Submit already returns COMPLETED', async () => {
   let artifactLookups = 0;
   const terminalJob = {
     ...createScenarioJob('job-voice-1', ScenarioJobStatus.COMPLETED),
@@ -197,7 +197,7 @@ test('Runtime voice job runner uses one terminal Get as the result and artifact 
   };
   const client: NimiRuntimeScenarioJobClient = {
     async submitScenarioJob() {
-      return { job: { ...terminalJob, status: ScenarioJobStatus.SUBMITTED } };
+      return { job: terminalJob };
     },
     async getScenarioJob() {
       return { job: terminalJob, asset, voiceReference };
@@ -323,16 +323,16 @@ test('Runtime scenario job runner recovers a terminal result after a normal stre
     ...client,
     async getScenarioJob(request, options) {
       gets += 1;
-      return client.getScenarioJob(request, options);
+      return gets > 1 ? { job: createScenarioJob('job-1', ScenarioJobStatus.COMPLETED) } : client.getScenarioJob(request, options);
     },
   };
 
-  const result = await runNimiRuntimeScenarioJob({ ai: guarded, request: createScenarioJobRequest() });
+  const result = await runNimiRuntimeScenarioJob({ ai: guarded, request: createScenarioJobRequest(), getIntervalMs: 1 });
   assert.equal(result.job.status, ScenarioJobStatus.COMPLETED);
-  assert.equal(gets, 1);
+  assert.equal(gets, 2);
 });
 
-test('Runtime scenario job runner rejects mismatched terminal event type before Get', async () => {
+test('Runtime scenario job runner rejects mismatched terminal event type before a terminal Get', async () => {
   let gets = 0;
   const completed = createScenarioJob('job-1', ScenarioJobStatus.COMPLETED);
   const base = createScenarioJobClient([]);
@@ -348,7 +348,7 @@ test('Runtime scenario job runner rejects mismatched terminal event type before 
     },
     async getScenarioJob(request, options) {
       gets += 1;
-      return base.getScenarioJob(request, options);
+      return { job: createScenarioJob('job-1', ScenarioJobStatus.RUNNING) };
     },
   };
 
@@ -356,10 +356,10 @@ test('Runtime scenario job runner rejects mismatched terminal event type before 
     runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest() }),
     (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
   );
-  assert.equal(gets, 0);
+  assert.equal(gets, 1);
 });
 
-test('Runtime scenario job runner rejects a terminal event for another Job before Get', async () => {
+test('Runtime scenario job runner rejects a terminal event for another Job before a terminal Get', async () => {
   let gets = 0;
   const completed = createScenarioJob('job-other', ScenarioJobStatus.COMPLETED);
   const base = createScenarioJobClient([]);
@@ -375,7 +375,7 @@ test('Runtime scenario job runner rejects a terminal event for another Job befor
     },
     async getScenarioJob(request, options) {
       gets += 1;
-      return base.getScenarioJob(request, options);
+      return { job: createScenarioJob('job-1', ScenarioJobStatus.RUNNING) };
     },
   };
 
@@ -383,7 +383,7 @@ test('Runtime scenario job runner rejects a terminal event for another Job befor
     runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest() }),
     (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
   );
-  assert.equal(gets, 0);
+  assert.equal(gets, 1);
 });
 
 test('Runtime voice job runner rejects malformed terminal result pairs', async () => {
@@ -565,7 +565,7 @@ test('Runtime ScenarioJob abort requests cancellation and reports the Runtime te
     },
     async getScenarioJob() {
       queryCount += 1;
-      return { job: createScenarioJob('job-1', ScenarioJobStatus.RUNNING) };
+      return { job: createScenarioJob('job-1', cancelReason ? ScenarioJobStatus.CANCELED : ScenarioJobStatus.RUNNING) };
     },
     async *subscribeScenarioJobEvents() {
       await new Promise(() => undefined);
@@ -586,7 +586,7 @@ test('Runtime ScenarioJob abort requests cancellation and reports the Runtime te
     return true;
   });
   assert.equal(cancelReason, 'tester-user-canceled');
-  assert.equal(queryCount, 0);
+  assert.ok(queryCount >= 1);
 });
 
 test('Runtime ScenarioJob abort preserves a Runtime completion that won the cancellation race', async () => {
@@ -594,6 +594,7 @@ test('Runtime ScenarioJob abort preserves a Runtime completion that won the canc
   const completedJob = createScenarioJob('job-1', ScenarioJobStatus.COMPLETED);
   const client: NimiRuntimeScenarioJobClient = {
     ...createScenarioJobClient([]),
+    async cancelScenarioJob() { return { job: completedJob }; },
     async getScenarioJob() {
       return { job: completedJob };
     },
@@ -620,6 +621,7 @@ test('Runtime ScenarioJob abort waits for the terminal event when cancel initial
     releaseCancellation = resolve;
   });
   let queryCount = 0;
+  let finished = false;
   const client: NimiRuntimeScenarioJobClient = {
     ...createScenarioJobClient([]),
     async cancelScenarioJob() {
@@ -628,11 +630,12 @@ test('Runtime ScenarioJob abort waits for the terminal event when cancel initial
     },
     async getScenarioJob() {
       queryCount += 1;
-      return { job: createScenarioJob('job-1', ScenarioJobStatus.RUNNING) };
+      return { job: createScenarioJob('job-1', finished ? ScenarioJobStatus.CANCELED : ScenarioJobStatus.RUNNING) };
     },
     async *subscribeScenarioJobEvents() {
       await cancellationRequested;
       await new Promise((resolve) => setTimeout(resolve, 10));
+      finished = true;
       const job = createScenarioJob('job-1', ScenarioJobStatus.CANCELED);
       yield {
         eventType: scenarioJobEventTypeForStatus(job.status),
@@ -655,34 +658,23 @@ test('Runtime ScenarioJob abort waits for the terminal event when cancel initial
     assert.equal(getNimiRuntimeScenarioJobTerminalStatusFromError(error), ScenarioJobStatus.CANCELED);
     return true;
   });
-  assert.equal(queryCount, 1);
+  assert.ok(queryCount >= 1);
 });
 
-test('Runtime ScenarioJob stream interruption reattaches once before returning typed failure', async () => {
-  let queryCount = 0;
-  let subscriptionCount = 0;
-  const runningJob = createScenarioJob('job-1', ScenarioJobStatus.RUNNING);
-  const client: NimiRuntimeScenarioJobClient = {
-    ...createScenarioJobClient([]),
-    async getScenarioJob() {
-      queryCount += 1;
-      return { job: runningJob };
-    },
-    async *subscribeScenarioJobEvents() {
-      subscriptionCount += 1;
-    },
-  };
-
-  await assert.rejects(
-    runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest() }),
-    (error: unknown) => (error as { readonly reasonCode?: unknown }).reasonCode
-      === 'SDK_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED',
-  );
-  assert.equal(subscriptionCount, 2);
-  assert.equal(queryCount, 2);
+test('Runtime ScenarioJob EOF leaves cadence active until the observer detaches', async () => {
+ const controller = new AbortController();
+ let gets=0;
+ const client={...createScenarioJobClient([]),getScenarioJob:async()=>{
+  gets++;
+  if(gets===3) controller.abort();
+  return {job:createScenarioJob('job-1',ScenarioJobStatus.RUNNING)};
+ }};
+ await assert.rejects(runNimiRuntimeScenarioJob({ai:client,request:createScenarioJobRequest(),getIntervalMs:1,observationSignal:controller.signal}),
+  (error:unknown)=>(error as {reasonCode?:string}).reasonCode===ReasonCode.OPERATION_ABORTED);
+ assert.equal(gets,3);
 });
 
-test('Runtime ScenarioJob stream recovery reattaches to the same durable Job after a non-terminal lookup', async () => {
+test('Runtime ScenarioJob stream recovery polls the same durable Job after a non-terminal lookup', async () => {
   let queryCount = 0;
   let subscriptionCount = 0;
   const runningJob = createScenarioJob('job-1', ScenarioJobStatus.RUNNING);
@@ -706,9 +698,9 @@ test('Runtime ScenarioJob stream recovery reattaches to the same durable Job aft
     },
   };
 
-  const result = await runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest() });
+  const result = await runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest(), getIntervalMs:1 });
   assert.equal(result.job.status, ScenarioJobStatus.COMPLETED);
-  assert.equal(subscriptionCount, 2);
+  assert.equal(subscriptionCount, 1);
   assert.equal(queryCount, 2);
 });
 
@@ -787,6 +779,7 @@ function createScenarioJob(jobId: string, status: ScenarioJobStatus) {
 function createScenarioJobClient(
   events: readonly { readonly job: ReturnType<typeof createScenarioJob> }[],
 ): NimiRuntimeScenarioJobClient {
+  let reads = 0;
   return {
     async submitScenarioJob() {
       return {
@@ -795,7 +788,7 @@ function createScenarioJobClient(
     },
     async getScenarioJob() {
       return {
-        job: createScenarioJob('job-1', ScenarioJobStatus.COMPLETED),
+        job: events.length > 0 ? events[Math.min(reads++, events.length - 1)]!.job : createScenarioJob('job-1', ScenarioJobStatus.COMPLETED),
       };
     },
     async cancelScenarioJob() {

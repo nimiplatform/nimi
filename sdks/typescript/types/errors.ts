@@ -4,7 +4,7 @@ export type NimiErrorSource = 'realm' | 'runtime' | 'sdk';
 
 export interface NimiExecutionInterruption {
   readonly cause: 'runtime-restart';
-  readonly resubmitDisposition: 'caller-may-resubmit';
+  readonly resubmitDisposition: 'caller-may-resubmit' | 'outcome-uncertain';
 }
 
 export type NimiError = Error & {
@@ -87,8 +87,8 @@ function readBoolean(record: Record<string, unknown>, keys: readonly string[]): 
 
 function readExecutionInterruption(value: unknown): NimiExecutionInterruption | undefined {
   const record = asRecord(value);
-  return record.cause === 'runtime-restart' && record.resubmitDisposition === 'caller-may-resubmit'
-    ? { cause: 'runtime-restart', resubmitDisposition: 'caller-may-resubmit' }
+  return record.cause === 'runtime-restart' && (record.resubmitDisposition === 'caller-may-resubmit' || record.resubmitDisposition === 'outcome-uncertain')
+    ? { cause: 'runtime-restart', resubmitDisposition: record.resubmitDisposition }
     : undefined;
 }
 

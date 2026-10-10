@@ -245,7 +245,6 @@ test('runNimiRuntimeVideoGeneration submits a video scenario job and returns vid
     head: {
       appId: 'nimi.local-gateway.openai-compatible',
       subjectUserId: 'local-user',
-      timeoutMs: 123000,
     },
     mode: 't2v',
     prompt: 'Generate a moving product shot',
@@ -278,7 +277,7 @@ test('runNimiRuntimeVideoGeneration submits a video scenario job and returns vid
   assert.deepEqual(submitted[0].request.head, {
     appId: 'nimi.local-gateway.openai-compatible',
     subjectUserId: 'local-user',
-    timeoutMs: 123000,
+    timeoutMs: 0,
   });
   assert.equal(submitted[0].request.spec.spec.oneofKind, 'videoGenerate');
   assert.equal(submitted[0].request.spec.spec.videoGenerate.prompt, 'Generate a moving product shot');

@@ -14,7 +14,6 @@ test('image generation parameters coerce runtime media fields and provider optio
     response_format: 'b64_json',
     seed: '42',
     count: '2',
-    timeout_ms: '15000',
     steps: '28',
     cfg_scale: '7.5',
     sampler: 'dpm++2m',
@@ -26,7 +25,6 @@ test('image generation parameters coerce runtime media fields and provider optio
   assert.equal(params.responseFormat, 'b64_json');
   assert.equal(params.seed, '42');
   assert.equal(params.count, 2);
-  assert.equal(params.timeoutMs, 15000);
   assert.deepEqual(params.referenceImages, ['https://example.test/ref.png']);
   assert.deepEqual(params.providerOptions, {
     steps: 28,
@@ -43,12 +41,11 @@ test('image generation parameters reject unsupported sampler instead of dropping
   );
 });
 
-test('video and transcription generation parameters coerce timeout and typed options', () => {
+test('video and transcription generation parameters coerce typed options', () => {
   const video = coerceNimiVideoGenerationParams({
     mode: 'i2v-reference',
     durationSec: '4.5',
     fps: '24',
-    timeoutMs: '30000',
     generateAudio: true,
   });
   assert.equal(video.mode, 'i2v-reference');
@@ -57,16 +54,13 @@ test('video and transcription generation parameters coerce timeout and typed opt
     fps: 24,
     generateAudio: true,
   });
-  assert.equal(video.timeoutMs, 30000);
 
   const transcription = coerceNimiSpeechTranscriptionParams({
     speakerCount: '2',
-    timeoutMs: '45000',
     timestamps: true,
     diarization: false,
   });
   assert.equal(transcription.speakerCount, 2);
-  assert.equal(transcription.timeoutMs, 45000);
   assert.equal(transcription.timestamps, true);
   assert.equal(transcription.diarization, false);
 });
@@ -75,4 +69,12 @@ test('audio URL mime type prefers content type and falls back to file extension'
   assert.equal(mimeTypeForNimiAudioUrl('https://example.test/audio.wav', 'audio/mpeg; charset=utf-8'), 'audio/mpeg');
   assert.equal(mimeTypeForNimiAudioUrl('https://example.test/audio.m4a'), 'audio/mp4');
   assert.equal(mimeTypeForNimiAudioUrl('https://example.test/audio.bin'), 'audio/wav');
+});
+
+test('every media Job parameter coercer rejects retired timeout keys including zero', () => {
+  for (const coerce of [coerceNimiImageGenerationParams, coerceNimiVideoGenerationParams, coerceNimiSpeechTranscriptionParams]) {
+    for (const key of ['timeoutMs', 'timeout_ms']) for (const value of [0, -1, 1000]) {
+      assert.throws(() => coerce({ [key]: value }), /Job business timeout/);
+    }
+  }
 });

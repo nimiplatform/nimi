@@ -26,12 +26,14 @@ import {
   type VisionLocateScenarioSpec,
 } from '../core-generated/runtime-typed-client';
 import { localVisionLocateFromRuntime, localLocateGeometry, localInterruptionFromRuntime } from '../core/app/local-app-runtime-platform-vision.js';
-import { createNimiError, ReasonCode, type JsonObject } from '../types';
+import { asNimiError, createNimiError, ReasonCode, type JsonObject } from '../types';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 const NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY = 'scenarioJobStatus';
 export const NIMI_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED_REASON = 'SDK_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED';
-const NIMI_RUNTIME_SCENARIO_JOB_CANCEL_CONVERGENCE_TIMEOUT_MS = 30_000;
+/** Default Get cadence for every implementation; events are only hints. */
+export const NIMI_RUNTIME_SCENARIO_JOB_GET_INTERVAL_MS = 1_000;
+export type NimiRuntimeScenarioJobObservation = Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>>;
 
 export type NimiRuntimeScenarioJobErrorTerminalStatus =
   | ScenarioJobStatus.FAILED
@@ -90,6 +92,7 @@ export interface NimiProtectedLocalScenarioJobClient extends Omit<
 export type NimiScenarioJobClient = NimiRuntimeScenarioJobClient | NimiProtectedLocalScenarioJobClient;
 
 export interface NimiRuntimeScenarioJobResult {
+  readonly response: NimiRuntimeScenarioJobObservation;
   readonly job: NimiRuntimeScenarioJob;
   readonly artifacts: readonly NimiRuntimeScenarioArtifact[];
   readonly traceId?: string;
@@ -103,18 +106,27 @@ export interface NimiRuntimeScenarioJobRunnerInput {
   readonly ai: NimiScenarioJobClient;
   readonly request: NimiRuntimeScenarioJobSubmitRequest;
   readonly callOptions?: RuntimeTypedCallOptions;
+  /** Explicit run cancellation: abort sends the common Cancel operation. */
   readonly signal?: AbortSignal;
+  /** Stops observation only; admitted work is not canceled. */
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly abortReason?: string;
   readonly onJobUpdate?: (job: NimiRuntimeScenarioJob) => void;
 }
 
-export type NimiRuntimeScenarioJobObservationInput = Omit<NimiRuntimeScenarioJobRunnerInput, 'request'> & {
+export type NimiRuntimeScenarioJobObservationInput = Omit<NimiRuntimeScenarioJobRunnerInput, 'request' | 'observationSignal' | 'signal'> & {
+  /** Ends this observation only, without canceling the Job. */
+  readonly signal?: AbortSignal;
+  /** Optional explicit user Cancel action, separate from observer disposal. */
+  readonly cancelSignal?: AbortSignal;
   readonly jobId: string;
   readonly scenarioType: ScenarioType;
   readonly expectedVision?: Pick<VisionLocateScenarioSpec, 'imageArtifactId' | 'geometry'>;
 };
 
-type ScenarioJobObservationContext = Omit<NimiRuntimeScenarioJobObservationInput, 'jobId'> & { readonly cancelKey?: string };
+type ScenarioJobObservationContext = Omit<NimiRuntimeScenarioJobObservationInput, 'jobId'> & { readonly cancelKey?: string; readonly cancelSignal?: AbortSignal; readonly jobId?: string };
 
 export function withNimiRuntimeIdempotencyMetadata(
   options: RuntimeTypedCallOptions | undefined,
@@ -165,7 +177,9 @@ export function getNimiRuntimeScenarioJobTerminalStatusFromError(
 export async function runNimiRuntimeScenarioJob(
   input: NimiRuntimeScenarioJobRunnerInput,
 ): Promise<NimiRuntimeScenarioJobResult> {
+  scenarioGetInterval(input.getIntervalMs);
   throwIfAborted(input.signal);
+  throwIfAborted(input.observationSignal);
 
   const submitResponse = await input.ai.submitScenarioJob(
     input.request,
@@ -183,7 +197,7 @@ export async function runNimiRuntimeScenarioJob(
   }
 
   const spec = input.request.spec?.spec;
-  return observeSubmittedScenarioJob({ ...input, scenarioType: input.request.scenarioType, cancelKey: input.request.idempotencyKey,
+  return observeSubmittedScenarioJob({ ...input, signal: input.observationSignal, cancelSignal: input.signal, scenarioType: input.request.scenarioType, cancelKey: input.request.idempotencyKey,
     ...(spec?.oneofKind === 'visionLocate' ? { expectedVision: spec.visionLocate } : {}) }, submitted!);
 }
 
@@ -193,164 +207,207 @@ export async function runNimiRuntimeScenarioJob(
 export async function observeNimiRuntimeScenarioJob(
   input: NimiRuntimeScenarioJobObservationInput,
 ): Promise<NimiRuntimeScenarioJobResult> {
-  throwIfAborted(input.signal);
+  scenarioGetInterval(input.getIntervalMs);
   if (!input.jobId || input.jobId !== input.jobId.trim()) throw runtimeScenarioJobResponseError('An existing Job identifier is required');
-  const response = await input.ai.getScenarioJob({ jobId: input.jobId }, input.callOptions);
-  if (response.job?.jobId !== input.jobId || response.job.scenarioType !== input.scenarioType) throw runtimeScenarioJobResponseError('Recovered Job does not match the expected scenario');
-  return observeSubmittedScenarioJob(input, response.job, response);
+  return observeSubmittedScenarioJob({ ...input, jobId: input.jobId });
 }
 
 async function observeSubmittedScenarioJob(
   input: ScenarioJobObservationContext,
-  submitted: ScenarioJob,
-  initialResponse?: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>>,
+  submitted?: ScenarioJob,
 ): Promise<NimiRuntimeScenarioJobResult> {
-  const jobId = submitted.jobId;
-  let terminalJob: ScenarioJob | undefined = submitted;
-  let observedTerminalEvent = isNimiRuntimeScenarioJobTerminalStatus(submitted.status);
-  let recoveredTerminalResponse = observedTerminalEvent ? initialResponse : undefined;
-  let cancellationResponse: CancelScenarioJobResponse | undefined;
-  let cancellationRecoveryResponse: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined;
-  let cancellationRequested = false;
-  if (submitted) {
-    input.onJobUpdate?.(submitted);
-  }
-
-  const consumeJobEventStream = async (): Promise<void> => {
-    const events = input.ai.subscribeScenarioJobEvents({ jobId }, input.callOptions);
-    const iterator = events[Symbol.asyncIterator]();
-    while (true) {
-      const next = cancellationRequested
-        ? await iterator.next()
-        : await nextWithAbort(iterator, input.signal, async () => {
-            cancellationRequested = true;
-            cancellationResponse = await cancelNimiRuntimeScenarioJob(input, jobId);
-            if (cancellationResponse?.job
-              && isNimiRuntimeScenarioJobTerminalStatus(cancellationResponse.job.status)) {
-              return true;
-            }
-            const refreshed = await queryMatchingScenarioJob(input, jobId);
-            cancellationRecoveryResponse = refreshed;
-            if (refreshed?.job && isNimiRuntimeScenarioJobTerminalStatus(refreshed.job.status)) {
-              return true;
-            }
-            return false;
-          });
-      if (next.done) {
-        break;
-      }
-      const job = next.value.job;
-      if (!job) {
-        throw runtimeScenarioJobResponseError('Runtime Scenario job event omitted its Job projection');
-      }
-      if (normalizeText(job.jobId) !== jobId || job.scenarioType !== input.scenarioType
-        || !scenarioJobEventMatchesStatus(next.value.eventType, job.status)) {
-        throw runtimeScenarioJobResponseError('Runtime Scenario job event does not match the submitted Job');
-      }
-      terminalJob = job;
-      input.onJobUpdate?.(job);
-      if (isNimiRuntimeScenarioJobTerminalStatus(job.status)) {
-        observedTerminalEvent = true;
-        break;
-      }
-    }
+  const jobId = submitted?.jobId ?? input.jobId!;
+  const interval = scenarioGetInterval(input.getIntervalMs);
+  const lifetime = new AbortController();
+  const signal = AbortSignal.any([lifetime.signal, ...[input.signal, input.callOptions?.signal].filter((value): value is AbortSignal => Boolean(value))]);
+  const options = { ...input.callOptions, signal };
+  let active = true;
+  let lastJob = submitted;
+  let terminalResponse: NimiRuntimeScenarioJobObservation | undefined;
+  let nextGetAt = 0;
+  let terminalHint = submitted ? isNimiRuntimeScenarioJobTerminalStatus(submitted.status) : false;
+  let terminalStatus = terminalHint ? submitted!.status : undefined;
+  let cancelSent = false;
+  let cancellation: Promise<void> | undefined;
+  let cancelFailure: unknown;
+  let wake: (() => void) | undefined;
+  let iterator: AsyncIterator<ScenarioJobEvent> | undefined;
+  type EventOutcome = { kind: 'event'; result: IteratorResult<ScenarioJobEvent> } | { kind: 'stream-ended' };
+  let eventReady: EventOutcome | undefined;
+  const readNext = () => {
+    void Promise.resolve().then(() => iterator!.next()).then(
+      result => { if (active) { eventReady = { kind: 'event', result }; wake?.(); } },
+      () => { if (active) { eventReady = { kind: 'stream-ended' }; wake?.(); } },
+    );
   };
-
+  const validateJob = (job: ScenarioJob | undefined) => {
+    if (!job || job.jobId !== jobId || job.scenarioType !== input.scenarioType) {
+      throw runtimeScenarioJobResponseError('Observed Job does not match the original identity and scenario');
+    }
+    if (![ScenarioJobStatus.SUBMITTED, ScenarioJobStatus.QUEUED, ScenarioJobStatus.RUNNING,
+      ScenarioJobStatus.COMPLETED, ScenarioJobStatus.FAILED, ScenarioJobStatus.CANCELED, ScenarioJobStatus.TIMEOUT].includes(job.status)) {
+      throw runtimeScenarioJobResponseError('Observed Job has an unknown status');
+    }
+    return job;
+  };
+  const requestCancel = () => {
+    if (!active || cancelSent) return;
+    cancelSent = true;
+    // An explicit control call outlives this observer's disposal, with only
+    // its caller-supplied technical call constraints. Never retry it here.
+    cancellation = Promise.resolve().then(() => input.ai.cancelScenarioJob({ jobId, reason: input.abortReason || 'caller_requested_cancel' },
+      withNimiRuntimeIdempotencyMetadata(input.callOptions, `cancel:${input.cancelKey ?? jobId}:${jobId}`)))
+      .then(response => {
+        validateJob(response.job);
+        if (!active) return;
+        terminalHint = isNimiRuntimeScenarioJobTerminalStatus(response.job!.status);
+        if (terminalHint) terminalStatus = response.job!.status;
+        nextGetAt = 0;
+        wake?.();
+      }).catch(error => {
+        cancelFailure = error;
+        if (active) lifetime.abort();
+      });
+  };
+  const disposeObservation = () => {
+    if (!active) return;
+    active = false;
+    input.cancelSignal?.removeEventListener('abort', requestCancel);
+    lifetime.abort();
+    void iterator?.return?.().catch(() => undefined);
+  };
   try {
-    if (!observedTerminalEvent) await consumeJobEventStream();
-    if (!observedTerminalEvent) {
-      throwIfAborted(input.signal);
-      const refreshed = await queryMatchingScenarioJob(input, jobId);
-      if (refreshed?.job && isNimiRuntimeScenarioJobTerminalStatus(refreshed.job.status)) {
-        terminalJob = refreshed.job;
-        recoveredTerminalResponse = refreshed;
-        observedTerminalEvent = true;
-        input.onJobUpdate?.(refreshed.job);
-      } else {
-        // A protected Local App technical-session rotation may end the old
-        // transport stream while the immutable Runtime Job keeps running.
-        // Reattach once to that exact Job; Runtime backlog/terminal replay
-        // remains the only source of Job state and no execution is retried.
-        await consumeJobEventStream();
+    if (submitted) validateJob(submitted);
+    input.cancelSignal?.addEventListener('abort', requestCancel, { once: true });
+    if (input.cancelSignal?.aborted) requestCancel();
+    throwIfAborted(signal);
+    if (submitted) input.onJobUpdate?.(submitted);
+    let subscriptionStarted = false;
+    const subscribe = () => {
+      if (subscriptionStarted) return;
+      subscriptionStarted = true;
+      try {
+        iterator = input.ai.subscribeScenarioJobEvents({ jobId }, options)[Symbol.asyncIterator]();
+        readNext();
+      } catch { /* Get remains authoritative when subscriptions are unavailable. */ }
+    };
+    if (submitted && !terminalHint) subscribe();
+    while (!terminalResponse?.job || !isNimiRuntimeScenarioJobTerminalStatus(terminalResponse.job.status)) {
+      throwIfAborted(signal);
+      if (terminalHint || Date.now() >= nextGetAt) {
+        const expectedTerminal = terminalStatus;
+        const response = await observationCall(input.ai.getScenarioJob({ jobId }, options), signal, jobId);
+        const job = validateJob(response.job);
+        if (expectedTerminal !== undefined && job.status !== expectedTerminal) {
+          throw runtimeScenarioJobResponseError('Terminal Get disagrees with the observed terminal state');
+        }
+        // A backlog event may be stale; only a full Get can finalize a result.
+        lastJob = job;
+        terminalResponse = response;
+        input.onObservation?.(response);
+        throwIfAborted(signal);
+        input.onJobUpdate?.(job);
+        terminalHint = terminalStatus !== undefined && !isNimiRuntimeScenarioJobTerminalStatus(job.status);
+        nextGetAt = Date.now() + interval;
+        if (isNimiRuntimeScenarioJobTerminalStatus(job.status)) break;
+        subscribe();
+      }
+      const outcome = await new Promise<EventOutcome | { kind: 'wake' }>((resolve, reject) => {
+        let settled = false;
+        const finish = (value?: EventOutcome) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          signal.removeEventListener('abort', abort);
+          wake = undefined;
+          resolve(value ?? { kind: 'wake' });
+        };
+        const abort = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          signal.removeEventListener('abort', abort);
+          wake = undefined;
+          reject(abortedNimiRuntimeScenarioJobError(jobId));
+        };
+        const timer = setTimeout(finish, Math.max(0, nextGetAt - Date.now()));
+        wake = () => finish(eventReady);
+        signal.addEventListener('abort', abort, { once: true });
+        if (signal.aborted) abort();
+        if (eventReady) finish(eventReady);
+      });
+      if (outcome.kind === 'stream-ended' || (outcome.kind === 'event' && outcome.result.done)) {
+        eventReady = undefined;
+      } else if (outcome.kind === 'event') {
+        eventReady = undefined;
+        const event = outcome.result.value;
+        const job = validateJob(event.job);
+        if (!scenarioJobEventMatchesStatus(event.eventType, job.status)) throw runtimeScenarioJobResponseError('Job event status is inconsistent');
+        if (isNimiRuntimeScenarioJobTerminalStatus(job.status)) {
+          terminalHint = true;
+          terminalStatus = job.status;
+        } else if ((!lastJob || scenarioJobEventIsNewer(job, lastJob))) {
+          lastJob = job;
+          input.onJobUpdate?.(job);
+        }
+        readNext();
       }
     }
-  } catch (error) {
-    if (input.signal?.aborted) {
-      const cancellationJob = cancellationRecoveryResponse?.job ?? cancellationResponse?.job;
-      if (cancellationJob
-        && (normalizeText(cancellationJob.jobId) !== jobId
-          || cancellationJob.scenarioType !== input.scenarioType)) {
-        throw runtimeScenarioJobResponseError('Runtime Scenario job cancellation result does not match the submitted Job');
-      }
-      const refreshed = cancellationRecoveryResponse
-        ?? (cancellationJob && isNimiRuntimeScenarioJobTerminalStatus(cancellationJob.status)
-          ? { job: cancellationJob }
-          : await queryMatchingScenarioJob(input, jobId));
-      if (refreshed?.job && isNimiRuntimeScenarioJobTerminalStatus(refreshed.job.status)) {
-        terminalJob = refreshed.job;
-        recoveredTerminalResponse = refreshed;
-        observedTerminalEvent = true;
-        input.onJobUpdate?.(refreshed.job);
-        ensureCompletedNimiRuntimeScenarioJob(refreshed.job);
-      } else {
-        throw abortedNimiRuntimeScenarioJobError(jobId);
-      }
-    } else {
-      throw error;
-    }
+    throwIfAborted(signal);
+    const job = validateJob(terminalResponse.job);
+    ensureCompletedNimiRuntimeScenarioJob(job);
+    validateScenarioJobTerminalResult(job, terminalResponse.asset, terminalResponse.voiceReference, input.ai.terminalVoiceAssetProjection ?? 'runtime-full');
+    if (job.scenarioType === ScenarioType.VISION_LOCATE) {
+      const spec = input.expectedVision;
+      if (!terminalResponse.visionLocate || !spec || job.artifacts.length !== 0) throw runtimeScenarioJobResponseError('Locate Job omitted its typed result');
+      const result = localVisionLocateFromRuntime(terminalResponse.visionLocate);
+      if (result.imageArtifactId !== spec.imageArtifactId || result.locations.some(location => location.type !== localLocateGeometry(spec.geometry))) throw runtimeScenarioJobResponseError('Locate result does not match the submitted image and geometry');
+    } else if (terminalResponse.visionLocate) throw runtimeScenarioJobResponseError('Non-Locate Job returned a Locate result');
+    const artifacts = job.scenarioType === ScenarioType.VOICE_CREATE || job.scenarioType === ScenarioType.VISION_LOCATE
+      ? { artifacts: job.artifacts, traceId: job.traceId, output: undefined }
+      : await observationCall(input.ai.getScenarioArtifacts({ jobId }, options), signal, jobId);
+    await cancellation;
+    if (cancelFailure) throw cancelFailure;
+    throwIfAborted(signal);
+    return { response: terminalResponse, job, artifacts: artifacts.artifacts, traceId: normalizeText(artifacts.traceId) || undefined, output: artifacts.output,
+      ...(terminalResponse.asset ? { asset: terminalResponse.asset } : {}),
+      ...(terminalResponse.voiceReference ? { voiceReference: terminalResponse.voiceReference } : {}),
+      ...(terminalResponse.visionLocate ? { visionLocate: terminalResponse.visionLocate } : {}),
+    };
+  } catch (cause) {
+    // Release observation immediately, but settle the one explicit Cancel that
+    // was already requested so a refusal is not hidden by a view abort.
+    disposeObservation();
+    await cancellation;
+    const error = asNimiError(cancelFailure ?? cause);
+    throw createNimiError({ ...error, message: error.message, details: { ...error.details, jobId } });
+  } finally {
+    disposeObservation();
   }
+}
 
-  if (!observedTerminalEvent) {
-    throwIfAborted(input.signal);
-  }
-  if (!observedTerminalEvent || !terminalJob || !isNimiRuntimeScenarioJobTerminalStatus(terminalJob.status)) {
-    const refreshed = await queryMatchingScenarioJob(input, jobId);
-    if (!refreshed?.job || !isNimiRuntimeScenarioJobTerminalStatus(refreshed.job.status)) {
-      throw runtimeScenarioJobStreamInterruptedError(jobId);
-    }
-    terminalJob = refreshed.job;
-    recoveredTerminalResponse = refreshed;
-    observedTerminalEvent = true;
-    input.onJobUpdate?.(refreshed.job);
-  }
-  ensureCompletedNimiRuntimeScenarioJob(terminalJob);
-  const eventStatus = terminalJob?.status;
-  const terminalResponse = recoveredTerminalResponse
-    ?? await input.ai.getScenarioJob({ jobId }, input.callOptions);
-  terminalJob = terminalResponse.job;
-  if (normalizeText(terminalJob?.jobId) !== jobId || terminalJob?.scenarioType !== input.scenarioType) {
-    throw runtimeScenarioJobResponseError('Runtime Scenario job terminal result does not match the submitted Job');
-  }
-  if (terminalJob && terminalJob.status !== eventStatus) {
-    input.onJobUpdate?.(terminalJob);
-  }
+function scenarioJobEventIsNewer(job: ScenarioJob, current: ScenarioJob): boolean {
+  if (job.status < current.status) return false;
+  if (!job.updatedAt || !current.updatedAt) return job.status > current.status;
+  const time = (value: NonNullable<ScenarioJob['updatedAt']>) => BigInt(value.seconds) * 1_000_000_000n + BigInt(value.nanos);
+  return time(job.updatedAt) > time(current.updatedAt);
+}
 
-  ensureCompletedNimiRuntimeScenarioJob(terminalJob);
-  validateScenarioJobTerminalResult(
-    terminalJob,
-    terminalResponse.asset,
-    terminalResponse.voiceReference,
-    input.ai.terminalVoiceAssetProjection ?? 'runtime-full',
-  );
+function scenarioGetInterval(value?: number): number {
+  const interval = value ?? NIMI_RUNTIME_SCENARIO_JOB_GET_INTERVAL_MS;
+  if (!Number.isSafeInteger(interval) || interval < 1 || interval > 2_147_483_647) {
+    throw createNimiError({ message: 'getIntervalMs must be a positive timer interval', reasonCode: ReasonCode.SDK_AI_INPUT_INVALID, source: 'sdk' });
+  }
+  return interval;
+}
 
-  if (terminalJob.scenarioType === ScenarioType.VISION_LOCATE) {
-    const spec = input.expectedVision;
-    if (!terminalResponse.visionLocate || !spec || terminalJob.artifacts.length !== 0) throw runtimeScenarioJobResponseError('Locate Job omitted its typed result');
-    const result = localVisionLocateFromRuntime(terminalResponse.visionLocate);
-    if (result.imageArtifactId !== spec.imageArtifactId || result.locations.some(location => location.type !== localLocateGeometry(spec.geometry))) throw runtimeScenarioJobResponseError('Locate result does not match the submitted image and geometry');
-  } else if (terminalResponse.visionLocate) throw runtimeScenarioJobResponseError('Non-Locate Job returned a Locate result');
-  const artifacts = terminalJob.scenarioType === ScenarioType.VOICE_CREATE || terminalJob.scenarioType === ScenarioType.VISION_LOCATE
-    ? { artifacts: terminalJob.artifacts, traceId: terminalJob.traceId, output: undefined }
-    : await input.ai.getScenarioArtifacts({ jobId }, input.callOptions);
-  return {
-    job: terminalJob,
-    artifacts: artifacts.artifacts,
-    traceId: normalizeText(artifacts.traceId) || undefined,
-    output: artifacts.output,
-    ...(terminalResponse.asset ? { asset: terminalResponse.asset } : {}),
-    ...(terminalResponse.voiceReference ? { voiceReference: terminalResponse.voiceReference } : {}),
-    ...(terminalResponse.visionLocate ? { visionLocate: terminalResponse.visionLocate } : {}),
-  };
+function observationCall<T>(call: Promise<T>, signal: AbortSignal, jobId: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(abortedNimiRuntimeScenarioJobError(jobId));
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) abort();
+    call.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort)).catch(() => undefined);
+  });
 }
 
 function scenarioJobEventMatchesStatus(eventType: ScenarioJobEventType, status: ScenarioJobStatus): boolean {
@@ -411,49 +468,6 @@ function runtimeScenarioJobResponseError(message: string): Error {
     actionHint: 'regenerate_runtime_proto_and_sdk',
     source: 'sdk',
   });
-}
-
-async function queryMatchingScenarioJob(
-  input: ScenarioJobObservationContext,
-  jobId: string,
-): Promise<Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined> {
-  let response: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>>;
-  try {
-    response = await input.ai.getScenarioJob({ jobId }, input.callOptions);
-  } catch {
-    return undefined;
-  }
-  const job = response.job;
-  if (normalizeText(job?.jobId) !== jobId || job?.scenarioType !== input.scenarioType) {
-    throw runtimeScenarioJobResponseError('Runtime Scenario job recovery result does not match the submitted Job');
-  }
-  return response;
-}
-
-function runtimeScenarioJobStreamInterruptedError(jobId: string): Error {
-  return createNimiError({
-    message: 'The Runtime Scenario job event stream ended before a terminal state could be confirmed.',
-    reasonCode: NIMI_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED_REASON,
-    actionHint: 'query_runtime_scenario_job',
-    retryable: true,
-    source: 'sdk',
-    details: { jobId },
-  });
-}
-
-async function cancelNimiRuntimeScenarioJob(
-  input: ScenarioJobObservationContext,
-  jobId: string,
-): Promise<CancelScenarioJobResponse | undefined> {
-  try {
-    return await input.ai.cancelScenarioJob({
-      jobId,
-      reason: input.abortReason || 'aborted_by_abort_signal',
-    }, withNimiRuntimeIdempotencyMetadata(input.callOptions, `cancel:${input.cancelKey ?? jobId}:${jobId}`));
-  } catch {
-    // Preserve the original abort/error path; Runtime remains job authority.
-    return undefined;
-  }
 }
 
 function ensureCompletedNimiRuntimeScenarioJob(
@@ -523,109 +537,12 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 
 function abortedNimiRuntimeScenarioJobError(jobId?: string): Error {
   return createNimiError({
-    message: 'The caller requested cancellation, but the Runtime Scenario job terminal state is not confirmed yet.',
+    message: 'Observation ended; the Runtime Job remains independently controlled.',
     reasonCode: ReasonCode.OPERATION_ABORTED,
     actionHint: 'query_runtime_scenario_job',
     retryable: false,
     source: 'sdk',
     ...(jobId ? { details: { jobId } } : {}),
-  });
-}
-
-function nextWithAbort<T>(
-  iterator: AsyncIterator<T>,
-  signal: AbortSignal | undefined,
-  onAbort: () => Promise<boolean>,
-): Promise<IteratorResult<T>> {
-  if (!signal) {
-    return iterator.next();
-  }
-  if (signal.aborted) {
-    return onAbort().then((terminal) => terminal
-      ? Promise.reject(abortedNimiRuntimeScenarioJobError())
-      : iterator.next());
-  }
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    let aborting = false;
-    let cancellationComplete = false;
-    let pendingResult: IteratorResult<T> | undefined;
-    let pendingError: unknown;
-    let hasPendingError = false;
-    let convergenceTimer: ReturnType<typeof setTimeout> | undefined;
-    const cleanup = () => {
-      signal.removeEventListener('abort', abort);
-      if (convergenceTimer !== undefined) {
-        clearTimeout(convergenceTimer);
-        convergenceTimer = undefined;
-      }
-    };
-    const finishPending = () => {
-      if (settled || !cancellationComplete) return;
-      if (hasPendingError) {
-        settled = true;
-        cleanup();
-        reject(pendingError);
-      } else if (pendingResult) {
-        settled = true;
-        cleanup();
-        resolve(pendingResult);
-      }
-    };
-    const abort = () => {
-      if (settled) return;
-      aborting = true;
-      cleanup();
-      onAbort().then(
-        (terminal) => {
-          if (settled) return;
-          if (terminal) {
-            settled = true;
-            reject(abortedNimiRuntimeScenarioJobError());
-          } else {
-            cancellationComplete = true;
-            convergenceTimer = setTimeout(() => {
-              if (settled) return;
-              settled = true;
-              cleanup();
-              reject(abortedNimiRuntimeScenarioJobError());
-            }, NIMI_RUNTIME_SCENARIO_JOB_CANCEL_CONVERGENCE_TIMEOUT_MS);
-            finishPending();
-          }
-        },
-        (error) => {
-          if (settled) return;
-          settled = true;
-          reject(error);
-        },
-      );
-    };
-    signal.addEventListener('abort', abort, { once: true });
-    iterator.next().then(
-      (result) => {
-        if (settled) return;
-        if (aborting) {
-          pendingResult = result;
-          finishPending();
-          return;
-        }
-        settled = true;
-        cleanup();
-        resolve(result);
-      },
-      (error) => {
-        if (settled) return;
-        if (aborting) {
-          pendingError = error;
-          hasPendingError = true;
-          finishPending();
-          return;
-        }
-        settled = true;
-        cleanup();
-        reject(error);
-      },
-    );
   });
 }
 

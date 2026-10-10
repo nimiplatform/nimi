@@ -14,7 +14,6 @@ export interface NimiImageGenerationCoercedParams {
   readonly referenceImages?: readonly string[];
   readonly mask?: string;
   readonly responseFormat?: string;
-  readonly timeoutMs?: number;
   readonly providerOptions: NimiJsonObject;
 }
 
@@ -30,7 +29,6 @@ export interface NimiVideoGenerationCoercedParams {
     readonly cameraFixed?: boolean;
     readonly generateAudio?: boolean;
   };
-  readonly timeoutMs?: number;
 }
 
 export interface NimiSpeechTranscriptionCoercedParams {
@@ -40,7 +38,6 @@ export interface NimiSpeechTranscriptionCoercedParams {
   readonly prompt?: string;
   readonly timestamps?: boolean;
   readonly diarization?: boolean;
-  readonly timeoutMs?: number;
 }
 
 function optionalText(value: unknown): string {
@@ -198,7 +195,7 @@ export function coerceNimiImageGenerationParams(
   const responseFormat = optionalImageResponseFormat(params.responseFormat ?? params.response_format);
   const seed = optionalImageIntegerString(params.seed, 'seed', ['random']);
   const count = optionalPositiveInteger('image.generate', params.count ?? params.n, 'count');
-  const timeoutMs = optionalPositiveInteger('image.generate', params.timeoutMs ?? params.timeout_ms, 'timeoutMs');
+  rejectJobTimeoutParams('image.generate', params);
   const steps = optionalPositiveInteger('image.generate', params.steps ?? params.step, 'steps');
   const cfgScale = optionalPositiveNumber('image.generate', params.cfgScale ?? params.cfg_scale, 'cfgScale');
   const sampler = optionalImageSampler(params.sampler ?? params.mode ?? params.method);
@@ -222,7 +219,6 @@ export function coerceNimiImageGenerationParams(
     referenceImages,
     mask: optionalDefaultText(params.mask),
     responseFormat,
-    timeoutMs,
     providerOptions,
   };
 }
@@ -236,7 +232,7 @@ export function coerceNimiVideoGenerationParams(
   }
   const durationSec = optionalFiniteNumber('video.generate', params.durationSec ?? params.duration_sec, 'durationSec');
   const fps = optionalPositiveInteger('video.generate', params.fps, 'fps');
-  const timeoutMs = optionalPositiveInteger('video.generate', params.timeoutMs ?? params.timeout_ms, 'timeoutMs');
+  rejectJobTimeoutParams('video.generate', params);
   const options: {
     ratio?: string;
     durationSec?: number;
@@ -262,7 +258,6 @@ export function coerceNimiVideoGenerationParams(
     mode: mode as NimiVideoGenerationCoercedParams['mode'],
     negativePrompt: optionalText(params.negativePrompt ?? params.negative_prompt) || undefined,
     options,
-    timeoutMs,
   };
 }
 
@@ -270,7 +265,7 @@ export function coerceNimiSpeechTranscriptionParams(
   params: Readonly<Record<string, unknown>>,
 ): NimiSpeechTranscriptionCoercedParams {
   const speakerCount = optionalPositiveInteger('audio.transcribe', params.speakerCount ?? params.speaker_count, 'speakerCount');
-  const timeoutMs = optionalPositiveInteger('audio.transcribe', params.timeoutMs ?? params.timeout_ms, 'timeoutMs');
+  rejectJobTimeoutParams('audio.transcribe', params);
   return {
     language: optionalText(params.language) || undefined,
     responseFormat: optionalText(params.responseFormat ?? params.response_format) || undefined,
@@ -278,7 +273,6 @@ export function coerceNimiSpeechTranscriptionParams(
     prompt: optionalText(params.prompt) || undefined,
     timestamps: booleanParam(params.timestamps),
     diarization: booleanParam(params.diarization),
-    timeoutMs,
   };
 }
 
@@ -316,4 +310,9 @@ function mediaParamError(capabilityId: NimiRuntimeMediaParamCapabilityId, messag
     actionHint: `fix_${capabilityId.replace('.', '_')}_selected_params`,
     source: 'sdk',
   });
+}
+
+// @nimi-authority: rule.nimi.runtime.service-operations.r066
+function rejectJobTimeoutParams(capabilityId: NimiRuntimeMediaParamCapabilityId, params: Readonly<Record<string, unknown>>): void {
+  if ('timeoutMs' in params || 'timeout_ms' in params) throw mediaParamError(capabilityId, 'Job business timeout is no longer supported');
 }
