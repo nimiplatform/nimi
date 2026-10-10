@@ -1,5 +1,7 @@
 # Kit Electron Shell
 
+Desktop-supervised Electron Apps can use `createNimiElectronAppExitController(app)` from the public main entry. `requestRestart()` requests graceful App quit; complete the App's own teardown by calling the controller's `exit()` instead of forcing an ordinary zero exit. Desktop observes only the exact child it launched, releases the old Runtime lease and prepares a fresh Host for the same selected source. The support marker is protocol availability, never admission or App Access authority. Unsupported launches refuse the request. No private registration selector, Desktop descriptor or raw native handle crosses into the App, and requested restart is not proof that the next Host started. Active business capture and persistence remain the App's responsibility; interrupted work must not replay.
+
 `kit/shell/electron` is the shared Electron main/preload host glue for Nimi
 apps. It is consumed from Electron host code through:
 
@@ -80,6 +82,13 @@ Use `onSessionReady(services)` to bind Node business modules to each ready
 scope. It fires once on initial readiness or real rebind, and never on routine
 renewal. Objects retained from an invalidated `bridge.services` stay permanently
 closed, including calls initiated by old callbacks after readiness returns.
+Before a new explicit Node/CLI task, call `await bridge.prepareSession(signal)`.
+This uses the same Host's bounded technical status/rebind path; it returns no
+protected identity and never retries a business operation. Cancellation or an
+unavailable/closed Host rejects preparation. After it succeeds, obtain the current
+services supplied by `onSessionReady`; keep App policy, account generation and
+task cancellation checks around preparation and commit. A failed old task still
+requires a new explicit request.
 Business requests carry their own cancellation signal into the SDK model
 binding and check it before committing asynchronous work.
 The callback runs before rebind; it must synchronously make old App work

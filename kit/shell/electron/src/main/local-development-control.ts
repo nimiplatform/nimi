@@ -37,7 +37,7 @@ export type NimiElectronLocalDevelopmentBinding = {
   readonly desktopRemoveLocalDevelopmentRegistration: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopLaunchLocalDevelopmentHost: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopLocalDevelopmentRunAccess: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
-  readonly desktopLocalDevelopmentHostRunning: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
+  readonly desktopLocalDevelopmentHostStatus: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopFocusLocalDevelopmentHost: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopTerminateLocalDevelopmentHost: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopEndLocalDevelopmentRun: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
@@ -68,7 +68,7 @@ export type NimiElectronLocalDevelopmentControl = {
   }>;
   /** Host-private scope comparison; never forward executionScopeRef to a renderer or App. */
   readonly access: (registrationHandle: string, supervisorRunId: string) => Promise<{ readonly available: boolean; readonly reasonCode: string; readonly executionScopeRef: string }>;
-  readonly hostRunning: (supervisorRunId: string) => Promise<boolean>;
+  readonly hostStatus: (supervisorRunId: string) => Promise<{ readonly running: boolean; readonly exitCode: number | null }>;
   readonly focusHost: (supervisorRunId: string) => Promise<void>;
   readonly terminateHost: (supervisorRunId: string) => Promise<void>;
   readonly endRun: (registrationHandle: string, supervisorRunId: string) => Promise<void>;
@@ -140,13 +140,15 @@ class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentCon
     return { available: value.available, reasonCode: value.reasonCode, executionScopeRef: value.executionScopeRef };
   }
 
-  async hostRunning(supervisorRunId: string) {
+  async hostStatus(supervisorRunId: string) {
     const value = exact(await invokeNative(
-      () => this.binding.desktopLocalDevelopmentHostRunning({ supervisorRunId: identifier(supervisorRunId) }),
-      'local_development_host_running',
-    ), ['running']);
-    if (typeof value.running !== 'boolean') invalid();
-    return value.running;
+      () => this.binding.desktopLocalDevelopmentHostStatus({ supervisorRunId: identifier(supervisorRunId) }),
+      'local_development_host_status',
+    ), ['running', 'exitCode']);
+    if (typeof value.running !== 'boolean'
+      || (value.exitCode !== null && (!Number.isSafeInteger(value.exitCode) || Number(value.exitCode) < 0 || Number(value.exitCode) > 0xffffffff))
+      || (value.running && value.exitCode !== null)) invalid();
+    return { running: value.running, exitCode: value.exitCode as number | null };
   }
 
   async focusHost(supervisorRunId: string) {
@@ -190,7 +192,7 @@ class LazyElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmen
   removeRegistration: NimiElectronLocalDevelopmentControl['removeRegistration'] = (handle) => this.resolve().removeRegistration(handle);
   launch: NimiElectronLocalDevelopmentControl['launch'] = (input) => this.resolve().launch(input);
   access: NimiElectronLocalDevelopmentControl['access'] = (registration, run) => this.resolve().access(registration, run);
-  hostRunning: NimiElectronLocalDevelopmentControl['hostRunning'] = (id) => this.resolve().hostRunning(id);
+  hostStatus: NimiElectronLocalDevelopmentControl['hostStatus'] = (id) => this.resolve().hostStatus(id);
   focusHost: NimiElectronLocalDevelopmentControl['focusHost'] = (id) => this.resolve().focusHost(id);
   terminateHost: NimiElectronLocalDevelopmentControl['terminateHost'] = (id) => this.resolve().terminateHost(id);
   endRun: NimiElectronLocalDevelopmentControl['endRun'] = (handle, runId) => this.resolve().endRun(handle, runId);
@@ -302,7 +304,7 @@ function validateBinding(value: unknown): NimiElectronLocalDevelopmentBinding {
     'desktopRemoveLocalDevelopmentRegistration',
     'desktopLaunchLocalDevelopmentHost',
     'desktopLocalDevelopmentRunAccess',
-    'desktopLocalDevelopmentHostRunning',
+    'desktopLocalDevelopmentHostStatus',
     'desktopFocusLocalDevelopmentHost',
     'desktopTerminateLocalDevelopmentHost',
     'desktopEndLocalDevelopmentRun',

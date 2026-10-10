@@ -263,6 +263,8 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_REALTIME_SESSION_CLOSED" => LocalAppReasonCode::AiRealtimeSessionClosed,
         "AI_MEDIA_SPEC_INVALID" => LocalAppReasonCode::AiMediaSpecInvalid,
         "AI_MEDIA_OPTION_UNSUPPORTED" => LocalAppReasonCode::AiMediaOptionUnsupported,
+        "AI_MEDIA_JOB_NOT_FOUND" => LocalAppReasonCode::AiMediaJobNotFound,
+        "AI_MEDIA_JOB_NOT_CANCELLABLE" => LocalAppReasonCode::AiMediaJobNotCancellable,
         "AI_FACE_REFERENCE_MISSING" => LocalAppReasonCode::AiFaceReferenceMissing,
         "AI_FACE_REFERENCE_AMBIGUOUS" => LocalAppReasonCode::AiFaceReferenceAmbiguous,
         "AI_FACE_TARGET_MISSING" => LocalAppReasonCode::AiFaceTargetMissing,
@@ -679,6 +681,25 @@ mod tests {
             LocalAppReasonCode::AiInputLimitExceeded.as_str(),
             "ai-input-limit-exceeded"
         );
+    }
+
+    #[test]
+    fn scenario_job_business_rejections_do_not_become_session_failures() {
+        for (name, code, expected, public) in [
+            ("AI_MEDIA_JOB_NOT_FOUND", Code::NotFound, LocalAppReasonCode::AiMediaJobNotFound, "ai-media-job-not-found"),
+            ("AI_MEDIA_JOB_NOT_CANCELLABLE", Code::FailedPrecondition, LocalAppReasonCode::AiMediaJobNotCancellable, "ai-media-job-not-cancellable"),
+        ] {
+            assert!(ReasonCode::from_str_name(name).is_some());
+            let status = integration_status(ERROR_INFO_DOMAIN, name, "ignored", code);
+            let error = local_app_error_from_status(status);
+            assert_eq!(error.reason_code(), expected);
+            assert_eq!(error.reason_code().as_str(), public);
+            assert!(!error.retryable());
+            assert!(error.reason_metadata().is_empty());
+        }
+        // A bare, unclassified FailedPrecondition still fails closed.
+        assert_eq!(local_app_error_from_status(Status::failed_precondition("private"))
+            .reason_code(), LocalAppReasonCode::RuntimeServiceErrorUnclassified);
     }
 
     #[test]

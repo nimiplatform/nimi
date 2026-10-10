@@ -44,13 +44,14 @@ impl PreparedHostProfile {
     }
 
     /// Variables set only in the launched child's environment.
-    pub(crate) fn environment(&self) -> [(&'static str, OsString); 4] {
+    pub(crate) fn environment(&self) -> [(&'static str, OsString); 5] {
         let temp = self.temp().into_os_string();
         [
             (
                 HOST_PROFILE_ENVIRONMENT_KEY,
                 self.root.clone().into_os_string(),
             ),
+            ("NIMI_APP_HOST_RESTART_SUPPORTED", OsString::from("1")),
             ("TEMP", temp.clone()),
             ("TMP", temp.clone()),
             ("TMPDIR", temp),
@@ -307,7 +308,11 @@ mod tests {
         assert_eq!(environment[0].0, HOST_PROFILE_ENVIRONMENT_KEY);
         assert_eq!(environment[0].1, profile.root().as_os_str());
         for (key, value) in &environment[1..] {
-            assert_eq!(value, profile.temp().as_os_str(), "{key}");
+            if *key == "NIMI_APP_HOST_RESTART_SUPPORTED" {
+                assert_eq!(value, "1");
+            } else {
+                assert_eq!(value, profile.temp().as_os_str(), "{key}");
+            }
         }
         // Preparing again reuses the same directories.
         assert_eq!(prepare(Some(projection)).expect("prepare again"), profile);

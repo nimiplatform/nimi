@@ -15,6 +15,20 @@ The observer now performs serialized Get every `getIntervalMs` (default 1000 ms)
 The unreachable synchronous protected image execute union is removed. Its request and response tag 2 and `image_generate` names are reserved, and the orphan `LocalAppImageGenerateOutput` type is removed. Use image Job submission; a remote synchronous protocol still produces a public Job. The declared wire changes must match the published-baseline findings exactly; do not replace the baseline image or source tag.
 
 
+## Kit/native 0.18.0 — Scenario cancellation business errors (development)
+
+The matching unpublished native and Kit packages now preserve Runtime's existing `AI_MEDIA_JOB_NOT_FOUND` and `AI_MEDIA_JOB_NOT_CANCELLABLE` as `ai-media-job-not-found` and `ai-media-job-not-cancellable`. A duplicate or terminal cancellation remains a business rejection and keeps a healthy technical session. Bare unclassified transport failures still fail closed. Runtime and SDK contracts are unchanged; rebuild the complete native/Kit archives and reinstall consumers together.
+
+## SDK 0.21.0 / Kit 0.18.0 — Node task session preparation (development)
+
+The unpublished next-minor development set adds `RegisteredNimiElectronAppBridge.prepareSession(signal?)` for new App-owned Node/CLI work. This public API widening requires a minor release; no version-only publication is performed here. It checks the existing same-Host technical session and permits its bounded rebind without returning protected identity or replaying business work. Canceled, unavailable and closed preparation rejects. Bind fresh services through `onSessionReady`; old captured services remain retired. Apps retain policy, account-generation and cancellation checks. Rebuild the complete Kit archive and reinstall consumers; Runtime, SDK and native contracts are unchanged.
+
+## SDK 0.21.0 / Kit and native 0.18.0 — Supervised Host restart (development)
+
+The matching unpublished native/Kit set preserves the controlled child's real exit code for local development, matching installed process status. First-party control uses `hostStatus`/`desktopLocalDevelopmentHostStatus`; the running-only method is retired. This 0.x control projection change and the additive Electron exit-controller export require a minor public release; publication is outside this development iteration.
+
+Apps use `createNimiElectronAppExitController(app)`, request graceful quit through `requestRestart()`, then finish their own teardown with `exit()`. Desktop releases the old lease and reuses the original selected source through Prepare/profile/spawn. A request does not authorize AI, prove successful replacement, replay business tasks, or manage installation/launch-at-login. Rebuild complete Kit/native archives and consume them together with the matching Desktop source.
+
 ## SDK 0.21.0 / Kit and native 0.18.0 — Owned World image inputs (development)
 
 The compatible input widening belongs to this unpublished minor development set. Use the newly built matching Runtime, SDK, Kit/native and Rust carrier 0.10.0 packages; a matching version label alone does not identify their contents. `world-generate` now accepts `image: { artifactId, projection }`, where projection is `ordinary` or `equirectangular-360`. Upload image bytes through the existing protected artifact upload first; prompt may be omitted when an image is present. Text-only requests still require a prompt. App paths, data URLs, provider IDs and implicit panorama detection are not inputs. Runtime captures the owned bytes before publishing the Job and performs provider upload privately. PNG/JPEG/WebP are bounded to 20 MB and 16 MP with upright orientation; panorama intent additionally requires 2:1 geometry.

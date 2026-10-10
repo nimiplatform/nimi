@@ -10,6 +10,7 @@ import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 
 import {
   createNimiElectronLocalDevelopmentControl,
+  NIMI_APP_HOST_RESTART_EXIT_CODE,
   type NimiElectronLocalDevelopmentControl,
   type NimiElectronLocalDevelopmentRegistration,
 } from '@nimiplatform/kit/shell/electron/main';
@@ -1007,7 +1008,7 @@ export class ElectronLocalDevelopmentHost {
         });
         return;
       }
-      const running = await this.control.hostRunning(run.supervisorRunId);
+      const { running, exitCode } = await this.control.hostStatus(run.supervisorRunId);
       if (run.recoveringRuntimeTransport) {
         run.recoveringRuntimeTransport = false;
         if (running) {
@@ -1015,12 +1016,19 @@ export class ElectronLocalDevelopmentHost {
         }
       }
       if (!running && run.status.hostGeneration > 0) {
+        // @nimi-authority: definition.nimi.platform.app-ecosystem.app-host-restart-request
+        if (exitCode === NIMI_APP_HOST_RESTART_EXIT_CODE) {
+          appendLog(run, 'supervisor', 'Host requested a supervised restart');
+          setRunState(run, 'restarting', 'Restarting the supervised Electron host', undefined, true);
+          await this.replaceHost(run);
+          return;
+        }
         run.onExecutorChanged?.({ key: run.status.runId, displayName: run.status.displayName, state: 'stopped', intentional: false });
         if (!run.renderer) {
           this.startSupervisor(run);
           return;
         }
-        appendLog(run, 'supervisor', 'host exited; ending the development run');
+        appendLog(run, 'supervisor', `host exited (code ${exitCode === null ? 'unknown' : exitCode}); ending the development run`);
         await this.stopRun(run, 'stopped');
         return;
       }

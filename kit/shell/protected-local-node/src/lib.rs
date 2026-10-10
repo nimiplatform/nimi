@@ -1159,8 +1159,8 @@ pub async fn desktop_local_development_run_access(input: JsonValue) -> NativeJso
     }).await
 }
 
-#[napi(js_name = "desktopLocalDevelopmentHostRunning")]
-pub async fn desktop_local_development_host_running(
+#[napi(js_name = "desktopLocalDevelopmentHostStatus")]
+pub async fn desktop_local_development_host_status(
     input: NativeLocalDevelopmentRunInput,
 ) -> NativeJsonOutcome {
     let supervisor_run_id = match decode_identifier(&input.supervisor_run_id) {
@@ -1171,8 +1171,8 @@ pub async fn desktop_local_development_host_running(
         Ok(control) => control,
         Err(error) => return NativeJsonOutcome::host_error(error),
     };
-    match control.local_development_host_running(supervisor_run_id) {
-        Ok(running) => NativeJsonOutcome::success(json!({ "running": running })),
+    match control.local_development_host_status(supervisor_run_id) {
+        Ok((running, exit_code)) => NativeJsonOutcome::success(json!({ "running": running, "exitCode": exit_code })),
         Err(error) => {
             clear_desktop_control_on_host_failure(&control, &error).await;
             NativeJsonOutcome::host_error(error)

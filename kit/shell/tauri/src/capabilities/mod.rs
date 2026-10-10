@@ -17,7 +17,7 @@ pub mod runtime {
         generated_method_ids, get_developer_mode_status, http_addr,
         invoke_desktop_account_realm_unary, invoke_unary_typed, invoke_unary_typed_with_metadata,
         is_allowlisted_method, is_stream_method, launch_local_development_host,
-        list_local_development_registrations, local_development_host_running,
+        list_local_development_registrations, local_development_host_status,
         logout_desktop_account, register_local_development_project,
         remove_local_development_registration, restart_daemon_async, set_developer_mode,
         set_runtime_bridge_host_hooks, start_daemon_async, stream_event_name_with_namespace,

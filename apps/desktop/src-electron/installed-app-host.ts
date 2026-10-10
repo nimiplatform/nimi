@@ -1,6 +1,7 @@
 import type { DesktopExecutorObservation } from './execution-notices-host.js';
 import {
   createNimiElectronInstalledAppControl,
+  NIMI_APP_HOST_RESTART_EXIT_CODE,
   NimiElectronInstalledAppError,
   type NimiElectronInstalledAppControl,
 } from '@nimiplatform/kit/shell/electron/main';
@@ -68,6 +69,10 @@ export function createDesktopInstalledAppHost(
         observe(run, false, access);
         return project(run);
       }
+      // @nimi-authority: definition.nimi.platform.app-ecosystem.app-host-restart-request
+      if (status.exitCode === NIMI_APP_HOST_RESTART_EXIT_CODE && !closing && !run.stopRequested) {
+        return await invoke('installed_app_launch', { payload: { launchSelector: [...run.selector] } }) as InstalledAppRun;
+      }
       run.exitState = run.view.state === 'stopped' || status.exitCode === null || status.exitCode === 0 ? 'stopped' : 'crashed';
       run.view = { ...run.view, state: run.exitState, accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
       observe(run);
@@ -113,6 +118,7 @@ export function createDesktopInstalledAppHost(
       if (run?.pending) return project(run);
       run ??= { selector, pending: false, view: { launchSelector: [...selector], state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' } };
       run.pending = true;
+      run.stopRequested = false;
       runs.set(key, run);
       try {
         const id = run.launchId;
@@ -120,21 +126,32 @@ export function createDesktopInstalledAppHost(
           const status = run.exitState ? null : await control.status(id);
           if (status?.running) {
             run.view = { ...run.view, state: 'running' };
-            try {
+            try { if (!run.stopRequested && !closing) {
               await control.focus(id);
               run.view = { ...run.view, reasonCode: undefined, message: '' };
-            }
+            } }
             catch (error) { run.view = { ...run.view, reasonCode: reason(error), message: failureMessage(error) }; }
+            if (run.stopRequested || closing) {
+              run.view = { ...run.view, state: 'stopping', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
+              await control.stop(id);
+              await releaseLease(run, id);
+              run.exitState = 'stopped';
+              run.view = { ...run.view, state: 'stopped' };
+              observe(run);
+            }
             return project(run);
           }
-          run.exitState ??= status?.exitCode === null || status?.exitCode === 0 ? 'stopped' : 'crashed';
+          run.exitState ??= status?.exitCode === null || status?.exitCode === 0 || status?.exitCode === NIMI_APP_HOST_RESTART_EXIT_CODE ? 'stopped' : 'crashed';
           run.view = { ...run.view, state: run.exitState, accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
       observe(run);
           await control.stop(id);
           await releaseLease(run, id);
         }
+        if (run.stopRequested || closing) {
+          run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
+          return project(run);
+        }
         run.exitState = undefined;
-        run.stopRequested = false;
         run.view = { launchSelector: [...selector], state: 'launching', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
         // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007h
         // Prepare, Host profile preparation and spawn/bind hold the data-root
@@ -177,7 +194,7 @@ export function createDesktopInstalledAppHost(
       } finally { run.pending = false; run.launchAbort = undefined; }
       return refresh(run);
     }
-    if (command === 'installed_app_stop' && run?.pending && run.view.state === 'launching') {
+    if (command === 'installed_app_stop' && run?.pending) {
       // Cancel the native RPC; its guards terminate an unresumed child and
       // release the pending lease. The completion branch handles a bound race.
       run.stopRequested = true;

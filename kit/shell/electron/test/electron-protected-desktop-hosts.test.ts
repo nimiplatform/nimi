@@ -557,7 +557,7 @@ describe('Electron local-development protected control', () => {
       desktopRemoveLocalDevelopmentRegistration: async () => ok({ removed: true }),
       desktopLaunchLocalDevelopmentHost: async () => ok({ processId: 4242, bindDeadlineUnixMs: Date.now() + 5_000, hostProfileRoot }),
       desktopLocalDevelopmentRunAccess: async () => ok({ available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` }),
-      desktopLocalDevelopmentHostRunning: async () => ok({ running: true }),
+      desktopLocalDevelopmentHostStatus: async () => ok({ running: true, exitCode: null }),
       desktopFocusLocalDevelopmentHost: async () => ok({ focused: true }),
       desktopTerminateLocalDevelopmentHost: async () => ok({ terminated: true }),
       desktopEndLocalDevelopmentRun: async () => ok({ ended: true }),
@@ -615,6 +615,17 @@ describe('Electron local-development protected control', () => {
       hostArguments: ['D:\main.js'],
       workingDirectory: project.canonicalProjectRoot,
     })).rejects.toThrow();
+  });
+
+  it('preserves actual controlled-child exit codes and refuses invented running terminals', async () => {
+    for (const value of [{ running: true, exitCode: null }, { running: false, exitCode: 75 }, { running: false, exitCode: null }]) {
+      const control = createNimiElectronLocalDevelopmentControlForBinding(binding({ desktopLocalDevelopmentHostStatus: async () => ({ status: 'ok' as const, value }) }));
+      await expect(control.hostStatus(supervisorRunId)).resolves.toEqual(value);
+    }
+    for (const value of [{ running: true, exitCode: 75 }, { running: false }, { running: false, exitCode: -1 }]) {
+      const control = createNimiElectronLocalDevelopmentControlForBinding(binding({ desktopLocalDevelopmentHostStatus: async () => ({ status: 'ok' as const, value }) }));
+      await expect(control.hostStatus(supervisorRunId)).rejects.toThrow();
+    }
   });
 
   it('keeps scope comparison in private typed access and rejects malformed owner projections', async () => {

@@ -715,13 +715,17 @@ mod tests {
                     assert_eq!(value, profile.root().to_string_lossy());
                     profile_keys += 1;
                 }
+                "NIMI_APP_HOST_RESTART_SUPPORTED" => {
+                    assert_eq!(value, "1");
+                    profile_keys += 1;
+                }
                 other => assert!(
                     INSTALLED_ENVIRONMENT_KEYS.contains(&other) || d2,
                     "unexpected inherited variable: {other}"
                 ),
             }
         }
-        assert_eq!(profile_keys, 4);
+        assert_eq!(profile_keys, 5);
         let executable = std::env::current_exe().expect("test executable");
         let Some(mut child) =
             assert_context_result(SupervisedDevelopmentProcess::create_verified_installed(

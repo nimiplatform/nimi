@@ -5,6 +5,7 @@ import { createAppBusinessServices, type NimiElectronAppBusinessServices } from 
 import { requestElectronAgentCenterResourcePackPlacement } from './agent-center-resource-pack-placement.js';
 import {
   createNimiElectronLocalAppHost,
+  NimiElectronLocalAppHostError,
   startNimiElectronLocalAppHostMaintenance,
   type NimiElectronLocalAppHost,
 } from './local-app-host.js';
@@ -58,6 +59,8 @@ export type RegisteredNimiElectronAppBridge = RegisteredNimiElectronRuntimeBridg
   localAppHost: Pick<NimiElectronLocalAppHost, 'agentReferenceList' | 'conversationSnapshot'>;
   /** Current scope-bound clients. Captured old objects remain permanently retired after invalidation. */
   services: NimiElectronAppBusinessServices;
+  /** Check technical readiness before new Node work; never replay a business call. */
+  prepareSession: (signal?: AbortSignal) => Promise<void>;
 }>;
 
 /**
@@ -160,6 +163,20 @@ export function registerNimiElectronAppBridge(
     invokeChannel: registered.invokeChannel,
     localAppHost: placementLocalAppHost,
     get services() { return business!.services; },
+    // @nimi-authority: rule.nimi.runtime.protected-session.r016
+    prepareSession: async (signal) => {
+      signal?.throwIfAborted();
+      if (closed) throw new NimiElectronLocalAppHostError('session-invalid', false);
+      const status = await localAppHost.sessionStatus();
+      signal?.throwIfAborted();
+      if (closed) throw new NimiElectronLocalAppHostError('session-invalid', false);
+      if (status.state !== 'ready') {
+        throw new NimiElectronLocalAppHostError(
+          typeof status.reasonCode === 'string' ? status.reasonCode : 'runtime-unauthenticated',
+          status.retryable === true,
+        );
+      }
+    },
     unregister: closeBridge,
   };
 }

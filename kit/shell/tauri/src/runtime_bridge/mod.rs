@@ -606,8 +606,8 @@ pub async fn launch_local_development_host(
     service_control::launch_local_development_host(request).await
 }
 
-pub fn local_development_host_running(supervisor_run_id: [u8; 32]) -> Result<bool, NimiHostError> {
-    service_control::local_development_host_running(supervisor_run_id)
+pub fn local_development_host_status(supervisor_run_id: [u8; 32]) -> Result<(bool, Option<u32>), NimiHostError> {
+    service_control::local_development_host_status(supervisor_run_id)
 }
 
 pub fn terminate_local_development_host(supervisor_run_id: [u8; 32]) -> Result<(), NimiHostError> {

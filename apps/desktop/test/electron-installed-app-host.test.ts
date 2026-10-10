@@ -1,6 +1,94 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createDesktopInstalledAppHost } from '../src-electron/installed-app-host.js';
+
+test('installed self-restart releases the exited child and reuses only its owner selector', async () => {
+  const selector = [...new TextEncoder().encode('opaque-source-selector')];
+  const order: string[] = [];
+  let generation = 0;
+  let running = false;
+  let exitCode: number | null = null;
+  const host = createDesktopInstalledAppHost({
+    async launch(bytes) { assert.deepEqual([...bytes], selector); generation++; running = true; exitCode = null; order.push('launch'); return { launchId: generation.toString().padStart(64, '0'), processId: generation, appId: 'example', version: '1.0.0' }; },
+    async status() { return { running, exitCode }; },
+    async focus() {},
+    async stop() { order.push('stop'); running = false; },
+    async end() { order.push('end'); },
+    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
+  } as NimiElectronInstalledAppControl);
+  try {
+    await host.commandHandlers.installed_app_launch!({ payload: { payload: { launchSelector: selector } } });
+    running = false; exitCode = 75;
+    const result = await host.commandHandlers.installed_app_runs_list!({ payload: {} }) as InstalledAppRun[];
+    assert.equal(generation, 2);
+    assert.deepEqual(order, ['launch', 'stop', 'end', 'launch']);
+    assert.equal(result[0]?.state, 'running');
+    assert.equal(result[0]?.accessAvailable, false);
+  } finally { await host.shutdown(); }
+});
+
+test('Stop during self-restart lease cleanup prevents the replacement launch', async () => {
+  const selector = [...new TextEncoder().encode('opaque-stop-during-restart')];
+  let launches = 0;
+  let running = false;
+  let exitCode: number | null = null;
+  let releaseEnd!: () => void;
+  let enteredEnd!: () => void;
+  const endGate = new Promise<void>(resolve => { releaseEnd = resolve; });
+  const entered = new Promise<void>(resolve => { enteredEnd = resolve; });
+  let delayEnd = false;
+  let ended = 0;
+  const host = createDesktopInstalledAppHost({
+    async launch() { launches++; running = true; return { launchId: '11'.repeat(32), processId: launches, appId: 'example', version: '1.0.0' }; },
+    async status() { return { running, exitCode }; },
+    async focus() {},
+    async stop() { running = false; },
+    async end() { if (delayEnd) { enteredEnd(); await endGate; } ended++; },
+    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
+  } as NimiElectronInstalledAppControl);
+  const payload = { payload: { launchSelector: selector } };
+  try {
+    await host.commandHandlers.installed_app_launch!({ payload });
+    running = false; exitCode = 75; delayEnd = true;
+    const restarting = host.commandHandlers.installed_app_runs_list!({ payload: {} });
+    await entered;
+    await host.commandHandlers.installed_app_stop!({ payload });
+    releaseEnd();
+    const result = await restarting as InstalledAppRun[];
+    assert.equal(launches, 1);
+    assert.equal(ended, 1);
+    assert.equal(result[0]?.state, 'stopped');
+  } finally { releaseEnd(); await host.shutdown(); }
+});
+
+test('Stop while repeated Launch awaits focus still stops the running child', async () => {
+  const selector = [...new TextEncoder().encode('opaque-focus-stop')];
+  let running = true;
+  let stopped = 0;
+  let ended = 0;
+  let release!: () => void;
+  let entered!: () => void;
+  const enteredFocus = new Promise<void>(resolve => { entered = resolve; });
+  const focusGate = new Promise<void>(resolve => { release = resolve; });
+  const host = createDesktopInstalledAppHost({
+    async launch() { return { launchId: '22'.repeat(32), processId: 2, appId: 'example', version: '1.0.0' }; },
+    async status() { return { running, exitCode: null }; },
+    async focus() { entered(); await focusGate; },
+    async stop() { stopped++; running = false; },
+    async end() { ended++; },
+    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
+  } as NimiElectronInstalledAppControl);
+  const payload = { payload: { launchSelector: selector } };
+  try {
+    await host.commandHandlers.installed_app_launch!({ payload });
+    const focusing = host.commandHandlers.installed_app_launch!({ payload });
+    await enteredFocus;
+    await host.commandHandlers.installed_app_stop!({ payload });
+    release();
+    const result = await focusing as InstalledAppRun;
+    assert.equal(stopped, 1); assert.equal(ended, 1); assert.equal(result.state, 'stopped');
+  } finally { release(); await host.shutdown(); }
+});
 import type { NimiElectronInstalledAppControl } from '@nimiplatform/kit/shell/electron/main';
 import type { InstalledAppRun } from '../src/shell/shared/installed-app-types.js';
 import type { DesktopExecutorObservation } from '../src-electron/execution-notices-host.js';

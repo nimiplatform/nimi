@@ -528,10 +528,10 @@ impl NimiDesktopControl for MacOSDesktopControl {
         Box::pin(async move { crate::windows_local_development::run_access(self.host_channel()?, request).await })
     }
 
-    fn local_development_host_running(
+    fn local_development_host_status(
         &self,
         supervisor_run_id: [u8; 32],
-    ) -> Result<bool, NimiHostError> {
+    ) -> Result<(bool, Option<u32>), NimiHostError> {
         if supervisor_run_id == [0u8; 32] {
             return Err(untrusted_host());
         }
@@ -540,9 +540,11 @@ impl NimiDesktopControl for MacOSDesktopControl {
             .development_processes
             .lock()
             .map_err(|_| untrusted_host())?;
-        Ok(processes
-            .get(&supervisor_run_id)
-            .is_some_and(|entry| entry.process.running()))
+        let Some(entry) = processes.get(&supervisor_run_id) else {
+            return Ok((false, None));
+        };
+        let exit_code = entry.process.exit_code()?;
+        Ok((exit_code.is_none(), exit_code))
     }
 
     // @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
@@ -603,10 +605,10 @@ async fn rebind_supervised_development_processes(
 ) -> Result<(), ProtectedCarrierError> {
     let _renewal = gate.lock().await;
     let running = {
-        let mut entries = registry.lock().map_err(|_| untrusted())?;
-        entries.retain(|_, entry| entry.process.running());
+        let entries = registry.lock().map_err(|_| untrusted())?;
         entries
             .iter()
+            .filter(|(_, entry)| entry.process.running())
             .map(|(run_id, entry)| (*run_id, entry.request.clone(), entry.process.id()))
             .collect::<Vec<_>>()
     };
@@ -634,19 +636,12 @@ fn discard_stale_supervised_development_rebind(
     run_id: [u8; 32],
     expected_process_id: u32,
 ) -> Result<bool, ProtectedCarrierError> {
-    let mut entries = registry.lock().map_err(|_| untrusted())?;
+    let entries = registry.lock().map_err(|_| untrusted())?;
     let current = entries
         .get(&run_id)
         .map(|entry| (entry.process.id(), entry.process.running()));
     let stale = local_development_rebind_candidate_is_stale(current, expected_process_id);
-    let removed =
-        if stale && current.is_some_and(|(process_id, _)| process_id == expected_process_id) {
-            entries.remove(&run_id)
-        } else {
-            None
-        };
-    drop(entries);
-    drop(removed);
+    // Keep the terminal witness until the Desktop owner explicitly releases it.
     Ok(stale)
 }
 

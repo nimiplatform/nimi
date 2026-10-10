@@ -753,6 +753,10 @@ units:
     kind: definition
     title: App local lifecycle projection
     meaning: An App local lifecycle projection keeps source_class as verified, user_imported, or local_development, package_state as not-installed, installing, installed, updating, repairing, uninstalling, failed, or not-applicable, update_state as not-applicable, unknown, up-to-date, update-available, or check-failed, run_state as stopped, launching, running, stopping, or crashed, the existing negative health_repair_projection, and current typed App access availability as independent axes that never collapse into one ready or normal state.
+  - id: definition.nimi.platform.app-ecosystem.app-host-restart-request
+    kind: definition
+    title: Supervised App Host self-restart request
+    meaning: A Desktop-supervised Electron Host may request replacement of only its own exact tracked child by completing graceful App-owned teardown with reserved exit code 75. Desktop observes the real retained process exit status, ends the old Runtime run lease and launches the same selected development registration or installed source through its existing admission and Host-profile path with a fresh process witness; the App receives no selector or management handle and cannot spawn its replacement. The launch-provided restart-support marker describes protocol availability and confers no admission or App Access authority. A request is not proof of successful replacement, an ordinary exit or crash never requests restart, and replacement never replays interrupted business work. Source and installed lifecycle availability remain independent.
   - id: definition.nimi.platform.app-ecosystem.app-lifecycle-job
     kind: definition
     title: App package lifecycle job
@@ -1322,6 +1326,8 @@ units:
     condition: Whenever Apps composes discovery, package, Host, health, or access state or dispatches an action.
     failure: Reject an owner crossing, confirmation bypass, or collapsed admission, installed, launch, process, policy, or Access state and expose only the exact current projection from each owner.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-host-restart-request
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.app-lifecycle-job
       - type: applies_to

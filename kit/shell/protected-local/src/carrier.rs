@@ -74,6 +74,8 @@ pub enum LocalAppReasonCode {
     AiRealtimeSessionClosed,
     AiMediaSpecInvalid,
     AiMediaOptionUnsupported,
+    AiMediaJobNotFound,
+    AiMediaJobNotCancellable,
     AiFaceReferenceMissing,
     AiFaceReferenceAmbiguous,
     AiFaceTargetMissing,
@@ -201,6 +203,8 @@ impl LocalAppReasonCode {
             Self::AiRealtimeSessionClosed => "ai-realtime-session-closed",
             Self::AiMediaSpecInvalid => "ai-media-spec-invalid",
             Self::AiMediaOptionUnsupported => "ai-media-option-unsupported",
+            Self::AiMediaJobNotFound => "ai-media-job-not-found",
+            Self::AiMediaJobNotCancellable => "ai-media-job-not-cancellable",
             Self::AiFaceReferenceMissing => "ai-face-reference-missing",
             Self::AiFaceReferenceAmbiguous => "ai-face-reference-ambiguous",
             Self::AiFaceTargetMissing => "ai-face-target-missing",
@@ -1535,10 +1539,10 @@ pub trait NimiDesktopControl: Send + Sync {
         })
     }
 
-    fn local_development_host_running(
+    fn local_development_host_status(
         &self,
         supervisor_run_id: [u8; 32],
-    ) -> Result<bool, NimiHostError>;
+    ) -> Result<(bool, Option<u32>), NimiHostError>;
 
     fn focus_local_development_host(
         &self,

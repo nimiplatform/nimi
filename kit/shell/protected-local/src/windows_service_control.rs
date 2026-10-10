@@ -695,10 +695,10 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Box::pin(async move { crate::windows_local_development::run_access(self.channel(), request).await })
     }
 
-    fn local_development_host_running(
+    fn local_development_host_status(
         &self,
         supervisor_run_id: [u8; 32],
-    ) -> Result<bool, NimiHostError> {
+    ) -> Result<(bool, Option<u32>), NimiHostError> {
         if supervisor_run_id == [0u8; 32] {
             return Err(NimiHostError::new(
                 NimiHostErrorReasonCode::RuntimeServiceUntrusted,
@@ -708,10 +708,11 @@ impl NimiDesktopControl for WindowsDesktopControl {
         let processes = self.development_processes.lock().map_err(|_| {
             NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
         })?;
-        let running = processes
-            .get(&supervisor_run_id)
-            .is_some_and(|entry| entry.process.running());
-        Ok(running)
+        let Some(entry) = processes.get(&supervisor_run_id) else {
+            return Ok((false, None));
+        };
+        let exit_code = entry.process.exit_code()?;
+        Ok((exit_code.is_none(), exit_code))
     }
 
     // @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
@@ -805,14 +806,7 @@ async fn rebind_supervised_development_processes(
     gate: Arc<AsyncMutex<()>>,
 ) -> Result<(), ProtectedCarrierError> {
     let _renewal = gate.lock().await;
-    let running = {
-        let mut entries = registry.lock().map_err(|_| untrusted())?;
-        entries.retain(|_, entry| entry.process.running());
-        entries
-            .iter()
-            .map(|(run_id, entry)| (*run_id, entry.request.clone(), entry.process.id()))
-            .collect::<Vec<_>>()
-    };
+    let running = live_supervised_development_rebind_candidates(&registry)?;
     for (run_id, request, process_id) in running {
         if let Err(error) =
             crate::windows_local_development::rebind_host(channel.clone(), request, process_id)
@@ -821,23 +815,24 @@ async fn rebind_supervised_development_processes(
             if discard_stale_supervised_development_rebind(&registry, run_id, process_id)? {
                 continue;
             }
-            diagnose_desktop_session(&format!(
-                "development-rebind-failed-{}-{}",
-                error.reason_code().as_str(),
-                error
-                    .reason_metadata()
-                    .get("diagnostic_stage")
-                    .map(String::as_str)
-                    .unwrap_or("no-stage")
-            ));
-            return Err(if error.retryable() {
-                unavailable()
-            } else {
-                untrusted()
-            });
+            return Err(if error.retryable() { unavailable() } else { untrusted() });
         }
     }
     Ok(())
+}
+
+#[cfg(feature = "windows-source-local-development")]
+fn live_supervised_development_rebind_candidates(
+    registry: &SupervisedDevelopmentRegistry,
+) -> Result<Vec<([u8; 32], LocalDevelopmentLaunchRequest, u32)>, ProtectedCarrierError> {
+    Ok({
+        let entries = registry.lock().map_err(|_| untrusted())?;
+        entries
+            .iter()
+            .filter(|(_, entry)| entry.process.running())
+            .map(|(run_id, entry)| (*run_id, entry.request.clone(), entry.process.id()))
+            .collect::<Vec<_>>()
+    })
 }
 
 #[cfg(feature = "windows-source-local-development")]
@@ -846,20 +841,50 @@ fn discard_stale_supervised_development_rebind(
     run_id: [u8; 32],
     expected_process_id: u32,
 ) -> Result<bool, ProtectedCarrierError> {
-    let mut entries = registry.lock().map_err(|_| untrusted())?;
+    let entries = registry.lock().map_err(|_| untrusted())?;
     let current = entries
         .get(&run_id)
         .map(|entry| (entry.process.id(), entry.process.running()));
     let stale = local_development_rebind_candidate_is_stale(current, expected_process_id);
-    let removed =
-        if stale && current.is_some_and(|(process_id, _)| process_id == expected_process_id) {
-            entries.remove(&run_id)
-        } else {
-            None
-        };
-    drop(entries);
-    drop(removed);
+    // Desktop still needs the exited child's real terminal status. Only its
+    // explicit terminate/release path drops the retained process witness.
     Ok(stale)
+}
+
+#[cfg(all(test, feature = "windows-source-local-development"))]
+mod terminal_witness_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn renewal_and_stale_rebind_keep_real_exited_child_status_until_owner_cleanup() {
+        let executable = std::path::PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/cmd.exe");
+        let root = std::env::temp_dir().join(format!("nimi-terminal-witness-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let profile = crate::host_profile::prepare(Some(crate::host_profile::test_profile_projection(&root))).unwrap();
+        let args = vec!["/d".to_string(), "/c".to_string(), "exit 75".to_string()];
+        let mut process = crate::windows_supervised_process::SupervisedDevelopmentProcess::create_runtime_authorized(&executable, &args, &root, &profile).unwrap();
+        let pid = process.id();
+        process.resume().unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while process.exit_code().unwrap().is_none() {
+            assert!(std::time::Instant::now() < deadline, "child did not exit");
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        assert_eq!(process.exit_code().unwrap(), Some(75));
+        let run_id = [9; 32];
+        let registry = Arc::new(Mutex::new(HashMap::from([(run_id, SupervisedDevelopmentEntry {
+            process,
+            request: LocalDevelopmentLaunchRequest { registration_handle: [8; 32], supervisor_run_id: run_id, shell_kind: crate::LocalDevelopmentShellKind::Electron, host_executable_path: executable, renderer_origin: "http://127.0.0.1:1524".to_string(), host_arguments: args, working_directory: root.clone() },
+        })])));
+        // The real renewal order reads candidates before Desktop polls status.
+        assert!(live_supervised_development_rebind_candidates(&registry).unwrap().is_empty());
+        rebind_supervised_development_processes(tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy(), registry.clone(), Arc::new(AsyncMutex::new(()))).await.unwrap();
+        assert!(discard_stale_supervised_development_rebind(&registry, run_id, pid).unwrap());
+        assert_eq!(registry.lock().unwrap().get(&run_id).unwrap().process.exit_code().unwrap(), Some(75));
+        drop(registry.lock().unwrap().remove(&run_id));
+        assert!(registry.lock().unwrap().is_empty());
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }
 
 #[cfg(feature = "windows-source-local-development")]

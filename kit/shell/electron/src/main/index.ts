@@ -4,6 +4,7 @@ export * from './local-asset-protocol.js';
 export * from './app-asset-protocol.js';
 export * from './bundled-avatar-asset-host.js';
 export * from './app-menu.js';
+export * from './app-exit-controller.js';
 export * from './agent-center.js';
 export * from './agent-center-resource-pack-placement.js';
 export * from './app-activity-source-launch.js';

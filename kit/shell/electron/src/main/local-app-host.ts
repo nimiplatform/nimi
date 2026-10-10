@@ -5,6 +5,7 @@ import {
   validateNimiLocalAppTextAnnotationResult,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, validateNimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppSpeakerEmbedding } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGeneration, validateNimiLocalAppMusicTranscription, validateNimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult,
@@ -221,6 +222,8 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-realtime-session-closed',
   'ai-media-spec-invalid',
   'ai-media-option-unsupported',
+  'ai-media-job-not-found',
+  'ai-media-job-not-cancellable',
   'ai-face-reference-missing',
   'ai-face-reference-ambiguous',
   'ai-face-target-missing',
@@ -2491,6 +2494,7 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
     ...(Object.hasOwn(value, 'transcription') ? ['transcription'] : []),
+    ...(Object.hasOwn(value, 'speakerEmbedding') ? ['speakerEmbedding'] : []),
     ...(Object.hasOwn(value, 'textAnnotation') ? ['textAnnotation'] : []),
     ...(Object.hasOwn(value, 'audioSeparation') ? ['audioSeparation'] : []),
     ...(Object.hasOwn(value, 'musicGeneration') ? ['musicGeneration'] : []),
@@ -2506,7 +2510,7 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'image-generate',
     'video-generate',
     'speech-synthesize',
-    'speech-transcribe', 'text-annotate', 'audio-separate',
+    'speech-transcribe', 'text-annotate', 'audio-speaker-embed', 'audio-separate',
     'voice-create',
     'music-generate', 'music-transcribe', 'audio-voice-convert',
     'world-generate',
@@ -2527,6 +2531,9 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   const transcription = value.transcription === undefined ? undefined : validateNimiLocalAppSpeechTranscript(value.transcription);
   if (transcription && (value.scenarioType !== 'speech-transcribe' || value.status !== 'completed' || transcription.text !== value.transcriptionText)) throw untrustedRuntimeError();
   const artifacts = validateScenarioArtifacts(value.artifacts);
+  if ((value.speakerEmbedding !== undefined) !== (value.scenarioType === 'audio-speaker-embed' && value.status === 'completed')) throw untrustedRuntimeError();
+  if (value.scenarioType === 'audio-speaker-embed' && artifacts.length !== 0) throw untrustedRuntimeError();
+  const speakerEmbedding = value.speakerEmbedding === undefined ? undefined : validateNimiLocalAppSpeakerEmbedding(value.speakerEmbedding);
   if ((value.audioSeparation !== undefined) !== (value.scenarioType === 'audio-separate' && value.status === 'completed')) throw untrustedRuntimeError();
   if ((value.textAnnotation !== undefined) !== (value.scenarioType === 'text-annotate' && value.status === 'completed')) throw untrustedRuntimeError();
   const textAnnotation = value.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(value.textAnnotation);
@@ -2549,6 +2556,7 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     ...(musicTranscription ? { musicTranscription } : {}),
     ...(voiceConversion ? { voiceConversion } : {}),
     ...(transcription ? { transcription } : {}),
+    ...(speakerEmbedding ? { speakerEmbedding } : {}),
     ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
     ...(interruption !== undefined ? { interruption: Object.freeze({ ...(interruption as Record<string, unknown>) }) } : {}),
     jobId: boundedExactText(value.jobId, 128, false),

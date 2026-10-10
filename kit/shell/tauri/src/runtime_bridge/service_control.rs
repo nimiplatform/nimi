@@ -530,10 +530,10 @@ pub(super) async fn launch_local_development_host(
     }
 }
 
-pub(super) fn local_development_host_running(
+pub(super) fn local_development_host_status(
     supervisor_run_id: [u8; 32],
-) -> Result<bool, NimiHostError> {
-    desktop_control()?.local_development_host_running(supervisor_run_id)
+) -> Result<(bool, Option<u32>), NimiHostError> {
+    desktop_control()?.local_development_host_status(supervisor_run_id)
 }
 
 pub(super) fn terminate_local_development_host(

@@ -64,7 +64,7 @@ function control(overrides: Partial<NimiElectronLocalDevelopmentControl> = {}): 
       hostProfileRoot: '/data/app-hosts/scope/apps/subject',
     }),
     access: async () => ({ available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` }),
-    hostRunning: async () => false,
+    hostStatus: async () => ({ running: false, exitCode: null }),
     focusHost: async () => undefined,
     terminateHost: async () => undefined,
     endRun: async () => undefined,
@@ -245,7 +245,7 @@ describe('Desktop Electron local-development registration host', () => {
     let access: Awaited<ReturnType<NimiElectronLocalDevelopmentControl['access']>> | Error = { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` };
     let stops = 0;
     const host = new ElectronLocalDevelopmentHost(control({
-      hostRunning: async () => true,
+      hostStatus: async () => ({ running: true, exitCode: null }),
       access: async (registrationHandle, supervisorRunId) => {
         assert.equal(registrationHandle, HANDLE); assert.equal(supervisorRunId, SUPERVISOR);
         if (access instanceof Error) throw access;
@@ -1032,7 +1032,7 @@ describe('Desktop Electron local-development registration host', () => {
         }
         return [registration()];
       },
-      hostRunning: async () => true,
+      hostStatus: async () => ({ running: true, exitCode: null }),
       terminateHost: async () => { terminateCalls += 1; },
     });
     const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
@@ -1096,7 +1096,7 @@ describe('Desktop Electron local-development registration host', () => {
         }
         return [registration()];
       },
-      hostRunning: async () => false,
+      hostStatus: async () => ({ running: false, exitCode: null }),
       terminateHost: async () => { terminateCalls += 1; },
       endRun: async () => { endRunCalls += 1; },
     }), '/tmp');
@@ -1124,7 +1124,7 @@ describe('Desktop Electron local-development registration host', () => {
 
   it('starts one full supervisor after recovery when renderer cleanup removed the prior Host', async () => {
     const host = new ElectronLocalDevelopmentHost(control({
-      hostRunning: async () => false,
+      hostStatus: async () => ({ running: false, exitCode: null }),
     }), '/tmp');
     const run = activeRun();
     let supervisorStarts = 0;
@@ -1215,6 +1215,23 @@ describe('Desktop Electron local-development registration host', () => {
 
     assert.deepEqual(order, ['end-run', 'terminate', 'launch']);
     assert.equal(run.registrationHandle, HANDLE);
+  });
+
+  it('a tracked self-restart exit replaces only the same run after releasing its old lease', async () => {
+    const order: string[] = [];
+    const host = new ElectronLocalDevelopmentHost(control({
+      hostStatus: async () => ({ running: false, exitCode: 75 }),
+      endRun: async () => { order.push('end-run'); },
+      terminateHost: async () => { order.push('terminate'); },
+    }), '/tmp');
+    Reflect.set(host, 'launchHost', async () => { order.push('launch'); });
+    const run = activeRun();
+    run.status.hostGeneration = 1;
+    run.renderer = {};
+    await (host as unknown as { refreshRegistration(context: typeof run): Promise<void> }).refreshRegistration(run);
+    assert.deepEqual(order, ['end-run', 'terminate', 'launch']);
+    assert.equal(run.registrationHandle, HANDLE);
+    assert.equal(run.stopped, false);
   });
 
   it('fingerprints src-electron content without treating timestamp changes as edits', async () => {

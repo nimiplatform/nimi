@@ -9,6 +9,21 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it.each(['ai-media-job-not-found', 'ai-media-job-not-cancellable'])(
+    'keeps Scenario cancellation rejection %s in the current healthy session', async (reasonCode) => {
+      let invalidations = 0; let rebinds = 0;
+      const host = createNimiElectronLocalAppHostForBinding({
+        ...binding([]),
+        localAppScenarioJobCancel: async () => ({ status: 'error' as const, reasonCode, retryable: false }),
+        localAppSessionRebind: async () => { rebinds++; return { status: 'error' as const, reasonCode: 'runtime-unauthenticated', retryable: false }; },
+      }, () => { invalidations++; });
+      await expect(host.scenarioJobCancel({ jobId: 'terminal-job', reason: 'user canceled' }))
+        .rejects.toMatchObject({ reasonCode, retryable: false });
+      await expect(host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+      expect(invalidations).toBe(0);
+      expect(rebinds).toBe(0);
+    },
+  );
   it('admits only closed typed alignment product tokens through native Job Get', async () => {
     let alignment: unknown = {unit:'word',tokens:[{token:'Hello',startMs:0,endMs:480},{token:' ',startMs:480,endMs:500}]};
     const job=()=>({jobId:'aligned-job',scenarioType:'speech-synthesize',status:'completed',progressPercent:100,progressCurrentStep:1,progressTotalSteps:1,reasonCode:'action-executed',reasonDetail:'',traceId:'trace',createdAt:null,updatedAt:null,transcriptionText:'',artifacts:[{artifactId:'aligned-audio',mimeType:'audio/wav',bytes:'',sizeBytes:58,sha256:'digest',durationMs:1200,width:0,height:0,sampleRateHz:24000,channels:1,speechAlignment:alignment}]});
@@ -165,11 +180,53 @@ describe('Electron protected local-app host', () => {
     candidate.localAppScenarioJobGet = async () => ({ status: 'ok', value: { job: nativeJob(malformed), asset: null, voiceReference: null } });
     await expect(host.scenarioJobGet({ jobId: job.jobId })).rejects.toBeDefined();
   });
+  it('carries speaker Job states and the sole terminal representation through submit, Get and events', async () => {
+    const speakerEmbedding = { vector: [0.25, -0.5], spaceId: 'speaker-declared-fixture' };
+    let job = scenarioJobProjection({ scenarioType: 'audio-speaker-embed', status: 'completed', speakerEmbedding });
+    const event = () => ({ eventType: 'completed', sequence: '3', traceId: 'trace', timestamp: null, job });
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppScenarioJobSubmit: async () => ({ status: 'ok', value: { job: nativeJob(job) } }),
+      localAppScenarioJobGet: async () => ({ status: 'ok', value: { job: nativeJob(job), asset: null, voiceReference: null } }),
+      localAppScenarioJobStreamNext: async () => ({ status: 'ok', value: { completed: false, event: { ...event(), job: nativeJob(job) } } }),
+    });
+    const spec = { type: 'audio-speaker-embed', mimeType: 'audio/wav', audioSource: { type: 'uri', uri: 'https://assets.example.test/speaker.wav' } };
+    await expect(host.scenarioJobSubmit({ spec, timeoutMs: 0 })).resolves.toEqual({ job });
+    await expect(host.scenarioJobGet({ jobId: 'job-1' })).resolves.toEqual({ job, asset: null, voiceReference: null });
+    await expect(host.scenarioJobStreamNext({ streamId: 'speaker-stream' })).resolves.toEqual({ completed: false, event: event() });
+    for (const status of ['submitted', 'queued', 'running', 'failed', 'canceled', 'timeout']) {
+      job = scenarioJobProjection({ scenarioType: 'audio-speaker-embed', status });
+      await expect(host.scenarioJobGet({ jobId: 'job-1' })).resolves.toEqual({ job, asset: null, voiceReference: null });
+      job = { ...job, speakerEmbedding };
+      await expect(host.scenarioJobGet({ jobId: 'job-1' })).rejects.toBeDefined();
+      await expect(host.scenarioJobStreamNext({ streamId: 'speaker-stream' })).rejects.toBeDefined();
+    }
+    for (const result of [undefined, { vector: [0, 0], spaceId: 'space' }, { vector: [NaN], spaceId: 'space' }, { vector: [1], spaceId: '' }, { ...speakerEmbedding, person: 'invented' }]) {
+      job = scenarioJobProjection({ scenarioType: 'audio-speaker-embed', status: 'completed', ...(result ? { speakerEmbedding: result } : {}) });
+      await expect(host.scenarioJobGet({ jobId: 'job-1' })).rejects.toBeDefined();
+    }
+    job = scenarioJobProjection({ scenarioType: 'speech-transcribe', status: 'completed', speakerEmbedding });
+    await expect(host.scenarioJobGet({ jobId: 'job-1' })).rejects.toBeDefined();
+  });
+
   it('preserves typed transcription through the native Host boundary', async () => {
     const transcription = { status: 'transcribed', text: 'hello', language: 'en', words: [{ text: 'hello', startSeconds: 0.2, endSeconds: 0.8 }] };
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]), localAppScenarioJobGet: async () => ({ status: 'ok', value: { job: scenarioJobProjection({ scenarioType: 'speech-transcribe', status: 'completed', transcriptionText: 'hello', transcription }), asset: null, voiceReference: null } }) });
     const result = await host.scenarioJobGet({ jobId: 'job-1' });
     expect((result.job as Record<string, unknown>).transcription).toEqual(transcription);
+  });
+
+  it('preserves real source-local diarization through Host Get/events and rejects leaked padding', async () => {
+    let transcription={status:'transcribed',text:'Declared fixture.',language:'',words:[],diarization:{status:'diarized',durationSeconds:8,intervals:[{speakerId:'speaker_1',startSeconds:0.6,endSeconds:6.8},{speakerId:'speaker_2',startSeconds:6.5,endSeconds:8}]}};
+    const job=()=>scenarioJobProjection({scenarioType:'speech-transcribe',status:'completed',transcriptionText:'Declared fixture.',transcription});
+    const host=createNimiElectronLocalAppHostForBinding({...binding([]),
+      localAppScenarioJobGet:async()=>({status:'ok',value:{job:nativeJob(job()),asset:null,voiceReference:null}}),
+      localAppScenarioJobStreamNext:async()=>({status:'ok',value:{completed:false,event:{eventType:'completed',sequence:'1',traceId:'trace',timestamp:null,job:nativeJob(job())}}}),
+    });
+    expect((await host.scenarioJobGet({jobId:'job-1'})).job).toEqual(job());
+    expect((await host.scenarioJobStreamNext({streamId:'diarization-stream'})).event).toMatchObject({job:job()});
+    transcription.diarization.intervals[1]!.endSeconds=8.0297;
+    await expect(host.scenarioJobGet({jobId:'job-1'})).rejects.toBeDefined();
+    await expect(host.scenarioJobStreamNext({streamId:'diarization-stream'})).rejects.toBeDefined();
   });
 
   it('preserves the embedding space through the Host projection and rejects an absent identity', async () => {
