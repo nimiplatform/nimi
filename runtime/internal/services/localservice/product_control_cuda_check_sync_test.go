@@ -67,7 +67,7 @@ func TestProductControlCheckSyncReopensBothManagedCUDASourcesFromCopiedRoot(t *t
 		id, version string
 		artifacts   []string
 	}{
-		{engine.NVIDIACUDAUserSpaceRuntimeDependencyID, "cuda_major=12", []string{"cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"}},
+		{engine.NVIDIACUDAUserSpaceRuntimeDependencyID, engine.NVIDIACUDAUserSpaceRuntimeVersion, []string{"cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"}},
 		{engine.NVIDIACUDA13UserSpaceRuntimeDependencyID, engine.NVIDIACUDA13UserSpaceRuntimeVersion, []string{"cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll", "cudart64_13.dll"}},
 	}
 	for _, fixture := range fixtures {
@@ -140,7 +140,7 @@ func TestProductControlCheckSyncReopensBothManagedCUDASourcesFromCopiedRoot(t *t
 
 func TestProductControlCheckSyncRejectsMismatchedCUDACustody(t *testing.T) {
 	root := t.TempDir()
-	record, status, material := checkSyncCUDAFixture(root, engine.NVIDIACUDAUserSpaceRuntimeDependencyID, "cuda_major=12", []string{"cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"})
+	record, status, material := checkSyncCUDAFixture(root, engine.NVIDIACUDAUserSpaceRuntimeDependencyID, engine.NVIDIACUDAUserSpaceRuntimeVersion, []string{"cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"})
 	statuses := map[string]engine.SharedAcceleratorDependencyStatus{record.DependencyID: status}
 	if !productControlCheckSyncEnvironmentMaterialSupportsRecord(record, []engine.ManagedEnvironmentCheckResult{material}, statuses, root) {
 		t.Fatal("matching CUDA owner material rejected")

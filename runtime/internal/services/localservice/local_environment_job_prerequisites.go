@@ -262,7 +262,7 @@ func (s *Service) readySelectedSourceFromCandidates(candidates []localEnvironmen
 			lastDetail = "selected source record fails local artifact verification: " + err.Error()
 			continue
 		}
-		if err := validateAudioCppSelectedSourceVersion(record); err != nil {
+		if err := validateNativeSelectedSourceVersion(record, consumer); err != nil {
 			lastDetail = err.Error()
 			continue
 		}
@@ -279,7 +279,21 @@ func (s *Service) readySelectedSourceFromCandidates(candidates []localEnvironmen
 
 // Existing files from a retired package must not make an upgraded cohort
 // appear ready. This reads existing source identity; it never replaces it.
-func validateAudioCppSelectedSourceVersion(record localEnvironmentSelectedSourceRecordState) error {
+func validateNativeSelectedSourceVersion(record localEnvironmentSelectedSourceRecordState, consumer string) error {
+	if record.DependencyFamily == localEnvironmentFamilyNativeSDCPP {
+		hostOS := nativeSDCPPEnvironmentHostOS(record.EnvironmentKey)
+		arch, vendor := "amd64", "nvidia"
+		if hostOS == "darwin" {
+			arch, vendor = "arm64", "apple"
+		}
+		_, admitted := nativeSDCPPPackageContractForEnvironment(record.EnvironmentKey, consumer)
+		if !admitted || !engine.ManagedImageBackendSourceMatchesHost(hostOS, arch, vendor, record.Version, record.Hashes["archive_sha256"]) {
+			return fmt.Errorf("stable-diffusion.cpp selected source does not match the current host package")
+		}
+	}
+	if record.DependencyFamily == localEnvironmentFamilyCUDA && record.DependencyID == engine.NVIDIACUDAUserSpaceRuntimeDependencyID && record.Version != engine.NVIDIACUDAUserSpaceRuntimeVersion {
+		return fmt.Errorf("CUDA 12 selected source requires %s; recorded %s", engine.NVIDIACUDAUserSpaceRuntimeVersion, record.Version)
+	}
 	if record.DependencyFamily == localEnvironmentFamilyNativeAudioCPP && record.DependencyID == "audio.cpp.package" && record.Version != engine.AudioCppSelectedSourceVersion {
 		return fmt.Errorf("audio.cpp selected source requires %s; recorded %s", engine.AudioCppSelectedSourceVersion, record.Version)
 	}

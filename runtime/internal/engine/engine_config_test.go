@@ -18,8 +18,8 @@ func TestDefaultLlamaConfig(t *testing.T) {
 	if cfg.Version != defaultLlamaVersion {
 		t.Errorf("expected version %s, got %s", defaultLlamaVersion, cfg.Version)
 	}
-	if cfg.HealthPath != "/v1/models" {
-		t.Errorf("expected health path /v1/models, got %s", cfg.HealthPath)
+	if cfg.HealthPath != "/health" {
+		t.Errorf("expected health path /health, got %s", cfg.HealthPath)
 	}
 	if cfg.MaxRestarts != 5 {
 		t.Errorf("expected max restarts 5, got %d", cfg.MaxRestarts)

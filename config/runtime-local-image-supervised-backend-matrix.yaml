@@ -77,7 +77,7 @@ entries:
     product_state: supported
     detail: >-
       macOS 26.0+ / arm64 / Apple Metal uses the canonical official
-      master-813-bfbef5b stable-diffusion.cpp package. Each exact recipe and
+      master-951-f89d9b1 stable-diffusion.cpp package. Each exact recipe and
       model tuple remains NOT-VERIFIED until its macOS product journey runs.
 
   - entry_id: macos-apple-silicon-safetensors-native

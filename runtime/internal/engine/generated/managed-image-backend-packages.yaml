@@ -30,19 +30,19 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    release_tag: master-813-bfbef5b
-    source_commit: bfbef5b7e64e89a0205894853de25d19a7ba54b9 # pragma: allowlist secret
-    install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-bfbef5b
+    release_tag: master-951-f89d9b1
+    source_commit: f89d9b13d730eabeede7314ce49dacd18d3c90c2 # pragma: allowlist secret
+    install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-f89d9b1
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-813-bfbef5b/sd-master-bfbef5b-bin-Darwin-macOS-26.5.2-arm64.zip
-    archive_sha256: efd0172b91a2491aeeb92e5ddfca16aa08273d5aa4889eaa6616f5e3242520e5 # pragma: allowlist secret
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-951-f89d9b1/sd-master-f89d9b1-bin-Darwin-macOS-26.6.2-arm64.zip
+    archive_sha256: 8057dbfb1529b4e0bc07d35eaf68fa821e44bca6852428c539bf70602189bf92 # pragma: allowlist secret
     executable_candidates: [sd-cli, sd-server]
     supported_model_families: [flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported
     detail: >-
-      Canonical official master-813-bfbef5b Apple Silicon archive for the
+      Canonical official master-951-f89d9b1 Apple Silicon archive for the
       macOS 26.0+ / arm64 / Apple Metal first-class target. This exact source
       has no experimental, LocalAI-derived, or alternate-backend fallback;
       every recipe-family and product claim remains independently subject to
@@ -58,12 +58,12 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    release_tag: master-813-bfbef5b
-    source_commit: bfbef5b7e64e89a0205894853de25d19a7ba54b9 # pragma: allowlist secret
-    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-bfbef5b
+    release_tag: master-951-f89d9b1
+    source_commit: f89d9b13d730eabeede7314ce49dacd18d3c90c2 # pragma: allowlist secret
+    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-f89d9b1
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-813-bfbef5b/sd-master-bfbef5b-bin-win-cuda12-x64.zip
-    archive_sha256: e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71 # pragma: allowlist secret
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-951-f89d9b1/sd-master-f89d9b1-bin-win-cuda12-x64.zip
+    archive_sha256: f129da40b1a85565c79a00a73bdf696164773cfa63dd06450d29d018508208a3 # pragma: allowlist secret
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda

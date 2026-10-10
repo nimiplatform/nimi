@@ -1,8 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-commit="26dcb5c4cf5aa016ae6285096a7b45f2671e5d17" # pragma: allowlist secret -- public source commit
-version="0.6.1"
+# Local CPU diagnostics only; Runtime materializes the official Metal-capable
+# release archive through its managed dependency owner, not this build output.
+commit="cf124a67cc55d8f65a9a15eec69edbff0fb212c8" # pragma: allowlist secret -- public source commit
+version="0.9.1"
 archive_name="audiocpp-macos-arm64-cpu-release-${version}-${commit:0:8}.zip"
 
 if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then

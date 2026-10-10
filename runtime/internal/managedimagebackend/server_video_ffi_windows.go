@@ -184,9 +184,8 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 		return false, err
 	}
 	if backendSpec := videoParamsBackendSpec(request.OffloadToCPU); backendSpec != "" {
-		// Floor CLI maps --offload-to-cpu by prepending the "*=cpu" backend
-		// assignment spec to params_backend (examples/common/common.cpp:775-777
-		// @ c6beeef3), not the bare literal "cpu".
+		// The selected CLI maps --offload-to-cpu to the "*=cpu" parameter
+		// backend assignment, not the bare device name "cpu".
 		if err := setCString(&params.ParamsBackend, backendSpec); err != nil {
 			return false, videoError(VideoErrorLoad, fmt.Errorf("encode CPU params backend: %w", err))
 		}
@@ -272,12 +271,14 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 	var framesOut unsafe.Pointer
 	var frameCountOut int32
 	var audioOut unsafe.Pointer
+	var fpsOut int32
 	success, _, _ := engine.generateVideo.Call(
 		contextPointer,
 		uintptr(unsafe.Pointer(&params)),
 		uintptr(unsafe.Pointer(&framesOut)),
 		uintptr(unsafe.Pointer(&frameCountOut)),
 		uintptr(unsafe.Pointer(&audioOut)),
+		uintptr(unsafe.Pointer(&fpsOut)),
 	)
 	runtime.KeepAlive(prompt)
 	runtime.KeepAlive(negative)
@@ -293,7 +294,9 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 		}
 		return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("generate_video returned false"))
 	}
-	candidate, err := copyFFIVideoCandidate(framesOut, frameCountOut, audioOut, request.FPS)
+	// Report the engine's effective frame rate. The public H3 postcondition
+	// rejects changes to its fixed 24 FPS contract instead of relabeling frames.
+	candidate, err := copyFFIVideoCandidate(framesOut, frameCountOut, audioOut, int(fpsOut))
 	if err != nil {
 		return VideoCandidate{}, err
 	}

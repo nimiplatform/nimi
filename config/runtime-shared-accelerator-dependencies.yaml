@@ -64,12 +64,14 @@ dependencies:
         - driver_compatibility
         - selected_source_record
     managed_sources:
-      - source_id: llama-cuda12.4-win-x64-runtime
+      - source_id: sdcpp-master-951-f89d9b1-cuda12.8-win-x64-runtime
+        install_dir_name: nvidia-cuda12.8-sdcpp-f89d9b1
         source_owner: runtime_shared_dependency_source
-        release_owner: ggml-org/llama.cpp
-        release_tag_ref: runtime_default_llama_version
-        archive_name: cudart-llama-bin-win-cuda-12.4-x64.zip
-        archive_sha256_source: github_release_asset_digest
+        release_owner: leejet/stable-diffusion.cpp
+        release_tag_ref: master-951-f89d9b1
+        archive_name: cudart-sd-bin-win-cu12-x64.zip
+        archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-951-f89d9b1/cudart-sd-bin-win-cu12-x64.zip
+        archive_sha256: fe20366827d357c00797eebb58244dddab7fd9a348d70090c3871004c320f38d # pragma: allowlist secret
         package_format: direct_archive
         stage_policy: staged_extract_verify_atomic_promote
         product_state: supported
@@ -122,21 +124,23 @@ dependencies:
         admission: fail_closed
     version_constraints:
       cuda_major: 13
-      driver_compatibility: driver_580_or_newer
-      consumer_abi: audio.cpp-release-0.6.1
+      driver_compatibility: runtime_must_verify_driver_supports_selected_cuda_runtime
+      consumer_abi: audio.cpp-v0.9.1
     required_artifacts:
       - cublas64_13.dll
       - cublasLt64_13.dll
       - cufft64_12.dll
+      - cudart64_13.dll
     managed_sources:
-      - source_id: audiocpp-0.6.1-cuda13-win-x64-runtime
+      - source_id: audiocpp-0.9.1-cuda13.3-win-x64-runtime
+        install_dir_name: nvidia-cuda13.3-audiocpp-0.9.1
         source_owner: runtime_shared_dependency_source
         release_owner: 0xShug0/audio.cpp
-        release_tag_ref: release-0.6.1
-        archive_name: audiocpp-windows-cuda-runtime.zip
-        archive_url: https://github.com/0xShug0/audio.cpp/releases/download/release-0.6.1/audiocpp-windows-cuda-runtime.zip
-        archive_bytes: 575505446
-        archive_sha256: 4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d # pragma: allowlist secret
+        release_tag_ref: v0.9.1
+        archive_name: audio-v0.9.1-cudart-windows-x64-cuda13.3.zip
+        archive_url: https://github.com/0xShug0/audio.cpp/releases/download/v0.9.1/audio-v0.9.1-cudart-windows-x64-cuda13.3.zip
+        archive_bytes: 575457454
+        archive_sha256: fa0fb817540c578bad085c7befb9d25b5a7634548e47955bff7b732b04b8a84b # pragma: allowlist secret
         package_format: direct_archive
         stage_policy: staged_extract_verify_atomic_promote
         product_state: supported

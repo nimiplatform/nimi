@@ -18,7 +18,7 @@ const (
 	VeVo2DriverDialect             = "audio.cpp/vevo2/voice-convert/v1"
 	VeVo2RecipeID                  = "vevo2.audio-cpp.v1"
 	VeVo2RequirementID             = "voice.model"
-	AudioCppMacOSPackageID         = "audio-cpp-0.8.1-darwin-arm64-cpu-metal"
+	AudioCppMacOSPackageID         = "audio-cpp-0.9.1-darwin-arm64-cpu-metal"
 	VeVo2VerifiedContentID         = "sha256:f80a70facaaecfcf1aa417ef16ef091318c5e789b24c16a741233c64a72fcee8"
 	VeVo2ModelBytes                = int64(3242124800)
 )

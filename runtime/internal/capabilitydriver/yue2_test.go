@@ -14,7 +14,7 @@ func yue2TestInput(t *testing.T) MusicInvocationInput {
 	root := t.TempDir()
 	return MusicInvocationInput{LoadoutID: "yue-candidate", RecipeID: YuE2RecipeID,
 		ExactBindings: []InvocationExactBinding{{RequirementID: YuE2RequirementID, ModelAssetID: "yue2", BundleDir: root, AbsolutePath: filepath.Join(root, "yue2-3b-q8_0.gguf"), VerifiedContentID: YuE2VerifiedContentID, DeclaredFiles: yue2DeclaredFiles()}},
-		Package:       MusicRuntimePackageInput{AudioCppVersion: "0.8.1", AudioCppPackageID: AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "fixed-package", AudioCppRoot: root, AudioCppExecutablePath: filepath.Join(root, "audiocpp_cli.exe"), CUDA13DependencyID: AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "fixed-cuda", CUDA13Root: root},
+		Package:       MusicRuntimePackageInput{AudioCppVersion: "0.9.1", AudioCppPackageID: AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "fixed-package", AudioCppRoot: root, AudioCppExecutablePath: filepath.Join(root, "audiocpp_cli.exe"), CUDA13DependencyID: AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "fixed-cuda", CUDA13Root: root},
 		Request:       &runtimev1.MusicGenerateScenarioSpec{Prompt: "restrained folk", Lyrics: "[Verse]\nThe river runs"}, StagingWAVPath: filepath.Join(root, "job", "music.wav")}
 }
 

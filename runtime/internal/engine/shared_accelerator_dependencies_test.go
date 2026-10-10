@@ -34,16 +34,37 @@ func TestCUDA13AudioCppDependencyHasIndependentIdentityAndSource(t *testing.T) {
 	if !ok {
 		t.Fatal("expected CUDA 13 audio.cpp dependency spec")
 	}
-	if spec.DependencyID != NVIDIACUDA13UserSpaceRuntimeDependencyID || spec.Version != "cuda_major=13;audio.cpp=v0.8.1;cuda_minor=3" {
+	if spec.DependencyID != NVIDIACUDA13UserSpaceRuntimeDependencyID || spec.Version != "cuda_major=13;audio.cpp=v0.9.1;cuda_minor=3" {
 		t.Fatalf("CUDA 13 dependency identity = %+v", spec)
 	}
-	if spec.ManagedSource.ArchiveURL != "https://github.com/0xShug0/audio.cpp/releases/download/v0.8.1/audio-v0.8.1-cudart-windows-x64-cuda13.3.zip" ||
-		spec.ManagedSource.ArchiveSHA256 != "5c0a8b1022500b2df2062b7215584408ad07d43358f38a1a3ace0ac6daa441a9" || // pragma: allowlist secret -- public archive checksum
+	if spec.ManagedSource.ArchiveURL != "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.1/audio-v0.9.1-cudart-windows-x64-cuda13.3.zip" ||
+		spec.ManagedSource.ArchiveSHA256 != "fa0fb817540c578bad085c7befb9d25b5a7634548e47955bff7b732b04b8a84b" || // pragma: allowlist secret -- public archive checksum
 		spec.ManagedSource.InstallDirName == NVIDIACUDAUserSpaceRuntimeDependencyID {
 		t.Fatalf("CUDA 13 managed source = %+v", spec.ManagedSource)
 	}
 	want := []string{"cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll", "cudart64_13.dll"}
 	if strings.Join(spec.RequiredArtifacts, ",") != strings.Join(want, ",") {
 		t.Fatalf("CUDA 13 artifacts = %v, want %v", spec.RequiredArtifacts, want)
+	}
+}
+
+func TestRetiredCUDAInstallCannotSatisfyUpgradedSource(t *testing.T) {
+	for _, dependencyID := range []string{NVIDIACUDAUserSpaceRuntimeDependencyID, NVIDIACUDA13UserSpaceRuntimeDependencyID} {
+		t.Run(dependencyID, func(t *testing.T) {
+			spec, _ := sharedAcceleratorDependencySpecForID(dependencyID)
+			root := t.TempDir()
+			retired := filepath.Join(root, dependencyID)
+			if err := os.MkdirAll(retired, 0700); err != nil {
+				t.Fatal(err)
+			}
+			for _, name := range spec.RequiredArtifacts {
+				if err := os.WriteFile(filepath.Join(retired, name), []byte("old release"), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, ready, _ := verifiedManagedNVIDIACUDARuntimeRootForSpec(root, spec); ready {
+				t.Fatal("matching old DLL names were relabeled as the new release")
+			}
+		})
 	}
 }

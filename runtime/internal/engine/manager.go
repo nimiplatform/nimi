@@ -281,6 +281,10 @@ func (m *Manager) EnsureEngineBinaryDependency(ctx context.Context, cfg EngineCo
 }
 
 func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
+	return m.ensureLlamaWithDownloader(ctx, cfg, DownloadBinaryWithContext)
+}
+
+func (m *Manager) ensureLlamaWithDownloader(ctx context.Context, cfg EngineConfig, download func(context.Context, string, EngineKind, string) (string, string, string, error)) (EngineConfig, error) {
 	if m.registry.PendingRebase(EngineLlama, cfg.Version) {
 		return cfg, fmt.Errorf("%w: engine=%s version=%s", ErrEngineRegistryReconciliationRequired, EngineLlama, cfg.Version)
 	}
@@ -316,7 +320,7 @@ func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConf
 		"version", cfg.Version,
 	)
 
-	binaryPath, sha256hex, assetName, err := DownloadBinaryWithContext(ctx, m.baseDir, EngineLlama, cfg.Version)
+	binaryPath, sha256hex, assetName, err := download(ctx, m.baseDir, EngineLlama, cfg.Version)
 	if err != nil {
 		return cfg, fmt.Errorf("download llama: %w", err)
 	}

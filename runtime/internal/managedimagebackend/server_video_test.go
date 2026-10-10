@@ -91,16 +91,21 @@ func TestManagedVideoProtocolRoundTripAndCompatibilityGate(t *testing.T) {
 	}
 }
 
-func TestManagedVideoDiagnosticOverrideAllowsUnpinnedPackage(t *testing.T) {
-	t.Setenv(videoFFIAllowUnpinnedEnv, "1")
+func TestManagedVideoRejectsOldABIEvenWithFamilyAndRetiredOverride(t *testing.T) {
+	t.Setenv("NIMI_VIDEO_FFI_ALLOW_UNPINNED", "1")
 	engine := &fakeVideoEngine{}
-	server := &Server{driver: &fakeBackendDriver{}, videoEngine: engine, videoPackage: videoPackageIdentity{Name: "old-package"}}
+	server := &Server{driver: &fakeBackendDriver{}, videoEngine: engine, videoPackage: videoPackageIdentity{Name: "old-package", SupportedModelFamilies: []string{"minimax-h3"}, ArchiveSHA256: "retired-archive"}}
 	address, stop := startVideoTestServer(t, server)
 	defer stop()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	if _, err := LoadVideoModel(ctx, validVideoModelRequest(address)); err != nil {
-		t.Fatalf("diagnostic override load: %v", err)
+	if _, err := LoadVideoModel(ctx, validVideoModelRequest(address)); VideoErrorKindOf(err) != VideoErrorEngineIncompatible {
+		t.Fatalf("stale ABI load: %v", err)
+	}
+	engine.mu.Lock()
+	defer engine.mu.Unlock()
+	if engine.loads != 0 {
+		t.Fatal("stale native ABI reached the engine")
 	}
 }
 
@@ -177,7 +182,7 @@ func TestManagedVideoCancelReachesEngineAndWaitsForGenerateExit(t *testing.T) {
 	}
 }
 
-func TestStableDiffusionVideoFFIMapsPortableRecipeIntoFloorParameters(t *testing.T) {
+func TestStableDiffusionVideoFFIMapsPortableRecipeIntoPinnedParameters(t *testing.T) {
 	model := validVideoModelRequest("")
 	model.CFGScale = 2.5
 	model.FlowShift = 8
@@ -240,11 +245,11 @@ func TestManagedVideoRecipeRejectsIllegalValues(t *testing.T) {
 	}
 }
 
-func TestStableDiffusionVideoFFILayoutMatchesFloorHeader(t *testing.T) {
-	if got := unsafe.Sizeof(sdCtxParams{}); got != 280 {
+func TestStableDiffusionVideoFFILayoutMatchesPinnedHeader(t *testing.T) {
+	if got := unsafe.Sizeof(sdCtxParams{}); got != 320 {
 		t.Fatalf("sizeof(sd_ctx_params_t) = %d", got)
 	}
-	if got := unsafe.Sizeof(sdVideoGenParams{}); got != 576 {
+	if got := unsafe.Sizeof(sdVideoGenParams{}); got != 584 {
 		t.Fatalf("sizeof(sd_vid_gen_params_t) = %d", got)
 	}
 	if got := unsafe.Sizeof(sdImage{}); got != 24 {
@@ -258,9 +263,10 @@ func TestStableDiffusionVideoFFILayoutMatchesFloorHeader(t *testing.T) {
 		"llm_path": unsafe.Offsetof(ctx.LLMPath), "diffusion_model_path": unsafe.Offsetof(ctx.DiffusionModelPath),
 		"vae_path": unsafe.Offsetof(ctx.VAEPath), "audio_vae_path": unsafe.Offsetof(ctx.AudioVAEPath),
 		"rng_type": unsafe.Offsetof(ctx.RNGType), "diffusion_flash_attn": unsafe.Offsetof(ctx.DiffusionFlashAttention),
-		"params_backend": unsafe.Offsetof(ctx.ParamsBackend),
+		"params_backend":     unsafe.Offsetof(ctx.ParamsBackend),
+		"audio_encoder_path": unsafe.Offsetof(ctx.AudioEncoderPath), "conditioning_cache_size": unsafe.Offsetof(ctx.ConditioningCacheSize),
 	} {
-		want := map[string]uintptr{"llm_path": 40, "diffusion_model_path": 56, "vae_path": 88, "audio_vae_path": 96, "rng_type": 184, "diffusion_flash_attn": 202, "params_backend": 240}[name]
+		want := map[string]uintptr{"llm_path": 40, "diffusion_model_path": 56, "vae_path": 88, "audio_vae_path": 96, "rng_type": 192, "diffusion_flash_attn": 210, "params_backend": 248, "audio_encoder_path": 104, "conditioning_cache_size": 316}[name]
 		if got != want {
 			t.Fatalf("offsetof(sd_ctx_params_t.%s) = %d, want %d", name, got, want)
 		}
@@ -271,8 +277,9 @@ func TestStableDiffusionVideoFFILayoutMatchesFloorHeader(t *testing.T) {
 		"width": unsafe.Offsetof(video.Width), "sample_params": unsafe.Offsetof(video.SampleParams), "seed": unsafe.Offsetof(video.Seed),
 		"video_frames": unsafe.Offsetof(video.VideoFrames), "vae_tiling_params": unsafe.Offsetof(video.VAETilingParams),
 		"cache": unsafe.Offsetof(video.Cache), "hires": unsafe.Offsetof(video.Hires), "circular_x": unsafe.Offsetof(video.CircularX),
+		"image_preprocess": unsafe.Offsetof(video.ImagePreprocessRules),
 	} {
-		want := map[string]uintptr{"prompt": 16, "init_image": 40, "ref_images": 88, "width": 148, "sample_params": 160, "seed": 360, "video_frames": 368, "vae_tiling_params": 384, "cache": 416, "hires": 512, "circular_x": 568}[name]
+		want := map[string]uintptr{"prompt": 16, "init_image": 40, "ref_images": 88, "width": 148, "sample_params": 160, "seed": 360, "video_frames": 368, "vae_tiling_params": 384, "cache": 416, "hires": 512, "circular_x": 568, "image_preprocess": 576}[name]
 		if got != want {
 			t.Fatalf("offsetof(sd_vid_gen_params_t.%s) = %d, want %d", name, got, want)
 		}
@@ -297,7 +304,7 @@ func startVideoTestServer(t *testing.T, server *Server) (string, func()) {
 }
 
 func h3VideoPackageIdentity() videoPackageIdentity {
-	return videoPackageIdentity{Name: "floor-c6beeef", SupportedModelFamilies: []string{"minimax-h3"}}
+	return videoPackageIdentity{Name: "master-951-f89d9b1", SupportedModelFamilies: []string{"minimax-h3"}, ArchiveSHA256: stableDiffusionVideoArchiveSHA256}
 }
 
 func validVideoModelRequest(address string) VideoModelRequest {

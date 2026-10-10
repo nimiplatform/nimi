@@ -436,7 +436,7 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigInjectsManagedCUDAPathP
 	backendsPath := t.TempDir()
 	dependenciesPath := t.TempDir()
 	backendDir := filepath.Join(backendsPath, "sd-win-cuda12-x64-stablediffusion-ggml")
-	dependencyDir := filepath.Join(dependenciesPath, NVIDIACUDAUserSpaceRuntimeDependencyID)
+	dependencyDir := filepath.Join(dependenciesPath, nvidiaCUDAUserSpaceRuntimeManagedSource.InstallDirName)
 	if err := os.MkdirAll(backendDir, 0o755); err != nil {
 		t.Fatalf("mkdir backend dir: %v", err)
 	}
@@ -589,7 +589,7 @@ entries:
 	}
 	mgr.managedImageBackendsPath = filepath.Join(t.TempDir(), "managed-image-backends")
 	mgr.sharedAcceleratorDependenciesPath = t.TempDir()
-	cudaRuntimeDir := filepath.Join(mgr.sharedAcceleratorDependenciesPath, NVIDIACUDAUserSpaceRuntimeDependencyID)
+	cudaRuntimeDir := filepath.Join(mgr.sharedAcceleratorDependenciesPath, nvidiaCUDAUserSpaceRuntimeManagedSource.InstallDirName)
 	if err := os.MkdirAll(cudaRuntimeDir, 0o755); err != nil {
 		t.Fatalf("create fake CUDA runtime dir: %v", err)
 	}
@@ -652,7 +652,7 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testin
 		managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image-turbo") {
 		t.Fatalf("expected Windows managed image backend package to declare only the canonical z-image family, got %v", spec.SupportedModelFamilies)
 	}
-	if !strings.Contains(spec.InstallDirName, "bfbef5b") {
+	if !strings.Contains(spec.InstallDirName, "f89d9b1") {
 		t.Fatalf("expected release-qualified Windows install dir, got %q", spec.InstallDirName)
 	}
 }
@@ -687,9 +687,9 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleUsesExactCanonic
 	if !ok || !spec.Supported {
 		t.Fatalf("darwin canonical package = %#v, ok=%v", spec, ok)
 	}
-	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-813-bfbef5b" ||
-		spec.SourceCommit != "bfbef5b7e64e89a0205894853de25d19a7ba54b9" || // pragma: allowlist secret -- public source commit
-		spec.ArchiveSHA256 != "efd0172b91a2491aeeb92e5ddfca16aa08273d5aa4889eaa6616f5e3242520e5" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
+	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-951-f89d9b1" ||
+		spec.SourceCommit != "f89d9b13d730eabeede7314ce49dacd18d3c90c2" || // pragma: allowlist secret -- public source commit
+		spec.ArchiveSHA256 != "8057dbfb1529b4e0bc07d35eaf68fa821e44bca6852428c539bf70602189bf92" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
 		t.Fatalf("darwin exact package identity = %#v", spec)
 	}
 	for version, want := range map[string]bool{"25.9.9": false, "26.0": true, "26.5.2": true, "27": true, "": false} {

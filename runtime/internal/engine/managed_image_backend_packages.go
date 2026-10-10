@@ -119,6 +119,13 @@ func resolveManagedImageBackendPackageSpecForHost(backendName string, goos strin
 	return resolveManagedImageBackendPackageSpecForHostWithSource(backendName, "", goos, goarch, gpuVendor, cudaReady)
 }
 
+// ManagedImageBackendSourceMatchesHost checks durable source records against
+// the current package registry without loading or downloading an engine.
+func ManagedImageBackendSourceMatchesHost(goos, goarch, gpuVendor, releaseTag, archiveSHA256 string) bool {
+	spec, ok := resolveManagedImageBackendPackageSpecForHost("stablediffusion-ggml", goos, goarch, gpuVendor, false)
+	return ok && spec.Supported && releaseTag == spec.ReleaseTag && strings.EqualFold(archiveSHA256, spec.ArchiveSHA256)
+}
+
 func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, source string, goos string, goarch string, gpuVendor string, cudaReady bool) (managedImageBackendPackageSpec, bool) {
 	_ = cudaReady // CUDA user-space readiness is resolved as a runtime dependency, not package admission.
 	specs, loadErr := managedImageBackendPackageSpecsFromAuthority()

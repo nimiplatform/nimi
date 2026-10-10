@@ -603,7 +603,7 @@ func managedImageBackendRuntimeWrapperCUDARuntimeDir(sharedDependenciesPath stri
 	if err != nil {
 		return "", fmt.Errorf("canonicalize shared accelerator dependency root: %w", err)
 	}
-	canonicalDependencyDir, err := filepath.Abs(filepath.Clean(filepath.Join(canonicalRoot, NVIDIACUDAUserSpaceRuntimeDependencyID)))
+	canonicalDependencyDir, err := filepath.Abs(filepath.Clean(filepath.Join(canonicalRoot, nvidiaCUDAUserSpaceRuntimeManagedSource.InstallDirName)))
 	if err != nil {
 		return "", fmt.Errorf("canonicalize shared CUDA dependency path: %w", err)
 	}

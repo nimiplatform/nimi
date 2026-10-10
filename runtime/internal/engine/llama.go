@@ -54,7 +54,8 @@ func preferredLlamaAssetNameForCurrentHost(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return candidates[0], nil
+	asset, err := llamaReleaseAssetByName(version, candidates[0])
+	return asset.Name, err
 }
 
 func llamaAcceleratorPlaneForAsset(assetName string) string {

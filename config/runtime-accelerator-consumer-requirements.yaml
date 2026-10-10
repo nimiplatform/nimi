@@ -54,12 +54,12 @@ consumers:
     consumer_kind: native_engine_package_variant
     engine: audio
     backend_family: audio-cpp
-    package_variant: audiocpp-windows-cuda-balance-26dcb5c4
+    package_variant: audio-cpp-0.9.1-windows-amd64-cuda13.3
     capability_refs: [audio.synthesize]
     accelerator_plane: cuda
     dependency_ids: [nvidia-cuda13-user-space-runtime]
     canonical_consumer_ref: local-environment-consumer-requirements.yaml#audio.cpp.chatterbox.tts.cuda
-    version_constraints: { cuda_major: 13, package_abi: audio.cpp-release-0.6.1 }
+    version_constraints: { cuda_major: 13, package_abi: audio.cpp-v0.9.1 }
     activation_gate: { required_dependency_states: [ready_system, ready_managed] }
     fallback_policy: { fallback_variants: [], fallback_requires_explicit_runtime_policy: true }
     health_projection:
@@ -308,7 +308,7 @@ consumers:
     consumer_kind: native_engine_package_variant
     engine: audio
     backend_family: audio-cpp
-    package_variant: audiocpp-windows-cuda-balance-26dcb5c4
+    package_variant: audio-cpp-0.9.1-windows-amd64-cuda13.3
     capability_refs:
       - music.generate
     accelerator_plane: cuda
@@ -317,7 +317,7 @@ consumers:
     canonical_consumer_ref: local-environment-consumer-requirements.yaml#audio.cpp.cuda
     version_constraints:
       cuda_major: 13
-      package_abi: audio.cpp-release-0.6.1
+      package_abi: audio.cpp-v0.9.1
     activation_gate:
       required_dependency_states:
         - ready_system
@@ -344,7 +344,7 @@ consumers:
     consumer_kind: native_engine_package_variant
     engine: audio
     backend_family: audio-cpp
-    package_variant: audiocpp-windows-cuda-balance-26dcb5c4
+    package_variant: audio-cpp-0.9.1-windows-amd64-cuda13.3
     capability_refs:
       - audio.synthesize
     accelerator_plane: cuda
@@ -353,7 +353,7 @@ consumers:
     canonical_consumer_ref: local-environment-consumer-requirements.yaml#audio.cpp.qwen3-tts.cuda
     version_constraints:
       cuda_major: 13
-      package_abi: audio.cpp-release-0.6.1
+      package_abi: audio.cpp-v0.9.1
     activation_gate:
       required_dependency_states:
         - ready_system

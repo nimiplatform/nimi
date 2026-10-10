@@ -91,7 +91,7 @@ func TestManagedEnvironmentCheckSyncReportsBothManagedCUDAOwnerMaterials(t *test
 	}
 	for _, dependencyID := range []string{NVIDIACUDAUserSpaceRuntimeDependencyID, NVIDIACUDA13UserSpaceRuntimeDependencyID} {
 		spec, _ := sharedAcceleratorDependencySpecForID(dependencyID)
-		root := filepath.Join(dataRoot, "dependencies", "accelerator-dependencies", dependencyID)
+		root := filepath.Join(dataRoot, "dependencies", "accelerator-dependencies", spec.ManagedSource.InstallDirName)
 		if err := os.MkdirAll(root, 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -106,7 +106,7 @@ func TestManagedEnvironmentCheckSyncReportsBothManagedCUDAOwnerMaterials(t *test
 		spec, _ := sharedAcceleratorDependencySpecForID(dependencyID)
 		for _, result := range manager.CheckSyncManagedEnvironment(context.Background(), dataRoot) {
 			if result.Kind == "accelerator_dependency" && result.Reference == dependencyID+"/"+spec.Version {
-				if result.Reason != wantReason || result.Status != "unavailable" || result.Locator != filepath.ToSlash(filepath.Join("dependencies", "accelerator-dependencies", dependencyID)) {
+				if result.Reason != wantReason || result.Status != "unavailable" || result.Locator != filepath.ToSlash(filepath.Join("dependencies", "accelerator-dependencies", spec.ManagedSource.InstallDirName)) {
 					t.Fatalf("CUDA owner result = %+v, want reason %s", result, wantReason)
 				}
 				return
@@ -130,7 +130,7 @@ func TestManagedEnvironmentCheckSyncReportsBothManagedCUDAOwnerMaterials(t *test
 	if !unknownFound {
 		t.Fatal("unrecognized accelerator child was not preserved")
 	}
-	if err := os.Remove(filepath.Join(dataRoot, "dependencies", "accelerator-dependencies", NVIDIACUDA13UserSpaceRuntimeDependencyID, "cufft64_12.dll")); err != nil {
+	if err := os.Remove(filepath.Join(dataRoot, "dependencies", "accelerator-dependencies", nvidiaCUDA13UserSpaceRuntimeManagedSource.InstallDirName, "cufft64_12.dll")); err != nil {
 		t.Fatal(err)
 	}
 	check(NVIDIACUDA13UserSpaceRuntimeDependencyID, "ACCELERATOR_DEPENDENCY_OWNER_MATERIAL_UNAVAILABLE")

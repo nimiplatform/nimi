@@ -197,13 +197,14 @@ func (m *Manager) checkSyncManagedEnvironment(ctx context.Context, dataRoot stri
 			return append(results, ManagedEnvironmentCheckResult{Kind: "accelerator_dependency", Reference: dependencyID, Status: "failed", Reason: "RUN_INTERRUPTED"})
 		}
 		status := m.ResolveSharedAcceleratorDependency(dependencyID, "")
-		root := filepath.Join(m.depsDir, "accelerator-dependencies", dependencyID)
+		spec, _ := sharedAcceleratorDependencySpecForID(dependencyID)
+		root := filepath.Join(m.depsDir, "accelerator-dependencies", spec.ManagedSource.InstallDirName)
 		if _, err := os.Lstat(root); os.IsNotExist(err) {
 			continue
 		}
 		result := ManagedEnvironmentCheckResult{
 			Kind: "accelerator_dependency", Reference: dependencyID + "/" + status.Version,
-			Locator: filepath.ToSlash(filepath.Join("dependencies", "accelerator-dependencies", dependencyID)),
+			Locator: filepath.ToSlash(filepath.Join("dependencies", "accelerator-dependencies", spec.ManagedSource.InstallDirName)),
 			Status:  "unavailable", Reason: "ACCELERATOR_DEPENDENCY_OWNER_MATERIAL_UNAVAILABLE",
 		}
 		if status.State == SharedAcceleratorDependencyReadyManaged && sameManagedPath(status.CanonicalRoot, root) {
@@ -214,7 +215,7 @@ func (m *Manager) checkSyncManagedEnvironment(ctx context.Context, dataRoot stri
 	results = append(results, checkSyncFixedDependencies(ctx, dataRoot)...)
 	results = append(results, unclaimedManagedRootEntries(m.baseDir, "environments", claimedEnvironmentEntries)...)
 	results = append(results, unclaimedManagedRootEntries(filepath.Join(m.depsDir, "accelerator-dependencies"), "dependencies/accelerator-dependencies", map[string]struct{}{
-		NVIDIACUDAUserSpaceRuntimeDependencyID: {}, NVIDIACUDA13UserSpaceRuntimeDependencyID: {},
+		nvidiaCUDAUserSpaceRuntimeManagedSource.InstallDirName: {}, nvidiaCUDA13UserSpaceRuntimeManagedSource.InstallDirName: {},
 	})...)
 	results = append(results, unclaimedManagedRootEntries(m.depsDir, "dependencies", map[string]struct{}{
 		"uv": {}, "python-package-cache": {}, "accelerator-dependencies": {}, "media-codec": {},

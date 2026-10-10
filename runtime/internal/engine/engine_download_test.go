@@ -275,7 +275,6 @@ func TestManagerEnsureLlamaFailsWhenRegistryPersistFailsDownloadHelpers(t *testi
 	}))
 	defer func() { server.Close() }()
 	serverURL = server.URL
-	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	mgr, err := NewManager(logger, testManagedRoots(t), nil)
@@ -294,7 +293,12 @@ func TestManagerEnsureLlamaFailsWhenRegistryPersistFailsDownloadHelpers(t *testi
 	}
 	mgr.registry.path = filepath.Join(blocker, "registry.json")
 
-	_, err = mgr.ensureLlama(context.Background(), DefaultLlamaConfig())
+	_, err = mgr.ensureLlamaWithDownloader(context.Background(), DefaultLlamaConfig(), func(ctx context.Context, baseDir string, kind EngineKind, version string) (string, string, string, error) {
+		return downloadManagedBinary(ctx, filepath.Join(baseDir, string(kind), version), managedBinaryBootstrapSpec{
+			BinaryName: llamaBinaryName(), ResolveAsset: func(string) (managedBinaryReleaseAsset, error) {
+				return managedBinaryReleaseAsset{Name: asset, DownloadURL: server.URL + "/" + version + "/download", SHA256: expectedHash}, nil
+			}}, version)
+	})
 	if err == nil {
 		t.Fatal("expected ensureLlama to fail when registry persist fails")
 	}

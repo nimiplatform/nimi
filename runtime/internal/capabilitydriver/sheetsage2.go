@@ -95,7 +95,7 @@ func (SheetSage2AudioCppDriver) PlanMusicTranscriptionInvocation(input MusicTran
 	}
 	pkg := input.Package
 	if pkg.AudioCppVersion != AudioCppMusicPackageVersion || pkg.AudioCppPackageID != AudioCppWindowsCUDA13PackageID || pkg.CUDA13DependencyID != AudioCppCUDA13RuntimeDependencyID || strings.TrimSpace(pkg.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(pkg.CUDA13SelectedSourceRecordID) == "" || !filepath.IsAbs(pkg.AudioCppRoot) || !filepath.IsAbs(pkg.AudioCppExecutablePath) || !filepath.IsAbs(pkg.CUDA13Root) || !musicPathWithin(pkg.AudioCppRoot, pkg.AudioCppExecutablePath) || !strings.EqualFold(filepath.Base(pkg.AudioCppExecutablePath), "audiocpp_cli.exe") {
-		return bad(InvocationFailureInvalidConfig, "requires the captured audio.cpp 0.8.1 CUDA package")
+		return bad(InvocationFailureInvalidConfig, "requires the captured audio.cpp 0.9.1 CUDA package")
 	}
 	if !filepath.IsAbs(input.StagingDir) || filepath.Clean(input.SourcePath) != filepath.Join(filepath.Clean(input.StagingDir), "source.wav") {
 		return bad(InvocationFailureInvalidConfig, "requires a private canonical source.wav")

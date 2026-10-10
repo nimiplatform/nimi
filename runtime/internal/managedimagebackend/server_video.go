@@ -12,12 +12,17 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-const videoFFIAllowUnpinnedEnv = "NIMI_VIDEO_FFI_ALLOW_UNPINNED"
+// @nimi-authority: rule.nimi.runtime.local-compute.r067
+// The model-family marker alone cannot establish compatibility with the C
+// struct layouts and function signatures compiled into the Windows bridge.
+// Reuse the materializer's existing verified archive identity.
+const stableDiffusionVideoArchiveSHA256 = "f129da40b1a85565c79a00a73bdf696164773cfa63dd06450d29d018508208a3" // pragma: allowlist secret -- public archive checksum
 
 type videoPackageIdentity struct {
 	Name                   string   `json:"name,omitempty"`
 	Alias                  string   `json:"alias,omitempty"`
 	SupportedModelFamilies []string `json:"supported_model_families,omitempty"`
+	ArchiveSHA256          string   `json:"archive_sha256,omitempty"`
 }
 
 func (identity videoPackageIdentity) String() string {
@@ -28,6 +33,9 @@ func (identity videoPackageIdentity) String() string {
 }
 
 func (identity videoPackageIdentity) supportsH3() bool {
+	if identity.ArchiveSHA256 != stableDiffusionVideoArchiveSHA256 {
+		return false
+	}
 	for _, family := range identity.SupportedModelFamilies {
 		if strings.EqualFold(strings.TrimSpace(family), "minimax-h3") {
 			return true
@@ -57,7 +65,7 @@ func resolveVideoPackageIdentity(executablePath string) videoPackageIdentity {
 }
 
 func (s *Server) videoCompatible() bool {
-	return s.videoPackage.supportsH3() || strings.TrimSpace(os.Getenv(videoFFIAllowUnpinnedEnv)) == "1"
+	return s.videoPackage.supportsH3()
 }
 
 func (s *Server) handleLoadVideoModel(stream grpc.ServerStream) error {
@@ -70,7 +78,7 @@ func (s *Server) handleLoadVideoModel(stream grpc.ServerStream) error {
 		return stream.SendMsg(protocolErrorResult(err))
 	}
 	if !s.videoCompatible() {
-		err := videoError(VideoErrorEngineIncompatible, fmt.Errorf("managed backend package %q is not marked MiniMax-H3 capable", s.videoPackage.String()))
+		err := videoError(VideoErrorEngineIncompatible, fmt.Errorf("managed backend package %q does not match the pinned MiniMax-H3 video ABI", s.videoPackage.String()))
 		return stream.SendMsg(protocolErrorResult(err))
 	}
 	if s.videoEngine == nil {

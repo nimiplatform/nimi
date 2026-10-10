@@ -2,9 +2,10 @@ package managedimagebackend
 
 import "unsafe"
 
-// The following types mirror stable-diffusion.h at floor c6beeef35526.
+// @nimi-authority: rule.nimi.runtime.local-compute.r067
+// The following types mirror stable-diffusion.h at master-951-f89d9b1.
 // C enums/int are int32, C bool is one byte, and pointers/size_t use MSVC x64
-// eight-byte alignment. See header lines 188-248 and 399-430.
+// eight-byte alignment. Update these layouts with the exact package cohort.
 type sdCtxParams struct {
 	ModelPath                   uintptr
 	ClipLPath                   uintptr
@@ -19,6 +20,7 @@ type sdCtxParams struct {
 	EmbeddingsConnectorsPath    uintptr
 	VAEPath                     uintptr
 	AudioVAEPath                uintptr
+	AudioEncoderPath            uintptr
 	TAESDPath                   uintptr
 	ControlNetPath              uintptr
 	IPAdapterPath               uintptr
@@ -46,7 +48,7 @@ type sdCtxParams struct {
 	VAEFormat                   int32
 	_                           [4]byte
 	MaxVRAM                     uintptr
-	StreamLayers                uint8
+	DisablePrefetch             uint8
 	EagerLoad                   uint8
 	_                           [6]byte
 	Backend                     uintptr
@@ -56,6 +58,15 @@ type sdCtxParams struct {
 	_                           [7]byte
 	RPCServers                  uintptr
 	ModelArgs                   uintptr
+	DisableSegmentedCompute     uint8
+	_                           [3]byte
+	LinearScale                 float32
+	AttentionScale              float32
+	_                           [4]byte
+	Tokenizer                   uintptr
+	SageAttention               uint8
+	_                           [3]byte
+	ConditioningCacheSize       int32
 }
 
 type sdAudio struct {
@@ -77,11 +88,11 @@ type sdTilingParams struct {
 	Enabled         uint8
 	TemporalTiling  uint8
 	_               [2]byte
-	TileSizeX       int32
-	TileSizeY       int32
+	TileSizeW       int32
+	TileSizeH       int32
 	TargetOverlap   float32
-	RelativeSizeX   float32
-	RelativeSizeY   float32
+	RelativeSizeW   float32
+	RelativeSizeH   float32
 	ExtraTilingArgs uintptr
 }
 
@@ -200,16 +211,17 @@ type sdVideoGenParams struct {
 	CircularX             uint8
 	CircularY             uint8
 	_                     [6]byte
+	ImagePreprocessRules  uintptr
 }
 
 // Bidirectional compile-time size assertions for the MSVC x64 ABI.
 var (
-	_ [280 - unsafe.Sizeof(sdCtxParams{})]byte
-	_ [unsafe.Sizeof(sdCtxParams{}) - 280]byte
+	_ [320 - unsafe.Sizeof(sdCtxParams{})]byte
+	_ [unsafe.Sizeof(sdCtxParams{}) - 320]byte
 	_ [24 - unsafe.Sizeof(sdAudio{})]byte
 	_ [unsafe.Sizeof(sdAudio{}) - 24]byte
 	_ [24 - unsafe.Sizeof(sdImage{})]byte
 	_ [unsafe.Sizeof(sdImage{}) - 24]byte
-	_ [576 - unsafe.Sizeof(sdVideoGenParams{})]byte
-	_ [unsafe.Sizeof(sdVideoGenParams{}) - 576]byte
+	_ [584 - unsafe.Sizeof(sdVideoGenParams{})]byte
+	_ [unsafe.Sizeof(sdVideoGenParams{}) - 584]byte
 )

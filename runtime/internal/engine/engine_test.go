@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -69,44 +68,45 @@ func TestManagerDataRootQuiesceWaitsForInFlightStartAndAbortResumesAdmission(t *
 
 // --- Download URL tests ---
 
-func TestLlamaDownloadURL(t *testing.T) {
-	setHostGPUProbeForTest(t, "nvidia", true)
-	const version = "b8575"
-	assetName, err := llamaAssetName(version)
-	if err != nil && LlamaSupervisedPlatformSupported() {
-		t.Fatalf("llamaAssetName: %v", err)
-	}
-	releasePayload := fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, assetName, version, assetName, strings.Repeat("a", 64))
+func TestLlamaStartupHealthUsesUnauthenticatedHealthRoute(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/"+version {
-			http.NotFound(w, r)
+		if r.URL.Path != "/health" {
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		_, _ = w.Write([]byte(releasePayload))
+		if r.Header.Get("Authorization") != "" {
+			t.Error("health probe received an inference credential")
+		}
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	}))
-	defer func() { server.Close() }()
-	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
+	defer server.Close()
+	cfg := DefaultLlamaConfig()
+	cfg.Address = server.URL
+	cfg.StartupTimeout = 100 * time.Millisecond
+	if err := waitSupervisorHealthy(context.Background(), cfg, 10*time.Millisecond); err != nil {
+		t.Fatalf("authenticated server startup health: %v", err)
+	}
+}
 
-	url, err := llamaDownloadURL(version)
+func TestLlamaDownloadURL(t *testing.T) {
+	setHostGPUProbeForTest(t, "nvidia", true)
+	url, err := llamaDownloadURL(defaultLlamaVersion)
 	if !LlamaSupervisedPlatformSupported() {
 		if err == nil {
-			t.Fatalf("expected unsupported platform error on %s", PlatformString())
-		}
-		if !strings.Contains(err.Error(), "unsupported platform: "+PlatformString()) {
-			t.Fatalf("unexpected unsupported platform error: %v", err)
+			t.Fatal("unsupported host admitted")
 		}
 		return
 	}
 	if err != nil {
-		t.Fatalf("llamaDownloadURL: %v", err)
+		t.Fatal(err)
 	}
-	if url == "" {
-		t.Fatal("expected non-empty URL")
+	name, err := llamaAssetName(defaultLlamaVersion)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	expectedURL := fmt.Sprintf("https://github.com/ggml-org/llama.cpp/releases/download/%s/%s", version, assetName)
-	if url != expectedURL {
-		t.Errorf("unexpected URL: got=%s want=%s", url, expectedURL)
+	want := "https://github.com/ggml-org/llama.cpp/releases/download/" + defaultLlamaVersion + "/" + name
+	if url != want {
+		t.Fatalf("URL=%s, want %s", url, want)
 	}
 }
 
@@ -149,47 +149,15 @@ func TestLlamaAssetNameCandidatesPreferWindowsNvidiaCUDA(t *testing.T) {
 	}
 }
 
-func TestLlamaReleaseAssetRequiresWindowsNvidiaCUDAWithoutCPUFallback(t *testing.T) {
-	if currentGOOS() != "windows" || currentGOARCH() != "amd64" {
-		t.Skip("Windows NVIDIA CUDA release selection is host-gated")
-	}
-	setHostGPUProbeForTest(t, "nvidia", true)
-	const version = "b8712"
-	const cudaAsset = "llama-b8712-bin-win-cuda-12.4-x64.zip"
-	const cpuAsset = "llama-b8712-bin-win-cpu-x64.zip"
-	const cudaHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	const cpuHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/"+version {
-			http.NotFound(w, r)
-			return
+func TestLlamaReleaseRejectsUnadmittedVersionAndBackend(t *testing.T) {
+	for _, input := range [][2]string{
+		{"b8645", "llama-b8645-bin-win-cuda-12.4-x64.zip"},
+		{"v0.6.0", "llama-v0.6.0-bin-win-cuda-12.4-x64.zip"},
+		{defaultLlamaVersion, "llama-b11429-bin-win-cpu-x64.zip"},
+	} {
+		if _, err := llamaReleaseAssetByName(input[0], input[1]); !errors.Is(err, ErrEngineBinaryDownloadFailed) {
+			t.Fatalf("unadmitted source: %v", err)
 		}
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"},{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, cpuAsset, version, cpuAsset, cpuHash, cudaAsset, version, cudaAsset, cudaHash)))
-	}))
-	defer func() { server.Close() }()
-	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
-
-	asset, err := llamaReleaseAsset(version)
-	if err != nil {
-		t.Fatalf("llamaReleaseAsset: %v", err)
-	}
-	if asset.Name != cudaAsset || asset.SHA256 != cudaHash {
-		t.Fatalf("expected CUDA asset, got %#v", asset)
-	}
-
-	fallbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/"+version {
-			http.NotFound(w, r)
-			return
-		}
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, cpuAsset, version, cpuAsset, cpuHash)))
-	}))
-	defer func() { fallbackServer.Close() }()
-	t.Cleanup(setLlamaReleaseSourceForTest(fallbackServer.URL, fallbackServer.Client()))
-
-	if _, err = llamaReleaseAsset(version); err == nil {
-		t.Fatal("expected missing CUDA asset to fail without CPU fallback")
 	}
 }
 
@@ -282,46 +250,14 @@ func TestManagedImageSupervisedPlatformSupportedFor(t *testing.T) {
 }
 
 func TestLlamaExpectedSHA256(t *testing.T) {
-	const version = "b8575"
-	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00" // pragma: allowlist secret
-	asset, err := llamaAssetNameFor(version, "darwin", "arm64")
-	if err != nil {
-		t.Fatalf("llamaAssetName: %v", err)
-	}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/"+version {
-			http.NotFound(w, r)
-			return
+	for name, want := range map[string]string{
+		"llama-b11429-bin-win-cuda-12.4-x64.zip": "dd6df685c1024e6aa55ca55ad35038692d5e284d4dc895e7a646c3245d3d14ff", // pragma: allowlist secret
+		"llama-b11429-bin-macos-arm64.tar.gz":    "740288ec6887be94280a5dfa25b5e23a78285cab104519e6c7e218904ee82459", // pragma: allowlist secret
+	} {
+		got, err := llamaExpectedSHA256(defaultLlamaVersion, name)
+		if err != nil || got != want {
+			t.Fatalf("%s: %s %v", name, got, err)
 		}
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, asset, version, asset, expectedHash)))
-	}))
-	defer func() { server.Close() }()
-
-	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
-
-	hash, err := llamaExpectedSHA256(version, asset)
-	if err != nil {
-		t.Fatalf("llamaExpectedSHA256: %v", err)
-	}
-	if hash != expectedHash {
-		t.Fatalf("checksum mismatch: got=%s want=%s", hash, expectedHash)
-	}
-}
-
-func TestLlamaExpectedSHA256MissingAsset(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"tag_name":"b8575","assets":[{"name":"llama-b8575-bin-macos-arm64.tar.gz","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/b8575/llama-b8575-bin-macos-arm64.tar.gz","digest":"sha256:aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00"}]}`))
-	}))
-	defer func() { server.Close() }()
-
-	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
-
-	_, err := llamaExpectedSHA256("b8575", "llama-b8575-bin-ubuntu-x64.tar.gz")
-	if err == nil {
-		t.Fatal("expected missing checksum error")
-	}
-	if !errors.Is(err, ErrEngineBinaryDownloadFailed) {
-		t.Fatalf("expected ErrEngineBinaryDownloadFailed, got %v", err)
 	}
 }
 

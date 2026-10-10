@@ -289,6 +289,7 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeSDCPPAfterCUDAReady
 		DependencyFamily:  localEnvironmentFamilyCUDA,
 		DependencyID:      cudaUserSpaceRuntimeDependencyID,
 		EnvironmentKey:    "accelerator.cuda.runtime|ready-after-backend-failure",
+		Version:           engine.NVIDIACUDAUserSpaceRuntimeVersion,
 		SourceKind:        localEnvironmentSourceManaged,
 		SelectedConsumers: []string{consumer},
 	})
@@ -316,6 +317,33 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeSDCPPAfterCUDAReady
 	}
 	if len(actions) != 1 || actions[0].Kind != localEnvironmentPlanApplyStart {
 		t.Fatalf("native backend recovery actions = %+v, want one fresh start admission", actions)
+	}
+}
+
+func TestPrepareLocalEnvironmentPlanApplyStartsFreshLlamaAcquisitionAfterSourceFailure(t *testing.T) {
+	svc := newTestService(t)
+	dep := localEnvironmentPlanDependency{
+		EnvironmentKey:   localEnvironmentNativeLlamaKey(engine.DefaultLlamaConfig().Version, "windows/amd64"),
+		DependencyFamily: localEnvironmentFamilyNativeLlama, DependencyID: "llama.cpp.package",
+		ConsumerScope: "llama.cpp.cuda", State: localEnvironmentStateFailed, SourceKind: localEnvironmentSourceManaged, Required: true,
+	}
+	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{dep})
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cudaUserSpaceRuntimeDependencyID,
+		Version: engine.NVIDIACUDAUserSpaceRuntimeVersion, EnvironmentKey: "accelerator.cuda.runtime|current-llama-cuda",
+		SourceKind: localEnvironmentSourceManaged, SelectedConsumers: []string{dep.ConsumerScope},
+	})
+	svc.localEnvironmentDependencyJobs["failed-metadata-discovery"] = localEnvironmentDependencyJobState{
+		JobID: "failed-metadata-discovery", EnvironmentKey: dep.EnvironmentKey, DependencyFamily: dep.DependencyFamily,
+		DependencyID: dep.DependencyID, ConsumerScope: dep.ConsumerScope, State: localEnvironmentStateFailed,
+		SourceKind: localEnvironmentSourceManaged, RecoveryDisposition: localEnvironmentJobRecoveryNotRetryable,
+	}
+	actions, err := svc.prepareLocalEnvironmentPlanApplyActions(localEnvironmentPlan{Dependencies: []localEnvironmentPlanDependency{dep}})
+	if err != nil || len(actions) != 1 || actions[0].Kind != localEnvironmentPlanApplyStart {
+		t.Fatalf("explicit new llama acquisition: actions=%+v err=%v", actions, err)
+	}
+	if svc.localEnvironmentDependencyJobs["failed-metadata-discovery"].Retryable {
+		t.Fatal("new acquisition rewrote the failed job")
 	}
 }
 
@@ -729,10 +757,10 @@ func TestRetryLocalEnvironmentDependencyJobRestoresConsumerScopeAfterRestart(t *
 			PackageSource:     "canonical_runtime_wrapper",
 			PackageFormat:     "direct_archive",
 			LaunchMode:        "runtime_wrapper",
-			ReleaseTag:        "master-813-bfbef5b",
-			SourceCommit:      "bfbef5b7e64e89a0205894853de25d19a7ba54b9", // pragma: allowlist secret -- public source commit
+			ReleaseTag:        "master-951-f89d9b1",
+			SourceCommit:      "f89d9b13d730eabeede7314ce49dacd18d3c90c2", // pragma: allowlist secret -- public source commit
 			ArchiveURL:        "https://example.invalid/sd.zip",
-			ArchiveSHA256:     "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71", // pragma: allowlist secret -- public archive checksum
+			ArchiveSHA256:     "f129da40b1a85565c79a00a73bdf696164773cfa63dd06450d29d018508208a3", // pragma: allowlist secret -- public archive checksum
 			CanonicalRoot:     filepath.Join(runtimeDataRoot, "environments", "managed-image-backends", "sd-win-cuda12-x64-stablediffusion-ggml"),
 			VerifiedArtifacts: []string{"sd.exe", "metadata.json"},
 			Detail:            "managed image backend package verified from canonical_runtime_wrapper",
@@ -1017,10 +1045,10 @@ func TestStartNativeSDCPPDependencyJobPromotesWindowsRuntimeWrapperSelectedSourc
 			PackageSource:     "canonical_runtime_wrapper",
 			PackageFormat:     "direct_archive",
 			LaunchMode:        "runtime_wrapper",
-			ReleaseTag:        "master-813-bfbef5b",
-			SourceCommit:      "bfbef5b7e64e89a0205894853de25d19a7ba54b9", // pragma: allowlist secret -- public source commit
+			ReleaseTag:        "master-951-f89d9b1",
+			SourceCommit:      "f89d9b13d730eabeede7314ce49dacd18d3c90c2", // pragma: allowlist secret -- public source commit
 			ArchiveURL:        "https://example.invalid/sd.zip",
-			ArchiveSHA256:     "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71", // pragma: allowlist secret -- public archive checksum
+			ArchiveSHA256:     "f129da40b1a85565c79a00a73bdf696164773cfa63dd06450d29d018508208a3", // pragma: allowlist secret -- public archive checksum
 			CanonicalRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "managed-image-backends", "sd-win-cuda12-x64-stablediffusion-ggml"),
 			VerifiedArtifacts: []string{"sd.exe", "metadata.json"},
 			Detail:            "managed image backend package verified from canonical_runtime_wrapper",
@@ -1054,9 +1082,9 @@ func TestStartNativeSDCPPDependencyJobPromotesWindowsRuntimeWrapperSelectedSourc
 	if got := source.SelectedConsumers; len(got) != 1 || got[0] != "stable-diffusion.cpp.cuda" {
 		t.Fatalf("selected consumers = %v, want stable-diffusion.cpp.cuda", got)
 	}
-	if source.Version != "master-813-bfbef5b" ||
-		source.Hashes["archive_sha256"] != "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71" || // pragma: allowlist secret -- public archive checksum
-		!stringSliceContains(source.CompatibilityEvidence, "source_commit=bfbef5b7e64e89a0205894853de25d19a7ba54b9") ||
+	if source.Version != "master-951-f89d9b1" ||
+		source.Hashes["archive_sha256"] != "f129da40b1a85565c79a00a73bdf696164773cfa63dd06450d29d018508208a3" || // pragma: allowlist secret -- public archive checksum
+		!stringSliceContains(source.CompatibilityEvidence, "source_commit=f89d9b13d730eabeede7314ce49dacd18d3c90c2") ||
 		!stringSliceContains(source.CompatibilityEvidence, "package_format=direct_archive") ||
 		!stringSliceContains(source.CompatibilityEvidence, "launch_mode=runtime_wrapper") {
 		t.Fatalf("selected source is not canonical Windows runtime-wrapper evidence: %+v", source)
@@ -1159,10 +1187,10 @@ func TestNativeSDCPPDependencyJobProjectsManagedBackendDownloadProgress(t *testi
 			PackageSource:     "canonical_runtime_wrapper",
 			PackageFormat:     "direct_archive",
 			LaunchMode:        "runtime_wrapper",
-			ReleaseTag:        "master-813-bfbef5b",
-			SourceCommit:      "bfbef5b7e64e89a0205894853de25d19a7ba54b9", // pragma: allowlist secret -- public source commit
+			ReleaseTag:        "master-951-f89d9b1",
+			SourceCommit:      "f89d9b13d730eabeede7314ce49dacd18d3c90c2", // pragma: allowlist secret -- public source commit
 			ArchiveURL:        "https://example.invalid/sd.zip",
-			ArchiveSHA256:     "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71", // pragma: allowlist secret -- public archive checksum
+			ArchiveSHA256:     "f129da40b1a85565c79a00a73bdf696164773cfa63dd06450d29d018508208a3", // pragma: allowlist secret -- public archive checksum
 			CanonicalRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "managed-image-backends", "sd-win-cuda12-x64-stablediffusion-ggml"),
 			VerifiedArtifacts: []string{"sd.exe", "metadata.json"},
 			Detail:            "managed image backend package verified from canonical_runtime_wrapper",

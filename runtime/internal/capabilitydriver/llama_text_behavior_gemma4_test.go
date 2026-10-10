@@ -61,7 +61,7 @@ func TestGemma4BehaviorSerializerMapsToolsRoundTripStructuredAndReasoning(t *tes
 	if err := json.Unmarshal(serialized.Payload, &body); err != nil {
 		t.Fatal(err)
 	}
-	if body["thinking_budget_tokens"] != float64(32) || body["reasoning_format"] != "deepseek" {
+	if body["reasoning_budget_tokens"] != float64(32) || body["reasoning_format"] != "deepseek" {
 		t.Fatalf("serialized reasoning request = %#v", body)
 	}
 }

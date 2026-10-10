@@ -16,7 +16,7 @@ import (
 // Runs existing real model custody through exact production Drivers and both
 // private Hosts. The isolated package is extracted with the production whitelist.
 // It neither selects machine resources nor asserts protected App acceptance.
-func TestAudioCpp081RetainedDriversIntegration(t *testing.T) {
+func TestAudioCppRetainedDriversIntegration(t *testing.T) {
 	root, output := os.Getenv("NIMI_YUE2_TEST_ROOT"), os.Getenv("NIMI_AUDIO_RETAINED_TEST_OUTPUT")
 	musicRoot, speechRoot := os.Getenv("NIMI_MUSIC3_TEST_MODEL"), os.Getenv("NIMI_QWEN_TTS_TEST_MODEL")
 	if root == "" || output == "" || musicRoot == "" || speechRoot == "" {
@@ -38,10 +38,10 @@ func TestAudioCpp081RetainedDriversIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	packageInput := capabilitydriver.AudioCppRuntimePackageInput{AudioCppVersion: AudioCppPackageVersion,
-		AudioCppPackageID: capabilitydriver.AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "isolated-fixed-081",
+		AudioCppPackageID: capabilitydriver.AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "isolated-fixed-091",
 		AudioCppRoot: packageRoot, AudioCppExecutablePath: filepath.Join(packageRoot, AudioCppCLIExecutableName),
 		CUDA13DependencyID: capabilitydriver.AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "isolated-fixed-133",
-		CUDA13Root: filepath.Join(root, "engine", "audio-v0.8.1-cudart-windows-x64-cuda13.3")}
+		CUDA13Root: filepath.Join(root, "engine", "audio-v0.9.1-cudart-windows-x64-cuda13.3")}
 	binding := func(directory, requirement, entry string) capabilitydriver.InvocationExactBinding {
 		t.Helper()
 		directory = filepath.Clean(directory)

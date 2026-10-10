@@ -38,7 +38,7 @@ func Gemma4TextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpe
 		if !ok || budget.ExactBudgetTokens == 0 {
 			return textbehavior.SerializedRequest{}, fmt.Errorf("Gemma 4 reasoning requires an exact positive token budget")
 		}
-		body["thinking_budget_tokens"] = budget.ExactBudgetTokens
+		body["reasoning_budget_tokens"] = budget.ExactBudgetTokens
 		body["reasoning_format"] = "deepseek"
 		thinking = true
 	}

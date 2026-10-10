@@ -236,7 +236,7 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 			}
 			if hasJob &&
 				strings.TrimSpace(job.State) == localEnvironmentStateFailed &&
-				(dep.DependencyFamily == localEnvironmentFamilyNativeSDCPP || dep.DependencyFamily == localEnvironmentFamilyNativeAudioCPP) &&
+				(dep.DependencyFamily == localEnvironmentFamilyNativeLlama || dep.DependencyFamily == localEnvironmentFamilyNativeSDCPP || dep.DependencyFamily == localEnvironmentFamilyNativeAudioCPP) &&
 				strings.TrimSpace(job.SelectedSourceRecordID) == "" &&
 				localEnvironmentCUDAConsumerScopeRequiresRuntime(dep.ConsumerScope) {
 				if _, ready, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, dep.ConsumerScope); ready {

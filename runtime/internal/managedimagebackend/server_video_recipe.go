@@ -7,7 +7,7 @@ const (
 	sdCUDARNG           = 1
 	sdCPURNG            = 2
 	sdSampleMethodCount = 21
-	sdSchedulerCount    = 16
+	sdSchedulerCount    = 17
 )
 
 type videoRecipeTokenConverter func(label, value string, count int32) (int32, bool, error)

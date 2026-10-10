@@ -12,7 +12,8 @@ import (
 const (
 	NVIDIACUDAUserSpaceRuntimeDependencyID   = "nvidia-cuda-user-space-runtime"
 	NVIDIACUDA13UserSpaceRuntimeDependencyID = "nvidia-cuda13-user-space-runtime"
-	NVIDIACUDA13UserSpaceRuntimeVersion      = "cuda_major=13;audio.cpp=v0.8.1;cuda_minor=3"
+	NVIDIACUDAUserSpaceRuntimeVersion        = "cuda_major=12;cuda_minor=8;source=sd-master-951-f89d9b1"
+	NVIDIACUDA13UserSpaceRuntimeVersion      = "cuda_major=13;audio.cpp=v0.9.1;cuda_minor=3"
 )
 
 type SharedAcceleratorDependencyState string
@@ -55,10 +56,12 @@ var nvidiaCUDAUserSpaceRuntimeRequiredArtifacts = []string{
 }
 
 var nvidiaCUDAUserSpaceRuntimeManagedSource = sharedAcceleratorDependencyManagedSource{
-	SourceID:       "llama-cuda12.4-win-x64-runtime",
-	ReleaseVersion: defaultLlamaVersion,
-	ReleaseAsset:   "cudart-llama-bin-win-cuda-12.4-x64.zip",
-	InstallDirName: NVIDIACUDAUserSpaceRuntimeDependencyID,
+	SourceID:       "sdcpp-master-951-f89d9b1-cuda12.8-win-x64-runtime",
+	ArchiveURL:     "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-951-f89d9b1/cudart-sd-bin-win-cu12-x64.zip",
+	ArchiveSHA256:  "fe20366827d357c00797eebb58244dddab7fd9a348d70090c3871004c320f38d", // pragma: allowlist secret -- public archive checksum
+	ReleaseVersion: "master-951-f89d9b1",
+	ReleaseAsset:   "cudart-sd-bin-win-cu12-x64.zip",
+	InstallDirName: "nvidia-cuda12.8-sdcpp-f89d9b1",
 }
 
 var nvidiaCUDA13UserSpaceRuntimeRequiredArtifacts = []string{
@@ -69,12 +72,12 @@ var nvidiaCUDA13UserSpaceRuntimeRequiredArtifacts = []string{
 }
 
 var nvidiaCUDA13UserSpaceRuntimeManagedSource = sharedAcceleratorDependencyManagedSource{
-	SourceID:       "audiocpp-0.8.1-cuda13.3-win-x64-runtime",
-	ArchiveURL:     "https://github.com/0xShug0/audio.cpp/releases/download/v0.8.1/audio-v0.8.1-cudart-windows-x64-cuda13.3.zip",
-	ArchiveSHA256:  "5c0a8b1022500b2df2062b7215584408ad07d43358f38a1a3ace0ac6daa441a9", // pragma: allowlist secret -- public archive checksum
-	ReleaseVersion: "v0.8.1",
-	ReleaseAsset:   "audio-v0.8.1-cudart-windows-x64-cuda13.3.zip",
-	InstallDirName: NVIDIACUDA13UserSpaceRuntimeDependencyID,
+	SourceID:       "audiocpp-0.9.1-cuda13.3-win-x64-runtime",
+	ArchiveURL:     "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.1/audio-v0.9.1-cudart-windows-x64-cuda13.3.zip",
+	ArchiveSHA256:  "fa0fb817540c578bad085c7befb9d25b5a7634548e47955bff7b732b04b8a84b", // pragma: allowlist secret -- public archive checksum
+	ReleaseVersion: "v0.9.1",
+	ReleaseAsset:   "audio-v0.9.1-cudart-windows-x64-cuda13.3.zip",
+	InstallDirName: "nvidia-cuda13.3-audiocpp-0.9.1",
 }
 
 type sharedAcceleratorDependencySpec struct {
@@ -101,7 +104,7 @@ func sharedAcceleratorDependencySpecForID(raw string) (sharedAcceleratorDependen
 	case NVIDIACUDAUserSpaceRuntimeDependencyID:
 		return sharedAcceleratorDependencySpec{
 			DependencyID:      NVIDIACUDAUserSpaceRuntimeDependencyID,
-			Version:           "cuda_major=12",
+			Version:           NVIDIACUDAUserSpaceRuntimeVersion,
 			RequiredArtifacts: append([]string(nil), nvidiaCUDAUserSpaceRuntimeRequiredArtifacts...),
 			ManagedSource:     nvidiaCUDAUserSpaceRuntimeManagedSource,
 		}, true
@@ -384,18 +387,6 @@ func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesP
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 	archiveURL := strings.TrimSpace(source.ArchiveURL)
 	archiveSHA256 := strings.TrimSpace(source.ArchiveSHA256)
-	if archiveURL == "" {
-		releaseVersion := strings.TrimSpace(source.ReleaseVersion)
-		if releaseVersion == "" {
-			return fmt.Errorf("managed CUDA dependency release version is required")
-		}
-		releaseAsset, err := llamaReleaseAssetByName(releaseVersion, source.ReleaseAsset)
-		if err != nil {
-			return fmt.Errorf("resolve managed CUDA dependency release asset: %w", err)
-		}
-		archiveURL = releaseAsset.DownloadURL
-		archiveSHA256 = releaseAsset.SHA256
-	}
 	if archiveURL == "" {
 		return fmt.Errorf("managed CUDA dependency archive URL is required")
 	}

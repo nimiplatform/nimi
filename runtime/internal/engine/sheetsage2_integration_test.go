@@ -60,7 +60,7 @@ func TestSheetSage2NativeExecutionIntegration(t *testing.T) {
 	if err := os.Link(filepath.Join(root, "models", "SheetSage2-GGUF", "sheetsage2-orig.gguf"), filepath.Join(modelRoot, "sheetsage2-orig.gguf")); err != nil {
 		t.Fatal(err)
 	}
-	engineRoot := filepath.Join(root, "engine", "audio-v0.8.1-bin-windows-x64-cuda13.3")
+	engineRoot := filepath.Join(root, "engine", "audio-v0.9.1-bin-windows-x64-cuda13.3")
 	input := capabilitydriver.MusicTranscriptionInvocationInput{LoadoutID: "isolated-sheetsage2-verification", RecipeID: capabilitydriver.SheetSage2RecipeID,
 		SourcePath: stagedSource, StagingDir: output, SourceInfo: &runtimev1.LocalAppAudioInfo{SampleRateHz: facts.SampleRateHz, Channels: uint32(facts.Channels), FrameCount: facts.FrameCount, DurationMs: int64(facts.DurationMilliseconds())},
 		Request: &runtimev1.MusicTranscribeScenarioSpec{SourceAudio: &runtimev1.MusicAudioInput{ArtifactId: "isolated-source"},
@@ -69,10 +69,10 @@ func TestSheetSage2NativeExecutionIntegration(t *testing.T) {
 		ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.SheetSage2RequirementID, ModelAssetID: "fixed-sheetsage2-original",
 			BundleDir: modelRoot, AbsolutePath: filepath.Join(modelRoot, "sheetsage2-orig.gguf"), DeclaredFiles: []string{"sheetsage2-orig.gguf"},
 			VerifiedContentID: capabilitydriver.SheetSage2VerifiedContentID, EntrySHA256: strings.TrimPrefix(capabilitydriver.SheetSage2VerifiedContentID, "sha256:")}},
-		Package: capabilitydriver.AudioCppRuntimePackageInput{AudioCppVersion: "0.8.1", AudioCppPackageID: capabilitydriver.AudioCppWindowsCUDA13PackageID,
-			AudioCppSelectedSourceRecordID: "isolated-v0.8.1-f2b4937", AudioCppRoot: engineRoot, AudioCppExecutablePath: filepath.Join(engineRoot, "audiocpp_cli.exe"),
-			CUDA13DependencyID: capabilitydriver.AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "isolated-v0.8.1-cuda13.3",
-			CUDA13Root: filepath.Join(root, "engine", "audio-v0.8.1-cudart-windows-x64-cuda13.3")}}
+		Package: capabilitydriver.AudioCppRuntimePackageInput{AudioCppVersion: "0.9.1", AudioCppPackageID: capabilitydriver.AudioCppWindowsCUDA13PackageID,
+			AudioCppSelectedSourceRecordID: "isolated-v0.9.1-cf124a6", AudioCppRoot: engineRoot, AudioCppExecutablePath: filepath.Join(engineRoot, "audiocpp_cli.exe"),
+			CUDA13DependencyID: capabilitydriver.AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "isolated-v0.9.1-cuda13.3",
+			CUDA13Root: filepath.Join(root, "engine", "audio-v0.9.1-cudart-windows-x64-cuda13.3")}}
 	plan, err := (capabilitydriver.SheetSage2AudioCppDriver{}).PlanMusicTranscriptionInvocation(input)
 	if err != nil {
 		t.Fatal(err)
