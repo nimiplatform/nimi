@@ -34,33 +34,50 @@ After mitigation is available, we coordinate responsible disclosure and publish 
 ## Signed Artifact Verification
 
 Windows production signing is not active. The SignPath Foundation application
-has not yet been submitted. Its required bootstrap is now public in the
-immutable [v0.2.2-preview.1 prerelease](https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1),
-but there is no production Authenticode signer configured and no current Nimi
+has not yet been submitted. As checked on 2026-10-10, the public
+[GitHub Releases API](https://api.github.com/repos/nimiplatform/nimi/releases)
+returns no releases, and the claimed `v0.2.2-preview.1` prerelease is unavailable.
+Earlier developer previews were withdrawn, as recorded in [README.md](README.md).
+The unsigned Runtime bootstrap remains a planned application prerequisite;
+its build script is not evidence of a published artifact. There is no production
+Authenticode signer configured and no current Nimi
 Windows artifact should be treated as production signed or SignPath-signed. The
 repository's self-signed development certificate path is for local testing only
 and is never a release-signing substitute.
 
-Explicit `vX.Y.Z-preview.N` GitHub prereleases are unsigned previews, not RC or
-Stable releases. The current `v0.2.2-preview.1` Windows preview contains the
-source-local Kit package and a separate portable unsigned Runtime
-[ZIP](https://github.com/nimiplatform/nimi/releases/download/v0.2.2-preview.1/Nimi-Runtime-v0.2.2-preview.1-windows-x64-unsigned-bootstrap.zip);
-both PE files must report `NotSigned`. It contains no Nimi Home app, installer,
-or service package. The macOS candidate is ad-hoc signed with no TeamIdentifier
-and requires the exact source checkout for installation and uninstallation.
-Preview assets are marked `UNSIGNED PREVIEW — NOT PROMOTABLE`, never update
-`latest`, and are never retroactively described as signed.
+Explicit `vX.Y.Z-preview.N` GitHub prereleases are intended as unsigned previews,
+not RC or Stable releases. A future unsigned Windows Runtime bootstrap must
+report `NotSigned` when inspected on Windows. Its portable ZIP is intended to
+contain no Nimi Home app, installer or service package. Preview assets must be
+marked `UNSIGNED PREVIEW — NOT PROMOTABLE`, must not update `latest`, and must
+never be retroactively described as signed. No unavailable preview asset's
+contents or signature status should be treated as currently verified.
 
-The Runtime bootstrap contains `nimi.exe`, the Apache-2.0 license, and explicit
-bootstrap instructions. It has no installer or service path. A user extracts
-it, runs `.\nimi.exe version --json`, and removes it by closing the process and
+The current [Runtime bootstrap build script](scripts/build-windows-runtime-unsigned-bootstrap.mjs)
+stages `nimi.exe`, Runtime's Apache-2.0 license and explicit bootstrap instructions.
+Runtime also embeds third-party source and notices, including the
+[LocateAnything loader](runtime/internal/engine/assets/locateanything_loader/NOTICE.md),
+and links third-party Go libraries. The package-root license alone is not a
+complete distribution license inventory; the actual payload and applicable
+third-party attribution requirements need review before publication.
+The bootstrap has no installer or service path. A user would extract
+it, run `.\nimi.exe version --json`, and remove it by closing the process and
 deleting the extracted directory. It does not modify `PATH`, Program Files,
 ProgramData, or Windows certificate stores, and it does not make protected-local
 production available.
 
-The initial SignPath application scope is only the Nimi-owned Windows x64
-Runtime executable `nimi.exe`. Nimi's signing identity is never used for a
-third-party App or upstream binary. Authenticode on the Kit protected-local
+The planned initial SignPath application scope is only the Nimi-maintained
+Windows x64 Runtime executable `nimi.exe`, distributed in a portable ZIP;
+Desktop installers, third-party Apps and separately acquired upstream binaries
+are excluded from that signing target. This scope does not exempt embedded
+third-party source, linked libraries or runtime-acquired dependencies from
+license review. Under the [SignPath Foundation conditions](https://signpath.org/terms.html)
+(checked 2026-10-10), eligibility depends on component licensing and source/build
+ownership as well as an existing release in the form to be signed. The
+LocateAnything source-channel ambiguity and the full dependency/distribution
+inventory must be resolved before representing this artifact as eligible.
+Nimi's signing identity is never used for a third-party App or upstream binary.
+Authenticode on the Kit protected-local
 `.node` addon is not a Phase 4A release gate; after SignPath approval, that
 package consumes the leaf certificate SubjectPublicKeyInfo (SPKI) SHA-256 of
 the formally signed Runtime solely for Runtime peer verification. The order is:

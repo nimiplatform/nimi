@@ -8,6 +8,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const LICENSE_CHECKS = [
+  { file: 'nimi-cognition/package.json', expected: 'Apache-2.0' },
   { file: 'kit/package.json', expected: 'MIT' },
   { file: 'sdks/typescript/package.json', expected: 'Apache-2.0' },
 ];

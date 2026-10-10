@@ -1,11 +1,20 @@
 # @nimiplatform/nimi Licensing Map
 
-This repository is multi-licensed by component.
+This repository is multi-licensed by component. The defaults below describe
+Nimi-authored material; they do not relicense third-party material.
 
-- `runtime/**`, `sdks/typescript/**`, `proto/**`, `app-tools/**`, `npm-packages/**`: Apache-2.0
+- `runtime/**`, `nimi-cognition/**`, `sdks/typescript/**`, `proto/**`, `app-tools/**`, `npm-packages/**`: Apache-2.0
 - `apps/**`, `kit/**`: MIT
 - `app-tools/templates/default-starter/**`, `app-tools/templates/app-source/**`: MIT (override the `app-tools/**` default)
-- `runtime/internal/engine/assets/locateanything_loader/**`: third-party loader terms and original file notices as described in that directory's LICENSE and NOTICE.md (override the Runtime default for upstream files)
+- `runtime/internal/engine/assets/locateanything_loader/**`: third-party source with file-specific notices and separate upstream code/model license declarations; see that directory's NOTICE.md and retained license texts (exceptions to the Runtime default for upstream files)
+- `apps/avatar/src/shell/renderer/public/assets/js/live2d-cubism-core/**`: Live2D Cubism Core under the Live2D Proprietary Software License; see its Core/LICENSE.md and original file header (exception to the App MIT default)
 - `docs/**`, `.nimi/spec/**`: CC-BY-4.0
 
 Canonical texts are in `licenses/`.
+
+Third-party source, linked libraries, downloaded engine binaries and their
+dependencies retain their own licenses and attribution requirements. Model
+weights have separate terms, including non-commercial terms for some models;
+the Runtime or SDK license does not grant rights to those weights. Audit the
+actual distribution payload, embedded files and separately acquired components
+before describing an artifact's licensing or signing eligibility.

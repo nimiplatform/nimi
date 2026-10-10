@@ -5,7 +5,7 @@
  * with correct license types per the multi-license repo structure.
  *
  * Structure:
- *   runtime/, sdks/typescript/, proto/, app-tools/, npm-packages/ -> Apache-2.0
+ *   runtime/, nimi-cognition/, sdks/typescript/, proto/, app-tools/, npm-packages/ -> Apache-2.0
  *   apps/, kit/                         -> MIT
  *   app-tools/templates/default-starter/, app-tools/templates/app-source/ -> MIT
  *   docs/                              -> CC-BY-4.0
@@ -23,6 +23,7 @@ const LICENSE_MAP = [
   {
     dirs: [
       'runtime',
+      'nimi-cognition',
       'sdks/typescript',
       'proto',
       'app-tools',

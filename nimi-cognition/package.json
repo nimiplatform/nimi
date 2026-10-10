@@ -1,6 +1,7 @@
 {
   "name": "@nimiplatform/cognition",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "test": "go test ./..."
   }
