@@ -1,8 +1,36 @@
-import { createLogger, defineConfig, loadEnv, searchForWorkspaceRoot, type Logger } from 'vite';
+import { createLogger, defineConfig, loadEnv, searchForWorkspaceRoot, type Logger, type Plugin } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+
+export function desktopRendererModuleCache(sdkDist: string): Plugin {
+  return {
+    name: 'desktop-renderer-module-cache',
+    configureServer(server) {
+      // Canonical SDK builds replace dist atomically. macOS can report only
+      // directory events; with HMR disabled Vite also retains unlink/add caches.
+      const invalidate = (file: string) => {
+        for (const environment of Object.values(server.environments)) {
+          environment.moduleGraph.onFileChange(file.replaceAll('\\', '/'));
+        }
+      };
+      const invalidateDirectory = (directory: string) => {
+        const prefix = `${directory.replaceAll('\\', '/')}/`;
+        for (const environment of Object.values(server.environments)) {
+          for (const file of environment.moduleGraph.fileToModulesMap.keys()) {
+            if (file.startsWith(prefix)) environment.moduleGraph.onFileChange(file);
+          }
+        }
+      };
+      server.watcher.add(sdkDist);
+      server.watcher.on('unlink', invalidate);
+      server.watcher.on('add', invalidate);
+      server.watcher.on('unlinkDir', invalidateDirectory);
+      server.watcher.on('addDir', invalidateDirectory);
+    },
+  };
+}
 
 function loadDesktopBuildEnvFiles(): void {
   if (typeof process.loadEnvFile !== 'function') {
@@ -175,6 +203,7 @@ export default defineConfig(({ mode }) => {
       ],
     },
     plugins: [
+      desktopRendererModuleCache(sdkVNextDist),
       react({ exclude: [/\/node_modules\//, /\/src\/(?:shell\/renderer\/)?main\.tsx$/] }),
       tailwindcss(),
     ],
