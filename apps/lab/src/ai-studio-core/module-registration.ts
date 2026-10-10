@@ -8,7 +8,7 @@ import type { StudioRunHistoryRecord } from './history.js';
 
 export type StudioControlId = 'tone' | 'length';
 export type StudioInputKind = 'prompt' | 'url' | 'none';
-export type StudioResultKind = 'text' | 'transcript' | 'embedding' | 'artifacts' | 'voice-asset' | 'voice-catalog' | 'vision-locate' | 'text-annotation' | 'text-exchange' | 'text-decision' | 'session';
+export type StudioResultKind = 'text' | 'transcript' | 'speaker-embedding' | 'embedding' | 'artifacts' | 'voice-asset' | 'voice-catalog' | 'vision-locate' | 'text-annotation' | 'text-exchange' | 'text-decision' | 'session';
 
 export type CapabilityStudioProfile = {
   readonly studioTag: string;

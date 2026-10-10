@@ -105,7 +105,7 @@ func (s *Service) captureSpeakerAudio(ctx context.Context, head *runtimev1.Scena
 	if err != nil {
 		return nil, "", err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	facts := source.Record.CanonicalAudio
 	if facts == nil || facts.SampleRateHz <= 0 {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -127,7 +127,7 @@ func (s *Service) captureSpeakerAudio(ctx context.Context, head *runtimev1.Scena
 	if err != nil {
 		return nil, "", err
 	}
-	defer os.RemoveAll(work)
+	defer func() { _ = os.RemoveAll(work) }()
 	filename := filepath.Join(work, "audio.wav")
 	if _, err := audiomedia.CopyCanonicalRange(ctx, source.Body, audiomedia.Facts{SampleRateHz: facts.SampleRateHz, Channels: facts.Channels, FrameCount: facts.FrameCount, SizeBytes: source.Record.SizeBytes, DataOffset: facts.DataOffset}, start, end, filename); err != nil {
 		return nil, "", err

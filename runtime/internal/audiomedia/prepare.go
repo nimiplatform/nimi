@@ -235,9 +235,9 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		return Prepared{}, err
 	}
 	defer func() {
-		output.Close()
+		_ = output.Close()
 		if err != nil {
-			os.Remove(output.Name())
+			_ = os.Remove(output.Name())
 		}
 	}()
 	if _, err = p.PrepareInto(ctx, input, output); err != nil {

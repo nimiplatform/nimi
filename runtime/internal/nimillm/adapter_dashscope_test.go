@@ -822,7 +822,7 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 
 	var receipt *NativeTaskReceipt
 	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
-	artifacts, _, providerJobID, err := ExecuteAlibabaNative(
+	_, _, providerJobID, err := ExecuteAlibabaNative(
 		ctx,
 		MediaAdapterConfig{
 			BaseURL:               server.URL + "/compatible-mode/v1",
@@ -848,7 +848,7 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 		t.Fatalf("native create did not yield: %v", err)
 	}
 	observation, _, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-api-key", AllowLoopbackEndpoint: true}, receipt)
-	artifacts = observation.GetArtifacts()
+	artifacts := observation.GetArtifacts()
 
 	if err != nil {
 		t.Fatalf("ExecuteAlibabaNative image failed: %v", err)
@@ -936,7 +936,7 @@ func TestExecuteAlibabaNativeVideoUsesAsyncTaskContract(t *testing.T) {
 
 	var receipt *NativeTaskReceipt
 	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
-	artifacts, usage, providerJobID, err := ExecuteAlibabaNative(
+	_, usage, providerJobID, err := ExecuteAlibabaNative(
 		ctx,
 		MediaAdapterConfig{
 			BaseURL:               server.URL + "/compatible-mode/v1",
@@ -972,7 +972,7 @@ func TestExecuteAlibabaNativeVideoUsesAsyncTaskContract(t *testing.T) {
 		t.Fatalf("native create did not yield: %v", err)
 	}
 	observation, _, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-api-key", AllowLoopbackEndpoint: true}, receipt)
-	artifacts = observation.GetArtifacts()
+	artifacts := observation.GetArtifacts()
 
 	if err != nil {
 		t.Fatalf("ExecuteAlibabaNative video failed: %v", err)

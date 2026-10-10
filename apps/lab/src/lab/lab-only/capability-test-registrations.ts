@@ -2,12 +2,14 @@ import { AudioWaveform, Braces, Clapperboard, ListChecks, MessageSquareText, Mes
 import type { StudioCapabilityRegistration } from '../../ai-studio-core/module-registration.js';
 import { EMPTY_STUDIO_PARAMETERS } from '../../ai-studio-core/parameters.js';
 import {
+  LabSpeakerEmbeddingParameterPanel,
   LabImageFaceSwapParameterPanel,
   LabTextAnnotateParameterPanel,
   LabTextExchangeParameterPanel,
   LabVideoFaceSwapParameterPanel,
 } from './capability-test-panels.js';
 import {
+  labSpeakerEmbeddingDescriptor,
   labAiRealtimeDescriptor,
   labChatSessionDescriptor,
   labImageFaceSwapDescriptor,
@@ -24,7 +26,21 @@ import { labTextDecideParameters } from './text-decide.js';
 import { LabTextDecideParameterPanel } from './text-decide-panel.js';
 import { LAB_TEST_TOOL_NAME, labTextExchangeParameters } from './text-exchange.js';
 
+import { labSpeakerEmbeddingParameters } from './speaker-embedding.js';
+
 const k = (entry: string, field: string) => `CapabilityTests.${entry}.${field}`;
+
+export const labSpeakerEmbeddingCapability = Object.freeze({
+  descriptor: labSpeakerEmbeddingDescriptor, icon: AudioWaveform,
+  profile: {
+    studioTag: 'Speaker representation', inputTitleKey: k('speakerEmbedding', 'inputTitle'), inputPlaceholderKey: k('speakerEmbedding', 'inputTitle'), inputKind: 'none', inputNoteKey: k('speakerEmbedding', 'inputNote'),
+    supportsAttachments: false, controls: [], primaryLabelKey: k('speakerEmbedding', 'primaryLabel'), primaryRunningLabelKey: k('speakerEmbedding', 'primaryRunningLabel'), resultTitle: 'Speaker representation',
+    emptyTitleKey: k('speakerEmbedding', 'emptyTitle'), emptyHintKey: k('speakerEmbedding', 'emptyHint'), resultKind: 'speaker-embedding', footnoteKey: k('speakerEmbedding', 'footnote'), pendingLabelKey: k('speakerEmbedding', 'pending'), requiresParameterInput: true,
+  },
+  preset: { id: 'selected-audio', label: 'Selected audio', prompt: '' },
+  runtimeMethod: 'sdk.localApp.ai.scenarioJobs.submit:audio-speaker-embed',
+  parameters: labSpeakerEmbeddingParameters, parameterPanel: LabSpeakerEmbeddingParameterPanel,
+} as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
 
 export const labTextAnnotateCapability = Object.freeze({
   descriptor: labTextAnnotateDescriptor,
@@ -129,6 +145,7 @@ export const labAiRealtimeCapability = Object.freeze({
 } as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
 
 export const labCapabilityTestRegistrations = Object.freeze([
+  labSpeakerEmbeddingCapability,
   labTextAnnotateCapability,
   labTextToolsCapability,
   labTextDecideCapability,

@@ -127,7 +127,7 @@ func (s *Service) prepareNativeBodies(ctx context.Context, jobID string, effecti
 		}
 		body, err := capabilitydriver.NewIncrementalArtifactBody(source.Body)
 		if err != nil {
-			source.Body.Close()
+			_ = source.Body.Close()
 			capabilitydriver.CloseArtifactBodies(response.ArtifactBodies)
 			return capabilitydriver.CloudMediaTransportResponse{}, err
 		}

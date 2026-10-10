@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { LanguageModelV3 } from '@ai-sdk/provider';
+import type { LanguageModelV4 } from '@ai-sdk/provider';
 import { generateText } from 'ai';
 
 import type { NimiClient, NimiClientRuntimeModelOptions } from '@nimiplatform/sdk';
@@ -24,12 +24,39 @@ import { NIMI_VERCEL_AI_ADAPTER_MANIFEST } from './manifest';
 
 const VERCEL_AI_METADATA_KEY = 'x-nimi-vercel-ai-metadata';
 
+test('AI SDK 7 reasoning controls reach the admitted Nimi reasoning contract', async () => {
+  const calls: NimiGenerateTextRequest[] = [];
+  const model = createNimiVercelLanguageModel({ model: createModel(calls) });
+  for (const reasoning of ['provider-default', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const) {
+    await generateText({ model, prompt: 'hello', reasoning });
+  }
+  assert.deepEqual(calls.map(call => call.parameters?.reasoning), [
+    undefined, { activation: 'disabled' },
+    ...['minimal', 'low', 'medium', 'high', 'xhigh'].map(effort => ({ activation: 'required', effort })),
+  ]);
+});
+
+test('Provider V4 inline text is encoded and provider file references fail before model execution', async () => {
+  const calls: NimiGenerateTextRequest[] = [];
+  const model = createNimiVercelLanguageModel({ model: createModel(calls) });
+  await model.doGenerate({ prompt: [{ role: 'user', content: [
+    { type: 'file', mediaType: 'text/plain', data: { type: 'text', text: '你好' } },
+  ] }] });
+  assert.deepEqual(calls[0]?.messages[0]?.content[0], {
+    type: 'file', mediaType: 'text/plain', data: Buffer.from('你好').toString('base64'),
+  });
+  await assert.rejects(async () => model.doGenerate({ prompt: [{ role: 'user', content: [
+    { type: 'file', mediaType: 'image/png', data: { type: 'reference', reference: { example: 'file-1' } } },
+  ] }] }), { feature: 'prompt.file.reference' });
+  assert.equal(calls.length, 1);
+});
+
 // Adapter-owned conformance suite driving the real Vercel AI SDK.
 import './vercel-ai.conformance.test';
 
-test('vercel-ai adapter maps LanguageModelV3 generate calls to Nimi model requests', async () => {
+test('vercel-ai adapter maps LanguageModelV4 generate calls to Nimi model requests', async () => {
   const calls: NimiGenerateTextRequest[] = [];
-  const model: LanguageModelV3 = createNimiVercelLanguageModel({ model: createModel(calls) });
+  const model: LanguageModelV4 = createNimiVercelLanguageModel({ model: createModel(calls) });
 
   const result = await model.doGenerate({
     prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
@@ -39,7 +66,7 @@ test('vercel-ai adapter maps LanguageModelV3 generate calls to Nimi model reques
     tools: [{ type: 'function', name: 'lookup', inputSchema: { type: 'object' } }],
   });
 
-  assert.equal(model.specificationVersion, 'v3');
+  assert.equal(model.specificationVersion, 'v4');
   assert.equal(model.provider, 'nimi');
   assert.equal(calls[0]?.messages[0]?.role, 'user');
   assert.equal(calls[0]?.tools?.[0]?.name, 'lookup');
@@ -112,7 +139,7 @@ test('vercel-ai adapter maps canonical tool results and rejects provider HTTP se
   await assert.rejects(async () => await model.doGenerate({ prompt: [], providerOptions: { openai: { reasoningEffort: 'high' } } }), /providerOptions/);
 });
 
-test('vercel-ai adapter maps Nimi stream events to LanguageModelV3-like stream parts', async () => {
+test('vercel-ai adapter maps Nimi stream events to LanguageModelV4-like stream parts', async () => {
   const model = createNimiVercelLanguageModel({ model: createModel([]) });
   const result = await model.doStream({
     prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
@@ -295,9 +322,9 @@ test('vercel-ai adapter maps file prompt parts onto Nimi file parts', async () =
       role: 'user',
       content: [
         { type: 'text', text: 'look' },
-        { type: 'file', data: new Uint8Array([104, 105]), mediaType: 'image/png', filename: 'pic.png' },
-        { type: 'file', data: 'https://example.com/a.jpg', mediaType: 'image/jpeg' },
-        { type: 'file', data: new URL('https://example.com/clip.mp4'), mediaType: 'video/mp4' },
+        { type: 'file', data: { type: 'data', data: new Uint8Array([104, 105]) }, mediaType: 'image/png', filename: 'pic.png' },
+        { type: 'file', data: { type: 'data', data: 'aGk=' }, mediaType: 'image/jpeg' },
+        { type: 'file', data: { type: 'url', url: new URL('https://example.com/clip.mp4') }, mediaType: 'video/mp4' },
       ],
     }],
   });
@@ -308,8 +335,8 @@ test('vercel-ai adapter maps file prompt parts onto Nimi file parts', async () =
 
   // Binary payload is base64-encoded (btoa of "hi"); the Runtime owns decode.
   assert.deepEqual(content[1], { type: 'file', mediaType: 'image/png', data: 'aGk=', filename: 'pic.png' });
-  // String data passes through unchanged.
-  assert.deepEqual(content[2], { type: 'file', mediaType: 'image/jpeg', data: 'https://example.com/a.jpg' });
+  // Base64 data passes through unchanged.
+  assert.deepEqual(content[2], { type: 'file', mediaType: 'image/jpeg', data: 'aGk=' });
   // URL data is serialized to its href.
   assert.deepEqual(content[3], { type: 'file', mediaType: 'video/mp4', data: 'https://example.com/clip.mp4' });
 });

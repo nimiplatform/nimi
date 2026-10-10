@@ -1306,7 +1306,7 @@ describe('Desktop Electron local-development registration host', () => {
       assert.equal(run.status.reasonCode, undefined);
       assert.equal(run.status.retryable, false);
       assert.equal(run.status.hostGeneration, 1);
-      assert.match(run.status.logs.at(-1)?.message ?? '', /host exited; ending the development run/u);
+      assert.match(run.status.logs.at(-1)?.message ?? '', /host exited \(code unknown\); ending the development run/u);
     } finally {
       if (run.healthTimer) clearInterval(run.healthTimer);
     }

@@ -45,6 +45,7 @@ const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
     label: 'Apps.aiConfig.capability.audioTranscribe.label',
     description: 'Apps.aiConfig.capability.audioTranscribe.description',
   },
+  'audio.speaker.embed': { label: 'Apps.aiConfig.capability.audioSpeakerEmbed.label', description: 'Apps.aiConfig.capability.audioSpeakerEmbed.description' },
   'audio.separate': {
     label: 'Apps.aiConfig.capability.audioSeparate.label',
     description: 'Apps.aiConfig.capability.audioSeparate.description',

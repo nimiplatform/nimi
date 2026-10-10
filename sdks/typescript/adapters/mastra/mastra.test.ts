@@ -21,13 +21,13 @@ import './mastra.context.test';
 import './mastra.conformance.test';
 import './mastra.embedding-voice.test';
 
-test('mastra adapter produces a LanguageModelV3 Mastra accepts as a model config', () => {
-  // The wrapped Nimi model is a v3 provider model assignable to MastraModelConfig
+test('mastra adapter produces a LanguageModelV4 Mastra accepts as a model config', () => {
+  // The wrapped Nimi model is a v4 provider model assignable to MastraModelConfig
   // and accepted by the Agent constructor — the core migration guarantee.
   const fixture = createNimiFixtureModel();
   const model = createNimiMastraModel({ model: fixture.model });
 
-  assert.equal(model.specificationVersion, 'v3');
+  assert.equal(model.specificationVersion, 'v4');
   assert.equal(model.provider, 'nimi');
   assert.equal(model.modelId, 'text.generate');
 
@@ -36,7 +36,7 @@ test('mastra adapter produces a LanguageModelV3 Mastra accepts as a model config
   assert.ok(agent instanceof Agent);
 });
 
-test('mastra adapter maps a LanguageModelV3 generate call to a Nimi request', async () => {
+test('mastra adapter maps a LanguageModelV4 generate call to a Nimi request', async () => {
   // Mastra drives the model's doGenerate; the adapter maps prompt/tools/responseFormat
   // onto a NimiGenerateTextRequest.
   const calls: NimiGenerateTextRequest[] = [];

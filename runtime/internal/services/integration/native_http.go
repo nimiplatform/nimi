@@ -18,7 +18,7 @@ func (s *Service) platformClient() *http.Client {
 	return &client
 }
 func boundedRead(body io.ReadCloser, max int64) ([]byte, error) {
-	defer body.Close()
+	defer func() { _ = body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(body, max+1))
 	if err != nil {
 		return nil, err

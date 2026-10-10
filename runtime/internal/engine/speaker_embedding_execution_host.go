@@ -86,7 +86,7 @@ func (host *SpeakerEmbeddingExecutionHost) ExecuteSpeakerEmbedding(ctx context.C
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(work)
+	defer func() { _ = os.RemoveAll(work) }()
 	audio := filepath.Join(work, "audio.input")
 	if err := os.WriteFile(audio, plan.AudioBytes, 0600); err != nil {
 		return nil, err

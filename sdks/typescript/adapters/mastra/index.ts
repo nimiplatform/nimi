@@ -1,4 +1,4 @@
-import type { LanguageModelV3 } from '@ai-sdk/provider';
+import type { LanguageModelV4 } from '@ai-sdk/provider';
 import type { MastraModelConfig } from '@mastra/core/llm';
 import type {
   NimiClient,
@@ -19,16 +19,16 @@ import { throwUnsupportedMastraFeature } from './errors';
 import { NIMI_MASTRA_ADAPTER_MANIFEST } from './manifest';
 import {
   toNimiGenerateTextRequest,
-  toV3FinishReason,
-  toV3GenerateContent,
-  toV3ReadableStream,
-  toV3Usage,
-  toV3Warnings,
+  toV4FinishReason,
+  toV4GenerateContent,
+  toV4ReadableStream,
+  toV4Usage,
+  toV4Warnings,
 } from './mappers';
 import {
-  toV3RequestMetadata,
-  toV3ResponseMetadata,
-  toV3TopLevelProviderMetadata,
+  toV4RequestMetadata,
+  toV4ResponseMetadata,
+  toV4TopLevelProviderMetadata,
 } from './raw-metadata';
 
 export {
@@ -72,16 +72,16 @@ export {
 /**
  * The Nimi-backed Mastra model.
  *
- * Mastra's model boundary is the AI SDK provider `LanguageModelV3` admitted by
- * `MastraModelConfig` (Mastra's `@ai-sdk/provider-v6` alias). This adapter owns
- * its own Nimi -> LanguageModelV3 mapping (see mappers.ts) and returns a model
+ * Mastra's model boundary is the AI SDK provider `LanguageModelV4` admitted by
+ * `MastraModelConfig` (Mastra's `@ai-sdk/provider-v7` alias). This adapter owns
+ * its own Nimi -> LanguageModelV4 mapping (see mappers.ts) and returns a model
  * Mastra accepts wherever a model config is required, e.g.
  * `new Agent({ model: createNimiMastraModel({ model }) })`.
  */
-export type NimiMastraLanguageModel = LanguageModelV3;
+export type NimiMastraLanguageModel = LanguageModelV4;
 
 // Build-time guarantee that the adapter model is accepted as a Mastra model
-// config. `LanguageModelV3` is a `MastraModelConfig` arm; instantiating this
+// config. `LanguageModelV4` is a `MastraModelConfig` arm; instantiating this
 // generic re-checks the assignability whenever either side moves, and the build
 // fails closed if Mastra ever stops admitting the produced model shape.
 type AssertAssignable<T extends U, U> = T;
@@ -109,7 +109,7 @@ export interface NimiMastraModelOptions {
  *
  * Streaming, tool definitions/choice, structured-output request mapping, sources,
  * reasoning, usage, finish reasons, raw chunks, abort signals, and file inputs are
- * projected by this adapter's own LanguageModelV3 mapping. Mastra owns the agent
+ * projected by this adapter's own LanguageModelV4 mapping. Mastra owns the agent
  * loop (tool execution, multi-step, structured-output parsing); the adapter
  * faithfully maps the model interface it drives. Unsupported model shapes fail
  * closed with a typed `NimiMastraUnsupportedFeatureError`.
@@ -120,7 +120,7 @@ export function createNimiMastraModel(options: NimiMastraModelOptions): NimiMast
   }
   const model = options.model;
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'nimi',
     modelId: model.model.modelId,
     supportedUrls: NIMI_MASTRA_SUPPORTED_URLS,
@@ -128,14 +128,14 @@ export function createNimiMastraModel(options: NimiMastraModelOptions): NimiMast
       const result = await model.generateText(
         toNimiGenerateTextRequest(callOptions, throwUnsupportedMastraFeature),
       );
-      const providerMetadata = toV3TopLevelProviderMetadata(result.raw);
-      const request = toV3RequestMetadata(result.raw);
-      const response = toV3ResponseMetadata(result.raw);
+      const providerMetadata = toV4TopLevelProviderMetadata(result.raw);
+      const request = toV4RequestMetadata(result.raw);
+      const response = toV4ResponseMetadata(result.raw);
       return {
-        content: toV3GenerateContent(result),
-        finishReason: toV3FinishReason(result.finishReason),
-        usage: toV3Usage(result.usage),
-        warnings: toV3Warnings(result.warnings),
+        content: toV4GenerateContent(result),
+        finishReason: toV4FinishReason(result.finishReason),
+        usage: toV4Usage(result.usage),
+        warnings: toV4Warnings(result.warnings),
         ...(providerMetadata ? { providerMetadata } : {}),
         ...(request ? { request } : {}),
         ...(response ? { response } : {}),
@@ -149,7 +149,7 @@ export function createNimiMastraModel(options: NimiMastraModelOptions): NimiMast
         toNimiGenerateTextRequest(callOptions, throwUnsupportedMastraFeature),
       );
       return {
-        stream: toV3ReadableStream(streamEvents),
+        stream: toV4ReadableStream(streamEvents),
       };
     },
   };

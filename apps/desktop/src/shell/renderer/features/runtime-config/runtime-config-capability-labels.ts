@@ -20,6 +20,7 @@ export function displayRuntimeConfigCapabilityLabel(
   }
   if (capabilityContract === 'text.annotate') return t('runtimeConfig.capabilityLabels.textAnnotate');
   if (capabilityContract === 'text.decide') return t('runtimeConfig.capabilityLabels.textDecide');
+  if (capabilityContract === 'audio.speaker.embed') return t('runtimeConfig.capabilityLabels.audioSpeakerEmbed');
   if (capabilityContract === 'audio.separate') return t('runtimeConfig.capabilityLabels.audioSeparate');
   if (capabilityContract === 'image.generate') {
     return t('runtimeConfig.capabilityLabels.imageGenerate');

@@ -284,7 +284,7 @@ func TestNativeTaskObservationIsOneQueryAndPreservesTerminalProvenance(t *testin
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tc.httpStatus)
-				w.Write([]byte(tc.body))
+				_, _ = w.Write([]byte(tc.body))
 			}))
 			defer server.Close()
 			receipt := &NativeTaskReceipt{Version: 1, Adapter: AdapterBytedanceARKTask, TaskID: "original", QueryPathTemplate: resolveBytedanceARKVideoQueryPathTemplate(), Artifact: BinaryArtifact("video/mp4", nil, map[string]any{"adapter": AdapterBytedanceARKTask})}
@@ -335,12 +335,12 @@ func TestNativeObservationKeepsCompleteOutputSetWithoutAcquiringBodies(t *testin
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path != ResolveTaskQueryPath(tc.path, "original") {
 					bodies.Add(1)
-					w.Write([]byte("body"))
+					_, _ = w.Write([]byte("body"))
 					return
 				}
 				queries.Add(1)
 				w.Header().Set("Content-Type", "application/json")
-				fmt.Fprintf(w, tc.payload, endpoint, endpoint)
+				_, _ = fmt.Fprintf(w, tc.payload, endpoint, endpoint)
 			}))
 			defer server.Close()
 			endpoint = server.URL

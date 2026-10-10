@@ -166,24 +166,24 @@ func TestOnebotSetupActualIdentityRejectionIsAReadableTerminalFact(t *testing.T)
 			time.Sleep(time.Millisecond)
 			continue
 		}
-		conn.SetReadDeadline(time.Now().Add(time.Second))
+		_ = conn.SetReadDeadline(time.Now().Add(time.Second))
 		var request struct {
 			Action string `json:"action"`
 			Echo   string `json:"echo"`
 		}
 		if err := conn.ReadJSON(&request); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			t.Fatal(err)
 		}
 		if request.Action != "get_login_info" || request.Echo == "" {
-			conn.Close()
+			_ = conn.Close()
 			t.Fatal("actual identity verification was not requested")
 		}
 		if err := conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "echo": request.Echo, "data": map[string]any{"user_id": 999, "nickname": "PRIVATE_PROVIDER_SENTINEL"}}); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			t.Fatal(err)
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		break
 	}
 	waitSetupStatus(t, s, ctx, started.Setup.SetupId, "failed")

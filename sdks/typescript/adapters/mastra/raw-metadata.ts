@@ -1,19 +1,19 @@
-import type { SharedV3ProviderMetadata } from '@ai-sdk/provider';
+import type { SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts';
 
-// Mastra-owned projection of the Nimi `raw` payload onto LanguageModelV3 top-level
+// Mastra-owned projection of the Nimi `raw` payload onto LanguageModelV4 top-level
 // provider metadata, request, and response metadata. See mappers.ts for the note
-// on deliberately deferred extraction of a shared `ai-sdk-v3` bridge package.
+// on deliberately deferred extraction of a shared `ai-sdk-provider` bridge package.
 
-export function toV3TopLevelProviderMetadata(raw: NimiJsonValue | undefined): SharedV3ProviderMetadata | undefined {
+export function toV4TopLevelProviderMetadata(raw: NimiJsonValue | undefined): SharedV4ProviderMetadata | undefined {
   const providerMetadata = rawObjectField(raw, 'providerMetadata');
   if (!providerMetadata || Object.keys(providerMetadata).length === 0) {
     return undefined;
   }
-  return providerMetadata as unknown as SharedV3ProviderMetadata;
+  return providerMetadata as unknown as SharedV4ProviderMetadata;
 }
 
-export function toV3RequestMetadata(raw: NimiJsonValue | undefined): { body?: unknown } | undefined {
+export function toV4RequestMetadata(raw: NimiJsonValue | undefined): { body?: unknown } | undefined {
   const rawObject = rawRecord(raw);
   if (!rawObject || !Object.prototype.hasOwnProperty.call(rawObject, 'requestBody')) {
     return undefined;
@@ -21,7 +21,7 @@ export function toV3RequestMetadata(raw: NimiJsonValue | undefined): { body?: un
   return { body: rawObject.requestBody };
 }
 
-export function toV3ResponseMetadata(raw: NimiJsonValue | undefined): {
+export function toV4ResponseMetadata(raw: NimiJsonValue | undefined): {
   id?: string;
   modelId?: string;
   headers?: Record<string, string>;

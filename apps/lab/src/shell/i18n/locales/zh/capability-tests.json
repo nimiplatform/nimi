@@ -383,6 +383,21 @@
     "jobs": {
       "streamEnded": "任务 {{jobId}} 仍为 {{status}}；它的事件流在终态之前结束。",
       "ended": "任务 {{jobId}} 以 {{status}} 结束。"
+    },
+    "speakerEmbedding": {
+      "label": "说话人特征",
+      "summary": "短音频生成说话人特征向量与表示空间。",
+      "inputTitle": "音频文件",
+      "inputNote": "选择不超过 30 秒的 WAV、MP3 或 FLAC（最大 32 MiB）。Runtime 校验时长；重跑需要重新选择文件。",
+      "inputInvalid": "请选择有效的 WAV、MP3 或 FLAC 文件（最大 32 MiB）。",
+      "primaryLabel": "提取特征",
+      "primaryRunningLabel": "正在提取",
+      "emptyTitle": "提取说话人特征",
+      "emptyHint": "在参数中选择一段短音频。",
+      "footnote": "这不是身份识别或登录验证。只有相同表示空间的向量才可以比较。",
+      "pending": "正在提取说话人特征…",
+      "completed": "已生成 {{dimensions}} 维说话人特征。",
+      "resultInvalid": "Runtime 未返回有效的向量和表示空间。"
     }
   }
 }

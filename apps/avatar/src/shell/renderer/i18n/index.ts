@@ -63,7 +63,7 @@ void i18n.use(initReactI18next).init({
     en: { [I18N_NAMESPACE]: RESOURCES.en },
     zh: { [I18N_NAMESPACE]: RESOURCES.zh },
   },
-  initImmediate: false,
+  initAsync: false,
   interpolation: { escapeValue: false },
   returnNull: false,
 });

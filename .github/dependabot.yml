@@ -16,6 +16,12 @@ updates:
       - dependency-name: "@nimiplatform/kit-protected-local-win32-x64"
       - dependency-name: "@nimiplatform/kit-protected-local-darwin-arm64"
       - dependency-name: "@nimiplatform/nimi-coding"
+      # The scaffold analyser uses the Compiler API, absent from TypeScript 7.
+      - dependency-name: "typescript"
+        versions: [">=7"]
+      # Match the supported Node 24 runtime instead of adopting Node 25/26 APIs.
+      - dependency-name: "@types/node"
+        versions: [">=25"]
     cooldown:
       semver-major-days: 30
       semver-minor-days: 7
@@ -25,6 +31,11 @@ updates:
         applies-to: security-updates
         patterns:
           - "*"
+      # Nested overlays share Radix focus and dismissable-layer state.
+      npm-radix:
+        applies-to: version-updates
+        patterns:
+          - "@radix-ui/*"
       npm-minor-patch:
         applies-to: version-updates
         patterns:
@@ -40,7 +51,9 @@ updates:
           - major
 
   - package-ecosystem: gomod
-    directory: /runtime
+    directories:
+      - /runtime
+      - /nimi-cognition
     schedule:
       interval: weekly
       day: monday
@@ -91,33 +104,3 @@ updates:
         applies-to: version-updates
         patterns:
           - "*"
-
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-      time: "04:00"
-      timezone: UTC
-    open-pull-requests-limit: 2
-    rebase-strategy: auto
-    cooldown:
-      default-days: 7
-    groups:
-      docker-security:
-        applies-to: security-updates
-        patterns:
-          - "*"
-      docker-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      docker-major:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - major

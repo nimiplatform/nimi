@@ -93,7 +93,9 @@ func TestWorldCustodyTerminationKeepsOwnerClassification(t *testing.T) {
 				if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING || result.GetObservationIssue() == nil {
 					t.Fatalf("invalid body terminalized remote task: %v", result)
 				}
-				f.service.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: id})
+				if _, err := f.service.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: id}); err != nil {
+					t.Fatal(err)
+				}
 			}
 			if len(job.GetArtifacts()) != 0 {
 				t.Fatal("incomplete World set was publicly attached")

@@ -20,18 +20,18 @@
     "dist"
   ],
   "peerDependencies": {
-    "@ai-sdk/provider": "^3.0.0",
-    "@mastra/core": "^1.41.0",
+    "@ai-sdk/provider": "^4.0.0",
+    "@mastra/core": "^1.74.0",
     "@nimiplatform/sdk": "^0.8.0"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "3.0.10",
-    "@mastra/core": "1.63.2",
+    "@ai-sdk/provider": "4.0.24",
+    "@mastra/core": "1.74.0",
     "@nimiplatform/sdk": "workspace:*",
-    "@types/node": "^24.13.3",
-    "tsx": "^4.23.13",
-    "typescript": "^5.9.3",
-    "zod": "4.5.4"
+    "@types/node": "24.19.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "zod": "4.6.5"
   },
   "scripts": {
     "build": "node ../../../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",

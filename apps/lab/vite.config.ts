@@ -2,12 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, '../..');
+const repoRoot = path.resolve(import.meta.dirname, '../..');
 
-function manualChunks(id: string) {
+function chunkName(id: string) {
   const normalized = id.replaceAll('\\', '/');
   const repoRootNormalized = repoRoot.replaceAll('\\', '/');
   const isNimiSdk =
@@ -128,7 +126,7 @@ function manualChunks(id: string) {
 export default defineConfig({
   base: './',
   plugins: [
-    react(),
+    react({ exclude: [/\/node_modules\//, /\/src\/(?:shell\/renderer\/)?main\.tsx$/] }),
     tailwindcss(),
   ],
   resolve: {
@@ -140,9 +138,9 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks,
+        codeSplitting: { groups: [{ name: chunkName }] },
       },
     },
   },

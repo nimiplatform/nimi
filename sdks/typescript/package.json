@@ -126,10 +126,10 @@
     "test": "node ../../scripts/run-sdk-vnext-typescript-tests.mjs"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "^1.14.4",
-    "@types/node": "^24.13.3",
-    "tsx": "^4.23.13",
-    "typescript": "^5.9.3"
+    "@grpc/grpc-js": "1.14.5",
+    "@types/node": "24.19.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3"
   },
   "nimi": {
     "targetPackage": "@nimiplatform/sdk",

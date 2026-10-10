@@ -318,6 +318,10 @@
       "audioSeparate": {
         "label": "Vocals and background",
         "description": "Separate vocals from background audio while preserving timing"
+      },
+      "audioSpeakerEmbed": {
+        "label": "Speaker representation",
+        "description": "Extract comparable speaker vectors from short audio in the same representation space; not for identity authentication."
       }
     },
     "profileSource": {

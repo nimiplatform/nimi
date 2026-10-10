@@ -30,7 +30,7 @@ func TestRejectedCancelLeavesOriginalExecutionAbleToComplete(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"data":[{"b64_json":"%s"}]}`, base64.StdEncoding.EncodeToString(image))
+		_, _ = fmt.Fprintf(w, `{"data":[{"b64_json":"%s"}]}`, base64.StdEncoding.EncodeToString(image))
 	}))
 	defer server.Close()
 	defer closeOnce(release)

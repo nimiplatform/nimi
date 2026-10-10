@@ -162,6 +162,7 @@ test('Apps AIConfig owner copy covers every canonical capability in both locales
     'audioSynthesize',
     'audioTranscribe',
     'audioSeparate',
+    'audioSpeakerEmbed',
     'imageFaceSwap',
     'imageGenerate',
     'musicGenerate',

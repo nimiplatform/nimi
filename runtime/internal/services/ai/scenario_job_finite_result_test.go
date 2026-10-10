@@ -25,7 +25,7 @@ func TestFiniteURLsRemainOwnedAcrossPartialDownloadAndReopen(t *testing.T) {
 		case r.Method == http.MethodPost && r.URL.Path == "/v1/image_generation":
 			creates.Add(1)
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprintf(w, `{"id":"trace-only","data":{"image_urls":["%s/first","%s/second"]},"base_resp":{"status_code":0}}`, endpoint, endpoint)
+			_, _ = fmt.Fprintf(w, `{"id":"trace-only","data":{"image_urls":["%s/first","%s/second"]},"base_resp":{"status_code":0}}`, endpoint, endpoint)
 		case r.Method == http.MethodGet && (r.URL.Path == "/first" || r.URL.Path == "/second"):
 			if r.Header.Get("Authorization") != "" {
 				t.Error("result URL received provider credential")

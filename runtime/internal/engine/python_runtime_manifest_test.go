@@ -16,7 +16,7 @@ func TestManagedPythonOwnerManifestReusesReadOnlyVerifiedContentAndRefusesDrift(
 		t.Fatal(err)
 	}
 	manifest := filepath.Join(root, managedPythonRuntimeManifestFileName)
-	defer os.Chmod(manifest, 0600)
+	defer func() { _ = os.Chmod(manifest, 0600) }()
 	if err := os.Chmod(manifest, 0444); err != nil {
 		t.Fatal(err)
 	}

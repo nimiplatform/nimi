@@ -6,24 +6,11 @@ import {
   ensureCubismFrameworkCache,
 } from './scripts/cubism-web-sdk-cache.js';
 
-const repoRoot = path.resolve(__dirname, '../..');
-const pnpmRoot = path.join(repoRoot, 'node_modules/.pnpm');
-const sdkVNextDist = path.resolve(__dirname, '../../sdks/typescript/dist');
+const sdkVNextDist = path.resolve(import.meta.dirname, '../../sdks/typescript/dist');
 
-function pnpmPackageRoot(packageName: string): string {
-  const packageDirectoryName = packageName.startsWith('@')
-    ? packageName.replace('/', '+')
-    : packageName;
-  const match = fs.readdirSync(pnpmRoot)
-    .filter((entry) => (
-      entry.startsWith(`${packageDirectoryName}@`)
-      || entry.startsWith(`${packageDirectoryName}_`)
-    ))
-    .sort()[0];
-  if (!match) {
-    throw new Error(`Missing pnpm package for ${packageName}`);
-  }
-  return path.join(pnpmRoot, match, 'node_modules', packageName);
+// Resolve the installed Kit dependency graph, never stale pnpm cache entries.
+function kitPackageRoot(packageName: string): string {
+  return fs.realpathSync(path.resolve(import.meta.dirname, '../../kit/node_modules', packageName));
 }
 
 export default defineConfig({
@@ -40,23 +27,26 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    // Workspace tests also compile Lab and Home; bound isolated jsdom workers
+    // so cold VRM imports do not compete with one worker per logical CPU.
+    maxWorkers: 4,
     testTimeout: 15000,
     hookTimeout: 15000,
   },
   resolve: {
     dedupe: ['react', 'react-dom', 'scheduler', '@radix-ui/react-switch'],
     alias: [
-      { find: 'react/jsx-dev-runtime', replacement: path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime.js') },
-      { find: 'react/jsx-runtime', replacement: path.resolve(__dirname, 'node_modules/react/jsx-runtime.js') },
-      { find: 'react-dom/client', replacement: path.resolve(__dirname, 'node_modules/react-dom/client.js') },
-      { find: 'react-dom', replacement: path.resolve(__dirname, 'node_modules/react-dom/index.js') },
-      { find: 'react', replacement: path.resolve(__dirname, 'node_modules/react/index.js') },
-      { find: '@radix-ui/react-switch', replacement: pnpmPackageRoot('@radix-ui/react-switch') },
-      { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
+      { find: 'react/jsx-dev-runtime', replacement: path.resolve(import.meta.dirname, 'node_modules/react/jsx-dev-runtime.js') },
+      { find: 'react/jsx-runtime', replacement: path.resolve(import.meta.dirname, 'node_modules/react/jsx-runtime.js') },
+      { find: 'react-dom/client', replacement: path.resolve(import.meta.dirname, 'node_modules/react-dom/client.js') },
+      { find: 'react-dom', replacement: path.resolve(import.meta.dirname, 'node_modules/react-dom/index.js') },
+      { find: 'react', replacement: path.resolve(import.meta.dirname, 'node_modules/react/index.js') },
+      { find: '@radix-ui/react-switch', replacement: kitPackageRoot('@radix-ui/react-switch') },
+      { find: '@renderer', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer') },
       { find: '@framework', replacement: CUBISM_WEB_FRAMEWORK_CACHE_ROOT },
-      { find: '@live2d', replacement: path.resolve(__dirname, 'src/shell/renderer/live2d') },
-      { find: '@mock', replacement: path.resolve(__dirname, 'src/shell/renderer/mock') },
-      { find: '@driver', replacement: path.resolve(__dirname, 'src/shell/renderer/driver') },
+      { find: '@live2d', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer/live2d') },
+      { find: '@mock', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer/mock') },
+      { find: '@driver', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer/driver') },
       { find: '@nimiplatform/sdk/runtime/generated', replacement: path.join(sdkVNextDist, 'runtime/generated.js') },
       { find: '@nimiplatform/sdk/runtime/wire-types', replacement: path.join(sdkVNextDist, 'runtime/wire-types/index.js') },
       { find: '@nimiplatform/sdk/runtime/host', replacement: path.join(sdkVNextDist, 'runtime/host.js') },
@@ -76,14 +66,14 @@ export default defineConfig({
       { find: '@nimiplatform/sdk/features/evaluation', replacement: path.join(sdkVNextDist, 'features/evaluation/index.js') },
       { find: '@nimiplatform/sdk/features/toolkits', replacement: path.join(sdkVNextDist, 'features/toolkits/index.js') },
       { find: '@nimiplatform/sdk', replacement: path.join(sdkVNextDist, 'index.js') },
-      { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src/index.ts') },
-      { find: '@nimiplatform/kit/shell/capabilities', replacement: path.resolve(__dirname, '../../kit/shell/capabilities/src') },
-      { find: '@nimiplatform/kit/shell/renderer/bridge', replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bridge/index.ts') },
-      { find: '@nimiplatform/kit/features/avatar', replacement: path.resolve(__dirname, '../../kit/features/avatar/src') },
-      { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
-      { find: '@nimiplatform/kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
-      { find: '@nimiplatform/kit/telemetry/error-boundary', replacement: path.resolve(__dirname, '../../kit/telemetry/src/error-boundary/index.ts') },
-      { find: '@nimiplatform/kit/telemetry', replacement: path.resolve(__dirname, '../../kit/telemetry/src/telemetry/index.ts') },
+      { find: '@nimiplatform/kit/auth', replacement: path.resolve(import.meta.dirname, '../../kit/auth/src/index.ts') },
+      { find: '@nimiplatform/kit/shell/capabilities', replacement: path.resolve(import.meta.dirname, '../../kit/shell/capabilities/src') },
+      { find: '@nimiplatform/kit/shell/renderer/bridge', replacement: path.resolve(import.meta.dirname, '../../kit/shell/renderer/src/bridge/index.ts') },
+      { find: '@nimiplatform/kit/features/avatar', replacement: path.resolve(import.meta.dirname, '../../kit/features/avatar/src') },
+      { find: '@nimiplatform/kit/ui', replacement: path.resolve(import.meta.dirname, '../../kit/ui/src') },
+      { find: '@nimiplatform/kit/core', replacement: path.resolve(import.meta.dirname, '../../kit/core/src') },
+      { find: '@nimiplatform/kit/telemetry/error-boundary', replacement: path.resolve(import.meta.dirname, '../../kit/telemetry/src/error-boundary/index.ts') },
+      { find: '@nimiplatform/kit/telemetry', replacement: path.resolve(import.meta.dirname, '../../kit/telemetry/src/telemetry/index.ts') },
     ],
   },
 });

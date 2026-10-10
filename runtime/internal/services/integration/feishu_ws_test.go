@@ -32,7 +32,7 @@ func feishuSocketFixture(t *testing.T) (*websocket.Conn, *websocket.Conn) {
 		t.Fatal(err)
 	}
 	peer := <-accepted
-	t.Cleanup(func() { client.Close(); peer.Close() })
+	t.Cleanup(func() { _ = client.Close(); _ = peer.Close() })
 	return client, peer
 }
 func feishuWireEvent(index int) *larkws.Frame {
@@ -78,7 +78,7 @@ func TestFeishuSocketStartsHeartbeatAndAppliesBoundedPongConfig(t *testing.T) {
 	}()
 	readPing := func(wait time.Duration) {
 		t.Helper()
-		peer.SetReadDeadline(time.Now().Add(wait))
+		_ = peer.SetReadDeadline(time.Now().Add(wait))
 		_, data, err := peer.ReadMessage()
 		if err != nil {
 			t.Fatal("heartbeat missing", err)

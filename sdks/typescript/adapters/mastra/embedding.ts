@@ -1,7 +1,6 @@
 import type {
   EmbeddingModelV3,
   EmbeddingModelV3CallOptions,
-  EmbeddingModelV3Result,
   SharedV3ProviderMetadata,
   SharedV3ProviderOptions,
 } from '@ai-sdk/provider';
@@ -15,7 +14,8 @@ import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts'
 
 import { throwUnsupportedMastraFeature } from './errors';
 
-export type NimiMastraEmbeddingModel = EmbeddingModelV3;
+// Mastra 1.74 supports V4 language models but its vector API admits embedding V3.
+export type NimiMastraEmbeddingModel = ReturnType<typeof createNimiMastraEmbeddingModel>;
 
 export interface NimiMastraEmbeddingCapabilityRef {
   readonly modelId: 'text.embed';
@@ -35,7 +35,7 @@ export interface NimiMastraEmbeddingModelOptions {
 
 export function createNimiMastraEmbeddingModel(
   options: NimiMastraEmbeddingModelOptions,
-): NimiMastraEmbeddingModel {
+) {
   const model = normalizeModelRef(options.model);
   const embedding = resolveEmbeddingSurface(options);
   return {
@@ -53,7 +53,7 @@ export function createNimiMastraEmbeddingModel(
       throwIfAborted(callOptions.abortSignal);
       return toMastraEmbeddingResult(result);
     },
-  };
+  } satisfies EmbeddingModelV3;
 }
 
 function resolveEmbeddingSurface(
@@ -78,7 +78,9 @@ function resolveEmbeddingSurface(
   });
 }
 
-function toMastraEmbeddingResult(result: NimiEmbedTextResult): EmbeddingModelV3Result {
+// Retain the concrete metadata shape we produce. Provider 4 widens JSON values
+// to readonly containers; Mastra's embedding V3 contract still uses mutable JSON.
+function toMastraEmbeddingResult(result: NimiEmbedTextResult) {
   const tokens = Number(result.usage?.promptTokens ?? result.usage?.totalTokens ?? 0);
   return {
     embeddings: result.embeddings.map((embedding) => [...embedding]),

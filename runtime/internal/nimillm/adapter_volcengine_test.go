@@ -230,7 +230,7 @@ func TestExecuteBytedanceARKTaskVideoForwardsResolution(t *testing.T) {
 
 	var receipt *NativeTaskReceipt
 	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
-	artifacts, _, providerJobID, err := ExecuteBytedanceARKTask(
+	_, _, providerJobID, err := ExecuteBytedanceARKTask(
 		ctx,
 		MediaAdapterConfig{
 			BaseURL:               server.URL,
@@ -267,7 +267,7 @@ func TestExecuteBytedanceARKTaskVideoForwardsResolution(t *testing.T) {
 		t.Fatalf("native create did not yield: %v", err)
 	}
 	observation, _, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-api-key", AllowLoopbackEndpoint: true}, receipt)
-	artifacts = observation.GetArtifacts()
+	artifacts := observation.GetArtifacts()
 
 	if err != nil {
 		t.Fatalf("ExecuteBytedanceARKTask video failed: %v", err)

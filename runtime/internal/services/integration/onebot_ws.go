@@ -94,7 +94,7 @@ func (b *onebotBridge) closePeers() {
 	b.stopping = true
 	for _, p := range b.roles {
 		if p != nil {
-			p.conn.Close()
+			_ = p.conn.Close()
 		}
 	}
 	b.notifyLocked()
@@ -157,7 +157,7 @@ func (s *Service) acquireOnebot(ctx context.Context, t target, secret string) (*
 			go func() {
 				defer s.workers.Done()
 				stopDone := make(chan struct{})
-				go func() { <-b.ctx.Done(); b.server.Close(); b.closePeers(); close(stopDone) }()
+				go func() { <-b.ctx.Done(); _ = b.server.Close(); b.closePeers(); close(stopDone) }()
 				err := b.server.Serve(listener)
 				b.fail(err)
 				<-stopDone
@@ -228,7 +228,7 @@ func (b *onebotBridge) serve(w http.ResponseWriter, r *http.Request) {
 	b.mu.Lock()
 	if b.stopping || b.ctx.Err() != nil {
 		b.mu.Unlock()
-		conn.Close()
+		_ = conn.Close()
 		return
 	}
 	b.roles[role] = p
@@ -236,7 +236,7 @@ func (b *onebotBridge) serve(w http.ResponseWriter, r *http.Request) {
 	b.mu.Unlock()
 	readDone := make(chan struct{})
 	go func() { defer close(readDone); p.read() }()
-	defer func() { conn.Close(); <-readDone }()
+	defer func() { _ = conn.Close(); <-readDone }()
 	if role != "Event" {
 		verification, cancel := context.WithTimeout(b.ctx, 15*time.Second)
 		defer cancel()
@@ -417,7 +417,10 @@ func (p *onebotPeer) call(ctx context.Context, action string, params any, admit 
 			return onebotReply{}, notDispatched, err
 		}
 	}
-	p.conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	if err := p.conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		p.write.Unlock()
+		return onebotReply{}, notDispatched, err
+	}
 	err = p.conn.WriteMessage(websocket.TextMessage, data)
 	p.write.Unlock()
 	if err != nil {

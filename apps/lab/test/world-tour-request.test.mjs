@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {build} from 'esbuild';
-const compiled=await build({entryPoints:[new URL('../src/lab/world-tour/world-tour-runtime.ts',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1')],bundle:true,platform:'node',format:'esm',write:false,logLevel:'silent'});
+const compiled=await build({entryPoints:[fileURLToPath(new URL('../src/lab/world-tour/world-tour-runtime.ts', import.meta.url))],bundle:true,platform:'node',format:'esm',write:false,logLevel:'silent'});
 const {parsePendingWorld,isDefiniteWorldAdmissionRejection,clearRejectedWorldPending}=await import(`data:text/javascript;base64,${Buffer.from(compiled.outputFiles[0].text).toString('base64')}`);
 const config={target:{capabilityId:'world.generate',capabilityContract:'world.generate',section:'world',source:'cloud',status:'configured',detail:'exact committed target',intentLabel:'Cloud',params:{inputMode:'text'},paramsSummary:[],profileOrigin:null},promptControls:{context:'original context',contextAttached:true,attachmentCount:0}};
 const saved={version:1,jobId:'known-job',request:{prompt:'original prompt',generationPrompt:'original prompt with original context',createdAt:'2026-10-06T01:00:00.000Z',runConfig:config,inputMode:'text'}};
@@ -36,7 +37,7 @@ test('World late rejection cannot clear a new action even when its original requ
 
 // Execute the real World pending/finish owner against isolated public ports.
 // No App, Runtime, model, registration or actual user storage is accessed.
-const ownerBuild = await build({ entryPoints: [new URL('../src/lab/world-tour/world-tour-runtime.ts', import.meta.url).pathname],
+const ownerBuild = await build({ entryPoints: [fileURLToPath(new URL('../src/lab/world-tour/world-tour-runtime.ts', import.meta.url))],
   bundle: true, platform: 'node', format: 'esm', write: false, logLevel: 'silent',
   plugins: [{ name: 'world-owner-fixture', setup(api) {
     for (const [filter, contents] of [

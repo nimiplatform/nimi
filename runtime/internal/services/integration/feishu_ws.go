@@ -215,12 +215,12 @@ func (s *Service) receiveFeishu(ctx context.Context, t target, secret string, fe
 	dialer.HandshakeTimeout = 20 * time.Second
 	socket, response, err := dialer.DialContext(ctx, u.String(), nil)
 	if response != nil && response.Body != nil {
-		response.Body.Close()
+		_ = response.Body.Close()
 	}
 	if err != nil {
 		return adapterError("INTEGRATION_FEISHU_WEBSOCKET_FAILED")
 	}
-	defer socket.Close()
+	defer func() { _ = socket.Close() }()
 	// Gorilla rejects an over-limit message before ReadMessage allocates it.
 	socket.SetReadLimit(feishuFrameLimit)
 	pingSeconds := bootstrap.Data.ClientConfig.PingInterval
@@ -260,7 +260,7 @@ func consumeFeishuSocket(ctx context.Context, t target, feed *nativeFeed, socket
 		defer workers.Done()
 		if write(larkws.NewPingFrame(serviceID)) != nil {
 			stop()
-			socket.Close()
+			_ = socket.Close()
 			return
 		}
 		ticker := time.NewTicker(pingInterval)
@@ -268,25 +268,25 @@ func consumeFeishuSocket(ctx context.Context, t target, feed *nativeFeed, socket
 		for {
 			select {
 			case <-run.Done():
-				socket.Close()
+				_ = socket.Close()
 				return
 			case interval := <-pingChanges:
 				ticker.Reset(interval)
 			case <-ticker.C:
 				if write(larkws.NewPingFrame(serviceID)) != nil {
 					stop()
-					socket.Close()
+					_ = socket.Close()
 					return
 				}
 			}
 		}
 	}()
-	defer func() { stop(); socket.Close(); workers.Wait() }()
+	defer func() { stop(); _ = socket.Close(); workers.Wait() }()
 	slots := make(chan struct{}, feishuTaskCount)
 	assembler := &feishuAssembler{onExpire: func(err error) {
 		feed.fail(err)
 		stop()
-		socket.Close()
+		_ = socket.Close()
 	}}
 	defer assembler.close()
 	for {
@@ -361,7 +361,7 @@ func consumeFeishuSocket(ctx context.Context, t target, feed *nativeFeed, socket
 			if err != nil {
 				feed.fail(err)
 				stop()
-				socket.Close()
+				_ = socket.Close()
 				return
 			}
 			if run.Err() != nil {
@@ -373,7 +373,7 @@ func consumeFeishuSocket(ctx context.Context, t target, feed *nativeFeed, socket
 			frame.Headers = headers
 			if write(frame) != nil {
 				stop()
-				socket.Close()
+				_ = socket.Close()
 			}
 		}(frame, body)
 	}

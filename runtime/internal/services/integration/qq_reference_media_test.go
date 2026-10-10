@@ -186,7 +186,7 @@ func TestQQReferencePublicFetchPreservesBytesAndFinalGuard(t *testing.T) {
 					t.Fatal(err)
 				}
 				body, err := io.ReadAll(stored.Body)
-				stored.Body.Close()
+				_ = stored.Body.Close()
 				if err != nil || !bytes.Equal(body, plain) {
 					t.Fatal("reference bytes changed")
 				}
@@ -222,7 +222,7 @@ func TestQQReferenceCapabilitiesRejectPurposeScopeAndGenerationMixing(t *testing
 		t.Fatal(err)
 	}
 	var event nativeMessage
-	json.Unmarshal(feed.events[len(feed.events)-1].payload, &event)
+	_ = json.Unmarshal(feed.events[len(feed.events)-1].payload, &event)
 	mediaRef := event.References[0].Media[0].MediaRef
 	for _, spec := range []struct {
 		op    string

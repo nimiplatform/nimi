@@ -29,7 +29,7 @@ func TestDiskJobBodyCandidatesKeepCompleteResultsAcrossReopen(t *testing.T) {
 			t.Fatal(err)
 		}
 		info, err := file.Stat()
-		file.Close()
+		_ = file.Close()
 		if err != nil || info.Size() != 0 {
 			t.Fatalf("unfilled candidate preallocated future bytes: %s %v", slot.ArtifactID, err)
 		}
@@ -89,7 +89,7 @@ func TestDiskJobBodyCandidatesKeepCompleteResultsAcrossReopen(t *testing.T) {
 			t.Fatalf("committed body missing after reopen: %s", id)
 		}
 		data, err := io.ReadAll(source.Body)
-		source.Body.Close()
+		_ = source.Body.Close()
 		if err != nil || string(data) != "complete "+id+" body" {
 			t.Fatalf("committed bytes=%q err=%v", data, err)
 		}

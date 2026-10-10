@@ -35,13 +35,13 @@ func TestMiniMaxImageIsFiniteAndKeepsTheWholeSet(t *testing.T) {
 						data = map[string]any{"image_base64": []string{base64.StdEncoding.EncodeToString(payload), base64.StdEncoding.EncodeToString(payload)}}
 					}
 					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]any{"id": "trace-only", "data": data, "metadata": map[string]any{"success_count": "2", "failed_count": "0"}, "base_resp": map[string]any{"status_code": 0}})
+					_ = json.NewEncoder(w).Encode(map[string]any{"id": "trace-only", "data": data, "metadata": map[string]any{"success_count": "2", "failed_count": "0"}, "base_resp": map[string]any{"status_code": 0}})
 					return
 				}
 				if r.URL.Path == "/first.png" || r.URL.Path == "/second.png" {
 					downloads.Add(1)
 					w.Header().Set("Content-Type", "image/png")
-					w.Write(payload)
+					_, _ = w.Write(payload)
 					return
 				}
 				queries.Add(1)
@@ -65,7 +65,7 @@ func TestMiniMaxImageIsFiniteAndKeepsTheWholeSet(t *testing.T) {
 				actual := body.Bytes
 				if body.Stream != nil {
 					actual, err = io.ReadAll(body.Stream)
-					body.Stream.Close()
+					_ = body.Stream.Close()
 				}
 				if err != nil || !bytes.Equal(actual, payload) || artifact.GetMimeType() != "image/png" {
 					t.Fatal("complete image body changed")
@@ -85,7 +85,7 @@ func TestMiniMaxImageIsFiniteAndKeepsTheWholeSet(t *testing.T) {
 func TestMiniMaxImageRejectsPartialSetWithoutPublishingTrace(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"id":"not-a-task","data":{"image_urls":["https://example.test/one"]},"metadata":{"failed_count":"1","success_count":"1"},"base_resp":{"status_code":0}}`)
+		_, _ = io.WriteString(w, `{"id":"not-a-task","data":{"image_urls":["https://example.test/one"]},"metadata":{"failed_count":"1","success_count":"1"},"base_resp":{"status_code":0}}`)
 	}))
 	defer server.Close()
 	request := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "two", N: proto.Int32(2)}}}}

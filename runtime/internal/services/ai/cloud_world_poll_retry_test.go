@@ -78,12 +78,12 @@ func TestWorldFreshGetKeepsOriginalTaskAcrossTransientObservation(t *testing.T) 
 				switch r.URL.Path {
 				case "/v1/worlds", "/marble/v1/worlds:generate":
 					creates.Add(1)
-					json.NewEncoder(w).Encode(map[string]any{"request_id": "req_original", "operation_id": "operation-original"})
+					_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_original", "operation_id": "operation-original"})
 				case "/v1/worlds/requests/req_original/status", "/marble/v1/operations/operation-original":
 					queries.Add(1)
 					if stage.Load() == 0 {
 						w.WriteHeader(503)
-						w.Write([]byte(`{"error":"temporarily unavailable"}`))
+						_, _ = w.Write([]byte(`{"error":"temporarily unavailable"}`))
 						return
 					}
 					if provider == "spaitial" {
@@ -91,16 +91,16 @@ func TestWorldFreshGetKeepsOriginalTaskAcrossTransientObservation(t *testing.T) 
 						if stage.Load() == 2 {
 							state = "COMPLETED"
 						}
-						json.NewEncoder(w).Encode(map[string]any{"request_id": "req_original", "status": state})
+						_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_original", "status": state})
 					} else {
-						json.NewEncoder(w).Encode(map[string]any{"done": stage.Load() == 2, "metadata": map[string]any{"world_id": "world-original"}})
+						_ = json.NewEncoder(w).Encode(map[string]any{"done": stage.Load() == 2, "metadata": map[string]any{"world_id": "world-original"}})
 					}
 				case "/v1/worlds/requests/req_original", "/marble/v1/worlds/world-original":
 					results.Add(1)
 					if provider == "spaitial" {
-						json.NewEncoder(w).Encode(map[string]any{"request_id": "req_original", "status": "COMPLETED", "model": "default", "world": map[string]any{"id": "world-original", "splat_format": "spz"}})
+						_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_original", "status": "COMPLETED", "model": "default", "world": map[string]any{"id": "world-original", "splat_format": "spz"}})
 					} else {
-						json.NewEncoder(w).Encode(map[string]any{"world_id": "world-original", "assets": map[string]any{"splats": map[string]any{"spz_urls": map[string]any{"500k": endpoint + "/scene"}, "semantics_metadata": map[string]any{"metric_scale_factor": 1.0, "ground_plane_offset": 0.0}}}})
+						_ = json.NewEncoder(w).Encode(map[string]any{"world_id": "world-original", "assets": map[string]any{"splats": map[string]any{"spz_urls": map[string]any{"500k": endpoint + "/scene"}, "semantics_metadata": map[string]any{"metric_scale_factor": 1.0, "ground_plane_offset": 0.0}}}})
 					}
 				case "/v1/worlds/requests/req_original/splat":
 					http.Redirect(w, r, endpoint+"/scene", 302)
@@ -110,7 +110,7 @@ func TestWorldFreshGetKeepsOriginalTaskAcrossTransientObservation(t *testing.T) 
 						t.Error("credential reached asset")
 					}
 					w.Header().Set("Content-Type", "application/octet-stream")
-					w.Write(scene)
+					_, _ = w.Write(scene)
 				default:
 					t.Errorf("unexpected original-task IO %s", r.URL.Path)
 					http.NotFound(w, r)

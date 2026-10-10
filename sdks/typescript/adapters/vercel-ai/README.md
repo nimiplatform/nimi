@@ -1,4 +1,4 @@
-# Nimi adapter for Vercel AI SDK 6
+# Nimi adapter for Vercel AI SDK 7
 
 Use this adapter to retain Vercel's model, streaming and caller-owned tool-loop
 interfaces while Nimi owns execution configuration and protected access.
@@ -7,13 +7,24 @@ the matching Runtime. The Local App factory also accepts an explicit
 `executionMode` selection. Follow the SDK and Kit migration notes for the
 carrier upgrade from adapter 0.1.0 (SDK peer `^0.13.0`). Adapter 0.2.0 was never published.
 
+## Upgrading to AI SDK 7
+
+This adapter requires `ai@^7` and `@ai-sdk/provider@^4`. Replace
+`stepCountIs` with `isStepCount`, `onFinish` with `onEnd`, and
+`onStepFinish` with `onStepEnd`. `result.usage` now sums all steps; read
+`result.steps.at(-1)?.usage` for the final step. Request/response bodies require
+`experimental_include: { requestBody: true, responseBody: true }`.
+Direct provider calls use V4 tagged file data; provider file references fail
+closed. Reasoning effort maps to the typed Nimi controls and still depends on
+the selected Runtime Driver.
+
 ## Local App
 
 Obtain the Host-bound `NimiLocalAppClient` through the standard Kit carrier,
 then construct the model in the App's request scope:
 
 ```ts
-import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import { convertToModelMessages, isStepCount, streamText } from 'ai';
 import { createNimiLocalAppVercelLanguageModel } from '@nimiplatform/sdk-adapter-vercel-ai';
 
 const model = createNimiLocalAppVercelLanguageModel({ ai: client.ai, executionMode: 'sync' });
@@ -21,7 +32,7 @@ const result = streamText({
   model,
   messages: await convertToModelMessages(uiMessages),
   tools: callerTools,
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   abortSignal,
 });
 return result.toUIMessageStreamResponse();

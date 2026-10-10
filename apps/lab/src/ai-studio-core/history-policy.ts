@@ -255,6 +255,12 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
     optionalNonNegativeNumber(value.totalTokens, `${path}.totalTokens`);
     return;
   }
+  if (kind === 'speaker-embedding') {
+    requiredString(value.jobId, path + '.jobId');
+    requiredString(value.spaceId, path + '.spaceId');
+    if (!Array.isArray(value.vector) || !value.vector.length || value.vector.length > 4096 || value.vector.some(item => typeof item !== 'number' || !Number.isFinite(item))) historyError(path, 'requires the complete finite speaker vector');
+    return;
+  }
   if (kind === 'embedding') {
     nonNegativeNumber(value.vectorCount, `${path}.vectorCount`);
     nonNegativeNumber(value.dimensions, `${path}.dimensions`);

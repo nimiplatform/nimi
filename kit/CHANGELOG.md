@@ -1,5 +1,14 @@
 # Changelog
 
+## Dependency baseline (development)
+
+The unpublished Kit now requires Electron 44 and react-i18next 17 peers. Upgrade
+the carrier and renderer dependencies together. The workspace uses React 19.3,
+Motion 13, and the matching Radix overlay family; mixed focus-scope versions
+break nested Select/Dialog focus. Rebuild SDK/Kit and the Electron main/preload
+bundles before launching consumers. No Runtime wire or storage migration is
+introduced by this dependency update.
+
 ## SDK 0.21.0 / Kit and native 0.18.0 — Unified asynchronous Job lifecycle (development)
 
 This unpublished 0.x development set makes a breaking public contract change. Upgrade the matching Runtime, SDK, Kit and native carriers together; version labels alone do not identify a build. Every supported asynchronous CapabilityContract uses Submit, the original Job ID, Get, formal contract result readers and explicit Cancel regardless of its Local, synchronous remote or native task implementation. Query and result acquisition remain Runtime-owned. Public text unary/stream, speech stream and independent realtime/frame Sessions keep their own forms.

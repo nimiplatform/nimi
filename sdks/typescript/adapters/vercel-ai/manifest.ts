@@ -6,7 +6,7 @@ export const NIMI_VERCEL_AI_ADAPTER_ID = 'vercel-ai' as const;
 export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
   adapterId: NIMI_VERCEL_AI_ADAPTER_ID,
   targetLibrary: 'Vercel AI SDK',
-  targetVersionRange: 'ai@^6.0.0 || @ai-sdk/provider@^3.0.0',
+  targetVersionRange: 'ai@^7.0.0 || @ai-sdk/provider@^4.0.0',
   capabilityLevel: 'L3',
   capabilities: {
     'model.provider': { support: 'supported', mode: 'adapter-mapped' },
@@ -33,7 +33,7 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
     'tools.adapterExecute': {
       support: 'not-applicable',
       mode: 'framework-owned',
-      note: 'LanguageModelV3 providers do not execute caller tool callbacks; Vercel owns tool({ execute }) orchestration above the model adapter.',
+      note: 'LanguageModelV4 providers do not execute caller tool callbacks; Vercel owns tool({ execute }) orchestration above the model adapter.',
     },
     'tools.providerDefined': {
       support: 'unsupported',
@@ -71,7 +71,7 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
     externalExecution: {
       support: 'not-applicable',
       mode: 'framework-owned',
-      note: 'External caller execution is a Vercel framework/tool-loop concern, not a LanguageModelV3 provider interface.',
+      note: 'External caller execution is a Vercel framework/tool-loop concern, not a LanguageModelV4 provider interface.',
     },
     traces: {
       support: 'partial',

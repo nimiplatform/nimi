@@ -550,7 +550,8 @@
       "other": "其他本地 AI 能力",
       "textAnnotate": "语言分析",
       "textDecide": "决策判断",
-      "audioSeparate": "人声与背景分离"
+      "audioSeparate": "人声与背景分离",
+      "audioSpeakerEmbed": "说话人特征"
     },
     "capabilityDescription": {
       "imageFaceSwap": "使用参考人脸替换目标图片中的单个人脸",
@@ -569,7 +570,8 @@
       "other": "其他本地 AI 能力",
       "textAnnotate": "识别词语、词性、依存关系和句子边界",
       "textDecide": "从应用提供的选项中挑选一项，或判断某个说法是否成立，并给出概率",
-      "audioSeparate": "分离人声和背景音，保留原有时间轴"
+      "audioSeparate": "分离人声和背景音，保留原有时间轴",
+      "audioSpeakerEmbed": "提取短音频的说话人特征向量，不推断身份"
     },
     "required": "必需",
     "optional": "可选",
@@ -1782,7 +1784,8 @@
     "voiceCreate": "声音创建",
     "textAnnotate": "语言分析",
     "textDecide": "决策判断",
-    "audioSeparate": "人声与背景分离"
+    "audioSeparate": "人声与背景分离",
+    "audioSpeakerEmbed": "说话人特征"
   },
   "common": {
     "noModelsDiscovered": "尚未发现任何模型。",
@@ -2421,7 +2424,8 @@
       "text-embed": "为语义搜索等应用功能生成文字表示。",
       "image-face-swap": "使用支持的输入和模型替换图像中的人脸。",
       "video-face-swap": "在支持的应用中对视频进行人脸替换。",
-      "vision-locate": "为视觉工具定位图像中的对象或区域。"
+      "vision-locate": "为视觉工具定位图像中的对象或区域。",
+      "audio-speaker-embed": "提取短音频的说话人特征向量，不推断身份"
     },
     "downloadedModels": "已下载并配置的模型",
     "customizeCurrent": "调整当前模型与参数",

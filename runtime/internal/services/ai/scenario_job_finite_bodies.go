@@ -119,7 +119,7 @@ func (s *Service) stageFiniteMediaBodies(ctx context.Context, jobID string, head
 			until, release, admissionErr = s.scenarioJobs.musicArtifactAdmission(jobID, artifact.GetArtifactId(), artifact.GetSizeBytes())
 		}
 		if admissionErr != nil {
-			source.Close()
+			_ = source.Close()
 			return capabilitydriver.CloudMediaResult{}, admissionErr
 		}
 		defer release()
@@ -143,7 +143,7 @@ func (s *Service) stageFiniteMediaBodies(ctx context.Context, jobID string, head
 		}
 		body, err := capabilitydriver.NewIncrementalArtifactBody(source.Body)
 		if err != nil {
-			source.Body.Close()
+			_ = source.Body.Close()
 			capabilitydriver.CloseArtifactBodies(result.ArtifactBodies)
 			return capabilitydriver.CloudMediaResult{}, err
 		}

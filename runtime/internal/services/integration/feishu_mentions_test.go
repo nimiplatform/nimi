@@ -90,7 +90,9 @@ func TestFeishuInboundChatRoutingAndMessageDedupRetainOriginalRefs(t *testing.T)
 				t.Fatal("retention expiry left an unbounded message dedup record")
 			}
 			var retained nativeMessage
-			json.Unmarshal(feed.events[1].payload, &retained)
+			if err := json.Unmarshal(feed.events[1].payload, &retained); err != nil {
+				t.Fatal(err)
+			}
 			grantTestTarget(t, s, call.decision, value.Public.TargetRef, "feishu.updates.read", "feishu.messages.send", "feishu.messages.reply")
 			for _, op := range []string{"send", "reply"} {
 				input := map[string]any{"body": map[string]string{"kind": "text", "text": "one explicit message"}}

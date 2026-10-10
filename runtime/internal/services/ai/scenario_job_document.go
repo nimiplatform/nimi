@@ -30,7 +30,7 @@ func readScenarioJobDocument(path string) ([]byte, error) {
 			// header. Ordinary JSON cannot begin with a NUL byte.
 			_, _ = file.ReadAt(prefix, 4096)
 		}
-		file.Close()
+		_ = file.Close()
 		if string(prefix) == "NIMIJS01" || string(prefix) == "NIMIJE01" {
 			return nil, fmt.Errorf("experimental ScenarioJob carrier requires an explicit data-preserving conversion before startup")
 		}
@@ -39,7 +39,7 @@ func readScenarioJobDocument(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	info, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func appendScenarioJobStoreLine(path string, acknowledgedBytes int64, line []byt
 	if err != nil {
 		return true, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	info, err := file.Stat()
 	if err != nil {
 		return true, err

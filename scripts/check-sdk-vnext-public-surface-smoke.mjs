@@ -288,6 +288,10 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     putConnection: unavailableCarrier,
     removeConnection: unavailableCarrier,
     setPermission: unavailableCarrier,
+    startConnectionSetup: unavailableCarrier,
+    getConnectionSetup: unavailableCarrier,
+    submitConnectionSetup: unavailableCarrier,
+    cancelConnectionSetup: unavailableCarrier,
   },
   conversation: {
     async open() { return { conversationAnchorId: 'anchor-1', activeTurnId: null }; },
@@ -387,6 +391,7 @@ function main() {
   run('execute public surface consumer', 'node', [path.join(tempRoot, 'consumer.mjs')]);
   run('typecheck public surface declarations', PNPM_BIN, [
     '--dir', vnextRoot, 'exec', 'tsc',
+    '--ignoreConfig',
     '--module', 'NodeNext',
     '--moduleResolution', 'NodeNext',
     '--target', 'ES2022',

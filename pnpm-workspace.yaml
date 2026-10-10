@@ -12,14 +12,16 @@ packages:
   - 'sdks/typescript'
   - 'sdks/typescript/adapters/*'
 overrides:
-  fast-uri: 3.1.5
+  fast-uri: 3.1.8
   gh-pages: ^6.3.0
   lodash: 4.18.1
-  picomatch@>=4.0.0 <4.0.4: 4.0.4
   protobufjs: 7.6.5
   socket.io-parser: 4.2.7
-  undici: 7.29.0
+  undici: 7.29.1
   ws: 8.21.0
+  brace-expansion@>=5.0.0 <5.0.12: 5.0.12
+  source-map-js: 1.2.2
+  vitepress>vite: 6.4.3
 allowBuilds:
   electron: true
   esbuild: true
@@ -27,13 +29,13 @@ allowBuilds:
 packageExtensions:
   # Resolve Motion's React declarations from its consumer's type peer, not an
   # unrelated React 18 copy in the workspace's hidden hoist directory.
-  'motion@12':
+  'motion@13':
     peerDependencies:
       '@types/react': '^18.0.0 || ^19.0.0'
     peerDependenciesMeta:
       '@types/react':
         optional: true
-  'framer-motion@12':
+  'framer-motion@13':
     peerDependencies:
       '@types/react': '^18.0.0 || ^19.0.0'
     peerDependenciesMeta:

@@ -83,6 +83,41 @@ const LAB_SOURCE_IDENTITY_LITERALS = [
   'ai.nimi.apps.nimi.lab',
   'nimiapp-lab-shell',
 ];
+
+test('generated AI Studio initializer typechecks against the installed i18next API', () => {
+  const currentVersions = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8')).nimiScaffoldVersions;
+  const snapshot = buildAppScaffoldSnapshot({
+    profile: 'standalone', versions: currentVersions, appId: 'test.i18n', appTitle: 'I18n Test',
+    packageName: 'test-i18n', features: ['studio-create'],
+  });
+  const entry = path.join(testDir, '__generated-i18n.ts');
+  const registry = path.join(testDir, 'capability-registry.ts');
+  const virtualFiles = new Map([
+    [entry, snapshot.filesByPath.get('src/scaffold/generated/i18n.ts').content],
+    // Message values do not affect the initializer's external API types.
+    [registry, 'export const generatedAIStudioMessageBundles = { en: { ready: "Ready" }, zh: { ready: "就绪" } };'],
+  ]);
+  const options = {
+    noEmit: true, strict: true, skipLibCheck: true,
+    target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext,
+    moduleResolution: ts.ModuleResolutionKind.NodeNext,
+  };
+  const host = ts.createCompilerHost(options);
+  const fileExists = host.fileExists;
+  const readFile = host.readFile;
+  const getSourceFile = host.getSourceFile;
+  host.fileExists = (file) => virtualFiles.has(path.normalize(file)) || fileExists(file);
+  host.readFile = (file) => virtualFiles.get(path.normalize(file)) ?? readFile(file);
+  host.getSourceFile = (file, languageVersion, onError, shouldCreateNewSourceFile) => (
+    virtualFiles.has(path.normalize(file))
+      ? ts.createSourceFile(file, host.readFile(file), languageVersion, true)
+      : getSourceFile(file, languageVersion, onError, shouldCreateNewSourceFile)
+  );
+  const program = ts.createProgram([entry], options, host);
+  assert.deepEqual(ts.getPreEmitDiagnostics(program).map((diagnostic) => (
+    ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')
+  )), []);
+});
 const RETIRED_REFERENCE_PROFILE = `${'tes'}${'ter'}-${'reference'}`;
 
 function createFileTree(baseDir, files) {
@@ -1040,11 +1075,11 @@ test('cli standalone scaffold uses current public dependency version sources', (
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], expectedAppToolsVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], expectedNimicodingVersion);
     assert.equal(packageJson.devDependencies['@electron/packager'], expectedElectronPackagerVersion);
-    assert.equal(packageJson.devDependencies.yaml, '^2.9.0');
+    assert.equal(packageJson.devDependencies.yaml, appToolsPackageJson.nimiScaffoldVersions.yamlVersion);
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], expectedSdkVersion);
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/app-tools'], expectedAppToolsVersion);
     assert.equal(lock.dependencyMatrix.npm['@electron/packager'], expectedElectronPackagerVersion);
-    assert.equal(lock.dependencyMatrix.npm.yaml, '^2.9.0');
+    assert.equal(lock.dependencyMatrix.npm.yaml, appToolsPackageJson.nimiScaffoldVersions.yamlVersion);
   } finally {
     generated.cleanup();
   }

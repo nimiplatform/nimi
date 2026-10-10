@@ -23,24 +23,24 @@
     "nimicodingVersion": "0.6.3",
     "aiSdkVersion": "^6.0.85",
     "kitVersion": "^0.15.3",
-    "reactVersion": "^19.2.8",
-    "reactDomVersion": "^19.2.8",
-    "i18nextVersion": "^25.10.10",
-    "lucideReactVersion": "^0.577.0",
-    "tsxVersion": "^4.23.13",
-    "typescriptVersion": "^5.9.3",
-    "nodeTypesVersion": "^24.13.3",
-    "reactTypesVersion": "^19.2.18",
-    "reactDomTypesVersion": "^19.2.5",
-    "viteVersion": "^7.3.6",
-    "viteReactPluginVersion": "^5.2.0",
+    "reactVersion": "^19.3.0",
+    "reactDomVersion": "^19.3.0",
+    "i18nextVersion": "^26.4.2",
+    "lucideReactVersion": "^1.51.0",
+    "tsxVersion": "^4.23.15",
+    "typescriptVersion": "^6.0.3",
+    "nodeTypesVersion": "^24.19.1",
+    "reactTypesVersion": "^19.3.0",
+    "reactDomTypesVersion": "^19.3.0",
+    "viteVersion": "^8.3.3",
+    "viteReactPluginVersion": "^6.1.2",
     "tailwindcssVersion": "^4.3.3",
     "tailwindcssViteVersion": "^4.3.3",
     "tauriCliVersion": "^2.11.4",
-    "yamlVersion": "^2.9.0",
+    "yamlVersion": "^2.9.1",
     "nimiShellTauriVersion": "0.7.0",
     "electronPackagerVersion": "^20.3.0",
-    "electronVersion": "^42.10.1",
+    "electronVersion": "^44.5.1",
     "esbuildVersion": "^0.28.2",
     "packageManager": "pnpm@10.34.5"
   },
@@ -68,11 +68,11 @@
   "dependencies": {
     "pngjs": "7.0.0",
     "semver": "^7.8.5",
-    "typescript": "^5.9.3",
-    "yaml": "^2.9.0"
+    "typescript": "6.0.3",
+    "yaml": "2.9.1"
   },
   "peerDependencies": {
-    "vite": "^7.3.6"
+    "vite": "^8.0.0"
   },
   "peerDependenciesMeta": {
     "vite": {
@@ -80,7 +80,8 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "vite": "7.3.6"
+    "@types/node": "24.19.1",
+    "vite": "8.3.3",
+    "i18next": "26.4.2"
   }
 }

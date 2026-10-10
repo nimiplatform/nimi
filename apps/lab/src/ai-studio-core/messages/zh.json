@@ -477,6 +477,10 @@
       "wordTimes": "词级时间 · {{count}} 个词项",
       "charTimes": "字级时间 · {{count}} 个字项",
       "timeHint": "时间以这段音频起点为零，单位为秒。"
+    },
+    "speakerEmbedding": {
+      "dimensions": "向量维数：{{count}}",
+      "boundary": "保留完整向量和表示空间；不同空间不能比较。这不是身份识别或身份认证。"
     }
   }
 }

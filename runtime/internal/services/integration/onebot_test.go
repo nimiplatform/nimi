@@ -29,7 +29,7 @@ func onebotTestTarget(t *testing.T, s *Service) target {
 		t.Fatal(err)
 	}
 	address := listener.Addr().String()
-	listener.Close()
+	_ = listener.Close()
 	value := target{Account: "test-account", Subject: "12345", Identity: "onebot-v11:12345", CredentialGeneration: 1, OnebotImplementation: "engineering-fixture", OnebotVersion: "1.2.3", Config: &runtimev1.IntegrationConnectionConfig{OnebotV11: &runtimev1.IntegrationOneBotV11Config{Listener: address, SelfId: "12345"}}, Public: &runtimev1.IntegrationTarget{TargetRef: "onebot-test", IntegrationId: "onebot-v11", Kind: "onebot-v11", Available: true, Operations: nativeOperations("onebot-v11")}}
 	if err := s.saveTarget(context.Background(), value); err != nil {
 		t.Fatal(err)
@@ -70,13 +70,13 @@ func TestOnebotHandshakeCompletionCannotDispatchAfterActualLogout(t *testing.T) 
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	var request struct {
 		Action string `json:"action"`
 		Echo   string `json:"echo"`
 	}
-	conn.ReadJSON(&request)
-	conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]any{"user_id": 12345, "nickname": "fixture"}, "echo": request.Echo})
+	_ = conn.ReadJSON(&request)
+	_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]any{"user_id": 12345, "nickname": "fixture"}, "echo": request.Echo})
 	if err = conn.ReadJSON(&request); err != nil || request.Action != "get_version_info" {
 		t.Fatal("version phase absent", request, err)
 	}
@@ -87,11 +87,11 @@ func TestOnebotHandshakeCompletionCannotDispatchAfterActualLogout(t *testing.T) 
 	if c.ctx.Err() != nil || closed(c.decision.SessionInvalidated) {
 		t.Fatal("proof relies on delayed watcher")
 	}
-	conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]string{"app_name": "engineering-fixture", "app_version": "1.2.3", "protocol_version": "v11"}, "echo": request.Echo})
+	_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]string{"app_name": "engineering-fixture", "app_version": "1.2.3", "protocol_version": "v11"}, "echo": request.Echo})
 	if err = <-done; publicAdapterError(err) != "INTEGRATION_SCOPE_ENDED" {
 		t.Fatal("late verification dispatched", err)
 	}
-	conn.SetReadDeadline(time.Now().Add(time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(time.Second))
 	if err = conn.ReadJSON(&request); err == nil {
 		t.Fatal("business request followed logout", request)
 	}
@@ -120,7 +120,7 @@ func TestOnebotInvocationRecordsNativeReceiptOrUnconfirmedWithoutRetry(t *testin
 			if request.Action != "send_private_msg" || len(request.Params.Message) != 1 || request.Params.Message[0].Type != "text" || onebotValue(request.Params.Message[0].Data["text"]) != "literal [CQ:at,qq=1]" {
 				t.Fatal("text became undeclared CQ actions", request)
 			}
-			conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]any{"message_id": nativeID}, "echo": request.Echo})
+			_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]any{"message_id": nativeID}, "echo": request.Echo})
 			fact := waitTestCall(t, s, d, accepted.Call.CallId)
 			expected := "completed"
 			if nativeID == nil {
@@ -153,14 +153,14 @@ func TestOnebotPendingAndFrameBoundsBeforeProcessing(t *testing.T) {
 		t.Fatal("excess action allocated/dispatched", outcome, err)
 	}
 	for i := len(echoes) - 1; i >= 0; i-- {
-		conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"user_id": 12345}, "echo": echoes[i]})
+		_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"user_id": 12345}, "echo": echoes[i]})
 	}
 	for i := 0; i < 32; i++ {
 		if err := <-results; err != nil {
 			t.Fatal(err)
 		}
 	}
-	conn.WriteMessage(websocket.TextMessage, []byte(`{"post_type":"meta_event","self_id":12345,"padding":"`+strings.Repeat("x", 1024*1024)+`"}`))
+	_ = conn.WriteMessage(websocket.TextMessage, []byte(`{"post_type":"meta_event","self_id":12345,"padding":"`+strings.Repeat("x", 1024*1024)+`"}`))
 	select {
 	case <-bridge.ctx.Done():
 	case <-time.After(time.Second):
@@ -178,7 +178,7 @@ func TestOnebotSendImageOwnedBytesActualReceiptAndPreDispatchCancel(t *testing.T
 	_ = peer
 	c := admittedNativePhaseCall(t, s, testDecision("consumer", 1), value, operation(value, "onebot-v11.messages.send"))
 	var encoded bytes.Buffer
-	png.Encode(&encoded, image.NewNRGBA(image.Rect(0, 0, 1, 1)))
+	_ = png.Encode(&encoded, image.NewNRGBA(image.Rect(0, 0, 1, 1)))
 	plain := encoded.Bytes()
 	store, err := appstorage.NewAssetStore(t.TempDir(), appstorage.AssetPolicy{MinFreeBytes: 1})
 	if err != nil {
@@ -221,7 +221,7 @@ func TestOnebotSendImageOwnedBytesActualReceiptAndPreDispatchCancel(t *testing.T
 	if err != nil || !strings.HasPrefix(file, "base64://") || !bytes.Equal(data, plain) {
 		t.Fatal("protocol did not use exact owned bytes")
 	}
-	conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"message_id": -345}, "echo": request.Echo})
+	_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"message_id": -345}, "echo": request.Echo})
 	got := <-done
 	if got.err != nil || got.outcome != providerConfirmed || !strings.Contains(got.text, `"messageId":"-345"`) {
 		t.Fatal("native signed ID not preserved", got)
@@ -253,7 +253,7 @@ func TestOnebotDisconnectStopsPendingAndOldEchoCannotConfirmNewSocket(t *testing
 	if err := conn.ReadJSON(&old); err != nil {
 		t.Fatal(err)
 	}
-	conn.Close()
+	_ = conn.Close()
 	if outcome := <-done; outcome != effectUnknown {
 		t.Fatal("disconnect confirmed or effect-free", outcome)
 	}
@@ -268,7 +268,7 @@ func TestOnebotDisconnectStopsPendingAndOldEchoCannotConfirmNewSocket(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer second.Close()
+	defer func() { _ = second.Close() }()
 	verifyOnebotFixture(t, second, "12345", "engineering-fixture", "1.2.3")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -281,12 +281,12 @@ func TestOnebotDisconnectStopsPendingAndOldEchoCannotConfirmNewSocket(t *testing
 	var request struct {
 		Echo string `json:"echo"`
 	}
-	second.ReadJSON(&request)
+	_ = second.ReadJSON(&request)
 	if request.Echo == old.Echo {
 		t.Fatal("echo generation reused")
 	}
-	second.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"message_id": 1}, "echo": old.Echo})
-	second.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"message_id": 2}, "echo": request.Echo})
+	_ = second.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"message_id": 1}, "echo": old.Echo})
+	_ = second.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"message_id": 2}, "echo": request.Echo})
 	reply := <-result
 	if !strings.Contains(string(reply.Data), "2") {
 		t.Fatal("old socket confirmed new request", reply)
@@ -298,7 +298,7 @@ func dialOnebot(t *testing.T, value target, role, self, token string) (*websocke
 }
 func verifyOnebotFixture(t *testing.T, conn *websocket.Conn, self, implementation, version string) {
 	t.Helper()
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 	for _, action := range []string{"get_login_info", "get_version_info"} {
 		var request struct {
 			Action string `json:"action"`
@@ -321,7 +321,7 @@ func verifyOnebotFixture(t *testing.T, conn *websocket.Conn, self, implementatio
 			t.Fatal(err)
 		}
 	}
-	conn.SetReadDeadline(time.Time{})
+	_ = conn.SetReadDeadline(time.Time{})
 }
 func onebotVerifiedBridge(t *testing.T) (*Service, target, *onebotBridge, *onebotPeer, *websocket.Conn, func()) {
 	t.Helper()
@@ -342,7 +342,7 @@ func onebotVerifiedBridge(t *testing.T) (*Service, target, *onebotBridge, *onebo
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { release(); conn.Close(); <-b.done })
+	t.Cleanup(func() { release(); _ = conn.Close(); <-b.done })
 	return s, value, b, p, conn, release
 }
 
@@ -360,33 +360,33 @@ func TestOnebotAuthenticatedRolesAndActualIdentity(t *testing.T) {
 	}{{"Universal", "12345", "wrong", 401}, {"Universal", "999", "private-token", 403}, {"unknown", "12345", "private-token", 403}} {
 		conn, response, err := dialOnebot(t, value, input.role, input.self, input.token)
 		if conn != nil {
-			conn.Close()
+			_ = conn.Close()
 		}
 		if err == nil || response == nil || response.StatusCode != input.status {
 			t.Fatal("unauthenticated upgrade", input, response, err)
 		}
-		response.Body.Close()
+		_ = response.Body.Close()
 	}
 	event, _, err := dialOnebot(t, value, "Event", "12345", "private-token")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer event.Close()
+	defer func() { _ = event.Close() }()
 	for _, role := range []string{"Event", "Universal"} {
 		conn, response, err := dialOnebot(t, value, role, "12345", "private-token")
 		if conn != nil {
-			conn.Close()
+			_ = conn.Close()
 		}
 		if err == nil || response == nil || response.StatusCode != 409 {
 			t.Fatal("duplicate role upgraded", role, err)
 		}
-		response.Body.Close()
+		_ = response.Body.Close()
 	}
 	api, _, err := dialOnebot(t, value, "API", "12345", "private-token")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer api.Close()
+	defer func() { _ = api.Close() }()
 	verifyOnebotFixture(t, api, "12345", "engineering-fixture", "1.2.3")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -408,7 +408,7 @@ func TestOnebotVersionAndIdentityMismatchNeverVerify(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 			var request struct {
 				Action string `json:"action"`
 				Echo   string `json:"echo"`
@@ -417,12 +417,12 @@ func TestOnebotVersionAndIdentityMismatchNeverVerify(t *testing.T) {
 				t.Fatal(err)
 			}
 			id, _ := strconv.Atoi(test.self)
-			conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]any{"user_id": id, "nickname": "fixture"}, "echo": request.Echo})
+			_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]any{"user_id": id, "nickname": "fixture"}, "echo": request.Echo})
 			if test.self == "12345" {
 				if err = conn.ReadJSON(&request); err != nil {
 					t.Fatal(err)
 				}
-				conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]string{"app_name": "engineering-fixture", "app_version": test.version, "protocol_version": "v11"}, "echo": request.Echo})
+				_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]string{"app_name": "engineering-fixture", "app_version": test.version, "protocol_version": "v11"}, "echo": request.Echo})
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
@@ -447,15 +447,15 @@ func TestOnebotEchoOutOfOrderAndHonestLayeredOutcomes(t *testing.T) {
 	var one, two struct {
 		Echo string `json:"echo"`
 	}
-	conn.ReadJSON(&one)
+	_ = conn.ReadJSON(&one)
 	go func() {
 		reply, outcome, err := peer.call(context.Background(), "get_login_info", map[string]any{"order": 2}, nil)
 		second <- result{reply, outcome, err}
 	}()
-	conn.ReadJSON(&two)
-	conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"order": 999}, "echo": "foreign"})
-	conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"order": 2}, "echo": two.Echo})
-	conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"order": 1}, "echo": one.Echo})
+	_ = conn.ReadJSON(&two)
+	_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"order": 999}, "echo": "foreign"})
+	_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"order": 2}, "echo": two.Echo})
+	_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"order": 1}, "echo": one.Echo})
 	for order, ch := range []chan result{first, second} {
 		got := <-ch
 		if got.err != nil || got.outcome != providerConfirmed || !strings.Contains(string(got.response.Data), strconv.Itoa(order+1)) {
@@ -476,8 +476,8 @@ func TestOnebotEchoOutOfOrderAndHonestLayeredOutcomes(t *testing.T) {
 		var request struct {
 			Echo string `json:"echo"`
 		}
-		conn.ReadJSON(&request)
-		conn.WriteJSON(map[string]any{"status": test.status, "retcode": test.code, "data": map[string]int{"message_id": -123}, "echo": request.Echo})
+		_ = conn.ReadJSON(&request)
+		_ = conn.WriteJSON(map[string]any{"status": test.status, "retcode": test.code, "data": map[string]int{"message_id": -123}, "echo": request.Echo})
 		got := <-ch
 		cancel()
 		if got.outcome != test.expected || (got.err == nil) != (test.expected == providerConfirmed) {
@@ -494,8 +494,8 @@ func TestOnebotEchoOutOfOrderAndHonestLayeredOutcomes(t *testing.T) {
 	var request struct {
 		Echo string `json:"echo"`
 	}
-	conn.ReadJSON(&request)
-	conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"message_id": 1}})
+	_ = conn.ReadJSON(&request)
+	_ = conn.WriteJSON(map[string]any{"status": "ok", "retcode": 0, "data": map[string]int{"message_id": 1}})
 	got := <-ch
 	if got.err == nil || got.outcome != effectUnknown {
 		t.Fatal("missing echo confirmed", got)
@@ -547,7 +547,7 @@ func TestOnebotSetupUsesActualHandshakeAndClosesListener(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	verifyOnebotFixture(t, conn, "12345", "engineering-fixture", "1.2.3")
 	waitSetupStatus(t, s, ctx, started.Setup.SetupId, "completed")
 	observed, err := s.GetIntegrationConnectionSetup(setupTestContext(ctx, localappop.OperationIntegrationConnectionSetupGet), &runtimev1.GetIntegrationConnectionSetupRequest{SetupId: started.Setup.SetupId})
@@ -562,5 +562,5 @@ func TestOnebotSetupUsesActualHandshakeAndClosesListener(t *testing.T) {
 	if err != nil {
 		t.Fatal("verification retained idle listener", err)
 	}
-	listener.Close()
+	_ = listener.Close()
 }

@@ -1,12 +1,12 @@
-import type { SharedV3ProviderMetadata } from '@ai-sdk/provider';
+import type { SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts';
 
-export function toVercelTopLevelProviderMetadata(raw: NimiJsonValue | undefined): SharedV3ProviderMetadata | undefined {
+export function toVercelTopLevelProviderMetadata(raw: NimiJsonValue | undefined): SharedV4ProviderMetadata | undefined {
   const providerMetadata = rawObjectField(raw, 'providerMetadata');
   if (!providerMetadata || Object.keys(providerMetadata).length === 0) {
     return undefined;
   }
-  return providerMetadata as unknown as SharedV3ProviderMetadata;
+  return providerMetadata as unknown as SharedV4ProviderMetadata;
 }
 
 export function toVercelRequestMetadata(raw: NimiJsonValue | undefined): { body?: unknown } | undefined {

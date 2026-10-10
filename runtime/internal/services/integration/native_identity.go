@@ -18,7 +18,7 @@ func (s *Service) checkNativeIdentityLocked(ctx context.Context, next target) er
 	if err != nil {
 		return failure(codes.Unavailable, "INTEGRATION_TARGET_UNAVAILABLE")
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var raw string
 		var current target

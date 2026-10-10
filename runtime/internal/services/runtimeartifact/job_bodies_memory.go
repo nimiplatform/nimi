@@ -37,7 +37,7 @@ func (s *MemoryStore) StageJobBody(ctx context.Context, id string, record Artifa
 	if ctx == nil || source == nil {
 		return ErrInvalidArtifactRecord
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 	s.mu.Lock()
 	reserved, ok := s.records[id]
 	if !ok || reserved.JobCandidate == nil || reserved.JobCandidate.Complete || reserved.ProducerJobID != record.ProducerJobID || !artifactOwnersEqual(reserved.Owner, record.Owner) {

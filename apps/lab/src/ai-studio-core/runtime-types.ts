@@ -121,6 +121,7 @@ export type StudioSessionSummary = {
 };
 
 export type StudioTypedOutput =
+  | { readonly kind: 'speaker-embedding'; readonly jobId: string; readonly spaceId: string; readonly vector: readonly number[] }
   | { readonly kind: 'vision-locate'; readonly jobId: string; readonly result: NimiLocalAppVisionLocateResult; readonly sourceImage?: StudioManagedArtifact; readonly imagePreviewUrl?: string }
   | { readonly kind: 'text'; readonly text: string; readonly finishReason: string; readonly inputTokens?: number; readonly outputTokens?: number; readonly totalTokens?: number; readonly streamed: boolean; readonly sourceImage?: StudioManagedArtifact }
   // spaceId is absent only on records saved before the result retained it.

@@ -10,7 +10,7 @@ import (
 
 func TestJobRegistrationAuthorityTracksCommittedOwnerWithdrawal(t *testing.T) {
 	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "job-install", 0x31)
-	defer kernel.Close()
+	defer func() { _ = kernel.Close() }()
 	ctx := context.Background()
 	input := developmentInput()
 	input.RawDeclaration = []string{"runtime.consume"}
@@ -58,7 +58,7 @@ func TestJobRegistrationAuthorityTracksCommittedOwnerWithdrawal(t *testing.T) {
 
 func TestJobRegistrationCommitFenceOrdersActualMutation(t *testing.T) {
 	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "job-install", 0x32)
-	defer kernel.Close()
+	defer func() { _ = kernel.Close() }()
 	ctx := context.Background()
 	input := developmentInput()
 	input.RawDeclaration = []string{"runtime.consume"}

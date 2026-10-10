@@ -14,10 +14,10 @@ import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon
 import { useAIStudioHost } from './host-context.js';
 import { VisionLocateResultView } from './section-ai-testing-vision-result.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
-import { formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunIntentLabel, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
+import { getStudioRunHistoryExportText, formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunIntentLabel, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
 import { studioNonSuccessReasonTitle, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage } from './non-success-presentation.js';
 import { ArtifactMediaPreview, ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
-import { EmbeddingResultBody, KnownJobNotice, revealStudioAsset } from './section-ai-testing-output.js';
+import { EmbeddingResultBody, SpeakerEmbeddingResultBody, KnownJobNotice, revealStudioAsset } from './section-ai-testing-output.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly StudioRunPromptControlFact[] }) {
@@ -109,16 +109,6 @@ function hasTextStudioRequestSettings(record: StudioRunHistoryRecord): boolean {
   return getStudioRunConfigParamRows(runConfig).length > 0 || Boolean(runConfig.target.paramsSummary.join(' / '));
 }
 
-function historyRecordPlainText(record: StudioRunHistoryRecord): string {
-  const snapshot = record.result;
-  if (!snapshot) return record.message;
-  if (!snapshot.ok) return snapshot.message;
-  if (snapshot.kind === 'text' || snapshot.kind === 'transcript') return snapshot.body;
-  if (snapshot.kind === 'text-exchange') return snapshot.text;
-  if (snapshot.kind === 'text-decision' && snapshot.answers) return JSON.stringify({ answers: snapshot.answers }, null, 2);
-  return snapshot.summary;
-}
-
 function historyNonSuccessDiagnosticsText(snapshot: Extract<StudioRunHistoryResultSnapshot, { ok: false }>): string {
   return [
     `Reason: ${snapshot.reason}`,
@@ -163,7 +153,7 @@ function TextStudioHistoryRecordResult({
   const HistoryActions = registration.historyActions;
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
   const jobState = snapshot?.ok && 'jobState' in snapshot ? snapshot.jobState : undefined;
-  const statusLabel = record.status === 'ready' && snapshot?.ok && snapshot.kind === 'vision-locate' && snapshot.result
+  const statusLabel = record.status === 'ready' && snapshot?.ok && (snapshot.kind === 'speaker-embedding' || (snapshot.kind === 'vision-locate' && snapshot.result))
     ? t('Studio.result.statCompleted')
     : jobState === undefined
     ? rendererHost.app.projection.runStatusLabel(record.status)
@@ -172,7 +162,7 @@ function TextStudioHistoryRecordResult({
   const tags = blocked ? [studioNonSuccessReasonTitle(blocked.reason, t, record.capabilityId)] : getStudioRunResultTags(record);
   const intentLabel = getStudioRunIntentLabel(record);
   const toneClass = historyResultToneClass(record);
-  const exportText = historyRecordPlainText(record);
+  const exportText = getStudioRunHistoryExportText(record);
   const managedArtifact = snapshot?.ok && snapshot.kind === 'artifacts'
     ? snapshot.artifacts?.[0] ?? snapshot.firstArtifact
     : snapshot?.ok && snapshot.kind === 'text-annotation' ? snapshot.document : undefined;
@@ -180,9 +170,10 @@ function TextStudioHistoryRecordResult({
   // prompt or omitted extra annotation documents would replay different input.
   const sessionOnly = snapshot?.ok && snapshot.kind === 'session';
   const faceSwapNeedsMedia = snapshot?.ok && snapshot.kind === 'artifacts' && Boolean(snapshot.faceSwap);
+  const speakerNeedsMedia = snapshot?.ok && snapshot.kind === 'speaker-embedding';
   const additionalDocumentsNotRetained = snapshot?.ok && snapshot.kind === 'text-annotation'
     && Number(record.runConfig?.target.params.additionalDocuments ?? 0) > 0;
-  const canUseAsDraft = !sessionOnly && !faceSwapNeedsMedia && !record.inputTruncated;
+  const canUseAsDraft = !sessionOnly && !faceSwapNeedsMedia && !speakerNeedsMedia && !record.inputTruncated;
   const canReplay = canUseAsDraft && !additionalDocumentsNotRetained;
   const revealsManagedAsset = Boolean(managedArtifact?.relativePath);
   const canExport = !blocked && (revealsManagedAsset || Boolean(exportText.trim()));
@@ -327,6 +318,7 @@ function TextStudioHistorySnapshotBody({ snapshot, recordId, submittedParameters
   if (snapshot.kind === 'transcript') {
     return <SpeechTranscriptResultView text={snapshot.body} transcription={snapshot.transcription} />;
   }
+  if (snapshot.kind === 'speaker-embedding') return <SpeakerEmbeddingResultBody spaceId={snapshot.spaceId} vector={snapshot.vector} />;
   if (snapshot.kind === 'embedding') {
     return <EmbeddingResultBody spaceId={snapshot.spaceId} />;
   }

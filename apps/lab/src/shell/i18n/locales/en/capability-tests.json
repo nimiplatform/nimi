@@ -383,6 +383,21 @@
     "jobs": {
       "streamEnded": "Job {{jobId}} is still {{status}}; its event stream ended before a terminal state.",
       "ended": "Job {{jobId}} ended as {{status}}."
+    },
+    "speakerEmbedding": {
+      "label": "Speaker representation",
+      "summary": "Short audio produces a speaker vector and its representation space.",
+      "inputTitle": "Audio file",
+      "inputNote": "Choose WAV, MP3 or FLAC up to 30 seconds (32 MiB maximum). Runtime validates duration; choose the file again to rerun.",
+      "inputInvalid": "Choose a valid WAV, MP3 or FLAC file (32 MiB maximum).",
+      "primaryLabel": "Extract representation",
+      "primaryRunningLabel": "Extracting",
+      "emptyTitle": "Extract speaker representation",
+      "emptyHint": "Choose a short audio file in Parameters.",
+      "footnote": "This does not identify a person or authenticate a login. Compare vectors only within the same representation space.",
+      "pending": "Extracting speaker representation…",
+      "completed": "Created a {{dimensions}}-dimensional speaker representation.",
+      "resultInvalid": "Runtime did not return a valid vector and representation space."
     }
   }
 }

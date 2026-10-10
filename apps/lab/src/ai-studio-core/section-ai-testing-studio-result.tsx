@@ -19,7 +19,7 @@ import { formatStudioRunTimestamp } from './history.js';
 import { isStoppedDirectCall, studioNonSuccessNeedsTargetReselection, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage, type StudioTranslate } from './non-success-presentation.js';
 import { countStudioWords } from './studio-directives.js';
 import type { CapabilityStatus } from './section-ai-testing-admission.js';
-import { ArtifactMediaPreview, ArtifactMediaResult, EmbeddingResultBody, KnownJobNotice, RuntimeDiagnosticsActions, formatTypedOutput, formatNonSuccessOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
+import { ArtifactMediaPreview, ArtifactMediaResult, EmbeddingResultBody, SpeakerEmbeddingResultBody, KnownJobNotice, RuntimeDiagnosticsActions, formatTypedOutput, formatNonSuccessOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
 
 // Readable body for a successful typed result (light surface), with structured
 // summaries for embedding / voice-catalog rather than raw JSON (which moves to
@@ -59,6 +59,7 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
       </div>
     );
   }
+  if (output.kind === 'speaker-embedding') return <SpeakerEmbeddingResultBody spaceId={output.spaceId} vector={output.vector} />;
   if (output.kind === 'embedding') {
     return <EmbeddingResultBody spaceId={output.spaceId} />;
   }
@@ -335,6 +336,7 @@ export function StudioResult({
         { label: t('Studio.result.statResult'), value: t(output.creationSource === 'text-description' ? 'Studio.result.createdFromDescription' : 'Studio.result.createdFromAudio') },
       ];
     }
+    if (output.kind === 'speaker-embedding') return [{ label: t('Studio.result.statResult'), value: String(output.vector.length) }];
     if (output.kind === 'vision-locate') return [{ label: t('VisionLocate.matches'), value: String(output.result.locations.length) }];
     return [
       { label: t('Studio.result.statVoices'), value: String(output.voiceCount) },
@@ -352,6 +354,7 @@ export function StudioResult({
     else if (output.kind === 'artifacts') metric = t('Studio.result.metricArtifacts', { count: output.artifactCount });
     else if (output.kind === 'embedding') metric = t('Studio.result.metricCreated');
     else if (output.kind === 'voice-asset') metric = output.creationSource;
+    else if (output.kind === 'speaker-embedding') metric = String(output.vector.length);
     else if (output.kind === 'vision-locate') metric = String(output.result.locations.length);
     else metric = t('Studio.result.metricVoices', { count: output.voiceCount });
   }

@@ -95,7 +95,7 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("bind audio.cpp Runtime owner: %w", guardErr))
 	}
 	if ownerReader != nil {
-		defer ownerReader.Close()
+		defer func() { _ = ownerReader.Close() }()
 	}
 	started := time.Now()
 	if err := command.Start(); err != nil {

@@ -5,10 +5,10 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { createWebPublicEnvDefines, resolveWebPublicEnv } from './public-env.js';
 
-const repoRoot = path.resolve(__dirname, '../..');
+const repoRoot = path.resolve(import.meta.dirname, '../..');
 const repoRootNormalized = repoRoot.replaceAll('\\', '/');
 
-function manualChunks(id: string): string | undefined {
+function chunkName(id: string): string | undefined {
   const normalized = id.replaceAll('\\', '/');
 
   if (
@@ -92,7 +92,7 @@ function manualChunks(id: string): string | undefined {
 
 function loadRootEnv(): void {
   if (typeof process.loadEnvFile !== 'function') return;
-  const file = path.resolve(__dirname, '..', '..', '.env');
+  const file = path.resolve(import.meta.dirname, '..', '..', '.env');
   if (!fs.existsSync(file)) return;
   try { process.loadEnvFile(file); } catch { /* optional local input */ }
 }
@@ -109,20 +109,20 @@ function httpOrigin(value: unknown): string | null {
 
 export default defineConfig(({ mode }) => {
   loadRootEnv();
-  const env = loadEnv(mode, __dirname, '');
+  const env = loadEnv(mode, import.meta.dirname, '');
   const realmProxyTarget = httpOrigin(env.NIMI_REALM_URL || process.env.NIMI_REALM_URL);
   const publicEnv = resolveWebPublicEnv({ source: { ...process.env, ...env }, realmProxyTarget, mode });
-  const sdkDist = path.resolve(__dirname, '../../sdks/typescript/dist');
+  const sdkDist = path.resolve(import.meta.dirname, '../../sdks/typescript/dist');
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react({ exclude: [/\/node_modules\//, /\/src\/(?:shell\/renderer\/)?main\.tsx$/] }), tailwindcss()],
     envPrefix: [],
     define: createWebPublicEnvDefines(publicEnv),
     resolve: {
       dedupe: ['react', 'react-dom'],
       alias: [
-        { find: /^@nimiplatform\/kit\/auth\/styles\.css$/, replacement: path.resolve(__dirname, '../../kit/auth/src/styles.css') },
-        { find: /^@nimiplatform\/kit\/auth$/, replacement: path.resolve(__dirname, '../../kit/auth/src/index.ts') },
-        { find: /^@nimiplatform\/kit\/core\/(.*)$/, replacement: path.resolve(__dirname, '../../kit/core/src/$1') },
+        { find: /^@nimiplatform\/kit\/auth\/styles\.css$/, replacement: path.resolve(import.meta.dirname, '../../kit/auth/src/styles.css') },
+        { find: /^@nimiplatform\/kit\/auth$/, replacement: path.resolve(import.meta.dirname, '../../kit/auth/src/index.ts') },
+        { find: /^@nimiplatform\/kit\/core\/(.*)$/, replacement: path.resolve(import.meta.dirname, '../../kit/core/src/$1') },
         { find: /^@nimiplatform\/sdk\/realm$/, replacement: path.join(sdkDist, 'realm/index.js') },
       ],
     },
@@ -141,17 +141,17 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       emptyOutDir: true,
       sourcemap: true,
-      rollupOptions: {
+      rolldownOptions: {
         input: {
-          main: path.resolve(__dirname, 'index.html'),
-          download: path.resolve(__dirname, 'download.html'),
-          codeSigning: path.resolve(__dirname, 'code-signing.html'),
-          blueyard: path.resolve(__dirname, 'blueyard.html'),
-          terms: path.resolve(__dirname, 'terms.html'),
-          privacy: path.resolve(__dirname, 'privacy.html'),
+          main: path.resolve(import.meta.dirname, 'index.html'),
+          download: path.resolve(import.meta.dirname, 'download.html'),
+          codeSigning: path.resolve(import.meta.dirname, 'code-signing.html'),
+          blueyard: path.resolve(import.meta.dirname, 'blueyard.html'),
+          terms: path.resolve(import.meta.dirname, 'terms.html'),
+          privacy: path.resolve(import.meta.dirname, 'privacy.html'),
         },
         output: {
-          manualChunks,
+          codeSplitting: { groups: [{ name: chunkName }] },
           onlyExplicitManualChunks: true,
         },
       },

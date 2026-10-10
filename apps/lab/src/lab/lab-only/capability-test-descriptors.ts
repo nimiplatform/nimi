@@ -3,6 +3,7 @@
 // the formal Local App client; public scaffold admission stays a separate
 // decision in App Tools.
 export type LabCapabilityTestId =
+  | 'audio.speaker.embed'
   | 'text.annotate'
   | 'text.tools'
   | 'text.decide'
@@ -11,6 +12,14 @@ export type LabCapabilityTestId =
   | 'image.face_swap'
   | 'video.face_swap'
   | 'realtime.interact';
+
+export const labSpeakerEmbeddingDescriptor = Object.freeze({
+  id: 'audio.speaker.embed', label: 'Speaker representation', labelKey: 'CapabilityTests.speakerEmbedding.label', group: 'audio', section: 'voice',
+  summary: 'Short owned audio → Scenario Job → complete speaker vector and representation space.',
+  summaryKey: 'CapabilityTests.speakerEmbedding.summary',
+  surface: 'sdk.localApp.ai.scenarioJobs:audio-speaker-embed',
+  execution: 'runtime-sdk', capabilityContract: 'audio.speaker.embed',
+} as const);
 
 export const labTextAnnotateDescriptor = Object.freeze({
   id: 'text.annotate', label: 'Text annotation', labelKey: 'CapabilityTests.textAnnotate.label', group: 'text',
@@ -85,6 +94,7 @@ export const labAiRealtimeDescriptor = Object.freeze({
 } as const);
 
 export const labCapabilityTestDescriptors = Object.freeze([
+  labSpeakerEmbeddingDescriptor,
   labTextAnnotateDescriptor,
   labTextToolsDescriptor,
   labTextDecideDescriptor,
@@ -96,10 +106,10 @@ export const labCapabilityTestDescriptors = Object.freeze([
 ] as const);
 
 // The current Runtime runs these entries only on a Local route: text
-// annotation, both face swap Jobs and the video Session refuse a Cloud intent
+// annotation, speaker representation, both face swap Jobs and the video Session refuse a Cloud intent
 // with AI_ROUTE_UNSUPPORTED. AI Realtime is not listed; its Local refusal is a
 // missing driver that Runtime reports when a Session opens.
-const labLocalRouteOnlyTestIds: ReadonlySet<string> = new Set<LabCapabilityTestId>(['text.annotate', 'image.face_swap', 'video.face_swap']);
+const labLocalRouteOnlyTestIds: ReadonlySet<string> = new Set<LabCapabilityTestId>(['audio.speaker.embed', 'text.annotate', 'image.face_swap', 'video.face_swap']);
 
 export function isLabLocalRouteOnlyCapability(capabilityId: string): boolean {
   return labLocalRouteOnlyTestIds.has(capabilityId);

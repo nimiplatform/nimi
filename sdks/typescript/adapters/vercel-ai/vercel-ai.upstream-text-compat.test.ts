@@ -23,6 +23,7 @@ test('upstream-compat/generateText: exposes provider metadata and response metad
   const result = await generateText({
     model: createNimiVercelLanguageModel({ model }),
     prompt: 'metadata',
+    experimental_include: { requestBody: true, responseBody: true },
   });
 
   assert.equal(result.text, 'metadata ok');

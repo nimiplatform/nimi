@@ -32,7 +32,7 @@ func seedQQCall(t *testing.T, s *Service, conversation nativeConversation, sourc
 	if err := s.saveTarget(context.Background(), value); err != nil {
 		t.Fatal(err)
 	}
-	s.secrets.WriteSecret("integration:"+value.Public.TargetRef, "private-secret")
+	_ = s.secrets.WriteSecret("integration:"+value.Public.TargetRef, "private-secret")
 	c := admittedNativePhaseCall(t, s, testDecision("consumer", 1), value, operation(value, "qq-official.updates.read"))
 	f := newNativeFeed()
 	f.readers = 1
@@ -52,7 +52,7 @@ func seedQQCall(t *testing.T, s *Service, conversation nativeConversation, sourc
 		t.Fatal(err)
 	}
 	var message nativeMessage
-	json.Unmarshal(f.events[0].payload, &message)
+	_ = json.Unmarshal(f.events[0].payload, &message)
 	c.op = operation(value, "qq-official.messages.send")
 	c.fact.Operation = c.op.Name
 	grantTestTarget(t, s, c.decision, value.Public.TargetRef, c.op.Name)
@@ -185,7 +185,7 @@ func TestQQInboundKnownSizeMustMatchBeforeActualAssetCommit(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer stored.Body.Close()
+			defer func() { _ = stored.Body.Close() }()
 			data, err := io.ReadAll(stored.Body)
 			if err != nil || !bytes.Equal(data, plain) {
 				t.Fatal("stored bytes differ", err)
@@ -277,7 +277,7 @@ func TestQQExactCDNPublicPNGFetchKeepsFinalCandidateGuard(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				defer stored.Body.Close()
+				defer func() { _ = stored.Body.Close() }()
 				actual, err := io.ReadAll(stored.Body)
 				if err != nil || !bytes.Equal(actual, plain) {
 					t.Fatal("committed PNG bytes differ", err)
@@ -496,7 +496,10 @@ func TestQQContextRequiredExpiryAndSharedFiveReplySlots(t *testing.T) {
 			Message  string `json:"msg_id"`
 			Sequence uint32 `json:"msg_seq"`
 		}
-		json.NewDecoder(req.Body).Decode(&body)
+		if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+			t.Error(err)
+			return nil, err
+		}
 		if body.Message != "source-message" || body.Sequence == 0 {
 			t.Error("context missing", body)
 		}
@@ -557,7 +560,7 @@ func TestQQOwnedImageFileUploadsAndUnknownReceiptSingleAttempt(t *testing.T) {
 					plain, mediaType := []byte("owned file bytes"), "application/octet-stream"
 					if kind == "image" {
 						var buffer bytes.Buffer
-						png.Encode(&buffer, image.NewNRGBA(image.Rect(0, 0, 1, 1)))
+						_ = png.Encode(&buffer, image.NewNRGBA(image.Rect(0, 0, 1, 1)))
 						plain, mediaType = buffer.Bytes(), "image/png"
 					}
 					var uploads, sends atomic.Int32
@@ -583,7 +586,10 @@ func TestQQOwnedImageFileUploadsAndUnknownReceiptSingleAttempt(t *testing.T) {
 								Name string `json:"file_name"`
 								Send bool   `json:"srv_send_msg"`
 							}
-							json.NewDecoder(req.Body).Decode(&body)
+							if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+								t.Error(err)
+								return nil, err
+							}
 							decoded, err := base64.StdEncoding.DecodeString(body.Data)
 							if err != nil || !bytes.Equal(decoded, plain) || body.Send || kind == "file" && (body.Type != 4 || body.Name != "owned.txt") || kind == "image" && body.Type != 1 {
 								t.Error("upload changed source or sent autonomously", body.Type, body.Name)
@@ -600,7 +606,10 @@ func TestQQOwnedImageFileUploadsAndUnknownReceiptSingleAttempt(t *testing.T) {
 							Media   map[string]string `json:"media"`
 							Content string            `json:"content"`
 						}
-						json.NewDecoder(req.Body).Decode(&body)
+						if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+							t.Error(err)
+							return nil, err
+						}
 						if body.Context != "source-message" || body.Type != 7 || body.Media["file_info"] != "private-upload-reference" || body.Content != " " {
 							t.Error("upload not handed to exact message", body)
 						}
@@ -672,29 +681,29 @@ func TestQQActualWebSocketIdentifyHeartbeatCommittedSequenceAndExplicitResume(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 	<-connections
-	client.WriteJSON(map[string]any{"op": 10, "d": map[string]int{"heartbeat_interval": 1000}})
+	_ = client.WriteJSON(map[string]any{"op": 10, "d": map[string]int{"heartbeat_interval": 1000}})
 	var identify struct {
 		Op   int                        `json:"op"`
 		Data map[string]json.RawMessage `json:"d"`
 	}
-	client.ReadJSON(&identify)
+	_ = client.ReadJSON(&identify)
 	if identify.Op != 2 || string(identify.Data["intents"]) != "33554432" || string(identify.Data["token"]) != `"QQBot private-token"` {
 		t.Fatal("wrong identity/intents", identify)
 	}
-	client.WriteJSON(map[string]any{"op": 0, "s": 1, "t": "READY", "d": map[string]any{"session_id": "private-session", "user": map[string]string{"id": "actual-bot"}}})
-	client.WriteJSON(map[string]any{"op": 0, "s": 2, "t": "C2C_MESSAGE_CREATE", "d": map[string]any{"id": "actual-message", "content": "actual text", "timestamp": time.Now().UTC().Format(time.RFC3339Nano), "author": map[string]string{"user_openid": "specified"}}})
+	_ = client.WriteJSON(map[string]any{"op": 0, "s": 1, "t": "READY", "d": map[string]any{"session_id": "private-session", "user": map[string]string{"id": "actual-bot"}}})
+	_ = client.WriteJSON(map[string]any{"op": 0, "s": 2, "t": "C2C_MESSAGE_CREATE", "d": map[string]any{"id": "actual-message", "content": "actual text", "timestamp": time.Now().UTC().Format(time.RFC3339Nano), "author": map[string]string{"user_openid": "specified"}}})
 	var heartbeat struct {
 		Op   int   `json:"op"`
 		Data int64 `json:"d"`
 	}
-	client.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_ = client.SetReadDeadline(time.Now().Add(3 * time.Second))
 	if err = client.ReadJSON(&heartbeat); err != nil || heartbeat.Op != 1 || heartbeat.Data != 2 {
 		t.Fatal("heartbeat did not use committed sequence", heartbeat, err)
 	}
-	client.WriteJSON(map[string]any{"op": 11})
-	client.WriteJSON(map[string]any{"op": 7})
+	_ = client.WriteJSON(map[string]any{"op": 11})
+	_ = client.WriteJSON(map[string]any{"op": 7})
 	if err = <-results; publicAdapterError(err) != "INTEGRATION_QQ_RECONNECT_REQUIRED" {
 		t.Fatal(err)
 	}
@@ -709,9 +718,9 @@ func TestQQActualWebSocketIdentifyHeartbeatCommittedSequenceAndExplicitResume(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer next.Close()
+	defer func() { _ = next.Close() }()
 	<-connections
-	next.WriteJSON(map[string]any{"op": 10, "d": map[string]int{"heartbeat_interval": 1000}})
+	_ = next.WriteJSON(map[string]any{"op": 10, "d": map[string]int{"heartbeat_interval": 1000}})
 	var resume struct {
 		Op   int `json:"op"`
 		Data struct {
@@ -722,7 +731,7 @@ func TestQQActualWebSocketIdentifyHeartbeatCommittedSequenceAndExplicitResume(t 
 	if err = next.ReadJSON(&resume); err != nil || resume.Op != 6 || resume.Data.Session != "private-session" || resume.Data.Sequence != 2 {
 		t.Fatal("wrong resume", resume, err)
 	}
-	next.WriteJSON(map[string]any{"op": 9, "d": false})
+	_ = next.WriteJSON(map[string]any{"op": 9, "d": false})
 	if err = <-results; publicAdapterError(err) != "INTEGRATION_QQ_SESSION_INVALID" {
 		t.Fatal(err)
 	}
@@ -844,13 +853,13 @@ func TestQQActualWebSocketRejectionStagesPreservePublicReasonsAndState(t *testin
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer client.Close()
-			client.SetWriteDeadline(time.Now().Add(3 * time.Second))
+			defer func() { _ = client.Close() }()
+			_ = client.SetWriteDeadline(time.Now().Add(3 * time.Second))
 			if tc.hello {
 				if err = client.WriteJSON(map[string]any{"op": 10, "d": map[string]int{"heartbeat_interval": 300000}}); err != nil {
 					t.Fatal(err)
 				}
-				client.SetReadDeadline(time.Now().Add(3 * time.Second))
+				_ = client.SetReadDeadline(time.Now().Add(3 * time.Second))
 				var handshake qqFrame
 				if err = client.ReadJSON(&handshake); err != nil || (tc.resume && handshake.Op != 6) || (!tc.resume && handshake.Op != 2) {
 					t.Fatal("incorrect handshake", err, handshake.Op)
@@ -938,9 +947,9 @@ func newQQPublicReadFixture(t *testing.T, pauseSecondSocket bool) *qqPublicReadF
 		f.mu.Lock()
 		f.peers = append(f.peers, peer)
 		f.mu.Unlock()
-		defer func() { peer.Close(); f.closed.Add(1) }()
-		peer.SetReadDeadline(time.Now().Add(5 * time.Second))
-		peer.SetWriteDeadline(time.Now().Add(5 * time.Second))
+		defer func() { _ = peer.Close(); f.closed.Add(1) }()
+		_ = peer.SetReadDeadline(time.Now().Add(5 * time.Second))
+		_ = peer.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		if peer.WriteJSON(map[string]any{"op": 10, "d": map[string]int{"heartbeat_interval": 300000}}) != nil {
 			return
 		}
@@ -1018,7 +1027,7 @@ func newQQPublicReadFixture(t *testing.T, pauseSecondSocket bool) *qqPublicReadF
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		return f.s.consumeQQ(ctx, conn, "private-token", feed)
 	}
 	f.s.adapters["qq-official"] = adapter
@@ -1030,7 +1039,7 @@ func newQQPublicReadFixture(t *testing.T, pauseSecondSocket bool) *qqPublicReadF
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		for _, peer := range f.peers {
-			peer.Close()
+			_ = peer.Close()
 		}
 	})
 	return f
@@ -1228,9 +1237,9 @@ func qqResumeSocketFixture(t *testing.T) (*Service, *nativeFeed, *invocation, *w
 		server.Close()
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { cancel(); client.Close(); server.Close() })
-	client.SetWriteDeadline(time.Now().Add(5 * time.Second))
-	client.SetReadDeadline(time.Now().Add(5 * time.Second))
+	t.Cleanup(func() { cancel(); _ = client.Close(); server.Close() })
+	_ = client.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	_ = client.SetReadDeadline(time.Now().Add(5 * time.Second))
 	if err = client.WriteJSON(map[string]any{"op": 10, "d": map[string]int{"heartbeat_interval": 300000}}); err != nil {
 		t.Fatal(err)
 	}

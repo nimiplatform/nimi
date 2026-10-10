@@ -225,7 +225,7 @@ func (s *rejectingRuntimeArtifactStore) PutStream(_ context.Context, _ string, _
 }
 
 func (s *rejectingRuntimeArtifactStore) StageJobBody(_ context.Context, _ string, _ runtimeartifact.ArtifactRecord, source io.ReadCloser) error {
-	source.Close()
+	_ = source.Close()
 	return errors.New("artifact store rejected candidate")
 }
 
@@ -254,7 +254,7 @@ func (s *secondPutRejectingRuntimeArtifactStore) PutStream(ctx context.Context, 
 func (s *secondPutRejectingRuntimeArtifactStore) StageJobBody(ctx context.Context, id string, record runtimeartifact.ArtifactRecord, source io.ReadCloser) error {
 	s.puts++
 	if s.puts == 2 {
-		source.Close()
+		_ = source.Close()
 		return errors.New("artifact store rejected second candidate")
 	}
 	return s.MemoryStore.StageJobBody(ctx, id, record, source)

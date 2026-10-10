@@ -217,6 +217,84 @@ const ready = (client) => ({
   getLocalAppClient() { return client; },
 });
 
+const speakerAudio = { name: 'speech.wav', mimeType: 'audio/wav', sizeBytes: 4, bytes: new Uint8Array([1, 2, 3, 4]) };
+const speakerJob = (status, overrides = {}) => job('speaker-job', status, { scenarioType: 'audio-speaker-embed', ...overrides });
+
+test('speaker representation submits the chosen bytes and preserves its full vector and space in history', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult, getStudioRunHistoryExportText } = await load('ai-studio-core/history.js');
+  const vector = Array.from({ length: 256 }, (_, index) => (index - 128) / 256);
+  const fake = fakeClient({
+    submit: () => ({ job: speakerJob('queued') }),
+    get: async () => ({ job: speakerJob('completed', { speakerEmbedding: { vector, spaceId: 'opaque:encoder-a' } }), asset: null, voiceReference: null }),
+  });
+  const result = await runLabCapability({ capabilityId: 'audio.speaker.embed', prompt: '', parameters: { audio: speakerAudio } }, ready(fake.client));
+  assert.equal(result.ok, true, result.message);
+  assert.deepEqual(fake.calls.submit[0].spec, { type: 'audio-speaker-embed', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: speakerAudio.bytes } });
+  assert.ok(fake.calls.submit[0].options.clientSubmissionId);
+  assert.deepEqual(result.output, { kind: 'speaker-embedding', jobId: 'speaker-job', vector, spaceId: 'opaque:encoder-a' });
+  const record = createStudioRunHistoryRecord({ result, prompt: '', runId: 'speaker-run', createdAt: '2026-10-11T00:00:00.000Z' });
+  const restored = restoreStudioCapabilityRunResult(JSON.parse(JSON.stringify(record)), () => 'Speaker representation');
+  assert.deepEqual(restored.output, result.output);
+  assert.deepEqual(JSON.parse(getStudioRunHistoryExportText(record)), { jobId: result.output.jobId, spaceId: result.output.spaceId, vector }, 'history copy and download must retain every value, not only the summary');
+  assert.equal(restored.trace.traceId, 'trace-speaker-job');
+  for (const invalid of [{ ...record.result, vector: [] }, { ...record.result, spaceId: '' }, { ...record.result, vector: [Infinity] }]) {
+    assert.equal(restoreStudioCapabilityRunResult({ ...record, result: invalid }), null);
+  }
+});
+
+test('speaker input and malformed results fail without inventing success or losing an issued Job', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const unused = fakeClient();
+  for (const audio of [undefined, { ...speakerAudio, mimeType: 'video/mp4' }, { ...speakerAudio, sizeBytes: 8 }, { ...speakerAudio, bytes: new Uint8Array(), sizeBytes: 0 }]) {
+    const result = await runLabCapability({ capabilityId: 'audio.speaker.embed', prompt: '', parameters: { audio } }, ready(unused.client));
+    assert.equal(result.reason, 'input-invalid');
+  }
+  assert.deepEqual(unused.calls.submit, []);
+  for (const speakerEmbedding of [undefined, { vector: [], spaceId: 'a' }, { vector: [NaN], spaceId: 'a' }, { vector: [1], spaceId: '' }]) {
+    const fake = fakeClient({ submit: () => ({ job: speakerJob('queued') }), get: async () => ({ job: speakerJob('completed', { speakerEmbedding }), asset: null, voiceReference: null }) });
+    const result = await runLabCapability({ capabilityId: 'audio.speaker.embed', prompt: '', parameters: { audio: speakerAudio } }, ready(fake.client));
+    assert.equal(result.ok, false);
+    assert.equal(result.jobId, 'speaker-job');
+  }
+});
+
+test('a lost speaker Submit response recovers the original action and a saved result without resubmission', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const completed = { job: speakerJob('completed', { speakerEmbedding: { vector: [0.1, -0.2], spaceId: 'space-a' } }), asset: null, voiceReference: null };
+  const fake = fakeClient({ submit: () => { throw new Error('response lost'); }, get: async () => completed });
+  const first = await runLabCapability({ capabilityId: 'audio.speaker.embed', prompt: '', parameters: { audio: speakerAudio } }, ready(fake.client));
+  assert.equal(first.ok, false);
+  assert.equal(first.jobId, undefined);
+  const id = fake.calls.submit[0].options.clientSubmissionId;
+  let lookups = 0;
+  fake.client.ai.scenarioJobs.lookupSubmission = async (value) => { assert.equal(value, id); lookups++; return completed; };
+  const input = { capabilityId: 'audio.speaker.embed', prompt: '', parameters: { recoverySubmissionId: id } };
+  const recovered = await runLabCapability(input, ready(fake.client));
+  assert.equal(recovered.ok, true, recovered.message);
+  const saved = await runLabCapability(input, ready(fake.client));
+  assert.deepEqual(saved.output, recovered.output);
+  assert.equal(lookups, 1);
+  assert.equal(fake.calls.submit.length, 1);
+});
+
+test('canceling speaker representation cancels the actual Runtime Job and retains its identity', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const controller = new AbortController();
+  const fake = fakeClient({
+    submit: () => ({ job: speakerJob('queued') }), get: async () => ({ job: speakerJob('running'), asset: null, voiceReference: null }),
+    cancel: async () => ({ job: speakerJob('canceled', { reasonCode: 'ACTION_EXECUTED' }) }),
+    subscribe: async () => ({
+      async *[Symbol.asyncIterator]() { controller.abort(); yield { eventType: 'canceled', sequence: '1', traceId: 't', timestamp: null, job: speakerJob('canceled', { reasonCode: 'ACTION_EXECUTED' }) }; },
+      async cancel() {},
+    }),
+  });
+  const result = await runLabCapability({ capabilityId: 'audio.speaker.embed', prompt: '', parameters: { audio: speakerAudio }, signal: controller.signal }, ready(fake.client));
+  assert.equal(result.reason, 'runtime-canceled');
+  assert.equal(result.jobId, 'speaker-job');
+  assert.deepEqual(fake.calls.cancel.map(call => call.jobId), ['speaker-job']);
+});
+
 test('Chat Stream stopped during Runtime inspection cannot dispatch a later formal text stream', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   let release, entered;

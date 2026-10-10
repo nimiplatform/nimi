@@ -53,6 +53,7 @@ export type StudioRunConfigSnapshot = {
 };
 
 export type StudioRunHistoryResultSnapshot =
+  | { ok: true; kind: 'speaker-embedding'; summary: string; jobId: string; spaceId: string; vector: number[]; traceId?: string }
   | { ok: true; kind: 'vision-locate'; summary: string; jobId: string; result?: NimiLocalAppVisionLocateResult; sourceImage?: StudioManagedArtifact; traceId?: string }
   | {
       ok: true;
@@ -579,6 +580,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
       ...trace,
     };
   }
+  if (output.kind === 'speaker-embedding') return { ok: true, kind: output.kind, summary: result.message, jobId: output.jobId, spaceId: output.spaceId, vector: [...output.vector], ...trace };
   if (output.kind === 'embedding') {
     return {
       ok: true,
@@ -757,6 +759,7 @@ export function restoreStudioCapabilityRunResult(
       },
     };
   }
+  if (snapshot.kind === 'speaker-embedding') return { ...common, output: { kind: snapshot.kind, jobId: snapshot.jobId, spaceId: snapshot.spaceId, vector: [...snapshot.vector] } };
   if (snapshot.kind === 'embedding') {
     return {
       ...common,
@@ -1024,6 +1027,7 @@ export function getStudioRunMetricSummary(record: StudioRunHistoryRecord): strin
       `${result.charCount} chars`,
     ].filter(Boolean).join(' / ');
   }
+  if (result.kind === 'speaker-embedding') return `${result.vector.length} dims / ${result.spaceId}`;
   if (result.kind === 'embedding') {
     return [
       formatStudioTokenUsage(undefined, undefined, result.totalTokens),
@@ -1054,6 +1058,7 @@ export function getStudioRunResultTags(record: StudioRunHistoryRecord): string[]
       result.totalTokens === undefined ? '' : `${result.totalTokens} tokens`,
     ].filter(Boolean);
   }
+  if (result.kind === 'speaker-embedding') return [String(result.vector.length)];
   if (result.kind === 'embedding') return ['Embedding ready', ...(result.spaceId ? [result.spaceId] : [])];
   if (result.kind === 'text-annotation') return ['Annotation', result.language];
   if (result.kind === 'text-exchange') return [result.scenario];
@@ -1063,4 +1068,15 @@ export function getStudioRunResultTags(record: StudioRunHistoryRecord): string[]
   if (result.kind === 'voice-asset') return [result.creationSource];
   if (result.kind === 'vision-locate') return result.result ? ['Locate', String(result.result.locations.length)] : ['Locate'];
   return [`${result.voiceCount} voices`];
+}
+
+export function getStudioRunHistoryExportText(record: StudioRunHistoryRecord): string {
+  const snapshot = record.result;
+  if (!snapshot) return record.message;
+  if (!snapshot.ok) return snapshot.message;
+  if (snapshot.kind === 'text' || snapshot.kind === 'transcript') return snapshot.body;
+  if (snapshot.kind === 'text-exchange') return snapshot.text;
+  if (snapshot.kind === 'speaker-embedding') return JSON.stringify({ jobId: snapshot.jobId, spaceId: snapshot.spaceId, vector: snapshot.vector }, null, 2);
+  if (snapshot.kind === 'text-decision' && snapshot.answers) return JSON.stringify({ answers: snapshot.answers }, null, 2);
+  return snapshot.summary;
 }

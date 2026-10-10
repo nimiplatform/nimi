@@ -17,6 +17,7 @@ export function formatTypedOutput(
   translate: StudioTranslate,
 ): string {
   const output = result.output;
+  if (output.kind === 'speaker-embedding') return JSON.stringify({ jobId: output.jobId, spaceId: output.spaceId, vector: output.vector }, null, 2);
   if (output.kind === 'vision-locate') return JSON.stringify({ jobId: output.jobId, ...output.result }, null, 2);
   if (output.kind === 'text') {
     return output.text || translate('StudioShell.emptyBody');
@@ -425,4 +426,13 @@ export async function revealStudioAsset(host: Pick<AIStudioHostPort, 'sdk' | 'tr
     nimiToast.danger(host.translate('Common.assetRevealFailed', { path: relativePath }));
     return false;
   }
+}
+
+export function SpeakerEmbeddingResultBody({ spaceId, vector }: { readonly spaceId: string; readonly vector: readonly number[] }) {
+  const { translate: t } = useAIStudioHost();
+  return <div className="studio-result__rich">
+    <p>{t('StudioResults.speakerEmbedding.dimensions', { count: vector.length })}</p>
+    <p className="studio-result__hint">{t('StudioResults.embedding.space', { spaceId })}</p>
+    <p className="studio-result__hint">{t('StudioResults.speakerEmbedding.boundary')}</p>
+  </div>;
 }

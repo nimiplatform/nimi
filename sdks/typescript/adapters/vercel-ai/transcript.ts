@@ -1,4 +1,4 @@
-import type { LanguageModelV3Content, SharedV3ProviderMetadata, SharedV3ProviderOptions } from '@ai-sdk/provider';
+import type { LanguageModelV4Content, SharedV4ProviderMetadata, SharedV4ProviderOptions } from '@ai-sdk/provider';
 import type { NimiTextOutputItem, NimiTextTurnItem } from '@nimiplatform/sdk/contracts';
 import { createNimiError } from '@nimiplatform/sdk';
 
@@ -28,7 +28,7 @@ function decode(value: unknown): Carrier {
   return { kind: record.kind, version: Number(record.version), payload: Uint8Array.from(binary, (character) => character.charCodeAt(0)) };
 }
 
-function relay(options: SharedV3ProviderOptions | undefined): Relay | undefined {
+function relay(options: SharedV4ProviderOptions | undefined): Relay | undefined {
   const data = options?.nimi;
   if (!data) return undefined;
   if (data.transcriptVersion !== 1 || !Array.isArray(data.before) || !Array.isArray(data.after)
@@ -36,13 +36,13 @@ function relay(options: SharedV3ProviderOptions | undefined): Relay | undefined 
   return data as unknown as Relay;
 }
 
-export function withContinuity(output: NimiTextOutputItem, options?: SharedV3ProviderOptions): NimiTextTurnItem[] {
+export function withContinuity(output: NimiTextOutputItem, options?: SharedV4ProviderOptions): NimiTextTurnItem[] {
   const metadata = relay(options);
   const items = (values: readonly unknown[]): NimiTextTurnItem[] => values.map((value) => ({ type: 'output', output: { type: 'reasoning-continuity', carrier: decode(value) } }));
   return [...items(metadata?.before ?? []), { type: 'output', output }, ...items(metadata?.after ?? [])];
 }
 
-export function withoutCallContinuity(options?: SharedV3ProviderOptions): SharedV3ProviderOptions | undefined {
+export function withoutCallContinuity(options?: SharedV4ProviderOptions): SharedV4ProviderOptions | undefined {
   if (!options?.nimi) return options;
   relay(options);
   // Vercel may copy call metadata onto a caller tool result. The encrypted
@@ -52,8 +52,8 @@ export function withoutCallContinuity(options?: SharedV3ProviderOptions): Shared
 }
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r005
-export function canonicalVercelContent(items: readonly NimiTextOutputItem[]): LanguageModelV3Content[] {
-  const result: LanguageModelV3Content[] = [];
+export function canonicalVercelContent(items: readonly NimiTextOutputItem[]): LanguageModelV4Content[] {
+  const result: LanguageModelV4Content[] = [];
   let before: EncodedCarrier[] = [];
   let lastRelay: Relay | undefined;
   for (const item of items) {
@@ -64,7 +64,7 @@ export function canonicalVercelContent(items: readonly NimiTextOutputItem[]): La
     }
     const metadata: Relay = { transcriptVersion: 1, before, after: [] };
     before = [];
-    const providerMetadata = { nimi: metadata } as unknown as SharedV3ProviderMetadata;
+    const providerMetadata = { nimi: metadata } as unknown as SharedV4ProviderMetadata;
     if (item.type === 'text') result.push({ type: 'text', text: item.text, providerMetadata });
     else if (item.type === 'reasoning-summary') result.push({ type: 'reasoning', text: item.text, providerMetadata });
     else if (item.type === 'tool-call') {

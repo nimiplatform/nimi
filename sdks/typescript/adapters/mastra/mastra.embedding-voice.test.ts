@@ -34,6 +34,7 @@ test('Nimi Mastra embedding model maps AI SDK embed calls to Runtime embeddings'
       async embedText(request) {
         calls.push(request);
         return {
+          spaceId: 'test-embedding-space',
           embeddings: [[0.1, 0.2], [0.3, 0.4]],
           usage: { promptTokens: 5, completionTokens: 0, totalTokens: 5 },
           raw: {
@@ -67,6 +68,7 @@ test('Nimi Mastra embedding model accepts only the text capability facade', () =
   const embedding = {
     async embedText() {
       return {
+        spaceId: 'test-embedding-space',
         embeddings: [[1]],
         raw: {
           traceId: '',
@@ -101,6 +103,7 @@ test('Nimi Mastra provider exposes Runtime-backed embedding model and fails clos
         return {
           async embedText() {
             return {
+              spaceId: 'test-embedding-space',
               embeddings: [[1, 2, 3]],
               raw: {
                 traceId: 'trace-provider-embed',
@@ -189,6 +192,8 @@ test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async ()
     progressCurrentStep: 0,
     progressTotalSteps: 0,
     transcriptionText: '',
+    submissionOutcome: 0,
+    stopOutcome: 0,
   };
   const ai = {
     async submitScenarioJob(request: SubmitScenarioJobRequest, options?: RuntimeTypedCallOptions) {
@@ -244,6 +249,7 @@ test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async ()
                 sizeBytes: '2',
                 durationMs: '100',
                 fps: 0,
+                frameCount: '0',
                 width: 0,
                 height: 0,
                 sampleRateHz: 24000,

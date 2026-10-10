@@ -238,17 +238,19 @@ func (s *Service) receiveQQ(ctx context.Context, t target, secret string, f *nat
 	dialer.HandshakeTimeout = 10 * time.Second
 	conn, response, err := dialer.DialContext(ctx, endpoint, http.Header{})
 	if response != nil && response.Body != nil {
-		response.Body.Close()
+		_ = response.Body.Close()
 	}
 	if err != nil {
 		return adapterError("INTEGRATION_QQ_GATEWAY_FAILED")
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	return s.consumeQQ(ctx, conn, token, f)
 }
 func (s *Service) consumeQQ(ctx context.Context, conn *websocket.Conn, token string, f *nativeFeed) error {
 	conn.SetReadLimit(1024 * 1024)
-	conn.SetReadDeadline(time.Now().Add(15 * time.Second))
+	if err := conn.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
+		return adapterError("INTEGRATION_QQ_GATEWAY_FAILED")
+	}
 	readCtx, readCancel := context.WithCancel(ctx)
 	type incoming struct {
 		data    []byte
@@ -279,13 +281,13 @@ func (s *Service) consumeQQ(ctx context.Context, conn *websocket.Conn, token str
 	go func() {
 		select {
 		case <-ctx.Done():
-			conn.Close()
+			_ = conn.Close()
 		case <-stopped:
 		}
 	}()
 	// Closing the socket and signaling the reader prevents a blocked delivery
 	// goroutine surviving a protocol failure while its parent context is live.
-	defer func() { readCancel(); close(stopped); conn.Close(); <-readerDone }()
+	defer func() { readCancel(); close(stopped); _ = conn.Close(); <-readerDone }()
 	var ticker *time.Ticker
 	var tick <-chan time.Time
 	var heartbeatInterval time.Duration
@@ -300,7 +302,9 @@ func (s *Service) consumeQQ(ctx context.Context, conn *websocket.Conn, token str
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+		if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+			return adapterError("INTEGRATION_QQ_GATEWAY_FAILED")
+		}
 		if conn.WriteJSON(value) != nil {
 			return adapterError("INTEGRATION_QQ_GATEWAY_FAILED")
 		}
@@ -376,7 +380,9 @@ func (s *Service) consumeQQ(ctx context.Context, conn *websocket.Conn, token str
 				}
 				interval := time.Duration(value.Interval) * time.Millisecond
 				heartbeatInterval = interval
-				conn.SetReadDeadline(time.Now().Add(interval*2 + 5*time.Second))
+				if err := conn.SetReadDeadline(time.Now().Add(interval*2 + 5*time.Second)); err != nil {
+					return adapterError("INTEGRATION_QQ_GATEWAY_FAILED")
+				}
 				ticker = time.NewTicker(interval)
 				tick = ticker.C
 			case 11:
@@ -384,7 +390,9 @@ func (s *Service) consumeQQ(ctx context.Context, conn *websocket.Conn, token str
 					return reject("ack_before_hello", nil)
 				}
 				awaitingACK = false
-				conn.SetReadDeadline(time.Now().Add(heartbeatInterval*2 + 5*time.Second))
+				if err := conn.SetReadDeadline(time.Now().Add(heartbeatInterval*2 + 5*time.Second)); err != nil {
+					return adapterError("INTEGRATION_QQ_GATEWAY_FAILED")
+				}
 			case 7:
 				return adapterError("INTEGRATION_QQ_RECONNECT_REQUIRED")
 			case 9:

@@ -550,7 +550,8 @@
       "other": "Other local AI capability",
       "textAnnotate": "Language analysis",
       "textDecide": "Decisions",
-      "audioSeparate": "Vocals and background"
+      "audioSeparate": "Vocals and background",
+      "audioSpeakerEmbed": "Speaker representation"
     },
     "capabilityDescription": {
       "imageFaceSwap": "Replace one face in an image using a reference face",
@@ -569,7 +570,8 @@
       "other": "Other local AI capability",
       "textAnnotate": "Identify tokens, parts of speech, dependencies, and sentence boundaries",
       "textDecide": "Pick one of an app's options or judge whether a statement holds, with probabilities",
-      "audioSeparate": "Separate vocals from background audio while preserving timing"
+      "audioSeparate": "Separate vocals from background audio while preserving timing",
+      "audioSpeakerEmbed": "Extract speaker vectors from short audio without inferring identity"
     },
     "required": "Required",
     "optional": "Optional",
@@ -1782,7 +1784,8 @@
     "voiceCreate": "Voice creation",
     "textAnnotate": "Language analysis",
     "textDecide": "Decisions",
-    "audioSeparate": "Vocals and background"
+    "audioSeparate": "Vocals and background",
+    "audioSpeakerEmbed": "Speaker representation"
   },
   "common": {
     "noModelsDiscovered": "No models discovered yet.",
@@ -2421,7 +2424,8 @@
       "text-embed": "Represent text for semantic search and other app features.",
       "image-face-swap": "Replace faces in images using supported inputs and models.",
       "video-face-swap": "Apply face replacement to video in supported apps.",
-      "vision-locate": "Locate objects or regions in images for visual tools."
+      "vision-locate": "Locate objects or regions in images for visual tools.",
+      "audio-speaker-embed": "Extract speaker vectors from short audio without inferring identity"
     },
     "downloadedModels": "Downloaded and configured models",
     "customizeCurrent": "Customize current models and options",

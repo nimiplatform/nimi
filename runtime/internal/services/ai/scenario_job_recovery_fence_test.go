@@ -30,7 +30,7 @@ func TestIsolationFenceWriteFailureKeepsOriginalActiveDocument(t *testing.T) {
 	if err := file.Sync(); err != nil {
 		t.Fatal(err)
 	}
-	file.Close()
+	_ = file.Close()
 	original, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

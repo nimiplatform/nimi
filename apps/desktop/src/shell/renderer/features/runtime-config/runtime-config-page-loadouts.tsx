@@ -1545,6 +1545,7 @@ export function loadoutCapabilityLabelKey(capabilityContract: string): string {
     case 'audio.transcribe': return 'runtimeConfig.loadouts.capability.audioTranscribe';
     case 'text.annotate': return 'runtimeConfig.loadouts.capability.textAnnotate';
     case 'text.decide': return 'runtimeConfig.loadouts.capability.textDecide';
+    case 'audio.speaker.embed': return 'runtimeConfig.loadouts.capability.audioSpeakerEmbed';
     case 'audio.separate': return 'runtimeConfig.loadouts.capability.audioSeparate';
     case 'voice.create': return 'runtimeConfig.loadouts.capability.voiceCreate';
     case 'video.generate': return 'runtimeConfig.loadouts.capability.videoGenerate';

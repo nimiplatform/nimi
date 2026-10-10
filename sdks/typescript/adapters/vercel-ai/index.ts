@@ -1,4 +1,4 @@
-import type { LanguageModelV3 } from '@ai-sdk/provider';
+import type { LanguageModelV4 } from '@ai-sdk/provider';
 import type {
   NimiClient,
   NimiClientRuntimeModelOptions,
@@ -30,7 +30,7 @@ import {
 
 export const NIMI_VERCEL_AI_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
-export type NimiVercelLanguageModel = LanguageModelV3;
+export type NimiVercelLanguageModel = LanguageModelV4;
 
 export interface NimiVercelLanguageModelOptions {
   readonly model: NimiAiModel;
@@ -85,7 +85,7 @@ const NIMI_VERCEL_SUPPORTED_URLS: Record<string, RegExp[]> = {
 // @nimi-authority: rule.nimi.sdks.feature-clients.r005
 export function createNimiVercelLanguageModel(options: NimiVercelLanguageModelOptions): NimiVercelLanguageModel {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'nimi',
     modelId: options.model.model.modelId,
     supportedUrls: NIMI_VERCEL_SUPPORTED_URLS,

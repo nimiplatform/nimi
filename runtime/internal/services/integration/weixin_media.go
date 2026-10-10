@@ -174,7 +174,7 @@ func (s *Service) weixinMessageItem(c *invocation, credential weixinCredential, 
 	if err != nil {
 		return nil, err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	plain, err := io.ReadAll(io.LimitReader(source.Body, source.Record.SizeBytes+1))
 	if err != nil || int64(len(plain)) != source.Record.SizeBytes || mediaDigest(plain) != source.Record.SHA256 {
 		return nil, adapterError("INTEGRATION_MEDIA_INTEGRITY_INVALID")

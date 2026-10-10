@@ -11,7 +11,7 @@ import zh from '../src/shell/renderer/locales/zh/46-runtimeConfig.json' with { t
 
 (globalThis as { React?: typeof React }).React = React;
 const i18n = i18next.createInstance();
-await i18n.init({ lng: 'zh', resources: { zh: { translation: { runtimeConfig: zh } } }, initImmediate: false });
+await i18n.init({ lng: 'zh', resources: { zh: { translation: { runtimeConfig: zh } } }, initAsync: false });
 const task: RuntimeSetupTask = {
   taskId: 'setup', capabilityContract: 'text.generate', source: { kind: 'runtime', accountId: 'account' },
   candidateLoadoutId: 'original', candidateRevisionBaseline: 'r1',

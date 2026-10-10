@@ -310,7 +310,7 @@ func (s *Service) feishuContent(c *invocation, t target, secret, token string, b
 		if err != nil {
 			return "", "", err
 		}
-		defer source.Body.Close()
+		defer func() { _ = source.Body.Close() }()
 		// Validate platform limits before the SDK's multipart buffering.
 		limit := int64(30 * 1024 * 1024)
 		if body.Kind == "image" {

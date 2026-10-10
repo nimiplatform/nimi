@@ -97,13 +97,13 @@ func TestNativeJobCanceledGetConfirmsStopWithoutRenewingTerminal(t *testing.T) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services/aigc/video-generation/video-synthesis":
 			creates.Add(1)
-			fmt.Fprint(w, `{"output":{"task_id":"original-stop-task","task_status":"PENDING"}}`)
+			_, _ = fmt.Fprint(w, `{"output":{"task_id":"original-stop-task","task_status":"PENDING"}}`)
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks/original-stop-task/cancel":
 			stops.Add(1)
-			fmt.Fprint(w, `{"request_id":"stop-ack"}`)
+			_, _ = fmt.Fprint(w, `{"request_id":"stop-ack"}`)
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/original-stop-task":
 			queries.Add(1)
-			fmt.Fprint(w, `{"output":{"task_id":"original-stop-task","task_status":"CANCELED"}}`)
+			_, _ = fmt.Fprint(w, `{"output":{"task_id":"original-stop-task","task_status":"CANCELED"}}`)
 		default:
 			http.NotFound(w, r)
 		}
@@ -173,15 +173,15 @@ func TestNativeJobReusesCompleteBodiesAndPublishesOnlyAfterWholeResultCommit(t *
 		case r.Method == http.MethodPost:
 			creates.Add(1)
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprint(w, `{"output":{"task_id":"pair","task_status":"PENDING"}}`)
+			_, _ = fmt.Fprint(w, `{"output":{"task_id":"pair","task_status":"PENDING"}}`)
 		case r.URL.Path == "/api/v1/tasks/pair":
 			queryNumber := queries.Add(1)
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprintf(w, `{"output":{"task_id":"pair","task_status":"SUCCEEDED","results":[{"url":"%s/first"},{"url":"%s/second?generation=%d"}]}}`, endpoint, endpoint, queryNumber)
+			_, _ = fmt.Fprintf(w, `{"output":{"task_id":"pair","task_status":"SUCCEEDED","results":[{"url":"%s/first"},{"url":"%s/second?generation=%d"}]}}`, endpoint, endpoint, queryNumber)
 		case r.URL.Path == "/first":
 			firstBodies.Add(1)
 			w.Header().Set("Content-Type", "image/png")
-			w.Write(image)
+			_, _ = w.Write(image)
 		case r.URL.Path == "/second":
 			secondBodies.Add(1)
 			if !allowSecond.Load() || r.URL.Query().Get("generation") != "2" {
@@ -189,7 +189,7 @@ func TestNativeJobReusesCompleteBodiesAndPublishesOnlyAfterWholeResultCommit(t *
 				return
 			}
 			w.Header().Set("Content-Type", "image/png")
-			w.Write(image)
+			_, _ = w.Write(image)
 		default:
 			http.NotFound(w, r)
 		}
@@ -254,7 +254,7 @@ func TestFiniteResultCandidateSurvivesWriterAndArtifactReopenWithoutRepeatingPro
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"text":"Bonjour.","languages":[{"code":"fr"}]}`)
+		_, _ = fmt.Fprint(w, `{"text":"Bonjour.","languages":[{"code":"fr"}]}`)
 	}))
 	defer server.Close()
 	f := newManagedCloudScenarioTestFixture(t, "openai", "gpt-transcribe", server.URL, Config{AllowLoopbackEndpoint: true})

@@ -28,7 +28,7 @@ func TestLocalAppCommitSharedWriterOrdersActualLogout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 	audit, err := auditlog.Open(backend, nil, 128, 128)
 	if err != nil {
 		t.Fatal(err)

@@ -33,7 +33,7 @@ func (f *JobFiles) Write(ctx context.Context, name, mime string, produce func(io
 	done := make(chan error, 1)
 	go func() { err := produce(writer); writer.CloseWithError(err); done <- err }()
 	err := f.store.StageJobBody(ctx, id, ArtifactRecord{ProducerJobID: f.jobID, Owner: f.owner, MimeType: mime}, reader)
-	reader.Close()
+	_ = reader.Close()
 	// Never release the work claim while an ffmpeg writer still owns stdout.
 	return errors.Join(err, <-done)
 }

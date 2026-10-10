@@ -2,15 +2,11 @@
 
 Status: active test plan
 Adapter: `sdks/typescript/adapters/vercel-ai`
-Target package: `ai@6.0.x`, `@ai-sdk/provider@3.0.x`
-Pinned upstream tag: `vercel/ai@ai@6.0.190`
-Pinned upstream commit: `6f2761c7453f0a29c65e052f6ebd05a8e1933aab`
+Target packages: `ai@7.0.130`, `@ai-sdk/provider@4.0.24`
 
-`vercel/ai` `main` has moved beyond this adapter's current Vercel dependency
-surface and uses `LanguageModelV4` in core tests. This matrix is pinned to the
-installed `ai@6.0.190` / `@ai-sdk/provider@3.0.10` contract. V4 migration is a
-separate adapter-generation decision, not evidence that the V3 adapter failed
-the current dependency contract.
+The suite exercises the installed AI SDK 7 public contract and Provider V4.
+The migration covers tagged file inputs, typed reasoning, `isStepCount`,
+`onStepEnd` / `onEnd`, aggregate usage, and opt-in request/response bodies.
 
 ## Policy
 
@@ -52,10 +48,10 @@ execution failures must fail closed instead of being hidden by adapter shims.
 - provider approval approved/denied continuation back into the Nimi prompt
 - async iterable caller tool execution final result semantics in `generateText`
 - streamed async iterable caller tool preliminary/final results
-- multi-step `onStepFinish`/`onFinish` callback ordering and total usage
+- multi-step `onStepEnd`/`onEnd` callback ordering and total usage
   aggregation
 - thrown model stream errors rejecting `textStream` consumers
-- `streamText` `onChunk` / `onFinish` callback ordering for adapter stream
+- `streamText` `onChunk` / `onEnd` callback ordering for adapter stream
   deltas
 - `generateObject` repair and no-object failure behavior
 - `generateText` `Output.object` / `Output.array` / `Output.choice`
@@ -65,11 +61,11 @@ execution failures must fail closed instead of being hidden by adapter shims.
 
 | Cluster | Target local test file | Status | Notes |
 |---|---|---|---|
-| `generateText` result metadata, steps, callbacks, warnings | `vercel-ai.upstream-text-compat.test.ts`, `vercel-ai.upstream-tool-compat.test.ts` | partial | Response/provider metadata, `onStepFinish`, `onFinish`, and `totalUsage` are covered. Add warning callback/logging parity only if project exposes Vercel logger hooks. |
+| `generateText` result metadata, steps, callbacks, warnings | `vercel-ai.upstream-text-compat.test.ts`, `vercel-ai.upstream-tool-compat.test.ts` | partial | Response/provider metadata, `onStepEnd`, `onEnd`, and `usage` are covered. Add warning callback/logging parity only if project exposes Vercel logger hooks. |
 | `generateText` tool error and repair behavior | `vercel-ai.upstream-tool-compat.test.ts` | partial | Provider-executed results/errors, invalid tool input, thrown `execute`, and approved/denied provider continuation are covered. Add tool-call repair retry and response message threading edge cases. |
-| `streamText` full stream protocol | `vercel-ai.upstream-text-compat.test.ts`, `vercel-ai.upstream-tool-compat.test.ts` | partial | Sources, raw chunks, provider-executed results/errors, UI stream projection, preliminary streamed tool results, `onChunk`, and `onFinish` are covered. Add provider metadata on finish and abort behavior. |
+| `streamText` full stream protocol | `vercel-ai.upstream-text-compat.test.ts`, `vercel-ai.upstream-tool-compat.test.ts` | partial | Sources, raw chunks, provider-executed results/errors, UI stream projection, preliminary streamed tool results, `onChunk`, and `onEnd` are covered. Add provider metadata on finish and abort behavior. |
 | `generateObject` / `streamObject` modes | `vercel-ai.upstream-object-compat.test.ts` | partial | Schema object, repair/no-object failure, `Output.object/array/choice`, stream array/enum/no-schema are covered. Add stream repair markdown/error edge cases. |
-| UI message conversion and stream protocol | future `vercel-ai.ui-compat.test.ts` | pending | Only include behavior that depends on `LanguageModelV3` provider output; pure UI utility tests remain Vercel-owned. |
+| UI message conversion and stream protocol | future `vercel-ai.ui-compat.test.ts` | pending | Only include behavior that depends on `LanguageModelV4` provider output; pure UI utility tests remain Vercel-owned. |
 | middleware behavior | future `vercel-ai.middleware-compat.test.ts` | pending | Include only externally visible wrapping behavior around a Nimi model. |
 | telemetry | future `vercel-ai.telemetry-compat.test.ts` | pending | Needs explicit project decision because telemetry may require optional dependencies and stable span names. |
 | provider-utils internal tests | none | out-of-domain | Covered by Vercel package itself unless a behavior crosses the public provider contract. |

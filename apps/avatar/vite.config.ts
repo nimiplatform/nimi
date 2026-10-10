@@ -15,7 +15,7 @@ const AVATAR_RENDERER_ENV_KEYS = Object.freeze([
 
 export default defineConfig(({ mode }) => {
   const workspaceRoot = path.resolve(searchForWorkspaceRoot(process.cwd()));
-  const sdkVNextDist = path.resolve(__dirname, '../../sdks/typescript/dist');
+  const sdkVNextDist = path.resolve(import.meta.dirname, '../../sdks/typescript/dist');
   const loadedEnv = { ...process.env, ...loadEnv(mode, workspaceRoot, '') };
   for (const key of Object.keys(loadedEnv)) {
     if (AVATAR_RENDERER_ENV_KEYS.some((allowed) => key.startsWith(allowed))
@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    root: path.resolve(__dirname, 'src/shell/renderer'),
+    root: path.resolve(import.meta.dirname, 'src/shell/renderer'),
     base: './',
     envDir: workspaceRoot,
     envPrefix: [...AVATAR_RENDERER_ENV_KEYS],
@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
       'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('nimi-avatar'),
     },
-    publicDir: path.resolve(__dirname, 'src/shell/renderer/public'),
+    publicDir: path.resolve(import.meta.dirname, 'src/shell/renderer/public'),
     resolve: {
       dedupe: [
         'react',
@@ -43,16 +43,16 @@ export default defineConfig(({ mode }) => {
         '@nimiplatform/sdk',
       ],
       alias: [
-        { find: 'react/jsx-dev-runtime', replacement: path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime.js') },
-        { find: 'react/jsx-runtime', replacement: path.resolve(__dirname, 'node_modules/react/jsx-runtime.js') },
-        { find: 'react-dom/client', replacement: path.resolve(__dirname, 'node_modules/react-dom/client.js') },
-        { find: 'react-dom', replacement: path.resolve(__dirname, 'node_modules/react-dom/index.js') },
-        { find: 'react', replacement: path.resolve(__dirname, 'node_modules/react/index.js') },
-        { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
+        { find: 'react/jsx-dev-runtime', replacement: path.resolve(import.meta.dirname, 'node_modules/react/jsx-dev-runtime.js') },
+        { find: 'react/jsx-runtime', replacement: path.resolve(import.meta.dirname, 'node_modules/react/jsx-runtime.js') },
+        { find: 'react-dom/client', replacement: path.resolve(import.meta.dirname, 'node_modules/react-dom/client.js') },
+        { find: 'react-dom', replacement: path.resolve(import.meta.dirname, 'node_modules/react-dom/index.js') },
+        { find: 'react', replacement: path.resolve(import.meta.dirname, 'node_modules/react/index.js') },
+        { find: '@renderer', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer') },
         { find: '@framework', replacement: CUBISM_WEB_FRAMEWORK_CACHE_ROOT },
-        { find: '@live2d', replacement: path.resolve(__dirname, 'src/shell/renderer/live2d') },
-        { find: '@mock', replacement: path.resolve(__dirname, 'src/shell/renderer/mock') },
-        { find: '@driver', replacement: path.resolve(__dirname, 'src/shell/renderer/driver') },
+        { find: '@live2d', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer/live2d') },
+        { find: '@mock', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer/mock') },
+        { find: '@driver', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer/driver') },
         { find: '@nimiplatform/sdk/runtime/generated', replacement: path.join(sdkVNextDist, 'runtime/generated.js') },
         { find: '@nimiplatform/sdk/runtime/wire-types', replacement: path.join(sdkVNextDist, 'runtime/wire-types/index.js') },
         { find: '@nimiplatform/sdk/runtime/host', replacement: path.join(sdkVNextDist, 'runtime/host.js') },
@@ -72,14 +72,14 @@ export default defineConfig(({ mode }) => {
         { find: '@nimiplatform/sdk/features/evaluation', replacement: path.join(sdkVNextDist, 'features/evaluation/index.js') },
         { find: '@nimiplatform/sdk/features/toolkits', replacement: path.join(sdkVNextDist, 'features/toolkits/index.js') },
         { find: '@nimiplatform/sdk', replacement: path.join(sdkVNextDist, 'index.js') },
-        { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src/index.ts') },
-        { find: '@nimiplatform/kit/shell/capabilities', replacement: path.resolve(__dirname, '../../kit/shell/capabilities/src') },
-        { find: '@nimiplatform/kit/shell/renderer/bridge', replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bridge/index.ts') },
-        { find: '@nimiplatform/kit/features/avatar', replacement: path.resolve(__dirname, '../../kit/features/avatar/src') },
-        { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
-        { find: '@nimiplatform/kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
-        { find: '@nimiplatform/kit/telemetry/error-boundary', replacement: path.resolve(__dirname, '../../kit/telemetry/src/error-boundary/index.ts') },
-        { find: '@nimiplatform/kit/telemetry', replacement: path.resolve(__dirname, '../../kit/telemetry/src/telemetry/index.ts') },
+        { find: '@nimiplatform/kit/auth', replacement: path.resolve(import.meta.dirname, '../../kit/auth/src/index.ts') },
+        { find: '@nimiplatform/kit/shell/capabilities', replacement: path.resolve(import.meta.dirname, '../../kit/shell/capabilities/src') },
+        { find: '@nimiplatform/kit/shell/renderer/bridge', replacement: path.resolve(import.meta.dirname, '../../kit/shell/renderer/src/bridge/index.ts') },
+        { find: '@nimiplatform/kit/features/avatar', replacement: path.resolve(import.meta.dirname, '../../kit/features/avatar/src') },
+        { find: '@nimiplatform/kit/ui', replacement: path.resolve(import.meta.dirname, '../../kit/ui/src') },
+        { find: '@nimiplatform/kit/core', replacement: path.resolve(import.meta.dirname, '../../kit/core/src') },
+        { find: '@nimiplatform/kit/telemetry/error-boundary', replacement: path.resolve(import.meta.dirname, '../../kit/telemetry/src/error-boundary/index.ts') },
+        { find: '@nimiplatform/kit/telemetry', replacement: path.resolve(import.meta.dirname, '../../kit/telemetry/src/telemetry/index.ts') },
       ],
     },
     plugins: [
@@ -89,7 +89,7 @@ export default defineConfig(({ mode }) => {
           await ensureCubismFrameworkCache();
         },
       },
-      react(),
+      react({ exclude: [/\/node_modules\//, /\/src\/(?:shell\/renderer\/)?main\.tsx$/] }),
       tailwindcss(),
     ],
     server: {
@@ -97,36 +97,40 @@ export default defineConfig(({ mode }) => {
       port: 1427,
       strictPort: true,
       fs: {
-        allow: [workspaceRoot, path.resolve(__dirname)],
+        allow: [workspaceRoot, path.resolve(import.meta.dirname)],
       },
     },
     build: {
-      outDir: path.resolve(__dirname, 'dist'),
+      outDir: path.resolve(import.meta.dirname, 'dist'),
       emptyOutDir: true,
       sourcemap: true,
       chunkSizeWarningLimit: 2500,
-      rollupOptions: {
+      rolldownOptions: {
         input: {
-          main: path.resolve(__dirname, 'src/shell/renderer/index.html'),
+          main: path.resolve(import.meta.dirname, 'src/shell/renderer/index.html'),
         },
         output: {
-          manualChunks(id) {
-            const normalizedId = id.split(path.sep).join('/');
+          codeSplitting: {
+            groups: [{
+              name(id) {
+                const normalizedId = id.split(path.sep).join('/');
 
-            if (normalizedId.includes('/sdks/typescript/dist/core-generated/')) {
-              return 'sdk-runtime-generated';
-            }
-            if (normalizedId.includes('/sdks/typescript/dist/')) {
-              return 'sdk-client';
-            }
-            if (normalizedId.includes('/kit/ui/src/')) {
-              return 'vendor-platform';
-            }
+                if (normalizedId.includes('/sdks/typescript/dist/core-generated/')) {
+                  return 'sdk-runtime-generated';
+                }
+                if (normalizedId.includes('/sdks/typescript/dist/')) {
+                  return 'sdk-client';
+                }
+                if (normalizedId.includes('/kit/ui/src/')) {
+                  return 'vendor-platform';
+                }
 
-            if (!normalizedId.includes('node_modules')) {
-              return undefined;
-            }
-            return 'vendor-misc';
+                if (!normalizedId.includes('node_modules')) {
+                  return undefined;
+                }
+                return 'vendor-misc';
+              },
+            }],
           },
         },
       },

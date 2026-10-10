@@ -62,7 +62,9 @@ func TestSpeakerEmbeddingUsesCommonActionIdentityAndOutcomePersistence(t *testin
 	values[0] = .75
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.scenarioJobs = store
-	store.transition(job.JobId, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil)
+	if _, changed, err := store.transition(job.JobId, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); err != nil || !changed {
+		t.Fatalf("start speaker Job: changed=%v err=%v", changed, err)
+	}
 	if err := svc.completeSpeakerEmbeddingScenarioJob(job.JobId, &runtimev1.AudioSpeakerEmbedResult{Vector: &runtimev1.EmbeddingVector{Values: values}, SpaceId: space}); err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +139,9 @@ func TestSpeakerEmbeddingTerminalVectorSurvivesRestartAndRefusesForeignSpace(t *
 	result := &runtimev1.AudioSpeakerEmbedResult{Vector: &runtimev1.EmbeddingVector{Values: values}, SpaceId: space}
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.scenarioJobs = store
-	store.transition(job.JobId, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil)
+	if _, changed, err := store.transition(job.JobId, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); err != nil || !changed {
+		t.Fatalf("start speaker Job: changed=%v err=%v", changed, err)
+	}
 	wrong := cloneAudioSpeakerEmbedResult(result)
 	wrong.SpaceId = "same-width-different-space"
 	if err := svc.completeSpeakerEmbeddingScenarioJob(job.JobId, wrong); err == nil {

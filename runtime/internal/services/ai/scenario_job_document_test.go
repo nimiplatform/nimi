@@ -74,7 +74,7 @@ func TestWriterTornUnacknowledgedDataKeepsPriorDispatch(t *testing.T) {
 	if err := file.Sync(); err != nil {
 		t.Fatal(err)
 	}
-	file.Close()
+	_ = file.Close()
 	reopened, err := newScenarioJobStoreForLocalStatePath(filepath.Join(filepath.Dir(filepath.Dir(store.durablePath)), "state.json"))
 	if err != nil {
 		t.Fatal(err)

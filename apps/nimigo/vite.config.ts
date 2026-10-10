@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   base: './',
   cacheDir: '.vite',
-  plugins: [react(), tailwindcss()],
+  plugins: [react({ exclude: [/\/node_modules\//, /\/src\/(?:shell\/renderer\/)?main\.tsx$/] }), tailwindcss()],
   server: {
     watch: { ignored: ['**/.nimi/local/**', '**/dist/**', '**/dist-electron/**', '**/dist-electron-package/**', '**/.dist-electron-package.staging-*/**', '**/.dist-electron-package.previous-*/**'] },
   },

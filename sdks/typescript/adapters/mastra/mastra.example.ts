@@ -60,7 +60,7 @@ export async function runMastraAgentWithNimiRuntimeContextExample(
 }
 
 // Use this embedder anywhere Mastra expects a MastraEmbeddingModel / AI SDK
-// EmbeddingModelV3, for example vector stores or semantic recall processors.
+// EmbeddingModelV4, for example vector stores or semantic recall processors.
 export function createMastraRuntimeOwnedEmbedder(
   embedding: NimiRuntimeEmbeddingSurface,
 ) {

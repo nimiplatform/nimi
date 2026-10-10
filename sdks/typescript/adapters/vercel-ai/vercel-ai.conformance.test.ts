@@ -9,7 +9,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { generateObject, generateText, jsonSchema, stepCountIs, streamObject, streamText, tool } from 'ai';
+import { generateObject, generateText, jsonSchema, isStepCount, streamObject, streamText, tool } from 'ai';
 
 import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from '@nimiplatform/sdk/ai';
 import type { NimiFinishReason, NimiRunEvent, NimiToolCall, NimiUsage } from '@nimiplatform/sdk/contracts';
@@ -223,7 +223,7 @@ test('conformance/generateText: multi-step threads tool result back into the mod
     model: createNimiVercelLanguageModel({ model }),
     prompt: 'weather in Paris',
     tools: { weather },
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
   });
 
   assert.equal(result.steps.length, 2);
@@ -321,7 +321,7 @@ test('conformance/streamText: multi-step streaming threads tool results', async 
     model: createNimiVercelLanguageModel({ model }),
     prompt: 'weather',
     tools: { weather },
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
   });
 
   for await (const _part of result.fullStream) {

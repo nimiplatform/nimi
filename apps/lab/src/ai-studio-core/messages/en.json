@@ -477,6 +477,10 @@
       "wordTimes": "Word timing · {{count}} tokens",
       "charTimes": "Character timing · {{count}} tokens",
       "timeHint": "Times refer to the start of this audio, in seconds."
+    },
+    "speakerEmbedding": {
+      "dimensions": "Vector dimensions: {{count}}",
+      "boundary": "The full vector and its space are retained. Different spaces cannot be compared. This is not person identification or authentication."
     }
   }
 }

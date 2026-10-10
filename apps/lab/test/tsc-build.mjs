@@ -14,5 +14,5 @@ const tscBin = require.resolve('typescript/bin/tsc');
 // `args` are the tsc flags/inputs (everything that previously followed
 // `pnpm exec tsc`). `options` matches the execFileSync options the callers use.
 export function buildWithTsc(args, options) {
-  execFileSync(process.execPath, [tscBin, ...args], options);
+  execFileSync(process.execPath, [tscBin, '--ignoreConfig', ...args], options);
 }

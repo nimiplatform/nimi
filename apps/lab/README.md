@@ -52,6 +52,7 @@ scaffold features:
 
 | Entry | Contract | What it exercises |
 | --- | --- | --- |
+| Speaker representation | `audio.speaker.embed` | Short WAV, MP3 or FLAC through a Local Scenario Job; the complete vector and opaque `spaceId` survive history and submission recovery. Inputs must be chosen again for a new run. Only vectors from the same space can be compared; this is not identity or authentication. |
 | Text annotation | `text.annotate` | Scenario Job; tokens with Unicode scalar offsets and sentences; the complete result is saved as an App JSON document referenced by history. |
 | Tools & structured output | `text.generate` | One fixed, side-effect-free test tool with ordered items (including reasoning continuity) and a matching ToolResult, or one fixed JSON Schema checked by the App. |
 | Decisions | `text.decide` | One synchronous Scenario call per run on the Local or Cloud route saved in the App's AIConfig: a text or JSON state with choice and yes/no questions; the selected candidate with every candidate's probability, or the true probability, in submitted order, with the trace. Stop aborts the call; a late result is discarded. |

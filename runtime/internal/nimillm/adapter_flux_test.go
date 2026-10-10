@@ -23,13 +23,13 @@ func TestFluxFreezesReturnedPollingURLAndUsesNativeAuthentication(t *testing.T) 
 		switch r.URL.Path {
 		case "/v1/flux-pro":
 			creates.Add(1)
-			json.NewEncoder(w).Encode(map[string]any{"id": "original", "polling_url": endpoint + "/v1/get_result?id=original"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "original", "polling_url": endpoint + "/v1/get_result?id=original"})
 		case "/v1/get_result":
 			queries.Add(1)
 			if r.URL.Query().Get("id") != "original" {
 				t.Error("original task selector lost")
 			}
-			json.NewEncoder(w).Encode(map[string]any{"id": "original", "status": "Ready", "result": map[string]any{"sample": endpoint + "/output"}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "original", "status": "Ready", "result": map[string]any{"sample": endpoint + "/output"}})
 		case "/output":
 			bodies.Add(1)
 		default:

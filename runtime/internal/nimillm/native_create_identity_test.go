@@ -36,12 +36,12 @@ func TestNativeCreateRequiresReceiptIdentityBeforeAnyBodyAcquisition(t *testing.
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodPost {
 					bodies.Add(1)
-					w.Write([]byte("not a valid body"))
+					_, _ = w.Write([]byte("not a valid body"))
 					return
 				}
 				creates.Add(1)
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"url": endpoint + "/body"}, "output": map[string]any{"url": endpoint + "/body"}})
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"url": endpoint + "/body"}, "output": map[string]any{"url": endpoint + "/body"}})
 			}))
 			defer server.Close()
 			endpoint = server.URL

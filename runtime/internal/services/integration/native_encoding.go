@@ -42,7 +42,7 @@ func (s *Service) encodedNativeAsset(c *invocation, body nativeBody, limit int64
 		release()
 		return nil, nil, err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(source.Body, body.Asset.SizeBytes+1))
 	if err != nil || int64(len(data)) != body.Asset.SizeBytes || mediaDigest(data) != body.Asset.SHA256 {
 		release()

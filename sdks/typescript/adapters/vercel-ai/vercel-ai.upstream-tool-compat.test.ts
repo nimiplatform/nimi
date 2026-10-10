@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { generateText, jsonSchema, stepCountIs, streamText, tool } from 'ai';
+import { generateText, jsonSchema, isStepCount, streamText, tool } from 'ai';
 import { convertReadableStreamToArray } from 'ai/test';
 import { z } from 'zod/v4';
 
@@ -189,7 +189,7 @@ test('upstream-compat/generateText: multi-step callbacks and total usage follow 
   const result = await generateText({
     model: createNimiVercelLanguageModel({ model }),
     prompt: 'lookup',
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
     tools: {
       lookup: tool({
         inputSchema: jsonSchema({
@@ -200,23 +200,23 @@ test('upstream-compat/generateText: multi-step callbacks and total usage follow 
         execute: async ({ query }) => `result:${query}`,
       }),
     },
-    onStepFinish(step) {
+    onStepEnd(step) {
       stepFinishes.push({
         text: step.text,
         finishReason: step.finishReason,
         totalTokens: step.usage.totalTokens ?? 0,
       });
     },
-    onFinish(finish) {
+    onEnd(finish) {
       finishText = finish.text;
-      finishTotalTokens = finish.totalUsage.totalTokens ?? 0;
+      finishTotalTokens = finish.usage.totalTokens ?? 0;
     },
   });
 
   assert.equal(result.text, 'final answer');
   assert.equal(result.steps.length, 2);
-  assert.equal(result.usage.totalTokens, 18);
-  assert.equal(result.totalUsage.totalTokens, 23);
+  assert.equal(result.steps.at(-1)?.usage.totalTokens, 18);
+  assert.equal(result.usage.totalTokens, 23);
   assert.deepEqual(stepFinishes, [
     { text: '', finishReason: 'tool-calls', totalTokens: 5 },
     { text: 'final answer', finishReason: 'stop', totalTokens: 18 },
@@ -247,7 +247,7 @@ test('upstream-compat/streamText: thrown model stream errors reject textStream c
   );
 });
 
-test('upstream-compat/streamText: onChunk and onFinish observe adapter stream ordering', async () => {
+test('upstream-compat/streamText: onChunk and onEnd observe adapter stream ordering', async () => {
   const { model } = createUpstreamCompatModel({
     events: [
       { type: 'reasoning-summary-delta', text: 'think', itemIndex: 0, itemCompleted: true },
@@ -265,7 +265,7 @@ test('upstream-compat/streamText: onChunk and onFinish observe adapter stream or
     onChunk({ chunk }) {
       chunks.push(chunk.type);
     },
-    onFinish(finish) {
+    onEnd(finish) {
       finishedText = finish.text;
       finishReason = finish.finishReason;
     },
@@ -275,7 +275,7 @@ test('upstream-compat/streamText: onChunk and onFinish observe adapter stream or
     // drain
   }
 
-  assert.deepEqual(chunks, ['reasoning-delta', 'text-delta']);
+  assert.deepEqual(chunks, ['start', 'start-step', 'reasoning-start', 'reasoning-delta', 'reasoning-end', 'text-start', 'text-delta', 'text-end', 'finish-step', 'finish']);
   assert.equal(finishedText, 'answer');
   assert.equal(finishReason, 'stop');
 });

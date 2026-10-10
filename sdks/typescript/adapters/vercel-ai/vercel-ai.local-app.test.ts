@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { convertToModelMessages, generateText, readUIMessageStream, stepCountIs, streamText, tool } from 'ai';
+import { convertToModelMessages, generateText, readUIMessageStream, isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod/v4';
 import { createNimiLocalAppAIConsumptionClient, type NimiLocalAppTextTurnInput } from '@nimiplatform/sdk/app';
 import { createNimiLocalAppVercelLanguageModel } from './index';
@@ -48,7 +48,7 @@ async function* toolThenText(step: number) {
 
 test('real Vercel generateText tool loop preserves Local App continuity and result association', async () => {
   const f = fixture(toolThenText);
-  const result = await generateText({ model: f.model, prompt: 'Draw.', tools: { lookup: tool({ inputSchema: schema, execute: async () => 'shape documentation' }) }, stopWhen: stepCountIs(2) });
+  const result = await generateText({ model: f.model, prompt: 'Draw.', tools: { lookup: tool({ inputSchema: schema, execute: async () => 'shape documentation' }) }, stopWhen: isStepCount(2) });
   assert.equal(result.text, 'Done.');
   assert.equal(f.inputs.length, 2);
   assert.deepEqual(f.inputs[1].messages[1].turnItems?.[0], { type: 'output', output: { type: 'reasoning-continuity', carrier } });
@@ -81,7 +81,7 @@ test('explicit SYNC Vercel tool steps wait for complete Scenario output and repl
     voiceAssets: { list: unused, delete: unused },
   });
   const model = createNimiLocalAppVercelLanguageModel({ ai, executionMode: 'sync' });
-  const pending = generateText({ model, prompt: 'Draw.', tools: { lookup: tool({ inputSchema: schema, execute: async () => { executed++; return 'shapes'; } }) }, stopWhen: stepCountIs(2) });
+  const pending = generateText({ model, prompt: 'Draw.', tools: { lookup: tool({ inputSchema: schema, execute: async () => { executed++; return 'shapes'; } }) }, stopWhen: isStepCount(2) });
   await entered.promise;
   assert.equal(executed, 0);
   release.resolve();
@@ -95,7 +95,7 @@ test('explicit SYNC Vercel tool steps wait for complete Scenario output and repl
 
 test('UI message JSON storage and convertToModelMessages retain opaque continuity', async () => {
   const f = fixture(toolThenText);
-  const result = streamText({ model: f.model, prompt: 'Draw.', tools: { lookup: tool({ inputSchema: schema, execute: async () => 'shapes' }) }, stopWhen: stepCountIs(1) });
+  const result = streamText({ model: f.model, prompt: 'Draw.', tools: { lookup: tool({ inputSchema: schema, execute: async () => 'shapes' }) }, stopWhen: isStepCount(1) });
   let final;
   for await (const message of readUIMessageStream({ stream: result.toUIMessageStream() })) final = message;
   assert.ok(final);

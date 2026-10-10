@@ -31,17 +31,17 @@ func TestNativeCreateLostAcknowledgementStaysUnknownAndCancelable(t *testing.T) 
 						t.Error(err)
 						return
 					}
-					conn.Close()
+					_ = conn.Close()
 					return
 				}
 				w.Header().Set("Content-Type", "application/json")
 				if mode == "truncated" {
 					w.Header().Set("Content-Length", "100")
-					fmt.Fprint(w, `{"task_`)
+					_, _ = fmt.Fprint(w, `{"task_`)
 					return
 				}
 				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(w, `{"error":"invalid request"}`)
+				_, _ = fmt.Fprint(w, `{"error":"invalid request"}`)
 			}))
 			defer server.Close()
 			f := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
@@ -102,12 +102,12 @@ func TestReceivedNativeReceiptSurvivesFailedWriteInLiveJobWithoutReplay(t *testi
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == http.MethodPost && r.URL.Path == "/contents/generations/tasks" {
 			creates.Add(1)
-			fmt.Fprint(w, `{"id":"original-task"}`)
+			_, _ = fmt.Fprint(w, `{"id":"original-task"}`)
 			return
 		}
 		if r.Method == http.MethodGet && r.URL.Path == "/contents/generations/tasks/original-task" {
 			queries.Add(1)
-			fmt.Fprint(w, `{"id":"original-task","status":"running"}`)
+			_, _ = fmt.Fprint(w, `{"id":"original-task","status":"running"}`)
 			return
 		}
 		http.NotFound(w, r)

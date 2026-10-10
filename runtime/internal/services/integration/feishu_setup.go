@@ -178,7 +178,7 @@ func (s *Service) prepareFeishuSetup(ctx context.Context, setup *connectionSetup
 	var compressed bytes.Buffer
 	writer := gzip.NewWriter(&compressed)
 	if _, err = writer.Write(encoded); err != nil {
-		writer.Close()
+		_ = writer.Close()
 		return nil, err
 	}
 	if err = writer.Close(); err != nil {

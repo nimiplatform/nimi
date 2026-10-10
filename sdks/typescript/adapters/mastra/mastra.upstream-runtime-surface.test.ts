@@ -259,6 +259,8 @@ test('upstream: Nimi voice can be passed directly to Agent.voice', async () => {
     progressCurrentStep: 0,
     progressTotalSteps: 0,
     transcriptionText: '',
+    submissionOutcome: 0,
+    stopOutcome: 0,
   };
   const ai = {
     async submitScenarioJob(request: SubmitScenarioJobRequest) {
@@ -323,6 +325,7 @@ test('upstream: Nimi voice can be passed directly to Agent.voice', async () => {
                 sizeBytes: '3',
                 durationMs: '100',
                 fps: 0,
+                frameCount: '0',
                 width: 0,
                 height: 0,
                 sampleRateHz: 24000,
@@ -384,6 +387,7 @@ test('upstream: SemanticRecall accepts the Nimi Runtime-backed embedder contract
       async embedText(request) {
         embedCalls.push(request);
         return {
+          spaceId: 'test-embedding-space',
           embeddings: [[0.1, 0.2, 0.3]],
           usage: { promptTokens: 6, completionTokens: 0, totalTokens: 6 },
           raw: {

@@ -19,7 +19,7 @@ func TestWebSocketGateRejectsFreshConnectionAndAllowsHandedOffResponse(t *testin
 	server := httptest.NewServer(websocket.Handler(func(conn *websocket.Conn) {
 		accepted.Add(1)
 		<-respond
-		websocket.Message.Send(conn, "original-response")
+		_ = websocket.Message.Send(conn, "original-response")
 	}))
 	defer server.Close()
 	config, err := websocket.NewConfig("ws"+strings.TrimPrefix(server.URL, "http"), server.URL)
@@ -41,7 +41,7 @@ func TestWebSocketGateRejectsFreshConnectionAndAllowsHandedOffResponse(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer first.Close()
+	defer func() { _ = first.Close() }()
 	mutated := make(chan struct{})
 	go func() { mu.Lock(); disabled = true; mu.Unlock(); close(mutated) }()
 	select {
@@ -51,7 +51,7 @@ func TestWebSocketGateRejectsFreshConnectionAndAllowsHandedOffResponse(t *testin
 	}
 	if second, err := dialProviderWebSocket(ctx, config); !errors.Is(err, denied) {
 		if second != nil {
-			second.Close()
+			_ = second.Close()
 		}
 		t.Fatalf("fresh connection passed disabled guard: %v", err)
 	}

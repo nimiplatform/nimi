@@ -318,6 +318,10 @@
       "audioSeparate": {
         "label": "人声与背景分离",
         "description": "分离人声和背景音，保留原有时间轴"
+      },
+      "audioSpeakerEmbed": {
+        "label": "说话人特征",
+        "description": "从短音频提取同一表示空间内可比较的特征向量，不用于身份认证。"
       }
     },
     "profileSource": {

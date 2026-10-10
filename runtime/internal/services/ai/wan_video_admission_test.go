@@ -71,7 +71,7 @@ func TestWan27TextVideoQueueDoesNotStartProviderObservation(t *testing.T) {
 			queries.Add(1)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"output": map[string]any{"task_id": "wan-queued-task", "task_status": "PENDING"}})
+		_ = json.NewEncoder(w).Encode(map[string]any{"output": map[string]any{"task_id": "wan-queued-task", "task_status": "PENDING"}})
 	}))
 	defer server.Close()
 	f := newManagedCloudScenarioTestFixture(t, "dashscope", "wan2.7-t2v", server.URL, Config{AllowLoopbackEndpoint: true})
@@ -97,7 +97,7 @@ func TestWan27TextVideoQueueDoesNotStartProviderObservation(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := submitted.GetJob().GetJobId()
-	defer f.service.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: id})
+	defer func() { _, _ = f.service.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: id}) }()
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		job, _ := f.service.scenarioJobs.get(id)

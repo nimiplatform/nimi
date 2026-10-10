@@ -182,7 +182,7 @@ func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T
 
 	var receipt *NativeTaskReceipt
 	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
-	artifacts, _, providerJobID, err := ExecuteMubertMusic(ctx, MediaAdapterConfig{
+	_, _, providerJobID, err := ExecuteMubertMusic(ctx, MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		Headers: map[string]string{
@@ -195,7 +195,7 @@ func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T
 	}
 	cfg := MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, Headers: map[string]string{"customer-id": "cust-1", "access-token": "acc-1"}}
 	observation, _, err := ObserveNativeTask(context.Background(), cfg, receipt)
-	artifacts = observation.GetArtifacts()
+	artifacts := observation.GetArtifacts()
 	if err != nil || !getSeen || audioSeen {
 		t.Fatalf("query acquired body before owner admission: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T
 		for _, artifact := range artifacts {
 			body := bodies[artifact.GetArtifactId()]
 			artifact.Bytes, err = io.ReadAll(body.Stream)
-			body.Stream.Close()
+			_ = body.Stream.Close()
 			if err != nil {
 				break
 			}

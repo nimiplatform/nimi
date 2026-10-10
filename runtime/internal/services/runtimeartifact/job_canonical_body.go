@@ -48,7 +48,7 @@ func (s *DiskStore) WriteCanonicalJobBody(ctx context.Context, id string, record
 		return err
 	}
 	defer s.finishJobBodyImport(id)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	writer := &canonicalJobBodyWriter{ctx: ctx, file: file, limit: limit, limitError: jobBodyLimitError(limit, reserved.JobCandidate.MaxBytes)}
 	record.CanonicalAudio, err = produce(writer)
 	if err != nil {

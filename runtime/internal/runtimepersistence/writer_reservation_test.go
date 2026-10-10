@@ -14,7 +14,7 @@ func TestWriterReservationKeepsActualCommitAndExpiresContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 	entered, release := make(chan struct{}), make(chan struct{})
 	finished, later := make(chan error, 1), make(chan error, 1)
 	var expired context.Context
@@ -64,7 +64,7 @@ func TestWriterReservationCancellationWaitsForOwnerCallback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 	ctx, cancel := context.WithCancel(context.Background())
 	entered, release, returned := make(chan struct{}), make(chan struct{}), make(chan error, 1)
 	go func() {

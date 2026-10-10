@@ -47,7 +47,7 @@ func (s *Service) copyScenarioCanonicalCapture(ctx context.Context, head *runtim
 		if err != nil {
 			return nil, err
 		}
-		defer source.Body.Close()
+		defer func() { _ = source.Body.Close() }()
 		if original.CanonicalAudio == nil || source.Record.CanonicalAudio == nil || source.Record.ContentSHA256 != original.ContentSHA256 || source.Record.SizeBytes != original.SizeBytes || *source.Record.CanonicalAudio != *original.CanonicalAudio {
 			return nil, fmt.Errorf("capture source changed after admission")
 		}

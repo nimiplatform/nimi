@@ -36,9 +36,9 @@ func TestProviderMediaHostAuditsActualAlibabaCleanupOutcome(t *testing.T) {
 				case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/private-task":
 					polls.Add(1)
 					if cancels.Load() == 0 {
-						fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"RUNNING"}}`)
+						_, _ = fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"RUNNING"}}`)
 					} else {
-						fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"CANCELED"}}`)
+						_, _ = fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"CANCELED"}}`)
 					}
 
 				case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks/private-task/cancel":

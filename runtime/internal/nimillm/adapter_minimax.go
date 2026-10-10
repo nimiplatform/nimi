@@ -40,7 +40,7 @@ func retrieveMiniMaxVideoSource(ctx context.Context, cfg MediaAdapterConfig, que
 	if err != nil {
 		return nativeArtifactSource{}, MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	raw, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
 	if err != nil {
 		return nativeArtifactSource{}, providerResponseDecodeError(err)

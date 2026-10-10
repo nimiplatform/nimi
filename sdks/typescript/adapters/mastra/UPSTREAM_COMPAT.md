@@ -2,23 +2,17 @@
 
 Status: active test plan
 Adapter: `sdks/typescript/adapters/mastra`
-Target package: `@mastra/core@1.41.x`
-Pinned upstream version: `@mastra/core@1.41.0`
-Pinned upstream tag: `@mastra/core@1.41.0` (monorepo `github.com/mastra-ai/mastra`; annotated tag `6c437c7bfdf88b835f0b5875545458ab9c9d023e`, peeled source commit `a584d8f7c81aeb07832adfd0a4ddd04cae73e3fa`)
+Target package: `@mastra/core@1.74.0`
 
 ## Why this version
 
-`@mastra/core@1.41.0` depends on both `@ai-sdk/provider-v5` (`@ai-sdk/provider@2.0.3`,
-`LanguageModelV2`) and `@ai-sdk/provider-v6` (`@ai-sdk/provider@3.0.10`,
-`LanguageModelV3`). Mastra's `MastraModelConfig` admits a raw `LanguageModelV3`, so
-this adapter owns its own Nimi → `LanguageModelV3` mapping (`mappers.ts`,
-`raw-metadata.ts`, `@ai-sdk/provider@3.0.10`, `specificationVersion: 'v3'`) and
-pins the Mastra version whose AI-SDK-v6 surface it validates against. The mapping
-shape overlaps the Vercel adapter today, but the Mastra adapter does not depend on
-it — a shared `ai-sdk-v3` bridge package is deliberately deferred until Vercel,
-Mastra, and a third consumer stabilize, so the duplication is controlled and
-self-owned (enforced by `mastra.boundary.test.ts`). This matrix tracks the
-installed `@mastra/core@1.41.0` contract, not upstream `main`.
+Mastra 1.74 accepts Provider V4 text models through its
+`@ai-sdk/provider-v7` alias. The adapter owns the Nimi-to-V4 mapping and
+uses `@ai-sdk/provider@4.0.24` as its public type dependency. Its vector
+API still supports embedding V3, so the embedding model exposes that exact
+contract. The suite runs the installed Mastra public Agent, tool, structured
+output, voice and semantic-recall APIs. It does not depend on upstream main
+or the Vercel adapter implementation.
 
 ## Policy
 
@@ -43,7 +37,7 @@ Runtime/Cognition owner surfaces.
 ## Executable Coverage
 
 `mastra.conformance.test.ts` drives a real Mastra `Agent` (and the adapter's
-`LanguageModelV3` interface Mastra calls) over `createNimiMastraModel`, covering:
+`LanguageModelV4` interface Mastra calls) over `createNimiMastraModel`, covering:
 
 - `Agent.generate` text, usage, finish reason; system-instruction threading
 - `Agent.stream` text-delta streaming, resolved finish reason, and `fullStream` chunks
@@ -97,12 +91,12 @@ Nimi embedder contract.
 
 One upstream-observed Mastra wrapper rule is intentionally captured in
 `mastra.upstream-runtime-surface.test.ts`: for `Agent.stream()`, the published
-`@mastra/core@1.41.0` LLM stream wrapper replaces user `stopWhen` with
+`@mastra/core@1.74.0` LLM stream wrapper replaces user `stopWhen` with
 `stepCountIs(maxSteps)` when `maxSteps` is also provided. The adapter does not
 override this framework-owned loop rule; migration code that needs a custom
 `stopWhen` stop after a tool step should not pass `maxSteps` on that call.
 
-`mastra.test.ts` additionally covers the `LanguageModelV3` model shape, the generate
+`mastra.test.ts` additionally covers the `LanguageModelV4` model shape, the generate
 request mapping, **typed fail-closed errors** (`NimiMastraUnsupportedFeatureError`
 `instanceof` + `code` + `feature` for missing model, unsupported streaming, provider
 misconfiguration, and unknown model id), the Runtime delegated tool typed

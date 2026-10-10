@@ -32,7 +32,7 @@ func TestMediaBodyBudgetsBoundHeadersAndStalledReadsWithoutEndingParent(t *testi
 					t.Fatal(err)
 				}
 				_, err = io.ReadAll(body)
-				body.Close()
+				_ = body.Close()
 			}
 			if !errors.Is(err, context.DeadlineExceeded) {
 				t.Fatalf("%s budget did not terminate IO: %v", phase, err)

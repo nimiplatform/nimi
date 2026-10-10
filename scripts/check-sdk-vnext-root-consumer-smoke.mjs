@@ -56,7 +56,11 @@ const transport = {
     request.responseMetadataObserver?.({ 'x-nimi-runtime-version': '0.6.0' });
     if (request.methodId.endsWith('/ExecuteScenario')) {
       return {
-        output: { output: { oneofKind: 'textGenerate', textGenerate: { text: 'consumer root text' } } },
+        output: { output: { oneofKind: 'textGenerate', textGenerate: {
+          text: 'consumer root text',
+          items: [{ item: { oneofKind: 'text', text: { text: 'consumer root text' } } }],
+          toolCalls: [], sources: [], rawChunks: [], reasoningSummary: '',
+        } } },
         finishReason: 1,
         usage: { inputTokens: '1', outputTokens: '2', computeMs: '3' },
         routeDecision: 1,
@@ -78,6 +82,7 @@ assert(client instanceof sdk.NimiClient);
 assert.equal('scopes' in client, false);
 assert.equal('permissions' in client, false);
 assert.equal('requirePermissions' in client, false);
+assert.equal('knowledge' in client.features, false);
 
 const model = client.ai.createRuntimeModel({});
 const generated = await model.generateText({
@@ -119,7 +124,8 @@ client.ai.createRuntimeModel({});
 client.features.generation.createRuntimeClient({
   head: {},
 });
-client.features.knowledge.createRuntimeContextClient({});
+// @ts-expect-error Retired knowledge interfaces must not reappear on the root client.
+void client.features.knowledge;
 `);
 }
 
@@ -134,6 +140,7 @@ function main() {
     vnextRoot,
     'exec',
     'tsc',
+    '--ignoreConfig',
     '--module',
     'NodeNext',
     '--moduleResolution',

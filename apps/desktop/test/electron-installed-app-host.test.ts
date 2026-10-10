@@ -15,7 +15,8 @@ test('installed self-restart releases the exited child and reuses only its owner
     async stop() { order.push('stop'); running = false; },
     async end() { order.push('end'); },
     async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
-  } as NimiElectronInstalledAppControl);
+    async completeUninstall() { throw new Error('unexpected uninstall'); },
+  });
   try {
     await host.commandHandlers.installed_app_launch!({ payload: { payload: { launchSelector: selector } } });
     running = false; exitCode = 75;
@@ -45,7 +46,8 @@ test('Stop during self-restart lease cleanup prevents the replacement launch', a
     async stop() { running = false; },
     async end() { if (delayEnd) { enteredEnd(); await endGate; } ended++; },
     async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
-  } as NimiElectronInstalledAppControl);
+    async completeUninstall() { throw new Error('unexpected uninstall'); },
+  });
   const payload = { payload: { launchSelector: selector } };
   try {
     await host.commandHandlers.installed_app_launch!({ payload });
@@ -77,7 +79,8 @@ test('Stop while repeated Launch awaits focus still stops the running child', as
     async stop() { stopped++; running = false; },
     async end() { ended++; },
     async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
-  } as NimiElectronInstalledAppControl);
+    async completeUninstall() { throw new Error('unexpected uninstall'); },
+  });
   const payload = { payload: { launchSelector: selector } };
   try {
     await host.commandHandlers.installed_app_launch!({ payload });

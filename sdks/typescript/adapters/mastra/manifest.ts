@@ -2,8 +2,8 @@ import type { NimiCapabilityManifest } from '@nimiplatform/sdk/contracts';
 
 export const NIMI_MASTRA_ADAPTER_ID = 'mastra' as const;
 
-// Mastra's text model boundary is the AI SDK provider `LanguageModelV3` admitted
-// by `MastraModelConfig` (Mastra's `@ai-sdk/provider-v6` alias). The package also
+// Mastra's text model boundary is the AI SDK provider `LanguageModelV4` admitted
+// by `MastraModelConfig` (Mastra's `@ai-sdk/provider-v7` alias). The package also
 // exposes Runtime-backed embedding and voice surfaces for Mastra migration code;
 // those surfaces stay separate from the text-model mapper and do not claim
 // Memory/Knowledge/voice asset ownership.
@@ -18,7 +18,7 @@ export const NIMI_MASTRA_ADAPTER_ID = 'mastra' as const;
 export const NIMI_MASTRA_ADAPTER_MANIFEST = {
   adapterId: NIMI_MASTRA_ADAPTER_ID,
   targetLibrary: 'Mastra',
-  targetVersionRange: '@mastra/core@^1.41.0',
+  targetVersionRange: '@mastra/core@^1.74.0',
   // L4 (Context): per-turn Runtime-owned memory/knowledge context injection
   // plus Runtime-owned RAG embeddings are conformance-verified, and every
   // durable framework-state cluster carries an explicit S-AIP-009
@@ -28,7 +28,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     'model.config': {
       support: 'supported',
       mode: 'adapter-mapped',
-      note: 'A NimiAiModel maps to a LanguageModelV3 that satisfies Mastra MastraModelConfig and is accepted by new Agent({ model }).',
+      note: 'A NimiAiModel maps to a LanguageModelV4 that satisfies Mastra MastraModelConfig and is accepted by new Agent({ model }).',
     },
     'agent.generate': {
       support: 'supported',
@@ -43,7 +43,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     'tools.definition': {
       support: 'supported',
       mode: 'adapter-mapped',
-      note: 'Mastra createTool definitions are forwarded to the model as LanguageModelV3 function tools.',
+      note: 'Mastra createTool definitions are forwarded to the model as LanguageModelV4 function tools.',
     },
     'tools.toolChoice': {
       support: 'supported',
@@ -93,7 +93,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     usage: {
       support: 'supported',
       mode: 'adapter-mapped',
-      note: 'Nimi usage maps to LanguageModelV3 usage surfaced as Mastra usage/totalUsage.',
+      note: 'Nimi usage maps to LanguageModelV4 usage surfaced as Mastra usage/totalUsage.',
     },
     finishReason: {
       support: 'supported',
@@ -103,12 +103,12 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     sources: {
       support: 'supported',
       mode: 'adapter-mapped',
-      note: 'Nimi URL/document sources map to LanguageModelV3 source parts surfaced as Mastra output sources.',
+      note: 'Nimi URL/document sources map to LanguageModelV4 source parts surfaced as Mastra output sources.',
     },
     rawChunks: {
       support: 'supported',
       mode: 'adapter-mapped',
-      note: 'includeRawChunks is forwarded; Nimi raw events surface as LanguageModelV3 raw stream parts.',
+      note: 'includeRawChunks is forwarded; Nimi raw events surface as LanguageModelV4 raw stream parts.',
     },
     abort: {
       support: 'supported',
@@ -193,7 +193,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     workflowCheckpoint: {
       support: 'not-applicable',
       mode: 'out-of-domain',
-      note: 'Workflow checkpoint/resume/suspend durable state is not a text LanguageModelV3 interface. A Nimi-owned implementation must live in Runtime workflow/localAgent owner surfaces, not in this adapter.',
+      note: 'Workflow checkpoint/resume/suspend durable state is not a text LanguageModelV4 interface. A Nimi-owned implementation must live in Runtime workflow/localAgent owner surfaces, not in this adapter.',
     },
     ragEmbeddings: {
       support: 'supported',

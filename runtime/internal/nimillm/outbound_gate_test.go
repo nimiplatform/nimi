@@ -17,16 +17,16 @@ func TestJobTransportNeverReplaysFailedEffectOrFollowsItsRedirect(t *testing.T) 
 			var creates, redirects atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path == "/prime" {
-					io.WriteString(w, "ready")
+					_, _ = io.WriteString(w, "ready")
 					return
 				}
 				if r.URL.Path == "/redirected" {
 					redirects.Add(1)
-					io.WriteString(w, "unexpected")
+					_, _ = io.WriteString(w, "unexpected")
 					return
 				}
 				creates.Add(1)
-				io.Copy(io.Discard, r.Body)
+				_, _ = io.Copy(io.Discard, r.Body)
 				if mode == "redirect" {
 					http.Redirect(w, r, "/redirected", http.StatusTemporaryRedirect)
 					return
@@ -36,7 +36,7 @@ func TestJobTransportNeverReplaysFailedEffectOrFollowsItsRedirect(t *testing.T) 
 					t.Error(err)
 					return
 				}
-				conn.Close()
+				_ = conn.Close()
 			}))
 			defer server.Close()
 			ctx := WithOutboundGate(context.Background(), func(_ context.Context, handoff func() error) error { return handoff() })
@@ -46,8 +46,8 @@ func TestJobTransportNeverReplaysFailedEffectOrFollowsItsRedirect(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			io.Copy(io.Discard, prime.Body)
-			prime.Body.Close()
+			_, _ = io.Copy(io.Discard, prime.Body)
+			_ = prime.Body.Close()
 			var body io.Reader
 			if mode != "eof-empty" {
 				body = bytes.NewBufferString(`{"create":true}`)
@@ -56,7 +56,7 @@ func TestJobTransportNeverReplaysFailedEffectOrFollowsItsRedirect(t *testing.T) 
 			request.Header.Set("Idempotency-Key", "original-action")
 			response, err := client.Do(request)
 			if response != nil {
-				response.Body.Close()
+				_ = response.Body.Close()
 			}
 			if mode != "redirect" && err == nil {
 				t.Fatal("unknown create became success")
@@ -77,7 +77,7 @@ func TestJobReadFailureWaitsForNextAuthorizedRequest(t *testing.T) {
 	denied := errors.New("original Connector changed")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/prime" {
-			io.WriteString(w, "ready")
+			_, _ = io.WriteString(w, "ready")
 			return
 		}
 		calls.Add(1)
@@ -87,7 +87,7 @@ func TestJobReadFailureWaitsForNextAuthorizedRequest(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		conn.Close()
+		_ = conn.Close()
 	}))
 	defer server.Close()
 	ctx := WithOutboundGate(context.Background(), func(_ context.Context, handoff func() error) error {
@@ -102,10 +102,10 @@ func TestJobReadFailureWaitsForNextAuthorizedRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	io.Copy(io.Discard, response.Body)
-	response.Body.Close()
+	_, _ = io.Copy(io.Discard, response.Body)
+	_ = response.Body.Close()
 	if response, err = client.Get(server.URL + "/query"); err == nil {
-		response.Body.Close()
+		_ = response.Body.Close()
 		t.Fatal("failed query unexpectedly succeeded")
 	}
 	if _, err = client.Get(server.URL + "/query"); !errors.Is(err, denied) || calls.Load() != 1 {
@@ -118,7 +118,7 @@ func TestJobTransportDoesNotInheritHTTP2ReplayFromInitializedClient(t *testing.T
 		if r.URL.Path == "/create" && r.ProtoMajor != 1 {
 			t.Errorf("Job request inherited HTTP/%d replay machinery", r.ProtoMajor)
 		}
-		io.WriteString(w, "ok")
+		_, _ = io.WriteString(w, "ok")
 	}))
 	server.EnableHTTP2 = true
 	server.StartTLS()
@@ -128,8 +128,8 @@ func TestJobTransportDoesNotInheritHTTP2ReplayFromInitializedClient(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	io.Copy(io.Discard, response.Body)
-	response.Body.Close()
+	_, _ = io.Copy(io.Discard, response.Body)
+	_ = response.Body.Close()
 	ctx := WithOutboundGate(context.Background(), func(_ context.Context, handoff func() error) error { return handoff() })
 	client := httpClientWithOutboundGate(ctx, base)
 	defer client.CloseIdleConnections()
@@ -137,7 +137,7 @@ func TestJobTransportDoesNotInheritHTTP2ReplayFromInitializedClient(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.ProtoMajor != 1 {
 		t.Fatal("Job connection did not retain its explicit HTTP/1 boundary")
 	}

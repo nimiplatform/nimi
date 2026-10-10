@@ -263,7 +263,7 @@ export async function inspectMacSourceRuntime(rows, root, querySockets = queryMa
   if (!Array.isArray(rows)) return { state: 'not-observed', reason: 'process-inventory-unavailable' };
   const processes = normalizedProcessRows(rows);
   const candidates = processes.filter((row) => row.name === 'nimi-runtime'
-    && row.executablePath.startsWith(`${path.resolve(root)}${path.sep}`)
+    && row.executablePath.startsWith(`${path.posix.resolve(root)}/`)
     && processes.some((parent) => parent.processId === row.parentProcessId
       && parent.name === 'nimi-source-runtime-supervisor'));
   if (candidates.length !== 1) return {
@@ -274,7 +274,7 @@ export async function inspectMacSourceRuntime(rows, root, querySockets = queryMa
   const sockets = await querySockets(processId);
   if (!Array.isArray(sockets)) return { state: 'not-observed', reason: 'runtime-sockets-unavailable', processId };
   const present = ['runtime-desktop.sock', 'runtime-local-app.sock']
-    .every((name) => sockets.some((socket) => path.basename(socket) === name));
+    .every((name) => sockets.some((socket) => path.posix.basename(socket) === name));
   return {
     state: present ? 'ok' : 'error',
     reason: present ? 'source-runtime-process-and-sockets-observed' : 'source-runtime-sockets-missing',

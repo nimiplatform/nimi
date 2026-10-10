@@ -1,3 +1,4 @@
+import { LAB_SPEAKER_AUDIO_MAX_BYTES, LAB_SPEAKER_AUDIO_MIME_TYPES, isLabSpeakerAudio, type LabSpeakerEmbeddingParameters } from './speaker-embedding.js';
 import { useRef, useState, type ReactNode } from 'react';
 import { Button, SelectField, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import { Plus, Trash2, Upload } from 'lucide-react';
@@ -91,6 +92,7 @@ function MediaFilePicker({
   disabled,
   valid,
   invalidMessage,
+  maxSizeBytes,
   onChange,
 }: {
   readonly label: string;
@@ -99,6 +101,7 @@ function MediaFilePicker({
   readonly disabled: boolean;
   readonly valid: (file: LabMediaFile) => boolean;
   readonly invalidMessage: string;
+  readonly maxSizeBytes?: number;
   readonly onChange: (file: LabMediaFile | undefined) => void;
 }) {
   const { t } = useTranslation();
@@ -115,6 +118,10 @@ function MediaFilePicker({
           const selected = event.currentTarget.files?.[0];
           event.currentTarget.value = '';
           if (!selected) return;
+          if (maxSizeBytes !== undefined && selected.size > maxSizeBytes) {
+            setError(invalidMessage);
+            return;
+          }
           void selected.arrayBuffer().then((buffer) => {
             const next: LabMediaFile = { name: selected.name, mimeType: selected.type, sizeBytes: selected.size, bytes: new Uint8Array(buffer) };
             if (!valid(next)) {
@@ -227,4 +234,17 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
       <LabReasoningControls value={parameters.reasoning} disabled={props.disabled} onChange={(reasoning) => props.onChange({ ...parameters, reasoning })} />
     </Frame>
   );
+}
+
+export function LabSpeakerEmbeddingParameterPanel(props: StudioParameterPanelProps) {
+  const { t } = useTranslation();
+  const parameters = props.parameters as LabSpeakerEmbeddingParameters;
+  return <Frame {...props} localRouteOnly>
+    <MediaFilePicker label={t('CapabilityTests.speakerEmbedding.inputTitle')} accept={LAB_SPEAKER_AUDIO_MIME_TYPES.join(',')}
+      maxSizeBytes={LAB_SPEAKER_AUDIO_MAX_BYTES}
+      file={parameters.audio} disabled={localInputsLocked(props)} valid={isLabSpeakerAudio}
+      invalidMessage={t('CapabilityTests.speakerEmbedding.inputInvalid')}
+      onChange={audio => props.onChange(audio ? { audio } : {})} />
+    <p className="text-sm opacity-70">{t('CapabilityTests.speakerEmbedding.inputNote')}</p>
+  </Frame>;
 }

@@ -28,7 +28,7 @@ func (s *scoreCommitFailureStore) PutStream(ctx context.Context, id string, reco
 
 func (s *scoreCommitFailureStore) StageJobBody(ctx context.Context, id string, record runtimeartifact.ArtifactRecord, body io.ReadCloser) error {
 	if record.MimeType == "text/vnd.abc" {
-		body.Close()
+		_ = body.Close()
 		return errors.New("score disk write failed")
 	}
 	return s.MemoryStore.StageJobBody(ctx, id, record, body)

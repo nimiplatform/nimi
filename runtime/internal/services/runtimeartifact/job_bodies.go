@@ -186,7 +186,7 @@ func (s *DiskStore) PrepareJobBodies(jobID string, owner *ArtifactOwner, slots [
 		// The exclusive empty file establishes collision-free ownership. Its
 		// record is saved before any body is fetched or written.
 		if err := s.writeJobBodyRecordLocked(r); err != nil {
-			file.Close()
+			_ = file.Close()
 			return rollback(err)
 		}
 		if err := file.Close(); err != nil {
@@ -258,7 +258,7 @@ func (s *DiskStore) openJobBodyImport(id string, record ArtifactRecord) (*os.Fil
 	if err != nil {
 		return nil, r, 0, err
 	}
-	fail := func(err error) (*os.File, diskArtifactRecord, int64, error) { file.Close(); return nil, r, 0, err }
+	fail := func(err error) (*os.File, diskArtifactRecord, int64, error) { _ = file.Close(); return nil, r, 0, err }
 	// An incomplete transfer is not a reusable complete body. Retrying only
 	// this original result may discard its partial bytes, never a complete one.
 	if err := file.Truncate(0); err != nil {
@@ -300,13 +300,13 @@ func (s *DiskStore) StageJobBody(ctx context.Context, id string, record Artifact
 	if ctx == nil || source == nil {
 		return ErrInvalidArtifactRecord
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 	file, reserved, limit, err := s.openJobBodyImport(id, record)
 	if err != nil {
 		return err
 	}
 	defer s.finishJobBodyImport(id)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	hash := sha256.New()
 	size, err := copyArtifactStream(ctx, &boundedJobBodyWriter{writer: file, remaining: limit, limitError: jobBodyLimitError(limit, reserved.JobCandidate.MaxBytes)}, hash, source)
 	if err != nil {
@@ -501,7 +501,7 @@ func (s *DiskStore) BorrowJobBodyFile(ctx context.Context, jobID, id string) (st
 	}
 	hash := sha256.New()
 	size, err := copyArtifactStream(ctx, io.Discard, hash, file)
-	file.Close()
+	_ = file.Close()
 	if err != nil || size != r.SizeBytes || "sha256:"+hex.EncodeToString(hash.Sum(nil)) != r.ContentSHA256 {
 		release()
 		return "", nil, ErrInvalidArtifactRecord

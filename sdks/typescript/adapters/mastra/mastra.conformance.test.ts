@@ -430,7 +430,7 @@ test('Mastra file input parts map onto Nimi file parts', async () => {
       role: 'user',
       content: [
         { type: 'text', text: 'look' },
-        { type: 'file', data: new Uint8Array([104, 105]), mediaType: 'image/png', filename: 'pic.png' },
+        { type: 'file', data: { type: 'data', data: new Uint8Array([104, 105]) }, mediaType: 'image/png', filename: 'pic.png' },
       ],
     }],
   });

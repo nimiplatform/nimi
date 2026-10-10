@@ -114,7 +114,7 @@ func TestNativeOutboundMediaUsesOwnedBytesAndNeverResendsUnknownUpload(t *testin
 							if err := req.ParseMultipartForm(1 << 20); err != nil {
 								t.Fatal(err)
 							}
-							defer req.MultipartForm.RemoveAll()
+							defer func() { _ = req.MultipartForm.RemoveAll() }()
 							if kind == "image" {
 								if req.FormValue("image_type") != "message" || len(req.MultipartForm.Value) != 1 {
 									t.Error("SDK image upload changed required multipart fields")
@@ -126,7 +126,7 @@ func TestNativeOutboundMediaUsesOwnedBytesAndNeverResendsUnknownUpload(t *testin
 							if err != nil {
 								t.Fatal(err)
 							}
-							defer file.Close()
+							defer func() { _ = file.Close() }()
 							actual, _ := io.ReadAll(file)
 							if !bytes.Equal(actual, plain) {
 								t.Error("SDK multipart changed owned bytes")
@@ -275,13 +275,13 @@ func TestFeishuDownloadUsesHTTPStatusWithoutInterpretingFileContents(t *testing.
 					t.Fatal("HTTP 200 file was not adopted", result.Status, result.ErrorCode, openErr)
 				}
 				body, err := io.ReadAll(actual.Body)
-				actual.Body.Close()
+				_ = actual.Body.Close()
 				if err != nil || !bytes.Equal(body, []byte(tc.body)) || !strings.Contains(result.ResultJson, mediaDigest([]byte(tc.body))) {
 					t.Fatal("download changed file bytes or digest")
 				}
 			} else if result.Status != "failed" || result.ErrorCode != tc.wantError || openErr == nil {
 				if openErr == nil {
-					actual.Body.Close()
+					_ = actual.Body.Close()
 				}
 				t.Fatal("rejected download published an asset or changed error", result.Status, result.ErrorCode, openErr)
 			}
@@ -347,7 +347,7 @@ func TestNativeMediaActualCustodySeparatesTwoAppSubjects(t *testing.T) {
 					t.Fatal(err)
 				}
 				body, err := io.ReadAll(actual.Body)
-				actual.Body.Close()
+				_ = actual.Body.Close()
 				if err != nil || !bytes.Equal(body, plain) {
 					t.Fatal("wrong app-owned bytes")
 				}

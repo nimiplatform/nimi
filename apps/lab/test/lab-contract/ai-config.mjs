@@ -104,6 +104,7 @@ test('lab shared Model Config inventory covers every Lab entry and deduplicates 
     'audio.transcribe',
     'voice.create',
     'world.generate',
+    'audio.speaker.embed',
     'text.annotate',
     'text.decide',
     'image.face_swap',

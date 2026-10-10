@@ -286,7 +286,7 @@ func TestFeishuOfficialRegistrationMinimalScopesAndDomesticOnly(t *testing.T) {
 				t.Fatal(err)
 			}
 			body, err := io.ReadAll(io.LimitReader(reader, 4097))
-			reader.Close()
+			_ = reader.Close()
 			if err != nil || len(body) > 4096 {
 				t.Fatal("bad addon payload")
 			}

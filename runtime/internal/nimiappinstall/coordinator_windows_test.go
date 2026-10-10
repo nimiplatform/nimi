@@ -274,6 +274,18 @@ func TestUpdatePreservesSubjectDataAndOldReleaseThroughCancellationAndFailure(t 
 		t.Fatal(err)
 	}
 	waitForInstallPhase(t, kernel, job.JobID, localappkernel.PackageJobCompleted)
+	// Completed publishes the new release before the async worker removes its
+	// staging files. Startup recovery must run after that worker releases them.
+	coordinator.workersMu.Lock()
+	worker := coordinator.workers[job.JobID]
+	coordinator.workersMu.Unlock()
+	if worker != nil {
+		select {
+		case <-worker.done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("completed update worker did not finish cleanup")
+		}
+	}
 	if err := coordinator.Recover(ctx); err != nil {
 		t.Fatal(err)
 	}

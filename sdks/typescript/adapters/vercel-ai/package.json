@@ -22,18 +22,18 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "@ai-sdk/provider": "^3.0.0",
+    "@ai-sdk/provider": "^4.0.0",
     "@nimiplatform/sdk": "^0.21.0",
-    "ai": "^6.0.0"
+    "ai": "^7.0.0"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "3.0.10",
+    "@ai-sdk/provider": "4.0.24",
     "@nimiplatform/sdk": "workspace:*",
-    "@types/node": "^24.13.3",
-    "ai": "6.0.190",
-    "tsx": "^4.23.13",
-    "typescript": "^5.9.3",
-    "zod": "4.5.4"
+    "@types/node": "24.19.1",
+    "ai": "7.0.130",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "zod": "4.6.5"
   },
   "scripts": {
     "build": "node ../../../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
