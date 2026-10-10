@@ -61,11 +61,12 @@ scaffold features:
 | Video face swap | `video.face_swap` | Finite MP4 Job with an explicit no-face policy and the typed frame summary, plus a separate Session test (App-owned reference upload, a few fixed 1280×720 RGB8 frames, correlated results, Close). |
 | AI Realtime | `realtime.interact` | Direct App Session without an Agent: legal 16 kHz mono PCM S16LE input format, text and explicit microphone input, owner controls, events and terminal reason. |
 
-Jobs keep a known Job ID with every failure, cancellation or timeout. Only
-`music-generate`, `music-transcribe` and `audio-voice-convert` Jobs accept a
-client submission ID; these new Jobs do not, so a Submit whose response was
-lost is shown as unknown and never resubmitted. Runtime keeps Jobs for its own
-retention period; saved App assets are the long-term record. Rerunning a face
+Issued Jobs retain their Job ID on failure, cancellation or timeout. Every
+supported async Job accepts a bounded client submission ID, saved with the App
+business action before Submit. If the response is lost, recovery looks up that
+original submission and then reads its Job; an unknown or expired action is never
+automatically resubmitted. Runtime keeps Jobs for its own retention period;
+saved App assets are the long-term record. Rerunning a face
 swap needs the media chosen again. Session summaries are recorded, but a
 closed Session is never restored and its frames and audio are not saved.
 History keeps at most 16 KiB each of a run's prompt and context, so one long input

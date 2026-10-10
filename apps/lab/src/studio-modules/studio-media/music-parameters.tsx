@@ -1,4 +1,3 @@
-import { MusicRecoveryPanel } from './music-recovery-panel.js';
 import { useEffect, useRef, useState } from 'react';
 import { Button, SelectField, TextareaField } from '@nimiplatform/kit/ui';
 import type { NimiMusicInputCapabilities } from '@nimiplatform/sdk/ai';
@@ -82,6 +81,5 @@ export function MusicFields(props: StudioParameterPanelProps) {
     </StudioParameterField> : null}
     {profile?.supportsGeneratedScore ? <StudioBooleanParameter current={parameters} field="returnGeneratedScore" label={t('Music.returnScore')} onChange={update} disabled={disabled} /> : null}
     {error ? <p role="alert">{error}</p> : null}
-    <MusicRecoveryPanel disabled={props.disabled || importing} />
   </div>;
 }

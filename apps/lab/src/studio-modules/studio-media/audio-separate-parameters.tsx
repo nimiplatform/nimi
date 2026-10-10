@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@nimiplatform/kit/ui';
 import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
 import { StudioBooleanParameter, StudioNumberParameter, StudioParameterField, type StudioParameterPanelProps } from '../../ai-studio-core/parameter-fields.js';
-import { MusicRecoveryPanel } from './music-recovery-panel.js';
 import type { StudioAudioSeparateParameters } from './parameters.js';
 
 export function AudioSeparateFields(props: StudioParameterPanelProps) {
@@ -69,6 +68,5 @@ export function AudioSeparateFields(props: StudioParameterPanelProps) {
     </> : null}
     <p className="text-sm opacity-70">{t('AudioSeparate.preparationHint')}</p>
     {error ? <p role="alert">{error}</p> : null}
-    <MusicRecoveryPanel capability="audio.separate" disabled={disabled} />
   </div>;
 }

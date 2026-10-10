@@ -43,3 +43,37 @@ export function studioWorldInputSource(p: Readonly<Record<string, unknown>>): St
   return { relativePath: p.sourceRelativePath, mediaType: String(p.sourceMediaType), sizeBytes: Number(p.sourceSizeBytes),
     sha256: p.sourceSHA256, displayName: String(p.sourceName || ''), previewSource: 'managed-asset' };
 }
+
+/** The admitted full reader verifies the owner digest; exhaust it to observe all
+ * integrity/retention failures, without retaining media bytes in renderer memory. */
+export async function verifyStudioManagedAsset(
+  assets: Pick<import('@nimiplatform/sdk/app').NimiLocalAppAssetsClient, 'read'>,
+  expected: { readonly relativePath: string; readonly sha256?: string; readonly sizeBytes?: number; readonly mediaType?: string },
+  signal?: AbortSignal,
+): Promise<void> {
+  signal?.throwIfAborted();
+  const read = await assets.read({ relativePath: expected.relativePath });
+  const iterator = read.body[Symbol.asyncIterator]();
+  let size = 0;
+  let closing: Promise<unknown> | undefined;
+  const close = () => closing ??= Promise.resolve().then(() => iterator.return?.());
+  const abort = () => { void close().catch(() => undefined); };
+  signal?.addEventListener('abort', abort, { once: true });
+  try {
+    signal?.throwIfAborted();
+    if (read.asset.relativePath !== expected.relativePath || read.range.offset !== 0 || read.range.length !== read.asset.sizeBytes
+      || (expected.sha256 !== undefined && read.asset.sha256 !== expected.sha256)
+      || (expected.sizeBytes !== undefined && read.asset.sizeBytes !== expected.sizeBytes)
+      || (expected.mediaType !== undefined && read.asset.mediaType !== expected.mediaType)) throw new Error('Saved asset no longer matches its result');
+    for (;;) {
+      signal?.throwIfAborted();
+      const next = await iterator.next();
+      signal?.throwIfAborted();
+      if (next.done) break;
+      size += next.value.byteLength;
+      if (size > read.asset.sizeBytes) throw new Error('Saved asset is larger than recorded');
+    }
+    if (size !== read.asset.sizeBytes) throw new Error('Saved asset is incomplete');
+    signal?.throwIfAborted();
+  } finally { signal?.removeEventListener('abort', abort); await close(); }
+}

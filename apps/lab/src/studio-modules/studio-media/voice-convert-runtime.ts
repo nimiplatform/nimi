@@ -1,5 +1,5 @@
 import type { NimiLocalAppAudioInfo, NimiLocalAppVoiceConvertTargetVoice } from '@nimiplatform/sdk/app';
-import { beginMusicRecovery, readMusicRecovery, restoreSavedMusicResult, saveMusicRecoveryResult } from './music-recovery.js';
+import { beginStudioJobRecovery, recordedStudioScenarioJobClient, recoverStudioJobId, readStudioJobRecovery, restoreSavedStudioJobResult, saveStudioJobRecoveryResult, studioJobRecoverySignal } from '../../ai-studio-core/job-recovery.js';
 import { createStudioScenarioJobClient, projectStudioArtifactRunnerResult, type StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
 import type { StudioManagedArtifact } from '../../ai-studio-core/runtime-types.js';
 import type { StudioVoiceConvertParameters } from './parameters.js';
@@ -9,15 +9,15 @@ export async function runVoiceConvert(context: StudioCapabilityRuntimeContext) {
   const parameters = context.input.parameters as StudioVoiceConvertParameters | undefined;
   const client = context.host.client; const signal = context.input.signal;
   if (parameters?.recoverySubmissionId) {
-    const entry = (await readMusicRecovery(client.storage, 'audio.voice.convert')).find(item => item.clientSubmissionId === parameters.recoverySubmissionId);
+    const entry = (await readStudioJobRecovery(client.storage, 'audio.voice.convert')).find(item => item.clientSubmissionId === parameters.recoverySubmissionId);
     if (!entry?.sourceAudio) throw new Error(context.host.translate('Music.recoveryMissing'));
-    const saved = await restoreSavedMusicResult(entry, context.capability.label, 'audio.voice.convert', client.storage.assets);
+    const saved = await restoreSavedStudioJobResult(entry, context.capability.label, 'audio.voice.convert', client.storage.assets, studioJobRecoverySignal(context.input));
     if (saved) return saved;
-    const found = await client.ai.scenarioJobs.lookupSubmission(entry.clientSubmissionId);
+    const recoveredJobId = await recoverStudioJobId(client, entry, 'audio.voice.convert');
     const result = await context.host.runners.voiceConversionObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
-      jobId: found.job.jobId, signal, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
+      jobId: recoveredJobId, signal: context.input.observationSignal, cancelSignal: signal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
     const projected = await projectStudioArtifactRunnerResult({ ...context, voiceSourceVocal: entry.sourceAudio, voiceTargetAudio: entry.targetAudio }, result);
-    await saveMusicRecoveryResult(client.storage, entry.clientSubmissionId, projected, 'audio.voice.convert');
+    await saveStudioJobRecoveryResult(client.storage, entry.clientSubmissionId, projected, 'audio.voice.convert');
     return projected;
   }
   const invalid = () => context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('VoiceConvert.configureInputs'));
@@ -93,24 +93,21 @@ export async function runVoiceConvert(context: StudioCapabilityRuntimeContext) {
     if (adopted.sizeBytes !== preparedSource.sizeBytes || adopted.mediaType !== preparedSource.mimeType) throw new Error('Canonical source adoption changed metadata');
     if (preparedTarget && adoptedTarget
       && (adoptedTarget.sizeBytes !== preparedTarget.sizeBytes || adoptedTarget.mediaType !== preparedTarget.mimeType)) throw new Error('Canonical target adoption changed metadata');
-    clientSubmissionId = await beginMusicRecovery(client.storage, 'audio.voice.convert', sourceVocal, targetAudio,
+    clientSubmissionId = await beginStudioJobRecovery(client.storage, 'audio.voice.convert', sourceVocal, targetAudio,
       undefined, context.input.recordedRunConfig, context.input.prompt);
   } catch (cause) {
     if (adoptedTarget) await client.storage.assets.remove(adoptedTarget.relativePath);
     await client.storage.assets.remove(adopted.relativePath);
     throw cause;
   }
-  const api = client.ai;
-  const scenarioClient = context.host.createScenarioJobClient({ ...api, scenarioJobs: { ...api.scenarioJobs,
-    submit: (spec, options) => api.scenarioJobs.submit(spec, { ...options, clientSubmissionId }),
-  } });
+  const scenarioClient = recordedStudioScenarioJobClient(context, clientSubmissionId, 'audio.voice.convert');
   const result = await context.host.runners.voiceConvert({ runtime: { ai: scenarioClient }, appId: context.host.appId,
     sourceVocal: { artifactId: preparedSource.artifactId, ...(sourceRange ? { range: sourceRange } : {}) },
     sourceKind: 'singing', targetVoice, ...(semitoneShift ? { semitoneShift } : {}),
     scenarioId: context.scenarioId, surfaceId: context.host.surfaceId,
-    signal, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
+    signal, observationSignal: context.input.observationSignal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
   const projected = await projectStudioArtifactRunnerResult({ ...context, voiceSourceVocal: sourceVocal, voiceTargetAudio: targetAudio }, result);
-  await saveMusicRecoveryResult(client.storage, clientSubmissionId, projected, 'audio.voice.convert');
+  await saveStudioJobRecoveryResult(client.storage, clientSubmissionId, projected, 'audio.voice.convert');
   return projected;
 }
 

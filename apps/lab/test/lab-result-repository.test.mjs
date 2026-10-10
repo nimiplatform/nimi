@@ -11,12 +11,12 @@ const root = path.resolve(import.meta.dirname, '..');
 mkdirSync(path.join(root, '.tmp'), { recursive: true });
 const directory = mkdtempSync(path.join(root, '.tmp', 'result-repository-'));
 await build({ stdin: { contents: `export {createLabAIStudioHistoryRepository} from './src/lab/lab-ai-studio-workspace.tsx';
-  export {beginMusicRecovery,saveMusicRecoveryResult,readMusicRecovery,restoreSavedMusicResult} from './src/studio-modules/studio-media/music-recovery.ts';
+  export {beginStudioJobRecovery,saveStudioJobRecoveryResult,readStudioJobRecovery,restoreSavedStudioJobResult} from './src/ai-studio-core/job-recovery.ts';
   export {studioResultAssetPaths} from './src/ai-studio-core/managed-result-references.ts';`,
   resolveDir: root, loader: 'ts' }, outfile: path.join(directory, 'repository.mjs'), bundle: true,
   packages: 'external', platform: 'node', format: 'esm', target: 'es2022', jsx: 'automatic', logLevel: 'silent' });
-const { createLabAIStudioHistoryRepository, beginMusicRecovery, saveMusicRecoveryResult, readMusicRecovery,
-  restoreSavedMusicResult, studioResultAssetPaths } = await import(pathToFileURL(path.join(directory, 'repository.mjs')).href);
+const { createLabAIStudioHistoryRepository, beginStudioJobRecovery, saveStudioJobRecoveryResult, readStudioJobRecovery,
+  restoreSavedStudioJobResult, studioResultAssetPaths } = await import(pathToFileURL(path.join(directory, 'repository.mjs')).href);
 test.after(() => rmSync(directory, { recursive: true, force: true }));
 
 function fixture() {
@@ -26,6 +26,10 @@ function fixture() {
     async readJson(key) { if (!documents.has(key)) throw { code: 'not-found' }; return { value: structuredClone(documents.get(key)) }; },
     async writeJson(key, value) { documents.set(key, structuredClone(value)); return { value }; },
     assets: {
+      async read({ relativePath }) {
+        const asset = await this.stat(relativePath);
+        return { asset, range: { offset: 0, length: asset.sizeBytes, totalSize: asset.sizeBytes }, body: (async function* () { yield new Uint8Array(asset.sizeBytes); })() };
+      },
       async stat(key) { if (!assets.has(key)) throw { code: 'not-found' }; return structuredClone(assets.get(key)); },
       async remove(key) { deleted.push(key); return { removed: assets.delete(key) }; },
     },
@@ -68,15 +72,15 @@ test('33 complete recovery results enter formal history; repeated same-Job recov
   const first = f.result('0'); let firstEntry;
   for (let n = 0; n < 33; n++) {
     const result = n === 0 ? first : f.result(String(n));
-    const id = await beginMusicRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio,
+    const id = await beginStudioJobRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio,
       undefined, result.output.audioSeparation.request);
     if (!n) firstEntry = id;
-    await saveMusicRecoveryResult(f.storage, id, result, 'audio.separate');
+    await saveStudioJobRecoveryResult(f.storage, id, result, 'audio.separate');
     assert.equal((await f.repository.persist({ result, record: f.record(`run-${n}`, result) })).ok, true);
   }
-  const entries = await readMusicRecovery(f.storage, 'audio.separate');
+  const entries = await readStudioJobRecovery(f.storage, 'audio.separate');
   assert.equal(entries.length, 33); assert.equal(entries[0].clientSubmissionId, firstEntry);
-  const restored = await restoreSavedMusicResult(entries[0], 'Synthetic', 'audio.separate', f.storage.assets);
+  const restored = await restoreSavedStudioJobResult(entries[0], 'Synthetic', 'audio.separate', f.storage.assets);
   const outcome = await f.repository.persist({ result: restored, record: f.record('repeat', restored) });
   assert.equal(outcome.record.id, 'run-0');
   assert.equal(f.runs()['audio.separate'].length, 33);
@@ -87,8 +91,8 @@ test('33 complete recovery results enter formal history; repeated same-Job recov
 
 test('main save failure recovers, and media-index failure retries the same committed run', async () => {
   const f = fixture(), result = f.result('retry');
-  const id = await beginMusicRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio);
-  await saveMusicRecoveryResult(f.storage, id, result, 'audio.separate');
+  const id = await beginStudioJobRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio);
+  await saveStudioJobRecoveryResult(f.storage, id, result, 'audio.separate');
   const append = f.host.app.commands.appendRunHistory;
   f.host.app.commands.appendRunHistory = async () => { throw Error('main index fault'); };
   const failed = await f.repository.persist({ result, record: f.record('original-attempt', result) });
@@ -133,16 +137,16 @@ test('recovery references protect shared assets; last explicit deletion removes 
   b.output.audioSeparation.sourceAudio = a.output.audioSeparation.sourceAudio;
   await f.repository.persist({ result: a, record: f.record('a', a) });
   await f.repository.persist({ result: b, record: f.record('b', b) });
-  const id = await beginMusicRecovery(f.storage, 'audio.separate', a.output.audioSeparation.sourceAudio);
-  await saveMusicRecoveryResult(f.storage, id, b, 'audio.separate');
+  const id = await beginStudioJobRecovery(f.storage, 'audio.separate', a.output.audioSeparation.sourceAudio);
+  await saveStudioJobRecoveryResult(f.storage, id, b, 'audio.separate');
   await f.repository.remove('a', true);
   assert.equal(f.assets.has(a.output.audioSeparation.sourceAudio.relativePath), true);
-  const entries = await readMusicRecovery(f.storage, 'audio.separate');
-  assert.equal((await restoreSavedMusicResult(entries[0], 'Synthetic', 'audio.separate', f.storage.assets)).ok, true);
+  const entries = await readStudioJobRecovery(f.storage, 'audio.separate');
+  assert.equal((await restoreSavedStudioJobResult(entries[0], 'Synthetic', 'audio.separate', f.storage.assets)).ok, true);
   await f.repository.remove('b', true);
   assert.equal(f.assets.has(a.output.audioSeparation.sourceAudio.relativePath), false);
-  assert.equal((await readMusicRecovery(f.storage, 'audio.separate')).length, 0);
-  await assert.rejects(restoreSavedMusicResult(entries[0], 'Synthetic', 'audio.separate', f.storage.assets));
+  assert.equal((await readStudioJobRecovery(f.storage, 'audio.separate')).length, 0);
+  await assert.rejects(restoreSavedStudioJobResult(entries[0], 'Synthetic', 'audio.separate', f.storage.assets));
 });
 
 test('compensation retains content referenced by another valid record', async () => {
@@ -162,32 +166,32 @@ test('compensation retains content referenced by another valid record', async ()
 
 test('recovery quota failure never evicts an earlier unindexed result', async () => {
   const f = fixture(), result = f.result('unindexed');
-  const id = await beginMusicRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio);
-  await saveMusicRecoveryResult(f.storage, id, result, 'audio.separate');
+  const id = await beginStudioJobRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio);
+  await saveStudioJobRecoveryResult(f.storage, id, result, 'audio.separate');
   const before = structuredClone(f.documents.get('studio/audio-separation-recovery.json'));
-  await assert.rejects(beginMusicRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio,
+  await assert.rejects(beginStudioJobRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio,
     undefined, undefined, undefined, 'x'.repeat(250 * 1024)), /storage is full/);
   assert.deepEqual(f.documents.get('studio/audio-separation-recovery.json'), before);
-  assert.equal((await restoreSavedMusicResult(before[0], 'Synthetic', 'audio.separate', f.storage.assets)).ok, true);
+  assert.equal((await restoreSavedStudioJobResult(before[0], 'Synthetic', 'audio.separate', f.storage.assets)).ok, true);
 });
 
 test('partial asset removal cannot open cached success and still retains full references for retry', async () => {
   const f = fixture(), result = f.result('partial');
   await f.repository.persist({ result, record: f.record('partial', result) });
-  const id = await beginMusicRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio);
-  await saveMusicRecoveryResult(f.storage, id, result, 'audio.separate');
+  const id = await beginStudioJobRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio);
+  await saveStudioJobRecoveryResult(f.storage, id, result, 'audio.separate');
   const remove = f.storage.assets.remove;
   f.storage.assets.remove = async path => {
     if (path === result.output.audioSeparation.background.relativePath) throw Error('one removal failed');
     return remove(path);
   };
   assert.equal((await f.repository.remove('partial', true)).skipped, 1);
-  const entry = (await readMusicRecovery(f.storage, 'audio.separate'))[0];
-  await assert.rejects(restoreSavedMusicResult(entry, 'Synthetic', 'audio.separate', f.storage.assets));
+  const entry = (await readStudioJobRecovery(f.storage, 'audio.separate'))[0];
+  await assert.rejects(restoreSavedStudioJobResult(entry, 'Synthetic', 'audio.separate', f.storage.assets));
   assert.equal(f.runs()['audio.separate'].length, 1);
   f.storage.assets.remove = remove;
   assert.equal((await f.repository.remove('partial', true)).completed, 1);
-  assert.equal((await readMusicRecovery(f.storage, 'audio.separate')).length, 0);
+  assert.equal((await readStudioJobRecovery(f.storage, 'audio.separate')).length, 0);
 });
 
 test('an unknown main commit never compensates away actually published assets', async () => {
@@ -214,4 +218,50 @@ test('one reference enumerator includes text media, transcription source and dis
     voiceConversion: { sourceVocal: ref('source.wav'), targetVoice: ref('target.wav'), vocal: ref('converted.wav') } })),
   new Set(['source.wav', 'target.wav', 'converted.wav']));
   assert.deepEqual(studioResultAssetPaths({ ok: false, sourceImage: ref('not-owned-by-failure.wav') }), []);
+});
+
+
+test('saved recovery cannot report success from matching Stat metadata when the full read fails', async () => {
+  for (const failure of ['truncated', 'owner-integrity-error']) {
+    const f = fixture(); const result = f.result(failure);
+    const id = await beginStudioJobRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio);
+    await saveStudioJobRecoveryResult(f.storage, id, result, 'audio.separate');
+    const [entry] = await readStudioJobRecovery(f.storage, 'audio.separate');
+    let returned = 0, reads = 0;
+    f.storage.assets.read = async ({ relativePath }) => {
+      reads++; const asset = await f.storage.assets.stat(relativePath);
+      return { asset, range: { offset: 0, length: asset.sizeBytes, totalSize: asset.sizeBytes }, body: {
+        async *[Symbol.asyncIterator]() {
+          try { yield new Uint8Array(1); if (failure === 'owner-integrity-error') throw new Error('owner digest mismatch'); }
+          finally { returned++; }
+        },
+      } };
+    };
+    await assert.rejects(() => restoreSavedStudioJobResult(entry, 'Synthetic', 'audio.separate', f.storage.assets), /incomplete|digest mismatch/);
+    assert.equal(reads, 1); assert.equal(returned, 1);
+    assert.equal((await readStudioJobRecovery(f.storage, 'audio.separate'))[0].clientSubmissionId, id);
+  }
+});
+
+
+test('actual saved-result restore closes a pending reader on operation abort without reading remaining chunks', async () => {
+  const f = fixture(); const result = f.result('reader-abort');
+  const id = await beginStudioJobRecovery(f.storage, 'audio.separate', result.output.audioSeparation.sourceAudio);
+  await saveStudioJobRecoveryResult(f.storage, id, result, 'audio.separate');
+  const [entry] = await readStudioJobRecovery(f.storage, 'audio.separate');
+  const entered = Promise.withResolvers(), next = Promise.withResolvers(); let returns = 0, reads = 0, nextCalls = 0;
+  f.storage.assets.read = async ({ relativePath }) => {
+    reads++; const asset = await f.storage.assets.stat(relativePath);
+    return { asset, range: { offset: 0, length: asset.sizeBytes, totalSize: asset.sizeBytes }, body: {
+      [Symbol.asyncIterator]: () => ({
+        next: () => { nextCalls++; entered.resolve(); return next.promise; },
+        return: async () => { returns++; next.resolve({ done: true }); return { done: true }; },
+      }),
+    } };
+  };
+  const controller = new AbortController();
+  const work = restoreSavedStudioJobResult(entry, 'Synthetic', 'audio.separate', f.storage.assets, controller.signal);
+  await entered.promise; controller.abort();
+  await assert.rejects(work, error => error.name === 'AbortError');
+  assert.equal(reads, 1); assert.equal(nextCalls, 1); assert.equal(returns, 1);
 });

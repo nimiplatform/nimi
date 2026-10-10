@@ -1,11 +1,13 @@
-import { beginMusicRecovery, readMusicRecovery, restoreSavedMusicResult, saveMusicRecoveryResult } from './music-recovery.js';
+import { observeRuntimeImageGenerate, observeRuntimeVideoGenerate } from '@nimiplatform/kit/features/generation/runtime';
+import { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
+import { beginStudioJobRecovery, recordedStudioScenarioJobClient, recoverStudioJobId, readStudioJobRecovery, restoreSavedStudioJobResult, saveStudioJobRecoveryResult, studioJobRecoverySignal } from '../../ai-studio-core/job-recovery.js';
 import type { StudioCapabilityRuntimeHandlers } from '../../ai-studio-core/runtime-dispatcher.js';
 import { runVisionLocate } from './vision-runtime.js';
 import { runMusicTranscribe } from './music-transcription-runtime.js';
 import { runVoiceConvert } from './voice-convert-runtime.js';
 import { runAudioSeparate } from './audio-separate-runtime.js';
 import {
-  createStudioScenarioJobClient,
+  createStudioScenarioJobClient, recoverStudioJobAction,
   projectStudioArtifactRunnerResult,
   type StudioCapabilityRuntimeContext,
 } from '../../ai-studio-core/runtime.js';
@@ -28,6 +30,14 @@ export const studioMediaRuntimeHandlers: StudioCapabilityRuntimeHandlers = Objec
 });
 
 async function runImageGenerate(context: StudioCapabilityRuntimeContext) {
+  const recovery = await recoverStudioJobAction(context, ScenarioType.IMAGE_GENERATE);
+  if (recovery) {
+    if (recovery.saved) return recovery.saved;
+    const result = await observeRuntimeImageGenerate({ runtime: { ai: createStudioScenarioJobClient(context) }, jobId: recovery.jobId!,
+      signal: context.input.observationSignal, cancelSignal: context.input.signal, abortReason: context.host.abortReason,
+      onJobUpdate: context.input.onJobUpdate, onObservation: context.input.onObservation });
+    return projectStudioArtifactRunnerResult(context, result);
+  }
   if (!context.prompt) return inputRequired(context);
   const parameters = context.input.parameters as StudioImageGenerationParameters | undefined;
   if (parameters?.referenceImage?.trim() && parameters.referenceImageArtifactId?.trim()) {
@@ -49,6 +59,8 @@ async function runImageGenerate(context: StudioCapabilityRuntimeContext) {
     ...(parameters?.mask !== undefined ? { mask: parameters.mask } : {}),
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,
+    observationSignal: context.input.observationSignal,
+    onObservation: context.input.onObservation,
     ...(context.input.signal ? {
       signal: context.input.signal,
       abortReason: context.host.abortReason,
@@ -60,15 +72,15 @@ async function runImageGenerate(context: StudioCapabilityRuntimeContext) {
 async function runMusicGenerate(context: StudioCapabilityRuntimeContext) {
   const parameters = context.input.parameters as StudioMusicGenerationParameters | undefined;
   if (parameters?.recoverySubmissionId) {
-    const entry = (await readMusicRecovery(context.host.client.storage)).find((item) => item.clientSubmissionId === parameters.recoverySubmissionId);
+    const entry = (await readStudioJobRecovery(context.host.client.storage)).find((item) => item.clientSubmissionId === parameters.recoverySubmissionId);
     if (!entry) throw new Error(context.host.translate('Music.recoveryMissing'));
-    const saved = await restoreSavedMusicResult(entry, context.capability.label, 'music.generate', context.host.client.storage.assets);
+    const saved = await restoreSavedStudioJobResult(entry, context.capability.label, 'music.generate', context.host.client.storage.assets, studioJobRecoverySignal(context.input));
     if (saved) return saved;
-    const found = await context.host.client.ai.scenarioJobs.lookupSubmission(entry.clientSubmissionId);
+    const recoveredJobId = await recoverStudioJobId(context.host.client, entry, 'music.generate');
     const result = await context.host.runners.musicObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
-      jobId: found.job.jobId, signal: context.input.signal, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
+      jobId: recoveredJobId, signal: context.input.observationSignal, cancelSignal: context.input.signal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
     const projected = await projectStudioArtifactRunnerResult(context, result);
-    await saveMusicRecoveryResult(context.host.client.storage, entry.clientSubmissionId, projected);
+    await saveStudioJobRecoveryResult(context.host.client.storage, entry.clientSubmissionId, projected);
     return projected;
   }
   const lyrics = parameters?.lyrics ?? '';
@@ -94,13 +106,9 @@ async function runMusicGenerate(context: StudioCapabilityRuntimeContext) {
     score = { artifactId: uploaded.artifactId, format: 'abc' };
   }
   // Record the author action before Submit, so a lost response remains recoverable.
-  const clientSubmissionId = await beginMusicRecovery(context.host.client.storage, 'music.generate', undefined, undefined,
+  const clientSubmissionId = await beginStudioJobRecovery(context.host.client.storage, 'music.generate', undefined, undefined,
     undefined, context.input.recordedRunConfig, context.input.prompt);
-  const api = context.host.client.ai;
-  const musicClient = context.host.createScenarioJobClient({ ...api, scenarioJobs: {
-    ...api.scenarioJobs,
-    submit: (spec, options) => api.scenarioJobs.submit(spec, { ...options, clientSubmissionId }),
-  } });
+  const musicClient = recordedStudioScenarioJobClient(context, clientSubmissionId, 'music.generate');
   const result = await context.host.runners.musicGenerate({
     runtime: { ai: musicClient },
     appId: context.host.appId,
@@ -114,14 +122,24 @@ async function runMusicGenerate(context: StudioCapabilityRuntimeContext) {
     onJobUpdate: context.input.onJobUpdate,
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,
-    ...(context.input.signal ? { signal: context.input.signal, abortReason: context.host.abortReason } : {}),
+    observationSignal: context.input.observationSignal,
+    onObservation: context.input.onObservation,
+    ...(context.input.signal ? { signal: context.input.signal, observationSignal: context.input.observationSignal, onObservation: context.input.onObservation, abortReason: context.host.abortReason } : {}),
   });
   const projected = await projectStudioArtifactRunnerResult(context, result);
-  await saveMusicRecoveryResult(context.host.client.storage, clientSubmissionId, projected);
+  await saveStudioJobRecoveryResult(context.host.client.storage, clientSubmissionId, projected);
   return projected;
 }
 
 async function runVideoGenerate(context: StudioCapabilityRuntimeContext) {
+  const recovery = await recoverStudioJobAction(context, ScenarioType.VIDEO_GENERATE);
+  if (recovery) {
+    if (recovery.saved) return recovery.saved;
+    const result = await observeRuntimeVideoGenerate({ runtime: { ai: createStudioScenarioJobClient(context) }, jobId: recovery.jobId!,
+      signal: context.input.observationSignal, cancelSignal: context.input.signal, abortReason: context.host.abortReason,
+      onJobUpdate: context.input.onJobUpdate, onObservation: context.input.onObservation });
+    return projectStudioArtifactRunnerResult(context, result);
+  }
   if (!context.prompt) return inputRequired(context);
   const parameters = context.input.parameters as StudioVideoGenerationParameters | undefined;
   const mode = parameters?.mode ?? 't2v';
@@ -143,6 +161,8 @@ async function runVideoGenerate(context: StudioCapabilityRuntimeContext) {
     options: videoGenerationOptions(parameters),
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,
+    observationSignal: context.input.observationSignal,
+    onObservation: context.input.onObservation,
     ...(context.input.signal ? {
       signal: context.input.signal,
       abortReason: context.host.abortReason,

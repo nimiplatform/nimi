@@ -1,3 +1,6 @@
+import { studioJobRecoverySignal } from '../../ai-studio-core/job-recovery.js';
+import { verifyStudioManagedAsset, studioResultAssetReferences } from '../../ai-studio-core/managed-result-references.js';
+import { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 import type { StudioCapabilityRunInput, StudioCapabilityRunResult, StudioManagedArtifact } from '../../ai-studio-core/runtime-types.js';
 import type { StudioRunConfigSnapshot } from '../../ai-studio-core/history.js';
 import { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult } from '../../ai-studio-core/history.js';
@@ -18,7 +21,7 @@ export type WorldPendingRequest = {
   readonly prompt: string; readonly generationPrompt: string; readonly createdAt: string; readonly runConfig: StudioRunConfigSnapshot;
   readonly inputMode: WorldInputMode; readonly source?: StudioManagedArtifact;
 };
-type PendingWorld = { readonly version: 1; readonly jobId?: string; readonly request: WorldPendingRequest };
+type PendingWorld = { readonly version: 1; readonly clientSubmissionId?: string; readonly jobId?: string; readonly request: WorldPendingRequest };
 
 export function parsePendingWorld(value: unknown): PendingWorld {
   if (!isJsonObject(value) || value.version !== 1 || !isJsonObject(value.request) ||
@@ -26,6 +29,7 @@ export function parsePendingWorld(value: unknown): PendingWorld {
       !Number.isFinite(Date.parse(value.request.createdAt)) ||
       !['text', 'ordinary', 'equirectangular-360'].includes(String(value.request.inputMode)) || !isJsonObject(value.request.runConfig) ||
       (value.jobId !== undefined && (typeof value.jobId !== 'string' || !value.jobId))) throw new Error(t('WorldTour.pendingInvalid'));
+  if (value.clientSubmissionId !== undefined && (typeof value.clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(value.clientSubmissionId))) throw new Error(t('WorldTour.pendingInvalid'));
   validateRunConfig(value.request.runConfig, 'pending.request.runConfig');
   if (value.request.inputMode !== 'text') {
     const original = worldSource(isJsonObject(value.request.runConfig.target) && isJsonObject(value.request.runConfig.target.params) ? value.request.runConfig.target.params : {});
@@ -35,7 +39,7 @@ export function parsePendingWorld(value: unknown): PendingWorld {
   }
   return value as unknown as PendingWorld;
 }
-async function pendingWorld(storage = getLabLocalAppClient().storage): Promise<PendingWorld | null> {
+async function pendingWorld(storage: Pick<ReturnType<typeof getLabLocalAppClient>['storage'], 'readJson'> = getLabLocalAppClient().storage): Promise<PendingWorld | null> {
   try { return parsePendingWorld((await storage.readJson(PENDING_WORLD_PATH)).value); }
   catch (cause) { if (cause && typeof cause === 'object' && 'code' in cause && cause.code === 'not-found') return null; throw cause; }
 }
@@ -61,20 +65,40 @@ function canonicalPendingJSON(value: unknown): string {
   return JSON.stringify(ordered(value));
 }
 export async function clearRejectedWorldPending(storage: Pick<ReturnType<typeof getLabLocalAppClient>['storage'], 'readJson' | 'removeJson'>,
-  request: WorldPendingRequest, cause: unknown): Promise<void> {
+  pending: PendingWorld, cause: unknown): Promise<void> {
   if (!isDefiniteWorldAdmissionRejection(cause)) return;
-  let current;
-  try { current = (await storage.readJson(PENDING_WORLD_PATH)).value; }
-  catch (error) { if (error && typeof error === 'object' && 'code' in error && error.code === 'not-found') return; throw error; }
-  // Clear only this exact unresolved attempt. A new request or obtained Job
-  // belongs to its own observer, even if a rejection arrives later.
-  if (isJsonObject(current) && current.version === 1 && current.jobId === undefined &&
-      canonicalPendingJSON(current.request) === canonicalPendingJSON(request)) await storage.removeJson(PENDING_WORLD_PATH);
+  await clearWorldPending(storage, pending);
+}
+
+async function clearWorldPending(storage: Pick<ReturnType<typeof getLabLocalAppClient>['storage'], 'readJson' | 'removeJson'>, pending: PendingWorld): Promise<void> {
+  const current = await pendingWorld(storage);
+  if (current && canonicalPendingJSON(current) === canonicalPendingJSON(pending)) await storage.removeJson(PENDING_WORLD_PATH);
+}
+
+async function updateWorldPending(pending: PendingWorld, next: PendingWorld): Promise<void> {
+  const storage = getLabLocalAppClient().storage;
+  const current = await pendingWorld(storage);
+  if (!current || canonicalPendingJSON(current) !== canonicalPendingJSON(pending)) throw new Error(t('WorldTour.pendingExists'));
+  await storage.writeJson(PENDING_WORLD_PATH, JSON.parse(JSON.stringify(next)));
+}
+
+// This renderer owns one World pending slot and one active run/resume. Reject
+// duplicate operations rather than letting two copies of A finalize around B.
+let worldOperationActive = false;
+async function withWorldOperation(work: () => Promise<StudioCapabilityRunResult>): Promise<StudioCapabilityRunResult> {
+  if (worldOperationActive) throw new Error(t('WorldTour.pendingExists'));
+  worldOperationActive = true;
+  try { return await work(); }
+  finally { worldOperationActive = false; }
 }
 function abortIfNeeded(signal?: AbortSignal) { if (signal?.aborted) throw new DOMException('Aborted', 'AbortError'); }
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r102
-export async function runWorldTour(input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> {
+export function runWorldTour(input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> {
+  return withWorldOperation(() => runWorldTourAction(input));
+}
+
+async function runWorldTourAction(input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> {
   const client = getLabLocalAppClient();
   if (await pendingWorld()) throw new Error(t('WorldTour.pendingExists'));
   const parameters = input.parameters ?? { inputMode: 'text' };
@@ -101,51 +125,72 @@ export async function runWorldTour(input: StudioCapabilityRunInput): Promise<Stu
   abortIfNeeded(input.signal);
   // A lost Submit receipt must not silently replay a paid generation. Keep the
   // original request even when its Runtime Job identity is not yet known.
-  await client.storage.writeJson(PENDING_WORLD_PATH, JSON.parse(JSON.stringify({ version: 1, request })));
+  const clientSubmissionId = crypto.randomUUID();
+  input.observationSignal?.throwIfAborted();
+  const submitted: PendingWorld = { version: 1, clientSubmissionId, request };
+  await client.storage.writeJson(PENDING_WORLD_PATH, JSON.parse(JSON.stringify(submitted)));
   let job;
-  try { ({ job } = await client.ai.scenarioJobs.submit({ type: 'world-generate', prompt, displayName: '', ...(image ? { image } : {}) })); }
+  try { ({ job } = await client.ai.scenarioJobs.submit({ type: 'world-generate', prompt, displayName: '', ...(image ? { image } : {}) }, { clientSubmissionId })); }
   catch (cause) {
-    await clearRejectedWorldPending(client.storage, request, cause);
+    await clearRejectedWorldPending(client.storage, submitted, cause);
     throw cause;
   }
-  const pending: PendingWorld = { version: 1, jobId: job.jobId, request };
-  await client.storage.writeJson(PENDING_WORLD_PATH, JSON.parse(JSON.stringify(pending)));
-  return finishAndRecord(pending, input.signal, input.onPartial);
+  const pending: PendingWorld = { version: 1, clientSubmissionId, jobId: job.jobId, request };
+  await updateWorldPending(submitted, pending);
+  return finishAndRecord(pending, input.observationSignal, input.onPartial, input.signal);
 }
 
-export async function resumeWorldTour(signal: AbortSignal, onPartial: (message: string) => void): Promise<StudioCapabilityRunResult> {
-  const pending = await pendingWorld();
+export function resumeWorldTour(signal: AbortSignal, onPartial: (message: string) => void, observationSignal?: AbortSignal): Promise<StudioCapabilityRunResult> {
+  return withWorldOperation(() => resumeWorldTourAction(signal, onPartial, observationSignal));
+}
+
+async function resumeWorldTourAction(signal: AbortSignal, onPartial: (message: string) => void, observationSignal?: AbortSignal): Promise<StudioCapabilityRunResult> {
+  let pending = await pendingWorld();
   if (!pending) throw new Error(t('WorldTour.noPendingWorld'));
-  if (!pending.jobId) throw new Error(t('WorldTour.submissionUnknown'));
-  return finishAndRecord(pending, signal, onPartial);
+  if (!pending.jobId) {
+    if (!pending.clientSubmissionId) throw new Error(t('WorldTour.submissionUnknown'));
+    const found = await getLabLocalAppClient().ai.scenarioJobs.lookupSubmission(pending.clientSubmissionId);
+    const resolved = { ...pending, jobId: found.job.jobId };
+    await updateWorldPending(pending, resolved);
+    pending = resolved;
+  }
+  return finishAndRecord(pending, observationSignal, onPartial, signal);
 }
 
-async function finishAndRecord(pending: PendingWorld, signal?: AbortSignal, onPartial?: (message: string) => void): Promise<StudioCapabilityRunResult> {
+async function finishAndRecord(pending: PendingWorld, signal?: AbortSignal, onPartial?: (message: string) => void, cancelSignal?: AbortSignal): Promise<StudioCapabilityRunResult> {
+  const resultSignal = studioJobRecoverySignal({ signal: cancelSignal, observationSignal: signal });
   const jobId = pending.jobId!; const id = `world-tour-${jobId}`;
   const existing = (await loadLabRunHistory())['world.generate']?.find(record => record.id === id && record.result?.ok);
   if (existing) {
     const result = restoreStudioCapabilityRunResult(existing, () => t('Capabilities.worldGenerate.label'));
     if (!result) throw new Error(t('WorldTour.pendingInvalid'));
+    for (const ref of studioResultAssetReferences(existing.result)) {
+      await verifyStudioManagedAsset(getLabLocalAppClient().storage.assets, ref as unknown as StudioManagedArtifact, resultSignal);
+    }
+    resultSignal.throwIfAborted();
     await openWorldTourWindow({ manifestPath: `world-tour/${jobId}/world.json` });
-    await getLabLocalAppClient().storage.removeJson(PENDING_WORLD_PATH);
+    await clearWorldPending(getLabLocalAppClient().storage, pending);
     return { ...result, recordedHistory: existing };
   }
-  const finished = await finishWorldTourJob(jobId, signal, onPartial, pending.request.source);
+  const finished = await finishWorldTourJob(jobId, signal, onPartial, pending.request.source, cancelSignal);
+  signal?.throwIfAborted();
+  if (finished.result.ok) resultSignal.throwIfAborted();
   const record = createStudioRunHistoryRecord({ result: finished.result, runId: id, prompt: pending.request.prompt,
     createdAt: pending.request.createdAt, runConfig: pending.request.runConfig });
   await appendLabRunHistory(record);
-  if (finished.settled) await getLabLocalAppClient().storage.removeJson(PENDING_WORLD_PATH);
+  if (finished.settled) await clearWorldPending(getLabLocalAppClient().storage, pending);
   return { ...finished.result, recordedHistory: record };
 }
 
-async function finishWorldTourJob(jobId: string, signal?: AbortSignal, onPartial?: (message: string) => void, source?: StudioManagedArtifact): Promise<{ result: StudioCapabilityRunResult; settled: boolean }> {
+async function finishWorldTourJob(jobId: string, signal?: AbortSignal, onPartial?: (message: string) => void, source?: StudioManagedArtifact, cancelSignal?: AbortSignal): Promise<{ result: StudioCapabilityRunResult; settled: boolean }> {
   const client = getLabLocalAppClient();
-  const outcome = await observeLabScenarioJob({ scenarioJobs: client.ai.scenarioJobs, jobId,
+  const outcome = await observeLabScenarioJob({ ai: client.ai, scenarioType: ScenarioType.WORLD_GENERATE, jobId,
     capability: labWorldTourDescriptor, nonSuccess: capabilityNonSuccess, cancelReason: 'user canceled',
-    ...(signal ? { signal } : {}), onJob: () => onPartial?.(t('WorldTour.generating')),
+    signal, cancelSignal, onJob: () => onPartial?.(t('WorldTour.generating')),
   });
   if (outcome.kind === 'non-success') return { result: outcome.result,
     settled: outcome.terminal || outcome.result.diagnostics?.reasonCode === 'AI_MEDIA_JOB_NOT_FOUND' };
+  signal = studioJobRecoverySignal({ signal: cancelSignal, observationSignal: signal });
   const job = outcome.job;
   const bundle = job.artifacts.find(artifact => artifact.mimeType === WORLD_BUNDLE_MIME);
   if (!bundle) return { result: labJobNonSuccess({ capability: labWorldTourDescriptor, nonSuccess: capabilityNonSuccess, jobId }, 'runtime-call-failed', t('WorldTour.archiveMissing'), job).result, settled: true };
@@ -157,7 +202,8 @@ async function finishWorldTourJob(jobId: string, signal?: AbortSignal, onPartial
     catch (cause) { if (!cause || typeof cause !== 'object' || !('code' in cause) || cause.code !== 'not-found') throw cause; }
     if (!adopted) adopted = await client.storage.assets.adoptArtifact({ artifactId: bundle.artifactId, relativePath: archivePath, overwrite: false });
     if (adopted.sizeBytes !== bundle.sizeBytes || adopted.sha256.replace(/^sha256:/u, '') !== bundle.sha256.replace(/^sha256:/u, '')) throw new Error(t('WorldTour.archiveInvalid'));
-  } catch (cause) { return { result: labJobNonSuccess({ capability: labWorldTourDescriptor, nonSuccess: capabilityNonSuccess, jobId }, 'runtime-call-failed', studioRuntimeErrorMessage(cause), job).result, settled: false }; }
+    await verifyStudioManagedAsset(client.storage.assets, adopted, signal);
+  } catch (cause) { signal?.throwIfAborted(); return { result: labJobNonSuccess({ capability: labWorldTourDescriptor, nonSuccess: capabilityNonSuccess, jobId }, 'runtime-call-failed', studioRuntimeErrorMessage(cause), job).result, settled: false }; }
   abortIfNeeded(signal);
   const manifestPath = `world-tour/${jobId}/world.json`;
   await client.storage.writeJson(manifestPath, { archivePath });

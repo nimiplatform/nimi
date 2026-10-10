@@ -92,7 +92,7 @@ function validateHistoryJson(value: unknown, path: string, depth = 0): void {
   for (const [key, entry] of Object.entries(value)) validateHistoryJson(entry, `${path}.${key}`, depth + 1);
 }
 
-function validateFaceSwapHistory(value: unknown, path: string): void {
+export function validateFaceSwapHistory(value: unknown, path: string): void {
   if (!isJsonObject(value) || !Array.isArray(value.inputs) || value.inputs.length !== 2) historyError(path, 'requires one reference and one target input');
   const roles = new Set<string>();
   for (const [index, input] of value.inputs.entries()) {

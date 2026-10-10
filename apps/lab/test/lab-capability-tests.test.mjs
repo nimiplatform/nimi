@@ -145,6 +145,8 @@ function subscription(events) {
 function fakeClient(overrides = {}) {
   const missing = (name) => async () => { throw Object.assign(new Error(`${name} was not configured`), { reasonCode: 'TEST_METHOD_UNAVAILABLE' }); };
   const assets = new Map();
+  const documents = new Map();
+  let latestJob;
   const calls = { submit: [], upload: [], adopt: [], write: [], remove: [], cancel: [], execute: [], executeOptions: [], streamTurn: [], streamCancel: 0 };
   const client = {
     ai: {
@@ -162,9 +164,9 @@ function fakeClient(overrides = {}) {
       scenario: { execute: overrides.execute ? async (spec, options) => { calls.execute.push(structuredClone(spec)); calls.executeOptions.push(options); return overrides.execute(spec, calls.execute.length, options); } : missing('execute') },
       scenarioJobs: {
         submit: overrides.submit ? async (spec, options) => { calls.submit.push({ spec, options }); return overrides.submit(spec); } : missing('submit'),
-        get: overrides.get ?? missing('get'),
-        subscribe: overrides.subscribe ?? missing('subscribe'),
-        cancel: async (jobId, reason) => { calls.cancel.push({ jobId, reason }); return overrides.cancel ? overrides.cancel(jobId) : { job: job(jobId, 'canceled') }; },
+        get: async (...args) => latestJob ? { job: latestJob, asset: null, voiceReference: null } : (overrides.get ?? missing('get'))(...args),
+        subscribe: async (...args) => { const upstream = await (overrides.subscribe ?? missing('subscribe'))(...args); return { async *[Symbol.asyncIterator]() { for await (const event of upstream) { latestJob = event.job; yield event; } }, cancel: () => upstream.cancel() }; },
+        cancel: async (jobId, reason) => { calls.cancel.push({ jobId, reason }); const response = await (overrides.cancel ? overrides.cancel(jobId) : { job: job(jobId, 'canceled') }); latestJob = response.job; return response; },
       },
       artifacts: {
         read: missing('artifacts.read'),
@@ -173,7 +175,11 @@ function fakeClient(overrides = {}) {
       voiceAssets: { list: missing('voiceAssets.list') },
     },
     storage: {
+      async readJson(key) { if (!documents.has(key)) throw { code: 'not-found' }; return { value: structuredClone(documents.get(key)) }; },
+      async writeJson(key, value) { documents.set(key, structuredClone(value)); return { value }; },
       assets: {
+        async list({ prefix }) { return { assets: [...assets.values()].map(value => value.record).filter(asset => asset.relativePath.startsWith(prefix)), nextCursor: '' }; },
+        async stat(relativePath) { if (!assets.has(relativePath)) throw { code: 'not-found' }; return assets.get(relativePath).record; },
         async write(input) {
           calls.write.push(input);
           if (overrides.writeFails) throw new Error('disk full');
@@ -185,8 +191,11 @@ function fakeClient(overrides = {}) {
         async remove(relativePath) { calls.remove.push(relativePath); return { removed: assets.delete(relativePath) }; },
         async adoptArtifact(input) {
           calls.adopt.push(input);
-          const mediaType = overrides.adoptedMediaType ?? 'image/png';
-          return { relativePath: input.relativePath.replace(/\.asset$/u, mediaType === 'video/mp4' ? '.mp4' : '.png'), mediaType, sizeBytes: 1234, sha256: `sha256:${'f'.repeat(64)}`, createdAt: 'now', updatedAt: 'now' };
+          const source = input.artifactId.startsWith('upload-') ? calls.upload[Number(input.artifactId.slice(7)) - 1] : undefined;
+          const mediaType = source?.mimeType ?? overrides.adoptedMediaType ?? 'image/png';
+          const record = { relativePath: input.relativePath.replace(/\.asset$/u, mediaType === 'video/mp4' ? '.mp4' : '.png'), mediaType, sizeBytes: source?.bytes.byteLength ?? 1234, sha256: source ? sha256(source.bytes) : `sha256:${'f'.repeat(64)}`, createdAt: 'now', updatedAt: 'now' };
+          assets.set(record.relativePath, { record, bytes: new Uint8Array(record.sizeBytes) });
+          return record;
         },
         async read({ relativePath }) {
           const stored = assets.get(relativePath);
@@ -267,7 +276,10 @@ test('vision locate retains the returned original artifact before exposing a per
   const input = { capabilityId:'vision.locate', prompt:'the cup', parameters:{geometry:'box'}, attachments:[{id:'input',kind:'image',name:'cup.png',mimeType:'image/png',dataUrl:'data:image/png;base64,AQID'}] };
   const result = await runLabCapability(input,ready(fake.client));
   assert.equal(result.ok,true,JSON.stringify(result));
-  assert.deepEqual(fake.calls.adopt,[{artifactId:'upload-1',relativePath:'media/vision-locate/job-locate/source.asset',overwrite:false}]);
+  assert.equal(fake.calls.adopt.length, 1);
+  assert.equal(fake.calls.adopt[0].artifactId, 'upload-1');
+  assert.match(fake.calls.adopt[0].relativePath, /^media\/vision-locate-source\/[a-f0-9]{64}\/result\.asset$/u);
+  assert.equal(fake.calls.adopt[0].overwrite, false);
   assert.deepEqual(result.output.result,locate);
   assert.equal(result.output.sourceImage.previewSource,'managed-asset');
   const { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult } = await load('ai-studio-core/history.js');
@@ -387,7 +399,7 @@ test('image.face_swap uploads both roles, adopts the single PNG and records per-
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const fake = fakeClient({
     submit: () => ({ job: job('job-face', 'queued', { scenarioType: 'image-face-swap' }) }),
-    get: async () => ({ job: job('job-face', 'completed', { scenarioType: 'image-face-swap', artifacts: [{ artifactId: 'out-1', mimeType: 'image/png', bytes: [], sizeBytes: 1234, sha256: 'x', durationMs: 0, width: 1, height: 1, sampleRateHz: 0, channels: 0 }] }), asset: null, voiceReference: null }),
+    get: async () => ({ job: job('job-face', 'completed', { scenarioType: 'image-face-swap', artifacts: [{ artifactId: 'out-1', mimeType: 'image/png', bytes: [], sizeBytes: 1234, sha256: 'f'.repeat(64), durationMs: 0, width: 1, height: 1, sampleRateHz: 0, channels: 0 }] }), asset: null, voiceReference: null }),
   });
   const result = await runLabCapability({ capabilityId: 'image.face_swap', prompt: '', parameters: { reference: png, target: jpeg } }, ready(fake.client));
   assert.equal(result.ok, true, result.message);
@@ -405,8 +417,8 @@ test('image.face_swap uploads both roles, adopts the single PNG and records per-
 test('image.face_swap keeps the owner face-selection reason and Job ID and publishes no media', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const fake = fakeClient({
-    submit: () => ({ job: job('job-noface', 'queued') }),
-    get: async () => ({ job: job('job-noface', 'failed', { reasonCode: 'AI_FACE_TARGET_MISSING' }), asset: null, voiceReference: null }),
+    submit: () => ({ job: job('job-noface', 'queued', { scenarioType: 'image-face-swap' }) }),
+    get: async () => ({ job: job('job-noface', 'failed', { scenarioType: 'image-face-swap', reasonCode: 'AI_FACE_TARGET_MISSING' }), asset: null, voiceReference: null }),
   });
   const result = await runLabCapability({ capabilityId: 'image.face_swap', prompt: '', parameters: { reference: png, target: jpeg } }, ready(fake.client));
   assert.equal(result.ok, false);
@@ -425,7 +437,7 @@ test('video.face_swap requires an explicit no-face policy and keeps the typed fr
   const fake = fakeClient({
     adoptedMediaType: 'video/mp4',
     submit: () => ({ job: job('job-video', 'queued', { scenarioType: 'video-face-swap' }) }),
-    get: async () => ({ job: job('job-video', 'completed', { scenarioType: 'video-face-swap', videoFaceSwapSummary: summary, artifacts: [{ artifactId: 'out-video', mimeType: 'video/mp4', bytes: [], sizeBytes: 1234, sha256: 'x', durationMs: 3000, width: 1280, height: 720, sampleRateHz: 48000, channels: 2 }] }), asset: null, voiceReference: null }),
+    get: async () => ({ job: job('job-video', 'completed', { scenarioType: 'video-face-swap', videoFaceSwapSummary: summary, artifacts: [{ artifactId: 'out-video', mimeType: 'video/mp4', bytes: [], sizeBytes: 1234, sha256: 'f'.repeat(64), durationMs: 3000, width: 1280, height: 720, sampleRateHz: 48000, channels: 2 }] }), asset: null, voiceReference: null }),
   });
   const result = await runLabCapability({ capabilityId: 'video.face_swap', prompt: '', parameters: { reference: png, target: mp4, noFacePolicy: 'preserve-frame' } }, ready(fake.client));
   assert.equal(result.ok, true, result.message);
@@ -438,7 +450,7 @@ test('video.face_swap requires an explicit no-face policy and keeps the typed fr
   const inconsistent = fakeClient({
     adoptedMediaType: 'video/mp4',
     submit: () => ({ job: job('job-video-bad', 'queued') }),
-    get: async () => ({ job: job('job-video-bad', 'completed', { videoFaceSwapSummary: { ...summary, preservedFrames: 5 }, artifacts: [{ artifactId: 'out', mimeType: 'video/mp4', bytes: [], sizeBytes: 1, sha256: 'x', durationMs: 0, width: 0, height: 0, sampleRateHz: 0, channels: 0 }] }), asset: null, voiceReference: null }),
+    get: async () => ({ job: job('job-video-bad', 'completed', { videoFaceSwapSummary: { ...summary, preservedFrames: 5 }, artifacts: [{ artifactId: 'out', mimeType: 'video/mp4', bytes: [], sizeBytes: 1, sha256: 'f'.repeat(64), durationMs: 0, width: 0, height: 0, sampleRateHz: 0, channels: 0 }] }), asset: null, voiceReference: null }),
   });
   const rejected = await runLabCapability({ capabilityId: 'video.face_swap', prompt: '', parameters: { reference: png, target: mp4, noFacePolicy: 'fail' } }, ready(inconsistent.client));
   assert.equal(rejected.ok, false);

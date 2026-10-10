@@ -1,3 +1,5 @@
+import { StudioJobRecoveryPanel } from './job-recovery-panel.js';
+import { isStudioJobRecoveryCapability } from './job-recovery.js';
 import { Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button, IconButton, LoadingSkeleton, nimiToast, OverlayShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { PanelRight, SquarePen } from 'lucide-react';
@@ -85,7 +87,8 @@ function TextStudioShell({
   const historyPanel = useContext(StudioHistoryPanelContext);
   const historyCollapsed = historyPanel?.collapsed ?? true;
   const runSeqRef = useRef(0);
-  const abortControllerRef = useRef<{ runId: string; controller: AbortController } | null>(null);
+  const [observationIssue, setObservationIssue] = useState(false);
+  const abortControllerRef = useRef<{ runId: string; controller: AbortController; observation: AbortController } | null>(null);
   const running = executingRun !== null;
   const displayingExecution = executingRun !== null && activeRun?.id === executingRun.id;
   const displayedRun = displayingExecution ? executingRun : activeRun;
@@ -214,7 +217,7 @@ function TextStudioShell({
   }
 
   useEffect(() => {
-    abortControllerRef.current?.controller.abort('studio-capability-changed');
+    abortControllerRef.current?.observation.abort('studio-capability-changed');
     abortControllerRef.current = null;
     const draft = rendererHost.app.projection.promptDraft({
       surfaceId: 'ai-capabilities',
@@ -228,8 +231,14 @@ function TextStudioShell({
     setSessionRuns({});
     setExecutingRun(null);
     setCancelRequested(false);
+    setObservationIssue(false);
     setStreamingText(null);
   }, [capability.id, draftPersistence, preset, rendererHost]);
+
+  useEffect(() => () => {
+    runSeqRef.current += 1;
+    abortControllerRef.current?.observation.abort('studio-view-closed');
+  }, []);
 
   // Replaying a run whose input lives in its parameters rebuilds them from the
   // recorded request instead of reading the current parameters.
@@ -264,6 +273,7 @@ function TextStudioShell({
     const runSeq = runSeqRef.current + 1;
     runSeqRef.current = runSeq;
     const abortController = new AbortController();
+    const observationController = new AbortController();
     const startedAt = rendererHost.clock.now();
     const pendingRun: TextStudioActiveRun = {
       attachmentCount,
@@ -276,10 +286,11 @@ function TextStudioShell({
       record: null,
       error: null,
     };
-    abortControllerRef.current = { runId: pendingRun.id, controller: abortController };
+    abortControllerRef.current = { runId: pendingRun.id, controller: abortController, observation: observationController };
     setActiveRun(pendingRun);
     setExecutingRun(pendingRun);
     setCancelRequested(false);
+    setObservationIssue(false);
     const runConfig = createRunConfigSnapshot({
       target: runTarget,
       promptStyle: profile.controls.includes('tone') || profile.controls.includes('length')
@@ -326,6 +337,10 @@ function TextStudioShell({
           attachments: supportsMedia ? runAttachments : undefined,
           parameters: runEffectiveParameters,
           signal: abortController.signal,
+          observationSignal: observationController.signal,
+          onObservation: response => {
+            if (runSeqRef.current === runSeq) setObservationIssue(Boolean(response.observationIssue));
+          },
           onJobUpdate: job => {
             if (runSeqRef.current !== runSeq) return;
             const jobStatus = job.status === ScenarioJobStatus.QUEUED || job.status === ScenarioJobStatus.SUBMITTED ? 'queued' : job.status === ScenarioJobStatus.RUNNING ? 'running' : undefined;
@@ -333,17 +348,20 @@ function TextStudioShell({
           },
         });
       } catch (error) {
-        const message = abortController.signal.aborted ? t('Studio.profiles.textGenerate.imageStopped')
+        const aborted = error instanceof Error && error.name === 'AbortError';
+        const message = aborted ? t('Studio.profiles.textGenerate.imageStopped')
           : error instanceof Error ? error.message : String(error || t('NonSuccess.title.runtimeCallFailed'));
         result = {
           ok: false,
           capabilityId: capability.id,
-          reason: abortController.signal.aborted ? 'operation-aborted' : 'runtime-call-failed',
+          reason: aborted ? 'operation-aborted' : 'runtime-call-failed',
           message,
           actionHint: t('NonSuccess.hint.runtimeCallFailed'),
           missingSurface: capability.missingSurface,
         };
       }
+      observationController.signal.throwIfAborted();
+      if (result.ok) abortController.signal.throwIfAborted();
       const record = await onResult(result, displayPrompt, runConfig);
       // A result reaches the visible completed stage only after onResult has
       // finished its required custody/history work. Persistence failure throws
@@ -367,6 +385,7 @@ function TextStudioShell({
         if (abortControllerRef.current?.controller === abortController) abortControllerRef.current = null;
         setExecutingRun(null);
         setCancelRequested(false);
+    setObservationIssue(false);
         setStreamingText(null);
       }
     }
@@ -589,6 +608,8 @@ function TextStudioShell({
                 composer={composer}
               />
             )}
+            {displayingExecution && observationIssue ? <p role="status">{t('Music.observationIssue')}</p> : null}
+            {isStudioJobRecoveryCapability(capability.id) ? <StudioJobRecoveryPanel key={capability.id} capability={capability.id} disabled={running} /> : null}
           </main>
         </div>
         <CapabilityRunHistory

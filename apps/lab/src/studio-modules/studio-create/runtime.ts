@@ -40,7 +40,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
     if (!image.dataUrl.startsWith(prefix) || image.dataUrl.length > prefix.length + 4 * Math.ceil(32 * 1024 * 1024 / 3)) {
       return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.profiles.textGenerate.imageTooLarge'));
     }
-    if (context.input.signal?.aborted) {
+    if (studioRequestSignal(context)?.aborted) {
       return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
     }
     let bytes: Uint8Array;
@@ -56,7 +56,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
       bytes,
       mimeType: image.mimeType as Parameters<typeof context.host.client.ai.artifacts.upload>[0]['mimeType'],
     });
-    if (context.input.signal?.aborted) {
+    if (studioRequestSignal(context)?.aborted) {
       return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
     }
     const response = await context.host.client.ai.scenario.execute({
@@ -70,8 +70,8 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
         ],
       }],
       ...textCandidateParameters(parameters),
-    }, { signal: context.input.signal });
-    if (context.input.signal?.aborted) {
+    }, { signal: studioRequestSignal(context) });
+    if (studioRequestSignal(context)?.aborted) {
       return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
     }
     // This one-turn image request has no follow-up turn to carry opaque state into.
@@ -89,7 +89,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
       const saved = await context.host.client.storage.assets.write({
         relativePath, body: bytes, mediaType: image.mimeType, overwrite: false,
       });
-      if (context.input.signal?.aborted) {
+      if (studioRequestSignal(context)?.aborted) {
         await context.host.client.storage.assets.remove(relativePath).catch(() => undefined);
         return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
       }
@@ -103,7 +103,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
         sha256: saved.sha256, displayName: image.name, previewSource: 'managed-asset' as const,
       };
     } catch {
-      if (context.input.signal?.aborted) {
+      if (studioRequestSignal(context)?.aborted) {
         return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
       }
       message = context.host.translate('Studio.profiles.textGenerate.imageCompletedWithoutSource');
@@ -165,7 +165,7 @@ async function runChatStream(context: StudioCapabilityRuntimeContext) {
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,
     ...(context.input.onPartial ? { onPartial: context.input.onPartial } : {}),
-    ...(context.input.signal ? { signal: context.input.signal } : {}),
+    ...(studioRequestSignal(context) ? { signal: studioRequestSignal(context) } : {}),
   });
   if (result.ok === false) return projectStudioRunnerNonSuccess(context, result);
   if (result.output.kind !== 'text') {
@@ -456,4 +456,10 @@ function textTurnParameters(
     ...(parameters.stop !== undefined ? { stop: [...parameters.stop] } : {}),
     ...(parameters.seed !== undefined ? { seed: parameters.seed } : {}),
   };
+}
+
+function studioRequestSignal(context: StudioCapabilityRuntimeContext): AbortSignal | undefined {
+  if (!context.input.observationSignal) return context.input.signal;
+  if (!context.input.signal) return context.input.observationSignal;
+  return AbortSignal.any([context.input.signal, context.input.observationSignal].filter((signal): signal is AbortSignal => Boolean(signal)));
 }

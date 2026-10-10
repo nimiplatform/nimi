@@ -3,7 +3,6 @@ import { Button, SelectField } from '@nimiplatform/kit/ui';
 import type { NimiMusicTranscriptionInputProfile } from '@nimiplatform/sdk/ai';
 import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
 import { StudioNumberParameter, StudioParameterField, type StudioParameterPanelProps } from '../../ai-studio-core/parameter-fields.js';
-import { MusicRecoveryPanel } from './music-recovery-panel.js';
 import type { StudioMusicTranscriptionParameters } from './parameters.js';
 
 export function MusicTranscriptionFields(props: StudioParameterPanelProps) {
@@ -82,6 +81,5 @@ export function MusicTranscriptionFields(props: StudioParameterPanelProps) {
     </> : null}
     <p className="text-sm opacity-70">{t('Transcription.preparationHint')}</p>
     {error ? <p role="alert">{error}</p> : null}
-    <MusicRecoveryPanel capability="music.transcribe" disabled={disabled} />
   </div>;
 }

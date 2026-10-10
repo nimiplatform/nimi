@@ -1,9 +1,10 @@
+import { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 import type { NimiLocalAppClient, NimiLocalAppScenarioJob } from '@nimiplatform/sdk/app';
 import {
   LOCAL_ONLY_STUDIO_PARAMETER,
   defineStudioParameters,
 } from '../../ai-studio-core/parameters.js';
-import { studioRuntimeErrorMessage, type StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
+import { recoverStudioJobAction, submitStudioLocalJob, adoptStudioJobArtifact, managedStudioAssetPath, studioRuntimeErrorMessage, type StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
 import type {
   StudioCapabilityRunResult,
   StudioFaceSwap,
@@ -96,6 +97,12 @@ export async function labFaceSwapInput(role: StudioFaceSwapInputRole, file: LabM
 type UploadMime = Parameters<NimiLocalAppClient['ai']['artifacts']['upload']>[0]['mimeType'];
 
 export async function runLabImageFaceSwap(context: StudioCapabilityRuntimeContext): Promise<StudioCapabilityRunResult> {
+  const recovery = await recoverStudioJobAction(context, ScenarioType.IMAGE_FACE_SWAP);
+  if (recovery) {
+    if (recovery.saved) return recovery.saved;
+    if (!recovery.entry.details?.faceSwap) throw new Error('Saved face replacement inputs are missing');
+    return finishFaceSwapJob(context, recovery.jobId!, 'image/png', recovery.entry.details.faceSwap);
+  }
   const { host, capability } = context;
   const parameters = context.input.parameters as LabImageFaceSwapParameters | undefined;
   const reference = parameters?.reference;
@@ -109,15 +116,21 @@ export async function runLabImageFaceSwap(context: StudioCapabilityRuntimeContex
   if (!referenceArtifact || !targetArtifact) {
     return host.nonSuccess(capability, 'operation-aborted', host.translate('CapabilityTests.common.stoppedBeforeSubmit'));
   }
-  const { job } = await host.client.ai.scenarioJobs.submit({
+  const { job } = await submitStudioLocalJob(context, {
     type: 'image-face-swap',
     referenceImageArtifactId: referenceArtifact,
     targetImageArtifactId: targetArtifact,
-  });
+  }, { scenarioType: ScenarioType.IMAGE_FACE_SWAP, faceSwap: { inputs } });
   return finishFaceSwapJob(context, job.jobId, 'image/png', { inputs });
 }
 
 export async function runLabVideoFaceSwap(context: StudioCapabilityRuntimeContext): Promise<StudioCapabilityRunResult> {
+  const recovery = await recoverStudioJobAction(context, ScenarioType.VIDEO_FACE_SWAP);
+  if (recovery) {
+    if (recovery.saved) return recovery.saved;
+    if (!recovery.entry.details?.faceSwap) throw new Error('Saved face replacement inputs are missing');
+    return finishFaceSwapJob(context, recovery.jobId!, LAB_FACE_SWAP_VIDEO_MIME_TYPE, recovery.entry.details.faceSwap);
+  }
   const { host, capability } = context;
   const parameters = context.input.parameters as LabVideoFaceSwapParameters | undefined;
   const reference = parameters?.reference;
@@ -135,12 +148,12 @@ export async function runLabVideoFaceSwap(context: StudioCapabilityRuntimeContex
   if (!referenceArtifact || !targetArtifact) {
     return host.nonSuccess(capability, 'operation-aborted', host.translate('CapabilityTests.common.stoppedBeforeSubmit'));
   }
-  const { job } = await host.client.ai.scenarioJobs.submit({
+  const { job } = await submitStudioLocalJob(context, {
     type: 'video-face-swap',
     referenceImageArtifactId: referenceArtifact,
     targetVideoArtifactId: targetArtifact,
     noFacePolicy,
-  });
+  }, { scenarioType: ScenarioType.VIDEO_FACE_SWAP, faceSwap: { inputs, noFacePolicy } });
   return finishFaceSwapJob(context, job.jobId, LAB_FACE_SWAP_VIDEO_MIME_TYPE, { inputs, noFacePolicy });
 }
 
@@ -158,12 +171,15 @@ async function finishFaceSwapJob(
 ): Promise<StudioCapabilityRunResult> {
   const { host, capability } = context;
   const outcome = await observeLabScenarioJob({
-    scenarioJobs: host.client.ai.scenarioJobs,
+    ai: host.client.ai,
+    scenarioType: outputMimeType === 'image/png' ? ScenarioType.IMAGE_FACE_SWAP : ScenarioType.VIDEO_FACE_SWAP,
     jobId,
     capability,
     nonSuccess: host.nonSuccess,
     cancelReason: host.abortReason,
-    ...(context.input.signal ? { signal: context.input.signal } : {}),
+    signal: context.input.observationSignal,
+    cancelSignal: context.input.signal,
+    onObservation: context.input.onObservation,
   });
   if (outcome.kind === 'non-success') return outcome.result;
   const job = outcome.job;
@@ -207,13 +223,9 @@ async function adoptFaceSwapOutput(
   job: NimiLocalAppScenarioJob,
   artifactId: string,
 ): Promise<StudioManagedArtifact> {
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(job.jobId)));
-  const token = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
-  const adopted = await context.host.client.storage.assets.adoptArtifact({
-    artifactId,
-    relativePath: `media/${context.capability.id.replaceAll('.', '-')}/${token}.asset`,
-    overwrite: false,
-  });
+  const source = job.artifacts.find(item => item.artifactId === artifactId);
+  if (!source) throw new Error('Face replacement output identity is missing');
+  const { asset: adopted } = await adoptStudioJobArtifact(context, source, await managedStudioAssetPath(context.capability.id, job.jobId, 0));
   return {
     relativePath: adopted.relativePath,
     ...(adopted.mediaType ? { mediaType: adopted.mediaType } : {}),

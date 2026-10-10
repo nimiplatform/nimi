@@ -299,8 +299,8 @@
     "scoreTruncated": "生成乐谱已截断，复用前请检查。",
     "recoveryMissing": "这次音乐创作已不在恢复记录中。",
     "recoveryJobNotFound": "Runtime 当前未找到这次提交的任务。恢复不会重新生成；如果原提交可能仍在处理，请稍后再查询，否则可移除这条恢复记录。",
-    "recoveryTitle": "已保存和未完成的音乐",
-    "recoveryHint": "查询原任务，不会重新生成。恢复成功后，完整结果保存到正式历史。Runtime 保留任务 24 小时，已保存的历史可长期回看。移除此入口会保留已保存的历史和资产。",
+    "recoveryTitle": "已保存和未完成的任务",
+    "recoveryHint": "查询原任务，不会重新生成。恢复成功后将可用结果保存到历史。任务及尚未保存的结果仅在保留期内可读取。移除此入口会保留已保存的历史和资产。",
     "historyOwnerUnavailable": "结果未能保存到正式历史。请在工作区重新打开此能力，再重试恢复。",
     "savedUnavailable": "结果文件不可用",
     "recover": "恢复原任务",
@@ -311,6 +311,9 @@
     "viewScore": "查看生成的 ABC",
     "hideScore": "收起 ABC",
     "exportScore": "导出 ABC 乐谱",
-    "generatedPlan": "ABC 格式的生成计划"
+    "generatedPlan": "ABC 格式的生成计划",
+    "recovered": "已保存到历史，可选择对应记录查看结果。",
+    "observationIssue": "暂时无法更新进度，正在继续查询原任务…",
+    "recoveryNeedsAttention": "恢复遇到问题"
   }
 }

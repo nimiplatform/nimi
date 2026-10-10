@@ -299,8 +299,8 @@
     "scoreTruncated": "The generated score was truncated. Review it before reuse.",
     "recoveryMissing": "This music action is no longer recorded.",
     "recoveryJobNotFound": "Runtime has no Job for this submission now. Recover does not generate again. If the original submission may still be in progress, try lookup later; otherwise remove this recovery record.",
-    "recoveryTitle": "Saved and unfinished music",
-    "recoveryHint": "Recover the original job without generating again. Successful recovery saves the complete result in History. Runtime keeps jobs for 24 hours; saved history remains available. Removing this entry keeps its saved history and assets.",
+    "recoveryTitle": "Saved and unfinished tasks",
+    "recoveryHint": "Check the original task without generating again. Recovery saves the available result to History. Jobs and unsaved outputs are available only during their retention period. Removing this entry keeps saved history and assets.",
     "historyOwnerUnavailable": "The result could not be saved to History. Reopen this capability in its workspace and retry recovery.",
     "savedUnavailable": "Result files unavailable",
     "recover": "Recover job",
@@ -311,6 +311,9 @@
     "viewScore": "View generated ABC",
     "hideScore": "Hide ABC",
     "exportScore": "Export ABC score",
-    "generatedPlan": "Generated plan in ABC notation"
+    "generatedPlan": "Generated plan in ABC notation",
+    "recovered": "Saved to History. Select the entry there to open the result.",
+    "observationIssue": "Progress is temporarily unavailable. Checking the original task again…",
+    "recoveryNeedsAttention": "Recovery needs attention"
   }
 }

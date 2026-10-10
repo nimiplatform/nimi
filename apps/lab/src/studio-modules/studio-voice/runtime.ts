@@ -1,6 +1,6 @@
-import type { RuntimeVoiceCatalogRuntime } from '@nimiplatform/kit/features/generation/runtime';
+import { observeRuntimeSpeechSynthesize, observeRuntimeSpeechTranscribe, type RuntimeSpeechTranscribeResult, type RuntimeVoiceCatalogRuntime } from '@nimiplatform/kit/features/generation/runtime';
 import { buildNimiRuntimeScenarioJobIdentity } from '@nimiplatform/sdk/features/generation';
-import { runNimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
+import { runNimiRuntimeScenarioJob, observeNimiRuntimeScenarioJob, type NimiRuntimeScenarioJobResult } from '@nimiplatform/sdk/runtime';
 import {
   ExecutionMode,
   ScenarioType,
@@ -11,7 +11,7 @@ import type { StudioCapabilityRuntimeHandlers } from '../../ai-studio-core/runti
 import { audioMimeTypeFromUrl, isHttpsUrl } from './audio-url.js';
 import { listLabVoiceAssets } from '../../ai-studio-core/voice-assets.js';
 import {
-  createStudioScenarioJobClient,
+  createStudioScenarioJobClient, recoverStudioJobAction, adoptStudioJobArtifact,
   projectStudioArtifactRunnerResult,
   managedStudioAssetPath,
   projectStudioRunnerNonSuccess,
@@ -41,6 +41,14 @@ export const studioVoiceRuntimeHandlers: StudioCapabilityRuntimeHandlers = Objec
 });
 
 async function runSpeechSynthesize(context: StudioCapabilityRuntimeContext) {
+  const recovery = await recoverStudioJobAction(context, ScenarioType.SPEECH_SYNTHESIZE);
+  if (recovery) {
+    if (recovery.saved) return recovery.saved;
+    const result = await observeRuntimeSpeechSynthesize({ runtime: { ai: createStudioScenarioJobClient(context) }, jobId: recovery.jobId!,
+      signal: context.input.observationSignal, cancelSignal: context.input.signal, abortReason: context.host.abortReason,
+      onObservation: context.input.onObservation, onJobUpdate: context.input.onJobUpdate });
+    return projectStudioArtifactRunnerResult(context, result);
+  }
   if (!context.prompt) return inputRequired(context);
   const parameters = context.input.parameters as StudioSpeechSynthesizeParameters | undefined;
   const voiceRef = speechVoiceReference(parameters);
@@ -59,6 +67,8 @@ async function runSpeechSynthesize(context: StudioCapabilityRuntimeContext) {
     ...(parameters?.timingMode !== undefined ? { timingMode: parameters.timingMode } : {}),
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,
+    observationSignal: context.input.observationSignal,
+    onObservation: context.input.onObservation,
     ...(context.input.signal ? {
       signal: context.input.signal,
       abortReason: context.host.abortReason,
@@ -68,6 +78,15 @@ async function runSpeechSynthesize(context: StudioCapabilityRuntimeContext) {
 }
 
 async function runSpeechTranscribe(context: StudioCapabilityRuntimeContext) {
+  const recovery = await recoverStudioJobAction(context, ScenarioType.SPEECH_TRANSCRIBE);
+  if (recovery) {
+    if (recovery.saved) return recovery.saved;
+    const result = await observeRuntimeSpeechTranscribe({ runtime: { ai: createStudioScenarioJobClient(context) }, jobId: recovery.jobId!,
+      timestamps: recovery.entry.details?.timestamps,
+      signal: context.input.observationSignal, cancelSignal: context.input.signal, abortReason: context.host.abortReason,
+      onObservation: context.input.onObservation, onJobUpdate: context.input.onJobUpdate });
+    return projectStudioTranscript(context, result);
+  }
   const parameters = context.input.parameters as StudioSpeechTranscribeParameters | undefined;
   if (!context.prompt && !parameters?.audioFile) return inputRequired(context);
   if (parameters?.audioFile && parameters.audioFile.sizeBytes > MAX_STUDIO_AUDIO_UPLOAD_BYTES) {
@@ -102,11 +121,17 @@ async function runSpeechTranscribe(context: StudioCapabilityRuntimeContext) {
     ...(parameters?.responseFormat !== undefined ? { responseFormat: parameters.responseFormat } : {}),
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,
+    observationSignal: context.input.observationSignal,
+    onObservation: context.input.onObservation,
     ...(context.input.signal ? {
       signal: context.input.signal,
       abortReason: context.host.abortReason,
     } : {}),
   });
+  return projectStudioTranscript(context, result);
+}
+
+function projectStudioTranscript(context: StudioCapabilityRuntimeContext, result: RuntimeSpeechTranscribeResult) {
   if (result.ok === false) return projectStudioRunnerNonSuccess(context, result);
   return {
     ok: true as const,
@@ -126,6 +151,16 @@ async function runSpeechTranscribe(context: StudioCapabilityRuntimeContext) {
 }
 
 async function runVoiceCreate(context: StudioCapabilityRuntimeContext) {
+  const recovery = await recoverStudioJobAction(context, ScenarioType.VOICE_CREATE);
+  if (recovery) {
+    if (recovery.saved) return recovery.saved;
+    const source = recovery.entry.details?.creationSource;
+    if (!source) throw new Error('Saved voice action is missing its creation source');
+    const result = await observeNimiRuntimeScenarioJob({ ai: createStudioScenarioJobClient(context), jobId: recovery.jobId!, scenarioType: ScenarioType.VOICE_CREATE,
+      signal: context.input.observationSignal, cancelSignal: context.input.signal, abortReason: context.host.abortReason,
+      onObservation: context.input.onObservation, onJobUpdate: context.input.onJobUpdate });
+    return projectVoiceCreation(context, result, source);
+  }
   const parameters = context.input.parameters as StudioVoiceCreateParameters | undefined;
   const creationSource = parameters?.creationSource ?? 'reference-audio';
   if (!context.prompt && !parameters?.referenceAudioFile) return inputRequired(context);
@@ -192,11 +227,17 @@ async function runVoiceCreate(context: StudioCapabilityRuntimeContext) {
       labels: { scenarioId: context.scenarioId, surfaceId: context.host.surfaceId },
       extensions: [],
     },
+    observationSignal: context.input.observationSignal,
+    onObservation: context.input.onObservation,
     ...(context.input.signal ? {
       signal: context.input.signal,
       abortReason: context.host.abortReason,
     } : {}),
   });
+  return projectVoiceCreation(context, terminalResult, creationSource);
+}
+
+async function projectVoiceCreation(context: StudioCapabilityRuntimeContext, terminalResult: NimiRuntimeScenarioJobResult, creationSource: 'reference-audio' | 'text-description') {
   const terminalJob = terminalResult.job;
   const resultAsset = terminalResult.asset;
   const voiceReference = terminalResult.voiceReference;
@@ -224,7 +265,7 @@ async function runVoiceCreate(context: StudioCapabilityRuntimeContext) {
   let preview;
   if (sourcePreview) {
     if (!sourcePreview.artifactId || !sourcePreview.mimeType.startsWith('audio/') || Number(sourcePreview.sizeBytes) <= 0) throw new Error('Voice preview artifact metadata is invalid.');
-    const adopted = await context.host.client.storage.assets.adoptArtifact({ artifactId: sourcePreview.artifactId, relativePath: await managedStudioAssetPath(context.capability.id, terminalJob.jobId, 0), overwrite: false });
+    const { asset: adopted } = await adoptStudioJobArtifact(context, sourcePreview, await managedStudioAssetPath(context.capability.id, terminalJob.jobId, 0));
     if (adopted.mediaType !== sourcePreview.mimeType || adopted.sizeBytes !== Number(sourcePreview.sizeBytes)) {
       await context.host.client.storage.assets.remove(adopted.relativePath);
       throw new Error('Saved voice preview does not match its Runtime artifact.');

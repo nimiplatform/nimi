@@ -429,7 +429,7 @@ export async function runLabTextDecide(context: StudioCapabilityRuntimeContext):
     return host.nonSuccess(capability, 'input-invalid', issue ? describeLabTextDecideIssue(issue, host.translate) : '');
   }
   const { spec, timeoutMs } = built.request;
-  const signal = context.input.signal;
+  const signal = studioRequestSignal(context);
   if (signal?.aborted) return stopped(context);
   const options: NimiLocalAppScenarioExecuteOptions = {
     ...(signal ? { signal } : {}),
@@ -461,4 +461,10 @@ export async function runLabTextDecide(context: StudioCapabilityRuntimeContext):
     output: { kind: 'text-decision', answers },
     ...(response.traceId ? { trace: { traceId: response.traceId } } : {}),
   };
+}
+
+function studioRequestSignal(context: StudioCapabilityRuntimeContext): AbortSignal | undefined {
+  if (!context.input.observationSignal) return context.input.signal;
+  if (!context.input.signal) return context.input.observationSignal;
+  return AbortSignal.any([context.input.signal, context.input.observationSignal].filter((signal): signal is AbortSignal => Boolean(signal)));
 }

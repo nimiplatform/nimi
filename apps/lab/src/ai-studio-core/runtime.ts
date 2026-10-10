@@ -1,3 +1,6 @@
+import { verifyStudioManagedAsset } from './managed-result-references.js';
+import { beginStudioJobRecovery, captureStudioJobRecoveryJobId, isStudioJobRecoveryCapability, readStudioJobRecovery, recoverStudioJobId, restoreSavedStudioJobResult, saveStudioJobRecoveryResult, studioJobRecoverySignal, type StudioJobRecoveryDetails } from './job-recovery.js';
+import { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 import {
   runRuntimeAIConsumeCapability,
   runRuntimeImageGenerate,
@@ -77,6 +80,7 @@ export type StudioRuntimeHost = {
 };
 
 export type StudioCapabilityRuntimeContext = {
+  jobActionId?: string;
   readonly musicSourceAudio?: StudioManagedArtifact;
   readonly voiceSourceVocal?: StudioManagedArtifact;
   readonly voiceTargetAudio?: StudioManagedArtifact;
@@ -160,7 +164,14 @@ export async function runStudioCapability(
 
   try {
     const dispatched = dispatchStudioCapabilityRuntime(orchestrator.handlers, context);
-    if (dispatched) return await dispatched;
+    if (dispatched) {
+      const result = await dispatched;
+      if (result.ok) studioJobRecoverySignal(input).throwIfAborted();
+      if (context.jobActionId && isStudioJobRecoveryCapability(capability.id)) {
+        await saveStudioJobRecoveryResult(context.host.client.storage, context.jobActionId, result, capability.id);
+      }
+      return result;
+    }
     if (!context.prompt) {
       return orchestrator.nonSuccess(
         capability,
@@ -182,8 +193,59 @@ export async function runStudioCapability(
   }
 }
 
-export function createStudioScenarioJobClient(context: StudioCapabilityRuntimeContext) {
-  return context.host.createScenarioJobClient(context.host.client.ai);
+export function createStudioScenarioJobClient(context: StudioCapabilityRuntimeContext, savedDetails?: Pick<StudioJobRecoveryDetails, 'sourceImage'>) {
+  const client = context.host.createScenarioJobClient(context.host.client.ai);
+  return { ...client, async submitScenarioJob(request: Parameters<typeof client.submitScenarioJob>[0], options?: Parameters<typeof client.submitScenarioJob>[1]) {
+    const spec = request.spec?.spec;
+    const details: StudioJobRecoveryDetails = { ...savedDetails, scenarioType: request.scenarioType,
+      ...(spec?.oneofKind === 'visionLocate' ? { expectedVision: { imageArtifactId: spec.visionLocate.imageArtifactId, geometry: spec.visionLocate.geometry } } : {}),
+      ...(spec?.oneofKind === 'voiceCreate' ? { creationSource: spec.voiceCreate.source.oneofKind === 'referenceAudio' ? 'reference-audio' as const : 'text-description' as const } : {}),
+      ...(spec?.oneofKind === 'speechTranscribe' ? { timestamps: spec.speechTranscribe.timestamps } : {}),
+    };
+    const id = await beginStudioJobAction(context, details);
+    context.input.signal?.throwIfAborted();
+    context.input.observationSignal?.throwIfAborted();
+    const response = await client.submitScenarioJob({ ...request, idempotencyKey: id }, options);
+    await captureStudioJobAction(context, id, response.job?.jobId ?? '');
+    return response;
+  } };
+}
+
+export async function beginStudioJobAction(context: StudioCapabilityRuntimeContext, details: StudioJobRecoveryDetails): Promise<string> {
+  context.input.signal?.throwIfAborted();
+  context.input.observationSignal?.throwIfAborted();
+  if (!isStudioJobRecoveryCapability(context.capability.id)) throw new Error('This capability has no saved Job action');
+  const id = await beginStudioJobRecovery(context.host.client.storage, context.capability.id, undefined, undefined, undefined,
+    context.input.recordedRunConfig, context.input.recordedPrompt ?? context.input.prompt, details);
+  context.jobActionId = id;
+  return id;
+}
+
+export async function captureStudioJobAction(context: StudioCapabilityRuntimeContext, id: string, jobId: string): Promise<void> {
+  if (!isStudioJobRecoveryCapability(context.capability.id)) throw new Error('Unknown Job capability');
+  await captureStudioJobRecoveryJobId(context.host.client.storage, id, jobId, context.capability.id);
+}
+
+/** Reopening a business action only resolves its original identity. */
+export async function recoverStudioJobAction(context: StudioCapabilityRuntimeContext, scenarioType: ScenarioType) {
+  const id = context.input.parameters?.recoverySubmissionId;
+  if (id === undefined) return null;
+  if (typeof id !== 'string' || !isStudioJobRecoveryCapability(context.capability.id)) throw new Error('Invalid saved action');
+  const entry = (await readStudioJobRecovery(context.host.client.storage, context.capability.id)).find(item => item.clientSubmissionId === id);
+  if (!entry || entry.details?.scenarioType !== scenarioType) throw new Error(context.host.translate('Music.recoveryMissing'));
+  context.jobActionId = id;
+  const saved = await restoreSavedStudioJobResult(entry, context.capability.label, context.capability.id, context.host.client.storage.assets, studioJobRecoverySignal(context.input));
+  return { entry, saved, jobId: saved ? undefined : await recoverStudioJobId(context.host.client, entry, context.capability.id) };
+}
+
+export async function submitStudioLocalJob(context: StudioCapabilityRuntimeContext,
+  spec: Parameters<NimiLocalAppClient['ai']['scenarioJobs']['submit']>[0], details: StudioJobRecoveryDetails) {
+  const id = await beginStudioJobAction(context, details);
+  context.input.signal?.throwIfAborted();
+  context.input.observationSignal?.throwIfAborted();
+  const response = await context.host.client.ai.scenarioJobs.submit(spec, { clientSubmissionId: id });
+  await captureStudioJobAction(context, id, response.job.jobId);
+  return response;
 }
 
 type ArtifactRunnerResult = Awaited<ReturnType<
@@ -216,25 +278,9 @@ export async function projectStudioArtifactRunnerResult(
         result.output.jobId,
         index,
       );
-      let adopted: Awaited<ReturnType<NimiLocalAppClient['storage']['assets']['stat']>> | undefined;
-      const expectedHash = (result.output.kind === 'music-artifacts' || result.output.kind === 'music-transcription-artifacts' || result.output.kind === 'voice-conversion-artifacts' || result.output.kind === 'audio-separation') && 'sha256' in sourceArtifact && typeof sourceArtifact.sha256 === 'string'
-        ? `sha256:${sourceArtifact.sha256.replace(/^sha256:/u, '')}` : undefined;
-      if ((result.output.kind === 'music-artifacts' || result.output.kind === 'music-transcription-artifacts' || result.output.kind === 'voice-conversion-artifacts' || result.output.kind === 'audio-separation') && (!expectedHash || !/^sha256:[0-9a-f]{64}$/u.test(expectedHash))) throw new Error('Music artifact omitted its content digest.');
-      if (expectedHash) {
-        // Runtime owns the adopted extension. Each music artifact has its own
-        // deterministic directory, so recovery uses returned metadata instead.
-        const prefix = relativePath.slice(0, relativePath.lastIndexOf('/') + 1);
-        const retained = await context.host.client.storage.assets.list({ prefix, pageSize: 2 });
-        if (retained.nextCursor || retained.assets.length > 1) throw new Error('Retained music asset directory is ambiguous.');
-        adopted = retained.assets[0];
-        if (adopted && !adopted.relativePath.startsWith(`${prefix}result.`)) throw new Error('Retained music asset has an unexpected path.');
-        if (adopted && (adopted.sha256 !== expectedHash || adopted.sizeBytes !== sourceArtifact.sizeBytes || adopted.mediaType !== sourceArtifact.mimeType)) throw new Error('Retained music asset does not match the original Runtime artifact.');
-      }
-      if (!adopted) {
-        adopted = await context.host.client.storage.assets.adoptArtifact({ artifactId: sourceArtifact.artifactId, relativePath, overwrite: false });
-        adoptedPaths.push(adopted.relativePath);
-      }
-      if (expectedHash && (adopted.sha256 !== expectedHash || adopted.sizeBytes !== sourceArtifact.sizeBytes || adopted.mediaType !== sourceArtifact.mimeType)) throw new Error('Adopted music asset does not match the original Runtime artifact.');
+      const retained = await adoptStudioJobArtifact(context, sourceArtifact, relativePath);
+      const adopted = retained.asset;
+      if (retained.created) adoptedPaths.push(adopted.relativePath);
       artifacts.push({
         relativePath: adopted.relativePath,
         ...(adopted.mediaType ? { mediaType: adopted.mediaType } : {}),
@@ -442,5 +488,26 @@ export async function managedStudioAssetPath(
   const bytes = new TextEncoder().encode(identity);
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const token = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
-  return `media/${capabilityId.replaceAll('.', '-')}/${token}${['music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capabilityId) ? '/result' : ''}.asset`;
+  return `media/${capabilityId.replaceAll('.', '-')}/${token}/result.asset`;
+}
+
+/** Reuse the original target after a lost adopt/history response. Never overwrite. */
+export async function adoptStudioJobArtifact(context: StudioCapabilityRuntimeContext,
+  artifact: { readonly artifactId?: string; readonly mimeType: string; readonly sizeBytes?: number | string; readonly sha256?: string }, relativePath: string) {
+  if (!artifact.artifactId) throw new Error('Runtime artifact identity is missing');
+  const signal = studioJobRecoverySignal(context.input);
+  signal.throwIfAborted();
+  const assets = context.host.client.storage.assets;
+  const prefix = relativePath.slice(0, relativePath.lastIndexOf('/') + 1);
+  const retained = await assets.list({ prefix, pageSize: 2 });
+  if (retained.nextCursor || retained.assets.length > 1) throw new Error('Saved result target contains conflicting files');
+  let asset = retained.assets[0];
+  const created = !asset;
+  const hash = artifact.sha256 ? `sha256:${artifact.sha256.replace(/^sha256:/u, '')}` : undefined;
+  if (asset && (!hash || !asset.relativePath.startsWith(relativePath.replace(/\.[^/.]+$/u, '') + '.'))) throw new Error('Saved result cannot be matched to the original output');
+  signal.throwIfAborted();
+  if (!asset) asset = await assets.adoptArtifact({ artifactId: artifact.artifactId, relativePath, overwrite: false });
+  if ((hash && asset.sha256 !== hash) || (artifact.sizeBytes !== undefined && asset.sizeBytes !== Number(artifact.sizeBytes)) || asset.mediaType !== artifact.mimeType) throw new Error('Saved result does not match the original output');
+  await verifyStudioManagedAsset(assets, asset, signal);
+  return { asset, created };
 }

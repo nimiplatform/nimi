@@ -193,7 +193,10 @@ export type StudioCapabilityRunInput = {
   readonly capabilityId: string;
   readonly prompt: string;
   readonly scenarioId?: string;
+  /** Explicit user cancellation; observationSignal only detaches the view. */
   readonly signal?: AbortSignal;
+  readonly observationSignal?: AbortSignal;
+  readonly onObservation?: (response: import("@nimiplatform/sdk/runtime").NimiRuntimeScenarioJobObservation) => void;
   readonly onPartial?: (accumulatedText: string) => void;
   readonly onJobUpdate?: (job: NimiRuntimeScenarioJob) => void;
   readonly attachments?: BrowserDataUrlAttachment[];

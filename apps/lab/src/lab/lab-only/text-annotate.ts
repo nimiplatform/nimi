@@ -1,3 +1,6 @@
+import { recoverStudioJobAction, submitStudioLocalJob } from '../../ai-studio-core/runtime.js';
+import { verifyStudioManagedAsset } from '../../ai-studio-core/managed-result-references.js';
+import { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 import {
   LOCAL_ONLY_STUDIO_PARAMETER,
   defineStudioParameters,
@@ -36,6 +39,12 @@ export function labTextAnnotateDocuments(parameters: LabTextAnnotateParameters |
 }
 
 export async function runLabTextAnnotate(context: StudioCapabilityRuntimeContext): Promise<StudioCapabilityRunResult> {
+  const recovery = await recoverStudioJobAction(context, ScenarioType.TEXT_ANNOTATE);
+  if (recovery) {
+    if (recovery.saved) return recovery.saved;
+    if (!recovery.entry.details?.texts) throw new Error('Saved annotation documents are missing');
+    return finishTextAnnotation(context, recovery.jobId!, recovery.entry.details.texts);
+  }
   const { host, capability } = context;
   const parameters = context.input.parameters as LabTextAnnotateParameters | undefined;
   const language = (parameters?.language ?? '').trim();
@@ -51,14 +60,22 @@ export async function runLabTextAnnotate(context: StudioCapabilityRuntimeContext
   if (context.input.signal?.aborted) {
     return host.nonSuccess(capability, 'operation-aborted', host.translate('CapabilityTests.common.stoppedBeforeSubmit'));
   }
-  const { job } = await host.client.ai.scenarioJobs.submit({ type: 'text-annotate', language, texts });
+  const { job } = await submitStudioLocalJob(context, { type: 'text-annotate', language, texts }, { scenarioType: ScenarioType.TEXT_ANNOTATE, texts });
+  return finishTextAnnotation(context, job.jobId, texts);
+}
+
+async function finishTextAnnotation(context: StudioCapabilityRuntimeContext, jobId: string, texts: readonly string[]): Promise<StudioCapabilityRunResult> {
+  const { host, capability } = context;
   const outcome = await observeLabScenarioJob({
-    scenarioJobs: host.client.ai.scenarioJobs,
-    jobId: job.jobId,
+    ai: host.client.ai,
+    scenarioType: ScenarioType.TEXT_ANNOTATE,
+    jobId,
     capability,
     nonSuccess: host.nonSuccess,
     cancelReason: host.abortReason,
-    ...(context.input.signal ? { signal: context.input.signal } : {}),
+    signal: context.input.observationSignal,
+    cancelSignal: context.input.signal,
+    onObservation: context.input.onObservation,
   });
   if (outcome.kind === 'non-success') return outcome.result;
   const completed = outcome.job;
@@ -77,9 +94,15 @@ export async function runLabTextAnnotate(context: StudioCapabilityRuntimeContext
   const relativePath = `${LAB_TEXT_ANNOTATE_DOCUMENT_PREFIX}/${await jobToken(completed.jobId)}.json`;
   let saved;
   try {
-    saved = await host.client.storage.assets.write({
-      relativePath, body: bytes, mediaType: STUDIO_TEXT_ANNOTATION_DOCUMENT_MEDIA_TYPE, overwrite: false,
-    });
+    // The original deterministic document target survives a lost write receipt.
+    try { saved = await host.client.storage.assets.stat(relativePath); }
+    catch (cause) {
+      const error = cause as { reasonCode?: string; code?: string };
+      const code = String(error?.reasonCode ?? error?.code ?? '').toLowerCase().replaceAll('-', '_');
+      if (!['not_found', 'app_asset_not_found'].includes(code)) throw cause;
+    }
+    if (saved) await verifyStudioManagedAsset(host.client.storage.assets, { relativePath, sha256, sizeBytes: bytes.byteLength, mediaType: STUDIO_TEXT_ANNOTATION_DOCUMENT_MEDIA_TYPE }, context.input.observationSignal);
+    else saved = await host.client.storage.assets.write({ relativePath, body: bytes, mediaType: STUDIO_TEXT_ANNOTATION_DOCUMENT_MEDIA_TYPE, overwrite: false });
   } catch (error) {
     return labJobNonSuccess(jobRef, 'runtime-call-failed', host.translate('CapabilityTests.textAnnotate.saveFailed', {
       detail: error instanceof Error ? error.message : String(error),
@@ -100,7 +123,7 @@ export async function runLabTextAnnotate(context: StudioCapabilityRuntimeContext
       kind: 'text-annotation',
       jobId: completed.jobId,
       jobState: completed.status,
-      language: annotation.documents[0]?.language ?? language,
+      language: annotation.documents[0]?.language ?? '',
       documentCount: annotation.documents.length,
       tokenCount,
       sentenceCount,

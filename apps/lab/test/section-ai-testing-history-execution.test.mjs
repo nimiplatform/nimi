@@ -27,7 +27,10 @@ await build({
     contents: `export { SectionAITesting } from './src/ai-studio-core/section-ai-testing.tsx';
       export { TextStudioComposer } from './src/ai-studio-core/section-ai-testing-composer.tsx';
       export { TextStudioResultState } from './src/ai-studio-core/section-ai-testing-result.tsx';
-      export { MusicRecoveryPanel } from './src/studio-modules/studio-media/music-recovery-panel.tsx';
+      export { runLabCapability } from './src/lab/lab-runtime.ts';
+      export { WorldTourActions } from './src/lab/world-tour/world-tour-actions.tsx';
+      export { LabRendererProvider } from './src/renderer/context.tsx';
+      export { StudioJobRecoveryPanel } from './src/ai-studio-core/job-recovery-panel.tsx';
       export { StudioHistoryResultContext } from './src/ai-studio-core/contexts.tsx';
       export { textStudioMediaInputAvailable } from './src/ai-studio-core/section-ai-testing-input.ts';
       export { AIStudioHostProvider } from './src/ai-studio-core/host-context.tsx';
@@ -45,7 +48,7 @@ await build({
   outfile:path.join(buildDir,'studio.mjs'), bundle:true, packages:'external',
   platform:'node', format:'esm', target:'es2022', jsx:'automatic', logLevel:'silent',
 });
-const { SectionAITesting, TextStudioComposer, TextStudioResultState, MusicRecoveryPanel, StudioHistoryResultContext, textStudioMediaInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
+const { runLabCapability, WorldTourActions, LabRendererProvider, SectionAITesting, TextStudioComposer, TextStudioResultState, StudioJobRecoveryPanel, StudioHistoryResultContext, textStudioMediaInputAvailable, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 const { createStudioRunHistoryRecord, createRunConfigSnapshot, parseStudioRunHistory, studioVoiceRuntimeHandlers } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 const { SpeechAlignmentResultView, restoreStudioCapabilityRunResult } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 
@@ -683,20 +686,22 @@ test('music recovery opens success only after the workspace commits formal histo
   const calls = [], deferred = Promise.withResolvers();
   const host = { translate: key => key, locale: 'en',
     app: { events: { subscribeAIConfigRefresh: () => () => {} } },
-    sdk: { storage: { readJson: async () => ({ value: [entry] }) }, assets: { stat: async path => assets.get(path) },
+    sdk: { storage: { readJson: async () => ({ value: [entry] }) }, assets: { async read({ relativePath }) { const asset = assets.get(relativePath); return { asset, range: { offset: 0, length: asset.sizeBytes, totalSize: asset.sizeBytes }, body: (async function* () { yield new Uint8Array(asset.sizeBytes); })() }; } },
       runCapability: async input => { calls.push(input); return result; } } };
   const commits = [];
   const commit = async (...args) => { commits.push(args); await deferred.promise; return { id: 'formal-record' }; };
   const container = document.getElementById('root'), renderer = createRoot(container);
   try {
     await act(async () => renderer.render(createElement(AIStudioHostProvider, { value: host },
-      createElement(StudioHistoryResultContext.Provider, { value: commit }, createElement(MusicRecoveryPanel, { capability: 'audio.separate', disabled: false })))));
+      createElement(StudioHistoryResultContext.Provider, { value: commit }, createElement(StudioJobRecoveryPanel, { capability: 'audio.separate', disabled: false })))));
+    await openRecoveryRecords();
     const open = [...container.querySelectorAll('button')].find(button => button.textContent === 'Music.openSaved');
     await act(async () => open.click());
     assert.equal(commits.length, 1); assert.equal(commits[0][0], result); assert.equal(commits[0][1], 'original prompt');
-    assert.equal(container.querySelector('[data-audio-separation-range]'), null, 'uncommitted result is not presented as saved');
+    assert.equal(container.textContent.includes('Music.recovered'), false, 'uncommitted result is not presented as saved');
     await act(async () => { deferred.resolve(); await deferred.promise; });
-    assert.ok(container.querySelector('[data-audio-separation-range]'));
+    assert.ok(container.textContent.includes('Music.recovered'));
+    assert.equal(container.querySelector('details.studio-recovery').open, false, 'saved result returns space to the main result view');
     assert.equal(calls.length, 1); assert.equal(calls[0].parameters.recoverySubmissionId, 'synthetic-recovery');
   } finally { await act(async () => renderer.unmount()); }
 });
@@ -979,3 +984,106 @@ for(const geometry of ['box','point']) for(const withDraft of [false,true]) {
   }finally{globalThis.FileReader=previousReader;await act(async()=>renderer.unmount())}
  });
 }
+
+
+test('leaving recovery detaches the view without requesting Cancel on the original Job', async () => {
+  const pending = Promise.withResolvers(); const calls = []; let commits = 0;
+  const host = { translate: key => key, locale: 'en', app: { events: { subscribeAIConfigRefresh: () => () => {} } },
+    sdk: { storage: { readJson: async () => ({ value: [{ clientSubmissionId: 'saved-action', createdAt: '2026-10-05T00:00:00Z' }] }) }, assets: {},
+      runCapability: input => { calls.push(input); return pending.promise; } } };
+  const renderer = createRoot(document.getElementById('root'));
+  await act(async () => renderer.render(createElement(AIStudioHostProvider, { value: host }, createElement(StudioHistoryResultContext.Provider, { value: async () => { commits++; } }, createElement(StudioJobRecoveryPanel, { capability: 'audio.transcribe', disabled: false })))));
+  await openRecoveryRecords();
+  const button = [...document.querySelectorAll('button')].find(item => item.textContent === 'Music.recover');
+  await act(async () => button.click());
+  assert.equal(calls.length, 1);
+  await act(async () => renderer.unmount());
+  assert.equal(calls[0].observationSignal.aborted, true); assert.equal(calls[0].signal.aborted, false);
+  await act(async () => pending.resolve({ ok: true, capabilityId: 'audio.transcribe', message: 'late completed result', output: { kind: 'transcript', jobId: 'original', jobState: 'completed', text: 'late transcript', artifactCount: 0 } }));
+  assert.equal(commits, 0, 'a late successful result cannot start History commit after detach');
+});
+
+
+for (const stop of ['leave-view', 'cancel-open']) {
+  test(`saved-result ${stop} stops the actual reader and commits no History; list refresh reads no media`, async () => {
+    const asset = name => ({ relativePath: `saved/${name}.wav`, mediaType: 'audio/wav', sizeBytes: 58, sha256: 'sha256:' + 'a'.repeat(64), previewSource: 'managed-asset' });
+    const sourceAudio = asset('source'), vocals = asset('vocals'), background = asset('background');
+    const entry = { clientSubmissionId: 'saved-reader-action', createdAt: '2026-10-05T00:00:00Z', sourceAudio, message: 'saved',
+      result: { ok: true, kind: 'artifacts', summary: 'saved', jobId: 'original-job', jobState: 'completed', artifactCount: 2,
+        artifacts: [vocals, background], firstArtifact: vocals, audioSeparation: { sourceAudio, vocals, background } } };
+    const metadata = new Map([sourceAudio, vocals, background].map(value => [value.relativePath, value]));
+    const entered = Promise.withResolvers(), next = Promise.withResolvers(); let reads = 0, returns = 0, commits = 0, cancels = 0, refresh;
+    const assets = { read: async ({ relativePath }) => {
+      reads++; const value = metadata.get(relativePath);
+      return { asset: value, range: { offset: 0, length: value.sizeBytes, totalSize: value.sizeBytes }, body: {
+        [Symbol.asyncIterator]: () => ({ next: () => { entered.resolve(); return next.promise; }, return: async () => { returns++; next.resolve({ done: true }); return { done: true }; } }),
+      } };
+    } };
+    const client = { storage: { readJson: async () => ({ value: [entry] }), assets }, ai: { scenarioJobs: { cancel: async () => { cancels++; } } } };
+    const host = { translate: key => key, locale: 'en', app: { events: { subscribeAIConfigRefresh: callback => { refresh = callback; return () => {}; } } },
+      sdk: { storage: client.storage, assets, runCapability: input => runLabCapability(input, {
+        getRuntimeProjection: async () => ({ status: 'ready', mode: 'local-app' }), getLocalAppClient: () => client,
+      }) } };
+    const renderer = createRoot(document.getElementById('root')); let unmounted = false;
+    try {
+      await act(async () => renderer.render(createElement(AIStudioHostProvider, { value: host },
+        createElement(StudioHistoryResultContext.Provider, { value: async () => { commits++; } }, createElement(StudioJobRecoveryPanel, { capability: 'audio.separate', disabled: false })))));
+      await act(async () => refresh()); assert.equal(reads, 0);
+      await openRecoveryRecords();
+      await act(async () => [...document.querySelectorAll('button')].find(item => item.textContent === 'Music.openSaved').click());
+      await entered.promise; assert.equal(reads, 1);
+      if (stop === 'leave-view') { await act(async () => renderer.unmount()); unmounted = true; }
+      else await act(async () => [...document.querySelectorAll('button')].find(item => item.textContent === 'Music.cancelJob').click());
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+      assert.equal(returns, 1); assert.equal(reads, 1); assert.equal(commits, 0); assert.equal(cancels, 0);
+    } finally { if (!unmounted) await act(async () => renderer.unmount()); }
+  });
+}
+
+test('World Resume respects the main run disabled state', async () => {
+  let resumes = 0;
+  const host = { app: { commands: { resumeWorldTour: async () => { resumes++; } } } };
+  const renderer = createRoot(document.getElementById('root'));
+  try {
+    await act(async () => renderer.render(createElement(LabRendererProvider, { bindings: host }, createElement(WorldTourActions, { disabled: true, parameters: { inputMode: 'text' }, onChange: () => {} }))));
+    const resume = [...document.querySelectorAll('button')].find(item => item.textContent === labTranslate('WorldTour.resume'));
+    assert.ok(resume); assert.equal(resume.disabled, true); await act(async () => resume.click()); assert.equal(resumes, 0);
+  } finally { await act(async () => renderer.unmount()); }
+});
+
+
+async function openRecoveryRecords() {
+  const details = document.querySelector('details.studio-recovery');
+  assert.ok(details, 'saved task records have a discoverable disclosure');
+  if (!details.open) await act(async () => details.querySelector('summary').click());
+  assert.equal(details.open, true);
+  return details;
+}
+
+test('recovery records stay compact by default; folding only changes presentation and Cancel stays explicit', async () => {
+  const pending = Promise.withResolvers(); const calls = [];
+  const host = { translate: key => key, locale: 'en', app: { events: { subscribeAIConfigRefresh: () => () => {} } },
+    sdk: { storage: { readJson: async () => ({ value: [
+      { clientSubmissionId: 'action-a', createdAt: '2026-10-10T07:09:29Z' },
+      { clientSubmissionId: 'action-b', createdAt: '2026-10-10T06:49:17Z' },
+    ] }) }, assets: { read: async () => assert.fail('a collapsed record list must not read media') },
+      runCapability: input => { calls.push(input); return pending.promise; } } };
+  const renderer = createRoot(document.getElementById('root'));
+  try {
+    await act(async () => renderer.render(createElement(AIStudioHostProvider, { value: host }, createElement(StudioJobRecoveryPanel, { disabled: false }))));
+    const details = document.querySelector('details.studio-recovery');
+    assert.equal(details.open, false); assert.match(details.querySelector('summary').textContent, /Music.recoveryTitle.*\(2\)/);
+    assert.equal(calls.length, 0);
+    await openRecoveryRecords();
+    await act(async () => [...details.querySelectorAll('button')].find(item => item.textContent === 'Music.recover').click());
+    await act(async () => details.querySelector('summary').click());
+    assert.equal(details.open, false); assert.equal(calls[0].signal.aborted, false); assert.equal(calls[0].observationSignal.aborted, false);
+    assert.ok(details.querySelector('summary').textContent.includes('Music.recovering'));
+    await openRecoveryRecords();
+    await act(async () => [...details.querySelectorAll('button')].find(item => item.textContent === 'Music.cancelJob').click());
+    assert.equal(calls[0].signal.aborted, true); assert.equal(calls[0].observationSignal.aborted, false);
+    await act(async () => pending.resolve({ ok: false, capabilityId: 'music.generate', reason: 'runtime-canceled', message: 'Owner canceled original Job' }));
+    assert.equal(details.open, true); assert.ok(details.textContent.includes('Owner canceled original Job'));
+    assert.ok(details.querySelector('summary').textContent.includes('Music.recoveryNeedsAttention'));
+  } finally { await act(async () => renderer.unmount()); }
+});

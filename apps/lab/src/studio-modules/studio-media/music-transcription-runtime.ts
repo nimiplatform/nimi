@@ -1,4 +1,4 @@
-import { beginMusicRecovery, readMusicRecovery, restoreSavedMusicResult, saveMusicRecoveryResult } from './music-recovery.js';
+import { beginStudioJobRecovery, recordedStudioScenarioJobClient, recoverStudioJobId, readStudioJobRecovery, restoreSavedStudioJobResult, saveStudioJobRecoveryResult, studioJobRecoverySignal } from '../../ai-studio-core/job-recovery.js';
 import { createStudioScenarioJobClient, projectStudioArtifactRunnerResult, type StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
 import type { StudioManagedArtifact } from '../../ai-studio-core/runtime-types.js';
 import type { StudioMusicTranscriptionParameters } from './parameters.js';
@@ -8,15 +8,15 @@ export async function runMusicTranscribe(context: StudioCapabilityRuntimeContext
   const parameters = context.input.parameters as StudioMusicTranscriptionParameters | undefined;
   const client = context.host.client; const signal = context.input.signal;
   if (parameters?.recoverySubmissionId) {
-    const entry = (await readMusicRecovery(client.storage, 'music.transcribe')).find(item => item.clientSubmissionId === parameters.recoverySubmissionId);
+    const entry = (await readStudioJobRecovery(client.storage, 'music.transcribe')).find(item => item.clientSubmissionId === parameters.recoverySubmissionId);
     if (!entry?.sourceAudio) throw new Error(context.host.translate('Music.recoveryMissing'));
-    const saved = await restoreSavedMusicResult(entry, context.capability.label, 'music.transcribe', client.storage.assets);
+    const saved = await restoreSavedStudioJobResult(entry, context.capability.label, 'music.transcribe', client.storage.assets, studioJobRecoverySignal(context.input));
     if (saved) return saved;
-    const found = await client.ai.scenarioJobs.lookupSubmission(entry.clientSubmissionId);
+    const recoveredJobId = await recoverStudioJobId(client, entry, 'music.transcribe');
     const result = await context.host.runners.musicTranscriptionObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
-      jobId: found.job.jobId, signal, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
+      jobId: recoveredJobId, signal: context.input.observationSignal, cancelSignal: signal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
     const projected = await projectStudioArtifactRunnerResult({ ...context, musicSourceAudio: entry.sourceAudio }, result);
-    await saveMusicRecoveryResult(client.storage, entry.clientSubmissionId, projected, 'music.transcribe');
+    await saveStudioJobRecoveryResult(client.storage, entry.clientSubmissionId, projected, 'music.transcribe');
     return projected;
   }
   const invalid = () => context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Transcription.configureInputs'));
@@ -50,18 +50,15 @@ export async function runMusicTranscribe(context: StudioCapabilityRuntimeContext
   try {
     signal?.throwIfAborted();
     if (adopted.sizeBytes !== prepared.sizeBytes || adopted.mediaType !== prepared.mimeType) throw new Error('Canonical source adoption changed metadata');
-    clientSubmissionId = await beginMusicRecovery(client.storage, 'music.transcribe', sourceAudio, undefined,
+    clientSubmissionId = await beginStudioJobRecovery(client.storage, 'music.transcribe', sourceAudio, undefined,
       undefined, context.input.recordedRunConfig, context.input.prompt);
   } catch (cause) { await client.storage.assets.remove(adopted.relativePath); throw cause; }
-  const api = client.ai;
-  const scenarioClient = context.host.createScenarioJobClient({ ...api, scenarioJobs: { ...api.scenarioJobs,
-    submit: (spec, options) => api.scenarioJobs.submit(spec, { ...options, clientSubmissionId }),
-  } });
+  const scenarioClient = recordedStudioScenarioJobClient(context, clientSubmissionId, 'music.transcribe');
   const result = await context.host.runners.musicTranscribe({ runtime: { ai: scenarioClient }, appId: context.host.appId,
     sourceAudio: { artifactId: prepared.artifactId, ...(hasRange ? { range: { startFrame, endFrame } } : {}) },
     requestedFormats: formats, requestedParts: [part], scenarioId: context.scenarioId, surfaceId: context.host.surfaceId,
-    signal, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
+    signal, observationSignal: context.input.observationSignal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
   const projected = await projectStudioArtifactRunnerResult({ ...context, musicSourceAudio: sourceAudio }, result);
-  await saveMusicRecoveryResult(client.storage, clientSubmissionId, projected, 'music.transcribe');
+  await saveStudioJobRecoveryResult(client.storage, clientSubmissionId, projected, 'music.transcribe');
   return projected;
 }

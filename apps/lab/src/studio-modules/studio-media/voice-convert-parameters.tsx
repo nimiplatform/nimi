@@ -3,7 +3,6 @@ import { Button, SelectField } from '@nimiplatform/kit/ui';
 import type { NimiVoiceConvertInputProfile } from '@nimiplatform/sdk/ai';
 import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
 import { StudioNumberParameter, StudioParameterField, StudioTextParameter, type StudioParameterPanelProps } from '../../ai-studio-core/parameter-fields.js';
-import { MusicRecoveryPanel } from './music-recovery-panel.js';
 import type { StudioVoiceConvertParameters } from './parameters.js';
 
 type VoiceTargetKind = NonNullable<StudioVoiceConvertParameters['targetKind']>;
@@ -129,6 +128,5 @@ export function VoiceConvertFields(props: StudioParameterPanelProps) {
     </> : null}
     <p className="text-sm opacity-70">{t('VoiceConvert.preparationHint')}</p>
     {error ? <p role="alert">{error}</p> : null}
-    <MusicRecoveryPanel capability="audio.voice.convert" disabled={disabled} />
   </div>;
 }

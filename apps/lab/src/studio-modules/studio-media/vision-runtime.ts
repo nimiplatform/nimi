@@ -1,7 +1,8 @@
-import { runNimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
+import type { StudioManagedArtifact } from '../../ai-studio-core/runtime-types.js';
+import { runNimiRuntimeScenarioJob, observeNimiRuntimeScenarioJob, type NimiRuntimeScenarioJobResult } from '@nimiplatform/sdk/runtime';
 import { ExecutionMode, ScenarioType, VisionLocateGeometry, type VisionLocateResult } from '@nimiplatform/sdk/runtime/generated';
 import type { NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
-import { createStudioScenarioJobClient, type StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
+import { createStudioScenarioJobClient, recoverStudioJobAction, adoptStudioJobArtifact, managedStudioAssetPath, type StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
 
 function localVisionResult(result: VisionLocateResult): NimiLocalAppVisionLocateResult {
   return { imageArtifactId: result.imageArtifactId, width: result.width, height: result.height,
@@ -17,6 +18,16 @@ function localVisionResult(result: VisionLocateResult): NimiLocalAppVisionLocate
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r102
 export async function runVisionLocate(context: StudioCapabilityRuntimeContext) {
+  const recovery = await recoverStudioJobAction(context, ScenarioType.VISION_LOCATE);
+  if (recovery) {
+    if (recovery.saved) return recovery.saved;
+    const details = recovery.entry.details;
+    if (!details?.sourceImage || !details.expectedVision) throw new Error('Saved Locate action is incomplete');
+    const result = await observeNimiRuntimeScenarioJob({ ai: createStudioScenarioJobClient(context), jobId: recovery.jobId!, scenarioType: ScenarioType.VISION_LOCATE,
+      expectedVision: details.expectedVision, signal: context.input.observationSignal, cancelSignal: context.input.signal,
+      abortReason: context.host.abortReason, onObservation: context.input.onObservation, onJobUpdate: context.input.onJobUpdate });
+    return projectLocateResult(context, result, details.sourceImage);
+  }
   const t = context.host.translate;
   const abortedBeforeSubmit = () => context.host.nonSuccess(context.capability, 'operation-aborted', t('VisionLocate.stoppedBeforeSubmit'));
   const images = context.input.attachments ?? [];
@@ -38,28 +49,28 @@ export async function runVisionLocate(context: StudioCapabilityRuntimeContext) {
     throw error;
   }
   if (context.input.signal?.aborted) return abortedBeforeSubmit();
+  const { asset } = await adoptStudioJobArtifact(context, upload, await managedStudioAssetPath('vision.locate.source', upload.artifactId, 0));
+  const sourceImage: StudioManagedArtifact = { ...asset, displayName: image.name, previewSource: 'managed-asset' };
   const result = await runNimiRuntimeScenarioJob({
-    ai: createStudioScenarioJobClient(context),
+    ai: createStudioScenarioJobClient(context, { sourceImage }),
     request: {
       head: { appId: context.host.appId, subjectUserId: '', timeoutMs: 0 }, scenarioType: ScenarioType.VISION_LOCATE, executionMode: ExecutionMode.ASYNC_JOB,
       spec: { spec: { oneofKind: 'visionLocate', visionLocate: { imageArtifactId: upload.artifactId, query: context.prompt, geometry: context.input.parameters?.geometry === 'point' ? VisionLocateGeometry.POINT : VisionLocateGeometry.BOX } } },
       requestId: '', idempotencyKey: '', labels: {}, extensions: [],
     },
-    signal: context.input.signal, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate,
+    signal: context.input.signal, observationSignal: context.input.observationSignal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate,
   });
+  return projectLocateResult(context, result, sourceImage, image.dataUrl);
+}
+
+function projectLocateResult(context: StudioCapabilityRuntimeContext, result: NimiRuntimeScenarioJobResult, sourceImage: StudioManagedArtifact, imagePreviewUrl?: string) {
+  const t = context.host.translate;
   if (!result.visionLocate) throw new Error(t('VisionLocate.resultMissing'));
   const locate = localVisionResult(result.visionLocate);
-  // Only the original result association selects the image to retain. Commit
-  // its App-owned copy before publishing a persistable successful result.
-  const adopted = await context.host.client.storage.assets.adoptArtifact({
-    artifactId: locate.imageArtifactId, relativePath: `media/vision-locate/${result.job.jobId}/source.asset`, overwrite: false,
-  });
-  const sourceImage = { relativePath: adopted.relativePath, mediaType: adopted.mediaType, sizeBytes: adopted.sizeBytes,
-    sha256: adopted.sha256, displayName: image.name, previewSource: 'managed-asset' as const };
   return {
     ok: true as const, capabilityId: context.capability.id, capabilityLabel: context.capability.label,
     message: t(locate.locations.length ? 'VisionLocate.found' : 'VisionLocate.noMatch', { count: locate.locations.length }),
-    output: { kind: 'vision-locate' as const, jobId: result.job.jobId, result: locate, sourceImage, imagePreviewUrl: image.dataUrl },
+    output: { kind: 'vision-locate' as const, jobId: result.job.jobId, result: locate, sourceImage, ...(imagePreviewUrl ? { imagePreviewUrl } : {}) },
     trace: { traceId: result.traceId },
   };
 }
