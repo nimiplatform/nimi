@@ -39,17 +39,18 @@ type heldLoadoutPrepare struct {
 }
 
 type resolvedLoadoutAxis struct {
-	slot               *runtimev1.LoadoutModelAxis
-	requirement        *runtimev1.LocalCapabilityRequirement
-	binding            *runtimev1.ModelAssetExactBinding
-	descriptor         capabilitydriver.ModelAssetDescriptor
-	absolutePath       string
-	bundleDir          string
-	declaredFiles      []string
-	entrySHA256        string
-	contextWindow      uint64
-	embeddingDimension int
-	templateIdentity   string
+	slot                   *runtimev1.LoadoutModelAxis
+	requirement            *runtimev1.LocalCapabilityRequirement
+	binding                *runtimev1.ModelAssetExactBinding
+	descriptor             capabilitydriver.ModelAssetDescriptor
+	absolutePath           string
+	bundleDir              string
+	declaredFiles          []string
+	entrySHA256            string
+	contextWindow          uint64
+	embeddingDimension     int
+	embeddingInputProtocol string
+	templateIdentity       string
 }
 
 type loadoutValidationResult struct {
@@ -1318,7 +1319,7 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, 
 		slot: cloneLoadoutAxis(axis), requirement: cloneLocalCapabilityRequirement(requirement), binding: binding, descriptor: projection.Descriptor,
 		absolutePath: filepath.Clean(entryPath), bundleDir: filepath.Clean(directory), declaredFiles: append([]string(nil), declaredFiles...),
 		entrySHA256: entrySHA, contextWindow: projection.ModelContextWindowTokens, embeddingDimension: projection.EmbeddingDimension,
-		templateIdentity: projection.TemplateIdentity,
+		templateIdentity: projection.TemplateIdentity, embeddingInputProtocol: projection.EmbeddingInputProtocol,
 	}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 }
 

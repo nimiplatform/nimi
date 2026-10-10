@@ -179,7 +179,7 @@ func (s *Service) bindCloudEmbedRequest(ctx context.Context, binding *cloudEmbed
 	if err != nil {
 		return nil, cloudEmbedDriverError(err)
 	}
-	effective.request = &runtimev1.TextEmbedScenarioSpec{Inputs: mapped.Inputs(), Dimensions: mapped.Dimensions()}
+	effective.request = &runtimev1.TextEmbedScenarioSpec{Inputs: mapped.Inputs(), Dimensions: mapped.Dimensions(), Purpose: spec.GetPurpose()}
 	if dimensions := mapped.Dimensions(); dimensions != nil {
 		if int(*dimensions) > binding.dimension {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -267,6 +267,9 @@ func (s *Service) resolveCloudEmbedConsumerIntent(ctx context.Context, head *run
 }
 
 func cloudEmbedDriverError(err error) error {
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		return err
+	}
 	var driverErr *capabilitydriver.CloudInvocationError
 	if !errors.As(err, &driverErr) {
 		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{})

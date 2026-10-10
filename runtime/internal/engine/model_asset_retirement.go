@@ -184,6 +184,18 @@ func (host *TextAnnotationExecutionHost) RetireModelAsset(id string) (bool, erro
 	return host.residentModelAssets.retire(id, host.stop)
 }
 
+func (host *SpeakerEmbeddingExecutionHost) RetireModelAsset(id string) (bool, error) {
+	if host == nil || !host.residentModelAssets.uses(id) {
+		return true, nil
+	}
+	release, ok := host.lease.tryAcquireIdle()
+	if !ok {
+		return false, nil
+	}
+	defer release()
+	return host.residentModelAssets.retire(id, host.stop)
+}
+
 func (host *FaceSwapExecutionHost) RetireModelAsset(id string) (bool, error) {
 	if !host.residentModelAssets.uses(id) {
 		return true, nil

@@ -45,6 +45,7 @@ enum ScenarioType {
   SCENARIO_TYPE_MUSIC_TRANSCRIBE = 17;
   SCENARIO_TYPE_AUDIO_VOICE_CONVERT = 18;
   SCENARIO_TYPE_TEXT_DECIDE = 19;
+  SCENARIO_TYPE_AUDIO_SPEAKER_EMBED = 20;
 }
 
 enum ExecutionMode {
@@ -387,9 +388,16 @@ message TextGenerateScenarioSpec {
   bool include_raw_chunks = 16;
 }
 
+enum TextEmbedPurpose {
+  TEXT_EMBED_PURPOSE_UNSPECIFIED = 0;
+  TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT = 1;
+  TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY = 2;
+}
+
 message TextEmbedScenarioSpec {
   repeated string inputs = 1;
   optional uint32 dimensions = 2;
+  TextEmbedPurpose purpose = 3;
 }
 
 message ImageGenerateScenarioSpec {
@@ -543,6 +551,15 @@ message AudioSeparateScenarioSpec {
   // Requests non-vocal instrument stems. They are returned only when the
   // selected implementation actually produced them.
   bool include_instrument_parts = 4;
+}
+
+// Independent short-audio speaker representation. This contains no person,
+// profile, authentication decision, route or model selection.
+message AudioSpeakerEmbedScenarioSpec {
+  string mime_type = 1;
+  SpeechTranscriptionAudioSource audio_source = 2;
+  // Owned canonical audio source, mutually exclusive with audio_source.
+  MusicAudioInput source_audio = 3;
 }
 
 enum AudioInstrumentPartKind {
@@ -944,6 +961,7 @@ message ScenarioSpec {
     MusicTranscribeScenarioSpec music_transcribe = 17;
     AudioVoiceConvertScenarioSpec audio_voice_convert = 18;
     TextDecideScenarioSpec text_decide = 19;
+    AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 20;
   }
   reserved 7, 8;
   reserved "voice_clone", "voice_design";
@@ -983,6 +1001,13 @@ message TextEmbedOutput {
   string space_id = 2;
 }
 
+message AudioSpeakerEmbedResult {
+  EmbeddingVector vector = 1;
+  // Compatibility identity of the captured speaker-representation semantics.
+  // A same-width acoustic/semantic vector is never interchangeable.
+  string space_id = 2;
+}
+
 message ImageGenerateResult {
   repeated ScenarioArtifact artifacts = 1;
 }
@@ -1016,6 +1041,27 @@ message SpeechTranscriptWord {
   double end_seconds = 3;
 }
 
+enum SpeechDiarizationStatus {
+  SPEECH_DIARIZATION_STATUS_UNSPECIFIED = 0;
+  SPEECH_DIARIZATION_STATUS_DIARIZED = 1;
+  SPEECH_DIARIZATION_STATUS_NO_SPEAKERS = 2;
+}
+
+message SpeechSpeakerInterval {
+  // Opaque model speaker label scoped to this Job, never a person/profile ID.
+  string speaker_id = 1;
+  double start_seconds = 2;
+  double end_seconds = 3;
+}
+
+message SpeechDiarization {
+  SpeechDiarizationStatus status = 1;
+  // Actual decoded source duration. Intervals stay within this source domain.
+  double duration_seconds = 2;
+  // Ordered by start; actual overlapping speakers may retain overlapping spans.
+  repeated SpeechSpeakerInterval intervals = 3;
+}
+
 message SpeechTranscript {
   SpeechTranscriptStatus status = 1;
   string text = 2;
@@ -1023,6 +1069,8 @@ message SpeechTranscript {
   string language = 3;
   // Actual alignment units, relative to the submitted audio beginning.
   repeated SpeechTranscriptWord words = 4;
+  // Present only when the admitted execution performed requested diarization.
+  SpeechDiarization diarization = 5;
 }
 
 message SpeechTranscribeResult {
@@ -1136,6 +1184,7 @@ message ScenarioOutput {
     MusicTranscribeResult music_transcribe = 13;
     AudioVoiceConvertResult audio_voice_convert = 14;
     TextDecisionResult text_decision = 15;
+    AudioSpeakerEmbedResult audio_speaker_embed = 16;
   }
 }
 
@@ -1216,6 +1265,7 @@ message LocalAppScenarioArtifact {
 message LocalAppTextEmbedScenarioSpec {
   repeated string inputs = 1;
   optional uint32 dimensions = 2;
+  TextEmbedPurpose purpose = 3;
 }
 
 message LocalAppImageGenerateScenarioSpec {
@@ -1374,6 +1424,7 @@ message SubmitLocalAppScenarioJobRequest {
     TextAnnotateScenarioSpec text_annotate = 15;
     MusicTranscribeScenarioSpec music_transcribe = 17;
     AudioVoiceConvertScenarioSpec audio_voice_convert = 18;
+    AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 19;
   }
   // Withdrawn Job control: absent/0 only; every nonzero value is rejected
   // before route/capture/dispatch. Never controls a technical call budget.
@@ -1424,6 +1475,8 @@ message LocalAppScenarioJob {
   VoiceConversion voice_conversion = 22;
   ScenarioJobSubmissionOutcome submission_outcome = 23;
   ScenarioJobStopOutcome stop_outcome = 24;
+  // Present only for a completed AUDIO_SPEAKER_EMBED Job.
+  AudioSpeakerEmbedResult speaker_embedding = 25;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -1813,6 +1866,7 @@ message ScenarioJob {
   ScenarioJobSubmissionOutcome submission_outcome = 34;
   // Present only for CANCELED, whether local Cancel or confirmed provider cancellation.
   ScenarioJobStopOutcome stop_outcome = 35;
+  AudioSpeakerEmbedResult speaker_embedding = 36;
 }
 
 message SubmitScenarioJobRequest {

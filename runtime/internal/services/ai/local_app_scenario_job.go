@@ -257,6 +257,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SPEAKER_EMBED,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
@@ -342,6 +343,16 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		return invalid()
 	}
 	var annotation *runtimev1.TextAnnotationResult
+	var speakerEmbedding *runtimev1.AudioSpeakerEmbedResult
+	if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SPEAKER_EMBED && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		result := job.GetSpeakerEmbedding()
+		if err := localexecution.ValidateSpeakerEmbeddingResult(result, len(result.GetVector().GetValues()), true); err != nil {
+			return invalid()
+		}
+		speakerEmbedding = cloneAudioSpeakerEmbedResult(result)
+	} else if job.GetSpeakerEmbedding() != nil {
+		return invalid()
+	}
 	if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		if job.GetTextAnnotation() == nil {
 			return invalid()
@@ -363,6 +374,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	}
 	return &runtimev1.LocalAppScenarioJob{
 		TextAnnotation:       annotation,
+		SpeakerEmbedding:     speakerEmbedding,
 		VideoFaceSwapSummary: videoSummary,
 		JobId:                job.GetJobId(),
 		ScenarioType:         job.GetScenarioType(),
@@ -443,6 +455,12 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	switch spec := req.GetSpec().(type) {
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_AudioSpeakerEmbed:
+		input := spec.AudioSpeakerEmbed
+		if input == nil || (input.AudioSource == nil) == (input.SourceAudio == nil) || !localAppOptionalExactText(input.MimeType, 128) {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_AudioSpeakerEmbed{AudioSpeakerEmbed: proto.Clone(input).(*runtimev1.AudioSpeakerEmbedScenarioSpec)}}, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SPEAKER_EMBED, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_VideoFaceSwap:
 		if err := validateVideoFaceSwapSpec(spec.VideoFaceSwap); err != nil {
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err

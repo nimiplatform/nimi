@@ -176,7 +176,7 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 	var transcription *runtimev1.SpeechTranscript
 	var separation *runtimev1.AudioSeparation
 	if err == nil {
-		transcription, err = s.captureScenarioTranscriptionResult(ctx, effective.scenarioType, bound, effective.transcribePlan != nil && effective.transcribePlan.Request().GetTimestamps())
+		transcription, err = s.captureScenarioTranscriptionResult(ctx, effective.scenarioType, bound, effective.transcribePlan != nil && effective.transcribePlan.Request().GetTimestamps(), effective.transcribePlan != nil && effective.transcribePlan.Request().GetDiarization())
 	}
 	if err == nil && effective.scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE {
 		if len(bound) >= 2 {

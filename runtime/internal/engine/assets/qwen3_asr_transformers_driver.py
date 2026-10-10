@@ -295,6 +295,40 @@ def restore_alignment_words(text: str, rows: list[dict[str, Any]], duration: flo
 
 
 # @nimi-authority: rule.nimi.runtime.ai-provider.qwen3-transformers-aligned-transcription
+def transcription_context(request: dict[str, Any]) -> str:
+    value = request.get("prompt", "")
+    if not isinstance(value, str):
+        fail("Qwen vocabulary context must be text")
+    try:
+        size = len(value.encode("utf-8"))
+    except UnicodeEncodeError:
+        fail("Qwen vocabulary context must be valid UTF-8")
+    if size > 4096:
+        fail("Qwen vocabulary context exceeds 4 KiB")
+    return value
+
+
+def transcription_inputs(processor: Any, audio_path: str, language: str | None, prompt: str) -> Any:
+    # The pinned processor's convenience helper forwards arbitrary kwargs but
+    # does not put prompt in its messages. Context must not be silently dropped
+    # or confused with a language hint in the actual ASR chat protocol.
+    messages = [
+        {"role": "system", "content": [{"type": "text", "text": prompt}]},
+        {"role": "user", "content": [{"type": "audio", "path": audio_path}]},
+    ]
+    if language is not None:
+        key = language.lower()
+        code = _LANGUAGE_CODES.get(key, key)
+        names = {value: name.title() for name, value in _LANGUAGE_CODES.items()}
+        if code not in names:
+            fail("unsupported Qwen transcription language")
+        messages.append({"role": "assistant", "content": [{"type": "text", "text": f"language {names[code]}<asr_text>"}]})
+    return processor.apply_chat_template([messages], tokenize=True, return_dict=True,
+                                         add_generation_prompt=language is None,
+                                         continue_final_message=language is not None)
+
+
+# @nimi-authority: rule.nimi.runtime.ai-provider.qwen3-transformers-aligned-transcription
 def handle_transcribe(request: dict[str, Any]) -> dict[str, Any]:
     alignment = request.get("alignment")
     timed = bool_request(request, "timestamps")
@@ -302,8 +336,7 @@ def handle_transcribe(request: dict[str, Any]) -> dict[str, Any]:
         fail("Transformers-native Qwen3-ASR timestamps require a captured aligner")
     if bool_request(request, "diarization") or int(request.get("speaker_count") or 0) != 0:
         fail("Transformers-native Qwen3-ASR diarization is not admitted")
-    if optional_string(request, "prompt"):
-        fail("Transformers-native Qwen3-ASR prompt is not admitted")
+    prompt = transcription_context(request)
     audio_path = require_string(request, "audio_path")
     if not pathlib.Path(audio_path).is_file():
         fail("audio_path does not exist")
@@ -320,7 +353,7 @@ def handle_transcribe(request: dict[str, Any]) -> dict[str, Any]:
                     fail("audio input has no valid duration")
                 if duration > 300:
                     fail("aligned transcription accepts audio up to 300 seconds; split the source and retain its offset")
-            inputs = processor.apply_transcription_request(audio=normalized_audio_path, language=language)
+            inputs = transcription_inputs(processor, normalized_audio_path, language, prompt)
             inputs = inputs.to(model.device, model.dtype)
             budget = max(max_new_tokens(), 8192) if alignment is not None else max_new_tokens()
             output_ids = model.generate(**inputs, max_new_tokens=budget)

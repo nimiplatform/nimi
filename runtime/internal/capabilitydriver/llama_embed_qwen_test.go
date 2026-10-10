@@ -70,7 +70,7 @@ func TestQwen3EmbeddingPlanCapturesSingleSlotLastPooling(t *testing.T) {
 	portable, _ := structpb.NewStruct(map[string]any{"contextSize": 8192, "gpuLayers": 99})
 	plan, err := (LlamaEmbedDriver{}).PlanEmbedInvocation(EmbedInvocationInput{RecipeID: LlamaQwen3EmbedRecipeID,
 		PortableConfig: portable, ModelContextWindowTokens: 32768,
-		ExactBindings: []InvocationExactBinding{{RequirementID: EmbeddingGGUFRequirementID, ModelAssetID: "qwen-asset",
+		ExactBindings: []InvocationExactBinding{{EmbeddingInputProtocol: EmbeddingInputNativeV1, RequirementID: EmbeddingGGUFRequirementID, ModelAssetID: "qwen-asset",
 			AbsolutePath: filepath.Join(t.TempDir(), "qwen3.gguf"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
 		Request: &runtimev1.TextEmbedScenarioSpec{Inputs: []string{"red fox", "winter fox"}}})
 	if err != nil {

@@ -14,6 +14,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const memoryEmbeddingBatchSize = 10
@@ -86,7 +88,16 @@ func (s *Service) resolveMemoryEmbeddingSelection(ctx context.Context) (*memoryE
 		}
 		selected.Dimension = int(dimension)
 		identity := normalizedEmbeddingIdentity(projectLoadoutEffectiveInputIdentity(selected.local))
-		selected.SpaceID, err = embeddingSpaceIDForDimensions("local", "", selected.Dimension, identity)
+		parts := []proto.Message{identity}
+		if selected.local.ExactBindings[0].EmbeddingInputProtocol == capabilitydriver.EmbeddingInputNomicV1 {
+			family, _, familyErr := capabilitydriver.EmbeddingRepresentation(capabilitydriver.EmbeddingInputNomicV1, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT)
+			if familyErr != nil {
+				return nil, familyErr
+			}
+			semantics, _ := structpb.NewStruct(map[string]any{"embeddingRepresentation": family})
+			parts = append(parts, semantics)
+		}
+		selected.SpaceID, err = embeddingSpaceIDForDimensions("local", "", selected.Dimension, parts...)
 	} else if intent.IsCloud() {
 		selected.cloud, err = s.captureCloudEmbedBinding(ctx, head)
 		if err != nil {
@@ -110,7 +121,7 @@ func memoryEmbeddingUnavailable() error {
 // @nimi-authority: rule.nimi.runtime.security-core.r064
 // Capture persists canonical ScenarioJobs and their complete assemblies before
 // returning the private delivery references. No provider I/O occurs here.
-func (s *Service) CaptureMemoryEmbedding(ctx context.Context, inputs []string, expectedSpaceID string, owner EmbeddingOwner) (_ MemoryEmbeddingDescription, _ []byte, resultErr error) {
+func (s *Service) CaptureMemoryEmbedding(ctx context.Context, inputs []string, expectedSpaceID string, owner EmbeddingOwner, purpose runtimev1.TextEmbedPurpose) (_ MemoryEmbeddingDescription, _ []byte, resultErr error) {
 	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
 	defer releaseModelAssets()
 
@@ -139,7 +150,7 @@ func (s *Service) CaptureMemoryEmbedding(ctx context.Context, inputs []string, e
 		}
 	}()
 	for offset := 0; offset < len(inputs); offset += memoryEmbeddingBatchSize {
-		spec := &runtimev1.TextEmbedScenarioSpec{Inputs: append([]string(nil), inputs[offset:min(offset+memoryEmbeddingBatchSize, len(inputs))]...)}
+		spec := &runtimev1.TextEmbedScenarioSpec{Inputs: append([]string(nil), inputs[offset:min(offset+memoryEmbeddingBatchSize, len(inputs))]...), Purpose: purpose}
 		var job *runtimev1.ScenarioJob
 		var preparedCtx context.Context
 		if selected.local != nil {

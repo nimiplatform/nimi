@@ -382,6 +382,8 @@ export type {
 } from '@nimiplatform/sdk/app';
 
 export { validateNimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
+export { validateNimiLocalAppSpeakerEmbedding, validateNimiLocalAppSpeakerEmbedSpec } from '@nimiplatform/sdk/app';
+export type { NimiLocalAppSpeakerEmbedding } from '@nimiplatform/sdk/app';
 export type { NimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppAudioSeparation } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult } from '@nimiplatform/sdk/app';

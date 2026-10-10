@@ -23,6 +23,9 @@ var speechQwen3ASRTransformersDriverScript string
 //go:embed assets/faster_whisper_driver.py
 var speechFasterWhisperDriverScript string
 
+//go:embed assets/speech_diarization.py
+var speechDiarizationScript string
+
 //go:embed assets/demucs_driver.py
 var speechDemucsDriverScript string
 

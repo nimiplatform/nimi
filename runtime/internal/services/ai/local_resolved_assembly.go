@@ -56,18 +56,19 @@ type localResolvedAssemblyDriverIdentity struct {
 }
 
 type localResolvedAssemblyModelAxis struct {
-	RequirementID     string                                       `json:"requirement_id"`
-	RequirementRole   runtimev1.LocalCapabilityRequirementRole     `json:"requirement_role"`
-	OccurrenceOrdinal uint32                                       `json:"occurrence_ordinal"`
-	Presence          runtimev1.LocalCapabilityRequirementPresence `json:"presence"`
-	DisplayLabel      string                                       `json:"display_label,omitempty"`
-	ModelAssetID      string                                       `json:"model_asset_id"`
-	AbsolutePath      string                                       `json:"absolute_path"`
-	BundleDir         string                                       `json:"bundle_dir,omitempty"`
-	DeclaredFiles     []string                                     `json:"declared_files,omitempty"`
-	VerifiedContentID string                                       `json:"verified_content_id"`
-	EntrySHA256       string                                       `json:"entry_sha256"`
-	TemplateIdentity  string                                       `json:"template_identity,omitempty"`
+	RequirementID          string                                       `json:"requirement_id"`
+	RequirementRole        runtimev1.LocalCapabilityRequirementRole     `json:"requirement_role"`
+	OccurrenceOrdinal      uint32                                       `json:"occurrence_ordinal"`
+	Presence               runtimev1.LocalCapabilityRequirementPresence `json:"presence"`
+	DisplayLabel           string                                       `json:"display_label,omitempty"`
+	ModelAssetID           string                                       `json:"model_asset_id"`
+	AbsolutePath           string                                       `json:"absolute_path"`
+	BundleDir              string                                       `json:"bundle_dir,omitempty"`
+	DeclaredFiles          []string                                     `json:"declared_files,omitempty"`
+	VerifiedContentID      string                                       `json:"verified_content_id"`
+	EntrySHA256            string                                       `json:"entry_sha256"`
+	TemplateIdentity       string                                       `json:"template_identity,omitempty"`
+	EmbeddingInputProtocol string                                       `json:"embedding_input_protocol,omitempty"`
 }
 
 type localResolvedAssemblyDependencySource struct {
@@ -97,17 +98,18 @@ type localResolvedAssemblyProcessIdentity struct {
 }
 
 type localResolvedAssemblyLoadPlan struct {
-	Annotation *localResolvedAssemblyAnnotationPlan `json:"annotation,omitempty"`
-	Kind       string                               `json:"kind"`
-	Text       *localResolvedAssemblyTextPlan       `json:"text,omitempty"`
-	Embed      *localResolvedAssemblyEmbedPlan      `json:"embed,omitempty"`
-	Speech     *localResolvedAssemblySpeechPlan     `json:"speech,omitempty"`
-	Image      *localResolvedAssemblyImagePlan      `json:"image,omitempty"`
-	Video      *localResolvedAssemblyVideoPlan      `json:"video,omitempty"`
-	Music      *localResolvedAssemblyMusicPlan      `json:"music,omitempty"`
-	Vision     *localResolvedAssemblyVisionPlan     `json:"vision,omitempty"`
-	FaceSwap   *localResolvedAssemblyFaceSwapPlan   `json:"face_swap,omitempty"`
-	Decision   *localResolvedAssemblyDecisionPlan   `json:"decision,omitempty"`
+	Annotation       *localResolvedAssemblyAnnotationPlan       `json:"annotation,omitempty"`
+	Kind             string                                     `json:"kind"`
+	Text             *localResolvedAssemblyTextPlan             `json:"text,omitempty"`
+	Embed            *localResolvedAssemblyEmbedPlan            `json:"embed,omitempty"`
+	Speech           *localResolvedAssemblySpeechPlan           `json:"speech,omitempty"`
+	Image            *localResolvedAssemblyImagePlan            `json:"image,omitempty"`
+	Video            *localResolvedAssemblyVideoPlan            `json:"video,omitempty"`
+	Music            *localResolvedAssemblyMusicPlan            `json:"music,omitempty"`
+	Vision           *localResolvedAssemblyVisionPlan           `json:"vision,omitempty"`
+	FaceSwap         *localResolvedAssemblyFaceSwapPlan         `json:"face_swap,omitempty"`
+	Decision         *localResolvedAssemblyDecisionPlan         `json:"decision,omitempty"`
+	SpeakerEmbedding *localResolvedAssemblySpeakerEmbeddingPlan `json:"speaker_embedding,omitempty"`
 }
 
 type localResolvedAssemblyMusicPlan struct {
@@ -143,14 +145,15 @@ type localResolvedAssemblyMusicPlan struct {
 }
 
 type localResolvedAssemblyInvocationBinding struct {
-	RequirementID     string   `json:"requirement_id"`
-	ModelAssetID      string   `json:"model_asset_id"`
-	AbsolutePath      string   `json:"absolute_path"`
-	BundleDir         string   `json:"bundle_dir,omitempty"`
-	DeclaredFiles     []string `json:"declared_files,omitempty"`
-	VerifiedContentID string   `json:"verified_content_id"`
-	EntrySHA256       string   `json:"entry_sha256"`
-	TemplateIdentity  string   `json:"template_identity,omitempty"`
+	RequirementID          string   `json:"requirement_id"`
+	ModelAssetID           string   `json:"model_asset_id"`
+	AbsolutePath           string   `json:"absolute_path"`
+	BundleDir              string   `json:"bundle_dir,omitempty"`
+	DeclaredFiles          []string `json:"declared_files,omitempty"`
+	VerifiedContentID      string   `json:"verified_content_id"`
+	EntrySHA256            string   `json:"entry_sha256"`
+	TemplateIdentity       string   `json:"template_identity,omitempty"`
+	EmbeddingInputProtocol string   `json:"embedding_input_protocol,omitempty"`
 }
 
 type localResolvedAssemblyTextBehaviorMatch struct {
@@ -177,13 +180,14 @@ type localResolvedAssemblyTextPlan struct {
 }
 
 type localResolvedAssemblyEmbedPlan struct {
-	ProcessKey          string                                   `json:"process_key"`
-	ProcessArgs         []string                                 `json:"process_args"`
-	ModelFiles          []localResolvedAssemblyInvocationBinding `json:"model_files"`
-	RequestPath         string                                   `json:"request_path"`
-	RequestBody         []byte                                   `json:"request_body"`
-	ExpectedCount       int                                      `json:"expected_count"`
-	ContextWindowTokens uint64                                   `json:"context_window_tokens"`
+	RepresentationFamily string                                   `json:"representation_family"`
+	ProcessKey           string                                   `json:"process_key"`
+	ProcessArgs          []string                                 `json:"process_args"`
+	ModelFiles           []localResolvedAssemblyInvocationBinding `json:"model_files"`
+	RequestPath          string                                   `json:"request_path"`
+	RequestBody          []byte                                   `json:"request_body"`
+	ExpectedCount        int                                      `json:"expected_count"`
+	ContextWindowTokens  uint64                                   `json:"context_window_tokens"`
 }
 
 type localResolvedAssemblySpeechPlan struct {
@@ -494,7 +498,7 @@ func newLocalResolvedAssembly(selected *localexecution.SelectedLocalExecution, r
 			ModelAssetID: strings.TrimSpace(binding.ModelAssetID), AbsolutePath: strings.TrimSpace(binding.AbsolutePath),
 			BundleDir: strings.TrimSpace(binding.BundleDir), DeclaredFiles: append([]string(nil), binding.DeclaredFiles...),
 			VerifiedContentID: strings.TrimSpace(binding.VerifiedContentID), EntrySHA256: strings.TrimSpace(binding.EntrySHA256),
-			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity),
+			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity), EmbeddingInputProtocol: strings.TrimSpace(binding.EmbeddingInputProtocol),
 		})
 	}
 	for _, custody := range selected.RecipeCustody {
@@ -600,7 +604,7 @@ func localResolvedAssemblyForEmbed(selected *localexecution.SelectedLocalExecuti
 	assembly.EmbeddingDimension = selected.EmbeddingDimension
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "embed", Embed: &localResolvedAssemblyEmbedPlan{
 		ProcessKey: plan.ProcessKey(), ProcessArgs: plan.ProcessArgs(), ModelFiles: resolvedAssemblyInvocationBindings(plan.ModelFiles()),
-		RequestPath: plan.RequestPath(), RequestBody: plan.RequestBody(), ExpectedCount: plan.ExpectedCount(),
+		RequestPath: plan.RequestPath(), RequestBody: plan.RequestBody(), ExpectedCount: plan.ExpectedCount(), RepresentationFamily: plan.RepresentationFamily(),
 		ContextWindowTokens: selected.ModelContextWindowTokens,
 	}}
 	assembly.ProcessIdentity.ProcessKey = plan.ProcessKey()
@@ -816,7 +820,7 @@ func resolvedAssemblyInvocationBindings(bindings []capabilitydriver.InvocationEx
 			RequirementID: strings.TrimSpace(binding.RequirementID), ModelAssetID: strings.TrimSpace(binding.ModelAssetID), AbsolutePath: strings.TrimSpace(binding.AbsolutePath),
 			BundleDir: strings.TrimSpace(binding.BundleDir), DeclaredFiles: append([]string(nil), binding.DeclaredFiles...),
 			VerifiedContentID: strings.TrimSpace(binding.VerifiedContentID), EntrySHA256: strings.TrimSpace(binding.EntrySHA256),
-			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity),
+			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity), EmbeddingInputProtocol: strings.TrimSpace(binding.EmbeddingInputProtocol),
 		})
 	}
 	return result
@@ -847,7 +851,7 @@ func resolvedAssemblyExactBindings(assembly *localResolvedAssembly) []capability
 			DeclaredFiles:     append([]string(nil), axis.DeclaredFiles...),
 			VerifiedContentID: axis.VerifiedContentID,
 			EntrySHA256:       axis.EntrySHA256,
-			TemplateIdentity:  axis.TemplateIdentity,
+			TemplateIdentity:  axis.TemplateIdentity, EmbeddingInputProtocol: axis.EmbeddingInputProtocol,
 		})
 	}
 	return bindings
@@ -917,7 +921,7 @@ func selectedLocalExecutionFromResolvedAssembly(assembly *localResolvedAssembly)
 			DeclaredFiles:     append([]string(nil), axis.DeclaredFiles...),
 			VerifiedContentID: axis.VerifiedContentID,
 			EntrySHA256:       axis.EntrySHA256,
-			TemplateIdentity:  axis.TemplateIdentity,
+			TemplateIdentity:  axis.TemplateIdentity, EmbeddingInputProtocol: axis.EmbeddingInputProtocol,
 		})
 	}
 	for _, source := range assembly.DependencySources {
@@ -1007,6 +1011,10 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		return fmt.Errorf("non-text ResolvedAssembly carries admitted text behaviors")
 	}
 	switch assembly.LoadPlan.Kind {
+	case "speaker-embedding":
+		if _, err := speakerEmbeddingPlanFromResolvedAssembly(assembly); err != nil {
+			return err
+		}
 	case "annotation":
 		if _, err := annotationPlanFromResolvedAssembly(assembly); err != nil {
 			return err
@@ -1071,6 +1079,9 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 	case "embed":
 		if assembly.LoadPlan.Embed == nil || strings.TrimSpace(assembly.LoadPlan.Embed.ProcessKey) == "" || assembly.LoadPlan.Embed.ExpectedCount <= 0 || assembly.EmbeddingDimension <= 0 {
 			return fmt.Errorf("local ResolvedAssembly embed load plan is incomplete")
+		}
+		if family := assembly.LoadPlan.Embed.RepresentationFamily; family != capabilitydriver.EmbeddingRepresentationNativeV1 && family != capabilitydriver.EmbeddingRepresentationNomicRetrievalV1 {
+			return fmt.Errorf("captured embedding representation is unavailable")
 		}
 	case "speech":
 		if assembly.LoadPlan.Speech == nil || strings.TrimSpace(assembly.LoadPlan.Speech.DriverID) == "" || strings.TrimSpace(assembly.LoadPlan.Speech.ModelAssetID) == "" {

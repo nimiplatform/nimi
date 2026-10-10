@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import ts from 'typescript';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
@@ -1647,6 +1648,22 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
   assert.match(read('src/scaffold/generated/module-styles.css'), /capabilities\/ai-studio-core\/ai-studio-core\.css/);
 
   const host = read('src/scaffold/generated/host-adapters.tsx');
+  const core = ts.createSourceFile('index.ts', read('src/capabilities/ai-studio-core/index.ts'), ts.ScriptTarget.Latest, true);
+  const coreExports = new Set(core.statements.flatMap((statement) => (
+    ts.isExportDeclaration(statement) && statement.exportClause && ts.isNamedExports(statement.exportClause)
+      ? statement.exportClause.elements.map((element) => element.name.text)
+      : []
+  )));
+  const hostModule = ts.createSourceFile('host-adapters.tsx', host, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const coreImports = hostModule.statements.filter((statement) => (
+    ts.isImportDeclaration(statement)
+      && statement.moduleSpecifier.text === '../../capabilities/ai-studio-core/index.js'
+  )).flatMap((statement) => statement.importClause?.namedBindings?.elements ?? []);
+  assert.ok(coreImports.length > 0, 'generated Host must consume the admitted AI Studio core');
+  for (const element of coreImports) {
+    const name = (element.propertyName ?? element.name).text;
+    assert.ok(coreExports.has(name), `generated Host imports missing admitted core export: ${name}`);
+  }
   for (const expected of [
     'AIStudioWorkspace',
     'runStudioCapability',

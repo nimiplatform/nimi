@@ -5,12 +5,27 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 )
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-retrieval-purpose
+func cognitionTextEmbeddingPurpose(value string) (runtimev1.TextEmbedPurpose, error) {
+	switch value {
+	case "":
+		return runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED, nil
+	case "retrieval-document":
+		return runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT, nil
+	case "retrieval-query":
+		return runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY, nil
+	default:
+		return 0, fmt.Errorf("unknown cognition embedding purpose")
+	}
+}
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r022
 func newCognitionMemoryCapabilityProvider(backend *runtimepersistence.Backend, agentSvc *runtimeagentservice.Service, aiSvc *aiservice.Service, store *cognitionmemory.Store) cognitionmemory.CapabilityProvider {
@@ -33,7 +48,11 @@ func newCognitionMemoryCapabilityProvider(backend *runtimepersistence.Backend, a
 					return cognitionmemory.ResolvedEmbeddingBinding{}, err
 				}
 				jobCtx = cognitionMemoryEmbeddingExecutionContext(jobCtx, accountID)
-				captured, raw, err := aiSvc.CaptureMemoryEmbedding(jobCtx, request.Inputs, request.EmbeddingSpaceRef, aiservice.EmbeddingOwner{Kind: "memory", AgentRef: agent, OperationID: request.OperationID, BankRef: request.BankRef, LifecycleRef: request.LifecycleRef, MemoryRefs: request.MemoryRefs})
+				purpose, purposeErr := cognitionTextEmbeddingPurpose(request.Purpose)
+				if purposeErr != nil {
+					return cognitionmemory.ResolvedEmbeddingBinding{}, purposeErr
+				}
+				captured, raw, err := aiSvc.CaptureMemoryEmbedding(jobCtx, request.Inputs, request.EmbeddingSpaceRef, aiservice.EmbeddingOwner{Kind: "memory", AgentRef: agent, OperationID: request.OperationID, BankRef: request.BankRef, LifecycleRef: request.LifecycleRef, MemoryRefs: request.MemoryRefs}, purpose)
 				return cognitionmemory.ResolvedEmbeddingBinding{ConfigRevision: captured.ConfigRevision, EmbeddingSpaceRef: captured.SpaceID, Execution: raw,
 					Validate: func(tx *sql.Tx) error { return cognitionmemory.ValidateEmbeddingCaptureTx(tx, binding, request) },
 					Discard:  func() error { return aiSvc.DiscardMemoryEmbedding(context.WithoutCancel(jobCtx), raw) }}, err

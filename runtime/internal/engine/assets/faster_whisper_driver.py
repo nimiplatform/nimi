@@ -13,6 +13,9 @@ from typing import Any
 class WhisperInputError(ValueError):
     """Invalid recording data, distinct from model/driver execution failure."""
 
+class WhisperUnsupportedError(ValueError):
+    pass
+
 
 SPEECH_DRIVER_INPUT_INVALID_EXIT_CODE = 65
 
@@ -80,7 +83,10 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
     recognition_root, recognition_entry = captured_bundle(request)
     if Path(recognition_entry).name != "model.bin":
         raise RuntimeError("Whisper requires its captured CTranslate2 model.bin")
-    for name in ("config.json", "tokenizer.json", "preprocessor_config.json"):
+    # The pinned recognizer accepts its own frontend defaults when the converted
+    # distribution has no preprocessor file; an actual present file stays in
+    # the captured declaration and is loaded from this exact bundle.
+    for name in ("config.json", "tokenizer.json"):
         if name not in request["declared_files"]:
             raise RuntimeError("Whisper model bundle is incomplete")
     operation = request.get("operation")
@@ -91,8 +97,15 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
                 "model_ref": recognition_root, "supports": ["audio.transcribe"]}
     if operation != "audio.transcribe":
         raise RuntimeError("unsupported Faster Whisper operation")
-    if request.get("diarization") or request.get("speaker_count") or request.get("prompt"):
-        raise RuntimeError("Whisper diarization and prompts are not admitted")
+    wants_diarization = request.get("diarization") is True
+    if (request.get("speaker_count") and not wants_diarization) or (wants_diarization and (not isinstance(request.get("segmenter"), dict) or not isinstance(request.get("speaker_encoder"), dict))):
+        raise WhisperUnsupportedError("speaker diarization requires its captured models")
+    prompt = request.get("prompt", "")
+    try:
+        if not isinstance(prompt, str) or len(prompt.encode("utf-8")) > 4096:
+            raise WhisperInputError("Whisper vocabulary context must be valid UTF-8 of at most 4 KiB")
+    except UnicodeEncodeError as error:
+        raise WhisperInputError("Whisper vocabulary context must be valid UTF-8 of at most 4 KiB") from error
     vad_input = request.get("vad")
     if not isinstance(vad_input, dict):
         raise RuntimeError("Whisper requires its captured VAD model")
@@ -118,6 +131,15 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
     duration = len(audio) / 16000
     if not 0 < duration <= 300 or not np.isfinite(audio).all():
         raise WhisperInputError("Whisper accepts finite nonempty audio up to 300 seconds")
+    diarization = None
+    if wants_diarization:
+        from speech_diarization import execute_diarization, DiarizationInputError, DiarizationUnsupportedError
+        try:
+            diarization = execute_diarization(audio, request["segmenter"], request["speaker_encoder"], request.get("speaker_count", 0))
+        except DiarizationInputError as error:
+            raise WhisperInputError(str(error)) from error
+        except DiarizationUnsupportedError as error:
+            raise WhisperUnsupportedError(str(error)) from error
     model, vad, _ = load_models(recognition_root, vad_entry)
     speech = get_speech_timestamps(torch.from_numpy(audio), vad, sampling_rate=16000,
                                    threshold=0.5, min_silence_duration_ms=2000, speech_pad_ms=400)
@@ -129,14 +151,19 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
     segments, info = model.transcribe(audio, language=language or None, beam_size=5,
                                       temperature=0.0, condition_on_previous_text=False,
                                       vad_filter=False, word_timestamps=True,
-                                      hallucination_silence_threshold=2.0)
+                                      hallucination_silence_threshold=2.0,
+                                      initial_prompt=prompt or None)
     segments = list(segments)
     if not segments and not speech:
-        return {"text": "", "no_speech": True}
+        if diarization and diarization["intervals"]:
+            raise RuntimeError("no-speech recognition contradicts actual speaker intervals")
+        return {"text": "", "no_speech": True, **({"diarization": diarization} if diarization is not None else {})}
     text, words = transcription_words(segments, duration)
     result = {"text": text, "language": "" if language else info.language}
     if request.get("timestamps"):
         result["words"] = words
+    if diarization is not None:
+        result["diarization"] = diarization
     return result
 
 
@@ -152,6 +179,9 @@ def main() -> int:
         response = handle_request(request)
         Path(args.response).write_text(json.dumps(response, ensure_ascii=True), encoding="utf-8")
         return 0
+    except WhisperUnsupportedError as error:
+        sys.stderr.write(f"{error}\n")
+        return 69
     except WhisperInputError as error:
         sys.stderr.write(f"{error}\n")
         # Runtime-owned speech Driver protocol: EX_DATAERR identifies invalid

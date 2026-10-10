@@ -96,7 +96,7 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, capture, err := fixture.service.CaptureMemoryEmbedding(fixture.context, []string{"alpha"}, description.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "operation-a", BankRef: "bank-a", LifecycleRef: "life-a"})
+	_, capture, err := fixture.service.CaptureMemoryEmbedding(fixture.context, []string{"alpha"}, description.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "operation-a", BankRef: "bank-a", LifecycleRef: "life-a"}, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 		Requirements: []*runtimev1.LocalCapabilityRequirement{{
 			RequirementId: capabilitydriver.EmbeddingGGUFRequirementID,
 		}},
-		ExactBindings: []localexecution.ExactBinding{{
+		ExactBindings: []localexecution.ExactBinding{{EmbeddingInputProtocol: capabilitydriver.EmbeddingInputNativeV1,
 			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
 			ModelAssetID:      "model-embedding-memory",
 			AbsolutePath:      filepath.Join(bundleDir, "embedding.gguf"),
@@ -177,7 +177,7 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, capture, err := service.CaptureMemoryEmbedding(ctx, []string{" first ", "second"}, description.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "operation-a", BankRef: "bank-a", LifecycleRef: "life-a"})
+	_, capture, err := service.CaptureMemoryEmbedding(ctx, []string{" first ", "second"}, description.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "operation-a", BankRef: "bank-a", LifecycleRef: "life-a"}, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED)
 	if err != nil {
 		t.Fatal(err)
 	}

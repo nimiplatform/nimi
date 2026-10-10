@@ -50,6 +50,23 @@ func TestImportModelAssetSingleFileHasNoContentAdmission(t *testing.T) {
 	}
 }
 
+func TestImportModelAssetBinaryDistributionEntryPrecedesDocumentationWithoutSemanticAdmission(t *testing.T) {
+	svc := newTestService(t)
+	root := t.TempDir()
+	for name, body := range map[string][]byte{"README.md": []byte("distribution documentation"), "config.json": []byte("{}"), "model.bin": []byte("unclassified binary content, not model inference"), "tokenizer.json": []byte("{}")} {
+		if err := os.WriteFile(filepath.Join(root, name), body, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	asset := importModelAssetForTest(t, svc, root, "binary distribution")
+	if asset.GetEntry() != "model.bin" || !asset.GetContentVerified() || len(asset.GetFiles()) != 4 {
+		t.Fatalf("safe intact distribution entry: %+v", asset)
+	}
+	if asset.GetCatalogVerification() != runtimev1.ModelAssetCatalogVerification_MODEL_ASSET_CATALOG_VERIFICATION_NOT_MATCHED {
+		t.Fatal("entry preference invented catalog admission")
+	}
+}
+
 func TestImportModelAssetCachesBoundedGGUFFactsWithoutSemanticAdmission(t *testing.T) {
 	svc := newTestService(t)
 	source := filepath.Join(t.TempDir(), "facts.gguf")

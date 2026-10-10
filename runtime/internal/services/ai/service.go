@@ -82,6 +82,7 @@ type Service struct {
 	localSpeechHost                        localexecution.SpeechExecutionHost
 	localVisionHost                        localexecution.VisionExecutionHost
 	localAnnotationHost                    localexecution.TextAnnotationExecutionHost
+	localSpeakerEmbeddingHost              localexecution.SpeakerEmbeddingExecutionHost
 	localDecisionHost                      localexecution.TextDecisionExecutionHost
 	localAnnotationJobOrder                localMediaSubmissionOrder
 	localVisionJobOrder                    localMediaSubmissionOrder

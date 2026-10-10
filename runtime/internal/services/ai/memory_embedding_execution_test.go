@@ -94,7 +94,7 @@ func TestMemoryEmbeddingBridgeUsesCapturedJobsAfterConfigChange(t *testing.T) {
 			var captured []byte
 			port := cognitionmemory.NewRuntimeEmbeddingPort(backend, "user-001", "agent-a",
 				func(ctx context.Context, _, _ string, req memoryv1.AIEmbeddingRequest) (cognitionmemory.ResolvedEmbeddingBinding, error) {
-					d, raw, err := f.service.CaptureMemoryEmbedding(ctx, req.Inputs, req.EmbeddingSpaceRef, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: req.OperationID, BankRef: "bank-a", LifecycleRef: "life-a"})
+					d, raw, err := f.service.CaptureMemoryEmbedding(ctx, req.Inputs, req.EmbeddingSpaceRef, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: req.OperationID, BankRef: "bank-a", LifecycleRef: "life-a"}, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED)
 					if err != nil {
 						return cognitionmemory.ResolvedEmbeddingBinding{}, err
 					}
@@ -158,7 +158,7 @@ func newCapturedLocalMemoryTest(t *testing.T, ctx context.Context) (*Service, *m
 	s.speechCatalog = catalog
 	digest := "d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac" // pragma: allowlist secret - fixture model content digest
 	dir := t.TempDir()
-	resolver := &mutableLocalExecutionResolver{projection: &localexecution.SelectedLocalExecution{LoadoutID: "old-loadout", CapabilityContract: capabilitydriver.TextEmbedCapabilityContract, RecipeID: capabilitydriver.LlamaEmbedGGUFRecipeID, RecipeRevision: "1", DriverIdentity: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(), ModelContextWindowTokens: 8192, EmbeddingDimension: 768, Requirements: []*runtimev1.LocalCapabilityRequirement{{RequirementId: capabilitydriver.EmbeddingGGUFRequirementID}}, ExactBindings: []localexecution.ExactBinding{{RequirementID: capabilitydriver.EmbeddingGGUFRequirementID, ModelAssetID: "old-asset", AbsolutePath: filepath.Join(dir, "embedding.gguf"), BundleDir: dir, DeclaredFiles: []string{"embedding.gguf"}, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}}, Configured: true}}
+	resolver := &mutableLocalExecutionResolver{projection: &localexecution.SelectedLocalExecution{LoadoutID: "old-loadout", CapabilityContract: capabilitydriver.TextEmbedCapabilityContract, RecipeID: capabilitydriver.LlamaEmbedGGUFRecipeID, RecipeRevision: "1", DriverIdentity: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(), ModelContextWindowTokens: 8192, EmbeddingDimension: 768, Requirements: []*runtimev1.LocalCapabilityRequirement{{RequirementId: capabilitydriver.EmbeddingGGUFRequirementID}}, ExactBindings: []localexecution.ExactBinding{{EmbeddingInputProtocol: capabilitydriver.EmbeddingInputNativeV1, RequirementID: capabilitydriver.EmbeddingGGUFRequirementID, ModelAssetID: "old-asset", AbsolutePath: filepath.Join(dir, "embedding.gguf"), BundleDir: dir, DeclaredFiles: []string{"embedding.gguf"}, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}}, Configured: true}}
 	s.SetLocalExecutionResolver(resolver)
 	host := &localTextHostStub{embedResult: localexecution.EmbedResult{Vectors: []*runtimev1.EmbeddingVector{{Values: make([]float64, 768)}}}}
 	s.SetLocalTextExecutionHost(host)
@@ -169,7 +169,7 @@ func newCapturedLocalMemoryTest(t *testing.T, ctx context.Context) (*Service, *m
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, raw, err := s.CaptureMemoryEmbedding(ctx, []string{"memory"}, d.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "operation-a", BankRef: "bank-a", LifecycleRef: "life-a"})
+	_, raw, err := s.CaptureMemoryEmbedding(ctx, []string{"memory"}, d.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "operation-a", BankRef: "bank-a", LifecycleRef: "life-a"}, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestMemoryEmbeddingCaptureReportsPartialBatchCleanupFailure(t *testing.T) {
 	for i := range inputs {
 		inputs[i] = "memory"
 	}
-	_, raw, err := s.CaptureMemoryEmbedding(ctx, inputs, description.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "partial-capture", BankRef: "bank-a", LifecycleRef: "life-a"})
+	_, raw, err := s.CaptureMemoryEmbedding(ctx, inputs, description.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "partial-capture", BankRef: "bank-a", LifecycleRef: "life-a"}, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED)
 	if raw != nil || !errors.Is(err, captureErr) || !errors.Is(err, cleanupErr) {
 		t.Fatalf("lost capture or cleanup failure: capture=%s err=%v", raw, err)
 	}

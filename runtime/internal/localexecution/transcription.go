@@ -19,8 +19,15 @@ func ValidateSpeechTranscript(result *runtimev1.SpeechTranscript, requireTiming 
 	if result == nil || !utf8.ValidString(result.GetText()) || strings.TrimSpace(result.GetText()) != result.GetText() {
 		return fmt.Errorf("speech transcription result is missing or invalid")
 	}
+	if err := ValidateSpeechDiarization(result.GetDiarization()); err != nil {
+		return err
+	}
+	encoded, err := protojson.Marshal(result)
+	if err != nil || len(encoded) > MaxSpeechTranscriptBytes {
+		return fmt.Errorf("speech transcription result exceeds its limit")
+	}
 	if result.GetStatus() == runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_NO_SPEECH {
-		if result.GetText() != "" || result.GetLanguage() != "" || len(result.GetWords()) != 0 {
+		if result.GetText() != "" || result.GetLanguage() != "" || len(result.GetWords()) != 0 || (result.GetDiarization() != nil && result.GetDiarization().GetStatus() != runtimev1.SpeechDiarizationStatus_SPEECH_DIARIZATION_STATUS_NO_SPEAKERS) {
 			return fmt.Errorf("no-speech result contains transcription data")
 		}
 		return nil
@@ -43,9 +50,35 @@ func ValidateSpeechTranscript(result *runtimev1.SpeechTranscript, requireTiming 
 		}
 		previousStart = word.GetStartSeconds()
 	}
-	encoded, err := protojson.Marshal(result)
-	if err != nil || len(encoded) > MaxSpeechTranscriptBytes {
-		return fmt.Errorf("speech transcription result exceeds its limit")
+	return nil
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
+func ValidateSpeechDiarization(result *runtimev1.SpeechDiarization) error {
+	if result == nil {
+		return nil
+	}
+	duration := result.GetDurationSeconds()
+	if math.IsNaN(duration) || math.IsInf(duration, 0) || duration <= 0 || len(result.GetIntervals()) > 16384 {
+		return fmt.Errorf("diarization source duration or interval bound is invalid")
+	}
+	if result.GetStatus() == runtimev1.SpeechDiarizationStatus_SPEECH_DIARIZATION_STATUS_NO_SPEAKERS {
+		if len(result.GetIntervals()) != 0 {
+			return fmt.Errorf("no-speakers result contains intervals")
+		}
+		return nil
+	}
+	if result.GetStatus() != runtimev1.SpeechDiarizationStatus_SPEECH_DIARIZATION_STATUS_DIARIZED || len(result.GetIntervals()) == 0 {
+		return fmt.Errorf("diarized result requires actual intervals")
+	}
+	previous := float64(0)
+	for _, interval := range result.GetIntervals() {
+		label := interval.GetSpeakerId()
+		start, end := interval.GetStartSeconds(), interval.GetEndSeconds()
+		if interval == nil || label == "" || len(label) > 128 || !utf8.ValidString(label) || strings.TrimSpace(label) != label || math.IsNaN(start) || math.IsNaN(end) || math.IsInf(start, 0) || math.IsInf(end, 0) || start < previous || end <= start || end > duration {
+			return fmt.Errorf("diarization interval is invalid or outside its source")
+		}
+		previous = start
 	}
 	return nil
 }

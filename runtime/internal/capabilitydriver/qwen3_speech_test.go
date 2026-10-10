@@ -10,6 +10,39 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
+func TestQwenTranscriptionCapturesBoundedVocabularyContext(t *testing.T) {
+	root, digest := t.TempDir(), strings.Repeat("c", 64)
+	binding := InvocationExactBinding{RequirementID: Qwen3ASRModelRequirementID, ModelAssetID: "fixture/asr", AbsolutePath: filepath.Join(root, "asr.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}
+	aligner := binding
+	aligner.RequirementID, aligner.ModelAssetID, aligner.AbsolutePath = Qwen3ASRAlignerRequirementID, "fixture/aligner", filepath.Join(root, "aligner.safetensors")
+	for _, driver := range []interface {
+		PlanSpeechTranscribeInvocation(SpeechTranscribeInvocationInput) (*SpeechTranscribeInvocationPlan, error)
+	}{Qwen3ASRDriver{}, Qwen3ASRTransformersDriver{}, Qwen3ASRAlignedDriver{}} {
+		bindings := []InvocationExactBinding{binding}
+		if _, aligned := driver.(Qwen3ASRAlignedDriver); aligned {
+			bindings = append(bindings, aligner)
+		}
+		for _, context := range []string{"", "  OpenWhispr，专有词\n", strings.Repeat("词", 1365) + "."} {
+			request := &runtimev1.SpeechTranscribeScenarioSpec{Prompt: context}
+			plan, err := driver.PlanSpeechTranscribeInvocation(SpeechTranscribeInvocationInput{ExactBindings: bindings, Request: request, AudioBytes: []byte("declared audio")})
+			if err != nil {
+				t.Fatalf("%T: %v", driver, err)
+			}
+			request.Prompt = "changed after capture"
+			if plan.Request().GetPrompt() != context {
+				t.Fatalf("%T lost captured context", driver)
+			}
+		}
+		for _, context := range []string{strings.Repeat("词", 1366), string([]byte{0xff})} {
+			_, err := driver.PlanSpeechTranscribeInvocation(SpeechTranscribeInvocationInput{ExactBindings: bindings, Request: &runtimev1.SpeechTranscribeScenarioSpec{Prompt: context}, AudioBytes: []byte("declared audio")})
+			failure, ok := err.(*InvocationError)
+			if !ok || failure.Kind != InvocationFailureInvalidRequest {
+				t.Fatalf("%T admitted invalid context: %v", driver, err)
+			}
+		}
+	}
+}
+
 func TestQwen3TTSListsPresetVoicesFromExactSelectedModel(t *testing.T) {
 	root := t.TempDir()
 	entry := filepath.Join(root, "model.safetensors")

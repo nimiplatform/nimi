@@ -19,16 +19,17 @@ import (
 // AbsolutePath is resolved beneath Runtime's owned models root. BundleDir and
 // DeclaredFiles are captured from the same verified ModelAsset manifest.
 type ExactBinding struct {
-	RequirementID     string
-	RequirementRole   runtimev1.LocalCapabilityRequirementRole
-	OccurrenceOrdinal uint32
-	DisplayLabel      string
-	ModelAssetID      string
-	AbsolutePath      string
-	BundleDir         string
-	DeclaredFiles     []string
-	VerifiedContentID string
-	EntrySHA256       string
+	EmbeddingInputProtocol string
+	RequirementID          string
+	RequirementRole        runtimev1.LocalCapabilityRequirementRole
+	OccurrenceOrdinal      uint32
+	DisplayLabel           string
+	ModelAssetID           string
+	AbsolutePath           string
+	BundleDir              string
+	DeclaredFiles          []string
+	VerifiedContentID      string
+	EntrySHA256            string
 	// TemplateIdentity is the Runtime-private digest of an exact model-authored
 	// chat template. Empty is a valid base-text state with no behavior match.
 	TemplateIdentity string
@@ -363,17 +364,18 @@ type SpeechExecutionHost interface {
 type FailureKind string
 
 const (
-	FailureLoad                 FailureKind = "load"
-	FailureContentMismatch      FailureKind = "content_mismatch"
-	FailureInference            FailureKind = "inference"
-	FailureInputInvalid         FailureKind = "input_invalid"
-	FailureOutOfMemory          FailureKind = "out_of_memory"
-	FailureCanceled             FailureKind = "cancel"
-	FailureTimeout              FailureKind = "timeout"
-	FailureProcessCrash         FailureKind = "process_crash"
-	FailureTextOutputIncomplete FailureKind = "text_output_incomplete"
-	FailureTextOutputInvalid    FailureKind = "text_output_invalid"
-	FailureToolCallInvalid      FailureKind = "tool_call_invalid"
+	FailureLoad                   FailureKind = "load"
+	FailureContentMismatch        FailureKind = "content_mismatch"
+	FailureInference              FailureKind = "inference"
+	FailureInputInvalid           FailureKind = "input_invalid"
+	FailureMediaOptionUnsupported FailureKind = "media_option_unsupported"
+	FailureOutOfMemory            FailureKind = "out_of_memory"
+	FailureCanceled               FailureKind = "cancel"
+	FailureTimeout                FailureKind = "timeout"
+	FailureProcessCrash           FailureKind = "process_crash"
+	FailureTextOutputIncomplete   FailureKind = "text_output_incomplete"
+	FailureTextOutputInvalid      FailureKind = "text_output_invalid"
+	FailureToolCallInvalid        FailureKind = "tool_call_invalid"
 	// FailureInputLimit is a request the loaded model's context cannot hold;
 	// the Host refused it before generating anything.
 	FailureInputLimit FailureKind = "input_limit"

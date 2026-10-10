@@ -5701,6 +5701,8 @@ pub struct TextEmbedScenarioSpec {
     pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(uint32, optional, tag = "2")]
     pub dimensions: ::core::option::Option<u32>,
+    #[prost(enumeration = "TextEmbedPurpose", tag = "3")]
+    pub purpose: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ImageGenerateScenarioSpec {
@@ -5905,6 +5907,18 @@ pub struct AudioSeparateScenarioSpec {
     /// selected implementation actually produced them.
     #[prost(bool, tag = "4")]
     pub include_instrument_parts: bool,
+}
+/// Independent short-audio speaker representation. This contains no person,
+/// profile, authentication decision, route or model selection.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AudioSpeakerEmbedScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub audio_source: ::core::option::Option<SpeechTranscriptionAudioSource>,
+    /// Owned canonical audio source, mutually exclusive with audio_source.
+    #[prost(message, optional, tag = "3")]
+    pub source_audio: ::core::option::Option<MusicAudioInput>,
 }
 /// One committed non-vocal stem of a completed separation Job.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -6429,7 +6443,7 @@ pub struct VisionLocateResult {
 pub struct ScenarioSpec {
     #[prost(
         oneof = "scenario_spec::Spec",
-        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
     )]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
@@ -6471,6 +6485,8 @@ pub mod scenario_spec {
         AudioVoiceConvert(super::AudioVoiceConvertScenarioSpec),
         #[prost(message, tag = "19")]
         TextDecide(super::TextDecideScenarioSpec),
+        #[prost(message, tag = "20")]
+        AudioSpeakerEmbed(super::AudioSpeakerEmbedScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6520,6 +6536,15 @@ pub struct TextEmbedOutput {
     pub space_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AudioSpeakerEmbedResult {
+    #[prost(message, optional, tag = "1")]
+    pub vector: ::core::option::Option<EmbeddingVector>,
+    /// Compatibility identity of the captured speaker-representation semantics.
+    /// A same-width acoustic/semantic vector is never interchangeable.
+    #[prost(string, tag = "2")]
+    pub space_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ImageGenerateResult {
     #[prost(message, repeated, tag = "1")]
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
@@ -6556,6 +6581,27 @@ pub struct SpeechTranscriptWord {
     pub end_seconds: f64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechSpeakerInterval {
+    /// Opaque model speaker label scoped to this Job, never a person/profile ID.
+    #[prost(string, tag = "1")]
+    pub speaker_id: ::prost::alloc::string::String,
+    #[prost(double, tag = "2")]
+    pub start_seconds: f64,
+    #[prost(double, tag = "3")]
+    pub end_seconds: f64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechDiarization {
+    #[prost(enumeration = "SpeechDiarizationStatus", tag = "1")]
+    pub status: i32,
+    /// Actual decoded source duration. Intervals stay within this source domain.
+    #[prost(double, tag = "2")]
+    pub duration_seconds: f64,
+    /// Ordered by start; actual overlapping speakers may retain overlapping spans.
+    #[prost(message, repeated, tag = "3")]
+    pub intervals: ::prost::alloc::vec::Vec<SpeechSpeakerInterval>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SpeechTranscript {
     #[prost(enumeration = "SpeechTranscriptStatus", tag = "1")]
     pub status: i32,
@@ -6567,6 +6613,9 @@ pub struct SpeechTranscript {
     /// Actual alignment units, relative to the submitted audio beginning.
     #[prost(message, repeated, tag = "4")]
     pub words: ::prost::alloc::vec::Vec<SpeechTranscriptWord>,
+    /// Present only when the admitted execution performed requested diarization.
+    #[prost(message, optional, tag = "5")]
+    pub diarization: ::core::option::Option<SpeechDiarization>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SpeechTranscribeResult {
@@ -6687,7 +6736,7 @@ pub struct WorldGenerateResult {
 pub struct ScenarioOutput {
     #[prost(
         oneof = "scenario_output::Output",
-        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15"
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
     )]
     pub output: ::core::option::Option<scenario_output::Output>,
 }
@@ -6725,6 +6774,8 @@ pub mod scenario_output {
         AudioVoiceConvert(super::AudioVoiceConvertResult),
         #[prost(message, tag = "15")]
         TextDecision(super::TextDecisionResult),
+        #[prost(message, tag = "16")]
+        AudioSpeakerEmbed(super::AudioSpeakerEmbedResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6829,6 +6880,8 @@ pub struct LocalAppTextEmbedScenarioSpec {
     pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(uint32, optional, tag = "2")]
     pub dimensions: ::core::option::Option<u32>,
+    #[prost(enumeration = "TextEmbedPurpose", tag = "3")]
+    pub purpose: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppImageGenerateScenarioSpec {
@@ -7077,7 +7130,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub client_submission_id: ::prost::alloc::string::String,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 17, 18"
+        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 17, 18, 19"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -7113,6 +7166,8 @@ pub mod submit_local_app_scenario_job_request {
         MusicTranscribe(super::MusicTranscribeScenarioSpec),
         #[prost(message, tag = "18")]
         AudioVoiceConvert(super::AudioVoiceConvertScenarioSpec),
+        #[prost(message, tag = "19")]
+        AudioSpeakerEmbed(super::AudioSpeakerEmbedScenarioSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed
@@ -7178,6 +7233,9 @@ pub struct LocalAppScenarioJob {
     pub submission_outcome: i32,
     #[prost(enumeration = "ScenarioJobStopOutcome", tag = "24")]
     pub stop_outcome: i32,
+    /// Present only for a completed AUDIO_SPEAKER_EMBED Job.
+    #[prost(message, optional, tag = "25")]
+    pub speaker_embedding: ::core::option::Option<AudioSpeakerEmbedResult>,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -7693,6 +7751,8 @@ pub struct ScenarioJob {
     /// Present only for CANCELED, whether local Cancel or confirmed provider cancellation.
     #[prost(enumeration = "ScenarioJobStopOutcome", tag = "35")]
     pub stop_outcome: i32,
+    #[prost(message, optional, tag = "36")]
+    pub speaker_embedding: ::core::option::Option<AudioSpeakerEmbedResult>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -8056,6 +8116,7 @@ pub enum ScenarioType {
     MusicTranscribe = 17,
     AudioVoiceConvert = 18,
     TextDecide = 19,
+    AudioSpeakerEmbed = 20,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -8082,6 +8143,7 @@ impl ScenarioType {
             Self::MusicTranscribe => "SCENARIO_TYPE_MUSIC_TRANSCRIBE",
             Self::AudioVoiceConvert => "SCENARIO_TYPE_AUDIO_VOICE_CONVERT",
             Self::TextDecide => "SCENARIO_TYPE_TEXT_DECIDE",
+            Self::AudioSpeakerEmbed => "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -8105,6 +8167,7 @@ impl ScenarioType {
             "SCENARIO_TYPE_MUSIC_TRANSCRIBE" => Some(Self::MusicTranscribe),
             "SCENARIO_TYPE_AUDIO_VOICE_CONVERT" => Some(Self::AudioVoiceConvert),
             "SCENARIO_TYPE_TEXT_DECIDE" => Some(Self::TextDecide),
+            "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED" => Some(Self::AudioSpeakerEmbed),
             _ => None,
         }
     }
@@ -8687,6 +8750,35 @@ impl TextSourceType {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum TextEmbedPurpose {
+    Unspecified = 0,
+    RetrievalDocument = 1,
+    RetrievalQuery = 2,
+}
+impl TextEmbedPurpose {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TEXT_EMBED_PURPOSE_UNSPECIFIED",
+            Self::RetrievalDocument => "TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT",
+            Self::RetrievalQuery => "TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TEXT_EMBED_PURPOSE_UNSPECIFIED" => Some(Self::Unspecified),
+            "TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT" => Some(Self::RetrievalDocument),
+            "TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY" => Some(Self::RetrievalQuery),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum MusicScoreFormat {
     Unspecified = 0,
     Abc = 1,
@@ -9043,6 +9135,35 @@ impl SpeechTranscriptStatus {
             "SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
             "SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED" => Some(Self::Transcribed),
             "SPEECH_TRANSCRIPT_STATUS_NO_SPEECH" => Some(Self::NoSpeech),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpeechDiarizationStatus {
+    Unspecified = 0,
+    Diarized = 1,
+    NoSpeakers = 2,
+}
+impl SpeechDiarizationStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SPEECH_DIARIZATION_STATUS_UNSPECIFIED",
+            Self::Diarized => "SPEECH_DIARIZATION_STATUS_DIARIZED",
+            Self::NoSpeakers => "SPEECH_DIARIZATION_STATUS_NO_SPEAKERS",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SPEECH_DIARIZATION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "SPEECH_DIARIZATION_STATUS_DIARIZED" => Some(Self::Diarized),
+            "SPEECH_DIARIZATION_STATUS_NO_SPEAKERS" => Some(Self::NoSpeakers),
             _ => None,
         }
     }

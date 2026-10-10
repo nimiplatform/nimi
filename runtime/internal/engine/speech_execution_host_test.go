@@ -40,6 +40,7 @@ func TestSpeechExecutionHostPreservesInvalidInputFailure(t *testing.T) {
 }
 
 type speechExecutionHostMaterializerStub struct {
+	capturedSource *capabilitydriver.InvocationExactDependencySource
 	endpoint       string
 	materializeErr error
 	onMaterialize  func()
@@ -63,7 +64,10 @@ func TestSpeechExecutionHostTransportCannotPreemptAdmittedJobTimeout(t *testing.
 	}
 }
 
-func (stub *speechExecutionHostMaterializerStub) MaterializeSpeechExecutionHost(_ context.Context, capabilityContract string, _ string, _ int) (string, error) {
+func (stub *speechExecutionHostMaterializerStub) MaterializeSpeechExecutionHost(ctx context.Context, capabilityContract string, _ string, _ int) (string, error) {
+	if source, ok := localexecution.CapturedSpeechSourceFromContext(ctx); ok {
+		stub.capturedSource = &source
+	}
 	stub.capabilities = append(stub.capabilities, capabilityContract)
 	if stub.onMaterialize != nil {
 		stub.onMaterialize()
@@ -181,10 +185,11 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 	asrBinding.RequirementID = capabilitydriver.Qwen3ASRModelRequirementID
 	asrBinding.ModelAssetID = asrHostModelID
 	asrPlan, err := (capabilitydriver.Qwen3ASRDriver{}).PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{
-		ExactBindings: []capabilitydriver.InvocationExactBinding{asrBinding},
-		Request:       &runtimev1.SpeechTranscribeScenarioSpec{MimeType: "audio/wav", Language: "en"},
-		AudioBytes:    []byte("audio-bytes"),
-		MIMEType:      "audio/wav",
+		DependencySources: speechDependencySourceForHostTest(),
+		ExactBindings:     []capabilitydriver.InvocationExactBinding{asrBinding},
+		Request:           &runtimev1.SpeechTranscribeScenarioSpec{MimeType: "audio/wav", Language: "en"},
+		AudioBytes:        []byte("audio-bytes"),
+		MIMEType:          "audio/wav",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -350,6 +355,40 @@ func TestSpeechWhisperRegistrationCapturesVADWithoutRereadingSelection(t *testin
 	}
 }
 
+func TestWhisperHostPreservesCapturedVocabularyContextInPrivateTransport(t *testing.T) {
+	main := speechBindingFixture(t, "model.bin", map[string][]byte{"model.bin": []byte("declared recognition fixture")})
+	main.RequirementID, main.ModelAssetID = capabilitydriver.Qwen3ASRModelRequirementID, "fixture-whisper"
+	vad := speechBindingFixture(t, "model.onnx", map[string][]byte{"model.onnx": []byte("declared VAD fixture")})
+	vad.RequirementID, vad.ModelAssetID = capabilitydriver.FasterWhisperVADRequirementID, "fixture-vad"
+	hint := "  Nimi，专有名词\n"
+	request := &runtimev1.SpeechTranscribeScenarioSpec{Prompt: hint}
+	plan, err := (capabilitydriver.FasterWhisperDriver{}).PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{
+		ExactBindings: []capabilitydriver.InvocationExactBinding{main, vad}, Request: request, AudioBytes: []byte("declared audio fixture"), MIMEType: "audio/wav"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Prompt = "replacement context"
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, received *http.Request) {
+		if err := received.ParseMultipartForm(1 << 20); err != nil {
+			t.Error(err)
+		}
+		if received.FormValue("prompt") != hint {
+			t.Errorf("captured context lost in transport: %q", received.FormValue("prompt"))
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"text":"Declared recognition fixture.","language":"en"}`))
+	}))
+	defer server.Close()
+	materializer := &speechExecutionHostMaterializerStub{endpoint: server.URL}
+	result, err := NewSpeechExecutionHost(materializer, 8330, 0).ExecuteSpeechTranscription(context.Background(), plan, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Transcript.GetText() != "Declared recognition fixture." {
+		t.Fatal("vocabulary context rewrote the recognition output")
+	}
+}
+
 func TestSpeechTranscriptionHostCapturesAlignerAndPreservesTimedResult(t *testing.T) {
 	asr := speechBindingFixture(t, "model.safetensors", map[string][]byte{"model.safetensors": []byte("asr-unit-fixture")})
 	asr.RequirementID = capabilitydriver.Qwen3ASRModelRequirementID
@@ -358,15 +397,17 @@ func TestSpeechTranscriptionHostCapturesAlignerAndPreservesTimedResult(t *testin
 	aligner.RequirementID = capabilitydriver.Qwen3ASRAlignerRequirementID
 	aligner.ModelAssetID = "fixture/aligner"
 	input := capabilitydriver.SpeechTranscribeInvocationInput{
-		ExactBindings: []capabilitydriver.InvocationExactBinding{aligner, asr},
-		Request:       &runtimev1.SpeechTranscribeScenarioSpec{Timestamps: proto.Bool(true)},
-		AudioBytes:    []byte("unit-fixture-audio"), MIMEType: "audio/wav",
+		DependencySources: speechDependencySourceForHostTest(),
+		ExactBindings:     []capabilitydriver.InvocationExactBinding{aligner, asr},
+		Request:           &runtimev1.SpeechTranscribeScenarioSpec{Timestamps: proto.Bool(true)},
+		AudioBytes:        []byte("unit-fixture-audio"), MIMEType: "audio/wav",
 	}
 	plan, err := (capabilitydriver.Qwen3ASRAlignedDriver{}).PlanSpeechTranscribeInvocation(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 	input.ExactBindings[0].DeclaredFiles[0] = "changed-after-capture"
+	input.DependencySources[0].Hashes["profile_digest"] = "changed-after-capture"
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if err := request.ParseMultipartForm(1 << 20); err != nil {
 			t.Error(err)
@@ -385,6 +426,9 @@ func TestSpeechTranscriptionHostCapturesAlignerAndPreservesTimedResult(t *testin
 	}
 	if result.Transcript.GetLanguage() != "en" || len(result.Transcript.GetWords()) != 2 || result.Transcript.GetWords()[1].GetStartSeconds() != 2.1 {
 		t.Fatalf("timed result lost in Host transport: %+v", result.Transcript)
+	}
+	if materializer.capturedSource == nil || materializer.capturedSource.Hashes["profile_digest"] != "fixture-profile" {
+		t.Fatalf("captured aligned dependency lost or aliased: %+v", materializer.capturedSource)
 	}
 	if len(materializer.registrations) != 1 {
 		t.Fatalf("registrations: %+v", materializer.registrations)
@@ -1061,15 +1105,20 @@ func speechTranscriptionPlanForHostTest(t *testing.T, label string) *capabilityd
 	binding.RequirementID = capabilitydriver.Qwen3ASRModelRequirementID
 	binding.ModelAssetID = "local-import/Qwen3-ASR-0.6B-hf"
 	plan, err := (capabilitydriver.Qwen3ASRDriver{}).PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{
-		ExactBindings: []capabilitydriver.InvocationExactBinding{binding},
-		Request:       &runtimev1.SpeechTranscribeScenarioSpec{MimeType: "audio/wav", Language: "en"},
-		AudioBytes:    []byte("audio-" + label),
-		MIMEType:      "audio/wav",
+		DependencySources: speechDependencySourceForHostTest(),
+		ExactBindings:     []capabilitydriver.InvocationExactBinding{binding},
+		Request:           &runtimev1.SpeechTranscribeScenarioSpec{MimeType: "audio/wav", Language: "en"},
+		AudioBytes:        []byte("audio-" + label),
+		MIMEType:          "audio/wav",
 	})
 	if err != nil {
 		t.Fatalf("transcription plan %q: %v", label, err)
 	}
 	return plan
+}
+
+func speechDependencySourceForHostTest() []capabilitydriver.InvocationExactDependencySource {
+	return []capabilitydriver.InvocationExactDependencySource{{SelectedSourceRecordID: "fixture-source", Hashes: map[string]string{"profile_digest": "fixture-profile"}}}
 }
 
 func TestSpeechExecutionHostPersistsAudioCppReferenceVoiceExactly(t *testing.T) {

@@ -429,6 +429,7 @@ export enum ScenarioType {
   MUSIC_TRANSCRIBE = 17,
   AUDIO_VOICE_CONVERT = 18,
   TEXT_DECIDE = 19,
+  AUDIO_SPEAKER_EMBED = 20,
 }
 
 export enum SchedulingState {
@@ -455,6 +456,12 @@ export enum SpeechAlignmentUnit {
   UNSPECIFIED = 0,
   WORD = 1,
   CHAR = 2,
+}
+
+export enum SpeechDiarizationStatus {
+  UNSPECIFIED = 0,
+  DIARIZED = 1,
+  NO_SPEAKERS = 2,
 }
 
 export enum SpeechTimingMode {
@@ -491,6 +498,12 @@ export enum TextBehaviorKind {
   TOOL_USE = 1,
   REASONING = 2,
   STRUCTURED_OUTPUT = 3,
+}
+
+export enum TextEmbedPurpose {
+  UNSPECIFIED = 0,
+  RETRIEVAL_DOCUMENT = 1,
+  RETRIEVAL_QUERY = 2,
 }
 
 export enum TextReplayExecutionMode {

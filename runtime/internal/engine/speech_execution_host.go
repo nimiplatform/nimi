@@ -70,6 +70,8 @@ type SpeechExecutionModelRegistration struct {
 	Alignment           *SpeechExecutionModelRegistration
 	VAD                 *SpeechExecutionModelRegistration
 	VoiceDesign         *SpeechExecutionModelRegistration
+	Segmenter           *SpeechExecutionModelRegistration
+	SpeakerEncoder      *SpeechExecutionModelRegistration
 }
 
 // SpeechExecutionHostMaterializer lazily starts the private Host for exactly
@@ -156,7 +158,7 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 		}
 		return host.audioCppHost.ExecuteSpeechTranscription(ctx, plan, onStart)
 	}
-	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || (len(plan.ModelFiles()) != 1 && plan.DriverID() != capabilitydriver.Qwen3ASRAlignedDriverID && plan.DriverID() != capabilitydriver.FasterWhisperDriverID) {
+	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || (len(plan.ModelFiles()) != 1 && plan.DriverID() != capabilitydriver.Qwen3ASRAlignedDriverID && plan.DriverID() != capabilitydriver.FasterWhisperDriverID && plan.DriverID() != capabilitydriver.FasterWhisperSherpaDriverID) {
 		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech transcription host is unavailable"))
 	}
 	release, err := host.lease.acquire(ctx)
@@ -171,6 +173,15 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 		return localexecution.SpeechTranscriptionResult{}, err
 	}
 	modelFiles := plan.ModelFiles()
+	if plan.DriverID() == capabilitydriver.FasterWhisperSherpaDriverID || plan.DriverID() == capabilitydriver.Qwen3ASRDriverID || plan.DriverID() == capabilitydriver.Qwen3ASRTransformersDriverID || plan.DriverID() == capabilitydriver.Qwen3ASRAlignedDriverID {
+		captured, ok := plan.(interface {
+			DependencySources() []capabilitydriver.InvocationExactDependencySource
+		})
+		if !ok || len(captured.DependencySources()) != 1 {
+			return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("captured speech dependency profile is missing"))
+		}
+		ctx = localexecution.WithCapturedSpeechSource(ctx, captured.DependencySources()[0])
+	}
 	seals, err := sealInvocationModelContentContext(ctx, modelFiles)
 	if err != nil {
 		return localexecution.SpeechTranscriptionResult{}, speechContentSealError(ctx, err)
@@ -188,6 +199,9 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 	}
 	if err := localexecution.ValidateSpeechTranscript(transcript, plan.Request().GetTimestamps()); err != nil {
 		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureInference, err)
+	}
+	if plan.Request().GetDiarization() != (transcript.GetDiarization() != nil) {
+		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureInference, fmt.Errorf("requested diarization result is incomplete or unsolicited"))
 	}
 	return localexecution.SpeechTranscriptionResult{Transcript: transcript, Usage: usage}, nil
 }
@@ -592,10 +606,14 @@ func speechExecutionModelRegistration(
 ) (SpeechExecutionModelRegistration, error) {
 	aligned := driverID == capabilitydriver.Qwen3ASRAlignedDriverID
 	withVAD := driverID == capabilitydriver.FasterWhisperDriverID
+	diarized := driverID == capabilitydriver.FasterWhisperSherpaDriverID
 	voiceLibrary := capabilityContract == capabilitydriver.VoiceCreateContract && driverID == capabilitydriver.Qwen3TTSDriverID && workflowModelID == capabilitydriver.Qwen3VoiceLibraryRecipeID
 	expected := 1
 	if aligned || withVAD || voiceLibrary {
 		expected = 2
+	}
+	if diarized {
+		expected = 4
 	}
 	if len(modelFiles) != expected || len(seals) != expected {
 		return SpeechExecutionModelRegistration{}, fmt.Errorf("captured speech model binding count is invalid")
@@ -608,6 +626,9 @@ func speechExecutionModelRegistration(
 	}
 	if withVAD && (capabilityContract != capabilitydriver.AudioTranscribeContract || modelFiles[0].RequirementID != capabilitydriver.Qwen3ASRModelRequirementID || modelFiles[1].RequirementID != capabilitydriver.FasterWhisperVADRequirementID) {
 		return SpeechExecutionModelRegistration{}, fmt.Errorf("Whisper model slots are invalid")
+	}
+	if diarized && (capabilityContract != capabilitydriver.AudioTranscribeContract || modelFiles[0].RequirementID != capabilitydriver.Qwen3ASRModelRequirementID || modelFiles[1].RequirementID != capabilitydriver.FasterWhisperVADRequirementID || modelFiles[2].RequirementID != capabilitydriver.SpeechSegmenterSlot || modelFiles[3].RequirementID != capabilitydriver.SpeechSpeakerEncoderSlot) {
+		return SpeechExecutionModelRegistration{}, fmt.Errorf("diarized speech model slots are invalid")
 	}
 	if voiceLibrary && (modelFiles[0].RequirementID != capabilitydriver.Qwen3VoiceLibraryBaseRequirementID || modelFiles[1].RequirementID != capabilitydriver.Qwen3VoiceLibraryDesignRequirementID) {
 		return SpeechExecutionModelRegistration{}, fmt.Errorf("voice library model slots are invalid")
@@ -643,6 +664,15 @@ func speechExecutionModelRegistration(
 	if withVAD {
 		registrations[0].VAD = &registrations[1]
 	}
+	if diarized {
+		// Companions are exact captured files, never independently executing models.
+		for i := 1; i < 4; i++ {
+			registrations[i].DriverID = capabilitydriver.FasterWhisperDriverID
+		}
+		registrations[0].VAD = &registrations[1]
+		registrations[0].Segmenter = &registrations[2]
+		registrations[0].SpeakerEncoder = &registrations[3]
+	}
 	if voiceLibrary {
 		// The companion is a captured design model, not a second voice.create registration.
 		registrations[1].CapabilityContract = capabilitydriver.AudioSynthesizeContract
@@ -660,6 +690,9 @@ func (host *SpeechExecutionHost) speechHostBackendError(ctx context.Context, err
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_AI_INPUT_INVALID {
 		return speechHostError(localexecution.FailureInputInvalid, err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		return speechHostError(localexecution.FailureMediaOptionUnsupported, err)
 	}
 	return speechHostError(localexecution.FailureInference, err)
 }

@@ -43,11 +43,12 @@ func TestLlamaEmbedDriverProjectsExactEmbeddingSlotAndPlan(t *testing.T) {
 		RecipeID:                 LlamaEmbedGGUFRecipeID,
 		ModelContextWindowTokens: 8192,
 		ExactBindings: []InvocationExactBinding{{
-			RequirementID:     EmbeddingGGUFRequirementID,
-			ModelAssetID:      "embedding/test",
-			AbsolutePath:      filepath.Join(t.TempDir(), "embedding.gguf"),
-			VerifiedContentID: "sha256:" + digest,
-			EntrySHA256:       digest,
+			EmbeddingInputProtocol: EmbeddingInputNativeV1,
+			RequirementID:          EmbeddingGGUFRequirementID,
+			ModelAssetID:           "embedding/test",
+			AbsolutePath:           filepath.Join(t.TempDir(), "embedding.gguf"),
+			VerifiedContentID:      "sha256:" + digest,
+			EntrySHA256:            digest,
 		}},
 		Request: &runtimev1.TextEmbedScenarioSpec{Inputs: []string{" first ", "second"}},
 	})
@@ -84,7 +85,7 @@ func containsAdjacent(values []string, key string, value string) bool {
 
 func TestLocalEmbeddingRejectsDimensionsWithoutDroppingTheOption(t *testing.T) {
 	for _, value := range []uint32{0, 1, 768} {
-		_, _, err := llamaEmbedRequestBody(&runtimev1.TextEmbedScenarioSpec{Inputs: []string{"hello"}, Dimensions: &value})
+		_, _, err := llamaEmbedRequestBody(&runtimev1.TextEmbedScenarioSpec{Inputs: []string{"hello"}, Dimensions: &value}, "")
 		var failure *InvocationError
 		if !errors.As(err, &failure) || failure.Kind != InvocationFailureUnsupported {
 			t.Fatalf("unsupported Local dimensions %d: %v", value, err)

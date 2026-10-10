@@ -64,7 +64,7 @@ func TestMemoryPayloadDispositionAcrossCoreJobsAndRecoveryCopies(t *testing.T) {
 	var captured []byte
 	port := cognitionmemory.NewRuntimeEmbeddingPort(backend, "user-001", "agent-a",
 		func(ctx context.Context, _, agent string, req memoryv1.AIEmbeddingRequest) (cognitionmemory.ResolvedEmbeddingBinding, error) {
-			d, raw, err := service.CaptureMemoryEmbedding(ctx, req.Inputs, req.EmbeddingSpaceRef, EmbeddingOwner{Kind: "memory", AgentRef: agent, OperationID: req.OperationID, BankRef: req.BankRef, LifecycleRef: req.LifecycleRef, MemoryRefs: req.MemoryRefs})
+			d, raw, err := service.CaptureMemoryEmbedding(ctx, req.Inputs, req.EmbeddingSpaceRef, EmbeddingOwner{Kind: "memory", AgentRef: agent, OperationID: req.OperationID, BankRef: req.BankRef, LifecycleRef: req.LifecycleRef, MemoryRefs: req.MemoryRefs}, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED)
 			captured = raw
 			if err == nil {
 				snapshot, readErr := readScenarioJobDocument(service.scenarioJobs.durablePath)
@@ -168,7 +168,7 @@ func TestMemoryPayloadDeletionUsesOwnerProvenanceNotContentOrAppID(t *testing.T)
 	ctx := scenarioJobUserContext("nimi.runtime.memory", "user-001")
 	service, resolver, _, description, rawA, _ := newCapturedLocalMemoryTest(t, ctx)
 	ownerB := EmbeddingOwner{Kind: "memory", AgentRef: "agent-b", OperationID: "op-b", BankRef: "bank-b", LifecycleRef: "life-b"}
-	_, rawB, err := service.CaptureMemoryEmbedding(ctx, []string{"memory"}, description.SpaceID, ownerB)
+	_, rawB, err := service.CaptureMemoryEmbedding(ctx, []string{"memory"}, description.SpaceID, ownerB, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestMemoryPayloadDeletionUsesOwnerProvenanceNotContentOrAppID(t *testing.T)
 			t.Errorf("discard Agent B embedding capture: %v", err)
 		}
 	})
-	_, rawSource, err := service.CaptureMemoryEmbedding(ctx, []string{"memory"}, description.SpaceID, EmbeddingOwner{Kind: "source", AgentRef: "agent-a", OperationID: "op-source"})
+	_, rawSource, err := service.CaptureMemoryEmbedding(ctx, []string{"memory"}, description.SpaceID, EmbeddingOwner{Kind: "source", AgentRef: "agent-a", OperationID: "op-source"}, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED)
 	if err != nil {
 		t.Fatal(err)
 	}

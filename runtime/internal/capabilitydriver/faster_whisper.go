@@ -8,6 +8,7 @@ import (
 	"io"
 	"path"
 	"strings"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/proto"
@@ -127,7 +128,7 @@ func (driver FasterWhisperDriver) ProjectModelAssetBinding(input ModelAssetBindi
 	valid := false
 	if id == Qwen3ASRModelRequirementID && path.Base(input.Entry.RelativePath) == "model.bin" && whisperCT2Header(input.Entry.FormatProbe) {
 		valid = true
-		for _, name := range []string{"config.json", "tokenizer.json", "preprocessor_config.json"} {
+		for _, name := range []string{"config.json", "tokenizer.json"} {
 			if _, ok := modelAssetFileFact(input, name); !ok {
 				valid = false
 			}
@@ -213,8 +214,11 @@ func (FasterWhisperDriver) PlanSpeechTranscribeInvocation(input SpeechTranscribe
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("Whisper requires audio"))
 	}
 	format := strings.ToLower(strings.TrimSpace(request.GetResponseFormat()))
-	if (format != "" && format != "text" && format != "json") || request.GetDiarization() || request.GetSpeakerCount() != 0 || strings.TrimSpace(request.GetPrompt()) != "" {
+	if (format != "" && format != "text" && format != "json") || request.GetDiarization() || request.GetSpeakerCount() != 0 {
 		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("Whisper transcription options are unsupported"))
+	}
+	if !utf8.ValidString(request.GetPrompt()) || len(request.GetPrompt()) > 4096 {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("Whisper vocabulary context must be valid UTF-8 of at most 4 KiB"))
 	}
 	return &SpeechTranscribeInvocationPlan{driverID: FasterWhisperDriverID, modelAssetID: ordered[0].ModelAssetID, modelFiles: ordered, request: request, audioBytes: append([]byte(nil), input.AudioBytes...), mimeType: strings.TrimSpace(input.MIMEType)}, nil
 }

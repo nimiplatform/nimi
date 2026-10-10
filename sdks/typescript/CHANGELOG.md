@@ -17,6 +17,20 @@ The generation facade `get(jobId)` now returns the full Get response; read its J
 The unreachable synchronous protected image execute union is removed. Its request and response tag 2 and `image_generate` names are reserved, and the orphan `LocalAppImageGenerateOutput` type is removed. Use image Job submission; a remote synchronous protocol still produces a public Job. The declared wire changes must match the published-baseline findings exactly; do not replace the baseline image or source tag.
 
 
+## 0.21.0 — Captured embedding retrieval purpose (development)
+
+The unpublished matching Runtime/Kit/native 0.18.0 set adds optional `purpose: 'retrieval-document' | 'retrieval-query'` to existing `text-embed` calls. This is a minor public input widening. The exact Nomic-bert Model Contract now requires that purpose; the old unprefixed invocation is rejected, with no compatibility fallback. Drivers map the model protocol, not Apps. Unreviewed explicit-purpose compositions fail unsupported; legal native defaults of other compositions remain unchanged.
+
+Use document purpose for indexed material and query purpose for lookup. The reviewed pair returns one compatible actual `spaceId`, separate from earlier raw vectors. Keep width/usage/cancellation/account checks and rebuild or separate derived indexes when actual spaces differ. Rebuild full SDK/Kit/native archives and reinstall matched consumers; changing version labels or a lock alone is insufficient. No public release is performed here.
+
+## 0.21.0 — Source-local speech diarization (development)
+
+The unpublished matching Runtime and Kit/native 0.18.0 set widens `speech-transcribe` completed results with optional `diarization: { status, durationSeconds, intervals }`. Interval labels are local to one Job; time is measured on the submitted source, retains real overlap and cannot exceed its decoded duration. A requested unsupported combination fails explicitly, including an exact short-window speaker count that the initial Sherpa path cannot execute. Persist the complete result and apply the known input-chunk offset once. App identity matching remains a separate business consumer of compatible `audio.speaker.embed` results. Upgrade complete matching packages together; earlier closed-set projections reject or omit this added result.
+
+## 0.21.0 — Speaker representations (development)
+
+The matching unpublished Runtime and Kit/native 0.18.0 set adds asynchronous `audio-speaker-embed` App Jobs. A completed Job carries `speakerEmbedding: { vector, spaceId }`; preserve both. Compare or average only matching actual spaces and dimensions. The result is a speaker representation, without person identity, authentication, transcription or diarization claims. Input is original audio bytes/URI or an owned audio artifact with an optional frame range. Older packages cannot project the new closed-set task, so upgrade complete matching packages together.
+
 ## SDK 0.21.0 / Kit and native 0.18.0 — Owned World image inputs (development)
 
 The compatible input widening belongs to this unpublished minor development set. Use the newly built matching Runtime, SDK, Kit/native and Rust carrier 0.10.0 packages; a matching version label alone does not identify their contents. `world-generate` now accepts `image: { artifactId, projection }`, where projection is `ordinary` or `equirectangular-360`. Upload image bytes through the existing protected artifact upload first; prompt may be omitted when an image is present. Text-only requests still require a prompt. App paths, data URLs, provider IDs and implicit panorama detection are not inputs. Runtime captures the owned bytes before publishing the Job and performs provider upload privately. PNG/JPEG/WebP are bounded to 20 MB and 16 MP with upright orientation; panorama intent additionally requires 2:1 geometry.

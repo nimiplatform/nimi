@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
 func TestSelectedSpeechPackageSetSourceRequiresCurrentProfileConsumptionEvidence(t *testing.T) {
@@ -66,7 +68,17 @@ func TestMaterializeSpeechExecutionHostUsesOnlyExactCapabilityPackageSet(t *test
 	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-tts.python", ttsRoot, "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD", engine.SpeechQwen3TTSDriverPath)
 	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-asr.python", asrRoot, "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD", engine.SpeechQwen3ASRDriverPath)
 
-	endpoint, err := svc.MaterializeSpeechExecutionHost(context.Background(), capabilitydriver.AudioTranscribeContract, capabilitydriver.Qwen3ASRDriverID, 18330)
+	sources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.AudioTranscribeContract, capabilitydriver.Qwen3ASRDriver{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := sources[0]
+	ctx := localexecution.WithCapturedSpeechSource(context.Background(), capabilitydriver.InvocationExactDependencySource{DependencyFamily: source.DependencyFamily, DependencyID: source.DependencyID, ConsumerScope: source.ConsumerScope, SelectedSourceRecordID: source.SelectedSourceRecordID, CanonicalRoot: source.CanonicalRoot, Version: source.Version, Hashes: source.Hashes, VerifiedArtifacts: source.VerifiedArtifacts})
+	// Execution must retain admission's source even after current selection changes.
+	svc.mu.Lock()
+	svc.localEnvironmentSelectedSources = nil
+	svc.mu.Unlock()
+	endpoint, err := svc.MaterializeSpeechExecutionHost(ctx, capabilitydriver.AudioTranscribeContract, capabilitydriver.Qwen3ASRDriverID, 18330)
 	if err != nil {
 		t.Fatalf("materialize transcription Host: %v", err)
 	}
@@ -261,7 +273,13 @@ func TestMaterializeSpeechExecutionHostSelectsTransformersNativeASRPackageSet(t 
 	root := currentSpeechDependencyProfileRootForTest(t, svc, "speech.qwen3-asr-transformers.python")
 	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-asr-transformers.python", root, "NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD", engine.SpeechQwen3ASRTransformersDriverPath)
 
-	endpoint, err := svc.MaterializeSpeechExecutionHost(context.Background(), capabilitydriver.AudioTranscribeContract, capabilitydriver.Qwen3ASRTransformersDriverID, 18331)
+	sources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.AudioTranscribeContract, capabilitydriver.Qwen3ASRTransformersDriver{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := sources[0]
+	ctx := localexecution.WithCapturedSpeechSource(context.Background(), capabilitydriver.InvocationExactDependencySource{DependencyFamily: source.DependencyFamily, DependencyID: source.DependencyID, ConsumerScope: source.ConsumerScope, SelectedSourceRecordID: source.SelectedSourceRecordID, CanonicalRoot: source.CanonicalRoot, Version: source.Version, Hashes: source.Hashes, VerifiedArtifacts: source.VerifiedArtifacts})
+	endpoint, err := svc.MaterializeSpeechExecutionHost(ctx, capabilitydriver.AudioTranscribeContract, capabilitydriver.Qwen3ASRTransformersDriverID, 18331)
 	if err != nil {
 		t.Fatalf("materialize Transformers-native transcription Host: %v", err)
 	}
@@ -391,7 +409,42 @@ func verifiedSpeechPackageSetRecordForTest(
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, record)
 	writePythonDependencyProfileStaticFilesForTest(t, root, consumer, identity)
+	manifest, err := json.Marshal(engine.PythonDependencyProfileManifest{SchemaVersion: 1, ValidationConsumer: consumer, Identity: identity})
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(root, engine.PythonDependencyProfileManifestFileName)
+	if err := os.Chmod(manifestPath, 0o600); err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, manifest, 0o444); err != nil {
+		t.Fatal(err)
+	}
 	return record
+}
+
+func TestQwenASRAdmissionRejectsMissingAndCapturesCurrentProfile(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	for _, driver := range []capabilitydriver.Driver{capabilitydriver.Qwen3ASRDriver{}, capabilitydriver.Qwen3ASRTransformersDriver{}, capabilitydriver.Qwen3ASRAlignedDriver{}} {
+		t.Run(fmt.Sprintf("%T", driver), func(t *testing.T) {
+			svc := newLocalEnvironmentTestService(t)
+			defer svc.Close()
+			if sources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.AudioTranscribeContract, driver, nil); err == nil || len(sources) != 0 {
+				t.Fatalf("unprepared Qwen admitted: %+v %v", sources, err)
+			}
+			consumer, path := "speech.qwen3-asr-transformers.python", engine.SpeechQwen3ASRTransformersDriverPath
+			if _, native := driver.(capabilitydriver.Qwen3ASRDriver); native {
+				consumer, path = "speech.qwen3-asr.python", engine.SpeechQwen3ASRDriverPath
+			}
+			root := currentSpeechDependencyProfileRootForTest(t, svc, consumer)
+			upsertVerifiedSpeechPackageSetForTest(t, svc, consumer, root, "", path)
+			sources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.AudioTranscribeContract, driver, nil)
+			if err != nil || len(sources) != 1 || sources[0].CanonicalRoot != root || sources[0].ConsumerScope != consumer || sources[0].Version != sources[0].Hashes["profile_digest"] {
+				t.Fatalf("Qwen current profile capture: %+v %v", sources, err)
+			}
+		})
+	}
 }
 
 func currentSpeechDependencyProfileRootForTest(t *testing.T, svc *Service, consumer string) string {

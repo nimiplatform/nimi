@@ -52,6 +52,19 @@ func (s *Service) ProjectSelectedLocalLoadout(capabilityContract string) (locale
 		TextBehaviors:                   cloneTextBehaviorCapabilityProjections(loadout.GetTextBehaviors()),
 		ValidationState:                 loadout.GetValidationState(), Reasons: append([]runtimev1.ReasonCode(nil), loadout.GetReasons()...),
 	}
+	// Model configuration alone does not make the selected local route usable.
+	// Project the same current environment contract the owner setup flow uses,
+	// without entering admission or hashing model payloads.
+	if option.ValidationState == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
+		profile := collectDeviceProfile()
+		if pack, consumer, supported := localEnvironmentTargetForDriver(validation.driver, localEnvironmentHostProfileFromDeviceProfile(profile)); supported {
+			gate := s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{ConsumerID: consumer, PackID: pack, HostProfile: profile})
+			if gate.State != localEnvironmentActivationStateReady {
+				option.ValidationState = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
+				option.Reasons = append(option.Reasons, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
+			}
+		}
+	}
 	if capabilityContract == "text.generate" && loadout.GetValidationState() == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 		identity := &localexecution.TextBehaviorIdentity{
 			Match: capabilitydriver.TextBehaviorAdapterMatchFacts{
@@ -166,7 +179,7 @@ func (s *Service) resolveLocalExecutionLocked(ctx context.Context, pass admissio
 			ModelAssetID: axis.slot.GetModelAssetId(),
 			AbsolutePath: axis.absolutePath, BundleDir: axis.bundleDir, DeclaredFiles: append([]string(nil), axis.declaredFiles...),
 			VerifiedContentID: axis.slot.GetExpectedContentId(), EntrySHA256: axis.entrySHA256,
-			TemplateIdentity: axis.templateIdentity,
+			TemplateIdentity: axis.templateIdentity, EmbeddingInputProtocol: axis.embeddingInputProtocol,
 		})
 		if requirement.GetRole() == runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN && axis.contextWindow > 0 {
 			contextWindow = axis.contextWindow
@@ -357,6 +370,29 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 	profile := collectDeviceProfile()
 	host := localEnvironmentHostProfileFromDeviceProfile(profile)
 	switch typed := driver.(type) {
+	case capabilitydriver.Qwen3ASRDriver, capabilitydriver.Qwen3ASRTransformersDriver, capabilitydriver.Qwen3ASRAlignedDriver:
+		consumer := "speech.qwen3-asr-transformers.python"
+		driverPath := engine.SpeechQwen3ASRTransformersDriverPath
+		if _, native := typed.(capabilitydriver.Qwen3ASRDriver); native {
+			consumer, driverPath = "speech.qwen3-asr.python", engine.SpeechQwen3ASRDriverPath
+		}
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(consumer, driverPath, profile)
+		if !ok {
+			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Qwen ASR environment is not ready; prepare the selected setup in AI Capabilities", map[string]string{"detail": detail})
+		}
+		return []localexecution.ExactDependencySource{{DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID, ConsumerScope: consumer, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version, VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}}, nil
+	case capabilitydriver.FasterWhisperSherpaDriver:
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(capabilitydriver.WhisperDiarizationConsumerID, engine.SpeechFasterWhisperDriverPath, profile)
+		if !ok {
+			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Diarized Whisper environment is not ready", map[string]string{"detail": detail})
+		}
+		return []localexecution.ExactDependencySource{{DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID, ConsumerScope: capabilitydriver.WhisperDiarizationConsumerID, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version, VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}}, nil
+	case capabilitydriver.SherpaSpeakerEmbedDriver:
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.SpeakerEncoderConsumerID, func(root string) string { return filepath.Join(root, "speaker_embedding_server.py") }, profile)
+		if !ok {
+			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Speaker encoder environment is not ready", map[string]string{"detail": detail})
+		}
+		return []localexecution.ExactDependencySource{{DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID, ConsumerScope: engine.SpeakerEncoderConsumerID, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version, VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}}, nil
 	case capabilitydriver.SpleeterDriver:
 		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.SpleeterConsumerID, func(root string) string { return filepath.Join(root, "spleeter_driver.py") }, profile)
 		if !ok {

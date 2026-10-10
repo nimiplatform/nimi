@@ -527,13 +527,19 @@ fn parse_execute_spec(value: JsonValue) -> Result<ExecuteSpec, LocalAppOperation
             Ok(ExecuteSpec::TextGenerate(text_behavior::request(input)?))
         }
         "text-embed" => {
-            allowed_keys(&object, &["type", "inputs", "dimensions"], &["type", "inputs"])?;
+            allowed_keys(&object, &["type", "inputs", "dimensions", "purpose"], &["type", "inputs"])?;
             let inputs = string_array(field(&object, "inputs")?, 16, MAX_PROMPT_BYTES, false)?;
             if inputs.is_empty() || inputs.iter().map(String::len).sum::<usize>() > 64 * 1024 {
                 return Err(invalid_payload());
             }
             Ok(ExecuteSpec::TextEmbed(LocalAppTextEmbedScenarioSpec {
                 inputs,
+                purpose: match object.get("purpose").and_then(JsonValue::as_str) {
+                    None if !object.contains_key("purpose") => crate::generated::TextEmbedPurpose::Unspecified as i32,
+                    Some("retrieval-document") => crate::generated::TextEmbedPurpose::RetrievalDocument as i32,
+                    Some("retrieval-query") => crate::generated::TextEmbedPurpose::RetrievalQuery as i32,
+                    _ => return Err(invalid_payload()),
+                },
                 dimensions: optional_integer_field(&object, "dimensions")?
                     .map(|value| u32::try_from(value).ok().filter(|value| *value > 0).ok_or_else(invalid_payload))
                     .transpose()?,
@@ -639,6 +645,34 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
             Ok(JobSpec::AudioSeparate(crate::generated::AudioSeparateScenarioSpec {
                 mime_type, audio_source, source_audio, include_instrument_parts,
             }))
+        }
+        "audio-speaker-embed" => {
+            allowed_keys(&object, &["type", "mimeType", "audioSource", "sourceAudio"], &["type", "mimeType"])?;
+            if object.contains_key("audioSource") == object.contains_key("sourceAudio") { return Err(invalid_payload()); }
+            let (mime_type, audio_source, source_audio) = if let Some(value) = object.get("sourceAudio") {
+                let source = value.as_object().ok_or_else(invalid_payload)?;
+                allowed_keys(source, &["artifactId", "range"], &["artifactId"])?;
+                let artifact_id = required_text_field(source, "artifactId", MAX_IDENTIFIER_BYTES)?;
+                require_identifier(&artifact_id).map_err(|_| invalid_payload())?;
+                let range = source.get("range").map(|value| {
+                    let range = value.as_object().ok_or_else(invalid_payload)?;
+                    exact_keys(range, &["startFrame", "endFrame"])?;
+                    let start_frame = field(range, "startFrame")?.as_u64().ok_or_else(invalid_payload)?;
+                    let end_frame = field(range, "endFrame")?.as_u64().ok_or_else(invalid_payload)?;
+                    if end_frame <= start_frame || end_frame > 9_007_199_254_740_991 { return Err(invalid_payload()); }
+                    Ok(crate::generated::AudioFrameRange { start_frame, end_frame })
+                }).transpose()?;
+                (required_text_field(&object, "mimeType", 128)?, None, Some(MusicAudioInput { artifact_id, range }))
+            } else {
+                let mut input = Map::new();
+                input.insert("type".into(), JsonValue::String("speech-transcribe".into()));
+                input.insert("mimeType".into(), field(&object, "mimeType")?.clone());
+                input.insert("audioSource".into(), field(&object, "audioSource")?.clone());
+                for key in ["language", "prompt", "responseFormat"] { input.insert(key.into(), JsonValue::String(String::new())); }
+                let audio = parse_speech_transcribe_spec(&input)?;
+                (audio.mime_type, audio.audio_source, None)
+            };
+            Ok(JobSpec::AudioSpeakerEmbed(crate::generated::AudioSpeakerEmbedScenarioSpec { mime_type, audio_source, source_audio }))
         }
         "voice-create" => Ok(JobSpec::VoiceCreate(parse_voice_create_spec(&object)?)),
         "music-generate" => Ok(JobSpec::MusicGenerate(music::parse(&object)?)),
@@ -1235,6 +1269,7 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         ScenarioType::SpeechSynthesize => "speech-synthesize",
         ScenarioType::SpeechTranscribe => "speech-transcribe",
         ScenarioType::AudioSeparate => "audio-separate",
+        ScenarioType::AudioSpeakerEmbed => "audio-speaker-embed",
         ScenarioType::TextAnnotate => "text-annotate",
         ScenarioType::VoiceCreate => "voice-create",
         ScenarioType::MusicGenerate => "music-generate",
@@ -1335,6 +1370,14 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
     });
     if let Some(value) = submission_outcome { projected["submissionOutcome"] = json!(value); }
     if let Some(value) = stop_outcome { projected["stopOutcome"] = json!(value); }
+    if scenario_type == "audio-speaker-embed" && status == "completed" {
+        let result = job.speaker_embedding.as_ref().ok_or_else(untrusted)?;
+        let vector = &result.vector.as_ref().ok_or_else(untrusted)?.values;
+        if result.space_id.is_empty() || result.space_id.len() > 128 || result.space_id.trim() != result.space_id
+            || vector.is_empty() || vector.len() > 4096 || vector.iter().any(|value| !value.is_finite())
+            || !vector.iter().any(|value| *value != 0.0) || projected["artifacts"].as_array().map_or(true, |items| !items.is_empty()) { return Err(untrusted()); }
+        projected["speakerEmbedding"] = json!({"vector": vector, "spaceId": result.space_id});
+    } else if job.speaker_embedding.is_some() { return Err(untrusted()); }
     if let Some(value) = transcription {
         projected
             .as_object_mut()
@@ -2153,6 +2196,19 @@ mod tests {
     }
 
     #[test]
+    fn embedding_retrieval_purpose_is_typed_without_altering_text() {
+        for (purpose, expected) in [("retrieval-document", crate::generated::TextEmbedPurpose::RetrievalDocument), ("retrieval-query", crate::generated::TextEmbedPurpose::RetrievalQuery)] {
+            match parse_execute_spec(json!({"type":"text-embed","inputs":["original text"],"purpose":purpose})).unwrap() {
+                ExecuteSpec::TextEmbed(value) => { assert_eq!(value.purpose, expected as i32); assert_eq!(value.inputs, vec!["original text"]); },
+                _ => panic!("expected embedding spec"),
+            }
+        }
+        for purpose in [json!("clustering"), json!(null), json!(1)] {
+            assert!(parse_execute_spec(json!({"type":"text-embed","inputs":["text"],"purpose":purpose})).is_err());
+        }
+    }
+
+    #[test]
     fn embedding_usage_preserves_missing_and_reported_zero_without_estimates() {
         use crate::generated::{EmbeddingVector, UsageStats};
         let output = |usage| LocalAppTextEmbedOutput {
@@ -2682,8 +2738,24 @@ fn project_transcription(
         previous_start = word.start_seconds;
         words.push(json!({"text": word.text, "startSeconds": word.start_seconds, "endSeconds": word.end_seconds}));
     }
-    let result =
+    let mut result =
         json!({"status": status, "text": value.text, "language": value.language, "words": words});
+    if let Some(diarization)=&value.diarization {
+        let state=match crate::generated::SpeechDiarizationStatus::try_from(diarization.status).map_err(|_|untrusted())? {
+            crate::generated::SpeechDiarizationStatus::Diarized=>"diarized",
+            crate::generated::SpeechDiarizationStatus::NoSpeakers=>"no-speakers",
+            _=>return Err(untrusted()),
+        };
+        if !diarization.duration_seconds.is_finite()||diarization.duration_seconds<=0.0||diarization.intervals.len()>16384||
+            (state=="diarized" && diarization.intervals.is_empty())||(state=="no-speakers" && !diarization.intervals.is_empty())||(status=="no-speech" && state=="diarized") { return Err(untrusted()); }
+        let mut previous=0.0;let mut intervals=Vec::with_capacity(diarization.intervals.len());
+        for interval in &diarization.intervals {
+            if interval.speaker_id.is_empty()||interval.speaker_id.trim()!=interval.speaker_id||interval.speaker_id.len()>128||!interval.start_seconds.is_finite()||!interval.end_seconds.is_finite()||interval.start_seconds<previous||interval.end_seconds<=interval.start_seconds||interval.end_seconds>diarization.duration_seconds { return Err(untrusted()); }
+            previous=interval.start_seconds;
+            intervals.push(json!({"speakerId":interval.speaker_id,"startSeconds":interval.start_seconds,"endSeconds":interval.end_seconds}));
+        }
+        result["diarization"]=json!({"status":state,"durationSeconds":diarization.duration_seconds,"intervals":intervals});
+    }
     if serde_json::to_vec(&result).map_err(|_| untrusted())?.len() > MAX_TRANSCRIPTION_TEXT_BYTES {
         return Err(untrusted());
     }
@@ -2748,6 +2820,27 @@ mod transcription_tests {
         artifacts[1].duration_ms = 900;
         assert!(project_audio_separation(&value, &artifacts).is_err());
     }
+
+    #[test]
+    fn speaker_representation_preserves_space_and_rejects_nonterminal_or_invalid_output() {
+        let input = json!({"type":"audio-speaker-embed", "mimeType":"audio/wav", "audioSource":{"type":"bytes", "bytes":"AQID"}});
+        assert!(matches!(parse_job_spec(input.clone()).unwrap(), JobSpec::AudioSpeakerEmbed(_)));
+        let mut forbidden = input; forbidden["model"] = json!("private");
+        assert!(parse_job_spec(forbidden).is_err());
+        let mut job = LocalAppScenarioJob {
+            job_id: "speaker-job".into(), scenario_type: ScenarioType::AudioSpeakerEmbed as i32,
+            status: ScenarioJobStatus::Completed as i32, reason_code: crate::generated::ReasonCode::ActionExecuted as i32,
+            speaker_embedding: Some(crate::generated::AudioSpeakerEmbedResult {
+                vector: Some(crate::generated::EmbeddingVector { values: vec![0.25, -0.75] }), space_id: "speaker-space".into(),
+            }), ..Default::default()
+        };
+        assert_eq!(project_job(job.clone()).unwrap()["speakerEmbedding"]["spaceId"], "speaker-space");
+        job.status = ScenarioJobStatus::Running as i32;
+        assert!(project_job(job.clone()).is_err());
+        job.status = ScenarioJobStatus::Completed as i32;
+        job.speaker_embedding.as_mut().unwrap().vector.as_mut().unwrap().values[0] = f64::NAN;
+        assert!(project_job(job).is_err());
+    }
     #[test]
     fn typed_transcription_projects_real_seconds_and_rejects_invalid_timing() {
         let mut value = crate::generated::SpeechTranscript {
@@ -2759,6 +2852,7 @@ mod transcription_tests {
                 start_seconds: 0.2,
                 end_seconds: 0.8,
             }],
+            diarization:None,
         };
         let result = project_transcription(&value).expect("typed transcript");
         assert_eq!(result["words"][0]["startSeconds"], 0.2);
@@ -2772,5 +2866,17 @@ mod transcription_tests {
             project_transcription(&value).unwrap()["status"],
             "no-speech"
         );
+    }
+
+    #[test]
+    fn typed_diarization_retains_source_overlap_and_refuses_padding_or_unknown_status() {
+        let mut value=crate::generated::SpeechTranscript { status:crate::generated::SpeechTranscriptStatus::Transcribed as i32,text:"declared text fixture".into(),diarization:Some(crate::generated::SpeechDiarization {status:crate::generated::SpeechDiarizationStatus::Diarized as i32,duration_seconds:8.0,intervals:vec![crate::generated::SpeechSpeakerInterval {speaker_id:"speaker_1".into(),start_seconds:0.6,end_seconds:6.8},crate::generated::SpeechSpeakerInterval {speaker_id:"speaker_2".into(),start_seconds:6.5,end_seconds:8.0}]}),..Default::default() };
+        let result=project_transcription(&value).unwrap();
+        assert_eq!(result["diarization"]["intervals"][1]["startSeconds"],6.5);
+        value.diarization.as_mut().unwrap().intervals[1].end_seconds=8.0297;
+        assert!(project_transcription(&value).is_err());
+        value.diarization.as_mut().unwrap().intervals[1].end_seconds=8.0;
+        value.diarization.as_mut().unwrap().status=0;
+        assert!(project_transcription(&value).is_err());
     }
 }

@@ -4144,6 +4144,7 @@ pub enum ScenarioType {
     SCENARIOTYPEMUSICTRANSCRIBE,
     SCENARIOTYPEAUDIOVOICECONVERT,
     SCENARIOTYPETEXTDECIDE,
+    SCENARIOTYPEAUDIOSPEAKEREMBED,
 }
 
 impl Default for ScenarioType {
@@ -4196,6 +4197,19 @@ pub enum SpeechAlignmentUnit {
 impl Default for SpeechAlignmentUnit {
     fn default() -> Self {
         Self::SPEECHALIGNMENTUNITUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SpeechDiarizationStatus {
+    SPEECHDIARIZATIONSTATUSUNSPECIFIED,
+    SPEECHDIARIZATIONSTATUSDIARIZED,
+    SPEECHDIARIZATIONSTATUSNOSPEAKERS,
+}
+
+impl Default for SpeechDiarizationStatus {
+    fn default() -> Self {
+        Self::SPEECHDIARIZATIONSTATUSUNSPECIFIED
     }
 }
 
@@ -4267,6 +4281,19 @@ pub enum TextBehaviorKind {
 impl Default for TextBehaviorKind {
     fn default() -> Self {
         Self::TEXTBEHAVIORKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TextEmbedPurpose {
+    TEXTEMBEDPURPOSEUNSPECIFIED,
+    TEXTEMBEDPURPOSERETRIEVALDOCUMENT,
+    TEXTEMBEDPURPOSERETRIEVALQUERY,
+}
+
+impl Default for TextEmbedPurpose {
+    fn default() -> Self {
+        Self::TEXTEMBEDPURPOSEUNSPECIFIED
     }
 }
 
@@ -5768,6 +5795,19 @@ pub struct AudioSeparation {
     pub vocals_artifact_id: Option<String>,
     pub background_artifact_id: Option<String>,
     pub instrument_parts: Vec<Box<AudioInstrumentPart>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AudioSpeakerEmbedResult {
+    pub vector: Option<Box<EmbeddingVector>>,
+    pub space_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AudioSpeakerEmbedScenarioSpec {
+    pub mime_type: Option<String>,
+    pub audio_source: Option<Box<SpeechTranscriptionAudioSource>>,
+    pub source_audio: Option<Box<MusicAudioInput>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10706,6 +10746,7 @@ pub struct LocalAppScenarioJob {
     pub voice_conversion: Option<Box<VoiceConversion>>,
     pub submission_outcome: Option<ScenarioJobSubmissionOutcome>,
     pub stop_outcome: Option<ScenarioJobStopOutcome>,
+    pub speaker_embedding: Option<Box<AudioSpeakerEmbedResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10773,6 +10814,7 @@ pub struct LocalAppTextEmbedOutput {
 pub struct LocalAppTextEmbedScenarioSpec {
     pub inputs: Vec<String>,
     pub dimensions: Option<u32>,
+    pub purpose: Option<TextEmbedPurpose>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13509,6 +13551,7 @@ pub struct ScenarioJob {
     pub voice_conversion: Option<Box<VoiceConversion>>,
     pub submission_outcome: Option<ScenarioJobSubmissionOutcome>,
     pub stop_outcome: Option<ScenarioJobStopOutcome>,
+    pub speaker_embedding: Option<Box<AudioSpeakerEmbedResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13543,6 +13586,7 @@ pub struct ScenarioOutput {
     pub music_transcribe: Option<Box<MusicTranscribeResult>>,
     pub audio_voice_convert: Option<Box<AudioVoiceConvertResult>>,
     pub text_decision: Option<Box<TextDecisionResult>>,
+    pub audio_speaker_embed: Option<Box<AudioSpeakerEmbedResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13578,6 +13622,7 @@ pub struct ScenarioSpec {
     pub music_transcribe: Option<Box<MusicTranscribeScenarioSpec>>,
     pub audio_voice_convert: Option<Box<AudioVoiceConvertScenarioSpec>>,
     pub text_decide: Option<Box<TextDecideScenarioSpec>>,
+    pub audio_speaker_embed: Option<Box<AudioSpeakerEmbedScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13969,6 +14014,13 @@ pub struct SpeechAudioReference {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpeechDiarization {
+    pub status: Option<SpeechDiarizationStatus>,
+    pub duration_seconds: Option<f64>,
+    pub intervals: Vec<Box<SpeechSpeakerInterval>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SpeechInputCapabilities {
     pub supports_identity_audio: Option<bool>,
     pub supports_performance_audio: Option<bool>,
@@ -13981,6 +14033,13 @@ pub struct SpeechInputCapabilities {
 pub struct SpeechPerformanceReference {
     pub artifact_id: Option<String>,
     pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpeechSpeakerInterval {
+    pub speaker_id: Option<String>,
+    pub start_seconds: Option<f64>,
+    pub end_seconds: Option<f64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14030,6 +14089,7 @@ pub struct SpeechTranscript {
     pub text: Option<String>,
     pub language: Option<String>,
     pub words: Vec<Box<SpeechTranscriptWord>>,
+    pub diarization: Option<Box<SpeechDiarization>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14365,6 +14425,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub client_submission_id: Option<String>,
     pub music_transcribe: Option<Box<MusicTranscribeScenarioSpec>>,
     pub audio_voice_convert: Option<Box<AudioVoiceConvertScenarioSpec>>,
+    pub audio_speaker_embed: Option<Box<AudioSpeakerEmbedScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14762,6 +14823,7 @@ pub struct TextEmbedOutput {
 pub struct TextEmbedScenarioSpec {
     pub inputs: Vec<String>,
     pub dimensions: Option<u32>,
+    pub purpose: Option<TextEmbedPurpose>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -1,0 +1,34 @@
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.ai-provider
+units:
+  - id: definition.nimi.runtime.speaker-representation.audio-speaker-embedding-contract
+    kind: definition
+    title: Short-audio speaker representation contract
+    meaning: audio.speaker.embed is an independent finite short-audio request and speaker-representation vector result, consumed without selecting a provider, model, Driver, execution route, person or business profile; it is neither text.embed, generic acoustic or semantic audio embedding, transcription, speaker diarization, reusable synthesis voice creation nor identity authentication.
+  - id: rule.nimi.runtime.speaker-representation.audio-speaker-embedding-result
+    kind: rule
+    title: Speaker vectors preserve exact captured representation semantics
+    modality: must
+    statement: An audio.speaker.embed ASYNC_JOB follows the common scenario Job contract and consumes one owned audio input through the existing scenario and protected Local App admission, cancellation and terminal Get owner boundaries, captures the selected exact implementation and model contents before publication, and returns one nonempty finite speaker-representation vector of the positive dimension verified by that Driver Model Contract together with a Runtime-derived opaque space_id covering the capability, exact captured implementation and dialect, model contents and representation preprocessing semantics. Every successful terminal result is validated and durably captured before publication and projected without provider, model, route, credential, path, person name or free-form metadata. Equal dimension alone never permits vector comparison or combination, and a different space requires separate or rebuilt App-derived profiles and indexes. Missing speech qualification is not a model-reported no-speech result, an insufficient or invalid input or failed inference cannot become a zero vector or fabricated successful representation, and no vector result identifies a person, verifies a login or promises recognition accuracy. The App owns capture windows, enrollment consent, profile names and account scope, matching thresholds, centroids, clustering, retention and business workflow; Runtime owns the exact model execution and immutable result, without selecting another resource or adopting business profiles into Cognition.
+    condition: Whenever a speaker representation is admitted, executed, stored, projected or consumed.
+    failure: Reject an incompatible, missing, nonfinite or wrong-width representation, unsupported input, retired scope or uncaptured model without guessing an identity, substituting another representation task or resource, copying an old unmarked vector into a new space, or publishing pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+      - type: applies_to
+        target: definition.nimi.runtime.speaker-representation.audio-speaker-embedding-contract
+  - id: rule.nimi.runtime.speaker-representation.sherpa-speaker-encoder
+    kind: rule
+    title: Local speaker encoder uses a captured compatible ONNX payload
+    modality: must
+    statement: The initial Local audio.speaker.embed implementation executes the versioned sherpa-onnx speaker encoder dialect with one required speaker.encoder ModelAsset slot and a pinned Runtime-managed CPU dependency profile. Its Model Contract verifies the exact self-contained ONNX graph and model-authored 3d-speaker framework, 16000-Hz sample rate, normalized samples, global-mean feature normalization, one Float32 batch-by-time-by-80 feature input and one Float32 batch-by-dimension output whose positive width agrees with output_dim metadata, rejecting custom graph domains, external tensor dependencies and contradictory interface or preprocessing facts. Admission derives output width from those verified payload facts rather than a filename, catalog hash, inventory hint, caller-entered dimension or trial inference. Execution decodes the captured short audio, supplies its complete mono waveform to the admitted extractor, uses the model-declared preprocessing and returns the actual extractor vector; it admits at most 30 seconds per input and fails an input without computable features or valid output rather than padding a successful result, truncating input or substituting ambient weights. This bounded initial implementation makes no claim for unrelated model architectures, generic audio meaning, speech detection, cross-space equivalence or person authentication, and the App's enrollment window policy remains outside the generic contract.
+    condition: Whenever the local speaker encoder recipe is declared, selected or executed.
+    failure: Fail the exact Job on changed or incompatible model bytes, unmanaged dependencies, unsupported duration or audio, extractor failure, invalid vector or cancellation without downloading weights, changing the route or ModelAsset, or fabricating a person or successful representation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.speaker-representation.audio-speaker-embedding-contract

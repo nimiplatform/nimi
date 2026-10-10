@@ -106,7 +106,7 @@ test('formal AI consumption runtime adapter keeps the canonical Local App operat
     traceId: 'trace-embed',
   });
   assert.deepEqual(executeRequest, {
-    spec: { oneofKind: 'textEmbed', textEmbed: { inputs: ['hello'] } },
+    spec: { oneofKind: 'textEmbed', textEmbed: { inputs: ['hello'], purpose: 0 } },
     // No caller deadline: Runtime keeps its capability-owned default.
     timeoutMs: 0,
   });

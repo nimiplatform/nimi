@@ -138,6 +138,7 @@ type ModelAssetStructuredProbeDriver interface {
 // whose execution contract consumes model-authored context metadata.
 type ModelAssetBindingProjection struct {
 	EmbeddingDimension       int
+	EmbeddingInputProtocol   string
 	Descriptor               ModelAssetDescriptor
 	ModelContextWindowTokens uint64
 	// TemplateIdentity is the canonical digest of the exact model-authored
@@ -307,14 +308,15 @@ type TextContextOptionDriver interface {
 // captured ModelAsset bundle manifest; they never discover files or resolve
 // bindings from a host model directory.
 type InvocationExactBinding struct {
-	RequirementID     string
-	ModelAssetID      string
-	AbsolutePath      string
-	BundleDir         string
-	DeclaredFiles     []string
-	VerifiedContentID string
-	EntrySHA256       string
-	TemplateIdentity  string
+	EmbeddingInputProtocol string
+	RequirementID          string
+	ModelAssetID           string
+	AbsolutePath           string
+	BundleDir              string
+	DeclaredFiles          []string
+	VerifiedContentID      string
+	EntrySHA256            string
+	TemplateIdentity       string
 }
 
 // InvocationExactDependencySource is immutable Host package/dependency truth
@@ -532,13 +534,14 @@ type VideoInvocationInput struct {
 type InvocationFailureKind string
 
 const (
-	InvocationFailureInvalidConfig           InvocationFailureKind = "invalid_config"
-	InvocationFailureInvalidBinding          InvocationFailureKind = "invalid_binding"
-	InvocationFailureInvalidRequest          InvocationFailureKind = "invalid_request"
-	InvocationFailureVoiceInput              InvocationFailureKind = "voice_input"
-	InvocationFailureInvalidOption           InvocationFailureKind = "invalid_option"
-	InvocationFailureUnsupported             InvocationFailureKind = "unsupported"
-	InvocationFailureTextBehaviorUnsupported InvocationFailureKind = "text_behavior_unsupported"
+	InvocationFailureInvalidConfig               InvocationFailureKind = "invalid_config"
+	InvocationFailureInvalidBinding              InvocationFailureKind = "invalid_binding"
+	InvocationFailureInvalidRequest              InvocationFailureKind = "invalid_request"
+	InvocationFailureVoiceInput                  InvocationFailureKind = "voice_input"
+	InvocationFailureInvalidOption               InvocationFailureKind = "invalid_option"
+	InvocationFailureUnsupported                 InvocationFailureKind = "unsupported"
+	InvocationFailureUnsupportedEmbeddingPurpose InvocationFailureKind = "unsupported_embedding_purpose"
+	InvocationFailureTextBehaviorUnsupported     InvocationFailureKind = "text_behavior_unsupported"
 )
 
 // InvocationError is returned before any host process or HTTP operation.
@@ -582,13 +585,21 @@ type TextInvocationPlan struct {
 // EmbedInvocationPlan is the immutable llama embedding substrate plan. The
 // ExecutionHost adds only process, endpoint, and transport facts.
 type EmbedInvocationPlan struct {
-	processKey        string
-	processArgs       []string
-	modelFiles        []InvocationExactBinding
-	dependencySources []InvocationExactDependencySource
-	requestPath       string
-	requestBody       []byte
-	expectedCount     int
+	representationFamily string
+	processKey           string
+	processArgs          []string
+	modelFiles           []InvocationExactBinding
+	dependencySources    []InvocationExactDependencySource
+	requestPath          string
+	requestBody          []byte
+	expectedCount        int
+}
+
+func (p *EmbedInvocationPlan) RepresentationFamily() string {
+	if p == nil {
+		return ""
+	}
+	return p.representationFamily
 }
 
 func (p *EmbedInvocationPlan) ProcessKey() string {
@@ -1646,6 +1657,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: TextAnnotateContract, Identity: Identity{ImplementationID: SpacyImplementationID, DriverID: SpacyDriverID, DriverDialect: SpacyTrfDriverDialect}}:                                                             SpacyTrfDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRAlignedImplementationID, DriverID: Qwen3ASRAlignedDriverID, DriverDialect: Qwen3ASRAlignedDriverDialect}}:                               Qwen3ASRAlignedDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: FasterWhisperImplementationID, DriverID: FasterWhisperDriverID, DriverDialect: FasterWhisperDriverDialect}}:                                     FasterWhisperDriver{},
+		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: FasterWhisperSherpaImplementationID, DriverID: FasterWhisperSherpaDriverID, DriverDialect: FasterWhisperSherpaDriverDialect}}:                   FasterWhisperSherpaDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRImplementationID, DriverID: Qwen3ASRDriverID, DriverDialect: Qwen3ASRDriverDialect}}:                                                    Qwen3ASRDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRTransformersImplementationID, DriverID: Qwen3ASRTransformersDriverID, DriverDialect: Qwen3ASRTransformersDriverDialect}}:                Qwen3ASRTransformersDriver{},
 		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: YuE2ImplementationID, DriverID: YuE2DriverID, DriverDialect: YuE2DriverDialect}}:                                                        YuE2AudioCppDriver{},
@@ -1658,6 +1670,7 @@ func NewProductionRegistry() *Registry {
 		entries[key] = driver
 	}
 	entries[RegistrationKey{CapabilityContract: AudioSeparateContract, Identity: Identity{ImplementationID: SpleeterImplementationID, DriverID: SpleeterDriverID, DriverDialect: SpleeterDriverDialect}}] = SpleeterDriver{}
+	entries[RegistrationKey{CapabilityContract: SpeakerEmbedContract, Identity: Identity{ImplementationID: SherpaSpeakerEmbedImplementationID, DriverID: SherpaSpeakerEmbedDriverID, DriverDialect: SherpaSpeakerEmbedDriverDialect}}] = SherpaSpeakerEmbedDriver{}
 	entries[RegistrationKey{CapabilityContract: MusicTranscribeCapabilityContract, Identity: Identity{ImplementationID: BasicPitchImplementationID, DriverID: BasicPitchDriverID, DriverDialect: BasicPitchDriverDialect}}] = BasicPitchDriver{}
 	entries[layaRegistrationKey()] = LayaDriver{}
 	registry, err := NewRegistry(entries)

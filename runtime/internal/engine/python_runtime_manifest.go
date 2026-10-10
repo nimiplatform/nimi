@@ -39,7 +39,16 @@ func writeManagedPythonRuntimeManifest(root string, interpreterPath string, vers
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(root, managedPythonRuntimeManifestFileName), payload, 0o444)
+	filename := filepath.Join(root, managedPythonRuntimeManifestFileName)
+	if existing, err := os.ReadFile(filename); err == nil {
+		if bytes.Equal(existing, payload) {
+			return nil
+		}
+		return errors.New("managed Python owner manifest differs from the verified interpreter")
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return os.WriteFile(filename, payload, 0o444)
 }
 
 func verifyManagedPythonRuntimeManifest(root string, interpreterPath string) bool {

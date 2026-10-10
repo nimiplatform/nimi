@@ -11,14 +11,15 @@ func projectInvocationExactBindings(values []localexecution.ExactBinding) []capa
 	bindings := make([]capabilitydriver.InvocationExactBinding, 0, len(values))
 	for _, binding := range values {
 		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
-			RequirementID:     strings.TrimSpace(binding.RequirementID),
-			ModelAssetID:      strings.TrimSpace(binding.ModelAssetID),
-			AbsolutePath:      strings.TrimSpace(binding.AbsolutePath),
-			BundleDir:         strings.TrimSpace(binding.BundleDir),
-			DeclaredFiles:     append([]string(nil), binding.DeclaredFiles...),
-			VerifiedContentID: strings.TrimSpace(binding.VerifiedContentID),
-			EntrySHA256:       strings.TrimSpace(binding.EntrySHA256),
-			TemplateIdentity:  strings.TrimSpace(binding.TemplateIdentity),
+			RequirementID:          strings.TrimSpace(binding.RequirementID),
+			ModelAssetID:           strings.TrimSpace(binding.ModelAssetID),
+			AbsolutePath:           strings.TrimSpace(binding.AbsolutePath),
+			BundleDir:              strings.TrimSpace(binding.BundleDir),
+			DeclaredFiles:          append([]string(nil), binding.DeclaredFiles...),
+			VerifiedContentID:      strings.TrimSpace(binding.VerifiedContentID),
+			EntrySHA256:            strings.TrimSpace(binding.EntrySHA256),
+			TemplateIdentity:       strings.TrimSpace(binding.TemplateIdentity),
+			EmbeddingInputProtocol: strings.TrimSpace(binding.EmbeddingInputProtocol),
 		})
 	}
 	return bindings

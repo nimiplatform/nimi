@@ -21,6 +21,7 @@ const (
 	AudioSynthesize   = "audio.synthesize"
 	AudioTranscribe   = "audio.transcribe"
 	AudioSeparate     = "audio.separate"
+	AudioSpeakerEmbed = "audio.speaker.embed"
 	VoiceCreate       = "voice.create"
 	MusicGenerate     = "music.generate"
 	MusicTranscribe   = "music.transcribe"
@@ -37,6 +38,7 @@ var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
 // canonical capability catalog. Consumers obtain a fresh snapshot rather than
 // maintaining feature-local capability lists.
 var canonicalCatalog = []string{
+	AudioSpeakerEmbed,
 	TextGenerate,
 	TextAnnotate,
 	TextDecide,

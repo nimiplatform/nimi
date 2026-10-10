@@ -4,6 +4,7 @@
 // These identities validate references; they do not admit scaffold features.
 export const CANONICAL_CAPABILITY_IDS = Object.freeze([
   "audio.separate",
+  "audio.speaker.embed",
   "audio.synthesize",
   "audio.transcribe",
   "audio.voice.convert",

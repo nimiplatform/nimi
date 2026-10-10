@@ -30,6 +30,34 @@ func TestSpeechTranscriptRequiresActualOrderedTiming(t *testing.T) {
 	}
 }
 
+func TestSpeechDiarizationPreservesRealOverlapAndRejectsContradictorySourceData(t *testing.T) {
+	result := &runtimev1.SpeechDiarization{Status: runtimev1.SpeechDiarizationStatus_SPEECH_DIARIZATION_STATUS_DIARIZED, DurationSeconds: 8, Intervals: []*runtimev1.SpeechSpeakerInterval{{SpeakerId: "speaker_1", StartSeconds: 0.6, EndSeconds: 6.8}, {SpeakerId: "speaker_2", StartSeconds: 6.5, EndSeconds: 8}}}
+	if err := ValidateSpeechDiarization(result); err != nil {
+		t.Fatal(err)
+	}
+	result.Intervals[1].EndSeconds = 8.0297
+	if ValidateSpeechDiarization(result) == nil {
+		t.Fatal("public source interval leaked model padding")
+	}
+	result.Intervals[1].EndSeconds = 8
+	result.Intervals[1].StartSeconds = 0.1
+	if ValidateSpeechDiarization(result) == nil {
+		t.Fatal("unordered speaker intervals accepted")
+	}
+	result.Intervals = nil
+	if ValidateSpeechDiarization(result) == nil {
+		t.Fatal("empty diarized success accepted")
+	}
+	result.Status = runtimev1.SpeechDiarizationStatus_SPEECH_DIARIZATION_STATUS_NO_SPEAKERS
+	if err := ValidateSpeechDiarization(result); err != nil {
+		t.Fatal(err)
+	}
+	result.DurationSeconds = math.NaN()
+	if ValidateSpeechDiarization(result) == nil {
+		t.Fatal("nonfinite actual duration accepted")
+	}
+}
+
 func TestSpeechTranscriptDistinguishesNoSpeechFromEmptySuccess(t *testing.T) {
 	result := &runtimev1.SpeechTranscript{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED}
 	if ValidateSpeechTranscript(result, false) == nil {

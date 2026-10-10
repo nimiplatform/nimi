@@ -8,6 +8,7 @@ import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGenerat
 import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppAudioSeparation, type NimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppSpeakerEmbedding, validateNimiLocalAppSpeakerEmbedSpec, type NimiLocalAppSpeakerEmbedding, type NimiLocalAppScenarioJobSpec as SdkScenarioJobSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { copyNimiLocalAppBytes, exactNimiLocalAppBytes, isNimiLocalAppByteView } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult,
   type NimiLocalAppArtifactUploadShellInput, type NimiLocalAppArtifactUploadResult as SdkArtifactUploadResult } from '@nimiplatform/kit/core/sdk-contract';
@@ -241,6 +242,7 @@ export type NimiLocalAppScenarioJobSpec =
       readonly language: string; readonly preferredName: string;
     }
   | NimiLocalAppMusicGenerateSpec
+  | Extract<SdkScenarioJobSpec, { readonly type: 'audio-speaker-embed' }>
   | NimiLocalAppMusicTranscribeSpec
   | NimiLocalAppVoiceConvertSpec
   | { readonly type: 'world-generate'; readonly prompt?: string; readonly displayName: string; readonly image?: { readonly artifactId: string; readonly projection: 'ordinary' | 'equirectangular-360' } };
@@ -262,7 +264,7 @@ export type NimiLocalAppScenarioJob = {
   readonly recoveryExpiresAt?: NimiLocalAppScenarioTimestamp;
   readonly videoFaceSwapSummary?: { readonly totalFrames: number; readonly transformedFrames: number; readonly preservedFrames: number; readonly durationUs: number; readonly frameRate: 24 | 25 | 30; readonly audioPreserved: boolean };
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-separate' | 'voice-create' | 'music-generate' | 'music-transcribe' | 'audio-voice-convert' | 'world-generate';
+  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-speaker-embed' | 'audio-separate' | 'voice-create' | 'music-generate' | 'music-transcribe' | 'audio-voice-convert' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
   readonly reasonCode: string; readonly reasonDetail: string;
@@ -272,6 +274,7 @@ export type NimiLocalAppScenarioJob = {
   readonly transcription?: NimiLocalAppSpeechTranscript;
   readonly textAnnotation?: NimiLocalAppTextAnnotationResult;
   readonly audioSeparation?: NimiLocalAppAudioSeparation;
+  readonly speakerEmbedding?: NimiLocalAppSpeakerEmbedding;
   readonly musicGeneration?: NimiLocalAppMusicGeneration;
   readonly musicTranscription?: NimiLocalAppMusicTranscription;
   readonly voiceConversion?: NimiLocalAppVoiceConversion;
@@ -1132,6 +1135,11 @@ export function listNimiLocalAppVoiceAssets(
 
 function canonicalScenarioSpec(spec: unknown, command: string): JsonObject {
   const record = assertRecord(spec, `${command}: scenario spec must be an object`);
+  if (record.type === 'audio-speaker-embed') {
+    if (command !== AIC_COMMANDS.scenarioJobSubmit) throw invalidInput(command, 'Speaker representation is an asynchronous Scenario');
+    try { validateNimiLocalAppSpeakerEmbedSpec(record); }
+    catch { throw invalidInput(command, 'Speaker representation input is invalid'); }
+  }
   if (record.type === 'text-decide') {
     if (command !== AIC_COMMANDS.scenarioExecute) throw invalidInput(command, 'text-decide is a synchronous Scenario');
     // App JSON is carried as its canonical text, so its keys are product
@@ -1155,7 +1163,7 @@ function canonicalScenarioSpec(spec: unknown, command: string): JsonObject {
     const { type, ...input } = record;
     return { type, ...canonicalTextTurnInput(input as unknown as NimiLocalAppTextTurnInput, command) };
   }
-  const audio = record.type === 'speech-transcribe' || record.type === 'audio-separate'
+  const audio = record.type === 'speech-transcribe' || record.type === 'audio-separate' || record.type === 'audio-speaker-embed'
     ? record.audioSource
     : record.type === 'voice-create' ? record.referenceAudio : undefined;
   const audioRecord = audio && typeof audio === 'object' && !Array.isArray(audio) ? audio as JsonObject : undefined;
@@ -2717,13 +2725,14 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     ...(Object.hasOwn(record, 'transcription') ? ['transcription'] : []),
     ...(Object.hasOwn(record, 'textAnnotation') ? ['textAnnotation'] : []),
     ...(Object.hasOwn(record, 'audioSeparation') ? ['audioSeparation'] : []),
+    ...(Object.hasOwn(record, 'speakerEmbedding') ? ['speakerEmbedding'] : []),
     ...(Object.hasOwn(record, 'musicGeneration') ? ['musicGeneration'] : []),
     ...(Object.hasOwn(record, 'musicTranscription') ? ['musicTranscription'] : []),
     ...(Object.hasOwn(record, 'voiceConversion') ? ['voiceConversion'] : []),
     ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : []),
     ...(Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ], command, 'scenario Job');
-  if (!['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-separate', 'voice-create', 'music-generate', 'music-transcribe', 'audio-voice-convert', 'world-generate'].includes(String(record.scenarioType))
+  if (!['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-speaker-embed', 'audio-separate', 'voice-create', 'music-generate', 'music-transcribe', 'audio-voice-convert', 'world-generate'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
     throw new Error(`${command}: Job enum is invalid`);
   }
@@ -2742,6 +2751,9 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
   const transcription = record.transcription === undefined ? undefined : validateNimiLocalAppSpeechTranscript(record.transcription);
   if (transcription && (record.scenarioType !== 'speech-transcribe' || record.status !== 'completed' || transcription.text !== record.transcriptionText)) throw new Error(`${command}: speech transcription state is invalid`);
   const artifacts = parseScenarioArtifacts(record.artifacts, command);
+  if ((record.speakerEmbedding !== undefined) !== (record.scenarioType === 'audio-speaker-embed' && record.status === 'completed')) throw new Error(`${command}: speaker representation state is invalid`);
+  if (record.scenarioType === 'audio-speaker-embed' && artifacts.length !== 0) throw new Error(`${command}: speaker representation has no artifact result`);
+  const speakerEmbedding = record.speakerEmbedding === undefined ? undefined : validateNimiLocalAppSpeakerEmbedding(record.speakerEmbedding);
   if ((record.audioSeparation !== undefined) !== (record.scenarioType === 'audio-separate' && record.status === 'completed')) throw new Error(`${command}: audio separation state is invalid`);
   if ((record.textAnnotation !== undefined) !== (record.scenarioType === 'text-annotate' && record.status === 'completed')) throw new Error(`${command}: annotation state is invalid`);
   const textAnnotation = record.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(record.textAnnotation);
@@ -2760,6 +2772,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),
     ...(audioSeparation ? { audioSeparation } : {}),
+    ...(speakerEmbedding ? { speakerEmbedding } : {}),
     ...(musicGeneration ? { musicGeneration } : {}),
     ...(musicTranscription ? { musicTranscription } : {}),
     ...(voiceConversion ? { voiceConversion } : {}),

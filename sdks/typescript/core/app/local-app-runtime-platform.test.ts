@@ -31,6 +31,103 @@ import {
 } from './local-app-runtime-platform.js';
 import { createNimiLocalAppVoiceAssetsClient, createNimiLocalAppVoiceAssetsRuntimeClient } from './local-app-runtime-platform-ai.js';
 
+test('protected speaker representation carries complete input and terminal vector space without authority selectors', async () => {
+  const base = standardShell([]);
+  let calls = 0;
+  let result: unknown = { vector: [0.25, -0.75], spaceId: 'speaker-actual-fixture-space' };
+  const job = () => ({ jobId: 'speaker-job', scenarioType: 'audio-speaker-embed', status: 'completed',
+    progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1, reasonCode: 'ACTION_EXECUTED', reasonDetail: '',
+    artifacts: [], traceId: 'trace', createdAt: null, updatedAt: null, transcriptionText: '', speakerEmbedding: result });
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async submit(spec) { calls++; assert.equal(spec.type, 'audio-speaker-embed');
+      if (spec.type === 'audio-speaker-embed') assert.deepEqual(spec.audioSource, { type: 'bytes', bytes: new Uint8Array([1, 2, 3]) });
+      return { job: job() };
+    }, async get() { return { job: job(), asset: null, voiceReference: null }; },
+  } } } });
+  const spec = { type: 'audio-speaker-embed' as const, mimeType: 'audio/wav', audioSource: { type: 'bytes' as const, bytes: new Uint8Array([1, 2, 3]) } };
+  assert.deepEqual((await client.ai.scenarioJobs.submit(spec)).job.speakerEmbedding, result);
+  assert.deepEqual((await client.ai.scenarioJobs.get('speaker-job')).job.speakerEmbedding, result);
+  for (const invalid of [{ vector: [], spaceId: 'space' }, { vector: [0, 0], spaceId: 'space' }, { vector: [NaN], spaceId: 'space' }, { vector: [1], spaceId: '' }, { vector: [1], spaceId: 'space', person: 'fake' }]) {
+    result = invalid; await assert.rejects(client.ai.scenarioJobs.get('speaker-job'));
+  }
+  await assert.rejects(client.ai.scenarioJobs.submit({ ...spec, model: 'private' } as never));
+  assert.equal(calls, 1);
+});
+
+test('Runtime-style speaker Job adapter projects each original source and the typed persisted result', async () => {
+  const base = standardShell([]); const calls: unknown[] = [];
+  const speakerEmbedding = { vector: [0.125, -0.625], spaceId: 'speaker-declared-fixture' };
+  const job = { jobId: 'speaker-job', scenarioType: 'audio-speaker-embed', status: 'completed',
+    progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1, reasonCode: '', reasonDetail: '',
+    artifacts: [], traceId: 'trace', createdAt: null, updatedAt: null, transcriptionText: '', speakerEmbedding };
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async submit(spec) { calls.push(spec); return { job }; },
+    async get() { return { job, asset: null, voiceReference: null }; },
+  } } } });
+  const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
+  const media = new Uint8Array([7, 8, 9]);
+  const sources = [
+    { audioSource: { source: { oneofKind: 'audioBytes' as const, audioBytes: media } } },
+    { audioSource: { source: { oneofKind: 'audioUri' as const, audioUri: 'https://assets.example.test/speaker.wav' } } },
+    { sourceAudio: { artifactId: 'owned-audio', range: { startFrame: '57600001', endFrame: '57616001' } } },
+  ];
+  for (const source of sources) {
+    await adapter.submitScenarioJob({ scenarioType: ScenarioType.AUDIO_SPEAKER_EMBED, executionMode: ExecutionMode.ASYNC_JOB,
+      spec: { spec: { oneofKind: 'audioSpeakerEmbed', audioSpeakerEmbed: { mimeType: 'audio/wav', ...source } } },
+      requestId: '', idempotencyKey: '', labels: {}, extensions: [] });
+  }
+  assert.deepEqual(calls, [
+    { type: 'audio-speaker-embed', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: media } },
+    { type: 'audio-speaker-embed', mimeType: 'audio/wav', audioSource: { type: 'uri', uri: 'https://assets.example.test/speaker.wav' } },
+    { type: 'audio-speaker-embed', mimeType: 'audio/wav', sourceAudio: { artifactId: 'owned-audio', range: { startFrame: 57600001, endFrame: 57616001 } } },
+  ]);
+  const output = await adapter.getScenarioArtifacts({ jobId: 'speaker-job' });
+  assert.deepEqual(output.output?.output, { oneofKind: 'audioSpeakerEmbed', audioSpeakerEmbed: { vector: { values: speakerEmbedding.vector }, spaceId: speakerEmbedding.spaceId } });
+  await assert.rejects(adapter.submitScenarioJob({ scenarioType: ScenarioType.SPEECH_TRANSCRIBE, executionMode: ExecutionMode.ASYNC_JOB,
+    spec: { spec: { oneofKind: 'audioSpeakerEmbed', audioSpeakerEmbed: { mimeType: 'audio/wav', ...sources[0] } } }, requestId: '', idempotencyKey: '', labels: {}, extensions: [] }));
+  assert.equal(calls.length, 3);
+  for (const audioSource of [
+    { source: { oneofKind: 'audioChunks', audioChunks: { chunks: [] } } },
+    { source: { oneofKind: undefined } },
+    {},
+  ]) {
+    for (const owned of [undefined, { artifactId: 'owned-audio' }]) {
+      await assert.rejects(adapter.submitScenarioJob({ scenarioType: ScenarioType.AUDIO_SPEAKER_EMBED, executionMode: ExecutionMode.ASYNC_JOB,
+        spec: { spec: { oneofKind: 'audioSpeakerEmbed', audioSpeakerEmbed: { mimeType: 'audio/wav', audioSource, ...(owned ? { sourceAudio: owned } : {}) } } },
+        requestId: '', idempotencyKey: '', labels: {}, extensions: [] } as never));
+    }
+  }
+  await assert.rejects(adapter.submitScenarioJob({ scenarioType: ScenarioType.AUDIO_SPEAKER_EMBED, executionMode: ExecutionMode.ASYNC_JOB,
+    spec: { spec: { oneofKind: 'audioSpeakerEmbed', audioSpeakerEmbed: { mimeType: 'audio/wav', ...sources[0], sourceAudio: { artifactId: 'owned-audio' } } } },
+    requestId: '', idempotencyKey: '', labels: {}, extensions: [] }));
+  assert.equal(calls.length, 3);
+  await assert.rejects(adapter.submitScenarioJob({ scenarioType: ScenarioType.AUDIO_SPEAKER_EMBED, executionMode: ExecutionMode.ASYNC_JOB,
+    spec: { spec: { oneofKind: 'audioSpeakerEmbed', audioSpeakerEmbed: { mimeType: 'audio/wav', ...sources[0], model: 'private-selector' } } },
+    requestId: '', idempotencyKey: '', labels: {}, extensions: [] } as never));
+  assert.equal(calls.length, 3);
+});
+
+test('typed transcription carries source-local speaker intervals through App and Runtime result adapters', async () => {
+  const base=standardShell([]);
+  let diarization: unknown={status:'diarized',durationSeconds:8,intervals:[{speakerId:'speaker_1',startSeconds:0.6,endSeconds:6.8},{speakerId:'speaker_2',startSeconds:6.5,endSeconds:8}]};
+  const transcription=()=>({status:'transcribed',text:'Declared recording fixture.',language:'',words:[],diarization});
+  const job=()=>({jobId:'diarized-job',scenarioType:'speech-transcribe',status:'completed',progressPercent:100,progressCurrentStep:1,progressTotalSteps:1,reasonCode:'',reasonDetail:'',artifacts:[],traceId:'trace',createdAt:null,updatedAt:null,transcriptionText:'Declared recording fixture.',transcription:transcription()});
+  const client=createNimiLocalAppClient({standardShell:{...base,ai:{...base.ai,scenarioJobs:{...base.ai.scenarioJobs,
+    async get(){return {job:job(),asset:null,voiceReference:null};},
+  }}}});
+  const current=(await client.ai.scenarioJobs.get('diarized-job')).job.transcription;
+  assert.deepEqual(current?.diarization,diarization);
+  const result=await createNimiLocalAppRuntimeScenarioJobClient(client.ai).getScenarioArtifacts({jobId:'diarized-job'});
+  assert.equal(result.output?.output.oneofKind,'speechTranscribe');
+  if(result.output?.output.oneofKind==='speechTranscribe') assert.equal(result.output.output.speechTranscribe.transcription?.diarization?.intervals[1]?.endSeconds,8);
+  for(const invalid of [
+    {status:'diarized',durationSeconds:8,intervals:[]},
+    {status:'diarized',durationSeconds:8,intervals:[{speakerId:'speaker_1',startSeconds:7,endSeconds:8.0297}]},
+    {status:'no-speakers',durationSeconds:NaN,intervals:[]},
+    {status:'diarized',durationSeconds:8,intervals:[{speakerId:'speaker_1',startSeconds:0,endSeconds:1,person:'invented'}]},
+  ]) {diarization=invalid;await assert.rejects(client.ai.scenarioJobs.get('diarized-job'));}
+});
+
 test('protected embedding captures optional dimensions and rejects mismatched output before delivery', async () => {
   const base = standardShell([]);
   const request = { type: 'text-embed' as const, inputs: ['hello'], dimensions: 2 };
@@ -56,6 +153,17 @@ test('protected embedding captures optional dimensions and rejects mismatched ou
   width = 3;
   await assert.rejects(client.ai.scenario.execute({ type: 'text-embed', inputs: ['hello'], dimensions: 2 }));
   assert.equal(calls, 2);
+});
+
+test('protected embedding keeps retrieval purpose and original text without model protocol knowledge', async () => {
+  const base=standardShell([]);
+  const seen:unknown[]=[];
+  const client=createNimiLocalAppClient({standardShell:{...base,ai:{...base.ai,scenario:{async execute(spec){seen.push(spec);return {output:{type:'text-embed',vectors:[[1,2]],spaceId:'retrieval-space'},traceId:'purpose'};}}}}});
+  for(const purpose of ['retrieval-document','retrieval-query'] as const) {
+    await client.ai.scenario.execute({type:'text-embed',inputs:['原始文字'],purpose});
+  }
+  assert.deepEqual(seen,[{type:'text-embed',inputs:['原始文字'],purpose:'retrieval-document'},{type:'text-embed',inputs:['原始文字'],purpose:'retrieval-query'}]);
+  await assert.rejects(client.ai.scenario.execute({type:'text-embed',inputs:['text'],purpose:'clustering'} as never));
 });
 
 test('protected embedding usage preserves absence and reported zero and refuses malformed counters', async () => {

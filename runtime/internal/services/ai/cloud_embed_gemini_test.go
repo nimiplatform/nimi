@@ -60,7 +60,7 @@ func TestCloudEmbedGeminiNativeProtocolCaptureAndProtectedOutput(t *testing.T) {
 	if err := overwriteAIConfigStoreForTest(ctx, f.service.aiConfigStore, "user-001", config); err != nil {
 		t.Fatal(err)
 	}
-	spec := &runtimev1.TextEmbedScenarioSpec{Inputs: []string{"hello", "world"}}
+	spec := &runtimev1.TextEmbedScenarioSpec{Inputs: []string{"hello", "world"}, Purpose: runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT}
 	request := &runtimev1.ExecuteScenarioRequest{Head: &runtimev1.ScenarioRequestHead{AppId: "app.embed", SubjectUserId: "user-001"}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{TextEmbed: spec}}}
 	var fullSpace, shortSpace string
@@ -92,6 +92,15 @@ func TestCloudEmbedGeminiNativeProtocolCaptureAndProtectedOutput(t *testing.T) {
 	if shortSpace == "" || shortSpace == fullSpace {
 		t.Fatal("short width shared full space")
 	}
+	for _, purpose := range []runtimev1.TextEmbedPurpose{runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY} {
+		spec.Purpose = purpose
+		spec.Dimensions = proto.Uint32(768)
+		response, err := f.service.ExecuteScenario(ctx, request)
+		if err != nil || response.GetOutput().GetTextEmbed().GetSpaceId() != shortSpace {
+			t.Fatalf("native purpose changed legal operation/space: %v %v", purpose, err)
+		}
+	}
+	spec.Purpose = runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT
 	beforeCalls := calls.Load()
 	f.service.scenarioJobs.mu.RLock()
 	beforeJobs := len(f.service.scenarioJobs.jobs)
@@ -116,6 +125,9 @@ func TestCloudEmbedGeminiNativeProtocolCaptureAndProtectedOutput(t *testing.T) {
 	if effective.resolvedAssembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolGeminiV1 {
 		t.Fatal("native protocol omitted from capture")
 	}
+	if effective.request.GetPurpose() != runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT {
+		t.Fatal("purpose dropped from immutable capture")
+	}
 	// The protocol identifies different semantics from the old compatible space.
 	parts := cloudEmbeddingSpaceParts(effective)
 	connectorPart := parts[len(parts)-1].(*structpb.Struct)
@@ -123,6 +135,7 @@ func TestCloudEmbedGeminiNativeProtocolCaptureAndProtectedOutput(t *testing.T) {
 		t.Fatal("native space omitted protocol identity")
 	}
 	spec.Inputs[0] = "mutated caller"
+	spec.Purpose = runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY
 	*spec.Dimensions = 1536
 	job, _, err := f.service.captureImmediateCloudScenarioJob(ctx, request.Head, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, effective.modelResolved(), nil, effective.resolvedAssembly)
 	if err != nil {
@@ -136,7 +149,7 @@ func TestCloudEmbedGeminiNativeProtocolCaptureAndProtectedOutput(t *testing.T) {
 	f.service.speechCatalog = nil
 	restored, err := f.service.cloudEmbedEffectiveInputsFromResolvedAssembly(published)
 	f.service.speechCatalog = catalog
-	if err != nil || restored.dimension != 768 || restored.mapped.Protocol() != capabilitydriver.CloudEmbedProtocolGeminiV1 || restored.mapped.Inputs()[0] != "hello" {
+	if err != nil || restored.dimension != 768 || restored.mapped.Protocol() != capabilitydriver.CloudEmbedProtocolGeminiV1 || restored.mapped.Inputs()[0] != "hello" || restored.request.GetPurpose() != runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT {
 		t.Fatalf("immutable native restore: %+v %v", restored, err)
 	}
 	for _, protocol := range []capabilitydriver.CloudEmbedProtocol{"", "unreviewed/v2", capabilitydriver.CloudEmbedProtocolCompatibleV1} {

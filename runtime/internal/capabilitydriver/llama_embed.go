@@ -17,6 +17,36 @@ import (
 
 const llamaEmbedModelAlias = "nimi-selected-local-embedding"
 
+const EmbeddingInputNativeV1 = "llama-native/v1"
+const EmbeddingInputNomicV1 = "nomic-bert/task-prefix/v1"
+const EmbeddingRepresentationNativeV1 = "native/v1"
+const EmbeddingRepresentationNomicRetrievalV1 = "nomic-retrieval/v1"
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-retrieval-purpose
+func EmbeddingRepresentation(inputProtocol string, purpose runtimev1.TextEmbedPurpose) (string, string, error) {
+	switch purpose {
+	case runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED:
+		if inputProtocol == EmbeddingInputNativeV1 {
+			return EmbeddingRepresentationNativeV1, "", nil
+		}
+		return "", "", invocationError(InvocationFailureUnsupportedEmbeddingPurpose, fmt.Errorf("selected embedding Model Contract requires explicit retrieval purpose"))
+	case runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY:
+		if inputProtocol == EmbeddingInputNativeV1 {
+			return EmbeddingRepresentationNativeV1, "", nil
+		}
+		if inputProtocol != EmbeddingInputNomicV1 {
+			return "", "", invocationError(InvocationFailureUnsupportedEmbeddingPurpose, fmt.Errorf("selected embedding Model Contract does not admit this retrieval purpose"))
+		}
+		prefix := "search_document: "
+		if purpose == runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY {
+			prefix = "search_query: "
+		}
+		return EmbeddingRepresentationNomicRetrievalV1, prefix, nil
+	default:
+		return "", "", invocationError(InvocationFailureInvalidRequest, fmt.Errorf("unknown embedding purpose"))
+	}
+}
+
 // LlamaEmbedDriver owns the exact llama.cpp text.embed configuration and
 // invocation dialect. It shares no route, machine-selection, asset-discovery,
 // process, endpoint, or fallback authority with the llama ExecutionHost.
@@ -101,6 +131,10 @@ func (driver LlamaEmbedDriver) ProjectModelAssetBinding(input ModelAssetBindingI
 		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, Engine: "llama", ArtifactRoles: []string{"embedding"}, FormatProbe: probe,
 	}, contextWindow, driver.ValidateBinding)
 	projection.EmbeddingDimension = int(dimension)
+	projection.EmbeddingInputProtocol = EmbeddingInputNativeV1
+	if architecture == "nomic-bert" {
+		projection.EmbeddingInputProtocol = EmbeddingInputNomicV1
+	}
 	return projection, reason
 }
 
@@ -191,7 +225,11 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("llama embedding portable config: %s", reason.String()))
 	}
-	requestBody, inputCount, err := llamaEmbedRequestBody(input.Request)
+	family, prefix, err := EmbeddingRepresentation(binding.EmbeddingInputProtocol, input.Request.GetPurpose())
+	if err != nil {
+		return nil, err
+	}
+	requestBody, inputCount, err := llamaEmbedRequestBody(input.Request, prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -248,13 +286,14 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 		}
 	}
 	return &EmbedInvocationPlan{
-		processKey:        hex.EncodeToString(hash.Sum(nil)),
-		processArgs:       processArgs,
-		modelFiles:        cloneInvocationExactBindings([]InvocationExactBinding{binding}),
-		dependencySources: cloneInvocationExactDependencySources(input.ExactDependencySources),
-		requestPath:       "/v1/embeddings",
-		requestBody:       requestBody,
-		expectedCount:     inputCount,
+		representationFamily: family,
+		processKey:           hex.EncodeToString(hash.Sum(nil)),
+		processArgs:          processArgs,
+		modelFiles:           cloneInvocationExactBindings([]InvocationExactBinding{binding}),
+		dependencySources:    cloneInvocationExactDependencySources(input.ExactDependencySources),
+		requestPath:          "/v1/embeddings",
+		requestBody:          requestBody,
+		expectedCount:        inputCount,
 	}, nil
 }
 
@@ -274,7 +313,7 @@ func exactLlamaEmbedInvocationBinding(values []InvocationExactBinding) (Invocati
 	return cloneInvocationExactBindings([]InvocationExactBinding{binding})[0], nil
 }
 
-func llamaEmbedRequestBody(spec *runtimev1.TextEmbedScenarioSpec) ([]byte, int, error) {
+func llamaEmbedRequestBody(spec *runtimev1.TextEmbedScenarioSpec, prefix string) ([]byte, int, error) {
 	if spec == nil || len(spec.GetInputs()) == 0 {
 		return nil, 0, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.embed inputs are required"))
 	}
@@ -290,7 +329,11 @@ func llamaEmbedRequestBody(spec *runtimev1.TextEmbedScenarioSpec) ([]byte, int, 
 		if trimmed == "" {
 			return nil, 0, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.embed inputs must be non-empty"))
 		}
-		inputs = append(inputs, trimmed)
+		if prefix == "" {
+			inputs = append(inputs, trimmed)
+		} else {
+			inputs = append(inputs, prefix+input)
+		}
 	}
 	payload, err := json.Marshal(map[string]any{
 		"input":           inputs,

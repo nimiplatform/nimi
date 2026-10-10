@@ -28,6 +28,29 @@ describe('Electron local-app standard-shell operations', () => {
     for(const displayName of ['',undefined])await expect(dispatchElectronLocalAppCommand({host,command:NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationStartConnectionSetup'],payload:{...input,adapter:'feishu',config:{feishu:{setupMode:'create'}},...(displayName===undefined?{}:{displayName})}})).rejects.toMatchObject({reasonCode:'invalid-payload'});
     expect(calls).toHaveLength(4);
   });
+  it('admits speaker bytes, HTTPS and owned frame ranges through the original command without selectors', async () => {
+    const calls: unknown[] = [];
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const sources = [
+      { audioSource: { type: 'bytes', bytes: new Uint8Array([1, 2, 3]) } },
+      { audioSource: { type: 'uri', uri: 'https://assets.example.test/speaker.wav' } },
+      { sourceAudio: { artifactId: 'owned-audio', range: { startFrame: 57600001, endFrame: 57616001 } } },
+    ];
+    for (const source of sources) await dispatchElectronLocalAppCommand({ host: localAppHost(calls), command,
+      payload: { spec: { type: 'audio-speaker-embed', mimeType: 'audio/wav', ...source }, timeoutMs: 0 } });
+    expect(calls).toHaveLength(3);
+    for (const source of [
+      { ...sources[0], sourceAudio: sources[2].sourceAudio },
+      { audioSource: { type: 'bytes', bytes: new Float32Array([1]) } },
+      { audioSource: { type: 'uri', uri: 'file:///C:/speaker.wav' } },
+      { sourceAudio: { artifactId: 'owned-audio', range: { startFrame: 1, endFrame: 1 } } },
+      { ...sources[0], model: 'private' },
+    ]) await expect(dispatchElectronLocalAppCommand({ host: localAppHost(calls), command,
+      payload: { spec: { type: 'audio-speaker-embed', mimeType: 'audio/wav', ...source }, timeoutMs: 0 } })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({ host: localAppHost(calls), command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'],
+      payload: { spec: { type: 'audio-speaker-embed', mimeType: 'audio/wav', ...sources[0] }, timeoutMs: 0 } })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(3);
+  });
   it('preserves music submission identity and admits exactly one read-only lookup selector', async () => {
     const calls: unknown[] = [];
     const host = { ...localAppHost(calls), async scenarioJobGet(input: Record<string, unknown>) { calls.push(['scenarioJobGet', input]); return { job: null, asset: null, voiceReference: null }; } };
@@ -436,6 +459,13 @@ describe('Electron local-app standard-shell operations', () => {
       command,
       payload: { spec: { type: 'text-embed', inputs: ['hello'], modelId: 'forbidden' } },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
+  it('carries explicit retrieval purpose without accepting model-specific fields', async () => {
+    const calls:unknown[]=[];const host=localAppHost(calls);const command='nimi.shell.localApp.scenarioExecute';
+    for(const purpose of ['retrieval-document','retrieval-query']) await dispatchElectronLocalAppCommand({host,command,payload:{spec:{type:'text-embed',inputs:['text'],purpose}}});
+    expect(calls).toEqual(['retrieval-document','retrieval-query'].map(purpose=>['scenarioExecute',{spec:{type:'text-embed',inputs:['text'],purpose}}]));
+    await expect(dispatchElectronLocalAppCommand({host,command,payload:{spec:{type:'text-embed',inputs:['text'],purpose:'clustering'}}})).rejects.toMatchObject({reasonCode:'invalid-payload'});
   });
 
   it('carries Locate jobs through the existing command and rejects inline selectors or sync execution', async () => {

@@ -77,6 +77,9 @@ func PythonDependencyProfileStaticFiles(consumer string, identity PythonDependen
 		}
 		return append(files, driverFiles...), nil
 	}
+	if strings.TrimSpace(consumer) == SpeakerEncoderConsumerID {
+		return append(files, speakerEncoderDriverStaticFiles()...), nil
+	}
 	if strings.TrimSpace(consumer) == SpleeterConsumerID {
 		return append(files, spleeterDriverStaticFiles()...), nil
 	}
@@ -145,7 +148,7 @@ func ResolvePythonDependencyProfileIdentity(consumer string, platformTuple strin
 	torchIdentity := PythonTorchWheelDependencyIdentity{AcceleratorPlane: trimmedPlane}
 	if trimmedConsumer == FaceSwapConsumerID && trimmedPlane == "cuda" {
 		torchIdentity.CUDAABI = "cu13"
-	} else if trimmedConsumer != FaceSwapConsumerID && trimmedConsumer != TextAnnotationConsumerID && trimmedConsumer != BasicPitchConsumerID && trimmedConsumer != SpleeterConsumerID {
+	} else if trimmedConsumer != FaceSwapConsumerID && trimmedConsumer != SpeakerEncoderConsumerID && trimmedConsumer != TextAnnotationConsumerID && trimmedConsumer != BasicPitchConsumerID && trimmedConsumer != SpleeterConsumerID {
 		torchIdentity, err = ResolvePythonTorchWheelDependencyIdentity(trimmedConsumer + "." + trimmedPlane)
 		if err != nil {
 			return PythonDependencyProfileIdentity{}, err
@@ -215,6 +218,11 @@ func admitPythonDependencyProfilePlatform(platformTuple string, acceleratorPlane
 func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, acceleratorPlane string) (string, error) {
 	line := ""
 	switch strings.TrimSpace(consumer) {
+	case SpeakerEncoderConsumerID:
+		if platformTuple != "windows/amd64" || acceleratorPlane != "cpu" {
+			return "", fmt.Errorf("speaker encoder requires CPU")
+		}
+		return "speech-speaker-encoder-cpu", nil
 	case SpleeterConsumerID:
 		if platformTuple != "windows/amd64" || acceleratorPlane != "cpu" {
 			return "", fmt.Errorf("Spleeter requires windows/amd64 CPU")
@@ -274,6 +282,11 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 		line = "speech-asr-transformers"
 	case "speech.faster-whisper.python":
 		line = "speech-faster-whisper"
+	case "speech.faster-whisper-sherpa.python":
+		if platformTuple != "windows/amd64" || acceleratorPlane != "cpu" {
+			return "", fmt.Errorf("diarized Whisper requires windows/amd64 CPU")
+		}
+		return "speech-faster-whisper-sherpa-cpu", nil
 	case "speech.demucs.python":
 		line = "speech-demucs"
 	case "speech.voxcpm.python":
@@ -311,7 +324,7 @@ func pythonDependencyProfileInput(sourceLabel string, name string) ([]byte, erro
 }
 
 func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane string) (string, error) {
-	if strings.TrimSpace(consumer) == FaceSwapConsumerID || strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == BasicPitchConsumerID || strings.TrimSpace(consumer) == SpleeterConsumerID {
+	if strings.TrimSpace(consumer) == SpeakerEncoderConsumerID || strings.TrimSpace(consumer) == FaceSwapConsumerID || strings.TrimSpace(consumer) == TextAnnotationConsumerID || strings.TrimSpace(consumer) == BasicPitchConsumerID || strings.TrimSpace(consumer) == SpleeterConsumerID {
 		return "pypi=https://pypi.org/simple", nil
 	}
 	manifest, err := resolvePythonTorchWheelManifest(strings.TrimSpace(consumer) + "." + strings.TrimSpace(acceleratorPlane))
@@ -322,6 +335,10 @@ func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane stri
 }
 
 func pythonDependencyProfileDriverProtocol(consumer string) string {
+	if strings.TrimSpace(consumer) == SpeakerEncoderConsumerID {
+		return capabilitydriver.SpeakerEncoderProtocol
+	}
+
 	if strings.TrimSpace(consumer) == SpleeterConsumerID {
 		return capabilitydriver.SpleeterProtocol
 	}
@@ -351,6 +368,14 @@ func speechDriverBundleDigest(consumer string) (string, error) {
 }
 
 func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol string) (string, error) {
+	if strings.TrimSpace(consumer) == SpeakerEncoderConsumerID {
+		lines := []string{"driver_protocol=" + driverProtocol}
+		for _, file := range speakerEncoderDriverStaticFiles() {
+			lines = append(lines, "file="+file.RelativePath, string(file.Content))
+		}
+		return sha256Hex([]byte(strings.Join(lines, "\n") + "\n")), nil
+	}
+
 	if strings.TrimSpace(consumer) == SpleeterConsumerID {
 		lines := []string{"driver_protocol=" + driverProtocol}
 		for _, file := range spleeterDriverStaticFiles() {

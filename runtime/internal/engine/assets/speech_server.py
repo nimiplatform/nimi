@@ -29,6 +29,7 @@ from speech_server_runtime import (
     VOXCPM_DRIVER_ENV,
     DriverAudioArtifact,
     SpeechDriverInputError,
+    SpeechDriverUnsupportedError,
     SpeechModelState,
     build_host_state,
     create_voice_with_driver,
@@ -459,7 +460,7 @@ def create_app() -> FastAPI:
                         "audio_path": str(audio_path),
                         "mime_type": (mime_type or "").strip(),
                         "language": (language or "").strip(),
-                        "prompt": (prompt or "").strip(),
+                        "prompt": prompt or "",
                         "response_format": (response_format or "").strip(),
                         "timestamps": truthy_form_value(timestamps),
                         "diarization": truthy_form_value(diarization),
@@ -469,6 +470,8 @@ def create_app() -> FastAPI:
                 )
             finally:
                 audio_path.unlink(missing_ok=True)
+        except SpeechDriverUnsupportedError:
+            return JSONResponse(status_code=400, content={"error": {"message": "speaker count or diarization option is unsupported for this input"}})
         except SpeechDriverInputError as error:
             return JSONResponse(status_code=400, content={"detail": {"message": str(error), "reason": "speech_request_invalid"}})
         except HTTPException:

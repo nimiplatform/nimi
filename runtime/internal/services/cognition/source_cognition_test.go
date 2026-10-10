@@ -49,7 +49,7 @@ func TestAgentSourceGenerationCommitsBuildingBeforeTerminalReady(t *testing.T) {
 	started := make(chan struct{}, 1)
 	embeddedTexts := make(chan []string, 1)
 	release := make(chan struct{})
-	svc.SetAgentSourceEmbeddingExecutor(func(ctx context.Context, _, _ string, texts []string) (AgentSourceEmbeddingExecution, error) {
+	svc.SetAgentSourceEmbeddingExecutor(func(ctx context.Context, _, _ string, texts []string, _ string) (AgentSourceEmbeddingExecution, error) {
 		select {
 		case embeddedTexts <- append([]string(nil), texts...):
 		default:

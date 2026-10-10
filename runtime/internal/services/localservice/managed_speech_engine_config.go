@@ -17,6 +17,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r110
@@ -125,7 +126,13 @@ func (s *Service) MaterializeSpeechExecutionHost(ctx context.Context, capability
 	if mgr == nil {
 		return "", fmt.Errorf("runtime engine manager unavailable")
 	}
-	cfg, err := s.configuredManagedSpeechEngineConfigForCapability(capabilityContract, driverID, port)
+	var cfg engine.EngineConfig
+	var err error
+	if driverID == capabilitydriver.FasterWhisperSherpaDriverID || driverID == capabilitydriver.Qwen3ASRDriverID || driverID == capabilitydriver.Qwen3ASRTransformersDriverID || driverID == capabilitydriver.Qwen3ASRAlignedDriverID {
+		cfg, err = s.configuredCapturedSpeechEngine(ctx, capabilityContract, driverID, port)
+	} else {
+		cfg, err = s.configuredManagedSpeechEngineConfigForCapability(capabilityContract, driverID, port)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -165,6 +172,69 @@ func newSpeechAdmissionToken() (string, error) {
 	return hex.EncodeToString(value), nil
 }
 
+func (s *Service) configuredCapturedSpeechEngine(ctx context.Context, capability string, driverID string, port int) (engine.EngineConfig, error) {
+	consumer, requiredDriver, driverPath := "", engine.SpeechDriver(""), (func(string) string)(nil)
+	switch driverID {
+	case capabilitydriver.Qwen3ASRDriverID:
+		consumer, requiredDriver, driverPath = "speech.qwen3-asr.python", engine.SpeechDriverQwen3ASR, engine.SpeechQwen3ASRDriverPath
+	case capabilitydriver.Qwen3ASRTransformersDriverID, capabilitydriver.Qwen3ASRAlignedDriverID:
+		consumer, requiredDriver, driverPath = "speech.qwen3-asr-transformers.python", engine.SpeechDriverQwen3ASRTransformers, engine.SpeechQwen3ASRTransformersDriverPath
+	case capabilitydriver.FasterWhisperSherpaDriverID:
+		consumer, requiredDriver, driverPath = capabilitydriver.WhisperDiarizationConsumerID, engine.SpeechDriverFasterWhisper, engine.SpeechFasterWhisperDriverPath
+	default:
+		return engine.EngineConfig{}, fmt.Errorf("captured speech Driver is not admitted: %s", driverID)
+	}
+	source, ok := localexecution.CapturedSpeechSourceFromContext(ctx)
+	if !ok || capability != capabilitydriver.AudioTranscribeContract || source.DependencyFamily != localEnvironmentFamilyPythonPackageSet || source.ConsumerScope != consumer || source.SelectedSourceRecordID == "" {
+		return engine.EngineConfig{}, fmt.Errorf("captured speech profile is missing or mismatched")
+	}
+	manifest, err := engine.ReadPythonDependencyProfileManifest(source.CanonicalRoot)
+	if err != nil {
+		return engine.EngineConfig{}, err
+	}
+	identity := manifest.Identity
+	if manifest.ValidationConsumer != consumer {
+		return engine.EngineConfig{}, fmt.Errorf("captured speech profile consumer differs")
+	}
+	root := filepath.Join(s.localEnvironmentRuntimeDataRoot(), "environments", "python-profiles", identity.ProfileDigest)
+	if !sameLocalEnvironmentPath(root, source.CanonicalRoot) || source.Version != identity.ProfileDigest || source.DependencyID != identity.DependencyID {
+		return engine.EngineConfig{}, fmt.Errorf("captured speech profile identity differs")
+	}
+	for key, value := range pythonDependencyProfileHashes(identity) {
+		if source.Hashes[key] != value {
+			return engine.EngineConfig{}, fmt.Errorf("captured speech profile hash differs: %s", key)
+		}
+	}
+	if err := engine.VerifyPythonDependencyProfileStaticContent(root, source.ConsumerScope, identity); err != nil {
+		return engine.EngineConfig{}, err
+	}
+	if !localEnvironmentArtifactPathsContain(source.VerifiedArtifacts, driverPath(root)) ||
+		(!localEnvironmentArtifactPathsContain(source.VerifiedArtifacts, filepath.Join(root, "Scripts", "python.exe")) && !localEnvironmentArtifactPathsContain(source.VerifiedArtifacts, filepath.Join(root, "bin", "python"))) {
+		return engine.EngineConfig{}, fmt.Errorf("captured speech profile lacks verified interpreter or Driver")
+	}
+	cfg := engine.DefaultSpeechConfig()
+	if port > 0 {
+		cfg.Port = port
+	}
+	cfg.ModelsPath = s.resolvedLocalModelsPath()
+	cfg.SpeechHostPackageSetRoot = root
+	cfg.SpeechHostAcceleratorPlane = identity.AcceleratorPlane
+	cfg.SpeechRequiredDriver = requiredDriver
+	switch requiredDriver {
+	case engine.SpeechDriverQwen3ASR:
+		cfg.SpeechQwen3ASRPackageSetRoot = root
+	case engine.SpeechDriverQwen3ASRTransformers:
+		cfg.SpeechQwen3ASRTransformersPackageSetRoot = root
+	case engine.SpeechDriverFasterWhisper:
+		cfg.SpeechFasterWhisperPackageSetRoot = root
+	}
+	cfg.ExecutionHostIdentity = speechExecutionHostIdentity(capability, driverID, cfg)
+	if cfg.ExecutionHostIdentity == "" {
+		return engine.EngineConfig{}, fmt.Errorf("captured speech execution identity is unavailable")
+	}
+	return cfg, nil
+}
+
 const (
 	speechExecutionModelRegistrationTimeout = 10 * time.Second
 	speechExecutionModelRegistrationMaxBody = 64 * 1024
@@ -188,6 +258,8 @@ type speechExecutionModelRegistrationPayload struct {
 	Alignment          *speechExecutionModelRegistrationPayload `json:"alignment,omitempty"`
 	VAD                *speechExecutionModelRegistrationPayload `json:"vad,omitempty"`
 	VoiceDesign        *speechExecutionModelRegistrationPayload `json:"voice_design,omitempty"`
+	Segmenter          *speechExecutionModelRegistrationPayload `json:"segmenter,omitempty"`
+	SpeakerEncoder     *speechExecutionModelRegistrationPayload `json:"speaker_encoder,omitempty"`
 }
 
 // RegisterSpeechExecutionModel publishes only the captured ResolvedAssembly
@@ -275,7 +347,7 @@ func (s *Service) speechExecutionModelRegistrationPayload(registration engine.Sp
 	}
 	var vad *speechExecutionModelRegistrationPayload
 	if registration.VAD != nil {
-		if driverID != capabilitydriver.FasterWhisperDriverID || registration.VAD.Alignment != nil || registration.VAD.VAD != nil || registration.VAD.VoiceDesign != nil {
+		if (driverID != capabilitydriver.FasterWhisperDriverID && driverID != capabilitydriver.FasterWhisperSherpaDriverID) || registration.VAD.Alignment != nil || registration.VAD.VAD != nil || registration.VAD.VoiceDesign != nil || registration.VAD.Segmenter != nil || registration.VAD.SpeakerEncoder != nil {
 			return speechExecutionModelRegistrationPayload{}, fmt.Errorf("speech VAD binding is not admitted")
 		}
 		value, err := s.speechExecutionModelRegistrationPayload(*registration.VAD)
@@ -283,6 +355,28 @@ func (s *Service) speechExecutionModelRegistrationPayload(registration engine.Sp
 			return speechExecutionModelRegistrationPayload{}, err
 		}
 		vad = &value
+	}
+	var segmenter, speakerEncoder *speechExecutionModelRegistrationPayload
+	if driverID == capabilitydriver.FasterWhisperSherpaDriverID {
+		if registration.VAD == nil || registration.Segmenter == nil || registration.SpeakerEncoder == nil {
+			return speechExecutionModelRegistrationPayload{}, fmt.Errorf("diarized speech requires all captured companions")
+		}
+		for i, companion := range []*engine.SpeechExecutionModelRegistration{registration.Segmenter, registration.SpeakerEncoder} {
+			if companion.DriverID != capabilitydriver.FasterWhisperDriverID || companion.CapabilityContract != capabilitydriver.AudioTranscribeContract || companion.Alignment != nil || companion.VAD != nil || companion.VoiceDesign != nil || companion.Segmenter != nil || companion.SpeakerEncoder != nil {
+				return speechExecutionModelRegistrationPayload{}, fmt.Errorf("diarized speech companion is not admitted")
+			}
+			value, err := s.speechExecutionModelRegistrationPayload(*companion)
+			if err != nil {
+				return speechExecutionModelRegistrationPayload{}, err
+			}
+			if i == 0 {
+				segmenter = &value
+			} else {
+				speakerEncoder = &value
+			}
+		}
+	} else if registration.Segmenter != nil || registration.SpeakerEncoder != nil {
+		return speechExecutionModelRegistrationPayload{}, fmt.Errorf("speaker companions require the exact diarized Driver")
 	}
 	var voiceDesign *speechExecutionModelRegistrationPayload
 	voiceLibrary := capabilityContract == capabilitydriver.VoiceCreateContract && driverID == capabilitydriver.Qwen3TTSDriverID && workflowModelID == capabilitydriver.Qwen3VoiceLibraryRecipeID
@@ -301,6 +395,7 @@ func (s *Service) speechExecutionModelRegistrationPayload(registration engine.Sp
 		voiceDesign = &value
 	}
 	return speechExecutionModelRegistrationPayload{
+		Segmenter: segmenter, SpeakerEncoder: speakerEncoder,
 		VoiceDesign: voiceDesign,
 		Alignment:   alignment,
 		VAD:         vad,
@@ -336,7 +431,7 @@ func speechExecutionRegistrationDriverFacts(capabilityContract string, driverID 
 			break
 		}
 		return "qwen3_asr_transformers", "qwen3_asr", "transformers", nil
-	case capabilitydriver.FasterWhisperDriverID:
+	case capabilitydriver.FasterWhisperDriverID, capabilitydriver.FasterWhisperSherpaDriverID:
 		if capabilityContract != capabilitydriver.AudioTranscribeContract {
 			break
 		}

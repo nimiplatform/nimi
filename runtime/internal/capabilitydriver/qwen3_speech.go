@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/proto"
@@ -70,11 +71,12 @@ type SpeechSynthesizeInvocationInput struct {
 // SpeechTranscribeInvocationInput captures the normalized request and its
 // bounded audio bytes before an asynchronous Job becomes visible.
 type SpeechTranscribeInvocationInput struct {
-	PortableConfig *structpb.Struct
-	ExactBindings  []InvocationExactBinding
-	Request        *runtimev1.SpeechTranscribeScenarioSpec
-	AudioBytes     []byte
-	MIMEType       string
+	DependencySources []InvocationExactDependencySource
+	PortableConfig    *structpb.Struct
+	ExactBindings     []InvocationExactBinding
+	Request           *runtimev1.SpeechTranscribeScenarioSpec
+	AudioBytes        []byte
+	MIMEType          string
 }
 
 // VoiceCreateInvocationInput is the implementation-neutral Driver input for
@@ -153,12 +155,13 @@ func (p *SpeechSynthesizeInvocationPlan) Request() *runtimev1.SpeechSynthesizeSc
 }
 
 type SpeechTranscribeInvocationPlan struct {
-	driverID     string
-	modelAssetID string
-	modelFiles   []InvocationExactBinding
-	request      *runtimev1.SpeechTranscribeScenarioSpec
-	audioBytes   []byte
-	mimeType     string
+	dependencySources []InvocationExactDependencySource
+	driverID          string
+	modelAssetID      string
+	modelFiles        []InvocationExactBinding
+	request           *runtimev1.SpeechTranscribeScenarioSpec
+	audioBytes        []byte
+	mimeType          string
 }
 
 // SpeechTranscribePlan is the capability-shaped immutable waist shared by
@@ -286,6 +289,13 @@ func (p *SpeechTranscribeInvocationPlan) DriverID() string {
 		return ""
 	}
 	return p.driverID
+}
+
+func (p *SpeechTranscribeInvocationPlan) DependencySources() []InvocationExactDependencySource {
+	if p == nil {
+		return nil
+	}
+	return cloneInvocationExactDependencySources(p.dependencySources)
 }
 
 func (p *SpeechTranscribeInvocationPlan) ModelAssetID() string {
@@ -697,6 +707,7 @@ func (Qwen3ASRTransformersDriver) PlanSpeechTranscribeInvocation(input SpeechTra
 	return planQwen3ASRInvocation(input, "qwen3-asr-transformers", Qwen3ASRTransformersDriverID)
 }
 
+// @nimi-authority: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
 func planQwen3ASRInvocation(input SpeechTranscribeInvocationInput, family string, driverID string) (*SpeechTranscribeInvocationPlan, error) {
 	if !emptySpeechPortableConfig(input.PortableConfig) {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("%s portable config must be empty", family))
@@ -713,12 +724,13 @@ func planQwen3ASRInvocation(input SpeechTranscribeInvocationInput, family string
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("%s audio bytes are required", family))
 	}
 	return &SpeechTranscribeInvocationPlan{
-		driverID:     driverID,
-		modelAssetID: binding.ModelAssetID,
-		modelFiles:   []InvocationExactBinding{binding},
-		request:      request,
-		audioBytes:   append([]byte(nil), input.AudioBytes...),
-		mimeType:     strings.TrimSpace(input.MIMEType),
+		driverID:          driverID,
+		dependencySources: cloneInvocationExactDependencySources(input.DependencySources),
+		modelAssetID:      binding.ModelAssetID,
+		modelFiles:        []InvocationExactBinding{binding},
+		request:           request,
+		audioBytes:        append([]byte(nil), input.AudioBytes...),
+		mimeType:          strings.TrimSpace(input.MIMEType),
 	}, nil
 }
 
@@ -929,8 +941,11 @@ func validateQwen3ASRRequest(value *runtimev1.SpeechTranscribeScenarioSpec) (*ru
 	if format != "" && format != "text" {
 		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("qwen3-asr response format is unsupported"))
 	}
-	if request.GetTimestamps() || request.GetDiarization() || request.GetSpeakerCount() != 0 || strings.TrimSpace(request.GetPrompt()) != "" {
+	if request.GetTimestamps() || request.GetDiarization() || request.GetSpeakerCount() != 0 {
 		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("qwen3-asr request contains unsupported transcription options"))
+	}
+	if !utf8.ValidString(request.GetPrompt()) || len(request.GetPrompt()) > 4096 {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("Qwen vocabulary context must be valid UTF-8 of at most 4 KiB"))
 	}
 	return request, nil
 }

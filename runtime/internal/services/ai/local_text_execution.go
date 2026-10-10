@@ -597,6 +597,8 @@ func localTextInvocationError(err error) error {
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
 	case capabilitydriver.InvocationFailureUnsupported:
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, err, grpcerr.ReasonOptions{})
+	case capabilitydriver.InvocationFailureUnsupportedEmbeddingPurpose:
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, err, grpcerr.ReasonOptions{})
 	case capabilitydriver.InvocationFailureTextBehaviorUnsupported:
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED, err, grpcerr.ReasonOptions{})
 	case capabilitydriver.InvocationFailureInvalidBinding:
@@ -626,6 +628,9 @@ func localExecutionError(err error) error {
 	case localexecution.FailureInputInvalid:
 		options.Retryable = &retryable
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, options)
+	case localexecution.FailureMediaOptionUnsupported:
+		options.Retryable = &retryable
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, err, options)
 	case localexecution.FailureTimeout:
 		options.ActionHint = "request_timed_out"
 		options.Retryable = &retryable

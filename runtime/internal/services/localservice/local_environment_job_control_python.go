@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -491,6 +492,8 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 			"speech.qwen3-asr.python",
 			"speech.qwen3-asr-transformers.python",
 			"speech.faster-whisper.python",
+			capabilitydriver.WhisperDiarizationConsumerID,
+			engine.SpeakerEncoderConsumerID,
 			"speech.qwen3-tts.python",
 			"speech.voxcpm.python",
 			"speech.demucs.python",
@@ -610,7 +613,7 @@ func pythonMaterializerConsumerForJob(job localEnvironmentDependencyJobState) st
 
 func pythonMaterializerConsumerScope(consumer string) bool {
 	trimmed := strings.TrimSpace(consumer)
-	return trimmed == engine.SpleeterConsumerID || trimmed == engine.BasicPitchConsumerID || trimmed == engine.TextAnnotationConsumerID || trimmed == engine.TextAnnotationTrfConsumerID || trimmed == engine.TextAnnotationTrfConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID || trimmed == engine.VisionLocateConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID+".cuda" || trimmed == engine.GroundingDinoConsumerID || trimmed == engine.GroundingDinoConsumerID+".cuda" ||
+	return trimmed == capabilitydriver.WhisperDiarizationConsumerID || trimmed == capabilitydriver.WhisperDiarizationConsumerID+".cpu" || trimmed == engine.SpeakerEncoderConsumerID || trimmed == engine.SpleeterConsumerID || trimmed == engine.BasicPitchConsumerID || trimmed == engine.TextAnnotationConsumerID || trimmed == engine.TextAnnotationTrfConsumerID || trimmed == engine.TextAnnotationTrfConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID || trimmed == engine.VisionLocateConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID+".cuda" || trimmed == engine.GroundingDinoConsumerID || trimmed == engine.GroundingDinoConsumerID+".cuda" ||
 		localDecisionPythonConsumerScope(trimmed) ||
 		strings.HasPrefix(trimmed, "stable-diffusion.cpp.") ||
 		trimmed == engine.FaceSwapConsumerID ||

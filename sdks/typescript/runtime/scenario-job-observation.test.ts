@@ -1,8 +1,41 @@
-import { createNimiLocalAppRuntimeScenarioJobClient } from '../core/app/local-app-runtime-platform-ai.js';
+import { createNimiLocalAppAIConsumptionClient, createNimiLocalAppRuntimeScenarioJobClient } from '../core/app/local-app-runtime-platform-ai.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { observeNimiRuntimeScenarioJob, runNimiRuntimeScenarioJob, type NimiRuntimeScenarioJobClient } from './scenario-jobs.js';
 import { ExecutionMode, ScenarioJobStatus, ScenarioType, ReasonCode as RuntimeReasonCode, type ScenarioJob, type SubmitScenarioJobRequest } from './generated.js';
+
+test('speaker Job uses the common observer and preserves complete typed Get and formal output', async () => {
+  let gets = 0;
+  const unexpected = async (): Promise<never> => { throw new Error('unexpected operation'); };
+  const speakerEmbedding = { vector: [.25, .75], spaceId: 'speaker-fixture-space' };
+  const client = createNimiLocalAppAIConsumptionClient({
+    text: { streamTurn: unexpected }, scenario: { execute: unexpected },
+    scenarioJobs: {
+      submit: unexpected, subscribe: unexpected, cancel: unexpected,
+      get: async () => {
+        gets++;
+        return { job: { jobId: 'speaker-original', scenarioType: 'audio-speaker-embed', status: 'completed',
+          submissionOutcome: 'accepted', artifacts: [], progressPercent: 100, progressCurrentStep: 0, progressTotalSteps: 0,
+          reasonCode: 'action-executed', reasonDetail: '', traceId: 'trace', createdAt: null, updatedAt: null,
+          transcriptionText: '', speakerEmbedding }, asset: null, voiceReference: null };
+      },
+    },
+    artifacts: { read: unexpected, upload: unexpected },
+    voiceAssets: { list: unexpected, delete: unexpected },
+  });
+  let observed: unknown;
+  const result = await observeNimiRuntimeScenarioJob({ ai: createNimiLocalAppRuntimeScenarioJobClient(client),
+    jobId: 'speaker-original', scenarioType: ScenarioType.AUDIO_SPEAKER_EMBED,
+    onObservation: (response) => { observed = response.job?.speakerEmbedding; },
+  });
+  const expected = { vector: { values: speakerEmbedding.vector }, spaceId: speakerEmbedding.spaceId };
+  assert.ok(gets > 0, 'a full Get is retained even for an already completed speaker Job');
+  assert.deepEqual(observed, expected);
+  assert.deepEqual(result.response.job?.speakerEmbedding, expected);
+  assert.equal(result.output?.output.oneofKind, 'audioSpeakerEmbed');
+  if (result.output?.output.oneofKind !== 'audioSpeakerEmbed') throw new Error('speaker output missing');
+  assert.deepEqual(result.output.output.audioSpeakerEmbed, expected);
+});
 
 test('explicit observation retrieves a completed Job without submission or replay', async () => {
   let submissions = 0;

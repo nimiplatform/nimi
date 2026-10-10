@@ -320,6 +320,33 @@ class RegistrationRequest:
 
 
 class SpeechServerTests(unittest.TestCase):
+    def test_qwen_transformers_context_is_preserved_in_the_actual_asr_messages(self) -> None:
+        class Processor:
+            def apply_chat_template(self, messages, **options):
+                return messages, options
+        context = "  OpenWhispr，专有词\n"
+        messages, options = QWEN3_ASR_TRANSFORMERS_DRIVER.transcription_inputs(Processor(), "declared.wav", None, context)
+        self.assertEqual(messages[0][0]["content"][0]["text"], context)
+        self.assertEqual(messages[0][1]["content"][0]["path"], "declared.wav")
+        self.assertTrue(options["add_generation_prompt"])
+        self.assertFalse(options["continue_final_message"])
+        messages, options = QWEN3_ASR_TRANSFORMERS_DRIVER.transcription_inputs(Processor(), "declared.wav", "Chinese", context)
+        self.assertEqual(messages[0][0]["content"][0]["text"], context)
+        self.assertEqual(messages[0][2]["content"][0]["text"], "language Chinese<asr_text>")
+        self.assertFalse(options["add_generation_prompt"])
+        self.assertTrue(options["continue_final_message"])
+        with self.assertRaisesRegex(RuntimeError, "unsupported.*language"):
+            QWEN3_ASR_TRANSFORMERS_DRIVER.transcription_inputs(Processor(), "declared.wav", "unsupported", context)
+
+    def test_qwen_vocabulary_context_checks_utf8_bytes_without_trimming(self) -> None:
+        read = QWEN3_ASR_TRANSFORMERS_DRIVER.transcription_context
+        self.assertEqual(read({}), "")
+        self.assertEqual(read({"prompt": "  字词\n"}), "  字词\n")
+        self.assertEqual(len(read({"prompt": "词" * 1365 + "."}).encode("utf-8")), 4096)
+        for value in ["词" * 1366, "\ud800", 1]:
+            with self.assertRaises(RuntimeError):
+                read({"prompt": value})
+
     def test_driver_data_error_is_not_execution_failure(self) -> None:
         runtime = sys.modules["speech_server_runtime"]
         for code, expected in [(65, runtime.SpeechDriverInputError), (1, RuntimeError), (2, RuntimeError)]:
@@ -342,7 +369,7 @@ class SpeechServerTests(unittest.TestCase):
         QWEN3_TTS_DRIVER._MODEL_PATH_CACHE.clear()
         QWEN3_ASR_TRANSFORMERS_DRIVER._MODEL_CACHE.clear()
 
-    def test_transformers_native_driver_uses_official_transcription_api(self) -> None:
+    def test_transformers_native_driver_uses_exact_asr_chat_protocol(self) -> None:
         class FakeTensor:
             shape = (1, 3)
 
@@ -358,8 +385,8 @@ class SpeechServerTests(unittest.TestCase):
             def __init__(self) -> None:
                 self.calls = []
 
-            def apply_transcription_request(self, **kwargs):
-                self.calls.append(kwargs)
+            def apply_chat_template(self, messages, **kwargs):
+                self.calls.append((messages, kwargs))
                 return FakeInputs(input_ids=FakeTensor())
 
             def decode(self, _value, return_format):
@@ -392,13 +419,18 @@ class SpeechServerTests(unittest.TestCase):
                         "bundle_dir": str(bundle_path),
                         "declared_files": ["model.safetensors"],
                         "language": "en",
+                        "prompt": "  OpenWhispr\n",
                     },
                 )
         finally:
             QWEN3_ASR_TRANSFORMERS_DRIVER.load_model = original_load_model
 
         self.assertEqual(result, {"text": "hello from transformers"})
-        self.assertEqual(processor.calls, [{"audio": str(audio_path), "language": "English"}])
+        messages, options = processor.calls[0]
+        self.assertEqual(messages[0][0]["content"][0]["text"], "  OpenWhispr\n")
+        self.assertEqual(messages[0][1]["content"][0]["path"], str(audio_path))
+        self.assertEqual(messages[0][2]["content"][0]["text"], "language English<asr_text>")
+        self.assertTrue(options["continue_final_message"])
         self.assertEqual(processor.return_format, "transcription_only")
         self.assertEqual(model.kwargs["max_new_tokens"], 256)
         self.assertEqual(loaded_model_refs, [str(bundle_path)])
@@ -484,6 +516,7 @@ class SpeechServerTests(unittest.TestCase):
 
             def transcribe(**kwargs):
                 normalized = pathlib.Path(kwargs["audio"])
+                self.assertEqual(kwargs["context"], "  OpenWhispr\n")
                 self.assertEqual(normalized.read_bytes(), b"RIFFdemoWAVE")
                 normalized_paths.append(normalized)
                 return [{"text": "decoded input", "language": "Chinese"}]
@@ -499,6 +532,7 @@ class SpeechServerTests(unittest.TestCase):
                     "bundle_dir": str(root),
                     "declared_files": [model_path.name],
                     "language": "zh",
+                    "prompt": "  OpenWhispr\n",
                 }, "")
 
             self.assertEqual(result["text"], "decoded input")

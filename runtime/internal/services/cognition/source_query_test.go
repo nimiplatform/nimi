@@ -29,7 +29,7 @@ func TestAgentSourceExactReadPreservesUnavailableQueryEmbedding(t *testing.T) {
 				t.Fatal(err)
 			}
 			calls := 0
-			svc.SetAgentSourceEmbeddingExecutor(func(context.Context, string, string, []string) (AgentSourceEmbeddingExecution, error) {
+			svc.SetAgentSourceEmbeddingExecutor(func(context.Context, string, string, []string, string) (AgentSourceEmbeddingExecution, error) {
 				calls++
 				if queryStatus == "ready" {
 					return AgentSourceEmbeddingExecution{Status: "ready", Identity: "embed", Dimension: 2, Vectors: [][]float64{{1, 0}}}, nil

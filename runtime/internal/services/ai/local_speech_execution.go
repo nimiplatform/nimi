@@ -272,7 +272,7 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 			}
 			effective.transcribePlan = plan
 		case capabilitydriver.SpeechTranscribeInvocationDriver:
-			plan, planErr := speechDriver.PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{PortableConfig: portable, ExactBindings: append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...), Request: captured, AudioBytes: audioBytes, MIMEType: mimeType})
+			plan, planErr := speechDriver.PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{DependencySources: invocationExactDependencySources(selected.ExactDependencySources), PortableConfig: portable, ExactBindings: append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...), Request: captured, AudioBytes: audioBytes, MIMEType: mimeType})
 			if planErr != nil {
 				return nil, localSpeechInvocationError(planErr)
 			}
@@ -461,7 +461,7 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 			effective.transcribePlan, err = speechDriver.PlanAudioCppASRTranscription(capabilitydriver.AudioCppASRTranscribeInvocationInput{LoadoutID: assembly.LoadoutID, RecipeID: assembly.RecipeID, PortableConfig: portable, ExactBindings: bindings, Runtime: runtimeInput, Request: request, AudioBytes: assembly.Request.BinaryInput, MIMEType: assembly.Request.MIMEType, StagingAudioPath: captured.StagingAudioPath, StagingTextOutPath: captured.StagingTextOutPath})
 			effective.stagingPaths = append(effective.stagingPaths, captured.StagingAudioPath, captured.StagingTextOutPath)
 		case capabilitydriver.SpeechTranscribeInvocationDriver:
-			effective.transcribePlan, err = speechDriver.PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request, AudioBytes: append([]byte(nil), assembly.Request.BinaryInput...), MIMEType: assembly.Request.MIMEType})
+			effective.transcribePlan, err = speechDriver.PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{DependencySources: resolvedAssemblyExactDependencySources(assembly), PortableConfig: portable, ExactBindings: bindings, Request: request, AudioBytes: append([]byte(nil), assembly.Request.BinaryInput...), MIMEType: assembly.Request.MIMEType})
 		default:
 			return nil, fmt.Errorf("captured local speech transcription Driver has no invocation contract")
 		}
@@ -841,12 +841,22 @@ func (s *Service) executeCapturedLocalSpeech(ctx context.Context, effective *loc
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		result, err := s.localSpeechHost.ExecuteSpeechTranscription(ctx, effective.transcribePlan, onStart)
 		if err != nil {
+			if s.logger != nil {
+				s.logger.WarnContext(ctx, "local speech transcription execution failed",
+					"loadout_id", effective.loadoutID,
+					"driver_id", effective.driverIdentity.GetDriverId(),
+					"failure_kind", localexecution.FailureKindOf(err),
+					"error", err)
+			}
 			return nil, nil, nil, localExecutionError(err)
 		}
 		if err := localexecution.ValidateSpeechTranscript(result.Transcript, effective.transcribePlan.Request().GetTimestamps()); err != nil {
 			return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureInference, Err: err})
 		}
-		if result.Transcript.GetLanguage() == "" && len(result.Transcript.GetWords()) == 0 && result.Transcript.GetStatus() == runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED {
+		if effective.transcribePlan.Request().GetDiarization() != (result.Transcript.GetDiarization() != nil) {
+			return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureInference, Err: fmt.Errorf("requested diarization is missing or unsolicited")})
+		}
+		if result.Transcript.GetDiarization() == nil && result.Transcript.GetLanguage() == "" && len(result.Transcript.GetWords()) == 0 && result.Transcript.GetStatus() == runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED {
 			return []*runtimev1.ScenarioArtifact{nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Transcript.GetText()), nil)}, nil, result.Usage, nil
 		}
 		encoded, err := protojson.Marshal(result.Transcript)

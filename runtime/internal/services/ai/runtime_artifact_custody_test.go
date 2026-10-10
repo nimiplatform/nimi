@@ -217,7 +217,7 @@ func TestTranscriptionTextIsCapturedFromCommittedCustodyIntoJobState(t *testing.
 		[]*runtimev1.ScenarioArtifact{artifact}, map[string]*capabilitydriver.ArtifactBody{artifact.GetArtifactId(): body}); err != nil {
 		t.Fatal(err)
 	}
-	transcript, err := svc.captureScenarioTranscriptionResult(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, []*runtimev1.ScenarioArtifact{artifact}, false)
+	transcript, err := svc.captureScenarioTranscriptionResult(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, []*runtimev1.ScenarioArtifact{artifact}, false, false)
 	text := transcript.GetText()
 	if err != nil || text != string(payload) {
 		t.Fatalf("capture text=%q err=%v", text, err)
@@ -263,7 +263,7 @@ func TestTimedTranscriptionIsCapturedBeforeArtifactDeletion(t *testing.T) {
 			if _, err := svc.storeRuntimeJobArtifacts(context.Background(), "job-timed", head, []*runtimev1.ScenarioArtifact{artifact}, map[string]*capabilitydriver.ArtifactBody{artifact.GetArtifactId(): body}); err != nil {
 				t.Fatal(err)
 			}
-			captured, err := svc.captureScenarioTranscriptionResult(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, []*runtimev1.ScenarioArtifact{artifact}, true)
+			captured, err := svc.captureScenarioTranscriptionResult(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, []*runtimev1.ScenarioArtifact{artifact}, true, false)
 			if err != nil {
 				t.Fatal(err)
 			}

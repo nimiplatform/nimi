@@ -149,7 +149,7 @@ func (b *Backend) Transcribe(
 				return nil, nil, MapProviderRequestError(err)
 			}
 		}
-		if prompt := strings.TrimSpace(spec.GetPrompt()); prompt != "" {
+		if prompt := spec.GetPrompt(); prompt != "" {
 			if err := writer.WriteField("prompt", prompt); err != nil {
 				return nil, nil, MapProviderRequestError(err)
 			}
@@ -216,7 +216,16 @@ func (b *Backend) Transcribe(
 			StartSeconds *float64 `json:"start_seconds"`
 			EndSeconds   *float64 `json:"end_seconds"`
 		} `json:"words"`
-		NoSpeech bool `json:"no_speech"`
+		NoSpeech    bool `json:"no_speech"`
+		Diarization *struct {
+			Status          string  `json:"status"`
+			DurationSeconds float64 `json:"duration_seconds"`
+			Intervals       []struct {
+				SpeakerID    string  `json:"speaker_id"`
+				StartSeconds float64 `json:"start_seconds"`
+				EndSeconds   float64 `json:"end_seconds"`
+			} `json:"intervals"`
+		} `json:"diarization"`
 	}
 	var out transcriptionResponse
 	if err := DecodeResponseJSON(response, &out); err != nil {
@@ -227,6 +236,19 @@ func (b *Backend) Transcribe(
 		status = runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_NO_SPEECH
 	}
 	transcript := &runtimev1.SpeechTranscript{Status: status, Text: strings.TrimSpace(out.Text), Language: strings.TrimSpace(out.Language)}
+	if out.Diarization != nil {
+		state := runtimev1.SpeechDiarizationStatus_SPEECH_DIARIZATION_STATUS_UNSPECIFIED
+		switch out.Diarization.Status {
+		case "diarized":
+			state = runtimev1.SpeechDiarizationStatus_SPEECH_DIARIZATION_STATUS_DIARIZED
+		case "no_speakers":
+			state = runtimev1.SpeechDiarizationStatus_SPEECH_DIARIZATION_STATUS_NO_SPEAKERS
+		}
+		transcript.Diarization = &runtimev1.SpeechDiarization{Status: state, DurationSeconds: out.Diarization.DurationSeconds}
+		for _, value := range out.Diarization.Intervals {
+			transcript.Diarization.Intervals = append(transcript.Diarization.Intervals, &runtimev1.SpeechSpeakerInterval{SpeakerId: value.SpeakerID, StartSeconds: value.StartSeconds, EndSeconds: value.EndSeconds})
+		}
+	}
 	for _, word := range out.Words {
 		if word.StartSeconds == nil || word.EndSeconds == nil {
 			return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)

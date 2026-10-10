@@ -3,6 +3,7 @@ package capabilitydriver
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/proto"
@@ -139,8 +140,11 @@ func (Qwen3ASRAlignedDriver) PlanSpeechTranscribeInvocation(input SpeechTranscri
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("aligned transcription requires audio"))
 	}
 	format := strings.ToLower(strings.TrimSpace(request.GetResponseFormat()))
-	if (format != "" && format != "text" && format != "json") || request.GetDiarization() || request.GetSpeakerCount() != 0 || strings.TrimSpace(request.GetPrompt()) != "" {
+	if (format != "" && format != "text" && format != "json") || request.GetDiarization() || request.GetSpeakerCount() != 0 {
 		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("aligned transcription options are unsupported"))
 	}
-	return &SpeechTranscribeInvocationPlan{driverID: Qwen3ASRAlignedDriverID, modelAssetID: ordered[0].ModelAssetID, modelFiles: ordered, request: request, audioBytes: append([]byte(nil), input.AudioBytes...), mimeType: strings.TrimSpace(input.MIMEType)}, nil
+	if !utf8.ValidString(request.GetPrompt()) || len(request.GetPrompt()) > 4096 {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("Qwen vocabulary context must be valid UTF-8 of at most 4 KiB"))
+	}
+	return &SpeechTranscribeInvocationPlan{driverID: Qwen3ASRAlignedDriverID, dependencySources: cloneInvocationExactDependencySources(input.DependencySources), modelAssetID: ordered[0].ModelAssetID, modelFiles: ordered, request: request, audioBytes: append([]byte(nil), input.AudioBytes...), mimeType: strings.TrimSpace(input.MIMEType)}, nil
 }

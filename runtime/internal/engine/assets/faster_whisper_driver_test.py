@@ -34,10 +34,12 @@ class FasterWhisperDriverTests(unittest.TestCase):
         ])
         decoded = [segment]
         calls = []
+        expected_prompt = None
         def transcribe(received, **options):
             self.assertIs(received, audio)
             self.assertNotIn("clip_timestamps", options)
             self.assertFalse(options["vad_filter"])
+            self.assertEqual(options["initial_prompt"], expected_prompt)
             calls.append(received)
             return iter(decoded), types.SimpleNamespace(language="en")
         modules = {
@@ -61,6 +63,18 @@ class FasterWhisperDriverTests(unittest.TestCase):
             self.assertEqual(result["text"], "Quiet robot speech.")
             self.assertEqual(result["language"], "")
             self.assertEqual(len(calls), 1)
+            for prompt in ["  Nimi，专有名词\n", "中" * 1365 + "a", ""]:
+                expected_prompt = prompt or None
+                request["prompt"] = prompt
+                with self.subTest(prompt_bytes=len(prompt.encode("utf-8"))):
+                    self.assertEqual(driver.handle_request(request)["text"], "Quiet robot speech.")
+            count = len(calls)
+            for prompt in ["中" * 1366, "\ud800", 42]:
+                request["prompt"] = prompt
+                with self.subTest(prompt_type=type(prompt).__name__), self.assertRaises(driver.WhisperInputError):
+                    driver.handle_request(request)
+            self.assertEqual(len(calls), count, "invalid hints must not invoke recognition")
+            request["prompt"] = ""
             decoded.clear()
             self.assertEqual(driver.handle_request(request), {"text": "", "no_speech": True})
             speech.append({"start": 0, "end": 16000})

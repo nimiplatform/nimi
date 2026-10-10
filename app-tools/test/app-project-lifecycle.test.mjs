@@ -1175,10 +1175,29 @@ test('Electron lifecycle sync and check do not require or rewrite optional Tauri
   }
 });
 
+test('existing adoption rejects unknown CapabilityContract references before writing files', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-capability-refs-'));
+  const target = writeExistingSubmittedApp(tempRoot, { buildProfileRef: 'electron-pnpm' });
+  const env = fakeNimicodingEnv(tempRoot);
+  const manifestPath = path.join(target, 'nimi.app.yaml');
+  const manifest = readFileSync(manifestPath, 'utf8');
+  try {
+    writeFileSync(manifestPath, manifest.replace('capability_contract_refs: []', 'capability_contract_refs: [speech.transcribe]'));
+    const before = snapshotTree(target);
+    let result = runCli(['init', '--adopt', '--dry-run', '--dir', target, '--json'], tempRoot, env);
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /unknown CapabilityContract: speech\.transcribe/u);
+    assert.deepEqual(snapshotTree(target), before);
+    writeFileSync(manifestPath, manifest.replace('capability_contract_refs: []', 'capability_contract_refs: [audio.transcribe, text.generate]'));
+    result = runCli(['init', '--adopt', '--dry-run', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+  } finally { rmSync(tempRoot, { recursive: true, force: true }); }
+});
+
 test('check is read-only and rejects non-registry Nimi dependencies until sync normalizes them', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-project-check-'));
   const target = writeExistingSubmittedApp(tempRoot, { packageManager: versions.packageManager });
-  const env = fakeNimicodingEnv(tempRoot);
+    const env = fakeNimicodingEnv(tempRoot);
   try {
     let result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
     assert.notEqual(result.status, 0);
@@ -1214,6 +1233,29 @@ test('check is read-only and rejects non-registry Nimi dependencies until sync n
     assert.notEqual(result.status, 0);
     assert.match(jsonErrorMessage(result), /Parallel App production workflow is forbidden/u);
     rmSync(parallelWorkflow);
+
+    const helperWorkflow = path.join(target, '.github', 'workflows', 'native-helper.yml');
+    const helperSource = [
+      'jobs:', '  build:', '    steps:',
+      '      - run: cl resources/key-listener.c /Fe:key-listener.exe',
+      '      - uses: softprops/action-gh-release@v3', '        with:',
+      "          tag_name: key-listener-v${{ inputs.version || '1.0.0' }}",
+      '          files: key-listener-win32-x64.zip', '          make_latest: false', '',
+    ].join('\n');
+    writeFileSync(helperWorkflow, helperSource);
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    for (const source of [
+      helperSource.replace('key-listener-win32-x64.zip', 'key-listener-win32-x64.nimiapp'),
+      helperSource.replace('cl resources/key-listener.c /Fe:key-listener.exe', 'nimi-app pack --target windows-x86_64'),
+      `${helperSource}# /api/platform/apps/candidates\n`,
+    ]) {
+      writeFileSync(helperWorkflow, source);
+      result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+      assert.notEqual(result.status, 0);
+      assert.match(jsonErrorMessage(result), /Parallel App production workflow is forbidden/u);
+    }
+    rmSync(helperWorkflow);
 
     writeFileSync(path.join(target, 'scripts', 'pack.mjs'), 'throw new Error("parallel pack");\n');
     result = runCli(['check', '--dir', target, '--json'], tempRoot, env);

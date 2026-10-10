@@ -214,15 +214,17 @@ ScenarioJobEventType = Literal["SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED", "SCENARIO_
 ScenarioJobStatus = Literal["SCENARIO_JOB_STATUS_UNSPECIFIED", "SCENARIO_JOB_STATUS_SUBMITTED", "SCENARIO_JOB_STATUS_QUEUED", "SCENARIO_JOB_STATUS_RUNNING", "SCENARIO_JOB_STATUS_COMPLETED", "SCENARIO_JOB_STATUS_FAILED", "SCENARIO_JOB_STATUS_CANCELED", "SCENARIO_JOB_STATUS_TIMEOUT"]
 ScenarioJobStopOutcome = Literal["SCENARIO_JOB_STOP_OUTCOME_UNSPECIFIED", "SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED", "SCENARIO_JOB_STOP_OUTCOME_CONFIRMED", "SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED"]
 ScenarioJobSubmissionOutcome = Literal["SCENARIO_JOB_SUBMISSION_OUTCOME_UNSPECIFIED", "SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED", "SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN", "SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED", "SCENARIO_JOB_SUBMISSION_OUTCOME_REJECTED"]
-ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP", "SCENARIO_TYPE_AUDIO_SEPARATE", "SCENARIO_TYPE_TEXT_ANNOTATE", "SCENARIO_TYPE_MUSIC_TRANSCRIBE", "SCENARIO_TYPE_AUDIO_VOICE_CONVERT", "SCENARIO_TYPE_TEXT_DECIDE"]
+ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP", "SCENARIO_TYPE_AUDIO_SEPARATE", "SCENARIO_TYPE_TEXT_ANNOTATE", "SCENARIO_TYPE_MUSIC_TRANSCRIBE", "SCENARIO_TYPE_AUDIO_VOICE_CONVERT", "SCENARIO_TYPE_TEXT_DECIDE", "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED"]
 SchedulingState = Literal["SCHEDULING_STATE_UNSPECIFIED", "SCHEDULING_STATE_RUNNABLE", "SCHEDULING_STATE_QUEUE_REQUIRED", "SCHEDULING_STATE_PREEMPTION_RISK", "SCHEDULING_STATE_SLOWDOWN_RISK", "SCHEDULING_STATE_DENIED", "SCHEDULING_STATE_UNKNOWN"]
 SensitivityClass = Literal["SENSITIVITY_CLASS_UNSPECIFIED", "SENSITIVITY_CLASS_NONE", "SENSITIVITY_CLASS_USER_PRIVATE", "SENSITIVITY_CLASS_CREDENTIAL_LIKE", "SENSITIVITY_CLASS_ORG_PRIVATE", "SENSITIVITY_CLASS_REGULATED", "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE"]
 SpeechAlignmentUnit = Literal["SPEECH_ALIGNMENT_UNIT_UNSPECIFIED", "SPEECH_ALIGNMENT_UNIT_WORD", "SPEECH_ALIGNMENT_UNIT_CHAR"]
+SpeechDiarizationStatus = Literal["SPEECH_DIARIZATION_STATUS_UNSPECIFIED", "SPEECH_DIARIZATION_STATUS_DIARIZED", "SPEECH_DIARIZATION_STATUS_NO_SPEAKERS"]
 SpeechTimingMode = Literal["SPEECH_TIMING_MODE_UNSPECIFIED", "SPEECH_TIMING_MODE_NONE", "SPEECH_TIMING_MODE_WORD", "SPEECH_TIMING_MODE_CHAR"]
 SpeechTranscriptStatus = Literal["SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED", "SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED", "SPEECH_TRANSCRIPT_STATUS_NO_SPEECH"]
 StreamEventType = Literal["STREAM_EVENT_TYPE_UNSPECIFIED", "STREAM_EVENT_STARTED", "STREAM_EVENT_DELTA", "STREAM_EVENT_USAGE", "STREAM_EVENT_COMPLETED", "STREAM_EVENT_FAILED"]
 TextBehaviorConfigurationState = Literal["TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED", "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE", "TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED", "TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS"]
 TextBehaviorKind = Literal["TEXT_BEHAVIOR_KIND_UNSPECIFIED", "TEXT_BEHAVIOR_KIND_TOOL_USE", "TEXT_BEHAVIOR_KIND_REASONING", "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT"]
+TextEmbedPurpose = Literal["TEXT_EMBED_PURPOSE_UNSPECIFIED", "TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT", "TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY"]
 TextReplayExecutionMode = Literal["TEXT_REPLAY_EXECUTION_MODE_UNSPECIFIED", "TEXT_REPLAY_EXECUTION_MODE_SYNC", "TEXT_REPLAY_EXECUTION_MODE_STREAM"]
 TextSourceType = Literal["TEXT_SOURCE_TYPE_UNSPECIFIED", "TEXT_SOURCE_TYPE_URL", "TEXT_SOURCE_TYPE_DOCUMENT"]
 ToolChoiceMode = Literal["TOOL_CHOICE_MODE_UNSPECIFIED", "TOOL_CHOICE_MODE_AUTO", "TOOL_CHOICE_MODE_NONE", "TOOL_CHOICE_MODE_REQUIRED", "TOOL_CHOICE_MODE_TOOL"]
@@ -1227,6 +1229,17 @@ class AudioSeparation:
     vocals_artifact_id: str | None = None
     background_artifact_id: str | None = None
     instrument_parts: tuple[AudioInstrumentPart, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AudioSpeakerEmbedResult:
+    vector: EmbeddingVector | None = None
+    space_id: str | None = None
+
+@dataclass(frozen=True)
+class AudioSpeakerEmbedScenarioSpec:
+    mime_type: str | None = None
+    audio_source: SpeechTranscriptionAudioSource | None = None
+    source_audio: MusicAudioInput | None = None
 
 @dataclass(frozen=True)
 class AudioVoiceConvertResult:
@@ -4381,6 +4394,7 @@ class LocalAppScenarioJob:
     voice_conversion: VoiceConversion | None = None
     submission_outcome: ScenarioJobSubmissionOutcome | None = None
     stop_outcome: ScenarioJobStopOutcome | None = None
+    speaker_embedding: AudioSpeakerEmbedResult | None = None
 
 @dataclass(frozen=True)
 class LocalAppScenarioJobEvent:
@@ -4441,6 +4455,7 @@ class LocalAppTextEmbedOutput:
 class LocalAppTextEmbedScenarioSpec:
     inputs: tuple[str, ...] = field(default_factory=tuple)
     dimensions: int | None = None
+    purpose: TextEmbedPurpose | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextGenerateOutput:
@@ -6191,6 +6206,7 @@ class ScenarioJob:
     voice_conversion: VoiceConversion | None = None
     submission_outcome: ScenarioJobSubmissionOutcome | None = None
     stop_outcome: ScenarioJobStopOutcome | None = None
+    speaker_embedding: AudioSpeakerEmbedResult | None = None
 
 @dataclass(frozen=True)
 class ScenarioJobEvent:
@@ -6222,6 +6238,7 @@ class ScenarioOutput:
     music_transcribe: MusicTranscribeResult | None = None
     audio_voice_convert: AudioVoiceConvertResult | None = None
     text_decision: TextDecisionResult | None = None
+    audio_speaker_embed: AudioSpeakerEmbedResult | None = None
 
 @dataclass(frozen=True)
 class ScenarioProfile:
@@ -6254,6 +6271,7 @@ class ScenarioSpec:
     music_transcribe: MusicTranscribeScenarioSpec | None = None
     audio_voice_convert: AudioVoiceConvertScenarioSpec | None = None
     text_decide: TextDecideScenarioSpec | None = None
+    audio_speaker_embed: AudioSpeakerEmbedScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class ScenarioStreamCompleted:
@@ -6478,6 +6496,12 @@ class SpeechAudioReference:
     artifact_id: str | None = None
 
 @dataclass(frozen=True)
+class SpeechDiarization:
+    status: SpeechDiarizationStatus | None = None
+    duration_seconds: float | None = None
+    intervals: tuple[SpeechSpeakerInterval, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class SpeechInputCapabilities:
     supports_identity_audio: bool | None = None
     supports_performance_audio: bool | None = None
@@ -6489,6 +6513,12 @@ class SpeechInputCapabilities:
 class SpeechPerformanceReference:
     artifact_id: str | None = None
     text: str | None = None
+
+@dataclass(frozen=True)
+class SpeechSpeakerInterval:
+    speaker_id: str | None = None
+    start_seconds: float | None = None
+    end_seconds: float | None = None
 
 @dataclass(frozen=True)
 class SpeechSynthesizeResult:
@@ -6533,6 +6563,7 @@ class SpeechTranscript:
     text: str | None = None
     language: str | None = None
     words: tuple[SpeechTranscriptWord, ...] = field(default_factory=tuple)
+    diarization: SpeechDiarization | None = None
 
 @dataclass(frozen=True)
 class SpeechTranscriptWord:
@@ -6745,6 +6776,7 @@ class SubmitLocalAppScenarioJobRequest:
     client_submission_id: str | None = None
     music_transcribe: MusicTranscribeScenarioSpec | None = None
     audio_voice_convert: AudioVoiceConvertScenarioSpec | None = None
+    audio_speaker_embed: AudioSpeakerEmbedScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppScenarioJobResponse:
@@ -7021,6 +7053,7 @@ class TextEmbedOutput:
 class TextEmbedScenarioSpec:
     inputs: tuple[str, ...] = field(default_factory=tuple)
     dimensions: int | None = None
+    purpose: TextEmbedPurpose | None = None
 
 @dataclass(frozen=True)
 class TextGenerateOutput:

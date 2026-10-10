@@ -1,6 +1,8 @@
 package ai
 
 import (
+	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -17,7 +19,12 @@ func TestLocalEmbeddingSpaceTracksContentNotLoadoutOrRequestIdentity(t *testing.
 		ModelAxes:      []*runtimev1.LoadoutEffectiveModelAxisIdentity{{SlotId: "model", ModelAssetId: "asset-a", ContentId: "content-a"}},
 	}
 	vectors := []*runtimev1.EmbeddingVector{{Values: []float64{0.1, 0.2}}}
-	effective := &localEmbedEffectiveInputs{effectiveInputIdentity: identity, request: &runtimev1.TextEmbedScenarioSpec{Inputs: []string{"first"}}}
+	digest := strings.Repeat("a", 64)
+	plan, planErr := (capabilitydriver.LlamaEmbedDriver{}).PlanEmbedInvocation(capabilitydriver.EmbedInvocationInput{RecipeID: capabilitydriver.LlamaEmbedGGUFRecipeID, ModelContextWindowTokens: 8192, ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.EmbeddingGGUFRequirementID, EmbeddingInputProtocol: capabilitydriver.EmbeddingInputNativeV1, ModelAssetID: "asset", AbsolutePath: filepath.Join(t.TempDir(), "embed.gguf"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}}, Request: &runtimev1.TextEmbedScenarioSpec{Inputs: []string{"first"}}})
+	if planErr != nil {
+		t.Fatal(planErr)
+	}
+	effective := &localEmbedEffectiveInputs{effectiveInputIdentity: identity, plan: plan, request: &runtimev1.TextEmbedScenarioSpec{Inputs: []string{"first"}}}
 	first, err := localEmbeddingSpaceID(effective, vectors)
 	if err != nil || first == "" {
 		t.Fatalf("space identity: %q %v", first, err)
@@ -39,6 +46,31 @@ func TestLocalEmbeddingSpaceTracksContentNotLoadoutOrRequestIdentity(t *testing.
 	}
 	if identity.GetLoadoutId() != "loadout-a" || identity.ModelAxes[0].ModelAssetId != "asset-a" {
 		t.Fatal("space projection mutated captured attribution")
+	}
+}
+
+func TestNomicQueryDocumentShareCapturedSpaceAndSeparateOldRaw(t *testing.T) {
+	identity := &runtimev1.LoadoutEffectiveInputIdentity{CapabilityContract: "text.embed", RecipeId: capabilitydriver.LlamaEmbedGGUFRecipeID, RecipeRevision: "1", Implementation: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(), ModelAxes: []*runtimev1.LoadoutEffectiveModelAxisIdentity{{SlotId: capabilitydriver.EmbeddingGGUFRequirementID, ContentId: "sha256:fixture"}}}
+	vectors := []*runtimev1.EmbeddingVector{{Values: []float64{0.1, 0.2}}}
+	raw, err := localEmbeddingIdentitySpaceID(identity, vectors)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := strings.Repeat("a", 64)
+	var first string
+	for _, purpose := range []runtimev1.TextEmbedPurpose{runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY} {
+		plan, err := (capabilitydriver.LlamaEmbedDriver{}).PlanEmbedInvocation(capabilitydriver.EmbedInvocationInput{RecipeID: capabilitydriver.LlamaEmbedGGUFRecipeID, ModelContextWindowTokens: 8192, ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.EmbeddingGGUFRequirementID, ModelAssetID: "fixture", AbsolutePath: filepath.Join(t.TempDir(), "model.gguf"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest, EmbeddingInputProtocol: capabilitydriver.EmbeddingInputNomicV1}}, Request: &runtimev1.TextEmbedScenarioSpec{Inputs: []string{purpose.String()}, Purpose: purpose}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		actual, err := localEmbeddingSpaceID(&localEmbedEffectiveInputs{effectiveInputIdentity: identity, plan: plan}, vectors)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if actual == raw || (first != "" && actual != first) {
+			t.Fatalf("incompatible space: raw=%q first=%q actual=%q", raw, first, actual)
+		}
+		first = actual
 	}
 }
 

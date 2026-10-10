@@ -65,7 +65,16 @@ func localEmbeddingSpaceID(effective *localEmbedEffectiveInputs, vectors []*runt
 	if effective == nil || effective.effectiveInputIdentity == nil {
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	return localEmbeddingIdentitySpaceID(effective.effectiveInputIdentity, vectors)
+	identity := normalizedEmbeddingIdentity(effective.effectiveInputIdentity)
+	family := effective.plan.RepresentationFamily()
+	if family == capabilitydriver.EmbeddingRepresentationNomicRetrievalV1 {
+		semantics, _ := structpb.NewStruct(map[string]any{"embeddingRepresentation": family})
+		return embeddingSpaceID("local", "", vectors, identity, semantics)
+	}
+	if family != capabilitydriver.EmbeddingRepresentationNativeV1 {
+		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	return embeddingSpaceID("local", "", vectors, identity)
 }
 
 func localEmbeddingIdentitySpaceID(input *runtimev1.LoadoutEffectiveInputIdentity, vectors []*runtimev1.EmbeddingVector) (string, error) {

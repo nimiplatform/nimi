@@ -6,6 +6,7 @@ import { validateNimiLocalAppTextInput } from '@nimiplatform/kit/core/sdk-contra
 import { validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import { isNimiLocalAppByteView } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextDecideShellSpec } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppSpeakerEmbedSpec } from '@nimiplatform/kit/core/sdk-contract';
 import {
   NimiElectronLocalAppHostError,
   type NimiElectronLocalAppHost,
@@ -1260,6 +1261,11 @@ function textInputBasePayload(
 }
 
 function validateScenarioSpec(value: unknown, command: string, execute: boolean): NimiElectronLocalAppJson {
+  if (isPlainRecord(value) && value.type === 'audio-speaker-embed') {
+    if (execute) throw invalidPayload(command, 'Speaker representation requires an asynchronous Job');
+    try { return validateNimiLocalAppSpeakerEmbedSpec(value) as unknown as NimiElectronLocalAppJson; }
+    catch { throw invalidPayload(command, 'Speaker representation input is invalid'); }
+  }
   if (isPlainRecord(value) && value.type === 'text-decide') {
     // @nimi-authority: rule.nimi.runtime.ai-provider.text-decision
     // JSON content is canonical text, so App keys never read as authority
@@ -1289,7 +1295,8 @@ function assertScenarioSpec(value: unknown, command: string, execute: boolean): 
     && (value.type === 'speech-transcribe' || value.type === 'voice-create' || value.type === 'audio-separate');
   validateJsonValue(value, command, 40 * 1024 * 1024, acceptsInlineAudio);
   if (value.type === 'text-embed' && execute) {
-    assertExactKeys(value, ['type', 'inputs', ...(value.dimensions !== undefined ? ['dimensions'] : [])], command);
+    assertExactKeys(value, ['type', 'inputs', ...(value.dimensions !== undefined ? ['dimensions'] : []), ...(value.purpose !== undefined ? ['purpose'] : [])], command);
+    if (value.purpose !== undefined && value.purpose !== 'retrieval-document' && value.purpose !== 'retrieval-query') throw invalidPayload(command, 'embed purpose is invalid');
     if (value.dimensions !== undefined) boundedSafeInteger(value.dimensions, 'dimensions', command, 1, 0xffff_ffff);
     if (!Array.isArray(value.inputs) || value.inputs.length === 0 || value.inputs.length > 16) {
       throw invalidPayload(command, 'embed inputs are invalid');
@@ -2402,12 +2409,14 @@ function standardCode(reasonCode: string) {
     case 'ai-voice-workflow-unsupported':
     case 'ai-voice-asset-expired':
     case 'ai-voice-target-model-mismatch':
+    case 'ai-media-job-not-cancellable':
     case 'ai-voice-job-not-cancellable': return 'invalid-payload' as const;
     case 'invalid-path': return 'invalid-path' as const;
     case 'not-found':
     case 'ai-config-not-found':
     case 'ai-connector-not-found':
     case 'ai-voice-asset-not-found':
+    case 'ai-media-job-not-found':
     case 'ai-voice-job-not-found': return 'not-found' as const;
     case 'ai-config-persistence-unavailable': return 'runtime-service-unavailable' as const;
     case 'agent-presentation-asset-too-large': return 'resource-exhausted' as const;

@@ -41,6 +41,58 @@ function managerActionAvailability() {
 }
 
 describe('renderer local-app standard-shell surface', () => {
+  it('carries the speaker representation through SDK construction, renderer submit/Get and terminal events', async () => {
+    let emit: ((event: { payload: unknown }) => void) | undefined;
+    const calls: unknown[] = [];
+    const speakerEmbedding = { vector: [0.123456789012345, -0.5, 0.75], spaceId: 'declared-renderer-space' };
+    const job = { jobId: 'speaker-job', scenarioType: 'audio-speaker-embed', status: 'completed', progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1, reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace', createdAt: null, updatedAt: null, transcriptionText: '', speakerEmbedding };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, input: unknown) => {
+        calls.push(input);
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubscribe']) return (input as { payload?: { action?: string } }).payload?.action === 'cancel' ? { subscriptionId: 'speaker-sub', closed: true } : { subscriptionId: 'speaker-sub', eventName: 'speaker-events' };
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobGet']) return { job, asset: null, voiceReference: null };
+        return { job };
+      },
+      listen: (_name: string, handler: typeof emit) => { emit = handler; return () => { emit = undefined; }; },
+    };
+    const shell = createNimiLocalAppStandardShellSurface();
+    const client = createNimiClient({ localApp: { standardShell: shell } });
+    const bytes = new Uint8Array([1, 2, 3]);
+    await expect(shell.ai.scenarioJobs.submit({ type: 'audio-speaker-embed', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes } })).resolves.toMatchObject({ job: { speakerEmbedding } });
+    expect(calls[0]).toMatchObject({ payload: { spec: { type: 'audio-speaker-embed', audioSource: { bytes } } } });
+    await expect(client.ai.scenarioJobs.get(job.jobId)).resolves.toMatchObject({ job: { speakerEmbedding } });
+    const subscription = await client.ai.scenarioJobs.subscribe(job.jobId);
+    const iterator = subscription[Symbol.asyncIterator]();
+    const pending = iterator.next();
+    emit?.({ payload: { subscriptionId: 'speaker-sub', eventType: 'next', event: { eventType: 'completed', sequence: '1', traceId: 'trace', timestamp: null, job } } });
+    await expect(pending).resolves.toMatchObject({ value: { job: { speakerEmbedding } } });
+    await subscription.cancel();
+  });
+
+  it('rejects speaker result state/field violations and invalid audio before protected dispatch', async () => {
+    let invoked = 0;
+    let returned: unknown;
+    const base = { jobId: 'speaker-job', scenarioType: 'audio-speaker-embed', status: 'completed', progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1, reasonCode: '', reasonDetail: '', artifacts: [], traceId: '', createdAt: null, updatedAt: null, transcriptionText: '' };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = { invoke: async () => { invoked++; return { job: returned, asset: null, voiceReference: null }; } };
+    const shell = createNimiLocalAppStandardShellSurface();
+    for (const result of [undefined, { vector: [], spaceId: 'space' }, { vector: [0, 0], spaceId: 'space' }, { vector: [1], spaceId: 'space', model: 'private' }]) {
+      returned = { ...base, ...(result ? { speakerEmbedding: result } : {}) };
+      await expect(shell.ai.scenarioJobs.get(base.jobId)).rejects.toBeDefined();
+    }
+    returned = { ...base, status: 'running', speakerEmbedding: { vector: [1], spaceId: 'space' } };
+    await expect(shell.ai.scenarioJobs.get(base.jobId)).rejects.toBeDefined();
+    returned = { ...base, scenarioType: 'speech-transcribe', speakerEmbedding: { vector: [1], spaceId: 'space' } };
+    await expect(shell.ai.scenarioJobs.get(base.jobId)).rejects.toBeDefined();
+    const count = invoked;
+    for (const input of [
+      { type: 'audio-speaker-embed', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: new Uint8Array() } },
+      { type: 'audio-speaker-embed', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: new Uint8Array([1]) }, sourceAudio: { artifactId: 'owned' } },
+      { type: 'audio-speaker-embed', mimeType: 'audio/wav', audioSource: { type: 'uri', uri: 'file:///private.wav' } },
+    ]) expect(() => shell.ai.scenarioJobs.submit(input as never)).toThrow();
+    expect(invoked).toBe(count);
+    expect(() => shell.ai.scenario.execute({ type: 'audio-speaker-embed', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: new Uint8Array([1]) } } as never)).toThrow();
+  });
+
   it('carries a closed synthesis alignment through Job Get and rejects authority inside it', async () => {
     let alignment: unknown={unit:'word',tokens:[{token:'Hello',startMs:0,endMs:480},{token:' ',startMs:480,endMs:500}]};
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__={invoke:async()=>({job:{jobId:'aligned-job',scenarioType:'speech-synthesize',status:'completed',progressPercent:100,progressCurrentStep:1,progressTotalSteps:1,reasonCode:'action-executed',reasonDetail:'',traceId:'trace',createdAt:null,updatedAt:null,transcriptionText:'',artifacts:[{artifactId:'aligned-audio',mimeType:'audio/wav',bytes:new Uint8Array(),sizeBytes:58,sha256:'digest',durationMs:1200,width:0,height:0,sampleRateHz:24000,channels:1,speechAlignment:alignment}]},asset:null,voiceReference:null}),listen:()=>()=>{}};

@@ -1,4 +1,5 @@
 import { readAppInfo } from './app-info.mjs';
+import { CANONICAL_CAPABILITY_IDS } from './canonical-capability-ids.generated.mjs';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-009b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043a
@@ -139,6 +140,9 @@ function readSubmittedManifest(targetDir, sources) {
     throw new Error('Existing submitted app version must be an exact semantic version');
   }
   let safetyProfile;
+  if (document.capability_contract_refs !== undefined) {
+    canonicalInputList(document.capability_contract_refs, 'nimi.app.yaml capability_contract_refs');
+  }
   if (document[SAFETY_PROFILE_FIELD] !== undefined) {
     try {
       safetyProfile = normalizeSafetyProfile(document[SAFETY_PROFILE_FIELD]);
@@ -394,6 +398,11 @@ function canonicalInputList(value, label, allowEmpty = true) {
   if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) throw new Error(`${label} must be ${allowEmpty ? 'an array' : 'a non-empty array'}`);
   const entries = value.map((item, index) => canonicalInputText(item, `${label}[${index}]`));
   if (new Set(entries).size !== entries.length) throw new Error(`${label} must not contain duplicates`);
+  if (label.endsWith('capability_contract_refs')) {
+    for (const entry of entries) {
+      if (!CANONICAL_CAPABILITY_IDS.includes(entry)) throw new Error(`${label} contains unknown CapabilityContract: ${entry}`);
+    }
+  }
   return entries;
 }
 
@@ -949,6 +958,43 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
   return { identity, submission };
 }
 
+function isScopedComponentReleaseWorkflow(source, targetDir) {
+  // A separate, non-latest component tag with matching bounded asset names is
+  // not the App release. Unclassified releases still require owner review.
+  if (/candidate-uploads|\/api\/platform\/apps\/candidates|\.nimiapp\b|\bnimi-app\s+(?:build|pack)\b|\belectron-builder\b|\btauri\s+build\b/iu.test(source)
+    || /\bgh\s+release\s+(?:create|upload|edit|delete)\b/iu.test(source)) return false;
+  const packageJson = JSON.parse(readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+  const inspectedScripts = new Set();
+  const invokesAppBuild = command => {
+    if (/\bnimi-app\s+(?:build|pack)\b|\belectron-builder\b|\btauri\s+build\b/u.test(command)) return true;
+    for (const match of command.matchAll(/\b(?:npm|pnpm)\s+(?:run\s+)?([\w:-]+)/gu)) {
+      if (inspectedScripts.has(match[1])) continue;
+      inspectedScripts.add(match[1]);
+      const script = packageJson.scripts?.[match[1]];
+      if (script && invokesAppBuild(script)) return true;
+    }
+    return false;
+  };
+  if (invokesAppBuild(source)) return false;
+  let workflow;
+  try { workflow = parseYaml(source); } catch { return false; }
+  const releaseSteps = Object.values(workflow?.jobs ?? {}).flatMap(job => job?.steps ?? [])
+    .filter(step => /(?:softprops\/action-gh-release|ncipollo\/release-action|actions\/create-release)/iu.test(String(step?.uses ?? '')));
+  if (releaseSteps.length === 0) return false;
+  return releaseSteps.every(step => {
+    if (!/^softprops\/action-gh-release@/u.test(String(step.uses)) || step.with?.make_latest !== false) return false;
+    const tag = String(step.with?.tag_name ?? '');
+    const prefix = /^([a-zA-Z0-9][a-zA-Z0-9._-]*)-v(?=\$\{\{|\d)/u.exec(tag)?.[1];
+    if (!prefix || prefix === packageJson.name || prefix === packageJson.name?.replace(/^@[^/]+\//u, '')) return false;
+    const files = typeof step.with?.files === 'string' ? step.with.files.trim().split(/\r?\n/u) : [];
+    return files.length > 0 && files.every(file => (
+      (file.startsWith(`${prefix}-`) || file.startsWith(`${prefix}.`))
+      && !/[\\/]/u.test(file) && !file.includes('..')
+      && /\.(?:zip|tar\.gz|exe|dll|node|\*)$/u.test(file)
+    ));
+  });
+}
+
 function assertManagedWorkflowCurrent(targetDir, sources) {
   const workflowPath = path.join(targetDir, MANAGED_WORKFLOW_PATH);
   if (!hasProjectFile(targetDir, MANAGED_WORKFLOW_PATH, sources)) throw new Error(`Required App lifecycle file is missing: ${MANAGED_WORKFLOW_PATH}`);
@@ -960,11 +1006,11 @@ function assertManagedWorkflowCurrent(targetDir, sources) {
     const candidatePath = path.join(workflowDir, name);
     if (candidatePath === workflowPath || !/\.ya?ml$/iu.test(name)) continue;
     const source = readFileSync(candidatePath, 'utf8');
-    if (
+    if (!isScopedComponentReleaseWorkflow(source, targetDir) && (
       /\bgh\s+release\s+(?:create|upload|edit|delete)\b/iu.test(source)
       || /(?:softprops\/action-gh-release|ncipollo\/release-action|actions\/create-release)/iu.test(source)
       || /candidate-uploads|\/api\/platform\/apps\/candidates/iu.test(source)
-    ) {
+    )) {
       throw new Error(`Parallel App production workflow is forbidden: .github/workflows/${name}`);
     }
   }

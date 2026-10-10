@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -283,7 +284,7 @@ func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmen
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-music-native"}, true
 	case audioCppQwen3TTSCUDAConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-speech-native"}, true
-	case "speech.qwen3-asr.python", "speech.qwen3-asr-transformers.python", "speech.qwen3-tts.python", "speech.voxcpm.python", "speech.demucs.python", "speech.faster-whisper.python":
+	case "speech.qwen3-asr.python", "speech.qwen3-asr-transformers.python", "speech.qwen3-tts.python", "speech.voxcpm.python", "speech.demucs.python", "speech.faster-whisper.python", capabilitydriver.WhisperDiarizationConsumerID, engine.SpeakerEncoderConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-speech"}, true
 	default:
 		if audioCppConsumerIDKnown(consumerID) {

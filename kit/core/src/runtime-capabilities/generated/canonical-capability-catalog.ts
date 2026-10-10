@@ -102,6 +102,29 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
   }),
   Object.freeze({
+    capabilityId: 'audio.speaker.embed',
+    section: 'stt',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'local-adapter-routing',
+      capability: 'audio.speaker.embed',
+    }),
+    additionalRuntimeTables: Object.freeze([]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.audioSpeakerEmbed.title',
+      subtitle: 'AIConfig.capability.audioSpeakerEmbed.subtitle',
+      detail: 'AIConfig.capability.audioSpeakerEmbed.detail',
+    }),
+    runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-speaker-representation',
+      dataMovement: 'local-by-selected-route',
+      retention: 'runtime-scenario-job-policy',
+      revocation: 'route-or-job-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
+  }),
+  Object.freeze({
     capabilityId: 'audio.synthesize',
     section: 'tts',
     editorKind: 'audio-synthesize',

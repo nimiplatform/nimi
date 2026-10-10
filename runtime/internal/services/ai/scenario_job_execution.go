@@ -171,7 +171,7 @@ func (s *Service) commitScenarioAsyncJobResult(ctx context.Context, jobID string
 		newCustodyIDs, custodyErr = s.storeRuntimeJobArtifacts(ctx, jobID, req.GetHead(), artifacts, result.ArtifactBodies)
 	}
 	if custodyErr == nil {
-		transcription, custodyErr = s.captureScenarioTranscriptionResult(ctx, req.GetScenarioType(), artifacts, req.GetSpec().GetSpeechTranscribe().GetTimestamps())
+		transcription, custodyErr = s.captureScenarioTranscriptionResult(ctx, req.GetScenarioType(), artifacts, req.GetSpec().GetSpeechTranscribe().GetTimestamps(), req.GetSpec().GetSpeechTranscribe().GetDiarization())
 	}
 	if custodyErr != nil {
 		capabilitydriver.CloseArtifactBodies(result.ArtifactBodies)
@@ -288,7 +288,7 @@ func (s *Service) finishScenarioAsyncJobFailure(ctx context.Context, jobID strin
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
-func (s *Service) captureScenarioTranscriptionResult(ctx context.Context, scenarioType runtimev1.ScenarioType, artifacts []*runtimev1.ScenarioArtifact, requireTiming bool) (*runtimev1.SpeechTranscript, error) {
+func (s *Service) captureScenarioTranscriptionResult(ctx context.Context, scenarioType runtimev1.ScenarioType, artifacts []*runtimev1.ScenarioArtifact, requireTiming, requireDiarization bool) (*runtimev1.SpeechTranscript, error) {
 	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE {
 		return nil, nil
 	}
@@ -345,6 +345,9 @@ func (s *Service) captureScenarioTranscriptionResult(ctx context.Context, scenar
 	}
 	if err := localexecution.ValidateSpeechTranscript(transcript, requireTiming); err != nil {
 		return nil, err
+	}
+	if requireDiarization != (transcript.GetDiarization() != nil) {
+		return nil, fmt.Errorf("requested diarization result is missing or unsolicited")
 	}
 	return transcript, nil
 }

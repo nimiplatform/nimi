@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -43,6 +44,8 @@ func validateBaseRequestWithOptions(appID string, subjectUserID string, modelID 
 
 func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SPEAKER_EMBED:
+		return capabilitydriver.SpeakerEmbedContract
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
 		return "text.annotate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:

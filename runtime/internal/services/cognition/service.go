@@ -73,7 +73,7 @@ type AgentSourceEmbeddingExecution struct {
 	Vectors   [][]float64
 }
 
-type AgentSourceEmbeddingExecutor func(context.Context, string, string, []string) (AgentSourceEmbeddingExecution, error)
+type AgentSourceEmbeddingExecutor func(context.Context, string, string, []string, string) (AgentSourceEmbeddingExecution, error)
 
 func (s *Service) SetAgentSourceEmbeddingExecutor(executor AgentSourceEmbeddingExecutor) {
 	if s == nil {
@@ -138,7 +138,7 @@ func (s *Service) completeAgentSourceGeneration(ctx context.Context, accountID, 
 		for _, unit := range envelope.Units {
 			texts = append(texts, unit.Text)
 		}
-		resolved, executionErr := executor(ctx, accountID, localAgentRef, texts)
+		resolved, executionErr := executor(ctx, accountID, localAgentRef, texts, "retrieval-document")
 		resolved.Status = normalizeAgentSourceEmbeddingStatus(resolved.Status)
 		if executionErr != nil && resolved.Status == "ready" {
 			resolved.Status = "failure"
@@ -241,7 +241,7 @@ func (s *Service) searchAgentSourceSemantics(ctx context.Context, accountID, loc
 		out.Status = "unconfigured"
 		return out, nil
 	}
-	execution, executionErr := executor(ctx, accountID, localAgentRef, []string{query})
+	execution, executionErr := executor(ctx, accountID, localAgentRef, []string{query}, "retrieval-query")
 	execution.Status = normalizeAgentSourceEmbeddingStatus(execution.Status)
 	if executionErr != nil && execution.Status == "ready" {
 		execution.Status = "failure"

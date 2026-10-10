@@ -15,6 +15,10 @@ surfaces:
   - routes_7
   - routes_8
 routes:
+  - provider: speech
+    capability: audio.speaker.embed
+    adapter: speaker_representation_execution_host
+    source_rule: rule.nimi.runtime.speaker-representation.audio-speaker-embedding-result
   - provider: sidecar
     capability: music.transcribe
     adapter: sidecar_music_adapter

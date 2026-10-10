@@ -2034,6 +2034,7 @@ const (
 	SCENARIOTYPEMUSICTRANSCRIBE   ScenarioType = "SCENARIO_TYPE_MUSIC_TRANSCRIBE"
 	SCENARIOTYPEAUDIOVOICECONVERT ScenarioType = "SCENARIO_TYPE_AUDIO_VOICE_CONVERT"
 	SCENARIOTYPETEXTDECIDE        ScenarioType = "SCENARIO_TYPE_TEXT_DECIDE"
+	SCENARIOTYPEAUDIOSPEAKEREMBED ScenarioType = "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED"
 )
 
 type SchedulingState string
@@ -2066,6 +2067,14 @@ const (
 	SPEECHALIGNMENTUNITUNSPECIFIED SpeechAlignmentUnit = "SPEECH_ALIGNMENT_UNIT_UNSPECIFIED"
 	SPEECHALIGNMENTUNITWORD        SpeechAlignmentUnit = "SPEECH_ALIGNMENT_UNIT_WORD"
 	SPEECHALIGNMENTUNITCHAR        SpeechAlignmentUnit = "SPEECH_ALIGNMENT_UNIT_CHAR"
+)
+
+type SpeechDiarizationStatus string
+
+const (
+	SPEECHDIARIZATIONSTATUSUNSPECIFIED SpeechDiarizationStatus = "SPEECH_DIARIZATION_STATUS_UNSPECIFIED"
+	SPEECHDIARIZATIONSTATUSDIARIZED    SpeechDiarizationStatus = "SPEECH_DIARIZATION_STATUS_DIARIZED"
+	SPEECHDIARIZATIONSTATUSNOSPEAKERS  SpeechDiarizationStatus = "SPEECH_DIARIZATION_STATUS_NO_SPEAKERS"
 )
 
 type SpeechTimingMode string
@@ -2112,6 +2121,14 @@ const (
 	TEXTBEHAVIORKINDTOOLUSE          TextBehaviorKind = "TEXT_BEHAVIOR_KIND_TOOL_USE"
 	TEXTBEHAVIORKINDREASONING        TextBehaviorKind = "TEXT_BEHAVIOR_KIND_REASONING"
 	TEXTBEHAVIORKINDSTRUCTUREDOUTPUT TextBehaviorKind = "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT"
+)
+
+type TextEmbedPurpose string
+
+const (
+	TEXTEMBEDPURPOSEUNSPECIFIED       TextEmbedPurpose = "TEXT_EMBED_PURPOSE_UNSPECIFIED"
+	TEXTEMBEDPURPOSERETRIEVALDOCUMENT TextEmbedPurpose = "TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT"
+	TEXTEMBEDPURPOSERETRIEVALQUERY    TextEmbedPurpose = "TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY"
 )
 
 type TextReplayExecutionMode string
@@ -3260,6 +3277,17 @@ type AudioSeparation struct {
 	VocalsArtifactId     string                `json:"vocals_artifact_id,omitempty"`
 	BackgroundArtifactId string                `json:"background_artifact_id,omitempty"`
 	InstrumentParts      []AudioInstrumentPart `json:"instrument_parts,omitempty"`
+}
+
+type AudioSpeakerEmbedResult struct {
+	Vector  *EmbeddingVector `json:"vector,omitempty"`
+	SpaceId string           `json:"space_id,omitempty"`
+}
+
+type AudioSpeakerEmbedScenarioSpec struct {
+	MimeType    string                          `json:"mime_type,omitempty"`
+	AudioSource *SpeechTranscriptionAudioSource `json:"audio_source,omitempty"`
+	SourceAudio *MusicAudioInput                `json:"source_audio,omitempty"`
 }
 
 type AudioVoiceConvertResult struct {
@@ -6385,6 +6413,7 @@ type LocalAppScenarioJob struct {
 	VoiceConversion      *VoiceConversion             `json:"voice_conversion,omitempty"`
 	SubmissionOutcome    ScenarioJobSubmissionOutcome `json:"submission_outcome,omitempty"`
 	StopOutcome          ScenarioJobStopOutcome       `json:"stop_outcome,omitempty"`
+	SpeakerEmbedding     *AudioSpeakerEmbedResult     `json:"speaker_embedding,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -6443,8 +6472,9 @@ type LocalAppTextEmbedOutput struct {
 }
 
 type LocalAppTextEmbedScenarioSpec struct {
-	Inputs     []string `json:"inputs,omitempty"`
-	Dimensions *uint32  `json:"dimensions,omitempty"`
+	Inputs     []string         `json:"inputs,omitempty"`
+	Dimensions *uint32          `json:"dimensions,omitempty"`
+	Purpose    TextEmbedPurpose `json:"purpose,omitempty"`
 }
 
 type LocalAppTextGenerateOutput struct {
@@ -8187,6 +8217,7 @@ type ScenarioJob struct {
 	VoiceConversion        *VoiceConversion               `json:"voice_conversion,omitempty"`
 	SubmissionOutcome      ScenarioJobSubmissionOutcome   `json:"submission_outcome,omitempty"`
 	StopOutcome            ScenarioJobStopOutcome         `json:"stop_outcome,omitempty"`
+	SpeakerEmbedding       *AudioSpeakerEmbedResult       `json:"speaker_embedding,omitempty"`
 }
 
 type ScenarioJobEvent struct {
@@ -8218,6 +8249,7 @@ type ScenarioOutput struct {
 	MusicTranscribe   *MusicTranscribeResult   `json:"music_transcribe,omitempty"`
 	AudioVoiceConvert *AudioVoiceConvertResult `json:"audio_voice_convert,omitempty"`
 	TextDecision      *TextDecisionResult      `json:"text_decision,omitempty"`
+	AudioSpeakerEmbed *AudioSpeakerEmbedResult `json:"audio_speaker_embed,omitempty"`
 }
 
 type ScenarioProfile struct {
@@ -8250,6 +8282,7 @@ type ScenarioSpec struct {
 	MusicTranscribe   *MusicTranscribeScenarioSpec   `json:"music_transcribe,omitempty"`
 	AudioVoiceConvert *AudioVoiceConvertScenarioSpec `json:"audio_voice_convert,omitempty"`
 	TextDecide        *TextDecideScenarioSpec        `json:"text_decide,omitempty"`
+	AudioSpeakerEmbed *AudioSpeakerEmbedScenarioSpec `json:"audio_speaker_embed,omitempty"`
 }
 
 type ScenarioStreamCompleted struct {
@@ -8472,6 +8505,12 @@ type SpeechAudioReference struct {
 	ArtifactId string `json:"artifact_id,omitempty"`
 }
 
+type SpeechDiarization struct {
+	Status          SpeechDiarizationStatus `json:"status,omitempty"`
+	DurationSeconds float64                 `json:"duration_seconds,omitempty"`
+	Intervals       []SpeechSpeakerInterval `json:"intervals,omitempty"`
+}
+
 type SpeechInputCapabilities struct {
 	SupportsIdentityAudio       bool   `json:"supports_identity_audio,omitempty"`
 	SupportsPerformanceAudio    bool   `json:"supports_performance_audio,omitempty"`
@@ -8483,6 +8522,12 @@ type SpeechInputCapabilities struct {
 type SpeechPerformanceReference struct {
 	ArtifactId string `json:"artifact_id,omitempty"`
 	Text       string `json:"text,omitempty"`
+}
+
+type SpeechSpeakerInterval struct {
+	SpeakerId    string  `json:"speaker_id,omitempty"`
+	StartSeconds float64 `json:"start_seconds,omitempty"`
+	EndSeconds   float64 `json:"end_seconds,omitempty"`
 }
 
 type SpeechSynthesizeResult struct {
@@ -8523,10 +8568,11 @@ type SpeechTranscribeScenarioSpec struct {
 }
 
 type SpeechTranscript struct {
-	Status   SpeechTranscriptStatus `json:"status,omitempty"`
-	Text     string                 `json:"text,omitempty"`
-	Language string                 `json:"language,omitempty"`
-	Words    []SpeechTranscriptWord `json:"words,omitempty"`
+	Status      SpeechTranscriptStatus `json:"status,omitempty"`
+	Text        string                 `json:"text,omitempty"`
+	Language    string                 `json:"language,omitempty"`
+	Words       []SpeechTranscriptWord `json:"words,omitempty"`
+	Diarization *SpeechDiarization     `json:"diarization,omitempty"`
 }
 
 type SpeechTranscriptWord struct {
@@ -8738,6 +8784,7 @@ type SubmitLocalAppScenarioJobRequest struct {
 	ClientSubmissionId string                             `json:"client_submission_id,omitempty"`
 	MusicTranscribe    *MusicTranscribeScenarioSpec       `json:"music_transcribe,omitempty"`
 	AudioVoiceConvert  *AudioVoiceConvertScenarioSpec     `json:"audio_voice_convert,omitempty"`
+	AudioSpeakerEmbed  *AudioSpeakerEmbedScenarioSpec     `json:"audio_speaker_embed,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {
@@ -9010,8 +9057,9 @@ type TextEmbedOutput struct {
 }
 
 type TextEmbedScenarioSpec struct {
-	Inputs     []string `json:"inputs,omitempty"`
-	Dimensions *uint32  `json:"dimensions,omitempty"`
+	Inputs     []string         `json:"inputs,omitempty"`
+	Dimensions *uint32          `json:"dimensions,omitempty"`
+	Purpose    TextEmbedPurpose `json:"purpose,omitempty"`
 }
 
 type TextGenerateOutput struct {

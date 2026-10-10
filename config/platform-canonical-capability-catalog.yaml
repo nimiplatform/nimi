@@ -21,6 +21,24 @@ entries:
 # See capability-catalog-contract.md (P-CAPCAT-001..004).
 # Codegen output: kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts
 capabilities:
+  - capabilityId: audio.speaker.embed
+    section: stt
+    editorKind: null
+    sourceRef:
+      table: local-adapter-routing
+      capability: audio.speaker.embed
+    i18nKeys:
+      title: AIConfig.capability.audioSpeakerEmbed.title
+      subtitle: AIConfig.capability.audioSpeakerEmbed.subtitle
+      detail: AIConfig.capability.audioSpeakerEmbed.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-speaker-representation
+      dataMovement: local-by-selected-route
+      retention: runtime-scenario-job-policy
+      revocation: route-or-job-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-001
   - capabilityId: text.generate
     section: chat
     editorKind: text

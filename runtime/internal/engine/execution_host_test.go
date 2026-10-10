@@ -886,7 +886,7 @@ func llamaInvocationPlanForHostTest(t *testing.T, name string, portable *structp
 	plan, err := (capabilitydriver.LlamaTextDriver{}).PlanTextInvocation(capabilitydriver.TextInvocationInput{
 		PortableConfig:           portable,
 		ModelContextWindowTokens: 32768,
-		ExactBindings: []capabilitydriver.InvocationExactBinding{{
+		ExactBindings: []capabilitydriver.InvocationExactBinding{{EmbeddingInputProtocol: capabilitydriver.EmbeddingInputNativeV1,
 			RequirementID:     capabilitydriver.MainGGUFRequirementID,
 			ModelAssetID:      "asset-" + name,
 			AbsolutePath:      modelPath,
@@ -951,7 +951,7 @@ func llamaTextBehaviorInvocationPlanForHostTest(t *testing.T, name string, strea
 	templateIdentity := "sha256:" + strings.Repeat("c", 64)
 	plan, err := (capabilitydriver.LlamaTextDriver{}).PlanTextInvocation(capabilitydriver.TextInvocationInput{
 		ModelContextWindowTokens: 32768,
-		ExactBindings: []capabilitydriver.InvocationExactBinding{{
+		ExactBindings: []capabilitydriver.InvocationExactBinding{{EmbeddingInputProtocol: capabilitydriver.EmbeddingInputNativeV1,
 			RequirementID: capabilitydriver.MainGGUFRequirementID, ModelAssetID: "asset-" + name,
 			AbsolutePath: modelPath, VerifiedContentID: "sha256:" + digestHex, EntrySHA256: digestHex,
 			TemplateIdentity: templateIdentity,
@@ -994,7 +994,7 @@ func llamaEmbedInvocationPlanForHostTest(t *testing.T, name string) *capabilityd
 	plan, err := (capabilitydriver.LlamaEmbedDriver{}).PlanEmbedInvocation(capabilitydriver.EmbedInvocationInput{
 		RecipeID:                 capabilitydriver.LlamaEmbedGGUFRecipeID,
 		ModelContextWindowTokens: 8192,
-		ExactBindings: []capabilitydriver.InvocationExactBinding{{
+		ExactBindings: []capabilitydriver.InvocationExactBinding{{EmbeddingInputProtocol: capabilitydriver.EmbeddingInputNativeV1,
 			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
 			ModelAssetID:      "asset-" + name,
 			AbsolutePath:      modelPath,

@@ -15,6 +15,10 @@ The observer now performs serialized Get every `getIntervalMs` (default 1000 ms)
 The unreachable synchronous protected image execute union is removed. Its request and response tag 2 and `image_generate` names are reserved, and the orphan `LocalAppImageGenerateOutput` type is removed. Use image Job submission; a remote synchronous protocol still produces a public Job. The declared wire changes must match the published-baseline findings exactly; do not replace the baseline image or source tag.
 
 
+## Kit/native 0.18.0 — Embedding retrieval purpose (development)
+
+The matching unpublished SDK 0.21.0 set carries existing `text-embed` retrieval-document/query input through the closed standard Shell and native projection. It introduces no provider/model selector or inference proxy. The Runtime's exact Model Contract owns required purpose and protocol mapping; native missing/unknown fields and unreviewed mappings fail closed. Consume the complete matching SDK/Kit/native archives, compare actual returned spaces and preserve vector width/usage/fences. Nomic no longer accepts a missing-purpose raw invocation.
+
 ## Kit/native 0.18.0 — Scenario cancellation business errors (development)
 
 The matching unpublished native and Kit packages now preserve Runtime's existing `AI_MEDIA_JOB_NOT_FOUND` and `AI_MEDIA_JOB_NOT_CANCELLABLE` as `ai-media-job-not-found` and `ai-media-job-not-cancellable`. A duplicate or terminal cancellation remains a business rejection and keeps a healthy technical session. Bare unclassified transport failures still fail closed. Runtime and SDK contracts are unchanged; rebuild the complete native/Kit archives and reinstall consumers together.
@@ -28,6 +32,16 @@ The unpublished next-minor development set adds `RegisteredNimiElectronAppBridge
 The matching unpublished native/Kit set preserves the controlled child's real exit code for local development, matching installed process status. First-party control uses `hostStatus`/`desktopLocalDevelopmentHostStatus`; the running-only method is retired. This 0.x control projection change and the additive Electron exit-controller export require a minor public release; publication is outside this development iteration.
 
 Apps use `createNimiElectronAppExitController(app)`, request graceful quit through `requestRestart()`, then finish their own teardown with `exit()`. Desktop releases the old lease and reuses the original selected source through Prepare/profile/spawn. A request does not authorize AI, prove successful replacement, replay business tasks, or manage installation/launch-at-login. Rebuild complete Kit/native archives and consume them together with the matching Desktop source.
+
+## SDK 0.21.0 / Kit and native 0.18.0 — Source-local speech diarization (development)
+
+Matching unpublished Runtime/SDK/native builds carry optional typed transcription diarization through the original Host submit/Get/events. It contains the actual source duration and ordered source-local intervals, including real overlap. Speaker labels are local to the Job, without person identity. Preserve the complete result and apply the chunk offset once. The initial exact short-window/count combination fails explicitly; App session-wide clustering controls are not per-Job exact counts. Consume the complete matching package set rather than relying on version labels.
+
+The matching renderer standard Shell also accepts `audio-speaker-embed`, carries its sole completed typed result through submit/Get/events, and rejects wrong-state/foreign fields and synchronous submission. This repairs a missing renderer projection; rebuild the complete Kit archive and reinstall it in existing Apps and the reference.
+
+## SDK 0.21.0 / Kit and native 0.18.0 — Speaker representations (development)
+
+The unpublished matching Runtime, SDK, Kit/native and Rust carrier 0.10.0 set adds the asynchronous `audio-speaker-embed` App Job. Supply original audio bytes/URI or an owned audio artifact with an optional frame range. A completed Job returns `speakerEmbedding: { vector, spaceId }`; persist both in the App business owner. Compare or average only finite, nonzero vectors with the same actual dimension and Runtime space. This result provides no person identity, authentication claim, transcription, diarization or semantic text index. The initial local Sherpa encoder supports short audio through its exact Windows x64 CPU profile; unsupported input or unavailable configuration fails explicitly. Older packages cannot project the new closed-set task. Rebuild and upgrade the complete consumed set; the version label alone is insufficient.
 
 ## SDK 0.21.0 / Kit and native 0.18.0 — Owned World image inputs (development)
 

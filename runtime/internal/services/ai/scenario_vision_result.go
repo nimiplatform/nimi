@@ -29,6 +29,9 @@ func validateScenarioJobTerminalResults(record *scenarioJobRecord) error {
 	if err := validateScenarioJobAnnotationResult(record.job, record.resolvedAssembly); err != nil {
 		return err
 	}
+	if err := validateScenarioJobSpeakerEmbeddingResult(record.job, record.resolvedAssembly); err != nil {
+		return err
+	}
 	if err := validateScenarioJobVoiceResultPair(record.job, record.voiceAsset, record.voiceReference); err != nil {
 		return err
 	}

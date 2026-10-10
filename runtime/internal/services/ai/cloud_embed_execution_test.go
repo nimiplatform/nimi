@@ -93,7 +93,7 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 		Head:          &runtimev1.ScenarioRequestHead{AppId: "app.embed", SubjectUserId: "user-001", TimeoutMs: 10_000},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
-		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{TextEmbed: &runtimev1.TextEmbedScenarioSpec{
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{TextEmbed: &runtimev1.TextEmbedScenarioSpec{Purpose: runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT,
 			Inputs: []string{" first ", "second"},
 		}}},
 	}
@@ -377,7 +377,7 @@ func TestTextEmbedLocalIntentExecutesSelectedLlamaDriver(t *testing.T) {
 		Requirements: []*runtimev1.LocalCapabilityRequirement{{
 			RequirementId: capabilitydriver.EmbeddingGGUFRequirementID,
 		}},
-		ExactBindings: []localexecution.ExactBinding{{
+		ExactBindings: []localexecution.ExactBinding{{EmbeddingInputProtocol: capabilitydriver.EmbeddingInputNativeV1,
 			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
 			ModelAssetID:      "embedding/test",
 			AbsolutePath:      filepath.Join(t.TempDir(), "embedding.gguf"),
@@ -399,7 +399,7 @@ func TestTextEmbedLocalIntentExecutesSelectedLlamaDriver(t *testing.T) {
 		Head:          &runtimev1.ScenarioRequestHead{AppId: "app.embed", SubjectUserId: "user-001"},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
-		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{TextEmbed: &runtimev1.TextEmbedScenarioSpec{
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{TextEmbed: &runtimev1.TextEmbedScenarioSpec{Purpose: runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY,
 			Inputs: []string{"first", "second"},
 		}}},
 	})

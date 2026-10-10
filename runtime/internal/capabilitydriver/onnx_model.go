@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"unicode/utf8"
 
 	"google.golang.org/protobuf/encoding/protowire"
 )
@@ -24,18 +25,45 @@ type onnxModel struct {
 	Opsets      map[string]uint64 `json:"opsets,omitempty"`
 	NodeDomains []string          `json:"node_domains,omitempty"`
 	NodeOps     []string          `json:"node_ops,omitempty"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
 func probeONNXModel(source io.ReaderAt, size int64) ([]byte, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("empty ONNX model")
 	}
-	model := onnxModel{Opsets: map[string]uint64{}}
+	model := onnxModel{Opsets: map[string]uint64{}, Metadata: map[string]string{}}
 	domains, operators := map[string]bool{}, map[string]bool{}
 	graphs := 0
 	err := walkONNXFields(source, 0, size, func(field protowire.Number, kind protowire.Type, start, length int64, value uint64) error {
 		if field == 1 && kind == protowire.VarintType {
 			model.IRVersion = value
+		}
+		if field == 14 && kind == protowire.BytesType {
+			if len(model.Metadata) >= 64 {
+				return fmt.Errorf("ONNX model metadata exceeds its bound")
+			}
+			body, err := readONNXMetadata(source, start, length)
+			if err != nil {
+				return err
+			}
+			keys, err := onnxBytes(body, 1)
+			if err != nil || len(keys) != 1 || len(keys[0]) == 0 || len(keys[0]) > 256 || !utf8.Valid(keys[0]) {
+				return fmt.Errorf("invalid ONNX metadata key")
+			}
+			values, err := onnxBytes(body, 2)
+			if err != nil || len(values) > 1 || (len(values) == 1 && (len(values[0]) > 4096 || !utf8.Valid(values[0]))) {
+				return fmt.Errorf("invalid ONNX metadata value")
+			}
+			key := string(keys[0])
+			if _, exists := model.Metadata[key]; exists {
+				return fmt.Errorf("repeated ONNX metadata key")
+			}
+			if len(values) == 1 {
+				model.Metadata[key] = string(values[0])
+			} else {
+				model.Metadata[key] = ""
+			}
 		}
 		if field == 8 && kind == protowire.BytesType {
 			body, err := readONNXMetadata(source, start, length)

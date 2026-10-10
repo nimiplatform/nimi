@@ -754,6 +754,26 @@ func TestHyperSwapAdmissionRequiresTheManagedFaceProfile(t *testing.T) {
 	}
 }
 
+func TestSelectedLoadoutProjectionBlocksMissingEnvironmentWithValidModels(t *testing.T) {
+	svc, asset := loadoutEmbeddingFixture(t)
+	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "Environment readiness", asset)
+	committed := commitLoadoutForTest(t, svc, context.Background(), prepared.GetPrepareId(), false)
+	if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{CapabilityContract: capabilitydriver.TextEmbedCapabilityContract, LoadoutId: committed.GetLoadoutId(), ConfirmedMachineImpact: true}); err != nil {
+		t.Fatal(err)
+	}
+	option, found, err := svc.ProjectSelectedLocalLoadout(capabilitydriver.TextEmbedCapabilityContract)
+	if err != nil || !found || option.ValidationState != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
+		t.Fatalf("prepared environment projection: %+v %v", option, err)
+	}
+	svc.mu.Lock()
+	svc.localEnvironmentSelectedSources = nil
+	svc.mu.Unlock()
+	option, found, err = svc.ProjectSelectedLocalLoadout(capabilitydriver.TextEmbedCapabilityContract)
+	if err != nil || !found || option.ValidationState != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED || !slices.Contains(option.Reasons, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED) {
+		t.Fatalf("missing dependency reported ready with valid models: %+v %v", option, err)
+	}
+}
+
 func TestCaptureLocalExecutionVerifiesPayloadsBeforeTakingTheLocks(t *testing.T) {
 	svc, asset := loadoutEmbeddingFixture(t)
 	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "Embedding pre-verification", asset)
@@ -847,6 +867,12 @@ func TestQwen3SpeechLoadoutsResolveExecutableSelectedAssembly(t *testing.T) {
 			committed := commitLoadoutForTest(t, svc, context.Background(), prepared.GetPrepareId(), false)
 			if _, err := svc.SelectLoadout(context.Background(), &runtimev1.SelectLoadoutRequest{CapabilityContract: test.contract, LoadoutId: committed.GetLoadoutId(), ConfirmedMachineImpact: true}); err != nil {
 				t.Fatalf("SelectLoadout(%s): %v", test.recipeID, err)
+			}
+			if test.contract == capabilitydriver.AudioTranscribeContract {
+				svc.runtimeDataRoot = t.TempDir()
+				consumer := "speech.qwen3-asr.python"
+				root := currentSpeechDependencyProfileRootForTest(t, svc, consumer)
+				upsertVerifiedSpeechPackageSetForTest(t, svc, consumer, root, "", engine.SpeechQwen3ASRDriverPath)
 			}
 			resolved, err := svc.ResolveLocalExecution(test.contract, selectedLoadoutRefForTest(t, svc, test.contract))
 			if err != nil {
@@ -1619,12 +1645,15 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 108 {
-		t.Fatalf("all Loadout recipes = %d, want 108", len(all))
+	if len(all) != 110 {
+		t.Fatalf("all Loadout recipes = %d, want 110", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
+	}
+	if recipe := byID[capabilitydriver.SherpaSpeakerEmbedRecipeID]; recipe == nil || recipe.GetCapabilityContract() != capabilitydriver.SpeakerEmbedContract || len(recipe.GetSlots()) != 1 || recipe.GetImplementation().GetDriverId() != capabilitydriver.SherpaSpeakerEmbedDriverID {
+		t.Fatal("speaker representation recipe lost its exact single encoder projection")
 	}
 	for _, id := range []string{capabilitydriver.HyperSwapImageRecipeID, capabilitydriver.HyperSwapVideoRecipeID} {
 		if recipe := byID[id]; recipe == nil || recipe.GetImplementation().GetDriverId() != capabilitydriver.HyperSwapDriverID || len(recipe.GetSlots()) != 3 {
@@ -1762,8 +1791,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	synthesize := list(capabilitydriver.AudioSynthesizeContract)
 	transcribe := list(capabilitydriver.AudioTranscribeContract)
 	voiceCreate := list(capabilitydriver.VoiceCreateContract)
-	if len(synthesize) != 29 || len(transcribe) != 15 || len(voiceCreate) != 23 {
-		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 29/15/23", len(synthesize), len(transcribe), len(voiceCreate))
+	if len(synthesize) != 29 || len(transcribe) != 16 || len(voiceCreate) != 23 {
+		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 29/16/23", len(synthesize), len(transcribe), len(voiceCreate))
 	}
 	for _, registration := range append(capabilitydriver.AudioCppSpeechRegistrations(), capabilitydriver.AudioCppReferenceVoiceRegistrations()...) {
 		recipe := byID[registration.RecipeID]

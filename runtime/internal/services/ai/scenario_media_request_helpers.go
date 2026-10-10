@@ -30,6 +30,15 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 	}
 
 	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SPEAKER_EMBED:
+		if len(req.GetExtensions()) != 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		spec := req.GetSpec().GetAudioSpeakerEmbed()
+		if spec == nil || (spec.AudioSource == nil) == (spec.SourceAudio == nil) {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		return nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
 		if len(req.GetExtensions()) != 0 {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)

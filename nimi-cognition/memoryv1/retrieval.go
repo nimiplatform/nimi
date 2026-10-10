@@ -39,6 +39,7 @@ type recallRouteRequest struct {
 }
 
 type AIEmbeddingRequest struct {
+	Purpose           string
 	BankRef           string
 	LifecycleRef      string
 	MemoryRefs        []string
@@ -345,7 +346,7 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 	}
 	var result AIEmbeddingResult
 	if len(texts) > 0 {
-		result, err = port.Embed(ctx, AIEmbeddingRequest{BankRef: bankRef, LifecycleRef: lifecycleRef, MemoryRefs: refs, OperationID: operationID, ConfigRevision: snapshot.ConfigRevision, EmbeddingSpaceRef: snapshot.EmbeddingSpaceRef, Inputs: texts})
+		result, err = port.Embed(ctx, AIEmbeddingRequest{Purpose: "retrieval-document", BankRef: bankRef, LifecycleRef: lifecycleRef, MemoryRefs: refs, OperationID: operationID, ConfigRevision: snapshot.ConfigRevision, EmbeddingSpaceRef: snapshot.EmbeddingSpaceRef, Inputs: texts})
 		if err == nil {
 			err = validateEmbeddingResult(result, len(texts), snapshot.EmbeddingSpaceRef)
 		}
@@ -464,7 +465,7 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 			resultErr = errors.Join(resultErr, err)
 		}
 	}()
-	queryEmbedding, err := port.Embed(ctx, AIEmbeddingRequest{BankRef: request.BankRef, LifecycleRef: lifecycleRef, OperationID: request.OperationID, ConfigRevision: request.Capabilities.ConfigRevision, EmbeddingSpaceRef: request.Capabilities.EmbeddingSpaceRef, Inputs: []string{request.Query}})
+	queryEmbedding, err := port.Embed(ctx, AIEmbeddingRequest{Purpose: "retrieval-query", BankRef: request.BankRef, LifecycleRef: lifecycleRef, OperationID: request.OperationID, ConfigRevision: request.Capabilities.ConfigRevision, EmbeddingSpaceRef: request.Capabilities.EmbeddingSpaceRef, Inputs: []string{request.Query}})
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: runtime AI port: %w", err)
 	}

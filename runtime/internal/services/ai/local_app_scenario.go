@@ -294,7 +294,7 @@ func validateLocalAppScenarioExecuteRequest(req *runtimev1.ExecuteLocalAppScenar
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
 		}
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{
-			TextEmbed: &runtimev1.TextEmbedScenarioSpec{Inputs: inputs, Dimensions: spec.TextEmbed.Dimensions},
+			TextEmbed: &runtimev1.TextEmbedScenarioSpec{Inputs: inputs, Dimensions: spec.TextEmbed.Dimensions, Purpose: spec.TextEmbed.GetPurpose()},
 		}}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED, nil
 	case *runtimev1.ExecuteLocalAppScenarioRequest_TextDecide:
 		if err := validateTextDecideSpec(spec.TextDecide); err != nil {

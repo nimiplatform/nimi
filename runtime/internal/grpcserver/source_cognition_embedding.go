@@ -17,7 +17,7 @@ import (
 // Source Cognition shares the canonical AI execution contract, while retaining
 // its own corpus and generation lifecycle. Capture all batches before dispatch.
 func newAgentSourceEmbeddingExecutor(agentSvc *runtimeagentservice.Service, aiSvc *aiservice.Service) cognitionservice.AgentSourceEmbeddingExecutor {
-	return func(ctx context.Context, accountID, localAgentRef string, texts []string) (cognitionservice.AgentSourceEmbeddingExecution, error) {
+	return func(ctx context.Context, accountID, localAgentRef string, texts []string, requestedPurpose string) (cognitionservice.AgentSourceEmbeddingExecution, error) {
 		if err := agentSvc.AuthorizeSourceEmbeddingTarget(accountID, localAgentRef); err != nil {
 			return cognitionservice.AgentSourceEmbeddingExecution{Status: "failure"}, err
 		}
@@ -26,7 +26,11 @@ func newAgentSourceEmbeddingExecutor(agentSvc *runtimeagentservice.Service, aiSv
 		if err != nil {
 			return cognitionservice.AgentSourceEmbeddingExecution{Status: sourceCognitionEmbeddingFailureStatus(err)}, err
 		}
-		_, raw, err := aiSvc.CaptureMemoryEmbedding(ctx, texts, description.SpaceID, aiservice.EmbeddingOwner{Kind: "source", AgentRef: localAgentRef, OperationID: "source_embed_" + ulid.Make().String()})
+		purpose, purposeErr := cognitionTextEmbeddingPurpose(requestedPurpose)
+		if purposeErr != nil {
+			return cognitionservice.AgentSourceEmbeddingExecution{Status: "failure"}, purposeErr
+		}
+		_, raw, err := aiSvc.CaptureMemoryEmbedding(ctx, texts, description.SpaceID, aiservice.EmbeddingOwner{Kind: "source", AgentRef: localAgentRef, OperationID: "source_embed_" + ulid.Make().String()}, purpose)
 		if err != nil {
 			return cognitionservice.AgentSourceEmbeddingExecution{Status: sourceCognitionEmbeddingFailureStatus(err)}, err
 		}

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { PNG } from 'pngjs';
 import { parse as parseYaml } from 'yaml';
 import { normalizeAppAccessItems } from './app-access-declaration.mjs';
+import { CANONICAL_CAPABILITY_IDS } from './canonical-capability-ids.generated.mjs';
 import { SAFETY_PROFILE_FIELD, normalizeSafetyProfile } from './app-safety-profile.mjs';
 
 export const APP_INFO_MAX_BYTES = 1024 * 1024;
@@ -31,7 +32,13 @@ function refs(value, label) {
   if (!Array.isArray(value) || new Set(value).size !== value.length) {
     throw new Error(`App info ${label} must be an explicit unique list (empty is allowed)`);
   }
-  return value.map((item) => text(item, label, 200));
+  const entries = value.map((item) => text(item, label, 200));
+  if (label === 'capability_contract_refs') {
+    for (const entry of entries) {
+      if (!CANONICAL_CAPABILITY_IDS.includes(entry)) throw new Error(`App info ${label} contains unknown CapabilityContract: ${entry}`);
+    }
+  }
+  return entries;
 }
 
 export function validateAppIcon(bytes) {

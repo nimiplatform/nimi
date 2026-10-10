@@ -20,6 +20,8 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 		return pythonPackageSetManifest{ID: "audio-spleeter-python-core", ImportProbes: []string{"tensorflow", "numpy", "soundfile", "spleeter_driver"}}, nil
 	case trimmed == BasicPitchConsumerID:
 		return pythonPackageSetManifest{ID: "music-basic-pitch-python-core", ImportProbes: []string{"onnxruntime", "numpy", "librosa", "scipy", "soundfile", "basic_pitch_driver"}}, nil
+	case trimmed == SpeakerEncoderConsumerID:
+		return pythonPackageSetManifest{ID: "speech-speaker-encoder-python-core", ImportProbes: []string{"av", "numpy", "sherpa_onnx", "speaker_embedding_driver"}}, nil
 	case trimmed == TextAnnotationConsumerID:
 		return pythonPackageSetManifest{ID: "text-spacy-python-core", ImportProbes: []string{"spacy", "spacy_pkuseg", "sudachipy", "sudachidict_core", "pymorphy3", "fastapi", "uvicorn"}}, nil
 	case trimmed == TextAnnotationTrfConsumerID:
@@ -55,6 +57,8 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 		}, nil
 	case trimmed == "speech.faster-whisper.python":
 		return pythonPackageSetManifest{ID: "speech-faster-whisper-python-core", ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "torchaudio", "ctranslate2", "faster_whisper", "silero_vad", "onnxruntime"}}, nil
+	case trimmed == "speech.faster-whisper-sherpa.python":
+		return pythonPackageSetManifest{ID: "speech-faster-whisper-sherpa-python-core", ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "torchaudio", "ctranslate2", "faster_whisper", "silero_vad", "onnxruntime", "sherpa_onnx", "speaker_embedding_driver", "speech_diarization"}}, nil
 	case trimmed == "speech.voxcpm.python":
 		return pythonPackageSetManifest{
 			ID:           "speech-voxcpm-python-core",
@@ -134,6 +138,15 @@ func speechPipelineFilesForConsumer(consumer string) []struct {
 	Script *string
 } {
 	switch strings.TrimSpace(consumer) {
+	case "speech.faster-whisper-sherpa.python":
+		files := speechPipelineFilesForConsumer("speech.faster-whisper.python")
+		return append(files, struct {
+			Name   string
+			Script *string
+		}{Name: "speech_diarization.py", Script: &speechDiarizationScript}, struct {
+			Name   string
+			Script *string
+		}{Name: "speaker_embedding_driver.py", Script: &speakerEmbeddingDriverScript})
 	case "speech.faster-whisper.python":
 		files := append([]struct {
 			Name   string
@@ -255,6 +268,8 @@ func speechDriverCommandsForConsumer(root string, consumer string) map[string]st
 		}
 	case "speech.faster-whisper.python":
 		return map[string]string{"NIMI_RUNTIME_SPEECH_FASTER_WHISPER_CMD": speechDriverCommand(trimmedRoot, SpeechFasterWhisperDriverPath)}
+	case "speech.faster-whisper-sherpa.python":
+		return map[string]string{"NIMI_RUNTIME_SPEECH_FASTER_WHISPER_CMD": speechDriverCommand(trimmedRoot, SpeechFasterWhisperDriverPath)}
 	case "speech.demucs.python":
 		return map[string]string{"NIMI_RUNTIME_SPEECH_DEMUCS_CMD": speechDriverCommand(trimmedRoot, SpeechDemucsDriverPath)}
 	default:
@@ -275,6 +290,8 @@ func speechDriverScriptsForConsumer(root string, consumer string) []string {
 	case "speech.qwen3-asr-transformers.python":
 		return []string{SpeechQwen3ASRTransformersDriverPath(trimmedRoot)}
 	case "speech.faster-whisper.python":
+		return []string{SpeechFasterWhisperDriverPath(trimmedRoot)}
+	case "speech.faster-whisper-sherpa.python":
 		return []string{SpeechFasterWhisperDriverPath(trimmedRoot)}
 	case "speech.demucs.python":
 		return []string{SpeechDemucsDriverPath(trimmedRoot)}
@@ -320,6 +337,13 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 		for _, file := range textAnnotationDriverStaticFiles() {
 			if err := os.WriteFile(filepath.Join(trimmedRoot, file.RelativePath), file.Content, 0o444); err != nil {
 				return fmt.Errorf("materialize annotation Driver: %w", err)
+			}
+		}
+		return nil
+	case strings.TrimSpace(consumer) == SpeakerEncoderConsumerID:
+		for _, file := range speakerEncoderDriverStaticFiles() {
+			if err := os.WriteFile(filepath.Join(trimmedRoot, file.RelativePath), file.Content, 0o444); err != nil {
+				return fmt.Errorf("materialize speaker Driver: %w", err)
 			}
 		}
 		return nil

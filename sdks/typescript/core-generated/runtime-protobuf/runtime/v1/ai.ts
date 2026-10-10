@@ -657,6 +657,10 @@ export interface TextEmbedScenarioSpec {
      * @generated from protobuf field: optional uint32 dimensions = 2
      */
     dimensions?: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TextEmbedPurpose purpose = 3
+     */
+    purpose: TextEmbedPurpose;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ImageGenerateScenarioSpec
@@ -1042,6 +1046,28 @@ export interface AudioSeparateScenarioSpec {
      * @generated from protobuf field: bool include_instrument_parts = 4
      */
     includeInstrumentParts: boolean;
+}
+/**
+ * Independent short-audio speaker representation. This contains no person,
+ * profile, authentication decision, route or model selection.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec
+ */
+export interface AudioSpeakerEmbedScenarioSpec {
+    /**
+     * @generated from protobuf field: string mime_type = 1
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechTranscriptionAudioSource audio_source = 2
+     */
+    audioSource?: SpeechTranscriptionAudioSource;
+    /**
+     * Owned canonical audio source, mutually exclusive with audio_source.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.MusicAudioInput source_audio = 3
+     */
+    sourceAudio?: MusicAudioInput;
 }
 /**
  * One committed non-vocal stem of a completed separation Job.
@@ -2096,6 +2122,12 @@ export interface ScenarioSpec {
          */
         textDecide: TextDecideScenarioSpec;
     } | {
+        oneofKind: "audioSpeakerEmbed";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 20
+         */
+        audioSpeakerEmbed: AudioSpeakerEmbedScenarioSpec;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -2186,6 +2218,22 @@ export interface TextEmbedOutput {
     spaceId: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AudioSpeakerEmbedResult
+ */
+export interface AudioSpeakerEmbedResult {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.EmbeddingVector vector = 1
+     */
+    vector?: EmbeddingVector;
+    /**
+     * Compatibility identity of the captured speaker-representation semantics.
+     * A same-width acoustic/semantic vector is never interchangeable.
+     *
+     * @generated from protobuf field: string space_id = 2
+     */
+    spaceId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ImageGenerateResult
  */
 export interface ImageGenerateResult {
@@ -2252,6 +2300,46 @@ export interface SpeechTranscriptWord {
     endSeconds: number;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.SpeechSpeakerInterval
+ */
+export interface SpeechSpeakerInterval {
+    /**
+     * Opaque model speaker label scoped to this Job, never a person/profile ID.
+     *
+     * @generated from protobuf field: string speaker_id = 1
+     */
+    speakerId: string;
+    /**
+     * @generated from protobuf field: double start_seconds = 2
+     */
+    startSeconds: number;
+    /**
+     * @generated from protobuf field: double end_seconds = 3
+     */
+    endSeconds: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SpeechDiarization
+ */
+export interface SpeechDiarization {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechDiarizationStatus status = 1
+     */
+    status: SpeechDiarizationStatus;
+    /**
+     * Actual decoded source duration. Intervals stay within this source domain.
+     *
+     * @generated from protobuf field: double duration_seconds = 2
+     */
+    durationSeconds: number;
+    /**
+     * Ordered by start; actual overlapping speakers may retain overlapping spans.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.SpeechSpeakerInterval intervals = 3
+     */
+    intervals: SpeechSpeakerInterval[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.SpeechTranscript
  */
 export interface SpeechTranscript {
@@ -2275,6 +2363,12 @@ export interface SpeechTranscript {
      * @generated from protobuf field: repeated nimi.runtime.v1.SpeechTranscriptWord words = 4
      */
     words: SpeechTranscriptWord[];
+    /**
+     * Present only when the admitted execution performed requested diarization.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.SpeechDiarization diarization = 5
+     */
+    diarization?: SpeechDiarization;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SpeechTranscribeResult
@@ -2590,6 +2684,12 @@ export interface ScenarioOutput {
          */
         textDecision: TextDecisionResult;
     } | {
+        oneofKind: "audioSpeakerEmbed";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AudioSpeakerEmbedResult audio_speaker_embed = 16
+         */
+        audioSpeakerEmbed: AudioSpeakerEmbedResult;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -2790,6 +2890,10 @@ export interface LocalAppTextEmbedScenarioSpec {
      * @generated from protobuf field: optional uint32 dimensions = 2
      */
     dimensions?: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TextEmbedPurpose purpose = 3
+     */
+    purpose: TextEmbedPurpose;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppImageGenerateScenarioSpec
@@ -3316,6 +3420,12 @@ export interface SubmitLocalAppScenarioJobRequest {
          */
         audioVoiceConvert: AudioVoiceConvertScenarioSpec;
     } | {
+        oneofKind: "audioSpeakerEmbed";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 19
+         */
+        audioSpeakerEmbed: AudioSpeakerEmbedScenarioSpec;
+    } | {
         oneofKind: undefined;
     };
     /**
@@ -3457,6 +3567,12 @@ export interface LocalAppScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome = 24
      */
     stopOutcome: ScenarioJobStopOutcome;
+    /**
+     * Present only for a completed AUDIO_SPEAKER_EMBED Job.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AudioSpeakerEmbedResult speaker_embedding = 25
+     */
+    speakerEmbedding?: AudioSpeakerEmbedResult;
 }
 /**
  * Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -4423,6 +4539,10 @@ export interface ScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome = 35
      */
     stopOutcome: ScenarioJobStopOutcome;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AudioSpeakerEmbedResult speaker_embedding = 36
+     */
+    speakerEmbedding?: AudioSpeakerEmbedResult;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -5082,7 +5202,11 @@ export enum ScenarioType {
     /**
      * @generated from protobuf enum value: SCENARIO_TYPE_TEXT_DECIDE = 19;
      */
-    TEXT_DECIDE = 19
+    TEXT_DECIDE = 19,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_AUDIO_SPEAKER_EMBED = 20;
+     */
+    AUDIO_SPEAKER_EMBED = 20
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExecutionMode
@@ -5478,6 +5602,23 @@ export enum TextSourceType {
     DOCUMENT = 2
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.TextEmbedPurpose
+ */
+export enum TextEmbedPurpose {
+    /**
+     * @generated from protobuf enum value: TEXT_EMBED_PURPOSE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT = 1;
+     */
+    RETRIEVAL_DOCUMENT = 1,
+    /**
+     * @generated from protobuf enum value: TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY = 2;
+     */
+    RETRIEVAL_QUERY = 2
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.MusicScoreFormat
  */
 export enum MusicScoreFormat {
@@ -5692,6 +5833,23 @@ export enum SpeechTranscriptStatus {
      * @generated from protobuf enum value: SPEECH_TRANSCRIPT_STATUS_NO_SPEECH = 2;
      */
     NO_SPEECH = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.SpeechDiarizationStatus
+ */
+export enum SpeechDiarizationStatus {
+    /**
+     * @generated from protobuf enum value: SPEECH_DIARIZATION_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SPEECH_DIARIZATION_STATUS_DIARIZED = 1;
+     */
+    DIARIZED = 1,
+    /**
+     * @generated from protobuf enum value: SPEECH_DIARIZATION_STATUS_NO_SPEAKERS = 2;
+     */
+    NO_SPEAKERS = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.MusicGenerationTermination
@@ -7643,12 +7801,14 @@ class TextEmbedScenarioSpec$Type extends MessageType<TextEmbedScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.TextEmbedScenarioSpec", [
             { no: 1, name: "inputs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "dimensions", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ }
+            { no: 2, name: "dimensions", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "purpose", kind: "enum", T: () => ["nimi.runtime.v1.TextEmbedPurpose", TextEmbedPurpose, "TEXT_EMBED_PURPOSE_"] }
         ]);
     }
     create(value?: PartialMessage<TextEmbedScenarioSpec>): TextEmbedScenarioSpec {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.inputs = [];
+        message.purpose = 0;
         if (value !== undefined)
             reflectionMergePartial<TextEmbedScenarioSpec>(this, message, value);
         return message;
@@ -7663,6 +7823,9 @@ class TextEmbedScenarioSpec$Type extends MessageType<TextEmbedScenarioSpec> {
                     break;
                 case /* optional uint32 dimensions */ 2:
                     message.dimensions = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.TextEmbedPurpose purpose */ 3:
+                    message.purpose = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7682,6 +7845,9 @@ class TextEmbedScenarioSpec$Type extends MessageType<TextEmbedScenarioSpec> {
         /* optional uint32 dimensions = 2; */
         if (message.dimensions !== undefined)
             writer.tag(2, WireType.Varint).uint32(message.dimensions);
+        /* nimi.runtime.v1.TextEmbedPurpose purpose = 3; */
+        if (message.purpose !== 0)
+            writer.tag(3, WireType.Varint).int32(message.purpose);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8819,6 +8985,67 @@ class AudioSeparateScenarioSpec$Type extends MessageType<AudioSeparateScenarioSp
  * @generated MessageType for protobuf message nimi.runtime.v1.AudioSeparateScenarioSpec
  */
 export const AudioSeparateScenarioSpec = new AudioSeparateScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AudioSpeakerEmbedScenarioSpec$Type extends MessageType<AudioSpeakerEmbedScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec", [
+            { no: 1, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "audio_source", kind: "message", T: () => SpeechTranscriptionAudioSource },
+            { no: 3, name: "source_audio", kind: "message", T: () => MusicAudioInput }
+        ]);
+    }
+    create(value?: PartialMessage<AudioSpeakerEmbedScenarioSpec>): AudioSpeakerEmbedScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.mimeType = "";
+        if (value !== undefined)
+            reflectionMergePartial<AudioSpeakerEmbedScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AudioSpeakerEmbedScenarioSpec): AudioSpeakerEmbedScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string mime_type */ 1:
+                    message.mimeType = reader.string();
+                    break;
+                case /* nimi.runtime.v1.SpeechTranscriptionAudioSource audio_source */ 2:
+                    message.audioSource = SpeechTranscriptionAudioSource.internalBinaryRead(reader, reader.uint32(), options, message.audioSource);
+                    break;
+                case /* nimi.runtime.v1.MusicAudioInput source_audio */ 3:
+                    message.sourceAudio = MusicAudioInput.internalBinaryRead(reader, reader.uint32(), options, message.sourceAudio);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AudioSpeakerEmbedScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string mime_type = 1; */
+        if (message.mimeType !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.mimeType);
+        /* nimi.runtime.v1.SpeechTranscriptionAudioSource audio_source = 2; */
+        if (message.audioSource)
+            SpeechTranscriptionAudioSource.internalBinaryWrite(message.audioSource, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicAudioInput source_audio = 3; */
+        if (message.sourceAudio)
+            MusicAudioInput.internalBinaryWrite(message.sourceAudio, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec
+ */
+export const AudioSpeakerEmbedScenarioSpec = new AudioSpeakerEmbedScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AudioInstrumentPart$Type extends MessageType<AudioInstrumentPart> {
     constructor() {
@@ -11942,7 +12169,8 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
             { no: 16, name: "text_annotate", kind: "message", oneof: "spec", T: () => TextAnnotateScenarioSpec },
             { no: 17, name: "music_transcribe", kind: "message", oneof: "spec", T: () => MusicTranscribeScenarioSpec },
             { no: 18, name: "audio_voice_convert", kind: "message", oneof: "spec", T: () => AudioVoiceConvertScenarioSpec },
-            { no: 19, name: "text_decide", kind: "message", oneof: "spec", T: () => TextDecideScenarioSpec }
+            { no: 19, name: "text_decide", kind: "message", oneof: "spec", T: () => TextDecideScenarioSpec },
+            { no: 20, name: "audio_speaker_embed", kind: "message", oneof: "spec", T: () => AudioSpeakerEmbedScenarioSpec }
         ]);
     }
     create(value?: PartialMessage<ScenarioSpec>): ScenarioSpec {
@@ -12059,6 +12287,12 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                         textDecide: TextDecideScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).textDecide)
                     };
                     break;
+                case /* nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec audio_speaker_embed */ 20:
+                    message.spec = {
+                        oneofKind: "audioSpeakerEmbed",
+                        audioSpeakerEmbed: AudioSpeakerEmbedScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).audioSpeakerEmbed)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12122,6 +12356,9 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
         /* nimi.runtime.v1.TextDecideScenarioSpec text_decide = 19; */
         if (message.spec.oneofKind === "textDecide")
             TextDecideScenarioSpec.internalBinaryWrite(message.spec.textDecide, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 20; */
+        if (message.spec.oneofKind === "audioSpeakerEmbed")
+            AudioSpeakerEmbedScenarioSpec.internalBinaryWrite(message.spec.audioSpeakerEmbed, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12406,6 +12643,60 @@ class TextEmbedOutput$Type extends MessageType<TextEmbedOutput> {
  * @generated MessageType for protobuf message nimi.runtime.v1.TextEmbedOutput
  */
 export const TextEmbedOutput = new TextEmbedOutput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AudioSpeakerEmbedResult$Type extends MessageType<AudioSpeakerEmbedResult> {
+    constructor() {
+        super("nimi.runtime.v1.AudioSpeakerEmbedResult", [
+            { no: 1, name: "vector", kind: "message", T: () => EmbeddingVector },
+            { no: 2, name: "space_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AudioSpeakerEmbedResult>): AudioSpeakerEmbedResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.spaceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AudioSpeakerEmbedResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AudioSpeakerEmbedResult): AudioSpeakerEmbedResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.EmbeddingVector vector */ 1:
+                    message.vector = EmbeddingVector.internalBinaryRead(reader, reader.uint32(), options, message.vector);
+                    break;
+                case /* string space_id */ 2:
+                    message.spaceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AudioSpeakerEmbedResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.EmbeddingVector vector = 1; */
+        if (message.vector)
+            EmbeddingVector.internalBinaryWrite(message.vector, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string space_id = 2; */
+        if (message.spaceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.spaceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AudioSpeakerEmbedResult
+ */
+export const AudioSpeakerEmbedResult = new AudioSpeakerEmbedResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ImageGenerateResult$Type extends MessageType<ImageGenerateResult> {
     constructor() {
@@ -12712,13 +13003,140 @@ class SpeechTranscriptWord$Type extends MessageType<SpeechTranscriptWord> {
  */
 export const SpeechTranscriptWord = new SpeechTranscriptWord$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class SpeechSpeakerInterval$Type extends MessageType<SpeechSpeakerInterval> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechSpeakerInterval", [
+            { no: 1, name: "speaker_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "start_seconds", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 3, name: "end_seconds", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechSpeakerInterval>): SpeechSpeakerInterval {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.speakerId = "";
+        message.startSeconds = 0;
+        message.endSeconds = 0;
+        if (value !== undefined)
+            reflectionMergePartial<SpeechSpeakerInterval>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechSpeakerInterval): SpeechSpeakerInterval {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string speaker_id */ 1:
+                    message.speakerId = reader.string();
+                    break;
+                case /* double start_seconds */ 2:
+                    message.startSeconds = reader.double();
+                    break;
+                case /* double end_seconds */ 3:
+                    message.endSeconds = reader.double();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechSpeakerInterval, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string speaker_id = 1; */
+        if (message.speakerId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.speakerId);
+        /* double start_seconds = 2; */
+        if (message.startSeconds !== 0)
+            writer.tag(2, WireType.Bit64).double(message.startSeconds);
+        /* double end_seconds = 3; */
+        if (message.endSeconds !== 0)
+            writer.tag(3, WireType.Bit64).double(message.endSeconds);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechSpeakerInterval
+ */
+export const SpeechSpeakerInterval = new SpeechSpeakerInterval$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechDiarization$Type extends MessageType<SpeechDiarization> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechDiarization", [
+            { no: 1, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.SpeechDiarizationStatus", SpeechDiarizationStatus, "SPEECH_DIARIZATION_STATUS_"] },
+            { no: 2, name: "duration_seconds", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 3, name: "intervals", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SpeechSpeakerInterval }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechDiarization>): SpeechDiarization {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.status = 0;
+        message.durationSeconds = 0;
+        message.intervals = [];
+        if (value !== undefined)
+            reflectionMergePartial<SpeechDiarization>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechDiarization): SpeechDiarization {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.SpeechDiarizationStatus status */ 1:
+                    message.status = reader.int32();
+                    break;
+                case /* double duration_seconds */ 2:
+                    message.durationSeconds = reader.double();
+                    break;
+                case /* repeated nimi.runtime.v1.SpeechSpeakerInterval intervals */ 3:
+                    message.intervals.push(SpeechSpeakerInterval.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechDiarization, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.SpeechDiarizationStatus status = 1; */
+        if (message.status !== 0)
+            writer.tag(1, WireType.Varint).int32(message.status);
+        /* double duration_seconds = 2; */
+        if (message.durationSeconds !== 0)
+            writer.tag(2, WireType.Bit64).double(message.durationSeconds);
+        /* repeated nimi.runtime.v1.SpeechSpeakerInterval intervals = 3; */
+        for (let i = 0; i < message.intervals.length; i++)
+            SpeechSpeakerInterval.internalBinaryWrite(message.intervals[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechDiarization
+ */
+export const SpeechDiarization = new SpeechDiarization$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class SpeechTranscript$Type extends MessageType<SpeechTranscript> {
     constructor() {
         super("nimi.runtime.v1.SpeechTranscript", [
             { no: 1, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.SpeechTranscriptStatus", SpeechTranscriptStatus, "SPEECH_TRANSCRIPT_STATUS_"] },
             { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "language", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "words", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SpeechTranscriptWord }
+            { no: 4, name: "words", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SpeechTranscriptWord },
+            { no: 5, name: "diarization", kind: "message", T: () => SpeechDiarization }
         ]);
     }
     create(value?: PartialMessage<SpeechTranscript>): SpeechTranscript {
@@ -12748,6 +13166,9 @@ class SpeechTranscript$Type extends MessageType<SpeechTranscript> {
                 case /* repeated nimi.runtime.v1.SpeechTranscriptWord words */ 4:
                     message.words.push(SpeechTranscriptWord.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.SpeechDiarization diarization */ 5:
+                    message.diarization = SpeechDiarization.internalBinaryRead(reader, reader.uint32(), options, message.diarization);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12772,6 +13193,9 @@ class SpeechTranscript$Type extends MessageType<SpeechTranscript> {
         /* repeated nimi.runtime.v1.SpeechTranscriptWord words = 4; */
         for (let i = 0; i < message.words.length; i++)
             SpeechTranscriptWord.internalBinaryWrite(message.words[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechDiarization diarization = 5; */
+        if (message.diarization)
+            SpeechDiarization.internalBinaryWrite(message.diarization, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -13516,7 +13940,8 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
             { no: 12, name: "text_annotation", kind: "message", oneof: "output", T: () => TextAnnotationResult },
             { no: 13, name: "music_transcribe", kind: "message", oneof: "output", T: () => MusicTranscribeResult },
             { no: 14, name: "audio_voice_convert", kind: "message", oneof: "output", T: () => AudioVoiceConvertResult },
-            { no: 15, name: "text_decision", kind: "message", oneof: "output", T: () => TextDecisionResult }
+            { no: 15, name: "text_decision", kind: "message", oneof: "output", T: () => TextDecisionResult },
+            { no: 16, name: "audio_speaker_embed", kind: "message", oneof: "output", T: () => AudioSpeakerEmbedResult }
         ]);
     }
     create(value?: PartialMessage<ScenarioOutput>): ScenarioOutput {
@@ -13621,6 +14046,12 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
                         textDecision: TextDecisionResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).textDecision)
                     };
                     break;
+                case /* nimi.runtime.v1.AudioSpeakerEmbedResult audio_speaker_embed */ 16:
+                    message.output = {
+                        oneofKind: "audioSpeakerEmbed",
+                        audioSpeakerEmbed: AudioSpeakerEmbedResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).audioSpeakerEmbed)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -13678,6 +14109,9 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
         /* nimi.runtime.v1.TextDecisionResult text_decision = 15; */
         if (message.output.oneofKind === "textDecision")
             TextDecisionResult.internalBinaryWrite(message.output.textDecision, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AudioSpeakerEmbedResult audio_speaker_embed = 16; */
+        if (message.output.oneofKind === "audioSpeakerEmbed")
+            AudioSpeakerEmbedResult.internalBinaryWrite(message.output.audioSpeakerEmbed, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14136,12 +14570,14 @@ class LocalAppTextEmbedScenarioSpec$Type extends MessageType<LocalAppTextEmbedSc
     constructor() {
         super("nimi.runtime.v1.LocalAppTextEmbedScenarioSpec", [
             { no: 1, name: "inputs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "dimensions", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ }
+            { no: 2, name: "dimensions", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "purpose", kind: "enum", T: () => ["nimi.runtime.v1.TextEmbedPurpose", TextEmbedPurpose, "TEXT_EMBED_PURPOSE_"] }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextEmbedScenarioSpec>): LocalAppTextEmbedScenarioSpec {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.inputs = [];
+        message.purpose = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAppTextEmbedScenarioSpec>(this, message, value);
         return message;
@@ -14156,6 +14592,9 @@ class LocalAppTextEmbedScenarioSpec$Type extends MessageType<LocalAppTextEmbedSc
                     break;
                 case /* optional uint32 dimensions */ 2:
                     message.dimensions = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.TextEmbedPurpose purpose */ 3:
+                    message.purpose = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -14175,6 +14614,9 @@ class LocalAppTextEmbedScenarioSpec$Type extends MessageType<LocalAppTextEmbedSc
         /* optional uint32 dimensions = 2; */
         if (message.dimensions !== undefined)
             writer.tag(2, WireType.Varint).uint32(message.dimensions);
+        /* nimi.runtime.v1.TextEmbedPurpose purpose = 3; */
+        if (message.purpose !== 0)
+            writer.tag(3, WireType.Varint).int32(message.purpose);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -15291,6 +15733,7 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
             { no: 15, name: "text_annotate", kind: "message", oneof: "spec", T: () => TextAnnotateScenarioSpec },
             { no: 17, name: "music_transcribe", kind: "message", oneof: "spec", T: () => MusicTranscribeScenarioSpec },
             { no: 18, name: "audio_voice_convert", kind: "message", oneof: "spec", T: () => AudioVoiceConvertScenarioSpec },
+            { no: 19, name: "audio_speaker_embed", kind: "message", oneof: "spec", T: () => AudioSpeakerEmbedScenarioSpec },
             { no: 9, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 16, name: "client_submission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -15393,6 +15836,12 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                         audioVoiceConvert: AudioVoiceConvertScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).audioVoiceConvert)
                     };
                     break;
+                case /* nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec audio_speaker_embed */ 19:
+                    message.spec = {
+                        oneofKind: "audioSpeakerEmbed",
+                        audioSpeakerEmbed: AudioSpeakerEmbedScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).audioSpeakerEmbed)
+                    };
+                    break;
                 case /* int32 timeout_ms = 9 [deprecated = true] */ 9:
                     message.timeoutMs = reader.int32();
                     break;
@@ -15459,6 +15908,9 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* nimi.runtime.v1.AudioVoiceConvertScenarioSpec audio_voice_convert = 18; */
         if (message.spec.oneofKind === "audioVoiceConvert")
             AudioVoiceConvertScenarioSpec.internalBinaryWrite(message.spec.audioVoiceConvert, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 19; */
+        if (message.spec.oneofKind === "audioSpeakerEmbed")
+            AudioSpeakerEmbedScenarioSpec.internalBinaryWrite(message.spec.audioSpeakerEmbed, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -15496,7 +15948,8 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
             { no: 21, name: "music_transcription", kind: "message", T: () => MusicTranscription },
             { no: 22, name: "voice_conversion", kind: "message", T: () => VoiceConversion },
             { no: 23, name: "submission_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobSubmissionOutcome", ScenarioJobSubmissionOutcome, "SCENARIO_JOB_SUBMISSION_OUTCOME_"] },
-            { no: 24, name: "stop_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobStopOutcome", ScenarioJobStopOutcome, "SCENARIO_JOB_STOP_OUTCOME_"] }
+            { no: 24, name: "stop_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobStopOutcome", ScenarioJobStopOutcome, "SCENARIO_JOB_STOP_OUTCOME_"] },
+            { no: 25, name: "speaker_embedding", kind: "message", T: () => AudioSpeakerEmbedResult }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioJob>): LocalAppScenarioJob {
@@ -15595,6 +16048,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
                 case /* nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome */ 24:
                     message.stopOutcome = reader.int32();
                     break;
+                case /* nimi.runtime.v1.AudioSpeakerEmbedResult speaker_embedding */ 25:
+                    message.speakerEmbedding = AudioSpeakerEmbedResult.internalBinaryRead(reader, reader.uint32(), options, message.speakerEmbedding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -15679,6 +16135,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         /* nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome = 24; */
         if (message.stopOutcome !== 0)
             writer.tag(24, WireType.Varint).int32(message.stopOutcome);
+        /* nimi.runtime.v1.AudioSpeakerEmbedResult speaker_embedding = 25; */
+        if (message.speakerEmbedding)
+            AudioSpeakerEmbedResult.internalBinaryWrite(message.speakerEmbedding, writer.tag(25, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -18144,7 +18603,8 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 32, name: "music_transcription", kind: "message", T: () => MusicTranscription },
             { no: 33, name: "voice_conversion", kind: "message", T: () => VoiceConversion },
             { no: 34, name: "submission_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobSubmissionOutcome", ScenarioJobSubmissionOutcome, "SCENARIO_JOB_SUBMISSION_OUTCOME_"] },
-            { no: 35, name: "stop_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobStopOutcome", ScenarioJobStopOutcome, "SCENARIO_JOB_STOP_OUTCOME_"] }
+            { no: 35, name: "stop_outcome", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioJobStopOutcome", ScenarioJobStopOutcome, "SCENARIO_JOB_STOP_OUTCOME_"] },
+            { no: 36, name: "speaker_embedding", kind: "message", T: () => AudioSpeakerEmbedResult }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -18282,6 +18742,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                 case /* nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome */ 35:
                     message.stopOutcome = reader.int32();
                     break;
+                case /* nimi.runtime.v1.AudioSpeakerEmbedResult speaker_embedding */ 36:
+                    message.speakerEmbedding = AudioSpeakerEmbedResult.internalBinaryRead(reader, reader.uint32(), options, message.speakerEmbedding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -18399,6 +18862,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* nimi.runtime.v1.ScenarioJobStopOutcome stop_outcome = 35; */
         if (message.stopOutcome !== 0)
             writer.tag(35, WireType.Varint).int32(message.stopOutcome);
+        /* nimi.runtime.v1.AudioSpeakerEmbedResult speaker_embedding = 36; */
+        if (message.speakerEmbedding)
+            AudioSpeakerEmbedResult.internalBinaryWrite(message.speakerEmbedding, writer.tag(36, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

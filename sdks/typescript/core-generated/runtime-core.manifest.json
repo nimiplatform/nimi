@@ -7662,6 +7662,8 @@
       "AudioSeparateResult",
       "AudioSeparateScenarioSpec",
       "AudioSeparation",
+      "AudioSpeakerEmbedResult",
+      "AudioSpeakerEmbedScenarioSpec",
       "AudioVoiceConvertResult",
       "AudioVoiceConvertScenarioSpec",
       "AuditEventRecord",
@@ -8434,8 +8436,10 @@
       "SpeechAlignment",
       "SpeechAlignmentToken",
       "SpeechAudioReference",
+      "SpeechDiarization",
       "SpeechInputCapabilities",
       "SpeechPerformanceReference",
+      "SpeechSpeakerInterval",
       "SpeechSynthesizeResult",
       "SpeechSynthesizeScenarioSpec",
       "SpeechTranscribeResult",
@@ -8783,11 +8787,13 @@
       "SchedulingState",
       "SensitivityClass",
       "SpeechAlignmentUnit",
+      "SpeechDiarizationStatus",
       "SpeechTimingMode",
       "SpeechTranscriptStatus",
       "StreamEventType",
       "TextBehaviorConfigurationState",
       "TextBehaviorKind",
+      "TextEmbedPurpose",
       "TextReplayExecutionMode",
       "TextSourceType",
       "ToolChoiceMode",
@@ -13896,6 +13902,53 @@
             "name": "instrument_parts",
             "type": "AudioInstrumentPart",
             "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AudioSpeakerEmbedResult",
+        "fields": [
+          {
+            "name": "vector",
+            "type": "EmbeddingVector",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "space_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AudioSpeakerEmbedScenarioSpec",
+        "fields": [
+          {
+            "name": "mime_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "audio_source",
+            "type": "SpeechTranscriptionAudioSource",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "source_audio",
+            "type": "MusicAudioInput",
+            "repeated": false,
             "optional": false,
             "number": 3
           }
@@ -28571,6 +28624,13 @@
             "repeated": false,
             "optional": false,
             "number": 24
+          },
+          {
+            "name": "speaker_embedding",
+            "type": "AudioSpeakerEmbedResult",
+            "repeated": false,
+            "optional": false,
+            "number": 25
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -28886,6 +28946,13 @@
             "repeated": false,
             "optional": true,
             "number": 2
+          },
+          {
+            "name": "purpose",
+            "type": "TextEmbedPurpose",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -37724,6 +37791,13 @@
             "repeated": false,
             "optional": false,
             "number": 35
+          },
+          {
+            "name": "speaker_embedding",
+            "type": "AudioSpeakerEmbedResult",
+            "repeated": false,
+            "optional": false,
+            "number": 36
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -37896,6 +37970,13 @@
             "repeated": false,
             "optional": false,
             "number": 15
+          },
+          {
+            "name": "audio_speaker_embed",
+            "type": "AudioSpeakerEmbedResult",
+            "repeated": false,
+            "optional": false,
+            "number": 16
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -38075,6 +38156,13 @@
             "repeated": false,
             "optional": false,
             "number": 19
+          },
+          {
+            "name": "audio_speaker_embed",
+            "type": "AudioSpeakerEmbedScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 20
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -39048,6 +39136,33 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "SpeechDiarization",
+        "fields": [
+          {
+            "name": "status",
+            "type": "SpeechDiarizationStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "duration_seconds",
+            "type": "double",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "intervals",
+            "type": "SpeechSpeakerInterval",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "SpeechInputCapabilities",
         "fields": [
           {
@@ -39104,6 +39219,33 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "SpeechSpeakerInterval",
+        "fields": [
+          {
+            "name": "speaker_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "start_seconds",
+            "type": "double",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "end_seconds",
+            "type": "double",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -39337,6 +39479,13 @@
             "repeated": true,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "diarization",
+            "type": "SpeechDiarization",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -40333,6 +40482,13 @@
             "repeated": false,
             "optional": false,
             "number": 18
+          },
+          {
+            "name": "audio_speaker_embed",
+            "type": "AudioSpeakerEmbedScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 19
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -41545,6 +41701,13 @@
             "repeated": false,
             "optional": true,
             "number": 2
+          },
+          {
+            "name": "purpose",
+            "type": "TextEmbedPurpose",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -46768,7 +46931,8 @@
           "SCENARIO_TYPE_TEXT_ANNOTATE",
           "SCENARIO_TYPE_MUSIC_TRANSCRIBE",
           "SCENARIO_TYPE_AUDIO_VOICE_CONVERT",
-          "SCENARIO_TYPE_TEXT_DECIDE"
+          "SCENARIO_TYPE_TEXT_DECIDE",
+          "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
@@ -46804,6 +46968,15 @@
           "SPEECH_ALIGNMENT_UNIT_UNSPECIFIED",
           "SPEECH_ALIGNMENT_UNIT_WORD",
           "SPEECH_ALIGNMENT_UNIT_CHAR"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "SpeechDiarizationStatus",
+        "values": [
+          "SPEECH_DIARIZATION_STATUS_UNSPECIFIED",
+          "SPEECH_DIARIZATION_STATUS_DIARIZED",
+          "SPEECH_DIARIZATION_STATUS_NO_SPEAKERS"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
@@ -46857,6 +47030,15 @@
           "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT"
         ],
         "source_file": "proto/runtime/v1/common.proto"
+      },
+      {
+        "name": "TextEmbedPurpose",
+        "values": [
+          "TEXT_EMBED_PURPOSE_UNSPECIFIED",
+          "TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT",
+          "TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "TextReplayExecutionMode",

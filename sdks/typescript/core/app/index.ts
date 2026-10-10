@@ -6,6 +6,7 @@ export {
   projectLocalAppContinuity as validateNimiLocalAppReasoningContinuityCarrier,
 } from './local-app-text.js';
 export { createNimiLocalAppAIConsumptionClient, type NimiLocalAppAIConsumptionClient } from './local-app-runtime-platform-ai.js';
+export { validateNimiLocalAppSpeakerEmbedSpec } from './local-app-runtime-platform-ai.js';
 export { createNimiLocalAppAIConfigClient } from './local-app-runtime-platform-ai-config.js';
 export { createNimiAppRuntimeStorageClient } from './local-app-runtime-platform-protected-operations.js';
 export { createNimiLocalAppAssetsClient } from './local-app-runtime-platform-assets.js';
@@ -452,6 +453,10 @@ function appError(code: string, message: string, actionHint: string, cause?: unk
 export type { NimiLocalAppWorldCharacterListInput, NimiLocalAppWorldEntityListInput, NimiLocalAppWorldRelationshipListInput } from './local-app-runtime-platform-world-creator.js';
 export { validateNimiLocalAppSpeechTranscript } from './local-app-transcription.js';
 export type { NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
+export type { NimiLocalAppSpeechDiarization } from './local-app-transcription.js';
+export { validateNimiLocalAppSpeechDiarization } from './local-app-transcription.js';
+export { validateNimiLocalAppSpeakerEmbedding } from './local-app-speaker-embedding.js';
+export type { NimiLocalAppSpeakerEmbedding } from './local-app-speaker-embedding.js';
 export { validateNimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
 export { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult } from './local-app-runtime-platform-ai.js';
 export { isNimiLocalAppByteView, copyNimiLocalAppBytes, exactNimiLocalAppBytes } from './local-app-bytes.js';

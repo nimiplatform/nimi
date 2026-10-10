@@ -2,6 +2,7 @@ import {
   ExecutionMode,
   RoutePolicy,
   ScenarioType,
+  TextEmbedPurpose,
   type ExecuteScenarioRequest,
   type ExecuteScenarioResponse,
 } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
@@ -25,6 +26,7 @@ export interface NimiRuntimeEmbeddingClientOptions {
 }
 
 export interface NimiEmbedTextRequest {
+  readonly purpose?: 'retrieval-document' | 'retrieval-query';
   readonly values: readonly string[];
   readonly dimensions?: number;
   readonly metadata?: NimiJsonObject;
@@ -55,8 +57,9 @@ export function createNimiRuntimeEmbeddingClient(
     async embedText(request) {
       const values = normalizeEmbeddingInputs(request.values);
       const dimensions = request.dimensions;
+      const purpose = request.purpose;
       const response = await scenarioClient.executeScenario(
-        buildRuntimeTextEmbeddingRequest({ values, dimensions, options, appId }),
+        buildRuntimeTextEmbeddingRequest({ values, dimensions, purpose, options, appId }),
         withNimiRuntimeIdempotencyMetadata({
           metadata: mergeMetadata(options.metadata, request.metadata),
           timeoutMs: Number(options.timeoutMs ?? 0) || undefined,
@@ -68,11 +71,13 @@ export function createNimiRuntimeEmbeddingClient(
 }
 
 export function buildRuntimeTextEmbeddingRequest(input: {
+  readonly purpose?: 'retrieval-document' | 'retrieval-query';
   readonly values: readonly string[];
   readonly dimensions?: number;
   readonly options: NimiRuntimeEmbeddingClientOptions;
   readonly appId: string;
 }): ExecuteScenarioRequest {
+  if (input.purpose !== undefined && input.purpose !== 'retrieval-document' && input.purpose !== 'retrieval-query') throw createNimiError({ reasonCode: ReasonCode.SDK_AI_INPUT_INVALID, message: 'Unknown embedding purpose', source: 'sdk', actionHint: 'provide_embedding_purpose' });
   if (input.dimensions !== undefined && (!Number.isSafeInteger(input.dimensions) || input.dimensions < 1 || input.dimensions > 0xffff_ffff)) {
     throw createNimiError({ reasonCode: ReasonCode.SDK_AI_INPUT_INVALID, message: 'Embedding dimensions must be a positive integer.', actionHint: 'provide_supported_embedding_dimensions', source: 'sdk' });
   }
@@ -89,6 +94,7 @@ export function buildRuntimeTextEmbeddingRequest(input: {
         oneofKind: 'textEmbed',
         textEmbed: {
           inputs: [...input.values],
+          purpose: input.purpose === 'retrieval-document' ? TextEmbedPurpose.RETRIEVAL_DOCUMENT : input.purpose === 'retrieval-query' ? TextEmbedPurpose.RETRIEVAL_QUERY : TextEmbedPurpose.UNSPECIFIED,
           ...(input.dimensions !== undefined ? { dimensions: input.dimensions } : {}),
         },
       },

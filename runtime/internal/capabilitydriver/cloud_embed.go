@@ -216,6 +216,15 @@ func (d providerCloudEmbedDriver) ValidateTarget(identity Identity, raw *structp
 }
 
 func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runtimev1.TextEmbedScenarioSpec, defaults *structpb.Struct) (*CloudEmbedMappedRequest, error) {
+	if spec != nil {
+		switch spec.GetPurpose() {
+		case runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_UNSPECIFIED, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY:
+			// The reviewed compatible/native Cloud protocols have a legal
+			// unchanged operation for these intents. Never inject Nomic prefixes.
+		default:
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	}
 	if target.provider != d.provider || target.providerModelID == "" || spec == nil {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("cloud embedding request mapping input is incomplete"))
 	}

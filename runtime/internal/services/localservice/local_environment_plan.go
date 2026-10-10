@@ -174,6 +174,16 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 		return "local-speech", "speech.qwen3-asr-transformers.python", true
 	case capabilitydriver.FasterWhisperDriver:
 		return "local-speech", "speech.faster-whisper.python", true
+	case capabilitydriver.FasterWhisperSherpaDriver:
+		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") {
+			return "local-speech", capabilitydriver.WhisperDiarizationConsumerID, true
+		}
+		return "", "", false
+	case capabilitydriver.SherpaSpeakerEmbedDriver:
+		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") {
+			return "local-speech", engine.SpeakerEncoderConsumerID, true
+		}
+		return "", "", false
 	case capabilitydriver.DemucsDriver:
 		return "local-speech", "speech.demucs.python", true
 	case capabilitydriver.SpacyDriver:
@@ -653,6 +663,12 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 	}
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(consumers))
 	for _, consumer := range consumers {
+		if consumer == capabilitydriver.WhisperDiarizationConsumerID && family == localEnvironmentFamilyCUDA {
+			continue
+		}
+		if consumer == engine.SpeakerEncoderConsumerID && (family == localEnvironmentFamilyPythonTorchWheel || family == localEnvironmentFamilyCUDA) {
+			continue
+		}
 		dependencyID := defaultLocalEnvironmentDependencyID(def.PackID, family)
 		dependencyConsumer := consumer
 		plane := localPythonAcceleratorPlane(consumer, hostState)
@@ -692,6 +708,10 @@ func localEnvironmentUnsupportedPythonProfileDependency(family string, required 
 
 func localSpeechPlanConsumers(consumerScope string) []string {
 	switch strings.TrimSpace(consumerScope) {
+	case engine.SpeakerEncoderConsumerID:
+		return []string{engine.SpeakerEncoderConsumerID}
+	case capabilitydriver.WhisperDiarizationConsumerID:
+		return []string{capabilitydriver.WhisperDiarizationConsumerID}
 	case "speech.demucs.python":
 		return []string{"speech.demucs.python"}
 	case "speech.qwen3-asr.python":
@@ -726,6 +746,9 @@ func (s *Service) localEnvironmentFirstRunLlamaCUDARequired(def localComputePack
 }
 
 func localEnvironmentOptionalDependencyRequiredForConsumer(def localComputePackDefinition, family string, hostState localEnvironmentHostProfileState, consumerScope string, firstRunLlamaCUDARequired bool) bool {
+	if strings.TrimSpace(consumerScope) == capabilitydriver.WhisperDiarizationConsumerID && family == localEnvironmentFamilyCUDA {
+		return false
+	}
 	if family != localEnvironmentFamilyCUDA {
 		return false
 	}
@@ -920,7 +943,10 @@ func defaultLocalEnvironmentDependencyID(packID string, family string) string {
 }
 
 func localPythonAcceleratorPlane(consumer string, host localEnvironmentHostProfileState) string {
-	if strings.TrimSpace(consumer) != engine.TextAnnotationConsumerID && strings.TrimSpace(consumer) != engine.TextAnnotationTrfConsumerID && strings.TrimSpace(consumer) != engine.BasicPitchConsumerID && strings.TrimSpace(consumer) != engine.SpleeterConsumerID && localEnvironmentHostSupportsCUDA(host) {
+	if strings.TrimSpace(consumer) == capabilitydriver.WhisperDiarizationConsumerID {
+		return "cpu"
+	}
+	if strings.TrimSpace(consumer) != engine.SpeakerEncoderConsumerID && strings.TrimSpace(consumer) != engine.TextAnnotationConsumerID && strings.TrimSpace(consumer) != engine.TextAnnotationTrfConsumerID && strings.TrimSpace(consumer) != engine.BasicPitchConsumerID && strings.TrimSpace(consumer) != engine.SpleeterConsumerID && localEnvironmentHostSupportsCUDA(host) {
 		return "cuda"
 	}
 	return "cpu"

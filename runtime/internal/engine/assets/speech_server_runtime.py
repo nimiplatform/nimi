@@ -41,6 +41,9 @@ MAX_DRIVER_TIMEOUT_MS = 30 * 60_000
 class SpeechDriverInputError(ValueError):
     """The admitted Driver explicitly rejected caller input (EX_DATAERR)."""
 
+class SpeechDriverUnsupportedError(ValueError):
+    pass
+
 
 SPEECH_DRIVER_INPUT_INVALID_EXIT_CODE = 65
 
@@ -54,6 +57,7 @@ SPEECH_DRIVER_ENV_BY_KIND = {
     "voxcpm": VOXCPM_DRIVER_ENV,
 }
 REGISTERED_DRIVER_FACTS = {
+    "nimi.runtime.driver.faster-whisper-sherpa": {"driver": "faster_whisper", "family": "whisper", "backend": "ctranslate2", "capabilities": {"audio.transcribe"}},
     "nimi.runtime.driver.faster-whisper": {
         "driver": "faster_whisper", "family": "whisper", "backend": "ctranslate2",
         "capabilities": {"audio.transcribe"},
@@ -120,6 +124,8 @@ class SpeechModelState:
     workflow_model_bindings: dict[str, list[str]] = dataclasses.field(default_factory=dict)
     alignment: SpeechModelState | None = None
     vad: SpeechModelState | None = None
+    segmenter: SpeechModelState | None = None
+    speaker_encoder: SpeechModelState | None = None
     voice_design: SpeechModelState | None = None
 
 
@@ -476,9 +482,21 @@ def registered_speech_model_state(payload: dict[str, Any]) -> SpeechModelState:
         alignment = registered_speech_model_state(payload["alignment"])
     vad = None
     if payload.get("vad") is not None:
-        if driver_id != "nimi.runtime.driver.faster-whisper" or not isinstance(payload["vad"], dict) or any(payload["vad"].get(key) is not None for key in ("alignment", "vad", "voice_design")):
+        if driver_id not in ("nimi.runtime.driver.faster-whisper", "nimi.runtime.driver.faster-whisper-sherpa") or not isinstance(payload["vad"], dict) or any(payload["vad"].get(key) is not None for key in ("alignment", "vad", "voice_design")):
             raise ValueError("speech VAD binding is not admitted")
         vad = registered_speech_model_state(payload["vad"])
+    segmenter = speaker_encoder = None
+    if driver_id == "nimi.runtime.driver.faster-whisper-sherpa":
+        if vad is None or not isinstance(payload.get("segmenter"), dict) or not isinstance(payload.get("speaker_encoder"), dict):
+            raise ValueError("diarized speech requires all captured companions")
+        for key in ("segmenter", "speaker_encoder"):
+            companion = payload[key]
+            if companion.get("driver_id") != "nimi.runtime.driver.faster-whisper" or companion.get("capability") != "audio.transcribe" or any(companion.get(field) is not None for field in ("alignment", "vad", "voice_design", "segmenter", "speaker_encoder")):
+                raise ValueError("diarized speech companion is not admitted")
+        segmenter = registered_speech_model_state(payload["segmenter"])
+        speaker_encoder = registered_speech_model_state(payload["speaker_encoder"])
+    elif payload.get("segmenter") is not None or payload.get("speaker_encoder") is not None:
+        raise ValueError("speaker companions require the diarized Driver")
     voice_design = None
     voice_library = capability == VOICE_CREATE_CAPABILITY and driver_id == "nimi.runtime.driver.qwen3-tts" and workflow_model_id == "qwen3-local-voice-library"
     if voice_library != (payload.get("voice_design") is not None):
@@ -507,6 +525,8 @@ def registered_speech_model_state(payload: dict[str, Any]) -> SpeechModelState:
         workflow_model_bindings=workflow_model_bindings,
         alignment=alignment,
         vad=vad,
+        segmenter=segmenter,
+        speaker_encoder=speaker_encoder,
         voice_design=voice_design,
     )
 
@@ -520,6 +540,10 @@ def sha256_file(path: pathlib.Path) -> str:
 
 
 def assert_registered_model_content(model: SpeechModelState) -> None:
+    if model.segmenter is not None:
+        assert_registered_model_content(model.segmenter)
+    if model.speaker_encoder is not None:
+        assert_registered_model_content(model.speaker_encoder)
     if model.voice_design is not None:
         assert_registered_model_content(model.voice_design)
     if model.vad is not None:
@@ -605,6 +629,8 @@ def run_driver_command(
                 detail = _read_bounded_process_output(stderr) or _read_bounded_process_output(stdout) or "driver exited non-zero"
                 if proc.returncode == SPEECH_DRIVER_INPUT_INVALID_EXIT_CODE:
                     raise SpeechDriverInputError(detail)
+                if proc.returncode == 69:
+                    raise SpeechDriverUnsupportedError(detail)
                 raise RuntimeError(f"speech driver failed: {detail}")
         if response_path.is_symlink() or not response_path.is_file():
             raise RuntimeError("speech driver did not write a response")
@@ -792,15 +818,18 @@ def transcribe_with_driver(
         request_payload = {**request_payload, "alignment": {"bundle_dir": model.alignment.bundle_dir, "entry_path": model.alignment.entry_path, "declared_files": model.alignment.declared_files}}
     if model.vad is not None:
         request_payload = {**request_payload, "vad": {"bundle_dir": model.vad.bundle_dir, "entry_path": model.vad.entry_path, "declared_files": model.vad.declared_files}}
+    if model.segmenter is not None and model.speaker_encoder is not None:
+        request_payload = {**request_payload, "segmenter": {"bundle_dir": model.segmenter.bundle_dir, "entry_path": model.segmenter.entry_path, "declared_files": model.segmenter.declared_files},
+                           "speaker_encoder": {"bundle_dir": model.speaker_encoder.bundle_dir, "entry_path": model.speaker_encoder.entry_path, "declared_files": model.speaker_encoder.declared_files}}
     response = run_driver_command(command, request_payload, cancel_event)
     text = str(response.get("text") or "").strip()
     if not text:
         if response.get("no_speech") is True:
-            return {"text": "", "no_speech": True}
+            return {"text": "", "no_speech": True, **({"diarization": response["diarization"]} if "diarization" in response else {})}
         if allow_empty_transcript_request(request_payload) and truthy_payload_value(response.get("empty_transcript")):
             return {"text": "", "no_speech": True}
         raise RuntimeError("speech driver response missing transcription text")
-    return {"text": text, **{key: response[key] for key in ("language", "words") if key in response}}
+    return {"text": text, **{key: response[key] for key in ("language", "words", "diarization") if key in response}}
 
 
 def workflow_execution_unavailable_response(operation: str, detail: str, reason: str) -> JSONResponse:

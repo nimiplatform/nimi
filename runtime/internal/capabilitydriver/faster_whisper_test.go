@@ -3,10 +3,48 @@ package capabilitydriver
 import (
 	"encoding/binary"
 	"encoding/json"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestWhisperCapturesBoundedOriginalVocabularyContext(t *testing.T) {
+	digest := strings.Repeat("a", 64)
+	root := t.TempDir()
+	bindings := []InvocationExactBinding{}
+	for _, slot := range []string{Qwen3ASRModelRequirementID, FasterWhisperVADRequirementID} {
+		bindings = append(bindings, InvocationExactBinding{RequirementID: slot, ModelAssetID: "fixture-" + slot, AbsolutePath: filepath.Join(root, slot), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest})
+	}
+	request := &runtimev1.SpeechTranscribeScenarioSpec{Prompt: "  Nimi，专有名词\n", Timestamps: testBool(true)}
+	input := SpeechTranscribeInvocationInput{ExactBindings: bindings, Request: request, AudioBytes: []byte("declared recording fixture"), MIMEType: "audio/wav"}
+	plan, err := (FasterWhisperDriver{}).PlanSpeechTranscribeInvocation(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Prompt = "changed after admission"
+	if plan.Request().GetPrompt() != "  Nimi，专有名词\n" {
+		t.Fatal("captured vocabulary context changed or was trimmed")
+	}
+	for _, prompt := range []string{"", strings.Repeat("中", 1365) + "a"} {
+		request.Prompt = prompt
+		if _, err := (FasterWhisperDriver{}).PlanSpeechTranscribeInvocation(input); err != nil {
+			t.Fatalf("valid UTF-8 context rejected: %v", err)
+		}
+	}
+	for _, prompt := range []string{strings.Repeat("中", 1366), string([]byte{0xff})} {
+		request.Prompt = prompt
+		if _, err := (FasterWhisperDriver{}).PlanSpeechTranscribeInvocation(input); err == nil {
+			t.Fatal("invalid or over-budget vocabulary context accepted")
+		}
+	}
+	request.Prompt = "valid context"
+	request.Diarization = testBool(true)
+	if _, err := (FasterWhisperDriver{}).PlanSpeechTranscribeInvocation(input); err == nil {
+		t.Fatal("plain Whisper path accepted diarization")
+	}
+}
 
 func TestFasterWhisperRequiresBothDistinctModelRoles(t *testing.T) {
 	driver := FasterWhisperDriver{}

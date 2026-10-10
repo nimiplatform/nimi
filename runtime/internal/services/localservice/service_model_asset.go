@@ -1330,7 +1330,7 @@ func safeModelAssetEntry(files []*runtimev1.ModelAssetFile) string {
 			continue
 		}
 		switch strings.ToLower(filepath.Ext(file.GetRelativePath())) {
-		case ".gguf", ".safetensors":
+		case ".gguf", ".safetensors", ".bin":
 			return file.GetRelativePath()
 		}
 	}
