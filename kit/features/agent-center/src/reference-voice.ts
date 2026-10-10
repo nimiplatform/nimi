@@ -120,7 +120,7 @@ export function createAgentReferenceVoiceController(client: Client, handle: Hand
         if (!result) {
           const submitted = await client.ai.scenarioJobs.submit({ type: 'voice-create', creationSource: 'reference-audio',
             referenceAudio: { type: 'uri', uri: prepared.sampleUrl }, referenceAudioMime: '', languageHints: [], preferredName: '', text: '' },
-          { clientSubmissionId: id, timeoutMs: 300_000 });
+          { clientSubmissionId: id });
           jobId = submitted.job.jobId;
           if (disposed || epoch !== version || canceled) {
             await client.ai.scenarioJobs.cancel(jobId, 'Reference voice action canceled.');

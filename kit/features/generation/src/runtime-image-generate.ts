@@ -1,4 +1,6 @@
+import type { NimiRuntimeScenarioJobObservation } from '@nimiplatform/kit/core/sdk-contract';
 import {
+  observeNimiRuntimeScenarioJob, ScenarioType,
   ReasonCode,
   RoutePolicy,
   ScenarioJobStatus,
@@ -27,6 +29,7 @@ export type RuntimeImageGenerateArtifactPreviewSource =
 
 export type RuntimeImageGenerateArtifactSummary = {
   readonly artifactId?: string;
+  readonly sha256?: string;
   readonly mimeType: string;
   readonly uri?: string;
   readonly previewUrl?: string;
@@ -95,6 +98,9 @@ export type RuntimeImageGenerateInput = {
   readonly metadata?: Readonly<Record<string, string | undefined>>;
   readonly callOptions?: RuntimeTypedCallOptions;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
 };
@@ -136,27 +142,13 @@ export async function runRuntimeImageGenerate(
       labels: imageScenarioLabels(input),
       ...(input.callOptions !== undefined ? { callOptions: input.callOptions } : {}),
       ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      observationSignal: input.observationSignal,
       ...(input.abortReason !== undefined ? { abortReason: input.abortReason } : {}),
+      getIntervalMs: input.getIntervalMs,
+      onObservation: input.onObservation,
       ...(input.onJobUpdate !== undefined ? { onJobUpdate: input.onJobUpdate } : {}),
     });
-    const artifacts = result.artifacts.map(toImageArtifactSummary);
-    const trace = imageGenerateTrace(result.job, result.traceId);
-    return {
-      ok: true,
-      capabilityId: 'image.generate',
-      message: artifacts.length === 1
-        ? 'Runtime image.generate completed with 1 artifact.'
-        : `Runtime image.generate completed with ${artifacts.length} artifacts.`,
-      output: {
-        kind: 'image-artifacts',
-        jobId: result.job.jobId,
-        jobStatus: imageJobStatusName(result.job.status),
-        artifactCount: artifacts.length,
-        ...(artifacts[0] ? { firstArtifact: artifacts[0] } : {}),
-        artifacts,
-      },
-      ...(trace ? { trace } : {}),
-    };
+    return projectImageGenerate(result);
   } catch (cause) {
     const error = asNimiError(cause, {
       reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
@@ -191,6 +183,7 @@ function toImageArtifactSummary(
   const seed = imageArtifactSeed(artifact);
   const base = {
     ...(artifactId ? { artifactId } : {}),
+    ...(artifact.sha256 ? { sha256: artifact.sha256 } : {}),
     mimeType,
     ...(uri ? { uri } : {}),
     ...(sizeBytes > 0 ? { sizeBytes } : {}),
@@ -272,4 +265,47 @@ function bytesToBase64(bytes: Uint8Array): string {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/** Observes an existing Job. signal detaches; cancelSignal is explicit Cancel. */
+export async function observeRuntimeImageGenerate(input: Pick<RuntimeImageGenerateInput,
+  'runtime' | 'callOptions' | 'signal' | 'abortReason' | 'getIntervalMs' | 'onObservation' | 'onJobUpdate'> & { readonly jobId: string; readonly cancelSignal?: AbortSignal }): Promise<RuntimeImageGenerateResult> {
+  try {
+    const result = await observeNimiRuntimeScenarioJob({ ...input, ai: input.runtime.ai, scenarioType: ScenarioType.IMAGE_GENERATE });
+    return projectImageGenerate(result);
+  } catch (cause) {
+    const error = asNimiError(cause, {
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'inspect_runtime_image_execution',
+      source: 'runtime',
+    });
+    return {
+      ok: false,
+      capabilityId: 'image.generate',
+      reason: imageNonSuccessReasonFromError(error),
+      message: error.message,
+      error,
+    };
+  }
+}
+
+function projectImageGenerate(result: Awaited<ReturnType<typeof runNimiRuntimeImageGeneration>>): RuntimeImageGenerateSuccess {
+  const artifacts = result.artifacts.map(toImageArtifactSummary);
+  const trace = imageGenerateTrace(result.job, result.traceId);
+  return {
+    ok: true,
+    capabilityId: 'image.generate',
+    message: artifacts.length === 1
+      ? 'Runtime image.generate completed with 1 artifact.'
+      : `Runtime image.generate completed with ${artifacts.length} artifacts.`,
+    output: {
+      kind: 'image-artifacts',
+      jobId: result.job.jobId,
+      jobStatus: imageJobStatusName(result.job.status),
+      artifactCount: artifacts.length,
+      ...(artifacts[0] ? { firstArtifact: artifacts[0] } : {}),
+      artifacts,
+    },
+    ...(trace ? { trace } : {}),
+  };
 }

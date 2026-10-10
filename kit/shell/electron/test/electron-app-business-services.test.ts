@@ -4,6 +4,21 @@ import { createAppBusinessServices } from '../src/main/app-business-services.js'
 import type { NimiElectronLocalAppHost } from '../src/main/local-app-host.js';
 
 describe('App-owned Node services on the existing protected Host', () => {
+  it('preserves generic action identity through submit and pure lookup', async () => {
+    const calls: unknown[] = [];
+    const job = { jobId: 'locate-job', scenarioType: 'vision-locate', status: 'submitted', submissionOutcome: 'not-dispatched',
+      progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0, reasonCode: '', reasonDetail: '',
+      artifacts: [], traceId: '', createdAt: null, updatedAt: null, transcriptionText: '' };
+    const owner = createAppBusinessServices({
+      scenarioJobSubmit: async (input: unknown) => { calls.push(['submit', input]); return { job }; },
+      scenarioJobGet: async (input: unknown) => { calls.push(['get', input]); return { job, asset: null, voiceReference: null }; },
+    } as unknown as NimiElectronLocalAppHost);
+    const spec = { type: 'vision-locate' as const, imageArtifactId: 'image-input', query: 'center', geometry: 'point' as const };
+    await owner.services.ai.scenarioJobs.submit(spec, { clientSubmissionId: 'locate-action' });
+    await owner.services.ai.scenarioJobs.lookupSubmission('locate-action');
+    expect(calls).toEqual([['submit', { spec, timeoutMs: 0, clientSubmissionId: 'locate-action' }], ['get', { clientSubmissionId: 'locate-action' }]]);
+    owner.close();
+  });
   it('permanently retires captured services, rejects late reads and permits only a new owner to read the fresh scope', async () => {
     let finish!: (value: Record<string, unknown>) => void;
     let reads = 0; let writes = 0;

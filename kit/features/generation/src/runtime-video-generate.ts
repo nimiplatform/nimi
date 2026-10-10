@@ -1,4 +1,6 @@
+import type { NimiRuntimeScenarioJobObservation } from '@nimiplatform/kit/core/sdk-contract';
 import {
+  observeNimiRuntimeScenarioJob, ScenarioType,
   ReasonCode,
   RoutePolicy,
   ScenarioJobStatus,
@@ -24,6 +26,7 @@ export type RuntimeVideoGenerateNonSuccessReason =
 
 export type RuntimeVideoGenerateArtifactSummary = {
   readonly artifactId?: string;
+  readonly sha256?: string;
   readonly mimeType: string;
   readonly uri?: string;
   readonly previewUrl?: string;
@@ -81,6 +84,9 @@ export type RuntimeVideoGenerateInput = {
   readonly surfaceId: string;
   readonly callOptions?: RuntimeTypedCallOptions;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
 };
@@ -115,27 +121,13 @@ export async function runRuntimeVideoGenerate(
       labels: videoScenarioLabels(input),
       ...(input.callOptions !== undefined ? { callOptions: input.callOptions } : {}),
       ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      observationSignal: input.observationSignal,
       ...(input.abortReason !== undefined ? { abortReason: input.abortReason } : {}),
+      getIntervalMs: input.getIntervalMs,
+      onObservation: input.onObservation,
       ...(input.onJobUpdate !== undefined ? { onJobUpdate: input.onJobUpdate } : {}),
     });
-    const artifacts = result.artifacts.map(toVideoArtifactSummary);
-    const trace = videoGenerateTrace(result.job, result.traceId);
-    return {
-      ok: true,
-      capabilityId: 'video.generate',
-      message: artifacts.length === 1
-        ? 'Runtime video.generate completed with 1 artifact.'
-        : `Runtime video.generate completed with ${artifacts.length} artifacts.`,
-      output: {
-        kind: 'video-artifacts',
-        jobId: result.job.jobId,
-        jobStatus: videoJobStatusName(result.job.status),
-        artifactCount: artifacts.length,
-        ...(artifacts[0] ? { firstArtifact: artifacts[0] } : {}),
-        artifacts,
-      },
-      ...(trace ? { trace } : {}),
-    };
+    return projectVideoGenerate(result);
   } catch (cause) {
     const error = asNimiError(cause, {
       reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
@@ -168,6 +160,7 @@ function toVideoArtifactSummary(
   const sizeBytes = videoArtifactSize(artifact);
   const base = {
     ...(artifactId ? { artifactId } : {}),
+    ...(artifact.sha256 ? { sha256: artifact.sha256 } : {}),
     mimeType,
     ...(uri ? { uri } : {}),
     ...(sizeBytes > 0 ? { sizeBytes } : {}),
@@ -237,4 +230,47 @@ function bytesToBase64(bytes: Uint8Array): string {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/** Observes an existing Job. signal detaches; cancelSignal is explicit Cancel. */
+export async function observeRuntimeVideoGenerate(input: Pick<RuntimeVideoGenerateInput,
+  'runtime' | 'callOptions' | 'signal' | 'abortReason' | 'getIntervalMs' | 'onObservation' | 'onJobUpdate'> & { readonly jobId: string; readonly cancelSignal?: AbortSignal }): Promise<RuntimeVideoGenerateResult> {
+  try {
+    const result = await observeNimiRuntimeScenarioJob({ ...input, ai: input.runtime.ai, scenarioType: ScenarioType.VIDEO_GENERATE });
+    return projectVideoGenerate(result);
+  } catch (cause) {
+    const error = asNimiError(cause, {
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'inspect_runtime_video_execution',
+      source: 'runtime',
+    });
+    return {
+      ok: false,
+      capabilityId: 'video.generate',
+      reason: videoNonSuccessReasonFromError(error),
+      message: error.message,
+      error,
+    };
+  }
+}
+
+function projectVideoGenerate(result: Awaited<ReturnType<typeof runNimiRuntimeVideoGeneration>>): RuntimeVideoGenerateSuccess {
+  const artifacts = result.artifacts.map(toVideoArtifactSummary);
+  const trace = videoGenerateTrace(result.job, result.traceId);
+  return {
+    ok: true,
+    capabilityId: 'video.generate',
+    message: artifacts.length === 1
+      ? 'Runtime video.generate completed with 1 artifact.'
+      : `Runtime video.generate completed with ${artifacts.length} artifacts.`,
+    output: {
+      kind: 'video-artifacts',
+      jobId: result.job.jobId,
+      jobStatus: videoJobStatusName(result.job.status),
+      artifactCount: artifacts.length,
+      ...(artifacts[0] ? { firstArtifact: artifacts[0] } : {}),
+      artifacts,
+    },
+    ...(trace ? { trace } : {}),
+  };
 }

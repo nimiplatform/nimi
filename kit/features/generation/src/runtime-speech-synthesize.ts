@@ -1,4 +1,6 @@
+import type { NimiRuntimeScenarioJobObservation } from '@nimiplatform/kit/core/sdk-contract';
 import {
+  observeNimiRuntimeScenarioJob, ScenarioType, extractNimiRuntimeSpeechSynthesisOutput,
   ReasonCode,
   RoutePolicy,
   ScenarioJobStatus,
@@ -24,6 +26,7 @@ export type RuntimeSpeechSynthesizeNonSuccessReason =
 
 export type RuntimeSpeechSynthesizeArtifactSummary = {
   readonly artifactId?: string;
+  readonly sha256?: string;
   readonly mimeType: string;
   readonly uri?: string;
   readonly previewUrl?: string;
@@ -89,6 +92,9 @@ export type RuntimeSpeechSynthesizeInput = {
   readonly surfaceId: string;
   readonly callOptions?: RuntimeTypedCallOptions;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
 };
@@ -124,27 +130,13 @@ export async function runRuntimeSpeechSynthesize(
       labels: speechSynthesizeLabels(input),
       ...(input.callOptions !== undefined ? { callOptions: input.callOptions } : {}),
       ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      observationSignal: input.observationSignal,
       ...(input.abortReason !== undefined ? { abortReason: input.abortReason } : {}),
+      getIntervalMs: input.getIntervalMs,
+      onObservation: input.onObservation,
       ...(input.onJobUpdate !== undefined ? { onJobUpdate: input.onJobUpdate } : {}),
     });
-    const artifacts = result.artifacts.map(toSpeechArtifactSummary);
-    const trace = speechSynthesizeTrace(result.job, result.traceId);
-    return {
-      ok: true,
-      capabilityId: 'audio.synthesize',
-      message: artifacts.length === 1
-        ? 'Runtime audio.synthesize completed with 1 artifact.'
-        : `Runtime audio.synthesize completed with ${artifacts.length} artifacts.`,
-      output: {
-        kind: 'audio-artifacts',
-        jobId: result.job.jobId,
-        jobStatus: speechJobStatusName(result.job.status),
-        artifactCount: artifacts.length,
-        ...(artifacts[0] ? { firstArtifact: artifacts[0] } : {}),
-        artifacts,
-      },
-      ...(trace ? { trace } : {}),
-    };
+    return projectSpeechSynthesize(result);
   } catch (cause) {
     const error = asNimiError(cause, {
       reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
@@ -177,6 +169,7 @@ function toSpeechArtifactSummary(
   const sizeBytes = speechArtifactSize(artifact);
   const base = {
     ...(artifactId ? { artifactId } : {}),
+    ...(artifact.sha256 ? { sha256: artifact.sha256 } : {}),
     mimeType,
     ...(uri ? { uri } : {}),
     ...(sizeBytes > 0 ? { sizeBytes } : {}),
@@ -250,4 +243,47 @@ function bytesToBase64(bytes: Uint8Array): string {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/** Observes an existing Job. signal detaches; cancelSignal is explicit Cancel. */
+export async function observeRuntimeSpeechSynthesize(input: Pick<RuntimeSpeechSynthesizeInput,
+  'runtime' | 'callOptions' | 'signal' | 'abortReason' | 'getIntervalMs' | 'onObservation' | 'onJobUpdate'> & { readonly jobId: string; readonly cancelSignal?: AbortSignal }): Promise<RuntimeSpeechSynthesizeResult> {
+  try {
+    const result = await observeNimiRuntimeScenarioJob({ ...input, ai: input.runtime.ai, scenarioType: ScenarioType.SPEECH_SYNTHESIZE });
+    return projectSpeechSynthesize({ ...result, ...extractNimiRuntimeSpeechSynthesisOutput(result.output) });
+  } catch (cause) {
+    const error = asNimiError(cause, {
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'inspect_runtime_speech_synthesis',
+      source: 'runtime',
+    });
+    return {
+      ok: false,
+      capabilityId: 'audio.synthesize',
+      reason: speechNonSuccessReasonFromError(error),
+      message: error.message,
+      error,
+    };
+  }
+}
+
+function projectSpeechSynthesize(result: Awaited<ReturnType<typeof runNimiRuntimeSpeechSynthesis>>): RuntimeSpeechSynthesizeSuccess {
+  const artifacts = result.artifacts.map(toSpeechArtifactSummary);
+  const trace = speechSynthesizeTrace(result.job, result.traceId);
+  return {
+    ok: true,
+    capabilityId: 'audio.synthesize',
+    message: artifacts.length === 1
+      ? 'Runtime audio.synthesize completed with 1 artifact.'
+      : `Runtime audio.synthesize completed with ${artifacts.length} artifacts.`,
+    output: {
+      kind: 'audio-artifacts',
+      jobId: result.job.jobId,
+      jobStatus: speechJobStatusName(result.job.status),
+      artifactCount: artifacts.length,
+      ...(artifacts[0] ? { firstArtifact: artifacts[0] } : {}),
+      artifacts,
+    },
+    ...(trace ? { trace } : {}),
+  };
 }

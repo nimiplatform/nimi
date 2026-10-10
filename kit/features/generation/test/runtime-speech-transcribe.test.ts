@@ -15,6 +15,7 @@ import { runRuntimeSpeechTranscribe, type RuntimeSpeechTranscribeInput } from '.
 
 function transcriptionJob(status: ScenarioJobStatus): ScenarioJob {
   return {
+    submissionOutcome: 0, stopOutcome: 0,
     jobId: 'job-transcribe-1', scenarioType: ScenarioType.SPEECH_TRANSCRIBE,
     executionMode: ExecutionMode.ASYNC_JOB, routeDecision: 2, modelResolved: 'stt-runtime', status,
     providerJobId: '', reasonCode: 0, reasonDetail: '', retryCount: 0, artifacts: [], traceId: 'trace-stt-1',
@@ -39,7 +40,7 @@ function fakeClient(config: {
     return { job: transcriptionJob(ScenarioJobStatus.RUNNING) };
   });
   const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
-    job: config.lookupJob ?? transcriptionJob(ScenarioJobStatus.COMPLETED),
+    job: (cancelScenarioJob.mock.calls.length ? config.cancelJob : undefined) ?? config.lookupJob ?? transcriptionJob(ScenarioJobStatus.COMPLETED),
   }));
   const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({
     ...(config.cancelJob ? { job: config.cancelJob } : {}),

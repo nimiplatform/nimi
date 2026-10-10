@@ -1,3 +1,4 @@
+import { RuntimeReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-contract';
 import type { NimiLocalAppAgentWorkShell, NimiLocalAppIntegrationShell } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/kit/core/sdk-contract';
@@ -256,6 +257,8 @@ export type NimiLocalAppScenarioArtifact = {
   readonly width: number; readonly height: number; readonly sampleRateHz: number; readonly channels: number;
 };
 export type NimiLocalAppScenarioJob = {
+  readonly submissionOutcome?: 'not-dispatched' | 'unknown' | 'accepted' | 'rejected';
+  readonly stopOutcome?: 'not-dispatched' | 'confirmed' | 'unconfirmed';
   readonly recoveryExpiresAt?: NimiLocalAppScenarioTimestamp;
   readonly videoFaceSwapSummary?: { readonly totalFrames: number; readonly transformedFrames: number; readonly preservedFrames: number; readonly durationUs: number; readonly frameRate: 24 | 25 | 30; readonly audioPreserved: boolean };
   readonly jobId: string;
@@ -289,6 +292,7 @@ export type NimiLocalAppScenarioJobSubmitResult = {
   readonly job: NimiLocalAppScenarioJob;
 };
 export type NimiLocalAppScenarioJobGetResult = {
+  readonly observationIssue?: { readonly reasonCode: string; readonly observedAt: NimiLocalAppScenarioTimestamp };
   readonly job: NimiLocalAppScenarioJob;
   readonly visionLocate?: NimiLocalAppVisionLocateResult;
   readonly asset: NimiLocalAppVoiceAsset | null;
@@ -1039,6 +1043,7 @@ function abortableScenarioExecute(
   });
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r102
 export function submitNimiLocalAppScenarioJob(
   spec: NimiLocalAppScenarioJobSpec,
   options: NimiLocalAppScenarioJobSubmitOptions = {},
@@ -1046,8 +1051,8 @@ export function submitNimiLocalAppScenarioJob(
   const command = AIC_COMMANDS.scenarioJobSubmit;
   const timeoutMs = options.timeoutMs ?? 0;
   const clientSubmissionId = options.clientSubmissionId;
-  if (clientSubmissionId !== undefined && (!['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes(spec.type) || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
-    throw invalidInput(command, 'clientSubmissionId requires a supported retained media operation and a bounded action id');
+  if (clientSubmissionId !== undefined && (typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
+    throw invalidInput(command, 'clientSubmissionId requires a bounded Job action id');
   }
   return invokeChecked(command, { payload: {
     spec: canonicalScenarioSpec(spec, command),
@@ -2673,8 +2678,9 @@ function parseScenarioJobSubmit(value: unknown, command: string): NimiLocalAppSc
 
 function parseScenarioJobGet(value: unknown, command: string): NimiLocalAppScenarioJobGetResult {
   const record = assertRecord(value, `${command}: Job result is invalid`);
-  assertProjectionKeys(record, ['job', 'asset', 'voiceReference', ...(Object.hasOwn(record, 'visionLocate') ? ['visionLocate'] : [])], command, 'scenario Job result');
+  assertProjectionKeys(record, ['job', 'asset', 'voiceReference', ...(Object.hasOwn(record, 'visionLocate') ? ['visionLocate'] : []), ...(Object.hasOwn(record, 'observationIssue') ? ['observationIssue'] : [])], command, 'scenario Job result');
   const job = parseScenarioJob(record.job, command);
+  const observationIssue = record.observationIssue === undefined ? undefined : parseJobObservationIssue(record.observationIssue, command);
   const visionLocate = record.visionLocate === undefined ? undefined : parseVisionLocateResult(record.visionLocate, command);
   if ((job.scenarioType === 'vision-locate' && job.status === 'completed') !== Boolean(visionLocate) || (visionLocate && job.artifacts.length !== 0)) throw new Error(`${command}: Locate terminal result is invalid`);
   const asset = record.asset === null ? null : parseVoiceAsset(record.asset, command);
@@ -2686,6 +2692,7 @@ function parseScenarioJobGet(value: unknown, command: string): NimiLocalAppScena
   }
   return Object.freeze({
     job,
+    ...(observationIssue ? { observationIssue } : {}),
     asset,
     voiceReference,
     ...(visionLocate ? { visionLocate } : {}),
@@ -2701,6 +2708,8 @@ function parseScenarioJobEnvelope(value: unknown, command: string): { readonly j
 function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenarioJob {
   const record = assertRecord(value, `${command}: Job is invalid`);
   assertProjectionKeys(record, [
+    ...(Object.hasOwn(record, 'submissionOutcome') ? ['submissionOutcome'] : []),
+    ...(Object.hasOwn(record, 'stopOutcome') ? ['stopOutcome'] : []),
     ...(Object.hasOwn(record, 'recoveryExpiresAt') ? ['recoveryExpiresAt'] : []),
     'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
@@ -2728,7 +2737,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
   if (interruption !== undefined) {
     const cause = assertRecord(interruption, `${command}: Job interruption is invalid`);
     assertProjectionKeys(cause, ['cause', 'resubmitDisposition'], command, 'Job interruption');
-    if (cause.cause !== 'runtime-restart' || cause.resubmitDisposition !== 'caller-may-resubmit') throw new Error(`${command}: Job interruption is invalid`);
+    if (cause.cause !== 'runtime-restart' || (cause.resubmitDisposition !== 'caller-may-resubmit' && cause.resubmitDisposition !== 'outcome-uncertain')) throw new Error(`${command}: Job interruption is invalid`);
   }
   const transcription = record.transcription === undefined ? undefined : validateNimiLocalAppSpeechTranscript(record.transcription);
   if (transcription && (record.scenarioType !== 'speech-transcribe' || record.status !== 'completed' || transcription.text !== record.transcriptionText)) throw new Error(`${command}: speech transcription state is invalid`);
@@ -2745,7 +2754,9 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
   const musicGeneration = record.musicGeneration === undefined ? undefined : validateNimiLocalAppMusicGeneration(record.musicGeneration, artifacts);
   const recoveryExpiresAt = record.recoveryExpiresAt === undefined ? undefined : parseScenarioTimestamp(record.recoveryExpiresAt, command);
   if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes(String(record.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) throw new Error(`${command}: music recovery expiry is invalid`);
+  const facts = parseJobFacts(record, command);
   return Object.freeze({
+    ...facts,
     ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),
     ...(audioSeparation ? { audioSeparation } : {}),
@@ -4673,4 +4684,38 @@ function parseReferenceAudioInput(value: unknown, command: string): void {
  if (typeof row.supportsBytes !== 'boolean' || typeof row.supportsUri !== 'boolean' || (!row.supportsBytes && !row.supportsUri) || !['unsupported', 'optional', 'required'].includes(String(row.textMode)) || !Array.isArray(row.mimeTypes) || row.mimeTypes.length > 16 || row.mimeTypes.some(m => typeof m !== 'string' || !m || m.length > 64 || m.trim() !== m)) {
  throw new Error(`${command}: reference audio input is invalid`);
  }
+}
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.r102
+function parseJobFacts(record: Record<string, unknown>, command: string): Pick<NimiLocalAppScenarioJob, 'submissionOutcome' | 'stopOutcome'> {
+  const submission = record.submissionOutcome as NimiLocalAppScenarioJob['submissionOutcome'];
+  const stop = record.stopOutcome as NimiLocalAppScenarioJob['stopOutcome'];
+  if (!([undefined, 'not-dispatched', 'unknown', 'accepted', 'rejected'] as const).includes(submission)
+    || !([undefined, 'not-dispatched', 'confirmed', 'unconfirmed'] as const).includes(stop)) throw new Error(`${command}: Job outcome facts are invalid`);
+  if (record.status !== 'canceled' && stop !== undefined) throw new Error(`${command}: Job outcome facts are invalid`);
+  if (submission !== undefined) {
+    const valid = record.status === 'submitted' || record.status === 'queued' ? submission === 'not-dispatched'
+      : record.status === 'running' ? submission === 'unknown' || submission === 'accepted'
+      : record.status === 'completed' ? submission === 'accepted'
+      : record.status === 'timeout' ? submission !== 'rejected'
+      : record.status === 'canceled' ? submission === 'not-dispatched' ? stop === 'not-dispatched'
+        : submission === 'unknown' ? stop === 'unconfirmed' : stop === 'confirmed' || stop === 'unconfirmed'
+      : record.status === 'failed';
+    if (!valid) throw new Error(`${command}: Job outcome facts are invalid`);
+    if (record.reasonCode === 'ai-provider-task-canceled' && (record.status !== 'canceled' || submission !== 'accepted' || stop !== 'confirmed')) throw new Error(`${command}: Job outcome facts are invalid`);
+    if (record.reasonCode === 'ai-provider-task-expired' && (record.status !== 'timeout' || submission !== 'accepted')) throw new Error(`${command}: Job outcome facts are invalid`);
+  }
+  return { ...(submission !== undefined ? { submissionOutcome: submission } : {}), ...(stop !== undefined ? { stopOutcome: stop } : {}) };
+}
+
+function parseJobObservationIssue(value: unknown, command: string): NonNullable<NimiLocalAppScenarioJobGetResult['observationIssue']> {
+  const record = assertRecord(value, `${command}: Job observation issue is invalid`);
+  assertProjectionKeys(record, ['reasonCode', 'observedAt'], command, 'Job observation issue');
+  const reasonCode = optionalProjectionText(record.reasonCode, 128, command);
+  if (!reasonCode) throw new Error(`${command}: Job observation reason is invalid`);
+  const key = reasonCode.replace(/[^a-z0-9]+/giu, '_').replace(/^_|_$/gu, '').toUpperCase();
+  const code = RuntimeReasonCode[key as keyof typeof RuntimeReasonCode];
+  const observedAt = parseScenarioTimestamp(record.observedAt, command);
+  if (typeof code !== 'number' || code === RuntimeReasonCode.REASON_CODE_UNSPECIFIED || !observedAt) throw new Error(`${command}: Job observation issue is invalid`);
+  return Object.freeze({ reasonCode, observedAt });
 }

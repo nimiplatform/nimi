@@ -286,10 +286,12 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
         throw formalScenarioExecuteError(error);
       }) as Promise<NimiElectronLocalAppRecord>;
     },
-    scenarioJobSubmit: (record) => ai.scenarioJobs.submit(
-      record.spec as never,
-      { timeoutMs: Number(record.timeoutMs ?? 0), ...(record.clientSubmissionId !== undefined ? { clientSubmissionId: requiredText(record.clientSubmissionId) } : {}) },
-    ) as Promise<NimiElectronLocalAppRecord>,
+    scenarioJobSubmit: (record) => {
+      if (record.timeoutMs !== undefined && record.timeoutMs !== 0) throw new NimiElectronLocalAppHostError('invalid-payload', false);
+      return ai.scenarioJobs.submit(record.spec as never,
+        { ...(record.clientSubmissionId !== undefined ? { clientSubmissionId: requiredText(record.clientSubmissionId) } : {}) },
+      ) as Promise<NimiElectronLocalAppRecord>;
+    },
     scenarioJobGet: (record) => {
       if (record.clientSubmissionId !== undefined) {
         if (record.jobId !== undefined) throw new NimiElectronLocalAppHostError('invalid-payload', false);

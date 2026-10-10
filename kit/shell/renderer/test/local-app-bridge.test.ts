@@ -14,7 +14,9 @@ import {
   openNimiLocalAppAssetMediaUrl,
 } from '../src/bridge/index.js';
 import { resolveTauriStandardCommand } from '../src/bridge/tauri-api.js';
-import { getNimiLocalAppScenarioJob, submitNimiLocalAppScenarioJob } from '../src/bridge/local-app.js';
+import { createNimiElectronLocalAppHostForBinding } from '../../electron/src/main/local-app-host.js';
+import { dispatchElectronLocalAppCommand } from '../../electron/src/main/local-app-commands.js';
+import { getNimiLocalAppScenarioJob, submitNimiLocalAppScenarioJob, type NimiLocalAppScenarioJobSpec } from '../src/bridge/local-app.js';
 
 afterEach(() => {
   delete (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__;
@@ -1740,4 +1742,225 @@ describe('renderer local-app standard-shell surface', () => {
     await media.revoke();
     expect(invocations.filter((command) => command.endsWith('assetMediaRevoke'))).toHaveLength(1);
   });
+});
+
+
+// Exercise the actual public SDK -> renderer bridge -> Electron command gates.
+// Only native binding responses are fixtures; the real Host decoder also runs. No Runtime/provider executes.
+const retainedJobSpecs: readonly NimiLocalAppScenarioJobSpec[] = [
+  { type: 'vision-locate', imageArtifactId: 'owned-image', query: 'red ceramic mug', geometry: 'box' },
+  { type: 'image-generate', prompt: 'a mug', negativePrompt: '', size: '', aspectRatio: '', quality: '', style: '', referenceImages: [], referenceImageArtifactId: '', mask: '', responseFormat: '' },
+  { type: 'image-face-swap', referenceImageArtifactId: 'reference', targetImageArtifactId: 'target' },
+  { type: 'video-face-swap', referenceImageArtifactId: 'reference', targetVideoArtifactId: 'target', noFacePolicy: 'fail' },
+  { type: 'video-generate', prompt: 'a scene', negativePrompt: '', mode: 't2v', content: [], options: { resolution: '', ratio: '' } },
+  { type: 'speech-synthesize', text: 'hello', language: 'en', audioFormat: 'wav', emotion: '', voiceRef: { type: 'preset', id: 'voice' }, timingMode: 'none', voiceRenderHints: null },
+  { type: 'speech-transcribe', mimeType: 'audio/wav', language: 'en', prompt: '', responseFormat: '', audioSource: { type: 'bytes', bytes: Uint8Array.of(1, 2) } },
+  { type: 'text-annotate', language: 'en', texts: ['hello'] },
+  { type: 'audio-separate', mimeType: 'audio/wav', sourceAudio: { artifactId: 'owned-audio' } },
+  { type: 'voice-create', creationSource: 'text-description', instructionText: 'a clear voice', previewText: 'hello', language: 'en', preferredName: '' },
+  { type: 'music-generate', prompt: 'a song', lyrics: '' },
+  { type: 'music-transcribe', sourceAudio: { artifactId: 'owned-audio' }, requestedFormats: ['midi'], requestedParts: ['note-events'] },
+  { type: 'audio-voice-convert', sourceVocal: { artifactId: 'owned-audio' }, sourceKind: 'singing', targetVoice: { kind: 'preset', presetVoiceId: 'voice' } },
+  { type: 'world-generate', prompt: 'a forest', displayName: '' },
+];
+
+it.each(retainedJobSpecs)('carries the original bounded action ID through both gates for $type', async spec => {
+  const calls: unknown[] = [];
+  const job = { jobId: 'original-job', scenarioType: spec.type, status: 'submitted', submissionOutcome: 'not-dispatched',
+    progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0, reasonCode: 'action-executed', reasonDetail: '',
+    artifacts: [], traceId: 'original-trace', createdAt: null, updatedAt: null, transcriptionText: '' };
+  const host = fixtureNativeJobHost((method, input) => { expect(method).toBe('localAppScenarioJobSubmit'); calls.push(input); return { job }; });
+  (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+    invoke: (command: string, input: { payload: Record<string, unknown> }) => dispatchElectronLocalAppCommand({ host, command, payload: input.payload }),
+  };
+  const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+  const clientSubmissionId = 'A'.repeat(126) + '_9';
+  await expect(client.ai.scenarioJobs.submit(spec, { clientSubmissionId })).resolves.toMatchObject({ job: { jobId: 'original-job' } });
+  const nativeSpec = spec.type === 'speech-transcribe' && spec.audioSource.type === 'bytes'
+    ? { ...spec, audioSource: { type: 'bytes', bytes: Buffer.from(spec.audioSource.bytes).toString('base64') } } : spec;
+  expect(calls).toEqual([{ spec: nativeSpec, timeoutMs: 0, clientSubmissionId }]);
+});
+
+it('keeps illegal identities, non-Job modes and malformed specs outside the protected Host', async () => {
+  let hostCalls = 0, invokes = 0;
+  const host = { async scenarioJobSubmit() { hostCalls++; throw new Error('invalid input reached Host'); } } as unknown as NonNullable<Parameters<typeof dispatchElectronLocalAppCommand>[0]['host']>;
+  (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+    invoke: (command: string, input: { payload: Record<string, unknown> }) => { invokes++; return dispatchElectronLocalAppCommand({ host, command, payload: input.payload }); },
+  };
+  const surface = createNimiLocalAppStandardShellSurface().ai;
+  for (const clientSubmissionId of ['', 'a/b', 'contains space', 'A'.repeat(129), '动作', 42]) {
+    expect(() => submitNimiLocalAppScenarioJob(retainedJobSpecs[0]!, { clientSubmissionId: clientSubmissionId as string })).toThrow('bounded Job action id');
+  }
+  expect(invokes).toBe(0);
+  const rejectedSpecs = [
+    { type: 'text-generate', input: 'hello' },
+    { type: 'text-embed', inputs: ['hello'] },
+    { type: 'text-decide' },
+    { type: 'text-turn-stream' },
+    { type: 'realtime-session' },
+    { ...retainedJobSpecs[0], geometry: 'unknown' },
+    { ...retainedJobSpecs[0], extra: true },
+  ];
+  for (const spec of rejectedSpecs) {
+    await expect(Promise.resolve().then(() => surface.scenarioJobs.submit(spec as NimiLocalAppScenarioJobSpec, { clientSubmissionId: 'valid-action' }))).rejects.toBeDefined();
+  }
+  expect(hostCalls).toBe(0);
+});
+
+
+function fixtureNativeJobHost(response: (method: string, input: unknown) => unknown) {
+  // Implement every required binding method as a local callback. Unexpected
+  // calls fail locally, so this fixture cannot open a real native session.
+  const binding = new Proxy({}, { get: (_target, method) => async (input: unknown) => ({ status: 'ok', value: response(String(method), input) }) });
+  return createNimiElectronLocalAppHostForBinding(binding as Parameters<typeof createNimiElectronLocalAppHostForBinding>[0]);
+}
+
+function nativeLocateJob(overrides: Record<string, unknown> = {}) {
+  return { jobId: 'original-job', scenarioType: 'vision-locate', status: 'running', submissionOutcome: 'accepted',
+    progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 1, reasonCode: 'action-executed', reasonDetail: '',
+    artifacts: [], traceId: 'original-trace', createdAt: null, updatedAt: null, transcriptionText: '', ...overrides };
+}
+
+function nativeJobGet(job: ReturnType<typeof nativeLocateJob>, outer: Record<string, unknown> = {}) {
+  return { job, asset: null, voiceReference: null,
+    ...(job.status === 'completed' ? { visionLocate: { imageArtifactId: 'owned-image', width: 20, height: 10, locations: [] } } : {}), ...outer };
+}
+
+function wireNativeResponse(response: () => unknown) {
+  const calls: string[] = [];
+  const host = fixtureNativeJobHost((method) => {
+    calls.push(method);
+    expect(['localAppScenarioJobGet', 'localAppScenarioJobCancel']).toContain(method);
+    return response();
+  });
+  (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+    invoke: (command: string, input: { payload: Record<string, unknown> }) => dispatchElectronLocalAppCommand({ host, command, payload: input.payload }),
+  };
+  const surface = createNimiLocalAppStandardShellSurface();
+  return { calls, surface, client: createNimiClient({ localApp: { standardShell: surface } }) };
+}
+
+it('preserves native Job facts through Host decoder, command, renderer and SDK for valid status combinations', async () => {
+  const cases = [
+    { status: 'submitted', submissionOutcome: 'not-dispatched' },
+    { status: 'queued', submissionOutcome: 'not-dispatched' },
+    { status: 'running', submissionOutcome: 'unknown' },
+    { status: 'running', submissionOutcome: 'accepted' },
+    { status: 'completed', submissionOutcome: 'accepted' },
+    { status: 'failed', submissionOutcome: 'not-dispatched' },
+    { status: 'failed', submissionOutcome: 'unknown' },
+    { status: 'failed', submissionOutcome: 'rejected' },
+    { status: 'timeout', submissionOutcome: 'unknown' },
+    { status: 'timeout', submissionOutcome: 'accepted', reasonCode: 'ai-provider-task-expired' },
+    { status: 'canceled', submissionOutcome: 'not-dispatched', stopOutcome: 'not-dispatched' },
+    { status: 'canceled', submissionOutcome: 'unknown', stopOutcome: 'unconfirmed' },
+    { status: 'canceled', submissionOutcome: 'accepted', stopOutcome: 'confirmed', reasonCode: 'ai-provider-task-canceled' },
+    { status: 'canceled', submissionOutcome: 'accepted', stopOutcome: 'unconfirmed' },
+    { status: 'canceled', submissionOutcome: 'rejected', stopOutcome: 'confirmed' },
+  ];
+  for (const facts of cases) {
+    const job = nativeLocateJob(facts);
+    const { client, calls } = wireNativeResponse(() => nativeJobGet(job));
+    const result = await client.ai.scenarioJobs.get(job.jobId);
+    expect(result.job).toMatchObject(facts);
+    if (facts.status === 'completed') expect(result.visionLocate?.locations).toEqual([]);
+    expect(calls).toEqual(['localAppScenarioJobGet']);
+  }
+  const job = nativeLocateJob({ status: 'canceled', submissionOutcome: 'accepted', stopOutcome: 'unconfirmed' });
+  const { client } = wireNativeResponse(() => ({ job }));
+  await expect(client.ai.scenarioJobs.cancel(job.jobId, 'user cancel')).resolves.toMatchObject({ job: { stopOutcome: 'unconfirmed' } });
+});
+
+it('preserves a response-local observation issue without changing Job status, and clears it when absent', async () => {
+  const job = nativeLocateJob({ submissionOutcome: 'unknown' });
+  const issue = { reasonCode: 'ai-provider-unavailable', observedAt: { seconds: '1', nanos: 0 } };
+  let response: unknown = nativeJobGet(job, { observationIssue: issue });
+  const { client } = wireNativeResponse(() => response);
+  await expect(client.ai.scenarioJobs.get(job.jobId)).resolves.toMatchObject({ job: { status: 'running', submissionOutcome: 'unknown' }, observationIssue: issue });
+  response = nativeJobGet(job);
+  expect((await client.ai.scenarioJobs.get(job.jobId)).observationIssue).toBeUndefined();
+});
+
+it('rejects illegal Job facts and observation shapes independently at Host decoder and renderer', async () => {
+  const invalidFacts = [
+    { submissionOutcome: 'unsupported' }, { submissionOutcome: null }, { submissionOutcome: 3 },
+    { stopOutcome: 'unsupported' }, { stopOutcome: null }, { stopOutcome: 1 },
+    { status: 'submitted', submissionOutcome: 'accepted' }, { status: 'queued', submissionOutcome: 'unknown' },
+    { status: 'running', submissionOutcome: 'not-dispatched' }, { status: 'completed', submissionOutcome: 'unknown' },
+    { status: 'timeout', submissionOutcome: 'rejected' }, { stopOutcome: 'confirmed' },
+    { status: 'canceled', submissionOutcome: 'not-dispatched', stopOutcome: 'confirmed' },
+    { status: 'canceled', submissionOutcome: 'unknown', stopOutcome: 'confirmed' },
+    { status: 'canceled', submissionOutcome: 'accepted' },
+    { status: 'canceled', submissionOutcome: 'rejected', stopOutcome: 'not-dispatched' },
+    { status: 'canceled', stopOutcome: 'unconfirmed', reasonCode: 'ai-provider-task-canceled' },
+    { status: 'timeout', submissionOutcome: 'unknown', reasonCode: 'ai-provider-task-expired' },
+    { unexpected: true }, { recoveryExpiresAt: { seconds: '1', nanos: 0 } },
+    { status: 'completed', submissionOutcome: 'accepted', recoveryExpiresAt: { seconds: '1', nanos: 0 } },
+  ];
+  const invalidIssues = [null, {}, { reasonCode: '', observedAt: { seconds: '1', nanos: 0 } },
+    { reasonCode: 'not-a-runtime-reason', observedAt: { seconds: '1', nanos: 0 } },
+    { reasonCode: 'REASON_CODE_UNSPECIFIED', observedAt: { seconds: '1', nanos: 0 } },
+    { reasonCode: 'ai-provider-unavailable', observedAt: null },
+    { reasonCode: 'ai-provider-unavailable', observedAt: { seconds: '1', nanos: 1_000_000_000 } },
+    { reasonCode: 'ai-provider-unavailable', observedAt: { seconds: '1', nanos: 0 }, unexpected: true }];
+  const responses = [
+    ...invalidFacts.map(facts => nativeJobGet(nativeLocateJob(facts))),
+    ...invalidIssues.map(observationIssue => nativeJobGet(nativeLocateJob(), { observationIssue })),
+    nativeJobGet(nativeLocateJob(), { unexpected: true }),
+  ];
+  for (const response of responses) {
+    const { surface } = wireNativeResponse(() => response);
+    await expect(surface.ai.scenarioJobs.get('original-job')).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = { invoke: async () => response };
+    await expect(surface.ai.scenarioJobs.get('original-job')).rejects.toMatchObject({ reasonCode: 'renderer-standard-shell-result-invalid' });
+  }
+});
+
+
+it('preserves owner-reported retained voice-create expiry without adding it to other voice results', async () => {
+  const recoveryExpiresAt = { seconds: '1791705600', nanos: 0 };
+  const asset = { voiceAssetId: 'retained-provider-voice', creationSource: 'text-description', status: 'active',
+    createdAt: null, updatedAt: null, expiresAt: { seconds: '1791792000', nanos: 0 } };
+  const job = { ...nativeLocateJob({ scenarioType: 'voice-create', status: 'completed', submissionOutcome: 'accepted' }), recoveryExpiresAt };
+  let response: unknown = { job, asset, voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId } };
+  const { client, surface } = wireNativeResponse(() => response);
+  const result = await client.ai.scenarioJobs.get(job.jobId);
+  expect(result.job.recoveryExpiresAt).toEqual(recoveryExpiresAt);
+  expect(result.asset?.expiresAt).toEqual(asset.expiresAt);
+  expect(result.voiceReference?.voiceAssetId).toBe(asset.voiceAssetId);
+  const { recoveryExpiresAt: _expiry, ...withoutRetention } = job;
+  response = { job: withoutRetention, asset, voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId } };
+  expect((await client.ai.scenarioJobs.get(job.jobId)).job.recoveryExpiresAt).toBeUndefined();
+  for (const invalid of [
+    { ...job, status: 'running' },
+    { ...job, recoveryExpiresAt: { seconds: '1791705600', nanos: -1 } },
+  ]) {
+    response = { job: invalid, asset, voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId } };
+    await expect(surface.ai.scenarioJobs.get(job.jobId)).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  }
+});
+
+it('preserves uncertain restart outcomes through the real Host decoder without turning them into resubmit permission', async () => {
+  for (const [submissionOutcome, resubmitDisposition] of [['unknown', 'outcome-uncertain'], ['not-dispatched', 'caller-may-resubmit']]) {
+    const interruption = { cause: 'runtime-restart', resubmitDisposition };
+    const job = nativeLocateJob({ status: 'failed', submissionOutcome, reasonCode: 'ai-execution-interrupted', interruption });
+    const { client, calls } = wireNativeResponse(() => nativeJobGet(job));
+    await expect(client.ai.scenarioJobs.get(job.jobId)).resolves.toMatchObject({ job: { status: 'failed', submissionOutcome, interruption } });
+    expect(calls).toEqual(['localAppScenarioJobGet']);
+  }
+  const valid = { cause: 'runtime-restart', resubmitDisposition: 'outcome-uncertain' };
+  for (const invalid of [
+    { interruption: { ...valid, resubmitDisposition: 'retry-now' } },
+    { interruption: { ...valid, cause: 'connection-lost' } },
+    { interruption: { ...valid, extra: true } },
+    { interruption: null }, { interruption: undefined },
+    { interruption: valid, status: 'running' },
+    { interruption: valid, reasonCode: 'ai-provider-internal' },
+  ]) {
+    const response = nativeJobGet(nativeLocateJob({ status: 'failed', submissionOutcome: 'unknown', reasonCode: 'ai-execution-interrupted', ...invalid }));
+    const { surface } = wireNativeResponse(() => response);
+    await expect(surface.ai.scenarioJobs.get('original-job')).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = { invoke: async () => response };
+    await expect(surface.ai.scenarioJobs.get('original-job')).rejects.toMatchObject({ reasonCode: 'renderer-standard-shell-result-invalid' });
+  }
 });

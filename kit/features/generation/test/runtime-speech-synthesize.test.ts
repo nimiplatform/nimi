@@ -15,6 +15,7 @@ import { runRuntimeSpeechSynthesize, type RuntimeSpeechSynthesizeInput } from '.
 
 function speechJob(status: ScenarioJobStatus): ScenarioJob {
   return {
+    submissionOutcome: 0, stopOutcome: 0,
     jobId: 'job-speech-1', scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
     executionMode: ExecutionMode.ASYNC_JOB, routeDecision: 2, modelResolved: 'tts-runtime', status,
     providerJobId: '', reasonCode: 0, reasonDetail: '', retryCount: 0, artifacts: [], traceId: 'trace-speech-1',
@@ -43,7 +44,7 @@ function fakeClient(config: {
     return { job: speechJob(ScenarioJobStatus.RUNNING) };
   });
   const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
-    job: config.lookupJob ?? speechJob(ScenarioJobStatus.COMPLETED),
+    job: (cancelScenarioJob.mock.calls.length ? config.cancelJob : undefined) ?? config.lookupJob ?? speechJob(ScenarioJobStatus.COMPLETED),
   }));
   const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({
     ...(config.cancelJob ? { job: config.cancelJob } : {}),

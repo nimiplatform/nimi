@@ -12,7 +12,8 @@ import { runRuntimeMusicGenerate } from '../src/runtime-music-generate.js';
 const generation = { mixArtifactId: 'artifact-music-1', termination: 3, audioInfo: { sampleRateHz: 48000, channels: 2, frameCount: '960000', durationMs: '20000' }, generatedScore: { artifactId: 'artifact-score-1', format: 1, origin: 1, truncated: false } };
 
 function musicJob(status: ScenarioJobStatus): ScenarioJob {
-  return { ...(status === ScenarioJobStatus.COMPLETED ? { musicGeneration: generation } : {}), jobId: 'job-music-1', scenarioType: ScenarioType.MUSIC_GENERATE, executionMode: ExecutionMode.ASYNC_JOB, routeDecision: 1, modelResolved: 'MiniMax-Music3', status, providerJobId: '', reasonCode: 0, reasonDetail: '', retryCount: 0, artifacts: [], traceId: 'trace-music-1', ignoredExtensions: [], progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0, transcriptionText: '' };
+  return { ...(status === ScenarioJobStatus.COMPLETED ? { musicGeneration: generation } : {}), submissionOutcome: 0, stopOutcome: 0,
+    jobId: 'job-music-1', scenarioType: ScenarioType.MUSIC_GENERATE, executionMode: ExecutionMode.ASYNC_JOB, routeDecision: 1, modelResolved: 'MiniMax-Music3', status, providerJobId: '', reasonCode: 0, reasonDetail: '', retryCount: 0, artifacts: [], traceId: 'trace-music-1', ignoredExtensions: [], progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0, transcriptionText: '' };
 }
 
 function protectedMusicClient() {

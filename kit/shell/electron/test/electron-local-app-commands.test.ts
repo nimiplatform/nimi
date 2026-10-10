@@ -443,8 +443,8 @@ describe('Electron local-app standard-shell operations', () => {
     const host = localAppHost(calls);
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
     const spec = { type: 'vision-locate', imageArtifactId: 'image-1', query: 'the Refresh button', geometry: 'point' };
-    await dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 120000 } });
-    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 120000 }]]);
+    await dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 0 } });
+    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 0 }]]);
     for (const invalid of [{ ...spec, modelId: 'model-1' }, { ...spec, geometry: 'center' }, { ...spec, imageArtifactId: '' }]) {
       await expect(dispatchElectronLocalAppCommand({ host, command, payload: { spec: invalid, timeoutMs: 0 } }))
         .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
@@ -459,8 +459,8 @@ describe('Electron local-app standard-shell operations', () => {
     const host = localAppHost(calls);
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
     const spec = { type: 'image-face-swap', referenceImageArtifactId: 'reference-1', targetImageArtifactId: 'target-1' };
-    await dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 120000 } });
-    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 120000 }]]);
+    await dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 0 } });
+    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 0 }]]);
     for (const invalid of [{ ...spec, provider: 'local' }, { ...spec, referenceImageArtifactId: '' }]) {
       await expect(dispatchElectronLocalAppCommand({ host, command, payload: { spec: invalid, timeoutMs: 0 } }))
         .rejects.toMatchObject({ reasonCode: 'invalid-payload' });

@@ -18,6 +18,7 @@ import {
 
 function videoJobForTest(status: ScenarioJobStatus, overrides: Partial<ScenarioJob> = {}): ScenarioJob {
   return {
+    submissionOutcome: 0, stopOutcome: 0,
     jobId: 'job-video-1',
     scenarioType: ScenarioType.VIDEO_GENERATE,
     executionMode: ExecutionMode.ASYNC_JOB,
@@ -87,7 +88,7 @@ function fakeScenarioJobClient(config: FakeClientConfig) {
     return { job: config.submitJob ?? videoJobForTest(ScenarioJobStatus.RUNNING) };
   });
   const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
-    job: config.lookupJob ?? config.events?.[config.events.length - 1] ?? config.submitJob ?? videoJobForTest(ScenarioJobStatus.COMPLETED),
+    job: (cancelScenarioJob.mock.calls.length ? config.cancelJob : undefined) ?? config.lookupJob ?? config.events?.[config.events.length - 1] ?? config.submitJob ?? videoJobForTest(ScenarioJobStatus.COMPLETED),
   }));
   const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({
     ...(config.cancelJob ? { job: config.cancelJob } : {}),
@@ -179,7 +180,7 @@ describe('runRuntimeVideoGenerate', () => {
     expect(request.executionMode).toBe(ExecutionMode.ASYNC_JOB);
     expect(request.head).toMatchObject({ appId: 'app.test', subjectUserId: 'user.test' });
     expect(request.labels).toEqual({ scenarioId: 'video-1', surfaceId: 'test' });
-    expect(request.requestId).toContain('app.test:video.generate:video-1:');
+    expect(request.requestId).toContain('app-test_video-generate_video-1_');
     expect(request.idempotencyKey).toBe(request.requestId);
     const spec = request.spec?.spec;
     if (spec?.oneofKind !== 'videoGenerate') throw new Error('expected videoGenerate spec');

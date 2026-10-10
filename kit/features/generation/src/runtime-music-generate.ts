@@ -1,3 +1,5 @@
+import { rejectJobBusinessTimeout } from './runtime-identity.js';
+import type { NimiRuntimeScenarioJobObservation } from '@nimiplatform/kit/core/sdk-contract';
 import {
   ExecutionMode,
   MusicScoreFormat, MusicScoreConditioning, MusicGenerationTermination, MusicScoreOrigin,
@@ -58,8 +60,11 @@ export type RuntimeMusicGenerateInput = Omit<NimiLocalAppMusicGenerateSpec, 'typ
   readonly subjectUserId?: string;
   readonly scenarioId: string;
   readonly surfaceId: string;
-  readonly timeoutMs?: number;
+
   readonly callOptions?: RuntimeTypedCallOptions;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
@@ -69,6 +74,7 @@ export type RuntimeMusicGenerateInput = Omit<NimiLocalAppMusicGenerateSpec, 'typ
 // protected Local App Scenario Job adapter, never an unprotected Runtime client.
 export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput): Promise<RuntimeMusicGenerateResult> {
   try {
+    rejectJobBusinessTimeout(input);
     const spec = validateNimiLocalAppMusicGenerateSpec({
       type: 'music-generate', prompt: input.prompt, lyrics: input.lyrics,
       ...(input.durationSeconds !== undefined ? { durationSeconds: input.durationSeconds } : {}),
@@ -82,7 +88,7 @@ export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput):
     });
     const identity = buildNimiRuntimeScenarioJobIdentity({ appId: input.appId, capabilityId: 'music.generate', scenarioId: input.scenarioId });
     const request: SubmitScenarioJobRequest = {
-      head: { appId: requireMusicText(input.appId, 'appId'), subjectUserId: normalizeText(input.subjectUserId), timeoutMs: input.timeoutMs ?? 0 },
+      head: { appId: requireMusicText(input.appId, 'appId'), subjectUserId: normalizeText(input.subjectUserId), timeoutMs: 0 },
       scenarioType: ScenarioType.MUSIC_GENERATE,
       executionMode: ExecutionMode.ASYNC_JOB,
       spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: {
@@ -98,7 +104,7 @@ export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput):
       labels: { scenarioId: input.scenarioId, surfaceId: input.surfaceId },
       extensions: [],
     };
-    const result = await runNimiRuntimeScenarioJob({ ai: input.runtime.ai, request, callOptions: input.callOptions, signal: input.signal, abortReason: input.abortReason, onJobUpdate: input.onJobUpdate });
+    const result = await runNimiRuntimeScenarioJob({ ai: input.runtime.ai, request, callOptions: input.callOptions, signal: input.signal, observationSignal: input.observationSignal, abortReason: input.abortReason, getIntervalMs: input.getIntervalMs, onObservation: input.onObservation, onJobUpdate: input.onJobUpdate });
     return projectRuntimeMusicGeneration(result);
   } catch (cause) {
     return musicGenerationFailure(cause);
@@ -107,12 +113,12 @@ export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput):
 
 /** Observe and retrieve an existing music Job. No submit or automatic replay occurs. */
 export async function observeRuntimeMusicGeneration(
-  input: Pick<RuntimeMusicGenerateInput, 'runtime' | 'callOptions' | 'signal' | 'abortReason' | 'onJobUpdate'> & { readonly jobId: string },
+  input: Pick<RuntimeMusicGenerateInput, 'runtime' | 'callOptions' | 'signal' | 'abortReason' | 'onJobUpdate' | 'getIntervalMs' | 'onObservation'> & { readonly jobId: string; readonly cancelSignal?: AbortSignal },
 ): Promise<RuntimeMusicGenerateResult> {
   try {
-    const result = await observeNimiRuntimeScenarioJob({ ai: input.runtime.ai, jobId: input.jobId,
+    const result = await observeNimiRuntimeScenarioJob({ cancelSignal: input.cancelSignal, ai: input.runtime.ai, jobId: input.jobId,
       scenarioType: ScenarioType.MUSIC_GENERATE, callOptions: input.callOptions, signal: input.signal,
-      abortReason: input.abortReason, onJobUpdate: input.onJobUpdate });
+      abortReason: input.abortReason, getIntervalMs: input.getIntervalMs, onObservation: input.onObservation, onJobUpdate: input.onJobUpdate });
     return projectRuntimeMusicGeneration(result);
   } catch (cause) { return musicGenerationFailure(cause); }
 }

@@ -13,11 +13,13 @@ import {
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   runRuntimeImageGenerate,
+  observeRuntimeImageGenerate,
   type RuntimeImageGenerateInput,
 } from '../src/runtime-image-generate.js';
 
 function imageJob(status: ScenarioJobStatus, overrides: Partial<ScenarioJob> = {}): ScenarioJob {
   return {
+    submissionOutcome: 0, stopOutcome: 0,
     jobId: 'job-image-1', scenarioType: ScenarioType.IMAGE_GENERATE,
     executionMode: ExecutionMode.ASYNC_JOB, routeDecision: 1, modelResolved: 'image-runtime',
     status, providerJobId: '', reasonCode: 0, reasonDetail: '', retryCount: 0, artifacts: [],
@@ -60,7 +62,7 @@ function fakeClient(config: {
     return { job: imageJob(ScenarioJobStatus.RUNNING) };
   });
   const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
-    job: config.lookupJob ?? config.events?.at(-1) ?? imageJob(ScenarioJobStatus.COMPLETED),
+    job: (cancelScenarioJob.mock.calls.length ? config.cancelJob : undefined) ?? config.lookupJob ?? config.events?.at(-1) ?? imageJob(ScenarioJobStatus.COMPLETED),
   }));
   const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({
     ...(config.cancelJob ? { job: config.cancelJob } : {}),
@@ -182,4 +184,16 @@ describe('runRuntimeImageGenerate', () => {
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({ jobId: 'job-image-1', reason: 'tester abort' });
   });
+});
+
+
+it('the image observer polls a silent subscription and its view signal never cancels', async () => {
+  const fake = fakeClient({ neverEndingEvents: true, lookupJob: imageJob(ScenarioJobStatus.RUNNING) });
+  const view = new AbortController(); let observations = 0;
+  const work = observeRuntimeImageGenerate({ runtime: { ai: fake.client }, jobId: 'job-image-1',
+    signal: view.signal, getIntervalMs: 1, onObservation: () => { if (++observations === 3) view.abort(); } });
+  const result = await work;
+  expect(result).toMatchObject({ ok: false, reason: 'operation-aborted' });
+  expect(observations).toBe(3); expect(fake.cancelScenarioJob).not.toHaveBeenCalled();
+  expect(fake.submitScenarioJob).not.toHaveBeenCalled();
 });

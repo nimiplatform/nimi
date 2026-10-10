@@ -117,8 +117,8 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
     text: { streamTurn: (input) => stream('textTurnSubscribe', 'textTurnStreamNext', 'textTurnStreamClose', input) },
     scenario: { execute },
     scenarioJobs: {
-      submit: (spec, options) => request('scenarioJobSubmit', { spec, timeoutMs: options?.timeoutMs ?? 0 }),
-      get: (jobId) => request('scenarioJobGet', { jobId }),
+      submit: (spec, options) => request('scenarioJobSubmit', { spec, timeoutMs: 0, ...(options?.clientSubmissionId !== undefined ? { clientSubmissionId: options.clientSubmissionId } : {}) }),
+      get: (jobId, clientSubmissionId) => request('scenarioJobGet', clientSubmissionId ? { clientSubmissionId } : { jobId }),
       subscribe: (jobId) => stream('scenarioJobSubscribe', 'scenarioJobStreamNext', 'scenarioJobStreamClose', { jobId }),
       cancel: (jobId, reason = '') => request('scenarioJobCancel', { jobId, reason }),
     },

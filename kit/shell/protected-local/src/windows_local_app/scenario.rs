@@ -27,7 +27,7 @@ use crate::generated::{
     LocalAppVideoGenerateJobSpec, LocalAppVideoGenerationOptions, LocalAppVoiceAsset,
     LocalAppVoiceCreateJobSpec, LocalAppWorldGenerateJobSpec, WorldGenerateOwnedImageInput, WorldImageProjection, MusicAudioInput,
     ReadLocalAppArtifactRequest as ProtoReadArtifactRequest, ScenarioJobEventType,
-    ScenarioJobStatus, ScenarioType, SpeechTimingMode, SpeechTranscriptionAudioSource,
+    ScenarioJobStatus, ScenarioJobSubmissionOutcome, ScenarioJobStopOutcome, ScenarioType, SpeechTimingMode, SpeechTranscriptionAudioSource,
     SubmitLocalAppScenarioJobRequest as ProtoSubmitJobRequest,
     SubscribeLocalAppScenarioJobEventsRequest,
     UploadLocalAppArtifactRequest as ProtoUploadArtifactRequest, VideoContentArtifactRef,
@@ -100,10 +100,6 @@ pub(super) async fn execute(
     let output = match response.output.ok_or_else(untrusted)? {
         ExecuteOutput::TextEmbed(value) => project_embedding_output(value)?,
         ExecuteOutput::TextGenerate(value) => text_behavior::project_output(value)?,
-        ExecuteOutput::ImageGenerate(value) => json!({
-            "type": "image-generate",
-            "artifacts": project_artifacts(value.artifacts)?,
-        }),
         ExecuteOutput::TextDecide(value) => {
             text_decision::project(decide.as_ref().ok_or_else(untrusted)?, value)?
         }
@@ -168,7 +164,6 @@ pub(super) async fn submit_job(
     let spec = parse_job_spec(request.spec)?;
     if !request.client_submission_id.is_empty() {
         require_submission_id(&request.client_submission_id)?;
-        if !matches!(spec, JobSpec::MusicGenerate(_) | JobSpec::MusicTranscribe(_) | JobSpec::AudioVoiceConvert(_) | JobSpec::VoiceCreate(_)) { return Err(invalid_payload()); }
     }
     let mut grpc_request = Request::new(ProtoSubmitJobRequest {
         spec: Some(spec),
@@ -227,6 +222,11 @@ pub(super) async fn get_job(
             .as_object_mut()
             .ok_or_else(untrusted)?
             .insert("visionLocate".to_string(), project_vision_locate(vision)?);
+    }
+    if let Some(issue) = response.observation_issue {
+        let reason = crate::generated::ReasonCode::try_from(issue.reason_code).map_err(|_| untrusted())?;
+        if reason == crate::generated::ReasonCode::Unspecified || issue.observed_at.is_none() { return Err(untrusted()); }
+        result["observationIssue"] = json!({"reasonCode": enum_token(reason.as_str_name(), "REASON_CODE_"), "observedAt": project_timestamp(issue.observed_at)?});
     }
     Ok(result)
 }
@@ -539,7 +539,6 @@ fn parse_execute_spec(value: JsonValue) -> Result<ExecuteSpec, LocalAppOperation
                     .transpose()?,
             }))
         }
-        "image-generate" => Ok(ExecuteSpec::ImageGenerate(parse_image_spec(&object)?)),
         "text-decide" => Ok(ExecuteSpec::TextDecide(text_decision::parse(&object)?)),
         _ => Err(invalid_payload()),
     }
@@ -1184,8 +1183,49 @@ fn parse_voice_text_description_source(
     })
 }
 
+fn project_job_outcomes(job: &LocalAppScenarioJob) -> Result<(Option<&'static str>, Option<&'static str>), LocalAppOperationError> {
+    use ScenarioJobSubmissionOutcome as Submission;
+    use ScenarioJobStopOutcome as Stop;
+    let submission = Submission::try_from(job.submission_outcome).map_err(|_| untrusted())?;
+    let stop = Stop::try_from(job.stop_outcome).map_err(|_| untrusted())?;
+    let status = ScenarioJobStatus::try_from(job.status).map_err(|_| untrusted())?;
+    if status != ScenarioJobStatus::Canceled && stop != Stop::Unspecified { return Err(untrusted()); }
+    if submission != Submission::Unspecified {
+        let valid = match status {
+            ScenarioJobStatus::Submitted | ScenarioJobStatus::Queued => submission == Submission::NotDispatched,
+            ScenarioJobStatus::Running => matches!(submission, Submission::Unknown | Submission::Accepted),
+            ScenarioJobStatus::Completed => submission == Submission::Accepted,
+            ScenarioJobStatus::Failed => true,
+            ScenarioJobStatus::Timeout => submission != Submission::Rejected,
+            ScenarioJobStatus::Canceled => match submission {
+                Submission::NotDispatched => stop == Stop::NotDispatched,
+                Submission::Unknown => stop == Stop::Unconfirmed,
+                Submission::Accepted | Submission::Rejected => matches!(stop, Stop::Confirmed | Stop::Unconfirmed),
+                _ => false,
+            },
+            _ => false,
+        };
+        if !valid { return Err(untrusted()); }
+        if job.reason_code == crate::generated::ReasonCode::AiProviderTaskCanceled as i32 && (status != ScenarioJobStatus::Canceled || submission != Submission::Accepted || stop != Stop::Confirmed) { return Err(untrusted()); }
+        if job.reason_code == crate::generated::ReasonCode::AiProviderTaskExpired as i32 && (status != ScenarioJobStatus::Timeout || submission != Submission::Accepted) { return Err(untrusted()); }
+    }
+    Ok((match submission {
+        Submission::Unspecified => None,
+        Submission::NotDispatched => Some("not-dispatched"),
+        Submission::Unknown => Some("unknown"),
+        Submission::Accepted => Some("accepted"),
+        Submission::Rejected => Some("rejected"),
+    }, match stop {
+        Stop::Unspecified => None,
+        Stop::NotDispatched => Some("not-dispatched"),
+        Stop::Confirmed => Some("confirmed"),
+        Stop::Unconfirmed => Some("unconfirmed"),
+    }))
+}
+
 fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationError> {
     require_runtime_identifier(&job.job_id)?;
+    let (submission_outcome, stop_outcome) = project_job_outcomes(&job)?;
     let scenario_type = match ScenarioType::try_from(job.scenario_type).map_err(|_| untrusted())? {
         ScenarioType::ImageGenerate => "image-generate",
         ScenarioType::ImageFaceSwap => "image-face-swap",
@@ -1293,6 +1333,8 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         "updatedAt": project_timestamp(job.updated_at)?,
         "transcriptionText": job.transcription_text,
     });
+    if let Some(value) = submission_outcome { projected["submissionOutcome"] = json!(value); }
+    if let Some(value) = stop_outcome { projected["stopOutcome"] = json!(value); }
     if let Some(value) = transcription {
         projected
             .as_object_mut()
@@ -1639,11 +1681,11 @@ fn project_execution_interruption(
     let disposition = ExecutionResubmitDisposition::try_from(value.resubmit_disposition)
         .map_err(|_| untrusted())?;
     if cause != ExecutionInterruptionCause::RuntimeRestart
-        || disposition != ExecutionResubmitDisposition::CallerMayResubmit
+        || !matches!(disposition, ExecutionResubmitDisposition::CallerMayResubmit | ExecutionResubmitDisposition::OutcomeUncertain)
     {
         return Err(untrusted());
     }
-    Ok(json!({"cause": "runtime-restart", "resubmitDisposition": "caller-may-resubmit"}))
+    Ok(json!({"cause": "runtime-restart", "resubmitDisposition": if disposition == ExecutionResubmitDisposition::OutcomeUncertain { "outcome-uncertain" } else { "caller-may-resubmit" }}))
 }
 
 fn project_timestamp(
@@ -1914,6 +1956,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn job_outcomes_preserve_uncertainty_and_reject_false_stop() {
+        let mut job = LocalAppScenarioJob { status: ScenarioJobStatus::Timeout as i32,
+            submission_outcome: ScenarioJobSubmissionOutcome::Unknown as i32,
+            ..Default::default() };
+        assert_eq!(project_job_outcomes(&job).unwrap(), (Some("unknown"), None));
+        job.stop_outcome = ScenarioJobStopOutcome::Confirmed as i32;
+        assert!(project_job_outcomes(&job).is_err());
+        job.status = ScenarioJobStatus::Canceled as i32;
+        assert!(project_job_outcomes(&job).is_err());
+        job.stop_outcome = ScenarioJobStopOutcome::Unconfirmed as i32;
+        assert_eq!(project_job_outcomes(&job).unwrap(), (Some("unknown"), Some("unconfirmed")));
+        job.submission_outcome = 777;
+        assert!(project_job_outcomes(&job).is_err());
+        job.submission_outcome = 0;
+        job.stop_outcome = 0;
+        assert_eq!(project_job_outcomes(&job).unwrap(), (None, None));
+        let interruption = project_execution_interruption(Some(ExecutionInterruption {
+            cause: ExecutionInterruptionCause::RuntimeRestart as i32,
+            resubmit_disposition: ExecutionResubmitDisposition::OutcomeUncertain as i32,
+        })).unwrap();
+        assert_eq!(interruption["resubmitDisposition"], "outcome-uncertain");
+    }
+
+    #[test]
     fn canonical_audio_source_is_a_closed_owned_reference() {
         let parsed: crate::LocalAppArtifactUploadSource = serde_json::from_value(json!({
             "kind": "app-asset", "relativePath": "sources/原曲.mp3"
@@ -2143,25 +2209,25 @@ mod tests {
 
     #[test]
     fn optional_scalar_presence_and_owner_clamps_are_preserved() {
-        let image = parse_execute_spec(json!({
+        let image = parse_job_spec(json!({
             "type": "image-generate", "prompt": "portrait", "negativePrompt": "",
             "n": 0, "size": "", "aspectRatio": "", "quality": "", "style": "", "seed": 0,
             "referenceImages": [], "referenceImageArtifactId": "", "mask": "", "responseFormat": ""
         }))
         .expect("explicit zero image options");
-        let ExecuteSpec::ImageGenerate(image) = image else {
+        let JobSpec::ImageGenerate(image) = image else {
             panic!("image spec");
         };
         assert_eq!(image.n, Some(0));
         assert_eq!(image.seed, Some(0));
 
-        let omitted = parse_execute_spec(json!({
+        let omitted = parse_job_spec(json!({
             "type": "image-generate", "prompt": "portrait", "negativePrompt": "",
             "size": "", "aspectRatio": "", "quality": "", "style": "",
             "referenceImages": [], "referenceImageArtifactId": "", "mask": "", "responseFormat": ""
         }))
         .expect("omitted image options");
-        let ExecuteSpec::ImageGenerate(omitted) = omitted else {
+        let JobSpec::ImageGenerate(omitted) = omitted else {
             panic!("image spec");
         };
         assert_eq!(omitted.n, None);

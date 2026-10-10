@@ -165,6 +165,7 @@ export type {
   NimiRuntimeScenarioJobClient,
   NimiProtectedLocalScenarioJobClient,
   NimiRuntimeScenarioJobResult,
+  NimiRuntimeScenarioJobObservation,
   NimiRuntimeSpeechVoiceReference,
 } from '@nimiplatform/sdk/runtime';
 
@@ -221,6 +222,8 @@ export type {
   NimiTextTurnInput,
 } from '@nimiplatform/sdk/ai';
 export {
+  extractNimiRuntimeSpeechTranscriptionOutput,
+  extractNimiRuntimeSpeechSynthesisOutput,
   buildNimiRuntimeScenarioJobIdentity,
   runNimiRuntimeImageGeneration,
   runNimiRuntimeSpeechSynthesis,

@@ -1,3 +1,5 @@
+import { rejectJobBusinessTimeout } from './runtime-identity.js';
+import type { NimiRuntimeScenarioJobObservation } from '@nimiplatform/kit/core/sdk-contract';
 import { ExecutionMode, ScenarioType, MusicTranscriptionFormat, MusicTranscriptionPart, MusicTranscriptionCompleteness, MusicScoreFormat, MusicScoreOrigin,
   validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, buildNimiRuntimeScenarioJobIdentity, runNimiRuntimeScenarioJob, observeNimiRuntimeScenarioJob,
   asNimiError, ReasonCode, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription, type NimiProtectedLocalScenarioJobClient,
@@ -7,7 +9,10 @@ import { runtimeScenarioJobNonSuccessReasonFromError, type RuntimeScenarioJobNon
 export type RuntimeMusicTranscribeInput = Omit<NimiLocalAppMusicTranscribeSpec, 'type'> & {
   readonly runtime: { readonly ai: NimiProtectedLocalScenarioJobClient };
   readonly appId: string; readonly scenarioId: string; readonly surfaceId: string;
-  readonly signal?: AbortSignal; readonly abortReason?: string; readonly timeoutMs?: number;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
+  readonly signal?: AbortSignal; readonly abortReason?: string;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
 };
 export type RuntimeMusicTranscribeResult =
@@ -24,21 +29,22 @@ const part = { 'vocal-melody': MusicTranscriptionPart.VOCAL_MELODY, 'lead-sheet'
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-transcription
 export async function runRuntimeMusicTranscribe(input: RuntimeMusicTranscribeInput): Promise<RuntimeMusicTranscribeResult> {
   try {
+    rejectJobBusinessTimeout(input);
     const spec = validateNimiLocalAppMusicTranscribeSpec({ type: 'music-transcribe', sourceAudio: input.sourceAudio, requestedFormats: input.requestedFormats, requestedParts: input.requestedParts });
     const identity = buildNimiRuntimeScenarioJobIdentity({ appId: input.appId, capabilityId: 'music.transcribe', scenarioId: input.scenarioId });
     const result = await runNimiRuntimeScenarioJob({ ai: input.runtime.ai, request: {
-      head: { appId: input.appId, subjectUserId: '', timeoutMs: input.timeoutMs ?? 0 }, scenarioType: ScenarioType.MUSIC_TRANSCRIBE, executionMode: ExecutionMode.ASYNC_JOB,
+      head: { appId: input.appId, subjectUserId: '', timeoutMs: 0 }, scenarioType: ScenarioType.MUSIC_TRANSCRIBE, executionMode: ExecutionMode.ASYNC_JOB,
       spec: { spec: { oneofKind: 'musicTranscribe', musicTranscribe: {
         sourceAudio: { artifactId: spec.sourceAudio.artifactId, range: spec.sourceAudio.range ? { startFrame: String(spec.sourceAudio.range.startFrame), endFrame: String(spec.sourceAudio.range.endFrame) } : undefined },
         requestedFormats: spec.requestedFormats.map(value => format[value]), requestedParts: spec.requestedParts.map(value => part[value]),
       } } }, requestId: identity.requestId, idempotencyKey: identity.idempotencyKey, labels: { scenarioId: input.scenarioId, surfaceId: input.surfaceId }, extensions: [],
-    }, signal: input.signal, abortReason: input.abortReason, onJobUpdate: input.onJobUpdate });
+    }, signal: input.signal, observationSignal: input.observationSignal, abortReason: input.abortReason, getIntervalMs: input.getIntervalMs, onObservation: input.onObservation, onJobUpdate: input.onJobUpdate });
     return project(result);
   } catch (error) { return failure(error); }
 }
 
-export async function observeRuntimeMusicTranscription(input: Pick<RuntimeMusicTranscribeInput, 'runtime' | 'signal' | 'abortReason' | 'onJobUpdate'> & { readonly jobId: string }): Promise<RuntimeMusicTranscribeResult> {
-  try { return project(await observeNimiRuntimeScenarioJob({ ai: input.runtime.ai, jobId: input.jobId, scenarioType: ScenarioType.MUSIC_TRANSCRIBE, signal: input.signal, abortReason: input.abortReason, onJobUpdate: input.onJobUpdate })); }
+export async function observeRuntimeMusicTranscription(input: Pick<RuntimeMusicTranscribeInput, 'runtime' | 'signal' | 'abortReason' | 'onJobUpdate' | 'getIntervalMs' | 'onObservation'> & { readonly jobId: string; readonly cancelSignal?: AbortSignal }): Promise<RuntimeMusicTranscribeResult> {
+  try { return project(await observeNimiRuntimeScenarioJob({ cancelSignal: input.cancelSignal, ai: input.runtime.ai, jobId: input.jobId, scenarioType: ScenarioType.MUSIC_TRANSCRIBE, signal: input.signal, abortReason: input.abortReason, getIntervalMs: input.getIntervalMs, onObservation: input.onObservation, onJobUpdate: input.onJobUpdate })); }
   catch (error) { return failure(error); }
 }
 

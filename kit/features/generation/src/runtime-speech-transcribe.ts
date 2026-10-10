@@ -1,4 +1,6 @@
+import type { NimiRuntimeScenarioJobObservation } from '@nimiplatform/kit/core/sdk-contract';
 import {
+  observeNimiRuntimeScenarioJob, ScenarioType, extractNimiRuntimeSpeechTranscriptionOutput,
   ReasonCode,
   RoutePolicy,
   ScenarioJobStatus,
@@ -81,6 +83,9 @@ export type RuntimeSpeechTranscribeInput = {
   readonly surfaceId: string;
   readonly callOptions?: RuntimeTypedCallOptions;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
+  readonly observationSignal?: AbortSignal;
+  readonly getIntervalMs?: number;
+  readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
 };
@@ -115,24 +120,13 @@ export async function runRuntimeSpeechTranscribe(
       labels: speechTranscribeLabels(input),
       ...(input.callOptions !== undefined ? { callOptions: input.callOptions } : {}),
       ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      observationSignal: input.observationSignal,
       ...(input.abortReason !== undefined ? { abortReason: input.abortReason } : {}),
+      getIntervalMs: input.getIntervalMs,
+      onObservation: input.onObservation,
       ...(input.onJobUpdate !== undefined ? { onJobUpdate: input.onJobUpdate } : {}),
     });
-    const trace = speechTranscribeTrace(result.job, result.traceId);
-    return {
-      ok: true,
-      capabilityId: 'audio.transcribe',
-      message: result.transcription?.status === 'no-speech' ? 'No speech detected.' : result.text,
-      output: {
-        kind: 'transcript',
-        ...(result.transcription ? { transcription: result.transcription } : {}),
-        text: result.text,
-        jobId: result.job.jobId,
-        jobStatus: speechJobStatusName(result.job.status),
-        artifactCount: result.artifacts.length,
-      },
-      ...(trace ? { trace } : {}),
-    };
+    return projectSpeechTranscribe(result);
   } catch (cause) {
     const error = asNimiError(cause, {
       reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
@@ -218,4 +212,46 @@ function speechNonSuccessReasonFromError(error: NimiError): RuntimeSpeechTranscr
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/** Observes an existing Job. signal detaches; cancelSignal is explicit Cancel. */
+export async function observeRuntimeSpeechTranscribe(input: Pick<RuntimeSpeechTranscribeInput,
+  'runtime' | 'callOptions' | 'signal' | 'abortReason' | 'getIntervalMs' | 'onObservation' | 'onJobUpdate'> & { readonly jobId: string; readonly cancelSignal?: AbortSignal; readonly timestamps?: boolean }): Promise<RuntimeSpeechTranscribeResult> {
+  try {
+    const result = await observeNimiRuntimeScenarioJob({ ...input, ai: input.runtime.ai, scenarioType: ScenarioType.SPEECH_TRANSCRIBE });
+    const transcription = extractNimiRuntimeSpeechTranscriptionOutput(result.output);
+    if (input.timestamps && transcription.transcription?.status !== 'no-speech' && !transcription.transcription?.words.length) throw new Error('Runtime transcription is missing requested word timing');
+    return projectSpeechTranscribe({ ...result, ...transcription });
+  } catch (cause) {
+    const error = asNimiError(cause, {
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'inspect_runtime_speech_transcription',
+      source: 'runtime',
+    });
+    return {
+      ok: false,
+      capabilityId: 'audio.transcribe',
+      reason: speechNonSuccessReasonFromError(error),
+      message: error.message,
+      error,
+    };
+  }
+}
+
+function projectSpeechTranscribe(result: Awaited<ReturnType<typeof runNimiRuntimeSpeechTranscription>>): RuntimeSpeechTranscribeSuccess {
+  const trace = speechTranscribeTrace(result.job, result.traceId);
+  return {
+    ok: true,
+    capabilityId: 'audio.transcribe',
+    message: result.transcription?.status === 'no-speech' ? 'No speech detected.' : result.text,
+    output: {
+      kind: 'transcript',
+      ...(result.transcription ? { transcription: result.transcription } : {}),
+      text: result.text,
+      jobId: result.job.jobId,
+      jobStatus: speechJobStatusName(result.job.status),
+      artifactCount: result.artifacts.length,
+    },
+    ...(trace ? { trace } : {}),
+  };
 }

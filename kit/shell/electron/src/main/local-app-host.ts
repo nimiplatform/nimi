@@ -1,3 +1,4 @@
+import { RuntimeReasonCode, type NimiLocalAppClient } from '@nimiplatform/kit/core/sdk-contract';
 import { isIntegrationOwnerReasonMetadata } from './integration-owner-errors.js';
 import {
   NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS,
@@ -2364,10 +2365,11 @@ async function invokeScenarioJobGet(
   call: () => Promise<NativeLocalAppOutcome>,
 ): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['job', 'asset', 'voiceReference', ...(Object.hasOwn(value, 'visionLocate') ? ['visionLocate'] : [])])) {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['job', 'asset', 'voiceReference', ...(Object.hasOwn(value, 'visionLocate') ? ['visionLocate'] : []), ...(Object.hasOwn(value, 'observationIssue') ? ['observationIssue'] : [])])) {
     throw untrustedRuntimeError();
   }
   const job = validateScenarioJob(value.job);
+  const observationIssue = value.observationIssue === undefined ? undefined : validateJobObservationIssue(value.observationIssue);
   const visionLocate = value.visionLocate === undefined ? undefined : validateVisionLocateResult(value.visionLocate);
   if ((job.scenarioType === 'vision-locate' && job.status === 'completed') !== Boolean(visionLocate) || (visionLocate && (job.artifacts as readonly unknown[]).length !== 0)) throw untrustedRuntimeError();
   const asset = value.asset === null ? null : validateVoiceAsset(value.asset);
@@ -2381,6 +2383,7 @@ async function invokeScenarioJobGet(
   }
   return Object.freeze({
     job,
+    ...(observationIssue ? { observationIssue } : {}),
     asset,
     voiceReference,
     ...(visionLocate ? { visionLocate } : {}),
@@ -2481,6 +2484,8 @@ async function invokeScenarioStreamNext(
 
 function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value) || !hasExactKeys(value, [
+    ...(Object.hasOwn(value, 'submissionOutcome') ? ['submissionOutcome'] : []),
+    ...(Object.hasOwn(value, 'stopOutcome') ? ['stopOutcome'] : []),
     ...(Object.hasOwn(value, 'recoveryExpiresAt') ? ['recoveryExpiresAt'] : []),
     'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
@@ -2518,7 +2523,7 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   const videoFaceSwapSummary = value.videoFaceSwapSummary === undefined ? undefined : validateVideoFaceSwapSummary(value.videoFaceSwapSummary);
   const interruption = value.interruption;
   if ((interruption !== undefined) !== (value.reasonCode === 'ai-execution-interrupted') || (interruption !== undefined && value.status !== 'failed')) throw untrustedRuntimeError();
-  if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition']) || interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit')) throw untrustedRuntimeError();
+  if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition']) || interruption.cause !== 'runtime-restart' || (interruption.resubmitDisposition !== 'caller-may-resubmit' && interruption.resubmitDisposition !== 'outcome-uncertain'))) throw untrustedRuntimeError();
   const transcription = value.transcription === undefined ? undefined : validateNimiLocalAppSpeechTranscript(value.transcription);
   if (transcription && (value.scenarioType !== 'speech-transcribe' || value.status !== 'completed' || transcription.text !== value.transcriptionText)) throw untrustedRuntimeError();
   const artifacts = validateScenarioArtifacts(value.artifacts);
@@ -2533,8 +2538,10 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   const voiceConversion = value.voiceConversion === undefined ? undefined : validateNimiLocalAppVoiceConversion(value.voiceConversion, artifacts);
   const musicGeneration = value.musicGeneration === undefined ? undefined : validateNimiLocalAppMusicGeneration(value.musicGeneration, artifacts);
   const recoveryExpiresAt = value.recoveryExpiresAt === undefined ? undefined : validateTimestamp(value.recoveryExpiresAt);
-  if (value.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe', 'audio-voice-convert'].includes(String(value.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(value.status)))) throw untrustedRuntimeError();
+  if (value.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe', 'audio-voice-convert', 'voice-create'].includes(String(value.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(value.status)))) throw untrustedRuntimeError();
+  const facts = validateJobFacts(value);
   return Object.freeze({
+    ...facts,
     ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),
     ...(audioSeparation ? { audioSeparation } : {}),
@@ -3503,4 +3510,38 @@ function worldCreatorRecord(value: unknown): NimiElectronLocalAppRecord {
     validateProjectionValue(source.assets.externalRefs);
   }
   return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
+}
+
+type LocalAppJobFacts = Pick<Awaited<ReturnType<NimiLocalAppClient['ai']['scenarioJobs']['get']>>['job'], 'submissionOutcome' | 'stopOutcome'>;
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.r102
+function validateJobFacts(record: Record<string, unknown>): LocalAppJobFacts {
+  const submission = record.submissionOutcome as LocalAppJobFacts['submissionOutcome'];
+  const stop = record.stopOutcome as LocalAppJobFacts['stopOutcome'];
+  if (!([undefined, 'not-dispatched', 'unknown', 'accepted', 'rejected'] as const).includes(submission)
+    || !([undefined, 'not-dispatched', 'confirmed', 'unconfirmed'] as const).includes(stop)) throw untrustedRuntimeError();
+  if (record.status !== 'canceled' && stop !== undefined) throw untrustedRuntimeError();
+  if (submission !== undefined) {
+    const valid = record.status === 'submitted' || record.status === 'queued' ? submission === 'not-dispatched'
+      : record.status === 'running' ? submission === 'unknown' || submission === 'accepted'
+      : record.status === 'completed' ? submission === 'accepted'
+      : record.status === 'timeout' ? submission !== 'rejected'
+      : record.status === 'canceled' ? submission === 'not-dispatched' ? stop === 'not-dispatched'
+        : submission === 'unknown' ? stop === 'unconfirmed' : stop === 'confirmed' || stop === 'unconfirmed'
+      : record.status === 'failed';
+    if (!valid) throw untrustedRuntimeError();
+    if (record.reasonCode === 'ai-provider-task-canceled' && (record.status !== 'canceled' || submission !== 'accepted' || stop !== 'confirmed')) throw untrustedRuntimeError();
+    if (record.reasonCode === 'ai-provider-task-expired' && (record.status !== 'timeout' || submission !== 'accepted')) throw untrustedRuntimeError();
+  }
+  return { ...(submission !== undefined ? { submissionOutcome: submission } : {}), ...(stop !== undefined ? { stopOutcome: stop } : {}) };
+}
+
+function validateJobObservationIssue(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['reasonCode', 'observedAt'])) throw untrustedRuntimeError();
+  const reasonCode = boundedExactText(value.reasonCode, 128, false);
+  const key = reasonCode.replace(/[^a-z0-9]+/giu, '_').replace(/^_|_$/gu, '').toUpperCase();
+  const code = RuntimeReasonCode[key as keyof typeof RuntimeReasonCode];
+  const observedAt = validateTimestamp(value.observedAt);
+  if (typeof code !== 'number' || code === RuntimeReasonCode.REASON_CODE_UNSPECIFIED || !observedAt) throw untrustedRuntimeError();
+  return Object.freeze({ reasonCode, observedAt });
 }
