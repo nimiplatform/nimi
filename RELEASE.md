@@ -83,22 +83,13 @@ commit: `sdks/typescript/package.json`, `kit/package.json`,
 `kit/shell/tauri/Cargo.toml`. A manifest version on `main` is a prepared
 candidate, not a publication; npm and crates.io show which versions are public.
 
-The current candidate combination is unpublished, and publishing it needs
-explicit authorization. Its intended tags, with the upgrade notes in the SDK,
-Kit, and adapter packages, are:
-
-```text
-sdk/v0.19.0
-nimi-shell-protected-local/v0.8.0
-kit/v0.16.0
-sdk-adapter-vercel-ai/v0.3.0
-nimi-shell-tauri/v0.8.0
-```
-
-App Tools 0.11.4 is not part of this candidate: its fresh-scaffold default still
-names SDK `^0.18.1`, Kit `^0.15.3` and `nimi-shell-tauri` 0.7.0, which were never
-published, so its registry preflight rejects it until that default names a
-published combination.
+Read the candidate versions from those manifests and the adapter's
+`sdks/typescript/adapters/vercel-ai/package.json` when preparing a release.
+For App Tools, inspect its `nimiScaffoldVersions` declarations and admitted dependency
+combinations as well as its own version. A newer SDK/Kit development combination
+does not automatically change the fresh-scaffold default or prove any package
+was published. Registry preflight must verify every required public dependency
+before a production tag is prepared.
 
 `nimi-shell-tauri/v0.2.0` is an immutable failed publication attempt. Its
 crates.io dependency preflight was rejected before package upload, so the tag
@@ -142,7 +133,8 @@ The preview does not publish npm packages, crates, or Proto and never becomes
 input to a component release. It does not establish a Nimi product release,
 public download, native installation, first launch, self-update, or uninstall.
 Runtime service distribution, Desktop production signing/notarization, and Kit
-native carrier publication remain deferred.
+native carriers each require their own target-specific release verification; this
+preview does not establish those outcomes.
 
 ## Credentials and external configuration
 

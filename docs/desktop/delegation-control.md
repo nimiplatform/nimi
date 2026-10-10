@@ -3,7 +3,7 @@
 ## Status: Admitted Contract; Desktop-Owned Surface
 
 Delegation Control is a Desktop surface, defined at the kernel level
-(`canonical/desktop/agent-projection.authority.yaml`). The approval
+(`.nimi/spec/desktop/agent-projection.authority.yaml`). The approval
 and quarantine UI you use belongs to Desktop itself, not to app-owned
 SDK code.
 

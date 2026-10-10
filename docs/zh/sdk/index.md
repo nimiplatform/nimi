@@ -76,8 +76,7 @@ TypeScript SDK 只有一个 base package。外部框架适配器是独立 packag
 
 ## SDK 为什么存在
 
-Nimi 有多个 owner domain。Runtime 持有执行、LocalAgent Conversation、Memory
-与 Knowledge；Realm 持有 Character、World、social 与 semantic truth；
+Nimi 有多个 owner domain。Runtime 持有执行与 LocalAgent Conversation；Cognition 持有长期 Memory，由 Runtime 中介访问，Knowledge V1 暂无活动路径；Realm 持有 Character、World、social 与 semantic truth；
 Desktop 持有原生 shell 行为。App 需要稳定使用这些域，而不是导入它们的私有实现。
 
 SDK 就是这条边界。它把已准入的 owner-domain 行为投影成开发者可用的

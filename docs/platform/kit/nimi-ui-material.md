@@ -3,7 +3,7 @@
 ## Status: Admitted Contract; Public Use Follows Design/Runtime Surfaces
 
 The 5-tier material taxonomy under `P-DESIGN-022` is admitted and
-the token catalog is shipped under `tables/nimi-ui-tokens.yaml`. The
+the token catalog is shipped under `config/platform-nimi-ui-tokens.yaml`. The
 perf-downgrade hook-point interface is admitted at the spec level;
 runtime-side perf-downgrade behavior is available only when exposed by
 the owning design/runtime surface.
@@ -126,7 +126,7 @@ A designer proposes a sixth material tier for a new visual context.
 1. **Closed taxonomy.** The contract does not pre-authorize
    expansion.
 2. **Admission required.** The proposal goes through governance: new
-   tier added to `tables/nimi-ui-tokens.yaml` material category, new
+   tier added to `config/platform-nimi-ui-tokens.yaml` material category, new
    blur radii admitted, new tier added to `<Surface>` primitive's
    variant set, perf-downgrade interface reviewed.
 3. **After admission.** The new tier ships with the same consumer
@@ -150,8 +150,8 @@ turns a design system into per-app sprawl.
 | Concern | Authority |
 | --- | --- |
 | 5-tier taxonomy + tokens | `P-DESIGN-022` (this contract) |
-| Token catalog | `tables/nimi-ui-tokens.yaml` |
-| Theme values | `tables/nimi-ui-themes.yaml` |
+| Token catalog | `config/platform-nimi-ui-tokens.yaml` |
+| Theme values | `config/platform-nimi-ui-themes.yaml` |
 | `<Surface>` primitive | `@nimiplatform/kit/ui` |
 | Perf-downgrade interface | This contract (spec-level) |
 | Runtime perf-downgrade implementation | Consumer responsibility (separate) |

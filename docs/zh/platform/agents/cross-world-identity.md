@@ -8,15 +8,14 @@ World。走进一个新世界不会造出第二个角色；世界自己的来源
 LocalAgent 身份。
 
 Runtime 只能从 Realm 签发的 Character Source 运行 LocalAgent。它可以混入
-世界共享出来的上下文，用于执行、Memory 和 Knowledge，但得到的仍是一个由
-Runtime 运行的本地执行实体。
+世界准入的上下文用于执行及可选 Cognition 来源检索，但这不会启用 Knowledge 路径。
 
-同一个 Character Source 可以运行出多个 LocalAgent。除非有显式约定，它们
-各自的运行态 Memory、Knowledge、Conversation、状态、预算和生命周期彼此
-独立。共享同一份来源，不等于共享活的本地状态。
+同一个 Character Source 可以运行出多个 LocalAgent，各自保留独立 Conversation、状态、预算、生命周期及 Cognition 私有 Memory。共享同一份来源不等于共享本地状态。
 
 App 只能看到已授权的引用和视图。它不能按角色引用合并 LocalAgent，也不
 能用本地缓存冒充跨 World 身份。
+
+长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## 来源依据
 

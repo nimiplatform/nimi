@@ -8,7 +8,7 @@
 
 | 属性 | 值 |
 | --- | --- |
-| 权威 | `realm/kernel/world-state-contract.md` (`R-WSTATE-*`) |
+| 权威 | Realm World State owner (`R-WSTATE-*`) |
 | 目的 | 世界的共享当前状态 |
 | 范围 | 仅限持久共享范围：`WORLD`, `ENTITY`, `RELATION` |
 | 变更方法 | 显式提交信封 |
@@ -20,7 +20,7 @@
 
 | 属性 | 值 |
 | --- | --- |
-| 权威 | `realm/kernel/world-history-contract.md` (`R-WHIST-*`) |
+| 权威 | Realm World History owner (`R-WHIST-*`) |
 | 目的 | 规范的事实记录 |
 | 追加姿态 | 显式追加 |
 | 故事追踪/原始回合日志/应用私有存档 | 不在领域历史中 |

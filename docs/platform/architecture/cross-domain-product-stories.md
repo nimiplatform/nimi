@@ -9,7 +9,7 @@ These stories show how owner boundaries compose in user-facing flows.
 3. Runtime materializes an owner-scoped LocalAgent from that source.
 4. Nimi Home or an App receives only the authorized LocalAgent projection
    through the SDK.
-5. Runtime keeps Conversation, operational Memory and Knowledge, route,
+5. Runtime keeps Conversation, Memory mediation, route,
    readiness, and credentials private to its owner boundary.
 
 The host does not create Character identity, and Realm does not execute the
@@ -29,7 +29,7 @@ and presentation timing remain Runtime projections.
 ## Use a scaffolded App
 
 1. Nimi Home launches the App through the current protected local path.
-2. The App supplies typed intent and an explicit LocalAgent target through the
+2. The App supplies typed intent and a current session-scoped `agentHandle` through the
    standard SDK.
 3. Runtime derives account, App identity, authorization, and access from the
    active session.
@@ -38,6 +38,8 @@ and presentation timing remain Runtime projections.
 
 Direct SDK and scaffolded App usage share this product contract. Host
 integration is not a user-selectable product profile.
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

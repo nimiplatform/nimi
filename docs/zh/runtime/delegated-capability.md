@@ -1,7 +1,7 @@
 # 委派能力
 
 委派或 external action 是可选的 Runtime capability。它不是 Local AI、
-LocalAgent Conversation、Memory、Knowledge、voice、SDK 使用、Nimi Home、
+LocalAgent Conversation、Memory、voice、SDK 使用、Nimi Home、
 Avatar 或普通 App 能力执行 的前置。
 
 ## 边界
@@ -19,9 +19,7 @@ Provider-native payload、tool schema、Credential 与外部 execution state 都
 不可用的外部能力应单独返回 typed unavailable 或 failed，不得被 Runtime
 转换成 LocalAgent failure 或全局 readiness blocker。
 
-MCP、A2A 与其他 protocol-specific transport 是未来 adapter 选择，不是当前
-公共产品 ontology。App、Desktop、Avatar 与 SDK consumer 都不能自行实例化
-这些 transport 作为 shortcut。
+MCP 可以作为独立[集成](/zh/runtime/integrations)契约的适配器。普通 App Integration 调用不要求委派 Agent 会话、建议防火墙、隔离或审批重放；实际适配器与操作可用性分别检查。A2A 仍是未来接口方向，消费者不能通过私有协议客户端绕过 Runtime。
 
 ## 来源依据
 

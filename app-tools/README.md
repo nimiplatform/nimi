@@ -110,12 +110,13 @@ rejected rather than normalized. A matrix range in the manifest does not
 require an automatic upgrade; install with the frozen lockfile until
 deliberately selecting and synchronizing a new component combination.
 
-App Tools 0.9 requires SDK `^0.16.0` with Kit `^0.13.0`. Kit 0.13 supplies the
-mandatory Electron Host-profile entrypoint; earlier combinations are rejected
-before sync writes files. Select both dependency ranges in `package.json`, run
-`nimi-app sync`, install the normalized dependencies and update the lockfile,
-then run `nimi-app check` and the App's build. Sync does not upgrade these
-business dependencies on your behalf or generate an older Host fallback.
+The current source guide uses App Tools 0.11.4 with SDK `^0.21.0`, Kit/native
+`^0.18.0`, the matching Runtime, and Tauri `0.10.0` when selected. Fresh scaffold
+defaults still come from `nimiScaffoldVersions` in `package.json`; explicitly
+select the current SDK/Kit pair to use this guide. On an initialized App, run
+`nimi-app sync`, install the resulting dependencies, then run `nimi-app check`
+and the App build. A fresh project installs dependencies and runs `init` first.
+Sync preserves admitted explicit pairs and never supplies an older Host fallback.
 
 ### Music reference flow
 
@@ -134,11 +135,10 @@ saved result are used for later reopening. Generation budgets and generated
 plan scores must not be presented as proof of a complete song, accurate
 transcription, original melody or a requested singer.
 
-This source requires the matching candidate Runtime, SDK 0.16, Kit/native 0.12
-and App Tools 0.8 cohort. These version declarations are not a publication claim;
-use complete local archives until that cohort is published. Real model and
-Desktop-supervised acceptance are recorded for the exact tested combination,
-separately from generator tests and subjective listening.
+Use the current complete SDK/Kit/native/Runtime combination above for this
+source. Package declarations are not a publication claim. Real model and
+Desktop-supervised acceptance apply to the exact tested combination, separately
+from generator checks and subjective listening.
 
 ### Local development packages
 
@@ -150,9 +150,9 @@ overrides in the App's own `pnpm-workspace.yaml`:
 packages:
   - .
 overrides:
-  '@nimiplatform/app-tools': file:D:/nimi-packages/nimiplatform-app-tools-0.7.0.tgz
-  '@nimiplatform/sdk': file:D:/nimi-packages/nimiplatform-sdk-0.14.0.tgz
-  '@nimiplatform/kit': file:D:/nimi-packages/nimiplatform-kit-0.10.0.tgz
+  '@nimiplatform/app-tools': file:D:/nimi-packages/nimiplatform-app-tools-0.11.4.tgz
+  '@nimiplatform/sdk': file:D:/nimi-packages/nimiplatform-sdk-0.21.0.tgz
+  '@nimiplatform/kit': file:D:/nimi-packages/nimiplatform-kit-0.18.0.tgz
 ```
 
 These are example artifact locations; use the complete packages you were given.
@@ -162,11 +162,10 @@ Local archives may also use paths relative to the App. Install, run sync and
 check, then use the normal dev/test/build/pack loop. Sync retains these choices;
 check verifies matrix compatibility and compares the selected tarball version,
 source and integrity with pnpm's installed dependency lock and package manifest.
-The SDK `^0.20.0` / Kit `^0.17.0` / Rust carrier `0.9.0` development combination additionally carries common Reasoning controls and authorized ordered summaries through the protected App boundary.
-The additional SDK `^0.19.0` / Kit `^0.16.0` / Rust carrier `0.8.0`
-development combination supports independent Agent work and Integration.
-Select the complete matching Runtime and native package set explicitly; this
-does not change fresh scaffold defaults or claim public package availability.
+The current SDK `^0.21.0` / Kit `^0.18.0` / Rust carrier `0.10.0`
+combination is explicitly admitted for development. Select the complete matching
+Runtime and native packages; this neither changes fresh-scaffold defaults nor
+claims public registry availability.
 Workspace members declare their own SDK/Kit dependencies and share the root
 tarball overrides. pnpm writes each member's `specifier` relative to that member,
 while resolved versions and package records remain workspace-relative; check
@@ -302,7 +301,7 @@ The list shows the current project's registrations and creation times. Copy the 
 
 The default `windows-x86_64` build profile runs `build:electron:production`. It rebuilds the renderer and Electron main/preload, then creates a fresh, non-installer `dist-electron-package/<app>-shell-win32-x64/` directory with ASAR packaging, native `.node` addons unpacked, and an App-specific `<app>-shell.exe`. The production main bundle has a compile-time production marker and rejects every `--nimi-dev-renderer-url` argument; packaged renderer assets stay relative under `dist/`. The protected native binding is resolved from Kit's optional dependency and is never declared directly by the App.
 
-App Tools 0.3 also prepares the `macos-aarch64` target on an Apple Silicon Mac.
+App Tools prepares the `macos-aarch64` target on an Apple Silicon Mac.
 The same owner command produces `dist-electron-package/<app>-shell-darwin-arm64/`
 with a native `.app` bundle and a direct `Contents/MacOS` entry. The publisher's
 build applies an ad-hoc integrity seal without a Developer ID identity or Apple

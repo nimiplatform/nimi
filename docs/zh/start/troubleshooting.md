@@ -28,25 +28,11 @@ nimi serve
 nimi health --json
 ```
 
-## SDK Client 配置
+## 恢复 App 宿主绑定
 
-`SDK_CLIENT_APP_ID_REQUIRED` 表示这次 SDK 操作需要具体 app id。创建 root client 时传入 `appId`，或在需要它的 Runtime AI surface 中显式传入 `appId`：
+App 必须使用生成的、绑定宿主的 `NimiLocalAppClient`。如果代码误建了独立客户端，错误要求补 App ID，应恢复生成的绑定，而不是添加 `appId` 或 gRPC 地址。Runtime 会拒绝普通直连客户端的 App AI 执行、存储和配置操作。
 
-```ts
-import { createNimiClient } from '@nimiplatform/sdk';
-
-const nimi = createNimiClient({
-  appId: 'my-nimi-app',
-  runtime: {
-    transport: {
-      type: 'node-grpc',
-      endpoint: process.env.NIMI_RUNTIME_GRPC_ENDPOINT || '127.0.0.1:46371',
-    },
-  },
-});
-```
-
-SDK 会在 dispatch 前失败。不要通过 App 代码直接调用 Runtime 私有端点来绕过这个错误。
+通过 Home 的 Desktop 监督宿主运行 App，确认当前注册和 Nimi Access，AI 与 AIConfig 都复用生成的客户端。会话轮换后重新读取已授权引用，不重放上一项业务动作。
 
 ## Runtime AI 能力意图
 

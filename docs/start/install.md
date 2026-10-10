@@ -1,44 +1,34 @@
-# Development Setup And Availability
+# Current Development Setup
 
-For a third-party Nimi App, prepare the project toolchain first. Running the App with Nimi capabilities also requires a compatible Nimi Home development instance and Runtime.
+Use the current Nimi source and a matching set of complete packages. These guides target App Tools 0.11.4, SDK 0.21.0, Kit/native 0.18.0, and the matching Runtime. The optional Vercel AI SDK adapter is 0.5.0; the optional Tauri carrier is 0.10.0. These are checkout versions, not a claim that they are already public registry releases.
 
-## Create And Check An App Project
+## Required Toolchain
 
-Use Node.js 24 or newer and pnpm, then follow [Create a Nimi App](/start/create-an-app). That guide pins App Tools 0.7.5 so its commands and generated dependencies can be checked against the same release.
+Use Node.js 24 or newer and pnpm 10.34.5. App projects also declare project-local Nimi Coding 0.6.3, initialized explicitly by `pnpm run init` after dependency installation.
 
-| Component | App Tools 0.7.5 generates | What you use it for |
-| --- | --- | --- |
-| `@nimiplatform/app-tools` | `^0.7.5` | Create, initialize, synchronize, check, run, test, build, and package the App |
-| `@nimiplatform/sdk` | `^0.15.0` | Public Nimi capability interfaces |
-| `@nimiplatform/kit` | `^0.11.0` | Shared App UI and host integration |
-| `@nimiplatform/nimi-coding` | `0.6.3` | The managed projections checked and synchronized by App initialization/tooling |
+Have complete App Tools, SDK, Kit, and the matching Kit native package for your host. Use the current source's component packaging workflow or a matching package delivery; do not link production App dependencies to source directories or substitute an older registry package when a current archive is missing. Kit's native optional package is versioned with Kit.
 
-These are the published scaffold's declarations, not a recommendation to upgrade each dependency independently. The SDK and Kit versions form one supported combination; if you choose a different App Tools release, follow that release's generated manifest and help.
+## Select the Current Combination
 
-Standalone projects use public packages. `workspace:*`, source aliases, and Nimi's internal workspace validation are not a third-party installation path. [App Tools 0.7.5](https://www.npmjs.com/package/@nimiplatform/app-tools/v/0.7.5) is the version addressed above.
+App Tools 0.11.4 currently generates SDK `^0.18.1` / Kit `^0.15.3` by default. To use the current interfaces in these guides, explicitly change the generated App's dependency declarations to SDK `^0.21.0` / Kit `^0.18.0` before initialization. That combination is admitted by the current App Tools dependency matrix, including Tauri 0.10.0 when used. Initialization/synchronization preserves an explicitly selected admitted pair.
+
+Keep registry version declarations in `package.json`; supply the complete local archives through `pnpm-workspace.yaml` overrides. See [Create an App](/start/create-an-app) for the full sequence. Independent package upgrades or matching version numbers alone do not establish matching Runtime/native behavior.
 
 ## Run Through Nimi Home
 
-The development command asks Desktop, the current Nimi Home host, to launch a supervised Electron App. Use Developer Mode for local project registration and the access required by your App. A visible window does not prove that Runtime access or an AI capability is configured.
+A matching Nimi Home development instance and Runtime must be available. Home requires a Nimi account and browser sign-in. Register and authorize the App through Developer Mode, then use `pnpm dev` in the App project to request its Desktop-supervised Electron Host.
 
-No Nimi Home or Runtime download is published yet, including development builds; the earlier developer previews and the portable Windows Runtime bootstrap were withdrawn. The [Download page](https://nimi.ai/download) carries the current status. Nimi Home also requires a Nimi account: you sign in through your browser before using it.
+A visible App window does not prove Nimi Access or AI configuration is ready. Configure the App's capability through its host-bound client, prepare the machine's selected Local Loadout or exact Cloud target, and run a real request. Direct Vite or ordinary loopback gRPC does not replace the protected Host.
 
-If you do not yet have a compatible Home/Runtime development instance, you can prepare the project and its static checks, but supervised launch and capability execution remain unverified until that prerequisite is available. Follow the host's actual errors and [Troubleshooting](/start/troubleshooting); do not launch a renderer directly as an access bypass.
+Check the [Download page](https://nimi.ai/download) for public installer availability. Creating an App project does not install Home, publish an App, or grant Registry admission.
 
-## Add Capabilities And Prepare Distribution
+## Next Steps
 
-- [First AI Call](/sdk/first-ai-call) explains the request and capability-intent requirements.
-- [Use Kit in an App](/platform/kit/use-kit-in-app) covers the generated host binding and shared interfaces.
-- [Local development and distribution](/start/#local-development-and-distribution) separates Developer Mode, Registry packages, and immutable local-package imports, including the current platform limits.
-- [Web and Nimi Home](/desktop/web-mode) explains the public site and account boundary; the website is not a Desktop web adapter.
-
-Creating or running a project does not publish it or grant Registry admission. Use the actual App Tools release/packaging guidance when you reach that stage.
-
-## Use Nimi Coding Directly
-
-The generated App already declares its required nimicoding dependency, and `pnpm run init` invokes the package's synchronization. This is a real toolchain dependency, not a requirement to first learn Nimi's internal development governance.
-
-If you want to use Nimi Coding's authority tools directly in your own work, read its [overview](/nimicoding/) and [installation guide](/nimicoding/installation).
+- [Create an App](/start/create-an-app)
+- [First AI Call](/sdk/first-ai-call)
+- [AIConfig](/sdk/ai-config-surface)
+- [Troubleshooting](/start/troubleshooting)
+- [Development and distribution](/start/#local-development-and-distribution)
 
 ## Source Basis
 

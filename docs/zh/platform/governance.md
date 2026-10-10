@@ -8,7 +8,8 @@ Nimi 把持久身份、世界真相、AI 执行、呈现与 App 组合交给不�
 | 关注点 | 产品 owner |
 | --- | --- |
 | 世界身份、历史与持久 Character 身份 | Realm |
-| LocalAgent 执行、Conversation、Memory、Knowledge | Runtime |
+| LocalAgent 执行、Conversation 与 Memory 访问中介 | Runtime |
+| 长期 Memory；Knowledge V1 未启用 | Cognition |
 | 面向 App 的强类型访问 | SDK |
 | 当前第一方 home 与产品 UI | Nimi Home / Desktop |
 | 形体呈现 | Avatar |
@@ -22,7 +23,7 @@ binding 可以引用它们，却不会成为第三个身份 owner。
 
 App 从当前 session 与 app identity 获得 Runtime 能力，不接收 Realm
 credential，也不自行维护 Runtime proof。Realm 访问通过准入的 SDK 或宿主
-表面；Conversation、Memory 与 Knowledge 继续由 Runtime 提供。
+表面；Conversation 与 Memory 访问中介 继续由 Runtime 提供。
 
 Nimi Home 是当前第一方宿主，负责把多个 owner 组合成产品体验。替换宿主
 不会把这些 owner 的真相迁入宿主。
@@ -32,6 +33,8 @@ Nimi Home 是当前第一方宿主，负责把多个 owner 组合成产品体验
 通用 Workflow、MCP、World Evolution、Marketplace、公共 Registry、
 Trust Tier 与商业结算都不是当前 Local AI 和 Windows 产品闭环的前置。
 未来设计在 owner 与激活边界明确前保持隔离。
+
+长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## 来源依据
 

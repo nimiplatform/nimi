@@ -1,94 +1,20 @@
-# Forbidden Claims
+# Availability and Capability Limits
 
-Reference for the public docs forbidden claim list, with detection
-patterns. The list defines what cannot appear in reader-facing prose
-unless the matching evidence has been admitted under the appropriate
-authority contract.
+Check the exact capability, implementation, package combination, and execution mode before depending on a feature. A provider name, catalog entry, successful build, or visible window alone does not establish that your request is supported.
 
-## Forbidden Marker Strings
+## Common Misunderstandings
 
-| Marker | Pattern | Reason |
-| --- | --- | --- |
-| `TODO` | `\bTODO\b` | Indicates unfinished work; belongs in product planning, not reader docs |
-| `TBD` | `\bTBD\b` | Same as above |
-| `FIXME` | `\bFIXME\b` | Same as above |
-| `lorem` | `\blorem\b` (case-insensitive) | Placeholder text |
-| `placeholder` | `\bplaceholder\b` (case-insensitive) | Placeholder text |
-| `coming soon` | `\bcoming soon\b` | Future-promise leak |
-
-## Forbidden Install / Distribution CTAs
-
-These patterns must not appear as call-to-action commands in public
-docs unless distribution evidence has been admitted under the relevant
-release contract:
-
-| Pattern | Forbidden form | Negative posture allowed |
-| --- | --- | --- |
-| `curl ` (followed by URL) | Install one-liner | Discussing why curl install is gated |
-| `npm install` | Install command | Discussing why pkg install is gated |
-| `pnpm install` | Install command | Discussing why pkg install is gated |
-| `brew install` | Install command | Discussing why brew install is gated |
-| `apt-get install` | Install command | Discussing why apt install is gated |
-| `yarn add` | Install command | Discussing why yarn install is gated |
-| `early access` | Sign-up CTA | — |
-| `early-access` | Sign-up CTA | — |
-| `download` (as CTA verb) | Download link | Discussing distribution posture |
-| `release notes` | Public release announcement | Discussing release posture |
-| `version 1.0` / `v1.0` | Concrete version claim | — |
-| `launching` / `launches` | Launch announcement | "Pre-launch" prose is allowed |
-| `ships` / `shipped` / `shipping` (as availability claim) | Shipping claim | "Not yet shipped" / "publicly shipped" prose is allowed |
-
-## Forbidden Concrete Provider / Model Names
-
-Public docs do not name specific providers or models unless the
-provider catalog and the matching capability evidence have been
-admitted under the runtime model-catalog contract:
-
-| Forbidden | Pattern |
+| Assumption | What to check instead |
 | --- | --- |
-| `OpenAI` | word-bounded |
-| `Anthropic` | word-bounded |
-| `Claude` (as provider/model) | word-bounded; allowed only in walkthrough context as "an external AI host" |
-| `Gemini` | word-bounded |
-| `GPT-` (with version) | regex |
-| `Llama` | word-bounded |
-| `DeepSeek` | word-bounded |
-| `Mistral` | word-bounded |
-| `Qwen` | word-bounded |
-| `Ollama` | word-bounded |
-| `vLLM` | word-bounded |
-| `Cohere` | word-bounded |
-| `Groq` | word-bounded |
-| `Bedrock` | word-bounded |
-| `Azure` (as AI provider) | word-bounded |
+| A model is installed, so AI is ready | The selected Loadout, required resources and environment, owner AIConfig, access, and actual execution |
+| A Cloud connection supports every operation | Runtime-issued capability and feature options for the exact target |
+| A Job event says completed, so all output was saved | Complete terminal Get, formal result reads, and App-owned result adoption |
+| Local import means Catalog approval | Local import and Registry admission have separate source and trust rules |
+| A package version exists in the checkout, so it can be installed publicly | The actual component publication; use complete local packages during development |
+| Switching Apps or devices automatically shares every memory | The same authorized LocalAgent and Conversation, with Cognition's Agent-private Memory boundary |
+| Local-first means no account or network requirements | The current account, protected session, source acquisition, and operation requirements |
 
-## Forbidden Forward-Promise Claims
-
-| Claim | Permitted alternative |
-| --- | --- |
-| "X is available now" (where X is a defined-but-not-shipped surface) | "X is admitted at the contract level" |
-| "X is GA" | "X has admitted contract evidence" |
-| "X is stable" | "X is a defined surface" |
-| "Use X for production today" | "X is admitted; production posture is gated on evidence" |
-
-## Detection
-
-Repository-level grep used to verify public docs:
-
-```bash
-grep -rEn 'TODO|TBD|FIXME|coming soon|lorem|placeholder' \
-  README.md docs/*.md docs/**/*.md
-
-grep -rEni '^[^>]*\b(curl |npm install|pnpm install|brew install|apt-get install|yarn add|early.?access)' \
-  README.md docs/*.md docs/**/*.md
-
-grep -rEni '\b(OpenAI|Anthropic|Claude|Gemini|GPT-[0-9]|Llama|DeepSeek|Mistral|Qwen|Ollama|vLLM|Cohere|Groq|Bedrock|Azure)\b' \
-  README.md docs/*.md docs/**/*.md
-```
-
-A non-empty match (excluding negative-posture phrasing inside
-quoted/refusal contexts) indicates a forbidden claim has been
-introduced.
+A typed unavailable, blocked, or failed result is meaningful. Do not turn it into a sample success, silently switch implementations, or bypass the protected host. See [Compatibility](/reference/compatibility-posture), [App setup](/start/install), and [Job observation](/runtime/streaming).
 
 ## Source Basis
 
@@ -96,3 +22,5 @@ introduced.
 - [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/platform/governance-release.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/governance-release.authority.yaml)

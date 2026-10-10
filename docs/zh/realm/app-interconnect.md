@@ -9,7 +9,7 @@ Nimi App 并不住在 Realm 里面，而是从外面连进来。这一页讲的�
 | REST | 在已准入契约下对 Realm 做强类型读取与变更 |
 | WebSocket | 实时分发规范事件 |
 
-应用通过已准入的 REST + WS 接入面连到 Realm，不能自定义协议。授权用 bearer token，由已准入的 token 颁发流程发出。
+Realm 在 SDK/Runtime 载体后使用已准入 REST 与 WebSocket 协议。正式 Nimi App 使用受保护的 `client.realm` 操作，凭据留在 Runtime，不接收 bearer，也不建立原始 REST/WebSocket 旁路。
 
 ## 应用模式与 Realm 权威
 
@@ -30,7 +30,6 @@ Realm 互操作映射在 Realm 概念与外部开放规范锚点之间做翻译�
 | --- | --- |
 | 世界状态契约 ↔ 外部状态表示 | Realm 世界状态需要对外可见时 |
 | 世界历史契约 ↔ 外部历史表示 | 跨平台的历史兼容 |
-| Runtime 记忆 ↔ Realm 记忆 | 复制语义 |
 | Runtime Agent ↔ Realm Agent | 身份桥接 |
 | Transit 契约 ↔ 外部 transit 形态 | 跨协议的 transit 兼容 |
 
@@ -53,7 +52,7 @@ Realm 互操作映射在 Realm 概念与外部开放规范锚点之间做翻译�
 
 一个应用想实时响应规范事件。
 
-1. **订阅**。应用在已准入的订阅面打开 WebSocket。
+1. **订阅**。应用通过绑定宿主的客户端打开已准入的强类型 Realm 实时订阅。
 2. **实时分发**。事件提交后即送达。
 3. **应用响应**。事件处理器按已准入的形态处理强类型事件。
 4. **连接生命周期**。重连、背压等都按已准入的连接契约进行。

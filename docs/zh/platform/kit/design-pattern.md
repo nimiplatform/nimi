@@ -37,7 +37,7 @@ Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交�
 
 ## 语义令牌分类 (P-DESIGN-003)
 
-共享的语义令牌位于 `tables/nimi-ui-tokens.yaml` 中。已准入的令牌类别包括：
+共享的语义令牌位于 `config/platform-nimi-ui-tokens.yaml` 中。已准入的令牌类别包括：
 
 | 类别 | 示例 |
 | --- | --- |
@@ -65,7 +65,7 @@ Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交�
 | `backdrop` | 背景模糊令牌 |
 | `ambient` | 环境效果色调 |
 
-每个语义令牌声明其属于 `foundation` 或 `accent` 层令牌。主题包值位于 `tables/nimi-ui-themes.yaml` 中。
+每个语义令牌声明其属于 `foundation` 或 `accent` 层令牌。主题包值位于 `config/platform-nimi-ui-themes.yaml` 中。
 
 应用代码不得为受管理的表面创建并行的令牌注册表。
 
@@ -82,7 +82,7 @@ Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交�
 
 | 规则 | 值 |
 | --- | --- |
-| 变体分类权威 | `tables/nimi-ui-primitives.yaml` |
+| 变体分类权威 | `config/platform-nimi-ui-primitives.yaml` |
 | 实现模式 | CVA（类方差权威）+ Tailwind 工具类在 `kit/ui` 内 |
 | 行为原语 | Radix UI 无头原语 |
 | 主题注册 | 通过 Tailwind `@theme` 在生成的 CSS 中使用语义令牌 |
@@ -104,7 +104,7 @@ Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交�
 | 规则 | 值 |
 | --- | --- |
 | 受管理的应用样式表不可以 | 为 `--nimi-*` CSS 变量赋值 |
-| 共享语义令牌值 | 仅来自从 `tables/nimi-ui-themes.yaml` 生成的主题 CSS |
+| 共享语义令牌值 | 仅来自从 `config/platform-nimi-ui-themes.yaml` 生成的主题 CSS |
 | 共享库手写 CSS 可以 | 读取语义令牌 |
 | 共享库手写 CSS 不可以 | 提供备用令牌权威 |
 
@@ -139,7 +139,7 @@ Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交�
 
 模组作者希望有一个与任何已准入的共享原语变体都不匹配的按钮变体。
 
-1. **首先检查变体表。** `tables/nimi-ui-primitives.yaml` 声明了已准入的变体。
+1. **首先检查变体表。** `config/platform-nimi-ui-primitives.yaml` 声明了已准入的变体。
 2. **如果变体不在其中：** 模组不能在应用本地代码中为共享原语家族定义新的 CVA 变体。
 3. **选项：** 提议为共享原语新增一个已准入的变体（治理流程），或者使用一个不持有相同原语名称的自定义应用本地组件。
 
@@ -158,9 +158,9 @@ Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交�
 | --- | --- |
 | 基础权威 | `P-DESIGN-001` |
 | 主题包模型 | `P-DESIGN-002` |
-| 语义令牌分类 | `P-DESIGN-003` + `tables/nimi-ui-tokens.yaml` |
+| 语义令牌分类 | `P-DESIGN-003` + `config/platform-nimi-ui-tokens.yaml` |
 | 主题方案契约 | `P-DESIGN-004` |
-| 基本视觉权威 | `P-DESIGN-005` + `tables/nimi-ui-primitives.yaml` |
+| 基本视觉权威 | `P-DESIGN-005` + `config/platform-nimi-ui-primitives.yaml` |
 | 应用本地重新定义规则 | `P-DESIGN-006`, `P-DESIGN-007`, `P-DESIGN-008` |
 | 共享原语契约 | `P-DESIGN-010` |
 

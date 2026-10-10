@@ -1,117 +1,54 @@
-# Shared Types
+# Shared Types and Errors
 
-`@nimiplatform/sdk/types` carries the shared public types that
-every other SDK sub-path uses. It is the small, stable building
-block layer; nothing in the SDK that crosses sub-paths invents
-its own type for what `types` already exports.
+`@nimiplatform/sdk/types` exports shared JSON, request metadata, error, reason-code, and retry utilities. Use the types exported by the public operation you call; this module is not a universal collection of domain identifiers.
 
-## What Lives Here
+## Current Exports
 
-The types sub-path exports the cross-cutting symbols that consumers
-need to talk about Nimi without importing private internals.
-
-| Symbol | Purpose |
+| Export | Use |
 | --- | --- |
-| `NimiError` | The typed error surface for SDK callers |
-| `ScopeName` | Typed scope identifier |
-| `ExternalPrincipalId` | Typed external principal identifier |
-| Runtime ids | `WorldId`, `CharacterId`, `LocalAgentId`, `ConversationId`, `JobId`, etc. |
-| Streaming primitives | Typed shapes for the four streaming modes |
-| Multimodal primitives | `ArtifactId`, canonical artifact field types |
+| `JsonPrimitive`, `JsonValue`, `JsonObject` | Typed JSON values |
+| `NimiError`, `NimiErrorSource` | Error types with reason, action, trace, and retry metadata |
+| `isNimiError`, `asNimiError`, `createNimiError` | Inspect, normalize, or construct SDK errors |
+| `ReasonCode`, `ReasonCodeValue` | Shared reason constants and their type |
+| `CoreMetadata`, `CoreUnaryRequest`, `CoreStreamRequest` | Low-level SDK request descriptions; not an alternative App access path |
+| `RetryOptions`, `RetryEvent`, `RetryReasonKind` | Retry helper configuration and observations |
+| `createNimiClientId`, `createNimiUlid` | Generate identifiers for their admitted caller-owned uses |
 
-The exact set is admitted in the SDK kernel surface contract; new
-types require kernel admission.
+For a Nimi App, import `NimiLocalAppClient` from `@nimiplatform/sdk` and obtain the client through its generated Host binding. Import capability request/result types from their owning public SDK entry point. A type-only import does not require executing that module's transport code.
 
-## Why Centralized Types Matter
+## Keep Identities in Their Owner Context
 
-Without shared types, each sub-path could re-declare Character and
-LocalAgent references with coincidentally similar shapes. A typed
-system would then become weakly typed by accident.
+Many API identifiers are represented as strings; do not assume the compiler will reject every cross-domain mix-up. Keep each identifier with the result and operation that issued it. A Character reference is not a LocalAgent operation selector, and an artifact ID does not grant access.
 
-Centralizing in `@nimiplatform/sdk/types` keeps the same nominal type across
-every public surface. A Character reference from Realm and a LocalAgent
-reference from Runtime remain distinct typed identities instead of
-coincidentally-shaped twins.
+Formal App Agent operations use the session-scoped `agentHandle` from the authorized reference listing. Do not invent or cast a raw LocalAgent ID into a handle. Runtime still validates the current account, App, session, target, and operation.
 
-## Boundary Rules
+## Inspect a Typed Error
 
-| Rule | Why |
-| --- | --- |
-| Other sub-paths do not redeclare types from `types` | Avoids drift |
-| `types` does not import from other sub-paths | Stays at the bottom of the dependency graph |
-| `types` does not depend on transport (`@nimiplatform/sdk/runtime`) or projection (`@nimiplatform/sdk/realm`) | Keeps types portable |
-| New types require kernel admission | Same admission discipline as other surfaces |
-
-## Reader Scenario: Keeping Identity Owners Distinct
-
-An App reads a Character reference through the Realm surface and later
-uses a Runtime-provided LocalAgent reference for execution.
-
-1. **Realm read.** The App receives a `CharacterId`.
-2. **Runtime materialization.** Runtime resolves or materializes the
-   corresponding LocalAgent and returns a `LocalAgentId`.
-3. **Conversation call.** The App uses the `LocalAgentId` with a
-   `ConversationId`.
-4. **No silent coercion.** The compiler does not allow a Character id
-   to masquerade as a LocalAgent id.
-
-The shared types layer preserves the Realm/Runtime owner boundary.
-
-## Reader Scenario: A Typed Error Reaches Application Code
-
-A runtime call fails with a contract failure.
-
-1. **Runtime emits typed error.** Through the SDK error
-   projection, the error becomes a `NimiError` with reason code.
-2. **App imports `NimiError`.** From `@nimiplatform/sdk/types`.
-3. **Type-narrow.** The app pattern-matches on the reason code
-   to decide UX behavior.
+`NimiError` is a TypeScript type. Use `isNimiError` to narrow an unknown caught value:
 
 ```ts
-import { NimiError } from '@nimiplatform/sdk/types';
+import { isNimiError, type NimiError } from '@nimiplatform/sdk/types';
 
-try {
-  await model.generateText(...);
-} catch (err) {
-  if (err instanceof NimiError) {
-    // typed reason code
-    if (err.reasonCode === 'AUTH_TOKEN_EXPIRED') { ... }
-    if (err.reasonCode === 'AUTH_UNSUPPORTED_PROOF_TYPE') { ... }
-  }
+export function nimiFailureDetails(error: unknown): Pick<
+  NimiError, 'message' | 'reasonCode' | 'actionHint' | 'retryable'
+> | null {
+  if (!isNimiError(error)) return null;
+  return {
+    message: error.message,
+    reasonCode: error.reasonCode,
+    actionHint: error.actionHint,
+    retryable: error.retryable,
+  };
 }
 ```
 
-The error is typed because it comes from `@nimiplatform/sdk/types`, not because
-the app guessed. Pre-launch posture: exact reason-code list
-admitted in the SDK kernel.
+This function is compiled as [`examples/sdk/06-errors.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/06-errors.ts). A `null` result means the value did not match the SDK error shape; preserve and handle the original failure through the App's normal error path. It does not mean the operation succeeded.
 
-## Reader Scenario: Library Author Adding A Helper
-
-A library author wants to write a helper that takes any Nimi
-identifier.
-
-1. **Import from `@nimiplatform/sdk/types`.** They depend on
-   `@nimiplatform/sdk/types`, not on `@nimiplatform/sdk/runtime`
-   or `@nimiplatform/sdk/realm`.
-2. **Helper accepts `CharacterId | LocalAgentId | WorldId | ConversationId`.** A
-   typed union from `@nimiplatform/sdk/types`.
-3. **Library compiles.** No transport dependency; no runtime
-   pull; portable.
-
-A library that depended on `@nimiplatform/sdk/runtime` for type information
-would drag the entire transport layer into its consumers. Pulling
-from `@nimiplatform/sdk/types` keeps the dependency graph thin.
-
-## Excluded From `types`
-
-| Excluded | Why |
-| --- | --- |
-| Method functions | Those live in `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/realm`, etc. |
-| Transport internals (for example, gRPC metadata) | Owned by the transport layer, not App request types |
-| Provider names | Catalog data, not type system |
-| World content (rules, Characters, etc.) | Content, not types |
+Use the returned reason and action hint to choose the next user action. The `retryable` field is not permission to replay a business operation after an uncertain external outcome. For Jobs, retain the original identity and follow [observation and recovery](/runtime/streaming).
 
 ## Source Basis
 
+- [`sdks/typescript/types/index.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/types/index.ts)
+- [`sdks/typescript/types/errors.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/types/errors.ts)
+- [`examples/sdk/06-errors.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/06-errors.ts)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`config/sdks-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-error-codes.yaml)

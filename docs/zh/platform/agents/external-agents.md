@@ -1,7 +1,7 @@
 # 外部参与
 
 外部 Agent 和外部行动集成都不在今天的 LocalAgent 核心里。没有它们，什么
-都不耽误：本地 AI、LocalAgent 对话、Memory、Knowledge、语音、SDK、
+都不耽误：本地 AI、LocalAgent 对话、Memory、语音、SDK、
 Nimi Home、Avatar，以及普通 App 的能力执行，都照常运转。
 
 如果未来有外部集成加入，它会按 Nimi 的规矩来：以一个有明确限制的外部安

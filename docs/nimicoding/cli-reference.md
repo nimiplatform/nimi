@@ -53,7 +53,7 @@ with the hard cut. Marker lookup does not evaluate unannotated code or prove
 declaration ownership, conformance, or hard-cut completion.
 
 `code context` requires Nimi Coding 0.6.0 or newer. The reserved marker contract
-requires 0.6.1; this workspace pins 0.6.1 exactly.
+requires 0.6.1; this workspace pins 0.6.3 exactly.
 
 `start` bootstraps only documented managed surfaces. `sync` checks or updates
 those exact projections, while `doctor` inspects package and projection

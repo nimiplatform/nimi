@@ -1,126 +1,35 @@
-# 账户与会话
+# 账号与受保护 App 会话
 
-> 状态：运行中 (Running)。`RuntimeAccountService` 拥有本地机器的账户会话事实、保管、登录生命周期以及 `K-ACCSVC-*` 下基于当前账户的授权判断。
+用户身份与账号授权归 Realm。RuntimeAccountService 管理本地浏览器授权事务、授权码交换、刷新、重启恢复与凭据托管。Desktop 传递浏览器启动和 loopback 回调，Web 提供凭据交互；两侧 renderer 都不接收 bearer。
 
-`RuntimeAccountService` 是**本地第一方账户身份**的运行时权威：谁登录了这台机器，当前活动的是哪个账户，如何进行登录/刷新/登出流程，以及短期访问令牌如何分发给已准入的本地第一方应用程序中。
+## 通过 Home 登录
 
-## 权责边界
+1. Home 向 RuntimeAccountService 请求登录事务。
+2. Desktop 在浏览器打开 owner 返回的确切 URL。
+3. 用户通过 Web 完成 Realm 授权。
+4. Desktop 把经过验证的回调交给 Runtime；只有 Runtime 交换授权码并建立本地托管。
+5. Home 展示有限的当前用户和会话信息。
 
-| 拥有 | 不拥有 |
-| --- | --- |
-| 本地机器账户会话事实 | 应用端会话状态 |
-| 登录/刷新/登出/切换生命周期 | 应用发行的令牌（应用不发行它们） |
-| 刷新令牌保管 | 应用持有的刷新令牌（应用可能不持有它们） |
-| 守护进程重启恢复 | 外部主体会话（这些是 `RuntimeAuthService` 的职责） |
-| 第一方短期应用访问令牌分发 | 应用工作区状态 |
-| 受保护本地应用逐操作的当前账户复核 | 每个应用的对话事实 |
-| 账户 `subject_user_id` 推导 | 调用者提供的 `subject_user_id`（运行时从不信任调用者提供的主体身份） |
+Runtime 不可用、回调非法、事务不匹配或授权过期时拒绝继续。Renderer 不能另拼登录 URL，也不能自行交换 token。
 
-应用会话和外部主体会话存在于 `RuntimeAuthService` (`K-AUTHSVC-*`) 中。这两个服务不可互换。
+## App 访问
 
-## 方法表面
+Desktop 监督的 App 使用标准宿主绑定 SDK。Runtime 验证确切启动的 Host peer，并推导已注册 App 主体、账号上下文、声明代次、操作与访问范围。Localhost、App ID 或可移植 bearer 都不足以证明受保护来源。
 
-`RuntimeAccountService` 的方法是**冻结**的：
+App 只消费安全状态和强类型能力结果，不调用公开 `GetAccessToken`，不持有 Realm access/refresh token，也不用 Runtime 颁发的 bearer 直连 Realm。受保护 Realm 操作通过强类型 broker，凭据留在 Runtime。Nimi App 之外的独立 SDK 程序另有 token 托管边界，不能因此取得受保护 App 权限。
 
-| 方法 | 目的 |
-| --- | --- |
-| `GetAccountSessionStatus` | 当前账户会话状态 |
-| `SubscribeAccountSessionEvents` | 会话转换的事件流 |
-| `BeginLogin` | 开始登录尝试 |
-| `CompleteLogin` | 完成登录证明 |
-| `GetAccessToken` | 获取运行时发行的短期访问令牌 |
-| `RefreshAccountSession` | 主动/反应式会话刷新 |
-| `Logout` | 撤销本地凭证与当前应用授权状态 |
-| `SwitchAccount` | 原子激活账户切换 |
+## 会话变化
 
-新方法需要明确的内核规则准入。该集合不能通过应用约定扩展。
+切换账号、退出、注册变化或访问撤销会使对应入口和引用失效。单纯技术会话轮换或观察断线不会取消已准入的有限 Job；真正权限撤销会阻止新的出站工作及未授权结果发布。刷新会话不重放 App 任务。
 
-## 会话状态机
+退出登录不是删除账号。本地 Cognition 清理只响应实际观察到且正确关联的 Realm 账号删除结果，不能宣称已远程物理擦除离线设备。
 
-| 状态 | 含义 |
-| --- | --- |
-| `anonymous` | 无账户会话 |
-| `login_pending` | 登录尝试正在进行中 |
-| `authenticated` | 有效的账户材料 + 凭证 |
-| `refresh_pending` | 正在刷新账户材料 |
-| `expired` | 材料已过期；无法授权工作 |
-| `reauth_required` | 需要用户操作才能继续 |
-| `switching` | 原子激活账户切换正在进行中 |
-| `logging_out` | 撤销本地材料与当前应用授权状态 |
-| `unavailable` | 无法安全地决定/保管账户状态 —— 故障关闭 |
+另见 [App 授权](/zh/platform/agents/participation-authority) 与 [Job 观察](/zh/runtime/streaming)。
 
-**单个活跃账户不变性：** 一个运行时实例一次最多有一个 `authenticated` 账户。`SwitchAccount` 是原子的；两个有效的账户凭证不能共存。
-
-## 为什么应用不持有刷新令牌
-
-刷新令牌是持久的身份验证密钥。如果应用持有它，每个已准入的本地第一方应用都会成为一个单独的刷新令牌保管站点 —— 每个应用都必须实现安全存储，每个应用都是一个单独的妥协向量，并且撤销需要按应用分发。
-
-运行时一次性拥有刷新令牌的保管权。应用通过 `GetAccessToken` 获取短期访问令牌，并直接使用它们与已准入的 Realm 数据 API 进行交互。当访问令牌过期时，应用请求运行时提供一个新的令牌。刷新保留在守护进程中。
-
-## 读者场景：在全新机器上登录
-
-1. **状态 `anonymous`。** 不存在会话。
-2. **应用调用 `BeginLogin`。** 运行时发出 `login.started`；状态移动到 `login_pending`。应用收到一个待处理的尝试句柄；在过期之前重复 `BeginLogin` 将返回相同的待处理尝试。
-3. **用户完成证明**（Web 流程/设备代码等）。
-4. **应用调用 `CompleteLogin`。** 运行时验证证明，将账户材料写入保管，并发出 `login.completed` + `account.status`。状态移动到 `authenticated`。
-5. **应用在需要与 Realm 通信时调用 `GetAccessToken`。** 运行时返回一个短期令牌。
-
-应用从未看到刷新令牌。应用从未将认证材料写入磁盘。应用不拥有账户会话。
-
-## 读者场景：使用中途的令牌刷新
-
-应用正在进行一个长时间运行的操作；访问令牌即将过期。
-
-1. **状态 `authenticated`。** 应用持有一个短期访问令牌。
-2. **刷新开始。** 运行时发出 `refresh.started`；状态移动到 `refresh_pending`。每次只有一个刷新在进行中。
-3. **刷新成功。** 运行时原子地交换新的令牌替换旧的令牌。发出 `refresh.completed` + `account.status`。状态返回到 `authenticated`。
-4. **应用的下一个 `GetAccessToken` 返回新的令牌。**
-
-如果刷新以可恢复方式失败，状态进入 `reauth_required`。在账户与应用会话重新建立前，当前受保护操作会保持故障关闭。应用不能假装刷新成功。
-
-## 读者场景：账户切换
-
-用户有两个 Nimi 账户（工作和个人），并进行切换。
-
-1. **应用调用 `SwitchAccount`。** 状态移动到 `switching`。
-2. **原子转换。** 运行时使之前的账户凭证失效，并激活新的账户凭证。没有“两个账户同时认证”的时刻。
-3. **状态返回到 `authenticated`。** 订阅者接收到反映新活动账户的 `account.status`。
-
-订阅了 `SubscribeAccountSessionEvents` 的应用可以看到切换并重新推导其每个账户的状态。没有跨账户共享的“当前用户”字符串供应用读取。
-
-## 读者场景：守护进程重启恢复
-
-1. **守护进程重启。** 所有进程中状态丢失。
-2. **账户保管持续存在。** 刷新令牌 + 最小必需的账户状态由运行时持久存储。
-3. **状态恢复** 到 `authenticated`（或根据持久状态恢复到 `expired` / `reauth_required`）。
-4. **应用重新连接。** 订阅的应用接收到反映恢复状态的 `account.status` 事件。它们不需要重新提示用户。
-
-如果恢复的状态是 `expired`，应用的下一个 `GetAccessToken` 将关闭失败 —— 没有隐式的重新登录。
-
-## 受保护本地应用授权
-
-受保护本地应用不会获得可携带的账户绑定。桌面端准备一次性 launch lease，Runtime 将它绑定到确切的原生进程，`RuntimeAuthService` 再通过已验证 carrier 建立进程绑定的本地应用会话。每次受保护操作都由 Runtime 重新核验当前账户、应用身份、进程绑定会话、确切操作以及 owner 定义的资源选择条件。
-
-登出、账户切换、会话过期、进程替换或 Runtime 重启都会使当前判断失效。调用者自行提供应用 ID、账户 ID、LocalAgent ID 或对话 ID，不能借此恢复权限。
-
-## 账户服务不做的事情
-
-- 它不会代理每一个 Realm 数据请求 —— 已准入的本地第一方应用可以直接使用短期令牌调用 Realm 数据 API。
-- 它不拥有应用会话事实 —— 那是 `RuntimeAuthService` 的职责。
-- 它不拥有外部主体会话 —— 也是 `RuntimeAuthService` 的职责。
-- 它不接受调用者提供的 `subject_user_id`。
-
-## 边界总结
-
-| 关注点 | 所有者 |
-| --- | --- |
-| 本地机器账户会话 + 保管 + 生命周期 | `RuntimeAccountService` (`K-ACCSVC-*`) |
-| 应用会话 + 外部主体会话 | `RuntimeAuthService` (`K-AUTHSVC-*`) |
-| 令牌验证（传入的承载 JWT） | 认证令牌验证 (`K-AUTHN-*`) |
-| 令牌授权/所有权（谁拥有什么） | 授权所有权 |
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
 - [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
+
+- [`proto/runtime/v1/account.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/account.proto)

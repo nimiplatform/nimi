@@ -2,7 +2,7 @@
 
 ## 状态：已准入契约；公开使用以 design/runtime 暴露面为准
 
-`P-DESIGN-022` 下的五级材质分类已被准入，并且令牌目录已在 `tables/nimi-ui-tokens.yaml` 中发布。性能降级钩子接口在规范层面已被准入；运行时侧性能降级行为必须通过 design/runtime 暴露面使用。
+`P-DESIGN-022` 下的五级材质分类已被准入，并且令牌目录已在 `config/platform-nimi-ui-tokens.yaml` 中发布。性能降级钩子接口在规范层面已被准入；运行时侧性能降级行为必须通过 design/runtime 暴露面使用。
 
 ## 什么是“材质”
 
@@ -87,7 +87,7 @@
 一个设计师提出一个新的视觉上下文所需的第六个材质层级。
 
 1. **封闭分类。** 合同未预先授权扩展。
-2. **需要准入。** 提案需经过治理：将新层级添加到 `tables/nimi-ui-tokens.yaml` 材质类别中，准入新的模糊半径，将新层级添加到 `<Surface>` 原始组件的变体集中，审查性能降级接口。
+2. **需要准入。** 提案需经过治理：将新层级添加到 `config/platform-nimi-ui-tokens.yaml` 材质类别中，准入新的模糊半径，将新层级添加到 `<Surface>` 原始组件的变体集中，审查性能降级接口。
 3. **准入后。** 新层级以相同的消费者规则发布。
 
 这种边界是故意设定的：自由形式的材质扩展会使设计系统变成每个应用的蔓延。
@@ -105,8 +105,8 @@
 | 关注点 | 权威 |
 | --- | --- |
 | 五级分类 + 令牌 | `P-DESIGN-022`（此合同） |
-| 令牌目录 | `tables/nimi-ui-tokens.yaml` |
-| 主题值 | `tables/nimi-ui-themes.yaml` |
+| 令牌目录 | `config/platform-nimi-ui-tokens.yaml` |
+| 主题值 | `config/platform-nimi-ui-themes.yaml` |
 | `<Surface>` 原始组件 | `@nimiplatform/kit/ui` |
 | 性能降级接口 | 此合同（规范层面） |
 | 运行时性能降级实现 | 消费者责任（单独） |

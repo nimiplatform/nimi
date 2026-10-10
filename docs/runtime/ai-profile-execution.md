@@ -1,94 +1,34 @@
-# AI Profile Execution
+# Profiles, Loadouts, and Execution
 
-## Status: Runtime-Managed Machine Configuration
+An AIProfile is a portable configuration package. Applying it produces editable prefill; it does not commit AIConfig, select a Loadout, install assets, or start execution.
 
-`AIProfile` is a desktop-portable configuration package. Runtime may project an
-admitted profile into machine-local assets and descriptors, but an App does not
-bind an execution request to that profile. App requests carry caller identity,
-scenario content, and supported operation parameters; Runtime chooses the
-implementation.
+## Three Separate Records
 
-## Ownership Boundary
-
-| Responsibility | Owner |
+| Record | Purpose |
 | --- | --- |
-| Portable `AIProfile` schema and validation | Desktop kernel |
-| Profile installation and machine-local projection | Desktop / Runtime administration |
-| Local asset and device-resource management | Runtime |
-| Owner capability intent (`AIConfig`) | Exact App or Agent owner |
-| Implementation selection and scheduling | Runtime |
-| Execution diagnostics and audit evidence | Runtime |
+| AIProfile | Share portable choices and defaults without machine identities or secrets |
+| AIConfig | Save one App owner's or the shared LocalAgent owner's complete capability intent and revision |
+| Loadout | Save one machine-local capability implementation, Driver dialect and recipe, options, and exact resource bindings |
 
-A `LocalProfileDescriptor` is machine configuration. It is not an App-facing
-model, route, connector, target, fallback policy, or reusable execution
-binding. The SDK does not translate an App's capability intent into one of
-these request controls.
+Runtime keeps zero or more Loadouts per capability and at most one current selection per capability. A Local AIConfig entry contains only the Local route marker; it does not copy that selected Loadout. A Cloud entry saves the exact Connector reference, CapabilityImplementation, and provider-model target.
 
-## App Call Path
+## Prepare, Commit, Select
 
-1. The exact owner stores Local or Cloud capability intent in `AIConfig`.
-2. The App invokes an admitted capability with identity, scenario content, and
-   supported parameters.
-3. Runtime evaluates its current machine configuration and selects an admitted
-   implementation.
-4. Runtime returns a typed result or typed failure. Any implementation details
-   included in Runtime-issued diagnostics remain output evidence.
+A machine configuration change uses its admitted Prepare and Commit flow with explicit confirmation. Installing a model only creates an inventory resource; binding the required resources into a Loadout and selecting that Loadout are distinct actions. Changing the machine selection affects future Local submissions for that capability across owners, so the UI must explain that scope.
 
-Changing an `AIProfile` can change how Runtime services later requests, but it
-does not rewrite owner intent and does not grant the caller implementation
-selection authority.
+Configuration validity, resource bindings, environment compatibility, current selection, process state, and actual execution are separate facts. A selected or prepared configuration is not proof of successful inference.
 
-## Machine Diagnostics
+## Capture at Submission
 
-Runtime administration may report daemon reachability, installed-asset state,
-resource pressure, and profile installation failures. Internal resolution and
-scheduler probes can support those diagnostics. They do not become per-model or
-per-route readiness controls in an App, and an App does not run a preflight to
-choose an execution target.
+At Job submission, Runtime checks the committed AIConfig and current authority. For Local it captures the selected Loadout and complete resolved assembly, including exact content identities. For Cloud it captures the committed Connector and implementation target under Runtime credential custody.
 
-Execution evidence is immutable audit information about what Runtime did. A
-caller must not feed a resolved model, route decision, connector, endpoint, or
-scheduling judgement back into another request as authority.
+Queued, running, and resumed Jobs use those persisted inputs. They do not reread a changed AIConfig or machine selection, rank alternatives, probe for a better model, or silently fall back. Current authorization is still checked separately. Missing configuration or resources return typed failures.
 
-## Scope Identity
-
-`AIScopeRef` identifies the owner and surface for scoped configuration or
-records. It does not identify an execution implementation. A scope can retain
-Runtime-issued evidence without turning that evidence into a profile binding or
-request target.
-
-See [AI Scope Identity](/platform/ai-scope-identity) for the identity contract
-and [AIConfig Surface](/sdk/ai-config-surface) for owner capability intent.
-
-## Reader Scenario: Install a Local Profile
-
-1. A machine administrator validates and installs an admitted portable profile.
-2. Runtime resolves the required local assets and records installation status.
-3. An App keeps only its Local capability intent; it does not receive a model or
-   route selector.
-4. On the next capability request, Runtime decides whether the installed profile
-   can supply an admitted implementation and either executes or fails closed.
-
-## Reader Scenario: Review Execution Evidence
-
-1. An App submits a capability request without implementation controls.
-2. Runtime chooses and executes an implementation.
-3. Runtime emits typed diagnostics or audit evidence for the completed attempt.
-4. The owner may display or retain that evidence, but cannot reuse it to pin a
-   later request.
-
-## Key Points
-
-- `AIProfile` and `LocalProfileDescriptor` are machine-configuration concepts.
-- `AIConfig` is owner-scoped capability intent, not an execution profile.
-- App requests contain no provider, model, route, connector, endpoint, target,
-  fallback policy, profile descriptor, or readiness probe.
-- Runtime alone owns implementation selection, resource scheduling, and
-  execution evidence.
-- Runtime-wide reachability does not imply readiness for a particular model or
-  route.
+An App sends content and supported operation parameters through its host-bound client. It does not attach a profile, Local Loadout, endpoint, credential, or request-time routing override. [AIConfig](/sdk/ai-config-surface) is the separate configuration API.
 
 ## Source Basis
 
-- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
+- [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)

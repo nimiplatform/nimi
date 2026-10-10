@@ -1,52 +1,25 @@
-# Realm And Composition
+# Realm Access from an App
 
-This page is the reader's view of Realm truth consumption and world-facing
-composition through SDK vNext. The old `@nimiplatform/sdk/world` subpath is not
-part of the public surface. World-facing operations use the SDK root
-composition surface and Realm helpers.
+Realm owns account, Character, World, social, economy, history, and asset truth. A Nimi App consumes the admitted `client.realm` operations on its host-bound client. Runtime mediates authorized Realm access without giving the App a Realm token or raw REST/WebSocket transport.
 
-## What Realm Owns
+## Typed Owner Operations
 
-Realm owns semantic truth: accounts, profiles, social data, world state, world
-history, assets, and app-visible Realm records. The SDK exposes app-facing
-typed access without letting apps call Realm private internals or raw REST
-routes.
+Use only the operations exposed for the App's current declaration and access. The protected carrier derives the account and App subject. PersonaCharacter owner operations, World surfaces, and Realm realtime each keep their own typed input, authorization, and result contract; a generic arbitrary-path proxy is not admitted.
 
-Apps should use:
+The direct `@nimiplatform/sdk/realm` facade remains a separate SDK surface for consumers that own an admitted Realm session. It is not a way for a formal Nimi App to escape its host-bound access. The removed `@nimiplatform/sdk/world` subpath remains absent.
 
-- `client.realm` from `@nimiplatform/sdk`;
-- `@nimiplatform/sdk/realm` for direct Realm facade consumption;
-- generated Realm service boundaries where the facade exposes them.
+## Compose a Product Flow
 
-## World-Facing Composition
+1. Read the needed Realm information through an admitted App operation.
+2. Use `client.ai` for App AI work, or the separately authorized Agent operation for Agent work.
+3. Keep project workflow and result adoption in the App.
+4. If the user requests a Realm mutation, submit it through its admitted Realm owner operation and display that actual result.
 
-World-facing operations often need Realm truth plus Runtime execution. In vNext this is
-not a separate `world` package root. The composition belongs on:
-
-- the SDK root client when an operation crosses Runtime and Realm;
-- `@nimiplatform/sdk/realm` when the app reads admitted Realm truth;
-
-The composition must keep authority visible. Realm still owns truth. Runtime
-still owns execution. SDK helpers do not become a third source of truth.
-
-## Reader Scenario: Read State, Then Run Agent Work
-
-1. The app reads world state through `client.realm` or
-   `@nimiplatform/sdk/realm`.
-2. The app runs AI work through `client.runtime`,
-   `@nimiplatform/sdk/runtime`, or `@nimiplatform/sdk/ai-runner`.
-3. If execution changes Realm truth, the write lands through admitted Realm
-   contracts. The app does not restate truth locally.
-4. The app re-reads Realm state through the SDK.
-
-## What This Surface Does Not Do
-
-- It does not restore `@nimiplatform/sdk/world`.
-- It does not allow raw `/api/...` Realm REST calls in app code.
-- It does not promote Runtime-local execution evidence to Realm truth.
-- It does not let feature helpers own Runtime RPC parity or Realm semantics.
+Local execution, a cached projection, or an App success message cannot commit Realm truth. A missing carrier or denied operation fails explicitly; do not replace it with raw `/api/...` calls.
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
+
+- [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)

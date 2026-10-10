@@ -13,7 +13,8 @@ For the field-level owner map, see
 | --- | --- | --- |
 | Account-level AI identity | Realm `Character` | Realm owns durable identity and world relations |
 | AI execution materialization | Runtime `LocalAgent` | Runtime materializes a Character for local execution |
-| Conversation, Memory, Knowledge | Runtime | Apps consume these services; they do not take over their truth |
+| Long-term Memory; Knowledge V1 inactive | Cognition | Runtime mediates access without taking ownership |
+| Conversation and Memory mediation | Runtime | Apps consume these services; they do not take over their truth |
 | World truth and history | Realm | Runtime and Apps use admitted Realm surfaces |
 | App authorization | Runtime session | App access is derived from the active session and app identity |
 | Product composition | Nimi Home and other hosts | The current host composes owners but is replaceable |
@@ -31,7 +32,7 @@ An App receives Runtime capability through the active session and its
 own app identity. A scaffolded App does not receive a Realm JWT and
 does not maintain independent Runtime proof. Realm access is mediated
 through admitted SDK or host surfaces, while Runtime remains the owner
-of execution, Conversation, Memory, and Knowledge.
+of execution, Conversation and Memory mediation.
 
 Direct SDK use and a scaffolded App are integration paths, not
 user-selectable product profiles. Kit provides reusable product
@@ -56,6 +57,8 @@ External delegated action is an optional capability boundary. If it is
 enabled, authorization must remain scoped and fail closed, but
 Workflow, MCP, World Evolution, public Registry, or Marketplace
 delivery are not current Runtime prerequisites.
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

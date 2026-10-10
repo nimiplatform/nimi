@@ -20,11 +20,11 @@
 
 | 表 | 层 |
 | --- | --- |
-| `platform/kernel/tables/protocol-error-codes.yaml` | 平台 |
-| `runtime/kernel/tables/reason-codes.yaml` | Runtime |
-| `runtime/kernel/tables/error-mapping-matrix.yaml` | Runtime 跨层 |
+| `config/platform-protocol-error-codes.yaml` | 平台 |
+| `proto/runtime/v1/common.proto` | Runtime |
+| `.nimi/spec/runtime/rpc-foundations.authority.yaml` | Runtime 跨层 |
 | `config/sdks-error-codes.yaml` | SDK |
-| `canonical/desktop/shell-runtime.authority.yaml` | 桌面端 |
+| `.nimi/spec/desktop/shell-runtime.authority.yaml` | 桌面端 |
 
 ## 区分"传输恢复"和"契约失败"
 

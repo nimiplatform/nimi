@@ -1,67 +1,69 @@
 # 创建 Nimi App
 
-使用公开的 App Tools CLI 创建第三方 App 项目。本页命令以 `@nimiplatform/app-tools@0.7.5` 为基准。
+本例使用当前 App Tools 0.11.4 源码及 SDK 0.21.0 / Kit 0.18.0 组合。先准备[匹配的 Home、Runtime、工具链和完整本地包](/zh/start/install)，把归档放进与待创建 App 目录并列的 `nimi-packages`。
 
-## 开始前准备
-
-- 使用 Node.js 24 或更新版本，以及 pnpm。生成项目会声明所用的包管理器版本。
-- 为项目选择一个空目录和 App ID。
-- 通过 Nimi 运行 App 时，需要兼容的 Nimi Home 开发实例、Developer Mode 和可用的 Runtime。先看[开发环境与可用性](/zh/start/install)。创建项目不会安装 Nimi Home，目前也没有发布 Nimi Home 下载。
-
-## 创建并初始化
-
-本例包含文本生成功能，便于接着完成第一次 AI 调用。`studio-create` 会加入 Create 功能、它依赖的 AI Studio 基础模块，并生成 `runtime.consume` 声明。它会带入功能代码和界面，不是单独的权限开关。
+## 创建项目
 
 ```bash
-pnpm dlx --package @nimiplatform/app-tools@0.7.5 nimi-app create --dir my-nimi-app --profile standalone --features studio-create --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app
+pnpm dlx --package=file:./nimi-packages/nimiplatform-app-tools-0.11.4.tgz nimi-app create --dir my-nimi-app --profile standalone --features studio-create --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app --author "Your Name"
 cd my-nimi-app
-pnpm install
-pnpm run init
 ```
 
-将目录、身份和标题换成你的项目值。Standalone 项目使用公开依赖；`init` 会显式同步随工具链提供的 nimicoding 投影，并初始化 App 的受管配置。使用这一入口前，无需先单独学习或执行 Nimi 主仓的治理流程。
+`studio-create` 提供 Create 功能及其 `runtime.consume` 声明。只在创建无 AI 访问声明的空白 App 时省略。示例身份、名称和作者应换成自己项目的值。
 
-如果只需要空白 App，可省略 `--features studio-create`。此时生成的 `app_access: []` 不包含文本生成示例所需的权限声明。在受管脚手架中，`nimi.app.yaml` 按所选功能生成；手改其中的权限会导致 `check` 失败，`sync` 会恢复生成的声明。App Tools 0.7.5 的 `sync` 不接受 `--features`。如果已经创建空白项目，想继续本例，请保留原项目，将上面的命令指向另一个空目录。
+## 安装前选择包
 
-## 检查并运行
+在生成的 `package.json` 的 `dependencies` 中只修改下面两项，保留其他依赖和脚本。创建 `pnpm-workspace.yaml`，写入以下 overrides：
+
+```json
+{
+  "@nimiplatform/sdk": "^0.21.0",
+  "@nimiplatform/kit": "^0.18.0"
+}
+```
+
+```yaml
+packages:
+  - .
+overrides:
+  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.11.4.tgz
+  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.21.0.tgz
+  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.18.0.tgz
+  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.18.0.tgz
+```
+
+这里的原生 override 用于 macOS arm64。Windows x86_64 改用 `@nimiplatform/kit-protected-local-win32-x64` 及匹配的 0.18.0 归档。使用实际归档文件名和同一组合的原生/Runtime 构建，不能重命名旧二进制冒充新包。原生包仍是 Kit 的可选依赖，不应变成 App 自有直接依赖。
+
+## 初始化、检查与运行
 
 ```bash
+pnpm install
+pnpm run init
 pnpm run check
 pnpm run test
 pnpm dev
 ```
 
-`check` 只检查项目；`test` 执行 App 声明的测试；`dev` 请求由 Desktop 监督的 Electron 开发宿主。生成的 `dev:shell` 也进入 `nimi-app dev`，不会自行启动独立的 Tauri 开发外壳。
+`init` 创建脚手架锁，并同步所选依赖组合及 Nimi Coding 集成，因此要求项目已安装对应 Nimi Coding 包。`sync` 只用于已初始化项目；更改依赖后运行 `sync`，如 manifest 有变化则重新安装，再执行 `check`。
 
-按开发宿主的要求，在 Nimi Home 的 Developer Mode 中登记并授权本地项目。窗口正在运行和拥有 Nimi Access 是两种状态；访问不可用时，根据实际原因处理项目登记、授权、Runtime 或能力配置，再重试。不要绕过宿主伪造成功。
+`dev` 请求 Desktop 监督的 Electron Host。在 Home Developer Mode 注册并授权项目，再配置 AI 能力。保留生成的 `getNimiLocalAppClient()` 绑定，直接启动 renderer 不能建立 Nimi 访问。
 
-Tauri 仍可作为明确配置的生产构建选项，但它不是默认开发宿主。Tauri 宿主只承载标准 shell 的一部分，不承载的操作会以 `capability-unavailable` 失败（见 [Tauri 宿主](/zh/platform/kit/#tauri-宿主)）。
+Manifest 根据所选功能受管生成，不能手改 `app_access` 绕过脚手架契约。当前 `sync` 没有 `--features` 参数。空白项目需要本例功能时，保留原项目，用上述功能选项创建新项目。
 
-## 项目命令
+## 构建和打包
 
-| 命令或文件 | 用途 |
-| --- | --- |
-| `nimi.app.yaml` | 生成的 App 身份与提交配置，并非 Registry 批准的描述符；App Access 声明来自所选功能，不通过手改该受管文件添加 |
-| `pnpm run init` | 安装依赖后初始化项目，包括 nimicoding 集成 |
-| `pnpm run sync` | 更新脚手架管理的配置与依赖，保留 App 自己的代码 |
-| `pnpm run check` | 检查项目、受管文件和依赖是否一致，不写入改动 |
-| `pnpm run test` | 执行 App 声明的测试命令 |
-| `pnpm run app:build -- --target windows-x86_64` | 按该目标的配置执行 App 生产构建 |
-| `pnpm run pack --target windows-x86_64` | 在本地打包，不上传，也不授予 Registry 准入 |
+```bash
+pnpm run app:build -- --target macos-aarch64
+pnpm run pack --target macos-aarch64 --production
+```
 
-以实际安装版本生成的 scripts 为准。旧的 `local-audit`、`doctor`、`update` 脚本已不存在；当前 `check` 和 `sync` 各自按文档承担检查与同步职责。
+在匹配 Windows 宿主使用 `windows-x86_64`。生产形态的本地包必须满足目标签名和执行要求；`pack --production` 检查这些条件，但不发布、不授予 Registry 准入，也不运行仅面向 registry 依赖的发布预检。普通开发包不能用于 Runtime 本地导入。
 
-## 接入一项能力
+Tauri 是明确配置的生产替代载体，只承载部分 shell 能力，不是开发 Host。不支持的操作见 [Kit](/zh/platform/kit/)。
 
-添加 App 代码时，保留生成的 SDK/Kit 宿主集成。[第一次 AI 调用](/zh/sdk/first-ai-call)解释请求输入、能力意图和类型化错误；[在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)说明宿主与共享 UI。使用已配置的 App 身份和所需访问权限，真实完成一次 App 自己的请求后，再确认这项接入可用。
+下一步是[第一次 AI 调用](/zh/sdk/first-ai-call)。公开发布还需要 registry 依赖、生产预检、发布方 release 和独立 Registry 准入；本地归档用于开发交付。
 
-遇到失败时查[故障排查](/zh/start/troubleshooting)。[Nimi Lab](/zh/start/use-nimi-lab)提供能力示例；只有明确收录的功能切片可由脚手架生成，并非整个 Lab App。
-
-## 分发之前
-
-创建、检查或运行项目都不等于发布，也不会取得 Registry 准入。发布前请阅读[本地开发与对外分发](/zh/start/#本地开发与对外分发)和 [App Tools 发布说明](https://github.com/nimiplatform/nimi/tree/main/app-tools#canonical-release-boundary)。
-
-## 来源依据
+## Source Basis
 
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
 - [`apps/lab/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)

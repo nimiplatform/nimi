@@ -1,6 +1,6 @@
 # Nimi Coding Host Integration
 
-The Nimi workspace pins `@nimiplatform/nimi-coding@0.6.1` as an exact
+The Nimi workspace pins `@nimiplatform/nimi-coding@0.6.3` as an exact
 development dependency. A normal workspace install provides the CLI:
 
 ```bash
@@ -37,7 +37,7 @@ marked blocks.
 
 ## Code Reads
 
-The current 0.6.1 pin provides `code context` for a bounded outbound
+The current 0.6.3 pin provides `code context` for a bounded outbound
 TypeScript/TSX context and `code authority` for optional exact physical-line
 markers in TypeScript, TSX, Go, Python, and Rust. Marker lookup does not prove
 language comment context. These commands do not evaluate unannotated

@@ -6,7 +6,7 @@ It owns:
 - local and cloud execution
 - streaming and health
 - model lifecycle
-- knowledge, app messaging, and audit
+- Runtime-mediated Cognition Memory, app messaging, and audit
 
 ## Released Binary First
 
@@ -43,7 +43,6 @@ Core command groups:
 - `logs`
 
 Advanced runtime groups:
-- `knowledge`
 - `app`
 - `audit`
 - `health`
@@ -124,8 +123,8 @@ Health endpoints:
   rejects Product Control-owned `dataRootRef` and `managedRoots` fields.
 - Runtime managed roots are derived from the selected data root and protected
   state cannot select or override it.
-- Provider credentials may use `apiKey` or `apiKeyEnv`, but never both
-- User-facing setup should prefer env-backed credentials; inline `apiKey` is fallback-only
+- Provider credentials belong to the protected Connector service; public CLI
+  `providers.*` mutations fail closed. Portable config is not a credential setup path.
 - `config` changes that touch runtime wiring remain restart-scoped
 - Connector/provider authority is the repo-local `.nimi` spec surface:
   `.nimi/spec/runtime/ai-provider.authority.yaml`, `.nimi/spec/runtime/model-catalog.authority.yaml`,
@@ -173,7 +172,7 @@ pnpm proto:baseline:refresh -- --tag sdk/v<SemVer> \
 
 ## References
 
-- Runtime reference: [docs/reference/runtime.md](../docs/reference/runtime.md)
+- Runtime reference: [Runtime documentation](../docs/runtime/index.md)
 - Runtime domain authority: [.nimi/spec/runtime](../.nimi/spec/runtime) — one
   container per area; `rpc-foundations.authority.yaml` and
   `protected-session.authority.yaml` carry the transport and session contracts

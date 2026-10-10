@@ -17,24 +17,18 @@ Evolution、委派 provider 或 hook 调度模型列作 Runtime 前置。
 | 状态 | 终态？ |
 | --- | --- |
 | `SUBMITTED` | 否 |
+| `QUEUED` | 否 |
 | `RUNNING` | 否 |
 | `COMPLETED` | 是（成功） |
 | `FAILED` | 是 |
 | `TIMEOUT` | 是 |
 | `CANCELED` | 是 |
 
-## Runtime · Provider 异步任务
+## Runtime · 观察事实
 
-| 状态 | 终态？ |
-| --- | --- |
-| `queued` | 否 |
-| `running` | 否 |
-| `succeeded` | 是 |
-| `failed` | 是 |
-| `expired` | 是（等价于超时） |
+Provider 协议阶段保持私有。公共 Job 提供 `submission_outcome`（`UNSPECIFIED`、`NOT_DISPATCHED`、`UNKNOWN`、`ACCEPTED`、`REJECTED`）与 `stop_outcome`（`UNSPECIFIED`、`NOT_DISPATCHED`、`CONFIRMED`、`UNCONFIRMED`）。历史缺失值保持未知。
 
-Provider 异步状态使用 lower snake case；ScenarioJob 使用 upper
-snake case。Provider 边界把终态结果映射到对应 ScenarioJob 结果。
+观察问题不改变 Job 状态。本地 canceled 不能单独证明外部执行停止。`TIMEOUT` 需要实际的有界 Host 终止或已确认 Provider 任务过期，不能仅凭 Job 已存在多久判断。对原 Job 使用 Get，并保留完整终态结果。
 
 ## Realm · App-World Binding
 

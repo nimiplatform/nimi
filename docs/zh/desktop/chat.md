@@ -14,7 +14,7 @@
 
 ## 实时投递
 
-聊天里的动态通过 Socket.IO 实时同步：新消息、正在输入、在线状态、已读状态都即时到达，不需要刷新或轮询。聊天走的是 Nimi 统一的实时通道，不自造协议。
+人类聊天通过 SDK 接收 Realm 实时更新。Nimi Chat 使用 App AI 流，Agent Chat 使用 Runtime 强类型 Conversation 事件和已提交快照。各条路径保留所属 owner 的会话、顺序、终止和恢复语义，不是一条通用消息总线。
 
 ## 流式聊天
 
@@ -22,13 +22,13 @@
 
 | 维度 | 取值 |
 | --- | --- |
-| 模式 | Mode A（文本/语音，结尾帧带显式 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED`） |
+| 协议 | Nimi Chat 使用 App 文本流；Agent Chat 使用强类型 Conversation 轮次与消息事件 |
 | 气泡渲染 | 边收到分片边渲染 |
 | 中途停止 | 流式期间可用 |
-| 部分内容 | 中断时保留 |
-| 反压 | SDK 端到端 |
+| Agent 部分内容 | 提交前只作临时呈现；中断时清除未提交文本 |
+| 投递限制 | 强类型反压/资源失败；不承诺无限缓冲或通用重放 |
 
-生成到一半点「停止」，已经出来的部分会留着，下一轮从头开始。
+Agent Chat 的「停止」请求中断当前轮次。流式增量不是已提交历史，中断时未提交文本会被清除；已提交消息保留，包括关联动作中断前已经提交的文本。恢复以已提交快照为准，不使用部分回复缓存。
 
 ## 对话轮次权威
 
@@ -38,11 +38,11 @@
 
 你打开聊天，把目标选为自己的 Agent，开始输入。
 
-1. **选定目标**。把 Character/LocalAgent 选为聊天目标。对话外壳为 `(local_agent_id, conversation_id)` 解出对应的 `ConversationAnchor`。
+1. **选定目标**。把 Character/LocalAgent 选为聊天目标。对话界面使用当前已授权 Agent handle 打开该 LocalAgent 的唯一 Conversation，并保留返回的 anchor。
 2. **输入**。输入器按强类型输入形态显示。
 3. **发送**。这一轮被提交。Runtime 的 `RuntimeAgentService` 为选定 LocalAgent 与 Conversation 接受这一轮。
-4. **流式开始**。助手气泡按 Mode A 分片增量呈现。
-5. **中途停止**。你点了停止。流式契约保留了已收到的部分。
+4. **流式开始**。助手气泡展示 Conversation 事件中的临时增量文本，已提交消息另行记录。
+5. **中途停止**。Runtime 报告中断，Desktop 清除未提交回复；已经提交的消息仍保留在快照中。
 
 Character 的持久身份是 Realm 真相；LocalAgent 执行身份、Conversation 连续性和对话记录归 Runtime。与 Agent 的对话不会创建 Realm 人类聊天线程。
 
@@ -51,7 +51,7 @@ Character 的持久身份是 Realm 真相；LocalAgent 执行身份、Conversati
 | 关注点 | 归属 |
 | --- | --- |
 | 具身化 / 形象呈现 | Avatar 应用——桌面端聊天不再做 Live2D / VRM 的承载面 |
-| Memory 权威 | Runtime LocalAgent Memory |
+| Memory 权威 | Cognition Agent 私有 Memory，经 Runtime 中介 |
 | 两位人类用户的直接聊天线程 | Realm 聊天 |
 | 一轮执行权威 | Runtime Agent 服务 |
 | 流式语义 | Runtime 流式契约 |

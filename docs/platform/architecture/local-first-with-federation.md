@@ -1,108 +1,24 @@
-# Local-First With Federation
+# Local-First and Multiple Devices
 
-Nimi treats your machine as the AI hub. The cloud is where worlds and
-identity live; your machine is where AI execution actually happens.
-The platform is built to be useful when your computer is the only
-thing online, and to compose into a larger compute network when other
-machines join in.
+Nimi can execute AI on your machine using configured local capabilities, or use cloud capabilities you explicitly configure. Local-first does not mean anonymous or unrestricted offline operation: Nimi requires an account, and protected access and current authorization still apply.
 
-## What "Local-First" Means For Nimi
+## Local Execution
 
-A local-first platform is one where the user's primary device holds
-real authority over its own data and execution. It isn't a rebranded
-"client-server" — it is a posture that survives going offline.
+Prepare the required assets and environment, save and select the capability's machine Loadout, and save Local intent in the App or shared LocalAgent AIConfig. At submission, Runtime captures that exact configuration. It does not automatically switch between Local and Cloud when a request fails.
 
-In Nimi's case:
+Cognition stores each Agent's long-term Memory locally through Runtime's typed bridge. Memory enablement is Agent-specific; Knowledge V1 has no active ingestion or query path. Conversation and local audit remain separate Runtime records.
 
-- **AI inference runs on your hardware.** Runtime owns text / image /
-  video / audio / embedding / STT / TTS execution and arbitrates GPU
-  use. You do not need a cloud subscription to use AI.
-- **Memory and knowledge are local by default.** Memory is opt-in;
-  the default substrate runs supervised locally. Knowledge banks live
-  in runtime-local storage with explicit ingest.
-- **Audit is local first.** Every AI call, every model operation,
-  every authorization decision lands in a runtime-local audit ledger.
-  Realm cloud audit is a separate plane.
-- **Cloud is opt-in.** Connectors to cloud AI providers are typed,
-  scoped credentials you choose to add. They don't get added by
-  accident.
+## When the Network Is Unavailable
 
-The cloud half (Realm) still matters — it owns canonical world truth
-and cross-world identity. But Realm is not on the AI execution path.
-You can have AI capability with Realm offline.
+Existing local work can proceed only while its required protected session, authorization, assets, and owner policies remain valid. A cold start, new login, Realm source acquisition, authorization renewal, or cloud call may require network access. A local cache cannot create account or Realm success.
 
-## The Federation Direction (Long-Term)
+Realm owns world, identity, social, and economy truth. Pending local intent is not a committed Realm mutation. No automatic audit upload or cross-device Memory synchronization is implied by local operation.
 
-The Runtime vision goes one step further: a peer-to-peer compute
-network where machines federate AI capability with each other.
+## Multiple Devices and Federation
 
-Concretely, the long-term direction is:
+Each device has its own Runtime and local configuration. An account or Character identity shared through Realm does not automatically share Loadouts, Conversation state, or Agent Memory between devices.
 
-- Your machine can host capability for a friend. Your idle GPU
-  cycles run someone else's image generation under their consent
-  and your access policy.
-- Your machine can call into a friend's machine. If your laptop has
-  no GPU but your desktop at home does, your laptop talks to your
-  desktop's runtime through the same SDK shape.
-- Capability is bounded by scoped tokens. Federation does not mean
-  "anyone can use my GPU." It means an admitted token grants a
-  declared scope, and the audit lineage is preserved end-to-end.
-
-Federation is a long-term direction, not a current shipping promise.
-The current Runtime is single-machine; the federation surface is
-admitted at the architecture level so that future federation does not
-require breaking the local-first contract.
-
-## Reader Scenario: A First-Run Local-First Setup
-
-You install Nimi on a fresh laptop with a discrete GPU.
-
-1. You start the Runtime daemon. It registers the local GPU as a
-   capability surface and reports its device profile.
-2. You install a local model — say, a quantized text model that fits
-   in your VRAM. The local engine catalog resolves the model and
-   prepares its bundle.
-3. You optionally add a cloud connector for a provider you have a
-   subscription to. The connector is a managed identity with
-   scoped credentials.
-4. You open an app. The app uses `@nimiplatform/sdk/runtime` to call generation.
-   Runtime decides whether to route to your local model or your
-   cloud connector based on the request shape and your config.
-5. Audit lands in your runtime-local ledger. If you later sign in
-   to Realm, you can opt to aggregate the audit upward; you do not
-   have to.
-
-At no point did the platform require a cloud subscription. The cloud
-is a capability your runtime can route through, not a precondition.
-
-## Reader Scenario: Working Across Two Of Your Own Machines
-
-You have a laptop and a desktop. Your desktop has the powerful GPU.
-
-- Today: your laptop and your desktop each run their own Runtime.
-  Each is independent. You can install models on either; identities
-  are tied to your account through Realm; runtime state is local.
-- Future: a federation surface lets your laptop request capability
-  from your desktop's Runtime under a scoped token. The laptop's
-  app sees a normal `@nimiplatform/sdk/runtime` call; the actual inference runs
-  on the desktop. Audit is preserved across both ledgers.
-
-This federation flow is admitted as a future direction in the
-runtime kernel; the local-first posture today is what makes the
-future federation safe.
-
-## Why Local-First Matters For An AI Platform
-
-| Risk | What local-first prevents |
-| --- | --- |
-| Vendor lock-in | Provider connectors are typed and replaceable; the platform itself does not depend on any one provider. |
-| Subscription tax | Local models and local capability are first-class; cloud is opt-in. |
-| Privacy leak | Memory, knowledge, and audit live on your machine by default; cloud sync is explicit. |
-| Network outage | AI work continues without network. |
-| Hardware vendor capture | The runtime arbitrates GPU access and is portable across hardware. |
-
-The architectural commitment is that none of these failure modes
-should silently degrade the platform.
+Peer-to-peer compute federation is a future direction, not a current transport or installation step. Do not point an App at another machine's private Runtime endpoint to emulate it. Use only the protected host and operations admitted for the current product.
 
 ## Source Basis
 
@@ -111,3 +27,5 @@ should silently degrade the platform.
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
+- [`.nimi/spec/cognition/memory.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/memory.authority.yaml)

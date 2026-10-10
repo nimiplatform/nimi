@@ -37,7 +37,7 @@
 | 拥有者 | 这个 Agent 归谁 |
 | 用户能看到的 Agent | 公开 Agent 列表 |
 
-桌面端只承载 Character/LocalAgent 的列表和公开详情。**Agent 的 Memory 和对话记录都留在 Runtime**，桌面端不持有。
+桌面端只承载 Character/LocalAgent 的列表和公开详情。**对话记录归 Runtime，长期 Memory 归 Cognition 并经 Runtime 中介访问**，桌面端不持有。
 
 ## 读者场景：发现并进入一个世界
 

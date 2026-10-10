@@ -1,92 +1,54 @@
-# 共享类型
+# 共享类型与错误
 
-`@nimiplatform/sdk/types` 承载所有其他 SDK 子路径都用到的共享公开类型。它是小而稳的构建块层；SDK 中跨子路径的内容，凡是 `types` 已经导出的，就不再自己创建一套。
+`@nimiplatform/sdk/types` 导出共享 JSON、请求元数据、错误、原因码和重试工具。按实际调用的公共操作选择类型，这个模块不是所有领域标识的统一集合。
 
-## 这里放什么
+## 当前导出
 
-types 子路径导出使用方在不导入私有内部的前提下谈论 Nimi 所需要的跨切面符号。
-
-| 符号 | 用途 |
+| 导出 | 用途 |
 | --- | --- |
-| `NimiError` | SDK 调用方面对的强类型错误 surface |
-| `ScopeName` | 强类型作用域标识 |
-| `ExternalPrincipalId` | 强类型外部 Principal 标识 |
-| Runtime ids | `WorldId`、`CharacterId`、`LocalAgentId`、`ConversationId`、`JobId` 等 |
-| 流式基础协议 | 四种流式模式对应的强类型形状 |
-| 多模态基础协议 | `ArtifactId`、规范产物字段类型 |
+| `JsonPrimitive`、`JsonValue`、`JsonObject` | 强类型 JSON 值 |
+| `NimiError`、`NimiErrorSource` | 包含原因、行动提示、追踪和重试信息的错误类型 |
+| `isNimiError`、`asNimiError`、`createNimiError` | 判断、规范化或构造 SDK 错误 |
+| `ReasonCode`、`ReasonCodeValue` | 共享原因常量及其类型 |
+| `CoreMetadata`、`CoreUnaryRequest`、`CoreStreamRequest` | SDK 底层请求描述，不是另一条 App 访问路径 |
+| `RetryOptions`、`RetryEvent`、`RetryReasonKind` | 重试工具的配置与观察信息 |
+| `createNimiClientId`、`createNimiUlid` | 为已准入的调用者用途生成标识 |
 
-确切清单由 SDK 内核 surface 契约准入；新增类型需要内核准入。
+Nimi App 从 `@nimiplatform/sdk` 导入 `NimiLocalAppClient`，通过生成的 Host 绑定取得客户端。能力请求和结果类型从所属的公共 SDK 入口导入。仅导入类型不要求执行该模块的传输代码。
 
-## 集中类型为什么重要
+## 保留标识的归属
 
-没有共享类型，每个子路径都可能用相似形状重声明 Character 与 LocalAgent reference，强类型系统会因此意外退化成弱类型。
+不少 API 标识以字符串表示，不能假设编译器会拒绝所有跨领域误用。保留标识与签发它的结果、操作之间的关系。Character 引用不是 LocalAgent 操作选择器，artifact ID 也不授予访问权。
 
-`@nimiplatform/sdk/types` 集中类型，能在所有公开 surface 之间保留同一个名义类型。Realm 的 Character reference 与 Runtime 的 LocalAgent reference 保持为不同的强类型身份，不会变成凑巧形状一致的双胞胎。
+正式 App 的 Agent 操作使用已授权引用列表返回的会话级 `agentHandle`，不要自行生成或强转原始 LocalAgent ID。Runtime 仍检查当前账号、App、会话、目标与操作。
 
-## 边界规则
+## 判断强类型错误
 
-| 规则 | 原因 |
-| --- | --- |
-| 其他子路径不重声明 `types` 中的类型 | 防漂移 |
-| `types` 不从其他子路径导入 | 处在依赖图的最底层 |
-| `types` 不依赖传输（`@nimiplatform/sdk/runtime`）或适配（`@nimiplatform/sdk/realm`） | 保持类型可移植 |
-| 新增类型需要内核准入 | 与其他 surface 同样的准入纪律 |
-
-## 读者场景：保持身份 owner 分离
-
-App 通过 Realm surface 读取 Character reference，随后使用 Runtime 返回的 LocalAgent reference 执行。
-
-1. **Realm 读取。** App 收到 `CharacterId`。
-2. **Runtime 物化。** Runtime 解析或物化对应 LocalAgent，并返回 `LocalAgentId`。
-3. **Conversation 调用。** App 把 `LocalAgentId` 与 `ConversationId` 一起使用。
-4. **无静默强转。** 编译器不会让 Character id 冒充 LocalAgent id。
-
-共享类型层保留 Realm/Runtime owner 边界。
-
-## 读者场景：强类型错误传到 App 代码
-
-一次 runtime 调用以契约失败告终。
-
-1. **Runtime 发出强类型错误。** 通过 SDK 错误转换，错误成为带 reason code 的 `NimiError`。
-2. **App 导入 `NimiError`。** 来自 `@nimiplatform/sdk/types`。
-3. **类型收窄。** App 在 reason code 上做模式匹配以决定 UX 行为。
+`NimiError` 是 TypeScript 类型。用 `isNimiError` 收窄捕获到的未知值：
 
 ```ts
-import { NimiError } from '@nimiplatform/sdk/types';
+import { isNimiError, type NimiError } from '@nimiplatform/sdk/types';
 
-try {
-  await model.generateText(...);
-} catch (err) {
-  if (err instanceof NimiError) {
-    // typed reason code
-    if (err.reasonCode === 'AUTH_TOKEN_EXPIRED') { ... }
-    if (err.reasonCode === 'AUTH_UNSUPPORTED_PROOF_TYPE') { ... }
-  }
+export function nimiFailureDetails(error: unknown): Pick<
+  NimiError, 'message' | 'reasonCode' | 'actionHint' | 'retryable'
+> | null {
+  if (!isNimiError(error)) return null;
+  return {
+    message: error.message,
+    reasonCode: error.reasonCode,
+    actionHint: error.actionHint,
+    retryable: error.retryable,
+  };
 }
 ```
 
-错误是强类型的，因为它来自 `@nimiplatform/sdk/types`，不是因为 App 自己猜出来的。具体的 reason code 清单由 SDK 内核准入。
+同一函数在 [`examples/sdk/06-errors.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/06-errors.ts) 中参与编译检查。返回 `null` 表示该值不符合 SDK 错误形状，应保留原始失败并交给 App 的正常错误处理，不表示操作成功。
 
-## 读者场景：库作者新增 helper
+根据实际原因和行动提示选择下一步。`retryable` 不意味着外部结果不确定时可以重放业务操作。Job 应保留原身份，遵循[观察与恢复](/zh/runtime/streaming)。
 
-一位库作者想写一个接受任意 Nimi 标识的 helper。
+## Source Basis
 
-1. **从 `@nimiplatform/sdk/types` 导入。** 依赖 `@nimiplatform/sdk/types`，不依赖 `@nimiplatform/sdk/runtime` 或 `@nimiplatform/sdk/realm`。
-2. **Helper 接受 `CharacterId | LocalAgentId | WorldId | ConversationId`。** 这是来自 `@nimiplatform/sdk/types` 的强类型联合。
-3. **库可编译。** 没有传输依赖；不会引入 runtime；可移植。
-
-如果一个库为了类型信息去依赖 `@nimiplatform/sdk/runtime`，就会把整个传输层拖进它的使用者。从 `@nimiplatform/sdk/types` 引入，能让依赖图保持轻薄。
-
-## `types` 的排除项
-
-| 不收录 | 原因 |
-| --- | --- |
-| 方法函数 | 那些在 `@nimiplatform/sdk/runtime`、`@nimiplatform/sdk/realm` 等子路径 |
-| 传输内部信息（例如 gRPC 元数据） | 归传输层所有，不属于 App 请求类型 |
-| Provider 名 | 是 catalog 数据，不是类型系统 |
-| 世界内容（规则、Character 等） | 是内容，不是类型 |
-
-## 来源依据
-
+- [`sdks/typescript/types/index.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/types/index.ts)
+- [`sdks/typescript/types/errors.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/types/errors.ts)
+- [`examples/sdk/06-errors.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/06-errors.ts)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`config/sdks-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-error-codes.yaml)

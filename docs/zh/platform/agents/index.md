@@ -5,7 +5,7 @@
 
 LocalAgent 是 Runtime 把角色在本地运行起来的方式。当你开始一段体验，
 Runtime 读取角色的描述，也就是 Realm 签发的 Character Source，在你的机器
-上把它运行起来。LocalAgent 持有这次运行的对话、记忆和知识。角色本身的身
+上把它运行起来。LocalAgent 持有这次运行的对话与执行状态。角色本身的身
 份始终留在 Realm。
 
 - **Character** 是由 Realm 保存的身份、关系和世界成员关系。
@@ -13,7 +13,7 @@ Runtime 读取角色的描述，也就是 Realm 签发的 Character Source，在
   Agent 类型。
 - **Character Source** 是 Realm 签发、供 Runtime 运行角色的描述。
 - **LocalAgent** 是 Runtime 为你创建的运行实例。Runtime 管理它的生命周
-  期、Conversation、运行态 Memory 与 Knowledge、模型路由、readiness、预
+  期、Conversation、Memory 访问中介、模型路由、readiness、预
   算和状态。
 
 Character 与 LocalAgent 之间没有额外的平台级 `Agent`、`AgentFamily` 或
@@ -40,6 +40,8 @@ Avatar 渲染 Runtime 发来的强类型呈现内容，并保留自己 renderer 
 - [LocalAgent 访问与 App 授权](./participation-authority)
 - [跨 World 身份](./cross-world-identity)
 - [外部参与](./external-agents)
+
+长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## 来源依据
 

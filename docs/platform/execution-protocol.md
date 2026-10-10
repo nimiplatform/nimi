@@ -2,7 +2,7 @@
 
 Nimi can place an optional fail-closed boundary around external or
 delegated actions. This boundary is not a prerequisite for Local AI,
-LocalAgent, Conversation, Memory, Knowledge, or ordinary Runtime
+LocalAgent, Conversation, Memory, or ordinary Runtime
 readiness.
 
 ## Safety Order

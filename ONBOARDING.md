@@ -122,7 +122,6 @@ pnpm dev:runtime
 
 ```bash
 pnpm runtime:health
-pnpm runtime:config:get
 ```
 
 默认地址：
@@ -134,7 +133,7 @@ pnpm runtime:config:get
 
 如需调用云端 AI provider（如 Gemini），通过 Desktop UI 管理 Connector。
 
-启动 Desktop 后，在 Runtime Config 面板中添加 Connector 并填入 API Key。凭据由 Runtime ConnectorService 托管，Desktop renderer 不接触原始 key（K-KEYSRC-001、D-SEC-009）。
+启动 Home 后，在「云服务」中添加 Connector。API Key 由用户在 Desktop 表单中输入，并通过受保护的管理操作提交给 Runtime ConnectorService 托管；输入期间 renderer 会接触这次填写的原文。已保存凭据不会通过普通配置投射或 AI 调用结果返回 renderer，不能把一次性输入与后续凭据托管混为一谈。
 
 CLI 配置不拥有 provider 凭据；AI 调用由已认证 App 通过 SDK 的 typed Runtime client 发起。
 
@@ -264,10 +263,7 @@ pnpm spec:authority:check
 
 ### Q2: AI 调用报凭据错误？
 
-根据使用路径排查：
-
-1. **Connector 路径**（Desktop UI 配置）：检查 Connector 是否为 `ACTIVE` 状态，凭据是否已填入。
-2. **Config 路径**（CLI `apiKeyEnv`）：运行 `pnpm runtime:config:get` 检查 `apiKeyEnv` 字段，确认环境变量已在启动 runtime 的 shell 中导出。
+在 Home 的「云服务」中检查原 Connector 的状态与凭据，再检查对应 AIConfig 是否保存了确切的 Cloud 连接和目标。CLI 配置不拥有 Provider 凭据，不能通过 `providers.*` 或 `apiKeyEnv` 修复正式 App 的云端配置。已有 Job 使用提交时固定的输入，恢复时观察原 Job，不重新生成。
 
 ## 11. 参考文档
 

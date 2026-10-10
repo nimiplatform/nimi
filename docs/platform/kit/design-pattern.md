@@ -43,7 +43,7 @@ scheme" mode.
 
 ## Semantic Token Taxonomy (P-DESIGN-003)
 
-Shared semantic tokens live in `tables/nimi-ui-tokens.yaml`. The
+Shared semantic tokens live in `config/platform-nimi-ui-tokens.yaml`. The
 admitted token categories include:
 
 | Category | Examples |
@@ -73,7 +73,7 @@ admitted token categories include:
 | `ambient` | Ambient effect tones |
 
 Each semantic token declares whether it is a `foundation` or `accent`
-layer token. Theme pack values live in `tables/nimi-ui-themes.yaml`.
+layer token. Theme pack values live in `config/platform-nimi-ui-themes.yaml`.
 
 App code must not invent parallel token registries for governed
 surfaces.
@@ -113,7 +113,7 @@ surfaces.
 | Rule | Value |
 | --- | --- |
 | Governed app stylesheets may NOT | Assign values to `--nimi-*` CSS variables |
-| Shared semantic token values | Originate only from generated theme CSS emitted from `tables/nimi-ui-themes.yaml` |
+| Shared semantic token values | Originate only from generated theme CSS emitted from `config/platform-nimi-ui-themes.yaml` |
 | Shared-lib handwritten CSS may | Read semantic tokens |
 | Shared-lib handwritten CSS may NOT | Provide fallback token authority |
 
@@ -168,7 +168,7 @@ admitted tokens.
 An app author wants a button variant that doesn't match any admitted
 shared primitive variant.
 
-1. **Check the variant table first.** `tables/nimi-ui-primitives.yaml`
+1. **Check the variant table first.** `config/platform-nimi-ui-primitives.yaml`
    declares admitted variants.
 2. **If the variant isn't there:** the app cannot define a new CVA
    variant for the shared primitive family in app-local code.
@@ -192,9 +192,9 @@ The boundary keeps the shared primitive contract honest.
 | --- | --- |
 | Foundation authority | `P-DESIGN-001` |
 | Theme pack model | `P-DESIGN-002` |
-| Semantic token taxonomy | `P-DESIGN-003` + `tables/nimi-ui-tokens.yaml` |
+| Semantic token taxonomy | `P-DESIGN-003` + `config/platform-nimi-ui-tokens.yaml` |
 | Theme scheme contract | `P-DESIGN-004` |
-| Primitive visual authority | `P-DESIGN-005` + `tables/nimi-ui-primitives.yaml` |
+| Primitive visual authority | `P-DESIGN-005` + `config/platform-nimi-ui-primitives.yaml` |
 | App-local redefinition rules | `P-DESIGN-006`, `P-DESIGN-007`, `P-DESIGN-008` |
 | Shared primitive contract | `P-DESIGN-010` |
 

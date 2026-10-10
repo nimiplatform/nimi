@@ -1,7 +1,7 @@
 # 可选 Action 执行
 
 Nimi 可以为外部或委派 action 提供可选的 fail-closed 边界。这项能力不是
-Local AI、LocalAgent、Conversation、Memory、Knowledge 或普通 Runtime
+Local AI、LocalAgent、Conversation、Memory 或普通 Runtime
 readiness 的前置。
 
 ## 安全顺序

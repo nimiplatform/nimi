@@ -1,57 +1,31 @@
-# AIConfig 与机器配置文件
+# Nimi Home 中的 AI 配置
 
-## 状态：Desktop 拥有的配置界面
+在「AI 能力」中准备本地配置，在「云服务」中管理云端连接，再进入对应 App 或共享 LocalAgent 的 AI 设置，决定各项能力的执行路径。
 
-桌面端有两类互不相干的 AI 设置：
+## 先确认配置归属
 
-- Agent Center：给某个具体的 App 或 Agent 设置每项能力的 Local 或 Cloud 意图。
-- Runtime 配置：管理机器 profile、provider、engine 和本地资源。
+每个 App 有自己的 AIConfig。当前账号的全部 LocalAgent 共用一份 LocalAgent AIConfig；切换 Agent 不会创建新的 owner。Nimi Chat 使用 Desktop App 配置，Agent Chat 使用共享 LocalAgent 配置。
 
-心里要把两者分开。改了机器配置，并不会给任何 App 或 Agent 绑上一个看得见的执行方式。
+每项能力选择 Local 或 Cloud，并保存必要的功能要求和默认参数。Local 使用机器当前选中的该能力 Loadout；Cloud 必须从 Runtime 的安全选项中选择当前账号的确切 Connector 和实现目标。凭据与端点不进入 AIConfig。
 
-## Agent Center AIConfig
+保存时携带当前 revision，并整体替换能力列表；保留未修改项，省略表示清除。版本冲突需要重新审阅后保存。保存不要求先完成推理探测，也不代表执行已经可用。
 
-选定一个 App 或 Agent owner，AIConfig 区会列出各项可用能力和它当前的 Local 或 Cloud 意图。保存会整体替换这个 owner 的完整能力列表，且需要已授权的会话。
+## 准备本地能力
 
-| AIConfig 拥有 | AIConfig 不拥有 |
-| --- | --- |
-| 准确的 owner 身份 | provider 或 model 选择 |
-| 已准入能力 | 机器 route 或 connector |
-| Local 或 Cloud 意图 | engine 或资源 binding |
-| 已授权的整体覆盖操作 | readiness、health 或 fallback policy |
+「AI 能力」包含 Profile 推荐与分享、设备上的模型列表，以及能力配置工作区。Loadout 绑定具体实现 recipe 和全部必要资源；通过设置流程准备并提交，再明确选为该能力的默认配置。
 
-Local 和 Cloud 是意图，不是绑定。它们从不指明某个请求会由哪个 model、provider、connector、endpoint 或机器 route 执行。
+机器选择影响该能力今后的所有 Local 请求，不是某个 App 或 Agent 私有的模型绑定。已经提交的 Job 保留提交时固定的输入。
 
-## Runtime 机器配置文件
+「模型库」负责文件查看、导入、存储、完整性和删除。「下载」展示已有 App、模型与环境任务。共享组件和配置环境展示各自的诊断，不产生另一套模型选择。
 
-另有一个管理界面负责可移植的 `AIProfile` 包和机器本地资源，可以在那里校验、导入、安装或删除 Runtime 配置。装好的状态归 Runtime，可能影响它之后挑选实现的结果。
+## 应用 Profile
 
-机器 profile 不会复制进 owner 的 `AIConfig`，不会挂到 `AIScopeRef` 上，也不会随 App 请求一起发出。请求到达时，Runtime 从可用的实现里自己挑。
+应用可移植 AIProfile 只预填编辑器，不直接提交 owner 或机器状态。审阅内容，补齐当前环境的 Cloud 引用或本地资源，再完成对应的保存或确认。Profile 来源信息只用于说明，不形成持续绑定。
 
-## 读者场景：设置 Agent 能力意图
+安装流程见 [本地 AI](/zh/desktop/local-ai)，提交行为见 [Profile 与执行](/zh/runtime/ai-profile-execution)。
 
-1. **打开 Agent Center。** Session 加载准确 Agent owner 的完整 `AIConfig`。
-2. **选择意图。** 用户把一项已准入能力设为 Local 或 Cloud。
-3. **保存。** 已授权的整体覆盖操作替换该 owner 的完整能力列表。
-4. **后续调用。** Agent 只提交身份、场景内容和受支持参数，不提交 profile、model、route 或 connector。
-5. **Runtime 执行。** Runtime 结合当前机器配置解释能力意图，并返回强类型结果或失败。
-
-## 读者场景：安装机器配置文件
-
-1. **打开 Runtime 配置。** 用户查看 Runtime 拥有的 profile 和资源。
-2. **安装或更新。** Runtime 校验并应用机器配置。
-3. **Owner 意图保持不变。** App 或 Agent 配置不会被重新绑定。
-4. **后续请求。** Runtime 可以考虑新的机器状态，同时继续独占实现选择权。
-
-## 记住这几点
-
-- Agent Center 改的是你的能力意图，不是执行 profile。
-- Runtime 配置管的是机器资源，不提供 App 请求的控制项。
-- Desktop 有意不提供 owner 级 profile 绑定、model 路由、connector 选择、readiness 或 fallback 的界面。
-- Runtime 的执行证据可以展示用于诊断，但不会成为下一次请求的输入。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
+- [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)

@@ -1,7 +1,7 @@
 # Delegated Capability
 
 Delegated or external action is an optional Runtime capability. It is not a
-prerequisite for Local AI, LocalAgent Conversation, Memory, Knowledge, voice,
+prerequisite for Local AI, LocalAgent Conversation, Memory, voice,
 SDK use, Nimi Home, Avatar, or ordinary App capability execution.
 
 ## Boundary
@@ -21,9 +21,7 @@ An unavailable external capability reports its own typed unavailable or failed
 state. Runtime must not convert that state into LocalAgent failure or a global
 readiness blocker.
 
-MCP, A2A, and other protocol-specific transports are future adapter choices,
-not current public product ontology. Apps, Desktop, Avatar, and SDK consumers
-must not instantiate those transports as a shortcut.
+MCP can be an adapter to the separately owned [Integration](/runtime/integrations) contract. Ordinary App Integration calls do not require a delegated Agent session, suggestion firewall, quarantine, or approval replay. Actual adapter and operation availability must be checked separately. A2A remains a future seam. Consumers do not instantiate private protocol clients to bypass Runtime.
 
 ## Source Basis
 

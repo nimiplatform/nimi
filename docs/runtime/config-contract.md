@@ -46,7 +46,7 @@ discovery or migration inputs.
 Portable configuration:
 
 - must use the current schema and fail closed on invalid content;
-- may configure nonproduction Runtime behavior and provider setup;
+- may configure admitted nonproduction Runtime behavior;
 - must not contain `dataRootRef` or any `managedRoots` value;
 - must not become Product Control or production Runtime private state;
 - is shown by `nimi doctor` or `nimi version` only when explicitly supplied,

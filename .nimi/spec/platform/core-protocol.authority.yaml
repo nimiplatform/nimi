@@ -1774,7 +1774,7 @@ units:
     kind: rule
     title: P-ARCH-003 Realm responsibility allocation
     modality: must
-    statement: Platform architecture references the Realm canonical surface as shared persistent-world truth owner for auth, social, chat, economy, world, PersonaCharacter, WorldCharacter, Character Source, and cloud audit, keeps six-primitive execution in the separate Platform primitive layer, and leaves semantic persistence and read paths with Realm-owned Truth, World State, World History, Chat, and adjacent formal domains.
+    statement: Platform architecture references the Realm canonical surface as shared persistent-world truth owner for auth, social, chat, economy, world, PersonaCharacter, WorldCharacter, Character Source, and cloud audit, keeps the six-primitive protocol contract in the separate Platform primitive layer while semantic execution and truth remain Realm-owned, and leaves semantic persistence and read paths with Realm-owned Truth, World State, World History, Chat, and adjacent formal domains.
     condition: Whenever Realm responsibilities or primitive ownership are allocated by Platform text.
     failure: Reject an allocation that moves Realm-owned domains, aliases the primitive layer to Realm internals, or authors Realm internal semantics.
     relations:

@@ -106,12 +106,12 @@ A creator wants to publish an outfit asset.
    resources; ownership is the creator.
 3. **Lifecycle.** Asset moves `DRAFT → READY` once the creator
    finalizes.
-4. **Optional: bundle into a set.** The creator composes the
-   outfit into a `Bundle` with several related assets. The
-   bundle has its own owner and member ordering.
+4. **Optional: bundle into a set.** The creator creates a `Bundle`, supplying
+   its ordered `memberAssetIds` and the required Bundle metadata. Membership
+   is part of the Bundle operation; it is not an `IMPORT` Binding to a Bundle
+   host. The bundle retains its own owner and member ordering.
 5. **Bind to a world or scene.** The creator binds:
    - Asset → Scene as `USE` (the asset is used in a scene).
-   - Asset → Bundle as `IMPORT` (the asset is part of the bundle).
    - Bundle → World as `PRESENTATION` (the bundle appears in
      the world's presentation surface).
 6. **Legality matrix.** Realm admits each binding only if it's
@@ -166,3 +166,4 @@ attachment."
 ## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`config/realm-openapi/api-nimi.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/realm-openapi/api-nimi.yaml)

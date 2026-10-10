@@ -47,7 +47,7 @@ the bounded `AgentDisplayDetail` seam.
 | Agents the user can see | Public agent list |
 
 Desktop carries Character/LocalAgent lists and public detail reads
-only. **An agent's Memory and its conversations stay in Runtime** —
+only. **Conversation stays in Runtime; long-term Memory belongs to Cognition through Runtime mediation** —
 Desktop doesn't hold them.
 
 ## Reader Scenario: Discovering And Entering A World

@@ -89,7 +89,7 @@ You sign into Nimi and join a world a friend has created.
 - Your conversation with the agents in this world is durable.
   Their memory of you is theirs (with your consent), not the
   world's. When you leave for another world, that memory travels
-  with the LocalAgent under Runtime's Memory contracts.
+  with the LocalAgent in Cognition, under Runtime-mediated access.
 - When you leave, you transit through OASIS. Creator worlds cannot
   peer-transit directly; OASIS is the hub.
 

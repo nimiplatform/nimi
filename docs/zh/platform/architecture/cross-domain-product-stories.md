@@ -8,8 +8,7 @@
 2. Realm 产生 Character Source。
 3. Runtime 从该 source 物化有明确 owner 的 LocalAgent。
 4. Nimi Home 或 App 只通过 SDK 取得已授权 LocalAgent 投影。
-5. Runtime 在自己的 owner 边界内保留 Conversation、运行态 Memory 与
-   Knowledge、route、readiness 与 Credential。
+5. Runtime 在自己的 owner 边界内保留 Conversation、Memory 访问中介、route、readiness 与 Credential。
 
 Host 不创建 Character identity，Realm 也不执行 LocalAgent。
 
@@ -27,7 +26,7 @@ presentation timing 仍是 Runtime 投影。
 ## 使用 Scaffolded App
 
 1. Nimi Home 通过当前 protected local path 启动 App。
-2. App 经标准 SDK 提交强类型 intent 与显式 LocalAgent target。
+2. App 经标准 SDK 提交强类型 intent 与当前会话的 `agentHandle`。
 3. Runtime 从 active session 推导 account、App identity、authorization 与
    access。
 4. App 只收到有限强类型结果，不会取得 Realm JWT、Provider Credential、
@@ -35,6 +34,8 @@ presentation timing 仍是 Runtime 投影。
 
 Direct SDK 与 scaffolded App 共享这份产品 contract。Host 集成不是用户可选的
 产品 profile。
+
+长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## 来源依据
 

@@ -12,7 +12,8 @@ Nimi 把持久身份、Runtime 执行、产品宿主与呈现分开，避免任�
 | --- | --- | --- |
 | 账户级 AI 身份 | Realm `Character` | Realm 持有持久身份与世界关系 |
 | AI 执行物化 | Runtime `LocalAgent` | Runtime 为本地执行物化 Character |
-| Conversation、Memory、Knowledge | Runtime | App 消费服务，不接管其真相 |
+| 长期 Memory；Knowledge V1 未启用 | Cognition | Runtime 中介访问，不取得 ownership |
+| Conversation 与 Memory 访问中介 | Runtime | App 消费服务，不接管其真相 |
 | 世界真相与历史 | Realm | Runtime 与 App 使用准入的 Realm 表面 |
 | App 授权 | Runtime session | 访问权由当前 session 与 app identity 派生 |
 | 产品组合 | Nimi Home 与其他宿主 | 当前宿主负责组合，但可以被替换 |
@@ -28,7 +29,7 @@ Nimi 把持久身份、Runtime 执行、产品宿主与呈现分开，避免任�
 App 通过当前 session 与自身 app identity 获得 Runtime 能力。
 Scaffolded App 不接收 Realm JWT，也不自行维护 Runtime proof。Realm
 访问通过准入的 SDK 或宿主表面中介；Runtime 继续持有执行、
-Conversation、Memory 与 Knowledge。
+Conversation 与 Memory 访问中介。
 
 Direct SDK 与 Scaffolded App 是接入路径，不是用户选择的产品
 profile。Kit 只在真实 consumer 需要时提供可复用产品面，不为“体系
@@ -49,6 +50,8 @@ consumer 或 projection。
 外部委派动作是可选能力边界。启用时，授权必须保持带作用域并
 fail closed；Workflow、MCP、World Evolution、公共 Registry 或
 Marketplace 分发都不是当前 Runtime 前置。
+
+长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## 来源依据
 

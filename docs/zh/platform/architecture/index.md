@@ -28,8 +28,8 @@ Runtime 执行和 Realm 身份仍由各自的 owner 负责。
 ## 架构规则
 
 - Character identity 与 World truth 留在 Realm。
-- LocalAgent、Conversation、Memory、Knowledge、AI implementation selection 与
-  App authorization 留在 Runtime。
+- LocalAgent、Conversation、AI 执行与 App 授权留在 Runtime。
+- Cognition 持有 Agent 私有长期 Memory，经 Runtime 中介访问；Knowledge V1 暂无活动路径。
 - App 使用公共 SDK operation，只持有自身产品行为与数据。
 - Desktop 是当前 host，不是不可替代的跨平台 authority。
 - Platform security 表达必要结果；除非公共 contract 要求，OS 机制保持为

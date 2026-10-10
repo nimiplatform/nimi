@@ -93,8 +93,7 @@ forwarded.
 
 ## Why The SDK Exists
 
-Nimi has multiple owner domains. Runtime owns execution, LocalAgent
-Conversation, Memory, and Knowledge. Realm owns Character, World, social, and
+Nimi has multiple owner domains. Runtime owns execution and LocalAgent Conversation. Cognition owns long-term Memory through Runtime mediation; Knowledge V1 is inactive. Realm owns Character, World, social, and
 semantic truth. Desktop owns native shell behavior. Application code needs a
 stable way to use those domains without importing their private implementation.
 

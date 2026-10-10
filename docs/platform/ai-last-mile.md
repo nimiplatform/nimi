@@ -3,7 +3,7 @@
 The current AI last mile is the path from authorized user intent to Runtime
 LocalAgent execution and back to a typed product projection.
 
-Runtime owns LocalAgent Conversation, operational Memory and Knowledge, Local
+Runtime owns LocalAgent Conversation, Memory mediation, Local
 and Cloud AI consumption, implementation selection, execution admission,
 budget, credentials, and App authorization. SDK exposes the bounded public access surface. Apps own
 their product interaction and rendering, not execution truth.
@@ -14,7 +14,7 @@ their product interaction and rendering, not execution truth.
 2. Runtime derives account, App identity, authorization, and LocalAgent access
    from the active session.
 3. Runtime evaluates capability intent, authorization, Quota, and Budget, then
-   selects an admitted implementation.
+   captures the machine-selected Local Loadout or exact committed Cloud inputs at Job submission.
 4. Runtime validates execution output before committing Conversation or other
    LocalAgent truth.
 5. The consumer receives only the authorized typed projection.
@@ -26,10 +26,12 @@ context do not cross into App-owned state.
 
 An external action plane may be admitted separately, but it is not part of the
 core path above. Its absence or failure must not block ordinary LocalAgent
-Conversation, Memory, Knowledge, voice, or ordinary AI execution.
+Conversation and Memory mediation, voice, or ordinary AI execution.
 
 See [Delegated Capability](/runtime/delegated-capability) for that isolated
 boundary.
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

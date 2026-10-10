@@ -8,11 +8,12 @@ truth.
 | --- | --- | --- |
 | Platform | Cross-domain protocol and product owner boundaries | Realm truth, Runtime execution, App product behavior |
 | Realm | Character, Character Source, World Source, social, economy, canonical World state and history | LocalAgent execution and local AI routing |
-| Runtime | Local and Cloud AI consumption, LocalAgent, Conversation, operational Memory and Knowledge, voice, readiness, credentials, local audit, App authorization | Realm Character or World truth; product UI |
+| Runtime | Local and Cloud AI consumption, LocalAgent, Conversation, Memory mediation, voice, readiness, credentials, local audit, App authorization | Realm Character or World truth; product UI |
+| Cognition | Agent-private long-term Memory and derived retrieval; Knowledge V1 inactive | Conversation, authorization, AI execution |
 | SDK | Typed public consumer projection for Runtime and Realm | Provider execution, Realm truth, host-private transport |
 | Kit | Demand-driven shared UI and host composition | A reusable public capability catalog or owner-domain truth |
 | Nimi Home / Desktop | Current product home, native host, product UI and interaction | Realm or Runtime authority |
-| Avatar | Embodiment shell, renderer execution, playback, and renderer-local state | LocalAgent, Conversation, Memory, Knowledge, AI routing |
+| Avatar | Embodiment shell, renderer execution, playback, and renderer-local state | LocalAgent, Conversation and Memory mediation, AI routing |
 | App | Its product behavior and private data | Account, grant, session, LocalAgent, provider, or Realm truth |
 
 ## Main owner transitions
@@ -26,12 +27,11 @@ truth.
 | Runtime → Avatar | Typed presentation and voice input; rendering stays Avatar-local |
 | Nimi Home → App | Protected launch and host composition; authorization remains Runtime-owned |
 
-## Non-blocking future capabilities
+## Independently Scoped Capabilities
 
-General Workflow, MCP, World Evolution, marketplace, Registry, Trust Tier,
-public distribution, and settlement remain outside the current core loop.
-Their absence is not a failure of Runtime, SDK, Nimi Home, Avatar, or ordinary
-App readiness.
+Registry-approved packages and local development follow the [App lifecycle](/start/#local-development-and-distribution). [Integrations](/runtime/integrations) have their own connection and permission contract. General Workflow, World Evolution, federation, and marketplace settlement do not become prerequisites for an unrelated admitted App operation.
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

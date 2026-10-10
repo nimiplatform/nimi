@@ -17,10 +17,10 @@ fixed asset.
 | --- | --- | --- |
 | Public APML wire | Runtime | parsing, validation, public tag set |
 | Typed projection | Runtime | `runtime.agent.presentation.*` and `runtime.agent.state.*` event surface |
-| Activity ontology | Runtime | activity ids and categories in `tables/agent-activity-ontology.yaml` |
-| Backend route ids | Avatar | `tables/generated-motion-routes.yaml` |
-| Backend capability profile schema | Avatar | `tables/backend-capability-profile.schema.yaml` |
-| Mapping sidecar schema + confidence | Avatar | `tables/mapping-sidecar.schema.yaml` |
+| Activity ontology | Runtime | activity ids and categories in `config/runtime-local-agent-activity-catalog.yaml` |
+| Backend route ids | Avatar | `config/avatar-generated-motion-routes.yaml` |
+| Backend capability profile schema | Avatar | `config/avatar-backend-capability-profile.schema.yaml` |
+| Mapping sidecar schema + confidence | Avatar | `config/avatar-mapping-sidecar.schema.yaml` |
 | Provider execution semantics | Avatar | this contract |
 
 Avatar route ids are backend projection ids. They are **not** public
@@ -60,11 +60,11 @@ Rules:
 - `projection` must come from an admitted `runtime.agent.presentation.*`
   or `runtime.agent.state.*` event. Raw `apml.*` parser diagnostics
   are invalid input.
-- `avatarRouteId` must resolve in `tables/generated-motion-routes.yaml`.
+- `avatarRouteId` must resolve in `config/avatar-generated-motion-routes.yaml`.
 - `capabilityProfileRef` must validate against
-  `tables/backend-capability-profile.schema.yaml`.
+  `config/avatar-backend-capability-profile.schema.yaml`.
 - `mappingSidecarRef`, when present, must validate against
-  `tables/mapping-sidecar.schema.yaml`.
+  `config/avatar-mapping-sidecar.schema.yaml`.
 
 ## Provider Output
 
@@ -110,38 +110,38 @@ Confidence is not a probability for the model to reason about; it is
 how the provider chooses among admitted mapping entries when more
 than one applies.
 
-## Reader Scenario: APML Drives a Wave Activity
+## Reader Scenario: Render an Admitted Activity
 
-1. **Model emits APML.** Public wire: `<activity name="wave" />`.
-2. **Runtime parses + validates.** Emits typed
-   `runtime.agent.presentation.activity_requested` event.
-3. **Avatar receives via SDK.** Provider input assembled with the
-   typed projection, the `avatarRouteId` for "wave" on the active
-   backend, the capability profile ref, and the mapping sidecar ref.
-4. **Provider executes.** Validates capability profile + sidecar;
-   produces deterministic backend output (Live2D motion sequence or
-   VRM `AnimationClip`-shaped artifact).
-5. **Backend renders.** Output plays in the embodiment.
+1. **Runtime provides a validated projection.** The authorized presentation
+   stream requests the admitted `agree` activity. Avatar consumes that typed
+   result; it does not accept raw model XML as a backend command.
+2. **Avatar resolves its route.** The generated-motion configuration maps
+   `agree` to `nod_yes` for the VRM backend. This is an Avatar route identity,
+   not a public APML tag or a caller-selected Runtime activity namespace.
+3. **Provider validates.** Check the active backend's capability profile and
+   any required mapping sidecar. A missing or unsupported input fails with its
+   typed reason.
+4. **Provider executes and the backend renders.** If admitted, the deterministic
+   provider produces the VRM animation output for that exact route and backend.
 
-The author of the package never wrote a `.vrma` file for "wave". The
-provider generates the motion at runtime against the admitted
-backend capability.
+The route configuration and validated backend facts establish support; the
+presence of a `.vrma` file does not. Other backends need their own admitted
+route and disposition.
 
-## Reader Scenario: A Capability Is Not Admitted
+## Reader Scenario: A Backend Capability Is Unsupported
 
-1. **Model emits.** `<expression name="wink" />`.
-2. **Runtime emits.** Typed `presentation.expression_requested` event.
-3. **Provider checks.** Capability profile says: this backend admits
-   expression interpolation but does not admit "wink" in the
-   admitted expression set.
-4. **Fail closed.** Provider returns typed evidence
-   (`unsupported_expression`, route id, profile ref). Backend does
-   not silently substitute a "smile" or fall back to idle.
-5. **Runtime probe surfaces it.** Debug workbench can see the
-   evidence; product surfaces handle the typed reason without
-   misrepresenting it as success.
+1. Avatar receives an authorized typed presentation input and resolves an
+   admitted route for the active backend.
+2. The backend capability profile does not support the requested output.
+3. The provider returns `unsupported_capability`. The backend does not silently
+   substitute a different expression or idle animation.
+4. Avatar records the local diagnostic; the product displays the actual reason.
+   That diagnostic creates no Runtime operation authority.
 
-The closed posture is what makes the workbench probes trustworthy.
+Public APML validation happens before this flow. An unsupported raw tag or an
+illegal attribute is rejected by Runtime and produces no successful presentation
+projection for Avatar to evaluate. Backend failure is not a way to admit invalid
+model output.
 
 ## Reader Scenario: A `.vrma` File Exists
 
@@ -164,12 +164,13 @@ authoring artifacts.
 | --- | --- |
 | Public APML syntax (incl. what tags are admitted) | Runtime wire contract |
 | Typed runtime projection events | Runtime presentation stream contract |
-| Backend route ids | This contract + `tables/generated-motion-routes.yaml` |
-| Backend capability profiles | This contract + `tables/backend-capability-profile.schema.yaml` |
-| Mapping sidecars + confidence | This contract + `tables/mapping-sidecar.schema.yaml` |
+| Backend route ids | This contract + `config/avatar-generated-motion-routes.yaml` |
+| Backend capability profiles | This contract + `config/avatar-backend-capability-profile.schema.yaml` |
+| Mapping sidecars + confidence | This contract + `config/avatar-mapping-sidecar.schema.yaml` |
 | Backend execution | Per-backend contracts (Live2D / VRM) |
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+- [`runtime/internal/services/runtimeagent/chat_structured_apml.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/internal/services/runtimeagent/chat_structured_apml.go)

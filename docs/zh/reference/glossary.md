@@ -15,13 +15,11 @@ LocalAgent。
 务的用户。它自己不持有 Realm 身份或世界事实。
 
 **Conversation anchor。** Runtime 给一段 LocalAgent 对话起的显式名字。一
-个 LocalAgent 可以有多段对话。
+个 LocalAgent 只有一条 Conversation，由获准访问的消费者共同延续。
 
-**运行态 Memory。** LocalAgent 运行时记住的东西：怎么回忆、保留多久、如
-何隔离，以及 Runtime 对外提供的已授权视图。
+**Memory。** Cognition 持有的 Agent 私有长期记忆。Runtime 负责授权、已提交事件投递、可选召回与有限管理结果。
 
-**运行态 Knowledge。** LocalAgent 知道的东西：怎么摄入、怎么检索、如何
-隔离、生命周期怎么管，以及 Runtime 对外提供的已授权视图。
+**Knowledge。** Cognition 所属领域，V1 没有活动的导入、查询或公共客户端路径。
 
 ## 产品 Surface
 
@@ -53,7 +51,9 @@ App 身份、授权、目标 LocalAgent 或范围，以及操作。
 **Owner。** 对某项产品事实及其修改规则负责的部分。代码位置、包名、文
 档、缓存或宿主角色，都不会产生所有权。
 
-## 六项协议基础
+六项世界协议基础是 **Timeflow、Social、Economy、Transit、Context、Presence**，见[六项基础协议](/zh/reference/six-primitives)。
+
+## 操作术语
 
 **State。** 某个东西此刻的状态，由保管它的部分控制。
 

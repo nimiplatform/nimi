@@ -7,13 +7,14 @@ guessed from a UI route, an Avatar instance, a cached transcript, or whatever
 LocalAgent a screen happened to show last.
 
 Runtime opens, commits, snapshots, recovers, and interrupts conversations, and
-provides typed views of them. One LocalAgent can have many conversations, so
-consumers must hold on to the explicit anchor the standard SDK surface
-returns.
+provides typed views of them. Each LocalAgent has one Conversation: the first
+open creates it, and every later authorized caller receives the same committed
+continuity. Keep the Runtime-issued anchor returned by the SDK as a revalidated
+continuity fence; it does not select a separate App, window, or branch history.
 
 ## Opening and recovery
 
-The caller passes typed intent and an explicit LocalAgent target. Before
+The caller passes typed intent and the currently authorized session-scoped `agentHandle`. Before
 creating or recovering a conversation, Runtime works out the account, the App
 identity, the authorization, and the ownership or access from the active
 session.

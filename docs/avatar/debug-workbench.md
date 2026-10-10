@@ -1,142 +1,34 @@
-# Debug Workbench
+# Avatar Backend Diagnostics
 
-## Status: Admitted as platform direction
+Avatar owns local backend evaluation. A diagnostic result can explain whether a backend loaded, a route is supported, or a speech/lipsync projection rendered correctly. It creates no Runtime probe identity, special Runtime store, public App entitlement, or LocalAgent success.
 
-The debug workbench is defined as a contract across Avatar (intake
-and backend evidence) and Runtime (probe envelopes and replay). The
-user-facing workbench tooling is agreed direction; it is not a public
-app API today.
+## Result Shape
 
-## What the Debug Workbench Is
+The Avatar-owned result requires `diagnostic_session_id`, backend kind, probe kind, `observed_at`, and evidence. Each evidence item contains `evidence_id`, `evidence_kind`, `status`, and `source`. Status is exactly `passed`, `failed`, `unsupported`, or `invalid`.
 
-The workbench is the surface where a developer can **probe** an
-Avatar instance — ask "does this backend support generated motion?",
-"does this voice route lipsync?", "does this hit region resolve?" —
-and get a typed result with replayable evidence.
+An optional opaque common Runtime correlation reference can connect observations. Raw Agent/account identity, Runtime special-store references, provider/model details, package paths, prompts, reasoning, and public operation authority do not enter the result.
 
-Responsibility for probes is split deliberately, so the answers stay
-trustworthy:
+## Evidence Kinds
 
-- **Runtime** defines the probe request / result / replay semantics.
-  A probe is a runtime-typed envelope, and Runtime validates the
-  caller before projecting it.
-- **Avatar** produces the backend evidence. When a probe asks
-  something backend-specific (capability profile validation,
-  generated motion route support, carrier diagnostics), Avatar
-  supplies the evidence refs.
-- **Desktop** owns the workbench layout — the eventual UI that
-  initiates probes and renders results.
+- `package_descriptor_resolved`
+- `backend_loaded`
+- `capability_profile_validated`
+- `route_support_checked`
+- `generated_motion_checked`
+- `emotion_expression_checked`
+- `speech_lipsync_checked`
+- `carrier_diagnostics_checked`
 
-## Probe Request Envelope (Runtime-Owned)
+Optional evidence payloads contain typed bounded facts or opaque authorized references. They do not reconstruct Runtime context or create a durable execution replay service.
 
-| Field | Required? | Notes |
-| --- | --- | --- |
-| `probe_id` | yes | Unique per probe |
-| `agent_id` | yes | Authorized agent target |
-| `conversation_anchor_id` | yes | Anchor scope |
-| `probe_kind` | yes | Pinned in `tables/avatar-debug-probe-events.yaml` |
-| `requested_at` | yes | ISO-8601 |
-| `requested_by` | yes | Identity of requester |
-| `turn_id` / `stream_id` / `avatar_instance_id` / `runtime_replay_ref` | optional | Trace fields |
+## Check a Motion Route
 
-Forbidden in a probe request:
+Evaluate the authorized typed presentation input against the selected Avatar route, backend, validated capability profile, and optional mapping sidecar. The deterministic provider returns executable output for that backend or the exact typed failure. An unsupported route remains unsupported; a found `.vrma` file, screenshot, preview, or passing fixture does not prove the real Runtime-to-carrier journey.
 
-- package descriptors / package paths (Desktop must not inject these)
-- raw APML / MCP / A2A provider payloads
-- tokens, account ids, user ids, Realm URLs, auth material
-- backend command strings
-
-## Probe Result Envelope (Runtime-Owned)
-
-| Field | Required? | Notes |
-| --- | --- | --- |
-| `probe_id` | yes | Matches request |
-| `agent_id` | yes | — |
-| `probe_kind` | yes | — |
-| `status` | yes | `passed` / `failed` / `unsupported` / `blocked` / `invalid` |
-| `observed_at` | yes | ISO-8601 |
-| `evidence_refs` | yes | Avatar-owned evidence refs admitted by Avatar contracts |
-| `reason_code` | yes | Typed |
-
-`passed` requires concrete evidence. `unsupported` / `blocked` /
-`invalid` are terminal diagnostic outcomes. Results never expose raw
-backend payloads.
-
-## Avatar Backend Evidence
-
-Avatar produces evidence for:
-
-- package descriptor resolver execution
-- backend load outcome
-- backend capability profile validation
-- generated motion route support
-- emotion / expression support
-- speech / lipsync support
-- carrier diagnostics and hit region evidence
-
-Evidence shape is pinned by `tables/avatar-debug-session.schema.yaml`.
-Avatar performs resolver execution after authorized runtime / SDK
-projection — Desktop stores opaque refs only; Runtime owns
-authorization; SDK carries typed refs and methods.
-
-## Replay Keys
-
-Runtime owns replay keys for avatar debug probes. The key set is
-pinned in `tables/avatar-debug-replay-keys.yaml`. Replay records
-must preserve the typed envelope, authorization context, and the
-Avatar-owned evidence refs so a later auditor can reproduce the
-result deterministically.
-
-## Reader Scenario: Probing Generated Motion Route Support
-
-1. **Developer initiates probe.** Workbench surface emits a runtime
-   probe request: `probe_kind: generated_motion_route_support`,
-   target `agent_id`, optional `avatar_instance_id`.
-2. **Runtime authorizes + projects.** Validates the requester, casts
-   the probe into the `runtime.agent.*` projection space.
-3. **Avatar evaluates.** Resolves the package descriptor, validates
-   the backend capability profile, checks the route id against
-   `tables/generated-motion-routes.yaml`, produces evidence refs
-   describing what the backend supports.
-4. **Runtime returns the result envelope.** `status: passed` with
-   evidence refs, or `unsupported` with a reason code if the route
-   isn't admitted on this backend.
-5. **Auditor replay.** Runtime replay reproduces the result without
-   re-asking the live backend; the evidence refs anchor the proof.
-
-## Reader Scenario: A `.vrma` File Is Not Debug Success Proof
-
-1. **Probe expects backend execution evidence.**
-2. **A `.vrma` file is found.** Interchange / authoring evidence —
-   useful, but not runtime support proof.
-3. **Runtime / Avatar fail closed.** `.vrma` cannot mark the probe as
-   `passed`. Result is `unsupported` (or whatever the backend's
-   actual support is) with the typed reason code.
-
-The contract is explicit because authoring artifacts often look like
-success without exercising the runtime path. The workbench is built
-to refuse that substitution.
-
-## What the Workbench Does Not Do
-
-- It does not own SDK method shape — SDK carries typed refs only.
-- It does not own Desktop product layout — that's a Desktop concern.
-- It does not own APML public wire — runtime owns wire authority.
-- It does not own delegated provider access — provider integrations
-  are admitted independently.
-- It does not silently report `unsupported` capabilities as success
-  through idle fallback or static image fallback.
-
-## Boundary Summary
-
-| Concern | Owner | Surface |
-| --- | --- | --- |
-| Probe request / result envelope + replay | Runtime | `avatar-debug-projection-contract.md` (K-AGCORE-054..060) |
-| Backend evidence | Avatar | `avatar-debug-session-contract.md` |
-| Workbench UX | Desktop | Not a public app API today |
+Use the [visual acceptance](/avatar/visual-acceptance) and [carrier acceptance](/avatar/carrier-acceptance) requirements for a real product result. Local diagnostics and fixture tests remain useful evidence within their own scope.
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
+- [`config/avatar-generated-motion-routes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-generated-motion-routes.yaml)
+- [`config/avatar-backend-capability-profile.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-backend-capability-profile.schema.yaml)

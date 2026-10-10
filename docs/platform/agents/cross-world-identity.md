@@ -9,17 +9,17 @@ a second character, and a world's own source alone cannot establish a
 LocalAgent identity.
 
 Runtime runs a LocalAgent only from a Character Source issued by Realm. It can
-blend in the world context a world has shared — for execution, memory, and
-knowledge — but the result is still a local execution entity run by Runtime.
+use admitted world context for execution and optional Cognition source recall; this does not create an active Knowledge path.
 
 More than one LocalAgent can run from the same Character Source. Each keeps
-its own operational Memory, Knowledge, Conversation, state, budget, and
-lifecycle unless an explicit agreement says otherwise. Sharing a source does
+its own Conversation, state, budget, lifecycle, and Agent-private Cognition Memory. Sharing a source does
 not mean sharing live local state.
 
 Apps only see the references and views they are authorized for. They cannot
 merge LocalAgents by character reference, or treat a local cache as
 cross-world identity.
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

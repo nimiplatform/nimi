@@ -108,13 +108,12 @@ checks independently. Use eligibility to present the creation action and still
 handle create-time denial. Replacements require the previously read
 `baseContentHash`; world characters require an existing same-world entity.
 
-This expands the exact Local App shell contract and belongs to the next minor
-release. Upgrade SDK, Kit, native carrier and Runtime together; custom shell
+This is part of the current Local App shell contract. Use SDK 0.21.0, Kit/native
+0.18.0, and the matching Runtime together; custom shell
 implementations must provide the complete typed method set. The ordinary Realm
 SDK removes administrator-only OASIS bootstrap and adds the current-account
 creation eligibility read. No administrator authorization methods are exposed
-through Local App. These are source changes, not availability in published
-SDK 0.11.0 / Kit 0.7.0.
+through Local App. Source support does not by itself establish public package availability.
 
 ## Video reference audio (unreleased)
 

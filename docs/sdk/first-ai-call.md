@@ -1,14 +1,14 @@
 # First AI Call in a Nimi App
 
-Use the App's host-bound SDK client to make one real text-generation request. Nimi Home establishes the App session; Runtime reads that App's saved AI configuration and chooses the implementation when execution starts.
+Use the App's host-bound SDK client to make one real text-generation request. Nimi Home establishes the App session; Runtime validates the App's saved AIConfig and captures the machine-selected Local Loadout or exact committed Cloud target at submission.
 
-This guide continues the `--features studio-create` example in [Create a Nimi App](/start/create-an-app), using public App Tools 0.7.5. Keep the generated SDK/Kit binding. The App renderer does not need a gRPC endpoint, account ID, session token, or a caller-selected App identity.
+This guide continues the `--features studio-create` example in [Create a Nimi App](/start/create-an-app), using current App Tools 0.11.4 with SDK 0.21.0 / Kit 0.18.0. Keep the generated SDK/Kit binding. The App renderer does not need a gRPC endpoint, account ID, session token, or a caller-selected App identity.
 
 ## Before the Call
 
 1. Start the project with `pnpm dev` in a compatible Nimi Home development environment. Use its supervised Electron window, not the renderer URL in a browser.
 2. Confirm that the generated `nimi.app.yaml` includes `runtime.consume`, then establish the App's required access through the host. The `studio-create` selection supplies the declaration; it does not grant access by itself.
-3. Configure `text.generate` for this App through its AI settings or Nimi Home's App settings. A local route uses the machine's current model selection; a cloud route needs the appropriate configured connector and target. Saving configuration does not prove that generation will succeed.
+3. Configure `text.generate` for this App through its AI settings or Nimi Home's App settings. A local route uses the machine's currently selected Loadout for this capability; a cloud route needs the appropriate configured connector and target. Saving configuration does not prove that generation will succeed.
 
 Use [development setup](/start/install) for prerequisites and [Use Kit in an App](/platform/kit/use-kit-in-app) for shared settings and host integration.
 
@@ -19,7 +19,7 @@ If the generated manifest has `app_access: []`, the project was created without 
 The default starter already exports `getNimiLocalAppClient()` from `src/shell/auth/local-app-client.ts`. Reuse it. In an existing App with a different file layout, use that App's equivalent host-bound client.
 
 ```ts
-// src/first-ai-call.ts in the default App Tools 0.7.5 starter
+// src/first-ai-call.ts in the current App Tools starter
 import { getNimiLocalAppClient } from './shell/auth/local-app-client.js';
 
 export async function generateText(prompt: string) {

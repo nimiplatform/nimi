@@ -6,7 +6,7 @@ Nimi Home 是 Nimi 个人 AI 产品的桌面入口，将对话、角色、作品
 
 第三方 App 开发从[创建 Nimi App](/zh/start/create-an-app)开始。受支持的开发命令会在 Desktop 监督的 Electron 宿主中启动 App。直接用浏览器打开渲染页面，不能建立这个 App 会话，也不能获得它的受保护 Runtime 访问能力。
 
-本地运行不等于公开发布。Registry 已验证安装包、明确选择的不可变本地包导入、Developer Mode 是三条独立路径。当前预发布在 Windows x86_64 与 macOS arm64 上支持 Registry 包生命周期（包括更新）和本地开发；本地包导入入口、其他平台的包生命周期与修复仍不可用。试点分发和准入条件见 [App 分发](/zh/start/#本地开发与对外分发)。
+本地运行不等于公开发布。Registry 已验证安装包、明确选择的不可变本地包导入、Developer Mode 是三条独立路径。当前预发布在 Windows x86_64 与 macOS arm64 上支持 Registry 包生命周期（包括更新）和本地开发；这些平台已有通过 Desktop 与 Runtime 实现的不可变本地包导入，以及区分来源的安装、更新、启动和卸载；联合产品验收与公开发布就绪仍需分别确认。其他平台的包生命周期与普通修复仍不可用。试点分发和准入条件见 [App 分发](/zh/start/#本地开发与对外分发)。
 
 ## 按任务选择入口
 

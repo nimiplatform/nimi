@@ -6,7 +6,7 @@ reviews authority units; it is not an AI agent, planner, code generator,
 approval workflow, or product-spec generator.
 
 This page is an explanatory projection of the exact
-`@nimiplatform/nimi-coding@0.6.1` package pinned by this workspace. The package
+`@nimiplatform/nimi-coding@0.6.3` package pinned by this workspace. The package
 CLI and its bundled README are the operational reference for command behavior.
 
 ## Truth Boundaries

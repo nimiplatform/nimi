@@ -1,127 +1,35 @@
-# AI 范围身份
+# AIConfig 的归属
 
-## 状态：已准入契约；当前 scope 规则已固定
+AIConfig 属于当前已认证账号下的一个规范 owner。Owner 只有两类：由规范 App 身份标识的 App，以及该账号下所有 LocalAgent 共用的 Runtime LocalAgent 子系统。
 
-`AIScopeRef` 已在内核层面获得准入
-(`P-AISC-001..P-AISC-005`)。应用所有的范围身份是当前产品路径；
-模块和特性范围只在这些实体本身是规范 AI 所有者时准入。
-
-## `AIScopeRef` 是什么
-
-`AIScopeRef` 是 AI 配置范围的**规范身份契约**。它通过一个不依赖于瞬态 UI 状态的稳定、唯一键来回答：“这是谁的 AI 配置？”
-
-```
-AIScopeRef {
-  kind: 'app' | 'module' | 'feature'
-  ownerId: string
-  surfaceId?: string
-}
-```
-
-`kind + ownerId + surfaceId?` 三元组在整个系统中构成一个稳定的唯一键。
-
-## 封闭的类型枚举
-
-| `kind` | 所有者身份 | 备注 |
-| --- | --- | --- |
-| `app` | 应用身份 | `surfaceId` 可用于标识应用内部独立的 AI 特性界面 |
-| `module` | 独立的模块身份 | 仅当模块本身是规范所有者时 |
-| `feature` | 跨应用可复用特性所有者 | 不得碎片化本应由应用拥有的 AI 真理 |
-
-`kind` 枚举是**封闭的**。应用和消费者不能发明额外类型。
-
-## 应用范围的规范形态
-
-应用拥有的 AI 配置规范形态是固定的：
-
-```
-AIScopeRef {
-  kind: 'app'
-  ownerId: <stable app id>
-  surfaceId: <stable surface id>
-}
-```
-
-只有当一个应用拥有多个独立 AI 配置界面时才需要 `surfaceId`。它必须稳定并由产品定义；调用方不得从瞬态标签页、会话、提示词或路由 ID 推导它。
-
-## 范围身份为何重要
-
-如果没有规范的范围身份，平台最终将陷入一堆即席键的混乱：“此 AI 配置属于应用 foo 会话 A 的第 3 个标签页”——这些键依赖于 UI 状态，无法在应用重启后存活，也无法在不同界面间保持一致的查找能力。
-
-`AIScopeRef` 规则消除了这些故障模式：
-
-| 规则 | 阻止的问题 |
+| 使用方 | 使用哪份配置 |
 | --- | --- |
-| 封闭的 `kind` 枚举 | 消费者不能发明新的范围类型 |
-| 要求稳定的所有者 ID | UI 本地键不能成为 AI 范围身份 |
-| 稳定的应用界面身份 | 标签页/会话/线程的激增不会造成隐式范围爆炸 |
-| 无隐式继承 | 范围 A 的配置不会隐式回退到范围 B |
-| 所有者驱动的生命周期 | 范围的创建/销毁与所有者实体的生命周期绑定 |
+| 第三方 App | 该 App 自己的 AIConfig |
+| Home 中的 Nimi Chat | Desktop App 的 AIConfig |
+| Agent Chat，包括不同的 LocalAgent | LocalAgent 子系统共用的 AIConfig |
 
-## 无隐式继承
+单个 Agent、Conversation、功能、模块、窗口、标签页或路由都不是 AIConfig owner。切换 Agent 不会切换到一份 Agent 私有 AI 配置。个性、呈现与 Memory 开关等 Agent 设置另行保存。
 
-范围之间没有继承链。每个范围的 `AIConfig` 都完全具体化。如果产品需要“从父范围继承默认值”的用户体验，其实现方式是**配置文件应用**（写时复制）——绝不是运行时回退链。
+## 通过受保护客户端配置
 
-## 跨界面适用性
+App 使用 `client.aiConfig` 读取和保存自身配置；账号和 App 身份由受保护会话确定，调用者不传 owner。共享 LocalAgent 配置使用独立授权路径，需要 `agent.configure`，也不接受 Agent 选择器。Home 可以管理当前已投射给它的 App owner。
 
-`AIScopeRef` 统一适用于桌面端和网页端。界面特定的行为差异存在于各自的内核契约中；本契约不引入界面特定的规则。
+先读取配置及其不透明 revision，再携带该 revision 保存完整能力列表。省略某项能力表示清除它。出现冲突时重新读取并让用户审阅，不能自动覆盖更新的选择。
 
-## 允许的消费者
+## 配置与机器选择
 
-`AIScopeRef` 可由以下消费者使用：
+每项能力保存标准功能要求、可移植默认参数和明确的执行路径。Local 只有路径标记；Cloud 保存当前账号的确切 Connector 引用、CapabilityImplementation 与 Driver 定义的 provider-model target。Local Loadout 和机器当前选择属于 Runtime 的独立机器存储。
 
-| 消费者 | 用途 |
-| --- | --- |
-| 桌面内核 | `AIConfig` 键控存储和 UI 范围选择 |
-| SDK 内核 | 类型化的 `config / profile / snapshot` API 范围参数 |
-| 运行时内核 | 执行快照范围证据 |
+应用 AIProfile 只生成可编辑的预填内容，不会保存 AIConfig，也不会改变机器选择。保存配置与确认机器级变更是两步独立操作。不同 owner 之间没有继承或自动回退。
 
-消费者不得使用消费者本地字段扩展 `AIScopeRef` 模式。注解需求应存储在独立的消费者本地注解记录中——绝不能通过修改 `AIScopeRef` 来实现。
+## 生命周期
 
-## 读者场景：应用配置其 AI 界面
+App AIConfig 跟随 App 或产品生命周期。共享 LocalAgent 配置不会因为某个 Agent 被创建、选中或删除而消失。UI 状态和注册代次不会产生新的配置 owner。
 
-应用拥有一个使用 AI 的工作区界面。
+App API 见 [AIConfig 接口](/zh/sdk/ai-config-surface)，Home 中的操作见 [AI 配置](/zh/desktop/ai-profile-config)。
 
-1.  **应用身份。** 应用拥有稳定的应用 ID（例如 `nimi.example-app`）。
-2.  **范围身份。** 应用将 AI 配置应用到 `AIScopeRef{ kind: 'app', ownerId: 'nimi.example-app', surfaceId: 'workspace' }` 下。
-3.  **配置文件应用。** 用户在 AI 配置 UI 中选择一个配置文件；配置文件（写时复制）应用到工作区范围的 `AIConfig` 中。
-4.  **持久化。** 配置由规范范围身份作为键；它在应用重启后依然存在。
-
-## 读者场景：具有多个 AI 界面的应用
-
-假设一个应用确实托管了多个一流的 AI 界面——每个界面都有自己的配置文件应用/探测/快照历史。
-
-1.  **显式范围扩展。** 应用准入多个 `AIScopeRef{ kind: 'app', ownerId: <app id>, surfaceId: <稳定的界面名称> }` 实例。
-2.  **稳定的工作区名称。** 界面必须是人类可识别的；`surfaceId` 不是瞬态 UI 键。
-3.  **非按标签页/按会话/按文档。** 如果用户只是在一个工作区内切换当前文档，那属于该工作区范围内的领域状态——而不是一个新的 `AIScopeRef`。
-
-该契约正是通过防止范围扩散来维护配置的可靠性。
-
-## 读者场景：范围生命周期与所有者绑定
-
-用户卸载一个应用。
-
-1.  **所有者实体被销毁。** 应用包被移除。
-2.  **范围被销毁。** 所有与该应用绑定的 `AIScopeRef` 实例同步销毁。
-3.  **绑定的 `AIConfig` 被清理。** 与被销毁范围绑定的配置被失效或清理。没有悬空配置存留。
-
-## 范围身份不做什么
-
-- 它不跨消费者转移所有权。
-- 它不允许范围之间进行运行时回退。
-- 它不允许 UI 键成为范围身份。
-- 它不允许范围 A 的 `AIConfig` 将范围 B 的配置作为回退引用。
-- 它不允许消费者使用自己的字段扩展模式。
-
-## 职责边界摘要
-
-| 关注点 | 所有者 |
-| --- | --- |
-| `AIScopeRef` 模式 + 身份规则 | 平台 (`P-AISC-*`) |
-| 由 `AIScopeRef` 键控的 AIConfig 意图 | 范围所有者通过 SDK projection |
-| SDK 配置/配置文件/快照 API 上的范围参数 | SDK 内核 |
-| 执行快照范围证据 | 运行时内核 |
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
+- [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)

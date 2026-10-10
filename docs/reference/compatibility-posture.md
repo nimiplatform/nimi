@@ -1,64 +1,22 @@
-# Compatibility Posture
+# Compatibility and Version Changes
 
-Reference for the Nimi public docs' compatibility and migration posture.
+Use a matching Runtime, SDK, Kit, and native carrier combination. A TypeScript API compiling against one SDK does not prove that an older host or native package carries the same contract.
 
-## Posture Summary
+## Current Development
 
-| Property | Value |
-| --- | --- |
-| Posture name | `no_legacy_hard_cut` |
-| Pre-launch | yes |
-| Soft compatibility shims | forbidden |
-| Time-phased layering | forbidden (layering is ontological: core / extended / custom) |
-| Strict-only protocol versioning | yes |
-| Fail-close on contract violation | yes |
-| Retry rescues contract failure | no |
+These guides describe the current checkout. During prerelease development, superseded internal interfaces are removed instead of preserved through hidden shims, dual paths, or automatic startup migration. Where old local test data needs disposal, use the specific owner or one-time repair procedure; do not delete unrelated user state.
 
-## Practical Implications For Readers
+Current development packages may be supplied as complete local archives. Keep their declared versions and use explicit package-manager overrides, then run the App's synchronization, installation, and checks. See [Development Setup](/start/install).
 
-| Situation | Expected behavior |
-| --- | --- |
-| A page is removed | Preferred over a stale page |
-| A typed contract fails | Surfaces a typed error, not a silent fallback |
-| A retry happens | Only for transport / auth refresh, never to rescue a contract |
-| An older route exists | Either kept as admitted public truth or hard-removed; not preserved as hidden compatibility |
-| A new feature ships | Lands with full contract design, not as a temporary subset to be filled in later |
+## Published Components
 
-## Forbidden Compatibility Shapes
+Published packages and release tags are immutable. A breaking public change needs its component's version and upgrade instructions; internal prerelease hard-cut rules do not erase already published obligations. SDK, Kit, App Tools, and shell components release independently.
 
-Repository authority rejects three broad shapes: retaining superseded product
-semantics after a hard cut, creating an unadmitted parallel truth, and
-returning pseudo-success when an admitted contract cannot be fulfilled.
-Individual owner-domain contracts add narrower prohibitions where required;
-there is no separate Nimi Coding anti-pattern catalog.
+## Contract Failures
 
-## Public Claim Constraints
+Malformed input, unsupported operation combinations, missing authorization, or invalid returned data fail closed with typed errors. Retry and reconnect do not repair contract violations, guarantee generation replay, or authorize resubmission after an uncertain external outcome.
 
-| Claim type | Posture |
-| --- | --- |
-| Install commands (curl / npm / pnpm / brew / apt / yarn) | Withheld until admitted distribution evidence under the matching release contract |
-| Download links | Withheld until admitted distribution evidence under the matching release contract |
-| Release status / launch promises | Withheld until admitted release evidence |
-| Concrete provider name / model name | Withheld until admitted catalog evidence under the runtime model-catalog contract |
-| Provider availability matrix | Withheld until admitted catalog evidence under the runtime model-catalog contract |
-| "Available now" / "GA" / "Stable" claims for defined-but-not-shipped surfaces | Forbidden |
-
-The complete list of forbidden public docs claims with detection
-patterns is in [Forbidden Claims](/reference/forbidden-claims).
-
-## Contract Evolution Path
-
-How a defined-but-not-shipped surface graduates to a public surface:
-
-1. Kernel contract is admitted under the appropriate authority domain
-   (`P-PROTO-*` / `K-*` / `S-*` / `D-*` / `R-*`).
-2. Implementation lands under the owner domain.
-3. Catalog evidence (for providers / models) is admitted.
-4. Distribution / release evidence is admitted (for install / download).
-5. Public docs page is updated to reflect availability.
-
-A docs page cannot pre-announce a stage that the contract evolution
-has not reached.
+For asynchronous recovery, retain and observe the original Job and its complete result. For a newer capability, update the matching carrier set instead of adding private transport or provider calls.
 
 ## Source Basis
 

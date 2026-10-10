@@ -6,7 +6,7 @@ Realm 与 Runtime 是彼此独立的产品 authority。
 | --- | --- |
 | Character identity 与 Character Source | LocalAgent 物化与 lifecycle |
 | World Source 与 canonical World data | Local 与 Cloud AI 消费 |
-| Social、economy、World state 与 World history | Conversation、运行态 Memory 与 Knowledge |
+| Social、economy、World state 与 World history | Conversation、Memory 访问中介 |
 | Realm access rule 与 cloud audit | AI 实现选择、budget、Credential 与 App authorization |
 
 ## 交互
@@ -21,6 +21,8 @@ state。Realm 不执行 LocalAgent turn，也不决定 Runtime 的 AI 实现。�
 
 SDK 呈现有限 consumer surface。Nimi Home、Desktop、Avatar 与 App 都只是
 consumer，不能把两个 owner 合并成 host-local truth。
+
+长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## 来源依据
 

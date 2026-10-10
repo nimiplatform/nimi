@@ -1,36 +1,18 @@
 # LocalAgent Access and App Authorization
 
-Every App sees the same LocalAgent model. Whether an App talks to the SDK
-directly or was built from a scaffold, it uses the same typed Runtime
-capability surface — only the way it plugs into its host differs, never the
-product model itself.
+A formal App uses its protected, host-bound SDK client to list authorized Agent references. It submits the returned session-scoped opaque `agentHandle` for admitted Agent operations. A raw LocalAgent ID, stable binding, or cached reference is not an operation authority.
 
-## Session-derived access
+Runtime derives and revalidates the account, App subject, current registration and declaration, operation coverage, target access, and session generation. Reconnect or session rotation requires fresh authorized references; the App must not replay a prior business action to restore access.
 
-For each operation, Runtime works out from the active session who the account
-is, which App is asking, what it is authorized to do, which LocalAgent or
-scope is the target, and which operation is requested. The caller passes typed
-intent and, where needed, an explicit LocalAgent ID.
+## Separate Operation Families
 
-An ID you supply is a target, not proof that you own or may access it. Runtime
-rejects an unauthorized or stale target without leaking any internal session
-material.
+Ordinary `agent.local` access carries bounded Conversation and Agent Realtime operations, source introductions, and typed output. It does not expose private Memory, Knowledge, prompts, provider configuration, presentation internals, or account-wide Agent inventory.
 
-## App boundary
+Shared LocalAgent configuration requires `agent.configure`. Agent-specific Memory management and independent App business execution require their separately admitted operation and declaration coverage. Conversation access alone does not grant them. Knowledge V1 has no public operation path.
 
-An authorized App may:
+App-authored business instructions and skills use the dedicated business/skill contracts; they are not committed as ordinary chat or promoted into Agent identity. The App owns its project workflow and result adoption.
 
-- submit typed LocalAgent intent;
-- read or subscribe to bounded Conversation, state, voice, presentation,
-  Memory, and Knowledge views;
-- observe typed ready, blocked, unavailable, or failed status.
-
-It never receives Realm credentials, provider keys, Runtime session proofs,
-private authorization evidence, an account-wide LocalAgent list, raw provider
-events, or material that could rebuild internal context.
-
-Nimi Home and Desktop host the current local App path, but they do not replace
-Runtime as the decider of authorization or the runner of LocalAgents.
+Nimi Home and Desktop host the App but do not replace Runtime authorization or Cognition Memory ownership. An unavailable or unauthorized operation returns its typed failure without a private-interface fallback.
 
 ## Source Basis
 
@@ -38,3 +20,5 @@ Runtime as the decider of authorization or the runner of LocalAgents.
 - [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
+- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

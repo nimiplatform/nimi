@@ -11,7 +11,7 @@ Runtime 持有：
 - Local 与 Cloud AI 消费、实现选择、资源调度、Token、Quota、Budget 及
   Credential custody；
 - 从 Realm 签发的 Character Source 物化 LocalAgent，并管理其生命周期；
-- LocalAgent Conversation、运行态 Memory 与 Knowledge、状态、voice、event
+- LocalAgent Conversation、Memory 访问中介、状态、voice、event
   和 presentation 投影；
 - 本地 process、model、service、stream 与 audit 行为；
 - 从 active protected session 推导的 App identity 与 authorization；
@@ -27,15 +27,16 @@ World data、social truth 与 World history。Runtime 可以消费已准入的 s
 context，但不能重新定义它。
 
 App 与第一方 surface 持有自己的产品 UI、交互和短暂 cache。它们不能接管
-Conversation、Memory、Knowledge、LocalAgent、Provider、Credential、session
+Conversation 与 Memory 访问中介、LocalAgent、Provider、Credential、session
 或 authorization 真相。
 
 通用 Workflow、MCP 与 World Evolution 都不是 Runtime 核心前置。可选的
 external action capability 应单独报告 unavailable，不得阻塞 LocalAgent
-Conversation、Memory、Knowledge、voice 或无关的能力执行。
+Conversation 与 Memory 访问中介、voice 或无关的能力执行。
 
 ## 阅读路径
 
+- [集成](/zh/runtime/integrations)
 - [流式传输](/zh/runtime/streaming)
 - [多模态执行](/zh/runtime/multimodal)
 - [Agent 执行](/zh/runtime/agent-execution)
@@ -45,6 +46,8 @@ Conversation、Memory、Knowledge、voice 或无关的能力执行。
 - [Account 与 Session](/zh/runtime/account-and-session)
 - [委派能力](/zh/runtime/delegated-capability)
 - [本地审计](/zh/runtime/audit-local)
+
+长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## 来源依据
 

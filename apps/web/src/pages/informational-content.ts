@@ -231,7 +231,7 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       ],
       startTitle: '如何开始',
       startBody:
-        '安装并打开 Nimi 后，从 Nimi Home 进入应用、角色和世界；与角色互动需要 Nimi 正在运行，并完成需要的授权。',
+        '准备兼容的 Nimi 开发实例后，打开 Nimi Home 并通过浏览器登录，再进入应用、角色和世界。角色互动需要相应访问权限和 AI 配置。',
       availability: '当前没有已发布的正式安装包；下载页会说明各平台的真实状态。',
       downloadCta: '查看下载状态',
       appsCta: '浏览全部应用',
@@ -294,7 +294,7 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       ],
       startTitle: 'How to start',
       startBody:
-        'Install and open Nimi, then enter apps, characters, and worlds from Nimi Home. Character interaction needs Nimi running and the required authorization completed.',
+        'With a compatible Nimi development installation, open Nimi Home, sign in through your browser, and enter apps, characters, and worlds. Character interaction requires the relevant access and AI configuration.',
       availability: 'There is no stable public installer yet; the download page describes the real status for each platform.',
       downloadCta: 'Check download status',
       appsCta: 'Browse all apps',

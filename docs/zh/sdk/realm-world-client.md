@@ -1,41 +1,25 @@
-# Realm 与组合
+# App 中的 Realm 访问
 
-本页说明 SDK vNext 中 Realm 真值消费与世界相关组合的读者视角。旧的 `@nimiplatform/sdk/world` 子路径不在公开 surface 中。世界相关操作通过 SDK root composition 与 Realm helper 承载。
+账号、Character、World、社交、经济、历史和资源真相归 Realm。Nimi App 使用绑定宿主客户端上的已准入 `client.realm` 操作。Runtime 中介已授权 Realm 访问，不把 Realm token 或原始 REST/WebSocket 传输交给 App。
 
-## Realm 持有什么
+## 使用明确的 owner 操作
 
-Realm 持有语义真值：账户、profile、社交数据、世界状态、世界历史、资产，以及 App 可见的 Realm 记录。SDK 暴露 App-facing 的强类型访问，但不允许 App 调用 Realm 私有内部或 raw REST route。
+只调用当前 App 声明和权限覆盖的操作，账号与 App 主体由受保护载体推导。PersonaCharacter owner 操作、World 接口及 Realm realtime 分别保留自己的强类型输入、授权和结果契约，不提供任意路径代理。
 
-App 应使用：
+直接 `@nimiplatform/sdk/realm` facade 面向自行持有已准入 Realm 会话的其他消费者，不能用来绕过正式 Nimi App 的宿主访问边界。已删除的 `@nimiplatform/sdk/world` 不再提供。
 
-- `@nimiplatform/sdk` root client 上的 `client.realm`；
-- `@nimiplatform/sdk/realm` 直接消费 Realm facade；
-- facade 暴露出的生成 Realm service boundary。
+## 组合产品流程
 
-## 世界相关组合
+1. 通过已准入 App 操作读取必要 Realm 信息。
+2. App AI 工作使用 `client.ai`；Agent 工作使用独立授权的 Agent 操作。
+3. 项目工作流和结果保存留在 App。
+4. 用户要求修改 Realm 时，提交对应 owner 操作并展示真实结果。
 
-世界相关操作通常需要 Realm 真值加 Runtime 执行。vNext 中这不是独立的 `world` package root。组合应落在：
+本地执行、缓存视图或 App 成功消息不能提交 Realm 真相。载体缺失或操作被拒绝时明确失败，不能用原始 `/api/...` 调用替代。
 
-- 跨 Runtime 与 Realm 的 SDK root client；
-- 读取已准入 Realm 真值的 `@nimiplatform/sdk/realm`；
-
-组合必须保持权威线可见。Realm 仍持有真值，Runtime 仍持有执行。SDK helper 不会变成第三个真值来源。
-
-## 读者场景：先读状态，再运行 Agent 工作
-
-1. App 通过 `client.realm` 或 `@nimiplatform/sdk/realm` 读取世界状态。
-2. App 通过 `client.runtime`、`@nimiplatform/sdk/runtime`，或已准入的 `@nimiplatform/sdk/ai-runner` / feature helper 运行 Agent 工作。
-3. 如果执行改变 Realm 真值，写入必须通过已准入的 Realm contract。App 不在本地重述真值。
-4. App 再通过 SDK 重新读取 Realm 状态。
-
-## 这个 surface 不做什么
-
-- 不恢复 `@nimiplatform/sdk/world`。
-- 不允许 App 代码直接调用 raw `/api/...` Realm REST。
-- 不把 Runtime-local execution evidence 提升为 Realm 真值。
-- 不让 feature helper 拥有 Runtime RPC parity 或 Realm 语义。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
+
+- [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)

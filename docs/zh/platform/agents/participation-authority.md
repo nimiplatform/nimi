@@ -1,37 +1,24 @@
 # LocalAgent 访问与 App 授权
 
-每个 App 看到的是同一个 LocalAgent 模型。无论 App 直接调用 SDK，还是从脚
-手架搭出来，用的都是同一套强类型 Runtime 能力；不同的只是接入宿主的方
-式，产品模型本身没有两套。
+正式 App 通过受保护、绑定宿主的 SDK 客户端列出获准访问的 Agent 引用，再把返回的会话级不透明 `agentHandle` 用于已准入操作。原始 LocalAgent ID、稳定绑定或缓存引用都不是操作权限。
 
-## 从 Session 推导访问
+Runtime 推导并重新验证账号、App 主体、当前注册和声明、操作覆盖、目标访问及会话代次。重连或会话轮换后需要重新取得已授权引用；不能通过重放上一次业务动作来恢复访问。
 
-针对每次操作，Runtime 根据当前会话弄清：账号是谁、哪个 App 在请求、它
-被授权做什么、目标是哪个 LocalAgent 或范围、请求的是哪个操作。调用方提
-交强类型 intent，并在需要时给出显式的 LocalAgent ID。
+## 操作类别分别授权
 
-你给出的 ID 只是目标，不证明你拥有它或有权访问。Runtime 会拒绝未授权或
-过期的目标，同时不泄露任何内部会话材料。
+普通 `agent.local` 访问提供有限的 Conversation 与 Agent Realtime 操作、来源简介和强类型输出，不暴露私有 Memory、Knowledge、提示词、Provider 配置、呈现内部状态或账号全部 Agent 清单。
 
-## App 边界
+共享 LocalAgent 配置需要 `agent.configure`。Agent Memory 管理、独立 App 业务执行各自需要对应操作及声明覆盖；对话访问不会自动授予它们。Knowledge V1 没有公共操作路径。
 
-已授权 App 可以：
+App 编写的业务指令与技能走专门的业务/技能契约，不能作为普通聊天提交，也不能变成 Agent 身份。项目工作流和结果保存由 App 负责。
 
-- 提交强类型 LocalAgent intent；
-- 读取或订阅有限的 Conversation、状态、语音、呈现、Memory 与 Knowledge
-  视图；
-- 观察强类型的 ready、blocked、unavailable 或 failed 状态。
+Nimi Home 与 Desktop 承载 App，但不替代 Runtime 授权或 Cognition 记忆 ownership。不可用或未授权的操作返回真实强类型失败，不通过私有接口回退。
 
-App 永远不会拿到 Realm 凭证、Provider 密钥、Runtime 会话凭据、私有的授
-权证据、账号级 LocalAgent 全量清单、原始服务商事件，或任何能重建内部上
-下文的材料。
-
-Nimi Home 和桌面端承载当前的本地 App 路径，但它们不会取代 Runtime 成为
-授权的决定者或 LocalAgent 的运行者。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
 - [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
+- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

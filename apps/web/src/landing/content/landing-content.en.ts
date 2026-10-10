@@ -22,7 +22,7 @@ export const landingContentEn: LandingContent = {
     slogan: 'Your AI, Your way.',
     sloganAccent: 'Your way.',
     subSlogan: 'Local or cloud, the model is yours to choose.\nThe character is yours to shape, the apps and worlds yours to open.',
-    subSloganNote: 'Apps can change. Your AI and its memory stay the same.',
+    subSloganNote: 'Continue with the same AI in the apps you authorize.',
     downloadCta: 'Check download status',
     downloadNote: 'Not available to install yet. Using Nimi requires a Nimi account.',
     docsCta: 'View docs',
@@ -240,8 +240,8 @@ export const landingContentEn: LandingContent = {
   },
   continuity: {
     title: 'A different app, the same AI that knows you.',
-    subtitle: 'One AI that keeps its identity, memory, and shared history across the apps it is connected to.',
-    body: 'Preferences you talked about and memories it built can carry into the next interaction. From conversation to creation, you do not have to introduce yourself again.',
+    subtitle: 'Authorized apps can continue with the same local AI and conversation. Its long-term memories stay private to that AI on this device.',
+    body: 'When memory is enabled and relevant memories are available, they can inform the next interaction. Switching apps does not automatically share memory with another AI or device.',
     supports: ['Apps access your AI with your authorization.', 'Different AIs keep separate memories.'],
   },
   developers: {
@@ -258,7 +258,7 @@ export const landingContentEn: LandingContent = {
     secondaryCta: 'View source',
   },
   getStarted: {
-    title: 'Start using AI your way today.',
+    title: 'Explore AI your way.',
     subtitle: 'Check the download status, find the apps you need, or meet an AI character that interests you. Choose your AI and start with what you want to do.',
     primaryCta: 'Check download status',
     availability: 'Nimi is not available to install yet, and using it requires a Nimi account. The download page has the current status for each platform.',

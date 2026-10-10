@@ -1,131 +1,46 @@
-# Local Models
+# Local Models and Loadouts
 
-Runtime can service admitted AI capabilities with machine-local engines and
-assets. Local engines, installed model bundles, device compatibility, and
-implementation selection all belong to Runtime. Apps express Local capability
-intent; they do not select a model or engine.
+A model file is an inventory resource. A Loadout is a saved capability configuration with an exact implementation recipe and resource bindings. Runtime's machine store keeps at most one selected Loadout per capability; that selection supplies future requests whose owner has saved Local intent.
 
-For Cloud machine configuration, see
-[Connectors and Providers](/runtime/connectors-and-providers).
+## Prepare a Local Capability
 
-## Runtime-Owned Selection
+1. In Nimi Home's AI Capabilities workspace, inspect the capability and Runtime-issued setup options.
+2. Acquire the required model assets. Model Library owns file import, storage, verification, and removal; Downloads displays existing transfer and setup tasks.
+3. Prepare and commit the Loadout with the required model slots, content identities, options, and environment resources.
+4. Explicitly select it as that capability's machine default. This affects future Local submissions across App and shared LocalAgent owners.
+5. Save Local intent for the capability in the relevant AIConfig, then make an actual request through its protected client.
 
-| Step | Owner action |
+Installation alone does not bind or select a Loadout. An asset with no matching recipe can remain in the inventory without becoming executable. Companion resources do not become standalone capability models merely because a recipe uses them.
+
+## Interpret Status Correctly
+
+| Fact | What it establishes |
 | --- | --- |
-| Install engine and asset metadata | Runtime administration |
-| Validate package integrity and device compatibility | Runtime |
-| Determine eligible implementations | Runtime |
-| Schedule device resources | Runtime |
-| Select an implementation for a request | Runtime |
+| File verification | Stored bytes match the asset's registered content identity |
+| Resource bindings | A particular Loadout names its required resources |
+| Configuration/environment checks | That exact configuration's preparation facts and typed blockers |
+| Current selection | The machine default for future Local submissions of one capability |
+| Successful execution | The specific request completed successfully |
 
-A bundle's catalog identity is an installation fact, not a request target.
-Installing or inspecting a bundle does not create an App-visible binding and
-does not guarantee that Runtime will use it for the next request.
+These facts are not interchangeable. Unchecked or failed environment inspection remains unknown or failed; it does not prove prepared state or a missing component. Read status per configuration, not as one merged readiness grade for a model.
 
-## Engine and Asset Catalogs
+Runtime provides catalog compatibility and recommendation evidence. Consumers preserve Runtime ordering and do not infer compatibility from filenames, model names, tags, or process health.
 
-Runtime catalogs describe admitted engine families, asset kinds, package
-integrity, capabilities, and compatibility constraints. Desktop and CLI may
-project these catalogs for machine administration.
+## Execution
 
-| Catalog fact | Purpose |
-| --- | --- |
-| Engine family and runtime mode | Describe how Runtime can host the engine |
-| Asset kind and capability metadata | Describe the asset's admitted use |
-| Integrity identity | Verify exact installed content |
-| Device requirements | Reject incompatible installation or execution |
-| Runtime recommendation evidence | Help a user choose assets to install |
+At submission, Runtime validates the selected Loadout and atomically captures a complete resolved assembly with exact resource identities. Queued, running, and resumed Jobs retain that capture. Runtime does not search installed inventory, rerank models, switch selections, or fall back when a required input is missing.
 
-The client preserves Runtime recommendation order. It does not assign grades,
-calculate scores, or rerank models from tags and metadata.
+The App request contains content and supported parameters. Its Local AIConfig contains no Loadout or model selector. Safe effective-selection output helps explain configuration; it is not request-side control.
 
-## Device Compatibility
+## Environment and Process Ownership
 
-Runtime detects CPU, accelerator, memory, and storage facts. It uses those facts
-to validate installation and to schedule execution. A package that violates an
-admitted device constraint fails closed with a typed reason.
+Runtime owns admitted dependency materialization, progress, cancellation, cleanup, and execution-host supervision. Home displays the typed operations. Public Start or Warm Model actions and App-driven process polling are not part of capability execution.
 
-Device diagnostics are machine-management evidence. Apps do not receive a
-per-model readiness, warming, or health surface and cannot use device probes to
-pick an execution implementation.
-
-## Installation Flow
-
-1. **Browse.** Desktop or CLI reads Runtime's admitted catalog.
-2. **Select an asset to install.** The selection affects machine inventory only.
-3. **Download and verify.** Runtime validates source, content identity, and
-   package shape.
-4. **Register.** Runtime records the installed asset and any required engine
-   metadata.
-5. **Report result.** The administration surface projects typed progress or
-   failure.
-
-Random URLs and unverified files are not executable. Import and download paths
-must satisfy Runtime's catalog, path-admission, and integrity rules.
-
-## Capability Execution
-
-1. The exact App or Agent owner records Local intent for an admitted capability
-   in `AIConfig`.
-2. The caller submits identity, scenario content, and supported operation
-   parameters.
-3. Runtime evaluates installed assets, device state, policy, budget, and current
-   resource pressure.
-4. Runtime selects an admitted implementation or returns a typed failure.
-5. Runtime-issued diagnostics can record what happened, but the caller cannot
-   reuse them to pin the next request.
-
-The normalized SDK result does not depend on whether Runtime chose a Local or
-Cloud implementation.
-
-## Reader Scenario: Install a Text-Generation Asset
-
-1. A machine administrator opens the Local Model Center.
-2. Runtime returns its catalog and recommendation evidence in Runtime order.
-3. The administrator chooses a compatible asset bundle to install.
-4. Runtime downloads, verifies, and registers the bundle, or fails closed with a
-   typed reason.
-5. A later App request contains no model, engine, route, connector, or target.
-6. If Local intent and current machine state admit execution, Runtime may choose
-   an installed implementation.
-
-## Reader Scenario: Device Constraint
-
-1. A selected bundle requires resources that the machine cannot provide.
-2. Runtime rejects installation or execution with typed device evidence.
-3. Desktop or CLI displays the Runtime reason without claiming model readiness.
-4. The administrator can install a different compatible asset or change machine
-   configuration.
-5. The App request contract remains unchanged.
-
-## Reader Scenario: Multiple Engines
-
-Runtime can manage several engine families on one machine. It arbitrates shared
-accelerator and memory resources internally. Text, image, audio, and other App
-requests remain capability-shaped; Apps neither route requests to an engine nor
-coordinate engine concurrency.
-
-## Dependency Materialization
-
-Some engines require additional machine dependencies. Runtime performs download,
-verification, installation, cancellation, and cleanup through an admitted
-materializer. Desktop can display typed operation progress and failure, but does
-not run arbitrary shell commands or project dependency progress as App execution
-readiness.
-
-## Key Points
-
-- Local model and engine catalogs are Runtime machine configuration.
-- Asset installation is not model activation, warming, or request binding.
-- Apps carry Local capability intent, not model, engine, route, connector,
-  target, readiness, health, or fallback controls.
-- Runtime owns compatibility, scheduling, and implementation selection.
-- Recommendation and execution diagnostics remain Runtime-issued evidence.
+An environment can be prepared while a Job later fails. A process can be stopped while Runtime can start it for an admitted Job. Use the actual operation result rather than deriving execution truth from process state.
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/local-compute.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/local-compute.authority.yaml)
-- [`config/runtime-local-engine-catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-local-engine-catalog.yaml)
-- [`config/runtime-local-adapter-routing.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-local-adapter-routing.yaml)
-- [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
-- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
+- [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)

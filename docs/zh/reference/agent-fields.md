@@ -11,8 +11,8 @@ Nimi 为持久 Character 真相与本地 AI 执行使用不同的 identifier 与
 | LocalAgent ID | Runtime | 有明确 owner 的本地执行实体 |
 | LocalAgent owner | Runtime | 显式 owner 关系；不能从 App cache 推断 |
 | Conversation anchor | Runtime | 一条显式 LocalAgent Conversation |
-| 运行态 Memory | Runtime | 已授权的 LocalAgent recall 与 retention |
-| 运行态 Knowledge | Runtime | 已授权的 LocalAgent ingestion 与 retrieval |
+| 长期 Memory | Cognition | Agent 私有记忆；Runtime 中介授权与有限访问 |
+| Knowledge | Cognition | V1 无活动导入、查询或公共客户端路径 |
 | AI capability execution | Runtime | 能力意图评估、具体实现选择、quota、budget 与执行诊断 |
 | Presentation configuration | Runtime | 面向已授权投影的持久 LocalAgent 输入 |
 | 短暂 presentation state | Runtime | Turn、状态、activity、emotion、voice 与 timing 投影 |
@@ -21,8 +21,7 @@ Nimi 为持久 Character 真相与本地 AI 执行使用不同的 identifier 与
 ## 访问字段
 
 Runtime 从 active session 推导 account、App identity、authorization、目标
-LocalAgent 或 scope，以及 operation。Consumer 可以提交 LocalAgent ID 作为
-目标，但该 ID 不是 authorization proof。
+LocalAgent 或 scope，以及 operation。正式 App 使用已授权引用列表返回的会话级 `agentHandle`，不提交原始 LocalAgent ID。
 
 Realm JWT、Provider Credential、Runtime session proof、私有 authorization
 evidence、原始 source context 与账号级 LocalAgent 全量清单都不是 App 字段。
@@ -30,8 +29,8 @@ evidence、原始 source context 与账号级 LocalAgent 全量清单都不是 A
 ## 连续性
 
 LocalAgent ID 不能标识 Conversation。Consumer 保留 Runtime 返回的显式
-Conversation anchor。一个 LocalAgent 可以拥有多条 Conversation；同一
-Character Source 也可以物化多个 LocalAgent，而不共享可变运行态状态。
+Conversation anchor。每个 LocalAgent 只有一条 Conversation，由其已授权消费者
+共同延续。同一 Character Source 物化出的不同 LocalAgent 不共享可变运行态状态。
 
 ## 来源依据
 

@@ -1,8 +1,6 @@
-# 认证令牌验证
+# Token 验证
 
-> 状态：运行中 (Running)。承载令牌验证表面 (`K-AUTHN-*`) 和授权所有权规则已发布。
-
-运行时会验证每个传入的 `K-AUTHN-*` 下的承载 JWT，并将验证后的身份绑定到授权所有权规则。**认证 (AuthN)** 询问“这是谁？”；**授权 (AuthZ)** 询问“这个主体被允许拥有/修改什么？”。这两者是故意分开的。
+Bearer JWT 验证仅适用于准入此认证路径的操作，不能证明受保护 Local App 来源。正式 Nimi App 使用验证过的 Host 会话，不接收 Realm bearer；见[账号与会话](/zh/runtime/account-and-session)。
 
 ## 承载令牌输入模型
 
@@ -32,7 +30,7 @@
 
 | 规则 | 值 |
 | --- | --- |
-| 允许的算法 | 允许列表（阶段 1: `RS256` / `ES256`） |
+| 允许的算法 | 仅 `RS256`，密钥形状遵循生成的 Realm JWKS 契约 |
 | `alg=none` | 拒绝 |
 | 缺少 `kid` | 拒绝 |
 
@@ -53,7 +51,7 @@
 
 | 规则 | 值 |
 | --- | --- |
-| 偏移窗口 | 固定（阶段 1: `±60s`） |
+| 偏移窗口 | 固定 `±60s` |
 | 超出窗口 | 令牌无效；没有软容忍度 |
 
 在偏移窗口内的令牌会被验证。超出窗口则不会。运行时不进行协商。
@@ -64,12 +62,13 @@
 
 | 规则 | 值 |
 | --- | --- |
-| 已撤销/过期的会话 | `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID` |
+| 已撤销/过期的会话 | `UNAUTHENTICATED` + `SESSION_EXPIRED`；需要重新认证，不可重试 |
+| 无法判断撤销状态 | `UNAVAILABLE` + `AUTH_REVOCATION_UNAVAILABLE`；可重试，不能回退为匿名或有效会话 |
 | 自省端点 | `auth.jwt.revocationUrl` |
 | 自省所需的声明 | `sid` |
 | 缺少配置 (`issuer` / `audience` / `jwksUrl` / `revocationUrl`) | 承载 JWT 路径关闭 |
 
-自省合同是固定的：向 `revocationUrl` 发送 `POST` 请求，JSON 正文包含 `session_id`、`subject_user_id`、`issuer`、`audience`、`issued_at`、`expires_at`。响应正文必须包含 `active: boolean`、`revoked: boolean`，可选 `expires_at`。`revoked=true` 或 `active=false` 都算作已撤销。网络错误/非 2xx/格式错误的响应**不得**降级为匿名；它们关闭。
+自省合同是固定的：向 `revocationUrl` 发送 `POST` 请求，JSON 正文包含 `session_id`、`subject_user_id`、`issuer`、`audience`、`issued_at`、`expires_at`。响应正文必须包含 `active: boolean`、`revoked: boolean`，可选 `expires_at`。`revoked=true` 或 `active=false` 都算作已撤销。网络错误、非 2xx 或非法响应返回 `UNAVAILABLE` 与 `AUTH_REVOCATION_UNAVAILABLE`，**不得**降级为匿名或有效会话。
 
 ## 认证与授权
 
@@ -77,7 +76,7 @@
 
 | 阶段 | 问题 | 失败代码 |
 | --- | --- | --- |
-| 认证 (AuthN) | “这个令牌有效吗？它代表谁？” | `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID` |
+| 认证 (AuthN) | “令牌和会话是否有效？” | 无效令牌：`AUTH_TOKEN_INVALID`；会话已撤销/过期：`SESSION_EXPIRED`；撤销状态未知：`AUTH_REVOCATION_UNAVAILABLE`，状态码见上表 |
 | 授权 (AuthZ) | “这个主体被允许这样做吗？它是否拥有它声称要修改的内容？” | `PERMISSION_DENIED` + 类型化的授权原因 |
 
 混淆这两个阶段是一个常见的错误模式。有效的令牌并不意味着拥有权。缺少令牌并不是授权失败。
@@ -95,35 +94,7 @@
 
 每种主体类型都有准入的授权域。跨域访问关闭；外部主体不能直接修改第一方账户拥有的资源。建议的修改从外部主体通过委托能力网关和输出防火墙路由。
 
-## 读者场景：有效的令牌访问领域数据
-
-1. **应用调用领域数据 API**，带有运行时发布的短寿命令牌在 `authorization: Bearer <jwt>` 中。
-2. **运行时验证。** 头部解析。算法在允许列表中。`kid` 通过 JWKS 缓存解析。签名有效。声明 (`iss`, `aud`, `sub`, `exp`, `iat`) 都检查通过；时钟偏移在窗口内。
-3. **撤销检查。** 会话处于活动状态。
-4. **认证通过。** 身份绑定到请求。
-5. **授权运行。** 数据操作根据绑定主体的所有权规则进行检查。
-6. **授权通过。** 操作继续。
-
-## 读者场景：带有 `alg=none` 的令牌
-
-1. **应用发送头部。** JWT 有 `alg=none`。
-2. **认证拒绝。** `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
-3. **无回退。** 运行时不会降级为匿名；应用看到类型化的拒绝。
-
-## 读者场景：已撤销的会话
-
-1. **令牌验证通过。** 签名 OK；声明 OK。
-2. **自省发现会话已撤销。** `revoked: true`。
-3. **运行时拒绝。** `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
-4. **应用通过 `RuntimeAccountService` 重新认证来恢复。**
-
-## 令牌验证不做的事情
-
-- 它不会从调用者提供的数据中发明 `subject_user_id`。
-- 它不会在头部格式错误时默默地丢弃身份。
-- 它不接受 `alg=none`。
-- 它不允许 JWKS 刷新失败降级为匿名。
-- 它不允许自省失败降级为匿名。
+认证通过不代表受保护 App 来源或操作授权。Bearer 被拒绝后，不能回退为匿名执行，也不能绕过原生 Host 边界。
 
 ## 来源依据
 

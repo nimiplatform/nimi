@@ -14,11 +14,10 @@ closed instead of forwarding to an adapter.
 | Vercel AI SDK 6 | npm package `@nimiplatform/sdk-adapter-vercel-ai` | Maps Vercel language-model calls onto an App's host-bound AI client |
 | OpenAI-compatible | Source only, under `sdks/typescript/adapters/openai-compatible`; not published as a package | Maps OpenAI-compatible chat-completion shapes onto Nimi AI semantics |
 
-An adapter release declares the `@nimiplatform/sdk` versions it works with as
-a peer dependency range. Before adding one, check that the release you install
-covers the SDK version your App uses. `@nimiplatform/sdk-adapter-vercel-ai`
-0.1.0 declares `@nimiplatform/sdk` `^0.13.0`, so it does not pair with SDK
-0.14 or later.
+The current Vercel adapter is 0.5.0 and declares SDK `^0.21.0`, Vercel AI SDK
+`^6.0.0`, and `@ai-sdk/provider` `^3.0.0` peers. Use Kit/native 0.18.0 and the
+matching Runtime for the protected App path. Use the complete current local
+adapter archive until the corresponding registry release is available.
 
 An adapter may depend on `@nimiplatform/sdk/ai`, `@nimiplatform/sdk/ai-runner`,
 `@nimiplatform/sdk/runtime`, or feature modules. It may not reintroduce removed

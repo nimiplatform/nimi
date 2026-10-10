@@ -19,25 +19,18 @@ prerequisites.
 | State | Terminal? |
 | --- | --- |
 | `SUBMITTED` | no |
+| `QUEUED` | no |
 | `RUNNING` | no |
 | `COMPLETED` | yes (success) |
 | `FAILED` | yes |
 | `TIMEOUT` | yes |
 | `CANCELED` | yes |
 
-## Runtime — Provider Async Task
+## Runtime — Observation Facts
 
-| State | Terminal? |
-| --- | --- |
-| `queued` | no |
-| `running` | no |
-| `succeeded` | yes |
-| `failed` | yes |
-| `expired` | yes (timeout-equivalent) |
+Provider protocol phases remain private. The common Job exposes `submission_outcome` (`UNSPECIFIED`, `NOT_DISPATCHED`, `UNKNOWN`, `ACCEPTED`, `REJECTED`) and `stop_outcome` (`UNSPECIFIED`, `NOT_DISPATCHED`, `CONFIRMED`, `UNCONFIRMED`). Missing historical values remain unknown.
 
-Provider async states use lower snake case; ScenarioJob uses upper
-snake case. The provider boundary maps terminal provider outcomes to
-the corresponding ScenarioJob result.
+An observation issue does not change Job status. A local canceled result does not alone prove external work stopped. `TIMEOUT` requires actual bounded Host termination or confirmed provider expiration; elapsed Job age alone is insufficient. Use Get on the original Job and preserve the full terminal result.
 
 ## Realm — App-World Binding
 

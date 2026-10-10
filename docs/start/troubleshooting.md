@@ -32,28 +32,11 @@ Where background management is admitted, verify its sanitized manager summary:
 nimi health --json
 ```
 
-## SDK Client Configuration
+## Restore the App Host Binding
 
-`SDK_CLIENT_APP_ID_REQUIRED` means the SDK operation needs a concrete app id.
-Create the root client with `appId`, or pass `appId` into the specific Runtime
-AI surface that requires it:
+An App must use its generated host-bound `NimiLocalAppClient`. If an error asks for an App ID because the code constructed a standalone client, restore the generated binding instead of adding an `appId` or gRPC endpoint. Runtime rejects App AI execution, storage, and configuration through an ordinary direct client.
 
-```ts
-import { createNimiClient } from '@nimiplatform/sdk';
-
-const nimi = createNimiClient({
-  appId: 'my-nimi-app',
-  runtime: {
-    transport: {
-      type: 'node-grpc',
-      endpoint: process.env.NIMI_RUNTIME_GRPC_ENDPOINT || '127.0.0.1:46371',
-    },
-  },
-});
-```
-
-The SDK throws this before dispatch. Do not work around it by calling Runtime
-private endpoints from app code.
+Run the App through Home's Desktop-supervised Host, confirm its current registration and Nimi Access, and keep the same generated client for AI and AIConfig. After session rotation, refresh authorized references without replaying a previous business action.
 
 ## Runtime AI Capability Intent
 

@@ -14,7 +14,7 @@ Nimi is not available to install yet: no installer or developer preview is publi
 - **Meet characters and worlds.** Talk with AI characters and explore the worlds they belong to.
 - **Choose your AI.** Run models locally on your computer, or connect supported cloud capabilities. What you use is your choice.
 - **Create your own app.** Build a local AI tool around your own tasks, steps, and results.
-- **Keep the same AI.** The AI you talk to keeps its identity and memory across the apps it is connected to, so you do not start over each time.
+- **Keep the same AI.** Authorized apps can continue with the same LocalAgent and Conversation. Long-term memory stays private to that Agent; it is not automatically shared with other Agents or devices.
 
 See [nimi.ai](https://nimi.ai) for the product tour.
 
@@ -35,7 +35,7 @@ Every admitted app has a public source repository and an explicit open-source li
 | OpenMontage | Admitted catalog app (text, image, video, audio, and music capabilities). | macOS arm64 · Windows x86_64 |
 | Next AI Draw.io | Admitted catalog app (text). | macOS arm64 · Windows x86_64 |
 
-Verified Catalog discovery, installation, update, launch, focus, stop, access management, and uninstall are provided on Windows x86_64 and macOS arm64 through the protected Desktop path. The local-package import entry, package lifecycle on other platforms, and ordinary repair remain unavailable. Installing an app does not grant Nimi access; account and Runtime conditions still apply. The catalog page is informational: [nimi.ai/apps](https://nimi.ai/apps).
+Verified Catalog discovery, installation, update, launch, focus, stop, access management, and uninstall are provided on Windows x86_64 and macOS arm64 through the protected Desktop path. Explicit immutable local-package import is implemented through Desktop and Runtime on these targets, with source-qualified install, update, launch, and uninstall. Combined product acceptance and public release readiness remain separate; package lifecycle on other platforms and ordinary repair remain unavailable. Installing an app does not grant Nimi access; account and Runtime conditions still apply. The catalog page is informational: [nimi.ai/apps](https://nimi.ai/apps).
 
 ## For developers
 
@@ -43,10 +43,10 @@ Build something new, or adapt an existing project.
 
 - **Nimi SDK** — one typed interface to local and cloud AI capabilities.
 - **Adapter** — `@nimiplatform/sdk-adapter-vercel-ai` connects Vercel AI SDK 6 projects; install a release whose SDK peer range covers the SDK version you use.
-- **Scaffold** — create a local app project:
+- **Scaffold** — create a local app project with the current complete App Tools archive (see the setup guide for matching SDK/Kit/native overrides):
 
 ```bash
-pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
+pnpm dlx --package=file:./nimi-packages/nimiplatform-app-tools-0.11.4.tgz nimi-app create --profile standalone
 ```
 
 Start with the [Create a Nimi App guide](https://docs.nimi.ai/start/create-an-app) and the [first AI call](https://docs.nimi.ai/sdk/first-ai-call). Adapter notes live in [sdks/typescript](sdks/typescript/README.md).
@@ -81,4 +81,4 @@ Product and component releases are separate and always name their owner: `nimi/v
 
 ## License
 
-Nimi is multi-licensed by component: runtime, SDK, and Proto under Apache-2.0; apps and Kit under MIT; docs under CC-BY-4.0. Canonical license texts live in [licenses/](licenses/) and the full map is in [LICENSE](LICENSE).
+Nimi-authored components use Apache-2.0 (Runtime, Cognition, SDK, Proto, App Tools), MIT (Apps, Kit, App templates), and CC-BY-4.0 (docs and authority). Third-party code and model weights retain their own terms. Canonical license texts live in [licenses/](licenses/) and the full map is in [LICENSE](LICENSE).

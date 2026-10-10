@@ -20,9 +20,9 @@ world keeps evolving even when no participants are present.
 
 | Concept | What it answers | Owner contract |
 | --- | --- | --- |
-| Truth | What is canonically true in this world, regardless of when it was written | `realm/kernel/truth-contract.md` (`R-TRUTH-*`) |
-| World State | What the world looks like right now | `realm/kernel/world-state-contract.md` (`R-WSTATE-*`) |
-| World History | How the world reached its current state | `realm/kernel/world-history-contract.md` (`R-WHIST-*`) |
+| Truth | What is canonically true in this world, regardless of when it was written | Realm Truth owner (`R-TRUTH-*`) |
+| World State | What the world looks like right now | Realm World State owner (`R-WSTATE-*`) |
+| World History | How the world reached its current state | Realm World History owner (`R-WHIST-*`) |
 
 These three are not interchangeable. A surface that conflates them
 silently loses information.
@@ -31,14 +31,14 @@ silently loses information.
 
 | Surface | Contract | Rule prefix |
 | --- | --- | --- |
-| Chat | `realm/kernel/chat-contract.md` | `R-CHAT-*` |
-| Social | `realm/kernel/social-contract.md` | `R-SOC-*` |
-| Economy | `realm/kernel/economy-contract.md` | `R-ECON-*` |
-| Asset | `realm/kernel/asset-contract.md` | `R-ASSET-*` |
-| Transit | `realm/kernel/transit-contract.md` | `R-TRANSIT-*` |
-| Binding | `realm/kernel/binding-contract.md` | `R-BIND-*` |
-| Resource | `realm/kernel/resource-contract.md` | `R-RSRC-*` |
-| Bundle | `realm/kernel/bundle-contract.md` | `R-BNDL-*` |
+| Chat | Realm Chat owner | `R-CHAT-*` |
+| Social | Realm Social owner | `R-SOC-*` |
+| Economy | Realm Economy owner | `R-ECON-*` |
+| Asset | Realm Asset owner | `R-ASSET-*` |
+| Transit | Realm Transit owner | `R-TRANSIT-*` |
+| Binding | Realm Binding owner | `R-BIND-*` |
+| Resource | Realm Resource owner | `R-RSRC-*` |
+| Bundle | Realm Bundle owner | `R-BNDL-*` |
 
 ## OASIS
 

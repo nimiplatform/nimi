@@ -1,121 +1,37 @@
 # 流式协议
 
-> 状态：运行中 (Running)。流式合约 (`K-STREAM-*`) 是每个运行时服务器流式 RPC 的已发布关闭模式权威。
+Runtime RPC 各自定义事件形状和关闭行为。App 通常消费受保护 SDK 接口，不自行构造直连 gRPC。
 
-Runtime 拥有多个服务器流式 RPC（文本生成、语音合成、ScenarioJob 事件、审计导出、长期订阅）。流式合约明确了**每个流如何关闭**，以便 consumer 可以编写不依赖协议形状猜测的恢复逻辑。
-
-## 四种关闭模式
-
-该合约将每个运行时服务器流式 RPC 分类为以下四种关闭模式之一：
-
-| 模式 | 关闭信号 | RPC |
+| 接口 | 正常完成 | 中断处理 |
 | --- | --- | --- |
-| **A — `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 终端帧** | 最终事件携带 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
-| **B — 终端事件后 gRPC OK 关闭** | 服务器发出终端事件，然后干净地关闭流 | `SubscribeScenarioJobEvents` |
-| **C — `eof=true` 块后 gRPC OK 关闭** | 服务器发出 `eof=true` 块，然后关闭 | `ExportAuditEvents` |
-| **D — 长期订阅流** | 无终端帧；任何一方都可关闭 | `SubscribeRuntimeHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
+| `StreamScenario` | 强类型 completed 或 failed 终止事件 | 断线可能阻止终止投递，不能推断成功 |
+| `SubscribeScenarioJobEvents` | 投递 Job 快照至终态后关闭 | 用 Get 重新观察原 Job；结束观察不取消工作 |
+| `ExportAuditEvents` | 最后一块携带 `eof=true` | 中断的导出不完整 |
+| 长连接订阅 | 遵循各 owner 生命周期，没有通用成功帧 | 会话、权限、传输或 daemon 变化都可关闭订阅 |
 
-模式 D 流没有终端信号。当守护进程进入 `STOPPING` (`K-DAEMON-003`) 时，它会使用 gRPC `CANCELLED` 关闭所有活动订阅。客户端通过 `runtime.disconnected` (`S-RUNTIME-028`) 或 gRPC 状态检测关闭，并决定是否重建。
+## 生成事件
 
-## 流建立边界
+建流前的准入失败是操作错误。建立后的生成流携带契约规定的 started、delta、usage、completed 或 failed 事件。消费者保留内容顺序，区分成功终止、失败与中断；语音字节和 MIME 必须满足确切输出契约。
 
-对于 `StreamScenario` (`TEXT_GENERATE` / `SPEECH_SYNTHESIZE`)：
+断线后无法保证终止帧送达。不能把部分生成重试当成原操作续传；明确重新生成是 App 的另一个动作。
 
-| 阶段 | 错误流向 |
-| --- | --- |
-| Protected caller、authorization 和能力准入 | 建立前错误 → gRPC 错误 |
-| Runtime 实现执行 | 流已建立；后续业务或上游错误 → 携带 reason code 的 `STREAM_EVENT_FAILED` 终端帧 |
+## Job 快照与完整结果
 
-这种划分是故意的：建立前的错误是连接失败（调用者从未开始流式传输）；建立后的错误是流内的业务结果（调用者已经在流式传输）。
+同一 Job 可以多次发出相同状态或事件类型的快照，不能因为类型重复就丢弃更新。事件不包含所有专属终态结果。
 
-## 模式 A 事件约束
+对同一身份持续调用 `GetScenarioJob`，每次可在有限工作范围内核对原 Provider 任务。读取完整终态响应，包括 VoiceAsset/VoiceReference、视觉定位等专属结果；含正式 artifact 输出的契约使用 `GetScenarioArtifacts`。合法空结果与缺少必要结果不同。
 
-文本流 (`TEXT_GENERATE`)：
+观察错误不能被伪造成 Job 终态。SDK 观察辅助函数保留原 Job、返回强类型问题，并区分结束观察和明确取消执行。另见 [流与 Job 观察](/zh/runtime/streaming)。
 
-| 事件形状 | 必须 |
-| --- | --- |
-| `STREAM_EVENT_DELTA` 事件 | `payload.delta.text.text` 必须非空 |
-| `STREAM_EVENT_USAGE` | Runtime 有用量证据时携带增量或最终 `UsageStats` |
-| `STREAM_EVENT_COMPLETED` | 携带 `payload.completed.finish_reason` 和完成元数据 |
-| `STREAM_EVENT_FAILED` | 携带 `payload.failed.reason_code`，可附带 `action_hint` |
+## 重连与资源限制
 
-语音流 (`SPEECH_SYNTHESIZE`)：
+共享实时设施负责排序、代次隔离、取消、有界缓冲和安全生命周期元数据，不拥有通用重放或持久检查点。Realm 定义游标恢复，LocalAgent 从已提交 Conversation 快照恢复，AI Realtime 保持临时会话语义。
 
-| 事件形状 | 必须 |
-| --- | --- |
-| `STREAM_EVENT_DELTA` 事件 | `payload.delta.artifact` 的 artifact chunk 和 MIME type 必须匹配已准入的语音 artifact 合约 |
-| `STREAM_EVENT_COMPLETED` | 携带强类型完成元数据 |
-| `STREAM_EVENT_FAILED` | 携带 `payload.failed.reason_code`，可附带 `action_hint` |
+反压有界：慢消费者可能收到强类型失败并被关闭。Daemon 关闭或权限过期会关闭对应订阅并隔离迟到数据；客户端必须通过所属接口重新建立授权状态，才能接收新代次数据。
 
-## 模式 B 事件约束
-
-`SubscribeScenarioJobEvents`：
-
-| 规则 | 值 |
-| --- | --- |
-| Mode A 终端语义 | 不使用 |
-| 稳态关闭 | 在终端事件后，服务器以 gRPC OK 关闭流 |
-| `STOPPING` 预占 | 守护进程可能会使用 gRPC `CANCELLED` 预占活动流；终端事件传递不保证 |
-
-同一个作业/工作流在非终端状态下可能会多次发出相同 `event_type` 的状态事件。消费者必须用最新事件内容覆盖先前快照；**不要** 假设严格的事件类型单调性。
-
-## 读者场景：文本流式调用
-
-应用程序调用 `StreamScenario` 进行文本生成。
-
-1. **建立前验证。** Runtime 校验 protected caller、App authorization、规范能力请求和自身内部配置。
-2. **建立。** 所有建立前检查通过。流开始（第 10 步）。
-3. **`STREAM_EVENT_DELTA` 事件。** 每个事件携带非空 `payload.delta.text.text`。
-4. **终端事件。** Runtime 发出带 completed payload 的 `STREAM_EVENT_COMPLETED`，或带 failed payload 的 `STREAM_EVENT_FAILED`。
-5. **流关闭。** 收到终端帧后，gRPC OK 关闭。
-
-如果在建立后发生故障，它将以带有 reason code 的 `STREAM_EVENT_FAILED` 终端帧形式出现，而不是作为 gRPC 错误。
-
-## 读者场景：长期订阅在守护进程重启后存活
-
-应用程序订阅 `SubscribeAccountSessionEvents`。
-
-1. **流打开。** 模式 D。随着会话状态变化，事件流式传输。
-2. **守护进程进入 `STOPPING`。** 运行时使用 gRPC `CANCELLED` 关闭所有活动订阅。
-3. **应用程序检测关闭。** 通过 `runtime.disconnected` 或 gRPC 状态。
-4. **重新连接逻辑。** 应用程序决定在守护进程恢复时重建订阅；它不假设守护进程“应该”发送终端事件。
-
-合约明确的“模式 D 中无终端信号”使得恢复逻辑正确——应用程序不会永远等待一个永远不会到来的事件。
-
-## 读者场景：具有重复事件类型的作业事件
-
-应用程序订阅 `SubscribeScenarioJobEvents`。
-
-1. **作业运行。** 同一 `event_type`（例如 `progress`）在执行期间多次发出更新的快照内容。
-2. **应用程序覆盖先前快照。** 不按事件类型去重。
-3. **终端事件。** 当作业完成时，终端事件到达；服务器以 gRPC OK 关闭流。
-
-如果守护进程首先进入 `STOPPING`，流可能会在终端事件之前以 gRPC `CANCELLED` 关闭——应用程序在下次守护进程可用时重建订阅，并从作业快照中重新推导终端状态。
-
-## 协议保证
-
-- 它不允许消费者推断关闭行为；每个 RPC 的模式都在表中明确列出。
-- 它不允许在模式 B/C/D 中使用 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 语义。
-- 它不允许模式 D 流期望终端事件。
-- 它不允许在模式 A 中将建立后的错误作为 gRPC 错误而不是终端帧显示。
-- 它不允许消费者假设作业/工作流流中的严格事件类型单调性。
-
-## 边界摘要
-
-| 关注点 | 权威来源 |
-| --- | --- |
-| 关闭模式分类 | `K-STREAM-001` |
-| 建立边界 | `K-STREAM-002` |
-| 文本流事件 | `K-STREAM-003` |
-| 语音流事件 | `K-STREAM-004` |
-| 状态事件流 | `K-STREAM-005` |
-| 块分帧 | `K-STREAM-006` |
-| EOF 块关闭 | `K-STREAM-009` |
-| 订阅流生命周期 | `K-STREAM-010` |
-| 守护进程关闭耦合 | `K-DAEMON-003` |
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
-- [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
-- [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
+- [`proto/runtime/v1/ai.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/ai.proto)
+- [`sdks/typescript/runtime/scenario-jobs.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/scenario-jobs.ts)

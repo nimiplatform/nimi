@@ -2,7 +2,7 @@
 
 ## 状态：已准入契约；Desktop 拥有的 surface
 
-委托控制是桌面端的界面，在内核层定义（`canonical/desktop/agent-projection.authority.yaml`）。你看到的审批与隔离 UI 属于 Desktop 本身，不是应用各自用 SDK 搭出来的。
+委托控制是桌面端的界面，在内核层定义（`.nimi/spec/desktop/agent-projection.authority.yaml`）。你看到的审批与隔离 UI 属于 Desktop 本身，不是应用各自用 SDK 搭出来的。
 
 ## 什么是委托控制
 

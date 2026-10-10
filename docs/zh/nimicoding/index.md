@@ -4,7 +4,7 @@ Nimi Coding 为 AI 宿主和仓库工具提供确定性的 project-owned canonic
 authority 访问能力。它负责格式化、检查、查询、关系导航与变更审查；它不是
 AI Agent、规划器、代码生成器、审批流程或产品规范生成器。
 
-本页说明 workspace 精确固定的 `@nimiplatform/nimi-coding@0.6.1`。命令行为
+本页说明 workspace 精确固定的 `@nimiplatform/nimi-coding@0.6.3`。命令行为
 以软件包 CLI 和软件包内 README 为操作参考。
 
 ## Truth 边界

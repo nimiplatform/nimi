@@ -18,12 +18,13 @@ other.
 - Memory is private to each Agent. Two Agents on the same account
   keep separate memories, and neither can read the other's. There is
   no shared account profile behind them.
-- You can correct an Agent. When you say "I don't live in Berlin
-  anymore," the corrected fact becomes current right away, and the old
-  one leaves default recall, kept only as bounded history.
-- You can make an Agent forget. An explicit forget is a durable
-  barrier: restarts, retries, index rebuilds, and replays cannot bring
-  the forgotten memory back.
+- You can correct a stored memory through the authorized Memory management
+  surface. Select the entry, submit the corrected content, and wait for the
+  committed owner result before treating the new fact as current.
+- You can select stored memories and explicitly confirm Forget. After
+  Cognition commits the operation, its durable barrier prevents restarts,
+  retries, index rebuilds, and replays from reviving those memories. An ordinary
+  chat request to forget is not confirmation that this operation ran.
 - Secrets don't become memories. Passwords, tokens, credentials, and
   content marked "do not remember" are rejected before they can be
   retained.
@@ -95,19 +96,27 @@ continued anyway, just without that memory.
 
 ## Reader Scenario: Correcting And Forgetting
 
-Suppose your Agent believes you work at Acme. You tell it: "I left
-Acme, I work at Beta now."
+Suppose a stored memory says you work at Acme, but you now work at Beta.
 
-1. Your correction arrives as a new committed event.
-2. Cognition makes the corrected fact current and removes "works at
-   Acme" from default recall, keeping it only as provenance-bounded
-   superseded history.
+1. Open the authorized Memory management surface for the intended Agent and
+   inspect its stored entries.
+2. Select the incorrect entry and submit its `memoryId` with the corrected
+   content. Runtime validates the current Manager handle and `agent.configure`
+   access before forwarding the operation to Cognition.
+3. Only after the owner commits the correction does the corrected fact become
+   current and the superseded entry leave default recall. Pending, rejected,
+   or failed operations are not completed corrections.
 
-Later you go further: "Forget everything about my old job." An
-explicit forget commits a barrier against those memories. From then
-on, no restart, retry, index rebuild, or replay can revive them. If
-you mention your old job again someday, that becomes a new memory
-formed from a new event, not the forgotten one coming back.
+To forget memories about the old job, select the exact entries and confirm the
+Forget operation. The SDK request carries their `memoryIds` and `confirmed:
+true`; the owner result establishes whether the barrier was committed. No
+restart, retry, index rebuild, or replay may restore those forgotten entries.
+A later eligible event can form a new memory; it does not revive an old one.
+
+Saying "I left Acme" or "Forget everything about my old job" in ordinary chat
+does not perform this management operation. Automatic Remember has its own
+bounded admission rules and may make no change; a conversational reply is not
+a durable correction or deletion acknowledgement.
 
 Because banks are Agent-private, none of this touches any other Agent
 you talk to. Another Agent's memory of you is its own.
@@ -117,3 +126,4 @@ you talk to. Another Agent's memory of you is its own.
 - [`.nimi/spec/cognition/memory.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/memory.authority.yaml)
 - [`.nimi/spec/cognition/runtime-bridge.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/runtime-bridge.authority.yaml)
 - [`nimi-cognition/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-cognition/README.md)
+- [`sdks/typescript/core/app/local-app-runtime-platform-configure.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-configure.ts)

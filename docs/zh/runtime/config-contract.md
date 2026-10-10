@@ -42,7 +42,7 @@ protected service 固定，不允许用户配置，也不作为普通物理路�
 Portable 配置：
 
 - 必须使用当前 schema，内容无效时 fail-closed；
-- 可以配置 nonproduction Runtime 行为与 provider setup；
+- 可以配置已准入的非生产 Runtime 行为；
 - 不得包含 `dataRootRef` 或任何 `managedRoots` 值；
 - 不得成为 Product Control 或生产 Runtime 私有状态；
 - 只有显式提供时，`nimi doctor` 或 `nimi version` 才能以

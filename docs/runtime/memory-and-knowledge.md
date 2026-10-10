@@ -1,54 +1,32 @@
-# Memory And Knowledge
+# Memory and Knowledge
 
-Runtime owns operational Memory and Knowledge for each LocalAgent. It decides
-what authorized input may be admitted, recalled, retained, queried, used for
-execution, and projected to a consumer.
+Cognition owns long-term Memory and its lifecycle. Runtime owns LocalAgent identity, Conversation, authorization, context assembly, and the typed bridge that delivers committed events and returns bounded Memory outcomes. Knowledge belongs to Cognition's domain but has no active V1 read, write, or public client path.
 
-## Realm source truth and Runtime operational truth
+## Agent-Private Memory
 
-Realm owns PersonaCharacter, WorldCharacter, Character Source, World Source,
-canonical World data, and their access rules. Runtime may consume an admitted
-Character Source as the identity source for LocalAgent materialization and may
-use admitted World Source context for execution.
+Each LocalAgent has a separate opaque Memory bank. Sharing a Character Source does not share memories. Realm owns Character and World source truth; Memory cannot rewrite canonical World state or history.
 
-That source context does not transfer Realm ownership to Runtime. Conversely,
-Runtime Memory or Knowledge does not become canonical Realm World state or
-history.
+Runtime mediates access before any operation reaches Cognition. Apps do not query a Cognition corpus directly, choose an account-wide bank, or reconstruct memories from a local message cache. Authorized Memory management uses its separately admitted Runtime surface; ordinary Agent conversation access does not grant Memory management.
 
-## LocalAgent isolation
+## Conversation and Recall
 
-Multiple LocalAgents materialized from the same Character Source have
-independent operational Memory and Knowledge. Shared Character source does not
-create implicit shared mutable state.
+Runtime keeps the committed Conversation and may ask Cognition for relevant Memory while planning a turn. Recall is optional: missing readiness, an unavailable index, or no matching memory yields zero optional hits without blocking an otherwise valid turn. This does not permit fabricated recall or a fallback Runtime Memory store.
 
-Conversation transcripts and UI history are projections, not a substitute for
-Memory or Knowledge. A consumer cannot reconstruct Runtime truth by replaying
-cached messages.
+Cognition alone decides and commits Memory admission, correction, supersession, forgetting, and derived index state. A write is not successful until its owner has durably committed the outcome. See [Cognition](/cognition/) for those operations.
 
-## Authorized access
+## Memory Enablement and Deletion
 
-Before any Memory or Knowledge operation, Runtime derives the account, App
-identity, authorization, target LocalAgent or admitted scope, and operation from
-the active session.
+Memory enablement belongs to each LocalAgent and is independent of the shared LocalAgent AIConfig. New LocalAgents start enabled; pre-cut existing LocalAgents require explicit enablement. Disabling stops new delivery and Recall at a durable cutoff without deleting existing memories. Re-enabling does not replay the disabled interval or revive pre-cut work.
 
-An authorized consumer receives only the content and metadata admitted for that
-account, App, LocalAgent, scope, and operation. Internal prompts, provider
-details, credentials, source material, proof, and unrelated LocalAgent data
-remain private.
+Delete-all preserves the enabled setting but deletes the Agent's Memory through the owner lifecycle barrier. App access revocation removes that App's access; it does not delete the Agent's Memory. LocalAgent termination and an actually observed canonical account-deletion signal have separate deletion rules. Logout, network failure, and account switch are not account-deletion signals.
 
-If an operation is blocked, unavailable, pending, or failed, Runtime returns a
-typed result without changing Conversation or unrelated owner truth.
+## Knowledge V1
 
-## Optional bridges
-
-An independent cognition implementation may be used behind a bounded public
-bridge, but it does not take over Runtime LocalAgent Memory, Knowledge,
-Conversation, authorization, lifecycle, or execution truth. Its absence does
-not block the current Runtime, SDK, Nimi Home, or App path.
+There is no generic Knowledge ingestion, search, CLI, or SDK surface in V1. Conversation summaries, immutable Character/World lorebook context, and Cognition source retrieval remain distinct from Knowledge. A missing Knowledge API is not an invitation to use removed wire methods.
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
-- [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+- [`.nimi/spec/cognition/memory.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/memory.authority.yaml)
 - [`.nimi/spec/cognition/runtime-bridge.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/runtime-bridge.authority.yaml)
+- [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)

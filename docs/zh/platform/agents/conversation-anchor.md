@@ -6,8 +6,9 @@ Runtime 签发，是以后指认这段对话唯一可靠的方式。它不是 Lo
 的 LocalAgent 推断出来。
 
 对话的开启、提交、快照、恢复和中断都由 Runtime 负责，对外的视图也是
-Runtime 提供的。一个 LocalAgent 可以有多段对话，所以使用方必须保存好标
-准 SDK surface 返回的那个显式 anchor。
+Runtime 提供的。每个 LocalAgent 只有一条 Conversation：首次打开时创建，后续
+已授权调用者取得同一份已提交连续性。保留 SDK 返回的 Runtime anchor，作为
+操作重新核验的连续性条件；它不选择 App、窗口或分支私有历史。
 
 ## 创建与恢复
 

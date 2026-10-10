@@ -6,7 +6,7 @@ Nimi Home is the desktop entry for the Nimi personal AI product. It brings conve
 
 For third-party App development, start with [Create a Nimi App](/start/create-an-app). The supported development command launches your App in a Desktop-supervised Electron host. Opening its renderer URL in a browser does not establish that App session or provide its protected Runtime access.
 
-A local development session does not publish your App. Registry-approved packages, explicit immutable local-package import, and Developer Mode are separate lifecycle paths. The current pre-release supports the Registry lifecycle, including update, on Windows x86_64 and macOS arm64, and local development; the local-package import entry, other platforms' package lifecycle, and repair remain unavailable. See [App Distribution](/start/#local-development-and-distribution) for the current pilot and admission requirements.
+A local development session does not publish your App. Registry-approved packages, explicit immutable local-package import, and Developer Mode are separate lifecycle paths. The current pre-release supports the Registry lifecycle, including update, on Windows x86_64 and macOS arm64, and local development; explicit immutable local-package import is implemented through Desktop and Runtime on these targets, with source-qualified install, update, launch, and uninstall. Combined product acceptance and public release readiness remain separate; package lifecycle on other platforms and ordinary repair remain unavailable. See [App Distribution](/start/#local-development-and-distribution) for the current pilot and admission requirements.
 
 ## Use the Right Entry
 

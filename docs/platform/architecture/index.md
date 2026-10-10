@@ -28,8 +28,8 @@ state without taking ownership of Runtime execution or Realm identity.
 ## Architecture rules
 
 - Character identity and World truth stay with Realm.
-- LocalAgent, Conversation, Memory, Knowledge, AI implementation selection, and
-  App authorization stay with Runtime.
+- LocalAgent, Conversation, AI execution, and App authorization stay with Runtime.
+- Cognition owns Agent-private long-term Memory through Runtime mediation; Knowledge V1 is inactive.
 - Apps use public SDK operations and own only their product behavior and data.
 - Desktop is a current host, not an irreplaceable cross-platform authority.
 - Platform security is expressed as required outcomes; OS mechanisms remain

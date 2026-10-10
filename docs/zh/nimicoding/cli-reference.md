@@ -47,7 +47,7 @@ Deprecated 标记记录开发者已经通过直接 authority 证据或真实产�
 declaration ownership、实现一致性或 hard cut 已全部完成。
 
 `code context` 需要 Nimi Coding 0.6.0 或更高版本；保留 marker 合同需要
-0.6.1，本 workspace 精确固定 0.6.1。
+0.6.1，本 workspace 精确固定 0.6.3。
 
 `start` 只初始化文档列出的受管内容。`sync` 检查或更新这些精确内容，`doctor`
 检查软件包与受管内容是否兼容。这些命令不会拦截 AI 任务、安装强制前置检查、

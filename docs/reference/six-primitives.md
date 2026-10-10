@@ -55,19 +55,9 @@ constraining.
 Clients must match. There is no graceful degradation pretending
 compatibility while violating contracts.
 
-## Authorization Presets
+## App Authorization
 
-Apps interact with primitives under scoped authorization. The platform
-admits three preset templates that all share the same token shape and
-validation chain:
-
-| Preset | Read | Write | Delegate |
-| --- | --- | --- | --- |
-| `readOnly` | yes | no | no |
-| `full` | yes | yes | no |
-| `delegate` | yes | yes | one level |
-
-`delegate` allows up to one level of further delegation by default.
+A formal App uses the fixed protected SDK carrier and its declaration-derived operation coverage. Runtime checks the current App session and operation; Realm independently checks resource and business authorization. The App holds no portable primitive token, and a UI mode does not grant read, write, or delegation authority.
 
 ## App Modes
 

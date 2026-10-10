@@ -4,7 +4,7 @@
 一份内容，而不是几个界面互相同步 UI 状态。
 
 Realm 提供 Character 和 Character Source。Runtime 运行 LocalAgent，并保
-存它的 Conversation、运行态 Memory 与 Knowledge、状态和呈现输出。每个
+存它的 Conversation、Memory 访问中介、状态和呈现输出。每个
 surface 都通过标准 SDK，按当前会话和授权范围拿到一份有限的视图。
 
 ## Surface 之间可以携带什么
@@ -20,10 +20,12 @@ surface 都通过标准 SDK，按当前会话和授权范围拿到一份有限�
 
 窗口布局、renderer 状态、播放控制、路由状态、输入草稿和其他短命的 UI
 细节，都由使用方自己保存。本地缓存可以让渲染更快，但它代替不了恢复、
-Conversation、Memory、Knowledge 或授权数据。
+Conversation 与 Memory 访问中介 或授权数据。
 
 授权发生变化或 anchor 过期时，使用方必须采用 Runtime 返回的强类型结
 果。把另一个 surface 的缓存复制过来，不是退路。
+
+长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## 来源依据
 

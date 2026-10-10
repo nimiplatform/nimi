@@ -2,7 +2,7 @@
 
 External agents and external action integrations are not part of today's
 LocalAgent core. Their absence holds nothing back: local AI, LocalAgent
-conversations, Memory, Knowledge, voice, SDK use, Nimi Home, Avatar, and
+conversations, Memory, voice, SDK use, Nimi Home, Avatar, and
 ordinary App capability execution all work without them.
 
 If an external integration joins in the future, it joins on Nimi's terms: as

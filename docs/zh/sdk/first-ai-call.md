@@ -1,8 +1,8 @@
 # 在 Nimi App 中完成第一次 AI 调用
 
-使用 App 已绑定宿主的 SDK client，发起一次真实文本生成。Nimi Home 建立 App 会话，Runtime 在执行时读取该 App 已保存的 AI 配置并选择实现。
+使用 App 已绑定宿主的 SDK client，发起一次真实文本生成。Nimi Home 建立 App 会话，Runtime 验证该 App 已保存的 AIConfig，在提交时固定机器选中的 Local Loadout 或已提交的确切 Cloud 目标。
 
-本页承接[创建 Nimi App](/zh/start/create-an-app)中的 `--features studio-create` 示例，使用公开 App Tools 0.7.5。保留生成的 SDK/Kit 绑定；App 渲染进程不需要自行取得 gRPC 地址、账号 ID、会话 token 或指定调用者身份。
+本页承接[创建 Nimi App](/zh/start/create-an-app)中的 `--features studio-create` 示例，使用当前 App Tools 0.11.4 与 SDK 0.21.0 / Kit 0.18.0。保留生成的 SDK/Kit 绑定；App 渲染进程不需要自行取得 gRPC 地址、账号 ID、会话 token 或指定调用者身份。
 
 ## 调用前准备
 
@@ -19,7 +19,7 @@
 默认模板已在 `src/shell/auth/local-app-client.ts` 中导出 `getNimiLocalAppClient()`，直接复用即可。已有 App 的文件布局不同时，使用该项目对应的、已绑定宿主的 client。
 
 ```ts
-// src/first-ai-call.ts in the default App Tools 0.7.5 starter
+// src/first-ai-call.ts in the current App Tools starter
 import { getNimiLocalAppClient } from './shell/auth/local-app-client.js';
 
 export async function generateText(prompt: string) {

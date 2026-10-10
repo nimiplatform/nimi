@@ -1,60 +1,24 @@
-# Runtime Client
+# Runtime 客户端
 
-SDK 的 Runtime client 是 App 通往 Runtime 行为的公开路径。应使用它，而不是从 runtime 私有代码直接导入或绕过边界。
+Nimi App 使用一个绑定宿主的 `NimiLocalAppClient`，通常由生成的 Kit 集成创建。使用 `client.ai`、`client.aiConfig` 和分别准入的 App 能力接口；App 不选择账号、App owner、Runtime 地址或受保护传输。
 
-本页背后的内核规则在 `S-RUNTIME-*` 与 `S-TRANSPORT-*`。
+`@nimiplatform/sdk/runtime` 也向宿主及已准入基础设施提供强类型 Runtime 功能。导入类型或构造直连客户端不会授予 App 权限。普通 loopback gRPC 拒绝 App 范围的 AI 执行、AIConfig 和存储操作，不能作为另一条 App 接入路径。
 
-## 它代表什么
+## 请求与结果
 
-Runtime client 把 Runtime 能力转换为一份 TypeScript surface：传输、元数据、流式行为、错误，以及按能力分组的 runtime 方法。它让 App 用与平台其余部分一致的权威边界去调用 Runtime。
+AI 请求携带内容和受支持参数。已保存 AIConfig 提供 Local 或 Cloud 路径，Runtime 在提交时固定选中的 Local Loadout 或确切 Cloud 配置。SDK 不寻找替代实现，也不注入凭据。
 
-也就是说，针对 `@nimiplatform/sdk/runtime` 写出来的 App，不需要知道某个 runtime 方法由哪个包实现、传输如何重试、runtime 审计如何记录。这些事都由 SDK 转换承担。
+流返回有序强类型输出和终止结果。异步 Job 使用 Submit、反复 Get、完整结果读取与明确 Cancel。观察失败时保留原 Job 身份，不能为恢复连接而重新提交工作。见[流式](/zh/runtime/streaming)。
 
-## 它隐藏什么、暴露什么
+LocalAgent 操作使用会话级已授权 handle。Conversation、业务执行、共享配置、Memory 管理和实时操作分别保留各自权限覆盖。长期 Memory 归 Cognition，经 Runtime 中介；Knowledge V1 没有公共客户端接口。
 
-Runtime client 有意隐藏：
+## 处理失败
 
-- 私有传输实现；
-- 不应外泄的内部错误形状；
-- 私有 runtime helper；
-- 原始传输重试与鉴权刷新——这些是机制，不是契约救援。
+保留强类型错误、原因及可用行动提示。数据非法或权限缺失时拒绝执行。缺少方法或不支持的组合，都不能通过 Runtime 内部接口或 Provider 直连绕过。
 
-它有意暴露：
+接入从[第一次 AI 调用](/zh/sdk/first-ai-call)、[AIConfig](/zh/sdk/ai-config-surface) 和 [App 授权](/zh/platform/agents/participation-authority) 开始。
 
-- 按能力域分组的强类型 Runtime 方法（生成、流式、多模态、LocalAgent、Conversation、Memory 与 Knowledge）；
-- App 理解行为所需的传输元数据；
-- App 可以编程响应的 runtime 错误转换；
-- 与 Runtime 流式契约对齐的流式基础协议。
-
-## 为什么不走"直接访问"模式
-
-直接访问会带来两个问题。第一，App 与 Runtime 私有内部耦合。第二，App 形成了一种与 Runtime 源契约可能不一致的本地预期。SDK 边界把这两件事都挡掉。
-
-如果某个 runtime 能力让人觉得"必须直接导入才能用"，那是 SDK 转换需要新的准入 surface 的信号，而不是边界应被绕开的信号。
-
-## 读者场景：通过 client 跑流式生成
-
-某个 App 通过 `@nimiplatform/sdk/runtime` 发起一次流式生成：
-
-1. App 用强类型请求调用 runtime client 的生成方法。
-2. Client 把请求传输出去，并暴露与 Runtime 流式契约一致的强类型流式基础协议。
-3. App 使用该流式基础协议，无须自创 chunk 语义。阶段边界、终止帧、错误语义都来自契约。
-4. 生成任务如产出多模态产物，产物以强类型形状暴露，不会以自由 URL 形式出现。
-5. 错误以 SDK 错误转换定义的强类型形态返回。App 不必去解析自由格式消息。
-
-这样的流程让 App 在 Runtime 内部演进时仍然可移植。
-
-## 读者场景：方法尚未在 client 上
-
-假设 Runtime 在内核里准入了一个新能力，但 SDK 转换还未准入。App 不能从私有内部合成调用。正确做法是：
-
-- 把"缺席"当作契约。
-- 提交或跟进准入 SDK surface 的工作。
-- 等待转换。
-
-这种等待感觉慢。这正是 SDK 不会积累一堆"无人背书的静默 surface"的原因。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)

@@ -1,6 +1,6 @@
 # AI Config Surface
 
-SDK AIConfig surface 提供 owner-scoped AI 能力意图的类型边界。App 记录需要的 capability contract、required features、portable defaults，以及 Local 或 Cloud 执行平面意图。机器配置和具体实现选择归 Runtime 管理。
+SDK AIConfig surface 提供 owner-scoped AI 能力意图的类型边界。App 保存所需能力、功能要求、默认参数和明确的 Local 或 Cloud 路径。机器选择由 Runtime 独立管理，执行时固定已提交配置。
 
 AIConfig 是一个 owner 当前配置的完整值。更新操作会替换整个 capability 列表；配置中没有 revision history、execution binding、readiness 或 health 状态。
 
@@ -25,7 +25,9 @@ AIConfig 是一个 owner 当前配置的完整值。更新操作会替换整个 
 | `defaults` | 可跨机器使用的场景默认值，不是机器或 provider 配置 |
 | Local 或 Cloud intent | consumer 期望使用的执行平面 |
 
-Local intent 不包含 implementation identity、machine selection、asset、binding、Driver state、readiness 或 health。App 也应省略 generated wire 中可能尝试指定 Cloud implementation 或 provider-model target 的可选字段。
+Local intent 只有 `local: {}` 路径标记，不含 Loadout 或模型身份。Cloud intent 必须包含从 Runtime 安全选项中选出的 `connectorRef`、`implementation` 与 `providerModelTarget`。它们是已保存的配置字段，不是凭据、端点或请求级覆盖。
+
+提交时 Runtime 固定机器选中的 Local Loadout 或确切的 Cloud 输入，不排名或替换实现。当前账号的所有 LocalAgent 使用另一份共用 AIConfig，单个 Agent 不是配置 owner。
 
 ## App 集成流程
 

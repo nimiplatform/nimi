@@ -1,218 +1,82 @@
 # Voice Asset Lifecycle
 
-> Status: Running today. Voice creation (clone + design) and the
-> `VoiceAsset` runtime-managed object are shipped under the
-> `K-VOICE-*` authority surface.
+`voice.create` creates a Runtime-owned VoiceAsset from one typed source: reference audio or a text description. `audio.synthesize` uses an admitted voice reference to produce speech. Creating an asset, selecting an Agent's voice, and synthesizing audio are separate operations.
 
-Voice in Nimi is a runtime first-class capability. Voice creation
-(clone + design) and voice asset lifecycle are owned by Runtime under
-`K-VOICE-001..K-VOICE-018`. This page covers the **asset side** —
-what `VoiceAsset` is, how it is created, how it is referenced, and
-how it differs from one-off speech synthesis.
+## One Capability, Two Source Forms
 
-## Voice Creation Scope
+A Nimi App uses its host-bound `client.ai.scenarioJobs` surface:
 
-Voice creation covers two scenarios:
-
-| Scenario | What it does |
-| --- | --- |
-| `voice_clone` | voice / audio → voice (sample-based) |
-| `voice_design` | text → voice (description-based) |
-
-Both are submitted through a unified `Scenario` abstraction:
-
-- `SubmitScenarioJob` with `scenario_type=VOICE_CLONE`
-- `SubmitScenarioJob` with `scenario_type=VOICE_DESIGN`
-
-Provider-private parameters do **not** pass through freely; they go
-through namespaced `ScenarioExtension` and are bound by extension
-registry rules.
-
-## VoiceAsset: Runtime-Owned Object Truth
-
-`VoiceAsset` is the runtime-managed voice resource. Minimum required
-fields:
-
-| Field | Meaning |
-| --- | --- |
-| `voice_asset_id` | Runtime-owned asset id |
-| `app_id` | Owning app context |
-| `subject_user_id` | Owning user (tenant scope) |
-| `workflow_type` | `voice_clone` / `voice_design` |
-| `persistence` | Logical lifecycle (`persistence_types`) |
-| `status` | Asset status (`asset_statuses`) |
-
-Both `persistence` and `status` enums live in
-`tables/voice-enums.yaml`.
-
-`persistence` describes **logical** lifecycle and handle policy. It
-does not automatically promise a durable local substrate; until
-durable local substrate is admitted separately, locally-generated
-`VoiceAsset` may remain a session-local orchestration object.
-
-## Asset vs Reference vs Synthesis
-
-This is the most important distinction on this page:
-
-| Concept | What it is | Owner |
+| App spec | Source-specific inputs | Required implementation feature |
 | --- | --- | --- |
-| `VoiceAsset` | Durable runtime-owned voice resource | Runtime |
-| `VoiceReference` | The handle a synthesis call uses to identify which voice to speak | Runtime |
-| Provider-native handle | Internal provider identity that never enters ordinary App input | Provider / Runtime Driver |
-| Voice synthesis | One-off `tts_synthesize` invocation that uses a `VoiceReference` to produce audio | Runtime (RPC) |
+| `type: 'voice-create'`, `creationSource: 'reference-audio'` | `referenceAudio`, `referenceAudioMime`, `languageHints`, `preferredName`, `text` | `input.audio` |
+| `type: 'voice-create'`, `creationSource: 'text-description'` | `instructionText`, `previewText`, `language`, `preferredName` | `input.text` |
 
-Runtime must not promote a provider-native voice handle to a public primary
-key. When a provider returns one, Runtime preserves it internally and exposes
-only the Runtime-owned `VoiceAsset` and admitted `VoiceReference`.
+Reference audio uses the admitted bytes or URI union. Exact MIME, duration, language, and parameter limits depend on the configured implementation; an unsupported input fails without changing the route or target. `text` is an optional-content reference transcript field, not a voice-design instruction: use an empty string when no transcript is supplied.
 
-## VoiceReference Boundary
+Both forms map to Runtime ScenarioType `VOICE_CREATE`. On the wire, `VoiceCreationSource` distinguishes `REFERENCE_AUDIO` and `TEXT_DESCRIPTION`, and the resulting asset records `creation_source`. This source is provenance, not a second capability or routing choice.
 
-The ordinary synthesis entry point goes through two public reference kinds:
+## Submit a Description
 
-| Kind | Use |
+Prepare the `voice.create` AIConfig and its selected Local Loadout or exact Cloud configuration first. The implementation must support `input.text` for this example. Save a unique `clientSubmissionId` in App storage before submitting so a lost response can be recovered without generating again.
+
+```ts
+import type { NimiLocalAppClient } from '@nimiplatform/sdk';
+
+/** Save clientSubmissionId in App storage before calling; recover the original Job by it. */
+export async function submitVoiceDescription(
+  client: NimiLocalAppClient,
+  clientSubmissionId: string,
+  instructionText: string,
+  previewText: string,
+) {
+  return await client.ai.scenarioJobs.submit({
+    type: 'voice-create',
+    creationSource: 'text-description',
+    instructionText,
+    previewText,
+    language: 'en',
+    preferredName: 'My voice',
+  }, { clientSubmissionId });
+}
+```
+
+The returned Job means submission succeeded; it does not yet mean a voice asset exists. Observe the original `jobId` with `client.ai.scenarioJobs.get(jobId)`. If the submit response was lost, use `lookupSubmission(clientSubmissionId)` to recover its identity, then Get that original Job. A failed lookup or uncertain outcome is not permission to resubmit.
+
+## Read the Complete Result
+
+A successful terminal Get returns both `asset` and `voiceReference`. Subscription events are progress hints and do not carry the complete voice result. Do not infer an asset from a completed event or decode an artifact as a substitute for these fields.
+
+| App result field | Meaning |
 | --- | --- |
-| `preset_voice_id` | System-preset voice |
-| `voice_asset_id` | User-created `VoiceAsset` |
+| `asset.voiceAssetId` | Runtime-owned asset identity |
+| `asset.creationSource` | `reference-audio` or `text-description` |
+| `asset.status` | `active`, `expired`, `deleted`, or `failed` |
+| `asset.createdAt`, `asset.updatedAt`, `asset.expiresAt` | Runtime-issued timestamps, or null when absent |
+| `voiceReference` | `{ kind: 'voice_asset_id', voiceAssetId }` for the created asset |
 
-The reference kinds enum lives in `tables/voice-enums.yaml`
-(`reference_kinds`).
+The App result is a bounded projection, not the full Runtime wire object. Provider handles, account selectors, credentials, and implementation custody do not enter the App asset. A VoiceAsset reference does not promise indefinite availability: respect the reported expiry, current authorization, and the implementation's persistence/deletion policy.
 
-`VoiceReference` may be embedded inside the runtime-owned
-`AgentPresentationProfile` as the agent's default voice binding. That
-embedding does not transfer voice workflow / discovery / asset
-ownership outside `K-VOICE-*`.
+## Discover, Use, and Delete
 
-## Discovery: Two Separate Channels
-
-Voice discovery splits cleanly into two channels:
-
-| Discovery API | What it returns |
+| Task | Host-bound App API |
 | --- | --- |
-| `ListPresetVoices` | System-preset voice catalog |
-| `ListVoiceAssets` | User's `VoiceAsset` records |
+| List preset voices for the current configuration | `client.aiConfig.listOptions({ kind: 'preset-voices' })` |
+| List the App's authorized created voice assets | `client.ai.voiceAssets.list({ pageSize: 20 })` |
+| Delete an authorized created asset | `client.ai.voiceAssets.delete(voiceAssetId)` |
 
-Callers must not depend on a single mixed API. When a provider
-supports both global presets and user assets, both channels stay
-available — but the runtime never returns mixed-stream results.
+Preset and created-asset discovery remain separate. A `speech-synthesize` Job uses `voiceRef: { type: 'preset', id }` or `{ type: 'voice-asset', id }`, along with its required synthesis inputs. The created-asset `id` is the returned `voiceAssetId`; never supply a provider-native handle. Voice compatibility is validated against the synthesis configuration.
 
-The `voice.discovery_mode` catalog setting binds discovery
-responsibility:
+Selecting an Agent's voice is a separately authorized presentation configuration action; creation alone does not change that setting. A missing, expired, deleted, incompatible, or unauthorized voice produces the actual typed failure without substituting a default voice.
 
-- `static_catalog` → preset discovery only via `ListPresetVoices`
-- `dynamic_user_scoped` → user asset discovery via `ListVoiceAssets`
-- `mixed` → both channels active, callers invoke separately
+Deletion uses the asset's own captured target and policy, independently of the current AIConfig. Preserve a provider deletion failure for explicit retry; do not report success from a local UI removal. Voice creation, transcription, synthesis, and voice conversion each keep their own capability contract.
 
-## ScenarioJob Lifecycle
-
-Voice creation is asynchronous. `ScenarioJob` lifecycle (state
-machine + event stream) aligns with `K-JOB-002`. Voice does not
-duplicate a parallel job state table.
-
-The four lifecycle RPCs:
-
-- `SubmitScenarioJob` — start a clone or design job
-- `GetScenarioJob` — poll status
-- `CancelScenarioJob` — cancel in flight
-- `SubscribeScenarioJobEvents` — stream events
-
-Provider-native multi-step workflows (e.g., `preview → create`)
-**must** be encapsulated inside one `ScenarioJob` lifecycle. Provider
-internal steps do not become extra public RPCs.
-
-## Tenant Isolation
-
-`VoiceAsset` is user-scoped by default. Cross-`app_id` or
-cross-`subject_user_id` access fails closed. There is no implicit
-cross-tenant voice asset reuse.
-
-## Voice Handle Policy
-
-Workflow-capable voice families must declare
-`voice_handle_policy` once admitted. Minimum fields:
-
-| Field | Source |
-| --- | --- |
-| `persistence` | `tables/voice-enums.yaml` `persistence_types` |
-| `scope` | `tables/voice-enums.yaml` `handle_scopes` |
-| `default_ttl` | per-family |
-| `delete_semantics` | `tables/voice-enums.yaml` `delete_semantics` |
-| `runtime_reconciliation_required` | per-family |
-
-Workflow-capable families without an admitted `voice_handle_policy`
-may not be admitted.
-
-## Reader Scenario: User Clones Their Voice
-
-A user wants to clone their own voice for an agent.
-
-1. **Submit clone job.** App calls
-   `SubmitScenarioJob({ scenario_type: VOICE_CLONE, ... })` with the
-   audio sample inputs.
-2. **Job lifecycle.** Runtime executes through admitted
-   `ScenarioJob` state machine; events stream via
-   `SubscribeScenarioJobEvents`.
-3. **Provider native preview / create wraps.** The provider's
-   internal preview-then-create steps are encapsulated inside the
-   one `ScenarioJob` — the app sees one lifecycle.
-4. **Result.** Runtime emits a `VoiceAsset` with admitted fields and
-   a `VoiceReference{ kind: voice_asset_id }`.
-5. **Bind to agent.** App embeds the `VoiceReference` in
-   `AgentPresentationProfile`. The agent now speaks with the cloned
-   voice by default.
-
-## Reader Scenario: Synthesis With A Preset Voice
-
-App wants the agent to speak a one-off line using a preset voice.
-
-1. **Discover.** `ListPresetVoices` returns the catalog with
-   `preset_voice_id`s.
-2. **Build VoiceReference.** `{ kind: preset_voice_id, value: ... }`.
-3. **Synthesize.** Runtime `tts_synthesize` call uses the reference;
-   no `VoiceAsset` is involved (no user asset is created).
-4. **Audio bytes return.** Runtime owns the artifact bytes; Avatar's
-   audio pipeline consumes via `runtime.artifacts.readBytes`.
-
-Synthesis is transient. The `VoiceAsset` lifecycle is for **durable
-voice resources** — a user's cloned voice, a designed voice, etc.
-
-## Reader Scenario: Discovery Honors The Channel Split
-
-App wants to surface the user's available voices in a settings UI.
-
-1. **Two calls.** App calls `ListPresetVoices` for system voices
-   and `ListVoiceAssets` for user-created voices.
-2. **Render in two sections.** UI shows them as separate sections
-   per the `discovery_mode` boundary.
-3. **No mixed API.** App does not look for a single "list everything"
-   call — there isn't one, and the channel split is contractual.
-
-## Lifecycle Boundaries
-
-- It is **not** a one-off synthesis call. `tts_synthesize` is
-  transient; `VoiceAsset` is durable resource truth.
-- It does not mix preset and user-asset discovery into one stream.
-- It does not let providers escape into the public asset surface;
-  provider-native handles stay inside Runtime and its Driver.
-- It does not silently cross tenants. User scope is fail-closed.
-- It does not let workflow-capable TTS families substitute for STT;
-  `audio.transcribe` admits independently per
-  `K-VOICE-016` family-level boundary.
-
-## Boundary Summary
-
-| Concern | Owner |
-| --- | --- |
-| Voice creation workflows (clone + design) | Runtime (`K-VOICE-001..002`) |
-| `VoiceAsset` object truth | Runtime (`K-VOICE-004`) |
-| `VoiceReference` synthesis entry | Runtime (`K-VOICE-003`) |
-| Provider-native voice handle | Provider (`provider_voice_ref`) |
-| Tenant isolation | Runtime (`K-VOICE-006`) |
-| Discovery channel split | Runtime (`K-VOICE-009`, `K-VOICE-013`) |
-| Voice handle policy | Runtime (`K-VOICE-015`) |
-| Family-level workflow validation boundary | Runtime (`K-VOICE-016`) |
+See [Job Observation](/runtime/streaming) for Get cadence, observation detachment, cancellation, and complete result handling.
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
-- [`config/runtime-voice-enums.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-voice-enums.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
+- [`proto/runtime/v1/voice.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/voice.proto)
+- [`sdks/typescript/core/app/local-app-runtime-platform-ai.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-ai.ts)
+- [`examples/sdk/07-voice-create.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/07-voice-create.ts)

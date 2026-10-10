@@ -23,11 +23,11 @@ Per-layer enumerations live in their own tables:
 
 | Table | Layer |
 | --- | --- |
-| `platform/kernel/tables/protocol-error-codes.yaml` | Platform |
-| `runtime/kernel/tables/reason-codes.yaml` | Runtime |
-| `runtime/kernel/tables/error-mapping-matrix.yaml` | Runtime cross-layer |
+| `config/platform-protocol-error-codes.yaml` | Platform |
+| `proto/runtime/v1/common.proto` | Runtime |
+| `.nimi/spec/runtime/rpc-foundations.authority.yaml` | Runtime cross-layer |
 | `config/sdks-error-codes.yaml` | SDK |
-| `canonical/desktop/shell-runtime.authority.yaml` | Desktop |
+| `.nimi/spec/desktop/shell-runtime.authority.yaml` | Desktop |
 
 ## Distinguishing Transport Recovery From Contract Failure
 

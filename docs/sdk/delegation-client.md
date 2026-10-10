@@ -36,9 +36,7 @@ All of these are **suggestions / observations**, not actions.
 ## No Fallback Knobs
 
 The SDK surface deliberately does not expose route / provider
-rescue fallback knobs for delegation. Internal runtime fallback may
-exist as a low-level strategy; it must not weaken typed public
-contracts. A delegation that fails firewall is reported as the typed
+rescue fallback knobs for delegation. Runtime preserves the admitted operation's captured target and typed failure semantics. A delegation that fails firewall is reported as the typed
 failure — not silently retried with a different provider.
 
 ## Reader Scenario: App Proposes A Tool Call

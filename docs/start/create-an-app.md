@@ -1,65 +1,67 @@
-# Create A Nimi App
+# Create a Nimi App
 
-Create a third-party App project with the public App Tools CLI. The commands on this page target `@nimiplatform/app-tools@0.7.5`.
+This walkthrough uses the current App Tools 0.11.4 source and the SDK 0.21.0 / Kit 0.18.0 combination. Prepare the [matching Home, Runtime, toolchain, and complete local packages](/start/install) first. Put the package archives in `nimi-packages` beside the directory where the new App will be created.
 
-## Before You Start
-
-- Use Node.js 24 or newer and pnpm. The generated project declares its package-manager version.
-- Choose an empty project directory and an App ID for your project.
-- To run the App through Nimi, have a compatible Nimi Home development instance with Developer Mode and its Runtime available. Check [development setup and availability](/start/install) first. Project creation does not install Nimi Home, and no Nimi Home download is published yet.
-
-## Create And Initialize
-
-This example includes text generation so you can continue to the first AI call. `studio-create` adds the Create feature, its AI Studio dependency, and the generated `runtime.consume` declaration. It includes feature code and UI; it is not a permission-only switch.
+## Create
 
 ```bash
-pnpm dlx --package @nimiplatform/app-tools@0.7.5 nimi-app create --dir my-nimi-app --profile standalone --features studio-create --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app
+pnpm dlx --package=file:./nimi-packages/nimiplatform-app-tools-0.11.4.tgz nimi-app create --dir my-nimi-app --profile standalone --features studio-create --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app --author "Your Name"
 cd my-nimi-app
-pnpm install
-pnpm run init
 ```
 
-Replace the directory, identity, and title with your project's values. The standalone project uses public dependencies. `init` explicitly synchronizes the bundled nimicoding projections and initializes the App's managed configuration. You do not need to study or run Nimi's repository governance workflow separately before using this generated entry point.
+`studio-create` supplies the Create feature and its `runtime.consume` declaration. Omit it only for an empty base App, which has no AI capability access declaration. Change the example identity, title, and author for your project.
 
-For an empty base App, omit `--features studio-create`. That produces `app_access: []`, which does not provide the declaration needed by this text-generation example. In a managed scaffold, `nimi.app.yaml` is generated from the selected features: hand-editing its permissions fails `check`, and `sync` restores the generated declaration. App Tools 0.7.5 does not accept `--features` on `sync`. If you already created an empty base and want to follow this example, use the command above with a different empty directory, preserving your existing project.
+## Select Packages Before Installing
 
-## Check And Run
+In the generated `package.json`, change only these two entries inside `dependencies`, preserving the other dependencies and scripts. Create `pnpm-workspace.yaml` with the overrides below:
+
+```json
+{
+  "@nimiplatform/sdk": "^0.21.0",
+  "@nimiplatform/kit": "^0.18.0"
+}
+```
+
+```yaml
+packages:
+  - .
+overrides:
+  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.11.4.tgz
+  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.21.0.tgz
+  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.18.0.tgz
+  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.18.0.tgz
+```
+
+The native override shown is for macOS arm64. On Windows x86_64 use `@nimiplatform/kit-protected-local-win32-x64` and its matching 0.18.0 archive instead. Use the actual archive filenames and complete matching native/Runtime build, not a renamed older binary. Keep the native package as Kit's optional dependency, not an App-owned direct dependency.
+
+## Initialize, Check, and Run
 
 ```bash
+pnpm install
+pnpm run init
 pnpm run check
 pnpm run test
 pnpm dev
 ```
 
-`check` validates the project without changing it. `test` runs the App-declared tests. `dev` requests the Desktop-supervised Electron development host. The generated `dev:shell` command also enters `nimi-app dev`; it does not launch an independent Tauri development shell.
+`init` creates the scaffold lock and synchronizes the selected dependency combination and Nimi Coding integration. It requires the project's installed Nimi Coding package. `sync` is for an already initialized project; after a dependency change, run `sync`, install again if the manifest changed, then `check`.
 
-Register and authorize the local project through Nimi Home's Developer Mode as required by the development host. A running window and Nimi Access are separate states: if access is unavailable, use the reported reason to correct registration, authorization, Runtime, or capability configuration. Do not bypass the host to make a request appear successful.
+`dev` requests the Desktop-supervised Electron Host. Register and authorize the project in Home's Developer Mode and configure its AI capabilities. Keep the generated `getNimiLocalAppClient()` binding. Direct renderer startup does not establish Nimi access.
 
-Tauri remains an explicitly configured production-build alternative, not the default development host. A Tauri Host carries only part of the standard shell; operations it does not carry fail with `capability-unavailable` (see [Tauri Hosts](/platform/kit/#tauri-hosts)).
+The manifest is managed from selected features: do not hand-edit `app_access` to bypass the scaffold contract. Current `sync` has no `--features` flag. If you need this walkthrough's feature in an empty scaffold, create a new project with the shown feature selection while preserving the original project.
 
-## Project Commands
+## Build and Package
 
-| Command or file | Purpose |
-| --- | --- |
-| `nimi.app.yaml` | Generated App identity and submitted configuration, not a Registry-approved descriptor; App Access declarations come from selected features, not manual edits to this managed file |
-| `pnpm run init` | Initialize the generated project after dependency installation, including nimicoding integration |
-| `pnpm run sync` | Refresh scaffold-managed configuration and dependencies while preserving App-owned code |
-| `pnpm run check` | Check the project, managed files, and dependency alignment without writing |
-| `pnpm run test` | Run the App-declared test command |
-| `pnpm run app:build -- --target windows-x86_64` | Run the configured App production build for that target |
-| `pnpm run pack --target windows-x86_64` | Package the App locally; this does not upload or grant Registry admission |
+```bash
+pnpm run app:build -- --target macos-aarch64
+pnpm run pack --target macos-aarch64 --production
+```
 
-Use the scripts generated by the version you installed. The former `local-audit`, `doctor`, and `update` scripts are absent; use the current `check` and `sync` commands for their documented responsibilities.
+Use `windows-x86_64` on the matching Windows host. Production-shaped local packages must satisfy the target's signing and execution requirements. `pack --production` observes those requirements; it does not publish, grant Registry admission, or run the registry-only release preflight. Plain development packages are not accepted by Runtime local import.
 
-## Connect A Capability
+Tauri is an explicitly configured production alternative with partial shell coverage, not the development Host. See [Kit](/platform/kit/) for its unavailable operations.
 
-Keep the generated SDK/Kit host integration when adding App code. [First AI Call](/sdk/first-ai-call) explains request inputs, capability intent, and typed errors; [Use Kit in an App](/platform/kit/use-kit-in-app) covers the host and shared UI. Run one actual App-owned request with the configured App identity and required access before treating the integration as working.
-
-If a step fails, use [Troubleshooting](/start/troubleshooting). [Nimi Lab](/start/use-nimi-lab) provides capability examples; only explicitly admitted feature slices are scaffoldable, not the entire Lab App.
-
-## Before Distribution
-
-Creating, checking, or running this project does not publish it or grant Registry admission. Review the [development and distribution paths](/start/#local-development-and-distribution) and the [App Tools release guidance](https://github.com/nimiplatform/nimi/tree/main/app-tools#canonical-release-boundary) before publishing.
+Continue with [First AI Call](/sdk/first-ai-call). Public release requires registry-resolved dependencies, production preflight, publisher release, and separate Registry admission; local archives remain a development delivery path.
 
 ## Source Basis
 

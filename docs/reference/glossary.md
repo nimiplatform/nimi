@@ -15,14 +15,11 @@ LocalAgent, but on its own it cannot create one.
 user it runs for. It holds no Realm identity or world facts of its own.
 
 **Conversation anchor.** The explicit name Runtime gives one LocalAgent
-conversation. A LocalAgent can have more than one conversation.
+conversation. Each LocalAgent has one Conversation shared by authorized consumers.
 
-**Operational Memory.** What a LocalAgent remembers while it runs: recall,
-retention, isolation, and the authorized views Runtime provides of it.
+**Memory.** Agent-private long-term memory owned by Cognition. Runtime mediates authorization, committed-event delivery, optional recall, and bounded management results.
 
-**Operational Knowledge.** What a LocalAgent knows: how Runtime ingests it,
-retrieves it, keeps it isolated, manages its lifecycle, and shares authorized
-views of it.
+**Knowledge.** A Cognition-owned domain with no active V1 ingestion, query, or public client path.
 
 ## Product surfaces
 
@@ -57,7 +54,9 @@ projection never transfers ownership to the viewer.
 for changing it. Code location, package name, docs, cache, or host role never
 creates ownership.
 
-## Six protocol primitives
+The six world protocol primitives are **Timeflow, Social, Economy, Transit, Context, and Presence**. See [Six Primitives](/reference/six-primitives).
+
+## Operation vocabulary
 
 **State.** The current condition of something, controlled by the part of the
 system that keeps it.

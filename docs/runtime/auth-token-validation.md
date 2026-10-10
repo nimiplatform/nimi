@@ -1,12 +1,6 @@
 # Auth Token Validation
 
-> Status: Running today. The bearer token validation surface
-> (`K-AUTHN-*`) and authz ownership rules are shipped.
-
-Runtime validates every incoming bearer JWT under `K-AUTHN-*` and
-binds the validated identity to authz ownership rules. **AuthN**
-asks "who is this?"; **AuthZ** asks "what is this principal allowed
-to own / mutate?". The two are deliberately separate.
+Bearer JWT validation applies only to operations that admit that authentication path. It does not establish protected Local App origin. Formal Nimi Apps use the verified Host session and receive no Realm bearer; see [Account and Sessions](/runtime/account-and-session).
 
 ## Bearer Token Input Model
 
@@ -38,7 +32,7 @@ Realm JWT minimum mandatory claims:
 
 | Rule | Value |
 | --- | --- |
-| Allowed algorithms | Allowlist (Phase 1: `RS256` / `ES256`) |
+| Allowed algorithms | `RS256` only, using the generated Realm JWKS key contract |
 | `alg=none` | Rejected |
 | Missing `kid` | Rejected |
 
@@ -60,7 +54,7 @@ unconditionally.
 
 | Rule | Value |
 | --- | --- |
-| Skew window | Fixed (Phase 1: `±60s`) |
+| Skew window | Fixed `±60s` |
 | Beyond window | Token invalid; no soft tolerance |
 
 A token within the skew window validates. Outside, it does not. The
@@ -73,7 +67,8 @@ revocation when the session domain is available.
 
 | Rule | Value |
 | --- | --- |
-| Revoked / expired session | `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID` |
+| Revoked / expired session | `UNAUTHENTICATED` + `SESSION_EXPIRED`; reauthenticate, not retryable |
+| Revocation cannot be determined | `UNAVAILABLE` + `AUTH_REVOCATION_UNAVAILABLE`; retryable, no anonymous or active fallback |
 | Introspection endpoint | `auth.jwt.revocationUrl` |
 | Required claim for introspection | `sid` |
 | Missing config (`issuer` / `audience` / `jwksUrl` / `revocationUrl`) | Bearer JWT path fails closed |
@@ -84,7 +79,7 @@ JSON body containing `session_id`, `subject_user_id`, `issuer`,
 `active: boolean`, `revoked: boolean`, optional `expires_at`.
 `revoked=true` or `active=false` both count as revoked. Network
 errors / non-2xx / malformed response **must NOT** degrade to
-anonymous; they fail closed.
+anonymous; they return `UNAVAILABLE` with `AUTH_REVOCATION_UNAVAILABLE`.
 
 ## AuthN vs AuthZ
 
@@ -92,7 +87,7 @@ The two stages are distinct and run in fixed order:
 
 | Stage | Question | Failure code |
 | --- | --- | --- |
-| AuthN | "Is this token valid? Who does it represent?" | `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID` |
+| AuthN | "Is this token and session valid?" | Invalid token: `AUTH_TOKEN_INVALID`; revoked/expired session: `SESSION_EXPIRED`; indeterminate revocation: `AUTH_REVOCATION_UNAVAILABLE`, with the statuses above |
 | AuthZ | "Is this principal allowed to do this? Does it own what it claims to mutate?" | `PERMISSION_DENIED` + typed authz reason |
 
 Confusing the two is a recurring bug pattern. A valid token does not
@@ -116,42 +111,7 @@ account-owned resources directly. Suggested mutations from
 ExternalPrincipals route through the delegated capability gateway and
 output firewall.
 
-## Reader Scenario: A Valid Token Hits Realm Data
-
-1. **App calls Realm data API** with the runtime-issued
-   short-lived token in `authorization: Bearer <jwt>`.
-2. **Runtime validates.** Header parses. Algorithm is allowlisted.
-   `kid` resolves through JWKS cache. Signature valid.
-   Claims (`iss`, `aud`, `sub`, `exp`, `iat`) all check; clock skew
-   within window.
-3. **Revocation check.** Session is active.
-4. **AuthN passes.** Identity bound to the request.
-5. **AuthZ runs.** The data operation is checked against ownership
-   rules for the bound principal.
-6. **AuthZ passes.** Operation proceeds.
-
-## Reader Scenario: A Token With `alg=none`
-
-1. **App sends header.** JWT has `alg=none`.
-2. **AuthN rejects.** `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`.
-3. **No fallback.** Runtime does not degrade to anonymous; the app
-   sees the typed refusal.
-
-## Reader Scenario: A Revoked Session
-
-1. **Token validates.** Signature OK; claims OK.
-2. **Introspection finds session revoked.** `revoked: true`.
-3. **Runtime rejects.** `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`.
-4. **App recovers** by going through `RuntimeAccountService` to
-   re-authenticate.
-
-## What Token Validation Does Not Do
-
-- It does not invent a `subject_user_id` from caller-supplied data.
-- It does not silently drop identity on header malformed.
-- It does not accept `alg=none`.
-- It does not allow JWKS refresh failure to degrade to anonymous.
-- It does not allow introspection failure to degrade to anonymous.
+Authentication does not grant protected App origin or operation authorization. A rejected bearer cannot fall back to anonymous execution or bypass the native Host boundary.
 
 ## Source Basis
 

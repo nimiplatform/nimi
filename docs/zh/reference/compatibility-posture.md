@@ -1,63 +1,24 @@
-# 兼容姿态
+# 兼容性与版本变化
 
-Nimi 公开文档对兼容性与迁移的姿态参考。
+使用相互匹配的 Runtime、SDK、Kit 和原生载体。TypeScript 对某版 SDK 编译通过，不代表更旧的宿主或原生包承载相同契约。
 
-## 姿态摘要
+## 当前开发
 
-| 属性 | 值 |
-| --- | --- |
-| 姿态名 | `no_legacy_hard_cut` |
-| 处于发布前 | 是 |
-| 软兼容 shim | 禁止 |
-| 时间维度分层 | 禁止（分层只按本体：core / extended / custom） |
-| 严格协议版本 | 是 |
-| 契约违例 fail-close | 是 |
-| retry 救契约失败 | 否 |
+本指南描述当前工作区。预发布开发阶段直接删除被替代的内部接口，不保留隐藏兼容层、双路径或启动时自动迁移。旧本地测试数据需要处置时，使用对应 owner 或一次性修复流程，不能删除无关用户状态。
 
-## 实际含义
+当前开发包可以通过完整本地归档交付。保留版本声明，使用明确的包管理器 override，再完成 App 同步、安装和检查。见 [开发环境](/zh/start/install)。
 
-| 情况 | 预期行为 |
-| --- | --- |
-| 某页被删除 | 优先于保留一份过期页面 |
-| 强类型契约失败 | 上抛强类型错误，不静默回退 |
-| 出现 retry | 仅用于传输 / auth refresh，不救契约 |
-| 旧路径存在 | 要么按已准入公开真相保留，要么硬移除；不留作隐式兼容 |
-| 新功能上线 | 一次性带完整契约设计，不通过临时子集再补 |
+## 已发布组件
 
-## 禁止的兼容形态
+已发布包和 release tag 不可变。公开破坏性变更需要对应组件版本及升级说明；内部预发布硬切规则不会取消已发布约束。SDK、Kit、App Tools 与 shell 组件各自独立发布。
 
-仓库权威拒绝三类通用形态：hard cut 后继续保留已取代的产品语义、创建未经准入的
-并行真相，以及在已准入契约无法兑现时返回伪成功。各 owner domain 可以在自己的
-契约中增加更窄的禁止项；Nimi Coding 不再维护独立的反模式目录。
+## 契约失败
 
-## 发布前公开声明的约束
+无效输入、不支持的操作组合、缺少授权或非法返回数据，均以强类型错误拒绝。重试和重连不能修复契约违例、保证生成重放，或在外部结果不确定时授权重新提交。
 
-发布前，公开文档不发布以下内容：
+异步恢复保留并观察原 Job 及其完整结果。需要新能力时更新匹配的载体组合，不新增私有传输或 Provider 直连。
 
-| 声明类型 | 姿态 |
-| --- | --- |
-| 安装命令（curl / npm / pnpm / brew / apt / yarn） | 等分发证据准入后再开 |
-| 下载链接 | 等分发证据准入后再开 |
-| 发布状态 / 上线承诺 | 等发布证据准入后再开 |
-| 具体 provider 名 / 模型名 | 等目录证据准入后再开 |
-| Provider 可用性矩阵 | 等目录证据准入后再开 |
-| 对未上线面声明 "Available now" / "GA" / "Stable" | 禁止 |
-
-完整禁止列表与检测模式见 [禁止声明](/zh/reference/forbidden-claims)。
-
-## 契约演进路径
-
-一个已定义但未上线的面如何到达公开面：
-
-1. 按对应权威域准入 kernel 契约（`P-PROTO-*` / `K-*` / `S-*` / `D-*` / `R-*`）。
-2. 在归属域内完成实现。
-3. provider / 模型的目录证据准入。
-4. 分发 / 发布证据准入（用于 install / download）。
-5. 公开文档页更新可用性。
-
-文档页不能预告契约还没到达的阶段。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/platform/governance-release.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/governance-release.authority.yaml)

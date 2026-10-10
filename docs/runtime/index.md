@@ -12,7 +12,7 @@ Runtime owns:
   Token, Quota, Budget, and credential custody;
 - LocalAgent materialization and lifecycle from a Realm-issued Character
   Source;
-- LocalAgent Conversation, operational Memory and Knowledge, state, voice,
+- LocalAgent Conversation, Memory mediation, state, voice,
   events, and presentation projections;
 - local process, model, service, stream, and audit behavior;
 - App identity and authorization derived from the active protected session;
@@ -28,16 +28,17 @@ data, social truth, and World history. Runtime may consume admitted source
 context but cannot redefine it.
 
 Apps and first-party surfaces own their product UI, interaction, and ephemeral
-cache. They cannot take over Conversation, Memory, Knowledge, LocalAgent,
+cache. They cannot take over Conversation and Memory mediation, LocalAgent,
 provider, credential, session, or authorization truth.
 
 General Workflow, MCP, and World Evolution are not Runtime core prerequisites.
 An optional external action capability reports its own unavailable state and
-does not block LocalAgent Conversation, Memory, Knowledge, voice, or unrelated
+does not block LocalAgent Conversation and Memory mediation, voice, or unrelated
 capability execution.
 
 ## Read paths
 
+- [Integrations](/runtime/integrations)
 - [Streaming](/runtime/streaming)
 - [Multimodal](/runtime/multimodal)
 - [Agent Execution](/runtime/agent-execution)
@@ -47,6 +48,8 @@ capability execution.
 - [Account And Session](/runtime/account-and-session)
 - [Delegated Capability](/runtime/delegated-capability)
 - [Local Audit](/runtime/audit-local)
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

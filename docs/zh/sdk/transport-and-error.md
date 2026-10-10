@@ -1,7 +1,5 @@
 # 传输与错误
 
-> 状态：运行中 (Running)。SDK 传输合同和 SDK 错误转换合同已发布在 `.nimi/spec/sdks/client-core.authority.yaml` + `.nimi/spec/sdks/client-core.authority.yaml`。
-
 SDK 传输与错误表面涵盖了 SDK 如何通过已准入的传输方式与运行时通信，以及运行时错误如何转换为类型化的 SDK 错误，以便应用程序可以可靠地处理这些错误。
 
 ## 传输

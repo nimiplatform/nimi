@@ -1,89 +1,26 @@
-# 禁止声明
+# 可用性与能力限制
 
-本文档列出了公开文档中禁止出现的各类声明及相应的自动化检测模式。在相关证据获得正式准入前，公开文档不得发布此类内容。
+依赖功能前，核对确切能力、实现、包组合和执行模式。Provider 名称、目录条目、构建成功或窗口可见，都不能单独证明请求受支持。
 
-## 禁止的标记字符串
+## 常见误解
 
-| 标记 | 检测模式 | 禁用原因 |
-| --- | --- | --- |
-| `TODO` | `\bTODO\b` | 未完成的工作项；应在议题系统（Issue Tracker）中跟踪，不应出现于正式文档。 |
-| `TBD` | `\bTBD\b` | 同上。 |
-| `FIXME` | `\bFIXME\b` | 同上。 |
-| `lorem` | `\blorem\b`（忽略大小写） | 无意义的排版占位文本。 |
-| `placeholder` | `\bplaceholder\b`（忽略大小写） | 无意义的占位文本。 |
-| `coming soon` | `\bcoming soon\b` | 构成对未来的非正式承诺，可能引发不准确的预期。 |
-
-## 禁止的安装与分发引导 (CTA)
-
-在某组件的分发证据正式开放并获得准入前，公开文档禁止出现以下具引导性的安装命令或操作号召（CTA）：
-
-| 检测模式 | 禁止形态 | 允许的客观表述示例 |
-| --- | --- | --- |
-| `curl `（后接 URL） | 一行可直接执行的安装命令 | 客观说明当前尚未开放 curl 安装途径及原因。 |
-| `npm install` | 直接安装命令 | 客观说明当前尚未开放此安装方式。 |
-| `pnpm install` | 直接安装命令 | 客观说明当前尚未开放此安装方式。 |
-| `brew install` | 直接安装命令 | 客观说明当前尚未开放此安装方式。 |
-| `apt-get install` | 直接安装命令 | 客观说明当前尚未开放此安装方式。 |
-| `yarn add` | 直接安装命令 | 客观说明当前尚未开放此安装方式。 |
-| `early access` | 作为报名或注册通道的引导 | — |
-| `early-access` | 作为报名或注册通道的引导 | — |
-| `download`（动词式） | 直接可点击的下载链接 | 客观陈述该组件未来的分发规划。 |
-| `release notes` | 版本的正式发布通告 | 客观陈述该组件的发布策略。 |
-| `version 1.0` / `v1.0` | 对未落地版本做出具体声明 | — |
-| `launching` / `launches` | 上线营销通告 | 允许使用 "Pre-launch" 等客观术语描述当前阶段。 |
-| `ships` / `shipped` / `shipping` | 用于宣称某功能已面向公众可用 | 允许使用 "Not yet shipped" 或 "publicly shipped" 等客观表述。 |
-
-## 禁止提及的具体 Provider 与模型名称
-
-在外部 Provider 及模型目录的可用性证据对公众开放前，公开文档禁止点名具体的 Provider 或模型品牌：
-
-| 禁用词汇 | 检测模式 | 补充说明 |
-| --- | --- | --- |
-| `OpenAI` | 词边界匹配 | |
-| `Anthropic` | 词边界匹配 | |
-| `Claude` | 词边界匹配 | 仅允许在概念演示中作为泛指的“外部 AI 宿主”被提及。 |
-| `Gemini` | 词边界匹配 | |
-| `GPT-`（带版本号） | 正则匹配 | |
-| `Llama` | 词边界匹配 | |
-| `DeepSeek` | 词边界匹配 | |
-| `Mistral` | 词边界匹配 | |
-| `Qwen` | 词边界匹配 | |
-| `Ollama` | 词边界匹配 | |
-| `vLLM` | 词边界匹配 | |
-| `Cohere` | 词边界匹配 | |
-| `Groq` | 词边界匹配 | |
-| `Bedrock` | 词边界匹配 | |
-| `Azure`（特指 AI Provider 时） | 词边界匹配 | |
-
-## 禁止的提前承诺声明
-
-| 严禁出现的声明表述 | 推荐的合规表述 |
+| 假设 | 应检查什么 |
 | --- | --- |
-| 针对已定义但未上线的组件宣称 "X is available now" | "X 在契约层面已获得准入" |
-| 宣称 "X is GA (Generally Available)" | "X 已取得正式的契约准入证据" |
-| 宣称 "X is stable" | "X 目前处于已定义的架构面阶段" |
-| 宣称 "今天您就可以将 X 安全地用于生产环境" | "X 已获得准入；是否适用于生产环境需视后续证据落地情况而定" |
+| 模型已安装，AI 就可用 | 选中的 Loadout、资源与环境、owner AIConfig、权限及实际执行 |
+| 云连接支持全部操作 | 确切目标的 Runtime 能力与功能选项 |
+| Job 事件显示完成，输出就已保存 | 完整终态 Get、正式结果读取及 App 自有存储 |
+| 本地导入等于目录批准 | 本地导入与 Registry 准入各自的来源和信任规则 |
+| 仓库中有版本号，就能公开安装 | 组件实际发布状态；开发时使用完整本地包 |
+| 切换 App 或设备会自动共享全部记忆 | 同一已授权 LocalAgent、Conversation 与 Cognition 的 Agent 私有记忆边界 |
+| 本地优先不需要账号或网络 | 当前账号、受保护会话、来源获取及具体操作前提 |
 
-## 自动化检测机制
+强类型 unavailable、blocked 或 failed 都有实际含义。不要替换成示例成功、静默切换实现或绕过受保护宿主。另见 [兼容性](/zh/reference/compatibility-posture)、[App 开发环境](/zh/start/install) 与 [Job 观察](/zh/runtime/streaming)。
 
-平台将在集成流水线中使用仓库级 `grep` 命令对所有公开文档进行核验：
-
-```bash
-grep -rEn 'TODO|TBD|FIXME|coming soon|lorem|placeholder' \
-  README.md docs/*.md docs/**/*.md
-
-grep -rEni '^[^>]*\b(curl |npm install|pnpm install|brew install|apt-get install|yarn add|early.?access)' \
-  README.md docs/*.md docs/**/*.md
-
-grep -rEni '\b(OpenAI|Anthropic|Claude|Gemini|GPT-[0-9]|Llama|DeepSeek|Mistral|Qwen|Ollama|vLLM|Cohere|Groq|Bedrock|Azure)\b' \
-  README.md docs/*.md docs/**/*.md
-```
-
-除在引用语境或明确表达“客观解释姿态”的合法使用外，若上述命令返回任何非空匹配结果，即判定文档引入了违规声明，将拦截发布流程。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
 - [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/platform/governance-release.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/governance-release.authority.yaml)

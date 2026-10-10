@@ -1,6 +1,6 @@
 # AI Config Surface
 
-The SDK AIConfig surface is the typed boundary for owner-scoped AI capability intent. An App records which capability contract it needs, required features, portable defaults, and a Local or Cloud execution-plane intent. Runtime owns machine configuration and implementation selection.
+The SDK AIConfig surface is the typed boundary for owner-scoped AI capability intent. An App records the capability contract, required features, defaults, and an explicit Local or Cloud route. Runtime owns the separate machine selection and captures the committed configuration for execution.
 
 AIConfig is a complete current value for exactly one owner. Updates replace the whole capability list; the contract carries no revision history, execution binding, readiness, or health state.
 
@@ -25,7 +25,9 @@ Each capability entry contains:
 | `defaults` | Portable scenario defaults, not machine or provider configuration |
 | Local or Cloud intent | The consumer's intended execution plane |
 
-Local intent contains no implementation identity, machine selection, asset, binding, Driver state, readiness, or health. Apps also omit optional generated wire fields that would attempt to select a Cloud implementation or provider-model target.
+Local intent is the route-only `local: {}` marker and contains no Loadout or model identity. Cloud intent requires `connectorRef`, `implementation`, and `providerModelTarget`, chosen from Runtime-issued safe options. These are committed configuration fields, never credentials, endpoints, or request-time overrides.
+
+At submission Runtime captures the machine-selected Local Loadout or the exact committed Cloud inputs. It does not rank or substitute implementations. All LocalAgents in an account share one separate LocalAgent AIConfig; individual Agents are not owners.
 
 ## App Integration Flow
 

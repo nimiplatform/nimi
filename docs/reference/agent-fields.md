@@ -12,8 +12,8 @@ local AI execution.
 | LocalAgent ID | Runtime | Owner-scoped local execution entity |
 | LocalAgent owner | Runtime | Explicit owner relation; never inferred from an App cache |
 | Conversation anchor | Runtime | One explicit LocalAgent Conversation |
-| Operational Memory | Runtime | Authorized LocalAgent recall and retention |
-| Operational Knowledge | Runtime | Authorized LocalAgent ingestion and retrieval |
+| Long-term Memory | Cognition | Agent-private memory; Runtime mediates authorization and bounded access |
+| Knowledge | Cognition | No active V1 ingestion, query, or public client path |
 | AI capability execution | Runtime | Capability-intent evaluation, implementation selection, quota, budget, and execution diagnostics |
 | Presentation configuration | Runtime | Durable LocalAgent inputs for authorized projections |
 | Transient presentation state | Runtime | Turn, state, activity, emotion, voice, and timing projection |
@@ -22,8 +22,7 @@ local AI execution.
 ## Access fields
 
 Runtime derives account, App identity, authorization, target LocalAgent or
-scope, and operation from the active session. A consumer may submit a
-LocalAgent ID as a target, but the ID is not an authorization proof.
+scope, and operation from the active session. A formal App uses the session-scoped `agentHandle` returned by its authorized reference listing, not a raw LocalAgent ID.
 
 Realm JWTs, provider credentials, Runtime session proof, private authorization
 evidence, raw source context, and account-wide LocalAgent inventory are not App
@@ -32,9 +31,9 @@ fields.
 ## Continuity
 
 A LocalAgent ID does not identify a Conversation. Consumers keep the explicit
-Conversation anchor returned by Runtime. Multiple Conversations may belong to
-one LocalAgent, and multiple LocalAgents may be materialized from one Character
-Source without sharing mutable operational state.
+Conversation anchor returned by Runtime. Each LocalAgent has one Conversation,
+shared by its authorized consumers. Different LocalAgents materialized from
+one Character Source retain independent mutable operational state.
 
 ## Source Basis
 

@@ -11,7 +11,7 @@ SDK 的框架适配器放在 base `@nimiplatform/sdk` package 之外。适配器
 | Vercel AI SDK 6 | npm package `@nimiplatform/sdk-adapter-vercel-ai` | 把 Vercel language model 调用映射到 App 绑定宿主的 AI client |
 | OpenAI-compatible | 只有源码，位于 `sdks/typescript/adapters/openai-compatible`，没有作为 package 发布 | 把 OpenAI-compatible chat completion 形状映射到 Nimi AI 语义 |
 
-每个适配器版本都用 peer dependency 范围声明它支持的 `@nimiplatform/sdk` 版本。添加适配器前，先确认要安装的版本覆盖 App 当前使用的 SDK 版本。`@nimiplatform/sdk-adapter-vercel-ai` 0.1.0 声明的是 `@nimiplatform/sdk` `^0.13.0`，不能与 SDK 0.14 及以后的版本配对。
+当前 Vercel adapter 为 0.5.0，声明 SDK `^0.21.0`、Vercel AI SDK `^6.0.0` 与 `@ai-sdk/provider` `^3.0.0` peer。受保护 App 路径使用 Kit/原生包 0.18.0 和匹配 Runtime；对应 registry 版本发布前使用完整当前本地归档。
 
 适配器可以依赖 `@nimiplatform/sdk/ai`、`@nimiplatform/sdk/ai-runner`、
 `@nimiplatform/sdk/runtime` 或 feature module。它不能恢复已删除的 base SDK 子路径。

@@ -5,7 +5,7 @@ a single shared source kept by Realm and Runtime — not from surfaces syncing
 UI state with each other.
 
 Realm supplies the Character and the Character Source. Runtime runs the
-LocalAgent and keeps its Conversation, operational Memory and Knowledge,
+LocalAgent and keeps its Conversation, Memory mediation,
 state, and presentation output. Each surface gets a bounded view through the
 standard SDK, according to the current session and what it is authorized to
 see.
@@ -30,6 +30,8 @@ Memory, Knowledge, or authorization data.
 When authorization changes or an anchor goes stale, the consumer must use the
 typed result Runtime returns. Copying another surface's cached state is not a
 fallback.
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

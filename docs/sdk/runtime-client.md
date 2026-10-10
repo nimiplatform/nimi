@@ -1,85 +1,22 @@
 # Runtime Client
 
-The SDK runtime client is the public application path into Runtime
-behavior. It should be used instead of direct imports from runtime
-private code or app-specific bypasses.
+A Nimi App uses one host-bound `NimiLocalAppClient`, normally created by the generated Kit integration. Use `client.ai`, `client.aiConfig`, and the separately admitted App capability surfaces. The App does not choose its account, App owner, Runtime address, or protected transport.
 
-The kernel rules backing this page live under `S-RUNTIME-*` and
-`S-TRANSPORT-*`.
+`@nimiplatform/sdk/runtime` also exposes typed Runtime facilities for hosts and admitted infrastructure. Importing a type or constructing a direct client does not grant App authority. Ordinary loopback gRPC rejects App-scoped AI execution, AIConfig, and storage; it is not an alternative App integration path.
 
-## What It Represents
+## Requests and Results
 
-The runtime client projects Runtime capabilities into a TypeScript
-surface: transport, metadata, streaming behavior, errors, and grouped
-runtime methods. It lets applications call Runtime in a way that follows
-the same authority boundary as the rest of the platform.
+AI requests carry content and supported parameters. The committed AIConfig supplies the Local or Cloud route; Runtime captures the selected Local Loadout or exact Cloud configuration at submission. The SDK does not choose substitute implementations or inject credentials.
 
-That means an app written against `@nimiplatform/sdk/runtime` does not have to know
-which package implements a runtime method, how the transport handles
-retries, or how runtime audit is recorded. Those concerns are handled
-by the SDK projection.
+Streams expose typed ordered output and terminal outcomes. Asynchronous Jobs use Submit, repeated Get, complete result reads, and explicit Cancel. Retain the original Job identity when observation fails; do not resubmit work to recover a connection. See [Streaming](/runtime/streaming).
 
-## What It Hides And What It Exposes
+LocalAgent operations use session-scoped authorized handles. Conversation, business execution, shared configuration, Memory management, and realtime each retain their own operation coverage. Cognition owns long-term Memory through Runtime mediation; Knowledge V1 has no public client surface.
 
-The runtime client deliberately hides:
+## Handle Failures
 
-- private transport implementation;
-- internal error shapes that should not leak;
-- private runtime helper utilities;
-- raw transport retries and auth refresh, which are mechanism not
-  contract rescue.
+Preserve the typed error, reason, and available action details. Malformed data and missing authority fail closed. A missing method or unsupported combination is not permission to call Runtime internals or a Provider directly.
 
-It deliberately exposes:
-
-- typed runtime methods grouped by capability area (generation,
-  streaming, multimodal, LocalAgent, Conversation, Memory, and
-  Knowledge);
-- transport metadata that apps need to make sense of behavior;
-- runtime error projections that apps can react to programmatically;
-- streaming primitives that match the Runtime streaming contract.
-
-## Why Direct Access Is Not The Model
-
-Direct access creates two problems. First, it couples applications to
-private Runtime internals. Second, it lets apps form local
-expectations that may not match Runtime's source contracts. The SDK
-boundary prevents both.
-
-If a runtime capability seems to require a direct import to use, that
-is a sign the SDK projection needs an additional admitted surface, not
-a sign that the boundary should be bypassed.
-
-## Reader Scenario: A Streaming Generation Through The Client
-
-Suppose an app issues a streaming generation through `@nimiplatform/sdk/runtime`:
-
-1. The app calls the runtime client's generation method with a typed
-   request.
-2. The client transports the request and surfaces a typed streaming
-   primitive that matches the Runtime streaming contract.
-3. The app consumes the streaming primitive without inventing its own
-   chunk semantics. Stage boundaries, terminal frames, and error
-   semantics come from the contract.
-4. If the generation produces a multimodal artifact, the artifact is
-   surfaced through a typed shape, not as a free-form URL.
-5. Errors arrive as typed projections defined in the SDK error
-   projection. The app does not have to parse free-form messages.
-
-That flow is what makes the app portable across Runtime internal
-changes.
-
-## Reader Scenario: When A Method Is Not Yet On The Client
-
-Suppose Runtime has admitted a new capability in the kernel, but the
-SDK projection has not been admitted yet. The app does not get to
-synthesize the call from private internals. The right move is:
-
-- Treat the absence as the contract.
-- File or follow the work that admits the SDK surface.
-- Wait for the projection.
-
-That waiting feels slow. It is what keeps the SDK from accumulating
-silent surfaces that nothing can vouch for.
+Start with [First AI Call](/sdk/first-ai-call), [AIConfig](/sdk/ai-config-surface), and [App authorization](/platform/agents/participation-authority).
 
 ## Source Basis
 

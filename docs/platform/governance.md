@@ -9,7 +9,8 @@ combine them, but it cannot silently take ownership of them.
 | Concern | Product owner |
 | --- | --- |
 | World identity, history, and durable Character identity | Realm |
-| LocalAgent execution, Conversation, Memory, and Knowledge | Runtime |
+| LocalAgent execution, Conversation and Memory mediation | Runtime |
+| Long-term Memory; Knowledge V1 inactive | Cognition |
 | App-facing typed access | SDK |
 | Current first-party home and product UI | Nimi Home / Desktop |
 | Embodiment presentation | Avatar |
@@ -25,7 +26,7 @@ refer to either identity, but it does not become a third owner.
 An App receives Runtime capability from its active session and app
 identity. It does not receive Realm credentials or maintain its own
 Runtime proof. Realm access uses the admitted SDK or host surface;
-Conversation, Memory, and Knowledge remain Runtime services.
+Conversation and Memory mediation remain Runtime services.
 
 Nimi Home is the current first-party host. It composes these owners into
 a product experience and can be replaced without moving their truth
@@ -37,6 +38,8 @@ General Workflow, MCP, World Evolution, Marketplace, public Registry,
 Trust Tier, and commercial settlement are not prerequisites for the
 current Local AI and Windows product loop. Existing future designs stay
 isolated until their owner and activation boundary are decided.
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

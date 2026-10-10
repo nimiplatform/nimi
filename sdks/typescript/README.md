@@ -77,13 +77,12 @@ Driver input support remains required. If an App's budget planner drops needed
 history, the App must report that loss rather than treating it as intentional
 userless generation. The narrow text candidate method is unchanged.
 
-The Local App binding supports function tools, tool choice and structured
-`responseFormat` since SDK 0.12.0 / Kit 0.8.0, and user image parts since SDK
-0.13.0 / Kit/native 0.9.0, each with a matching Runtime. HTTP(S) image file
+The current Local App binding (SDK 0.21.0 / Kit/native 0.18.0 with matching
+Runtime) supports function tools, tool choice, structured `responseFormat`,
+and admitted user image parts. HTTP(S) image file
 parts and owned image `artifact-ref` parts preserve their order with text.
 Upload local image bytes through `client.ai.artifacts.upload`; do not put file
-paths or data URLs in model requests. SDK 0.12.0 / Kit 0.8.0 retain their
-text-only binding. Other media methods have separate contracts, and each
+paths or data URLs in model requests. Other media methods have separate contracts, and each
 selected execution configuration must support the requested modality and
 controls.
 
@@ -98,7 +97,7 @@ media support does not imply that combination is supported.
 
 ## Local App speech support boundaries
 
-Since SDK 0.15.0 with Kit/native 0.11.0, the matching Runtime carries a typed
+The current matched package combination carries a typed
 `job.transcription` on completed `speech-transcribe` jobs. It contains `status`
 (`transcribed` or `no-speech`), original `text`, model-reported `language` and
 ordered `words` with `text`, `startSeconds` and `endSeconds`. Plain transcription
@@ -475,7 +474,6 @@ Include the selected SDK, Kit, App Tools and Runtime versions, the actual App
 operation, expected/observed behavior, and a bounded reproduction.
 
 Licensed under [Apache-2.0](LICENSE).
-
 
 ### Observing and canceling Jobs
 

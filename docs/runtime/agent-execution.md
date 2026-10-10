@@ -10,7 +10,7 @@ Runtime owns:
 
 - LocalAgent materialization, lifecycle, and owner isolation;
 - Conversation anchors, committed turns, recovery, and interruption;
-- operational Memory and Knowledge;
+- Memory mediation;
 - AI capability-intent evaluation, implementation selection, Quota, Budget,
   and provider credential custody;
 - validation of execution output before it becomes Conversation, state, voice, or
@@ -18,8 +18,7 @@ Runtime owns:
 - typed projections for authorized consumers.
 
 Apps submit typed intent through the SDK. Runtime derives the account, App
-identity, authorization, and LocalAgent access from the active session. A
-caller-supplied LocalAgent ID is a target, not proof of access.
+identity, authorization, and LocalAgent access from the active session. A formal App uses a current session-scoped `agentHandle`, not a raw LocalAgent ID; a cached handle is not proof of continuing access.
 
 ## Consumer boundary
 
@@ -33,12 +32,16 @@ renderer execution, playback, and ephemeral visual state.
 
 ## Continuity
 
-Each Conversation has an explicit Runtime-owned anchor. Multiple Conversations
-may belong to one LocalAgent, and multiple LocalAgents materialized from the
-same Character Source keep independent operational state.
+Each LocalAgent has one Runtime-owned Conversation and explicit anchor. Later
+authorized opens, including from another App, continue the same committed
+history. Different LocalAgents materialized from the same Character Source
+keep independent operational state; callers cannot partition one LocalAgent's
+Conversation by App or window.
 
 See [Conversation Anchor](/platform/agents/conversation-anchor) and
 [LocalAgent Access](/platform/agents/participation-authority).
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

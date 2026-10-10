@@ -18,9 +18,9 @@
 
 | 概念 | 回答 | 归属契约 |
 | --- | --- | --- |
-| Truth | 在这个世界里规范上为真的事实，与写入时间无关 | `realm/kernel/truth-contract.md`（`R-TRUTH-*`） |
-| World State | 世界此刻的样子 | `realm/kernel/world-state-contract.md`（`R-WSTATE-*`） |
-| World History | 世界如何到达当前状态 | `realm/kernel/world-history-contract.md`（`R-WHIST-*`） |
+| Truth | 在这个世界里规范上为真的事实，与写入时间无关 | Realm Truth owner（`R-TRUTH-*`） |
+| World State | 世界此刻的样子 | Realm World State owner（`R-WSTATE-*`） |
+| World History | 世界如何到达当前状态 | Realm World History owner（`R-WHIST-*`） |
 
 三者不可互换。把它们混在一起的面会静默丢信息。
 
@@ -28,14 +28,14 @@
 
 | 面 | 契约 | 规则前缀 |
 | --- | --- | --- |
-| 聊天 | `realm/kernel/chat-contract.md` | `R-CHAT-*` |
-| 社交 | `realm/kernel/social-contract.md` | `R-SOC-*` |
-| 经济 | `realm/kernel/economy-contract.md` | `R-ECON-*` |
-| 资产 | `realm/kernel/asset-contract.md` | `R-ASSET-*` |
-| 通行 | `realm/kernel/transit-contract.md` | `R-TRANSIT-*` |
-| 绑定 | `realm/kernel/binding-contract.md` | `R-BIND-*` |
-| 资源 | `realm/kernel/resource-contract.md` | `R-RSRC-*` |
-| Bundle | `realm/kernel/bundle-contract.md` | `R-BNDL-*` |
+| 聊天 | Realm Chat owner | `R-CHAT-*` |
+| 社交 | Realm Social owner | `R-SOC-*` |
+| 经济 | Realm Economy owner | `R-ECON-*` |
+| 资产 | Realm Asset owner | `R-ASSET-*` |
+| 通行 | Realm Transit owner | `R-TRANSIT-*` |
+| 绑定 | Realm Binding owner | `R-BIND-*` |
+| 资源 | Realm Resource owner | `R-RSRC-*` |
+| Bundle | Realm Bundle owner | `R-BNDL-*` |
 
 ## OASIS
 

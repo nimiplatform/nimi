@@ -6,8 +6,7 @@ it stays that way over time. Realm keeps that identity.
 
 A LocalAgent is how Runtime brings a character to life locally. When you start
 an experience, Runtime reads the character's Realm-issued description — the
-Character Source — and runs it on your machine. The LocalAgent holds the live
-conversation, working memory, and knowledge for that run. The character's
+Character Source — and runs it on your machine. The LocalAgent holds the live Conversation and execution state for that run. The character's
 identity itself stays in Realm.
 
 - A **Character** is identity, relationships, and world membership kept by
@@ -16,7 +15,7 @@ identity itself stays in Realm.
 - A **Character Source** is the description Realm issues for Runtime to run a
   character from.
 - A **LocalAgent** is the running instance Runtime creates for you. Runtime
-  manages its lifecycle, Conversation, operational Memory and Knowledge, model
+  manages its lifecycle, Conversation, Memory mediation, model
   routing, readiness, budget, and state.
 
 There is no extra platform-wide `Agent`, `AgentFamily`, or `AgentPersona`
@@ -46,6 +45,8 @@ directly.
 - [LocalAgent Access and App Authorization](./participation-authority)
 - [Cross-World Identity](./cross-world-identity)
 - [External Participation](./external-agents)
+
+Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
 
 ## Source Basis
 

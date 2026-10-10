@@ -88,7 +88,6 @@ space. Missing usage is unspecified.
 - `pnpm --filter @nimiplatform/kit build`
 - `pnpm --filter @nimiplatform/kit test`
 
-
 ### Observing and canceling Jobs
 
 All Job runners and observers use `getIntervalMs` (default `1000` milliseconds,

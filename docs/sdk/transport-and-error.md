@@ -1,10 +1,5 @@
 # Transport And Error
 
-> Status: Running today. The SDK transport contract and the SDK
-> error projection contract are shipped under
-> `.nimi/spec/sdks/client-core.authority.yaml` +
-> `.nimi/spec/sdks/client-core.authority.yaml`.
-
 The SDK Transport And Error surface covers how the SDK talks to
 runtime over admitted transports + how runtime errors project into
 typed SDK errors that apps can handle predictably.

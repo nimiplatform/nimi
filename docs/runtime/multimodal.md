@@ -1,254 +1,30 @@
-# Multimodal
+# Multimodal Capabilities
 
-Multimodal work produces non-text artifacts. Runtime owns the
-canonical input fields, the artifact shape, the adapter routing,
-and the delivery gates. Apps display or consume artifacts; they do
-not redefine artifact truth.
+Nimi exposes typed capability requests and complete typed or owned-artifact results for admitted image, video, audio, speech, music, and vision operations. Support depends on the exact configured implementation, features, and execution mode; it is not implied by a provider family or installed model.
 
-## Capability Surface
+## Request Inputs
 
-Runtime's multimodal contract covers:
+Use the protected App client's operation-specific request shape. Supply content, admitted resource references, and supported parameters. Do not inject provider context, credentials, endpoints, a Local Loadout, or a request-time routing override.
 
-| Capability | What it generates |
-| --- | --- |
-| Image | Raster images via image engines |
-| Video | Video artifacts via video engines |
-| Audio | Audio generation |
-| Voice | Text-to-speech (`AI_TTS`), with voice cloning support (`AI_TTS_CREATE_VOICE`, `AI_TTS_SYNTHESIZE`) |
-| Music | Music generation, including iteration support |
+Resource input rules differ by operation. For example, media attached to text generation uses the admitted content-part and owned-artifact contract; a speech Job has its own bytes/URI, MIME, duration, and feature limits. Use the typed API and Runtime-issued support facts rather than converting every media input into a generic URL.
 
-Each capability has admitted canonical input fields, an admitted
-artifact shape, and admitted delivery gates. Apps can't invent a
-new artifact MIME type or skip the delivery gate.
+## Asynchronous Results
 
-## Canonical Input Fields
+Submit once and retain the original Job identity. Repeated Get observes and may reconcile a native asynchronous task; subscription events are optional hints. A completed Job requires the entire validated result, including all required artifacts or typed fields. Provider-private task phases do not become a second public state machine.
 
-Every multimodal request has a canonical typed input. Apps build
-the input under the contract:
+Some outputs are typed values rather than artifacts: text annotation, transcription, and vision locations have their own result shapes. Voice creation returns its VoiceAsset and VoiceReference through complete terminal Get. A successful empty result, such as no locations, is distinct from a missing required result.
 
-| Field | Purpose |
-| --- | --- |
-| Capability id | Which capability is being invoked |
-| Provider context | Optional provider-specific extension |
-| Resource references | Input resources (existing artifacts) |
-| Generation parameters | Capability-specific parameters |
+## Artifact Custody
 
-The canonical fields live in
-`runtime/kernel/tables/multimodal-canonical-fields.yaml`. Apps
-that produce off-contract input shapes fail closed at admission.
+Runtime owns an accepted artifact's bytes, integrity, MIME, audience, lifetime, and authorized reads. An artifact ID is an opaque identity scoped to its Runtime, not a public download URL or proof of access. Read through the admitted App artifact operation and preserve the returned metadata.
 
-## Provider Async Task Lifecycle
+Adopt all results needed by the project into App storage before Runtime's bounded retention expires. Saving only a Job or artifact ID is not durable project storage. Music editing, subtitle assembly, chunking, listening review, and business completion remain App responsibilities.
 
-Multimodal generations are typically long-running. Runtime models
-them as **provider async tasks** with a typed lifecycle:
+## Failures and Cancellation
 
-| State | Terminal? |
-| --- | --- |
-| `queued` | no |
-| `running` | no |
-| `succeeded` | yes |
-| `failed` | yes |
-| `expired` | yes (timeout-equivalent) |
+Invalid input, unavailable features, incomplete output, failed acquisition, or lost authority returns a typed failure or observation issue. Do not fabricate an artifact, silently drop one member of a required output set, switch implementations, or resubmit generation to recover a result. Explicit Cancel and observation detachment have different effects; preserve submission and stop outcomes.
 
-Note the lower_snake casing (vs `ScenarioJob`'s UPPER_SNAKE).
-Provider async tasks are normalization at the provider boundary;
-the casing matches provider semantics.
-
-### Async-to-ScenarioJob mapping
-
-Provider async terminal states map deterministically into
-`ScenarioJob` terminal states:
-
-| Provider async state | ScenarioJob terminal |
-| --- | --- |
-| `succeeded` | `COMPLETED` |
-| `expired` | `TIMEOUT` |
-| `failed` | `FAILED` |
-
-The mapping rule (`K-MMPROV-027`) is admitted; apps see one unified
-shape across modalities.
-
-## Artifact Normalization
-
-Multimodal output lands as an **artifact** with typed canonical
-fields. Apps consume artifacts through the artifact contract:
-
-| Artifact field | Purpose |
-| --- | --- |
-| Artifact id | Stable identity |
-| MIME type | From the contract, not guessed |
-| Bytes / reference | Where to read the artifact |
-| Provenance | Who produced it, under what request lineage |
-| Delivery gate verdict | Whether the gate admitted delivery |
-
-Artifact field admission lives in
-`runtime/kernel/tables/multimodal-artifact-fields.yaml`. An
-artifact missing a required field fails closed.
-
-## Delivery Gates
-
-A multimodal artifact does not automatically reach the app the
-moment generation succeeds. The **delivery gate** decides when an
-artifact is allowed to be delivered.
-
-| Gate concern | Why it matters |
-| --- | --- |
-| Sensitivity classification | Some artifacts may need approval |
-| Provenance | Provenance-incomplete artifacts may be quarantined |
-| Schema validation | Off-contract artifacts fail closed |
-| User policy | User preferences may gate delivery |
-
-The runtime delivery gates table
-(`runtime/kernel/tables/runtime-delivery-gates.yaml`) admits the
-specific gates. Apps see the gate verdict; they do not bypass it.
-
-## Music Iteration Support
-
-Music generation admits an iteration model: an artifact can be
-iterated under typed parameters to produce variations.
-
-| Property | Value |
-| --- | --- |
-| Iteration kind | `MUSIC_GENERATE` (admitted under `K-MMPROV-*`) |
-| Lineage | Each iteration references the previous artifact |
-| Audit | Iterations recorded as part of generation lineage |
-
-Iteration is bounded by the admitted contract; apps can't invent
-new iteration kinds at runtime.
-
-## Multimodal Provider Depth (R16)
-
-> Status: Running today. The multimodal provider contract sits
-> downstream of provider capability profiles; it pins how providers
-> participate in multimodal delivery beyond the gate verdict surface.
-
-The multimodal provider contract describes how providers are bound,
-profiled, and admitted into multimodal capability paths
-(image / audio / video / file). The boundaries:
-
-| Owned by provider contract | Owned elsewhere |
-| --- | --- |
-| Per-provider capability profile shape | Connector custody (`K-CONN-*`) |
-| Provider lifecycle within multimodal path | Internal media-pipeline execution |
-| Provider drift detection | Delivery gates verdict (`K-DGATE-*`) |
-| Provider native parameter encapsulation | Public delivery surface |
-
-Provider-native parameters do not pass through freely; they go
-through namespaced extensions and are bound by the admitted
-extension registry — same boundary that voice creation enforces.
-
-## Delivery Gates Verdicts (R8)
-
-When multimodal delivery happens, the runtime delivery-gates contract
-emits a verdict. Verdicts include `accepted`, `quarantined`,
-`rejected`, plus typed reason codes.
-
-A `quarantined` verdict means: the artifact is held; it does not
-flow to the consumer; the user sees the quarantine reason explicitly.
-Quarantine reasons cover sensitivity classification, descriptor
-drift, schema mismatch, prompt-poisoning detection, and more (see
-`runtime/kernel/tables/runtime-delivery-gates.yaml`).
-
-A `quarantined` verdict is NOT a transient state. It is a typed
-terminal outcome until either:
-
-- The user / admitted approver explicitly releases the artifact, or
-- The flow is canceled
-
-There is no silent retry that "fixes" quarantine.
-
-## Voice Cloning Support
-
-> Status: Running today. Voice creation (clone + design) and
-> `VoiceAsset` lifecycle are shipped under `K-VOICE-*`.
-
-The voice capability admits voice cloning + voice design under typed
-contracts. Both creation paths run through a unified `Scenario`
-abstraction:
-
-| Scenario type | Direction |
-| --- | --- |
-| `VOICE_CLONE` | Audio sample → voice |
-| `VOICE_DESIGN` | Text description → voice |
-
-The synthesis-side capability operations:
-
-| Operation | Purpose |
-| --- | --- |
-| `AI_TTS_CREATE_VOICE` | Create a voice profile from input audio |
-| `AI_TTS_SYNTHESIZE` | Synthesize speech using an admitted voice profile |
-| `AI_TTS` | Standard TTS using an admitted voice |
-
-The runtime distinguishes durable voice resources from one-off
-synthesis:
-
-| Concept | Owner | Persistence |
-| --- | --- | --- |
-| `VoiceAsset` | Runtime | Durable (subject to admitted lifecycle) |
-| `VoiceReference` | Runtime | Identifies which voice a synthesis call uses |
-| Provider-native handle | Provider / Runtime Driver | Internal identity that does not become App input or public asset truth |
-
-For the full asset surface — discovery channel split, tenant isolation,
-voice handle policy, and the `VoiceReference` boundary — see
-[Voice Asset Lifecycle](/runtime/voice-asset-lifecycle).
-
-## Reader Scenario: An Image Generation Task
-
-An app generates an image with a long-running provider.
-
-1. **Image operation.** The App requests the admitted `AI_IMAGE` operation.
-2. **ScenarioJob created.** Runtime creates a `ScenarioJob`.
-3. **Provider async task.** The provider returns a task id; state
-   moves `queued → running`.
-4. **Polling / streaming.** Runtime tracks the task and emits typed
-   progress updates.
-5. **Task succeeds.** Provider state moves to `succeeded`. Per
-   `K-MMPROV-027`, the `ScenarioJob` terminal becomes
-   `COMPLETED`.
-6. **Artifact delivery.** The image artifact has typed canonical
-   fields, MIME type, provenance. The delivery gate validates
-   schema, provenance, sensitivity. If admitted, delivery
-   completes.
-7. **App receives artifact.** Through the SDK's typed artifact
-   shape. The MIME type came from the contract; the app does not
-   guess.
-
-What did **not** happen: the app did not get a free-form URL with
-no provenance; the app did not see a guessed MIME type; the
-artifact did not bypass the delivery gate.
-
-## Reader Scenario: A Music Iteration
-
-A user generates music and wants to iterate.
-
-1. **First generation.** A music generation task runs; an artifact is
-   produced.
-2. **Iteration request.** The app issues an iteration with typed
-   parameters referencing the original artifact.
-3. **`MUSIC_GENERATE` admitted.** The iteration is admitted under
-   `K-MMPROV-*`.
-4. **Provider async lifecycle.** The iteration runs through the
-   provider async lifecycle. State maps into `ScenarioJob`
-   terminal as before.
-5. **New artifact.** The iteration artifact references the
-   original; lineage is preserved.
-
-The iteration is a typed operation; lineage is structural, not
-docstring.
-
-## Reader Scenario: A Provider Async Task Expires
-
-A long video generation hits its provider-side timeout.
-
-1. **Provider state moves** from `running` to `expired`.
-2. **Mapping.** Per `K-MMPROV-027`, `ScenarioJob` terminal
-   becomes `TIMEOUT`.
-3. **Job effect.** The `ScenarioJob` is terminal and any retry remains
-   subject to the admitted retry policy.
-4. **Audit.** The expiry is recorded with reason.
-
-The app sees a typed `TIMEOUT` not a "request failed in some way";
-the `ScenarioJob` terminal type tells the app what happened.
+See [Job observation](/runtime/streaming), [AIConfig](/sdk/ai-config-surface), and the [SDK capability notes](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/README.md).
 
 ## Source Basis
 
@@ -256,3 +32,7 @@ the `ScenarioJob` terminal type tells the app what happened.
 - [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
 - [`config/runtime-voice-enums.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-voice-enums.yaml)
 - [`config/runtime-tts-provider-capability-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-tts-provider-capability-matrix.yaml)
+
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
+
+- [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)

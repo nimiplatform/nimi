@@ -13,7 +13,7 @@ decides which one an event touches.
 
 | Property | Value |
 | --- | --- |
-| Authority | `realm/kernel/world-state-contract.md` (`R-WSTATE-*`) |
+| Authority | Realm World State owner (`R-WSTATE-*`) |
 | Purpose | Shared present-state of the world |
 | Scope | Durable shared scopes only: `WORLD`, `ENTITY`, `RELATION` |
 | Mutation method | Explicit commit envelope |
@@ -27,7 +27,7 @@ attributes. State changes only through the commit envelope.
 
 | Property | Value |
 | --- | --- |
-| Authority | `realm/kernel/world-history-contract.md` (`R-WHIST-*`) |
+| Authority | Realm World History owner (`R-WHIST-*`) |
 | Purpose | Canonical happened facts |
 | Append posture | Explicit append |
 | Story trace / raw turn logs / app-private archives | NOT in Realm history |

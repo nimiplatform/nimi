@@ -73,7 +73,7 @@ import { installNimiElectronRuntimeBridge } from '@nimiplatform/kit/shell/electr
 import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';
 ```
 
-生成的设置面板把 `client.aiConfig.get()`、`client.aiConfig.listOptions(query)` 和 `client.aiConfig.overwrite(input)` 接到这个 surface 上；移动代码时保留这套接线。它让 owner 表达 Local 或 Cloud capability intent，不选择 model、machine route、connector 或 execution binding。具体实现选择、readiness 和 execution evidence 归 Runtime 管理，见 [AI 配置](/zh/sdk/ai-config-surface)。
+生成的设置面板把 `client.aiConfig.get()`、`client.aiConfig.listOptions(query)` 和 `client.aiConfig.overwrite(input)` 接到该界面上，移动代码时保留这套接线。Local 只保存路径标记，使用机器为该能力选中的 Loadout。Cloud 设置让 owner 从 Runtime 安全选项中选择当前账号的 Connector 和已准入目标，并将确切的 `connectorRef`、`implementation`、`providerModelTarget` 保存到 AIConfig。这是配置选择，不是执行请求中的覆盖；Runtime 在提交时验证并固定已保存输入，准备状态与实际执行仍分别判断。见 [AI 配置](/zh/sdk/ai-config-surface)。
 
 Agent Center 通过 `@nimiplatform/kit/features/agent-center/ui` 中的 `AgentCenterAIConfigSection` 展示同类 owner-scoped 意图。
 

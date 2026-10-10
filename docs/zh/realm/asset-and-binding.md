@@ -82,10 +82,9 @@ Attachment 让表面可以展示"这两个有关联"，但不暗示存在规范�
 1. **Resource**。创作者把贴图、网格、元数据上传为 Resource（`IMAGE` 等）。
 2. **OwnableAsset**。创作者创建一个 `WORK` 类型（或按用途选 `ITEM`）的 OwnableAsset，引用上述 resource，所有者是创作者本人。
 3. **生命周期**。创作者定稿后，asset 从 `DRAFT` 走到 `READY`。
-4. **可选：组合成一套**。创作者把整套衣服组进一个 `Bundle`，包含若干相关 asset。Bundle 有自己的所有者和成员顺序。
+4. **可选：组合成一套**。创作者创建 `Bundle`，传入有序 `memberAssetIds` 及必要的 Bundle 元数据。成员关系由 Bundle 操作建立，不是以 Bundle 为宿主的 `IMPORT` Binding。Bundle 保留自己的所有者和成员顺序。
 5. **绑定到世界或场景**：
    - Asset → Scene 用 `USE`（asset 在某个场景里被使用）。
-   - Asset → Bundle 用 `IMPORT`（asset 是 bundle 的一部分）。
    - Bundle → World 用 `PRESENTATION`（bundle 出现在世界的展示面）。
 6. **合法性矩阵**。Realm 只准入矩阵里允许的绑定。
 
@@ -127,3 +126,4 @@ App 不会无意中违反宿主类型。矩阵是声明式的，并强制执行�
 ## 来源依据
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`config/realm-openapi/api-nimi.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/realm-openapi/api-nimi.yaml)

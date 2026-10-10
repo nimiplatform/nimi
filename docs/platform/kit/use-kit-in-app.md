@@ -90,10 +90,14 @@ import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-con
 
 The generated settings panel passes `client.aiConfig.get()`,
 `client.aiConfig.listOptions(query)`, and `client.aiConfig.overwrite(input)` to
-the surface; keep that wiring when you move it. The surface lets the owner
-express Local or Cloud capability intent. It does not select a model, machine
-route, connector, or execution binding. Runtime owns implementation selection,
-readiness, and execution evidence. See [AI Config](/sdk/ai-config-surface).
+the surface; keep that wiring when you move it. Local saves only the route
+marker and follows the machine's selected Loadout for that capability. Cloud
+settings let the owner choose a current-account Connector and an admitted
+target from Runtime's safe options, then save the exact `connectorRef`,
+`implementation`, and `providerModelTarget` in AIConfig. These are configuration
+choices, not overrides on an execution request. Runtime validates and captures
+the committed inputs at submission; preparation and actual execution remain
+separate facts. See [AI Config](/sdk/ai-config-surface).
 
 Agent Center presents the same kind of owner-scoped intent through
 `AgentCenterAIConfigSection` from `@nimiplatform/kit/features/agent-center/ui`.

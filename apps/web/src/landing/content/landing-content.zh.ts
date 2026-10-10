@@ -22,7 +22,7 @@ export const landingContentZh: LandingContent = {
     slogan: '你的 AI 由你定义',
     sloganAccent: '由你定义',
     subSlogan: '本地或云端，模型由你选择。\n角色与世界，体验由你塑造。',
-    subSloganNote: '应用随你切换，AI 与记忆始终如一。',
+    subSloganNote: '在你授权的应用中，继续与同一个 AI 互动。',
     downloadCta: '查看下载状态',
     downloadNote: '暂未开放安装。使用 Nimi 需要 Nimi 账号。',
     docsCta: '查看文档',
@@ -239,8 +239,8 @@ export const landingContentZh: LandingContent = {
   },
   continuity: {
     title: '换个应用，还是熟悉你的 AI。',
-    subtitle: '同一个 AI，在接入它的不同应用中延续身份、记忆，以及与你的共同经历。',
-    body: '聊过的偏好、积累的记忆，可以继续参与下一次互动。从对话到创作，你不必每次重新介绍自己。',
+    subtitle: '已授权应用可以延续同一本地 AI 与对话；长期记忆在这台设备上按 AI 独立保存。',
+    body: '开启记忆且相关记忆可用时，它们可以参与下一次互动。切换应用不会自动把记忆共享给其他 AI 或设备。',
     supports: ['应用访问需要你的授权。', '不同 AI 的记忆彼此独立。'],
   },
   developers: {
@@ -257,7 +257,7 @@ export const landingContentZh: LandingContent = {
     secondaryCta: '查看源码',
   },
   getStarted: {
-    title: '从今天起，用自己的方式使用 AI。',
+    title: '探索属于你的 AI 体验。',
     subtitle: '查看下载状态，找到需要的应用，或认识一个感兴趣的 AI 角色。选择合适的 AI，从你想做的事开始。',
     primaryCta: '查看下载状态',
     availability: '目前还不能安装 Nimi，使用时需要 Nimi 账号；下载页会说明各平台的当前状态。',

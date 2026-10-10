@@ -1,157 +1,37 @@
 # Streaming Protocol
 
-> Status: Running today. The streaming contract (`K-STREAM-*`) is
-> the shipped close-mode authority for every Runtime
-> server-streaming RPC.
+Runtime RPCs declare their own event shapes and close behavior. An App normally consumes their protected SDK projection, rather than constructing a direct gRPC connection.
 
-Runtime owns several server-streaming RPCs (text generation, voice
-synthesis, scenario job events, audit export, long-
-lived subscriptions). The streaming contract pins **how each
-stream closes** so consumers can write recovery logic that does not
-guess at protocol shape.
-
-## Four Close Modes
-
-The contract classifies every Runtime server-streaming RPC into one
-of four close modes:
-
-| Mode | Close signal | RPCs |
+| Surface | Normal completion | Interruption |
 | --- | --- | --- |
-| **A — completed / failed stream event** | Final event is `STREAM_EVENT_COMPLETED` or `STREAM_EVENT_FAILED` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
-| **B — terminal event then gRPC OK close** | Server emits terminal event, then closes stream cleanly | `SubscribeScenarioJobEvents` |
-| **C — `eof=true` chunk then gRPC OK close** | Server emits `eof=true` chunk, then closes | `ExportAuditEvents` |
-| **D — long-lived subscription stream** | No terminal frame; either side may close | `SubscribeRuntimeHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
+| `StreamScenario` | Typed completed or failed terminal event | Transport loss can prevent terminal delivery; do not infer success |
+| `SubscribeScenarioJobEvents` | Job snapshots through a terminal state, then closure | Re-observe the original Job with Get; detachment does not cancel work |
+| `ExportAuditEvents` | Final chunk with `eof=true` | An interrupted export is incomplete |
+| Long-lived subscriptions | Follow the owning operation's lifecycle; no universal success frame | Session, authority, transport, or daemon changes can close the subscription |
 
-Mode D streams have no terminal signal. When the daemon enters
-`STOPPING` (`K-DAEMON-003`), it closes all active subscriptions with
-gRPC `CANCELLED`. Clients detect closure via `runtime.disconnected`
-(`S-RUNTIME-028`) or gRPC status and decide whether to rebuild.
+## Generation Events
 
-## Stream Establishment Boundary
+Admission failure before stream establishment is an operation error. An established generation stream carries the admitted started, delta, usage, completed, or failed shapes. Consumers preserve ordered content and distinguish a successful terminal from failed or interrupted delivery. Speech bytes and MIME information must satisfy the exact speech output contract.
 
-For `StreamScenario` (`TEXT_GENERATE` / `SPEECH_SYNTHESIZE`):
+A terminal frame cannot be guaranteed after connection loss. Do not retry a partial generation as if it resumed the original operation. An explicit new generation is a separate App action.
 
-| Stage | Where errors flow |
-| --- | --- |
-| Protected caller, authorization, and capability admission | Pre-establishment errors → gRPC error |
-| Runtime implementation execution | Stream is established; subsequent business / upstream errors → terminal `STREAM_EVENT_FAILED` frame with a reason code |
+## Job Snapshots and Complete Results
 
-The split is deliberate: pre-establishment errors are connection
-failures (caller never streams); post-establishment errors are
-in-stream business outcomes (caller already streaming).
+A Job can emit multiple snapshots of the same status or event type. Do not discard a newer snapshot merely because its type repeats. Events do not expose every typed terminal result.
 
-## Mode A Event Constraints
+Use repeated `GetScenarioJob` calls on the same identity. Each call may reconcile the original native provider task within bounded work. Read the complete terminal response, including operation-specific results such as VoiceAsset/VoiceReference or vision locations, and use `GetScenarioArtifacts` for contracts with formal artifact output. An empty valid result is distinct from an absent required result.
 
-Text streams (`TEXT_GENERATE`):
+An observation error is not a fabricated Job terminal. SDK observation helpers retain the original Job, expose typed issues, and separate observation abort from explicit execution cancellation. See [Streams and Job Observation](/runtime/streaming).
 
-| Event shape | Required |
-| --- | --- |
-| `STREAM_EVENT_DELTA` with `payload.delta.text` | `payload.delta.text.text` must be non-empty |
-| `STREAM_EVENT_USAGE` | Carries incremental or final `UsageStats` when Runtime has usage evidence |
-| `STREAM_EVENT_COMPLETED` | Carries `payload.completed.finish_reason` and completion metadata |
-| `STREAM_EVENT_FAILED` | Carries `payload.failed.reason_code` and, when available, `action_hint` |
+## Reconnect and Resource Limits
 
-Voice streams (`SPEECH_SYNTHESIZE`):
+Shared realtime infrastructure owns ordering, generation fencing, cancellation, bounded buffering, and safe lifecycle metadata. It does not own generic replay or durable checkpoints. Realm defines its cursor recovery, LocalAgent recovers from its committed Conversation snapshot, and AI Realtime remains session-ephemeral.
 
-| Event shape | Required |
-| --- | --- |
-| `STREAM_EVENT_DELTA` with `payload.delta.artifact` | Artifact chunk and MIME type must match the admitted voice artifact contract |
-| `STREAM_EVENT_COMPLETED` | Carries typed completion metadata |
-| `STREAM_EVENT_FAILED` | Carries `payload.failed.reason_code` and, when available, `action_hint` |
-
-## Mode B Event Constraints
-
-`SubscribeScenarioJobEvents`:
-
-| Rule | Value |
-| --- | --- |
-| Mode A terminal semantics | NOT used |
-| Steady-state close | After terminal event, server closes stream gRPC OK |
-| `STOPPING` preempt | Daemon may preempt active streams with gRPC `CANCELLED`; terminal event delivery not guaranteed |
-
-The same job may emit repeated state events of the same
-`event_type` while non-terminal. Consumers must overwrite the prior
-snapshot with the latest event content; do **not** assume strict
-event-type monotonicity.
-
-## Reader Scenario: A Text Streaming Call
-
-App calls `StreamScenario` for text generation.
-
-1. **Pre-establishment validation.** Runtime validates the protected caller,
-   App authorization, canonical capability request, and its own internal
-   configuration.
-2. **Establishment.** All pre-establishment checks pass. Stream
-   begins (step 10).
-3. **Delta events.** Each `STREAM_EVENT_DELTA` text chunk carries
-   non-empty `payload.delta.text.text`.
-4. **Terminal event.** Runtime emits `STREAM_EVENT_COMPLETED` with a
-   completed payload or `STREAM_EVENT_FAILED` with a failed payload.
-5. **Stream closes.** gRPC OK after terminal frame received.
-
-If something fails post-establishment, it surfaces as a terminal
-`STREAM_EVENT_FAILED` frame with a reason code, not as a gRPC error.
-
-## Reader Scenario: A Long-Lived Subscription Survives Daemon Restart
-
-App subscribes to `SubscribeAccountSessionEvents`.
-
-1. **Stream open.** Mode D. Events stream as session state changes.
-2. **Daemon enters `STOPPING`.** Runtime closes all active
-   subscriptions with gRPC `CANCELLED`.
-3. **App detects closure.** Either via `runtime.disconnected` or
-   gRPC status.
-4. **Reconnect logic.** App decides to rebuild the subscription
-   when the daemon comes back; it does not assume the daemon
-   "should have" sent a terminal event.
-
-The contract's explicit "no terminal signal in mode D" is what makes
-the recovery logic correct — apps don't wait forever for an event
-that's not coming.
-
-## Reader Scenario: Job Events With Repeating Event Types
-
-App subscribes to `SubscribeScenarioJobEvents`.
-
-1. **Job runs.** Same `event_type` (e.g., `progress`) emits multiple
-   times during execution with updated snapshot content.
-2. **App overwrites prior snapshot.** Does not deduplicate by event
-   type.
-3. **Terminal event.** When job completes, terminal event arrives;
-   server closes stream gRPC OK.
-
-If the daemon enters `STOPPING` first, the stream may close with
-gRPC `CANCELLED` before the terminal event — the app rebuilds the
-subscription on next daemon availability and re-derives terminal
-state from the job snapshot.
-
-## Protocol Guarantees
-
-- It does not let consumers infer close behavior; every RPC's mode
-  is admitted in the table.
-- It does not allow Mode A completed / failed event semantics in mode B / C / D.
-- It does not let mode D streams expect terminal events.
-- It does not allow post-establishment errors to surface as gRPC
-  errors instead of terminal frames in mode A.
-- It does not allow consumers to assume strict event-type
-  monotonicity within a job stream.
-
-## Boundary Summary
-
-| Concern | Authority |
-| --- | --- |
-| Close-mode classification | `K-STREAM-001` |
-| Establishment boundary | `K-STREAM-002` |
-| Text stream events | `K-STREAM-003` |
-| Voice stream events | `K-STREAM-004` |
-| State event streams | `K-STREAM-005` |
-| Chunk framing | `K-STREAM-006` |
-| EOF chunk close | `K-STREAM-009` |
-| Subscription stream lifecycle | `K-STREAM-010` |
-| Daemon shutdown coupling | `K-DAEMON-003` |
+Backpressure is bounded: slow consumers may be closed with a typed failure. Daemon shutdown or stale authority closes affected subscriptions and fences late data. A client must re-establish authorized state through the owning surface before accepting a new generation.
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
-- [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
-- [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
+- [`proto/runtime/v1/ai.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/ai.proto)
+- [`sdks/typescript/runtime/scenario-jobs.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/scenario-jobs.ts)

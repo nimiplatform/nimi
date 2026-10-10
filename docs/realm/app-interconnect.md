@@ -12,9 +12,7 @@ for outside systems.
 | REST | Typed Realm reads / mutations under admitted contracts |
 | WebSocket | Realtime delivery of canonical events |
 
-Apps connect to Realm through admitted REST + WS surfaces; they
-do not invent their own protocols. Authorization is bearer token
-issued under admitted token issuance flow.
+Realm uses admitted REST and WebSocket protocols behind the SDK/Runtime carrier. A formal Nimi App uses its protected `client.realm` operations; Runtime retains Realm credential custody. The App neither receives a bearer nor creates a raw REST/WebSocket bypass.
 
 ## App Modes And Realm Authority
 
@@ -39,7 +37,6 @@ open-spec anchors (cross-protocol mappings). It bridges:
 | --- | --- |
 | World state contract ↔ external state representations | When a Realm world's state needs to be visible externally |
 | World history contract ↔ external history representations | Cross-platform history compatibility |
-| Runtime memory ↔ Realm memory | Replication semantics |
 | Runtime agent ↔ Realm agent | Identity bridging |
 | Transit contract ↔ external transit shapes | Cross-protocol transit compatibility |
 
@@ -70,7 +67,7 @@ explicit binding. There is no silent privilege escalation.
 
 An app wants to react to canonical events as they happen.
 
-1. **Subscribe.** App opens a WebSocket subscription to Realm
+1. **Subscribe.** App opens an admitted typed Realm realtime subscription through its host-bound client
    under admitted subscription surface.
 2. **Realtime delivery.** Events arrive as they commit.
 3. **App reacts.** Typed event handlers under admitted shapes.

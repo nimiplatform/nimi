@@ -37,11 +37,9 @@ is **identity** — who they are.
 | Identity (canonical) | Current world context |
 | Social standing | World-internal local social rules |
 | Economic standing | World-internal economy meaning |
-| Memory (per memory bank scope) | World-shared memory scope |
 | Avatar presentation profile | World-specific carrier acceptance |
 
-`AGENT_CORE` and `AGENT_DYADIC` memory travels everywhere;
-`WORLD_SHARED` memory stays with its world.
+Memory remains Agent-private in Cognition; entering another world creates no shared Memory bank. Knowledge V1 is inactive.
 
 ## Reader Scenario: A Move Between Two Worlds
 

@@ -7,11 +7,12 @@ Nimi 按 owner 分离产品真相。Projection、host、package、App、docs pag
 | --- | --- | --- |
 | Platform | 跨域协议与产品 owner 边界 | Realm truth、Runtime execution、App 产品行为 |
 | Realm | Character、Character Source、World Source、social、economy、canonical World state 与 history | LocalAgent execution 与本地 AI routing |
-| Runtime | Local 与 Cloud AI 消费、LocalAgent、Conversation、运行态 Memory 与 Knowledge、voice、readiness、Credential、本地 audit、App authorization | Realm Character 或 World truth；产品 UI |
+| Runtime | Local 与 Cloud AI 消费、LocalAgent、Conversation、Memory 访问中介、voice、readiness、Credential、本地 audit、App authorization | Realm Character 或 World truth；产品 UI |
+| Cognition | Agent 私有长期 Memory 与派生检索；Knowledge V1 未启用 | Conversation、授权与 AI 执行 |
 | SDK | Runtime 与 Realm 的强类型公共 consumer projection | Provider execution、Realm truth、host-private transport |
 | Kit | Demand-driven 共享 UI 与 host composition | 可复用公共 capability catalog 或 owner-domain truth |
 | Nimi Home / Desktop | 当前产品 home、native host、产品 UI 与 interaction | Realm 或 Runtime authority |
-| Avatar | Embodiment shell、renderer execution、playback 与 renderer-local state | LocalAgent、Conversation、Memory、Knowledge、AI routing |
+| Avatar | Embodiment shell、renderer execution、playback 与 renderer-local state | LocalAgent、Conversation 与 Memory 访问中介、AI routing |
 | App | 自身产品行为与私有数据 | Account、grant、session、LocalAgent、Provider 或 Realm truth |
 
 ## 主要 Owner 转换
@@ -25,11 +26,11 @@ Nimi 按 owner 分离产品真相。Projection、host、package、App、docs pag
 | Runtime → Avatar | 强类型 presentation 与 voice 输入；渲染留在 Avatar 本地 |
 | Nimi Home → App | Protected launch 与 host composition；authorization 仍归 Runtime |
 
-## 非阻塞未来能力
+## 各自独立的能力范围
 
-通用 Workflow、MCP、World Evolution、Marketplace、Registry、Trust Tier、公共
-分发与 settlement 都在当前核心闭环之外。它们缺失时，不代表 Runtime、SDK、
-Nimi Home、Avatar 或普通 App readiness 失败。
+Registry 验证包与本地开发遵循 [App 生命周期](/zh/start/#本地开发与对外分发)。[集成](/zh/runtime/integrations)使用独立连接和权限契约。通用 Workflow、World Evolution、联邦与市场结算，不会成为无关已准入 App 操作的前提。
+
+长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
 ## 来源依据
 
