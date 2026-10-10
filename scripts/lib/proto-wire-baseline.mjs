@@ -62,7 +62,7 @@ export function validateMigration(value, label) {
 }
 
 export function findingKey(finding) {
-  return JSON.stringify([finding.rule, finding.path, finding.message]);
+  return JSON.stringify([finding.rule, finding.path.replaceAll('\\', '/'), finding.message]);
 }
 
 // Structural validation only; provenance and migration notes are checked

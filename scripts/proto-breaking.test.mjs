@@ -39,7 +39,7 @@ function withEditedProto(edits, callback) {
     fs.cpSync(path.join(repoRoot, 'proto'), protoDir, { recursive: true });
     for (const { file, from, to } of edits) {
       const target = path.join(protoDir, file);
-      const source = fs.readFileSync(target, 'utf8');
+      const source = fs.readFileSync(target, 'utf8').replaceAll('\r\n', '\n');
       assert.ok(source.includes(from), `fixture edit target is missing from ${file}: ${from}`);
       fs.writeFileSync(target, source.replace(from, to));
     }
@@ -51,7 +51,7 @@ test('the committed record names a published wire-carrying tag and validates', (
   const record = readBaselineRecord(repoRoot);
   assert.match(record.source.tag, /^sdk\/v\d+\.\d+\.\d+$/u);
   assert.equal(record.image.sha256, sha256(fs.readFileSync(baselineImage)));
-  assert.deepEqual(record.declaredBreaking, []);
+  verifyMigrationReferences(repoRoot, record.declaredBreaking.map((entry) => entry.migration));
 });
 
 test('record validation rejects unpublished or unexplained sources and declarations', () => {
@@ -86,6 +86,10 @@ test('every finding needs a declaration and every declaration needs a finding', 
   assert.deepEqual(classifyFindings([], [declaration]).stale, [declaration]);
   // Line numbers move with ordinary edits and never decide the match.
   assert.equal(classifyFindings([{ ...finding, line: 42 }], [declaration]).undeclared.length, 0);
+  const windows = { ...finding, path: 'runtime\\v1\\ai.proto' };
+  assert.deepEqual(classifyFindings([windows], [declaration]), { declared: [windows], undeclared: [], stale: [] });
+  assert.equal(classifyFindings([{ ...windows, path: 'runtime\\v1\\different.proto' }], [declaration]).undeclared.length, 1);
+  assert.equal(classifyFindings([{ ...windows, message: 'A different removal' }], [declaration]).undeclared.length, 1);
 });
 
 test('a declared break must point at an existing migration heading', () => {
@@ -106,7 +110,8 @@ test('deleting definitions published after the retired snapshot fails against th
     { file: 'runtime/v1/ai.proto', from: '  rpc OpenVideoSession(OpenVideoSessionRequest) returns (OpenVideoSessionResponse);\n', to: '' },
   ];
   const findings = withEditedProto(edits, (protoDir) => breakingFindings({ buf: tool, protoDir, againstImage: baselineImage }));
-  assert.deepEqual(findings.map(({ rule, path: file }) => `${rule} ${file}`).sort(), [
+  const undeclared = classifyFindings(findings, committedRecord().declaredBreaking).undeclared;
+  assert.deepEqual(undeclared.map(({ rule, path: file }) => `${rule} ${file.replaceAll('\\', '/')}`).sort(), [
     'ENUM_VALUE_NO_DELETE runtime/v1/ai.proto',
     'FIELD_NO_DELETE runtime/v1/capability_configuration.proto',
     'RPC_NO_DELETE runtime/v1/ai.proto',
@@ -117,11 +122,16 @@ test('deleting definitions published after the retired snapshot fails against th
 
 test('unchanged and additive proto passes against the published wire', { skip: bufSkip }, () => {
   const tool = requireBuf(buf);
-  assert.deepEqual(breakingFindings({ buf: tool, protoDir: path.join(repoRoot, 'proto'), againstImage: baselineImage }), []);
+  const check = (findings) => {
+    const result = classifyFindings(findings, committedRecord().declaredBreaking);
+    assert.deepEqual(result.undeclared, []);
+    assert.deepEqual(result.stale, []);
+  };
+  check(breakingFindings({ buf: tool, protoDir: path.join(repoRoot, 'proto'), againstImage: baselineImage }));
   const additive = [
     { file: 'runtime/v1/ai.proto', from: '  SCENARIO_TYPE_TEXT_ANNOTATE = 16;\n', to: '  SCENARIO_TYPE_TEXT_ANNOTATE = 16;\n  SCENARIO_TYPE_GATE_FIXTURE = 999;\n' },
   ];
-  assert.deepEqual(withEditedProto(additive, (protoDir) => breakingFindings({ buf: tool, protoDir, againstImage: baselineImage })), []);
+  check(withEditedProto(additive, (protoDir) => breakingFindings({ buf: tool, protoDir, againstImage: baselineImage })));
 });
 
 test('source that does not compile fails instead of producing findings', { skip: bufSkip }, () => {
