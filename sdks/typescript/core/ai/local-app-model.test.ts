@@ -4,6 +4,7 @@ import { createNimiLocalAppTextModel } from './local-app-model';
 import { createNimiLocalAppAIConsumptionClient, type NimiLocalAppScenarioExecuteShellSpec, type NimiLocalAppScenarioExecuteOptions } from '../app/local-app-runtime-platform-ai';
 import type { NimiLocalAppTextTurnInput } from '../app/local-app-text';
 import { filePart, textPart } from '../contracts';
+import { createNimiError, isNimiError } from '../../types';
 
 function fixture(events: () => AsyncIterable<unknown>, onCancel: () => void = () => {}, executeOutput?: unknown) {
   const inputs: NimiLocalAppTextTurnInput[] = [];
@@ -337,6 +338,84 @@ test('failed Local App text generation preserves its Runtime trace', async () =>
   await assert.rejects(f.model.generateText({ messages: [user], responseFormat: { type: 'json-object' } }), {
     reasonCode: 'ai-output-invalid', traceId: 'trace-failed-json', retryable: false,
   });
+  assert.equal(f.canceled(), 1);
+});
+
+test('failed text keeps interruption and trace when closing the carrier also fails', async () => {
+  const cleanup = new Error('Host unavailable during close');
+  const interruption = { cause: 'runtime-restart', resubmitDisposition: 'outcome-uncertain' };
+  const f = fixture(async function* () {
+    yield { type: 'failed', sequence: '1', traceId: 'trace-interrupted', reasonCode: 'ai-execution-interrupted', actionHint: 'inspect original work', interruption };
+  }, () => { throw cleanup; });
+  await assert.rejects(f.model.generateText({ messages: [user] }), (error: unknown) => {
+    assert.ok(error instanceof AggregateError);
+    assert.ok(isNimiError(error));
+    assert.equal(error.reasonCode, 'ai-execution-interrupted');
+    assert.equal(error.traceId, 'trace-interrupted');
+    assert.deepEqual(error.interruption, interruption);
+    assert.equal(error.retryable, false);
+    assert.equal(error.cause, error.errors[0]);
+    assert.equal(error.errors[1], cleanup);
+    assert.equal(error.errors.length, 2);
+    return true;
+  });
+  assert.equal(f.canceled(), 1);
+});
+
+for (const kind of ['transport', 'projection'] as const) {
+  test(`text ${kind} failure survives both SDK cleanup layers`, async () => {
+    const primary = createNimiError({ message: 'Transport lost', reasonCode: 'TEST_TRANSPORT_LOST', traceId: 'original-trace', source: 'sdk' });
+    const cleanup = new Error('Host close rejected');
+    const f = fixture(async function* () {
+      if (kind === 'transport') throw primary;
+      yield { type: 'delta', sequence: '2', traceId: 'trace-invalid', text: 'out of order', itemIndex: 0 };
+    }, () => { throw cleanup; });
+    await assert.rejects(f.model.generateText({ messages: [user] }), (error: unknown) => {
+      assert.ok(error instanceof AggregateError);
+      assert.ok(isNimiError(error));
+      assert.equal(error.reasonCode, kind === 'transport' ? primary.reasonCode : 'SDK_LOCAL_APP_PROJECTION_INVALID');
+      if (kind === 'transport') {
+        assert.equal(error.cause, primary);
+        assert.equal(error.traceId, primary.traceId);
+      } else assert.match(error.message, /sequence/);
+      assert.equal(error.errors.length, 2);
+      assert.equal(error.errors[1], cleanup);
+      return true;
+    });
+    assert.equal(f.canceled(), 1);
+  });
+}
+
+test('abort retains its original cause together with a rejected close', async () => {
+  const waiting = Promise.withResolvers<void>();
+  const closed = Promise.withResolvers<void>();
+  const reason = new Error('User stopped the request');
+  const cleanup = new Error('Host close rejected');
+  const f = fixture(async function* () {
+    yield { type: 'delta', sequence: '1', traceId: 'trace-abort', itemIndex: 0, text: 'Partial' };
+    waiting.resolve();
+    await closed.promise;
+  }, () => { closed.resolve(); throw cleanup; });
+  const controller = new AbortController();
+  const result = f.model.generateText({ messages: [user], signal: controller.signal });
+  await waiting.promise;
+  controller.abort(reason);
+  await assert.rejects(result, (error: unknown) => {
+    assert.ok(error instanceof AggregateError);
+    assert.equal(error.cause, reason);
+    assert.deepEqual(error.errors, [reason, cleanup]);
+    return true;
+  });
+  assert.equal(f.canceled(), 1);
+});
+
+test('cleanup failure remains an error when generation has no primary failure', async () => {
+  const cleanup = new Error('Host close rejected');
+  const f = fixture(async function* () {
+    yield { type: 'delta', sequence: '1', traceId: 'trace-success', itemIndex: 0, text: 'Complete' };
+    yield { type: 'completed', sequence: '2', traceId: 'trace-success', finishReason: 'stop' };
+  }, () => { throw cleanup; });
+  await assert.rejects(f.model.generateText({ messages: [user] }), error => error === cleanup);
   assert.equal(f.canceled(), 1);
 });
 

@@ -148,6 +148,7 @@ function validateDesktopAuditResponse(response: ListDesktopAuditEventsResponse):
   };
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r021
 function validateDesktopAuditEvent(event: DesktopAuditEventProjection): DesktopAuditEventProjection {
   if (!event || typeof event !== 'object' || Array.isArray(event)) {
     throw invalidProjection('event must be an object');
@@ -165,7 +166,9 @@ function validateDesktopAuditEvent(event: DesktopAuditEventProjection): DesktopA
       throw invalidProjection(`event ${name} is invalid`);
     }
   }
-  if (!event.auditId || !event.appId || !event.domain || !event.operation || !event.traceId || !event.timestamp) {
+  // Runtime records refused handshakes and unverified peers without an App
+  // attribution. Keep that empty appId; it is not a malformed audit record.
+  if (!event.auditId || !event.domain || !event.operation || !event.traceId || !event.timestamp) {
     throw invalidProjection('event is missing a required audit field');
   }
   timestampNanos(event.timestamp, 'event.timestamp');

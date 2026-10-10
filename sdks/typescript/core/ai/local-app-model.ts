@@ -3,6 +3,7 @@ import { validateLocalAppTextInput, modelTextOutputToLocalApp, localAppTextOutpu
 import { assertExactKeys, localAppError, localAppProjectionError } from '../app/local-app-runtime-platform-validation.js';
 import type { NimiRunEvent } from '../contracts/index.js';
 import { createNimiError } from '../../types/index.js';
+import { withTextStreamCleanupFailure } from '../text-stream-cleanup.js';
 import { collectNimiTextStream, type NimiAiModel, type NimiGenerateTextRequest } from './index.js';
 
 export type NimiLocalAppTextModelOptions = {
@@ -120,6 +121,8 @@ export function createNimiLocalAppTextModel(
     const input = localInput(request);
     let stream: Awaited<ReturnType<typeof ai.text.streamTurn>> | undefined;
     let close: Promise<void> | undefined;
+    let failed = false;
+    let primaryFailure: unknown;
     const abort = () => {
       if (stream) {
         close ??= stream.cancel();
@@ -147,11 +150,18 @@ export function createNimiLocalAppTextModel(
       }
       request.signal?.throwIfAborted();
     } catch (error) {
-      request.signal?.throwIfAborted();
-      throw error;
+      failed = true;
+      primaryFailure = request.signal?.aborted ? request.signal.reason : error;
+      throw primaryFailure;
     } finally {
       request.signal?.removeEventListener('abort', abort);
-      if (stream) await (close ??= stream.cancel());
+      if (stream) {
+        try { await (close ??= stream.cancel()); }
+        catch (cleanupError) {
+          if (failed) throw withTextStreamCleanupFailure(primaryFailure, cleanupError);
+          throw cleanupError;
+        }
+      }
     }
   }
   const selectedText = options.executionMode === 'sync' ? executeText : streamText;

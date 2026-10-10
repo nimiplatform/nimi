@@ -10,6 +10,7 @@ import {
   type NimiLocalAppTextDecideSpec, type NimiLocalAppTextDecideShellSpec, type NimiLocalAppTextDecideOutput,
 } from './local-app-text-decision.js';
 import { ReasonCode, createNimiError } from '../../types/index.js';
+import { withTextStreamCleanupFailure } from '../text-stream-cleanup.js';
 import { TextEmbedPurpose } from '../../core-generated/runtime-protobuf/runtime/v1/ai.js';
 import type { NimiUsage } from '../contracts/index.js';
 import { copyNimiLocalAppBytes, exactNimiLocalAppBytes, isNimiLocalAppByteView } from './local-app-bytes.js';
@@ -559,6 +560,8 @@ export function createNimiLocalAppAIConsumptionClient(
             let lastIndex = -1;
             let lastKind = '';
             let summaryOpen = false;
+            let failed = false;
+            let primaryFailure: unknown;
             const toolIds = new Set<string>();
             try {
               for await (const event of stream) {
@@ -588,7 +591,17 @@ export function createNimiLocalAppAIConsumptionClient(
                 yield event;
               }
               if (!terminal && !canceled) localAppProjectionError('text-turn missing terminal event');
-            } finally { await cancel(); }
+            } catch (error) {
+              failed = true;
+              primaryFailure = error;
+              throw error;
+            } finally {
+              try { await cancel(); }
+              catch (cleanupError) {
+                if (failed) throw withTextStreamCleanupFailure(primaryFailure, cleanupError);
+                throw cleanupError;
+              }
+            }
           },
           cancel,
         });

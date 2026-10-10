@@ -98,6 +98,44 @@ test('desktop audit client rejects unbounded requests before transport', async (
   assert.equal(calls, 0);
 });
 
+test('desktop audit preserves transport refusals without an attributed App', async () => {
+  for (const callerKind of [CallerKind.UNSPECIFIED, CallerKind.THIRD_PARTY_APP]) {
+    const event = {
+      auditId: 'audit-refusal', requestId: '', appId: '',
+      domain: 'runtime.protected_transport', operation: 'connection',
+      reasonCode: ReasonCode.PROTECTED_ORIGIN_ROLE_MISMATCH,
+      traceId: 'trace-refusal', timestamp: fromTime, callerKind,
+    };
+    const runtime: NimiDesktopAuditProjectionRuntime = {
+      async listDesktopAuditEvents() { return { events: [event], nextPageToken: '' }; },
+    };
+    const response = await createNimiDesktopAuditProjectionClient({ runtime }).listEvents(validRequest());
+    assert.deepEqual(response.events, [event]);
+    assert.equal(response.events[0]?.appId, '', 'never invent an App identity for a refused peer');
+  }
+});
+
+test('desktop audit still rejects missing audit identity, operation and timestamp', async () => {
+  const event = {
+    auditId: 'audit-refusal', requestId: '', appId: '',
+    domain: 'runtime.protected_transport', operation: 'connection',
+    reasonCode: ReasonCode.PROTECTED_ORIGIN_ROLE_MISMATCH,
+    traceId: 'trace-refusal', timestamp: fromTime, callerKind: CallerKind.UNSPECIFIED,
+  };
+  for (const field of ['auditId', 'domain', 'operation', 'traceId', 'timestamp'] as const) {
+    const runtime = {
+      async listDesktopAuditEvents() {
+        return { events: [{ ...event, [field]: field === 'timestamp' ? undefined : '' }], nextPageToken: '' };
+      },
+    } as unknown as NimiDesktopAuditProjectionRuntime;
+    await assert.rejects(
+      createNimiDesktopAuditProjectionClient({ runtime }).listEvents(validRequest()),
+      /missing a required audit field/u,
+      field,
+    );
+  }
+});
+
 test('desktop audit client rejects raw or credential-adjacent response fields', async () => {
   const runtime = {
     async listDesktopAuditEvents() {

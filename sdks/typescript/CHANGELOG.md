@@ -1,5 +1,15 @@
 # SDK migration notes
 
+## SDK 0.21.0 — Text-stream failure preservation (development)
+
+The protected text stream and Local App text model now retain the operation
+failure when stream cleanup also fails. The combined `AggregateError` keeps the
+original error as `cause`, both errors in `errors`, and the primary `NimiError`
+metadata (including trace and interruption disposition) on the combined error.
+`isNimiError` continues to work for a typed primary failure. Repeated observation
+of the same close rejection does not duplicate it; a cleanup-only failure still
+rejects. This does not add automatic resubmission or change external stop proof.
+
 ## SDK 0.21.0 / Kit and native 0.18.0 — Unified asynchronous Job lifecycle (development)
 
 This unpublished 0.x development set makes a breaking public contract change. Upgrade the matching Runtime, SDK, Kit and native carriers together; version labels alone do not identify a build. Every supported asynchronous CapabilityContract uses Submit, the original Job ID, Get, formal contract result readers and explicit Cancel regardless of its Local, synchronous remote or native task implementation. Query and result acquisition remain Runtime-owned. Public text unary/stream, speech stream and independent realtime/frame Sessions keep their own forms.
@@ -15,7 +25,6 @@ Consumers retain at least one full terminal Get response even when Submit return
 The generation facade `get(jobId)` now returns the full Get response; read its Job from `.job`. Modality runner results also retain the full response as `.response`. The observer now performs serialized Get every `getIntervalMs` (default 1000 ms) even with a silent healthy stream. `onObservation` exposes full responses and the common SDK result retains `response`. Migration: runner `signal` explicitly requests Cancel; bind view disposal to `observationSignal`. Pure observe `signal` detaches, while optional `cancelSignal` explicitly requests Cancel. Cancel rejection retains the original Job identity and never fabricates a terminal state. Kit adds typed observe entrypoints for image/video generation, speech synthesis and transcription. These public additions and 0.x timeout-option removals are a minor change.
 
 The unreachable synchronous protected image execute union is removed. Its request and response tag 2 and `image_generate` names are reserved, and the orphan `LocalAppImageGenerateOutput` type is removed. Use image Job submission; a remote synchronous protocol still produces a public Job. The declared wire changes must match the published-baseline findings exactly; do not replace the baseline image or source tag.
-
 
 ## 0.21.0 — Captured embedding retrieval purpose (development)
 
