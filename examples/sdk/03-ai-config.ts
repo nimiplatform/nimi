@@ -3,8 +3,8 @@
  *
  * AIConfig is one complete value per App: an overwrite replaces every
  * capability, so keep the ones the App already has. The intent names no model,
- * connector or machine selection; Runtime chooses the implementation when work
- * starts. A revision conflict means another writer saved first.
+ * connector or machine selection; Runtime captures the machine-selected Loadout at
+ * submission. A revision conflict means another writer saved first.
  */
 
 import type {

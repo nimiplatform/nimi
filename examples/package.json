@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "pnpm --dir .. --filter @nimiplatform/sdk-adapter-vercel-ai build && tsc -p tsconfig.json --noEmit",
-    "test": "pnpm run check"
+    "test": "pnpm run check && node --test test/*.test.mjs"
   },
   "dependencies": {
     "@nimiplatform/sdk-adapter-vercel-ai": "workspace:*",
