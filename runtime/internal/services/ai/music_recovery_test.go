@@ -82,9 +82,11 @@ func TestNativeMediaStagingStartupCleanupIsBoundedToOwnedNames(t *testing.T) {
 		"music-staging/music-12346/events.json", "music-staging/music-12346/timeline.json",
 		"speech-staging/sep-12345/source.wav", "speech-staging/sep-12345/stems/vocals.wav", "speech-staging/sep-12345/stems/drums.wav",
 		"speech-staging/sep-12345/stems/bass.wav", "speech-staging/sep-12345/stems/other.wav", "speech-staging/sep-12345/stems/background.wav",
+		"speech-staging/sep-12345/stems/accompaniment.wav", "speech-staging/sep-12345/stems/result.json",
 	}
 	unrelated := []string{
 		"speech-staging/sep-notes/source.wav", "speech-staging/sep-777/stems/extra.wav", "speech-staging/voices/source.wav",
+		"speech-staging/sep-notes/stems/result.json",
 		"music-staging/music-555/notes.txt",
 	}
 	for _, name := range append(append([]string{}, owned...), unrelated...) {

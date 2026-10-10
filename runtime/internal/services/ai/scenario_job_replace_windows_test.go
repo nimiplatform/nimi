@@ -96,7 +96,7 @@ func TestScenarioJobPersistenceFailsClosedForPersistentWindowsReader(t *testing.
 	if err := beginScenarioJobCustodyForWindowsTest(t, store, "appended"); err != nil {
 		t.Fatal(err)
 	}
-	before, err := os.ReadFile(store.durablePath)
+	before, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestScenarioJobPersistenceFailsClosedForPersistentWindowsReader(t *testing.
 		t.Fatalf("persistent reader must retain its Windows failure: %v", err)
 	}
 	release()
-	after, err := os.ReadFile(store.durablePath)
+	after, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestScenarioJobAppendFailsClosedForReaderDenyingWrites(t *testing.T) {
 	if err := beginScenarioJobCustodyForWindowsTest(t, store, "initial"); err != nil {
 		t.Fatal(err)
 	}
-	before, err := os.ReadFile(store.durablePath)
+	before, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestScenarioJobAppendFailsClosedForReaderDenyingWrites(t *testing.T) {
 		t.Fatal("failed append published pending custody")
 	}
 	release()
-	after, err := os.ReadFile(store.durablePath)
+	after, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}

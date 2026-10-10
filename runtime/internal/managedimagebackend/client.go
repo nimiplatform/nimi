@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/reflect/protodesc"
@@ -96,7 +97,8 @@ type LoadModelDiagnostics struct {
 	ResidentRestarted bool
 }
 
-type ImageGenerateDiagnostics struct {
+type ImageGenerateResult struct {
+	Payload            []byte
 	QueueWaitMs        int64
 	GenerateDurationMs int64
 	QueueSerialized    bool
@@ -127,9 +129,12 @@ func cloneComponentBindings(input []ComponentBinding) []ComponentBinding {
 	return append([]ComponentBinding(nil), input...)
 }
 
-func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnostics, error) {
-	if strings.TrimSpace(req.Dst) == "" {
-		return nil, fmt.Errorf("managed media destination is required")
+func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateResult, error) {
+	if req.Protocol == ProtocolDirectGOSD && strings.TrimSpace(req.Dst) == "" {
+		return nil, fmt.Errorf("direct backend destination is required")
+	}
+	if req.Protocol == ProtocolManagedWrapper && strings.TrimSpace(req.Dst) != "" {
+		return nil, fmt.Errorf("managed image results use Runtime-owned byte custody")
 	}
 	if req.Protocol != ProtocolDirectGOSD && req.Protocol != ProtocolManagedWrapper {
 		return nil, fmt.Errorf("managed image protocol is required")
@@ -162,6 +167,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 		ctx,
 		strings.TrimSpace(req.BackendAddress),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(int(localexecution.MaxImageArtifactBytes)+(64<<10))),
 		grpc.WithBlock(),
 	)
 	if err != nil {
@@ -272,6 +278,9 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 		if !success {
 			return nil, fmt.Errorf("generate managed media image failed: %s", defaultMessage(message, "backend returned unsuccessful image result"))
 		}
+		if req.Protocol == ProtocolManagedWrapper && (len(diag.Payload) == 0 || int64(len(diag.Payload)) > localexecution.MaxImageArtifactBytes) {
+			return nil, fmt.Errorf("managed image result body is missing or exceeds its resource bound")
+		}
 		return diag, nil
 	}
 	if sawDirectResultTerminal {
@@ -285,7 +294,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 			)
 			return nil, fmt.Errorf("generate managed media image: direct gosd terminal did not produce artifact: %w", err)
 		}
-		diag := &ImageGenerateDiagnostics{
+		diag := &ImageGenerateResult{
 			GenerateDurationMs: time.Since(invokeStartedAt).Milliseconds(),
 		}
 		slog.Info("managed image backend invoke completed",
@@ -684,6 +693,7 @@ func ensureDescriptors() error {
 							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
 							Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
 						},
+						{Name: stringPtr("image_bytes"), Number: int32Ptr(11), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BYTES.Enum()},
 					},
 				},
 			},
@@ -818,7 +828,7 @@ func readResult(message *dynamicpb.Message) (bool, string, *LoadModelDiagnostics
 	}
 }
 
-func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, bool, bool, bool, string, *ImageGenerateDiagnostics) {
+func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, bool, bool, bool, string, *ImageGenerateResult) {
 	if message == nil {
 		return ImageGenerateProgress{}, false, false, false, "", nil
 	}
@@ -828,7 +838,8 @@ func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, 
 		ProgressPercent: readOptionalInt32Field(message, "progress_percent"),
 	}
 	hasProgress := progress.CurrentStep > 0 || progress.TotalSteps > 0 || progress.ProgressPercent > 0
-	return progress, hasProgress, readOptionalBoolField(message, "done"), readOptionalBoolField(message, "success"), readOptionalStringField(message, "message"), &ImageGenerateDiagnostics{
+	return progress, hasProgress, readOptionalBoolField(message, "done"), readOptionalBoolField(message, "success"), readOptionalStringField(message, "message"), &ImageGenerateResult{
+		Payload:            readBytesField(message, "image_bytes"),
 		QueueWaitMs:        readOptionalInt64Field(message, "queue_wait_ms"),
 		GenerateDurationMs: readOptionalInt64Field(message, "generate_duration_ms"),
 		QueueSerialized:    readOptionalBoolField(message, "queue_serialized"),
@@ -836,7 +847,7 @@ func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, 
 	}
 }
 
-func isDirectGOSDResultTerminal(progress ImageGenerateProgress, done bool, success bool, message string, diag *ImageGenerateDiagnostics) bool {
+func isDirectGOSDResultTerminal(progress ImageGenerateProgress, done bool, success bool, message string, diag *ImageGenerateResult) bool {
 	if done || success || strings.TrimSpace(message) != "" || diag == nil {
 		return false
 	}

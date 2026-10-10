@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -89,7 +88,7 @@ func (h *durableCaptureTextHost) assertCapturedBeforeDispatch(audit remoteexecut
 		return fmt.Errorf("Host started without RUNNING durable Cloud capture: %+v", matched)
 	}
 	h.store.mu.RUnlock()
-	raw, err := os.ReadFile(h.store.durablePath)
+	raw, err := readScenarioJobDocument(h.store.durablePath)
 	if err != nil {
 		return fmt.Errorf("read durable capture before Host: %w", err)
 	}
@@ -250,7 +249,7 @@ func TestCapturedCloudJobExecutesAfterConnectorDeletionWithoutPersistingCredenti
 		t.Fatalf("deleted Connector lookup: found=%v err=%v", found, err)
 	}
 
-	raw, err := os.ReadFile(store.durablePath)
+	raw, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}

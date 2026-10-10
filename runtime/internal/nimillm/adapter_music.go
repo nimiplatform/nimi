@@ -12,7 +12,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -221,8 +220,12 @@ func ExecuteMubertMusic(
 		payload["intensity"] = "high"
 	}
 
+	ctx = originalControlRequest(ctx)
+	if err := requireNativeTaskPublisher(ctx); err != nil {
+		return nil, nil, "", err
+	}
 	submitResp := map[string]any{}
-	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, "/public/tracks"), "", payload, &submitResp, headers); err != nil {
+	if err := DoJSONRequestWithHeaders(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, "/public/tracks"), "", payload, &submitResp, headers); err != nil {
 		return nil, nil, "", err
 	}
 	trackID := strings.TrimSpace(FirstNonEmpty(
@@ -233,54 +236,9 @@ func ExecuteMubertMusic(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
-	backend := NewBackend("cloud-mubert", baseURL, "", 5*time.Minute)
-	retryCount := int32(0)
-	for {
-		if ctx.Err() != nil {
-			bestEffortDeleteProviderAsyncTask(ctx, AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
-			return nil, nil, trackID, providerPollContextError(ctx.Err())
-		}
-		current := submitResp
-		if retryCount > 0 {
-			current = map[string]any{}
-			if err := DoJSONRequestWithHeaders(ctx, http.MethodGet, JoinURL(baseURL, "/public/tracks/"+trackID), "", nil, &current, headers); err != nil {
-				return nil, nil, trackID, err
-			}
-		}
-		generation := firstMapItem(MapField(MapField(current, "data"), "generations"))
-		statusText := strings.ToLower(strings.TrimSpace(ValueAsString(MapField(generation, "status"))))
-		audioURL := strings.TrimSpace(ValueAsString(MapField(generation, "url")))
-		if audioURL != "" && (statusText == "" || statusText == "done") {
-			body, err := bodyFromMusicResponse(ctx, backend, map[string]any{"audio_url": audioURL})
-			if err != nil {
-				return nil, nil, trackID, err
-			}
-			return musicArtifactsFromBody(AdapterMubertMusic, body, spec, extensions, trackID), nil, trackID, nil
-		}
-		if statusText == "failed" || statusText == "error" {
-			return nil, nil, trackID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-		}
-		retryCount++
-		if providerPollRetryLimitReached(ctx, retryCount) {
-			if updater != nil {
-				updater.UpdatePollState(jobID, trackID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
-			}
-			return nil, nil, trackID, providerPollTimeoutError()
-		}
-		if updater != nil {
-			delay := providerPollDelay(retryCount)
-			updater.UpdatePollState(jobID, trackID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), statusText)
-			if err := sleepWithContext(ctx, delay); err != nil {
-				bestEffortDeleteProviderAsyncTask(ctx, AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
-				return nil, nil, trackID, providerPollContextError(err)
-			}
-			continue
-		}
-		if err := sleepWithContext(ctx, providerPollDelay(retryCount)); err != nil {
-			bestEffortDeleteProviderAsyncTask(ctx, AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
-			return nil, nil, trackID, providerPollContextError(err)
-		}
-	}
+	artifact := musicArtifactsFromBody(AdapterMubertMusic, &JSONOrBinaryBody{MIME: "audio/mpeg"}, spec, extensions, "")[0]
+	_, err := publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: AdapterMubertMusic, TaskID: trackID, QueryPathTemplate: "/public/tracks/{task_id}", Artifact: artifact})
+	return nil, nil, trackID, err
 }
 
 func ExecuteLoudlyMusic(

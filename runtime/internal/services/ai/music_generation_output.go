@@ -13,7 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/musicscore"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
-	"github.com/oklog/ulid/v2"
+
 	"google.golang.org/protobuf/proto"
 )
 
@@ -57,6 +57,7 @@ func (s *Service) commitMusicGeneration(ctx context.Context, jobID string, head 
 	if err != nil {
 		return err
 	}
+	mix.ArtifactId = jobID + "-music-mix"
 	bodies := map[string]*capabilitydriver.ArtifactBody{mix.GetArtifactId(): body}
 	defer capabilitydriver.CloseArtifactBodies(bodies)
 	artifacts := []*runtimev1.ScenarioArtifact{mix}
@@ -75,7 +76,7 @@ func (s *Service) commitMusicGeneration(ctx context.Context, jobID string, head 
 			return fmt.Errorf("generated score is invalid: %w", err)
 		}
 		digest := sha256.Sum256(data)
-		score := &runtimev1.ScenarioArtifact{ArtifactId: ulid.Make().String(), MimeType: "text/vnd.abc", SizeBytes: int64(len(data)), Sha256: hex.EncodeToString(digest[:])}
+		score := &runtimev1.ScenarioArtifact{ArtifactId: jobID + "-music-score", MimeType: "text/vnd.abc", SizeBytes: int64(len(data)), Sha256: hex.EncodeToString(digest[:])}
 		scoreBody, err := capabilitydriver.NewBoundedArtifactBody(data)
 		if err != nil {
 			return err
@@ -90,28 +91,13 @@ func (s *Service) commitMusicGeneration(ctx context.Context, jobID string, head 
 	if err != nil {
 		return err
 	}
-	stored := []string{}
-	committed := false
-	defer func() {
-		if !committed {
-			for _, id := range stored {
-				s.deleteRuntimeArtifactCandidate(id, "music output set was not committed")
-			}
-		}
-	}()
-	for _, artifact := range bound {
-		var info *runtimeartifact.CanonicalAudioInfo
-		if artifact.GetArtifactId() == mix.GetArtifactId() {
-			info = &runtimeartifact.CanonicalAudioInfo{SampleRateHz: uint32(wav.SampleRate), Channels: uint16(wav.Channels), FrameCount: wav.FrameCount, DataOffset: wav.DataOffset}
-		}
-		created, err := s.storeRuntimeJobArtifact(ctx, jobID, head, artifact, bodies[artifact.GetArtifactId()], info)
-		if err != nil {
-			return err
-		}
-		if created {
-			stored = append(stored, artifact.GetArtifactId())
-		}
+	canonical := map[string]*runtimeartifact.CanonicalAudioInfo{mix.GetArtifactId(): {SampleRateHz: uint32(wav.SampleRate), Channels: uint16(wav.Channels), FrameCount: wav.FrameCount, DataOffset: wav.DataOffset}}
+	staged, err := s.stageFiniteMediaBodies(ctx, jobID, head, musicGenerationBodySlots(jobID, output.RequireScore), capabilitydriver.CloudMediaResult{Artifacts: bound, ArtifactBodies: bodies}, canonical)
+	if err != nil {
+		return err
 	}
+	capabilitydriver.CloseArtifactBodies(staged.ArtifactBodies)
+	bound = staged.Artifacts
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -123,14 +109,13 @@ func (s *Service) commitMusicGeneration(ctx context.Context, jobID string, head 
 		job.ProgressPercent = 0
 		job.ProgressCurrentStep = 0
 		job.ProgressTotalSteps = 0
-	})
+	}, ctx)
 	if err != nil {
 		return err
 	}
 	if !ok {
 		return fmt.Errorf("music output publication was interrupted")
 	}
-	committed = true
 	return nil
 }
 

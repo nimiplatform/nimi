@@ -1,32 +1,17 @@
 package ai
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 )
-
-type musicContextReader struct {
-	ctx    context.Context
-	source io.Reader
-}
-
-func (r musicContextReader) Read(buffer []byte) (int, error) {
-	if err := r.ctx.Err(); err != nil {
-		return 0, err
-	}
-	return r.source.Read(buffer)
-}
 
 func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, effective *cloudMediaEffectiveInputs, result capabilitydriver.CloudMediaResult) error {
 	defer capabilitydriver.CloseArtifactBodies(result.ArtifactBodies)
@@ -40,68 +25,48 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 	if artifact.GetMimeType() != "audio/wav" && artifact.GetMimeType() != "audio/mpeg" && artifact.GetMimeType() != "audio/flac" {
 		return fmt.Errorf("provider music container is unsupported")
 	}
-	staging, err := s.createLocalMusicStagingWAVPath()
+	store, ok := s.runtimeArtifacts.(runtimeartifact.JobBodyStore)
+	if !ok {
+		return fmt.Errorf("music codec has no admitted file custody")
+	}
+	// The transport has already filled its original private raw slot. Release
+	// stream read locks before borrowing exact files for the codec process.
+	capabilitydriver.CloseArtifactBodies(result.ArtifactBodies)
+	inputPath, releaseInput, err := store.BorrowJobBodyFile(ctx, jobID, artifact.GetArtifactId())
 	if err != nil {
 		return err
 	}
-	defer cleanupAudioMusicStaging(staging)
-	directory := filepath.Dir(staging)
-	input, err := os.CreateTemp(directory, "input-")
-	if err != nil {
-		return err
-	}
-	defer func() { _ = os.Remove(input.Name()) }()
-	defer func() { _ = input.Close() }()
-	var source io.ReadCloser
-	body := result.ArtifactBodies[artifact.GetArtifactId()]
-	switch {
-	case body == nil && len(artifact.GetBytes()) > 0:
-		source = io.NopCloser(bytes.NewReader(artifact.GetBytes()))
-	case body != nil && body.Kind() == capabilitydriver.ArtifactBodyBoundedBytes:
-		source = io.NopCloser(bytes.NewReader(body.BoundedBytes()))
-	case body != nil && body.Kind() == capabilitydriver.ArtifactBodyIncrementalStream:
-		source = body.TakeIncrementalStream()
-	case body != nil && body.Kind() == capabilitydriver.ArtifactBodyCommittedReference:
-		owner := s.runtimeArtifactOwnerForJob(jobID, effective.request.GetHead())
-		if _, err := s.resolveRuntimeCustodyReference(ctx, body.CommittedReference(), owner, runtimeCustodyOperationScenarioOutputAttach); err != nil {
+	defer releaseInput()
+	mixID := jobID + "-music-mix"
+	if _, complete := store.JobBodyStat(jobID, mixID); !complete {
+		err = store.WriteCanonicalJobBody(ctx, mixID, runtimeartifact.ArtifactRecord{ProducerJobID: jobID, Owner: s.runtimeArtifactOwnerForJob(jobID, effective.request.GetHead()), MimeType: "audio/wav"}, func(writer runtimeartifact.CanonicalJobBodyWriter) (*runtimeartifact.CanonicalAudioInfo, error) {
+			facts, err := s.canonicalAudio.PrepareInto(ctx, audiomedia.Input{Path: inputPath, MIMEType: artifact.GetMimeType()}, writer)
+			if err != nil {
+				return nil, err
+			}
+			return &runtimeartifact.CanonicalAudioInfo{SampleRateHz: facts.SampleRateHz, Channels: facts.Channels, FrameCount: facts.FrameCount, DataOffset: facts.DataOffset}, nil
+		})
+		if err != nil {
+			if ctx.Err() == nil && errors.Is(err, audiomedia.ErrCodecUnavailable) {
+				return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+			}
 			return err
 		}
-		opened, ok := s.runtimeArtifacts.Open(ctx, body.CommittedReference().ArtifactID())
-		if !ok {
-			return fmt.Errorf("provider music custody is unavailable")
-		}
-		source = opened.Body
 	}
-	if source == nil {
-		return fmt.Errorf("provider music body is missing")
-	}
-	defer func() { _ = source.Close() }()
-	count, err := io.CopyBuffer(input, io.LimitReader(musicContextReader{ctx: ctx, source: source}, audiomedia.MaxInputBytes+1), make([]byte, 64<<10))
-	_ = source.Close()
+	preparedPath, releaseMix, err := store.BorrowJobBodyFile(ctx, jobID, mixID)
 	if err != nil {
 		return err
 	}
-	if count <= 0 || count > audiomedia.MaxInputBytes {
-		return fmt.Errorf("provider music exceeds the admitted body bound")
-	}
-	if err := input.Close(); err != nil {
-		return err
-	}
-	prepared, err := s.canonicalAudio.Prepare(ctx, audiomedia.Input{Path: input.Name(), MIMEType: artifact.GetMimeType()}, directory)
-	if err != nil {
-		if ctx.Err() == nil && errors.Is(err, audiomedia.ErrCodecUnavailable) {
-			return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE, err, grpcerr.ReasonOptions{})
-		}
-		return err
-	}
-	defer func() { _ = os.Remove(prepared.Path) }()
-	wav, err := inspectMusicWAV(ctx, prepared.Path)
+	defer releaseMix()
+	wav, err := inspectMusicWAV(ctx, preparedPath)
 	if err != nil {
 		return err
 	}
 	if err := validateCloudMusicMeasuredDuration(effective.mapped.Adapter(), effective.request.GetSpec().GetMusicGenerate().GetDurationSeconds(), wav.DurationMS); err != nil {
 		return err
 	}
+	releaseMix()
+	releaseInput()
 	return s.commitMusicGeneration(ctx, jobID, effective.request.GetHead(), musicGenerationPublication{WAV: wav, Termination: runtimev1.MusicGenerationTermination_MUSIC_GENERATION_TERMINATION_UNKNOWN, Usage: result.Usage})
 }
 

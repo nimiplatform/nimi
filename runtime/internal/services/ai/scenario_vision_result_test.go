@@ -8,33 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
-
-func TestVisionJobTimeoutAdmission(t *testing.T) {
-	for _, value := range []int32{0, 1000, 120000, 600000} {
-		got, err := localVisionJobTimeoutDuration(value)
-		want := time.Duration(value) * time.Millisecond
-		if value == 0 {
-			want = 120 * time.Second
-		}
-		if err != nil || got != want {
-			t.Fatalf("timeout %d: got %s, %v; want %s", value, got, err, want)
-		}
-	}
-	for _, value := range []int32{-1, 999, 600001} {
-		_, err := localVisionJobTimeoutDuration(value)
-		reason, _ := grpcerr.ExtractReasonCode(err)
-		if reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
-			t.Fatalf("timeout %d: got %v", value, err)
-		}
-	}
-}
 
 func TestGroundingDinoBoxResolvedAssemblyRetainsItsExactDriverAndProfile(t *testing.T) {
 	root := t.TempDir()
@@ -121,8 +99,13 @@ func TestVisionResultCommitIsAtomicAndRestoresAfterRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	result := createVisionStoreJob(t, store, root, "completed-vision")
+	forceWriteFailure := true
+	candidateWrites := 0
 	store.persistenceFailure = func(attempt scenarioJobPersistenceAttempt) error {
-		if attempt.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		if attempt.Operation == scenarioJobPersistResultCandidate {
+			candidateWrites++
+		}
+		if forceWriteFailure && attempt.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 			return errors.New("disk unavailable")
 		}
 		return nil
@@ -137,7 +120,12 @@ func TestVisionResultCommitIsAtomicAndRestoresAfterRestart(t *testing.T) {
 	if job.Status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
 		t.Fatalf("state changed on failed result commit: %s", job.Status)
 	}
-	store.persistenceFailure = nil
+	forceWriteFailure = false
+	defer func() {
+		if candidateWrites != 0 {
+			t.Errorf("pure typed result required %d durable candidate writes", candidateWrites)
+		}
+	}()
 	if _, _, err := store.transitionWithResults("completed-vision", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, nil, nil, result, nil); err != nil {
 		t.Fatal(err)
 	}

@@ -29,9 +29,6 @@ func (s *Service) submitVoiceWorkflowJob(
 		return nil, err
 	}
 	if intent.IsLocal() {
-		if localAppMusicSubmissionFromContext(ctx) != nil {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
-		}
 		return s.submitLocalVoiceWorkflowJob(ctx, req, intent, ignored)
 	}
 	if strings.TrimSpace(req.GetSpec().GetVoiceCreate().GetTargetModelId()) == "" {
@@ -51,24 +48,13 @@ func (s *Service) submitVoiceWorkflowJob(
 		return nil, err
 	}
 	defer effective.release()
-	if localAppMusicSubmissionFromContext(ctx) != nil && effective.resolution.OutputPersistence != "provider_persistent" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
-	}
+	submission := voiceSubmissionRetention(localAppMusicSubmissionFromContext(ctx), effective.resolvedAssembly)
 	req = effective.request
-	timeout, err := scenarioJobTimeoutDuration(req, defaultSynthesizeTimeout, false)
-	if err != nil {
-		return nil, err
-	}
 
 	// Keep caller metadata and credentials out of the detached job. The typed
 	// identity below is the only request ownership value retained.
 	jobCtx := newDetachedAsyncJobContext(ctx)
-	var cancel context.CancelFunc
-	if timeout > 0 {
-		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
-	} else {
-		jobCtx, cancel = context.WithCancel(jobCtx)
-	}
+	jobCtx, cancel := context.WithCancel(jobCtx)
 	now := timestamppb.New(time.Now().UTC())
 	job := &runtimev1.ScenarioJob{
 		JobId: ulid.Make().String(), Head: cloneScenarioHead(req.GetHead()),
@@ -78,6 +64,12 @@ func (s *Service) submitVoiceWorkflowJob(
 		CreatedAt: now, UpdatedAt: now, TraceId: effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
+	releasePlanned, err := s.admitPlannedCloudCapture(ctx, job, effective.resolvedAssembly, submission)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	defer releasePlanned()
 	if err := s.bindCloudCredentialCustody(ctx, job.GetJobId(), effective.resolvedAssembly); err != nil {
 		cancel()
 		return nil, cloudCredentialCustodyError(err, "Cloud voice ScenarioJob credential custody could not be captured")
@@ -86,7 +78,7 @@ func (s *Service) submitVoiceWorkflowJob(
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
 	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(
-		job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, nil, effective.resolvedAssembly, true, localAppMusicSubmissionFromContext(ctx),
+		job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, nil, effective.resolvedAssembly, true, submission,
 	)
 	if persistErr != nil {
 		cancel()
@@ -94,7 +86,7 @@ func (s *Service) submitVoiceWorkflowJob(
 		if persistErr == errLocalAppSubmissionConflict || persistErr == errMusicRecoveryCapacity || persistErr == errMusicRecoveryExpired {
 			return nil, localAppSubmissionError(persistErr)
 		}
-		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{Message: "Cloud voice ScenarioJob submission could not be persisted"})
+		return nil, scenarioJobSubmissionError(persistErr, "Cloud voice ScenarioJob submission could not be persisted")
 	}
 	if stored == nil {
 		cancel()

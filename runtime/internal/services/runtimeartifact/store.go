@@ -32,6 +32,7 @@ const MaxCustodyBytes int64 = 8 * 1024 * 1024 * 1024
 
 // ArtifactRecord holds artifact bytes + metadata indexed by artifact_id.
 type ArtifactRecord struct {
+	JobCandidate           *JobBodyCandidate
 	Bytes                  []byte
 	MimeType               string
 	ProducerJobID          string
@@ -66,8 +67,19 @@ type CanonicalAudioInfo struct {
 // ArtifactSource is one immutable committed source held through Close.
 // Record contains metadata only; Body owns the opened read handle.
 type ArtifactSource struct {
-	Record ArtifactRecord
-	Body   io.ReadSeekCloser
+	Record   ArtifactRecord
+	Body     io.ReadSeekCloser
+	filePath string
+}
+
+// BorrowedFilePath is available only for an integrity-checked filesystem
+// source, and only until Body.Close. Its existing read pin protects the file
+// from owner replacement/deletion; borrowing does not allocate another body.
+func (s *ArtifactSource) BorrowedFilePath() string {
+	if s == nil {
+		return ""
+	}
+	return s.filePath
 }
 
 // GeneratedVoiceArtifactMetadata is the durable cleanup index for assistant
@@ -119,8 +131,10 @@ type GeneratedVoiceArtifactSelector struct {
 // MemoryStore is an in-memory by-id artifact index used by isolated tests and
 // explicitly ephemeral call sites. Runtime daemon bootstrap uses DiskStore.
 type MemoryStore struct {
-	mu      sync.RWMutex
-	records map[string]ArtifactRecord
+	mu              sync.RWMutex
+	records         map[string]ArtifactRecord
+	activeJobBodies map[string]bool
+	jobBodyImports  map[string]int64
 }
 
 // NewMemoryStore constructs an empty MemoryStore.
@@ -181,7 +195,7 @@ func (s *MemoryStore) Get(artifactID string) (ArtifactRecord, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	record, ok := s.records[artifactID]
-	if !ok {
+	if !ok || (record.JobCandidate != nil && !record.JobCandidate.Published) {
 		return ArtifactRecord{}, false
 	}
 	return cloneArtifactRecord(record), true
@@ -192,7 +206,7 @@ func (s *MemoryStore) Stat(artifactID string) (ArtifactRecord, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	record, ok := s.records[strings.TrimSpace(artifactID)]
-	if !ok {
+	if !ok || (record.JobCandidate != nil && !record.JobCandidate.Published) {
 		return ArtifactRecord{}, false
 	}
 	record.Bytes = nil
@@ -226,6 +240,9 @@ func (s *MemoryStore) Delete(artifactID string) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.activeJobBodies[artifactID] {
+		return ErrJobBodyInUse
+	}
 	delete(s.records, artifactID)
 	return nil
 }
@@ -328,6 +345,7 @@ func normalizeArtifactRecord(record ArtifactRecord) (ArtifactRecord, error) {
 }
 
 func cloneArtifactRecord(record ArtifactRecord) ArtifactRecord {
+	record.JobCandidate = cloneJobBodyCandidate(record.JobCandidate)
 	record.Bytes = bytes.Clone(record.Bytes)
 	if record.CanonicalAudio != nil {
 		facts := *record.CanonicalAudio

@@ -13,23 +13,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// @nimi-authority: rule.nimi.runtime.service-operations.r066
-func localAnnotationJobTimeoutDuration(timeoutMS int32) (time.Duration, error) {
-	if timeoutMS == 0 {
-		return 120 * time.Second, nil
-	}
-	if timeoutMS < 1000 || timeoutMS > 600000 {
-		return 0, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{Message: "Annotation timeout_ms must be between 1000 and 600000"})
-	}
-	return time.Duration(timeoutMS) * time.Millisecond, nil
-}
-
 // @nimi-authority: rule.nimi.runtime.service-operations.r036
 func (s *Service) submitLocalAnnotationScenarioJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest, mode runtimev1.ExecutionMode, ignored []*runtimev1.IgnoredScenarioExtension) (*runtimev1.SubmitScenarioJobResponse, error) {
-	timeout, err := localAnnotationJobTimeoutDuration(req.GetHead().GetTimeoutMs())
-	if err != nil {
-		return nil, err
-	}
 	scope, err := buildScenarioJobIdempotencyScope(ctx, req)
 	if err != nil {
 		return nil, err
@@ -43,7 +28,7 @@ func (s *Service) submitLocalAnnotationScenarioJob(ctx context.Context, req *run
 	if err != nil {
 		return nil, err
 	}
-	jobCtx, cancel := context.WithTimeout(newDetachedAsyncJobContext(ctx), timeout)
+	jobCtx, cancel := context.WithCancel(newDetachedAsyncJobContext(ctx))
 	now := timestamppb.Now()
 	jobID := ulid.Make().String()
 	job := &runtimev1.ScenarioJob{
@@ -52,10 +37,10 @@ func (s *Service) submitLocalAnnotationScenarioJob(ctx context.Context, req *run
 		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ModelResolved: effective.displayName, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		EffectiveInputIdentity: effective.identity, IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	stored, created, err := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), scope, effective.assembly)
+	stored, created, err := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(job, cancel, localAppJobOwnerFromContext(ctx), scope, effective.assembly, nil, false, localAppMusicSubmissionFromContext(ctx))
 	if err != nil {
 		cancel()
-		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Annotation submission could not be persisted"})
+		return nil, scenarioJobSubmissionError(err, "Annotation submission could not be persisted")
 	}
 	if !created {
 		cancel()
@@ -72,6 +57,9 @@ func (s *Service) runLocalAnnotationScenarioJob(ctx context.Context, jobID strin
 		return
 	}
 	defer s.finishScenarioJobExecution(jobID)
+	budget := newScenarioJobExecutionBudget(ctx)
+	ctx = budget
+	defer budget.close()
 	if _, ok, err := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); err != nil {
 		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, err)
 		return
@@ -117,9 +105,10 @@ func (s *Service) runLocalAnnotationScenarioJob(ctx context.Context, jobID strin
 		}
 		schedulerRelease = release
 		ticket.release()
-		return nil
+		return budget.start(120 * time.Second)
 	}
 	result, err := s.localAnnotationHost.ExecuteTextAnnotation(ctx, plan, onStart)
+	budget.stop()
 	if err == nil {
 		err = ctx.Err()
 	}

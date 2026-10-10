@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -12,7 +13,6 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -56,10 +56,23 @@ func testGoogleVeoOperationUsesNativeAuthPollAndResultShape(t *testing.T, model 
 		}
 	}))
 	defer server.Close()
-	ctx := WithProviderPollWait(context.Background(), func(context.Context, time.Duration) error { return nil })
+	var receipt *NativeTaskReceipt
+	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 	request := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{Prompt: "A sunrise.", Mode: runtimev1.VideoMode_VIDEO_MODE_T2V}}}}
-	artifacts, _, providerJobID, err := ExecuteGoogleVeoOperation(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "job-1", request, model)
-	if err != nil || providerJobID != operation || polls.Load() != 2 || len(artifacts) != 1 || artifacts[0].GetUri() != videoURL {
+	_, _, providerJobID, err := ExecuteGoogleVeoOperation(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "job-1", request, model)
+	if !errors.Is(err, ErrNativeTaskYielded) || providerJobID != operation || polls.Load() != 0 {
+		t.Fatalf("create did not yield: %v %q polls=%d", err, providerJobID, polls.Load())
+	}
+	cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture-key", AllowLoopbackEndpoint: true}
+	if _, terminal, err := ObserveNativeTask(context.Background(), cfg, receipt); err != nil || terminal || polls.Load() != 1 {
+		t.Fatalf("first Get: terminal=%v err=%v", terminal, err)
+	}
+	observation, terminal, err := ObserveNativeTask(context.Background(), cfg, receipt)
+	var artifacts []*runtimev1.ScenarioArtifact
+	if observation != nil {
+		artifacts = observation.Artifacts
+	}
+	if err != nil || !terminal || providerJobID != operation || polls.Load() != 2 || len(artifacts) != 1 || artifacts[0].GetUri() != videoURL {
 		t.Fatalf("Google Veo native operation result: job=%q polls=%d artifacts=%+v err=%v", providerJobID, polls.Load(), artifacts, err)
 	}
 	if artifacts[0].GetMetadata() == nil || artifacts[0].GetMetadata().AsMap()["uri"] != nil || len(artifacts[0].GetBytes()) != 0 {

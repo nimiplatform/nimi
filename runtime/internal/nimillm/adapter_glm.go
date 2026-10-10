@@ -6,14 +6,11 @@ import (
 	"encoding/json"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -78,8 +75,12 @@ func ExecuteGLMTask(
 	if opts := StructToMap(extractScenarioExtensions(req)); len(opts) > 0 {
 		submitPayload["extensions"] = opts
 	}
+	ctx = originalControlRequest(ctx)
+	if err := requireNativeTaskPublisher(ctx); err != nil {
+		return nil, nil, "", err
+	}
 	submitResp := map[string]any{}
-	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+	if err := DoJSONRequest(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
 		return nil, nil, "", err
 	}
 	providerJobID := strings.TrimSpace(FirstNonEmpty(
@@ -91,80 +92,10 @@ func ExecuteGLMTask(
 	if providerJobID == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(providerPollDelay(0))), "")
-	retryCount := int32(0)
-	consecutiveErrors := int32(0)
-	detached := isDetachedPollContext(ctx)
-
-	for {
-		if ctx.Err() != nil {
-			bestEffortDeleteProviderAsyncTask(ctx, AdapterGLMTask, baseURL, apiKey, providerJobID)
-			return nil, nil, providerJobID, providerPollContextError(ctx.Err())
-		}
-		retryCount++
-		pollResp := map[string]any{}
-		pollPath := JoinURL(baseURL, queryPrefix+url.PathEscape(providerJobID))
-		if err := DoJSONRequest(ctx, http.MethodGet, pollPath, apiKey, nil, &pollResp); err != nil {
-			if detached && ctx.Err() == nil && isTransientPollError(err) {
-				consecutiveErrors++
-				if consecutiveErrors >= maxDetachedPollConsecutiveErrors {
-					updater.UpdatePollState(jobID, providerJobID, retryCount, nil, err.Error())
-					return nil, nil, providerJobID, err
-				}
-				delay := providerPollDelay(retryCount)
-				updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
-				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
-					bestEffortDeleteProviderAsyncTask(ctx, AdapterGLMTask, baseURL, apiKey, providerJobID)
-					return nil, nil, providerJobID, providerPollContextError(sleepErr)
-				}
-				continue
-			}
-			return nil, nil, providerJobID, err
-		}
-		consecutiveErrors = 0
-		statusText := strings.ToLower(strings.TrimSpace(FirstNonEmpty(
-			ValueAsString(pollResp["status"]),
-			ValueAsString(pollResp["task_status"]),
-			ValueAsString(MapField(pollResp["result"], "status")),
-		)))
-		switch statusText {
-		case "", "queued", "pending", "running", "processing", "in_progress":
-			if providerPollRetryLimitReached(ctx, retryCount) {
-				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
-				return nil, nil, providerJobID, providerPollTimeoutError()
-			}
-			delay := providerPollDelay(retryCount)
-			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), "")
-			if err := sleepWithContext(ctx, delay); err != nil {
-				bestEffortDeleteProviderAsyncTask(ctx, AdapterGLMTask, baseURL, apiKey, providerJobID)
-				return nil, nil, providerJobID, providerPollContextError(err)
-			}
-			continue
-		case "failed", "error", "canceled", "cancelled":
-			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
-			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-		}
-
-		artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(ctx, pollResp)
-		if len(artifactBytes) == 0 {
-			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
-			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		if mimeType == "" {
-			mimeType = "video/mp4"
-		}
-		artifactMeta := map[string]any{
-			"adapter":  AdapterGLMTask,
-			"response": pollResp,
-		}
-		if artifactURI != "" {
-			artifactMeta["uri"] = artifactURI
-		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
-		ApplyVideoSpecMetadata(artifact, spec)
-		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.ScenarioArtifact{artifact}, nil, providerJobID, nil
-	}
+	artifact := BinaryArtifact("video/mp4", nil, map[string]any{"adapter": AdapterGLMTask})
+	ApplyVideoSpecMetadata(artifact, spec)
+	_, err := publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: AdapterGLMTask, TaskID: providerJobID, QueryPathTemplate: queryPrefix + "{task_id}", Artifact: artifact})
+	return nil, nil, providerJobID, err
 }
 
 // ExecuteGLMNative handles synchronous GLM media requests for image, TTS, and

@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -79,6 +80,8 @@ func (s *Service) captureLocalVoiceConvert(ctx context.Context, head *runtimev1.
 		sourceInfo.DurationMs = int64(sourceCanonical.FrameCount * 1000 / uint64(sourceCanonical.SampleRateHz))
 	}
 	var targetInfo *runtimev1.LocalAppAudioInfo
+	var targetRecord *runtimeartifact.ArtifactRecord
+	var targetStart, targetEnd uint64
 	if reference := spec.GetTargetVoice().GetReferenceAudio(); reference != nil {
 		opened, err := s.openMusicInputSource(ctx, head, reference.GetArtifactId())
 		if err != nil {
@@ -97,13 +100,13 @@ func (s *Service) captureLocalVoiceConvert(ctx context.Context, head *runtimev1.
 		if planTargetRange == nil {
 			planTargetRange = &runtimev1.AudioFrameRange{EndFrame: targetCanonical.FrameCount}
 		}
-		_, err = audiomedia.CopyCanonicalRange(ctx, opened.Body, audiomedia.Facts{SampleRateHz: targetCanonical.SampleRateHz, Channels: targetCanonical.Channels, FrameCount: targetCanonical.FrameCount, SizeBytes: opened.Record.SizeBytes, DataOffset: targetCanonical.DataOffset}, planTargetRange.GetStartFrame(), planTargetRange.GetEndFrame(), targetPath)
-		if err != nil {
-			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
-		}
+		targetStart, targetEnd = planTargetRange.GetStartFrame(), planTargetRange.GetEndFrame()
+		copy := opened.Record
+		targetRecord = &copy
 		if err := opened.Body.Close(); err != nil {
 			return nil, err
 		}
+
 	}
 	plan, err := driver.PlanVoiceConvertInvocation(capabilitydriver.VoiceConvertInvocationInput{LoadoutID: selected.LoadoutID, RecipeID: selected.RecipeID,
 		PortableConfig: selected.PortableConfig, ExactBindings: projectInvocationExactBindings(selected.ExactBindings), Package: pkg, Request: spec,
@@ -113,13 +116,6 @@ func (s *Service) captureLocalVoiceConvert(ctx context.Context, head *runtimev1.
 	}
 	request := plan.VoiceConvertRequest()
 	sourceRange := request.GetSourceVocal().GetRange()
-	_, err = audiomedia.CopyCanonicalRange(ctx, source.Body, audiomedia.Facts{SampleRateHz: sourceCanonical.SampleRateHz, Channels: sourceCanonical.Channels, FrameCount: sourceCanonical.FrameCount, SizeBytes: source.Record.SizeBytes, DataOffset: sourceCanonical.DataOffset}, sourceRange.GetStartFrame(), sourceRange.GetEndFrame(), plan.VoiceConvertSourcePath())
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
-	}
-	if err := source.Body.Close(); err != nil {
-		return nil, err
-	}
 	assembly, err := localResolvedAssemblyForVoiceConvert(selected, plan)
 	if err != nil {
 		return nil, err
@@ -127,6 +123,38 @@ func (s *Service) captureLocalVoiceConvert(ctx context.Context, head *runtimev1.
 	identity, err := projectResolvedAssemblyEffectiveInputIdentity(assembly)
 	if err != nil {
 		return nil, err
+	}
+	job, err := scenarioCaptureJob(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sourceBytes, err := audiomedia.CanonicalRangeSize(canonicalArtifactFacts(source.Record), sourceRange.GetStartFrame(), sourceRange.GetEndFrame())
+	if err != nil {
+		return nil, localCanonicalCaptureError(err)
+	}
+	if err := source.Body.Close(); err != nil {
+		return nil, err
+	}
+	sourceBodyID, targetBodyID := job.JobId+"-capture-source", job.JobId+"-capture-target"
+	slots := []runtimeartifact.JobBodySlot{{ArtifactID: sourceBodyID, MaxBytes: sourceBytes}}
+	if targetRecord != nil {
+		size, err := audiomedia.CanonicalRangeSize(canonicalArtifactFacts(*targetRecord), targetStart, targetEnd)
+		if err != nil {
+			return nil, localCanonicalCaptureError(err)
+		}
+		slots = append(slots, runtimeartifact.JobBodySlot{ArtifactID: targetBodyID, MaxBytes: size})
+	}
+	slots = append(slots, localMusicTypedBodySlots(job.JobId, &localMusicEffectiveInputs{plan: plan, voiceConvertRequest: request})...)
+	if err := s.admitPlannedLocalCapture(ctx, selected, assembly, identity, slots); err != nil {
+		return nil, err
+	}
+	if targetRecord != nil {
+		if err := s.copyScenarioCanonicalCapture(ctx, head, spec.GetTargetVoice().GetReferenceAudio().GetArtifactId(), *targetRecord, targetStart, targetEnd, targetBodyID, targetPath); err != nil {
+			return nil, localCanonicalCaptureError(err)
+		}
+	}
+	if err := s.copyScenarioCanonicalCapture(ctx, head, spec.GetSourceVocal().GetArtifactId(), source.Record, sourceRange.GetStartFrame(), sourceRange.GetEndFrame(), sourceBodyID, plan.VoiceConvertSourcePath()); err != nil {
+		return nil, localCanonicalCaptureError(err)
 	}
 	keep = true
 	return &localMusicEffectiveInputs{head: cloneScenarioHead(head), intent: executionintent.Clone(intent), loadoutID: selected.LoadoutID, displayName: selected.DisplayName,

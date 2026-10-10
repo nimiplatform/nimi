@@ -108,8 +108,8 @@ func decodeGenerateImageState(message *dynamicpb.Message) (imageGenerateState, e
 		return imageGenerateState{}, fmt.Errorf("managed image request payload is required")
 	}
 	destination := strings.TrimSpace(dynamicMessageStringField(message, "dst"))
-	if destination == "" {
-		return imageGenerateState{}, fmt.Errorf("managed image destination is required")
+	if destination != "" {
+		return imageGenerateState{}, fmt.Errorf("managed image results use Runtime-owned byte custody")
 	}
 	return imageGenerateState{
 		Mode:           ImageRequestMode(strings.TrimSpace(dynamicMessageStringField(message, "mode"))),
@@ -119,7 +119,6 @@ func decodeGenerateImageState(message *dynamicpb.Message) (imageGenerateState, e
 		Seed:           dynamicMessageInt32Field(message, "seed"),
 		PositivePrompt: strings.TrimSpace(dynamicMessageStringField(message, "positive_prompt")),
 		NegativePrompt: strings.TrimSpace(dynamicMessageStringField(message, "negative_prompt")),
-		Dst:            destination,
 		Src:            strings.TrimSpace(dynamicMessageStringField(message, "src")),
 		Mask:           strings.TrimSpace(dynamicMessageStringField(message, "mask")),
 		ReferenceImage: readBytesField(message, "reference_image"),
@@ -230,7 +229,7 @@ func generateImageProgressEvent(progress imageGenerateProgress) *dynamicpb.Messa
 	return event
 }
 
-func generateImageTerminalEvent(success bool, message string, diag *ImageGenerateDiagnostics) *dynamicpb.Message {
+func generateImageTerminalEvent(success bool, message string, diag *ImageGenerateResult) *dynamicpb.Message {
 	event := dynamicpb.NewMessage(generateImageEventDescriptor)
 	if field := event.Descriptor().Fields().ByName(protoreflect.Name("done")); field != nil {
 		event.Set(field, protoreflect.ValueOfBool(true))
@@ -242,6 +241,9 @@ func generateImageTerminalEvent(success bool, message string, diag *ImageGenerat
 		event.Set(field, protoreflect.ValueOfString(strings.TrimSpace(message)))
 	}
 	if diag != nil {
+		if field := event.Descriptor().Fields().ByName("image_bytes"); field != nil && len(diag.Payload) > 0 {
+			event.Set(field, protoreflect.ValueOfBytes(diag.Payload))
+		}
 		if field := event.Descriptor().Fields().ByName(protoreflect.Name("queue_wait_ms")); field != nil && diag.QueueWaitMs > 0 {
 			event.Set(field, protoreflect.ValueOfInt64(diag.QueueWaitMs))
 		}

@@ -76,8 +76,13 @@ func TestAnnotationResultCommitIsAtomicAndRestoresAfterRestart(t *testing.T) {
 	}
 	result := &runtimev1.TextAnnotationResult{Documents: []*runtimev1.TextAnnotationDocument{{Text: "Hi", Language: "en", Tokens: []*runtimev1.TextAnnotationToken{{Text: "Hi", End: 2, PartOfSpeech: "INTJ", Dependency: "ROOT"}}, Sentences: []*runtimev1.TextAnnotationSentence{{EndToken: 1}}}}}
 	complete := func(job *runtimev1.ScenarioJob) { job.TextAnnotation = cloneTextAnnotationResult(result) }
+	forceWriteFailure := true
+	candidateWrites := 0
 	store.persistenceFailure = func(attempt scenarioJobPersistenceAttempt) error {
-		if attempt.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		if attempt.Operation == scenarioJobPersistResultCandidate {
+			candidateWrites++
+		}
+		if forceWriteFailure && attempt.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 			return errors.New("disk unavailable")
 		}
 		return nil
@@ -89,7 +94,12 @@ func TestAnnotationResultCommitIsAtomicAndRestoresAfterRestart(t *testing.T) {
 	if failed.TextAnnotation != nil || failed.Status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
 		t.Fatal("result published before durable completion")
 	}
-	store.persistenceFailure = nil
+	forceWriteFailure = false
+	defer func() {
+		if candidateWrites != 0 {
+			t.Errorf("pure typed result required %d durable candidate writes", candidateWrites)
+		}
+	}()
 	if _, _, err := store.transition(job.JobId, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, complete); err != nil {
 		t.Fatal(err)
 	}

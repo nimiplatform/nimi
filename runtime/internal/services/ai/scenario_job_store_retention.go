@@ -52,8 +52,8 @@ func (s *scenarioJobStore) maintainDurableState(now time.Time) error {
 	defer s.mu.Unlock()
 	s.pruneLocked(now)
 	var errs []error
-	// An empty store that was never written stays unwritten; the first healthy
-	// Job write materializes it.
+	// An untouched store stays unwritten. Pre-capture admission or the first
+	// Job write establishes its complete durable baseline.
 	if s.durable.current || len(s.jobs) > 0 || len(s.idempotency) > 0 || len(s.pendingCloudCustody) > 0 {
 		if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistMaintenance}); err != nil {
 			errs = append(errs, fmt.Errorf("persist ScenarioJob retention: %w", err))

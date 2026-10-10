@@ -67,12 +67,18 @@ func ExecuteAlibabaNative(
 		}
 		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
 		submitPath, queryPathTemplate, submitPayload, submitHeaders := buildAlibabaImageSubmitRequest(modelResolved, spec, scenarioExtensions)
+		native := MediaUsesNativeTask(AdapterAlibabaNative, req, modelResolved)
+		if native {
+			if err := requireNativeTaskPublisher(ctx); err != nil {
+				return nil, nil, "", err
+			}
+			ctx = nativeCreateRequest(originalControlRequest(ctx))
+		}
 		submitResp := map[string]any{}
 		if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp, submitHeaders); err != nil {
 			return nil, nil, "", err
 		}
-		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterAlibabaNative, submitResp)
-		if providerJobID == "" {
+		if !native {
 			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
 			if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
 				return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -80,18 +86,17 @@ func ExecuteAlibabaNative(
 			if mimeType == "" {
 				mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
 			}
-			artifactMeta := map[string]any{
-				"adapter":         AdapterAlibabaNative,
-				"submit_endpoint": submitPath,
-				"response":        submitResp,
-				"extensions":      scenarioExtensions,
-			}
+			meta := map[string]any{"adapter": AdapterAlibabaNative, "submit_endpoint": submitPath, "response": submitResp, "extensions": scenarioExtensions}
 			if artifactURI != "" {
-				artifactMeta["uri"] = artifactURI
+				meta["uri"] = artifactURI
 			}
-			artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
+			artifact := BinaryArtifact(mimeType, artifactBytes, meta)
 			ApplyImageSpecMetadata(artifact, spec)
 			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
+		}
+		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterAlibabaNative, submitResp)
+		if providerJobID == "" {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		return PollProviderTaskForArtifact(
 			ctx,
@@ -161,6 +166,10 @@ func ExecuteAlibabaNative(
 				return nil, nil, "", err
 			}
 		}
+		if err := requireNativeTaskPublisher(ctx); err != nil {
+			return nil, nil, "", err
+		}
+		ctx = nativeCreateRequest(originalControlRequest(ctx))
 		submitResp := map[string]any{}
 		started := time.Now()
 		slog.Info("DashScope video submit started", "private_request_id", jobID, "model", modelResolved)
@@ -172,24 +181,7 @@ func ExecuteAlibabaNative(
 			"provider_task_id", providerDiagnosticID(providerJobID), "request_id", providerDiagnosticID(ValueAsString(submitResp["request_id"])),
 			"elapsed_ms", time.Since(started).Milliseconds())
 		if providerJobID == "" {
-			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
-			if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
-				return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-			}
-			if mimeType == "" {
-				mimeType = ResolveVideoArtifactMIME(spec, artifactBytes)
-			}
-			artifactMeta := map[string]any{
-				"adapter":         AdapterAlibabaNative,
-				"submit_endpoint": submitPath,
-				"response":        submitResp,
-			}
-			if artifactURI != "" {
-				artifactMeta["uri"] = artifactURI
-			}
-			artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
-			ApplyVideoSpecMetadata(artifact, spec)
-			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		artifacts, _, providerJobID, err := PollProviderTaskForArtifact(
 			ctx,

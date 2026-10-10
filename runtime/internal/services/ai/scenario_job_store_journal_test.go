@@ -22,7 +22,7 @@ import (
 // row of every key, exactly as reload reads it before validation.
 func durableScenarioJobRowsForTest(t testing.TB, path string) (map[string]json.RawMessage, map[string]scenarioJobDiskIdempotencyEntry, map[string]scenarioJobDiskPendingCustody, scenarioJobDurableDocument) {
 	t.Helper()
-	raw, err := os.ReadFile(path)
+	raw, err := readScenarioJobDocument(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,6 +123,33 @@ func assertScenarioJobStoreMirrorsMemory(t *testing.T, store *scenarioJobStore) 
 			t.Fatalf("durable custody %q = %+v, memory = %+v", jobID, got, pending)
 		}
 	}
+	// Independently encode the live snapshot, including empty/omitted control
+	// arrays, to prove the incremental byte counter used before append.
+	snapshot := scenarioJobDiskRawSnapshot{Version: scenarioJobDiskStoreVersion, Records: make([]json.RawMessage, 0, len(records))}
+	for _, row := range records {
+		snapshot.Records = append(snapshot.Records, row)
+	}
+	for _, row := range bindings {
+		encoded, err := json.Marshal(row)
+		if err != nil {
+			t.Fatal(err)
+		}
+		snapshot.Idempotency = append(snapshot.Idempotency, encoded)
+	}
+	for _, row := range custody {
+		encoded, err := json.Marshal(row)
+		if err != nil {
+			t.Fatal(err)
+		}
+		snapshot.PendingCustody = append(snapshot.PendingCustody, encoded)
+	}
+	encoded, err := json.Marshal(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := int64(len(encoded) + 1); store.durable.liveBytes != want {
+		t.Fatalf("live snapshot bytes=%d want actual encoding=%d", store.durable.liveBytes, want)
+	}
 }
 
 func transitionScenarioJobForJournalTest(t *testing.T, store *scenarioJobStore, jobID string, status runtimev1.ScenarioJobStatus) {
@@ -197,11 +224,14 @@ func TestScenarioJobStoreJournalMirrorsEveryMutationPath(t *testing.T) {
 	}
 	assertScenarioJobStoreMirrorsMemory(t, store)
 
-	// A forced in-memory terminal is recorded by the next write that succeeds.
+	// A write failure is observation only; unrelated writes cannot publish a
+	// fabricated terminal. A later real completion may still win normally.
 	createLocalScenarioJobForJournalTest(t, store, "job-forced", "", "")
-	if _, forced := store.forceFailedInMemory("job-forced", scenarioJobTerminalPersistenceFailedReason); !forced {
-		t.Fatal("forced in-memory failure did not apply")
+	store.recordPersistenceIssue("job-forced")
+	if job, _ := store.get("job-forced"); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED {
+		t.Fatal("persistence issue fabricated a terminal")
 	}
+	transitionScenarioJobForJournalTest(t, store, "job-forced", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED)
 	createLocalScenarioJobForJournalTest(t, store, "job-after-forced", "", "")
 	assertScenarioJobStoreMirrorsMemory(t, store)
 	transitionScenarioJobForJournalTest(t, store, "job-after-forced", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED)
@@ -291,7 +321,8 @@ func TestScenarioJobStoreReloadDiscardsOnlyAnUnacknowledgedFinalAppend(t *testin
 			},
 		},
 		{
-			name: "terminated final append with unwritten bytes",
+			name:     "terminated unreadable final append",
+			isolated: true,
 			corrupt: func(_ *testing.T, raw []byte) []byte {
 				return append(raw, []byte("{\"records\":[\x00\x00\x00\x00]}\n")...)
 			},
@@ -324,12 +355,19 @@ func TestScenarioJobStoreReloadDiscardsOnlyAnUnacknowledgedFinalAppend(t *testin
 			}
 			createLocalScenarioJobForJournalTest(t, store, "job-acknowledged", "", "")
 			transitionScenarioJobForJournalTest(t, store, "job-acknowledged", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED)
-			raw, err := os.ReadFile(store.durablePath)
+			raw, err := readScenarioJobDocument(store.durablePath)
 			if err != nil {
 				t.Fatal(err)
 			}
 			corrupted := test.corrupt(t, raw)
-			if err := os.WriteFile(store.durablePath, corrupted, 0o600); err != nil {
+			// Preserve coverage of the established JSON layout's tail rules.
+			// Framed acknowledged/unacknowledged damage has separate real-IO tests.
+			localStatePath = filepath.Join(t.TempDir(), "legacy-state.json")
+			legacyPath := scenarioJobStorePathForLocalStatePath(localStatePath)
+			if err := os.MkdirAll(filepath.Dir(legacyPath), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(legacyPath, corrupted, 0o600); err != nil {
 				t.Fatal(err)
 			}
 
@@ -355,7 +393,7 @@ func TestScenarioJobStoreReloadDiscardsOnlyAnUnacknowledgedFinalAppend(t *testin
 			if !visible || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 				t.Fatalf("acknowledged Job after torn final append = %v visible=%v", job, visible)
 			}
-			rewritten, err := os.ReadFile(scenarioJobStorePathForLocalStatePath(localStatePath))
+			rewritten, err := readScenarioJobDocument(scenarioJobStorePathForLocalStatePath(localStatePath))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -387,7 +425,7 @@ func TestScenarioJobStoreRewritesADocumentChangedBehindTheWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	transitionScenarioJobForJournalTest(t, store, "job-drift", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED)
-	raw, err := os.ReadFile(store.durablePath)
+	raw, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -418,7 +456,7 @@ func TestScenarioJobStoreRewritesHistoryThatOutgrowsTheLiveState(t *testing.T) {
 		if store.durable.fileBytes == store.durable.baseBytes {
 			rewrites++
 		}
-		if limit := store.durable.baseBytes + max(store.durable.baseBytes, scenarioJobStoreRewriteFloorBytes) + (512 << 10); store.durable.fileBytes > limit {
+		if limit := store.durable.baseBytes + max(store.durable.liveBytes, scenarioJobStoreRewriteFloorBytes); store.durable.fileBytes > limit {
 			t.Fatalf("document grew to %d bytes over a %d byte live state", store.durable.fileBytes, store.durable.baseBytes)
 		}
 	}
@@ -451,23 +489,23 @@ func TestScenarioJobRetentionSweepRemovesExpiredCapturedInputsFromDisk(t *testin
 		t.Fatal(err)
 	}
 
-	// Ordinary traffic prunes the expired Job, but its captured inputs stay in
-	// superseded history until a rewrite drops them.
+	// Ordinary traffic prunes the expired Job and compacts before acknowledging
+	// the deletion, so captured inputs never wait for another maintenance turn.
 	createLocalScenarioJobForJournalTest(t, store, "job-live", "", "")
 	if _, visible := store.get("job-expired"); visible {
 		t.Fatal("expired Job remained live")
 	}
-	raw, err := os.ReadFile(store.durablePath)
+	raw, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(raw, []byte(marker)) || !store.durable.removed {
-		t.Fatalf("expected pruned captured inputs pending removal: contains=%v removed=%v", bytes.Contains(raw, []byte(marker)), store.durable.removed)
+	if bytes.Contains(raw, []byte(marker)) || store.durable.removed {
+		t.Fatalf("pruned captured inputs survived acknowledged deletion: contains=%v removed=%v", bytes.Contains(raw, []byte(marker)), store.durable.removed)
 	}
 	if err := store.maintainDurableState(time.Now().UTC()); err != nil {
 		t.Fatal(err)
 	}
-	raw, err = os.ReadFile(store.durablePath)
+	raw, err = readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -480,14 +518,14 @@ func TestScenarioJobRetentionSweepRemovesExpiredCapturedInputsFromDisk(t *testin
 	assertScenarioJobStoreMirrorsMemory(t, store)
 
 	// A sweep with nothing expired writes nothing.
-	before, err := os.ReadFile(store.durablePath)
+	before, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := store.maintainDurableState(time.Now().UTC()); err != nil {
 		t.Fatal(err)
 	}
-	after, err := os.ReadFile(store.durablePath)
+	after, err := readScenarioJobDocument(store.durablePath)
 	if err != nil || !bytes.Equal(before, after) {
 		t.Fatalf("idle retention sweep rewrote the store: %v", err)
 	}
@@ -522,7 +560,7 @@ func TestScenarioJobStartupRemovesCapturedInputsThatExpiredWhileStopped(t *testi
 	if _, visible := svc.scenarioJobs.get("job-expired-offline"); visible {
 		t.Fatal("restart served a Job that expired while Runtime was stopped")
 	}
-	raw, err := os.ReadFile(svc.scenarioJobs.durablePath)
+	raw, err := readScenarioJobDocument(svc.scenarioJobs.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}

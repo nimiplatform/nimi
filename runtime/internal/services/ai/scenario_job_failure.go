@@ -128,8 +128,11 @@ func validateFailedScenarioJobProjection(job *runtimev1.ScenarioJob) error {
 		interruption := job.GetInterruption()
 		if interruption == nil ||
 			interruption.GetCause() != runtimev1.ExecutionInterruptionCause_EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART ||
-			interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT {
+			(interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT && interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN) {
 			return fmt.Errorf("interrupted ScenarioJob has no canonical Runtime-restart disposition")
+		}
+		if job.GetSubmissionOutcome() == runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN && interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN {
+			return fmt.Errorf("possible dispatch cannot authorize resubmission")
 		}
 	} else if job.GetInterruption() != nil {
 		return fmt.Errorf("non-interrupted ScenarioJob failure carries an execution interruption")

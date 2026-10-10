@@ -43,6 +43,9 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 	if err != nil {
 		return nil, err
 	}
+	if req != nil && req.GetTimeoutMs() != 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
 	ownerSpec, scenarioType, err := validateLocalAppScenarioJobRequest(req)
 	if err != nil {
 		return nil, err
@@ -52,6 +55,11 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 		return nil, err
 	}
 	if submission != nil {
+		release, err := s.scenarioJobs.claimScenarioAction(ctx, localAppJobOwnerFromContext(ctx), submission)
+		if err != nil {
+			return nil, localAppSubmissionError(err)
+		}
+		defer release()
 		existing, err := s.scenarioJobs.getMusicSubmission(localAppJobOwnerFromContext(ctx), submission.ID, submission.RequestSHA256)
 		if err != nil {
 			return nil, localAppSubmissionError(err)
@@ -65,6 +73,11 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 		}
 		ctx = context.WithValue(ctx, localAppMusicSubmissionContextKey{}, submission)
 	}
+	ctx, releaseCapture, err := s.scenarioJobs.admitScenarioCapture(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer releaseCapture()
 	head := localAppScenarioHead(decision)
 	head.TimeoutMs = req.GetTimeoutMs()
 	submitCtx := ctx
@@ -117,7 +130,7 @@ func (s *Service) GetLocalAppScenarioJob(ctx context.Context, req *runtimev1.Get
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.GetScenarioJob(localAppOwnerCallContext(ctx, decision), &runtimev1.GetScenarioJobRequest{JobId: jobID})
+	result, err := s.getScenarioJob(localAppOwnerCallContext(ctx, decision), &runtimev1.GetScenarioJobRequest{JobId: jobID}, req.GetClientSubmissionId() == "")
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +142,9 @@ func (s *Service) GetLocalAppScenarioJob(ctx context.Context, req *runtimev1.Get
 		return nil, err
 	}
 	response := &runtimev1.GetLocalAppScenarioJobResponse{Job: job}
+	if result.GetObservationIssue() != nil {
+		response.ObservationIssue = proto.Clone(result.GetObservationIssue()).(*runtimev1.ScenarioJobObservationIssue)
+	}
 	response.VisionLocate = cloneVisionLocateResult(result.GetVisionLocate())
 	if result.GetAsset() != nil || result.GetVoiceReference() != nil {
 		asset, err := projectLocalAppVoiceAsset(result.GetAsset())
@@ -309,7 +325,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	if job.GetReasonCode() == runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
 		if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
 			job.GetInterruption().GetCause() != runtimev1.ExecutionInterruptionCause_EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART ||
-			job.GetInterruption().GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT {
+			(job.GetInterruption().GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT && job.GetInterruption().GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN) {
 			return invalid()
 		}
 		interruption, _ = proto.Clone(job.GetInterruption()).(*runtimev1.ExecutionInterruption)
@@ -351,6 +367,8 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		JobId:                job.GetJobId(),
 		ScenarioType:         job.GetScenarioType(),
 		Status:               job.GetStatus(),
+		SubmissionOutcome:    job.GetSubmissionOutcome(),
+		StopOutcome:          job.GetStopOutcome(),
 		ProgressPercent:      job.GetProgressPercent(),
 		ProgressCurrentStep:  job.GetProgressCurrentStep(),
 		ProgressTotalSteps:   job.GetProgressTotalSteps(),

@@ -10,7 +10,6 @@ import (
 	"unicode/utf8"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -57,6 +56,10 @@ func ExecuteWorldLabsWorld(
 	if utf8.RuneCountInString(spec.GetTextPrompt()) > 2000 {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
+	ctx = originalControlRequest(ctx)
+	if err := requireNativeTaskPublisher(ctx); err != nil {
+		return nil, nil, "", err
+	}
 	imageID := ""
 	if spec.GetImagePrompt() != nil {
 		imageID, err = uploadWorldLabsImage(ctx, baseURL, headers, spec)
@@ -69,7 +72,7 @@ func ExecuteWorldLabsWorld(
 		return nil, nil, "", err
 	}
 	submitResp := map[string]any{}
-	if err := doJSONRequestWithHeadersAndObservation(ctx, http.MethodPost, JoinURL(baseURL, "/marble/v1/worlds:generate"), "", requestBody, &submitResp, headers, 0, AdapterWorldLabsNative); err != nil {
+	if err := doJSONRequestWithHeadersAndObservation(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, "/marble/v1/worlds:generate"), "", requestBody, &submitResp, headers, 0, AdapterWorldLabsNative); err != nil {
 		return nil, nil, "", err
 	}
 	operationID := strings.TrimSpace(ValueAsString(submitResp["operation_id"]))
@@ -77,63 +80,9 @@ func ExecuteWorldLabsWorld(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
-	initialDelay := providerPollDelay(0)
-	updater.UpdatePollState(jobID, operationID, 0, timestamppb.New(time.Now().UTC().Add(initialDelay)), "")
-	retryCount := int32(0)
-	for {
-		if ctx.Err() != nil {
-			return nil, nil, operationID, providerPollContextError(ctx.Err())
-		}
-		retryCount++
-		operationResp := map[string]any{}
-		pollURL := JoinURL(baseURL, "/marble/v1/operations/"+operationID)
-		if err := retryWorldProviderRead(ctx, func() error {
-			operationResp = map[string]any{}
-			return doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, pollURL, "", nil, &operationResp, headers, 30*time.Second, AdapterWorldLabsNative)
-		}); err != nil {
-			return nil, nil, operationID, err
-		}
-
-		done, _ := operationResp["done"].(bool)
-		if !done {
-			statusText := worldLabsProgressStatus(operationResp)
-			if providerPollRetryLimitReached(ctx, retryCount) {
-				updater.UpdatePollState(jobID, operationID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
-				return nil, nil, operationID, providerPollTimeoutError()
-			}
-			delay := providerPollDelay(retryCount)
-			updater.UpdatePollState(jobID, operationID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), statusText)
-			if err := sleepWithContext(ctx, delay); err != nil {
-				return nil, nil, operationID, providerPollContextError(err)
-			}
-			continue
-		}
-
-		if opErr := worldLabsOperationError(operationResp); opErr != nil {
-			updater.UpdatePollState(jobID, operationID, retryCount, nil, opErr.Error())
-			return nil, nil, operationID, opErr
-		}
-
-		worldPayload, err := fetchWorldLabsWorld(ctx, baseURL, headers, operationResp)
-		if err != nil {
-			updater.UpdatePollState(jobID, operationID, retryCount, nil, err.Error())
-			return nil, nil, operationID, err
-		}
-		manifestBytes, manifestMeta, err := buildWorldLabsManifest(worldPayload, operationID)
-		if err != nil {
-			updater.UpdatePollState(jobID, operationID, retryCount, nil, err.Error())
-			return nil, nil, operationID, err
-		}
-		artifact := BinaryArtifact(worldLabsManifestMIME, manifestBytes, manifestMeta)
-		bundleBytes, err := buildWorldLabsBundle(ctx, worldPayload)
-		if err != nil {
-			return nil, nil, operationID, err
-		}
-		bundle := BinaryArtifact(WorldBundleMIME, bundleBytes, map[string]any{"world_id": worldPayload["world_id"]})
-		updater.UpdatePollState(jobID, operationID, retryCount, nil, "")
-		// World generation does not report token counts or compute time here.
-		return []*runtimev1.ScenarioArtifact{artifact, bundle}, nil, operationID, nil
-	}
+	artifact := BinaryArtifact(worldLabsManifestMIME, nil, map[string]any{"adapter": AdapterWorldLabsNative})
+	_, err = publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: AdapterWorldLabsNative, TaskID: operationID, Model: modelResolved, QueryPathTemplate: "/marble/v1/operations/{task_id}", Artifact: artifact})
+	return nil, nil, operationID, err
 }
 
 func buildWorldLabsGeneratePayload(spec *runtimev1.WorldGenerateScenarioSpec, modelResolved, uploadedImageID string) (map[string]any, string, error) {

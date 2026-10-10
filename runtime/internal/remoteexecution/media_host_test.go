@@ -2,6 +2,7 @@ package remoteexecution
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -16,8 +17,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -35,15 +34,13 @@ func TestProviderMediaHostAuditsActualAlibabaCleanupOutcome(t *testing.T) {
 						t.Errorf("write submitted task: %v", err)
 					}
 				case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/private-task":
-					if polls.Add(1) == 1 {
-						cancel()
-						// This request is deliberately cancelled above; its peer may already be closed.
-						_, _ = fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"RUNNING"}}`)
+					polls.Add(1)
+					if cancels.Load() == 0 {
+						fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"RUNNING"}}`)
 					} else {
-						if _, err := fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"CANCELED"}}`); err != nil {
-							t.Errorf("write canceled task: %v", err)
-						}
+						fmt.Fprint(w, `{"output":{"task_id":"private-task","task_status":"CANCELED"}}`)
 					}
+
 				case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks/private-task/cancel":
 					cancels.Add(1)
 					if outcome == "not_cancelable" {
@@ -85,10 +82,24 @@ func TestProviderMediaHostAuditsActualAlibabaCleanupOutcome(t *testing.T) {
 			}
 			audit := auditlog.New(16, 16)
 			host := NewProviderMediaHost(store, nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}), audit, true)
-			_, err = host.ExecuteMedia(ctx, record, target, mapped, MediaDispatchAudit{AppID: "app", AccountID: "account-a", TraceID: "trace-cleanup", Provider: "dashscope", CapabilityContract: "video.generate"})
-			if status.Code(err) != codes.Canceled || cancels.Load() != 1 {
-				t.Fatalf("err=%v cancel requests=%d", err, cancels.Load())
+			captured, ref, err := store.CaptureCredentialCustody(record.ConnectorID, "original-cleanup-job")
+			if err != nil {
+				t.Fatal(err)
 			}
+			captured.CredentialCustodyRef = ref
+			var receipt *nimillm.NativeTaskReceipt
+			ctx = nimillm.WithNativeTaskPublisher(WithAsyncJob(ctx), func(r *nimillm.NativeTaskReceipt) error { receipt = nimillm.CloneNativeTaskReceipt(r); return nil })
+			dispatch := MediaDispatchAudit{AppID: "app", AccountID: "account-a", TraceID: "trace-cleanup", Provider: "dashscope", CapabilityContract: "video.generate"}
+			_, err = host.ExecuteMedia(ctx, captured, target, mapped, dispatch)
+			if !errors.Is(err, nimillm.ErrNativeTaskYielded) || polls.Load() != 0 || cancels.Load() != 0 {
+				t.Fatalf("create handoff: %v", err)
+			}
+			cancel()
+			actual, err := host.StopNativeTask(WithAsyncJob(context.Background()), captured, target, receipt, dispatch)
+			if string(actual) != outcome || cancels.Load() != 1 {
+				t.Fatalf("explicit stop: %s %v count=%d", actual, err, cancels.Load())
+			}
+
 			events, err := audit.ListEvents(&runtimev1.ListAuditEventsRequest{})
 			if err != nil {
 				t.Fatal(err)

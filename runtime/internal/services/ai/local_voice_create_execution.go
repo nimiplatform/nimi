@@ -179,20 +179,11 @@ func (s *Service) submitLocalVoiceWorkflowJob(
 	if err != nil {
 		return nil, err
 	}
-	timeout, err := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true)
-	if err != nil {
-		return nil, err
-	}
 	jobCtx := newDetachedAsyncJobContext(ctx)
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
-	var cancel context.CancelFunc
-	if timeout > 0 {
-		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
-	} else {
-		jobCtx, cancel = context.WithCancel(jobCtx)
-	}
+	jobCtx, cancel := context.WithCancel(jobCtx)
 	now := timestamppb.New(time.Now().UTC())
 	jobID := ulid.Make().String()
 	traceID := ulid.Make().String()
@@ -212,10 +203,10 @@ func (s *Service) submitLocalVoiceWorkflowJob(
 		IgnoredExtensions:      cloneIgnoredScenarioExtensions(ignored),
 		EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity),
 	}
-	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
+	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly, nil, false, localAppMusicSubmissionFromContext(ctx))
 	if persistErr != nil {
 		cancel()
-		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{Message: "ScenarioJob submission could not be persisted"})
+		return nil, scenarioJobSubmissionError(persistErr, "ScenarioJob submission could not be persisted")
 	}
 	if stored == nil {
 		cancel()
@@ -240,6 +231,9 @@ func (s *Service) executeCapturedLocalVoiceCreateJob(
 		return
 	}
 	defer s.finishScenarioJobExecution(jobID)
+	budget := newScenarioJobExecutionBudget(ctx)
+	ctx = budget
+	defer budget.close()
 	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
 		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
 		return
@@ -292,7 +286,7 @@ func (s *Service) executeCapturedLocalVoiceCreateJob(
 			s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
 			return transitionErr
 		} else if ok {
-			return nil
+			return budget.start(defaultLocalSpeechJobTimeout)
 		}
 		if err := ctx.Err(); err != nil {
 			return err
@@ -300,6 +294,7 @@ func (s *Service) executeCapturedLocalVoiceCreateJob(
 		return context.Canceled
 	}
 	result, err := s.localSpeechHost.ExecuteVoiceCreate(ctx, plan, onStart)
+	budget.stop()
 	if err != nil {
 		s.finishLocalVoiceCreateFailure(ctx, jobID, localExecutionError(err))
 		return
@@ -372,7 +367,7 @@ func (s *Service) finishLocalVoiceCreateFailure(ctx context.Context, jobID strin
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
 	}
-	if errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
+	if (errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled) && s.scenarioJobs.cancellationRequested(jobID) {
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 	}
@@ -381,7 +376,7 @@ func (s *Service) finishLocalVoiceCreateFailure(ctx context.Context, jobID strin
 		reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED
 	}
 	if jobStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT {
-		reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+		reason = runtimev1.ReasonCode_AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED
 	}
 	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reason

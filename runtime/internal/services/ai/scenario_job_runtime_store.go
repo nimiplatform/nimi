@@ -2,8 +2,10 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"log/slog"
 	"sort"
 	"strings"
@@ -33,21 +35,23 @@ const (
 type scenarioJobPersistenceOperation string
 
 const (
-	scenarioJobPersistCreate         scenarioJobPersistenceOperation = "create"
-	scenarioJobPersistCreateAndBind  scenarioJobPersistenceOperation = "create-and-bind-idempotency"
-	scenarioJobPersistBind           scenarioJobPersistenceOperation = "bind-idempotency"
-	scenarioJobPersistTransition     scenarioJobPersistenceOperation = "transition"
-	scenarioJobPersistProgress       scenarioJobPersistenceOperation = "progress"
-	scenarioJobPersistArtifact       scenarioJobPersistenceOperation = "artifact"
-	scenarioJobPersistCancellation   scenarioJobPersistenceOperation = "cancellation"
-	scenarioJobPersistCustodyBegin   scenarioJobPersistenceOperation = "credential-custody-begin"
-	scenarioJobPersistCustodyAbort   scenarioJobPersistenceOperation = "credential-custody-abort"
-	scenarioJobPersistCustodyRelease scenarioJobPersistenceOperation = "credential-custody-release"
-	scenarioJobPersistLoad           scenarioJobPersistenceOperation = "load"
-	scenarioJobPersistPrune          scenarioJobPersistenceOperation = "prune"
-	scenarioJobPersistMaintenance    scenarioJobPersistenceOperation = "maintenance"
-	scenarioJobPersistPayloadFence   scenarioJobPersistenceOperation = "payload-fence"
-	scenarioJobPersistPayloadDispose scenarioJobPersistenceOperation = "payload-dispose"
+	scenarioJobPersistDispatchIntent  scenarioJobPersistenceOperation = "dispatch-intent"
+	scenarioJobPersistCreate          scenarioJobPersistenceOperation = "create"
+	scenarioJobPersistCreateAndBind   scenarioJobPersistenceOperation = "create-and-bind-idempotency"
+	scenarioJobPersistBind            scenarioJobPersistenceOperation = "bind-idempotency"
+	scenarioJobPersistTransition      scenarioJobPersistenceOperation = "transition"
+	scenarioJobPersistProgress        scenarioJobPersistenceOperation = "progress"
+	scenarioJobPersistArtifact        scenarioJobPersistenceOperation = "artifact"
+	scenarioJobPersistCancellation    scenarioJobPersistenceOperation = "cancellation"
+	scenarioJobPersistCustodyBegin    scenarioJobPersistenceOperation = "credential-custody-begin"
+	scenarioJobPersistCustodyAbort    scenarioJobPersistenceOperation = "credential-custody-abort"
+	scenarioJobPersistCustodyRelease  scenarioJobPersistenceOperation = "credential-custody-release"
+	scenarioJobPersistLoad            scenarioJobPersistenceOperation = "load"
+	scenarioJobPersistPrune           scenarioJobPersistenceOperation = "prune"
+	scenarioJobPersistMaintenance     scenarioJobPersistenceOperation = "maintenance"
+	scenarioJobPersistResultCandidate scenarioJobPersistenceOperation = "result-candidate"
+	scenarioJobPersistPayloadFence    scenarioJobPersistenceOperation = "payload-fence"
+	scenarioJobPersistPayloadDispose  scenarioJobPersistenceOperation = "payload-dispose"
 )
 
 type scenarioJobPersistenceAttempt struct {
@@ -57,6 +61,17 @@ type scenarioJobPersistenceAttempt struct {
 }
 
 type scenarioJobRecord struct {
+	captureAborted          bool
+	pendingTerminal         *runtimev1.ScenarioJob
+	dispatchPossible        *bool
+	nativeReceipt           *nimillm.NativeTaskReceipt
+	nativeReceiptPending    bool
+	nativeResult            *nimillm.NativeTaskObservation
+	bodyArtifactIDs         []string
+	resultCandidate         *scenarioJobResultCandidate
+	nativeObservation       bool
+	nativeWorkVersion       uint64
+	observationIssue        *runtimev1.ScenarioJobObservationIssue
 	payload                 *embeddingPayload
 	executionDone           chan struct{}
 	job                     *runtimev1.ScenarioJob
@@ -81,6 +96,8 @@ type scenarioJobRecord struct {
 	createdAt               time.Time
 	updatedAt               time.Time
 	terminalAt              time.Time
+	terminalUnpersisted     bool
+	publicEvicted           bool
 	// modelAssetUses keeps every captured ModelAsset's files alive until the
 	// job is terminal and its executor has exited. Released exactly once.
 	modelAssetUses []func()
@@ -131,6 +148,11 @@ type scenarioPendingCloudCustody struct {
 
 // @nimi-authority: definition.nimi.runtime.service-operations.scenario-job-plane
 type scenarioJobStore struct {
+	recoveryIncomplete   bool
+	captureRows          map[string]*scenarioJobRecord
+	jobBodies            runtimeartifact.JobBodyStore
+	actionClaims         map[scenarioActionKey]*scenarioActionClaim
+	captureSlots         chan struct{}
 	musicArtifacts       runtimeartifact.MusicRecoveryStore
 	musicPreparations    map[string]int64
 	modelAssetUseHolder  localexecution.ModelAssetUseHolder
@@ -227,7 +249,7 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	if id == "" {
 		return nil, false, fmt.Errorf("scenario job id is required")
 	}
-	if err := validateLocalAppMusicSubmission(submission, owner, job); err != nil {
+	if err := validateLocalAppMusicSubmission(submission, owner, job, cloudAssembly); err != nil {
 		return nil, false, err
 	}
 	nowTime := time.Now().UTC()
@@ -240,6 +262,9 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	}
 	if job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED {
 		job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
+	}
+	if job.GetExecutionMode() == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB && (job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED || job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED) {
+		job.SubmissionOutcome = runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED
 	}
 	capturedAssembly, err := cloneLocalResolvedAssembly(resolvedAssembly)
 	if err != nil {
@@ -273,6 +298,9 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 		createdAt:        nowTime,
 		updatedAt:        nowTime,
 	}
+	if job.GetExecutionMode() == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
+		record.dispatchPossible = proto.Bool(job.GetSubmissionOutcome() == runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED)
+	}
 	if resolvedAssembly != nil && resolvedAssembly.modelAssetUse != nil {
 		use, err := resolvedAssembly.modelAssetUse.Retain()
 		if err != nil {
@@ -297,7 +325,7 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	s.mu.Lock()
 	if submission != nil {
 		if existing := s.musicSubmissionLocked(owner, submission.ID); existing != nil {
-			if musicRecoveryExpired(existing, nowTime) {
+			if scenarioJobPublicExpired(existing, nowTime) {
 				s.mu.Unlock()
 				return nil, false, errMusicRecoveryExpired
 			}
@@ -309,9 +337,11 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 			s.mu.Unlock()
 			return snapshot, false, nil
 		}
-		if err := s.admitMusicRecoveryLocked(musicRecoveryOutputReservation(submission, capturedCloudAssembly)+musicCapturedInputBytes(capturedAssembly, capturedCloudAssembly), true); err != nil {
-			s.mu.Unlock()
-			return nil, false, err
+		if submission.ReservedBytes > 0 {
+			if err := s.admitMusicRecoveryLocked(musicRecoveryOutputReservation(submission, capturedCloudAssembly)+musicCapturedInputBytes(capturedAssembly, capturedCloudAssembly), true); err != nil {
+				s.mu.Unlock()
+				return nil, false, err
+			}
 		}
 	}
 	var pendingCustody scenarioPendingCloudCustody
@@ -331,11 +361,26 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 		if hadPreviousBinding {
 			existing := s.jobs[strings.TrimSpace(previousBinding.jobID)]
 			if existing != nil && existing.job != nil {
+				if scenarioJobPublicExpired(existing, nowTime) {
+					s.mu.Unlock()
+					return nil, false, errMusicRecoveryExpired
+				}
 				snapshot := cloneScenarioJob(existing.job)
 				s.mu.Unlock()
 				return snapshot, false, nil
 			}
 		}
+	}
+	if capture := s.captureRows[id]; capture != nil {
+		record.bodyArtifactIDs = append([]string(nil), capture.bodyArtifactIDs...)
+	}
+	if err := s.admitJobCapacityLocked(record); err != nil {
+		s.mu.Unlock()
+		return nil, false, err
+	}
+	if s.jobs[id] != nil {
+		s.mu.Unlock()
+		return nil, false, fmt.Errorf("scenario Job identity is already owned")
 	}
 	s.jobs[id] = record
 	if consumePendingCloudCustody {
@@ -365,6 +410,11 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 			return nil, false, fmt.Errorf("persist scenario job %q creation and idempotency binding: %w", id, err)
 		}
 		return nil, false, fmt.Errorf("persist scenario job %q creation: %w", id, err)
+	}
+	if record.localAppOwner != nil && record.localAppOwner.workPermit != nil {
+		permit := record.localAppOwner.workPermit
+		permit.jobID = id
+		permit.adopted.Store(true)
 	}
 	s.mu.Unlock()
 	published = true
@@ -524,7 +574,7 @@ func (s *scenarioJobStore) get(jobID string) (*runtimev1.ScenarioJob, bool) {
 	}
 	s.mu.RLock()
 	record, ok := s.jobs[id]
-	if !ok || musicRecoveryExpired(record, time.Now()) {
+	if !ok || scenarioJobPublicExpired(record, time.Now()) {
 		s.mu.RUnlock()
 		return nil, false
 	}
@@ -559,7 +609,7 @@ func (s *scenarioJobStore) getByIdempotency(scopeKey string) (*runtimev1.Scenari
 	binding, ok := s.idempotency[key]
 	jobID := strings.TrimSpace(binding.jobID)
 	record := s.jobs[jobID]
-	if !ok || record == nil {
+	if !ok || record == nil || scenarioJobPublicExpired(record, time.Now()) {
 		s.mu.RUnlock()
 		return nil, false
 	}
@@ -601,8 +651,9 @@ func (s *scenarioJobStore) transition(
 	status runtimev1.ScenarioJobStatus,
 	eventType runtimev1.ScenarioJobEventType,
 	mutate func(*runtimev1.ScenarioJob),
+	work ...context.Context,
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.transitionWithResults(jobID, status, eventType, nil, nil, nil, mutate)
+	return s.transitionWithResults(jobID, status, eventType, nil, nil, nil, mutate, work...)
 }
 
 func (s *scenarioJobStore) transitionVoiceCompleted(
@@ -610,6 +661,7 @@ func (s *scenarioJobStore) transitionVoiceCompleted(
 	asset *runtimev1.VoiceAsset,
 	reference *runtimev1.VoiceReference,
 	mutate func(*runtimev1.ScenarioJob),
+	work ...context.Context,
 ) (*runtimev1.ScenarioJob, bool, error) {
 	return s.transitionWithResults(
 		jobID,
@@ -619,6 +671,7 @@ func (s *scenarioJobStore) transitionVoiceCompleted(
 		reference,
 		nil,
 		mutate,
+		work...,
 	)
 }
 
@@ -630,6 +683,7 @@ func (s *scenarioJobStore) transitionWithResults(
 	voiceReference *runtimev1.VoiceReference,
 	visionLocate *runtimev1.VisionLocateResult,
 	mutate func(*runtimev1.ScenarioJob),
+	work ...context.Context,
 ) (*runtimev1.ScenarioJob, bool, error) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
@@ -640,6 +694,10 @@ func (s *scenarioJobStore) transitionWithResults(
 	if !ok {
 		s.mu.Unlock()
 		return nil, false, nil
+	}
+	if err := validateNativeJobClaim(record, work); err != nil {
+		s.mu.Unlock()
+		return nil, false, err
 	}
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		job := cloneScenarioJob(record.job)
@@ -657,6 +715,8 @@ func (s *scenarioJobStore) transitionWithResults(
 	previousVisionLocate := cloneVisionLocateResult(record.visionLocate)
 	previousUpdatedAt := record.updatedAt
 	previousTerminalAt := record.terminalAt
+	previousDispatch := record.dispatchPossible
+	previousCandidate := record.resultCandidate
 	if voiceAsset != nil || voiceReference != nil {
 		record.voiceAsset = cloneVoiceAsset(voiceAsset)
 		record.voiceReference = cloneVoiceReference(voiceReference)
@@ -675,12 +735,15 @@ func (s *scenarioJobStore) transitionWithResults(
 	if status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED {
 		record.job.Status = status
 	}
+	setScenarioJobTransitionOutcome(record.job)
+	applyScenarioDispatchFacts(record)
 	if record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
 		record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		record.job.ReasonMetadata = nil
 		record.job.Interruption = nil
 	}
 	if err := prepareFailedScenarioJobProjection(record.job); err != nil {
+		record.dispatchPossible = previousDispatch
 		record.job = previousJob
 		record.visionLocate = previousVisionLocate
 		record.voiceAsset = previousVoiceAsset
@@ -705,6 +768,7 @@ func (s *scenarioJobStore) transitionWithResults(
 		validationErr = s.retainTerminalMusicLocked(record)
 	}
 	if err := validationErr; err != nil {
+		record.dispatchPossible = previousDispatch
 		record.job = previousJob
 		record.visionLocate = previousVisionLocate
 		record.voiceAsset = previousVoiceAsset
@@ -716,7 +780,87 @@ func (s *scenarioJobStore) transitionWithResults(
 		s.mu.Unlock()
 		return job, false, err
 	}
-	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistTransition, JobID: id, Status: status}); err != nil {
+	persist := func() error {
+		return s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistTransition, JobID: id, Status: status})
+	}
+	if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED && (len(record.job.GetArtifacts()) > 0 || voiceAsset != nil) && record.job.GetExecutionMode() == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB && (voiceAsset == nil || voiceAsset.GetPersistence() == runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT) {
+		if record.resultCandidate == nil {
+			candidate, candidateErr := encodeScenarioResultCandidate(record)
+			if candidateErr != nil {
+				record.dispatchPossible = previousDispatch
+				record.job = previousJob
+				record.updatedAt, record.terminalAt = previousUpdatedAt, previousTerminalAt
+				record.voiceAsset, record.voiceReference, record.visionLocate = previousVoiceAsset, previousVoiceReference, previousVisionLocate
+				s.syncArtifactIndexLocked(id, record)
+				s.mu.Unlock()
+				return cloneScenarioJob(previousJob), false, candidateErr
+			}
+			finalAsset, finalReference := record.voiceAsset, record.voiceReference
+			finalVision := record.visionLocate
+			finalJob, finalUpdated, finalTerminal := record.job, record.updatedAt, record.terminalAt
+			previousNative := record.nativeResult
+			record.job, record.updatedAt, record.terminalAt = previousJob, previousUpdatedAt, previousTerminalAt
+			record.resultCandidate = candidate
+			record.voiceAsset, record.voiceReference = previousVoiceAsset, previousVoiceReference
+			record.visionLocate = previousVisionLocate
+			record.nativeResult = nil
+			s.syncArtifactIndexLocked(id, record)
+			candidateErr = s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistResultCandidate, JobID: id, Status: record.job.GetStatus()})
+			if candidateErr != nil {
+				// Keep the validated complete result in this process for the next
+				// writer attempt or original Job Get. The public snapshot stays
+				// unchanged; this failed write grants no restart durability.
+				record.dispatchPossible = previousDispatch
+				record.nativeResult = previousNative
+				s.mu.Unlock()
+				return cloneScenarioJob(previousJob), false, candidateErr
+			}
+			previousCandidate = record.resultCandidate
+			previousDispatch = record.dispatchPossible
+			record.job, record.updatedAt, record.terminalAt = finalJob, finalUpdated, finalTerminal
+			record.voiceAsset, record.voiceReference = finalAsset, finalReference
+			record.visionLocate = finalVision
+			s.syncArtifactIndexLocked(id, record)
+		}
+		record.resultCandidate = nil
+	}
+	if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		record.resultCandidate = nil
+	}
+	var persistenceErr error
+	var ids []string
+	if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		for _, artifact := range record.job.GetArtifacts() {
+			for _, candidateID := range record.bodyArtifactIDs {
+				if candidateID == artifact.GetArtifactId() {
+					ids = append(ids, candidateID)
+					break
+				}
+			}
+		}
+	}
+	if len(ids) > 0 {
+		if s.jobBodies == nil {
+			persistenceErr = fmt.Errorf("native result has no body custody owner")
+		} else {
+			persistenceErr = s.jobBodies.PublishJobBodies(id, ids, persist)
+		}
+	} else {
+		persistenceErr = persist()
+	}
+	if err := persistenceErr; err != nil {
+		if isTerminalScenarioJobStatus(status) && status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+			record.pendingTerminal = cloneScenarioJob(record.job)
+		}
+		var transientCandidate *scenarioJobResultCandidate
+		if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED && record.job.GetExecutionMode() == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB && previousCandidate == nil && voiceAsset == nil {
+			transientCandidate, _ = encodeScenarioResultCandidate(record)
+		}
+		record.resultCandidate = previousCandidate
+		if transientCandidate != nil {
+			record.resultCandidate = transientCandidate
+		}
+		record.dispatchPossible = previousDispatch
 		record.job = previousJob
 		record.visionLocate = previousVisionLocate
 		record.voiceAsset = previousVoiceAsset
@@ -728,6 +872,8 @@ func (s *scenarioJobStore) transitionWithResults(
 		s.mu.Unlock()
 		return job, false, fmt.Errorf("persist scenario job %q transition to %s: %w", id, status.String(), err)
 	}
+	record.pendingTerminal = nil
+	record.observationIssue = nil
 	var releases []func()
 	if becameTerminal {
 		record.doneClosed = true
@@ -775,50 +921,14 @@ func validateScenarioJobVoiceResultPair(job *runtimev1.ScenarioJob, asset *runti
 	return nil
 }
 
-// forceFailedInMemory is the last-resort observability boundary after bounded
-// terminal persistence retries are exhausted. It deliberately does not write
-// durable state; restart recovery will terminalize the last durable nonterminal
-// snapshot, while current callers and waiters immediately observe FAILED.
-func (s *scenarioJobStore) forceFailedInMemory(jobID string, reason string) (*runtimev1.ScenarioJob, bool) {
-	id := strings.TrimSpace(jobID)
-	if id == "" {
-		return nil, false
-	}
+// A failed persistence operation changes observation diagnostics, never the
+// public Job fact or event stream. Real authority/Host stops remain independent.
+func (s *scenarioJobStore) recordPersistenceIssue(jobID string) {
 	s.mu.Lock()
-	var releases []func()
-	defer func() { s.mu.Unlock(); runModelAssetReleases(releases) }()
-	record := s.jobs[id]
-	if record == nil || record.job == nil {
-		return nil, false
+	defer s.mu.Unlock()
+	if record := s.jobs[jobID]; record != nil && !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		record.observationIssue = &runtimev1.ScenarioJobObservationIssue{ReasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID, ObservedAt: timestamppb.Now()}
 	}
-	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
-		return cloneScenarioJob(record.job), false
-	}
-	previousJob := cloneScenarioJob(record.job)
-	nowTime := time.Now().UTC()
-	record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
-	record.job.ReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
-	record.job.ReasonDetail = strings.TrimSpace(reason)
-	record.job.ReasonMetadata = nil
-	if err := prepareFailedScenarioJobProjection(record.job); err != nil {
-		record.job = previousJob
-		return cloneScenarioJob(record.job), false
-	}
-	record.job.UpdatedAt = timestamppb.New(nowTime)
-	record.updatedAt = nowTime
-	record.terminalAt = nowTime
-	projectMusicRecoveryExpiry(record)
-	// Not written here; the next durable write that succeeds records it.
-	s.markDurableJobChangedLocked(id)
-	if !record.doneClosed {
-		record.doneClosed = true
-		close(record.done)
-	}
-	if !record.executionStarted {
-		releases = record.takeModelAssetUses()
-	}
-	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED)
-	return cloneScenarioJob(record.job), true
 }
 
 func (s *Service) transitionScenarioJob(
@@ -826,6 +936,7 @@ func (s *Service) transitionScenarioJob(
 	status runtimev1.ScenarioJobStatus,
 	eventType runtimev1.ScenarioJobEventType,
 	mutate func(*runtimev1.ScenarioJob),
+	work ...context.Context,
 ) (*runtimev1.ScenarioJob, bool, error) {
 	attempts := 1
 	if isTerminalScenarioJobStatus(status) {
@@ -835,7 +946,26 @@ func (s *Service) transitionScenarioJob(
 	var transitioned bool
 	var err error
 	for attempt := 1; attempt <= attempts; attempt++ {
-		job, transitioned, err = s.scenarioJobs.transition(jobID, status, eventType, mutate)
+		entered := false
+		commit := func() error {
+			entered = true
+			var cause error
+			job, transitioned, cause = s.scenarioJobs.transition(jobID, status, eventType, mutate, work...)
+			return cause
+		}
+		if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING || status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED {
+			err = s.scenarioJobs.withJobWorkAuthority(jobID, commit)
+		} else {
+			err = commit()
+		}
+		if errors.Is(err, errNativeJobClaimLost) {
+			return job, false, err
+		}
+		if err != nil && !entered {
+			s.scenarioJobs.failJobWorkAuthority(jobID, err, work...)
+			job, _ = s.scenarioJobs.get(jobID)
+			return job, false, err
+		}
 		if err == nil {
 			if job != nil && isTerminalScenarioJobStatus(job.GetStatus()) {
 				s.releaseCloudCredentialCustodyForJob(jobID)
@@ -852,9 +982,16 @@ func (s *Service) transitionScenarioJob(
 		)
 	}
 	if isTerminalScenarioJobStatus(status) {
-		job, _ = s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
+		if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED && s.scenarioJobs.hasResultCandidate(jobID) {
+			return job, false, err
+		}
+		if len(work) > 0 && work[0].Value(nativeJobClaimKey{}) != nil && status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+			return job, false, err
+		}
+		s.scenarioJobs.recordPersistenceIssue(jobID)
+		job, _ = s.scenarioJobs.get(jobID)
 		s.logScenarioJobPersistenceFailure(
-			"SCENARIO JOB TERMINAL STATE COULD NOT BE PERSISTED; forced in-memory FAILED terminal",
+			"SCENARIO JOB TERMINAL STATE COULD NOT BE PERSISTED; last trustworthy Job retained",
 			"job_id", strings.TrimSpace(jobID),
 			"requested_status", status.String(),
 			"reason", scenarioJobTerminalPersistenceFailedReason,
@@ -869,16 +1006,28 @@ func (s *Service) transitionVoiceScenarioJobCompleted(
 	asset *runtimev1.VoiceAsset,
 	reference *runtimev1.VoiceReference,
 	mutate func(*runtimev1.ScenarioJob),
+	work ...context.Context,
 ) (*runtimev1.ScenarioJob, bool, error) {
 	var job *runtimev1.ScenarioJob
 	var transitioned bool
 	var err error
 	for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
-		job, transitioned, err = s.scenarioJobs.transitionVoiceCompleted(jobID, asset, reference, mutate)
+		entered := false
+		err = s.scenarioJobs.withJobWorkAuthority(jobID, func() error {
+			entered = true
+			var cause error
+			job, transitioned, cause = s.scenarioJobs.transitionVoiceCompleted(jobID, asset, reference, mutate, work...)
+			return cause
+		})
+		if errors.Is(err, errNativeJobClaimLost) {
+			return job, false, err
+		}
+		if err != nil && !entered {
+			s.scenarioJobs.failJobWorkAuthority(jobID, err, work...)
+			job, _ = s.scenarioJobs.get(jobID)
+			return job, false, err
+		}
 		if err == nil {
-			if job != nil && isTerminalScenarioJobStatus(job.GetStatus()) {
-				s.releaseCloudCredentialCustodyForJob(jobID)
-			}
 			return job, transitioned, nil
 		}
 		s.logScenarioJobPersistenceFailure(
@@ -889,9 +1038,13 @@ func (s *Service) transitionVoiceScenarioJobCompleted(
 			"error", err,
 		)
 	}
-	job, _ = s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
+	if s.scenarioJobs.hasResultCandidate(jobID) {
+		return job, false, err
+	}
+	s.scenarioJobs.recordPersistenceIssue(jobID)
+	job, _ = s.scenarioJobs.get(jobID)
 	s.logScenarioJobPersistenceFailure(
-		"VOICE SCENARIO JOB TERMINAL RESULT COULD NOT BE PERSISTED; forced in-memory FAILED terminal",
+		"VOICE SCENARIO JOB TERMINAL RESULT COULD NOT BE PERSISTED; last trustworthy Job retained",
 		"job_id", strings.TrimSpace(jobID),
 		"reason", scenarioJobTerminalPersistenceFailedReason,
 		"error", err,
@@ -922,14 +1075,14 @@ func (s *Service) failScenarioJobPersistencePrecondition(jobID string, reason st
 }
 
 func (s *Service) finishScenarioJobExecution(jobID string) {
-	var terminalPersisted bool
 	var err error
 	for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
-		terminalPersisted, err = s.scenarioJobs.finishExecution(jobID)
+		_, err = s.scenarioJobs.finishExecution(jobID)
 		if err == nil {
-			if terminalPersisted {
-				s.releaseCloudCredentialCustodyForJob(jobID)
+			if cleanupErr := s.releaseScenarioBodyCandidates(jobID); cleanupErr != nil {
+				s.logScenarioJobPersistenceFailure("Job body cleanup remains pending", "job_id", jobID, "error", cleanupErr)
 			}
+			s.releaseCloudCredentialCustodyForJob(jobID)
 			return
 		}
 		s.logScenarioJobPersistenceFailure(
@@ -940,9 +1093,9 @@ func (s *Service) finishScenarioJobExecution(jobID string) {
 			"error", err,
 		)
 	}
-	s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
+	s.scenarioJobs.recordPersistenceIssue(jobID)
 	s.logScenarioJobPersistenceFailure(
-		"SCENARIO JOB FINISH STATE COULD NOT BE PERSISTED; forced in-memory FAILED terminal",
+		"SCENARIO JOB FINISH STATE COULD NOT BE PERSISTED; last trustworthy Job retained",
 		"job_id", strings.TrimSpace(jobID),
 		"reason", scenarioJobTerminalPersistenceFailedReason,
 		"error", err,
@@ -973,7 +1126,13 @@ func (s *Service) commitScenarioJobArtifact(
 	totalSteps int32,
 	progressPercent int32,
 ) (*runtimev1.ScenarioJob, bool) {
-	job, committed, err := s.scenarioJobs.commitArtifact(jobID, artifact, currentStep, totalSteps, progressPercent)
+	var job *runtimev1.ScenarioJob
+	var committed bool
+	err := s.scenarioJobs.withJobWorkAuthority(jobID, func() error {
+		var cause error
+		job, committed, cause = s.scenarioJobs.commitArtifact(jobID, artifact, currentStep, totalSteps, progressPercent)
+		return cause
+	})
 	if err != nil {
 		s.logScenarioJobPersistenceFailure("scenario job artifact persistence failed", "job_id", strings.TrimSpace(jobID), "artifact_id", strings.TrimSpace(artifact.GetArtifactId()), "error", err)
 		return job, false
@@ -1120,21 +1279,44 @@ func (s *scenarioJobStore) canCleanUnstartedLocalStaging(jobID string) bool {
 	return record == nil || (record.job != nil && !record.executionStarted && (isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested))
 }
 
+func (s *scenarioJobStore) cancellationRequested(jobID string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	record := s.jobs[jobID]
+	// Immediate SYNC/STREAM calls still use their caller context. An admitted
+	// asynchronous Job requires the explicit durable Cancel operation.
+	return record != nil && (record.cancelRequested || isImmediateScenarioJob(record.job))
+}
+
 func (s *scenarioJobStore) startExecution(jobID string) bool {
+	started := false
+	var cleanup func()
+	if err := s.withJobWorkAuthority(jobID, func() error { started, cleanup = s.startAuthorizedExecution(jobID); return nil }); err != nil {
+		s.failJobWorkAuthority(jobID, err)
+		return false
+	}
+	if cleanup != nil {
+		cleanup()
+	}
+	return started
+}
+
+func (s *scenarioJobStore) startAuthorizedExecution(jobID string) (bool, func()) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
-		return false
+		return false, nil
 	}
 	s.mu.Lock()
 	record, ok := s.jobs[id]
 	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested || record.executionStarted || (record.payload != nil && record.payload.State != "retained") {
 		s.mu.Unlock()
-		return false
+		return false, nil
 	}
+
 	record.executionStarted = true
 	record.executionDone = make(chan struct{})
 	s.mu.Unlock()
-	return true
+	return true, nil
 }
 
 func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev1.ScenarioJob, bool, error) {
@@ -1151,6 +1333,57 @@ func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev
 		}
 		s.mu.Unlock()
 		return job, false, nil
+	}
+	if record.job.GetExecutionMode() == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
+		previousJob := cloneScenarioJob(record.job)
+		previousUpdated, previousTerminal := record.updatedAt, record.terminalAt
+		previousRequested, previousReason := record.cancelRequested, record.cancelReason
+		record.cancelRequested, record.cancelReason = true, strings.TrimSpace(reason)
+		record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+		applyScenarioDispatchFacts(record)
+		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		record.job.ReasonDetail = record.cancelReason
+		record.job.ReasonMetadata, record.job.Interruption = nil, nil
+		now := time.Now().UTC()
+		record.updatedAt, record.terminalAt = now, now
+		record.job.UpdatedAt = timestamppb.New(now)
+		err := s.retainTerminalMusicLocked(record)
+		if err == nil {
+			err = s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistCancellation, JobID: id, Status: record.job.GetStatus()})
+		}
+		if err != nil {
+			record.job = previousJob
+			record.updatedAt, record.terminalAt = previousUpdated, previousTerminal
+			record.cancelRequested, record.cancelReason = previousRequested, previousReason
+			s.mu.Unlock()
+			return cloneScenarioJob(previousJob), false, err
+		}
+		record.pendingTerminal = nil
+		// The local publication gate wins durably before signaling the worker.
+		// Its resources remain owned until active use and protocol purposes end.
+		if !record.doneClosed {
+			record.doneClosed = true
+			close(record.done)
+		}
+		s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED)
+		job, cancel := cloneScenarioJob(record.job), record.cancel
+		var releases []func()
+		var releaseWork func()
+		if !record.executionStarted {
+			releases = record.takeModelAssetUses()
+			if record.localAppOwner != nil && record.localAppOwner.workPermit != nil {
+				releaseWork = record.localAppOwner.workPermit.authority.Release
+			}
+		}
+		s.mu.Unlock()
+		if cancel != nil {
+			cancel()
+		}
+		if releaseWork != nil {
+			releaseWork()
+		}
+		runModelAssetReleases(releases)
+		return job, true, nil
 	}
 	record.cancelRequested = true
 	record.cancelReason = strings.TrimSpace(reason)
@@ -1202,6 +1435,7 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 		previousUpdatedAt := record.updatedAt
 		previousTerminalAt := record.terminalAt
 		record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+		applyScenarioDispatchFacts(record)
 		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 		record.job.ReasonDetail = record.cancelReason
 		record.job.ReasonMetadata = nil
@@ -1235,10 +1469,17 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		releases = record.takeModelAssetUses()
 	}
+	var releaseWork func()
+	if record.localAppOwner != nil && record.localAppOwner.workPermit != nil {
+		releaseWork = record.localAppOwner.workPermit.authority.Release
+	}
 	s.mu.Unlock()
 	runModelAssetReleases(releases)
 	if cancel != nil {
 		cancel()
+	}
+	if releaseWork != nil {
+		releaseWork()
 	}
 	return terminalPersisted, nil
 }
@@ -1363,7 +1604,7 @@ func (s *scenarioJobStore) subscribe(jobID string, buffer int) (uint64, <-chan *
 
 	s.mu.Lock()
 	record, ok := s.jobs[id]
-	if !ok {
+	if !ok || scenarioJobPublicExpired(record, time.Now()) {
 		s.mu.Unlock()
 		return 0, nil, nil, false, false
 	}
@@ -1441,10 +1682,6 @@ func (s *scenarioJobStore) pruneLocked(now time.Time) {
 
 // @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-retention
 func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
-	cutoff := now.Add(-scenarioJobRetention)
-	// SYNC and STREAM Jobs already returned their results inline. They are
-	// bounded apart from submitted Jobs, whose callers still fetch results,
-	// so an immediate burst from any App never evicts a submitted result.
 	var immediate, submitted []scenarioJobEvictionCandidate
 	for jobID, record := range s.jobs {
 		if record == nil || record.job == nil {
@@ -1454,30 +1691,14 @@ func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
 		if !isTerminalScenarioJobStatus(record.job.GetStatus()) {
 			continue
 		}
-		// Terminal delivery can outlive inference. Keep its owner record until
-		// finishExecution has returned every captured ModelAsset use.
-		if record.executionStarted || len(record.modelAssetUses) > 0 {
+		if scenarioJobPublicExpired(record, now) {
+			s.evictScenarioJobPubliclyLocked(jobID, record)
 			continue
 		}
-		if record.cloudAssembly != nil && strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != "" {
+		if hasMediaRecoveryReservation(record) {
 			continue
 		}
-		// Only content awaiting disposition needs protection from ordinary TTL.
-		if record.payload != nil && record.payload.State != "disposed" {
-			continue
-		}
-		terminalAt := scenarioJobRecordTimestamp(record)
-		if record.musicSubmission != nil {
-			if !terminalAt.IsZero() && !now.Before(terminalAt.Add(musicRecoveryRetention)) {
-				s.deleteJobLocked(jobID)
-			}
-			continue
-		}
-		if !terminalAt.IsZero() && terminalAt.Before(cutoff) {
-			s.deleteJobLocked(jobID)
-			continue
-		}
-		candidate := scenarioJobEvictionCandidate{jobID: jobID, at: terminalAt}
+		candidate := scenarioJobEvictionCandidate{jobID: jobID, at: scenarioJobRecordTimestamp(record)}
 		if isImmediateScenarioJob(record.job) {
 			immediate = append(immediate, candidate)
 		} else {
@@ -1503,8 +1724,39 @@ func (s *scenarioJobStore) evictOldestTerminalJobsLocked(terminal []scenarioJobE
 		return terminal[i].at.Before(terminal[j].at)
 	})
 	for _, item := range terminal[:len(terminal)-maxRetainedTerminalScenarioJobs] {
-		s.deleteJobLocked(item.jobID)
+		s.evictScenarioJobPubliclyLocked(item.jobID, s.jobs[item.jobID])
 	}
+}
+
+func scenarioJobPublicExpired(record *scenarioJobRecord, now time.Time) bool {
+	if record == nil || record.job == nil || record.publicEvicted {
+		return true
+	}
+	if !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		return false
+	}
+	retention := scenarioJobRetention
+	if hasMediaRecoveryReservation(record) {
+		retention = musicRecoveryRetention
+	}
+	terminal := scenarioJobRecordTimestamp(record)
+	return !terminal.IsZero() && !now.Before(terminal.Add(retention))
+}
+
+func (s *scenarioJobStore) evictScenarioJobPubliclyLocked(id string, record *scenarioJobRecord) {
+	if record == nil {
+		return
+	}
+	record.publicEvicted = true
+	s.markDurableJobChangedLocked(id)
+	// Closing observation does not destroy late-receipt, active-use or cleanup
+	// ownership. These private rows keep their original quota and timestamps.
+	if record.executionStarted || record.nativeResult != nil || record.resultCandidate != nil || len(record.bodyArtifactIDs) > 0 || len(record.modelAssetUses) > 0 ||
+		(record.cloudAssembly != nil && record.cloudAssembly.CredentialCustodyRef != "") ||
+		(record.payload != nil && record.payload.State != "disposed") {
+		return
+	}
+	s.deleteJobLocked(id)
 }
 
 func isImmediateScenarioJob(job *runtimev1.ScenarioJob) bool {

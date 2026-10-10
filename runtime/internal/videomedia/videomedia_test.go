@@ -17,6 +17,7 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -80,7 +81,7 @@ func TestEncodeMapsNonzeroCodecProcessFailure(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 	plan := videoPlanForTest(t, 5, false)
-	_, err = processor.EncodeAndInspect(context.Background(), plan, rawCandidateForTest(plan))
+	_, err = processor.EncodeAndInspect(videoCustodyTestContext(t), plan, rawCandidateForTest(plan))
 	if err == nil || FailureKindOf(err) != FailureEncode {
 		t.Fatalf("EncodeAndInspect() error=%v kind=%q", err, FailureKindOf(err))
 	}
@@ -138,7 +139,7 @@ func TestFFmpegEncodeAndInspectIntegration(t *testing.T) {
 	}
 	plan := videoPlanForTest(t, 5, true)
 	candidate := rawCandidateForTest(plan)
-	result, err := processor.EncodeAndInspect(context.Background(), plan, candidate)
+	result, err := processor.EncodeAndInspect(videoCustodyTestContext(t), plan, candidate)
 	if err != nil {
 		t.Fatalf("EncodeAndInspect: %v", err)
 	}
@@ -251,4 +252,18 @@ func TestVerifyCodecRunsFindsACodecThatExistsButCannotStart(t *testing.T) {
 	if FailureKindOf(err) != FailureCodecUnavailable || !strings.Contains(err.Error(), "Library not loaded") {
 		t.Fatalf("VerifyCodecRuns = %v kind=%q, want codec_unavailable with its diagnostic", err, FailureKindOf(err))
 	}
+}
+
+func videoCustodyTestContext(t *testing.T) context.Context {
+	t.Helper()
+	store, err := runtimeartifact.NewDiskStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := &runtimeartifact.ArtifactOwner{SubjectUserID: "account", AppID: "codec-test"}
+	slots := []runtimeartifact.JobBodySlot{{ArtifactID: "audio", MaxBytes: 1 << 20}, {ArtifactID: "video", MaxBytes: 1 << 20}, {ArtifactID: "last-frame", MaxBytes: 1 << 20}}
+	if err := store.PrepareJobBodies("codec-job", owner, slots); err != nil {
+		t.Fatal(err)
+	}
+	return WithFileCustody(context.Background(), runtimeartifact.NewJobFiles(store, "codec-job", owner, map[string]string{"audio": "audio", "video": "video", "last-frame": "last-frame"}))
 }

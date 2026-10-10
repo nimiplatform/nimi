@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"fmt"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
@@ -16,6 +17,9 @@ func cloneVisionLocateResult(value *runtimev1.VisionLocateResult) *runtimev1.Vis
 }
 
 func validateScenarioJobTerminalResults(record *scenarioJobRecord) error {
+	if err := validateCapturedVoiceConvert(record.job, record.resolvedAssembly); err != nil {
+		return err
+	}
 	if err := validateCapturedMusicTranscription(record.job, record.resolvedAssembly); err != nil {
 		return err
 	}
@@ -60,19 +64,30 @@ func (s *scenarioJobStore) completedVisionResult(jobID string) (*runtimev1.Visio
 	return cloneVisionLocateResult(record.visionLocate), true
 }
 
-func (s *Service) completeVisionScenarioJob(jobID string, result *runtimev1.VisionLocateResult) error {
+func (s *Service) completeVisionScenarioJob(jobID string, result *runtimev1.VisionLocateResult, work ...context.Context) error {
 	var err error
 	for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
-		_, _, err = s.scenarioJobs.transitionWithResults(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, nil, nil, result, func(job *runtimev1.ScenarioJob) {
-			job.ProgressPercent = 100
-			job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
-			job.ReasonDetail = ""
+		entered := false
+		err = s.scenarioJobs.withJobWorkAuthority(jobID, func() error {
+			entered = true
+			_, _, cause := s.scenarioJobs.transitionWithResults(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, nil, nil, result, func(job *runtimev1.ScenarioJob) {
+				job.ProgressPercent = 100
+				job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+				job.ReasonDetail = ""
+			}, work...)
+			return cause
 		})
+		if err != nil && !entered {
+			s.scenarioJobs.failJobWorkAuthority(jobID, err, work...)
+			return err
+		}
 		if err == nil {
 			return nil
 		}
 		s.logScenarioJobPersistenceFailure("Locate Job result persistence failed", "job_id", jobID, "attempt", attempt, "error", err)
 	}
-	s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
+	if !s.scenarioJobs.hasResultCandidate(jobID) {
+		s.scenarioJobs.recordPersistenceIssue(jobID)
+	}
 	return err
 }

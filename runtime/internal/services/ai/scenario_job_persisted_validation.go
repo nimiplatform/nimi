@@ -30,6 +30,9 @@ func validatePersistedScenarioJob(job *runtimev1.ScenarioJob, createdAt, updated
 		job.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
 		return fmt.Errorf("persisted ScenarioJob route is invalid")
 	}
+	if err := validateScenarioJobOutcomes(job); err != nil {
+		return err
+	}
 	if err := validateScenarioExecutionMode(job.GetScenarioType(), job.GetExecutionMode()); err != nil {
 		return fmt.Errorf("persisted ScenarioJob scenario or execution mode is invalid")
 	}

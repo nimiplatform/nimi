@@ -147,6 +147,9 @@ func (s *voiceAssetStore) reconcilePendingPublications(jobs *scenarioJobStore) e
 	}
 	for id := range s.pending {
 		asset := s.assets[id]
+		if jobs.hasResultCandidate(id) {
+			continue
+		}
 		completed, _, ok := jobs.completedVoiceResult(id)
 		if ok && proto.Equal(completed, asset) {
 			delete(s.pending, id)

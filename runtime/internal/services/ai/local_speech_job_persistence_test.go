@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -79,7 +78,7 @@ func TestLocalSpeechJobsPersistCompleteEffectiveInputIdentity(t *testing.T) {
 			}
 			assertEffectiveInputIdentityFields(t, terminal.GetEffectiveInputIdentity(), expected)
 
-			raw, err := os.ReadFile(scenarioJobStorePathForLocalStatePath(localStatePath))
+			raw, err := readScenarioJobDocument(scenarioJobStorePathForLocalStatePath(localStatePath))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -89,6 +88,7 @@ func TestLocalSpeechJobsPersistCompleteEffectiveInputIdentity(t *testing.T) {
 			if !strings.Contains(string(raw), `"resolved_assembly"`) {
 				t.Fatalf("terminal scenario-jobs.json omitted private ResolvedAssembly: %s", raw)
 			}
+			waitCompletedScenarioJobCleanup(t, svc, terminal.GetJobId())
 			reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
 			if err != nil {
 				t.Fatal(err)

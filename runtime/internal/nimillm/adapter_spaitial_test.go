@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -83,7 +84,20 @@ func TestSpaitialCapturedImageUploadAndPrivateRequest(t *testing.T) {
 			defer server.Close()
 			providerURL = server.URL
 			req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: spec}}}
+			var receipt *NativeTaskReceipt
+			ctx = WithNativeTaskPublisher(ctx, func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 			result, err := ExecuteSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopJobStateUpdater{}, "job-owned", req, "default")
+			if !errors.Is(err, ErrNativeTaskYielded) || polls != 0 {
+				t.Fatalf("create queried original task: %v polls=%d", err, polls)
+			}
+			cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}
+			observation, terminal, err := ObserveNativeTask(context.Background(), cfg, receipt)
+			if err != nil || !terminal {
+				t.Fatalf("World query: %v %v", terminal, err)
+			}
+			result.Artifacts = observation.Artifacts
+			result.ArtifactBodies, err = OpenNativeTaskArtifacts(context.Background(), cfg, receipt, observation)
+
 			if result.ProviderJobID != "req_owned" || len(result.Artifacts) != 2 || result.Usage != nil || err != nil || uploads != 1 || submits != 1 || polls != 1 {
 				t.Fatalf("result=%+v err=%v requests=%d/%d/%d", result, err, uploads, submits, polls)
 			}
@@ -183,7 +197,7 @@ func TestSpaitialCancelAcknowledgmentIsNotConfirmedStop(t *testing.T) {
 	}
 }
 
-func TestSpaitialLostReceiptUsesOneCapturedIdempotentProviderOperation(t *testing.T) {
+func TestSpaitialLostReceiptNeverReplaysCapturedCreate(t *testing.T) {
 	var mu sync.Mutex
 	var firstBody []byte
 	posts, creations, waits := 0, 0, 0
@@ -219,12 +233,14 @@ func TestSpaitialLostReceiptUsesOneCapturedIdempotentProviderOperation(t *testin
 	payload := map[string]any{"model": "default", "input": map[string]any{"type": "file_id", "file_id": "file_captured", "is_pano": true}}
 	var result map[string]any
 	err := submitSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"}, payload, "nimi-world-captured", &result)
-	if err != nil || result["request_id"] != "req_original" || posts != 2 || creations != 1 || waits != 1 {
+	mu.Lock()
+	defer mu.Unlock()
+	if err == nil || result["request_id"] != nil || posts != 1 || creations != 1 || waits != 0 {
 		t.Fatalf("receipt result=%v err=%v posts=%d creations=%d waits=%d", result, err, posts, creations, waits)
 	}
 }
 
-func TestSpaitialReceiptRetrievalIsBoundedAndDoesNotRetryAdmissionRejection(t *testing.T) {
+func TestSpaitialCreateNeverRetriesTransportOrAdmissionErrors(t *testing.T) {
 	for _, code := range []int{http.StatusUnauthorized, http.StatusBadRequest, http.StatusConflict, http.StatusServiceUnavailable} {
 		t.Run(http.StatusText(code), func(t *testing.T) {
 			posts := 0
@@ -238,9 +254,6 @@ func TestSpaitialReceiptRetrievalIsBoundedAndDoesNotRetryAdmissionRejection(t *t
 			var result map[string]any
 			err := submitSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"}, map[string]any{"input": map[string]any{"type": "text", "prompt": "captured"}}, "nimi-world-captured", &result)
 			want := 1
-			if code == http.StatusServiceUnavailable {
-				want = 3
-			}
 			if err == nil || posts != want {
 				t.Fatalf("err=%v attempts=%d want=%d", err, posts, want)
 			}

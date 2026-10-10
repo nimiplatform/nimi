@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -89,6 +90,21 @@ func (s *Service) releaseCloudCredentialCustodyForJob(jobID string) {
 func (s *Service) releaseCloudCredentialCustodyForJobDurably(jobID string) error {
 	if s == nil || s.scenarioJobs == nil {
 		return nil
+	}
+	s.scenarioJobs.mu.RLock()
+	record := s.scenarioJobs.jobs[strings.TrimSpace(jobID)]
+	canRelease := record != nil && record.job != nil && isTerminalScenarioJobStatus(record.job.GetStatus()) && !record.executionStarted && !record.terminalUnpersisted
+	if canRelease && record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		canRelease = record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED || record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_CONFIRMED || scenarioJobPublicExpired(record, time.Now())
+	}
+	s.scenarioJobs.mu.RUnlock()
+	if !canRelease {
+		return nil
+	}
+	if s.voiceAssets != nil {
+		if pending, _, _, exists := s.voiceAssets.unpublishedVoiceBinding(jobID); exists && !pending.GetMetadata().GetFields()["provider_delete_succeeded"].GetBoolValue() {
+			return nil
+		}
 	}
 	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
 	if !ok || assembly == nil || strings.TrimSpace(assembly.CredentialCustodyRef) == "" {

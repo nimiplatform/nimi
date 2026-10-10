@@ -65,13 +65,10 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 			generateSrc = readStringField(in, "src")
 			mask = readStringField(in, "mask")
 			mode = readStringField(in, "mode")
-			if err := os.WriteFile(generateDst, []byte("png"), 0o600); err != nil {
-				return err
-			}
 			if err := stream.SendMsg(progressEvent(4, 8, 50)); err != nil {
 				return err
 			}
-			return stream.SendMsg(generateTerminalEvent(true, "generated"))
+			return stream.SendMsg(generateImageTerminalEvent(true, "generated", &ImageGenerateResult{Payload: []byte("png")}))
 		default:
 			return status.Error(codes.Unimplemented, method)
 		}
@@ -94,7 +91,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadModel: %v", err)
 	}
-	_, err = GenerateImage(context.Background(), ImageRequest{
+	generated, err := GenerateImage(context.Background(), ImageRequest{
 		BackendAddress: listener.Addr().String(),
 		Protocol:       ProtocolManagedWrapper,
 		Mode:           ImageRequestModeImageToImage,
@@ -106,7 +103,6 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 		PositivePrompt: "orange cat",
 		NegativePrompt: "blurry",
 		Mask:           "/tmp/mask.png",
-		Dst:            outputPath,
 		Src:            "/tmp/source.png",
 		OnProgress: func(progress ImageGenerateProgress) error {
 			progresses = append(progresses, progress)
@@ -125,8 +121,8 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	if len(loadOptions) != 0 {
 		t.Fatalf("load options mismatch: %+v", loadOptions)
 	}
-	if generateDst != outputPath {
-		t.Fatalf("generate dst mismatch: got=%q want=%q", generateDst, outputPath)
+	if generateDst != "" {
+		t.Fatalf("managed generation still carries an output path: %q", generateDst)
 	}
 	if generateSrc != "/tmp/source.png" {
 		t.Fatalf("generate src mismatch: %q", generateSrc)
@@ -140,9 +136,9 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	if progresses[0].CurrentStep != 4 || progresses[0].TotalSteps != 8 || progresses[0].ProgressPercent != 50 {
 		t.Fatalf("unexpected progress callback: %+v", progresses[0])
 	}
-	payload, err := os.ReadFile(outputPath)
-	if err != nil {
-		t.Fatalf("read generated output: %v", err)
+	payload := generated.Payload
+	if _, err := os.Stat(outputPath); !os.IsNotExist(err) {
+		t.Fatal("managed generation wrote an unowned body")
 	}
 	if string(payload) != "png" {
 		t.Fatalf("generated payload mismatch: %q", string(payload))
@@ -177,19 +173,15 @@ func TestGenerateImageCarriesInstructionEditBytesWithoutSourcePath(t *testing.T)
 			Mask:           readStringField(message, "mask"),
 			ReferenceImage: readBytesField(message, "reference_image"),
 		}
-		if err := os.WriteFile(outputPath, []byte("png"), 0o600); err != nil {
-			return err
-		}
-		return stream.SendMsg(generateTerminalEvent(true, "generated"))
+		return stream.SendMsg(generateImageTerminalEvent(true, "generated", &ImageGenerateResult{Payload: []byte("png")}))
 	}))
 	defer server.Stop()
 	go func() { _ = server.Serve(listener) }()
 
-	_, err = GenerateImage(context.Background(), ImageRequest{
+	generated, err := GenerateImage(context.Background(), ImageRequest{
 		BackendAddress: listener.Addr().String(),
 		Protocol:       ProtocolManagedWrapper,
 		Mode:           ImageRequestModeInstructionEdit,
-		Dst:            outputPath,
 		PositivePrompt: "make it dusk",
 		ReferenceImage: referenceImage,
 	})
@@ -199,6 +191,12 @@ func TestGenerateImageCarriesInstructionEditBytesWithoutSourcePath(t *testing.T)
 	if received.Mode != ImageRequestModeInstructionEdit || received.Src != "" || received.Mask != "" ||
 		string(received.ReferenceImage) != string(referenceImage) {
 		t.Fatalf("instruction-edit private carrier = %+v", received)
+	}
+	if string(generated.Payload) != "png" {
+		t.Fatalf("missing private body %q", generated.Payload)
+	}
+	if _, err := os.Stat(outputPath); !os.IsNotExist(err) {
+		t.Fatal("instruction edit wrote an unowned output body")
 	}
 }
 

@@ -94,7 +94,7 @@ func (b *Backend) streamDashScopeRealtimeTTS(
 	}
 	config.Header.Set("Authorization", "Bearer "+apiKey)
 
-	connection, err := websocket.DialConfig(config)
+	connection, err := dialProviderWebSocket(ctx, config)
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}

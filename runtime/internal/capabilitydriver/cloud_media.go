@@ -120,7 +120,6 @@ type CloudMediaMappedRequest struct {
 	adapter         string
 	request         *runtimev1.SubmitScenarioJobRequest
 	streamMode      CloudMediaStreamMode
-	detachedPolling bool
 }
 
 func (r *CloudMediaMappedRequest) ProviderModelID() string {
@@ -150,10 +149,6 @@ func (r *CloudMediaMappedRequest) StreamMode() CloudMediaStreamMode {
 		return CloudMediaStreamNone
 	}
 	return r.streamMode
-}
-
-func (r *CloudMediaMappedRequest) DetachedPolling() bool {
-	return r != nil && r.detachedPolling
 }
 
 // CloudMediaStreamChunk is a credential-free provider stream frame crossing
@@ -703,7 +698,6 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		adapter:         adapter,
 		request:         mapped,
 		streamMode:      streamMode,
-		detachedPolling: cloudMediaDetachedPolling(mapped.GetScenarioType(), adapter),
 	}, nil
 }
 
@@ -1019,36 +1013,6 @@ func dashScopeVoiceDeleteAdapter(model string, workflow string) string {
 	return ""
 }
 
-// CloudMediaUsesDetachedPolling reports whether the exact Driver mapping uses
-// a provider async task. Polling itself remains private to Remote Host.
-func CloudMediaUsesDetachedPolling(scenarioType runtimev1.ScenarioType, adapter string) bool {
-	return cloudMediaDetachedPolling(scenarioType, adapter)
-}
-
-func cloudMediaDetachedPolling(scenarioType runtimev1.ScenarioType, adapter string) bool {
-	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE {
-		return adapter == CloudMediaAdapterWorldLabsNative || adapter == CloudMediaAdapterSpaitialNative
-	}
-	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
-		return false
-	}
-	switch adapter {
-	case CloudMediaAdapterBytedanceARKTask,
-		CloudMediaAdapterAlibabaNative,
-		CloudMediaAdapterGeminiOperation,
-		CloudMediaAdapterMiniMaxTask,
-		CloudMediaAdapterGLMTask,
-		CloudMediaAdapterKlingTask,
-		CloudMediaAdapterLumaTask,
-		CloudMediaAdapterPikaTask,
-		CloudMediaAdapterRunwayTask,
-		CloudMediaAdapterGoogleVeoOperation:
-		return true
-	default:
-		return false
-	}
-}
-
 func (providerCloudMediaDriver) NormalizeStreamChunk(chunk CloudMediaStreamChunk) (CloudMediaStreamChunk, error) {
 	if chunk.FailureReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		return CloudMediaStreamChunk{}, grpcerr.WithReasonCode(mediaReasonGRPCCode(chunk.FailureReason), chunk.FailureReason)
@@ -1234,6 +1198,12 @@ func isPrivateCloudMediaMetadataKey(key string) bool {
 func (providerCloudMediaDriver) NormalizeReason(target CloudMediaTarget, err error) error {
 	if err == nil {
 		return nil
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		switch reason {
+		case runtimev1.ReasonCode_AI_PROVIDER_TASK_CANCELED, runtimev1.ReasonCode_AI_PROVIDER_TASK_EXPIRED, runtimev1.ReasonCode_AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED:
+			return err
+		}
 	}
 	if errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
 		return grpcerr.WrapWithReasonCode(codes.Canceled, runtimev1.ReasonCode_ACTION_EXECUTED, err, grpcerr.ReasonOptions{Message: "remote media execution canceled"})

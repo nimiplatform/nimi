@@ -280,11 +280,11 @@ func TestSubmitLocalImageCapturesSelectionBeforeRunningJob(t *testing.T) {
 	}
 }
 
-func TestLocalVideoJobSchedulerQueuedDeadlinePublishesTimeout(t *testing.T) {
+func TestLocalVideoJobSchedulerQueueHasNoBusinessDeadline(t *testing.T) {
 	svc := newTestService(nil)
 	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
 	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-queued-timeout")})
-	host := &localVideoHostStub{entered: make(chan struct{}), started: make(chan struct{})}
+	host := &localVideoHostStub{entered: make(chan struct{}), started: make(chan struct{}), observedDeadline: make(chan bool, 1)}
 	svc.SetLocalVideoExecutionHost(host)
 	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
 
@@ -301,7 +301,7 @@ func TestLocalVideoJobSchedulerQueuedDeadlinePublishesTimeout(t *testing.T) {
 
 	request := localVideoJobRequestForTest(64, 64, 5)
 	request.Head.AppId = "app.video.queued-timeout"
-	request.Head.TimeoutMs = 100
+	request.Head.TimeoutMs = 0
 	response, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), request)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
@@ -311,13 +311,24 @@ func TestLocalVideoJobSchedulerQueuedDeadlinePublishesTimeout(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("video job did not reach factual Host admission")
 	}
-	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
-	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || terminal.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
-		t.Fatalf("queued local video timeout = %+v", terminal)
+	if <-host.observedDeadline {
+		t.Fatal("queued Job carried a business deadline into Host admission")
+	}
+	queued, _ := svc.scenarioJobs.get(response.GetJob().GetJobId())
+	if queued.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED {
+		t.Fatalf("queued Job = %v", queued.GetStatus())
+	}
+	if _, err := svc.CancelScenarioJob(scenarioJobUserContext(request.Head.AppId, "anonymous"), &runtimev1.CancelScenarioJobRequest{JobId: response.GetJob().GetJobId(), Reason: "cancel queued work"}); err != nil {
+		t.Fatal(err)
+	}
+	waitScenarioJobWorkExit(t, svc.scenarioJobs, response.GetJob().GetJobId())
+	terminal, _ := svc.scenarioJobs.get(response.GetJob().GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || terminal.GetStopOutcome() != runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED {
+		t.Fatalf("queued cancellation = %v", terminal)
 	}
 	select {
 	case <-host.started:
-		t.Fatal("scheduler-queued timed-out video job began backend work")
+		t.Fatal("canceled queued work entered backend")
 	default:
 	}
 

@@ -190,22 +190,6 @@ func TestLocalAppImageOptionsUseResolvedLocalDriverClassificationBeforeWork(t *t
 	}
 }
 
-func TestExecuteLocalAppImageGenerateFailsClosedAsAsyncJobOnly(t *testing.T) {
-	svc := newTestService(nil)
-	response, err := svc.ExecuteLocalAppScenario(
-		localAppScenarioExecuteContext(),
-		&runtimev1.ExecuteLocalAppScenarioRequest{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_ImageGenerate{
-			ImageGenerate: &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "image"},
-		}},
-	)
-	if response != nil {
-		t.Fatalf("sync Local App image returned response: %+v", response)
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
-		t.Fatalf("sync Local App image rejection=%v reason=%v present=%v", err, reason, ok)
-	}
-}
-
 func TestExecuteLocalAppScenarioRequiresExactDecision(t *testing.T) {
 	svc := &Service{}
 	_, err := svc.ExecuteLocalAppScenario(context.Background(), validLocalAppEmbedExecuteRequest())
@@ -223,9 +207,6 @@ func TestExecuteLocalAppScenarioRejectsInvalidInput(t *testing.T) {
 		{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextEmbed{TextEmbed: &runtimev1.LocalAppTextEmbedScenarioSpec{}}},
 		{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextEmbed{TextEmbed: &runtimev1.LocalAppTextEmbedScenarioSpec{Inputs: []string{" padded "}}}},
 		{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextEmbed{TextEmbed: &runtimev1.LocalAppTextEmbedScenarioSpec{Inputs: []string{strings.Repeat("x", maxLocalAppScenarioEmbedInputBytes+1)}}}},
-		{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_ImageGenerate{ImageGenerate: &runtimev1.LocalAppImageGenerateScenarioSpec{}}},
-		{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_ImageGenerate{ImageGenerate: &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "image", N: testInt32(5)}}},
-		{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_ImageGenerate{ImageGenerate: &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "image", Size: strings.Repeat("s", maxLocalAppScenarioOptionTextBytes+1)}}},
 	}
 	for index, request := range invalid {
 		_, err := svc.ExecuteLocalAppScenario(localAppScenarioExecuteContext(), request)

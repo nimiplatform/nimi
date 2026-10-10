@@ -169,33 +169,39 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 	if strings.TrimSpace(address) == "" || currentKey != plan.ProcessKey() {
 		return localexecution.ImageArtifact{}, fmt.Errorf("image substrate does not hold the captured plan")
 	}
-	workRoot := strings.TrimSpace(s.config.WorkRoot)
-	if workRoot == "" {
-		workRoot = s.manager.imageExecutionWorkRoot()
+	var destination string
+	if protocol == managedimagebackend.ProtocolDirectGOSD {
+		workRoot := strings.TrimSpace(s.config.WorkRoot)
+		if workRoot == "" {
+			workRoot = s.manager.imageExecutionWorkRoot()
+		}
+		if !filepath.IsAbs(workRoot) {
+			return localexecution.ImageArtifact{}, fmt.Errorf("image execution work root must be absolute")
+		}
+		if err := os.MkdirAll(workRoot, 0o700); err != nil {
+			return localexecution.ImageArtifact{}, fmt.Errorf("create image execution work root: %w", err)
+		}
+		workDir, err := os.MkdirTemp(workRoot, "invocation-*")
+		if err != nil {
+			return localexecution.ImageArtifact{}, fmt.Errorf("create image invocation workspace: %w", err)
+		}
+		defer func() { _ = os.RemoveAll(workDir) }()
+		destination = filepath.Join(workDir, fmt.Sprintf("artifact-%d.png", index))
 	}
-	if !filepath.IsAbs(workRoot) {
-		return localexecution.ImageArtifact{}, fmt.Errorf("image execution work root must be absolute")
-	}
-	if err := os.MkdirAll(workRoot, 0o700); err != nil {
-		return localexecution.ImageArtifact{}, fmt.Errorf("create image execution work root: %w", err)
-	}
-	workDir, err := os.MkdirTemp(workRoot, "invocation-*")
-	if err != nil {
-		return localexecution.ImageArtifact{}, fmt.Errorf("create image invocation workspace: %w", err)
-	}
-	defer func() { _ = os.RemoveAll(workDir) }()
 	request, err := imageGenerateRequest(address, protocol, plan, resolvedSeed)
 	if err != nil {
 		return localexecution.ImageArtifact{}, err
 	}
-	destination := filepath.Join(workDir, fmt.Sprintf("artifact-%d.png", index))
+
 	constraints, ok := plan.ResultConstraints().(capabilitydriver.StableDiffusionCPPResultConstraints)
 	if !ok {
 		return localexecution.ImageArtifact{}, fmt.Errorf("image result constraints are unavailable")
 	}
 	width, height := constraints.Width(), constraints.Height()
 	startedAt := time.Now()
-	request.Dst = destination
+	if protocol == managedimagebackend.ProtocolDirectGOSD {
+		request.Dst = destination
+	}
 	var translatedProgressErr error
 	request.OnProgress = func(backendProgress managedimagebackend.ImageGenerateProgress) error {
 		translated, translateErr := plan.TranslateProgress(capabilitydriver.ImageBackendProgressObservation{
@@ -213,7 +219,7 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 		}
 		return nil
 	}
-	_, err = managedimagebackend.GenerateImage(ctx, request)
+	generated, err := managedimagebackend.GenerateImage(ctx, request)
 	computeMS := time.Since(startedAt).Milliseconds()
 	if err != nil {
 		if translatedProgressErr != nil {
@@ -221,28 +227,31 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 		}
 		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureGenerate, err)
 	}
-	payload, err := os.ReadFile(destination)
+	payload := generated.Payload
+	if protocol == managedimagebackend.ProtocolDirectGOSD {
+		payload, err = os.ReadFile(destination)
+	}
 	if err != nil {
 		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf("read generated image artifact: %w", err))
 	}
 	if len(payload) == 0 {
 		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf("generated image artifact is empty"))
 	}
-	decoded, format, decodeErr := image.DecodeConfig(bytes.NewReader(payload))
+	decoded, format, decodeErr := image.Decode(bytes.NewReader(payload))
 	if decodeErr != nil {
 		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf("decode generated PNG artifact: %w", decodeErr))
 	}
 	if format != "png" {
 		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf("generated image artifact format %q is not PNG", format))
 	}
-	if decoded.Width != width || decoded.Height != height {
+	if decoded.Bounds().Dx() != width || decoded.Bounds().Dy() != height {
 		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf(
 			"generated image dimensions %dx%d do not match captured plan %dx%d",
-			decoded.Width, decoded.Height, width, height,
+			decoded.Bounds().Dx(), decoded.Bounds().Dy(), width, height,
 		))
 	}
 	translated, err := plan.TranslateArtifact(capabilitydriver.ImageBackendArtifactObservation{
-		Index: index, Seed: resolvedSeed, Payload: payload, Format: format, Width: decoded.Width, Height: decoded.Height,
+		Index: index, Seed: resolvedSeed, Payload: payload, Format: format, Width: decoded.Bounds().Dx(), Height: decoded.Bounds().Dy(),
 	})
 	if err != nil {
 		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, err)

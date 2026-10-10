@@ -3,11 +3,9 @@ package ai
 import (
 	"path/filepath"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/protobuf/encoding/protowire"
 )
 
@@ -76,24 +74,6 @@ func TestImageFaceSwapSpecIsOwnedArtifactOnly(t *testing.T) {
 	}
 }
 
-func TestImageFaceSwapJobBudgetDoesNotInheritGenerationDefaults(t *testing.T) {
-	for _, test := range []struct {
-		input int32
-		want  time.Duration
-	}{{0, 120 * time.Second}, {1000, time.Second}, {600000, 10 * time.Minute}} {
-		got, err := imageFaceSwapJobTimeout(test.input)
-		if err != nil || got != test.want {
-			t.Fatalf("timeout %d: %s, %v", test.input, got, err)
-		}
-	}
-	for _, value := range []int32{-1, 999, 600001} {
-		_, err := imageFaceSwapJobTimeout(value)
-		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
-			t.Fatalf("invalid timeout %d: %v", value, err)
-		}
-	}
-}
-
 func TestFaceSelectionFailuresHaveStableActionableDetails(t *testing.T) {
 	for reason, want := range map[runtimev1.ReasonCode]string{
 		runtimev1.ReasonCode_AI_FACE_REFERENCE_MISSING:   "no face was detected in the reference image",
@@ -107,7 +87,7 @@ func TestFaceSelectionFailuresHaveStableActionableDetails(t *testing.T) {
 	}
 }
 
-func TestVideoFaceSwapRequiresPolicyAndIndependentDeadline(t *testing.T) {
+func TestVideoFaceSwapRequiresPolicyAndJobExecutionMode(t *testing.T) {
 	spec := &runtimev1.VideoFaceSwapScenarioSpec{ReferenceImageArtifactId: "reference", TargetVideoArtifactId: "video", NoFacePolicy: runtimev1.FaceSwapNoFacePolicy_FACE_SWAP_NO_FACE_POLICY_PRESERVE_FRAME}
 	if err := validateVideoFaceSwapSpec(spec); err != nil {
 		t.Fatal(err)
@@ -115,14 +95,6 @@ func TestVideoFaceSwapRequiresPolicyAndIndependentDeadline(t *testing.T) {
 	spec.NoFacePolicy = runtimev1.FaceSwapNoFacePolicy_FACE_SWAP_NO_FACE_POLICY_UNSPECIFIED
 	if err := validateVideoFaceSwapSpec(spec); err == nil {
 		t.Fatal("missing no-face policy was accepted")
-	}
-	for _, value := range []int32{-1, 999, 3600001} {
-		if _, err := videoFaceSwapJobTimeout(value); err == nil {
-			t.Fatalf("invalid video deadline %d", value)
-		}
-	}
-	if duration, err := videoFaceSwapJobTimeout(0); err != nil || duration != 900*time.Second {
-		t.Fatalf("video default deadline: %s %v", duration, err)
 	}
 	for _, mode := range []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM} {
 		if err := validateScenarioExecutionMode(runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP, mode); err == nil {

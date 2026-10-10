@@ -73,18 +73,11 @@ func (s *Service) commitLocalVoiceConvert(ctx context.Context, jobID string, eff
 	if err := validateVoiceConvertResult(probe); err != nil {
 		return err
 	}
-	stored, err := s.storeRuntimeJobArtifacts(ctx, jobID, effective.head, bound, bodies)
+	bound, ids, err := s.stageLocalMusicTypedResult(ctx, jobID, effective, bound, bodies)
 	if err != nil {
 		return err
 	}
-	committed := false
-	defer func() {
-		if !committed {
-			for _, id := range stored {
-				s.deleteRuntimeArtifactCandidate(id, "voice conversion output was not committed")
-			}
-		}
-	}()
+	summary.VocalArtifactId = ids[summary.VocalArtifactId]
 	_, ok, err := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 		job.Artifacts = bound
 		job.VoiceConversion = summary
@@ -100,7 +93,6 @@ func (s *Service) commitLocalVoiceConvert(ctx context.Context, jobID string, eff
 	if !ok {
 		return fmt.Errorf("voice conversion publication was interrupted")
 	}
-	committed = true
 	return nil
 }
 

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"google.golang.org/grpc/codes"
@@ -388,29 +387,4 @@ func hashSubmitScenarioSpec(req *runtimev1.SubmitScenarioJobRequest) (string, er
 	}
 	sum := sha256.Sum256(raw)
 	return fmt.Sprintf("%x", sum), nil
-}
-
-func defaultScenarioJobTimeout(scenarioType runtimev1.ScenarioType) time.Duration {
-	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
-		return defaultGenerateImageTimeout
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
-		return defaultGenerateVideoTimeout
-	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
-		return defaultSynthesizeTimeout
-	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
-		return defaultTranscribeTimeout
-	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
-		return defaultLocalSpeechJobTimeout
-	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
-		return defaultGenerateMusicTimeout
-	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
-		return defaultLocalMusicJobTimeout
-	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT:
-		return defaultLocalMusicJobTimeout
-	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
-		return defaultWorldJobTimeout
-	default:
-		return defaultTextGenerateJobTimeout
-	}
 }

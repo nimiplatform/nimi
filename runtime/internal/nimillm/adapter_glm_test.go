@@ -3,19 +3,17 @@ package nimillm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestExecuteGLMTaskReturnsCanceledOnContextCancelWhilePolling(t *testing.T) {
+func TestExecuteGLMTaskYieldsOriginalReceiptBeforeObservation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/paas/v4/videos/generations":
@@ -30,11 +28,8 @@ func TestExecuteGLMTaskReturnsCanceledOnContextCancelWhilePolling(t *testing.T) 
 	}))
 	defer func() { server.Close() }()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-		cancel()
-	}()
+	var receipt *NativeTaskReceipt
+	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 
 	_, _, providerJobID, err := ExecuteGLMTask(
 		ctx,
@@ -48,11 +43,17 @@ func TestExecuteGLMTaskReturnsCanceledOnContextCancelWhilePolling(t *testing.T) 
 	if providerJobID != "glm-task-1" {
 		t.Fatalf("unexpected provider job id: %q", providerJobID)
 	}
-	if status.Code(err) != codes.Canceled {
-		t.Fatalf("expected canceled status, got %v err=%v", status.Code(err), err)
+	if !errors.Is(err, ErrNativeTaskYielded) {
+		t.Fatalf("create did not yield receipt: %v", err)
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("expected ACTION_EXECUTED cancel reason, got err=%v reason=%v ok=%v", err, reason, ok)
+	cfg := MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "glm-key"}
+	if _, terminal, err := ObserveNativeTask(context.Background(), cfg, receipt); err != nil || terminal {
+		t.Fatalf("pending Get: terminal=%v err=%v", terminal, err)
+	}
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, terminal, err := ObserveNativeTask(canceled, cfg, receipt); err == nil || terminal {
+		t.Fatalf("caller cancellation must not prove provider terminal: %v %v", terminal, err)
 	}
 }
 

@@ -3,7 +3,6 @@ package ai
 import (
 	"bytes"
 	"context"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -38,8 +37,9 @@ func TestCloudImageJobPersistsExactEffectiveInputsBeforeDispatch(t *testing.T) {
 	t.Cleanup(func() {
 		close(host.release)
 		waitScenarioJobTerminal(t, fixture.service, submitted.GetJob().GetJobId(), 3*time.Second)
+		waitCompletedScenarioJobCleanup(t, fixture.service, submitted.GetJob().GetJobId())
 	})
-	raw, err := os.ReadFile(store.durablePath)
+	raw, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatalf("read durable ScenarioJob snapshot: %v", err)
 	}
@@ -88,6 +88,7 @@ func TestCloudImageJobCapturesCurrentAccountConnector(t *testing.T) {
 	if queried.GetJob().GetUsage() != nil {
 		t.Fatalf("unreported media usage was filled during publication: %v", queried.GetJob().GetUsage())
 	}
+	waitCompletedScenarioJobCleanup(t, fixture.service, job.GetJobId())
 	reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
 	if err != nil {
 		t.Fatal(err)
@@ -140,8 +141,8 @@ func TestCloudImageJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		t.Fatalf("terminal status after transport cancellation = %s", job.GetStatus())
 	}
-	if captured, err := fixture.service.connStore.LoadCredentialCustody(custodyRef); err != nil || captured != "" {
-		t.Fatalf("canceled Job credential custody = %q, err=%v; want released", captured, err)
+	if captured, err := fixture.service.connStore.LoadCredentialCustody(custodyRef); err != nil || captured == "" {
+		t.Fatalf("uncertain stop lost original custody: empty=%v err=%v", captured == "", err)
 	}
 }
 
@@ -160,7 +161,10 @@ func TestCloudImageJobSchedulerLeaseCoversRemoteHostLifetime(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("first cloud image job did not enter Remote Host")
 	}
-	second, err := fixture.service.SubmitScenarioJob(ctx, cloudImageJobRequest("second scheduler-owned job"))
+	secondRequest := cloudImageJobRequest("second scheduler-owned job")
+	secondRequest.Head.AppId = "other.app"
+	secondCtx := withCloudScenarioTestIntent(scenarioJobUserContext("other.app", "user-001"), "image.generate", fixture.targetRef)
+	second, err := fixture.service.SubmitScenarioJob(secondCtx, secondRequest)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob(second): %v", err)
 	}
@@ -176,14 +180,19 @@ func TestCloudImageJobSchedulerLeaseCoversRemoteHostLifetime(t *testing.T) {
 	if job := waitScenarioJobTerminal(t, fixture.service, first.GetJob().GetJobId(), 3*time.Second); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("first cloud image terminal = %+v", job)
 	}
-	if job := waitScenarioJobTerminal(t, fixture.service, second.GetJob().GetJobId(), 3*time.Second); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+	waitForScenarioJobTerminalForLocalTextTest(t, fixture.service, second.GetJob().GetJobId())
+	secondResult, getErr := fixture.service.GetScenarioJob(secondCtx, &runtimev1.GetScenarioJobRequest{JobId: second.GetJob().GetJobId()})
+	if getErr != nil {
+		t.Fatal(getErr)
+	}
+	if job := secondResult.GetJob(); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("second cloud image terminal = %+v", job)
 	}
 }
 
 func cloudImageJobRequest(prompt string) *runtimev1.SubmitScenarioJobRequest {
 	return &runtimev1.SubmitScenarioJobRequest{
-		Head:          &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001", TimeoutMs: 30_000},
+		Head:          &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{

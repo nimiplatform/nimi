@@ -47,8 +47,8 @@ func cleanupMusicStagingAtStartup(stateDirectory string) error {
 						// The native request id is fixed by the Driver, not supplied by the App.
 						innerNames = []string{"score.abc"}
 					case profile.root == "speech-staging" && child.Name() == "stems":
-						// Stems written by the HTDemucs CLI and the Runtime-built background.
-						innerNames = []string{"vocals.wav", "drums.wav", "bass.wav", "other.wav", "background.wav"}
+						// Exact HTDemucs/Spleeter outputs, including pre-rename crash remnants.
+						innerNames = []string{"vocals.wav", "drums.wav", "bass.wav", "other.wav", "background.wav", "accompaniment.wav", "result.json"}
 					}
 					if innerNames == nil || child.Type()&os.ModeSymlink != 0 {
 						continue

@@ -429,7 +429,7 @@ func (b *Backend) do(request *http.Request) (*http.Response, error) {
 		return nil, errors.New("request is required")
 	}
 	observed, observation := observeProviderHTTP(b.Name, b.endpointResolve, request)
-	response, err := b.httpClientForContext(request.Context()).Do(observed)
+	response, err := httpClientWithOutboundGate(request.Context(), b.httpClientForContext(request.Context())).Do(observed)
 	observation.finish(response, err)
 	return response, err
 }

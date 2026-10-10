@@ -124,6 +124,7 @@ func TestCommittedCustodyReferenceValidatesAndSurvivesAttachFailure(t *testing.T
 func TestCommittedCustodyReferenceRejectsOwnerOperationIntegrityAndExpiryChanges(t *testing.T) {
 	tests := []struct {
 		name   string
+		jobID  string
 		mutate func(t *testing.T, svc *Service, reference **capabilitydriver.RuntimeCustodyReference)
 	}{
 		{name: "foreign issuer", mutate: func(t *testing.T, svc *Service, reference **capabilitydriver.RuntimeCustodyReference) {
@@ -143,8 +144,8 @@ func TestCommittedCustodyReferenceRejectsOwnerOperationIntegrityAndExpiryChanges
 			}
 			*reference = issued
 		}},
-		{name: "owner", mutate: func(t *testing.T, svc *Service, _ **capabilitydriver.RuntimeCustodyReference) {
-			createLocalAppCustodyJob(t, svc, "job-ref", "subject-2")
+		{name: "owner", jobID: "job-foreign", mutate: func(t *testing.T, svc *Service, _ **capabilitydriver.RuntimeCustodyReference) {
+			createLocalAppCustodyJob(t, svc, "job-foreign", "subject-2")
 		}},
 		{name: "operation", mutate: func(t *testing.T, svc *Service, reference **capabilitydriver.RuntimeCustodyReference) {
 			issued, err := svc.issueRuntimeCustodyReference("artifact-existing", "different_operation", time.Minute)
@@ -189,7 +190,11 @@ func TestCommittedCustodyReferenceRejectsOwnerOperationIntegrityAndExpiryChanges
 			}
 			test.mutate(t, svc, &reference)
 			body, _ := capabilitydriver.NewCommittedArtifactBody(reference)
-			created, err := svc.storeRuntimeJobArtifact(context.Background(), "job-ref", head,
+			jobID := test.jobID
+			if jobID == "" {
+				jobID = "job-ref"
+			}
+			created, err := svc.storeRuntimeJobArtifact(context.Background(), jobID, head,
 				&runtimev1.ScenarioArtifact{ArtifactId: "artifact-existing", MimeType: "video/mp4"}, body, nil)
 			if err == nil || created {
 				t.Fatalf("invalid committed reference created=%v err=%v", created, err)

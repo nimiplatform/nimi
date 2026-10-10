@@ -1,6 +1,8 @@
 package ai
 
 import (
+	"fmt"
+	"google.golang.org/protobuf/proto"
 	"strings"
 	"time"
 
@@ -53,6 +55,7 @@ func (s *voiceAssetStore) publishResult(
 	providerVoiceRef string,
 	metadata map[string]any,
 	commit func(*runtimev1.VoiceAsset, *runtimev1.VoiceReference) bool,
+	retainResult ...func() bool,
 ) (*runtimev1.VoiceAsset, bool) {
 	providerVoiceRef = strings.TrimSpace(providerVoiceRef)
 	if s == nil || draft == nil || target == nil || !target.Valid() ||
@@ -107,6 +110,14 @@ func (s *voiceAssetStore) publishResult(
 		}
 	}
 	if !commit(asset, reference) {
+		if persistent && len(retainResult) > 0 && retainResult[0] != nil && retainResult[0]() {
+			s.pending[id] = true
+			if persistent {
+				_ = s.persistDurableAssetsLocked()
+			}
+			s.mu.Unlock()
+			return nil, false
+		}
 		if staged {
 			s.assets[id] = cloneVoiceAsset(draft)
 			s.assets[id].ProviderVoiceRef = providerVoiceRef
@@ -308,4 +319,25 @@ func (s *voiceAssetStore) listPendingDeleteReconciliationAssets(appID string, su
 		}
 	}
 	return items
+}
+
+// commitRetainedResult promotes only the exact private result already retained
+// by this owner. Job publication remains the primary durable commit.
+func (s *voiceAssetStore) commitRetainedResult(asset *runtimev1.VoiceAsset, reference *runtimev1.VoiceReference, commit func() error) error {
+	if s == nil || asset == nil || commit == nil {
+		return fmt.Errorf("retained voice result is unavailable")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	id := asset.GetVoiceAssetId()
+	if !s.pending[id] || !proto.Equal(s.assets[id], asset) || !proto.Equal(reference, voiceAssetReference(id)) || asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
+		return fmt.Errorf("retained voice result does not match original custody")
+	}
+	if err := commit(); err != nil {
+		return err
+	}
+	delete(s.pending, id)
+	// A failed secondary projection is repaired from the durable primary Job.
+	_ = s.persistDurableAssetsLocked()
+	return nil
 }

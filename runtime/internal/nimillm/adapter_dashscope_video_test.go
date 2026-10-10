@@ -37,7 +37,10 @@ func TestWan27ImageVideoUsesNativeMediaThroughProductionAdapter(t *testing.T) {
 	spec := wanFirstFrameSpec()
 	zero, off := int64(0), false
 	spec.Options = &runtimev1.VideoGenerationOptions{Resolution: "720p", DurationSec: testInt32(4), Seed: &zero, Watermark: &off}
-	_, _, _, err := ExecuteAlibabaNative(context.Background(), MediaAdapterConfig{BaseURL: server.URL + "/compatible-mode/v1", APIKey: "test-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "job", &runtimev1.SubmitScenarioJobRequest{
+	_, _, _, err := ExecuteAlibabaNative(WithNativeTaskPublisher(context.Background(), func(*NativeTaskReceipt) error {
+		t.Error("unauthorized create unexpectedly published receipt")
+		return context.Canceled
+	}), MediaAdapterConfig{BaseURL: server.URL + "/compatible-mode/v1", APIKey: "test-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "job", &runtimev1.SubmitScenarioJobRequest{
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		Spec:         &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: spec}},
 	}, "wan2.7-i2v")

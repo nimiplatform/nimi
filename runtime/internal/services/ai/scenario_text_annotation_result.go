@@ -54,6 +54,8 @@ func (s *Service) completeAnnotationScenarioJob(jobID string, result *runtimev1.
 		}
 		s.logScenarioJobPersistenceFailure("Annotation Job result persistence failed", "job_id", jobID, "attempt", attempt, "error", err)
 	}
-	s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
+	if !s.scenarioJobs.hasResultCandidate(jobID) {
+		s.scenarioJobs.recordPersistenceIssue(jobID)
+	}
 	return err
 }

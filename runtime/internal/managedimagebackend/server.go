@@ -22,7 +22,7 @@ type ServerConfig struct {
 
 type backendDriver interface {
 	LoadModel(loadModelState) (*LoadModelDiagnostics, error)
-	GenerateImage(context.Context, loadModelState, imageGenerateState, func(imageGenerateProgress) error) (*ImageGenerateDiagnostics, error)
+	GenerateImage(context.Context, loadModelState, imageGenerateState, func(imageGenerateProgress) error) (*ImageGenerateResult, error)
 	Free(loadModelState) error
 }
 
@@ -46,7 +46,6 @@ type imageGenerateState struct {
 	Seed           int32
 	PositivePrompt string
 	NegativePrompt string
-	Dst            string
 	Src            string
 	Mask           string
 	ReferenceImage []byte

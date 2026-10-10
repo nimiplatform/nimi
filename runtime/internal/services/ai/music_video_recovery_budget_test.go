@@ -69,8 +69,14 @@ func TestMusicVideoRecoveryChargesCapturedCopyThroughTerminalReopen(t *testing.T
 				if err != nil {
 					t.Fatal(err)
 				}
+				if err := service.prepareScenarioBodySlots(context.Background(), job.JobId, musicGenerationBodySlots(job.JobId, false)); err != nil {
+					t.Fatal(err)
+				}
 				outputBytes = wav.SizeBytes
 				if err := service.commitMusicGeneration(context.Background(), job.JobId, job.Head, musicGenerationPublication{WAV: wav, Termination: runtimev1.MusicGenerationTermination_MUSIC_GENERATION_TERMINATION_MODEL_END}); err != nil {
+					t.Fatal(err)
+				}
+				if err := service.releaseScenarioBodyCandidates(job.JobId); err != nil {
 					t.Fatal(err)
 				}
 			} else if _, ok, err := store.transition(job.JobId, terminal, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED, nil); err != nil || !ok {

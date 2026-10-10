@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"net/http"
@@ -12,9 +13,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestExecuteStabilityMusicPromptOnly(t *testing.T) {
@@ -144,7 +142,7 @@ func TestExecuteSoundverseMusicPromptOnly(t *testing.T) {
 	}
 }
 
-func TestExecuteMubertMusicUsesHeadersAndPolling(t *testing.T) {
+func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T) {
 	postSeen := false
 	getSeen := false
 	audioSeen := false
@@ -182,7 +180,9 @@ func TestExecuteMubertMusicUsesHeadersAndPolling(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	artifacts, _, providerJobID, err := ExecuteMubertMusic(context.Background(), MediaAdapterConfig{
+	var receipt *NativeTaskReceipt
+	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
+	artifacts, _, providerJobID, err := ExecuteMubertMusic(ctx, MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		Headers: map[string]string{
@@ -190,6 +190,27 @@ func TestExecuteMubertMusicUsesHeadersAndPolling(t *testing.T) {
 			"access-token": "acc-1",
 		},
 	}, nil, "job-1", newMusicJobRequest("mubert-track-v3", "club groove"), "mubert/mubert-track-v3")
+	if !errors.Is(err, ErrNativeTaskYielded) || !postSeen || getSeen || audioSeen {
+		t.Fatalf("create did more than handoff: %v", err)
+	}
+	cfg := MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, Headers: map[string]string{"customer-id": "cust-1", "access-token": "acc-1"}}
+	observation, _, err := ObserveNativeTask(context.Background(), cfg, receipt)
+	artifacts = observation.GetArtifacts()
+	if err != nil || !getSeen || audioSeen {
+		t.Fatalf("query acquired body before owner admission: %v", err)
+	}
+	bodies, err := OpenNativeTaskArtifacts(context.Background(), cfg, receipt, observation)
+	if err == nil {
+		for _, artifact := range artifacts {
+			body := bodies[artifact.GetArtifactId()]
+			artifact.Bytes, err = io.ReadAll(body.Stream)
+			body.Stream.Close()
+			if err != nil {
+				break
+			}
+		}
+	}
+
 	if err != nil {
 		t.Fatalf("ExecuteMubertMusic failed: %v", err)
 	}
@@ -204,7 +225,7 @@ func TestExecuteMubertMusicUsesHeadersAndPolling(t *testing.T) {
 	}
 }
 
-func TestExecuteMubertMusicReturnsCanceledWhileWaitingForPoll(t *testing.T) {
+func TestExecuteMubertMusicRejectsMissingJobOwnerBeforeDispatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/public/tracks":
@@ -216,13 +237,7 @@ func TestExecuteMubertMusicReturnsCanceledWhileWaitingForPoll(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-		cancel()
-	}()
-
-	_, _, providerJobID, err := ExecuteMubertMusic(ctx, MediaAdapterConfig{
+	_, _, providerJobID, err := ExecuteMubertMusic(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		Headers: map[string]string{
@@ -230,14 +245,8 @@ func TestExecuteMubertMusicReturnsCanceledWhileWaitingForPoll(t *testing.T) {
 			"access-token": "acc-1",
 		},
 	}, nil, "job-mubert-cancel", newMusicJobRequest("mubert-track-v3", "cancel me"), "mubert/mubert-track-v3")
-	if providerJobID != "track-cancel-1" {
-		t.Fatalf("unexpected provider job id: %q", providerJobID)
-	}
-	if status.Code(err) != codes.Canceled {
-		t.Fatalf("expected canceled status, got %v err=%v", status.Code(err), err)
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("expected ACTION_EXECUTED cancel reason, got err=%v reason=%v ok=%v", err, reason, ok)
+	if providerJobID != "" || err == nil {
+		t.Fatalf("unowned create: id=%q err=%v", providerJobID, err)
 	}
 }
 

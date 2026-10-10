@@ -20,8 +20,12 @@ const (
 var errMusicRecoveryCapacity = errors.New("music recovery capacity exceeded")
 var errMusicRecoveryExpired = errors.New("music recovery expired")
 
+func hasMediaRecoveryReservation(record *scenarioJobRecord) bool {
+	return record != nil && record.musicSubmission != nil && record.musicSubmission.ReservedBytes > 0
+}
+
 func musicRecoveryExpired(record *scenarioJobRecord, now time.Time) bool {
-	return record != nil && record.musicSubmission != nil && !record.terminalAt.IsZero() && !now.Before(record.terminalAt.Add(musicRecoveryRetention))
+	return hasMediaRecoveryReservation(record) && !record.terminalAt.IsZero() && !now.Before(record.terminalAt.Add(musicRecoveryRetention))
 }
 
 func projectMusicRecoveryExpiry(record *scenarioJobRecord) {
@@ -29,7 +33,7 @@ func projectMusicRecoveryExpiry(record *scenarioJobRecord) {
 		return
 	}
 	record.job.RecoveryExpiresAt = nil
-	if record.musicSubmission != nil && !record.terminalAt.IsZero() {
+	if hasMediaRecoveryReservation(record) && !record.terminalAt.IsZero() {
 		record.job.RecoveryExpiresAt = timestamppb.New(record.terminalAt.Add(musicRecoveryRetention))
 	}
 }
@@ -67,7 +71,7 @@ func (s *scenarioJobStore) admitMusicRecoveryLocked(extraBytes int64, jobSlot bo
 	}
 	count := 0
 	for id, record := range s.jobs {
-		if record == nil || record.musicSubmission == nil {
+		if !hasMediaRecoveryReservation(record) {
 			continue
 		}
 		count++
@@ -163,7 +167,7 @@ func (s *scenarioJobStore) musicArtifactAdmission(jobID string, artifactID strin
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	record := s.jobs[jobID]
-	if record == nil || record.musicSubmission == nil {
+	if !hasMediaRecoveryReservation(record) {
 		return time.Time{}, func() {}, nil
 	}
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested {
@@ -210,11 +214,18 @@ func (s *scenarioJobStore) musicArtifactAdmission(jobID string, artifactID strin
 // a failed disk write cannot fabricate completion and never shortens a body.
 func (s *scenarioJobStore) retainTerminalMusicLocked(record *scenarioJobRecord) error {
 	projectMusicRecoveryExpiry(record)
-	if record.musicSubmission == nil || record.terminalAt.IsZero() || len(record.job.GetArtifacts()) == 0 {
+	if !hasMediaRecoveryReservation(record) || record.terminalAt.IsZero() || len(record.job.GetArtifacts()) == 0 {
 		return nil
 	}
 	if s.musicArtifacts == nil {
 		return fmt.Errorf("music recovery custody is unavailable")
+	}
+	remaining := musicRecoveryOutputReservation(record.musicSubmission, record.cloudAssembly)
+	for _, artifact := range record.job.GetArtifacts() {
+		if artifact.GetSizeBytes() <= 0 || artifact.GetSizeBytes() > remaining {
+			return errMusicRecoveryCapacity
+		}
+		remaining -= artifact.GetSizeBytes()
 	}
 	ids := make([]string, 0, len(record.job.GetArtifacts()))
 	for _, artifact := range record.job.GetArtifacts() {

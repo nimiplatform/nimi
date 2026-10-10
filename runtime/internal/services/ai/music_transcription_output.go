@@ -116,18 +116,16 @@ func (s *Service) commitLocalMusicTranscription(ctx context.Context, jobID strin
 	if err := validateMusicTranscriptionResult(probe); err != nil {
 		return err
 	}
-	stored, err := s.storeRuntimeJobArtifacts(ctx, jobID, effective.head, bound, bodies)
+	bound, ids, err := s.stageLocalMusicTypedResult(ctx, jobID, effective, bound, bodies)
 	if err != nil {
 		return err
 	}
-	committed := false
-	defer func() {
-		if !committed {
-			for _, id := range stored {
-				s.deleteRuntimeArtifactCandidate(id, "music transcription output set was not committed")
-			}
-		}
-	}()
+	for _, score := range summary.Scores {
+		score.ArtifactId = ids[score.ArtifactId]
+	}
+	if summary.TimelineArtifactId != "" {
+		summary.TimelineArtifactId = ids[summary.TimelineArtifactId]
+	}
 	_, ok, err := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 		job.Artifacts = bound
 		job.MusicTranscription = summary
@@ -143,7 +141,6 @@ func (s *Service) commitLocalMusicTranscription(ctx context.Context, jobID strin
 	if !ok {
 		return fmt.Errorf("music transcription publication was interrupted")
 	}
-	committed = true
 	return nil
 }
 

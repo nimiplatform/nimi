@@ -236,6 +236,12 @@ func MapProviderRequestError(err error) error {
 	if err == nil {
 		return nil
 	}
+	if reason, typed := grpcerr.ExtractReasonCode(err); typed {
+		switch reason {
+		case runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED, runtimev1.ReasonCode_AI_CONNECTOR_INVALID, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED:
+			return grpcerr.WrapWithReasonCode(status.Code(err), reason, err, grpcerr.ReasonOptions{Message: "Remote step admission is unavailable"})
+		}
+	}
 	if st, ok := status.FromError(err); ok {
 		switch st.Code() {
 		case codes.DeadlineExceeded:

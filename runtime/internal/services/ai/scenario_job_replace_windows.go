@@ -33,11 +33,12 @@ func replaceScenarioJobFileAtomically(source, target string) error {
 	}
 }
 
-// Appends share the same bounded retry for a transient reader that denies
+// Carriers share the same bounded retry for a transient reader that denies
 // write sharing; a persistent one fails the write closed.
 func openScenarioJobStoreForAppend(path string) (*os.File, error) {
+	flags := os.O_RDWR
 	for attempt := 0; ; attempt++ {
-		file, err := os.OpenFile(path, os.O_WRONLY, 0)
+		file, err := os.OpenFile(path, flags, 0600)
 		if err == nil {
 			return file, nil
 		}

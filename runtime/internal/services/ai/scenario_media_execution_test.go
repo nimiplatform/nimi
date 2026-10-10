@@ -80,6 +80,18 @@ func TestOpenAITranscriptionLanguageSurvivesProtectedJobReopen(t *testing.T) {
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || !proto.Equal(terminal.GetTranscription(), expected) {
 		t.Fatalf("terminal=%v", terminal)
 	}
+	waitScenarioJobWorkExit(t, store, terminal.GetJobId())
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		assembly, _ := store.cloudResolvedAssembly(terminal.GetJobId())
+		if assembly == nil || assembly.CredentialCustodyRef == "" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("executor cleanup did not release original custody before reopening writer")
+		}
+		time.Sleep(time.Millisecond)
+	}
 	reopened, err := newScenarioJobStoreForLocalStatePath(statePath)
 	if err != nil {
 		t.Fatal(err)
@@ -199,7 +211,7 @@ func TestCloudMediaJobCancellationStopsLocalWaitAndPublishesNoProviderState(t *t
 		t.Fatalf("CancelScenarioJob: %v", err)
 	}
 	job := canceled.GetJob()
-	if job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || job.GetProviderJobId() != "" || job.GetNextPollAt() != nil {
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || job.GetProviderJobId() != "" || job.GetNextPollAt() != nil {
 		t.Fatalf("cancel intent response=%+v", job)
 	}
 	select {
@@ -207,8 +219,8 @@ func TestCloudMediaJobCancellationStopsLocalWaitAndPublishesNoProviderState(t *t
 	case <-time.After(2 * time.Second):
 		t.Fatal("cloud media cancellation was not forwarded")
 	}
-	if current, _ := fixture.service.scenarioJobs.get(job.GetJobId()); current.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("cloud media published CANCELED before transport exit: %+v", current)
+	if current, _ := fixture.service.scenarioJobs.get(job.GetJobId()); current.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("cloud media published CANCELED without its local publication gate: %+v", current)
 	}
 	close(host.allowCancelExit)
 	terminal := waitScenarioJobTerminal(t, fixture.service, job.GetJobId(), 3*time.Second)

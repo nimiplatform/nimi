@@ -76,26 +76,17 @@ func executeKlingImageTask(
 	submitPath := firstProviderEndpointPath([]string{"/v1/images/generations"})
 	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/v1/images/generations/{task_id}"})
 
+	if err := requireNativeTaskPublisher(ctx); err != nil {
+		return nil, nil, "", err
+	}
+	ctx = originalControlRequest(ctx)
 	submitResp := map[string]any{}
-	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
+	if err := DoJSONRequest(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
 		return nil, nil, "", err
 	}
 	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterKlingTask, submitResp)
 	if providerJobID == "" {
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
-		if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		if mimeType == "" {
-			mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
-		}
-		meta := map[string]any{"adapter": AdapterKlingTask, "submit_endpoint": submitPath, "response": submitResp}
-		if artifactURI != "" {
-			meta["uri"] = artifactURI
-		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, meta)
-		ApplyImageSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return PollProviderTaskForArtifact(
 		ctx, updater, jobID, baseURL, apiKey,
@@ -142,26 +133,17 @@ func executeKlingVideoTask(
 	submitPath := firstProviderEndpointPath([]string{"/v1/videos/text2video"})
 	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/v1/videos/text2video/{task_id}"})
 
+	if err := requireNativeTaskPublisher(ctx); err != nil {
+		return nil, nil, "", err
+	}
+	ctx = originalControlRequest(ctx)
 	submitResp := map[string]any{}
-	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
+	if err := DoJSONRequest(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
 		return nil, nil, "", err
 	}
 	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterKlingTask, submitResp)
 	if providerJobID == "" {
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
-		if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		if mimeType == "" {
-			mimeType = ResolveVideoArtifactMIME(spec, artifactBytes)
-		}
-		meta := map[string]any{"adapter": AdapterKlingTask, "submit_endpoint": submitPath, "response": submitResp}
-		if artifactURI != "" {
-			meta["uri"] = artifactURI
-		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, meta)
-		ApplyVideoSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return PollProviderTaskForArtifact(
 		ctx, updater, jobID, baseURL, apiKey,

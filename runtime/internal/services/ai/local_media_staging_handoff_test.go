@@ -45,6 +45,7 @@ func TestLocalMediaStagingHandoffCleansEarlyExitAndKeepsActiveInput(t *testing.T
 				} else {
 					kind = runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE
 					s.localSpeechStagingRoot = t.TempDir()
+					installDiskCaptureOwnerForTest(t, s)
 					s.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedSpeechExecutionForTest(t, capabilitydriver.AudioSeparateContract, "demucs-cpu")})
 					payload := canonicalUploadFixture(t)
 					binary.LittleEndian.PutUint32(payload[24:28], 44100)
@@ -53,6 +54,7 @@ func TestLocalMediaStagingHandoffCleansEarlyExitAndKeepsActiveInput(t *testing.T
 						t.Fatal(err)
 					}
 					ctx := executionintent.WithIntent(scenarioJobUserContext(head.AppId, head.SubjectUserId), executionintent.Intent{CapabilityContract: capabilitydriver.AudioSeparateContract, LocalLoadoutRef: "test-loadout:audio.separate", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})
+					ctx = jobCaptureContextForTest(t, s, ctx, "staged-job", kind, head)
 					effective, err := s.captureLocalSpeechEffectiveInputs(ctx, head, &runtimev1.SubmitScenarioJobRequest{Head: head, ScenarioType: kind, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_AudioSeparate{AudioSeparate: &runtimev1.AudioSeparateScenarioSpec{MimeType: "audio/wav", SourceAudio: &runtimev1.MusicAudioInput{ArtifactId: "source"}}}}})
 					if err != nil {
 						t.Fatal(err)

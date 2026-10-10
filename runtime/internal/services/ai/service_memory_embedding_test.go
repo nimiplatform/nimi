@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -47,7 +46,7 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 			if !captured {
 				t.Error("provider Host started before RUNNING memory embed Job and Cloud assembly were durable")
 			}
-			raw, readErr := os.ReadFile(durableStore.durablePath)
+			raw, readErr := readScenarioJobDocument(durableStore.durablePath)
 			if readErr != nil || !bytes.Contains(raw, []byte("alpha")) || bytes.Contains(raw, []byte("test-key")) {
 				t.Errorf("provider Host durable snapshot = %s readErr=%v", raw, readErr)
 			}

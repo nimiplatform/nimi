@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -819,8 +820,10 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 	}))
 	defer func() { server.Close() }()
 
+	var receipt *NativeTaskReceipt
+	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 	artifacts, _, providerJobID, err := ExecuteAlibabaNative(
-		context.Background(),
+		ctx,
 		MediaAdapterConfig{
 			BaseURL:               server.URL + "/compatible-mode/v1",
 			AllowLoopbackEndpoint: true,
@@ -841,6 +844,12 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 		},
 		"wan2.6-t2i",
 	)
+	if !errors.Is(err, ErrNativeTaskYielded) {
+		t.Fatalf("native create did not yield: %v", err)
+	}
+	observation, _, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-api-key", AllowLoopbackEndpoint: true}, receipt)
+	artifacts = observation.GetArtifacts()
+
 	if err != nil {
 		t.Fatalf("ExecuteAlibabaNative image failed: %v", err)
 	}
@@ -925,8 +934,10 @@ func TestExecuteAlibabaNativeVideoUsesAsyncTaskContract(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
+	var receipt *NativeTaskReceipt
+	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 	artifacts, usage, providerJobID, err := ExecuteAlibabaNative(
-		context.Background(),
+		ctx,
 		MediaAdapterConfig{
 			BaseURL:               server.URL + "/compatible-mode/v1",
 			AllowLoopbackEndpoint: true,
@@ -957,6 +968,12 @@ func TestExecuteAlibabaNativeVideoUsesAsyncTaskContract(t *testing.T) {
 		},
 		"wan2.7-t2v",
 	)
+	if !errors.Is(err, ErrNativeTaskYielded) {
+		t.Fatalf("native create did not yield: %v", err)
+	}
+	observation, _, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-api-key", AllowLoopbackEndpoint: true}, receipt)
+	artifacts = observation.GetArtifacts()
+
 	if err != nil {
 		t.Fatalf("ExecuteAlibabaNative video failed: %v", err)
 	}

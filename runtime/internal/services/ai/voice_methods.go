@@ -409,6 +409,13 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 	if err != nil {
 		return fail(err)
 	}
+	if jobID, cleanup := ctx.Value(unpublishedVoiceJobKey{}).(string); cleanup {
+		assembly, exists := s.scenarioJobs.cloudResolvedAssembly(jobID)
+		if !exists || assembly.CredentialCustodyRef == "" || assembly.Connector.ConnectorID != bound.connector.ConnectorID || assembly.AccountID != asset.GetSubjectUserId() {
+			return fail(grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING))
+		}
+		bound.connector = connectorRecordWithCredentialCustody(assembly.Connector, assembly.CredentialCustodyRef)
+	}
 	privateIntent, driver, driverTarget, connectorRecord := bound.intent, bound.driver, bound.target, bound.connector
 	mapped, err := driver.MapVoiceDeleteRequest(driverTarget, providerVoiceRef, asset.GetMetadata().GetFields()["workflow_model_id"].GetStringValue())
 	if err != nil {

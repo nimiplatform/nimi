@@ -7,28 +7,19 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
 
-// @nimi-authority: rule.nimi.runtime.service-operations.r066
-func videoFaceSwapJobTimeout(timeoutMS int32) (time.Duration, error) {
-	if timeoutMS == 0 {
-		return 900 * time.Second, nil
-	}
-	if timeoutMS < 1000 || timeoutMS > 3600000 {
-		return 0, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{Message: "Video face replacement timeout_ms must be between 1000 and 3600000"})
-	}
-	return time.Duration(timeoutMS) * time.Millisecond, nil
-}
-
-func (s *Service) submitLocalVideoFaceSwapJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest, mode runtimev1.ExecutionMode, ignored []*runtimev1.IgnoredScenarioExtension, deadline time.Time) (*runtimev1.SubmitScenarioJobResponse, error) {
+func (s *Service) submitLocalVideoFaceSwapJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest, mode runtimev1.ExecutionMode, ignored []*runtimev1.IgnoredScenarioExtension) (*runtimev1.SubmitScenarioJobResponse, error) {
 	assembly, identity, displayName, err := s.captureLocalVideoFaceSwapInputs(ctx, req.Head, req.GetSpec().GetVideoFaceSwap())
 	if err != nil {
 		return nil, err
 	}
-	return s.submitCapturedFaceSwapJob(ctx, req, mode, ignored, deadline, assembly, identity, displayName, s.runLocalVideoFaceSwapJob)
+	return s.submitCapturedFaceSwapJob(ctx, req, mode, ignored, assembly, identity, displayName, s.runLocalVideoFaceSwapJob)
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-video-job
@@ -38,6 +29,9 @@ func (s *Service) runLocalVideoFaceSwapJob(ctx context.Context, jobID string, ti
 		return
 	}
 	defer s.finishScenarioJobExecution(jobID)
+	budget := newScenarioJobExecutionBudget(ctx)
+	ctx = budget
+	defer budget.close()
 	fail := func(err error) {
 		if _, typed := grpcerr.ExtractReasonCode(err); !typed {
 			err = localImageExecutionError(err)
@@ -75,9 +69,14 @@ func (s *Service) runLocalVideoFaceSwapJob(ctx context.Context, jobID string, ti
 			releaseScheduler()
 		}
 	}()
+	slots := []runtimeartifact.JobBodySlot{{ArtifactID: jobID + "-face-result", MaxBytes: int64(localexecution.MaxFaceSwapVideoOutputBytes)}}
 	onStart := func() error {
 		release, err := s.acquireAsyncScenarioJobLease(ctx, job.GetHead().GetAppId(), "scenario_job_video_face_swap")
 		if err != nil {
+			return err
+		}
+		if err := s.prepareScenarioBodySlots(ctx, jobID, slots); err != nil {
+			release()
 			return err
 		}
 		if _, ok, err := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); err != nil {
@@ -91,11 +90,12 @@ func (s *Service) runLocalVideoFaceSwapJob(ctx context.Context, jobID string, ti
 		releaseScheduler = release
 		started = time.Now()
 		ticket.release()
-		return nil
+		return budget.start(900 * time.Second)
 	}
 	result, err := s.localFaceSwapHost.ExecuteVideoFaceSwap(ctx, plan, onStart, func(done, total int32) {
 		_, _ = s.updateScenarioJobProgress(jobID, done, total+1, videoJobProgressPercent(done, total+1))
 	})
+	budget.stop()
 	if err != nil {
 		fail(err)
 		return
@@ -111,27 +111,32 @@ func (s *Service) runLocalVideoFaceSwapJob(ctx context.Context, jobID string, ti
 		fail(err)
 		return
 	}
-	var transitionErr error
-	_, err = s.storeAndAttachRuntimeJobArtifactBody(ctx, jobID, job.Head, artifact, body, func(candidate *runtimev1.ScenarioArtifact) bool {
-		if ctx.Err() != nil {
-			return false
-		}
-		_, committed, commitErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
-			job.Artifacts = cloneScenarioArtifacts([]*runtimev1.ScenarioArtifact{candidate})
-			job.VideoFaceSwapSummary = proto.Clone(result.Summary).(*runtimev1.VideoFaceSwapSummary)
-			job.ProgressCurrentStep, job.ProgressTotalSteps, job.ProgressPercent = int32(result.Summary.TotalFrames+1), int32(result.Summary.TotalFrames+1), 100
-			job.ReasonCode, job.ReasonDetail = runtimev1.ReasonCode_ACTION_EXECUTED, ""
-			job.ReasonMetadata = nil
-			job.Usage = &runtimev1.UsageStats{ComputeMs: time.Since(started).Milliseconds()}
-		})
-		transitionErr = commitErr
-		return committed && commitErr == nil
-	})
-	if transitionErr != nil {
-		s.failScenarioJobPersistencePrecondition(jobID, "video replacement completion could not be persisted", transitionErr)
-		return
-	}
+	staged, err := s.stageFiniteMediaBodies(ctx, jobID, job.Head, slots, capabilitydriver.CloudMediaResult{Artifacts: []*runtimev1.ScenarioArtifact{artifact}, ArtifactBodies: map[string]*capabilitydriver.ArtifactBody{artifact.GetArtifactId(): body}})
 	if err != nil {
 		fail(err)
+		return
 	}
+	capabilitydriver.CloseArtifactBodies(staged.ArtifactBodies)
+	artifacts, err := bindRuntimeJobArtifacts(jobID, job.Head, staged.Artifacts)
+	if err != nil {
+		fail(err)
+		return
+	}
+	_, _, err = s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
+		job.Artifacts = artifacts
+		job.VideoFaceSwapSummary = proto.Clone(result.Summary).(*runtimev1.VideoFaceSwapSummary)
+
+		job.ProgressCurrentStep, job.ProgressTotalSteps, job.ProgressPercent = int32(result.Summary.TotalFrames+1), int32(result.Summary.TotalFrames+1), 100
+		job.ReasonCode, job.ReasonDetail = runtimev1.ReasonCode_ACTION_EXECUTED, ""
+		job.ReasonMetadata = nil
+		job.Usage = &runtimev1.UsageStats{ComputeMs: time.Since(started).Milliseconds()}
+	})
+	if err != nil {
+		if s.scenarioJobs.hasResultCandidate(jobID) {
+			s.setNativeObservationIssue(jobID, 0, err)
+		} else {
+			fail(err)
+		}
+	}
+
 }

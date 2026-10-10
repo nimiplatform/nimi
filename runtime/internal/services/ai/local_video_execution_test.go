@@ -34,21 +34,22 @@ import (
 )
 
 type localVideoHostStub struct {
-	mu              sync.Mutex
-	plans           []*capabilitydriver.VideoInvocationPlan
-	calls           int
-	entered         chan struct{}
-	callEntered     chan string
-	allowStart      chan struct{}
-	started         chan struct{}
-	release         chan struct{}
-	cancelObserved  chan struct{}
-	allowCancelExit chan struct{}
-	progress        []localexecution.VideoExecutionProgress
-	candidate       localexecution.RawAVCandidate
-	err             error
-	admissionErr    error
-	admissionCalls  int
+	mu               sync.Mutex
+	plans            []*capabilitydriver.VideoInvocationPlan
+	calls            int
+	entered          chan struct{}
+	observedDeadline chan bool
+	callEntered      chan string
+	allowStart       chan struct{}
+	started          chan struct{}
+	release          chan struct{}
+	cancelObserved   chan struct{}
+	allowCancelExit  chan struct{}
+	progress         []localexecution.VideoExecutionProgress
+	candidate        localexecution.RawAVCandidate
+	err              error
+	admissionErr     error
+	admissionCalls   int
 }
 
 func (h *localVideoHostStub) AdmitVideo(plan *capabilitydriver.VideoInvocationPlan) error {
@@ -73,6 +74,10 @@ func (h *localVideoHostStub) ExecuteVideo(
 	h.plans = append(h.plans, plan)
 	updates := append([]localexecution.VideoExecutionProgress(nil), h.progress...)
 	h.mu.Unlock()
+	if h.observedDeadline != nil {
+		_, hasDeadline := ctx.Deadline()
+		h.observedDeadline <- hasDeadline
+	}
 	closeOnce(h.entered)
 	if h.callEntered != nil {
 		h.callEntered <- plan.Prompt()
@@ -219,6 +224,11 @@ func (s *rejectingRuntimeArtifactStore) PutStream(_ context.Context, _ string, _
 	return errors.New("artifact store rejected candidate")
 }
 
+func (s *rejectingRuntimeArtifactStore) StageJobBody(_ context.Context, _ string, _ runtimeartifact.ArtifactRecord, source io.ReadCloser) error {
+	source.Close()
+	return errors.New("artifact store rejected candidate")
+}
+
 type secondPutRejectingRuntimeArtifactStore struct {
 	*runtimeartifact.MemoryStore
 	puts int
@@ -239,6 +249,15 @@ func (s *secondPutRejectingRuntimeArtifactStore) PutStream(ctx context.Context, 
 		return errors.New("artifact store rejected second candidate")
 	}
 	return s.MemoryStore.PutStream(ctx, artifactID, record, source)
+}
+
+func (s *secondPutRejectingRuntimeArtifactStore) StageJobBody(ctx context.Context, id string, record runtimeartifact.ArtifactRecord, source io.ReadCloser) error {
+	s.puts++
+	if s.puts == 2 {
+		source.Close()
+		return errors.New("artifact store rejected second candidate")
+	}
+	return s.MemoryStore.StageJobBody(ctx, id, record, source)
 }
 
 func TestNormalizeLocalVideoSpecExplicitZeroAndFalseOverrideDefaults(t *testing.T) {
@@ -536,11 +555,11 @@ func TestLocalVideoJobsRemainSerializedThroughMediaAndTerminalPublication(t *tes
 	}
 }
 
-func TestLocalVideoJobSchedulerWaitTimeoutPreservesTypedTerminal(t *testing.T) {
+func TestLocalVideoJobSchedulerWaitNeedsExplicitCancel(t *testing.T) {
 	svc := newTestService(nil)
 	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
 	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-scheduler-timeout")})
-	host := &localVideoHostStub{entered: make(chan struct{}), started: make(chan struct{})}
+	host := &localVideoHostStub{entered: make(chan struct{}), started: make(chan struct{}), observedDeadline: make(chan bool, 1)}
 	svc.SetLocalVideoExecutionHost(host)
 	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
 
@@ -557,7 +576,7 @@ func TestLocalVideoJobSchedulerWaitTimeoutPreservesTypedTerminal(t *testing.T) {
 
 	request := localVideoJobRequestForTest(64, 64, 5)
 	request.Head.AppId = "app.video.scheduler-timeout"
-	request.Head.TimeoutMs = 100
+	request.Head.TimeoutMs = 0
 	response, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), request)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
@@ -567,13 +586,24 @@ func TestLocalVideoJobSchedulerWaitTimeoutPreservesTypedTerminal(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("video Job did not reach factual Host admission")
 	}
-	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
-	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || terminal.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
-		t.Fatalf("scheduler-timeout terminal = %+v", terminal)
+	if <-host.observedDeadline {
+		t.Fatal("queued Job carried a business deadline into Host admission")
+	}
+	queued, _ := svc.scenarioJobs.get(response.GetJob().GetJobId())
+	if queued.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED {
+		t.Fatalf("queued Job = %v", queued.GetStatus())
+	}
+	if _, err := svc.CancelScenarioJob(scenarioJobUserContext(request.Head.AppId, "anonymous"), &runtimev1.CancelScenarioJobRequest{JobId: response.GetJob().GetJobId(), Reason: "cancel queued work"}); err != nil {
+		t.Fatal(err)
+	}
+	waitScenarioJobWorkExit(t, svc.scenarioJobs, response.GetJob().GetJobId())
+	terminal, _ := svc.scenarioJobs.get(response.GetJob().GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || terminal.GetStopOutcome() != runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED {
+		t.Fatalf("queued cancellation = %v", terminal)
 	}
 	select {
 	case <-host.started:
-		t.Fatal("video Host began backend work without a scheduler lease")
+		t.Fatal("canceled queued work entered backend")
 	default:
 	}
 
@@ -897,6 +927,7 @@ func TestLocalVideoMediaAndCustodyFailuresNeverPublishCandidate(t *testing.T) {
 			if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED || terminal.GetReasonCode() != runtimev1.ReasonCode_AI_OUTPUT_INVALID || len(terminal.GetArtifacts()) != 0 {
 				t.Fatalf("failure terminal = %+v", terminal)
 			}
+			waitScenarioBodyCleanup(t, svc, terminal.GetJobId())
 			if svc.runtimeArtifacts.Len() != 0 {
 				t.Fatalf("failure retained %d readable candidates", svc.runtimeArtifacts.Len())
 			}
@@ -926,18 +957,20 @@ func TestLocalVideoCancelWaitsForHostExitAndPublishesNoArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CancelScenarioJob: %v", err)
 	}
-	if canceled.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("cancel became terminal before Host exit: %+v", canceled)
+	if canceled.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("cancel became terminal without its local publication gate: %+v", canceled)
 	}
 	select {
 	case <-host.cancelObserved:
 	case <-time.After(2 * time.Second):
 		t.Fatal("Host did not observe cancellation")
 	}
-	if current, _ := svc.scenarioJobs.get(response.GetJob().GetJobId()); current.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("job became CANCELED before Host exit: %+v", current)
+	if current, _ := svc.scenarioJobs.get(response.GetJob().GetJobId()); current.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("job became CANCELED without its local publication gate: %+v", current)
 	}
+	assertScenarioJobWorkActive(t, svc.scenarioJobs, response.GetJob().GetJobId())
 	close(host.allowCancelExit)
+	waitScenarioJobWorkExit(t, svc.scenarioJobs, response.GetJob().GetJobId())
 	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || len(terminal.GetArtifacts()) != 0 || svc.runtimeArtifacts.Len() != 0 || pipeline.calls != 0 {
 		t.Fatalf("cancel terminal = %+v media_calls=%d stored=%d", terminal, pipeline.calls, svc.runtimeArtifacts.Len())

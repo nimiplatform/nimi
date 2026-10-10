@@ -47,12 +47,36 @@ func requestScopedProviderTarget(
 	}
 	secretPayload := ""
 	var err error
-	if strings.TrimSpace(connectorRecord.CredentialCustodyRef) != "" {
+	if isAsyncJob(ctx) && strings.TrimSpace(connectorRecord.CredentialCustodyRef) == "" {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
+	}
+	if isAsyncJob(ctx) {
+		jobID, refErr := connector.JobIDForCredentialCustodyRef(connectorRecord.CredentialCustodyRef)
+		if refErr != nil {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
+		}
+		open := func() error {
+			var cause error
+			secretPayload, cause = connectors.OpenJobCredential(ctx, jobID, accountID, connectorRecord)
+			return cause
+		}
+		if authority := jobAuthorityFromContext(ctx); authority != nil {
+			if authority.JobID() != jobID {
+				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+			}
+			err = authority.WithCurrent(ctx, open)
+		} else {
+			err = open()
+		}
+	} else if connectorRecord.CredentialCustodyRef != "" {
 		secretPayload, err = connectors.LoadCredentialCustody(connectorRecord.CredentialCustodyRef)
 	} else {
 		secretPayload, err = connectors.LoadSecretPayload(connectorRecord.ConnectorID)
 	}
 	if err != nil {
+		if _, typed := grpcerr.ExtractReasonCode(err); typed {
+			return nil, err
+		}
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "connector credential custody is unavailable"})
 	}
 	credential := connector.ResolveCredential(connectorRecord, secretPayload)

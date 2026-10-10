@@ -32,7 +32,7 @@ type localImageHostStub struct {
 	plans           []*capabilitydriver.ImageInvocationPlan
 	entered         chan struct{}
 	allowStart      chan struct{}
-	firstCommitted  chan struct{}
+	firstProduced   chan struct{}
 	allowSecond     chan struct{}
 	cancelObserved  chan struct{}
 	allowCancelExit chan struct{}
@@ -184,7 +184,7 @@ func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilityd
 			progress(localexecution.ImageExecutionProgress{Stage: localexecution.ImageExecutionStageProduced, ArtifactIndex: index, ArtifactCount: int32(plan.ImageCount())})
 		}
 		if index == 1 {
-			closeOnce(h.firstCommitted)
+			closeOnce(h.firstProduced)
 			if h.allowSecond != nil {
 				select {
 				case <-h.allowSecond:
@@ -517,14 +517,14 @@ func TestLocalImageSyncFailsClosedBeforeHostDispatch(t *testing.T) {
 	}
 }
 
-func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableCapture(t *testing.T) {
+func TestLocalImageJobStaysQueuedThenPublishesWholeSetFromImmutableCapture(t *testing.T) {
 	svc := newTestService(nil)
 	first := selectedImageExecutionForTest(t, "image-first")
 	second := selectedImageExecutionForTest(t, "image-second")
 	resolver := &mutableLocalExecutionResolver{projection: first}
 	host := &localImageHostStub{
 		entered: make(chan struct{}), allowStart: make(chan struct{}),
-		firstCommitted: make(chan struct{}), allowSecond: make(chan struct{}),
+		firstProduced: make(chan struct{}), allowSecond: make(chan struct{}),
 	}
 	svc.SetLocalExecutionResolver(resolver)
 	svc.SetLocalImageExecutionHost(host)
@@ -570,16 +570,22 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 	}
 	close(host.allowStart)
 	select {
-	case <-host.firstCommitted:
+	case <-host.firstProduced:
 	case <-time.After(2 * time.Second):
 		t.Fatal("first image artifact was not committed")
 	}
-	running := waitForImageArtifactCount(t, svc, jobID, 1)
+	running := waitForImageArtifactCount(t, svc, jobID, 0)
 	if running.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING || running.GetProgressPercent() >= 100 {
 		t.Fatalf("incremental job snapshot = %+v", running)
 	}
-	if !scenarioJobEventsContainArtifactCount(svc, jobID, 1) {
-		t.Fatal("running event backlog did not enumerate the first produced artifact")
+	if scenarioJobEventsContainArtifactCount(svc, jobID, 1) {
+		t.Fatal("running event exposed a partial result")
+	}
+	if _, visible := svc.runtimeArtifacts.Stat(jobID + "-image-1"); visible {
+		t.Fatal("incomplete result was readable through artifact custody")
+	}
+	if _, complete := svc.runtimeArtifacts.(runtimeartifact.JobBodyStore).JobBodyStat(jobID, jobID+"-image-1"); !complete {
+		t.Fatal("first body was not privately retained")
 	}
 	close(host.allowSecond)
 	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, jobID)
@@ -631,7 +637,7 @@ func TestLocalImageJobSchedulerLeaseCoversHostLifetime(t *testing.T) {
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-scheduler")})
 	host := &localImageHostStub{
 		entered: make(chan struct{}), allowStart: make(chan struct{}),
-		firstCommitted: make(chan struct{}), allowSecond: make(chan struct{}),
+		firstProduced: make(chan struct{}), allowSecond: make(chan struct{}),
 	}
 	svc.SetLocalImageExecutionHost(host)
 	ctx := localImageIntentContext(context.Background(), nil)
@@ -654,7 +660,7 @@ func TestLocalImageJobSchedulerLeaseCoversHostLifetime(t *testing.T) {
 
 	close(host.allowStart)
 	select {
-	case <-host.firstCommitted:
+	case <-host.firstProduced:
 	case <-time.After(2 * time.Second):
 		t.Fatal("first image Host execution did not start")
 	}
@@ -881,7 +887,7 @@ func TestLocalImageArtifactAttachFailureDeletesExactCandidate(t *testing.T) {
 	}
 }
 
-func TestLocalImageJobPartialFailurePreservesProducedArtifactAndTypedFailure(t *testing.T) {
+func TestLocalImageJobPartialFailureKeepsOutputsPrivateAndTypedFailure(t *testing.T) {
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-partial")})
 	host := &localImageHostStub{failBeforeIndex: 2, failure: errors.New("sampler exploded")}
@@ -892,16 +898,15 @@ func TestLocalImageJobPartialFailurePreservesProducedArtifactAndTypedFailure(t *
 	}
 	job := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
-		job.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED || len(job.GetArtifacts()) != 1 || job.GetProgressPercent() >= 100 {
+		job.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED || len(job.GetArtifacts()) != 0 || job.GetProgressPercent() >= 100 {
 		t.Fatalf("partial failure job = %+v", job)
 	}
-	artifactCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app.local"))
-	artifactsResponse, err := svc.GetScenarioArtifacts(artifactCtx, &runtimev1.GetScenarioArtifactsRequest{JobId: job.GetJobId()})
-	if err != nil || len(artifactsResponse.GetArtifacts()) != 1 || len(artifactsResponse.GetArtifacts()[0].GetBytes()) != 0 || artifactsResponse.GetArtifacts()[0].GetSizeBytes() == 0 {
-		t.Fatalf("partial artifact retrieval = response=%+v error=%v", artifactsResponse, err)
+	waitScenarioBodyCleanup(t, svc, job.GetJobId())
+	if _, visible := svc.runtimeArtifacts.Stat(job.GetJobId() + "-image-1"); visible {
+		t.Fatal("failed Job leaked partial image")
 	}
-	if record, ok := svc.runtimeArtifacts.Get(artifactsResponse.GetArtifacts()[0].GetArtifactId()); !ok || len(record.Bytes) == 0 {
-		t.Fatalf("partial artifact custody = %+v present=%v", record, ok)
+	if _, complete := svc.runtimeArtifacts.(runtimeartifact.JobBodyStore).JobBodyStat(job.GetJobId(), job.GetJobId()+"-image-1"); complete {
+		t.Fatal("failed Job retained a cleaned candidate")
 	}
 }
 
@@ -925,40 +930,42 @@ func TestLocalImageJobQueuedCancellationReachesHost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CancelScenarioJob: %v", err)
 	}
-	if canceled.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("cancel response became terminal before Host stop = %+v", canceled)
+	if canceled.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("cancel response became terminal without its local publication gate = %+v", canceled)
 	}
 	select {
 	case <-host.cancelObserved:
 	case <-time.After(2 * time.Second):
 		t.Fatal("job cancellation did not reach image Host context")
 	}
-	if current, _ := svc.scenarioJobs.get(response.GetJob().GetJobId()); current.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("queued job published CANCELED before Host exit: %+v", current)
+	if current, _ := svc.scenarioJobs.get(response.GetJob().GetJobId()); current.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("queued job published CANCELED without its local publication gate: %+v", current)
 	}
+	assertScenarioJobWorkActive(t, svc.scenarioJobs, response.GetJob().GetJobId())
 	close(host.allowCancelExit)
+	waitScenarioJobWorkExit(t, svc.scenarioJobs, response.GetJob().GetJobId())
 	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		t.Fatalf("queued cancel terminal = %+v", terminal)
 	}
 }
 
-func TestLocalImageJobRunningCancellationPreservesCommittedArtifact(t *testing.T) {
+func TestLocalImageJobRunningCancellationClosesWholeSetPublication(t *testing.T) {
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-running-cancel")})
-	host := &localImageHostStub{firstCommitted: make(chan struct{}), allowSecond: make(chan struct{}), cancelObserved: make(chan struct{}), allowCancelExit: make(chan struct{})}
+	host := &localImageHostStub{firstProduced: make(chan struct{}), allowSecond: make(chan struct{}), cancelObserved: make(chan struct{}), allowCancelExit: make(chan struct{})}
 	svc.SetLocalImageExecutionHost(host)
 	response, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), localImageJobRequestForTest(2))
 	if err != nil {
 		t.Fatal(err)
 	}
 	select {
-	case <-host.firstCommitted:
+	case <-host.firstProduced:
 	case <-time.After(2 * time.Second):
 		t.Fatal("running image job did not commit its first artifact")
 	}
 	jobID := response.GetJob().GetJobId()
-	running := waitForImageArtifactCount(t, svc, jobID, 1)
+	running := waitForImageArtifactCount(t, svc, jobID, 0)
 	if running.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
 		t.Fatalf("pre-cancel job = %+v", running)
 	}
@@ -967,7 +974,7 @@ func TestLocalImageJobRunningCancellationPreservesCommittedArtifact(t *testing.T
 	if err != nil {
 		t.Fatalf("CancelScenarioJob: %v", err)
 	}
-	if canceled.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || len(canceled.GetJob().GetArtifacts()) != 1 {
+	if canceled.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || len(canceled.GetJob().GetArtifacts()) != 0 {
 		t.Fatalf("running cancel response = %+v", canceled)
 	}
 	select {
@@ -975,13 +982,19 @@ func TestLocalImageJobRunningCancellationPreservesCommittedArtifact(t *testing.T
 	case <-time.After(2 * time.Second):
 		t.Fatal("running cancellation did not reach Host context")
 	}
-	if current, _ := svc.scenarioJobs.get(jobID); current.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("running job published CANCELED before Host exit: %+v", current)
+	if current, _ := svc.scenarioJobs.get(jobID); current.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("running job published CANCELED without its local publication gate: %+v", current)
 	}
+	assertScenarioJobWorkActive(t, svc.scenarioJobs, jobID)
 	close(host.allowCancelExit)
+	waitScenarioJobWorkExit(t, svc.scenarioJobs, jobID)
 	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, jobID)
-	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || len(terminal.GetArtifacts()) != 1 {
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || len(terminal.GetArtifacts()) != 0 {
 		t.Fatalf("running cancel terminal = %+v", terminal)
+	}
+	waitScenarioBodyCleanup(t, svc, jobID)
+	if _, complete := svc.runtimeArtifacts.(runtimeartifact.JobBodyStore).JobBodyStat(jobID, jobID+"-image-1"); complete {
+		t.Fatal("Cancel did not dispose the private complete image after Host exit")
 	}
 }
 
@@ -1147,4 +1160,22 @@ func closeOnce(ch chan struct{}) {
 
 func serviceTestPNGBytes() []byte {
 	return []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0, 0, 0, 0, 'I', 'H', 'D', 'R'}
+}
+
+func waitScenarioBodyCleanup(t *testing.T, svc *Service, id string) {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		svc.scenarioJobs.mu.RLock()
+		r := svc.scenarioJobs.jobs[id]
+		done := r == nil || len(r.bodyArtifactIDs) == 0
+		svc.scenarioJobs.mu.RUnlock()
+		if done {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("Job body cleanup did not finish")
+		}
+		time.Sleep(time.Millisecond)
+	}
 }

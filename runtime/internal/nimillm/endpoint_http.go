@@ -12,10 +12,19 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+type originalControlRequestKey struct{}
+
+func originalControlRequest(ctx context.Context) context.Context {
+	return context.WithValue(ctx, originalControlRequestKey{}, true)
+}
+
 func newSecuredHTTPRequest(ctx context.Context, method string, targetURL string, body io.Reader) (*http.Client, *http.Request, error) {
 	client, err := newSecuredHTTPClient(ctx, targetURL, allowLoopbackProviderEndpointFromContext(ctx))
 	if err != nil {
 		return nil, nil, err
+	}
+	if exact, _ := ctx.Value(originalControlRequestKey{}).(bool); exact {
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	}
 	request, err := http.NewRequestWithContext(ctx, method, targetURL, body)
 	if err != nil {
@@ -34,8 +43,8 @@ func newSecuredHTTPClient(ctx context.Context, targetURL string, allowLoopback b
 			grpcerr.ReasonOptions{Message: "provider endpoint is not permitted"},
 		)
 	}
-	return &http.Client{
+	return httpClientWithOutboundGate(ctx, &http.Client{
 		Timeout:   defaultHTTPTimeout,
 		Transport: transport,
-	}, nil
+	}), nil
 }

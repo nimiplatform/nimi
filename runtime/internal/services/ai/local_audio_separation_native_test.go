@@ -22,6 +22,7 @@ import (
 func TestDemucsOwnedCanonicalInputCapturesRangeWithoutCUDAAndRehydrates(t *testing.T) {
 	svc := newTestService(nil)
 	svc.localSpeechStagingRoot = t.TempDir()
+	installDiskCaptureOwnerForTest(t, svc)
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedSpeechExecutionForTest(t, capabilitydriver.AudioSeparateContract, "demucs-cpu")})
 	payload := canonicalUploadFixture(t)
 	binary.LittleEndian.PutUint32(payload[24:28], 44100)
@@ -37,6 +38,7 @@ func TestDemucsOwnedCanonicalInputCapturesRangeWithoutCUDAAndRehydrates(t *testi
 		CapabilityContract: capabilitydriver.AudioSeparateContract, LocalLoadoutRef: "test-loadout:audio.separate", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	head := &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"}
+	ctx = jobCaptureContextForTest(t, svc, ctx, "separation-capture", runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE, head)
 	effective, err := svc.captureLocalSpeechEffectiveInputs(ctx, head, &runtimev1.SubmitScenarioJobRequest{
 		Head: head, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_AudioSeparate{AudioSeparate: &runtimev1.AudioSeparateScenarioSpec{

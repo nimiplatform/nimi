@@ -20,7 +20,7 @@ func TestAgentCleanupDisposesQuarantinedUnpublishedPayload(t *testing.T) {
 	if err := json.Unmarshal(raw, &capture); err != nil {
 		t.Fatal(err)
 	}
-	durable, err := os.ReadFile(service.scenarioJobs.durablePath)
+	durable, err := readScenarioJobDocument(service.scenarioJobs.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}

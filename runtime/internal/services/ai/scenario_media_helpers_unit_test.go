@@ -253,7 +253,7 @@ func TestTranscriptionAudioSourceHelpers(t *testing.T) {
 	}
 }
 
-func TestScenarioJobIdempotencyAndTimeoutHelpers(t *testing.T) {
+func TestScenarioJobIdempotencyHelpers(t *testing.T) {
 	req := baseScenarioJobRequest()
 	req.IdempotencyKey = "idem-1"
 	req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
@@ -273,18 +273,6 @@ func TestScenarioJobIdempotencyAndTimeoutHelpers(t *testing.T) {
 		t.Fatalf("hash should be non-empty, err=%v", err)
 	}
 
-	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE) != defaultGenerateImageTimeout {
-		t.Fatalf("unexpected image timeout")
-	}
-	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE) != defaultGenerateVideoTimeout {
-		t.Fatalf("unexpected video timeout")
-	}
-	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE) != defaultSynthesizeTimeout {
-		t.Fatalf("unexpected synth timeout")
-	}
-	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) != defaultTranscribeTimeout {
-		t.Fatalf("unexpected transcribe timeout")
-	}
 }
 
 func TestMediaRoutingHelpers(t *testing.T) {
@@ -416,11 +404,12 @@ func TestScenarioAsyncJobCancellationClearsFailureMetadata(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	const jobID = "scenario-async-canceled"
 	created := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
-		JobId:         jobID,
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
-		TraceId:       "trace-canceled",
+		JobId:             jobID,
+		ScenarioType:      runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode:     runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status:            runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+		SubmissionOutcome: runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN,
+		TraceId:           "trace-canceled",
 	}, func() {})
 	if created == nil {
 		t.Fatal("create ScenarioJob")
@@ -429,6 +418,9 @@ func TestScenarioAsyncJobCancellationClearsFailureMetadata(t *testing.T) {
 		ActionHint: "retry_provider_request",
 		Retryable:  testBool(true),
 	})
+	if _, ok, err := svc.scenarioJobs.requestCancel(jobID, "explicit owner cancel"); err != nil || !ok {
+		t.Fatalf("owner cancel: %v", err)
+	}
 	svc.finishScenarioAsyncJobFailure(context.Background(), jobID, nil, err)
 	terminal, ok := svc.scenarioJobs.get(jobID)
 	if !ok {

@@ -525,6 +525,9 @@ func (s *Service) executeCapturedCloudMedia(ctx context.Context, effective *clou
 	}
 	response, err := s.remoteMediaHost.ExecuteMedia(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
+		if errors.Is(err, nimillm.ErrNativeTaskYielded) || errors.Is(err, nimillm.ErrFiniteMediaResultOwned) {
+			return capabilitydriver.CloudMediaResult{}, err
+		}
 		return capabilitydriver.CloudMediaResult{}, effective.driver.NormalizeReason(effective.target, err)
 	}
 	result, err := effective.driver.NormalizeResponse(response)
@@ -595,7 +598,6 @@ func (s *Service) auditCloudMediaCapture(effective *cloudMediaEffectiveInputs) e
 		"request_size_bytes":    len(requestRaw),
 		"scenario_type":         effective.request.GetScenarioType().String(),
 		"stream_mode":           string(effective.streamMode()),
-		"detached_polling":      effective.mapped.DetachedPolling(),
 		"remote_execution_host": remoteexecution.ProviderHTTPMediaHostID,
 		"remote_dispatch_state": "captured",
 		"secret_material":       "absent",

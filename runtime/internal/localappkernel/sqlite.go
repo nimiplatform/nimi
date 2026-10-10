@@ -75,6 +75,7 @@ type Kernel struct {
 	registrations    *RegistrationStore
 	keys             *KeyDeriver
 	packageLifecycle *PackageLifecycleStore
+	jobAuthorities   map[*jobRegistrationAuthority]struct{}
 
 	// In-package failure injection proves canonical+binding transactionality
 	// without introducing a production harness or evidence surface.
@@ -351,6 +352,12 @@ func (kernel *Kernel) Close() error {
 	if kernel == nil || kernel.db == nil {
 		return nil
 	}
+	kernel.mu.Lock()
+	for lease := range kernel.jobAuthorities {
+		close(lease.invalidated)
+		delete(kernel.jobAuthorities, lease)
+	}
+	kernel.mu.Unlock()
 	return kernel.db.Close()
 }
 
@@ -445,5 +452,9 @@ func (kernel *Kernel) commitTransaction(tx *sql.Tx) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	kernel.invalidateJobAuthoritiesLocked()
+	return nil
 }

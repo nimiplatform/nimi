@@ -19,7 +19,7 @@ func TestSpaitialStandardUsesExactWorldDriverWithoutHQFallback(t *testing.T) {
 		Spec:         &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{TextPrompt: "A reading room."}}},
 	}
 	mapped, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone)
-	if err != nil || mapped.Adapter() != CloudMediaAdapterSpaitialNative || mapped.ProviderModelID() != "default" || !mapped.DetachedPolling() {
+	if err != nil || mapped.Adapter() != CloudMediaAdapterSpaitialNative || mapped.ProviderModelID() != "default" {
 		t.Fatalf("Standard world mapping: %+v err=%v", mapped, err)
 	}
 	bad, _ := structpb.NewStruct(map[string]any{"provider": "spaitial", "providerModelId": "Echo 2 (HQ)", "remoteModelCatalogId": "catalog-hq"})

@@ -14,6 +14,7 @@ import (
 // protected ingress. ProducerAppID is catalog metadata only and is never
 // compared by authorization.
 type localAppJobOwner struct {
+	workPermit           *jobWorkPermit
 	AccountID            string
 	RegisteredAppSubject string
 	ProducerAppID        string
@@ -25,6 +26,7 @@ func localAppJobOwnerFromContext(ctx context.Context) *localAppJobOwner {
 		return nil
 	}
 	owner := &localAppJobOwner{
+		workPermit:           jobWorkPermitFromContext(ctx),
 		AccountID:            strings.TrimSpace(decision.AccountID),
 		RegisteredAppSubject: strings.TrimSpace(decision.RegisteredAppSubject),
 		ProducerAppID:        strings.TrimSpace(decision.AppID),

@@ -74,7 +74,7 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 
 	command := exec.Command(spec.executablePath, append([]string(nil), spec.args...)...)
 	command.Dir = spec.workingDir
-	configureManagedCommand(command)
+	setSupervisorProcessGroup(command)
 	if spec.pythonProfileRoot != "" {
 		command.Env = managedCommandProcessEnvironment(os.Environ(), pythonDependencyProfileReadOnlyEnv())
 	} else if spec.nativeCPU {
@@ -90,15 +90,27 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 		command.Stdout = io.MultiWriter(stdout, audioCppObservedOutput{observer: spec.outputObserver, stream: 0})
 		command.Stderr = io.MultiWriter(stderr, audioCppObservedOutput{observer: spec.outputObserver, stream: 1})
 	}
+	ownerReader, ownerRelease, guardErr := guardSupervisorProcessOwner(command, audioCppProcessForceWait)
+	if guardErr != nil {
+		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("bind audio.cpp Runtime owner: %w", guardErr))
+	}
+	if ownerReader != nil {
+		defer ownerReader.Close()
+	}
 	started := time.Now()
 	if err := command.Start(); err != nil {
+		ownerRelease.release()
 		cleanupAudioCppStaging(output, tempOutput)
 		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("start audio.cpp CLI"))
+	}
+	if ownerReader != nil {
+		_ = ownerReader.Close()
 	}
 	lifecycle, err := bindSupervisorProcessLifecycle(command)
 	if err != nil {
 		_ = command.Process.Kill()
 		_ = command.Wait()
+		ownerRelease.release()
 		cleanupAudioCppStaging(output, tempOutput)
 		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("bind audio.cpp process tree"))
 	}
@@ -109,22 +121,26 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 	case waitErr = <-done:
 	case <-ctx.Done():
 		if err := signalSupervisorProcessLifecycle(lifecycle, syscall.SIGKILL); err != nil {
-			_ = releaseSupervisorProcessLifecycle(lifecycle)
 			_ = signalSupervisorProcessDirect(command.Process.Pid, syscall.SIGKILL)
 		}
 		if _, err := waitAudioCppProcessExit(done, audioCppProcessTerminationWait); err != nil {
-			_ = signalSupervisorProcessDirect(command.Process.Pid, syscall.SIGKILL)
-			_ = releaseSupervisorProcessLifecycle(lifecycle)
-			if _, forceErr := waitAudioCppProcessExit(done, audioCppProcessForceWait); forceErr != nil {
-				cleanupAudioCppStaging(output, tempOutput)
-				return audioCppProcessOutcome{}, executionFailure(localexecution.FailureProcessCrash, fmt.Errorf("audio.cpp CLI process tree did not exit"))
+			// A stop budget is not proof of exit. Keep this Host claim and all
+			// captured resources until the owned process actually acknowledges it.
+			for {
+				_ = signalSupervisorProcessLifecycle(lifecycle, syscall.SIGKILL)
+				_ = signalSupervisorProcessDirect(command.Process.Pid, syscall.SIGKILL)
+				if _, err := waitAudioCppProcessExit(done, audioCppProcessForceWait); err == nil {
+					break
+				}
 			}
 		}
-		_ = releaseSupervisorProcessLifecycle(lifecycle)
+		waitAudioCppProcessTreeExit(lifecycle)
+		ownerRelease.release()
 		cleanupAudioCppStaging(output, tempOutput)
 		return audioCppProcessOutcome{}, audioCppContextFailure(ctx.Err())
 	}
-	_ = releaseSupervisorProcessLifecycle(lifecycle)
+	waitAudioCppProcessTreeExit(lifecycle)
+	ownerRelease.release()
 	if waitErr != nil {
 		cleanupAudioCppStaging(output, tempOutput)
 		kind, detail := classifyAudioCppProcessFailure(stdout, stderr)
@@ -257,4 +273,19 @@ func (b *boundedAudioCppOutput) String() string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return string(append([]byte(nil), b.data...))
+}
+
+// The parent exit alone does not release a Job's private source/output files:
+// native/Python descendants belong to the same captured process lifecycle.
+// @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-execution-scope
+func waitAudioCppProcessTreeExit(lifecycle *supervisorProcessLifecycle) {
+	for {
+		exited, err := supervisorProcessLifecycleExited(lifecycle)
+		if err == nil && exited {
+			_ = releaseSupervisorProcessLifecycle(lifecycle)
+			return
+		}
+		_ = signalSupervisorProcessLifecycle(lifecycle, syscall.SIGKILL)
+		time.Sleep(25 * time.Millisecond)
+	}
 }

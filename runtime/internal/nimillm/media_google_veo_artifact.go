@@ -54,7 +54,7 @@ func openGoogleVeoArtifactStream(ctx context.Context, artifactURL string, rawAPI
 	if err != nil {
 		return nil, "", -1, err
 	}
-	client, request, err := newSecuredHTTPRequest(ctx, http.MethodGet, artifactURL, nil)
+	client, request, budget, err := newMediaBodyRequest(ctx, artifactURL, defaultMediaBodyLimits())
 	if err != nil {
 		return nil, "", -1, err
 	}
@@ -62,8 +62,11 @@ func openGoogleVeoArtifactStream(ctx context.Context, artifactURL string, rawAPI
 	request.Header.Set("x-goog-api-key", apiKey)
 	response, err := client.Do(request)
 	if err != nil {
+		budget.close()
 		return nil, "", -1, MapProviderRequestError(err)
 	}
+	budget.headersComplete(response.ContentLength)
+	response.Body = &budgetedMediaBody{ReadCloser: response.Body, budget: budget}
 	if response.StatusCode != http.StatusOK {
 		_ = response.Body.Close()
 		if response.StatusCode >= 300 && response.StatusCode < 400 {

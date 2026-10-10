@@ -111,15 +111,22 @@ type peekedMediaArtifactStream struct {
 }
 
 func openBinaryArtifactStream(ctx context.Context, artifactURL string) (io.ReadCloser, string, int64, error) {
+	return openBinaryArtifactStreamWithLimits(ctx, artifactURL, defaultMediaBodyLimits())
+}
+
+func openBinaryArtifactStreamWithLimits(ctx context.Context, artifactURL string, limits mediaBodyLimits) (io.ReadCloser, string, int64, error) {
 	securedURL := upgradeHTTPToHTTPS(strings.TrimSpace(artifactURL))
-	client, request, err := newSecuredHTTPRequest(ctx, http.MethodGet, securedURL, nil)
+	client, request, budget, err := newMediaBodyRequest(ctx, securedURL, limits)
 	if err != nil {
 		return nil, "", -1, err
 	}
 	response, err := client.Do(request)
 	if err != nil {
+		budget.close()
 		return nil, "", -1, err
 	}
+	budget.headersComplete(response.ContentLength)
+	response.Body = &budgetedMediaBody{ReadCloser: response.Body, budget: budget}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_ = response.Body.Close()
 		return nil, "", -1, MapProviderHTTPError(response.StatusCode, nil)

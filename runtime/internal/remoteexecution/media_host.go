@@ -77,6 +77,7 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		err := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
 	}
+	ctx = h.jobOutboundContext(ctx, connectorRecord, audit)
 	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
@@ -97,6 +98,12 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		pollState,
 	)
 	if err != nil {
+		if errors.Is(err, nimillm.ErrNativeTaskYielded) || errors.Is(err, nimillm.ErrFiniteMediaResultOwned) {
+			if auditErr := h.recordDispatch(audit, "receipt", runtimev1.ReasonCode_ACTION_EXECUTED, false); auditErr != nil {
+				return capabilitydriver.CloudMediaTransportResponse{}, auditErr
+			}
+			return capabilitydriver.CloudMediaTransportResponse{}, err
+		}
 		if auditErr := h.recordDispatch(audit, dispatchExit(ctx, "error"), mediaReasonCode(err), false, cleanup); auditErr != nil {
 			return capabilitydriver.CloudMediaTransportResponse{}, auditErr
 		}
@@ -183,6 +190,7 @@ func (h *ProviderMediaHost) DeleteVoiceAsset(
 	if request == nil || request.Provider() != target.Provider() || request.ProviderVoiceRef() == "" {
 		return h.auditedError(audit, "error", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID))
 	}
+	ctx = h.jobOutboundContext(ctx, connectorRecord, audit)
 	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return h.auditedError(audit, "error", err)
@@ -214,6 +222,7 @@ func (h *ProviderMediaHost) ExecuteVoiceWorkflow(
 		err := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, h.auditedError(audit, "error", err)
 	}
+	ctx = h.jobOutboundContext(ctx, connectorRecord, audit)
 	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, h.auditedError(audit, "error", err)
@@ -280,6 +289,7 @@ func (h *ProviderMediaHost) StreamSpeech(
 		err := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
 	}
+	ctx = h.jobOutboundContext(ctx, connectorRecord, audit)
 	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)

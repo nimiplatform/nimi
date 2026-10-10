@@ -4,21 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const AdapterSpaitialNative = "spaitial_world_adapter"
@@ -38,6 +35,10 @@ func ExecuteSpaitialWorld(ctx context.Context, cfg MediaAdapterConfig, updater J
 		return MediaExecutionResult{}, err
 	}
 	if _, err := requireProviderAPIKey(cfg.APIKey); err != nil {
+		return MediaExecutionResult{}, err
+	}
+	ctx = originalControlRequest(ctx)
+	if err := requireNativeTaskPublisher(ctx); err != nil {
 		return MediaExecutionResult{}, err
 	}
 	fileID := ""
@@ -66,87 +67,16 @@ func ExecuteSpaitialWorld(ctx context.Context, cfg MediaAdapterConfig, updater J
 	if !ok || !validSpaitialID(id) {
 		return MediaExecutionResult{}, spaitialOutputError("request identity missing")
 	}
-	updater.UpdatePollState(jobID, id, 0, timestamppb.New(time.Now().UTC().Add(providerPollDelay(0))), "pending")
-	providerTerminal := false
-	defer func() {
-		if !providerTerminal && (errors.Is(ctx.Err(), context.Canceled) || errors.Is(ctx.Err(), context.DeadlineExceeded)) {
-			bestEffortDeleteProviderAsyncTask(ctx, AdapterSpaitialNative, cfg.BaseURL, cfg.APIKey, id)
-		}
-	}()
-	var retries int32
-	for {
-		if ctx.Err() != nil {
-			return MediaExecutionResult{ProviderJobID: id}, providerPollContextError(ctx.Err())
-		}
-		retries++
-		state := map[string]any{}
-		if err := retryWorldProviderRead(ctx, func() error {
-			state = map[string]any{}
-			return spaitialJSON(ctx, cfg, http.MethodGet, "/v1/worlds/requests/"+id+"/status", nil, "", &state)
-		}); err != nil {
-			return MediaExecutionResult{ProviderJobID: id}, err
-		}
-		if responseID, present := state["request_id"]; present && responseID != id {
-			return MediaExecutionResult{ProviderJobID: id}, spaitialOutputError("status identity mismatch")
-		}
-		switch state["status"] {
-		case "COMPLETED":
-			providerTerminal = true
-			result := map[string]any{}
-			if err := retryWorldProviderRead(ctx, func() error {
-				result = map[string]any{}
-				return spaitialJSON(ctx, cfg, http.MethodGet, "/v1/worlds/requests/"+id, nil, "", &result)
-			}); err != nil {
-				return MediaExecutionResult{ProviderJobID: id}, err
-			}
-			return normalizeSpaitialWorldResponse(ctx, cfg, result, id, model)
-		case "FAILED":
-			providerTerminal = true
-			return MediaExecutionResult{ProviderJobID: id}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
-		case "CANCELLED":
-			providerTerminal = true
-			return MediaExecutionResult{ProviderJobID: id}, grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_ACTION_EXECUTED)
-		case "PENDING", "PROCESSING":
-			if providerPollRetryLimitReached(ctx, retries) {
-				return MediaExecutionResult{ProviderJobID: id}, providerPollTimeoutError()
-			}
-			delay := providerPollDelay(retries)
-			updater.UpdatePollState(jobID, id, retries, timestamppb.New(time.Now().UTC().Add(delay)), strings.ToLower(state["status"].(string)))
-			if err := sleepWithContext(ctx, delay); err != nil {
-				return MediaExecutionResult{ProviderJobID: id}, providerPollContextError(err)
-			}
-		default:
-			return MediaExecutionResult{ProviderJobID: id}, spaitialOutputError("unrecognized provider status")
-		}
-	}
+	artifact := BinaryArtifact(worldLabsManifestMIME, nil, map[string]any{"adapter": AdapterSpaitialNative})
+	_, err := publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: AdapterSpaitialNative, TaskID: id, Model: model, QueryPathTemplate: "/v1/worlds/requests/{task_id}/status", Artifact: artifact})
+	return MediaExecutionResult{ProviderJobID: id}, err
 }
 
-// A transport failure may occur after the provider accepted the work. Its
-// documented 24-hour idempotency key permits bounded receipt retrieval for
-// the exact same captured body. This stays inside one executing Nimi Job;
-// it never reopens a terminal Job or creates a new image upload.
+// @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-execution-scope
+// A lost create response may hide an accepted operation. Even an upstream
+// idempotency key does not authorize Runtime to replay an unknown create.
 func submitSpaitialWorld(ctx context.Context, cfg MediaAdapterConfig, payload map[string]any, key string, submitted *map[string]any) error {
-	for attempt := int32(0); ; attempt++ {
-		err := spaitialJSON(ctx, cfg, http.MethodPost, "/v1/worlds", payload, key, submitted)
-		if err == nil || ctx.Err() != nil || !spaitialReceiptRetryable(err) || attempt == 2 {
-			return err
-		}
-		if err := sleepWithContext(ctx, providerPollDelay(attempt)); err != nil {
-			return providerPollContextError(err)
-		}
-	}
-}
-
-func spaitialReceiptRetryable(err error) bool {
-	if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok {
-		if raw, present := metadata["provider_http_status"]; present {
-			code, parseErr := strconv.Atoi(raw)
-			if parseErr != nil || code < 100 || code > 599 || (code >= 400 && code < 500 && code != http.StatusRequestTimeout) {
-				return false
-			}
-		}
-	}
-	return isTransientPollError(err)
+	return spaitialJSON(nativeCreateRequest(ctx), cfg, http.MethodPost, "/v1/worlds", payload, key, submitted)
 }
 
 func validSpaitialID(id string) bool {
@@ -201,7 +131,7 @@ func spaitialRequest(ctx context.Context, cfg MediaAdapterConfig, method, path s
 	resp, err := client.Do(req)
 	obs.finish(resp, err)
 	if err != nil {
-		return MapProviderRequestError(err)
+		return markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -210,7 +140,7 @@ func spaitialRequest(ctx context.Context, cfg MediaAdapterConfig, method, path s
 		return MapProviderHTTPError(resp.StatusCode, payload)
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(target); err != nil {
-		return providerResponseDecodeError(err)
+		return markNativeCreateResponseUnavailable(ctx, providerResponseDecodeError(err))
 	}
 	return nil
 }
@@ -261,20 +191,28 @@ func uploadSpaitialImage(ctx context.Context, cfg MediaAdapterConfig, spec *runt
 }
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r102
-func normalizeSpaitialWorldResponse(ctx context.Context, cfg MediaAdapterConfig, result map[string]any, id, model string) (MediaExecutionResult, error) {
-	failure := MediaExecutionResult{ProviderJobID: id}
+type spaitialWorldAcquisition struct {
+	metadata  portableWorldArchiveMetadata
+	assets    []worldArchiveAsset
+	artifacts []*runtimev1.ScenarioArtifact
+	manifest  []byte
+}
+
+// Control-plane validation is pure. Opening asset bodies is a separate step
+// after the Job has reserved every required output slot.
+func prepareSpaitialWorldAcquisition(cfg MediaAdapterConfig, result map[string]any, id, model string) (*spaitialWorldAcquisition, error) {
 	world, ok := result["world"].(map[string]any)
 	if !ok || result["request_id"] != id || result["status"] != "COMPLETED" || result["model"] != model || world["splat_format"] != "spz" {
-		return failure, spaitialOutputError("completed result identity or format invalid")
+		return nil, spaitialOutputError("completed result identity or format invalid")
 	}
 	worldID, ok := world["id"].(string)
 	if !ok || !validSpaitialID(worldID) {
-		return failure, spaitialOutputError("world identity missing")
+		return nil, spaitialOutputError("world identity missing")
 	}
 	title, titleOK := world["title"].(string)
 	caption, captionOK := world["description"].(string)
 	if (world["title"] != nil && !titleOK) || (world["description"] != nil && !captionOK) {
-		return failure, spaitialOutputError("world display metadata invalid")
+		return nil, spaitialOutputError("world display metadata invalid")
 	}
 	// Echo default's observed SPZ output uses RDF/OpenCV scene coordinates.
 	// The container/version alone does not establish axes or calibration.
@@ -292,7 +230,7 @@ func normalizeSpaitialWorldResponse(ctx context.Context, cfg MediaAdapterConfig,
 	if panorama, present := world["panorama_url"]; present && panorama != nil {
 		uri, ok := panorama.(string)
 		if !ok {
-			return failure, spaitialOutputError("panorama availability invalid")
+			return nil, spaitialOutputError("panorama availability invalid")
 		}
 		if strings.TrimSpace(uri) != "" {
 			metadata.PanoramaPath = "panorama.image"
@@ -302,14 +240,9 @@ func normalizeSpaitialWorldResponse(ctx context.Context, cfg MediaAdapterConfig,
 			}})
 		}
 	}
-	stream, err := streamWorldArchive(ctx, metadata, assets)
-	if err != nil {
-		return failure, err
-	}
 	raw, err := json.Marshal(map[string]any{"world_id": worldID, "display_name": title, "caption": caption})
 	if err != nil {
-		_ = stream.Close()
-		return failure, fmt.Errorf("encode SpAItial world identity: %w", err)
+		return nil, fmt.Errorf("encode SpAItial world identity: %w", err)
 	}
 	manifest := BinaryArtifact(worldLabsManifestMIME, raw, map[string]any{"adapter": AdapterSpaitialNative, "world_id": worldID})
 	// The Host/Driver handoff owns bytes only in ArtifactBodies, like the
@@ -317,8 +250,20 @@ func normalizeSpaitialWorldResponse(ctx context.Context, cfg MediaAdapterConfig,
 	manifest.Bytes = nil
 	bundle := BinaryArtifact(WorldBundleMIME, nil, map[string]any{"adapter": AdapterSpaitialNative, "world_id": worldID, "calibration_state": "uncalibrated"})
 	bundle.Sha256 = ""
-	return MediaExecutionResult{ProviderJobID: id, Artifacts: []*runtimev1.ScenarioArtifact{manifest, bundle}, ArtifactBodies: map[string]*MediaArtifactBody{
-		manifest.GetArtifactId(): {Bytes: raw}, bundle.GetArtifactId(): {Stream: stream},
+	return &spaitialWorldAcquisition{metadata: metadata, assets: assets, artifacts: []*runtimev1.ScenarioArtifact{manifest, bundle}, manifest: raw}, nil
+}
+
+func normalizeSpaitialWorldResponse(ctx context.Context, cfg MediaAdapterConfig, result map[string]any, id, model string) (MediaExecutionResult, error) {
+	plan, err := prepareSpaitialWorldAcquisition(cfg, result, id, model)
+	if err != nil {
+		return MediaExecutionResult{ProviderJobID: id}, err
+	}
+	stream, err := streamWorldArchive(ctx, plan.metadata, plan.assets)
+	if err != nil {
+		return MediaExecutionResult{ProviderJobID: id}, err
+	}
+	return MediaExecutionResult{ProviderJobID: id, Artifacts: plan.artifacts, ArtifactBodies: map[string]*MediaArtifactBody{
+		plan.artifacts[0].GetArtifactId(): {Bytes: plan.manifest}, plan.artifacts[1].GetArtifactId(): {Stream: stream},
 	}}, nil
 }
 

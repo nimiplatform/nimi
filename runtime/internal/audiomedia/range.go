@@ -91,6 +91,9 @@ func CopyCanonicalRange(ctx context.Context, source io.ReadSeeker, facts Facts, 
 	if err := ctx.Err(); err != nil {
 		return Facts{}, err
 	}
+	if err := file.Sync(); err != nil {
+		return Facts{}, fmt.Errorf("sync canonical output: %w", err)
+	}
 	if err := file.Close(); err != nil {
 		return Facts{}, fmt.Errorf("close canonical range: %w", err)
 	}
@@ -179,4 +182,42 @@ func SumCanonical(ctx context.Context, sources []io.ReadSeeker, facts Facts, pat
 	}
 	complete = true
 	return Facts{SampleRateHz: facts.SampleRateHz, Channels: facts.Channels, FrameCount: facts.FrameCount, DataOffset: pcmHeaderBytes, SizeBytes: pcmHeaderBytes + dataBytes}, nil
+}
+
+// CanonicalRangeSize derives the complete capture extent before any copy.
+func CanonicalRangeSize(facts Facts, start, end uint64) (int64, error) {
+	if !validFormat(facts.SampleRateHz, facts.Channels) || facts.FrameCount == 0 || facts.FrameCount > uint64(facts.SampleRateHz)*MaxSeconds || facts.DataOffset < 12 || facts.SizeBytes > MaxInputBytes || facts.DataOffset+int64(facts.FrameCount)*int64(facts.Channels)*4 > facts.SizeBytes || end <= start || end > facts.FrameCount {
+		return 0, fmt.Errorf("canonical source range is invalid")
+	}
+	return pcmHeaderBytes + int64(end-start)*int64(facts.Channels)*4, nil
+}
+
+// CopyCanonicalRangeInto fills an already-owned, fully reserved destination.
+func CopyCanonicalRangeInto(ctx context.Context, source io.ReadSeeker, facts Facts, start, end uint64, output io.Writer) (Facts, error) {
+	size, err := CanonicalRangeSize(facts, start, end)
+	if err != nil {
+		return Facts{}, err
+	}
+	if source == nil || output == nil {
+		return Facts{}, fmt.Errorf("canonical range source or destination is unavailable")
+	}
+	dataBytes := size - pcmHeaderBytes
+	var header headerBuffer
+	if err := writeHeader(&header, facts.SampleRateHz, facts.Channels, dataBytes); err != nil {
+		return Facts{}, err
+	}
+	if _, err := output.Write(header[:]); err != nil {
+		return Facts{}, err
+	}
+	if _, err := source.Seek(facts.DataOffset+int64(start)*int64(facts.Channels)*4, io.SeekStart); err != nil {
+		return Facts{}, err
+	}
+	count, err := copyFinitePCM(ctx, output, io.LimitReader(source, dataBytes), dataBytes)
+	if err != nil {
+		return Facts{}, err
+	}
+	if count != dataBytes {
+		return Facts{}, fmt.Errorf("canonical source range is incomplete")
+	}
+	return Facts{SampleRateHz: facts.SampleRateHz, Channels: facts.Channels, FrameCount: end - start, DataOffset: pcmHeaderBytes, SizeBytes: size}, ctx.Err()
 }

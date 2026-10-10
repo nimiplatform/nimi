@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,12 +26,23 @@ func (s *scoreCommitFailureStore) PutStream(ctx context.Context, id string, reco
 	return s.MemoryStore.PutStream(ctx, id, record, body)
 }
 
-func TestMusicGenerationRollsBackMixWhenScoreCommitFails(t *testing.T) {
+func (s *scoreCommitFailureStore) StageJobBody(ctx context.Context, id string, record runtimeartifact.ArtifactRecord, body io.ReadCloser) error {
+	if record.MimeType == "text/vnd.abc" {
+		body.Close()
+		return errors.New("score disk write failed")
+	}
+	return s.MemoryStore.StageJobBody(ctx, id, record, body)
+}
+
+func TestMusicGenerationKeepsFailedSetPrivateUntilTerminalCleanup(t *testing.T) {
 	svc := newTestService(nil)
 	store := &scoreCommitFailureStore{runtimeartifact.NewMemoryStore()}
 	svc.SetRuntimeArtifactStore(store)
 	head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "account"}
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{JobId: "music", Head: head, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING}, nil)
+	if err := svc.prepareScenarioBodySlots(context.Background(), "music", musicGenerationBodySlots("music", true)); err != nil {
+		t.Fatal(err)
+	}
 	directory := t.TempDir()
 	wavPath, scorePath := filepath.Join(directory, "music.wav"), filepath.Join(directory, "score.abc")
 	if err := writeCanonicalMusicTestWAV(wavPath, 48000, 2, 1); err != nil {
@@ -45,9 +57,21 @@ func TestMusicGenerationRollsBackMixWhenScoreCommitFails(t *testing.T) {
 	}
 	err = svc.commitMusicGeneration(context.Background(), "music", head, musicGenerationPublication{WAV: wav, ScorePath: scorePath, RequireScore: true, Termination: runtimev1.MusicGenerationTermination_MUSIC_GENERATION_TERMINATION_MODEL_END})
 	job, _ := svc.scenarioJobs.get("music")
-	if err == nil || store.Len() != 0 || len(job.GetArtifacts()) != 0 || job.GetMusicGeneration() != nil {
-		t.Fatalf("partial commit survived: err=%v bodies=%d job=%v", err, store.Len(), job)
+	_, mixVisible := store.Stat("music-mix")
+	_, scoreVisible := store.Stat("music-score")
+	if err == nil || !strings.Contains(err.Error(), "score disk write failed") || mixVisible || scoreVisible || len(job.GetArtifacts()) != 0 || job.GetMusicGeneration() != nil {
+		t.Fatalf("partial result became public or wrong fault: %v %v", job, err)
 	}
+	if _, _, err := svc.scenarioJobs.transition("music", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.releaseScenarioBodyCandidates("music"); err != nil {
+		t.Fatal(err)
+	}
+	if store.Len() != 0 {
+		t.Fatal("terminal cleanup left private output bodies")
+	}
+
 }
 
 func TestMusicScoreCaptureUsesOwnedExpiringCustody(t *testing.T) {
@@ -87,6 +111,9 @@ func TestMusicGenerationPublishesCompleteSetAndRejectsMissingScore(t *testing.T)
 			svc := newTestService(nil)
 			head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "account"}
 			svc.scenarioJobs.create(&runtimev1.ScenarioJob{JobId: "music", Head: head, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING}, nil)
+			if err := svc.prepareScenarioBodySlots(context.Background(), "music", musicGenerationBodySlots("music", true)); err != nil {
+				t.Fatal(err)
+			}
 			directory := t.TempDir()
 			wavPath := filepath.Join(directory, "music.wav")
 			if err := writeCanonicalMusicTestWAV(wavPath, 48000, 2, 1); err != nil {

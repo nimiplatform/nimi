@@ -15,6 +15,7 @@ import (
 func TestSpleeterCapturedPythonIdentityRehydratesAndRejectsDrift(t *testing.T) {
 	svc := newTestService(nil)
 	svc.localSpeechStagingRoot = t.TempDir()
+	installDiskCaptureOwnerForTest(t, svc)
 	root := t.TempDir()
 	model := filepath.Join(root, "model")
 	profile := filepath.Join(root, "profile")
@@ -36,6 +37,7 @@ func TestSpleeterCapturedPythonIdentityRehydratesAndRejectsDrift(t *testing.T) {
 	}
 	ctx := executionintent.WithIntent(scenarioJobUserContext("app.local", "anonymous"), executionintent.Intent{CapabilityContract: capabilitydriver.AudioSeparateContract, LocalLoadoutRef: "spleeter-loadout", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})
 	head := &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"}
+	ctx = jobCaptureContextForTest(t, svc, ctx, "separation-capture", runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE, head)
 	effective, e := svc.captureLocalSpeechEffectiveInputs(ctx, head, &runtimev1.SubmitScenarioJobRequest{Head: head, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_AudioSeparate{AudioSeparate: &runtimev1.AudioSeparateScenarioSpec{SourceAudio: &runtimev1.MusicAudioInput{ArtifactId: "source", Range: &runtimev1.AudioFrameRange{StartFrame: 1, EndFrame: 2}}}}}})
 	if e != nil {
 		t.Fatal(e)

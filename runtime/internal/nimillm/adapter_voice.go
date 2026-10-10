@@ -32,6 +32,10 @@ type VoiceWorkflowResult struct {
 	Usage            *runtimev1.UsageStats
 }
 
+// Only the current Gemini and DashScope projections populate owned preview
+// audio; both enforce the same bounded base64 envelope before decoding.
+const MaxVoiceWorkflowPreviewBytes int64 = maxGeminiTTSAudioBase64Bytes/4*3 + 44
+
 // ExecuteVoiceWorkflowAdapter dispatches one exact Driver-selected voice
 // dialect. The provider in the mapped request is only a consistency check.
 func ExecuteVoiceWorkflowAdapter(ctx context.Context, adapter string, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {

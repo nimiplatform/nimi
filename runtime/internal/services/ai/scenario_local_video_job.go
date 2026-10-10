@@ -8,8 +8,11 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"github.com/nimiplatform/nimi/runtime/internal/videomedia"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -61,16 +64,7 @@ func (s *Service) submitLocalVideoScenarioJob(
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
-	timeout, err := scenarioJobTimeoutDuration(req, defaultGenerateVideoTimeout, true)
-	if err != nil {
-		return nil, err
-	}
-	var cancel context.CancelFunc
-	if timeout > 0 {
-		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
-	} else {
-		jobCtx, cancel = context.WithCancel(jobCtx)
-	}
+	jobCtx, cancel := context.WithCancel(jobCtx)
 	now := timestamppb.New(time.Now().UTC())
 	jobID := ulid.Make().String()
 	job := &runtimev1.ScenarioJob{
@@ -81,12 +75,10 @@ func (s *Service) submitLocalVideoScenarioJob(
 		ProgressTotalSteps: int32(effective.plan.FrameCount() + 1), IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 		EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity),
 	}
-	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
+	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly, nil, false, localAppMusicSubmissionFromContext(ctx))
 	if persistErr != nil {
 		cancel()
-		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
-			Message: "ScenarioJob submission could not be persisted",
-		})
+		return nil, scenarioJobSubmissionError(persistErr, "ScenarioJob submission could not be persisted")
 	}
 	if stored == nil {
 		cancel()
@@ -109,6 +101,9 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ti
 		return
 	}
 	defer s.finishScenarioJobExecution(jobID)
+	budget := newScenarioJobExecutionBudget(ctx)
+	ctx = budget
+	defer budget.close()
 	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
 		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
 		return
@@ -140,9 +135,25 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ti
 			schedulerRelease()
 		}
 	}()
+	bodyCount := 1
+	if effective.plan.ReturnLastFrame() {
+		bodyCount = 2
+	}
+	slots := make([]runtimeartifact.JobBodySlot, bodyCount+1)
+	for index := range slots {
+		slots[index] = runtimeartifact.JobBodySlot{ArtifactID: fmt.Sprintf("%s-video-%d", jobID, index+1), MaxBytes: runtimeartifact.MaxCustodyBytes}
+	}
+	slots[bodyCount] = runtimeartifact.JobBodySlot{ArtifactID: jobID + "-video-audio", MaxBytes: localexecution.MaxRawAVCandidateBytes + 44}
+	if bodyCount == 2 {
+		slots[1].MaxBytes = localexecution.MaxImageArtifactBytes
+	}
 	onStart := func() error {
 		release, err := s.acquireAsyncScenarioJobLease(ctx, effective.head.GetAppId(), "scenario_job_local_video")
 		if err != nil {
+			return err
+		}
+		if err := s.prepareScenarioBodySlots(ctx, jobID, slots); err != nil {
+			release()
 			return err
 		}
 		if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); transitionErr != nil {
@@ -151,7 +162,7 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ti
 			return transitionErr
 		} else if ok {
 			schedulerRelease = release
-			return nil
+			return budget.start(defaultGenerateVideoTimeout)
 		}
 		release()
 		if err := ctx.Err(); err != nil {
@@ -171,6 +182,7 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ti
 		_, _ = s.updateScenarioJobProgress(jobID, current, total, videoJobProgressPercent(current, total))
 	}
 	rawCandidate, err := s.executeCapturedLocalVideo(ctx, effective, onStart, progress)
+	budget.stop()
 	if err != nil {
 		s.finishLocalVideoJobFailure(ctx, jobID, err)
 		return
@@ -181,6 +193,16 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ti
 	}
 	encodeCurrent, encodeTotal := int32(effective.plan.FrameCount()), int32(effective.plan.FrameCount()+1)
 	_, _ = s.updateScenarioJobProgress(jobID, encodeCurrent, encodeTotal, videoJobProgressPercent(encodeCurrent, encodeTotal))
+	bodyStore, ok := s.runtimeArtifacts.(runtimeartifact.JobBodyStore)
+	if !ok {
+		s.finishLocalVideoJobFailure(ctx, jobID, fmt.Errorf("codec body custody owner unavailable"))
+		return
+	}
+	fileIDs := map[string]string{"audio": slots[bodyCount].ArtifactID, "video": slots[0].ArtifactID}
+	if bodyCount == 2 {
+		fileIDs["last-frame"] = slots[1].ArtifactID
+	}
+	ctx = videomedia.WithFileCustody(ctx, runtimeartifact.NewJobFiles(bodyStore, jobID, s.runtimeArtifactOwnerForJob(jobID, effective.head), fileIDs))
 	encoded, err := s.localVideoMedia.EncodeAndInspect(ctx, effective.plan, rawCandidate)
 	if err != nil {
 		s.finishLocalVideoJobFailure(ctx, jobID, localVideoMediaError(err))
@@ -195,31 +217,35 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ti
 		s.finishLocalVideoJobFailure(ctx, jobID, localVideoMediaError(err))
 		return
 	}
-	_, err = s.storeAndAttachRuntimeJobArtifacts(ctx, jobID, effective.head, artifacts, func(candidates []*runtimev1.ScenarioArtifact) bool {
-		_, ok, _ := s.transitionScenarioJob(
-			jobID,
-			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
-			runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
-			func(job *runtimev1.ScenarioJob) {
-				job.Artifacts = cloneScenarioArtifacts(candidates)
-				job.ProgressCurrentStep, job.ProgressTotalSteps, job.ProgressPercent = encodeTotal, encodeTotal, 100
-				if rawCandidate.ComputeMS > 0 {
-					job.Usage = &runtimev1.UsageStats{ComputeMs: rawCandidate.ComputeMS}
-				}
-				job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
-				job.ReasonDetail = ""
-				job.ReasonMetadata = nil
-			},
-		)
-		return ok
+	staged, err := s.stageFiniteMediaBodies(ctx, jobID, effective.head, slots[:bodyCount], capabilitydriver.CloudMediaResult{Artifacts: artifacts})
+	if err != nil {
+		s.finishLocalVideoJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{}))
+		return
+	}
+	capabilitydriver.CloseArtifactBodies(staged.ArtifactBodies)
+	bound, err := bindRuntimeJobArtifacts(jobID, effective.head, staged.Artifacts)
+	if err != nil {
+		s.finishLocalVideoJobFailure(ctx, jobID, err)
+		return
+	}
+	_, _, err = s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
+		job.Artifacts = bound
+		job.ProgressCurrentStep, job.ProgressTotalSteps, job.ProgressPercent = encodeTotal, encodeTotal, 100
+		if rawCandidate.ComputeMS > 0 {
+			job.Usage = &runtimev1.UsageStats{ComputeMs: rawCandidate.ComputeMS}
+		}
+		job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		job.ReasonDetail = ""
+		job.ReasonMetadata = nil
 	})
 	if err != nil {
-		if ctx.Err() != nil {
-			s.finishLocalVideoJobFailure(ctx, jobID, ctx.Err())
-			return
+		if s.scenarioJobs.hasResultCandidate(jobID) {
+			s.setNativeObservationIssue(jobID, 0, err)
+		} else {
+			s.finishLocalVideoJobFailure(ctx, jobID, err)
 		}
-		s.finishLocalVideoJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, fmt.Errorf("local video artifact custody: %w", err), grpcerr.ReasonOptions{}))
 	}
+
 }
 
 func (s *Service) finishLocalVideoJobFailure(ctx context.Context, jobID string, err error) {
@@ -236,8 +262,8 @@ func (s *Service) finishLocalVideoJobFailure(ctx context.Context, jobID string, 
 		reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED
 	}
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		jobStatus, eventType, reason = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
-	} else if errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
+		jobStatus, eventType, reason = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT, runtimev1.ReasonCode_AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED
+	} else if (errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled) && s.scenarioJobs.cancellationRequested(jobID) {
 		jobStatus, eventType, reason = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED
 	}
 	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {

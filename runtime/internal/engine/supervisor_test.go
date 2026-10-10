@@ -861,13 +861,29 @@ func supervisorEnvValue(env []string, key string) string {
 	return ""
 }
 
+type supervisorLogBuffer struct {
+	mu     sync.Mutex
+	buffer bytes.Buffer
+}
+
+func (b *supervisorLogBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buffer.Write(p)
+}
+func (b *supervisorLogBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buffer.String()
+}
+
 func TestSupervisorStreamsProcessOutputToLogger(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix shell scripts")
 	}
 	setSupervisorTestHome(t)
 
-	var logBuffer bytes.Buffer
+	var logBuffer supervisorLogBuffer
 	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	script := writeTestScript(t, "echo stdout-line\n>&2 echo stderr-line\nsleep 2")
 	cfg := testSupervisorCfg(script)
@@ -894,7 +910,7 @@ func TestSupervisorStreamsCarriageReturnProgressOutputToLogger(t *testing.T) {
 	}
 	setSupervisorTestHome(t)
 
-	var logBuffer bytes.Buffer
+	var logBuffer supervisorLogBuffer
 	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	script := writeTestScript(t, "printf 'step-1\\rstep-2\\rstep-3\\n'; sleep 2")
 	cfg := testSupervisorCfg(script)

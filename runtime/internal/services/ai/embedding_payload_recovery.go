@@ -36,7 +36,7 @@ func (s *Service) scrubEmbeddingRecoveryCopiesLocked(scope embeddingDisposalScop
 	}
 	released := make(map[string]struct{})
 	for _, path := range paths {
-		raw, err := os.ReadFile(path)
+		raw, err := readScenarioJobDocument(path)
 		if err != nil {
 			return err
 		}

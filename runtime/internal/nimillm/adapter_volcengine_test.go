@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -227,8 +228,10 @@ func TestExecuteBytedanceARKTaskVideoForwardsResolution(t *testing.T) {
 	}))
 	defer server.Close()
 
+	var receipt *NativeTaskReceipt
+	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 	artifacts, _, providerJobID, err := ExecuteBytedanceARKTask(
-		context.Background(),
+		ctx,
 		MediaAdapterConfig{
 			BaseURL:               server.URL,
 			AllowLoopbackEndpoint: true,
@@ -260,6 +263,12 @@ func TestExecuteBytedanceARKTaskVideoForwardsResolution(t *testing.T) {
 		},
 		"doubao-seedance-2-0-260128",
 	)
+	if !errors.Is(err, ErrNativeTaskYielded) {
+		t.Fatalf("native create did not yield: %v", err)
+	}
+	observation, _, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-api-key", AllowLoopbackEndpoint: true}, receipt)
+	artifacts = observation.GetArtifacts()
+
 	if err != nil {
 		t.Fatalf("ExecuteBytedanceARKTask video failed: %v", err)
 	}

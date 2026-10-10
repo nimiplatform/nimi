@@ -2,14 +2,11 @@ package ai
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"io"
-	"os"
 	"path/filepath"
 	"time"
 )
@@ -37,22 +34,9 @@ func (s *Service) captureMusicVideoReference(ctx context.Context, head *runtimev
 	if !ok || !filepath.IsAbs(s.localMusicStagingRoot) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE)
 	}
-	file, err := os.CreateTemp(s.localMusicStagingRoot, "music-condition-*.mp4")
-	if err != nil {
-		return nil, err
-	}
-	name := file.Name()
-	defer func() {
-		if err := os.Remove(name); err != nil && !os.IsNotExist(err) {
-			captured = nil
-			captureErr = errors.Join(captureErr, fmt.Errorf("remove music video staging file: %w", err))
-		}
-	}()
-	if _, err = file.Write(data); err != nil {
-		return nil, errors.Join(err, file.Close())
-	}
-	if err = file.Close(); err != nil {
-		return nil, err
+	name := source.BorrowedFilePath()
+	if !filepath.IsAbs(name) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE)
 	}
 	duration, err := inspector.InspectDuration(ctx, name)
 	if err != nil {

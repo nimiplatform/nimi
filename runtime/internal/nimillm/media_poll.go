@@ -3,13 +3,10 @@ package nimillm
 import (
 	"context"
 	"errors"
-	"log/slog"
-	"net/http"
 	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -247,8 +244,8 @@ func providerTaskFailureLooksLikeRequestIssue(providerMessage string) bool {
 	)
 }
 
-// PollProviderTaskForArtifact polls a provider's async task endpoint until
-// the task completes and returns the resulting artifact.
+// PollProviderTaskForArtifact hands the original task to its durable Job owner.
+// It never queries or waits; observation is exclusively driven by fresh Get.
 func PollProviderTaskForArtifact(
 	ctx context.Context,
 	updater JobStateUpdater,
@@ -263,132 +260,15 @@ func PollProviderTaskForArtifact(
 	applyMetadata func(*runtimev1.ScenarioArtifact),
 	extraArtifactMeta map[string]any,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	cleanupAttempted := false
-	cleanup := func() {
-		if !cleanupAttempted {
-			cleanupAttempted = true
-			bestEffortDeleteProviderAsyncTask(ctx, adapter, baseURL, apiKey, providerJobID)
-		}
+	// @nimi-authority: rule.nimi.runtime.service-operations.r036
+	metadata := map[string]any{"adapter": adapter}
+	for key, value := range extraArtifactMeta {
+		metadata[key] = value
 	}
-	defer func() {
-		// This also covers cancellation while an HTTP poll is in flight.
-		if ctx.Err() != nil {
-			cleanup()
-		}
-	}()
-	initialDelay := providerPollDelay(0)
-	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(initialDelay)), "")
-	retryCount := int32(0)
-	consecutiveErrors := int32(0)
-	detached := isDetachedPollContext(ctx)
-	observeVideo := adapter == AdapterAlibabaNative && defaultMIME == "video/mp4" && providerDiagnosticID(providerJobID) != ""
-	started := time.Now()
-	lastStatus := ""
-	for {
-		if ctx.Err() != nil {
-			cleanup()
-			return nil, nil, providerJobID, providerPollContextError(ctx.Err())
-		}
-		retryCount++
-		pollResp := map[string]any{}
-		pollPath := ResolveTaskQueryPath(queryPathTemplate, providerJobID)
-		var pollErr error
-		if observeVideo {
-			pollErr = doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, JoinURL(baseURL, pollPath), apiKey, nil, &pollResp, nil, 0, "dashscope-video")
-		} else {
-			pollErr = DoJSONRequest(ctx, http.MethodGet, JoinURL(baseURL, pollPath), apiKey, nil, &pollResp)
-		}
-		if err := pollErr; err != nil {
-			if ctx.Err() != nil {
-				return nil, nil, providerJobID, providerPollContextError(ctx.Err())
-			}
-			// For detached polling (cancel-only ctx), transient infrastructure
-			// failures (timeout, 5xx, connection errors) are retried with
-			// backoff. Permanent provider errors (auth, not-found, bad-request,
-			// content-filter) fail the job immediately.
-			if detached && ctx.Err() == nil && isTransientPollError(err) {
-				consecutiveErrors++
-				if consecutiveErrors >= maxDetachedPollConsecutiveErrors {
-					updater.UpdatePollState(jobID, providerJobID, retryCount, nil, err.Error())
-					return nil, nil, providerJobID, err
-				}
-				delay := providerPollDelay(retryCount)
-				updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
-				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
-					cleanup()
-					return nil, nil, providerJobID, providerPollContextError(sleepErr)
-				}
-				continue
-			}
-			return nil, nil, providerJobID, err
-		}
-		consecutiveErrors = 0
-		statusText := ResolveAsyncTaskStatus(pollResp)
-		if observeVideo && statusText != lastStatus {
-			status := "unknown"
-			if IsAsyncTaskPendingStatus(statusText) || IsAsyncTaskCanceledStatus(statusText) || IsAsyncTaskExpiredStatus(statusText) || IsAsyncTaskFailedStatus(statusText) || statusText == "succeeded" {
-				status = statusText
-			}
-			slog.Info("DashScope video task status", "private_request_id", jobID, "provider_task_id", providerDiagnosticID(providerJobID),
-				"request_id", providerDiagnosticID(ValueAsString(pollResp["request_id"])), "status", status, "poll_attempt", retryCount,
-				"elapsed_ms", time.Since(started).Milliseconds())
-			lastStatus = statusText
-		}
-		if IsAsyncTaskPendingStatus(statusText) {
-			if providerPollRetryLimitReached(ctx, retryCount) {
-				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
-				cleanup()
-				return nil, nil, providerJobID, providerPollTimeoutError()
-			}
-			delay := providerPollDelay(retryCount)
-			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), "")
-			if err := sleepWithContext(ctx, delay); err != nil {
-				cleanup()
-				return nil, nil, providerJobID, providerPollContextError(err)
-			}
-			continue
-		}
-		if IsAsyncTaskCanceledStatus(statusText) {
-			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
-			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_ACTION_EXECUTED)
-		}
-		if IsAsyncTaskExpiredStatus(statusText) {
-			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
-			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
-		}
-		if IsAsyncTaskFailedStatus(statusText) {
-			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
-			return nil, nil, providerJobID, providerTaskFailedError(statusText, pollResp)
-		}
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, pollResp)
-		if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
-			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
-			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		if strings.TrimSpace(mimeType) == "" {
-			mimeType = strings.TrimSpace(defaultMIME)
-			if mimeType == "" {
-				mimeType = strings.TrimSpace(http.DetectContentType(artifactBytes))
-			}
-		}
-		if mimeType == "" {
-			mimeType = "application/octet-stream"
-		}
-		// Polling identities, endpoints, provider URLs, and raw terminal
-		// envelopes remain call-local Host transport state. Only safe adapter
-		// metadata can cross into Driver response normalization.
-		artifactMeta := map[string]any{"adapter": adapter}
-		if artifactURI := strings.TrimSpace(artifactURI); artifactURI != "" {
-			artifactMeta["uri"] = artifactURI
-		}
-		for key, value := range extraArtifactMeta {
-			artifactMeta[key] = value
-		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
-		if applyMetadata != nil {
-			applyMetadata(artifact)
-		}
-		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.ScenarioArtifact{artifact}, nil, providerJobID, nil
+	template := BinaryArtifact(defaultMIME, nil, metadata)
+	if applyMetadata != nil {
+		applyMetadata(template)
 	}
+	_, err := publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: adapter, TaskID: providerJobID, QueryPathTemplate: queryPathTemplate, Artifact: template})
+	return nil, nil, providerJobID, err
 }

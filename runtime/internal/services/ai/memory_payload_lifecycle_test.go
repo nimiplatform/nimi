@@ -67,7 +67,7 @@ func TestMemoryPayloadDispositionAcrossCoreJobsAndRecoveryCopies(t *testing.T) {
 			d, raw, err := service.CaptureMemoryEmbedding(ctx, req.Inputs, req.EmbeddingSpaceRef, EmbeddingOwner{Kind: "memory", AgentRef: agent, OperationID: req.OperationID, BankRef: req.BankRef, LifecycleRef: req.LifecycleRef, MemoryRefs: req.MemoryRefs})
 			captured = raw
 			if err == nil {
-				snapshot, readErr := os.ReadFile(service.scenarioJobs.durablePath)
+				snapshot, readErr := readScenarioJobDocument(service.scenarioJobs.durablePath)
 				if readErr != nil {
 					t.Fatal(readErr)
 				}

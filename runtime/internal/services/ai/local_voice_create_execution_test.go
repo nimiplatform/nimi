@@ -204,7 +204,7 @@ func TestAudioCppReferenceVoiceCreatePublishesAndDeletesPrivateWAV(t *testing.T)
 	}
 }
 
-func TestAudioCppReferenceVoiceCreateDoesNotPublishAfterTimeout(t *testing.T) {
+func TestAudioCppReferenceVoiceCreateDoesNotPublishAfterCancel(t *testing.T) {
 	selection := selectedAudioCppReferenceVoiceExecutionForTest(t, "glm_tts")
 	svc := newTestService(nil)
 	svc.localSpeechStagingRoot = t.TempDir()
@@ -238,7 +238,7 @@ func TestAudioCppReferenceVoiceCreateDoesNotPublishAfterTimeout(t *testing.T) {
 	ownerCtx := scenarioJobUserContext("app.local", "anonymous")
 	ctx := executionintent.WithIntent(ownerCtx, executionintent.Intent{CapabilityContract: capabilitydriver.VoiceCreateContract, LocalLoadoutRef: "audio-cpp-glm-voice-timeout", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, RequiredFeatures: []string{"input.audio"}})
 	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous", TimeoutMs: 1000}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioBytes: wav, ReferenceAudioMime: "audio/wav", Text: "reference words"}}}}},
 	})
 	if err != nil {
@@ -247,14 +247,18 @@ func TestAudioCppReferenceVoiceCreateDoesNotPublishAfterTimeout(t *testing.T) {
 	select {
 	case <-entered:
 	case <-time.After(2 * time.Second):
-		t.Fatal("audio.cpp voice.create host was not entered before timeout")
+		t.Fatal("audio.cpp voice.create host was not entered before cancellation")
 	}
+	if _, err := svc.CancelScenarioJob(ownerCtx, &runtimev1.CancelScenarioJobRequest{JobId: response.GetJob().GetJobId(), Reason: "cancel reference creation"}); err != nil {
+		t.Fatal(err)
+	}
+	waitScenarioJobWorkExit(t, svc.scenarioJobs, response.GetJob().GetJobId())
 	job := waitLocalVoiceJobTerminal(t, svc, response.GetJob().GetJobId())
-	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT {
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		t.Fatalf("voice.create status=%s reason=%s detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
 	}
 	if _, ok := svc.voiceAssets.getAsset(job.GetJobId()); ok {
-		t.Fatal("timed-out audio.cpp voice.create published a VoiceAsset")
+		t.Fatal("canceled audio.cpp voice.create published a VoiceAsset")
 	}
 	host.mu.Lock()
 	plan := host.voiceCreatePlan
@@ -265,7 +269,7 @@ func TestAudioCppReferenceVoiceCreateDoesNotPublishAfterTimeout(t *testing.T) {
 	id := strings.TrimPrefix(plan.AudioCppProviderVoiceRef(), capabilitydriver.AudioCppReferenceVoicePrefix)
 	for _, suffix := range []string{".wav", ".json"} {
 		if _, err := os.Stat(filepath.Join(plan.AudioCppReferenceRoot(), id+suffix)); !os.IsNotExist(err) {
-			t.Fatalf("timed-out private reference %s cleanup err=%v", suffix, err)
+			t.Fatalf("canceled private reference %s cleanup err=%v", suffix, err)
 		}
 	}
 }

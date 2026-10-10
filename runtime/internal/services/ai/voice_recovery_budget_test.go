@@ -31,7 +31,7 @@ func retainedVoiceBudgetCapture(t *testing.T, job *runtimev1.ScenarioJob) (*clou
 	if err != nil {
 		t.Fatal(err)
 	}
-	return assembly, submission
+	return assembly, voiceSubmissionRetention(submission, assembly)
 }
 
 func TestVoiceRecoveryCaptureBudgetSurvivesTerminalReopenAndExpiry(t *testing.T) {

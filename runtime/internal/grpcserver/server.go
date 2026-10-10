@@ -681,15 +681,19 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("reconcile interrupted artifact writes: %w", err)
 	}
 	var aiSvc *aiservice.Service
+	jobWorkAuthorizer := appservice.NewJobWorkAuthorizer(accountSvc, localAppKernel)
 	if protected != nil {
-		aiSvc, err = aiservice.NewProtected(logger, auditStore, connStore, cfg)
+		aiSvc, err = aiservice.NewProtected(logger, auditStore, connStore, cfg, aiservice.WithJobWorkAuthorizer(jobWorkAuthorizer))
 	} else {
-		aiSvc, err = aiservice.New(logger, auditStore, connStore, cfg)
+		aiSvc, err = aiservice.New(logger, auditStore, connStore, cfg, aiservice.WithJobWorkAuthorizer(jobWorkAuthorizer))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("init ai service: %w", err)
 	}
 	aiSvc.SetRuntimeArtifactStore(artifactStore)
+	if err := aiSvc.ReconcileNativeBodyPublications(); err != nil {
+		return nil, fmt.Errorf("recover native Job body publication: %w", err)
+	}
 	// AIConfig options and effective selections project the same current-account
 	// model availability that admits ChatGPT-plan dispatch.
 	connStore.SetAccountModelAvailability(connectorservice.NewChatGPTPlanAccountAvailability(connStore, aiSvc.CloudProvider()))

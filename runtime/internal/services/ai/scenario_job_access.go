@@ -68,6 +68,10 @@ func canonicalScenarioJobOwnerWithProvider(ctx context.Context, provider runtime
 }
 
 func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
+	return s.getScenarioJob(ctx, req, true)
+}
+
+func (s *Service) getScenarioJob(ctx context.Context, req *runtimev1.GetScenarioJobRequest, observe bool) (*runtimev1.GetScenarioJobResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetJobId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -76,7 +80,29 @@ func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenario
 		if err := s.authorizeScenarioJob(ctx, job); err != nil {
 			return nil, err
 		}
-		response := &runtimev1.GetScenarioJobResponse{Job: sanitizeScenarioJobForResponse(job)}
+		if observe {
+			if err := s.scenarioJobs.retryPendingTerminal(jobID); err != nil {
+				return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "ScenarioJob terminal fact could not be persisted"})
+			}
+			job, _ = s.scenarioJobs.get(jobID)
+		}
+		if observe && isTerminalScenarioJobStatus(job.GetStatus()) {
+			if err := s.releaseScenarioBodyCandidates(jobID); err != nil {
+				s.logScenarioJobPersistenceFailure("Job body cleanup remains pending", "job_id", jobID, "error", err)
+			}
+			s.releaseCloudCredentialCustodyForJob(jobID)
+		}
+		if observe && scenarioNativeObservationAllowed(job) {
+			if err := s.observeScenarioNativeJob(ctx, jobID); err != nil {
+				return nil, err
+			}
+			var current bool
+			job, current = s.scenarioJobs.get(jobID)
+			if !current {
+				return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
+			}
+		}
+		response := &runtimev1.GetScenarioJobResponse{Job: sanitizeScenarioJobForResponse(job), ObservationIssue: s.scenarioJobs.currentObservationIssue(jobID)}
 		if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 			result, found := s.scenarioJobs.completedVisionResult(jobID)
 			if !found {
@@ -127,9 +153,8 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 			)
 		}
 		if persistErr != nil {
-			s.scenarioJobs.forceFailedInMemory(jobID, scenarioJobTerminalPersistenceFailedReason)
 			s.logScenarioJobPersistenceFailure(
-				"SCENARIO JOB CANCELLATION COULD NOT BE PERSISTED; forced in-memory FAILED terminal",
+				"SCENARIO JOB CANCELLATION REJECTED; publication gate was not persisted",
 				"job_id", jobID,
 				"reason", scenarioJobTerminalPersistenceFailedReason,
 				"error", persistErr,

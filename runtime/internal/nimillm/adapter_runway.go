@@ -12,6 +12,21 @@ import (
 )
 
 const AdapterRunwayTask = "runway_task_adapter"
+const runwayAPIVersion = "2024-11-06"
+
+func runwayRequestHeaders(extra map[string]string) map[string]string {
+	headers := cloneMediaHeaders(extra)
+	if headers == nil {
+		headers = map[string]string{}
+	}
+	for name := range headers {
+		if strings.EqualFold(name, "X-Runway-Version") {
+			delete(headers, name)
+		}
+	}
+	headers["X-Runway-Version"] = runwayAPIVersion
+	return headers
+}
 
 // ExecuteRunwayTask executes a video generation scenario job against the Runway API.
 // Runway uses async task-based generation: POST /v1/image_to_video to submit, GET /v1/tasks/{id} to poll.
@@ -73,29 +88,18 @@ func ExecuteRunwayTask(
 	submitPath := firstProviderEndpointPath([]string{"/v1/image_to_video"})
 	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/v1/tasks/{task_id}"})
 
-	headers := map[string]string{
-		"X-Runway-Version": "2024-11-06",
+	headers := runwayRequestHeaders(cfg.Headers)
+	if err := requireNativeTaskPublisher(ctx); err != nil {
+		return nil, nil, "", err
 	}
+	ctx = originalControlRequest(ctx)
 	submitResp := map[string]any{}
-	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp, headers); err != nil {
+	if err := DoJSONRequestWithHeaders(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp, headers); err != nil {
 		return nil, nil, "", err
 	}
 	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterRunwayTask, submitResp)
 	if providerJobID == "" {
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
-		if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		if mimeType == "" {
-			mimeType = ResolveVideoArtifactMIME(spec, artifactBytes)
-		}
-		meta := map[string]any{"adapter": AdapterRunwayTask, "submit_endpoint": submitPath, "response": submitResp}
-		if artifactURI != "" {
-			meta["uri"] = artifactURI
-		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, meta)
-		ApplyVideoSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return PollProviderTaskForArtifact(
 		ctx, updater, jobID, baseURL, apiKey,

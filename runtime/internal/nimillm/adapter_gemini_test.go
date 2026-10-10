@@ -12,12 +12,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -299,56 +296,35 @@ func TestGeminiFinalInlineImageSkipsThoughtAndRejectsMultipleFinalImages(t *test
 	}
 }
 
-func TestExecuteGeminiOperationReturnsCanceledOnContextCancelWhilePolling(t *testing.T) {
+func TestExecuteGeminiOperationRejectsUnsupportedNativePathsBeforeIO(t *testing.T) {
+	var calls int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/operations":
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"name": "operations/video-1"})
-		case r.Method == http.MethodGet && (r.URL.Path == "/operations/operations/video-1" || r.URL.EscapedPath() == "/operations/operations%2Fvideo-1"):
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"done": false})
-		default:
-			http.NotFound(w, r)
-		}
+		calls++
+		t.Errorf("unsupported Gemini operation reached %s %s", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusInternalServerError)
 	}))
-	defer func() { server.Close() }()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-		cancel()
-	}()
-
-	_, _, providerJobID, err := ExecuteGeminiOperation(
-		ctx,
-		MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "gemini-key"},
-		noopGeminiJobUpdater{},
-		"job-gemini-video-cancel",
-		&runtimev1.SubmitScenarioJobRequest{
-			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
-			Spec: &runtimev1.ScenarioSpec{
-				Spec: &runtimev1.ScenarioSpec_VideoGenerate{
-					VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
-						Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
-						Content: []*runtimev1.VideoContentItem{
-							{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short scene."},
-						},
-						Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(4)},
-					},
-				},
-			},
-		},
-		"gemini-video-model",
-		func(*runtimev1.SubmitScenarioJobRequest) *structpb.Struct { return nil },
-	)
-	if providerJobID != "operations/video-1" {
-		t.Fatalf("unexpected provider job id: %q", providerJobID)
+	defer server.Close()
+	for _, scenario := range []runtimev1.ScenarioType{
+		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+	} {
+		req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: scenario}
+		ctx := WithNativeTaskPublisher(context.Background(), func(*NativeTaskReceipt) error {
+			t.Fatal("unsupported Gemini operation published a receipt")
+			return nil
+		})
+		artifacts, _, providerID, err := ExecuteGeminiOperation(ctx,
+			MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "gemini-key"},
+			noopGeminiJobUpdater{}, "unsupported-job", req, "explicit-model", nil)
+		if err == nil || providerID != "" || len(artifacts) != 0 || MediaUsesNativeTask(AdapterGeminiOperation, req, "explicit-model") {
+			t.Fatalf("unsupported scenario %v: artifacts=%v providerID=%q err=%v", scenario, artifacts, providerID, err)
+		}
 	}
-	if status.Code(err) != codes.Canceled {
-		t.Fatalf("expected canceled status, got %v err=%v", status.Code(err), err)
+	if calls != 0 {
+		t.Fatalf("unsupported requests made %d calls", calls)
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("expected ACTION_EXECUTED cancel reason, got err=%v reason=%v ok=%v", err, reason, ok)
+	receipt := &NativeTaskReceipt{Version: 1, Adapter: AdapterGeminiOperation, TaskID: "old-prototype", QueryPathTemplate: "/operations/{task_id}", Artifact: BinaryArtifact("video/mp4", nil, nil)}
+	if _, _, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "gemini-key"}, receipt); err == nil {
+		t.Fatal("retired prototype receipt remained queryable")
 	}
 }

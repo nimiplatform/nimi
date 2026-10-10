@@ -36,7 +36,7 @@ func TestScenarioJobStoreCoreValidationAndLookup(t *testing.T) {
 	}
 }
 
-func TestVoiceScenarioJobCancelPublishesOnlyAfterExecutionStops(t *testing.T) {
+func TestVoiceScenarioJobCancelClosesPublicationBeforeExecutionStops(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := scenarioJobUserContext("app", "user")
 	executionCtx, cancel := context.WithCancel(context.Background())
@@ -56,6 +56,9 @@ func TestVoiceScenarioJobCancelPublishesOnlyAfterExecutionStops(t *testing.T) {
 	if _, ok, err := svc.scenarioJobs.transition(job.GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); err != nil || !ok {
 		t.Fatalf("run voice job: ok=%v err=%v", ok, err)
 	}
+	if err := svc.scenarioJobs.markScenarioDispatchPossible(context.Background(), job.JobId); err != nil {
+		t.Fatal(err)
+	}
 	response, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: job.GetJobId(), Reason: "stop voice"})
 	if err != nil {
 		t.Fatalf("CancelScenarioJob: %v", err)
@@ -65,8 +68,8 @@ func TestVoiceScenarioJobCancelPublishesOnlyAfterExecutionStops(t *testing.T) {
 	default:
 		t.Fatal("voice cancellation was not forwarded")
 	}
-	if response.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("voice canceled before execution stop: %+v", response.GetJob())
+	if response.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || response.GetJob().GetStopOutcome() != runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED {
+		t.Fatalf("local cancellation must close publication without claiming external stop: %+v", response.GetJob())
 	}
 	if _, err := svc.scenarioJobs.finishExecution(job.GetJobId()); err != nil {
 		t.Fatalf("finish voice execution: %v", err)

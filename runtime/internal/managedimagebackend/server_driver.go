@@ -3,6 +3,7 @@ package managedimagebackend
 import (
 	"context"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"log"
 	"net/http"
 	"os"
@@ -116,15 +117,9 @@ func (d *stableDiffusionCPPDriver) LoadModel(state loadModelState) (*LoadModelDi
 	}, nil
 }
 
-func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loadModelState, req imageGenerateState, onProgress func(imageGenerateProgress) error) (*ImageGenerateDiagnostics, error) {
+func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loadModelState, req imageGenerateState, onProgress func(imageGenerateProgress) error) (*ImageGenerateResult, error) {
 	if d == nil {
 		return nil, fmt.Errorf("managed image backend driver unavailable")
-	}
-	if strings.TrimSpace(req.Dst) == "" {
-		return nil, fmt.Errorf("managed image destination is required")
-	}
-	if err := os.MkdirAll(filepath.Dir(strings.TrimSpace(req.Dst)), 0o755); err != nil {
-		return nil, fmt.Errorf("create managed image destination: %w", err)
 	}
 	queueStartedAt := time.Now()
 	d.generateMu.Lock()
@@ -203,7 +198,7 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 
 completed:
 	durationMs := time.Since(startedAt).Milliseconds()
-	diag := &ImageGenerateDiagnostics{
+	diag := &ImageGenerateResult{
 		QueueWaitMs:        queueWaitMs,
 		GenerateDurationMs: durationMs,
 		QueueSerialized:    queueWaitMs > 0,
@@ -222,18 +217,14 @@ completed:
 	if len(payload) == 0 {
 		return diag, fmt.Errorf("managed image destination is empty")
 	}
-	if err := os.WriteFile(strings.TrimSpace(req.Dst), payload, 0o600); err != nil {
-		return diag, fmt.Errorf("write managed image destination: %w", err)
+	if int64(len(payload)) > localexecution.MaxImageArtifactBytes {
+		return diag, fmt.Errorf("managed image result exceeds the bounded output contract")
 	}
-	log.Printf("managed image resident request completed endpoint=%s model_path=%s duration_ms=%d queue_wait_ms=%d queue_serialized=%t dst=%s bytes=%d",
-		resident.endpoint,
-		strings.TrimSpace(loaded.ModelPath),
-		durationMs,
-		queueWaitMs,
-		queueWaitMs > 0,
-		strings.TrimSpace(req.Dst),
-		len(payload),
-	)
+	if err := ctx.Err(); err != nil {
+		return diag, err
+	}
+	diag.Payload = payload
+
 	return diag, nil
 }
 

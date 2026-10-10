@@ -25,13 +25,18 @@ const (
 // metadata under the local runtime state directory so generated agent voice can
 // survive process restarts until the Runtime-owned cleanup RPC deletes it.
 type DiskStore struct {
-	mu          sync.RWMutex
-	root        string
-	recordsDir  string
-	payloadsDir string
+	mu                 sync.RWMutex
+	root               string
+	recordsDir         string
+	payloadsDir        string
+	activeJobBodies    map[string]bool
+	jobBodyImports     map[string]int64
+	jobStagingRoots    []string
+	publishedJobBodies map[string]bool
 }
 
 type diskArtifactRecord struct {
+	JobCandidate           *JobBodyCandidate                       `json:"job_candidate,omitempty"`
 	ArtifactID             string                                  `json:"artifact_id"`
 	PayloadFile            string                                  `json:"payload_file"`
 	MimeType               string                                  `json:"mime_type"`
@@ -278,7 +283,7 @@ func (s *DiskStore) Get(artifactID string) (ArtifactRecord, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	diskRecord, ok := s.readDiskRecordLocked(artifactID)
-	if !ok {
+	if !ok || !s.jobBodyVisibleLocked(diskRecord) {
 		return ArtifactRecord{}, false
 	}
 	return s.artifactFromDiskRecordLocked(diskRecord)
@@ -293,7 +298,7 @@ func (s *DiskStore) Stat(artifactID string) (ArtifactRecord, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	diskRecord, ok := s.readDiskRecordLocked(artifactID)
-	if !ok {
+	if !ok || !s.jobBodyVisibleLocked(diskRecord) {
 		return ArtifactRecord{}, false
 	}
 	return artifactMetadataFromDiskRecord(diskRecord)
@@ -302,13 +307,25 @@ func (s *DiskStore) Stat(artifactID string) (ArtifactRecord, bool) {
 // Open validates and pins one committed payload under a read lock. Delete and
 // cleanup wait until the returned body is closed, preventing mid-copy removal.
 func (s *DiskStore) Open(ctx context.Context, artifactID string) (*ArtifactSource, bool) {
+	return s.openBody(ctx, artifactID, "")
+}
+
+func (s *DiskStore) OpenJobBody(ctx context.Context, jobID, artifactID string) (*ArtifactSource, bool) {
+	if strings.TrimSpace(jobID) == "" {
+		return nil, false
+	}
+	return s.openBody(ctx, artifactID, jobID)
+}
+
+func (s *DiskStore) openBody(ctx context.Context, artifactID, jobID string) (*ArtifactSource, bool) {
 	artifactID = strings.TrimSpace(artifactID)
 	if ctx == nil || artifactID == "" {
 		return nil, false
 	}
 	s.mu.RLock()
 	diskRecord, ok := s.readDiskRecordLocked(artifactID)
-	if !ok {
+	privateAllowed := jobID != "" && diskRecord.ProducerJobID == jobID && diskRecord.JobCandidate != nil && diskRecord.JobCandidate.Complete
+	if !ok || (!s.jobBodyVisibleLocked(diskRecord) && !privateAllowed) {
 		s.mu.RUnlock()
 		return nil, false
 	}
@@ -336,7 +353,8 @@ func (s *DiskStore) Open(ctx context.Context, artifactID string) (*ArtifactSourc
 		return nil, false
 	}
 	return &ArtifactSource{
-		Record: metadata,
+		Record:   metadata,
+		filePath: file.Name(),
 		Body: &lockedDiskArtifactBody{
 			File:   file,
 			unlock: s.mu.RUnlock,
@@ -376,6 +394,9 @@ func (s *DiskStore) Delete(artifactID string) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.activeJobBodies[artifactID] {
+		return ErrJobBodyInUse
+	}
 	return s.deleteDiskRecordLocked(artifactID)
 }
 
@@ -481,6 +502,14 @@ func (s *DiskStore) deleteDiskRecordLocked(artifactID string) error {
 }
 
 func (s *DiskStore) deleteDiskRecordByRecordLocked(diskRecord diskArtifactRecord) error {
+	if err := s.removeJobStagingLinksLocked(diskRecord); err != nil {
+		return err
+	}
+	if diskRecord.JobCandidate != nil {
+		if err := removeFileIfPresent(filepath.Join(s.recordsDir, ".job-body-"+diskArtifactKey(diskRecord.ArtifactID)+".tmp")); err != nil {
+			return err
+		}
+	}
 	payloadPath := filepath.Join(s.payloadsDir, diskRecord.PayloadFile)
 	recordPath := filepath.Join(s.recordsDir, diskArtifactKey(diskRecord.ArtifactID)+".json")
 	if err := removeFileIfPresent(payloadPath); err != nil {
@@ -591,13 +620,17 @@ func artifactMetadataFromDiskRecord(record diskArtifactRecord) (ArtifactRecord, 
 		return ArtifactRecord{}, false
 	}
 	metadata := ArtifactRecord{
-		MimeType: record.MimeType, ProducerJobID: record.ProducerJobID,
+		JobCandidate: cloneJobBodyCandidate(record.JobCandidate),
+		MimeType:     record.MimeType, ProducerJobID: record.ProducerJobID,
 		SizeBytes: record.SizeBytes, ContentSHA256: record.ContentSHA256,
 		MimeInferred: record.MimeInferred, CreatedAt: record.CreatedAt,
 		GeneratedVoice: record.GeneratedVoice, ConversationAttachment: record.ConversationAttachment,
 		MusicRecoveryUntil: record.MusicRecoveryUntil,
 		CanonicalAudio:     record.CanonicalAudio,
 		Owner:              artifactOwnerFromDisk(record.Owner),
+	}
+	if !validJobBodyCandidate(metadata) {
+		return ArtifactRecord{}, false
 	}
 	if metadata.Owner != nil {
 		owner, err := normalizeArtifactOwner(*metadata.Owner)

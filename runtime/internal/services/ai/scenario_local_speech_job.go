@@ -44,6 +44,11 @@ func (s *Service) submitLocalSpeechScenarioJob(ctx context.Context, req *runtime
 		}
 	}
 
+	now := timestamppb.New(time.Now().UTC())
+	jobID := ulid.Make().String()
+	draft := &runtimev1.ScenarioJob{JobId: jobID, Head: cloneScenarioHead(req.GetHead()), ScenarioType: req.GetScenarioType(), ExecutionMode: mode, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, CreatedAt: now, UpdatedAt: now, TraceId: ulid.Make().String(), ProgressTotalSteps: 1, IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored), SubmissionOutcome: runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED}
+	ctx, releaseCaptureRow := s.scenarioJobs.captureRowScope(ctx, draft)
+	defer releaseCaptureRow()
 	// Selection, exact bindings, request defaults, and transcription bytes are
 	// fixed before the asynchronous Job becomes visible.
 	effective, err := s.captureLocalSpeechEffectiveInputs(ctx, req.GetHead(), req)
@@ -54,42 +59,16 @@ func (s *Service) submitLocalSpeechScenarioJob(ctx context.Context, req *runtime
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
-	timeout, err := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true)
-	if err != nil {
-		cleanupLocalSpeechStagingPaths(effective.stagingPaths)
-		return nil, err
-	}
-	var cancel context.CancelFunc
-	if timeout > 0 {
-		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
-	} else {
-		jobCtx, cancel = context.WithCancel(jobCtx)
-	}
-	now := timestamppb.New(time.Now().UTC())
-	jobID := ulid.Make().String()
-	job := &runtimev1.ScenarioJob{
-		JobId:                  jobID,
-		Head:                   cloneScenarioHead(effective.head),
-		ScenarioType:           req.GetScenarioType(),
-		ExecutionMode:          mode,
-		RouteDecision:          runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		ModelResolved:          effective.modelResolved(),
-		Status:                 runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-		ReasonCode:             runtimev1.ReasonCode_ACTION_EXECUTED,
-		CreatedAt:              now,
-		UpdatedAt:              now,
-		TraceId:                ulid.Make().String(),
-		ProgressTotalSteps:     1,
-		IgnoredExtensions:      cloneIgnoredScenarioExtensions(ignored),
-		EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity),
-	}
-	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
+	jobCtx, cancel := context.WithCancel(jobCtx)
+	job := cloneScenarioJob(draft)
+	job.Head = cloneScenarioHead(effective.head)
+	job.ModelResolved = effective.modelResolved()
+	job.EffectiveInputIdentity = cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity)
+	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly, nil, false, localAppMusicSubmissionFromContext(ctx))
 	if persistErr != nil {
 		cancel()
 		cleanupLocalSpeechStagingPaths(effective.stagingPaths)
-		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
-			Message: "ScenarioJob submission could not be persisted",
-		})
+		return nil, scenarioJobSubmissionError(persistErr, "ScenarioJob submission could not be persisted")
 	}
 	if stored == nil {
 		cancel()
@@ -113,11 +92,17 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 	if !s.scenarioJobs.startExecution(jobID) {
 		if s.scenarioJobs.canCleanUnstartedLocalStaging(jobID) {
 			cleanupStaging()
+			if err := s.releaseScenarioBodyCandidates(jobID); err != nil {
+				s.logScenarioJobPersistenceFailure("unstarted Job body cleanup remains pending", "job_id", jobID, "error", err)
+			}
 		}
 		return
 	}
 	// The publisher owns these paths even if QUEUED persistence or reconstruction fails.
 	defer s.finishScenarioJobExecution(jobID)
+	budget := newScenarioJobExecutionBudget(ctx)
+	ctx = budget
+	defer budget.close()
 	defer cleanupStaging()
 	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
 		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
@@ -153,12 +138,16 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 	defer release()
 	s.attachQueueWait(ctx, acquireResult)
 	s.logQueueWait("scenario_job_local_speech", effective.head.GetAppId(), acquireResult)
+	slots := localSpeechBodySlots(jobID, effective)
 	onStart := func() error {
+		if err := s.prepareScenarioBodySlots(ctx, jobID, slots); err != nil {
+			return err
+		}
 		if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); transitionErr != nil {
 			s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
 			return transitionErr
 		} else if ok {
-			return nil
+			return budget.start(defaultLocalSpeechJobTimeout)
 		}
 		if err := ctx.Err(); err != nil {
 			return err
@@ -166,6 +155,7 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 		return context.Canceled
 	}
 	artifacts, bodies, usage, err := s.executeCapturedLocalSpeech(ctx, effective, onStart)
+	budget.stop()
 	if err != nil {
 		s.finishLocalSpeechJobFailure(ctx, jobID, err)
 		return
@@ -174,13 +164,15 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 		capabilitydriver.CloseArtifactBodies(bodies)
 		return
 	}
-	bound, err := bindRuntimeJobArtifacts(jobID, effective.head, artifacts)
-	var newCustodyIDs []string
-	if err == nil {
-		newCustodyIDs, err = s.storeRuntimeJobArtifacts(ctx, jobID, effective.head, bound, bodies)
-	} else {
-		capabilitydriver.CloseArtifactBodies(bodies)
+	staged, err := s.stageFiniteMediaBodies(ctx, jobID, effective.head, slots, capabilitydriver.CloudMediaResult{Artifacts: artifacts, ArtifactBodies: bodies, Usage: usage})
+	if err != nil {
+		s.finishLocalSpeechJobFailure(ctx, jobID, err)
+		return
 	}
+	defer capabilitydriver.CloseArtifactBodies(staged.ArtifactBodies)
+	ctx = context.WithValue(ctx, preparedScenarioBodiesKey{}, jobID)
+	bound, err := bindRuntimeJobArtifacts(jobID, effective.head, staged.Artifacts)
+	var newCustodyIDs []string
 	var transcription *runtimev1.SpeechTranscript
 	var separation *runtimev1.AudioSeparation
 	if err == nil {
@@ -206,7 +198,8 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 		s.finishLocalSpeechJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED, err, grpcerr.ReasonOptions{}))
 		return
 	}
-	if _, ok, _ := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
+	capabilitydriver.CloseArtifactBodies(staged.ArtifactBodies)
+	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 		job.Artifacts = cloneScenarioArtifacts(bound)
 		job.TranscriptionText = transcription.GetText()
 		job.Transcription = transcription
@@ -219,6 +212,10 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 		job.ReasonDetail = ""
 		job.ReasonMetadata = nil
 	}); !ok {
+		if s.scenarioJobs.hasResultCandidate(jobID) {
+			s.setNativeObservationIssue(jobID, 0, transitionErr)
+			return
+		}
 		for _, artifactID := range newCustodyIDs {
 			s.deleteRuntimeArtifactCandidate(artifactID, "local speech job metadata attachment failed")
 		}
@@ -308,8 +305,8 @@ func (s *Service) finishLocalSpeechJobFailure(ctx context.Context, jobID string,
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
-		reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
-	} else if errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
+		reason = runtimev1.ReasonCode_AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED
+	} else if (errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled) && s.scenarioJobs.cancellationRequested(jobID) {
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 		reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED

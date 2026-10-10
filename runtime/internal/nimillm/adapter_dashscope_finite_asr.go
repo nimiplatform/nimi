@@ -56,7 +56,7 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 	config.Header.Set("Authorization", "Bearer "+key)
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(duration*float64(time.Second))+90*time.Second)
 	defer cancel()
-	connection, err := config.DialContext(ctx)
+	connection, err := dialProviderWebSocket(ctx, config)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, nil, "", ctx.Err()

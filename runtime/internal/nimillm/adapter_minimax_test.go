@@ -3,15 +3,13 @@ package nimillm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -167,7 +165,7 @@ func TestMiniMaxVideoSubmitPayloadRejectsUnsupportedGenericOptions(t *testing.T)
 	}
 }
 
-func TestExecuteMiniMaxTaskReturnsCanceledOnContextCancelWhilePolling(t *testing.T) {
+func TestExecuteMiniMaxTaskYieldsReceiptWithOriginalQueryParameter(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/v1/video_generation":
@@ -185,11 +183,8 @@ func TestExecuteMiniMaxTaskReturnsCanceledOnContextCancelWhilePolling(t *testing
 	}))
 	defer func() { server.Close() }()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-		cancel()
-	}()
+	var receipt *NativeTaskReceipt
+	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 
 	_, _, providerJobID, err := ExecuteMiniMaxTask(
 		ctx,
@@ -203,10 +198,10 @@ func TestExecuteMiniMaxTaskReturnsCanceledOnContextCancelWhilePolling(t *testing
 	if providerJobID != "minimax-task-1" {
 		t.Fatalf("unexpected provider job id: %q", providerJobID)
 	}
-	if status.Code(err) != codes.Canceled {
-		t.Fatalf("expected canceled status, got %v err=%v", status.Code(err), err)
+	if !errors.Is(err, ErrNativeTaskYielded) {
+		t.Fatalf("create did not yield: %v", err)
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("expected ACTION_EXECUTED cancel reason, got err=%v reason=%v ok=%v", err, reason, ok)
+	if _, terminal, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "minimax-key", AllowLoopbackEndpoint: true}, receipt); err != nil || terminal {
+		t.Fatalf("original query: %v terminal=%v", err, terminal)
 	}
 }

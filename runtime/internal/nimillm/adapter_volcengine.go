@@ -142,31 +142,18 @@ func ExecuteBytedanceARKTask(
 			"url", JoinURL(baseURL, submitPath),
 			"model", modelResolved,
 		)
+		if err := requireNativeTaskPublisher(ctx); err != nil {
+			return nil, nil, "", err
+		}
+		ctx = originalControlRequest(ctx)
 		submitResp := map[string]any{}
-		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+		if err := DoJSONRequest(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
 			slog.Warn("volcengine video submit failed", "error", err.Error())
 			return nil, nil, "", err
 		}
 		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterBytedanceARKTask, submitResp)
 		if providerJobID == "" {
-			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
-			if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
-				return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-			}
-			if mimeType == "" {
-				mimeType = ResolveVideoArtifactMIME(spec, artifactBytes)
-			}
-			artifactMeta := map[string]any{
-				"adapter":         AdapterBytedanceARKTask,
-				"submit_endpoint": submitPath,
-				"response":        submitResp,
-			}
-			if artifactURI != "" {
-				artifactMeta["uri"] = artifactURI
-			}
-			artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
-			ApplyVideoSpecMetadata(artifact, spec)
-			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		return PollProviderTaskForArtifact(
 			ctx, updater, jobID, baseURL, apiKey,

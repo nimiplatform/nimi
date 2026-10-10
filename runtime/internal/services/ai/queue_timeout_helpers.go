@@ -7,7 +7,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
@@ -17,12 +16,7 @@ import (
 )
 
 const maxRuntimeRequestTimeout = 5 * time.Minute
-const maxLocalImageJobTimeout = 60 * time.Minute
-const minLocalImageJobTimeout = 20 * time.Minute
-const maxLocalSpeechJobTimeout = 30 * time.Minute
-const maxLocalMusicJobTimeout = 30 * time.Minute
-const maxWorldJobTimeout = 30 * time.Minute
-const defaultWorldJobTimeout = 15 * time.Minute
+const localImageExecutionResourceBudget = 20 * time.Minute
 
 func (s *Service) attachQueueWaitUnary(ctx context.Context, result scheduler.AcquireResult) {
 	waitMs := s.attachQueueWait(ctx, result)
@@ -165,87 +159,12 @@ func timeoutDuration(timeoutMS int32, defaultTimeout time.Duration) (time.Durati
 	return duration, nil
 }
 
-func localImageJobTimeoutDuration(timeoutMS int32) (time.Duration, error) {
-	if timeoutMS == 0 {
-		return minLocalImageJobTimeout, nil
-	}
-	duration := time.Duration(timeoutMS) * time.Millisecond
-	if duration < minLocalImageJobTimeout || duration > maxLocalImageJobTimeout {
-		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-	}
-	return duration, nil
-}
-
-// @nimi-authority: rule.nimi.runtime.service-operations.r066
-func scenarioJobTimeoutDuration(
-	req *runtimev1.SubmitScenarioJobRequest,
-	defaultTimeout time.Duration,
-	localRoute bool,
-) (time.Duration, error) {
-	timeoutMS := int32(0)
-	scenarioType := runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED
-	if req != nil {
-		scenarioType = req.GetScenarioType()
-		if head := req.GetHead(); head != nil {
-			timeoutMS = head.GetTimeoutMs()
-		}
-	}
-	if timeoutMS == 0 {
-		return clampScenarioJobTimeoutDuration(defaultTimeout, scenarioType, localRoute), nil
-	}
-	duration := time.Duration(timeoutMS) * time.Millisecond
-	maxDuration := maxRuntimeRequestTimeout
-	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE {
-		maxDuration = maxWorldJobTimeout
-	}
-	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
-		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) {
-		maxDuration = maxLocalSpeechJobTimeout
-	}
-	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT) {
-		maxDuration = maxLocalMusicJobTimeout
-	}
-	if duration <= 0 || duration > maxDuration {
-		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-	}
-	return duration, nil
-}
-
-func scenarioJobUsesDetachedPolling(scenarioType runtimev1.ScenarioType, adapterName string) bool {
-	return capabilitydriver.CloudMediaUsesDetachedPolling(scenarioType, strings.TrimSpace(adapterName))
-}
-
 func clampTimeoutDuration(duration time.Duration) time.Duration {
 	if duration <= 0 {
 		return 0
 	}
 	if duration > maxRuntimeRequestTimeout {
 		return maxRuntimeRequestTimeout
-	}
-	return duration
-}
-
-func clampScenarioJobTimeoutDuration(
-	duration time.Duration,
-	scenarioType runtimev1.ScenarioType,
-	localRoute bool,
-) time.Duration {
-	if duration <= 0 {
-		return 0
-	}
-	maxDuration := maxRuntimeRequestTimeout
-	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE {
-		maxDuration = maxWorldJobTimeout
-	}
-	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
-		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) {
-		maxDuration = maxLocalSpeechJobTimeout
-	}
-	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT) {
-		maxDuration = maxLocalMusicJobTimeout
-	}
-	if duration > maxDuration {
-		return maxDuration
 	}
 	return duration
 }

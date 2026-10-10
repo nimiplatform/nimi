@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -251,7 +250,7 @@ func TestCloudTextDecisionExecutesThroughCapturedImmediateJob(t *testing.T) {
 	if err := protojson.Unmarshal(assembly.Request, captured); err != nil || !proto.Equal(captured, cloudDecideSpec()) {
 		t.Fatalf("captured request = %v, err=%v", captured, err)
 	}
-	raw, err := os.ReadFile(store.durablePath)
+	raw, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}

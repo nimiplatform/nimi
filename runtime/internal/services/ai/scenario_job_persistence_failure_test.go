@@ -1,8 +1,13 @@
 package ai
 
 import (
+	"bytes"
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -130,7 +135,7 @@ func TestCloudVoiceRunningPersistenceFailureDoesNotCallProviderOrPublishAsset(t 
 	t.Fatal("voice workflow did not finish durable cleanup")
 }
 
-func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
+func TestCloudVoiceTerminalPersistenceFailureRetainsCompleteResultForGet(t *testing.T) {
 	var providerCalls, cleanupCalls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var body map[string]any
@@ -144,7 +149,7 @@ func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
 		}
 		providerCalls.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"output":{"voice":"must-remain-private"}}`))
+		_ = json.NewEncoder(w).Encode(map[string]any{"output": map[string]any{"voice": "must-remain-private", "preview_audio": map[string]any{"response_format": "wav", "sample_rate": 16000, "data": base64.StdEncoding.EncodeToString(mediaBudgetTestWAV())}}})
 	}))
 	defer server.Close()
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
@@ -163,6 +168,12 @@ func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
 	}
 	fixture.service.scenarioJobs = store
 	fixture.service.voiceAssets = voiceAssets
+	artifactRoot := t.TempDir()
+	bodies, err := runtimeartifact.NewDiskStore(artifactRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.service.SetRuntimeArtifactStore(bodies)
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), capabilitydriver.VoiceCreateContract, fixture.targetRef)
 	response, err := fixture.service.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
@@ -176,12 +187,21 @@ func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
 	jobID := response.GetJob().GetJobId()
-	terminal := waitVoiceWorkflowExecutionForTest(t, fixture.service, jobID)
-	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED || terminal.GetReasonDetail() != scenarioJobTerminalPersistenceFailedReason {
-		t.Fatalf("terminal=%s reason=%s detail=%q", terminal.GetStatus(), terminal.GetReasonCode(), terminal.GetReasonDetail())
+	deadline := time.Now().Add(5 * time.Second)
+	for !store.hasResultCandidate(jobID) {
+		if time.Now().After(deadline) {
+			job, _ := store.get(jobID)
+			t.Fatalf("candidate not retained: %v", job)
+		}
+		time.Sleep(time.Millisecond)
 	}
-	if providerCalls.Load() != 1 || cleanupCalls.Load() != 1 || terminalAttempts.Load() != maxScenarioJobTerminalPersistenceAttempts {
-		t.Fatalf("provider calls=%d terminal persistence attempts=%d", providerCalls.Load(), terminalAttempts.Load())
+	waitScenarioJobWorkExit(t, store, jobID)
+	pending, _ := store.get(jobID)
+	if pending.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING || !store.hasResultCandidate(jobID) {
+		t.Fatalf("complete private result was lost: %v", pending)
+	}
+	if providerCalls.Load() != 1 || cleanupCalls.Load() != 0 || terminalAttempts.Load() != maxScenarioJobTerminalPersistenceAttempts {
+		t.Fatalf("create=%d delete=%d commit=%d", providerCalls.Load(), cleanupCalls.Load(), terminalAttempts.Load())
 	}
 	if asset, ok := fixture.service.voiceAssets.getAsset(jobID); ok || asset != nil {
 		t.Fatalf("failed terminal commit published VoiceAsset %#v", asset)
@@ -194,16 +214,41 @@ func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
 		t.Fatalf("failed terminal commit credential custody = %q, err=%v; want retained for restart recovery", captured, err)
 	}
 
-	restarted := restartProtectedAIServiceForVoicePublicationTest(t, localStatePath)
-	if asset, ok := restarted.voiceAssets.getAsset(jobID); ok || asset != nil {
-		t.Fatalf("failed terminal commit recovered a public VoiceAsset %#v", asset)
+	restarted := newTestService(nil)
+	restarted.connStore = fixture.service.connStore
+	restarted.scenarioJobs = cloneScenarioJobStoreForReopenTest(t, store)
+	restarted.voiceAssets, err = newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatal(err)
 	}
-	restarted.voiceAssets.mu.RLock()
-	assetCount, pendingCount := len(restarted.voiceAssets.assets), len(restarted.voiceAssets.pending)
-	restarted.voiceAssets.mu.RUnlock()
-	if assetCount != 0 || pendingCount != 0 {
-		t.Fatalf("failed terminal commit retained voice publication state: assets=%d pending=%d", assetCount, pendingCount)
+	if err := restarted.voiceAssets.reconcilePendingPublications(restarted.scenarioJobs); err != nil {
+		t.Fatal(err)
 	}
+	bodies, err = runtimeartifact.NewDiskStore(artifactRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restarted.SetRuntimeArtifactStore(bodies)
+	if err := restarted.ReconcileNativeBodyPublications(); err != nil {
+		t.Fatal(err)
+	}
+	if _, visible := restarted.voiceAssets.getAsset(jobID); visible {
+		t.Fatal("voice became public before primary commit")
+	}
+	completed, err := restarted.GetScenarioJob(scenarioJobUserContext("nimi.desktop", "user-001"), &runtimev1.GetScenarioJobRequest{JobId: jobID})
+	if err != nil || completed.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || completed.GetAsset().GetProviderVoiceRef() != "must-remain-private" || completed.GetVoiceReference() == nil || len(completed.GetJob().GetArtifacts()) != 1 {
+		t.Fatalf("recovery lost full voice result: %v %v", completed, err)
+	}
+	if _, visible := bodies.Stat(completed.GetJob().GetArtifacts()[0].GetArtifactId()); !visible {
+		t.Fatal("preview was not published with voice result")
+	}
+	if _, visible := restarted.voiceAssets.getAsset(jobID); !visible {
+		t.Fatal("voice library did not promote primary result")
+	}
+	if providerCalls.Load() != 1 || cleanupCalls.Load() != 0 {
+		t.Fatal("recovery replayed provider side effect")
+	}
+	waitCompletedScenarioJobCleanup(t, restarted, jobID)
 }
 
 func assertNoSubmittedScenarioJobAfterRestart(t *testing.T, store *scenarioJobStore, localStatePath string) {
@@ -356,6 +401,7 @@ func TestCloudMediaRunningPersistenceFailureStopsProviderAndTerminalizes(t *test
 		t.Fatal("RUNNING persistence failure reached cloud media provider")
 	default:
 	}
+	waitCompletedScenarioJobCleanup(t, fixture.service, terminal.GetJobId())
 	reopened, reopenErr := newScenarioJobStoreForLocalStatePath(localStatePath)
 	if reopenErr != nil {
 		t.Fatal(reopenErr)
@@ -394,6 +440,7 @@ func TestLocalSpeechRunningPersistenceFailureStopsModelAndTerminalizes(t *testin
 		t.Fatalf("RUNNING persistence failure reached local speech model: %q", call)
 	default:
 	}
+	waitCompletedScenarioJobCleanup(t, svc, terminal.GetJobId())
 	reopened, reopenErr := newScenarioJobStoreForLocalStatePath(localStatePath)
 	if reopenErr != nil {
 		t.Fatal(reopenErr)
@@ -447,6 +494,7 @@ func TestCloudMediaTerminalPersistenceRetriesThenCompletes(t *testing.T) {
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || attempts.Load() != maxScenarioJobTerminalPersistenceAttempts {
 		t.Fatalf("cloud media terminal=%+v persistence attempts=%d", terminal, attempts.Load())
 	}
+	waitCompletedScenarioJobCleanup(t, fixture.service, terminal.GetJobId())
 	reopened, reopenErr := newScenarioJobStoreForLocalStatePath(localStatePath)
 	if reopenErr != nil {
 		t.Fatal(reopenErr)
@@ -456,7 +504,7 @@ func TestCloudMediaTerminalPersistenceRetriesThenCompletes(t *testing.T) {
 	}
 }
 
-func TestLocalSpeechTerminalPersistenceExhaustionForcesObservableFailure(t *testing.T) {
+func TestLocalSpeechTerminalPersistenceExhaustionRetainsCompleteCandidate(t *testing.T) {
 	svc := newTestService(nil)
 	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
 	var attempts atomic.Int32
@@ -483,31 +531,151 @@ func TestLocalSpeechTerminalPersistenceExhaustionForcesObservableFailure(t *test
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
-	terminal := waitLocalSpeechJobTerminal(t, svc, response.GetJob().GetJobId())
-	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED || terminal.GetReasonDetail() != scenarioJobTerminalPersistenceFailedReason {
-		t.Fatalf("local speech forced terminal=%+v", terminal)
+	id := response.GetJob().GetJobId()
+	deadline := time.Now().Add(3 * time.Second)
+	for !store.hasResultCandidate(id) {
+		if time.Now().After(deadline) {
+			t.Fatal("complete local result was not retained")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	waitScenarioJobWorkExit(t, store, id)
+	snapshot, _ := store.get(id)
+	if snapshot.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING || len(snapshot.GetArtifacts()) != 0 || store.currentObservationIssue(id) == nil {
+		t.Fatalf("failed final commit published or lost the result: %v", snapshot)
 	}
 	if attempts.Load() != maxScenarioJobTerminalPersistenceAttempts {
-		t.Fatalf("terminal persistence attempts=%d, want %d", attempts.Load(), maxScenarioJobTerminalPersistenceAttempts)
-	}
-	store.mu.RLock()
-	done := store.jobs[terminal.GetJobId()].done
-	store.mu.RUnlock()
-	select {
-	case <-done:
-	default:
-		t.Fatal("forced in-memory terminal did not close done")
+		t.Fatalf("bounded terminal attempts=%d", attempts.Load())
 	}
 	select {
 	case <-host.calls:
 	default:
-		t.Fatal("local speech model did not run before terminal persistence failure")
+		t.Fatal("local speech model did not execute")
 	}
 	reopened, reopenErr := newScenarioJobStoreForLocalStatePath(localStatePath)
 	if reopenErr != nil {
 		t.Fatal(reopenErr)
 	}
-	if durable, ok := reopened.get(terminal.GetJobId()); !ok || durable.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
-		t.Fatalf("restart recovery terminal=%+v visible=%v", durable, ok)
+	recoveredSvc := newTestService(nil)
+	recoveredSvc.scenarioJobs = reopened
+	recoveredSvc.SetRuntimeArtifactStore(svc.runtimeArtifacts)
+	completed, err := recoveredSvc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: id})
+	if err != nil || completed.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || len(completed.GetJob().GetArtifacts()) != 1 {
+		t.Fatalf("local publication recovery: %v %v", completed, err)
 	}
+	select {
+	case <-host.calls:
+		t.Fatal("publication recovery reran speech inference")
+	default:
+	}
+	waitCompletedScenarioJobCleanup(t, recoveredSvc, id)
+
+}
+
+func TestLocalImageFirstCandidateWriteFailureRecoversOnOriginalGet(t *testing.T) {
+	svc := newTestService(nil)
+	store, _ := newDurableScenarioJobStoreForFailureTest(t)
+	svc.scenarioJobs = store
+	svc.SetRuntimeArtifactStore(svc.runtimeArtifacts)
+	host := &localImageHostStub{entered: make(chan struct{})}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-first-candidate-write-failure")})
+	svc.SetLocalImageExecutionHost(host)
+
+	var fault, resultWritesStarted atomic.Bool
+	var candidateWrites, failedWrites atomic.Int32
+	fault.Store(true)
+	store.persistenceFailure = func(attempt scenarioJobPersistenceAttempt) error {
+		if attempt.Operation == scenarioJobPersistResultCandidate {
+			candidateWrites.Add(1)
+			resultWritesStarted.Store(true)
+		}
+		// Start at the first candidate write, then keep storage unavailable until
+		// the producer exits. A retry may commit COMPLETED directly; do not require
+		// a particular number or kind of internal persistence retries.
+		if fault.Load() && resultWritesStarted.Load() {
+			failedWrites.Add(1)
+			return errors.New("temporary result writer outage")
+		}
+		return nil
+	}
+	ctx := localImageIntentContext(scenarioJobUserContext("app.local", "anonymous"), nil)
+	submitted, err := svc.SubmitScenarioJob(ctx, localImageJobRequestForTest(2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := submitted.GetJob().GetJobId()
+	select {
+	case <-host.entered:
+	case <-time.After(3 * time.Second):
+		t.Fatal("Local image work did not start")
+	}
+	waitScenarioJobWorkExit(t, store, id)
+	if candidateWrites.Load() == 0 || failedWrites.Load() == 0 {
+		t.Fatal("first candidate persistence branch was not exercised")
+	}
+	t.Logf("fault window: candidate writes=%d failed writes=%d", candidateWrites.Load(), failedWrites.Load())
+	snapshot, _ := store.get(id)
+	if snapshot.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING || len(snapshot.GetArtifacts()) != 0 {
+		t.Fatalf("failed storage published an uncommitted result: %v", snapshot)
+	}
+	store.mu.RLock()
+	ids := append([]string(nil), store.jobs[id].bodyArtifactIDs...)
+	store.mu.RUnlock()
+	if len(ids) != 2 {
+		t.Fatalf("complete output set was lost: %v", ids)
+	}
+	for _, artifactID := range ids {
+		if _, complete := svc.runtimeArtifacts.(runtimeartifact.JobBodyStore).JobBodyStat(id, artifactID); !complete {
+			t.Fatalf("body %s is incomplete", artifactID)
+		}
+		if _, visible := svc.runtimeArtifacts.Stat(artifactID); visible {
+			t.Fatalf("body %s was published before commit", artifactID)
+		}
+	}
+	// Only a live association may survive this outage. A separate reopen of the
+	// acknowledged disk snapshot must not claim that an unwritten result exists.
+	reopened := cloneScenarioJobStoreForReopenTest(t, store)
+	diskJob, found := reopened.get(id)
+	if !found || diskJob.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || reopened.hasResultCandidate(id) {
+		t.Fatalf("unwritten result was presented as durable: %v", diskJob)
+	}
+	fault.Store(false)
+	if _, err := svc.GetScenarioJob(scenarioJobUserContext("foreign-app", "foreign-user"), &runtimev1.GetScenarioJobRequest{JobId: id}); err == nil {
+		t.Fatal("foreign Get was allowed to publish the candidate")
+	}
+	for _, artifactID := range ids {
+		if _, visible := svc.runtimeArtifacts.Stat(artifactID); visible {
+			t.Fatal("unauthorized Get published a body")
+		}
+	}
+	completed, err := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: id})
+	if err != nil || completed.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || len(completed.GetJob().GetArtifacts()) != 2 || completed.GetObservationIssue() != nil {
+		t.Fatalf("original Get did not recover the complete Local result after writer recovery: response=%v err=%v", completed, err)
+	}
+	for index, artifact := range completed.GetJob().GetArtifacts() {
+		if artifact.GetArtifactId() != ids[index] || artifact.GetSeed() != 101+int32(index) {
+			t.Fatalf("recovery changed original output identity or content facts: %v", artifact)
+		}
+		source, ok := svc.runtimeArtifacts.Open(context.Background(), artifact.GetArtifactId())
+		if !ok {
+			t.Fatal("committed body is not readable")
+		}
+		body, readErr := io.ReadAll(source.Body)
+		closeErr := source.Body.Close()
+		if readErr != nil || closeErr != nil || !bytes.Equal(body, serviceTestPNGBytes()) {
+			t.Fatalf("original PNG changed: read=%v close=%v", readErr, closeErr)
+		}
+	}
+	host.mu.Lock()
+	executions := len(host.plans)
+	host.mu.Unlock()
+	if executions != 1 {
+		t.Fatalf("Get recovery re-executed inference: %d", executions)
+	}
+	durable := cloneScenarioJobStoreForReopenTest(t, store)
+	durableJob, found := durable.get(id)
+	if !found || durableJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || len(durableJob.GetArtifacts()) != 2 {
+		t.Fatalf("successful publication was not durable: %v", durableJob)
+	}
+	waitCompletedScenarioJobCleanup(t, svc, id)
 }

@@ -65,7 +65,7 @@ func TestConcurrentLocalImageIdempotentSubmissionsUseOneJobAndWorker(t *testing.
 	svc := newTestService(nil)
 	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
 	svc.scenarioJobs = store
-	resolver := newConcurrentCaptureLocalExecutionResolver(selectedImageExecutionForTest(t, "image-idempotent"), callers)
+	resolver := newConcurrentCaptureLocalExecutionResolver(selectedImageExecutionForTest(t, "image-idempotent"), 1)
 	host := &localImageHostStub{}
 	svc.SetLocalExecutionResolver(resolver)
 	svc.SetLocalImageExecutionHost(host)
@@ -79,10 +79,16 @@ func TestConcurrentLocalImageIdempotentSubmissionsUseOneJobAndWorker(t *testing.
 		close(resolver.release)
 	case <-time.After(3 * time.Second):
 		close(resolver.release)
-		t.Fatal("Local image submissions did not reach concurrent capture")
+		t.Fatal("first Local image submission did not reach capture")
 	}
 	<-done
 	canonicalID := requireCanonicalConcurrentScenarioJobs(t, svc, responses, submitErrors)
+	resolver.mu.Lock()
+	captureCalls := resolver.calls
+	resolver.mu.Unlock()
+	if captureCalls != 1 {
+		t.Fatalf("same identity captured mutable inputs %d times, want 1", captureCalls)
+	}
 
 	host.mu.Lock()
 	executions := len(host.plans)
@@ -254,10 +260,27 @@ func requireCanonicalConcurrentScenarioJobs(
 func assertSingleDurableScenarioJobBinding(
 	t *testing.T,
 	store *scenarioJobStore,
-	localStatePath string,
+	_ string,
 	canonicalID string,
 ) {
 	t.Helper()
+	// A completed snapshot can precede executor/custody teardown. Wait for
+	// those facts, then reopen a locked copy: maintenance may still use the
+	// original writer's extent after executionStarted becomes false.
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		store.mu.RLock()
+		record := store.jobs[canonicalID]
+		quiescent := record != nil && !record.executionStarted && (record.cloudAssembly == nil || record.cloudAssembly.CredentialCustodyRef == "")
+		store.mu.RUnlock()
+		if quiescent {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("Job writer did not finish its actual teardown before restart")
+		}
+		time.Sleep(time.Millisecond)
+	}
 	store.mu.RLock()
 	jobCount := len(store.jobs)
 	bindings := make([]scenarioIdempotencyBinding, 0, len(store.idempotency))
@@ -269,10 +292,7 @@ func assertSingleDurableScenarioJobBinding(
 		t.Fatalf("in-memory idempotency state: jobs=%d bindings=%v canonical=%q", jobCount, bindings, canonicalID)
 	}
 
-	reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
-	if err != nil {
-		t.Fatalf("reopen durable ScenarioJob store: %v", err)
-	}
+	reopened := cloneScenarioJobStoreForReopenTest(t, store)
 	reopened.mu.RLock()
 	durableJobCount := len(reopened.jobs)
 	durableBindings := make([]scenarioIdempotencyBinding, 0, len(reopened.idempotency))

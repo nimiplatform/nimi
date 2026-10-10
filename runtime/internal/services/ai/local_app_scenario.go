@@ -270,19 +270,6 @@ func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.Ex
 			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_TextDecide{TextDecide: decision},
 			TraceId: result.GetTraceId(),
 		}, nil
-	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
-		image := result.GetOutput().GetImageGenerate()
-		if image == nil || result.GetOutput().GetTextEmbed() != nil {
-			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		artifacts, err := projectLocalAppScenarioArtifacts(image.GetArtifacts())
-		if err != nil {
-			return nil, err
-		}
-		return &runtimev1.ExecuteLocalAppScenarioResponse{
-			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_ImageGenerate{ImageGenerate: &runtimev1.LocalAppImageGenerateOutput{Artifacts: artifacts}},
-			TraceId: result.GetTraceId(),
-		}, nil
 	default:
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -317,14 +304,6 @@ func validateLocalAppScenarioExecuteRequest(req *runtimev1.ExecuteLocalAppScenar
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextDecide{
 			TextDecide: decide,
 		}}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE, nil
-	case *runtimev1.ExecuteLocalAppScenarioRequest_ImageGenerate:
-		image, err := validateLocalAppImageGenerateSpec(spec.ImageGenerate)
-		if err != nil {
-			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
-		}
-		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{
-			ImageGenerate: image,
-		}}, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, nil
 	default:
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}

@@ -34,7 +34,7 @@ func (h *heldKnownVoiceHost) ExecuteVoiceWorkflow(ctx context.Context, c connect
 	return result, err
 }
 
-func TestGeminiKnownVoiceCancellationAndPrimaryCommitFailureCleanProviderAndPreview(t *testing.T) {
+func TestGeminiKnownVoiceCancelCleansAndCommitFailureRetainsWholeResult(t *testing.T) {
 	for _, mode := range []string{"cancel-after-provider-success", "primary-commit-failure"} {
 		t.Run(mode, func(t *testing.T) {
 			var deletes atomic.Int32
@@ -77,6 +77,27 @@ func TestGeminiKnownVoiceCancellationAndPrimaryCommitFailureCleanProviderAndPrev
 				}
 			}
 			close(host.resume)
+			if mode == "primary-commit-failure" {
+				id := submitted.GetJob().GetJobId()
+				deadline := time.Now().Add(5 * time.Second)
+				for !svc.scenarioJobs.hasResultCandidate(id) {
+					if time.Now().After(deadline) {
+						t.Fatal("complete voice candidate not retained")
+					}
+					time.Sleep(time.Millisecond)
+				}
+				waitScenarioJobWorkExit(t, svc.scenarioJobs, id)
+				if _, visible := svc.voiceAssets.getAsset(id); visible || deletes.Load() != 0 {
+					t.Fatal("pending voice escaped or was deleted")
+				}
+				svc.scenarioJobs.persistenceFailure = nil
+				completed, err := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: id})
+				if err != nil || completed.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || completed.GetAsset().GetProviderVoiceRef() != "voice_unpublished" || len(completed.GetJob().GetArtifacts()) != 1 || deletes.Load() != 0 {
+					t.Fatalf("retained voice failed publication: %v %v", completed, err)
+				}
+				waitCompletedScenarioJobCleanup(t, svc, id)
+				return
+			}
 			job := waitVoiceWorkflowExecutionForTest(t, svc, submitted.GetJob().GetJobId())
 			if job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || len(job.GetArtifacts()) != 0 || deletes.Load() != 1 {
 				t.Fatalf("unpublished result leaked: status=%v artifacts=%d deletes=%d", job.GetStatus(), len(job.GetArtifacts()), deletes.Load())
@@ -135,7 +156,7 @@ func TestUnpublishedVoiceCleanupIsSerializedAndLateFailureCannotRecreateSuccess(
 	}
 }
 
-func TestUnpublishedListRetryKeepsCancellationWhileJobCleanupRemainsIndependent(t *testing.T) {
+func TestUnpublishedCleanupWithoutOriginalJobCustodyKeepsObligation(t *testing.T) {
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1); w.WriteHeader(http.StatusNoContent) }))
 	defer server.Close()
@@ -160,8 +181,8 @@ func TestUnpublishedListRetryKeepsCancellationWhileJobCleanupRemainsIndependent(
 		t.Fatal("canceled List detached and contacted provider")
 	}
 	svc.cleanupUnpublishedVoiceResult(ctx, draft.GetVoiceAssetId(), draft, f.targetRef, binding, "voice_canceled_list")
-	if calls.Load() != 1 || len(svc.voiceAssets.pending) != 0 {
-		t.Fatalf("job cancellation blocked ownership cleanup: calls=%d", calls.Load())
+	if calls.Load() != 0 || len(svc.voiceAssets.pending) != 1 {
+		t.Fatalf("missing original Job custody must not fall back to current Connector or lose the handle: calls=%d pending=%d", calls.Load(), len(svc.voiceAssets.pending))
 	}
 }
 
@@ -326,25 +347,29 @@ func TestGeminiKnownInvalidPreviewCleanupFailureStaysPrivateAcrossRestart(t *tes
 	if _, ok := svc.voiceAssets.getAsset(job.GetJobId()); ok {
 		t.Fatal("failed voice became public")
 	}
-	svc.voiceAssets, err = newVoiceAssetStoreForLocalStatePath(state)
+	recoveredSvc := newTestService(nil)
+	recoveredSvc.scenarioJobs = svc.scenarioJobs
+	recoveredSvc.connStore = svc.connStore
+	recoveredSvc.remoteMediaHost = svc.remoteMediaHost
+	recoveredSvc.voiceAssets, err = newVoiceAssetStoreForLocalStatePath(state)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.voiceAssets.reconcilePendingPublications(svc.scenarioJobs); err != nil {
+	if err := recoveredSvc.voiceAssets.reconcilePendingPublications(recoveredSvc.scenarioJobs); err != nil {
 		t.Fatal(err)
 	}
-	private, _, _, ok := svc.voiceAssets.unpublishedVoiceBinding(job.GetJobId())
+	private, _, _, ok := recoveredSvc.voiceAssets.unpublishedVoiceBinding(job.GetJobId())
 	if !ok || private.GetProviderVoiceRef() != "voice_failed_preview" {
 		t.Fatal("restart lost private cleanup resource")
 	}
 	private.Metadata.Fields["provider_delete_next_retry_at"].Kind = &structpb.Value_StringValue{StringValue: time.Now().Add(-time.Minute).UTC().Format(time.RFC3339Nano)}
-	svc.voiceAssets.assets[job.GetJobId()] = private
+	recoveredSvc.voiceAssets.assets[job.GetJobId()] = private
 	deleteStatus.Store(http.StatusNoContent)
-	svc.reconcileUnpublishedVoiceDeletes(ctx, "app-1", "user-001", 1)
-	if deletes.Load() != 2 || len(svc.voiceAssets.pending) != 0 {
-		t.Fatalf("cleanup did not converge: calls=%d pending=%d", deletes.Load(), len(svc.voiceAssets.pending))
+	recoveredSvc.reconcileUnpublishedVoiceDeletes(ctx, "app-1", "user-001", 1)
+	if deletes.Load() != 2 || len(recoveredSvc.voiceAssets.pending) != 0 {
+		t.Fatalf("cleanup did not converge: calls=%d pending=%d", deletes.Load(), len(recoveredSvc.voiceAssets.pending))
 	}
-	_, err = svc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: job.GetJobId()})
+	_, err = recoveredSvc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: job.GetJobId()})
 	reason, _ := grpcerr.ExtractReasonCode(err)
 	if reason != runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND {
 		t.Fatalf("private failed voice was exposed: %v", err)

@@ -2,9 +2,9 @@ package nimillm
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -143,51 +143,6 @@ func TestProviderPollDelayBackoff(t *testing.T) {
 	}
 }
 
-func TestPollProviderTaskForArtifactCancelsVolcengineTaskOnContextCancel(t *testing.T) {
-	var deleteCount int32
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/contents/generations/tasks/task-1":
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-1", "status": "queued"})
-		case r.Method == http.MethodDelete && r.URL.Path == "/contents/generations/tasks/task-1":
-			atomic.AddInt32(&deleteCount, 1)
-			w.WriteHeader(http.StatusNoContent)
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer func() { server.Close() }()
-
-	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-		cancel()
-	}()
-
-	_, _, _, err := PollProviderTaskForArtifact(
-		ctx,
-		noopJobStateUpdater{},
-		"job-1",
-		server.URL,
-		"",
-		AdapterBytedanceARKTask,
-		"task-1",
-		"/contents/generations/tasks",
-		"/contents/generations/tasks/{task_id}",
-		"video/mp4",
-		nil,
-		nil,
-	)
-	if status.Code(err) != codes.Canceled {
-		t.Fatalf("expected canceled status, got %v err=%v", status.Code(err), err)
-	}
-	if got := atomic.LoadInt32(&deleteCount); got != 1 {
-		t.Fatalf("expected one provider delete request, got=%d", got)
-	}
-}
-
 func TestDeleteBytedanceARKTaskTreatsConflictAsSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete || r.URL.Path != "/contents/generations/tasks/task-1" {
@@ -206,137 +161,6 @@ func TestDeleteBytedanceARKTaskTreatsConflictAsSuccess(t *testing.T) {
 
 	if _, err := DeleteProviderAsyncTask(context.Background(), AdapterBytedanceARKTask, "task-1", MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true}); err != nil {
 		t.Fatalf("expected conflict to be treated as success, got %v", err)
-	}
-}
-
-func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
-	var pollCount int32
-	updater := &recordingJobStateUpdater{}
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-1" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		current := atomic.AddInt32(&pollCount, 1)
-		if current < 3 {
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-1", "status": "queued"})
-			return
-		}
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"id":      "task-1",
-			"status":  "succeeded",
-			"b64_mp4": base64.StdEncoding.EncodeToString([]byte("video-bytes")),
-		})
-	}))
-	defer func() { server.Close() }()
-
-	ctx := WithProviderPollWait(loopbackProviderTestContext(context.Background()), immediateProviderPollWait)
-	artifacts, usage, providerJobID, err := PollProviderTaskForArtifact(
-		ctx,
-		updater,
-		"job-1",
-		server.URL,
-		"",
-		AdapterBytedanceARKTask,
-		"task-1",
-		"/contents/generations/tasks",
-		"/contents/generations/tasks/{task_id}",
-		"video/mp4",
-		nil,
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("PollProviderTaskForArtifact failed: %v", err)
-	}
-	if providerJobID != "task-1" {
-		t.Fatalf("unexpected provider job id: %q", providerJobID)
-	}
-	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "video-bytes" {
-		t.Fatalf("unexpected artifacts: %#v", artifacts)
-	}
-	metadata := artifacts[0].GetMetadata().AsMap()
-	if metadata["adapter"] != AdapterBytedanceARKTask || metadata["response"] != nil || metadata["submit_endpoint"] != nil || metadata["query_endpoint"] != nil || metadata["uri"] != nil {
-		t.Fatalf("provider polling transport state escaped artifact metadata: %#v", metadata)
-	}
-	if usage != nil {
-		t.Fatalf("unreported usage must stay absent, got=%v", usage)
-	}
-	if len(updater.calls) < 3 {
-		t.Fatalf("expected multiple poll state updates, got=%d", len(updater.calls))
-	}
-	if updater.calls[0].retryCount != 0 || updater.calls[0].nextPollAt == nil {
-		t.Fatalf("expected initial poll state with nextPollAt, got=%#v", updater.calls[0])
-	}
-	last := updater.calls[len(updater.calls)-1]
-	if last.retryCount < 2 {
-		t.Fatalf("expected retry count to advance, got=%d", last.retryCount)
-	}
-	if last.nextPollAt != nil {
-		t.Fatalf("expected terminal poll state to clear nextPollAt, got=%v", last.nextPollAt)
-	}
-	for _, call := range updater.calls {
-		if strings.TrimSpace(call.providerJobID) != "task-1" {
-			t.Fatalf("unexpected provider job id in poll state: %#v", call)
-		}
-	}
-}
-
-func TestPollProviderTaskForArtifactFailedStatusUsesStructuredReason(t *testing.T) {
-	const providerMessage = "opaque-provider-body-marker"
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-failed-1" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"id":     "task-failed-1",
-			"status": "failed",
-			"error": map[string]any{
-				"message": providerMessage,
-			},
-		})
-	}))
-	defer func() { server.Close() }()
-
-	_, _, providerJobID, err := PollProviderTaskForArtifact(
-		loopbackProviderTestContext(context.Background()),
-		noopJobStateUpdater{},
-		"job-failed-detail",
-		server.URL,
-		"test-api-key",
-		AdapterBytedanceARKTask,
-		"task-failed-1",
-		"/contents/generations/tasks",
-		"/contents/generations/tasks/{task_id}",
-		"video/mp4",
-		nil,
-		nil,
-	)
-	if err == nil {
-		t.Fatal("expected failed provider task to return an error")
-	}
-	if providerJobID != "task-failed-1" {
-		t.Fatalf("unexpected providerJobID: %q", providerJobID)
-	}
-	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
-		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v (ok=%v)", reason, ok)
-	}
-	metadata, ok := grpcerr.ExtractReasonMetadata(err)
-	if !ok {
-		t.Fatalf("expected reason metadata, got err=%v", err)
-	}
-	if got := metadata["provider_task_status"]; got != "failed" {
-		t.Fatalf("expected provider task status metadata, got=%q", got)
-	}
-	if got := metadata["action_hint"]; got != "check_provider_endpoint_or_live_task_status" {
-		t.Fatalf("expected structured action hint, got=%q", got)
-	}
-	if _, exists := metadata["provider_message"]; exists {
-		t.Fatalf("provider body must not be projected into reason metadata: %#v", metadata)
 	}
 }
 
@@ -363,82 +187,6 @@ func TestIsDetachedPollContext(t *testing.T) {
 // that in detached polling mode (cancel-only context), a transient HTTP failure
 // during a poll tick is retried rather than immediately terminating the job.
 // The provider returns errors for the first 2 poll attempts, then succeeds.
-func TestPollProviderTaskForArtifactRetriesTransientErrorsWhenDetached(t *testing.T) {
-	var requestCount int32
-	updater := &recordingJobStateUpdater{}
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-retry-1" {
-			http.NotFound(w, r)
-			return
-		}
-		current := atomic.AddInt32(&requestCount, 1)
-		if current <= 2 {
-			// Simulate transient server error on first 2 poll requests.
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]any{"error": "temporary failure"})
-			return
-		}
-		if current == 3 {
-			// Third poll: still running.
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-retry-1", "status": "running"})
-			return
-		}
-		// Fourth poll: succeeded with artifact.
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"id":      "task-retry-1",
-			"status":  "succeeded",
-			"b64_mp4": base64.StdEncoding.EncodeToString([]byte("video-bytes-retry")),
-		})
-	}))
-	defer func() { server.Close() }()
-
-	// Cancel-only context: no deadline → detached polling.
-	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
-	defer cancel()
-	ctx = WithProviderPollWait(ctx, immediateProviderPollWait)
-
-	artifacts, _, providerJobID, err := PollProviderTaskForArtifact(
-		ctx,
-		updater,
-		"job-retry-1",
-		server.URL,
-		"",
-		AdapterBytedanceARKTask,
-		"task-retry-1",
-		"/contents/generations/tasks",
-		"/contents/generations/tasks/{task_id}",
-		"video/mp4",
-		nil,
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("PollProviderTaskForArtifact failed: %v", err)
-	}
-	if providerJobID != "task-retry-1" {
-		t.Fatalf("unexpected provider job id: %q", providerJobID)
-	}
-	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "video-bytes-retry" {
-		t.Fatalf("unexpected artifacts: %#v", artifacts)
-	}
-	totalRequests := atomic.LoadInt32(&requestCount)
-	if totalRequests < 4 {
-		t.Fatalf("expected at least 4 requests (2 errors + running + success), got=%d", totalRequests)
-	}
-	// Verify that poll state updates include error entries from the transient failures.
-	hasErrorEntry := false
-	for _, call := range updater.calls {
-		if strings.Contains(call.lastError, "500") || strings.Contains(call.lastError, "Internal Server Error") || call.lastError != "" {
-			hasErrorEntry = true
-			break
-		}
-	}
-	if !hasErrorEntry {
-		t.Fatal("expected at least one poll state update with error from transient failure")
-	}
-}
 
 func immediateProviderPollWait(ctx context.Context, _ time.Duration) error {
 	select {
@@ -452,45 +200,6 @@ func immediateProviderPollWait(ctx context.Context, _ time.Duration) error {
 // TestPollProviderTaskForArtifactImmediateExitOnErrorWithDeadline verifies
 // that when a deadline-based context is used (non-detached), a poll HTTP error
 // still immediately terminates the poll loop — existing behavior preserved.
-func TestPollProviderTaskForArtifactImmediateExitOnErrorWithDeadline(t *testing.T) {
-	var requestCount int32
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-deadline-1" {
-			http.NotFound(w, r)
-			return
-		}
-		atomic.AddInt32(&requestCount, 1)
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]any{"error": "server error"})
-	}))
-	defer func() { server.Close() }()
-
-	// Context with deadline: NOT detached → immediate exit on error.
-	ctx, cancel := context.WithTimeout(loopbackProviderTestContext(context.Background()), 30*time.Second)
-	defer cancel()
-
-	_, _, _, err := PollProviderTaskForArtifact(
-		ctx,
-		noopJobStateUpdater{},
-		"job-deadline-1",
-		server.URL,
-		"",
-		AdapterBytedanceARKTask,
-		"task-deadline-1",
-		"/contents/generations/tasks",
-		"/contents/generations/tasks/{task_id}",
-		"video/mp4",
-		nil,
-		nil,
-	)
-	if err == nil {
-		t.Fatal("expected error from poll with deadline context")
-	}
-	if got := atomic.LoadInt32(&requestCount); got != 1 {
-		t.Fatalf("expected exactly 1 request (immediate exit), got=%d", got)
-	}
-}
 
 func TestIsTransientPollError(t *testing.T) {
 	transient := []runtimev1.ReasonCode{
@@ -533,52 +242,120 @@ func TestIsTransientPollError(t *testing.T) {
 // TestPollProviderTaskForArtifactPermanentErrorFailsFastWhenDetached verifies
 // that permanent provider errors (e.g. 401 auth failure) immediately terminate
 // the job even in detached polling mode — no retry.
-func TestPollProviderTaskForArtifactPermanentErrorFailsFastWhenDetached(t *testing.T) {
-	var requestCount int32
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-perm-1" {
-			http.NotFound(w, r)
-			return
-		}
-		atomic.AddInt32(&requestCount, 1)
-		// Permanent auth failure on first poll request.
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]any{"error": "invalid api key"})
-	}))
-	defer func() { server.Close() }()
-
-	// Cancel-only context: detached mode.
-	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
-	defer cancel()
-
-	_, _, _, err := PollProviderTaskForArtifact(
-		ctx,
-		noopJobStateUpdater{},
-		"job-perm-1",
-		server.URL,
-		"bad-key",
-		AdapterBytedanceARKTask,
-		"task-perm-1",
-		"/contents/generations/tasks",
-		"/contents/generations/tasks/{task_id}",
-		"video/mp4",
-		nil,
-		nil,
-	)
-	if err == nil {
-		t.Fatal("expected error from permanent auth failure")
+func TestNativeTaskHandoffDoesNoPollingOrCleanup(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1); w.WriteHeader(500) }))
+	defer server.Close()
+	var receipt *NativeTaskReceipt
+	parent, cancel := context.WithCancel(context.Background())
+	ctx := WithNativeTaskPublisher(parent, func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
+	artifacts, usage, id, err := PollProviderTaskForArtifact(ctx, noopJobStateUpdater{}, "job", server.URL, "key", AdapterBytedanceARKTask, "task-1", "/contents/generations/tasks", resolveBytedanceARKVideoQueryPathTemplate(), "video/mp4", nil, nil)
+	cancel()
+	if !errors.Is(err, ErrNativeTaskYielded) || receipt == nil || id != "task-1" || len(artifacts) != 0 || usage != nil || calls.Load() != 0 {
+		t.Fatalf("receipt handoff performed IO or lost identity: %v %v calls=%d", receipt, err, calls.Load())
 	}
-	// Must exit after exactly 1 request — no retry on permanent error.
-	if got := atomic.LoadInt32(&requestCount); got != 1 {
-		t.Fatalf("permanent error must fail fast with 1 request, got=%d", got)
+	if _, _, _, err := PollProviderTaskForArtifact(context.Background(), noopJobStateUpdater{}, "job", server.URL, "key", AdapterBytedanceARKTask, "task-1", "/contents/generations/tasks", resolveBytedanceARKVideoQueryPathTemplate(), "video/mp4", nil, nil); err == nil || calls.Load() != 0 {
+		t.Fatal("missing owner fell back to polling")
 	}
-	// Verify the error carries a permanent reason code, not transient.
-	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
-		if reason == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT ||
-			reason == runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE ||
-			reason == runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
-			t.Fatalf("permanent auth error should not map to transient reason, got=%s", reason.String())
-		}
+}
+
+func TestNativeTaskObservationIsOneQueryAndPreservesTerminalProvenance(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		httpStatus int
+		terminal   bool
+		reason     runtimev1.ReasonCode
+	}{
+		{name: "queued", body: `{"status":"queued"}`, httpStatus: 200},
+		{name: "transient", body: `{"error":"temporarily unavailable"}`, httpStatus: 503, reason: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
+		{name: "auth", body: `{"error":"unauthorized"}`, httpStatus: 401, reason: runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED},
+		{name: "canceled", body: `{"status":"canceled"}`, httpStatus: 200, terminal: true, reason: runtimev1.ReasonCode_AI_PROVIDER_TASK_CANCELED},
+		{name: "expired", body: `{"status":"expired"}`, httpStatus: 200, terminal: true, reason: runtimev1.ReasonCode_AI_PROVIDER_TASK_EXPIRED},
+		{name: "failed", body: `{"status":"failed","failure_reason":"temporary internal failure"}`, httpStatus: 200, terminal: true, reason: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
+		{name: "success", body: `{"status":"succeeded","b64_mp4":"dmlkZW8tYnl0ZXM="}`, httpStatus: 200, terminal: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var calls atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/original" {
+					t.Errorf("non-original query %s %s", r.Method, r.URL.Path)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tc.httpStatus)
+				w.Write([]byte(tc.body))
+			}))
+			defer server.Close()
+			receipt := &NativeTaskReceipt{Version: 1, Adapter: AdapterBytedanceARKTask, TaskID: "original", QueryPathTemplate: resolveBytedanceARKVideoQueryPathTemplate(), Artifact: BinaryArtifact("video/mp4", nil, map[string]any{"adapter": AdapterBytedanceARKTask})}
+			observation, terminal, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true}, receipt)
+			var artifacts []*runtimev1.ScenarioArtifact
+			if observation != nil {
+				artifacts = observation.Artifacts
+			}
+			if calls.Load() != 1 || terminal != tc.terminal {
+				t.Fatalf("observation retried or misreported terminal: calls=%d terminal=%v err=%v", calls.Load(), terminal, err)
+			}
+			if tc.reason != 0 {
+				reason, _ := grpcerr.ExtractReasonCode(err)
+				if reason != tc.reason {
+					t.Fatalf("reason=%v expected=%v err=%v", reason, tc.reason, err)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			if tc.name == "success" {
+				if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "video-bytes" || artifacts[0].Metadata.AsMap()["response"] != nil {
+					t.Fatalf("invalid artifact: %v", artifacts)
+				}
+			}
+			if tc.name == "failed" {
+				metadata, _ := grpcerr.ExtractReasonMetadata(err)
+				if metadata["provider_task_status"] != "failed" || metadata["provider_message"] != "" {
+					t.Fatalf("failure provenance: %v", metadata)
+				}
+			}
+		})
+	}
+}
+
+func TestNativeObservationKeepsCompleteOutputSetWithoutAcquiringBodies(t *testing.T) {
+	for _, tc := range []struct {
+		adapter, path, payload string
+		count                  int
+	}{
+		{AdapterAlibabaNative, "/api/v1/tasks/{task_id}", `{"output":{"task_id":"original","task_status":"SUCCEEDED","results":[{"url":"%s/one"},{"url":"%s/two"}]}}`, 2},
+		{AdapterRunwayTask, "/v1/tasks/{task_id}", `{"id":"original","status":"SUCCEEDED","output":["%s/one","%s/two"]}`, 2},
+		{AdapterBytedanceARKTask, "/contents/generations/tasks/{task_id}", `{"id":"original","status":"succeeded","content":{"video_url":"%s/one","last_frame_url":"%s/two"}}`, 2},
+		{AdapterLumaTask, "/dream-machine/v1/generations/{task_id}", `{"id":"original","state":"completed","assets":{"video":"%s/one"},"ignored":"%s"}`, 1},
+	} {
+		t.Run(tc.adapter, func(t *testing.T) {
+			var queries, bodies atomic.Int32
+			var endpoint string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != ResolveTaskQueryPath(tc.path, "original") {
+					bodies.Add(1)
+					w.Write([]byte("body"))
+					return
+				}
+				queries.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprintf(w, tc.payload, endpoint, endpoint)
+			}))
+			defer server.Close()
+			endpoint = server.URL
+			receipt := &NativeTaskReceipt{Version: 1, Adapter: tc.adapter, TaskID: "original", QueryPathTemplate: tc.path, Artifact: BinaryArtifact("video/mp4", nil, nil)}
+			observation, terminal, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: endpoint, AllowLoopbackEndpoint: true}, receipt)
+			if err != nil || !terminal || len(observation.GetArtifacts()) != tc.count || queries.Load() != 1 || bodies.Load() != 0 {
+				t.Fatalf("query fetched or lost a body: result=%v terminal=%v err=%v query=%d bodies=%d", observation, terminal, err, queries.Load(), bodies.Load())
+			}
+			ids := map[string]bool{}
+			for _, artifact := range observation.Artifacts {
+				if artifact.GetUri() == "" || ids[artifact.GetArtifactId()] {
+					t.Fatalf("unstable/missing required slot: %v", artifact)
+				}
+				ids[artifact.GetArtifactId()] = true
+			}
+		})
 	}
 }

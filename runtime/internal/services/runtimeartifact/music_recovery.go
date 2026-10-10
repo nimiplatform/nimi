@@ -36,7 +36,7 @@ func (s *MemoryStore) MusicRecoverySnapshot(now time.Time) (map[string]MusicReco
 		if record.MusicRecoveryUntil.IsZero() {
 			continue
 		}
-		if !now.Before(record.MusicRecoveryUntil) {
+		if !now.Before(record.MusicRecoveryUntil) && (record.JobCandidate == nil || record.JobCandidate.Published) && !s.activeJobBodies[id] {
 			delete(s.records, id)
 			continue
 		}
@@ -50,7 +50,7 @@ func (s *MemoryStore) ExtendMusicRecovery(jobID string, artifactIDs []string, un
 	defer s.mu.Unlock()
 	for _, id := range artifactIDs {
 		record, ok := s.records[id]
-		if !ok || record.ProducerJobID != jobID || record.MusicRecoveryUntil.IsZero() || until.Before(record.MusicRecoveryUntil) {
+		if !ok || record.ProducerJobID != jobID || (record.MusicRecoveryUntil.IsZero() && (record.JobCandidate == nil || !record.JobCandidate.Complete || record.JobCandidate.Published)) || until.Before(record.MusicRecoveryUntil) {
 			return ErrInvalidArtifactRecord
 		}
 	}
@@ -89,7 +89,7 @@ func (s *DiskStore) MusicRecoverySnapshot(now time.Time) (map[string]MusicRecove
 		if !ok {
 			return nil, 0, ErrInvalidArtifactRecord
 		}
-		if !now.Before(metadata.MusicRecoveryUntil) {
+		if !now.Before(metadata.MusicRecoveryUntil) && (record.JobCandidate == nil || s.jobBodyVisibleLocked(record)) && !s.activeJobBodies[record.ArtifactID] {
 			if err := s.deleteDiskRecordByRecordLocked(record); err != nil {
 				return nil, 0, fmt.Errorf("expire music recovery body: %w", err)
 			}
@@ -114,7 +114,7 @@ func (s *DiskStore) ExtendMusicRecovery(jobID string, artifactIDs []string, unti
 	records := make([]diskArtifactRecord, 0, len(artifactIDs))
 	for _, id := range artifactIDs {
 		record, ok := s.readDiskRecordLocked(id)
-		if !ok || record.ProducerJobID != jobID || record.MusicRecoveryUntil.IsZero() || until.Before(record.MusicRecoveryUntil) {
+		if !ok || record.ProducerJobID != jobID || (record.MusicRecoveryUntil.IsZero() && (record.JobCandidate == nil || !record.JobCandidate.Complete || record.JobCandidate.Published)) || until.Before(record.MusicRecoveryUntil) {
 			return ErrInvalidArtifactRecord
 		}
 		record.MusicRecoveryUntil = until.UTC()

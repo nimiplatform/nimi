@@ -10,8 +10,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
@@ -111,7 +113,11 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 	if s == nil || s.voiceAssets == nil || !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
+	ctx = s.scenarioJobOutboundContext(ctx, jobID)
 	defer s.finishScenarioJobExecution(jobID)
+	budget := newScenarioJobExecutionBudget(ctx)
+	ctx = budget
+	defer budget.close()
 	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
 		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)
 		return
@@ -152,6 +158,15 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 		return
 	}
 	defer release()
+	previewSlots := []runtimeartifact.JobBodySlot{{ArtifactID: jobID + "-voice-preview", MaxBytes: nimillm.MaxVoiceWorkflowPreviewBytes}}
+	if err := s.prepareScenarioBodySlots(ctx, jobID, previewSlots); err != nil {
+		s.finishVoiceWorkflowJobFailure(ctx, jobID, err)
+		return
+	}
+	if err := budget.start(5 * time.Minute); err != nil {
+		s.finishVoiceWorkflowJobFailure(ctx, jobID, err)
+		return
+	}
 	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); transitionErr != nil {
 		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobRunningPersistenceFailedReason, transitionErr)
 		return
@@ -163,6 +178,7 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 		ProviderModelTarget: effective.rawTarget, ConnectorID: effective.connector.ConnectorID,
 	}
 	result, err := s.executeCapturedCloudVoiceWorkflow(ctx, effective)
+	budget.stop()
 	if result.ProviderVoiceRef != "" && assetDraft.GetPersistence() == runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
 		defer s.cleanupUnpublishedVoiceResult(ctx, jobID, assetDraft, effective.voiceTarget, binding, result.ProviderVoiceRef)
 		if stageErr := s.voiceAssets.stageKnownVoiceResult(assetDraft, effective.voiceTarget, binding, result.ProviderVoiceRef); stageErr != nil {
@@ -211,25 +227,19 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 	// Provider polling identities remain private to Remote Host. The public
 	// workflow state machine is keyed only by the Runtime voice job id.
 	var previewArtifacts []*runtimev1.ScenarioArtifact
-	var previewIDs []string
 	if len(result.PreviewAudio) > 0 {
 		preview := nimillm.BinaryArtifact(result.PreviewMime, result.PreviewAudio, nil)
-		previewArtifacts, err = bindRuntimeJobArtifacts(jobID, job.GetHead(), []*runtimev1.ScenarioArtifact{preview})
-		if err == nil {
-			previewIDs, err = s.storeRuntimeJobArtifacts(ctx, jobID, job.GetHead(), previewArtifacts, nil)
-		}
-		if err != nil {
+		staged, stageErr := s.stageFiniteMediaBodies(ctx, jobID, job.GetHead(), previewSlots, capabilitydriver.CloudMediaResult{Artifacts: []*runtimev1.ScenarioArtifact{preview}})
+		if stageErr != nil {
 			s.finishVoiceWorkflowJobFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
 			return
 		}
-		defer func() {
-			if _, _, ok := s.scenarioJobs.completedVoiceResult(assetDraft.GetVoiceAssetId()); ok {
-				return
-			}
-			for _, id := range previewIDs {
-				s.deleteRuntimeArtifactCandidate(id, "voice terminal publication failed")
-			}
-		}()
+		capabilitydriver.CloseArtifactBodies(staged.ArtifactBodies)
+		previewArtifacts, err = bindRuntimeJobArtifacts(jobID, job.GetHead(), staged.Artifacts)
+		if err != nil {
+			s.finishVoiceWorkflowJobFailure(ctx, jobID, err)
+			return
+		}
 	}
 	var transitionErr error
 	_, published := s.voiceAssets.publishResult(assetDraft, effective.voiceTarget, binding, result.ProviderVoiceRef, result.Metadata, func(asset *runtimev1.VoiceAsset, reference *runtimev1.VoiceReference) bool {
@@ -244,7 +254,7 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 		})
 		transitionErr = err
 		return committed && err == nil
-	})
+	}, func() bool { return s.scenarioJobs.hasResultCandidate(jobID) })
 	if published || transitionErr != nil {
 		return
 	}
@@ -273,8 +283,8 @@ func (s *Service) finishVoiceWorkflowJobFailure(ctx context.Context, jobID strin
 	case errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reasonCode == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
 		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
-		reasonCode = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
-	case errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled):
+		reasonCode = runtimev1.ReasonCode_AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED
+	case (errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.Canceled)) && s.scenarioJobs.cancellationRequested(jobID):
 		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 	}

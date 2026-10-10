@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -12,7 +13,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestSpaitialOwnerTerminationAttemptsBoundedCleanup(t *testing.T) {
+func TestSpaitialExplicitStopRequiresFreshRequestAndTerminalProof(t *testing.T) {
 	for _, termination := range []string{"cancel", "deadline"} {
 		for _, outcome := range []string{"confirmed", "unconfirmed", "failed"} {
 			t.Run(termination+"/"+outcome, func(t *testing.T) {
@@ -41,30 +42,36 @@ func TestSpaitialOwnerTerminationAttemptsBoundedCleanup(t *testing.T) {
 					}
 				}))
 				defer server.Close()
-				ctx, cancel := context.WithTimeout(loopbackProviderTestContext(context.Background()), 300*time.Millisecond)
+				var receipt *NativeTaskReceipt
+				ctx, cancel := context.WithTimeout(loopbackProviderTestContext(context.Background()), 60*time.Millisecond)
 				defer cancel()
-				ctx = WithProviderPollWait(ctx, func(ctx context.Context, _ time.Duration) error {
-					if termination == "cancel" {
-						cancel()
-					}
-					<-ctx.Done()
-					return ctx.Err()
-				})
-				var observations []ProviderTaskCleanupObservation
-				ctx = WithProviderTaskCleanupObserver(ctx, func(value ProviderTaskCleanupObservation) { observations = append(observations, value) })
+				ctx = WithNativeTaskPublisher(ctx, func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 				req := &runtimev1.SubmitScenarioJobRequest{Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{TextPrompt: "A room"}}}}
 				_, err := ExecuteSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "cleanup-job", req, "default")
-				if err == nil || posts.Load() != 1 || cancels.Load() != 1 || len(observations) != 1 {
-					t.Fatalf("err=%v posts=%d cancels=%d observations=%v", err, posts.Load(), cancels.Load(), observations)
+				if !errors.Is(err, ErrNativeTaskYielded) || posts.Load() != 1 || cancels.Load() != 0 {
+					t.Fatalf("handoff: %v", err)
 				}
+				if termination == "cancel" {
+					cancel()
+				}
+				<-ctx.Done()
+				if cancels.Load() != 0 {
+					t.Fatal("observer end canceled native work")
+				}
+				cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}
+				cleanup, err := DeleteProviderAsyncTask(loopbackProviderTestContext(context.Background()), AdapterSpaitialNative, receipt.TaskID, cfg)
+				if posts.Load() != 1 || cancels.Load() != 1 {
+					t.Fatalf("explicit stop IO: posts=%d cancels=%d", posts.Load(), cancels.Load())
+				}
+
 				want := ProviderTaskCleanupUnconfirmed
 				if outcome == "confirmed" {
 					want = ProviderTaskCleanupCanceled
 				} else if outcome == "failed" {
 					want = ProviderTaskCleanupFailed
 				}
-				if observations[0].Outcome != want {
-					t.Fatalf("cleanup=%v want=%v", observations[0], want)
+				if cleanup != want {
+					t.Fatalf("cleanup=%v want=%v err=%v", cleanup, want, err)
 				}
 			})
 		}
@@ -93,7 +100,17 @@ func TestSpaitialCompletedTaskResultDeadlineDoesNotCancel(t *testing.T) {
 	ctx, cancel := context.WithTimeout(loopbackProviderTestContext(context.Background()), 300*time.Millisecond)
 	defer cancel()
 	req := &runtimev1.SubmitScenarioJobRequest{Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{TextPrompt: "A room"}}}}
-	_, err := ExecuteSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "completed-job", req, "default")
+	var receipt *NativeTaskReceipt
+	createCtx := WithNativeTaskPublisher(loopbackProviderTestContext(context.Background()), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
+	_, err := ExecuteSpaitialWorld(createCtx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "completed-job", req, "default")
+	if !errors.Is(err, ErrNativeTaskYielded) {
+		t.Fatalf("create: %v", err)
+	}
+	_, terminal, err := ObserveNativeTask(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, receipt)
+	if terminal {
+		t.Fatal("result read timeout terminalized remote task")
+	}
+
 	if err == nil || results.Load() != 1 || cancels.Load() != 0 {
 		t.Fatalf("err=%v result reads=%d completed-task cancel attempts=%d", err, results.Load(), cancels.Load())
 	}

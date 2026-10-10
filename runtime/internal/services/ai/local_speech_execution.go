@@ -16,11 +16,13 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -29,6 +31,7 @@ import (
 )
 
 type localSpeechEffectiveInputs struct {
+	canonicalCapture       *scenarioCanonicalCapture
 	head                   *runtimev1.ScenarioRequestHead
 	scenarioType           runtimev1.ScenarioType
 	intent                 executionintent.Intent
@@ -294,6 +297,29 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 	}
 	effective.effectiveInputIdentity = effectiveInputIdentity
 	effective.resolvedAssembly = resolvedAssembly
+	if capture := effective.canonicalCapture; capture != nil {
+		job, err := scenarioCaptureJob(ctx)
+		if err != nil {
+			cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+			return nil, err
+		}
+		size, err := audiomedia.CanonicalRangeSize(canonicalArtifactFacts(capture.original), capture.start, capture.end)
+		if err != nil {
+			cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+			return nil, localCanonicalCaptureError(err)
+		}
+		bodyID := job.JobId + "-capture-source"
+		slots := append([]runtimeartifact.JobBodySlot{{ArtifactID: bodyID, MaxBytes: size}}, localSpeechBodySlots(job.JobId, effective)...)
+		if err := s.admitPlannedLocalCapture(ctx, selected, resolvedAssembly, effectiveInputIdentity, slots); err != nil {
+			cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+			return nil, err
+		}
+		if err := s.copyScenarioCanonicalCapture(ctx, head, capture.sourceID, capture.original, capture.start, capture.end, bodyID, capture.path); err != nil {
+			cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+			return nil, localCanonicalCaptureError(err)
+		}
+		effective.canonicalCapture = nil
+	}
 	return effective, nil
 }
 
@@ -786,6 +812,12 @@ func (s *Service) executeCapturedLocalSpeech(ctx context.Context, effective *loc
 		mimeType := strings.TrimSpace(result.MIMEType)
 		if mimeType == "" {
 			mimeType = "audio/wav"
+		}
+		if len(mimeType) > 128 || !strings.HasPrefix(strings.ToLower(mimeType), "audio/") {
+			if result.AudioBody != nil {
+				_ = result.AudioBody.Close()
+			}
+			return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureContentMismatch, Err: fmt.Errorf("speech output MIME does not fit the audio descriptor contract")})
 		}
 		if result.AudioBody != nil {
 			body, bodyErr := capabilitydriver.NewIncrementalArtifactBody(result.AudioBody)

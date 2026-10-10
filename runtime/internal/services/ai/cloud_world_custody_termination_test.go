@@ -6,13 +6,14 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 // Exercise the production Submit -> Driver -> Host -> HTTP stream -> custody path.
 func TestWorldCustodyTerminationKeepsOwnerClassification(t *testing.T) {
-	for _, mode := range []string{"deadline", "cancel", "invalid", "processing-deadline"} {
+	for _, mode := range []string{"cancel", "invalid"} {
 		t.Run(mode, func(t *testing.T) {
 			var endpoint string
 			var downloads, cancels atomic.Int32
@@ -53,30 +54,52 @@ func TestWorldCustodyTerminationKeepsOwnerClassification(t *testing.T) {
 			defer server.Close()
 			endpoint = server.URL
 			f, ctx := worldPollServiceFixture(t, "spaitial", endpoint, nil)
-			timeout := int32(0)
-			if mode == "deadline" || mode == "processing-deadline" {
-				timeout = 300
-			}
-			response, err := f.service.SubmitScenarioJob(ctx, worldPollJobRequest(timeout))
+			response, err := f.service.SubmitScenarioJob(ctx, worldPollJobRequest(0))
 			if err != nil {
 				t.Fatal(err)
 			}
+			id := response.GetJob().GetJobId()
+			waitNativeReceiptHandoff(t, f.service, id)
+			observed := make(chan *runtimev1.GetScenarioJobResponse, 1)
+			go func() {
+				result, err := f.service.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: id})
+				if err != nil {
+					t.Error(err)
+				}
+				observed <- result
+			}()
 			if mode == "cancel" {
-				<-started
-				if _, err := f.service.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: response.GetJob().GetJobId()}); err != nil {
+				select {
+				case <-started:
+				case <-time.After(3 * time.Second):
+					t.Fatal("fresh Get did not begin body")
+				}
+				if _, err := f.service.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: id}); err != nil {
 					t.Fatal(err)
 				}
 			}
-			terminal := waitForScenarioJobTerminalForLocalTextTest(t, f.service, response.GetJob().GetJobId())
-			wantStatus, wantReason := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
-			if mode == "deadline" || mode == "processing-deadline" {
-				wantStatus, wantReason = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
-			} else if mode == "cancel" {
-				wantStatus, wantReason = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED, runtimev1.ReasonCode_ACTION_EXECUTED
+			var result *runtimev1.GetScenarioJobResponse
+			select {
+			case result = <-observed:
+			case <-time.After(3 * time.Second):
+				t.Fatal("body work did not exit")
 			}
-			if terminal.GetStatus() != wantStatus || terminal.GetReasonCode() != wantReason || len(terminal.GetArtifacts()) != 0 {
-				t.Fatalf("terminal=%v", terminal)
+			job := result.GetJob()
+			if mode == "cancel" {
+				if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || job.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+					t.Fatalf("cancel snapshot: %v", job)
+				}
+			} else {
+				if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING || result.GetObservationIssue() == nil {
+					t.Fatalf("invalid body terminalized remote task: %v", result)
+				}
+				f.service.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: id})
 			}
+			if len(job.GetArtifacts()) != 0 {
+				t.Fatal("incomplete World set was publicly attached")
+			}
+			waitScenarioJobWorkExit(t, f.service.scenarioJobs, id)
+
 			wantDownloads, wantCancels := int32(1), int32(0)
 			if mode == "processing-deadline" {
 				wantDownloads, wantCancels = 0, 1

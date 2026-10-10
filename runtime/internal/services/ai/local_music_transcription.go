@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -85,13 +86,6 @@ func (s *Service) captureLocalMusicTranscription(ctx context.Context, head *runt
 	}
 	request := plan.TranscriptionRequest()
 	sourceRange := request.GetSourceAudio().GetRange()
-	_, err = audiomedia.CopyCanonicalRange(ctx, source.Body, audiomedia.Facts{SampleRateHz: canonical.SampleRateHz, Channels: canonical.Channels, FrameCount: canonical.FrameCount, SizeBytes: source.Record.SizeBytes, DataOffset: canonical.DataOffset}, sourceRange.GetStartFrame(), sourceRange.GetEndFrame(), plan.TranscriptionSourcePath())
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
-	}
-	if err := source.Body.Close(); err != nil {
-		return nil, err
-	}
 	assembly, err := localResolvedAssemblyForMusicTranscription(selected, plan)
 	if err != nil {
 		return nil, err
@@ -99,6 +93,27 @@ func (s *Service) captureLocalMusicTranscription(ctx context.Context, head *runt
 	identity, err := projectResolvedAssemblyEffectiveInputIdentity(assembly)
 	if err != nil {
 		return nil, err
+	}
+	job, err := scenarioCaptureJob(ctx)
+	if err != nil {
+		return nil, err
+	}
+	size, err := audiomedia.CanonicalRangeSize(canonicalArtifactFacts(source.Record), sourceRange.GetStartFrame(), sourceRange.GetEndFrame())
+	if err != nil {
+		return nil, localCanonicalCaptureError(err)
+	}
+	// Drop the original store read pin before reserving/writing a different
+	// owned file. The copy reopens and verifies the frozen original facts.
+	if err := source.Body.Close(); err != nil {
+		return nil, err
+	}
+	bodyID := job.JobId + "-capture-source"
+	slots := append([]runtimeartifact.JobBodySlot{{ArtifactID: bodyID, MaxBytes: size}}, localMusicTypedBodySlots(job.JobId, &localMusicEffectiveInputs{plan: plan, transcriptionRequest: request})...)
+	if err := s.admitPlannedLocalCapture(ctx, selected, assembly, identity, slots); err != nil {
+		return nil, err
+	}
+	if err := s.copyScenarioCanonicalCapture(ctx, head, spec.GetSourceAudio().GetArtifactId(), source.Record, sourceRange.GetStartFrame(), sourceRange.GetEndFrame(), bodyID, plan.TranscriptionSourcePath()); err != nil {
+		return nil, localCanonicalCaptureError(err)
 	}
 	keep = true
 	return &localMusicEffectiveInputs{head: cloneScenarioHead(head), intent: executionintent.Clone(intent), loadoutID: selected.LoadoutID, displayName: selected.DisplayName,

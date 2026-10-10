@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
@@ -56,11 +55,14 @@ func (entry scenarioJobJournalEntry) empty() bool {
 // writes only the rows that differ from it. Caller holds the store mutex.
 type scenarioJobDurableState struct {
 	jobs           map[string]struct{}
+	rowBytes       map[string]int64
 	changed        map[string]struct{}
 	idempotency    map[string]scenarioIdempotencyBinding
 	pendingCustody map[string]scenarioPendingCloudCustody
 	fileBytes      int64
 	baseBytes      int64
+	liveBytes      int64
+	fileIO         *scenarioJobFileIO
 	// removed reports that the journal still holds captured inputs of a Job
 	// that is no longer live; only a rewrite drops them from the disk.
 	removed bool
@@ -73,6 +75,7 @@ type scenarioJobDurableState struct {
 func newScenarioJobDurableState() scenarioJobDurableState {
 	return scenarioJobDurableState{
 		jobs:           make(map[string]struct{}),
+		rowBytes:       make(map[string]int64),
 		changed:        make(map[string]struct{}),
 		idempotency:    make(map[string]scenarioIdempotencyBinding),
 		pendingCustody: make(map[string]scenarioPendingCloudCustody),
@@ -91,11 +94,26 @@ func (s *scenarioJobStore) markDurableJobChangedLocked(jobID string) {
 }
 
 // @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-incremental-persistence
-func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersistenceAttempt) error {
+func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersistenceAttempt) (err error) {
 	if s == nil {
 		return nil
 	}
+	defer func() {
+		if err == nil {
+			for _, record := range s.jobs {
+				record.terminalUnpersisted = false
+			}
+		}
+	}()
 	s.markDurableJobChangedLocked(attempt.JobID)
+	if record := s.jobs[attempt.JobID]; record != nil {
+		if err := validateScenarioJobRecordSize(record); err != nil {
+			return err
+		}
+	}
+	if err := s.validateJobCapacityLocked(); err != nil {
+		return err
+	}
 	if s.persistenceFailure != nil {
 		if err := s.persistenceFailure(attempt); err != nil {
 			return err
@@ -159,7 +177,29 @@ func (s *scenarioJobStore) appendDurableChangesLocked() error {
 		return fmt.Errorf("encoded ScenarioJob store change spans more than one line")
 	}
 	line = append(line, '\n')
-	restored, err := appendScenarioJobStoreLine(s.durablePath, s.durable.fileBytes, line)
+	// Reserve history headroom before append, including the complete replacement
+	// rows in this mutation. Waiting until the next mutation permits an entire
+	// maximum-size row to exceed the bounded history envelope.
+	projectedBase := s.durable.liveBytes
+	projectedCount := len(s.durable.jobs)
+	for _, row := range entry.Records {
+		projectedBase += int64(len(row.Record)) - s.durable.rowBytes[row.JobID]
+		if _, exists := s.durable.jobs[row.JobID]; !exists {
+			if projectedCount > 0 {
+				projectedBase++ // records-array comma
+			}
+			projectedCount++
+		}
+	}
+	controlDelta, err := s.projectedControlBytesLocked(entry)
+	if err != nil {
+		return err
+	}
+	projectedBase += controlDelta
+	if removed || s.durable.fileBytes-s.durable.baseBytes+int64(len(line)) > max(projectedBase, scenarioJobStoreRewriteFloorBytes) {
+		return s.rewriteDurableStoreLocked()
+	}
+	restored, err := appendScenarioJobStoreLine(s.durablePath, s.durable.fileBytes, line, s.durable.fileIO)
 	if errors.Is(err, errScenarioJobStoreDrift) {
 		// Memory holds every acknowledged mutation of this process.
 		return s.rewriteDurableStoreLocked()
@@ -172,6 +212,7 @@ func (s *scenarioJobStore) appendDurableChangesLocked() error {
 	}
 	for _, row := range entry.Records {
 		s.durable.jobs[row.JobID] = struct{}{}
+		s.durable.rowBytes[row.JobID] = int64(len(row.Record))
 	}
 	for _, id := range entry.DeletedJobs {
 		delete(s.durable.jobs, id)
@@ -191,7 +232,74 @@ func (s *scenarioJobStore) appendDurableChangesLocked() error {
 	clear(s.durable.changed)
 	s.durable.removed = s.durable.removed || removed
 	s.durable.fileBytes += int64(len(line))
+	s.durable.liveBytes = projectedBase
 	return nil
+}
+
+// Only changed control rows are encoded. This keeps the incremental writer's
+// cost independent of retained captured inputs while tracking snapshot size.
+func (s *scenarioJobStore) projectedControlBytesLocked(entry scenarioJobJournalEntry) (int64, error) {
+	var delta int64
+	encodedSize := func(value any) (int64, error) {
+		raw, err := json.Marshal(value)
+		return int64(len(raw)), err
+	}
+	adjust := func(next, previous any) error {
+		for i, value := range []any{next, previous} {
+			if value == nil {
+				continue
+			}
+			n, err := encodedSize(value)
+			if err != nil {
+				return err
+			}
+			if i == 0 {
+				delta += n
+			} else {
+				delta -= n
+			}
+		}
+		return nil
+	}
+	for _, row := range entry.Idempotency {
+		var previous any
+		if prior, ok := s.durable.idempotency[row.ScopeKey]; ok {
+			previous = scenarioJobDiskIdempotencyEntry{ScopeKey: row.ScopeKey, JobID: prior.jobID, BoundAt: prior.boundAt}
+		}
+		if err := adjust(row, previous); err != nil {
+			return 0, err
+		}
+	}
+	for _, key := range entry.DeletedIdempotency {
+		prior := s.durable.idempotency[key]
+		if err := adjust(nil, scenarioJobDiskIdempotencyEntry{ScopeKey: key, JobID: prior.jobID, BoundAt: prior.boundAt}); err != nil {
+			return 0, err
+		}
+	}
+	for _, row := range entry.PendingCustody {
+		var previous any
+		if prior, ok := s.durable.pendingCustody[row.JobID]; ok {
+			previous = scenarioJobDiskPendingCustody{JobID: row.JobID, Ref: prior.ref, CapturedAt: prior.capturedAt}
+		}
+		if err := adjust(row, previous); err != nil {
+			return 0, err
+		}
+	}
+	for _, id := range entry.DeletedPendingCustody {
+		prior := s.durable.pendingCustody[id]
+		if err := adjust(nil, scenarioJobDiskPendingCustody{JobID: id, Ref: prior.ref, CapturedAt: prior.capturedAt}); err != nil {
+			return 0, err
+		}
+	}
+	sectionOverhead := func(field string, count int) int64 {
+		if count == 0 {
+			return 0
+		}
+		return int64(len(field) + 6 + count - 1) // ,"field":[] and row commas
+	}
+	delta += sectionOverhead("idempotency", len(s.idempotency)) - sectionOverhead("idempotency", len(s.durable.idempotency))
+	delta += sectionOverhead("pending_credential_custody", len(s.pendingCloudCustody)) - sectionOverhead("pending_credential_custody", len(s.durable.pendingCustody))
+	return delta, nil
 }
 
 // durableChangesLocked validates and encodes only the rows that differ from
@@ -264,7 +372,7 @@ func (s *scenarioJobStore) rewriteDurableStoreLocked() error {
 		jobIDs = append(jobIDs, jobID)
 	}
 	sort.Strings(jobIDs)
-	snapshot := scenarioJobDiskSnapshot{Version: scenarioJobDiskStoreVersion, Records: make([]scenarioJobDiskRecord, 0, len(jobIDs))}
+	snapshot := scenarioJobDiskSnapshot{Version: scenarioJobDiskStoreVersion, RecoveryIncomplete: s.recoveryIncomplete, Records: make([]scenarioJobDiskRecord, 0, len(jobIDs))}
 	for _, jobID := range jobIDs {
 		_, durable := s.durable.jobs[jobID]
 		_, changed := s.durable.changed[jobID]
@@ -304,6 +412,14 @@ func (s *scenarioJobStore) rewriteDurableStoreLocked() error {
 		return err
 	}
 	s.durable.jobs = make(map[string]struct{}, len(jobIDs))
+	s.durable.rowBytes = make(map[string]int64, len(jobIDs))
+	for i, jobID := range jobIDs {
+		encoded, err := json.Marshal(snapshot.Records[i])
+		if err != nil {
+			return err
+		}
+		s.durable.rowBytes[jobID] = int64(len(encoded))
+	}
 	for _, jobID := range jobIDs {
 		s.durable.jobs[jobID] = struct{}{}
 	}
@@ -318,6 +434,7 @@ func (s *scenarioJobStore) rewriteDurableStoreLocked() error {
 	}
 	s.durable.fileBytes = int64(len(raw))
 	s.durable.baseBytes = int64(len(raw))
+	s.durable.liveBytes = int64(len(raw))
 	s.durable.removed = false
 	s.durable.current = true
 	return nil
@@ -330,6 +447,12 @@ func scenarioJobDiskRecordFor(jobID string, record *scenarioJobRecord, validate 
 		return scenarioJobDiskRecord{}, fmt.Errorf("scenario job %q has no record", jobID)
 	}
 	if validate {
+		if record.publicEvicted && !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+			return scenarioJobDiskRecord{}, fmt.Errorf("nonterminal Job cannot have terminal public eviction")
+		}
+		if err := validatePersistedNativeReceipt(record); err != nil {
+			return scenarioJobDiskRecord{}, err
+		}
 		if err := validatePersistedScenarioJob(record.job, record.createdAt, record.updatedAt, record.terminalAt); err != nil {
 			return scenarioJobDiskRecord{}, fmt.Errorf("scenario job %q public record: %w", jobID, err)
 		}
@@ -339,7 +462,7 @@ func scenarioJobDiskRecordFor(jobID string, record *scenarioJobRecord, validate 
 		if err := validateScenarioJobTerminalResults(record); err != nil {
 			return scenarioJobDiskRecord{}, fmt.Errorf("scenario job %q terminal result: %w", jobID, err)
 		}
-		if err := validateLocalAppMusicSubmission(record.musicSubmission, record.localAppOwner, record.job); err != nil {
+		if err := validateLocalAppMusicSubmission(record.musicSubmission, record.localAppOwner, record.job, record.cloudAssembly); err != nil {
 			return scenarioJobDiskRecord{}, err
 		}
 	}
@@ -382,8 +505,13 @@ func scenarioJobDiskRecordFor(jobID string, record *scenarioJobRecord, validate 
 			return scenarioJobDiskRecord{}, fmt.Errorf("marshal scenario job %q Locate result: %w", jobID, err)
 		}
 	}
+	receipt := record.nativeReceipt
+	if record.nativeReceiptPending {
+		receipt = nil
+	}
 	return scenarioJobDiskRecord{
-		Payload: cloneEmbeddingPayload(record.payload), Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
+		PublicEvicted:    record.publicEvicted,
+		DispatchPossible: cloneScenarioDispatch(record.dispatchPossible), NativeReceipt: receipt, NativeResult: record.nativeResult, BodyArtifactIDs: append([]string(nil), record.bodyArtifactIDs...), ResultCandidate: cloneScenarioResultCandidate(record.resultCandidate), Payload: cloneEmbeddingPayload(record.payload), Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
 		VoiceAsset: voiceAssetRaw, VoiceReference: voiceReferenceRaw,
 		MusicSubmission: cloneLocalAppMusicSubmission(record.musicSubmission),
 		VisionLocate:    visionRaw,
@@ -404,38 +532,6 @@ func scenarioJobDiskPendingCustodyFor(jobID string, pending scenarioPendingCloud
 // appendScenarioJobStoreLine durably appends one journal line at the length
 // the writer last acknowledged. restored reports that a failed append left no
 // bytes behind; otherwise the next write must rewrite the whole document.
-func appendScenarioJobStoreLine(path string, acknowledgedBytes int64, line []byte) (restored bool, err error) {
-	file, err := openScenarioJobStoreForAppend(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return true, errScenarioJobStoreDrift
-	}
-	if err != nil {
-		return true, err
-	}
-	info, err := file.Stat()
-	if err != nil {
-		_ = file.Close()
-		return true, err
-	}
-	if info.Size() != acknowledgedBytes {
-		_ = file.Close()
-		return true, errScenarioJobStoreDrift
-	}
-	_, err = file.WriteAt(line, acknowledgedBytes)
-	if err == nil {
-		err = file.Sync()
-	}
-	if err == nil {
-		// The line is durable once synced; a failed close cannot undo it, and
-		// reporting failure would make the caller roll back acknowledged state.
-		_ = file.Close()
-		return true, nil
-	}
-	restored = file.Truncate(acknowledgedBytes) == nil && file.Sync() == nil
-	_ = file.Close()
-	return restored, err
-}
-
 // scenarioJobDurableDocument is one parsed store document: the base snapshot
 // and the journal lines appended after it.
 type scenarioJobDurableDocument struct {
@@ -479,13 +575,6 @@ func parseScenarioJobDurableDocument(raw []byte) (scenarioJobDurableDocument, er
 		}
 		var entry scenarioJobJournalEntry
 		if err := decodeScenarioJobStrictJSON(lines[:end], &entry); err != nil {
-			// A terminated final line can still be torn: its line break may reach
-			// the disk before earlier bytes of the same unacknowledged write. Such
-			// a line is not valid JSON; a well-formed wrong line is corruption.
-			if end+1 == len(lines) && !json.Valid(lines[:end]) {
-				document.tornBytes = len(lines)
-				break
-			}
 			return document, fmt.Errorf("journal line %d: %w", len(document.entries)+1, err)
 		}
 		if entry.empty() {

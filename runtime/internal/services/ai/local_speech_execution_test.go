@@ -285,11 +285,13 @@ func TestLocalSpeechRunningCancelRetainsSchedulerLeaseUntilHostExits(t *testing.
 		t.Fatalf("replacement entered before canceled Host exited: %q", got)
 	case <-time.After(100 * time.Millisecond):
 	}
-	if job, ok := svc.scenarioJobs.get(first.GetJobId()); !ok || isTerminalScenarioJobStatus(job.GetStatus()) {
-		t.Fatalf("running cancel terminalized before Host exit: %+v", job)
+	if job, ok := svc.scenarioJobs.get(first.GetJobId()); !ok || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("running cancel failed to close publication: %+v", job)
 	}
 
+	assertScenarioJobWorkActive(t, svc.scenarioJobs, first.GetJobId())
 	close(host.cancelRelease)
+	waitScenarioJobWorkExit(t, svc.scenarioJobs, first.GetJobId())
 	canceled := waitLocalSpeechJobTerminal(t, svc, first.GetJobId())
 	if canceled.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		t.Fatalf("canceled job status=%s", canceled.GetStatus())
@@ -383,13 +385,17 @@ func TestLocalSpeechJobRemainsQueuedUntilSchedulerLeaseAndCancelsWithoutEntering
 		t.Fatalf("canceled queued job entered Host: %q", got)
 	default:
 	}
-	timedOut := waitLocalSpeechJobTerminal(t, svc, submit("timed-out", 50).GetJobId())
-	if timedOut.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT {
-		t.Fatalf("queued timeout job status=%s", timedOut.GetStatus())
+	_, legacyErr := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous", TimeoutMs: 50},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: localQwen3SpeechSpecForTest("removed-timeout")}},
+	})
+	if reason, _ := grpcerr.ExtractReasonCode(legacyErr); reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("removed timeout admission: %v", legacyErr)
 	}
 	select {
 	case got := <-host.calls:
-		t.Fatalf("timed-out queued job entered Host: %q", got)
+		t.Fatalf("rejected Job entered Host: %q", got)
 	default:
 	}
 

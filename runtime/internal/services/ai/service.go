@@ -108,6 +108,8 @@ type Service struct {
 	remoteMediaHost                        remoteexecution.MediaHost
 	remoteRealtimeHost                     remoteexecution.RealtimeHost
 	runtimeAccountProjection               runtimeAccountProjectionProvider
+	jobWorkAuthorizer                      JobWorkAuthorizer
+	requireJobWorkAuthority                bool
 	speechCatalog                          *catalog.Resolver
 	allowLoopback                          bool
 	streamFirstPacketTimeout               time.Duration
@@ -122,7 +124,7 @@ type runtimeAccountProjectionProvider interface {
 }
 
 // New creates a Service with all dependencies.
-func New(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
+func New(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config, options ...JobExecutionOption) (*Service, error) {
 	effectiveCfg := loadConfigFromEnv()
 	if daemonCfg.AIHTTPTimeoutSeconds > 0 {
 		effectiveCfg.AIHTTPTimeout = time.Duration(daemonCfg.AIHTTPTimeoutSeconds) * time.Second
@@ -141,13 +143,20 @@ func New(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.C
 			effectiveCfg.CloudProviders[providerID] = creds
 		}
 	}
-	return newService(logger, auditStore, connStore, effectiveCfg, daemonCfg, strings.TrimSpace(daemonCfg.ModelCatalogCustomDir))
+	svc, err := newService(logger, auditStore, connStore, effectiveCfg, daemonCfg, strings.TrimSpace(daemonCfg.ModelCatalogCustomDir))
+	if err != nil {
+		return nil, err
+	}
+	for _, option := range options {
+		option(svc)
+	}
+	return svc, nil
 }
 
 // NewProtected creates the production protected-service AI surface. Provider
 // endpoints and credentials are deliberately absent from this constructor:
 // remote execution resolves them through the Runtime-owned connector store.
-func NewProtected(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
+func NewProtected(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config, options ...JobExecutionOption) (*Service, error) {
 	if connStore == nil {
 		return nil, fmt.Errorf("protected AI service requires Runtime-owned connector resolver")
 	}
@@ -158,7 +167,15 @@ func NewProtected(logger *slog.Logger, auditStore *auditlog.Store, connStore *co
 	if daemonCfg.AIHTTPTimeoutSeconds > 0 {
 		effectiveCfg.AIHTTPTimeout = time.Duration(daemonCfg.AIHTTPTimeoutSeconds) * time.Second
 	}
-	return newService(logger, auditStore, connStore, effectiveCfg, daemonCfg, "")
+	svc, err := newService(logger, auditStore, connStore, effectiveCfg, daemonCfg, "")
+	if err != nil {
+		return nil, err
+	}
+	svc.requireJobWorkAuthority = true
+	for _, option := range options {
+		option(svc)
+	}
+	return svc, nil
 }
 
 func newService(logger *slog.Logger, auditStore *auditlog.Store, connStore *connector.ConnectorStore, effectiveCfg Config, daemonCfg config.Config, customCatalogDir string) (*Service, error) {
@@ -415,8 +432,14 @@ func (s *Service) SetRemoteRealtimeExecutionHost(host remoteexecution.RealtimeHo
 // RuntimeArtifactService. Producers write before emitting ids to consumers.
 func (s *Service) SetRuntimeArtifactStore(store runtimeartifact.Store) {
 	s.runtimeArtifacts = store
+	if owner, ok := store.(interface{ SetJobStagingRoots([]string) }); ok {
+		owner.SetJobStagingRoots([]string{s.localMusicStagingRoot, s.localSpeechStagingRoot})
+	}
 	if s.scenarioJobs != nil {
 		s.scenarioJobs.setMusicArtifactStore(store)
+		s.scenarioJobs.mu.Lock()
+		s.scenarioJobs.jobBodies, _ = store.(runtimeartifact.JobBodyStore)
+		s.scenarioJobs.mu.Unlock()
 	}
 }
 

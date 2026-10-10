@@ -3,7 +3,9 @@ package ai
 import (
 	"context"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
@@ -61,11 +63,10 @@ func TestCloudOwnedImageCaptureSurvivesOriginalRemovalAndStoreReopen(t *testing.
 	}
 	// The input custody store no longer has the original record. Rehydrating the
 	// execution must use the durable snapshot, never look up mutable input truth.
-	f.service.runtimeArtifacts = runtimeartifact.NewMemoryStore()
-	reopened, err := newScenarioJobStoreForLocalStatePath(statePath)
-	if err != nil {
+	if err := f.service.runtimeArtifacts.Delete("owned-image"); err != nil {
 		t.Fatal(err)
 	}
+	reopened := cloneScenarioJobStoreForReopenTest(t, store)
 	retained, ok := reopened.cloudResolvedAssembly(response.GetJob().GetJobId())
 	if !ok {
 		t.Fatal("reopened Job missing")
@@ -86,6 +87,7 @@ func TestCloudOwnedImageCaptureSurvivesOriginalRemovalAndStoreReopen(t *testing.
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("terminal=%v", terminal)
 	}
+	waitCompletedScenarioJobCleanup(t, f.service, response.GetJob().GetJobId())
 }
 
 func TestCloudOwnedImageRejectsForeignAndWrongMimeBeforeJob(t *testing.T) {
@@ -116,4 +118,63 @@ func TestCloudOwnedImageRejectsForeignAndWrongMimeBeforeJob(t *testing.T) {
 	if len(f.service.scenarioJobs.jobs) != 0 {
 		t.Fatal("invalid image created Jobs")
 	}
+}
+
+type countedCloudCaptureStore struct {
+	*runtimeartifact.MemoryStore
+	opens atomic.Int32
+}
+
+func (s *countedCloudCaptureStore) Open(ctx context.Context, id string) (*runtimeartifact.ArtifactSource, bool) {
+	if id == "owned-image" {
+		s.opens.Add(1)
+	}
+	return s.MemoryStore.Open(ctx, id)
+}
+
+func TestCloudActionLookupAvoidsRecaptureWithoutWholeRowReservation(t *testing.T) {
+	f, ctx := cloudImageArtifactFixture(t)
+	store, err := newScenarioJobStoreForLocalStatePath(filepath.Join(t.TempDir(), "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.service.scenarioJobs = store
+	bodies := &countedCloudCaptureStore{MemoryStore: runtimeartifact.NewMemoryStore()}
+	f.service.SetRuntimeArtifactStore(bodies)
+	host := newControlledRemoteMediaHost(true)
+	f.service.SetRemoteMediaExecutionHost(host)
+	owner := &runtimeartifact.ArtifactOwner{SubjectUserID: "user-001", RegisteredAppSubject: "protected-app-principal", AppID: "nimi.realm-persona-studio"}
+	putImageArtifactRecordForTest(t, f.service, "owned-image", owner, "image/png", l1CarrierPNGBytes(t))
+	request := func(id string) *runtimev1.SubmitLocalAppScenarioJobRequest {
+		return &runtimev1.SubmitLocalAppScenarioJobRequest{ClientSubmissionId: id, Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_ImageGenerate{ImageGenerate: &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "edit", ReferenceImageArtifactId: "owned-image"}}}
+	}
+	first, err := f.service.SubmitLocalAppScenarioJob(ctx, request("first-action"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-host.started:
+	case <-time.After(3 * time.Second):
+		t.Fatal("first admitted work did not reach Host")
+	}
+	id := first.GetJob().GetJobId()
+	defer func() {
+		_, _, _ = store.requestCancel(id, "fixture done")
+		closeOnce(host.allowCancelExit)
+		waitCompletedScenarioJobCleanup(t, f.service, id)
+	}()
+	before := bodies.opens.Load()
+	retry, err := f.service.SubmitLocalAppScenarioJob(ctx, request("first-action"))
+	if err != nil || retry.GetJob().GetJobId() != id || bodies.opens.Load() != before {
+		t.Fatal("known action did not remain a pure lookup")
+	}
+	response, err := f.service.SubmitLocalAppScenarioJob(ctx, request("second-action"))
+	if err != nil || response.GetJob().GetJobId() == id || bodies.opens.Load() <= before {
+		t.Fatalf("independent action was blocked by future result reservation: %v", err)
+	}
+	secondID := response.GetJob().GetJobId()
+	_, _, _ = store.requestCancel(secondID, "fixture done")
+	f.service.releaseCloudCredentialCustodyForJob(secondID)
+	closeOnce(host.allowCancelExit)
+	waitCompletedScenarioJobCleanup(t, f.service, secondID)
 }

@@ -109,7 +109,8 @@ func TestDashScopeVideoObservationsSeparateSubmitPollAndArtifactFailures(t *test
 				})
 			}))
 			defer server.Close()
-			ctx := WithProviderPollWait(loopbackProviderTestContext(context.Background()), func(context.Context, time.Duration) error { return nil })
+			var receipt *NativeTaskReceipt
+			ctx := WithNativeTaskPublisher(loopbackProviderTestContext(context.Background()), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 			result, err := (&CloudProvider{}).ExecuteMediaAdapter(ctx, AdapterAlibabaNative, "trace-video-1",
 				&runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 					Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
@@ -117,6 +118,25 @@ func TestDashScopeVideoObservationsSeparateSubmitPollAndArtifactFailures(t *test
 						Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
 							Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "private prompt"}},
 					}}}}, "wan2.7-t2v", &RemoteTarget{Endpoint: server.URL, APIKey: "private-credential", AllowLoopback: true}, noopJobStateUpdater{})
+			if failure != "submit" {
+				if !errors.Is(err, ErrNativeTaskYielded) || polls != 0 {
+					t.Fatalf("create did not yield: %v polls=%d", err, polls)
+				}
+				cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "private-credential", AllowLoopbackEndpoint: true}
+				var observation *NativeTaskObservation
+				for freshGet := 0; freshGet < 4; freshGet++ {
+					var terminal bool
+					observation, terminal, err = ObserveNativeTask(context.Background(), cfg, receipt)
+					if err != nil || terminal {
+						break
+					}
+				}
+				if err == nil {
+					result.Artifacts = observation.Artifacts
+					result.ArtifactBodies, err = OpenNativeTaskArtifacts(context.Background(), cfg, receipt, observation)
+				}
+			}
+
 			if (err != nil) != (failure != "") {
 				t.Fatalf("failure=%q error=%v", failure, err)
 			}
@@ -150,7 +170,11 @@ func TestDashScopeVideoObservationsSeparateSubmitPollAndArtifactFailures(t *test
 				return
 			}
 			for _, status := range []string{"pending", "running", "succeeded"} {
-				if strings.Count(text, "status="+status) != 1 {
+				expected := 1
+				if status == "pending" {
+					expected = 2
+				}
+				if strings.Count(text, "status="+status) != expected {
 					t.Fatalf("status transition %q missing or repeated: %s", status, text)
 				}
 			}

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -75,7 +76,23 @@ func TestWorldLabsNativeOperationPackagesCurrentWorldIDWithoutEstimatedUsage(t *
 		"spz_urls": map[string]any{"500k": server.URL + "/scene.spz"}, "semantics_metadata": map[string]any{"metric_scale_factor": 1.2, "ground_plane_offset": 0.0},
 	}}}
 	req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{TextPrompt: "A fictional sunlit reading room."}}}}
-	artifacts, usage, operation, err := ExecuteWorldLabsWorld(loopbackProviderTestContext(context.Background()), MediaAdapterConfig{BaseURL: server.URL, APIKey: "key", AllowLoopbackEndpoint: true}, noopJobStateUpdater{}, "job-1", req, "marble-1.1")
+	var receipt *NativeTaskReceipt
+	ctx := WithNativeTaskPublisher(loopbackProviderTestContext(context.Background()), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
+	artifacts, usage, operation, err := ExecuteWorldLabsWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "key", AllowLoopbackEndpoint: true}, noopJobStateUpdater{}, "job-1", req, "marble-1.1")
+	if !errors.Is(err, ErrNativeTaskYielded) || len(artifacts) != 0 {
+		t.Fatalf("create did not yield: %v", err)
+	}
+	cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "key", AllowLoopbackEndpoint: true}
+	observation, terminal, err := ObserveNativeTask(context.Background(), cfg, receipt)
+	if err != nil || !terminal {
+		t.Fatalf("World observation: %v %v", terminal, err)
+	}
+	artifacts = observation.Artifacts
+	bodies, err := OpenNativeTaskArtifacts(context.Background(), cfg, receipt, observation)
+	if err != nil || len(bodies[artifacts[1].GetArtifactId()].Bytes) == 0 {
+		t.Fatalf("World body: %v", err)
+	}
+
 	if err != nil || usage != nil || operation != "operation-1" || len(artifacts) != 2 || artifacts[1].GetMimeType() != WorldBundleMIME {
 		t.Fatalf("current world packaging artifacts=%+v usage=%+v operation=%q err=%v", artifacts, usage, operation, err)
 	}

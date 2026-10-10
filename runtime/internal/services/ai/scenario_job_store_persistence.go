@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"io"
 	"os"
 	"path/filepath"
@@ -43,10 +44,11 @@ type scenarioJobIsolationDiagnostic struct {
 }
 
 type scenarioJobDiskRawSnapshot struct {
-	Version        int               `json:"version"`
-	Records        []json.RawMessage `json:"records"`
-	Idempotency    []json.RawMessage `json:"idempotency,omitempty"`
-	PendingCustody []json.RawMessage `json:"pending_credential_custody,omitempty"`
+	RecoveryIncomplete bool              `json:"recovery_incomplete,omitempty"`
+	Version            int               `json:"version"`
+	Records            []json.RawMessage `json:"records"`
+	Idempotency        []json.RawMessage `json:"idempotency,omitempty"`
+	PendingCustody     []json.RawMessage `json:"pending_credential_custody,omitempty"`
 }
 
 type scenarioJobQuarantinedRecord struct {
@@ -68,25 +70,32 @@ type scenarioJobLoadRow struct {
 }
 
 type scenarioJobDiskSnapshot struct {
-	Version        int                               `json:"version"`
-	Records        []scenarioJobDiskRecord           `json:"records"`
-	Idempotency    []scenarioJobDiskIdempotencyEntry `json:"idempotency,omitempty"`
-	PendingCustody []scenarioJobDiskPendingCustody   `json:"pending_credential_custody,omitempty"`
+	RecoveryIncomplete bool                              `json:"recovery_incomplete,omitempty"`
+	Version            int                               `json:"version"`
+	Records            []scenarioJobDiskRecord           `json:"records"`
+	Idempotency        []scenarioJobDiskIdempotencyEntry `json:"idempotency,omitempty"`
+	PendingCustody     []scenarioJobDiskPendingCustody   `json:"pending_credential_custody,omitempty"`
 }
 
 type scenarioJobDiskRecord struct {
-	Payload               *embeddingPayload        `json:"embedding_payload,omitempty"`
-	Job                   json.RawMessage          `json:"job"`
-	ResolvedAssembly      json.RawMessage          `json:"resolved_assembly,omitempty"`
-	CloudResolvedAssembly json.RawMessage          `json:"cloud_resolved_assembly,omitempty"`
-	VoiceAsset            json.RawMessage          `json:"voice_asset,omitempty"`
-	VoiceReference        json.RawMessage          `json:"voice_reference,omitempty"`
-	VisionLocate          json.RawMessage          `json:"vision_locate,omitempty"`
-	Owner                 *localAppJobOwner        `json:"owner,omitempty"`
-	MusicSubmission       *localAppMusicSubmission `json:"music_submission,omitempty"`
-	CreatedAt             time.Time                `json:"created_at"`
-	UpdatedAt             time.Time                `json:"updated_at"`
-	TerminalAt            time.Time                `json:"terminal_at,omitempty"`
+	DispatchPossible      *bool                          `json:"dispatch_possible,omitempty"`
+	ResultCandidate       *scenarioJobResultCandidate    `json:"result_candidate,omitempty"`
+	PublicEvicted         bool                           `json:"public_evicted,omitempty"`
+	NativeReceipt         *nimillm.NativeTaskReceipt     `json:"native_receipt,omitempty"`
+	NativeResult          *nimillm.NativeTaskObservation `json:"native_result,omitempty"`
+	BodyArtifactIDs       []string                       `json:"body_artifact_ids,omitempty"`
+	Payload               *embeddingPayload              `json:"embedding_payload,omitempty"`
+	Job                   json.RawMessage                `json:"job"`
+	ResolvedAssembly      json.RawMessage                `json:"resolved_assembly,omitempty"`
+	CloudResolvedAssembly json.RawMessage                `json:"cloud_resolved_assembly,omitempty"`
+	VoiceAsset            json.RawMessage                `json:"voice_asset,omitempty"`
+	VoiceReference        json.RawMessage                `json:"voice_reference,omitempty"`
+	VisionLocate          json.RawMessage                `json:"vision_locate,omitempty"`
+	Owner                 *localAppJobOwner              `json:"owner,omitempty"`
+	MusicSubmission       *localAppMusicSubmission       `json:"music_submission,omitempty"`
+	CreatedAt             time.Time                      `json:"created_at"`
+	UpdatedAt             time.Time                      `json:"updated_at"`
+	TerminalAt            time.Time                      `json:"terminal_at,omitempty"`
 }
 
 type scenarioJobDiskIdempotencyEntry struct {
@@ -135,7 +144,7 @@ func scenarioJobStorePathForLocalStatePath(localStatePath string) string {
 
 // @nimi-authority: rule.nimi.runtime.service-operations.r072
 func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
-	raw, err := os.ReadFile(s.durablePath)
+	raw, err := readScenarioJobDocument(s.durablePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
@@ -150,6 +159,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 	if snapshot.Version != scenarioJobDiskStoreVersion {
 		return s.isolateDurableDocument(raw, fmt.Errorf("unsupported scenario job store version %d", snapshot.Version))
 	}
+	s.recoveryIncomplete = snapshot.RecoveryIncomplete
 	// A Job, binding, or custody obligation that the journal touched is
 	// represented by its final journal row, never by its base row.
 	replay := replayScenarioJobJournal(document.entries)
@@ -194,7 +204,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 			rowErr = validateScenarioJobPayload(&job, resolvedAssembly, cloudAssembly, item.Payload)
 		}
 		if rowErr == nil {
-			rowErr = validateLocalAppMusicSubmission(item.MusicSubmission, item.Owner, &job)
+			rowErr = validateLocalAppMusicSubmission(item.MusicSubmission, item.Owner, &job, cloudAssembly)
 		}
 		if rowErr == nil && item.MusicSubmission != nil && s.musicSubmissionLocked(item.Owner, item.MusicSubmission.ID) != nil {
 			rowErr = errors.New("duplicate protected music submission binding")
@@ -226,18 +236,40 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		if rowErr == nil && s.jobs[jobID] != nil {
 			rowErr = fmt.Errorf("duplicate scenario job %q", jobID)
 		}
+		if rowErr == nil && item.PublicEvicted && !isTerminalScenarioJobStatus(job.GetStatus()) {
+			rowErr = errors.New("nonterminal Job cannot have terminal public eviction")
+		}
+		if rowErr == nil {
+			validatedRecord := &scenarioJobRecord{
+				job: &job, dispatchPossible: item.DispatchPossible, nativeReceipt: item.NativeReceipt, nativeResult: item.NativeResult, bodyArtifactIDs: item.BodyArtifactIDs, resultCandidate: item.ResultCandidate,
+				resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly,
+				localAppOwner: item.Owner, musicSubmission: item.MusicSubmission, payload: item.Payload,
+				voiceAsset: voiceAsset, voiceReference: voiceReference, visionLocate: visionLocate,
+				createdAt: item.CreatedAt, updatedAt: item.UpdatedAt, terminalAt: item.TerminalAt,
+			}
+			rowErr = validateScenarioJobRecordSize(validatedRecord)
+			if rowErr == nil {
+				rowErr = validatePersistedNativeReceipt(validatedRecord)
+			}
+		}
 		if rowErr != nil {
 			quarantined = append(quarantined, scenarioJobQuarantinedRecord{
 				Section: "records", RecordIndex: row.index, JournalLine: row.journalLine, RecordID: jobID, Reason: rowErr.Error(), Raw: row.raw,
 			})
 			continue
 		}
-		if !isTerminalScenarioJobStatus(job.GetStatus()) {
+		if !isTerminalScenarioJobStatus(job.GetStatus()) && item.NativeReceipt == nil && item.NativeResult == nil && item.ResultCandidate == nil {
+			if scenarioDispatchKnownAbsent(item.DispatchPossible) {
+				job.SubmissionOutcome = runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED
+			}
 			job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
 			job.ReasonCode = runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED
 			job.ReasonDetail = interruptedCapturedAssemblyDetail(&job)
 			job.ReasonMetadata = nil
 			job.Interruption = runtimeRestartExecutionInterruption()
+			if job.GetExecutionMode() == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB && job.GetSubmissionOutcome() != runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED {
+				job.Interruption.ResubmitDisposition = runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN
+			}
 			if projectionErr := prepareFailedScenarioJobProjection(&job); projectionErr != nil {
 				quarantined = append(quarantined, scenarioJobQuarantinedRecord{
 					Section: "records", RecordIndex: row.index, JournalLine: row.journalLine, RecordID: jobID, Reason: projectionErr.Error(), Raw: row.raw,
@@ -250,7 +282,8 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 			s.markDurableJobChangedLocked(jobID)
 		}
 		record := &scenarioJobRecord{
-			payload: cloneEmbeddingPayload(item.Payload), job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
+			publicEvicted:    item.PublicEvicted,
+			dispatchPossible: cloneScenarioDispatch(item.DispatchPossible), nativeReceipt: item.NativeReceipt, nativeResult: nimillm.CloneNativeTaskObservation(item.NativeResult), bodyArtifactIDs: append([]string(nil), item.BodyArtifactIDs...), resultCandidate: cloneScenarioResultCandidate(item.ResultCandidate), payload: cloneEmbeddingPayload(item.Payload), job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
 			voiceAsset: cloneVoiceAsset(voiceAsset), voiceReference: cloneVoiceReference(voiceReference),
 			visionLocate: cloneVisionLocateResult(visionLocate),
 			events:       make([]*runtimev1.ScenarioJobEvent, 0, 1), subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
@@ -338,6 +371,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 	}
 
 	if len(quarantined) > 0 {
+		s.recoveryIncomplete = true
 		quarantinePath, quarantineErr := s.preserveIsolatedRecords(quarantined)
 		if quarantineErr != nil {
 			return fmt.Errorf("preserve isolated scenario job records: %w", quarantineErr)
@@ -444,7 +478,8 @@ func (s *scenarioJobStore) isolateDurableDocument(payload []byte, cause error) e
 	if err != nil {
 		return fmt.Errorf("isolate %s document after %v: %w", scenarioJobDiskStoreFileName, cause, err)
 	}
-	return nil
+	s.recoveryIncomplete = true
+	return s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistLoad})
 }
 
 func (s *scenarioJobStore) preserveScenarioJobDocument(payload []byte) (string, error) {
@@ -452,14 +487,11 @@ func (s *scenarioJobStore) preserveScenarioJobDocument(payload []byte) (string, 
 	if err != nil {
 		return "", err
 	}
-	if err := os.Rename(s.durablePath, target); err == nil {
-		return target, nil
-	}
-	if err := os.WriteFile(target, payload, 0o600); err != nil {
+	// Keep the sole active document until the fenced replacement commits.
+	// A failed copy/fence write or process exit must leave corruption visible
+	// to the next opener, never turn unknown history into an absent store.
+	if err := writeScenarioJobDocument(target, payload); err != nil {
 		return "", err
-	}
-	if err := os.Remove(s.durablePath); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return target, err
 	}
 	return target, nil
 }

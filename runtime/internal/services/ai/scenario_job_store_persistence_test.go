@@ -90,7 +90,7 @@ func TestScenarioJobStorePersistsJobAndCapturedResolvedAssemblyInOneRecord(t *te
 	if err != nil || created == nil || !published {
 		t.Fatalf("atomic create = %#v, published=%v err=%v", created, published, err)
 	}
-	raw, err := os.ReadFile(scenarioJobStorePathForLocalStatePath(localStatePath))
+	raw, err := readScenarioJobDocument(scenarioJobStorePathForLocalStatePath(localStatePath))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -516,14 +516,19 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 				t.Fatalf("record quarantine holds %d rows, want only the isolated row", len(isolatedRows))
 			}
 			var rewritten scenarioJobDiskRawSnapshot
-			rewrittenRaw, err := os.ReadFile(path)
+			rewrittenRaw, err := readScenarioJobDocument(path)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if err := decodeScenarioJobStrictJSON(rewrittenRaw, &rewritten); err != nil || len(rewritten.Records) != 2 || len(rewritten.Idempotency) != 2 {
 				t.Fatalf("healthy ScenarioJob rewrite = records=%d bindings=%d err=%v", len(rewritten.Records), len(rewritten.Idempotency), err)
 			}
-			createCompletedCloudScenarioJobForIsolationTest(t, svc.scenarioJobs, "job-after-isolation")
+			if err := svc.scenarioJobs.admitNewScenarioAction(); err == nil {
+				t.Fatal("isolated action inventory admitted a new generation")
+			}
+			if err := svc.scenarioJobs.bindIdempotency("healthy-maintenance-scope", "job-healthy-a"); err != nil {
+				t.Fatalf("healthy control write was blocked: %v", err)
+			}
 			preserved, err := os.ReadFile(diagnostics[0].QuarantinePath)
 			if err != nil || !bytes.Equal(preserved, quarantined) {
 				t.Fatalf("healthy write overwrote quarantined bytes: err=%v", err)
@@ -564,7 +569,8 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		ModelResolved: "gpt-image-1",
 		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-		CreatedAt: now, UpdatedAt: now, TraceId: "trace-cloud-restart",
+		SubmissionOutcome: runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN,
+		CreatedAt:         now, UpdatedAt: now, TraceId: "trace-cloud-restart",
 	}
 	target, err := structpb.NewStruct(map[string]any{
 		"provider": "openai", "providerModelId": "gpt-image-1", "remoteModelCatalogId": "catalog-image",
@@ -593,7 +599,10 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 	if err != nil || created == nil || !published {
 		t.Fatalf("atomic Cloud create = %#v published=%v err=%v", created, published, err)
 	}
-	raw, err := os.ReadFile(store.durablePath)
+	if err := store.markScenarioDispatchPossible(context.Background(), job.JobId); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := readScenarioJobDocument(store.durablePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -618,7 +627,7 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 	}
 	if interruption := persisted.GetInterruption(); interruption == nil ||
 		interruption.GetCause() != runtimev1.ExecutionInterruptionCause_EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART ||
-		interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT {
+		interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN {
 		t.Fatalf("restarted Cloud interruption = %#v", interruption)
 	}
 	if persisted.GetReasonDetail() == "" {
@@ -671,6 +680,12 @@ func TestScenarioJobStoreRestartTerminalizesEveryPersistedInFlightState(t *testi
 				}
 			}
 
+			if recoveredStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
+				if err := store.markScenarioDispatchPossible(context.Background(), jobID); err != nil {
+					t.Fatal(err)
+				}
+			}
+
 			reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
 			if err != nil {
 				t.Fatal(err)
@@ -680,9 +695,13 @@ func TestScenarioJobStoreRestartTerminalizesEveryPersistedInFlightState(t *testi
 				persisted.GetReasonCode() != runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
 				t.Fatalf("restart-recovered ScenarioJob = %#v, visible=%v", persisted, ok)
 			}
+			wantDisposition := runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT
+			if recoveredStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
+				wantDisposition = runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN
+			}
 			if interruption := persisted.GetInterruption(); interruption == nil ||
 				interruption.GetCause() != runtimev1.ExecutionInterruptionCause_EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART ||
-				interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT {
+				interruption.GetResubmitDisposition() != wantDisposition {
 				t.Fatalf("restart-recovered interruption = %#v", interruption)
 			}
 			projected, err := projectLocalAppScenarioJob(persisted)
@@ -692,7 +711,9 @@ func TestScenarioJobStoreRestartTerminalizesEveryPersistedInFlightState(t *testi
 			if projected.GetReasonCode() != runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
 				t.Fatalf("Local App restart reason = %v", projected.GetReasonCode())
 			}
-			assertRuntimeRestartInterruption(t, projected.GetInterruption())
+			if !proto.Equal(projected.GetInterruption(), persisted.GetInterruption()) {
+				t.Fatal("protected projection lost restart uncertainty")
+			}
 			captured, ok := reopened.cloudResolvedAssembly(jobID)
 			if !ok || !bytes.Contains(captured.Request, []byte("captured prompt")) {
 				t.Fatalf("restart recovery lost captured Cloud ResolvedAssembly: %+v, visible=%v", captured, ok)
@@ -1187,10 +1208,17 @@ func TestScenarioJobStoreIsolatesTruncatedDocumentAndStartsEmptyAIService(t *tes
 	if err != nil || !bytes.Equal(quarantined, poisoned) {
 		t.Fatalf("document quarantine did not preserve original bytes: err=%v", err)
 	}
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		t.Fatalf("isolated document remained on active path: %v", err)
+	current, err := readScenarioJobDocument(path)
+	if err != nil {
+		t.Fatal(err)
 	}
-	createCompletedCloudScenarioJobForIsolationTest(t, svc.scenarioJobs, "job-after-document-isolation")
+	var fenced scenarioJobDiskRawSnapshot
+	if err := decodeScenarioJobStrictJSON(current, &fenced); err != nil || !fenced.RecoveryIncomplete || len(fenced.Records) != 0 {
+		t.Fatalf("isolated document did not leave a non-content recovery fence: %v", err)
+	}
+	if err := svc.scenarioJobs.admitNewScenarioAction(); err == nil {
+		t.Fatal("unread document was treated as a fresh action inventory")
+	}
 	preserved, err := os.ReadFile(diagnostics[0].QuarantinePath)
 	if err != nil || !bytes.Equal(preserved, poisoned) {
 		t.Fatalf("healthy write overwrote isolated document: err=%v", err)
@@ -1426,6 +1454,10 @@ func createCompletedCloudScenarioJobForIsolationTest(t *testing.T, store *scenar
 	t.Helper()
 	job := completedScenarioJobForIsolationTest(jobID)
 	job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
+	// Isolation must leave the writer usable without evicting healthy retained
+	// rows. An image Job reserves a whole row, so use an independently admitted
+	// owner; the original owner's retained rows still consume its quota.
+	job.Head.SubjectUserId = "user-after-isolation"
 	assembly := cloudAssemblyForIsolationTest(t, job)
 	beginCloudCredentialCustodyForTest(t, store, jobID)
 	created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly)
@@ -1536,7 +1568,7 @@ func TestScenarioJobStoreSynchronouslyPersistsTerminalEffectiveInputIdentity(t *
 		t.Fatalf("terminal transition = %#v, transitioned=%v err=%v", terminal, transitioned, err)
 	}
 
-	raw, err := os.ReadFile(scenarioJobStorePathForLocalStatePath(localStatePath))
+	raw, err := readScenarioJobDocument(scenarioJobStorePathForLocalStatePath(localStatePath))
 	if err != nil {
 		t.Fatal(err)
 	}

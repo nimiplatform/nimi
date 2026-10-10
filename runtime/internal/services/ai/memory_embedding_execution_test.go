@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -100,7 +99,7 @@ func TestMemoryEmbeddingBridgeUsesCapturedJobsAfterConfigChange(t *testing.T) {
 						return cognitionmemory.ResolvedEmbeddingBinding{}, err
 					}
 					captured = raw
-					durable, readErr := os.ReadFile(store.durablePath)
+					durable, readErr := readScenarioJobDocument(store.durablePath)
 					if readErr != nil || !bytes.Contains(durable, []byte("ai_config_revision")) || bytes.Contains(durable, []byte("test-key")) {
 						t.Fatalf("incomplete or secret-bearing Memory Job capture: %v", readErr)
 					}

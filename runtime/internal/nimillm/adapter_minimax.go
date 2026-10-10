@@ -2,19 +2,78 @@ package nimillm
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
-	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
+
+// The query returns a file identity, not the download locator. This metadata
+// request stays on the original admitted Connector; body IO uses the existing
+// credential-free artifact opener.
+// https://platform.minimax.io/docs/api-reference/file-management-retrieve
+func retrieveMiniMaxVideoSource(ctx context.Context, cfg MediaAdapterConfig, query map[string]any) (nativeArtifactSource, error) {
+	invalid := func() (nativeArtifactSource, error) {
+		return nativeArtifactSource{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	fileID := strings.TrimSpace(ValueAsString(query["file_id"]))
+	expectedID, err := strconv.ParseInt(fileID, 10, 64)
+	if err != nil {
+		return invalid()
+	}
+	client, request, err := newSecuredHTTPRequest(ctx, http.MethodGet, JoinURL(cfg.BaseURL, "/v1/files/retrieve?file_id="+url.QueryEscape(fileID)), nil)
+	if err != nil {
+		return nativeArtifactSource{}, err
+	}
+	request.Header.Set("Accept", "application/json")
+	applyProviderRequestHeaders(request, cfg.Headers)
+	request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(cfg.APIKey))
+	response, err := client.Do(request)
+	if err != nil {
+		return nativeArtifactSource{}, MapProviderRequestError(err)
+	}
+	defer response.Body.Close()
+	raw, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
+	if err != nil {
+		return nativeArtifactSource{}, providerResponseDecodeError(err)
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		var failure map[string]any
+		_ = json.Unmarshal(raw, &failure)
+		return nativeArtifactSource{}, MapProviderHTTPError(response.StatusCode, failure)
+	}
+	// Retrieve declares file_id as integer/int64. Decode directly into int64:
+	// routing it through map[string]any would irreversibly round IDs above 2^53.
+	var payload struct {
+		File *struct {
+			ID          *int64 `json:"file_id"`
+			DownloadURL string `json:"download_url"`
+		} `json:"file"`
+		Base *struct {
+			StatusCode *int `json:"status_code"`
+		} `json:"base_resp"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nativeArtifactSource{}, providerResponseDecodeError(err)
+	}
+	if payload.Base == nil || payload.Base.StatusCode == nil || *payload.Base.StatusCode != 0 || payload.File == nil || payload.File.ID == nil || *payload.File.ID != expectedID {
+		return invalid()
+	}
+	locator := strings.TrimSpace(payload.File.DownloadURL)
+	u, err := url.Parse(locator)
+	if err != nil || u.Host == "" || u.User != nil || (u.Scheme != "https" && u.Scheme != "http") {
+		return invalid()
+	}
+	return nativeArtifactSource{uri: locator, mime: "video/mp4"}, nil
+}
 
 const AdapterMiniMaxTask = "minimax_task_adapter"
 
@@ -37,6 +96,8 @@ func ExecuteMiniMaxTask(
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
 	switch scenarioModal(req) {
+	case runtimev1.Modal_MODAL_IMAGE:
+		return executeMiniMaxImage(ctx, cfg, req, modelResolved, extractScenarioExtensions)
 	case runtimev1.Modal_MODAL_TTS:
 		spec := scenarioSpeechSynthesizeSpec(req)
 		if spec == nil {
@@ -202,44 +263,19 @@ func ExecuteMiniMaxTask(
 		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	}
 
-	// MODAL_IMAGE / MODAL_VIDEO: async task submission + polling
-	submitPath := "/v1/image_generation"
-	queryPath := "/v1/query/image_generation"
-	prompt := ""
-	defaultMIME := "image/png"
-	if scenarioModal(req) == runtimev1.Modal_MODAL_VIDEO {
-		submitPath = "/v1/video_generation"
-		queryPath = "/v1/query/video_generation"
-		defaultMIME = "video/mp4"
-	}
-	if scenarioModal(req) != runtimev1.Modal_MODAL_IMAGE && scenarioModal(req) != runtimev1.Modal_MODAL_VIDEO {
+	// Only video uses the task create/query/file-retrieve protocol.
+	if scenarioModal(req) != runtimev1.Modal_MODAL_VIDEO {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-	if scenarioModal(req) == runtimev1.Modal_MODAL_IMAGE {
-		spec := scenarioImageSpec(req)
-		if spec == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		prompt = spec.GetPrompt()
-	} else {
-		spec := scenarioVideoSpec(req)
-		if spec == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		prompt = VideoPrompt(spec)
+	spec := scenarioVideoSpec(req)
+	if spec == nil {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-
+	submitPath, queryPath, defaultMIME := "/v1/video_generation", "/v1/query/video_generation", "video/mp4"
+	prompt := VideoPrompt(spec)
 	submitPayload := map[string]any{
 		"model":  modelResolved,
 		"prompt": prompt,
-	}
-	if imageSpec := scenarioImageSpec(req); imageSpec != nil {
-		submitPayload["negative_prompt"] = imageSpec.GetNegativePrompt()
-		submitPayload["size"] = imageSpec.GetSize()
-		submitPayload["aspect_ratio"] = imageSpec.GetAspectRatio()
-		submitPayload["quality"] = imageSpec.GetQuality()
-		submitPayload["style"] = imageSpec.GetStyle()
-		submitPayload["response_format"] = imageSpec.GetResponseFormat()
 	}
 	if videoSpec := scenarioVideoSpec(req); videoSpec != nil {
 		videoPayload, err := miniMaxVideoSubmitPayload(modelResolved, videoSpec)
@@ -253,8 +289,12 @@ func ExecuteMiniMaxTask(
 	if opts := StructToMap(extractScenarioExtensions(req)); len(opts) > 0 {
 		submitPayload["extensions"] = opts
 	}
+	ctx = originalControlRequest(ctx)
+	if err := requireNativeTaskPublisher(ctx); err != nil {
+		return nil, nil, "", err
+	}
 	submitResp := map[string]any{}
-	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+	if err := DoJSONRequest(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
 		return nil, nil, "", err
 	}
 	providerJobID := strings.TrimSpace(FirstNonEmpty(
@@ -265,96 +305,12 @@ func ExecuteMiniMaxTask(
 	if providerJobID == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(providerPollDelay(0))), "")
-	retryCount := int32(0)
-	consecutiveErrors := int32(0)
-	detached := isDetachedPollContext(ctx)
-
-	for {
-		if ctx.Err() != nil {
-			bestEffortDeleteProviderAsyncTask(ctx, AdapterMiniMaxTask, baseURL, apiKey, providerJobID)
-			return nil, nil, providerJobID, providerPollContextError(ctx.Err())
-		}
-		retryCount++
-		queryURL, err := url.Parse(JoinURL(baseURL, queryPath))
-		if err != nil {
-			return nil, nil, providerJobID, grpcerr.WrapWithReasonCode(
-				codes.Internal,
-				runtimev1.ReasonCode_AI_OUTPUT_INVALID,
-				err,
-				grpcerr.ReasonOptions{Message: "provider task query URL could not be parsed"},
-			)
-		}
-		values := queryURL.Query()
-		values.Set("task_id", providerJobID)
-		queryURL.RawQuery = values.Encode()
-
-		pollResp := map[string]any{}
-		if err := DoJSONRequest(ctx, http.MethodGet, queryURL.String(), apiKey, nil, &pollResp); err != nil {
-			if detached && ctx.Err() == nil && isTransientPollError(err) {
-				consecutiveErrors++
-				if consecutiveErrors >= maxDetachedPollConsecutiveErrors {
-					updater.UpdatePollState(jobID, providerJobID, retryCount, nil, err.Error())
-					return nil, nil, providerJobID, err
-				}
-				delay := providerPollDelay(retryCount)
-				updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
-				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
-					bestEffortDeleteProviderAsyncTask(ctx, AdapterMiniMaxTask, baseURL, apiKey, providerJobID)
-					return nil, nil, providerJobID, providerPollContextError(sleepErr)
-				}
-				continue
-			}
-			return nil, nil, providerJobID, err
-		}
-		consecutiveErrors = 0
-		statusText := strings.ToLower(strings.TrimSpace(FirstNonEmpty(
-			ValueAsString(pollResp["status"]),
-			ValueAsString(pollResp["task_status"]),
-			ValueAsString(MapField(pollResp["result"], "status")),
-		)))
-		if isMiniMaxTaskPendingStatus(statusText) {
-			if providerPollRetryLimitReached(ctx, retryCount) {
-				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
-				return nil, nil, providerJobID, providerPollTimeoutError()
-			}
-			delay := providerPollDelay(retryCount)
-			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), "")
-			if err := sleepWithContext(ctx, delay); err != nil {
-				bestEffortDeleteProviderAsyncTask(ctx, AdapterMiniMaxTask, baseURL, apiKey, providerJobID)
-				return nil, nil, providerJobID, providerPollContextError(err)
-			}
-			continue
-		}
-		if isMiniMaxTaskFailedStatus(statusText) {
-			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
-			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-		}
-		artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(ctx, pollResp)
-		if len(artifactBytes) == 0 {
-			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
-			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		if mimeType == "" {
-			mimeType = defaultMIME
-		}
-		artifactMeta := map[string]any{
-			"adapter":  AdapterMiniMaxTask,
-			"response": pollResp,
-		}
-		if artifactURI != "" {
-			artifactMeta["uri"] = artifactURI
-		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
-		if scenarioModal(req) == runtimev1.Modal_MODAL_IMAGE {
-			ApplyImageSpecMetadata(artifact, scenarioImageSpec(req))
-		}
-		if scenarioModal(req) == runtimev1.Modal_MODAL_VIDEO {
-			ApplyVideoSpecMetadata(artifact, scenarioVideoSpec(req))
-		}
-		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.ScenarioArtifact{artifact}, nil, providerJobID, nil
+	artifact := BinaryArtifact(defaultMIME, nil, map[string]any{"adapter": AdapterMiniMaxTask})
+	if spec := scenarioVideoSpec(req); spec != nil {
+		ApplyVideoSpecMetadata(artifact, spec)
 	}
+	_, err := publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: AdapterMiniMaxTask, TaskID: providerJobID, QueryPathTemplate: queryPath + "?task_id={task_id}", Artifact: artifact})
+	return nil, nil, providerJobID, err
 }
 
 func miniMaxVideoSubmitPayload(modelResolved string, spec *runtimev1.VideoGenerateScenarioSpec) (map[string]any, error) {

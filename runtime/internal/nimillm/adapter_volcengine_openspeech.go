@@ -212,7 +212,7 @@ func executeBytedanceOpenSpeechWS(
 	if strings.TrimSpace(apiKey) != "" {
 		config.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
 	}
-	connection, err := websocket.DialConfig(config)
+	connection, err := dialProviderWebSocket(ctx, config)
 	if err != nil {
 		return "", nil, MapProviderRequestError(err)
 	}

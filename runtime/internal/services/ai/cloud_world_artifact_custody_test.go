@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -62,8 +63,24 @@ func TestWorldOwnedImageCaptureSurvivesOriginalRemovalAndStoreReopen(t *testing.
 	}
 	// The input custody store no longer has the original record. Rehydrating the
 	// execution must use the durable snapshot, never look up mutable input truth.
-	f.service.runtimeArtifacts = runtimeartifact.NewMemoryStore()
-	reopened, err := newScenarioJobStoreForLocalStatePath(statePath)
+	if err := f.service.runtimeArtifacts.Delete("owned-image"); err != nil {
+		t.Fatal(err)
+	}
+	// Reopen an isolated durable snapshot while the controlled original Host
+	// is held. Two active writer owners must never resize the same FS extent.
+	recoveredState := filepath.Join(t.TempDir(), "state.json")
+	recoveredDir := filepath.Join(filepath.Dir(recoveredState), scenarioJobDiskStoreDirName)
+	if err := os.MkdirAll(recoveredDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := readScenarioJobDocument(store.durablePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(recoveredDir, scenarioJobDiskStoreFileName), snapshot, 0600); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := newScenarioJobStoreForLocalStatePath(recoveredState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,6 +109,19 @@ func TestWorldOwnedImageCaptureSurvivesOriginalRemovalAndStoreReopen(t *testing.
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("terminal=%v", terminal)
 	}
+	waitScenarioJobWorkExit(t, store, response.GetJob().GetJobId())
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		assembly, _ := store.cloudResolvedAssembly(response.GetJob().GetJobId())
+		if assembly == nil || assembly.CredentialCustodyRef == "" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("original writer cleanup did not finish")
+		}
+		time.Sleep(time.Millisecond)
+	}
+
 }
 
 func TestWorldOwnedImageRejectsForeignAndWrongMimeBeforeJob(t *testing.T) {
@@ -141,8 +171,8 @@ func TestWorldOwnedImageCancellationWaitsForTransportExitWithoutLateArtifacts(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if canceled.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatal("cancel published before transport exit")
+	if canceled.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatal("cancel published without its local publication gate")
 	}
 	select {
 	case <-host.cancelObserved:

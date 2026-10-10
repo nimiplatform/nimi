@@ -17,7 +17,9 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-submission-identity
 // Stored in the existing Job snapshot, atomically with its captured inputs.
-// The caller's action identity is independent from current route/Loadout.
+// Every supported Job has the same action identity, independent from route.
+// ReservedBytes is nonzero only for the separately admitted media retention
+// policy; generic action identity does not grant that policy or a longer TTL.
 type localAppMusicSubmission struct {
 	ID            string `json:"id"`
 	RequestSHA256 string `json:"request_sha256"`
@@ -50,15 +52,15 @@ func captureLocalAppMusicSubmission(req *runtimev1.SubmitLocalAppScenarioJobRequ
 	if req.GetClientSubmissionId() == "" {
 		return nil, nil
 	}
-	if (req.GetMusicGenerate() == nil && req.GetMusicTranscribe() == nil && req.GetAudioVoiceConvert() == nil && req.GetVoiceCreate() == nil) || !validClientSubmissionID(req.GetClientSubmissionId()) {
+	if !validClientSubmissionID(req.GetClientSubmissionId()) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	// Includes every closed author input and the timeout; excludes no user field.
 	// Deterministic protobuf encoding avoids map ordering changing the identity.
 	canonical := req
-	reservation := maxMusicRecoveryOutputBytes
-	if req.GetVoiceCreate() != nil {
-		reservation = voiceCreationRecoveryBytes
+	reservation := int64(0)
+	if req.GetMusicGenerate() != nil {
+		reservation = maxMusicRecoveryOutputBytes
 	}
 	if spec := req.GetMusicTranscribe(); spec != nil {
 		if err := validateMusicTranscriptionSpec(spec); err != nil {
@@ -97,7 +99,19 @@ func cloneLocalAppMusicSubmission(value *localAppMusicSubmission) *localAppMusic
 	return &cloned
 }
 
-func validateLocalAppMusicSubmission(value *localAppMusicSubmission, owner *localAppJobOwner, job *runtimev1.ScenarioJob) error {
+func voiceSubmissionRetention(value *localAppMusicSubmission, cloud *cloudResolvedAssembly) *localAppMusicSubmission {
+	copy := cloneLocalAppMusicSubmission(value)
+	if copy == nil {
+		return nil
+	}
+	copy.ReservedBytes = 0
+	if cloud != nil && cloud.VoiceWorkflow != nil && cloud.VoiceWorkflow.OutputPersistence == "provider_persistent" {
+		copy.ReservedBytes = voiceCreationRecoveryBytes
+	}
+	return copy
+}
+
+func validateLocalAppMusicSubmission(value *localAppMusicSubmission, owner *localAppJobOwner, job *runtimev1.ScenarioJob, cloud *cloudResolvedAssembly) error {
 	if value == nil {
 		return nil
 	}
@@ -111,10 +125,12 @@ func validateLocalAppMusicSubmission(value *localAppMusicSubmission, owner *loca
 	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT:
 		reservation = maxVoiceConvertOutputBytes
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
-		reservation = voiceCreationRecoveryBytes
+		if cloud != nil && cloud.VoiceWorkflow != nil && cloud.VoiceWorkflow.OutputPersistence == "provider_persistent" {
+			reservation = voiceCreationRecoveryBytes
+		}
 	}
-	if !owner.valid() || reservation == 0 || value.ReservedBytes != reservation || !validClientSubmissionID(value.ID) || err != nil || len(digest) != sha256.Size || strings.ToLower(value.RequestSHA256) != value.RequestSHA256 {
-		return fmt.Errorf("invalid protected music submission binding")
+	if !owner.valid() || job.GetExecutionMode() != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB || validateScenarioExecutionMode(job.GetScenarioType(), job.GetExecutionMode()) != nil || value.ReservedBytes != reservation || !validClientSubmissionID(value.ID) || err != nil || len(digest) != sha256.Size || strings.ToLower(value.RequestSHA256) != value.RequestSHA256 {
+		return fmt.Errorf("invalid protected Job submission binding")
 	}
 	return nil
 }
@@ -141,9 +157,12 @@ func (s *scenarioJobStore) getMusicSubmission(owner *localAppJobOwner, id string
 	defer s.mu.RUnlock()
 	record := s.musicSubmissionLocked(owner, id)
 	if record == nil {
+		if s.recoveryIncomplete {
+			return nil, jobRecoveryAdmissionError()
+		}
 		return nil, nil
 	}
-	if musicRecoveryExpired(record, time.Now()) {
+	if scenarioJobPublicExpired(record, time.Now()) {
 		return nil, errMusicRecoveryExpired
 	}
 	if requestHash != "" && record.musicSubmission.RequestSHA256 != requestHash {

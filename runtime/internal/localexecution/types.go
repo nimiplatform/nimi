@@ -215,6 +215,15 @@ type ImageArtifact struct {
 	ComputeMS int64
 }
 
+// MaxImageArtifactBytes bounds the managed image Host's private result body.
+// The Runtime reserves this slot before Host admission; the wrapper returns
+// bytes to that owner and cannot write a second unaccounted output file.
+const MaxImageArtifactBytes int64 = 512 << 20
+
+// The private managed video RPC bounds its complete raw A/V carrier to this
+// size. Codec scratch reservations use that same upper bound.
+const MaxRawAVCandidateBytes int64 = 512 << 20
+
 type ImageResult struct {
 	Artifacts []ImageArtifact
 	ComputeMS int64

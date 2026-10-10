@@ -86,34 +86,41 @@ func New(ffmpeg, ffprobe string) (*Processor, error) {
 	return &Processor{ffmpeg: ffmpeg, ffprobe: ffprobe}, nil
 }
 
+// CanonicalOutput is an already admitted destination; the decoder can update
+// its header without acquiring another unaccounted staging file.
+type CanonicalOutput interface {
+	io.Writer
+	io.WriterAt
+}
+
 // @nimi-authority: rule.nimi.runtime.ai-provider.canonical-audio-preparation
-func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory string) (result Prepared, err error) {
+func (p *Processor) PrepareInto(ctx context.Context, input Input, output CanonicalOutput) (Facts, error) {
 	if p != nil && p.resolve != nil {
 		ffmpeg, probe, err := p.resolve(ctx)
 		if err != nil {
-			return Prepared{}, errors.Join(ErrCodecUnavailable, err)
+			return Facts{}, errors.Join(ErrCodecUnavailable, err)
 		}
 		concrete, err := New(ffmpeg, probe)
 		if err != nil {
-			return Prepared{}, err
+			return Facts{}, err
 		}
-		return concrete.Prepare(ctx, input, stagingDirectory)
+		return concrete.PrepareInto(ctx, input, output)
 	}
 
 	if p == nil || p.ffmpeg == "" || p.ffprobe == "" {
-		return Prepared{}, ErrCodecUnavailable
+		return Facts{}, ErrCodecUnavailable
 	}
 	ctx, cancel := context.WithTimeout(ctx, PreparationTimeout)
 	defer cancel()
 	if err := ctx.Err(); err != nil {
-		return Prepared{}, err
+		return Facts{}, err
 	}
-	if !filepath.IsAbs(input.Path) || !filepath.IsAbs(stagingDirectory) {
-		return Prepared{}, fmt.Errorf("audio snapshot and staging paths must be absolute")
+	if !filepath.IsAbs(input.Path) || output == nil {
+		return Facts{}, fmt.Errorf("audio snapshot or destination is invalid")
 	}
 	info, err := os.Stat(input.Path)
 	if err != nil || !info.Mode().IsRegular() || info.Size() == 0 || info.Size() > MaxInputBytes {
-		return Prepared{}, fmt.Errorf("audio snapshot size or type is invalid")
+		return Facts{}, fmt.Errorf("audio snapshot size or type is invalid")
 	}
 	mime := strings.ToLower(strings.TrimSpace(input.MIMEType))
 	expectedFormat := map[string]string{"audio/wav": "wav", "audio/mpeg": "mp3", "audio/flac": "flac"}[mime]
@@ -123,45 +130,36 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 	}
 	if expectedFormat == "" || (input.TargetSampleRateHz != 0 && !validFormat(input.TargetSampleRateHz, 1)) ||
 		(channelMode != ChannelPreserve && channelMode != ChannelMonoToStereo && channelMode != ChannelStereoToMono) {
-		return Prepared{}, fmt.Errorf("unsupported audio input format, target sample rate or channel mode")
+		return Facts{}, fmt.Errorf("unsupported audio input format, target sample rate or channel mode")
 	}
 	canonical, canonicalErr := InspectCanonical(ctx, input.Path)
 	if ctx.Err() != nil {
-		return Prepared{}, ctx.Err()
+		return Facts{}, ctx.Err()
 	}
 	if canonicalErr == nil && mime != "audio/wav" {
-		return Prepared{}, fmt.Errorf("audio MIME does not match the actual container")
+		return Facts{}, fmt.Errorf("audio MIME does not match the actual container")
 	}
 	if (input.TargetSampleRateHz != 0 || channelMode != ChannelPreserve) && canonicalErr != nil {
-		return Prepared{}, fmt.Errorf("explicit domain conversion requires an already canonical source")
+		return Facts{}, fmt.Errorf("explicit domain conversion requires an already canonical source")
 	}
-	output, err := os.CreateTemp(stagingDirectory, "canonical-audio-*.wav")
-	if err != nil {
-		return Prepared{}, fmt.Errorf("create canonical audio staging: %w", err)
-	}
-	defer func() {
-		_ = output.Close()
-		if err != nil {
-			_ = os.Remove(output.Name())
-		}
-	}()
 	if canonicalErr == nil && channelMode == ChannelPreserve && (input.TargetSampleRateHz == 0 || input.TargetSampleRateHz == canonical.SampleRateHz) {
 		source, openErr := os.Open(input.Path)
 		if openErr != nil {
-			return Prepared{}, fmt.Errorf("open canonical snapshot: %w", openErr)
+			return Facts{}, fmt.Errorf("open canonical snapshot: %w", openErr)
 		}
 		defer func() { _ = source.Close() }()
 		count, copyErr := io.CopyBuffer(output, &contextReader{ctx: ctx, reader: io.LimitReader(source, MaxInputBytes+1)}, make([]byte, bufferBytes))
 		if copyErr != nil {
-			return Prepared{}, fmt.Errorf("copy canonical snapshot: %w", copyErr)
+			return Facts{}, fmt.Errorf("copy canonical snapshot: %w", copyErr)
 		}
 		if count != canonical.SizeBytes {
-			return Prepared{}, fmt.Errorf("copy canonical snapshot: copied %d of %d bytes", count, canonical.SizeBytes)
+			return Facts{}, fmt.Errorf("copy canonical snapshot: copied %d of %d bytes", count, canonical.SizeBytes)
 		}
+		return canonical, nil
 	} else {
 		rate, channels, probeErr := p.probe(ctx, input.Path, expectedFormat)
 		if probeErr != nil {
-			return Prepared{}, probeErr
+			return Facts{}, probeErr
 		}
 		if input.TargetSampleRateHz != 0 {
 			rate = input.TargetSampleRateHz
@@ -171,17 +169,17 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		case ChannelPreserve:
 		case ChannelMonoToStereo:
 			if channels != 1 {
-				return Prepared{}, fmt.Errorf("mono-to-stereo conversion requires a mono source")
+				return Facts{}, fmt.Errorf("mono-to-stereo conversion requires a mono source")
 			}
 			outChannels = 2
 		case ChannelStereoToMono:
 			if channels != 2 {
-				return Prepared{}, fmt.Errorf("stereo-to-mono conversion requires a stereo source")
+				return Facts{}, fmt.Errorf("stereo-to-mono conversion requires a stereo source")
 			}
 			outChannels = 1
 		}
-		if _, err = output.Write(make([]byte, pcmHeaderBytes)); err != nil {
-			return Prepared{}, fmt.Errorf("reserve WAV header: %w", err)
+		if _, err := output.Write(make([]byte, pcmHeaderBytes)); err != nil {
+			return Facts{}, fmt.Errorf("reserve WAV header: %w", err)
 		}
 		args := decodeArguments(input.Path, input.TargetSampleRateHz, channelMode)
 		decodeCtx, stopDecode := context.WithCancel(ctx)
@@ -193,11 +191,11 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		command.Stderr = diagnostic
 		stdout, pipeErr := command.StdoutPipe()
 		if pipeErr != nil {
-			return Prepared{}, fmt.Errorf("open codec output: %w", pipeErr)
+			return Facts{}, fmt.Errorf("open codec output: %w", pipeErr)
 		}
 		if err := command.Start(); err != nil {
 			_ = stdout.Close()
-			return Prepared{}, fmt.Errorf("%w: start managed audio decoder: %w", ErrCodecUnavailable, err)
+			return Facts{}, fmt.Errorf("%w: start managed audio decoder: %w", ErrCodecUnavailable, err)
 		}
 		limit := int64(rate) * int64(outChannels) * 4 * MaxSeconds
 		count, copyErr := copyFinitePCM(decodeCtx, output, stdout, limit)
@@ -207,36 +205,53 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		}
 		waitErr := command.Wait()
 		if ctx.Err() != nil {
-			return Prepared{}, ctx.Err()
+			return Facts{}, ctx.Err()
 		}
 		if copyErr != nil {
-			return Prepared{}, copyErr
+			return Facts{}, copyErr
 		}
 		if CodecCouldNotRun(waitErr) {
-			return Prepared{}, fmt.Errorf("%w: managed audio decoder could not run: %w", ErrCodecUnavailable, waitErr)
+			return Facts{}, fmt.Errorf("%w: managed audio decoder could not run: %w", ErrCodecUnavailable, waitErr)
 		}
 		if waitErr != nil {
-			return Prepared{}, fmt.Errorf("managed audio decoder failed: %w", waitErr)
+			return Facts{}, fmt.Errorf("managed audio decoder failed: %w", waitErr)
 		}
 		if count == 0 || count%int64(outChannels*4) != 0 {
-			return Prepared{}, fmt.Errorf("decoder returned empty audio or incomplete frames")
+			return Facts{}, fmt.Errorf("decoder returned empty audio or incomplete frames")
 		}
 		if err := writeHeader(output, rate, outChannels, count); err != nil {
-			return Prepared{}, fmt.Errorf("finish canonical WAV header: %w", err)
+			return Facts{}, fmt.Errorf("finish canonical WAV header: %w", err)
 		}
+		return Facts{SampleRateHz: rate, Channels: outChannels, FrameCount: uint64(count / int64(outChannels*4)), DataOffset: pcmHeaderBytes, SizeBytes: pcmHeaderBytes + count}, nil
 	}
-	if err := output.Sync(); err != nil {
-		return Prepared{}, fmt.Errorf("sync canonical audio: %w", err)
+}
+
+func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory string) (result Prepared, err error) {
+	if !filepath.IsAbs(stagingDirectory) {
+		return Prepared{}, fmt.Errorf("audio staging path must be absolute")
 	}
-	if err := output.Close(); err != nil {
-		return Prepared{}, fmt.Errorf("close canonical audio: %w", err)
+	output, err := os.CreateTemp(stagingDirectory, "canonical-audio-*.wav")
+	if err != nil {
+		return Prepared{}, err
+	}
+	defer func() {
+		output.Close()
+		if err != nil {
+			os.Remove(output.Name())
+		}
+	}()
+	if _, err = p.PrepareInto(ctx, input, output); err != nil {
+		return Prepared{}, err
+	}
+	if err = output.Sync(); err != nil {
+		return Prepared{}, err
+	}
+	if err = output.Close(); err != nil {
+		return Prepared{}, err
 	}
 	facts, err := InspectCanonical(ctx, output.Name())
 	if err != nil {
-		return Prepared{}, fmt.Errorf("inspect complete canonical audio: %w", err)
-	}
-	if ctx.Err() != nil {
-		return Prepared{}, ctx.Err()
+		return Prepared{}, err
 	}
 	return Prepared{Path: output.Name(), Facts: facts}, nil
 }

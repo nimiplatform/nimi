@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -24,6 +25,7 @@ func ExecuteFluxImage(
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
+	ctx = originalControlRequest(ctx)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -63,40 +65,60 @@ func ExecuteFluxImage(
 	}
 
 	submitPath := firstProviderEndpointPath([]string{"/v1/" + resolvedModel})
-	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/v1/get_result"})
-
+	if err := requireNativeTaskPublisher(ctx); err != nil {
+		return nil, nil, "", err
+	}
+	headers := cloneMediaHeaders(cfg.Headers)
+	if headers == nil {
+		headers = map[string]string{}
+	}
+	headers["x-key"] = apiKey
 	submitResp := map[string]any{}
-	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
+	if err := DoJSONRequestWithHeaders(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, submitPath), "", payload, &submitResp, headers); err != nil {
 		return nil, nil, "", err
 	}
 	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterFluxNative, submitResp)
 	if providerJobID == "" {
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
-		if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		if mimeType == "" {
-			mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
-		}
-		artifactMeta := map[string]any{
-			"adapter":         AdapterFluxNative,
-			"submit_endpoint": submitPath,
-			"response":        submitResp,
-		}
-		if artifactURI != "" {
-			artifactMeta["uri"] = artifactURI
-		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
-		ApplyImageSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	return PollProviderTaskForArtifact(
-		ctx, updater, jobID, baseURL, apiKey,
-		AdapterFluxNative, providerJobID, submitPath, queryPathTemplate,
-		"image/png",
-		func(artifact *runtimev1.ScenarioArtifact) {
-			ApplyImageSpecMetadata(artifact, spec)
-		},
-		nil,
-	)
+	pollingURL := ValueAsString(submitResp["polling_url"])
+	if !validFluxPollingURL(baseURL, pollingURL, providerJobID, cfg.AllowLoopbackEndpoint) {
+		return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	artifact := BinaryArtifact("image/png", nil, map[string]any{"adapter": AdapterFluxNative})
+	ApplyImageSpecMetadata(artifact, spec)
+	_, err = publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: AdapterFluxNative, TaskID: providerJobID, QueryPathTemplate: "/v1/get_result?id={task_id}", PollingURL: pollingURL, Artifact: artifact})
+	return nil, nil, providerJobID, err
+}
+
+// BFL assigns a cluster-specific polling URL with the create receipt. Keep it
+// frozen; credentials may follow only this exact task on the captured origin
+// or from an official BFL API origin to another official API cluster.
+// Protocol: https://docs.bfl.ai/quick_start/generating_images
+func validFluxPollingURL(original, returned, id string, allowLoopback bool) bool {
+	base, err := url.Parse(original)
+	if err != nil {
+		return false
+	}
+	query, err := url.Parse(returned)
+	if err != nil || query.User != nil || query.Fragment != "" || query.RawPath != "" || query.Path != "/v1/get_result" {
+		return false
+	}
+	values, err := url.ParseQuery(query.RawQuery)
+	if err != nil || len(values) != 1 || len(values["id"]) != 1 || values.Get("id") != id || id == "" {
+		return false
+	}
+	if query.Scheme != "https" {
+		if !allowLoopback || query.Scheme != "http" || (query.Hostname() != "127.0.0.1" && query.Hostname() != "localhost" && query.Hostname() != "::1") {
+			return false
+		}
+	}
+	if base.Scheme == query.Scheme && base.Host == query.Host {
+		return true
+	}
+	official := func(u *url.URL) bool {
+		host := strings.ToLower(u.Hostname())
+		return u.Scheme == "https" && (u.Port() == "" || u.Port() == "443") && (host == "api.bfl.ai" || (strings.HasPrefix(host, "api.") && strings.HasSuffix(host, ".bfl.ai")))
+	}
+	return official(base) && official(query)
 }

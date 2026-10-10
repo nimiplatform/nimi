@@ -107,10 +107,12 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 	_, _ = svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: jobID, Reason: "test-cleanup"})
 }
 
-func TestScenarioJobStoreDetachedVideoPollingHonorsJobDeadline(t *testing.T) {
+func TestScenarioJobStoreRejectsRemovedJobDeadlineBeforeProviderCreate(t *testing.T) {
+	var submissions atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/contents/generations/tasks":
+			submissions.Add(1)
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-deadline-1"})
 		case r.Method == http.MethodGet && r.URL.Path == "/contents/generations/tasks/task-deadline-1":
@@ -142,19 +144,15 @@ func TestScenarioJobStoreDetachedVideoPollingHonorsJobDeadline(t *testing.T) {
 			Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(4), Ratio: "16:9"},
 		}}},
 	})
-	if err != nil {
-		t.Fatalf("SubmitScenarioJob: %v", err)
+	if reason, _ := grpcerr.ExtractReasonCode(err); response != nil || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("removed Job deadline: response=%v err=%v", response, err)
 	}
-	job := waitScenarioJobTerminal(t, svc, response.GetJob().GetJobId(), 3*time.Second)
-	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
-		t.Fatalf("detached provider polling deadline = %+v", job)
-	}
-	if job.GetProviderJobId() != "" || job.GetNextPollAt() != nil || job.GetRetryCount() != 0 {
-		t.Fatalf("provider polling state escaped terminal Runtime job: %+v", job)
+	if submissions.Load() != 0 {
+		t.Fatal("removed Job deadline reached provider create")
 	}
 }
 
-func TestGoogleVeoShorterExplicitDeadlineEndsSubmittedOperationTyped(t *testing.T) {
+func TestGoogleVeoLegacyDeadlineRejectedBeforeNativeCreate(t *testing.T) {
 	const model = "veo-3.1-generate-preview"
 	operation := "models/" + model + "/operations/slow_123"
 	var submissions atomic.Int32
@@ -185,17 +183,9 @@ func TestGoogleVeoShorterExplicitDeadlineEndsSubmittedOperationTyped(t *testing.
 			Options: &runtimev1.VideoGenerationOptions{Resolution: "720p", Ratio: "16:9", DurationSec: testInt32(4)},
 		}}},
 	})
-	if err != nil {
-		t.Fatalf("submit exact Google Veo video Job: %v", err)
-	}
-	job := waitScenarioJobTerminal(t, fixture.service, response.GetJob().GetJobId(), 4*time.Second)
-	if submissions.Load() != 1 || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT ||
-		job.GetProviderJobId() != "" || job.GetNextPollAt() != nil || len(job.GetArtifacts()) != 0 {
-		t.Fatalf("explicit Veo timeout did not terminalize a submitted operation without publishing an artifact: submissions=%d job=%+v", submissions.Load(), job)
-	}
-	queried, err := fixture.service.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
-	if err != nil || queried.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT {
-		t.Fatalf("terminal Veo timeout was not observable from the public Job: %+v, %v", queried, err)
+	reason, _ := grpcerr.ExtractReasonCode(err)
+	if response != nil || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || submissions.Load() != 0 {
+		t.Fatalf("legacy deadline reached native create: %v %v creates=%d", response, err, submissions.Load())
 	}
 }
 
@@ -282,7 +272,6 @@ func TestSubmitScenarioJobDashScopeVoiceTextDescriptionUsesAPIModelTarget(t *tes
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			TimeoutMs:     10_000,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,

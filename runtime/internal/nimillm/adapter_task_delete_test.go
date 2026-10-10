@@ -8,9 +8,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestAlibabaTaskCancellationRequiresTerminalConfirmation(t *testing.T) {
@@ -72,7 +69,7 @@ func TestAlibabaTaskCancellationTransportFailure(t *testing.T) {
 	}
 }
 
-func TestAlibabaPollDeadlineCancelsInFlightRequestAndObservesCleanup(t *testing.T) {
+func TestAlibabaObservationDeadlineDoesNotCancelTaskAndExplicitStopRequiresProof(t *testing.T) {
 	var polls, cancels atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks/task-1/cancel" {
@@ -97,10 +94,14 @@ func TestAlibabaPollDeadlineCancelsInFlightRequestAndObservesCleanup(t *testing.
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(loopbackProviderTestContext(context.Background()), 100*time.Millisecond)
 	defer cancel()
-	var observed []ProviderTaskCleanupObservation
-	ctx = WithProviderTaskCleanupObserver(ctx, func(o ProviderTaskCleanupObservation) { observed = append(observed, o) })
-	_, _, _, err := PollProviderTaskForArtifact(ctx, noopJobStateUpdater{}, "job", server.URL, "key", AdapterAlibabaNative, "task-1", "/unused", "/api/v1/tasks/{task_id}", "video/mp4", nil, nil)
-	if status.Code(err) != codes.DeadlineExceeded || cancels.Load() != 1 || polls.Load() != 2 || len(observed) != 1 || observed[0].Outcome != ProviderTaskCleanupCanceled {
-		t.Fatalf("err=%v cancels=%d polls=%d observed=%+v", err, cancels.Load(), polls.Load(), observed)
+	receipt := &NativeTaskReceipt{Version: 1, Adapter: AdapterAlibabaNative, TaskID: "task-1", QueryPathTemplate: "/api/v1/tasks/{task_id}", Artifact: BinaryArtifact("video/mp4", nil, nil)}
+	cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "key", AllowLoopbackEndpoint: true}
+	_, terminal, err := ObserveNativeTask(ctx, cfg, receipt)
+	if err == nil || terminal || cancels.Load() != 0 || polls.Load() != 1 {
+		t.Fatalf("observation timeout stopped remote task: err=%v terminal=%v cancels=%d polls=%d", err, terminal, cancels.Load(), polls.Load())
+	}
+	outcome, err := DeleteProviderAsyncTask(context.Background(), AdapterAlibabaNative, "task-1", cfg)
+	if err != nil || outcome != ProviderTaskCleanupCanceled || cancels.Load() != 1 || polls.Load() != 2 {
+		t.Fatalf("explicit stop proof: %v %v", outcome, err)
 	}
 }

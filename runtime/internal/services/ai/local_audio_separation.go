@@ -53,9 +53,6 @@ func (s *Service) captureSeparationInput(ctx context.Context, head *runtimev1.Sc
 		}
 		start, end = rangeValue.GetStartFrame(), rangeValue.GetEndFrame()
 	}
-	if _, err := audiomedia.CopyCanonicalRange(ctx, source.Body, audiomedia.Facts{SampleRateHz: canonical.SampleRateHz, Channels: canonical.Channels, FrameCount: canonical.FrameCount, SizeBytes: source.Record.SizeBytes, DataOffset: canonical.DataOffset}, start, end, sourcePath); err != nil {
-		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
-	}
 	if err := source.Body.Close(); err != nil {
 		return err
 	}
@@ -64,6 +61,7 @@ func (s *Service) captureSeparationInput(ctx context.Context, head *runtimev1.Sc
 	if err != nil {
 		return localSpeechInvocationError(err)
 	}
+	effective.canonicalCapture = &scenarioCanonicalCapture{sourceID: owned.GetArtifactId(), original: source.Record, start: start, end: end, path: sourcePath}
 	effective.separatePlan = plan
 	return nil
 }

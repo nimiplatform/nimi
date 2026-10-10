@@ -41,6 +41,7 @@ func (s *Service) submitScenarioAsyncJob(
 		}
 	}
 
+	jobID := ulid.Make().String()
 	// Exact Cloud implementation, Driver target, defaults, request, and
 	// stream behavior are fixed before the Runtime job becomes visible.
 	effective, err := s.captureCloudMediaEffectiveInputs(ctx, req.GetHead(), req, mode)
@@ -52,7 +53,6 @@ func (s *Service) submitScenarioAsyncJob(
 		return nil, err
 	}
 
-	jobID := ulid.Make().String()
 	// The detached job starts from a sterile context: request metadata may
 	// contain caller credentials and must not enter job state. Only the typed
 	// authenticated identity below is retained for internal ownership checks.
@@ -60,18 +60,7 @@ func (s *Service) submitScenarioAsyncJob(
 	if s.config.providerPollWait != nil {
 		jobCtx = nimillm.WithProviderPollWait(jobCtx, s.config.providerPollWait)
 	}
-	var cancel context.CancelFunc
-	timeout, err := cloudMediaJobTimeoutDuration(effective.request, effective.target.Provider(), effective.target.ProviderModelID())
-	if err != nil {
-		return fail(err)
-	}
-	if timeout > 0 {
-		// Provider task identity and polling state remain private to the Remote
-		// Host, but the Runtime-owned Job deadline still bounds detached polling.
-		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
-	} else {
-		jobCtx, cancel = context.WithCancel(jobCtx)
-	}
+	jobCtx, cancel := context.WithCancel(jobCtx)
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
@@ -98,6 +87,12 @@ func (s *Service) submitScenarioAsyncJob(
 		TraceId:           effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
+	releasePlanned, err := s.admitPlannedCloudCapture(ctx, job, effective.resolvedAssembly, localAppMusicSubmissionFromContext(ctx))
+	if err != nil {
+		cancel()
+		return fail(err)
+	}
+	defer releasePlanned()
 	if err := s.bindCloudCredentialCustody(ctx, jobID, effective.resolvedAssembly); err != nil {
 		cancel()
 		return fail(cloudCredentialCustodyError(err, "Cloud ScenarioJob credential custody could not be captured"))
@@ -109,9 +104,7 @@ func (s *Service) submitScenarioAsyncJob(
 		if persistErr == errLocalAppSubmissionConflict || persistErr == errMusicRecoveryCapacity || persistErr == errMusicRecoveryExpired {
 			return fail(localAppSubmissionError(persistErr))
 		}
-		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
-			Message: "ScenarioJob submission could not be persisted",
-		}))
+		return fail(scenarioJobSubmissionError(persistErr, "ScenarioJob submission could not be persisted"))
 	}
 	if snapshot == nil {
 		cancel()
@@ -127,57 +120,4 @@ func (s *Service) submitScenarioAsyncJob(
 	effective.release()
 	go s.executeScenarioAsyncJob(jobCtx, jobID)
 	return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
-}
-
-// @nimi-authority: rule.nimi.runtime.service-operations.r066
-const extendedCloudVideoJobTimeout = 8 * time.Minute
-const wan27TextVideoJobTimeout = 15 * time.Minute
-
-func exactExtendedCloudVideoJob(scenarioType runtimev1.ScenarioType, provider, model string) bool {
-	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
-		return false
-	}
-	if provider == "dashscope" {
-		return model == "wan2.7-t2v" || model == "wan2.7-i2v"
-	}
-	if provider != "google_veo" {
-		return false
-	}
-	switch model {
-	case "veo-3.1-fast-generate-preview", "veo-3.1-generate-preview", "veo-3.1-lite-generate-preview":
-		return true
-	default:
-		return false
-	}
-}
-
-// @nimi-authority: rule.nimi.runtime.service-operations.r066
-func cloudMediaJobTimeoutDuration(req *runtimev1.SubmitScenarioJobRequest, provider, model string) (time.Duration, error) {
-	scenarioType := req.GetScenarioType()
-	if exactExtendedCloudVideoJob(scenarioType, provider, model) {
-		limit := extendedCloudVideoJobTimeout
-		if provider == "dashscope" && model == "wan2.7-t2v" {
-			limit = wan27TextVideoJobTimeout
-		}
-		if timeoutMS := req.GetHead().GetTimeoutMs(); timeoutMS != 0 {
-			duration := time.Duration(timeoutMS) * time.Millisecond
-			if duration <= 0 || duration > limit {
-				return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-			}
-			return duration, nil
-		}
-		return limit, nil
-	}
-	return scenarioJobTimeoutDuration(req, defaultCloudMediaJobTimeout(scenarioType, provider, model), false)
-}
-
-// @nimi-authority: rule.nimi.runtime.service-operations.r066
-func defaultCloudMediaJobTimeout(scenarioType runtimev1.ScenarioType, provider, model string) time.Duration {
-	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE && provider == "dashscope" && model == "qwen-image-3.0-pro" {
-		// The synchronous Pro edit call can exceed the ordinary 120-second image
-		// window; leave it the complete existing Cloud Job maximum for response
-		// and immediate Runtime artifact custody. An explicit caller deadline wins.
-		return maxRuntimeRequestTimeout
-	}
-	return defaultScenarioJobTimeout(scenarioType)
 }

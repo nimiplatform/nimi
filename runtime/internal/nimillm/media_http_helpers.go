@@ -22,6 +22,35 @@ import (
 // HTTP helpers
 // ---------------------------------------------------------------------------
 
+// This private error fact distinguishes a missing/unreadable response from a
+// provider's explicit negative HTTP reply. The mapped public reason is kept.
+type nativeCreateResponseUnavailable struct{ cause error }
+
+func (e *nativeCreateResponseUnavailable) Error() string { return e.cause.Error() }
+func (e *nativeCreateResponseUnavailable) Unwrap() error { return e.cause }
+func IsNativeCreateResponseUnavailable(err error) bool {
+	var missing *nativeCreateResponseUnavailable
+	return errors.As(err, &missing)
+}
+
+type nativeCreateRequestKey struct{}
+
+func nativeCreateRequest(ctx context.Context) context.Context {
+	return context.WithValue(ctx, nativeCreateRequestKey{}, true)
+}
+func markNativeCreateResponseUnavailable(ctx context.Context, err error) error {
+	if enabled, _ := ctx.Value(nativeCreateRequestKey{}).(bool); !enabled {
+		return err
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		switch reason {
+		case runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED, runtimev1.ReasonCode_AI_CONNECTOR_INVALID, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED:
+			return err
+		}
+	}
+	return &nativeCreateResponseUnavailable{cause: err}
+}
+
 // JSONOrBinaryBody holds a parsed HTTP response body that may be JSON text,
 // base64-decoded binary, or raw binary bytes.
 type JSONOrBinaryBody struct {
@@ -253,7 +282,7 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return MapProviderRequestError(err)
+		return markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -263,8 +292,9 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 	if target == nil {
 		return nil
 	}
-	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
-		return providerResponseDecodeError(err)
+
+	if err := decodeProviderJSONResponse(ctx, response.Body, target); err != nil {
+		return markNativeCreateResponseUnavailable(ctx, providerResponseDecodeError(err))
 	}
 	return nil
 }
@@ -337,7 +367,7 @@ func doJSONRequestWithHeadersAndObservation(
 		observation.finish(response, err)
 	}
 	if err != nil {
-		return MapProviderRequestError(err)
+		return markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -349,8 +379,8 @@ func doJSONRequestWithHeadersAndObservation(
 	if target == nil {
 		return nil
 	}
-	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
-		return providerResponseDecodeError(err)
+	if err := decodeProviderJSONResponse(ctx, response.Body, target); err != nil {
+		return markNativeCreateResponseUnavailable(ctx, providerResponseDecodeError(err))
 	}
 	return nil
 }
@@ -396,7 +426,7 @@ func doJSONRequestWithBackendAndHeaders(
 	if target == nil {
 		return nil
 	}
-	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
+	if err := decodeProviderJSONResponse(ctx, response.Body, target); err != nil {
 		return providerResponseDecodeError(err)
 	}
 	return nil
@@ -472,4 +502,15 @@ func JoinURL(baseURL string, suffix string) string {
 		suffixPath = "/" + suffixPath
 	}
 	return base + suffixPath
+}
+
+func decodeProviderJSONResponse(ctx context.Context, body io.Reader, target *map[string]any) error {
+	if exact, _ := ctx.Value(originalControlRequestKey{}).(bool); exact {
+		payload, err := readLimitedResponseBody(body, maxJSONOrBinaryResponseBytes)
+		if err != nil {
+			return err
+		}
+		body = bytes.NewReader(payload)
+	}
+	return json.NewDecoder(body).Decode(target)
 }

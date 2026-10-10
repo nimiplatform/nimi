@@ -26,7 +26,7 @@ const supervisorOwnerGuardShell = "/bin/sh"
 // group and escalates after the engine's shutdown budget. A group id is never
 // reused while its members live, so nothing outside the group is signalled.
 const supervisorOwnerGuardScript = "exec 3<&0\ntrap '' TERM\n" +
-	"([ -n \"$(head -c 1)\" ] || { kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null; }) <&3 3<&- &\n" +
+	"([ -n \"$(head -c 1)\" ] || { kill -TERM 0 2>/dev/null; sleep \"$0\"; kill -KILL 0 2>/dev/null; }) <&3 3<&- >/dev/null 2>&1 &\n" +
 	"trap - TERM\n" +
 	"exec \"$@\" </dev/null 3<&-"
 

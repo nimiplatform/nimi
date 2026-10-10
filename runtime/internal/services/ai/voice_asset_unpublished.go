@@ -7,9 +7,12 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/protobuf/proto"
 )
+
+type unpublishedVoiceJobKey struct{}
 
 // @nimi-authority: rule.nimi.runtime.model-catalog.r029
 // The existing private pending projection retains a known provider handle
@@ -54,9 +57,18 @@ func (s *Service) performUnpublishedVoiceCleanup(ctx context.Context, jobID stri
 	if strings.TrimSpace(handle) == "" || draft == nil {
 		return
 	}
+	if s.scenarioJobs.hasResultCandidate(jobID) {
+		if job, ok := s.scenarioJobs.get(jobID); ok && !isTerminalScenarioJobStatus(job.GetStatus()) {
+			return
+		}
+	}
 	if ctx.Err() != nil {
 		return
 	}
+	if s.requireJobWorkAuthority && jobWorkPermitFromContext(ctx) == nil {
+		return
+	}
+	ctx = remoteexecution.WithAsyncJob(context.WithValue(ctx, unpublishedVoiceJobKey{}, jobID))
 	release, claimed := s.voiceAssets.claimVoiceDelete(draft.GetVoiceAssetId())
 	if !claimed {
 		return

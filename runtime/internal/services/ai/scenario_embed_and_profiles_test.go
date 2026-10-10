@@ -15,8 +15,8 @@ func TestListScenarioProfiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list scenario profiles: %v", err)
 	}
-	if len(resp.GetProfiles()) != 16 {
-		t.Fatalf("expected 16 scenario profiles, got %d", len(resp.GetProfiles()))
+	if len(resp.GetProfiles()) != 17 {
+		t.Fatalf("expected 17 scenario profiles, got %d", len(resp.GetProfiles()))
 	}
 	var foundTextGenerate bool
 	var foundImageGenerate bool
