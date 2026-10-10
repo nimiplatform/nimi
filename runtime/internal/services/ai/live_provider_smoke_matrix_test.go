@@ -80,6 +80,7 @@ func (h liveSmokeProviderHarness) scenarioContext(t *testing.T, scenarioType run
 	return executionintent.WithIntent(h.context, executionintent.Intent{
 		CapabilityContract: scenarioTargetCapability(scenarioType),
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ConnectorRef:       h.connectorID,
 		CloudImplementation: &runtimev1.CapabilityImplementationIdentity{
 			ImplementationId: "cloud." + scenarioTargetCapability(scenarioType) + "." + h.providerID,
 			DriverId:         "nimi.runtime.driver." + h.providerID,
@@ -127,6 +128,9 @@ func TestLiveSmokeCloudScenarioContextUsesManagedCatalogTarget(t *testing.T) {
 	}
 	if intent.ModelID() != "gpt-4o-mini" {
 		t.Fatalf("private intent model = %q", intent.ModelID())
+	}
+	if intent.ConnectorID() != harness.connectorID {
+		t.Fatalf("private intent connector = %q", intent.ConnectorID())
 	}
 	fields := intent.ProviderModelTarget.GetFields()
 	if fields["remoteModelCatalogId"].GetStringValue() != "remote-catalog-openai-gpt-4o-mini" || fields["provider"].GetStringValue() != "openai" {
@@ -241,8 +245,9 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 	}
 
 	connectorSvc := connector.New(logger, store, nil)
-	modelCatalog := liveSmokeConnectorModelCatalog(t, connectorSvc, context.Background(), created.ConnectorID)
-	svc, err := newFromProviderConfig(logger, nil, nil, store, Config{
+	callerContext := scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID)
+	modelCatalog := liveSmokeConnectorModelCatalog(t, connectorSvc, callerContext, created.ConnectorID)
+	svc, err := newFromProviderConfig(logger, nil, store, Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			normalizedProviderID: {BaseURL: normalizedBaseURL, APIKey: normalizedAPIKey, Headers: headers},
 		},
@@ -252,7 +257,7 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 	}
 	return liveSmokeProviderHarness{
 		service:      svc,
-		context:      scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID),
+		context:      callerContext,
 		providerID:   normalizedProviderID,
 		routePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		connectorID:  created.ConnectorID,

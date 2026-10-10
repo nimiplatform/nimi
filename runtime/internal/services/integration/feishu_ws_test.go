@@ -52,13 +52,13 @@ func TestFeishuSocketReadLimitPrecedesFrameDecode(t *testing.T) {
 	defer cancel()
 	done := make(chan error, 1)
 	go func() { done <- consumeFeishuSocket(ctx, feishuSocketTarget(), feed, client, 7, 5*time.Second) }()
-	if err := peer.WriteMessage(websocket.BinaryMessage, make([]byte, feishuFrameLimit+1)); err != nil {
-		t.Fatal(err)
-	}
+	// Read-limit rejection can close the socket before the oversized write
+	// finishes on macOS. Assert the consumer's terminal result, not delivery.
+	writeErr := peer.WriteMessage(websocket.BinaryMessage, make([]byte, feishuFrameLimit+1))
 	select {
 	case err := <-done:
-		if err == nil {
-			t.Fatal("oversized frame accepted")
+		if publicAdapterError(err) != "INTEGRATION_FEISHU_WEBSOCKET_ENDED" {
+			t.Fatalf("oversized frame was not rejected before decode: consume=%v write=%v", err, writeErr)
 		}
 	case <-time.After(3 * time.Second):
 		t.Fatal("frame limit did not terminate")
