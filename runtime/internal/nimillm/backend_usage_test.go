@@ -56,9 +56,9 @@ func TestChatCompletionUsageReportsThroughSyncAndStream(t *testing.T) {
 				input := []*runtimev1.ChatMessage{{Role: "user", Content: "A long input does not define billed tokens."}}
 				var output string
 				if stream {
-					usage, finish, err = backend.StreamGenerateText(context.Background(), "mimo-v2.5", input, "", 0, 0, 0, textGenParams{}, func(delta string) error { output += delta; return nil })
+					usage, finish, err = backend.StreamGenerateText(context.Background(), "mimo-v2.6-pro", input, "", 0, 0, 0, textGenParams{}, func(delta string) error { output += delta; return nil })
 				} else {
-					output, _, usage, finish, err = backend.GenerateText(context.Background(), "mimo-v2.5", input, "", 0, 0, 0, textGenParams{})
+					output, _, usage, finish, err = backend.GenerateText(context.Background(), "mimo-v2.6-pro", input, "", 0, 0, 0, textGenParams{})
 				}
 				if err != nil || output != "Actual provider text" || finish != runtimev1.FinishReason_FINISH_REASON_STOP {
 					t.Fatalf("text=%q finish=%s err=%v", output, finish, err)

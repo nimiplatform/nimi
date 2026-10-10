@@ -15,53 +15,87 @@ import (
 )
 
 func TestMimoGenerateTextUsesMaxCompletionTokens(t *testing.T) {
-	var captured map[string]any
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/chat/completions" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		if got := r.Header.Get("Authorization"); got != "Bearer mimo-key" {
-			t.Fatalf("unexpected authorization header: %q", got)
-		}
-		if err := json.NewDecoder(r.Body).Decode(&captured); err != nil {
-			t.Fatalf("decode request: %v", err)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{
-			"choices":[{"finish_reason":"stop","message":{"content":"mimo text ok"}}],
+	for _, modelID := range []string{"mimo-v2.6-pro", "mimo-v2.6-flash"} {
+		for _, stream := range []bool{false, true} {
+			mode := "sync"
+			if stream {
+				mode = "stream"
+			}
+			t.Run(modelID+"/"+mode, func(t *testing.T) {
+				var captured map[string]any
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path != "/v1/chat/completions" {
+						t.Fatalf("unexpected path: %s", r.URL.Path)
+					}
+					if got := r.Header.Get("Authorization"); got != "Bearer mimo-key" {
+						t.Fatalf("unexpected authorization header: %q", got)
+					}
+					if err := json.NewDecoder(r.Body).Decode(&captured); err != nil {
+						t.Fatalf("decode request: %v", err)
+					}
+					if stream {
+						w.Header().Set("Content-Type", "text/event-stream")
+						_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"internal thought\"}}]}\n\n" +
+							"data: {\"choices\":[{\"delta\":{\"content\":\"mimo text ok\"},\"finish_reason\":\"stop\"}]}\n\n" +
+							"data: {\"choices\":[],\"usage\":{\"prompt_tokens\":3,\"completion_tokens\":4,\"total_tokens\":7}}\n\n" +
+							"data: [DONE]\n\n"))
+						return
+					}
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(`{
+			"choices":[{"finish_reason":"stop","message":{"content":"mimo text ok","reasoning_content":"internal thought"}}],
 			"usage":{"prompt_tokens":3,"completion_tokens":4,"total_tokens":7}
 		}`))
-	}))
-	defer server.Close()
+				}))
+				defer server.Close()
 
-	backend := NewBackend("cloud-mimo", server.URL+"/v1", "mimo-key", 5*time.Second)
-	if backend == nil {
-		t.Fatal("expected backend")
-	}
-	text, _, usage, _, err := backend.GenerateText(
-		context.Background(),
-		"mimo-v2.5-pro",
-		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
-		"",
-		0,
-		0,
-		64,
-		textGenParams{},
-	)
-	if err != nil {
-		t.Fatalf("GenerateText failed: %v", err)
-	}
-	if text != "mimo text ok" {
-		t.Fatalf("unexpected text: %q", text)
-	}
-	if usage == nil || usage.GetInputTokens() != 3 || usage.GetOutputTokens() != 4 {
-		t.Fatalf("unexpected usage: %+v", usage)
-	}
-	if got := ValueAsInt64(captured["max_completion_tokens"]); got != 64 {
-		t.Fatalf("expected max_completion_tokens=64, got=%v", captured["max_completion_tokens"])
-	}
-	if _, ok := captured["max_tokens"]; ok {
-		t.Fatalf("mimo request must not send max_tokens: %#v", captured)
+				backend := NewBackend("cloud-mimo", server.URL+"/v1", "mimo-key", 5*time.Second)
+				if backend == nil {
+					t.Fatal("expected backend")
+				}
+				var text string
+				var usage *runtimev1.UsageStats
+				var finish runtimev1.FinishReason
+				var err error
+				if stream {
+					usage, finish, err = backend.StreamGenerateText(context.Background(), modelID,
+						[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}}, "", 0, 0, 64, textGenParams{},
+						func(delta string) error { text += delta; return nil })
+				} else {
+					text, _, usage, finish, err = backend.GenerateText(
+						context.Background(),
+						modelID,
+						[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+						"",
+						0,
+						0,
+						64,
+						textGenParams{},
+					)
+				}
+				if err != nil {
+					t.Fatalf("GenerateText failed: %v", err)
+				}
+				if text != "mimo text ok" {
+					t.Fatalf("unexpected text: %q", text)
+				}
+				if usage == nil || usage.GetInputTokens() != 3 || usage.GetOutputTokens() != 4 {
+					t.Fatalf("unexpected usage: %+v", usage)
+				}
+				if finish != runtimev1.FinishReason_FINISH_REASON_STOP {
+					t.Fatalf("unexpected finish reason: %s", finish)
+				}
+				if captured["model"] != modelID || captured["stream"] != stream {
+					t.Fatalf("model or execution mode changed: %#v", captured)
+				}
+				if got := ValueAsInt64(captured["max_completion_tokens"]); got != 64 {
+					t.Fatalf("expected max_completion_tokens=64, got=%v", captured["max_completion_tokens"])
+				}
+				if _, ok := captured["max_tokens"]; ok {
+					t.Fatalf("mimo request must not send max_tokens: %#v", captured)
+				}
+			})
+		}
 	}
 }
 
