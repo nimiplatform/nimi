@@ -4,10 +4,21 @@ import React, { act } from 'react';
 import { JSDOM } from 'jsdom';
 import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
 
+
+async function clickButton(document: Document, text: string) {
+  const button = [...document.querySelectorAll('button')].find(item => item.textContent === text);
+  assert.ok(button, text);
+  await act(async () => button.click());
+}
+async function openConnection(document: Document, kind?: string) {
+  if (kind) await act(async () => document.querySelector<HTMLButtonElement>(`[data-testid=integration-service-${kind}]`)!.click());
+  await act(async () => document.querySelector<HTMLButtonElement>('[data-testid=integration-add-connection]')!.click());
+}
+
 for (const locale of ['en', 'zh'] as const) {
 test(`Home presents a safe, actionable native identity conflict in ${locale}`, async t => {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
-  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), React, IS_REACT_ACT_ENVIRONMENT: true };
+  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLFormElement: dom.window.HTMLFormElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), React, IS_REACT_ACT_ENVIRONMENT: true };
   const previous = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
@@ -28,16 +39,15 @@ test(`Home presents a safe, actionable native identity conflict in ${locale}`, a
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
     await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={() => {}} /></DesktopRendererBindingProvider>); });
+    await openConnection(dom.window.document, 'weixin');
     const form = dom.window.document.querySelector('form')!;
-    const service = form.querySelector('select')!;
-    await act(async () => { service.value = 'weixin'; service.dispatchEvent(new dom.window.Event('change', { bubbles: true })); });
+    assert.equal(form.querySelector('select'), null);
     await act(async () => { form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true })); });
     await act(async () => { t.mock.timers.tick(1000); });
     const panel = dom.window.document.querySelector('[data-testid="integration-setup"]')!;
     assert.match(panel.textContent || '', locale === 'en' ? /already connected.*existing connection.*remove.*Nimi account/iu : /已有连接.*不能重复添加.*已有连接.*Nimi 账号.*移除/u);
     assert.equal(panel.textContent?.includes('INTEGRATION_'), false);
     assert.equal(panel.querySelector('a'), null);
-    assert.equal(service.disabled, false);
     assert.equal(form.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled, false);
   } finally {
     await act(async () => { root.unmount(); }); t.mock.timers.reset(); dom.window.close();
@@ -50,7 +60,7 @@ test(`Home presents a safe, actionable native identity conflict in ${locale}`, a
 // platform setup or Desktop-supervised product acceptance.
 test('Home recovers setup controls and clears QR and OTP after persistent RPC failure', async t => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
-  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), React, IS_REACT_ACT_ENVIRONMENT: true };
+  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLFormElement: dom.window.HTMLFormElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), React, IS_REACT_ACT_ENVIRONMENT: true };
   const previous = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
@@ -67,23 +77,22 @@ test('Home recovers setup controls and clears QR and OTP after persistent RPC fa
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
     await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={() => {}} /></DesktopRendererBindingProvider>); });
-    const service = dom.window.document.querySelector('select')!;
-    await act(async () => { service.value = 'weixin'; service.dispatchEvent(new dom.window.Event('change', { bubbles: true })); });
+    await openConnection(dom.window.document, 'weixin');
     assert.equal(dom.window.document.querySelector('input[maxlength="256"]'), null, 'Weixin QR has no name prerequisite');
+    if (!dom.window.document.querySelector('form')) await openConnection(dom.window.document);
     const form = dom.window.document.querySelector('form')!;
     assert.equal((form.querySelector('button[type="submit"]') as HTMLButtonElement).disabled, false);
     await act(async () => { form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true })); });
     assert.deepEqual(startedInputs, [{targetRef:'',adapter:'weixin',accountLabel:'',config:{weixin:{}}}]);
-    const panel = dom.window.document.querySelector('[data-testid="integrations-panel"]')!;
-    const connect = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-    assert.equal(connect.disabled, true); assert.equal(service.disabled, true);
+    const panel = dom.window.document.querySelector('[data-testid="integration-connection-drawer"]')!;
+    assert.equal(form.querySelector('button[type="submit"]'), null);
     assert.ok(panel.querySelector('a[href="https://liteapp.weixin.qq.com/fixture"]'));
     const otp = panel.querySelector('input[autocomplete="one-time-code"]') as HTMLInputElement;
     assert.ok(otp); otp.value = '123456';
     for (let index = 0; index < 3; index++) await act(async () => { t.mock.timers.tick(1000); });
     assert.equal(queries, 3);
     await act(async () => { t.mock.timers.tick(1000); });
-    assert.equal(service.disabled, false); assert.equal(connect.disabled, false);
+    assert.equal(form.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled, false);
     assert.equal(otp.value, ''); assert.equal(panel.querySelector('input[autocomplete="one-time-code"]'), null);
     assert.equal(panel.querySelector('a[href="https://liteapp.weixin.qq.com/fixture"]'), null);
     assert.match(panel.textContent || '', /final status could not be confirmed/u);
@@ -98,7 +107,11 @@ test('Home recovers setup controls and clears QR and OTP after persistent RPC fa
 for (const terminalStatus of ['completed', 'already-bound'] as const) {
 test(`Home shows one account and a truthful ${terminalStatus} terminal result`, async t => {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
-  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), React, IS_REACT_ACT_ENVIRONMENT: true };
+  dom.window.Element.prototype.scrollIntoView = () => {};
+  dom.window.HTMLElement.prototype.hasPointerCapture = () => false;
+  dom.window.HTMLElement.prototype.setPointerCapture = () => {};
+  dom.window.HTMLElement.prototype.releasePointerCapture = () => {};
+  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLFormElement: dom.window.HTMLFormElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), React, IS_REACT_ACT_ENVIRONMENT: true };
   const previous = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
@@ -120,19 +133,23 @@ test(`Home shows one account and a truthful ${terminalStatus} terminal result`, 
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
     await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={() => {}} /></DesktopRendererBindingProvider>); });
-    assert.equal(dom.window.document.querySelector('option[value="automatic"]')?.textContent, target.displayName);
-    assert.equal(dom.window.document.querySelector('option[value="remark"]')?.textContent, 'My remark · bot@im.bot');
+    await act(async () => dom.window.document.querySelector<HTMLElement>('[data-testid=integration-target]')!.click());
+    const options = [...dom.window.document.querySelectorAll<HTMLElement>('[role=option]')];
+    assert.ok(options.some(option => option.textContent === 'My remark · bot@im.bot'));
+    const selectedOption = options.find(option => option.textContent === target.displayName);
+    assert.ok(selectedOption);
+    await act(async () => selectedOption.click());
+    await clickButton(dom.window.document, 'Usage records');
+    await act(async () => { dom.window.document.querySelector<HTMLButtonElement>('button[aria-controls="detail-ic_response_fixture"]')!.click(); });
     assert.match(dom.window.document.querySelector('tbody')?.textContent || '', /WeChat returned a response Nimi could not verify/u);
-    const form = dom.window.document.querySelector('form')!;
-    const service = form.querySelector('select')!;
     if (terminalStatus === 'already-bound') {
-      const targetSelect = Array.from(dom.window.document.querySelectorAll('select')).find(select => Array.from(select.options).some(option => option.value === target.targetRef))!;
-      await act(async () => { targetSelect.value = target.targetRef; targetSelect.dispatchEvent(new dom.window.Event('change', { bubbles: true })); });
-      const refresh = Array.from(dom.window.document.querySelectorAll('button')).find(button => button.textContent === 'Refresh credentials')!;
-      await act(async () => { refresh.click(); });
+      await clickButton(dom.window.document, 'Connection information');
+      await clickButton(dom.window.document, 'Update authentication');
     } else {
-      await act(async () => { service.value = 'weixin'; service.dispatchEvent(new dom.window.Event('change', { bubbles: true })); });
+      await openConnection(dom.window.document);
     }
+    const form = dom.window.document.querySelector('form')!;
+    assert.equal(form.querySelector('select'), null);
     await act(async () => { form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true })); });
     assert.match(dom.window.document.querySelector('[data-testid="integration-setup"]')?.textContent || '', /Setup session expires/u);
     await act(async () => { t.mock.timers.tick(1000); });
@@ -144,7 +161,6 @@ test(`Home shows one account and a truthful ${terminalStatus} terminal result`, 
     }
     assert.equal(panel.textContent?.includes('expires'), false);
     assert.equal(panel.querySelector('a'), null);
-    assert.equal(service.disabled, terminalStatus === 'already-bound');
     assert.equal(form.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled, false);
   } finally {
     await act(async () => { root.unmount(); }); t.mock.timers.reset(); dom.window.close();
@@ -155,7 +171,7 @@ test(`Home shows one account and a truthful ${terminalStatus} terminal result`, 
 
 test('a late initial submit cannot replace a new setup after expiry or restore its QR', async t => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
-  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), React, IS_REACT_ACT_ENVIRONMENT: true };
+  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator, HTMLElement: dom.window.HTMLElement, HTMLFormElement: dom.window.HTMLFormElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle, requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), React, IS_REACT_ACT_ENVIRONMENT: true };
   const previous = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
@@ -180,8 +196,8 @@ test('a late initial submit cannot replace a new setup after expiry or restore i
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
     await act(async () => { root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={() => {}} /></DesktopRendererBindingProvider>); });
-    const form = dom.window.document.querySelector('form')!;
-    const service = form.querySelector('select')!;
+    if (!dom.window.document.querySelector('form')) await openConnection(dom.window.document);
+    let form = dom.window.document.querySelector('form')!;
     const name = form.querySelector('input[maxlength="256"]') as HTMLInputElement;
     const address = form.querySelector('input[type="url"]') as HTMLInputElement;
     await act(async () => {
@@ -193,8 +209,9 @@ test('a late initial submit cannot replace a new setup after expiry or restore i
     await act(async () => { form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true })); });
     assert.equal(submits, 1);
     await act(async () => { t.mock.timers.tick(4000); });
-    assert.equal(service.disabled, false);
-    await act(async () => { service.value = 'weixin'; service.dispatchEvent(new dom.window.Event('change', { bubbles: true })); });
+    await act(async () => dom.window.document.querySelector<HTMLButtonElement>('[data-testid=integration-connection-drawer] button[aria-label=Close]')!.click());
+    await openConnection(dom.window.document, 'weixin');
+    form = dom.window.document.querySelector('form')!;
     await act(async () => { form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true })); });
     const panel = dom.window.document.querySelector('[data-testid="integration-setup"]')!;
     assert.match(panel.textContent || '', /New setup/u);
@@ -205,7 +222,7 @@ test('a late initial submit cannot replace a new setup after expiry or restore i
     assert.ok(panel.querySelector('a[href="https://liteapp.weixin.qq.com/new"]'));
     assert.equal(panel.querySelector('a[href="https://liteapp.weixin.qq.com/expired"]'), null);
     assert.equal(starts, 2); assert.equal(submits, 1);
-    assert.equal(service.disabled, true, 'the new live setup still owns the local operation lock');
+    assert.equal(form.querySelector('button[type=submit]'), null, 'a live setup does not offer another start');
   } finally {
     await act(async () => { root.unmount(); }); t.mock.timers.reset(); dom.window.close();
     for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
@@ -215,7 +232,7 @@ test('a late initial submit cannot replace a new setup after expiry or restore i
 for (const outcome of ['confirm', 'cancel', 'expiry', 'unmount', 'late-confirm'] as const) {
 test(`Home new bot requires explicit confirmation and clears old grant draft: ${outcome}`, async t => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {url:'http://localhost',pretendToBeVisual:true});
-  const values = {window:dom.window,document:dom.window.document,navigator:dom.window.navigator,HTMLElement:dom.window.HTMLElement,HTMLInputElement:dom.window.HTMLInputElement,Element:dom.window.Element,Node:dom.window.Node,NodeFilter:dom.window.NodeFilter,DocumentFragment:dom.window.DocumentFragment,MutationObserver:dom.window.MutationObserver,CustomEvent:dom.window.CustomEvent,Event:dom.window.Event,getComputedStyle:dom.window.getComputedStyle,requestAnimationFrame:dom.window.requestAnimationFrame.bind(dom.window),cancelAnimationFrame:dom.window.cancelAnimationFrame.bind(dom.window),React,IS_REACT_ACT_ENVIRONMENT:true};
+  const values = {window:dom.window,document:dom.window.document,navigator:dom.window.navigator,HTMLElement:dom.window.HTMLElement,HTMLFormElement:dom.window.HTMLFormElement,HTMLInputElement:dom.window.HTMLInputElement,Element:dom.window.Element,Node:dom.window.Node,NodeFilter:dom.window.NodeFilter,DocumentFragment:dom.window.DocumentFragment,MutationObserver:dom.window.MutationObserver,CustomEvent:dom.window.CustomEvent,Event:dom.window.Event,getComputedStyle:dom.window.getComputedStyle,requestAnimationFrame:dom.window.requestAnimationFrame.bind(dom.window),cancelAnimationFrame:dom.window.cancelAnimationFrame.bind(dom.window),React,IS_REACT_ACT_ENVIRONMENT:true};
   const previous = new Map(Object.keys(values).map(key => [key,Object.getOwnPropertyDescriptor(globalThis,key)]));
   for(const [key,value] of Object.entries(values)) Object.defineProperty(globalThis,key,{configurable:true,writable:true,value});
   const {createRoot} = await import('react-dom/client');
@@ -245,12 +262,13 @@ test(`Home new bot requires explicit confirmation and clears old grant draft: ${
   const button=(name:string)=>Array.from(dom.window.document.querySelectorAll('button')).find(item=>item.textContent===name)!;
   try {
     await act(async()=>{root.render(<DesktopRendererBindingProvider bindings={bindings}><IntegrationsPanel onBack={()=>{}}/></DesktopRendererBindingProvider>);});
-    const targetSelect=Array.from(dom.window.document.querySelectorAll('select')).find(select=>Array.from(select.options).some(option=>option.value===old.targetRef))!;
-    await act(async()=>{targetSelect.value=old.targetRef;targetSelect.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});
-    const consumer=Array.from(dom.window.document.querySelectorAll('input[type="checkbox"]')).find(input=>input.closest('label')?.textContent?.includes('Nimi Lab')) as HTMLInputElement;
-    await act(async()=>{consumer.click();});
-    assert.equal(dom.window.document.querySelectorAll('input:checked').length,2,'old App and operation draft selected');
-    await act(async()=>{button('Refresh credentials').click();});
+    const targetSelect=dom.window.document.querySelector<HTMLElement>('[data-testid=integration-target]')!;
+    assert.equal(targetSelect.textContent, `${old.displayName} · ${old.accountLabel}`);
+    await clickButton(dom.window.document, 'Edit permissions');
+    assert.equal(dom.window.document.querySelectorAll('input:checked').length,1,'existing operation draft selected for the fixed App');
+    await act(async()=>{dom.window.document.querySelector<HTMLButtonElement>('[data-testid=integration-permission-drawer] button[aria-label=Close]')!.click();});
+    await clickButton(dom.window.document, 'Connection information');
+    await act(async()=>{button('Update authentication').click();});
     const form=dom.window.document.querySelector('form')!;
     assert.equal(form.querySelector('input[maxlength="256"]'),null,'no manual name prerequisite');
     await act(async()=>{form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));});
@@ -262,12 +280,18 @@ test(`Home new bot requires explicit confirmation and clears old grant draft: ${
     if(outcome==='confirm') {
       await act(async()=>{confirm.click();});
       assert.deepEqual(submitted,[{setupId:pending.setupId,secret:'',verificationCode:'',action:'create-new-target'}]);
-      assert.equal(targetSelect.value,created.targetRef);
-      assert.equal(dom.window.document.querySelectorAll('input:checked').length,0,'both old selections cleared');
-      assert.equal(button('Save permissions for selected apps').disabled,true);
+      assert.equal(targetSelect.textContent,created.displayName);
+      // The exiting drawer can retain its last DOM during the shared overlay animation.
+      // Assert the new editor's draft below after opening it through the current target.
       assert.match(dom.window.document.body.textContent||'',/New connection created/u);
+      await act(async()=>{dom.window.document.querySelector<HTMLButtonElement>('[data-testid=integration-connection-drawer] button[aria-label=Close]')!.click();});
+      await clickButton(dom.window.document, 'App permissions');
+      await clickButton(dom.window.document, 'Authorize apps');
+      assert.equal(button('Confirm authorization').disabled,true);
+      assert.equal(dom.window.document.querySelectorAll('[data-testid=integration-permission-drawer][aria-hidden=false] input:checked').length,0);
     } else if(outcome==='cancel') {
-      await act(async()=>{button('Cancel setup').click();});
+      await act(async()=>{button('Cancel connection').click();});
+      await act(async()=>{t.mock.timers.tick(1000);});
       assert.equal(canceled,1);assert.equal(submitted.length,0);assert.equal(button('Confirm new connection'),undefined);
     } else if(outcome==='unmount') {
       await act(async()=>{root.unmount();});unmounted=true;assert.equal(canceled,1);assert.equal(submitted.length,0);
@@ -276,7 +300,7 @@ test(`Home new bot requires explicit confirmation and clears old grant draft: ${
       for(let i=0;i<4;i++)await act(async()=>{t.mock.timers.tick(1000);});
       assert.equal(button('Confirm new connection'),undefined);
       if(release)await act(async()=>{release!(complete);});
-      assert.equal(targetSelect.value,old.targetRef,'late completion cannot select a new target');
+      assert.equal(targetSelect.textContent,`${old.displayName} · ${old.accountLabel}`,'late completion cannot select a new target');
       assert.equal(submitted.length,outcome==='expiry'?0:1);
     }
   } finally {

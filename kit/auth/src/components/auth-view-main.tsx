@@ -43,7 +43,7 @@ export function AuthViewMain(props: {
   return (
     <form onSubmit={onContinue} noValidate className="relative w-full">
       {/* Capsule input bar */}
-      <div className="flex items-center h-[52px] rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] shadow-[var(--nimi-elevation-base)]">
+      <div className="nimi-auth-capsule flex items-center">
         {/* Left: alternatives dropdown trigger */}
         <button
           type="button"
@@ -51,7 +51,7 @@ export function AuthViewMain(props: {
           onClick={onAlternativeToggle}
           disabled={pending}
           aria-label={t('Auth.alternative')}
-          className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="nimi-auth-capsule-icon ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-50"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
             <circle cx="5" cy="5" r="1.5" />
@@ -67,20 +67,21 @@ export function AuthViewMain(props: {
           value={email}
           data-testid={testIds?.emailInput}
           onChange={(event) => onEmailChange(event.target.value)}
-          className="flex-1 min-w-0 bg-transparent px-3 text-[15px] text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] outline-none"
+          className="nimi-auth-capsule-input flex-1 min-w-0 bg-transparent px-3 text-[15px] outline-none"
           placeholder={t('Auth.emailPlaceholder')}
           required
           autoFocus
           autoComplete="username"
         />
 
-        {/* Right: submit arrow (animated appearance) */}
-        <div className={`mr-2 flex h-9 w-9 shrink-0 transition-all duration-200 ease-out ${email.trim() ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'}`}>
+        {/* Right: submit arrow */}
+        <div className="mr-2 flex shrink-0">
           <button
             type="submit"
             data-testid={testIds?.emailSubmitArrow}
+            data-has-content={email.trim() ? 'true' : undefined}
             disabled={pending || !email.trim()}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="nimi-auth-capsule-submit flex items-center justify-center rounded-full disabled:cursor-not-allowed"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3.5 8h9M8.5 4l4 4-4 4" />

@@ -133,7 +133,7 @@ function EntryRuntimeBootSurface(props: { title: string }) {
             className="h-20 w-20 object-contain"
           />
           <h1 className="mt-10 text-[30px] font-medium leading-snug">
-            Nimi Ecosystem
+            Nimi
           </h1>
           <div role="status" className="mt-12 flex flex-col items-center gap-3">
             <div aria-hidden="true" className="nimi-boot-dots">

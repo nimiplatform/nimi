@@ -295,7 +295,7 @@ export function NimiOverview() {
       ) : null}
       <div className="flex min-w-0 flex-col gap-5 xl:col-start-1 xl:row-start-2">
         <section className="rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-elevation-base)]" data-testid="home-integrations">
-          <SectionHeader title={t('Integrations.title')} action={t('Integrations.manage')} onAction={() => setView('integrations')} />
+          <SectionHeader title={t('Integrations.title')} action={t('Integrations.manage')} onAction={() => setActiveTab('home', 'integrations')} />
           <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t('Integrations.homeBody')}</p>
         </section>
         {firstRun ? (
@@ -392,7 +392,9 @@ export function NimiOverview() {
     </div>
   );
 
-  const renderPage = (messages: HomeMessages | null) => (
+  const renderPage = (messages: HomeMessages | null) => view === 'integrations' ? (
+    <IntegrationsPanel appIconUrls={iconUrls} onBack={() => setActiveTab('home', 'overview')} />
+  ) : (
     <div className="flex min-h-0 flex-1 flex-col p-3">
       <ScrollArea
         key={view}
@@ -400,7 +402,7 @@ export function NimiOverview() {
         viewportClassName="bg-transparent"
         contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-7 pt-5`}
       >
-        {view === 'integrations' ? <IntegrationsPanel onBack={() => setView('overview')} /> : view === 'center' && messages ? (
+        {view === 'center' && messages ? (
           <HomeMessageCenter
             messages={messages}
             context={cardContext(messages)}

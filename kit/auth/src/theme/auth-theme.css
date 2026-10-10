@@ -85,23 +85,6 @@
   z-index: 0;
 }
 
-/*
- * Desktop browser-auth gate launch surface: plain white card, compact logo,
- * and animated status dots. Scoped to the gate so the Web account page keeps
- * the brand mesh surface above.
- */
-.nimi-shell-auth-root.nimi-shell-auth-clean-surface {
-  --nimi-app-background: #ffffff;
-  --nimi-text-primary: #1f2937;
-  --nimi-text-secondary: #4b5563;
-  --nimi-text-muted: #9ca3af;
-  --nimi-border-subtle: #d7dce4;
-  --nimi-status-danger: #ef4444;
-  --nimi-action-primary-bg: #1476d4;
-  --nimi-action-primary-bg-hover: #1166b8;
-  --nimi-focus-ring-color: rgba(20, 118, 212, 0.28);
-}
-
 .nimi-shell-auth-root .nimi-shell-auth-dots {
   display: flex;
   align-items: center;
@@ -196,4 +179,87 @@
 
 .nimi-shell-auth-root .nimi-shell-auth-inline-help {
   color: var(--nimi-text-muted);
+}
+
+/*
+ * Web email capsule (AuthViewMain). Keep the capsule geometry while using
+ * the surrounding auth theme's field, action, and elevation tokens.
+ */
+.nimi-shell-auth-root .nimi-auth-capsule {
+  height: 56px;
+  border: var(--nimi-border-width-default) solid var(--nimi-field-border);
+  border-radius: var(--nimi-radius-full);
+  background-color: var(--nimi-field-bg);
+  box-shadow: var(--nimi-elevation-base);
+  transition:
+    border-color 250ms ease,
+    background-color 250ms ease,
+    box-shadow 300ms ease;
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule:focus-within {
+  border-color: var(--nimi-field-focus);
+  box-shadow: 0 0 0 var(--nimi-focus-ring-width) var(--nimi-focus-ring-color), var(--nimi-elevation-base);
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule-input {
+  color: var(--nimi-text-primary);
+  caret-color: var(--nimi-action-primary-bg);
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule-input::placeholder {
+  color: var(--nimi-text-muted);
+  opacity: 1;
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule-icon {
+  color: var(--nimi-text-secondary);
+  transition: color 180ms ease, background-color 180ms ease;
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule-icon:hover:not(:disabled) {
+  color: var(--nimi-text-primary);
+  background-color: var(--nimi-action-ghost-hover);
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule-submit {
+  width: 40px;
+  height: 40px;
+  background-color: var(--nimi-action-ghost-hover);
+  color: var(--nimi-text-muted);
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule-submit:hover:not(:disabled) {
+  background-color: var(--nimi-action-ghost-hover);
+  color: var(--nimi-text-primary);
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule-submit[data-has-content='true'] {
+  background-color: var(--nimi-action-primary-bg);
+  color: var(--nimi-action-primary-text);
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule-submit[data-has-content='true']:hover:not(:disabled) {
+  background-color: var(--nimi-action-primary-bg-hover);
+  color: var(--nimi-action-primary-text);
+}
+
+.nimi-shell-auth-root .nimi-auth-capsule-submit:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nimi-shell-auth-root .nimi-auth-capsule,
+  .nimi-shell-auth-root .nimi-auth-capsule-icon,
+  .nimi-shell-auth-root .nimi-auth-capsule-submit {
+    transition: none;
+  }
+
+  .nimi-shell-auth-root .nimi-auth-capsule-submit:active:not(:disabled) {
+    transform: none;
+  }
 }

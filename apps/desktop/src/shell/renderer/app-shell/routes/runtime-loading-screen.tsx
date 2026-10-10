@@ -48,7 +48,7 @@ export function RuntimeLoadingScreen(props: { slowAfterMs?: number; slowActions?
           />
 
           <h1 className="mt-10 text-[30px] font-medium leading-snug">
-            Nimi Ecosystem
+            Nimi
           </h1>
 
           <div role="status" className="mt-12 flex flex-col items-center gap-3">

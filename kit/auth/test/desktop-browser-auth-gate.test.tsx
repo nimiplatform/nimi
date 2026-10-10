@@ -13,7 +13,7 @@ vi.mock('../src/logic/desktop-browser-auth.js', () => ({
 
 import { DesktopBrowserAuthGate } from '../src/components/desktop-browser-auth-gate.js';
 
-function renderGate(notice?: string) {
+function renderGate(notice?: string, withLogo = true) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -24,7 +24,7 @@ function renderGate(notice?: string) {
       <DesktopBrowserAuthGate
         bridge={{} as never}
         runtimeAccountBroker={{} as never}
-        logo={<img src="/logo.png" alt="Nimi" />}
+        logo={withLogo ? <img src="/logo.png" alt="Nimi" /> : undefined}
         title="在浏览器中安全登录 Nimi"
         description="凭据只在网页中输入"
         continueLabel="继续登录"
@@ -42,14 +42,30 @@ function renderGate(notice?: string) {
 }
 
 describe('DesktopBrowserAuthGate presentation', () => {
-  it('offers the visible action as the one keyboard-reachable button and shows no loading dots while idle', () => {
+  it('keeps sign-in and retry reachable when the optional logo is omitted', async () => {
+    performDesktopBrowserAuth.mockRejectedValue(new Error('Browser unavailable'));
+    const { container, root, onEntryAction } = renderGate(undefined, false);
+    const action = container.querySelector<HTMLButtonElement>('[data-testid="login-action"]')!;
+    expect(action.textContent).toBe('继续登录');
+    await act(async () => { action.click(); });
+    expect(onEntryAction).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(action.textContent).toBe('重试');
+    await act(async () => { action.click(); });
+    expect(onEntryAction).toHaveBeenCalledTimes(2);
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('makes the logo the single keyboard-reachable action and shows no loading dots while idle', () => {
     const { container, root } = renderGate();
     const action = container.querySelector<HTMLButtonElement>('[data-testid="login-action"]');
 
-    expect(container.querySelector('.nimi-shell-auth-clean-surface')).not.toBeNull();
-    expect(container.querySelector('h1')?.textContent).toBe('Nimi Ecosystem');
+    expect(container.querySelector('.nimi-shell-auth-brand-surface')).not.toBeNull();
+    expect(container.querySelector('h1')?.textContent).toBe('Nimi');
     expect(action?.tagName).toBe('BUTTON');
-    expect(action?.textContent).toBe('继续登录');
+    expect(action?.getAttribute('aria-label')).toBe('继续登录');
+    expect(action?.querySelector('img')).not.toBeNull();
     expect(container.querySelectorAll('button')).toHaveLength(1);
     expect(container.querySelectorAll('.nimi-shell-auth-dot')).toHaveLength(0);
 
@@ -91,7 +107,7 @@ describe('DesktopBrowserAuthGate presentation', () => {
     await act(async () => { endButton?.click(); await Promise.resolve(); await Promise.resolve(); });
     expect(options.signal?.aborted).toBe(true);
     expect(container.querySelector('[role="alert"]')).toBeNull();
-    expect(container.querySelector('[data-testid="login-action"]')?.textContent).toBe('继续登录');
+    expect(container.querySelector('[data-testid="login-action"]')?.getAttribute('aria-label')).toBe('继续登录');
     expect(container.textContent).toContain('已结束等待');
 
     act(() => root.unmount());

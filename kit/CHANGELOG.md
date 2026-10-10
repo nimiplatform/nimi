@@ -43,6 +43,16 @@ The matching renderer standard Shell also accepts `audio-speaker-embed`, carries
 
 The unpublished matching Runtime, SDK, Kit/native and Rust carrier 0.10.0 set adds the asynchronous `audio-speaker-embed` App Job. Supply original audio bytes/URI or an owned audio artifact with an optional frame range. A completed Job returns `speakerEmbedding: { vector, spaceId }`; persist both in the App business owner. Compare or average only finite, nonzero vectors with the same actual dimension and Runtime space. This result provides no person identity, authentication claim, transcription, diarization or semantic text index. The initial local Sherpa encoder supports short audio through its exact Windows x64 CPU profile; unsupported input or unavailable configuration fails explicitly. Older packages cannot project the new closed-set task. Rebuild and upgrade the complete consumed set; the version label alone is insufficient.
 
+## Desktop browser sign-in logo entry (next patch, development)
+
+- `DesktopBrowserAuthGate` removes the separate continue/retry button; the
+  logo itself is the single entry action, matching the Web account page's
+  actionable logo stage. `continueLabel`/`retryLabel` now supply the logo
+  button's accessible name and `actionTestId` marks it; waiting, reopen and
+  end-wait behavior are unchanged. Without a logo, a text button remains
+  available for sign-in and retry. Visual change only; the public API is
+  unchanged.
+
 ## SDK 0.21.0 / Kit and native 0.18.0 — Owned World image inputs (development)
 
 The compatible input widening belongs to this unpublished minor development set. Use the newly built matching Runtime, SDK, Kit/native and Rust carrier 0.10.0 packages; a matching version label alone does not identify their contents. `world-generate` now accepts `image: { artifactId, projection }`, where projection is `ordinary` or `equirectangular-360`. Upload image bytes through the existing protected artifact upload first; prompt may be omitted when an image is present. Text-only requests still require a prompt. App paths, data URLs, provider IDs and implicit panorama detection are not inputs. Runtime captures the owned bytes before publishing the Job and performs provider upload privately. PNG/JPEG/WebP are bounded to 20 MB and 16 MP with upright orientation; panorama intent additionally requires 2:1 geometry.

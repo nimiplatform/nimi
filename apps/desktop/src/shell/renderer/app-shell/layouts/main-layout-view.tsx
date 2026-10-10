@@ -1,5 +1,6 @@
 import { ExecutionNotificationPreferenceSync } from '../../features/home/execution-notices.js';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { Plug } from 'lucide-react';
 import logoImage from '../../assets/logo.png';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -64,6 +65,7 @@ type MainLayoutViewProps = {
   onTitlebarMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
 };
 
+// @nimi-authority: rule.nimi.desktop.shell-ui.r001
 export function MainLayoutView(props: MainLayoutViewProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
@@ -73,6 +75,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const shellContentTopPaddingClass = titlebarFrame.contentTopPaddingClass;
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const authUser = useAppStore((state) => state.auth.user);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const homeEntryDestination = useAppStore((state) => state.homeEntryDestination);
   const exploreActiveSection = useAppStore((state) => state.exploreActiveSection);
   const setExploreActiveSection = useAppStore((state) => state.setExploreActiveSection);
   const exploreSearchText = useAppStore((state) => state.exploreSearchText);
@@ -341,6 +345,31 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             </nav>
             <div className="flex shrink-0 flex-col items-center gap-2 pb-3">
               <GlobalDownloadsNavigation onOpen={() => props.onNav('downloads')} />
+              {/* Integrations is a Home-owned view, so this stays a rail
+                  utility entry and never joins the closed ordinary primary
+                  navigation set. */}
+              <Tooltip
+                content={t('Integrations.title')}
+                placement="right"
+                contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
+              >
+                <motion.button
+                  type="button"
+                  data-testid="integrations-rail-entry"
+                  onClick={() => setActiveTab('home', 'integrations')}
+                  whileHover={interactiveMotion.whileHover}
+                  whileTap={interactiveMotion.whileTap}
+                  transition={interactiveMotion.transition}
+                  className={`flex h-11 w-11 items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+                    props.activeTab === 'home' && homeEntryDestination === 'integrations'
+                      ? 'text-[var(--nimi-action-primary-bg)]'
+                      : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
+                  }`}
+                  aria-label={t('Integrations.title')}
+                >
+                  <Plug size={20} />
+                </motion.button>
+              </Tooltip>
               <Tooltip
                 content={t('Navigation.notifications')}
                 placement="right"
