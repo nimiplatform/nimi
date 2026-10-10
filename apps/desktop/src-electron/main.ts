@@ -1,5 +1,13 @@
 import { createDesktopExecutionNoticesHost } from './execution-notices-host.js';
 import { writeDesktopStderr } from './stderr-log.js';
+import { DesktopProductUpdateHost } from './product-update-host.js';
+import { MacOSProductUpdateAdapter } from './macos-product-update-adapter.js';
+import { WindowsProductUpdateAdapter } from './windows-product-update-adapter.js';
+import { ProductUpdateFailureStore, readUpdateFailureDiagnostic } from './product-update-failure-store.js';
+import { getRuntimeWireCodec, RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/generated';
+import { ProductUpdateError } from '../../../config/product-update-contract.mjs';
+import { verifyProductInstaller } from './product-update-installer-verification.js';
+import { DesktopShutdownBlockedError, runDesktopShutdownSteps, type DesktopShutdownReport } from './product-update-shutdown.js';
 import { createDesktopHomeCommandPolicy } from './home-host-policy.js';
 import { installDesktopPermissionPolicy } from './desktop-permission-policy.js';
 import path from 'node:path';
@@ -198,6 +206,10 @@ let connectorAuthAcquisitionHost: DesktopElectronConnectorAuthAcquisitionHost | 
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
+let productUpdateHost: DesktopProductUpdateHost | undefined;
+let productUpdateAdapter: MacOSProductUpdateAdapter | WindowsProductUpdateAdapter | undefined;
+let reconcileProductActivation: (() => Promise<void>) | undefined;
+let productUpdateHomeReady = false;
 const DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS = 5_000;
 // Home's own Host technical profile (P-MIG-006d / P-COLD-017a).
 const HOME_PROFILE_RELAUNCH_ARGUMENT = '--nimi-home-profile-relaunch';
@@ -387,6 +399,51 @@ async function checkDesktopHomeProfileScope(
 async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
+    const updateCacheRoot = process.platform === 'darwin'
+      ? path.join(app.getPath('home'), 'Library', 'Caches', 'ai.nimi.product-update')
+      : process.platform === 'win32' ? path.join(app.getPath('appData'), 'Nimi', 'product-updates') : path.join(app.getPath('userData'), 'product-updates');
+    const productionUpdate = app.isPackaged && !ELECTRON_DEVELOPMENT_BUILD && !MACOS_LOCAL_DEVELOPMENT_BUILD;
+    productUpdateAdapter = process.platform === 'win32' ? new WindowsProductUpdateAdapter(updateCacheRoot, productionUpdate) : new MacOSProductUpdateAdapter(updateCacheRoot, productionUpdate);
+    const windowsUpdate = productUpdateAdapter instanceof WindowsProductUpdateAdapter ? productUpdateAdapter : undefined;
+    const updateFailureStore = new ProductUpdateFailureStore(updateCacheRoot, windowsUpdate ? (file) => windowsUpdate.validatePrivateFile(file) : undefined);
+    productUpdateHost = new DesktopProductUpdateHost({
+      currentVersion: app.getVersion(),
+      target: process.platform === 'darwin' && process.arch === 'arm64' ? 'macos-arm64'
+        : process.platform === 'win32' && process.arch === 'x64' ? 'windows-amd64' : 'unsupported',
+      osVersion: process.getSystemVersion(),
+      cacheRoot: updateCacheRoot,
+      prepareCache: windowsUpdate ? () => windowsUpdate.prepareCache() : undefined,
+      verifyInstaller: verifyProductInstaller,
+      installation: {
+        ready: () => productUpdateAdapter!.ready(),
+        preflight: (candidate) => productUpdateAdapter!.preflight(candidate),
+        shutdown: async () => {
+          homeProfileWorkBlocked = true;
+          return shutdownBeforeQuit(true);
+        },
+        handoff: (candidate, report) => productUpdateAdapter!.handoff(candidate, report),
+        preserveFailure: async (failure) => {
+          try { await updateFailureStore.save(failure); }
+          catch (error) { writeDesktopStderr('[product-update] diagnostic-write-unavailable\n'); throw error; }
+        },
+        reopenCurrentVersion: async () => {
+          await productUpdateAdapter!.prepareCurrentVersionReopen();
+          await shutdownBeforeQuit();
+          maintenanceRelaunchRequested = true;
+          quitCleanupComplete = true;
+          await finishDesktopHomeProfileBeforeExit();
+        },
+        quit: () => { quitCleanupComplete = true; app.quit(); },
+      },
+    });
+    let updateDiagnosticUnavailable = false;
+    const previousUpdateFailure = await readUpdateFailureDiagnostic(updateFailureStore, () => {
+      updateDiagnosticUnavailable = true;
+      writeDesktopStderr('[product-update] diagnostic-read-unavailable\n');
+    });
+    if (previousUpdateFailure) productUpdateHost.restorePreinstallationFailure(previousUpdateFailure);
+    if (!await productUpdateAdapter.hasPending()) productUpdateHost.start(!previousUpdateFailure);
+    if (updateDiagnosticUnavailable) productUpdateHost.projectDiagnosticUnavailable();
     if (SOURCE_PER_USER_RUNTIME_D2) {
       runtimeMaintenance = await requireDesktopSourceRuntime(createNimiElectronDeveloperModeStatusProbe())
         === 'maintenance';
@@ -452,8 +509,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       try {
         const prepared = await macOSProductionService.prepare(runtimeCommandNames);
         if (prepared === 'approval-pending') {
-          app.quit();
-          return;
+          if (await productUpdateAdapter.hasPending()) {
+            runtimeStartupFailure = 'runtime-service-approval-required';
+            homeProfileWorkBlocked = true;
+          } else { app.quit(); return; }
         }
         runtimeMaintenance = prepared === 'maintenance';
       }
@@ -466,6 +525,32 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       }
     }
     const runtimeLifecycleHost = macOSProductionService ?? fixedRuntimeLifecycleHost;
+    const updateHealthControl = createNimiElectronDesktopControlHost();
+    let activationInFlight: Promise<void> | undefined;
+    reconcileProductActivation = () => {
+      activationInFlight ??= (async () => {
+        const result = await productUpdateAdapter?.reconcile(async () => {
+          const lifecycle = await runtimeLifecycleHost.invoke(runtimeCommandNames.status, runtimeCommandNames) as { running: boolean; managed?: boolean; launchMode?: string; version?: string; lastError?: string };
+          if (!lifecycle.running) return { ...lifecycle, healthy: false, homeReady: false, approvalPending: lifecycle.lastError === 'runtime-service-approval-required' };
+          if (runtimeStartupFailure === 'runtime-service-approval-required') {
+            runtimeStartupFailure = null;
+            requestDesktopMaintenanceRelaunch();
+          }
+          const method = '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth';
+          const codec = getRuntimeWireCodec(method);
+          const bytes = await updateHealthControl.machineProductUnary({ methodId: method, requestBytes: codec.encodeRequest({}), timeoutMs: 2_000 });
+          const health = codec.decodeResponse(bytes) as { status?: number };
+          return { ...lifecycle, healthy: lifecycle.managed === true && lifecycle.launchMode === 'RELEASE' && health.status === RuntimeHealthStatus.READY, homeReady: productUpdateHomeReady && normalHomeWorkAllowed() };
+        });
+        if (result) productUpdateHost?.projectActivation(result.phase, result.release, result.reason);
+        if (result?.phase === 'completed') productUpdateHost?.start(false);
+      })().catch((error: unknown) => {
+        productUpdateHost?.projectRecoveryFailure(error instanceof ProductUpdateError ? error.code : 'UPDATE_ACTIVATION_IDENTITY_FAILED');
+        writeDesktopStderr(`[product-update] activation:${desktopBootstrapFailureCode(error)}\n`);
+      }).finally(() => { activationInFlight = undefined; });
+      return activationInFlight;
+    };
+    if (await productUpdateAdapter.hasPending()) await reconcileProductActivation();
     const invokeRuntimeLifecycle = async (
       command: string,
     ): Promise<MenuBarRuntimeStatus> => (
@@ -726,6 +811,44 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         },
       },
       commandHandlers: {
+        // @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-009
+        nimi_product_update_status: async ({ payload, event }) => {
+          assertProductUpdateRequest(payload, event);
+          if (productUpdateHost?.status().phase !== 'failed' && await productUpdateAdapter?.hasPending()) await reconcileProductActivation?.();
+          return productUpdateHost?.status();
+        },
+        nimi_product_update_install: ({ payload, event }) => {
+          if (!authorizeDesktopRendererSender(event) || Object.keys(payload).sort().join(',') !== 'consentApproved,releaseId'
+            || payload.consentApproved !== true || typeof payload.releaseId !== 'string' || !productUpdateHost) throw new Error('desktop-product-update-request-rejected');
+          void productUpdateHost.install(payload.releaseId, true);
+          return productUpdateHost.status();
+        },
+        nimi_product_update_home_ready: async ({ payload, event }) => {
+          assertProductUpdateRequest(payload, event);
+          productUpdateHomeReady = true;
+          if (productUpdateHost?.status().phase !== 'failed' && await productUpdateAdapter?.hasPending()) await reconcileProductActivation?.();
+          return productUpdateHost?.status();
+        },
+        nimi_product_update_check: async ({ payload, event }) => {
+          assertProductUpdateRequest(payload, event);
+          if (!productUpdateHost?.status().checkAvailable) throw new ProductUpdateError('UPDATE_CHECK_UNAVAILABLE');
+          if (await productUpdateAdapter?.hasPending()) {
+            await productUpdateHost?.checkAfterFailedHandoffCleared(normalHomeWorkAllowed, () => productUpdateAdapter!.clearFailedPending());
+          } else if (normalHomeWorkAllowed()) {
+            await productUpdateHost?.checkAfterFailedHandoffCleared(normalHomeWorkAllowed, async () => true);
+          } else { void productUpdateHost?.check(); }
+          return productUpdateHost?.status();
+        },
+        nimi_product_update_cancel: ({ payload, event }) => {
+          assertProductUpdateRequest(payload, event);
+          productUpdateHost?.cancel();
+          return productUpdateHost?.status();
+        },
+        nimi_product_update_reopen_current: async ({ payload, event }) => {
+          assertProductUpdateRequest(payload, event);
+          await productUpdateHost?.reopenCurrentVersion();
+          return productUpdateHost?.status();
+        },
         // @nimi-authority: rule.nimi.runtime.agent-participation.r197
         desktop_agent_reference_resolve: async ({ payload, event }) => {
           if (!authorizeDesktopRendererSender(event)) throw new Error('Desktop sender is required.');
@@ -912,6 +1035,11 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', (event) => {
+  if (productUpdateAdapter && !productUpdateAdapter.canSafelyReopen()) {
+    event.preventDefault();
+    dialog.showErrorBox('Nimi could not close safely', 'The canceled update helper has not stopped yet. Nimi remains open to prevent an unintended installation. Try closing Nimi again after it stops.');
+    return;
+  }
   if (quitCleanupComplete) return;
   event.preventDefault();
   quitCleanup ??= shutdownBeforeQuit()
@@ -921,12 +1049,13 @@ app.on('before-quit', (event) => {
     })
     .catch(() => {
       quitCleanup = undefined;
+      productUpdateHost?.start();
       // Home keeps its current profile; a later ordinary quit must not turn
       // into this relaunch, and a later check may request it again.
       homeRelaunchRequested = false;
       dialog.showErrorBox(
         'Nimi could not close safely',
-        'A supervised local app did not shut down cleanly. Nimi remains open so you can retry without leaving an orphan process.',
+        'A supervised App or critical resource did not close cleanly. Nimi remains open so you can retry. An update cannot install until these resources close safely.',
       );
     });
 });
@@ -974,7 +1103,13 @@ async function finishDesktopHomeProfileBeforeExit(): Promise<void> {
   app.quit();
 }
 
-async function shutdownBeforeQuit(): Promise<void> {
+function assertProductUpdateRequest(payload: Readonly<Record<string, unknown>>, event: NimiElectronIpcMainInvokeEvent): void {
+  if (!authorizeDesktopRendererSender(event) || Object.keys(payload).length !== 0 || !productUpdateHost) {
+    throw new Error('desktop-product-update-request-rejected');
+  }
+}
+
+async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownReport> {
   const localHost = localDevelopmentHost;
   const installedHost = installedAppHost;
   const openIntentHost = desktopOpenIntentHost;
@@ -983,30 +1118,29 @@ async function shutdownBeforeQuit(): Promise<void> {
   const currentMenuBarHost = menuBarHost;
   const connectorAuthHost = connectorAuthAcquisitionHost;
   const runtimeBridge = registeredRuntimeBridge;
-  await localHost?.shutdown();
-  await installedHost?.shutdown();
-  const cleanupResults = await Promise.allSettled([
-    boundDesktopShutdownCleanup(
-      runtimeBridge?.disposeFormalAppResources?.(),
-      DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS,
-      'formal-app-resources',
-    ),
-  ]);
-  cleanupResults.push(...await Promise.allSettled([
-    openIntentHost?.shutdown(),
-    avatarHost?.shutdown(),
-    chatStoreHost?.close(),
-    connectorAuthHost?.shutdown(),
-  ]));
-  try {
-    runtimeBridge?.unregister();
-  } catch (error) {
-    cleanupResults.push({ status: 'rejected', reason: error });
+  const steps = [
+    { operation: 'product-update-download', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => productUpdateHost?.stop() },
+    { operation: 'local-app-host', critical: true, timeoutMs: 30_000, run: () => localHost?.shutdown() },
+    { operation: 'installed-app-host', critical: true, timeoutMs: 30_000, run: () => installedHost?.shutdown() },
+    { operation: 'formal-app-resources', critical: true, abortRemainingOnFailure: false, timeoutMs: DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS, run: () => runtimeBridge?.disposeFormalAppResources?.() },
+    { operation: 'avatar-host', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => avatarHost?.shutdown() },
+    { operation: 'chat-store', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => chatStoreHost?.close() },
+    { operation: 'open-intent', critical: false, timeoutMs: 5_000, run: () => openIntentHost?.shutdown() },
+    { operation: 'connector-auth', critical: false, timeoutMs: 5_000, run: () => connectorAuthHost?.shutdown() },
+    { operation: 'runtime-bridge', critical: false, timeoutMs: 5_000, run: () => runtimeBridge?.unregister() },
+    { operation: 'menu-bar', critical: false, timeoutMs: 5_000, run: () => currentMenuBarHost?.dispose() },
+  ];
+  const report = await runDesktopShutdownSteps(forUpdate ? steps.filter((step) => step.critical) : steps);
+  for (const failure of [...report.criticalFailures, ...report.diagnostics]) {
+    writeDesktopStderr(`[desktop-shutdown] ${failure.operation}:${failure.reason}\n`);
   }
-  try {
-    currentMenuBarHost?.dispose();
-  } catch (error) {
-    cleanupResults.push({ status: 'rejected', reason: error });
+  if (forUpdate) return report;
+  // Ordinary quit may finish with formal-resource diagnostics, as before.
+  // CP-U2 installation must inspect criticalCleanupComplete independently of
+  // this promise resolving or the process exiting. App stop failures still
+  // retain their bridge and block ordinary quit to avoid orphan processes.
+  if (report.criticalFailures.some((failure) => ['local-app-host', 'installed-app-host'].includes(failure.operation))) {
+    throw new DesktopShutdownBlockedError(report);
   }
   if (localDevelopmentHost === localHost) localDevelopmentHost = undefined;
   if (installedAppHost === installedHost) installedAppHost = undefined;
@@ -1016,33 +1150,7 @@ async function shutdownBeforeQuit(): Promise<void> {
   if (menuBarHost === currentMenuBarHost) menuBarHost = undefined;
   if (connectorAuthAcquisitionHost === connectorAuthHost) connectorAuthAcquisitionHost = undefined;
   if (registeredRuntimeBridge === runtimeBridge) registeredRuntimeBridge = undefined;
-  for (const result of cleanupResults) {
-    if (result.status === 'rejected') {
-      writeDesktopStderr(
-        `[desktop-shutdown] ${desktopBootstrapFailureCode(result.reason)}\n`,
-      );
-    }
-  }
-}
-
-async function boundDesktopShutdownCleanup(
-  cleanup: Promise<unknown> | undefined,
-  timeoutMs: number,
-  operation: string,
-): Promise<void> {
-  if (!cleanup) return;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    await Promise.race([
-      cleanup,
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error(`desktop-shutdown-${operation}-timeout`)), timeoutMs);
-        timer.unref?.();
-      }),
-    ]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
-  }
+  return report;
 }
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-002

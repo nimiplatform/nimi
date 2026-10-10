@@ -131,6 +131,15 @@ pub(super) fn project_verified_runtime_service_mode(
     }
 }
 
+pub(super) fn project_verified_runtime_release(mode: nimi_shell_protected_local::RuntimeServiceMode, version: Option<String>) -> JsonValue {
+    let mut value = project_verified_runtime_service_mode(mode);
+    if let Some(version) = version {
+        value["releaseVersion"] = json!(version);
+        value["releasePosture"] = json!("release");
+    }
+    value
+}
+
 pub(super) fn project_developer_mode_status(
     status: nimi_shell_protected_local::DeveloperModeStatus,
 ) -> JsonValue {
@@ -320,6 +329,13 @@ fn project_reason_metadata(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn admitted_runtime_version_projects_release_without_promoting_source() {
+        let release=super::project_verified_runtime_release(nimi_shell_protected_local::RuntimeServiceMode::Ordinary,Some("0.3.0".to_string()));
+        assert_eq!(release["releasePosture"],"release"); assert_eq!(release["releaseVersion"],"0.3.0");
+        let source=super::project_verified_runtime_release(nimi_shell_protected_local::RuntimeServiceMode::Ordinary,None);
+        assert_eq!(source["releasePosture"],"non_release"); assert!(source["releaseVersion"].is_null());
+    }
     use super::*;
     use nimi_shell_protected_local::LocalAppSessionState;
     use nimi_shell_protected_local::{LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus};

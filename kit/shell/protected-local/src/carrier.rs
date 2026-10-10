@@ -1282,6 +1282,9 @@ pub struct LocalAppRealmRealtimeChannelRequest {
 /// The handle carries only explicit typed operations and cannot proxy an
 /// arbitrary method id, request bytes, endpoint, or portable credential.
 pub trait NimiDesktopControl: Send + Sync {
+    /// Exact version of an admitted immutable production Runtime peer. Source
+    /// and unadmitted builds carry no release version.
+    fn runtime_release_version(&self) -> Option<String> { None }
     /// Invalidates only the carrier cache entry owned by this exact
     /// connection-bound control. Implementations without a shared transport
     /// cache may keep the default no-op.

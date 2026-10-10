@@ -1,4 +1,5 @@
 import integrations from './66-Integrations.json';
+import productUpdate from './67-ProductUpdate.json';
 import section0 from './01-Navigation.json';
 import section1 from './02-Menu.json';
 import section2 from './03-Legal.json';
@@ -48,6 +49,7 @@ import { agentCenterLocaleResources } from '@nimiplatform/kit/features/agent-cen
 const section64 = agentCenterLocaleResources.zh;
 
 const messages = {
+  "ProductUpdate": productUpdate,
   "Integrations": integrations,
   "Navigation": section0,
   "Menu": section1,

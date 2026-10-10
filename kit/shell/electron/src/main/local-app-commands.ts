@@ -2178,7 +2178,7 @@ export async function invalidateElectronLocalAppCommandResources(
   activeConversationStreams(registryHost).clear();
   activeRealtimeStreams(registryHost).clear();
   activeActivityStreams(registryHost).clear();
-  await Promise.allSettled([
+  const results = await Promise.allSettled([
     ...scenarios.map(([streamId, method]) => (
       method === 'textTurnSubscribe'
         ? closeHost.textTurnStreamClose({ streamId })
@@ -2188,6 +2188,7 @@ export async function invalidateElectronLocalAppCommandResources(
     ...realtime.map((streamId) => closeHost.realtimeStreamClose({ streamId })),
     ...activity.map((streamId) => closeHost.activityStreamClose({ streamId })),
   ]);
+  if (results.some((result) => result.status === 'rejected')) throw new Error('formal-app-command-resource-cleanup-failed');
 }
 
 async function pumpScenarioStream(

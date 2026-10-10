@@ -248,6 +248,10 @@ impl WindowsDesktopControl {
 }
 
 impl NimiDesktopControl for WindowsDesktopControl {
+    #[cfg(not(feature = "windows-source-local-development"))]
+    fn runtime_release_version(&self) -> Option<String> {
+        Some(self.session._runtime_peer.release_version.clone())
+    }
     fn invalidate_cached_transport(&self) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
         Box::pin(invalidate_exact_desktop_runtime_session(&self.session))
     }

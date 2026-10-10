@@ -555,7 +555,7 @@ units:
     kind: rule
     title: Production Runtime starts only from admitted service identity
     modality: must
-    statement: A production or deployment Runtime validates its admitted service principal, signed service definition, current platform code identity, and service-owned immutable configuration and custody before opening production protected access, and Desktop production start or restart uses only the typed service-control gateway; these facts are not D2 local-development trust facts or prerequisites.
+    statement: A production or deployment Runtime validates its admitted service principal, Platform-authenticated fixed service definition, current platform code identity, and service-owned immutable configuration and custody before opening production protected access, and Desktop production start or restart uses only the typed service-control gateway; Windows x86_64 unsigned Beta admits exact Runtime and Home roles only from the fixed administrative non-reparse Program Files product root and the compiled Platform Ed25519 key's signed complete inventory, with locked process bytes and matching product release and source revision, never NotSigned or a development certificate alone, while the fixed service SID, non-interactive service principal, connected user session and protected data custody remain mandatory; these production facts are not D2 local-development trust facts or prerequisites.
     condition: Whenever the production or deployment Runtime service starts or restarts.
     failure: Reject production protected access outside the admitted service identity without blocking or upgrading the separately admitted D2 per-user local-development topology.
     relations:

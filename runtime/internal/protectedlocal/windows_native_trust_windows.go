@@ -4,89 +4,65 @@ package protectedlocal
 
 import (
 	"context"
-	"crypto/sha256"
-	"crypto/subtle"
+	"encoding/hex"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/productrelease"
+	"os"
 	"path/filepath"
 	"strings"
-	"unsafe"
-
-	"golang.org/x/sys/windows"
-)
-
-const (
-	cmsgSignerInfoParam = 6
-)
-
-var (
-	crypt32              = windows.NewLazySystemDLL("crypt32.dll")
-	procCryptMsgGetParam = crypt32.NewProc("CryptMsgGetParam")
-	procCryptMsgClose    = crypt32.NewProc("CryptMsgClose")
 )
 
 type windowsNativeExecutableTrustVerifier struct {
-	signerSPKISHA256 [sha256.Size]byte
-}
-
-type windowsCryptAttribute struct {
-	objID      *byte
-	valueCount uint32
-	values     *windows.CryptAttrBlob
-}
-
-type windowsCryptAttributes struct {
-	count      uint32
-	attributes *windowsCryptAttribute
-}
-
-type windowsCMSGSignerInfo struct {
-	version                 uint32
-	issuer                  windows.CertNameBlob
-	serialNumber            windows.CryptIntegerBlob
-	hashAlgorithm           windows.CryptAlgorithmIdentifier
-	hashEncryptionAlgorithm windows.CryptAlgorithmIdentifier
-	encryptedHash           windows.CryptDataBlob
-	authAttributes          windowsCryptAttributes
-	unauthAttributes        windowsCryptAttributes
+	productReleaseID      string
+	productSourceRevision string
 }
 
 // @nimi-authority: rule.nimi.runtime.service-operations.r054
-// NewWindowsNativeExecutableTrustVerifier returns the verifier compiled for
-// this binary's fixed production or separately tagged E2E profile. Trust comes
-// from the platform chain plus the build-admitted signer and executable role;
-// no runtime selector, portable record, or caller-selected trust root exists.
+// Production admission comes only from the sealed Platform product key and
+// fixed administrative inventory. Source D2 retains its separate verifier.
 func NewWindowsNativeExecutableTrustVerifier() (WindowsExecutableTrustVerifier, error) {
-	digest, err := decodeWindowsSignerSPKISHA256(activeWindowsSignerSPKISHA256())
-	if err != nil {
-		return nil, windowsExecutableTrustFailure("load Windows signer policy", err)
+	if mustActiveWindowsRuntimeProfile().nonProduct || productrelease.PublicKey == "" {
+		return nil, windowsExecutableTrustFailure("load Windows product policy", fmt.Errorf("product trust not configured"))
 	}
-	return &windowsNativeExecutableTrustVerifier{signerSPKISHA256: digest}, nil
+	executable, err := os.Executable()
+	if err != nil {
+		return nil, windowsExecutableTrustFailure("resolve service product", err)
+	}
+	digest, err := productrelease.FileSHA256(executable)
+	if err != nil {
+		return nil, err
+	}
+	identity, err := productrelease.VerifyInstalledExecutable(executable, digest, "runtime/nimi.exe", productrelease.PublicKey)
+	if err != nil {
+		return nil, windowsExecutableTrustFailure("admit service product", err)
+	}
+	return &windowsNativeExecutableTrustVerifier{productReleaseID: identity.ReleaseID, productSourceRevision: identity.SourceRevision}, nil
 }
-
 func (verifier *windowsNativeExecutableTrustVerifier) VerifyWindowsExecutable(ctx context.Context, role WindowsExecutableRole, executable WindowsLockedExecutable) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", windowsExecutableTrustFailure("verify Windows executable", err)
 	}
 	if verifier == nil || executable == nil || executable.NativeHandle() == 0 {
-		return "", windowsExecutableTrustFailure("verify Windows executable", fmt.Errorf("native verifier and locked executable are required"))
+		return "", windowsExecutableTrustFailure("verify Windows executable", fmt.Errorf("locked native executable required"))
 	}
 	evidence := executable.Evidence()
 	expectedName, trustSetID, err := windowsExecutableRolePolicy(role)
 	if err != nil {
 		return "", err
 	}
-	if expectedName != "" && !strings.EqualFold(filepath.Base(evidence.Path), expectedName) {
+	if !strings.EqualFold(filepath.Base(evidence.Path), expectedName) {
 		return "", windowsExecutableTrustFailure("verify Windows executable role", fmt.Errorf("unexpected executable name"))
 	}
-	if err := verifyWindowsAuthenticode(executable, evidence.Path); err != nil {
-		return "", err
+	fileRole := "Nimi.exe"
+	if role == WindowsExecutableRoleRuntime {
+		fileRole = "runtime/nimi.exe"
 	}
-	observed, err := windowsEmbeddedSignerSPKISHA256(evidence.Path)
+	identity, err := productrelease.VerifyInstalledExecutable(evidence.Path, hex.EncodeToString(evidence.Digest[:]), fileRole, productrelease.PublicKey)
 	if err != nil {
-		return "", err
+		return "", windowsExecutableTrustFailure("verify admitted product role", err)
 	}
-	if subtle.ConstantTimeCompare(observed[:], verifier.signerSPKISHA256[:]) != 1 {
-		return "", windowsExecutableTrustFailure("verify Windows signer identity", fmt.Errorf("signer SubjectPublicKeyInfo mismatch"))
+	if identity.ReleaseID != verifier.productReleaseID || identity.SourceRevision != verifier.productSourceRevision {
+		return "", windowsExecutableTrustFailure("verify product cohort", fmt.Errorf("peer belongs to another product release"))
 	}
 	return trustSetID, nil
 }
@@ -102,90 +78,3 @@ func windowsExecutableRolePolicy(role WindowsExecutableRole) (string, string, er
 		return "", "", windowsExecutableTrustFailure("verify Windows executable role", fmt.Errorf("unsupported executable role"))
 	}
 }
-
-func verifyWindowsAuthenticode(executable WindowsLockedExecutable, path string) error {
-	pathPointer, err := windows.UTF16PtrFromString(path)
-	if err != nil {
-		return windowsExecutableTrustFailure("encode Windows executable path", err)
-	}
-	fileInfo := windows.WinTrustFileInfo{
-		Size:     uint32(unsafe.Sizeof(windows.WinTrustFileInfo{})),
-		FilePath: pathPointer,
-		File:     windows.Handle(executable.NativeHandle()),
-	}
-	trustData := windows.WinTrustData{
-		Size:                            uint32(unsafe.Sizeof(windows.WinTrustData{})),
-		UIChoice:                        windows.WTD_UI_NONE,
-		RevocationChecks:                windows.WTD_REVOKE_WHOLECHAIN,
-		UnionChoice:                     windows.WTD_CHOICE_FILE,
-		FileOrCatalogOrBlobOrSgnrOrCert: unsafe.Pointer(&fileInfo),
-		StateAction:                     windows.WTD_STATEACTION_VERIFY,
-		ProvFlags:                       windows.WTD_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT,
-		UIContext:                       windows.WTD_UICONTEXT_EXECUTE,
-	}
-	action := windows.WINTRUST_ACTION_GENERIC_VERIFY_V2
-	verifyErr := windows.WinVerifyTrustEx(0, &action, &trustData)
-	trustData.StateAction = windows.WTD_STATEACTION_CLOSE
-	closeErr := windows.WinVerifyTrustEx(0, &action, &trustData)
-	if verifyErr != nil {
-		return windowsExecutableTrustFailure("verify Windows Authenticode chain", verifyErr)
-	}
-	if closeErr != nil {
-		return windowsExecutableTrustFailure("close Windows Authenticode state", closeErr)
-	}
-	return nil
-}
-
-func windowsEmbeddedSignerSPKISHA256(path string) ([sha256.Size]byte, error) {
-	var digest [sha256.Size]byte
-	pathPointer, err := windows.UTF16PtrFromString(path)
-	if err != nil {
-		return digest, windowsExecutableTrustFailure("encode Windows signer path", err)
-	}
-	var encoding, contentType, formatType uint32
-	var store, message windows.Handle
-	if err := windows.CryptQueryObject(
-		windows.CERT_QUERY_OBJECT_FILE,
-		unsafe.Pointer(pathPointer),
-		windows.CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
-		windows.CERT_QUERY_FORMAT_FLAG_BINARY,
-		0,
-		&encoding,
-		&contentType,
-		&formatType,
-		&store,
-		&message,
-		nil,
-	); err != nil {
-		return digest, windowsExecutableTrustFailure("read Windows embedded signature", err)
-	}
-	defer func() { _ = windows.CertCloseStore(store, 0) }()
-	defer func() { _, _, _ = procCryptMsgClose.Call(uintptr(message)) }()
-
-	var size uint32
-	if ok, _, callErr := procCryptMsgGetParam.Call(uintptr(message), cmsgSignerInfoParam, 0, 0, uintptr(unsafe.Pointer(&size))); ok == 0 || size < uint32(unsafe.Sizeof(windowsCMSGSignerInfo{})) {
-		return digest, windowsExecutableTrustFailure("size Windows signer info", callErr)
-	}
-	buffer := make([]byte, size)
-	if ok, _, callErr := procCryptMsgGetParam.Call(uintptr(message), cmsgSignerInfoParam, 0, uintptr(unsafe.Pointer(&buffer[0])), uintptr(unsafe.Pointer(&size))); ok == 0 {
-		return digest, windowsExecutableTrustFailure("read Windows signer info", callErr)
-	}
-	signer := (*windowsCMSGSignerInfo)(unsafe.Pointer(&buffer[0]))
-	certificateInfo := windows.CertInfo{Issuer: signer.issuer, SerialNumber: signer.serialNumber}
-	certificate, err := windows.CertFindCertificateInStore(
-		store,
-		windows.X509_ASN_ENCODING|windows.PKCS_7_ASN_ENCODING,
-		0,
-		windows.CERT_FIND_SUBJECT_CERT,
-		unsafe.Pointer(&certificateInfo),
-		nil,
-	)
-	if err != nil || certificate == nil || certificate.EncodedCert == nil || certificate.Length == 0 {
-		return digest, windowsExecutableTrustFailure("resolve Windows signer certificate", err)
-	}
-	defer func() { _ = windows.CertFreeCertificateContext(certificate) }()
-	encoded := unsafe.Slice(certificate.EncodedCert, certificate.Length)
-	return windowsSignerSPKISHA256FromCertificateDER(encoded)
-}
-
-var _ WindowsExecutableTrustVerifier = (*windowsNativeExecutableTrustVerifier)(nil)

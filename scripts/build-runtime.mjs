@@ -112,12 +112,6 @@ try {
 }
 
 const goBuildArguments = ['build'];
-if (windowsSignerIdentity) {
-  goBuildArguments.push(
-    '-ldflags',
-    `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.WindowsProductionSignerSPKISHA256=${windowsSignerIdentity.spkiSha256}`,
-  );
-}
 goBuildArguments.push('-o', outputPath, './cmd/nimi');
 
 const result = spawnSync('go', goBuildArguments, {

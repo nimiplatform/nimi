@@ -3,7 +3,8 @@ import test from 'node:test';
 import path from 'node:path';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
-import { isMacOSMachO, macOSAudioCaptureRole, macOSReleaseRealmBaseURL, stageMacOSBuiltInputs } from '../scripts/lib/macos-release-process.mjs';
+import { macOSUpdaterBuildPublicKey } from '../scripts/build-macos-product-updater.mjs';
+import { isMacOSMachO, macOSAudioCaptureRole, macOSReleaseRealmBaseURL, macOSPublicProductRelease, requireMacOSProductUpdateTrust, stageMacOSBuiltInputs } from '../scripts/lib/macos-release-process.mjs';
 
 test('packaging inputs survive a subsequent build replacing the shared outputs', async () => {
   const directory = mkdtempSync(path.join(os.tmpdir(), 'nimi-build-inputs-'));
@@ -42,6 +43,18 @@ test('release Realm selection is explicit and rejects unsupported build endpoint
   for (const value of ['', 'http://127.0.0.1:3003', 'https://realm.nimi.ai/', 'http://realm.nimi.ai']) {
     assert.throws(() => macOSReleaseRealmBaseURL(value), /NIMI_MACOS_RELEASE_REALM_URL/);
   }
+});
+
+test('existing nonpublic Mac acceptance target does not require an updater publishing key', () => {
+  assert.equal(macOSPublicProductRelease('http://127.0.0.1:3002'),false);
+  assert.doesNotThrow(()=>requireMacOSProductUpdateTrust('http://127.0.0.1:3002',null));
+  assert.equal(macOSPublicProductRelease('https://realm.nimi.ai'),true);
+  assert.throws(()=>requireMacOSProductUpdateTrust('https://realm.nimi.ai',null),/UPDATE_TRUST_NOT_CONFIGURED/);
+  assert.doesNotThrow(()=>requireMacOSProductUpdateTrust('https://realm.nimi.ai','admitted key input'));
+  assert.equal(macOSUpdaterBuildPublicKey('http://127.0.0.1:3002','actual publishing key'),'');
+  assert.equal(macOSUpdaterBuildPublicKey('https://realm.nimi.ai',null),'');
+  const workflow=readFileSync(new URL('../../../.github/workflows/build-macos-production.yml',import.meta.url),'utf8');
+  assert.match(workflow,/name: Require sealed product trust before signing work\n\s+if: inputs\.prepare_product \|\| inputs\.realm_target == 'production'/u);
 });
 
 test('binary resource data is not executable code', () => {

@@ -770,11 +770,22 @@ pub async fn desktop_account_switch_account(
 #[napi(js_name = "fixedRuntimeServiceStatus")]
 pub async fn fixed_runtime_service_status() -> NativeJsonOutcome {
     match current_or_open_desktop_control().await {
-        Ok(control) => NativeJsonOutcome::success(project_verified_runtime_service_mode(
-            control.runtime_service_mode(),
+        Ok(control) => NativeJsonOutcome::success(project_verified_runtime_release(
+            control.runtime_service_mode(), control.runtime_release_version(),
         )),
         Err(error) => NativeJsonOutcome::host_error(error),
     }
+}
+
+#[napi(js_name = "windowsProductUpdateHost")]
+pub fn windows_product_update_host() -> NativeJsonOutcome {
+    #[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
+    match nimi_shell_protected_local::windows_product_update_host() {
+        Ok((helper,public_key)) => return NativeJsonOutcome::success(serde_json::json!({ "helperPath": helper, "publicKey": public_key })),
+        Err(error) => return NativeJsonOutcome::protected_error(error),
+    }
+    #[cfg(not(all(target_os = "windows", not(feature = "windows-source-local-development"))))]
+    NativeJsonOutcome::host_reason("runtime-service-untrusted",false)
 }
 
 #[cfg(target_os = "macos")]
@@ -807,8 +818,8 @@ pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
         feature = "windows-source-local-development"
     )))]
     if let Ok(control) = current_or_open_desktop_control().await {
-        return NativeJsonOutcome::success(project_verified_runtime_service_mode(
-            control.runtime_service_mode(),
+        return NativeJsonOutcome::success(project_verified_runtime_release(
+            control.runtime_service_mode(), control.runtime_release_version(),
         ));
     }
     #[cfg(not(any(

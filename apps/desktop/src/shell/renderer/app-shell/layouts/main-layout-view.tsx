@@ -1,3 +1,4 @@
+// @nimi-authority: rule.nimi.desktop.shell-ui.r023
 import { ExecutionNotificationPreferenceSync } from '../../features/home/execution-notices.js';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { Plug } from 'lucide-react';
@@ -41,6 +42,7 @@ import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { resolveMainLayoutTitlebarFrame } from './main-layout-titlebar-frame';
 import { GlobalDownloadsNavigation } from '../../features/runtime-config/global-downloads-view.js';
+import { ProductUpdateNotice } from '../../features/home/product-update-notice.js';
 
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(
@@ -326,7 +328,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     <NavLink
                       key={item.id}
                       item={item}
-                      active={props.activeTab === item.id}
+                      active={props.activeTab === item.id || (props.activeTab === 'diagnostics' && item.id === 'runtime')}
                       collapsed
                       onClick={() => props.onNav(item.id)}
                     />
@@ -439,6 +441,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <OfflineShellStrip />
+          <ProductUpdateNotice />
           <NimiToaster />
 
           <MainLayoutPanelStack

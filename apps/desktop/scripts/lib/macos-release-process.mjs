@@ -41,6 +41,13 @@ export function macOSReleaseRealmBaseURL(value = 'https://realm.nimi.ai') {
   return value;
 }
 
+export function macOSPublicProductRelease(realmOrigin) {
+  return macOSReleaseRealmBaseURL(realmOrigin)==='https://realm.nimi.ai';
+}
+export function requireMacOSProductUpdateTrust(realmOrigin, publicKey) {
+  if(macOSPublicProductRelease(realmOrigin) && !publicKey) throw new Error('UPDATE_TRUST_NOT_CONFIGURED');
+}
+
 // Home initiates microphone capture; Chromium's AudioService runs in the
 // ordinary utility Helper. Renderer/GPU/Plugin helpers and Runtime do not
 // receive the audio entitlement merely because they are nested code.

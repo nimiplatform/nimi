@@ -27,7 +27,8 @@
     "test": "pnpm run test:unit",
     "i18n:check": "node scripts/i18n-check.mjs",
     "i18n:audit": "node scripts/i18n-audit.mjs",
-    "i18n:sync": "node scripts/i18n-sync.mjs"
+    "i18n:sync": "node scripts/i18n-sync.mjs",
+    "build:windows:release": "node scripts/build-windows-electron-release.mjs --production"
   },
   "devDependencies": {
     "@electron/asar": "4.3.1",

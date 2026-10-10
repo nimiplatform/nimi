@@ -80,6 +80,8 @@ export type NimiElectronFormalAppLocalHostOwner = Readonly<{
   createResourceScope: () => NimiElectronFormalAppLocalHostResourceScope;
   invalidateResources: () => Promise<void>;
   dispose: () => Promise<void>;
+  /** Host-private critical shutdown barrier; disposal diagnostics are not success. */
+  shutdown: () => Promise<void>;
 }>;
 
 type FormalAppHostOperations = NimiElectronLocalAppHost & Pick<NimiElectronFormalAppLocalHostOwner, 'resolveDesktopAgentReference'>;
@@ -88,6 +90,7 @@ export type NimiElectronFormalAppLocalHostResourceScope = Readonly<{
   host: NimiElectronLocalAppHost;
   invalidateResources: () => Promise<void>;
   dispose: () => Promise<void>;
+  shutdown: () => Promise<void>;
 }>;
 
 // Host-only composition: renderer code receives the same local-app standard
@@ -109,6 +112,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   readonly revealInOs?: (path: string) => Promise<void> | void;
   readonly activityLaunch?: NimiElectronAppActivityLaunch;
 }): NimiElectronFormalAppLocalHostOwner {
+  let criticalCleanupFailed = false;
   const inFlightOperations = new Set<Promise<unknown>>();
   const streamClosures = new Set<Promise<void>>();
   const trackOperation: FormalOperationTracker = async (operation) => {
@@ -204,9 +208,10 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   };
   const invalidateFormalSessionResources = (): Promise<void> => {
     invalidationInFlight ??= (async () => {
-      await Promise.allSettled(
+      const scopeResults = await Promise.allSettled(
         [...resourceScopes].map((scope) => scope.invalidateResources()),
       );
+      criticalCleanupFailed ||= scopeResults.some((result) => result.status === 'rejected');
       // All exposed resource handles belong to one of the scopes above. Keep
       // this final owner cleanup for a concurrent close that had already left
       // its scope but had not yet removed the underlying Runtime resource.
@@ -216,7 +221,8 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       assetReads.clear();
       assetWrites.clear();
       for (const read of reads) read.cancel();
-      await Promise.allSettled(streams.map((stream) => stream.cancel()));
+      const streamResults = await Promise.allSettled(streams.map((stream) => stream.cancel()));
+      criticalCleanupFailed ||= streamResults.some((result) => result.status === 'rejected');
     })().finally(() => {
       invalidationInFlight = undefined;
     });
@@ -230,17 +236,20 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       }));
     });
   };
-  // @nimi-authority: rule.nimi.runtime.protected-session.r017
-  const rebindFormalSession = async (): Promise<void> => {
-    // Resource invalidation already stopped new business calls. Await actual
-    // carrier settlement too: an SDK caller deadline may settle its public
-    // promise while a native unary is still queued on the old connection.
+  const waitForFormalCarrierSettlement = async (): Promise<void> => {
     while (inFlightOperations.size > 0 || streamClosures.size > 0) {
       await Promise.all([
         Promise.allSettled([...inFlightOperations]),
         ...streamClosures,
       ]);
     }
+  };
+  // @nimi-authority: rule.nimi.runtime.protected-session.r017
+  const rebindFormalSession = async (): Promise<void> => {
+    // Resource invalidation already stopped new business calls. Await actual
+    // carrier settlement too: an SDK caller deadline may settle its public
+    // promise while a native unary is still queued on the old connection.
+    await waitForFormalCarrierSettlement();
     await runBoundedFormalHostOperation(async (signal) => {
       projectFormalSession(await runtime.rebindLocalAppSession({}, { signal }));
     });
@@ -802,7 +811,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     }
     return Object.freeze({ sourceClass, launchSelector: Uint8Array.from(resolved.launchSelector), appId: resolved.appId });
   };
-  return Object.freeze({
+  const owner: NimiElectronFormalAppLocalHostOwner = Object.freeze({
     host: defaultScope.host,
     resolveDesktopAgentReference: resolveDesktopAgentReferenceForOwner,
     resolveAppActivityOpenLaunch,
@@ -813,6 +822,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
         await settleBoundedFormalHostCleanup(
           invalidationInFlight,
           `${input.profile} formal App owner repeated disposal`,
+          () => { criticalCleanupFailed = true; },
         );
         return;
       }
@@ -820,14 +830,27 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       if (sessionRenewalTimer !== undefined) clearInterval(sessionRenewalTimer);
       sessionRenewalTimer = undefined;
       const scopes = [...resourceScopes];
-      await Promise.allSettled(scopes.map((scope) => scope.dispose()));
+      const results = await Promise.allSettled(scopes.map((scope) => scope.shutdown()));
+      criticalCleanupFailed ||= results.some((result) => result.status === 'rejected');
       await settleBoundedFormalHostCleanup(
         invalidateResources(),
         `${input.profile} formal App owner disposal`,
+        () => { criticalCleanupFailed = true; },
       );
       resourceScopes.clear();
     },
+    // @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-006
+    shutdown: async () => {
+      await owner.dispose();
+      await settleBoundedFormalHostCleanup(
+        waitForFormalCarrierSettlement(),
+        `${input.profile} formal App critical carrier shutdown`,
+        () => { criticalCleanupFailed = true; },
+      );
+      if (criticalCleanupFailed) throw new Error('formal-app-critical-cleanup-failed');
+    },
   });
+  return owner;
 }
 
 function createFormalAppResourceScope(
@@ -847,6 +870,7 @@ function createFormalAppResourceScope(
   let invalidationInFlight: Promise<void> | undefined;
   let disposed = false;
   let resourceGeneration = 0;
+  let criticalCleanupFailed = false;
 
   const assertOpen = (): void => {
     if (disposed || invalidationInFlight) {
@@ -1155,7 +1179,7 @@ function createFormalAppResourceScope(
         videoSessions.clear();
         agentRealtimeSessions.clear();
         await invalidateElectronLocalAppCommandResources(scopedHost, closeHost);
-        await Promise.allSettled([
+        const results = await Promise.allSettled([
           ...streams.map(([streamId, kind]) => {
             if (kind === 'text-turn') return closeHost.textTurnStreamClose({ streamId });
             if (kind === 'scenario-job') return closeHost.scenarioJobStreamClose({ streamId });
@@ -1170,14 +1194,18 @@ function createFormalAppResourceScope(
           ...visualSessions.map((record) => closeHost.videoSessionClose(record)),
           ...agentSessions.map((record) => closeHost.agentRealtimeClose(record)),
         ]);
-      })().finally(() => {
+        if (results.some((result) => result.status === 'rejected')) throw new Error('formal-app-resource-cleanup-failed');
+      })().catch((error) => {
+        criticalCleanupFailed = true;
+        throw error;
+      }).finally(() => {
         invalidationInFlight = undefined;
       });
       return invalidationInFlight;
     }).then(() => undefined);
   };
 
-  return Object.freeze({
+  const scope: NimiElectronFormalAppLocalHostResourceScope = Object.freeze({
     host: scopedHost,
     invalidateResources,
     async dispose() {
@@ -1185,6 +1213,7 @@ function createFormalAppResourceScope(
         await settleBoundedFormalHostCleanup(
           invalidationInFlight,
           'formal App sender scope repeated disposal',
+          () => { criticalCleanupFailed = true; },
         );
         return;
       }
@@ -1192,20 +1221,28 @@ function createFormalAppResourceScope(
       await settleBoundedFormalHostCleanup(
         invalidateResources(),
         'formal App sender scope disposal',
+        () => { criticalCleanupFailed = true; },
       );
-      onDispose();
+      if (!criticalCleanupFailed) onDispose();
+    },
+    shutdown: async () => {
+      await scope.dispose();
+      if (criticalCleanupFailed) throw new Error('formal-app-critical-cleanup-failed');
     },
   });
+  return scope;
 }
 
 async function settleBoundedFormalHostCleanup(
   cleanup: Promise<unknown> | undefined,
   operation: string,
+  onFailure: () => void,
 ): Promise<void> {
   if (!cleanup) return;
   try {
     await runBoundedFormalHostOperation(async () => cleanup);
   } catch (error) {
+    onFailure();
     console.warn(`[electron:formal-app] ${operation} did not settle cleanly: ${describeFormalHostError(error)}`);
   }
 }

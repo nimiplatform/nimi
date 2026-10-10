@@ -1110,6 +1110,7 @@ describe('Electron formal App local host', () => {
       .rejects.toMatchObject({ reasonCode: 'not-found' });
     await owner.dispose();
     await owner.dispose();
+    await expect(owner.shutdown()).resolves.toBeUndefined();
   });
 
   it('candidate scope failure disposes only candidate resources and preserves current sender resources', async () => {
@@ -1187,6 +1188,9 @@ describe('Electron formal App local host', () => {
       await vi.advanceTimersByTimeAsync(2_001);
       await expect(retry).resolves.toBeUndefined();
       expect(warning).toHaveBeenCalledTimes(2);
+      const critical = expect(candidate.shutdown()).rejects.toThrow('formal-app-critical-cleanup-failed');
+      await vi.advanceTimersByTimeAsync(2_001);
+      await critical;
     } finally {
       vi.useRealTimers();
       warning.mockRestore();

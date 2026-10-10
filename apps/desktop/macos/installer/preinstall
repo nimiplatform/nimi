@@ -14,7 +14,10 @@ if /usr/bin/pgrep -f '^/Applications/Nimi.app/Contents/MacOS/Nimi( |$)' >/dev/nu
   exit 71
 fi
 if /bin/launchctl print "${service_target}" >/dev/null 2>&1; then
-  /bin/launchctl bootout "${service_target}"
+  if ! /bin/launchctl bootout "${service_target}"; then
+    print -u2 -- "NIMI_UPDATE_RUNTIME_HANDOFF_FAILED: Nimi Runtime service could not stop"
+    exit 71
+  fi
 fi
 
 # The embedded service has a 20-second ExitTimeOut. Removal can still be in
@@ -26,7 +29,7 @@ for wait_tick in {1..25}; do
   /bin/sleep 1
 done
 if /bin/launchctl print "${service_target}" >/dev/null 2>&1; then
-  print -u2 -- "Nimi Runtime service did not stop within 25 seconds before update"
+  print -u2 -- "NIMI_UPDATE_RUNTIME_HANDOFF_FAILED: Nimi Runtime service did not stop within 25 seconds before update"
   /bin/launchctl print "${service_target}" | /usr/bin/awk \
     '/^[[:space:]]*(state|pid|active count|last exit code)[[:space:]]*=/' >&2
   exit 71

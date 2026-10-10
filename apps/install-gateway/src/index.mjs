@@ -3,6 +3,7 @@ import {
   fetchRepositoryReleases,
   resolveLatestRuntimeManifest,
 } from './release-feed.mjs';
+import { resolveProductManifest } from './product-release-feed.mjs';
 
 function jsonResponse(payload, maxAgeSeconds) {
   return new Response(JSON.stringify(payload, null, 2), {
@@ -25,6 +26,9 @@ function textResponse(body, maxAgeSeconds) {
 // No qualifying Runtime release is an honest unavailable result, distinct
 // from failing to read the admitted GitHub source.
 function errorStatus(message) {
+  if (message === 'UPDATE_RELEASE_NOT_FOUND') return 404;
+  if (message === 'UPDATE_TRUST_NOT_CONFIGURED') return 503;
+  if (message.startsWith('UPDATE_')) return 502;
   if (message === 'RUNTIME_RELEASE_NOT_FOUND') {
     return 404;
   }
@@ -65,6 +69,12 @@ async function buildRouteResponse(request, env, fetchImpl) {
 
   if (url.pathname === '/healthz') {
     return jsonResponse({ ok: true }, maxAgeSeconds);
+  }
+
+  const productFeed = /^\/nimi\/(stable|beta)\/(macos-arm64|windows-amd64)\/latest\.json$/u.exec(url.pathname);
+  if (productFeed) {
+    const releases = await fetchRepositoryReleases(env, fetchImpl);
+    return jsonResponse(await resolveProductManifest(releases, productFeed[1], productFeed[2], fetchImpl), maxAgeSeconds);
   }
 
   if (url.pathname === '/runtime/latest.json') {

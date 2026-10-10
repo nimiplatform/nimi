@@ -938,7 +938,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.release-bundle
     kind: definition
     title: Nimi release bundle
-    meaning: A Nimi release bundle is one coordinated atomic product release identity comprising the Desktop-host shell, the exact compatible signed Runtime service release, and the bundled Avatar App, together with admitted version, update-channel, signature, and rollback metadata; Zhiyu and Nimi Lab are independently published Third-party Apps outside this product bundle.
+    meaning: A Nimi release bundle is one coordinated atomic product release identity comprising the Desktop-host shell, the exact compatible Runtime service release under Platform-admitted target trust, and the bundled Avatar App, together with admitted version, update-channel, verification, compatibility and owner-approved recovery metadata; Zhiyu and Nimi Lab are independently published Third-party Apps outside this product bundle.
   - id: definition.nimi.platform.product-lifecycle.update-channel
     kind: definition
     title: Nimi update channel
@@ -979,7 +979,7 @@ units:
     kind: rule
     title: P-SUPD-002 Home owns the self-update user surface
     modality: must
-    statement: Nimi Home owns user-facing update discovery, consent, progress, restart, rollback, and diagnostic projection while consuming rather than inventing channel, endpoint, public-key, and fail-closed policy.
+    statement: Nimi Home owns user-facing update discovery, consent, progress, restart, recovery and diagnostic projection while consuming rather than inventing channel, endpoint, public-key, and fail-closed policy; checks and downloads run in the background and through the same explicit check action, installation requires explicit user consent describing task interruption, and deferral or ordinary exit never authorizes installation.
     condition: Whenever self-update is presented to a user.
     failure: Reject the non-Home surface or locally invented policy and project the precise unavailable or failure state.
     relations:
@@ -1025,7 +1025,7 @@ units:
     kind: rule
     title: P-SUPD-006 self-update fails closed
     modality: must
-    statement: Missing release evidence, verification failure, signature mismatch, required rollback, unreachable daemon handoff, or failed compatibility produces an explicit failed, rollback-required, verification-failed, unsupported, or stale-projection state rather than silent update, skipped verification, or latest-as-ready projection.
+    statement: Missing release evidence, verification failure, signature mismatch, required owner-approved recovery, unreachable daemon handoff, critical shutdown failure or timeout, or failed compatibility produces an explicit failed, recovery-required, verification-failed, unsupported, or stale-projection state rather than silent update, skipped verification, or latest-as-ready projection; resolved cleanup promises or process exit alone never authorize installation, non-critical cleanup failures retain diagnostics, and downloaded verified state never proves activation.
     condition: When any self-update prerequisite or operation fails.
     failure: Stop update progression and project the precise fail-closed state and reason class.
     relations:
@@ -1037,7 +1037,7 @@ units:
     kind: rule
     title: P-SUPD-007 Desktop implementation is subordinate
     modality: must
-    statement: Desktop-hosted update mechanics remain an implementation layer beneath Platform product self-update policy and preserve signed compatibility with the independently installed Runtime service; Desktop update contracts never become a peer policy owner.
+    statement: Desktop-hosted update mechanics remain an implementation layer beneath Platform product self-update policy and preserve admitted target trust and compatibility with the independently installed Runtime service; Desktop update contracts never become a peer policy owner.
     condition: Whenever Desktop implements or describes Nimi self-update.
     failure: Reject the peer owner or incompatible implementation and retain Platform policy ownership.
     relations:
@@ -1049,7 +1049,7 @@ units:
     kind: rule
     title: P-SUPD-007 Runtime service update custody
     modality: must_not
-    statement: A Desktop bundle, host framework, renderer, or Kit component carries, stages, executes, selects, or probes a production Runtime binary, or installs, updates, rolls back, or activates Runtime outside the signed service installer or updater and operating-system service manager.
+    statement: A Desktop bundle, host framework, renderer, or Kit component carries, stages, executes, selects, or probes a production Runtime binary, or installs, updates, rolls back, or activates Runtime outside the Platform-admitted formal service installer or updater and operating-system service manager; downloading a verified complete product installer for that owner does not authorize unpacking, executing or replacing its Runtime payload.
     condition: When a production Runtime release is installed, updated, rolled back, or activated.
     failure: Reject the payload or operation and preserve the existing verified Runtime service.
     relations:
@@ -1081,7 +1081,7 @@ units:
     kind: rule
     title: P-PKGREL-002 atomic release identity
     modality: must
-    statement: Every complete downloadable Nimi product release, installation, or update includes the Desktop-host shell, its exact compatible signed Runtime service release, and the bundled Avatar App under one atomic release identity with admitted release metadata; no hot patch, partial replacement, or out-of-band Runtime or Avatar replacement may produce an unsynchronized identity, and a subset of these components is never presented as the complete Nimi product.
+    statement: Every complete downloadable Nimi product release, installation, or update includes the Desktop-host shell, its exact compatible Runtime service release under Platform-admitted target trust, and the bundled Avatar App under one atomic release identity with admitted release metadata; no hot patch, partial replacement, or out-of-band Runtime or Avatar replacement may produce an unsynchronized identity, and a subset of these components is never presented as the complete Nimi product.
     condition: Whenever a Nimi release is assembled, installed, or updated.
     failure: Reject or roll back the release before activation when atomic identity or compatibility is not preserved.
     relations:
@@ -1167,6 +1167,58 @@ units:
         target: definition.nimi.avatar.embodiment.product-boundary
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.release-descriptor
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.release-bundle
+  - id: definition.nimi.platform.product-lifecycle.product-update-candidate
+    kind: definition
+    title: Verified complete product update candidate
+    meaning: A product update candidate is an Ed25519-signed nimi-product-release/v1 UTF-8 payload binding a nimi/v product version, stable or beta channel, macos-arm64 or windows-amd64 target, publication and expiry, source revision, exact Desktop Runtime Avatar versions and content hashes, owner-approved forward data compatibility and minimum product and OS versions, and the complete installer name URL size SHA-256 and type; its downloaded and verified identity is separate from installed activation and health.
+  - id: rule.nimi.platform.product-lifecycle.p-supd-009
+    kind: rule
+    title: P-SUPD-009 bounded discovery and trusted candidate staging
+    modality: must
+    statement: Platform config/product-update-policy.mjs seals the beta or stable channel, https://install.nimi.ai/nimi/<channel>/<target>/latest.json endpoint, admitted nimiplatform/nimi GitHub release source and raw Ed25519 public key; an unconfigured key blocks candidate verification. Gateway projects only matching immutable complete-product releases and binds every advertised final asset to its uploaded GitHub digest and signed payload; Host revalidates that payload, target, channel, freshness, compatibility, final bytes size and digest and target trust before reporting prepared state, permits only status check retry cancellation Home-readiness projection safe current-version reopen and explicit consent for the currently prepared release identity without URL path or execution input, merges concurrent checks, and never installs on download or ordinary exit.
+    condition: Whenever a product update feed is generated, projected, consumed or downloaded.
+    failure: Report no release separately from upstream failure, reject invalid or stale metadata and bytes, preserve the current product, and leave installation unstarted.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-update-candidate
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.update-channel
+  - id: rule.nimi.platform.product-lifecycle.p-pkgrel-010
+    kind: rule
+    title: P-PKGREL-010 initial Beta target trust and recovery
+    modality: must
+    statement: Initial complete-product macOS arm64 releases use Developer ID Application and Installer signing by Team RMZJPQQR3X and notarization with a formal whole-product PKG handed through the fixed signed product updater helper to the macOS installer and launchd; Sparkle cannot be assumed to import the Host's verified staging, and this first path preserves one download chain rather than private framework API or a local feed server. Windows x86_64 initial Beta uses a formal whole-product NSIS executable and the OS service manager and may be Authenticode NotSigned but still requires the admitted signed update payload, immutable source, final-byte verification, protected service admission and necessary OS authorization, and development signers never substitute for either target. SignPath adoption occurs after initial publication. Recovery preserves original data custody and follows owner-approved forward repair or another explicitly selected proven branch; backup or old-version rollback is not assumed, and Home startup failure uses the formal installer and independently accessible recovery instructions.
+    condition: Whenever initial Beta product packaging, verification, installation, update or recovery is implemented or evaluated.
+    failure: Block the dependent target when formal trust, protected admission, installer, data compatibility or recovery evidence is missing without blocking independent targets or presenting partial verification as product readiness.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-update-candidate
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.release-bundle
+  - id: rule.nimi.platform.product-lifecycle.p-supd-011
+    kind: rule
+    title: P-SUPD-011 confirmed Mac installer handoff and activation
+    modality: must
+    statement: Mac installation opens only for an admitted key, a verified production helper and the current fresh prepared release. Explicit Home consent states supervised task interruption; the Host refetches and revalidates that exact candidate and staged bytes, obtains criticalCleanupComplete and preserves any failure as blocking before launching the fixed signed helper. Readiness and helper prerequisites are checked before quiescing. A failure before quiescing leaves ordinary work and checks available; a failure after owners close but before accepted installer handoff retains its cause and requires the existing safe current-version relaunch to recreate owners, never a boolean reset of disposed owners. Transient failure diagnostics are non-authoritative; unreadable corrupt or unwritable diagnostics produce an unavailable diagnostic projection without preventing normal Home startup or a current-version relaunch that satisfies real helper and App shutdown safety checks; diagnostic content never supplies an installation prerequisite or success. Home exposes only currently executable checking or safe-reopen actions; an App that still cannot stop blocks relaunch without forced termination, and the new current-version Home preserves the cause and resumes checks. The ordinary-user helper waits for the original Home to exit, requests OS administrator authorization through the public scripting addition, and invokes only its fixed root installer operation; that operation reauthenticates metadata and copies and hashes the full PKG into root-owned temporary storage before Developer ID and notarized Gatekeeper validation and macOS installer execution. The PKG preinstall owns launchd stop and the retained protected-state checks, while the helper returns to Home through ordinary-user LaunchServices. A single transient cache handoff receipt carries progress and failures but grants no installation or activation truth; success requires the signed installed release identity and content hashes plus protected Runtime release health, and refused authorization or installation or activation failure retains explicit reason and original-owner forward repair using the verified formal installer and independent instructions.
+    condition: Whenever Mac product installation is confirmed, handed off or reconciled after restart.
+    failure: Keep installation disabled or stop it on any missing or failed prerequisite, never install after deferral or ordinary quit, and report failed or recovery-required rather than updated from a helper event, installer exit or cache receipt alone.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-update-candidate
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.release-bundle
+  - id: rule.nimi.platform.product-lifecycle.p-supd-012
+    kind: rule
+    title: Windows unsigned Beta complete product installer and trust
+    modality: must
+    statement: The Windows x86_64 unsigned Beta build seals the admitted Platform key into Runtime, native carrier and the fixed updater, signs one complete Desktop Runtime Avatar installed inventory and binds the final NSIS installer to the time-limited update envelope; immutable administrative Program Files ownership, closed role paths, actual locked executable bytes and full inventory verification protect service and Home caller admission, while NotSigned and arbitrary unsigned callers grant no authority. Following explicit Home consent and a successful critical cleanup report, the ordinary-user updater validates its actual Home parent and unchanged candidate, waits for Home exit, holds the installer against modification through public UAC execution, while the formal installer reauthenticates the captured request, signed metadata freshness and actual NSIS bytes after authorization before SCM mutation, and lets the formal NSIS installer and SCM replace code and manage the fixed restricted NimiRuntime service. The installer preserves existing valid service-owned protected data and never selects another data owner or performs implicit rollback. The original ordinary user reopens Home; actual signed cohort identity, matching protected Runtime version and READY health plus Home readiness are all required for completion, and installer exit or diagnostics cannot substitute. Missing key, helper or installation readiness keeps installation unavailable; before-install failure uses the existing safe current-version relaunch and checker recovery, while authorization cancellation, service failure or post-install identity or health failure retains its actual reason and repair guidance, with independently accessible formal-installer recovery when Home cannot start.
+    condition: Whenever a Windows product candidate is built, verified, handed to installation or activated.
+    failure: Refuse unadmitted bytes, paths, caller or service custody, block installation before missing readiness or failed critical cleanup, and expose failure or recovery-required without fabricated installation or activation success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-update-candidate
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.release-bundle
   - id: rule.nimi.platform.product-lifecycle.p-web-001a

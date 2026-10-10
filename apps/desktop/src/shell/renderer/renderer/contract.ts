@@ -33,6 +33,7 @@ import type { DesktopRendererLocalModelProgressPort } from './local-model-progre
 import type { DesktopRendererAvatarHandoffPort } from './avatar-handoff-port.js';
 import type { DesktopRendererVirtualizationPort } from './virtualization-port.js';
 import type { DesktopOpenIntentStore } from '../infra/desktop-open/desktop-open-intent-navigation.js';
+import type { DesktopProductUpdatePort } from './product-update-port.js';
 
 export type DesktopRendererInitialState = {
   readonly bootstrapError: string | null;
@@ -61,6 +62,7 @@ export interface DesktopRendererProjectionPort {
 }
 
 export interface DesktopRendererCommandPort {
+  readonly productUpdate: DesktopProductUpdatePort;
   readonly auth: DesktopRendererAuthPort;
   readonly firstRun: DesktopRendererFirstRunPort;
   readonly runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort;

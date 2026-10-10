@@ -9,6 +9,14 @@ break nested Select/Dialog focus. Rebuild SDK/Kit and the Electron main/preload
 bundles before launching consumers. No Runtime wire or storage migration is
 introduced by this dependency update.
 
+## Windows complete product unsigned Beta admission (development)
+
+The production Windows carrier admits a fixed administrative product tree through the Platform Ed25519 inventory, actual locked process bytes and complete cohort verification. A developer Authenticode SPKI is no longer a production trust input. Source D2 keeps its separately compiled boundary. Rebuild the matching Runtime, carrier and product updater together from the admitted Platform key; the absent key still disables production admission and installation. The Host-only native `windowsProductUpdateHost` query and optional Rust `runtime_release_version` method are compatible additions, classified as a 0.x minor change in the next development release. No renderer API or generic native launcher is added.
+
+## Critical product shutdown barrier (development fix)
+
+Desktop's existing Host-only `disposeFormalAppResources` promise now rejects when a formal App resource cleanup fails or times out. Sender/window disposal still completes bounded cleanup and logs diagnostics; it cannot erase a failed critical barrier. Product updaters must combine the critical result with current release verification, explicit consent and Runtime/installer handoff before replacing code. No renderer command or public export is added; this is a compatible fail-closed fix staged in the current development set.
+
 ## SDK 0.21.0 / Kit and native 0.18.0 — Unified asynchronous Job lifecycle (development)
 
 This unpublished 0.x development set makes a breaking public contract change. Upgrade the matching Runtime, SDK, Kit and native carriers together; version labels alone do not identify a build. Every supported asynchronous CapabilityContract uses Submit, the original Job ID, Get, formal contract result readers and explicit Cancel regardless of its Local, synchronous remote or native task implementation. Query and result acquisition remain Runtime-owned. Public text unary/stream, speech stream and independent realtime/frame Sessions keep their own forms.
@@ -22,7 +30,6 @@ Consumers retain at least one full terminal Get response even when Submit return
 The observer now performs serialized Get every `getIntervalMs` (default 1000 ms) even with a silent healthy stream. `onObservation` exposes full responses and the common SDK result retains `response`. Migration: runner `signal` explicitly requests Cancel; bind view disposal to `observationSignal`. Pure observe `signal` detaches, while optional `cancelSignal` explicitly requests Cancel. Cancel rejection retains the original Job identity and never fabricates a terminal state. Kit adds typed observe entrypoints for image/video generation, speech synthesis and transcription. These public additions and 0.x timeout-option removals are a minor change.
 
 The unreachable synchronous protected image execute union is removed. Its request and response tag 2 and `image_generate` names are reserved, and the orphan `LocalAppImageGenerateOutput` type is removed. Use image Job submission; a remote synchronous protocol still produces a public Job. The declared wire changes must match the published-baseline findings exactly; do not replace the baseline image or source tag.
-
 
 ## Kit/native 0.18.0 — Embedding retrieval purpose (development)
 

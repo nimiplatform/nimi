@@ -344,6 +344,14 @@ function createCanonicalBindings(input: {
         walletCheckoutBaseUrl: () => 'https://simulator.invalid/',
       }),
       commands: Object.freeze({
+        productUpdate: Object.freeze({
+          async install() { throw new Error('TEST_PRODUCT_UPDATE_UNAVAILABLE'); },
+          async homeReady() { throw new Error('TEST_PRODUCT_UPDATE_UNAVAILABLE'); },
+          async reopenCurrentVersion() { throw new Error('TEST_PRODUCT_UPDATE_UNAVAILABLE'); },
+          async status() { throw new Error('TEST_PRODUCT_UPDATE_UNAVAILABLE'); },
+          async check() { throw new Error('TEST_PRODUCT_UPDATE_UNAVAILABLE'); },
+          async cancel() { throw new Error('TEST_PRODUCT_UPDATE_UNAVAILABLE'); },
+        }),
         auth: createUnavailableDesktopRendererAuthPort(),
         firstRun: createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED'),
         runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(),

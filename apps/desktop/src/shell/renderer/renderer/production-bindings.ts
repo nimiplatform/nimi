@@ -77,6 +77,7 @@ import { launchDesktopAvatarHandoff } from '../bridge/runtime-bridge/chat-agent-
 import { requestDesktopAvatarPreviewProjection } from '../bridge/runtime-bridge/chat-agent-avatar-preview-projection.js';
 import { createDesktopBrowserRoutePort } from './browser-route-port.js';
 import { resolveAccountManagementUrl } from '../features/settings/account-management-url.js';
+import { createDesktopProductUpdatePort } from './product-update-port.js';
 
 export function createDesktopProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
@@ -158,6 +159,7 @@ export function createDesktopProductionBindings(
         },
       }),
       commands: Object.freeze({
+        productUpdate: createDesktopProductUpdatePort(),
         auth: createDesktopProductionAuthPort(),
         firstRun: createDesktopProductionFirstRunPort(),
         runtimeConfigNavigation,

@@ -14,6 +14,9 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PRODUCT_UPDATE_POLICY } from '../../../config/product-update-policy.mjs';
+import { createWindowsProductIdentity, windowsNsisScript, verifyWindowsUnsignedInstaller } from '../../../scripts/lib/windows-product-release.mjs';
+import { hashProductFile, hashProductTree } from '../../../scripts/lib/product-update-manifest.mjs';
 
 import { extractFile, listPackage } from '@electron/asar';
 import { packager } from '@electron/packager';
@@ -44,9 +47,10 @@ const avatarRoot = path.join(repoRoot, 'apps', 'avatar');
 const localRoot = path.join(repoRoot, '.nimi', 'local');
 const corepackCli = path.join(path.dirname(process.execPath), 'node_modules', 'corepack', 'dist', 'corepack.js');
 
-if (process.argv.length > 2) {
-  throw new Error('Windows Electron layout build accepts no command-line arguments');
-}
+const args = process.argv.slice(2);
+const production = args[0] === '--production' && args[1] === '--identity-signing-key' && args.length === 3;
+if (args.length && !production) throw new Error('Required: --production --identity-signing-key <file>, or no arguments for non-product layout');
+if (production && !PRODUCT_UPDATE_POLICY.publicKey) throw new Error('UPDATE_TRUST_NOT_CONFIGURED');
 assertNativeWindowsX64(process.platform, process.arch);
 
 const desktopPackage = JSON.parse(await readFile(path.join(desktopRoot, 'package.json'), 'utf8'));
@@ -54,7 +58,9 @@ const electronPackage = JSON.parse(await readFile(path.join(desktopRoot, 'node_m
 const version = exactReleaseVersion(desktopPackage.version);
 const electronVersion = exactReleaseVersion(electronPackage.version);
 const outputRoot = resolveWindowsElectronLayoutOutput(desktopRoot);
-const developmentIdentity = requireWindowsDevSigningIdentity({ cwd: repoRoot });
+const developmentIdentity = production ? null : requireWindowsDevSigningIdentity({ cwd: repoRoot });
+const sourceRevision = production ? runLayoutCommand('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim() : null;
+if (production && runLayoutCommand('git', ['status', '--porcelain=v1'], { cwd: repoRoot }).stdout.trim()) throw new Error('UPDATE_SOURCE_NOT_RELEASEABLE');
 
 await mkdir(localRoot, { recursive: true });
 const transactionRoot = await mkdtemp(path.join(localRoot, '.windows-electron-layout-'));
@@ -76,11 +82,13 @@ try {
   if (stagedNativeCode.length === 0) {
     throw new Error('Windows Electron layout source contains no native code to sign');
   }
+  if (!production) {
   const nativeSigning = signWindowsDevFiles(stagedNativeCode, { cwd: repoRoot });
   if (nativeSigning.certificateSha256 !== developmentIdentity.certificateSha256) {
     throw new Error('Windows Electron layout development signer changed while signing native code');
   }
   requireWindowsDevSignedFiles(stagedNativeCode, developmentIdentity.certificateSha256, { cwd: repoRoot });
+  }
 
   const packagedPaths = await packager({
     ...windowsElectronPackagerOptions({
@@ -106,9 +114,11 @@ try {
   const executable = path.join(packagedRoot, `${WINDOWS_ELECTRON_LAYOUT_APP_NAME}.exe`);
   await assertWindowsX64PeFile(executable, 'Nimi Desktop executable');
   await requireElectronFuses(executable, HOME_WINDOWS_FUSES);
+  if (!production) {
   const executableSigning = signWindowsDevFiles([executable], { cwd: repoRoot });
   if (executableSigning.certificateSha256 !== developmentIdentity.certificateSha256) {
     throw new Error('Windows Electron layout development signer changed while signing the application');
+  }
   }
 
   const packagedNativeCode = await collectNativeCode(
@@ -118,7 +128,7 @@ try {
   for (const nativePath of packagedNativeCode) {
     await assertWindowsX64PeFile(nativePath, path.basename(nativePath));
   }
-  requireWindowsDevSignedFiles(
+  if (!production) requireWindowsDevSignedFiles(
     [executable, ...packagedNativeCode],
     developmentIdentity.certificateSha256,
     { cwd: repoRoot },
@@ -128,6 +138,9 @@ try {
   const mainSource = extractFile(asarPath, 'dist-electron/main.js').toString('utf8');
   assertWindowsElectronAsarInventory(listPackage(asarPath, { isPack: false }), mainSource);
   await requireFile(path.join(packagedRoot, 'resources', 'nimi-home-symbol.ico'));
+  if (production) {
+    await buildFormalProduct(packagedRoot, sourceRoot, version, sourceRevision, transactionRoot, args[2]);
+  } else {
   await writeFile(
     path.join(packagedRoot, WINDOWS_ELECTRON_LAYOUT_NOTICE),
     windowsElectronCandidateNotice({ electronVersion, version }),
@@ -144,6 +157,7 @@ try {
     promotable: false,
     signerCertificateSha256: developmentIdentity.certificateSha256,
   })}\n`);
+  }
 } finally {
   await rm(transactionRoot, { recursive: true, force: true });
 }
@@ -164,10 +178,11 @@ async function buildLayoutInputs(identity) {
   ], { cwd: repoRoot, inherit: true });
   runLayoutCommand(process.execPath, [
     path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'scripts', 'build-windows-x64-package.mjs'),
+    ...(!production ? ['--local-development-layout'] : []),
   ], {
     cwd: repoRoot,
     inherit: true,
-    env: { ...process.env, NIMI_WINDOWS_PRODUCTION_SIGNER_SPKI_SHA256: identity.spkiSha256 },
+    env: process.env,
   });
 }
 
@@ -309,4 +324,47 @@ function runLayoutCommand(command, args, options = {}) {
       cause: result.error,
     });
   }
+  return result;
+}
+
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-010
+async function buildFormalProduct(packagedRoot, sourceRoot, version, sourceRevision, transactionRoot, keyFile) {
+  const runtimeRoot = path.join(packagedRoot, 'runtime'); await mkdir(runtimeRoot);
+  for (const [name, owner] of [['desktop', desktopRoot], ['avatar', avatarRoot]]) {
+    const resource = path.join(runtimeRoot, 'resources/nimi-apps', name); await mkdir(resource, { recursive: true });
+    await cp(path.join(owner, 'nimi.app.yaml'), path.join(resource, 'nimi.app.yaml'));
+  }
+  const overlaySource = path.join(transactionRoot, 'product-policy.go');
+  await writeFile(overlaySource, `package productrelease\nconst PublicKey = ${JSON.stringify(PRODUCT_UPDATE_POLICY.publicKey)}\n`);
+  const overlayPath = path.join(transactionRoot, 'go-overlay.json');
+  await writeFile(overlayPath, JSON.stringify({ Replace: { [path.join(repoRoot, 'runtime/internal/productrelease/policy.go')]: overlaySource } }));
+  for (const [relative, pkg, flags] of [['runtime/nimi.exe', './cmd/nimi', `-s -w -X main.Version=${version}`], ['NimiProductUpdater.exe', './tools/windows-product-updater', '-s -w']]) {
+    runLayoutCommand('go', ['build', '-trimpath', '-overlay', overlayPath, '-ldflags', flags, '-o', path.join(packagedRoot, relative), pkg], { cwd: path.join(repoRoot, 'runtime'), inherit: true, env: { ...process.env, GOOS: 'windows', GOARCH: 'amd64', CGO_ENABLED: '0' } });
+  }
+  for (const relative of ['Nimi.exe', 'runtime/nimi.exe', 'NimiProductUpdater.exe']) {
+    await assertWindowsX64PeFile(path.join(packagedRoot, relative), relative);
+    await verifyWindowsUnsignedInstaller(path.join(packagedRoot, relative));
+  }
+  const avatarVersion = JSON.parse(await readFile(path.join(avatarRoot, 'package.json'), 'utf8')).version;
+  await writeFile(path.join(packagedRoot, 'Recovery.txt'), 'Nimi Windows recovery\nDownload the formal Nimi product installer from https://github.com/nimiplatform/nimi/releases and allow the required Windows administrator authorization. Use an admitted forward repair release. Preserve the Runtime-owned data under ProgramData\\Nimi\\Runtime\\Protected; do not move, delete, restore or migrate it with Desktop tools. If Home cannot start, this instruction and the standalone formal installer remain available.\n', { flag: 'wx' });
+  const components = { desktop: { version, sha256: await hashProductFile(path.join(packagedRoot, 'resources/app.asar')) },
+    runtime: { version, sha256: await hashProductFile(path.join(packagedRoot, 'runtime/nimi.exe')) },
+    avatar: { version: avatarVersion, sha256: await hashProductTree(path.join(sourceRoot, 'avatar/dist')) } };
+  const admission = await createWindowsProductIdentity({ root: packagedRoot, version, sourceRevision, components, privateKey: await readFile(keyFile) });
+  await writeFile(path.join(packagedRoot, 'nimi-product-identity.json'), `${JSON.stringify(admission.envelope)}\n`, { flag: 'wx' });
+  const name = `Nimi-${version}-windows-amd64.exe`, installer = path.join(transactionRoot, name);
+  const script = path.join(transactionRoot, 'product.nsi');
+  await writeFile(script, windowsNsisScript({ root: packagedRoot, output: installer, version }));
+  runLayoutCommand('makensis', ['/NOCONFIG', '/V2', script], { cwd: repoRoot, inherit: true });
+  await verifyWindowsUnsignedInstaller(installer);
+  if (runLayoutCommand('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim() !== sourceRevision
+    || runLayoutCommand('git', ['status', '--porcelain=v1'], { cwd: repoRoot }).stdout.trim()) throw new Error('UPDATE_SOURCE_CHANGED_DURING_BUILD');
+  const formalOutput = path.join(desktopRoot, 'dist/windows/product');
+  await mkdir(formalOutput, { recursive: true });
+  const destination = path.join(formalOutput, name); await rename(installer, destination);
+  const identity = { schema: 'nimi-product-build/v1', version, target: 'windows-amd64', sourceRevision, dirtyInput: [],
+    minimumOsVersion: '10.0.19041', components, asset: { name, size: (await stat(destination)).size, sha256: await hashProductFile(destination) } };
+  await writeFile(path.join(formalOutput, `${name}.identity.json`), `${JSON.stringify(identity,null,2)}\n`, { flag: 'wx' });
+  await cp(path.join(packagedRoot,'nimi-product-identity.json'), path.join(formalOutput,'nimi-installed-windows-amd64.json'), { errorOnExist: true, force: false });
+  process.stdout.write(`${JSON.stringify({ status: 'built', installerPath: destination, identityPath: `${destination}.identity.json`, releaseId: admission.identity.releaseId, target: 'windows-amd64', posture: 'unsigned-beta' })}\n`);
 }

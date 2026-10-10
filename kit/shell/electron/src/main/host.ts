@@ -699,8 +699,8 @@ export function registerNimiElectronRuntimeBridge(
           ),
           disposeFormalAppResources: async () => {
             await Promise.all([
-              desktopFormalHostOwner.dispose(),
-              bundledAvatarFormalHostOwner?.dispose(),
+              desktopFormalHostOwner.shutdown(),
+              bundledAvatarFormalHostOwner?.shutdown(),
             ]);
           },
         }

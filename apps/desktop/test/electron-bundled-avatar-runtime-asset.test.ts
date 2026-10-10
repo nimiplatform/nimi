@@ -1223,8 +1223,9 @@ test('bundled Avatar asset command carries the reminted formal App handle into H
   assert.match(source, /hostHandoff\.closeAndWait\(AVATAR_HOST_HANDOFF_SHUTDOWN_WAIT_MS\)/u);
   assert.match(
     mainSource,
-    /Promise\.allSettled\(\[\s*boundDesktopShutdownCleanup\([\s\S]*disposeFormalAppResources[\s\S]*DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS/u,
+    /operation: 'formal-app-resources', critical: true, abortRemainingOnFailure: false, timeoutMs: DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS, run: \(\) => runtimeBridge\?\.disposeFormalAppResources/u,
   );
+  assert.match(mainSource, /report\.criticalFailures\.some[\s\S]*throw new DesktopShutdownBlockedError\(report\)/u);
   assert.doesNotMatch(mainSource, /await runtimeBridge\?\.disposeFormalAppResources/u);
   assert.match(source, /AVATAR_MATERIALIZATION_RELEASE_COMMAND[\s\S]*assetHost\.releaseMaterialization\(lease\.materializationRef\)/u);
   assert.match(source, /powerMonitor\.on\('suspend', handleHostSuspend\)/u);

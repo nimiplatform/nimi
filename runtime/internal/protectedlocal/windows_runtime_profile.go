@@ -44,7 +44,7 @@ func (profile windowsRuntimeProfile) validate() error {
 		profile.runtimeTrustSetID != WindowsRuntimeProductionTrustSetID ||
 		profile.desktopTrustSetID != WindowsDesktopProductionTrustSetID ||
 		profile.runtimeExecutableName != "nimi.exe" ||
-		profile.desktopExecutableName != "Nimi Desktop Runtime.exe" ||
+		profile.desktopExecutableName != "Nimi.exe" ||
 		profile.stateRelativePath != `Nimi\Runtime\Protected` {
 		return fmt.Errorf("Windows Runtime production profile diverges from admitted authority")
 	}

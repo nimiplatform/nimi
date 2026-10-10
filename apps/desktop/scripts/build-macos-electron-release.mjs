@@ -12,6 +12,9 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { hashProductFile, hashProductTree } from '../../../scripts/lib/product-update-manifest.mjs';
+import { buildMacOSProductUpdater } from './build-macos-product-updater.mjs';
+import { PRODUCT_UPDATE_POLICY } from '../../../config/product-update-policy.mjs';
 import { statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,6 +27,8 @@ import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import {
   requireMacOSSigningIdentity,
   macOSReleaseRealmBaseURL,
+  macOSPublicProductRelease,
+  requireMacOSProductUpdateTrust,
   macOSAudioCaptureRole,
   isMacOSMachO,
   runReleaseCommand,
@@ -50,6 +55,9 @@ if ([layoutOnly, localDevelopment, production].filter(Boolean).length !== 1
   || process.argv.slice(2).some((value) => !['--layout-only', '--local-development-candidate', '--production'].includes(value))) {
   throw new Error('select exactly one macOS build mode: --production, --layout-only, or --local-development-candidate');
 }
+const selectedRealm = production ? macOSReleaseRealmBaseURL(process.env.NIMI_MACOS_RELEASE_REALM_URL) : undefined;
+if (production) requireMacOSProductUpdateTrust(selectedRealm,PRODUCT_UPDATE_POLICY.publicKey);
+const publicProductRelease = production && macOSPublicProductRelease(selectedRealm);
 if (process.platform !== 'darwin' || process.arch !== 'arm64') {
   throw new Error('macOS Electron release must be built natively on Apple Silicon');
 }
@@ -59,6 +67,10 @@ const version = exactVersion(desktopPackage.version);
 const buildVersion = String(Math.floor(Date.now() / 1000));
 const electronVersion = exactVersion(electronPackage.version);
 const release = layoutOnly || localDevelopment ? undefined : readMacOSProductionInputs(process.env);
+const sourceRevision = runReleaseCommand('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim();
+const dirtyInput = runReleaseCommand('git', ['status', '--porcelain', '--untracked-files=normal'], { cwd: repoRoot }).stdout.split('\n').filter(Boolean);
+if (publicProductRelease && dirtyInput.length) throw new Error('UPDATE_SOURCE_NOT_RELEASEABLE');
+if (production && release.teamId !== PRODUCT_UPDATE_POLICY.macOSTeamId) throw new Error('UPDATE_RELEASE_POLICY_MISMATCH');
 const outputName = layoutOnly ? `layout-${Date.now()}` : localDevelopment ? `local-development-${Date.now()}` : release.releaseId;
 const outputRoot = resolveOutputRoot(process.env.NIMI_MACOS_RELEASE_OUTPUT, outputName);
 await assertAbsent(outputRoot);
@@ -113,6 +125,19 @@ try {
     await signMacOSApplication(desktopApp, release, {
       ignore: (candidate) => candidate === embeddedLocalHost || candidate.startsWith(`${embeddedLocalHost}${path.sep}`),
     });
+    const avatarPackage = JSON.parse(await readFile(path.join(avatarRoot, 'package.json'), 'utf8'));
+    const productIdentity = {
+      releaseId: `nimi/v${version}`, version, sourceRevision,
+      components: {
+        desktop: { version, sha256: await hashProductFile(path.join(desktopApp, 'Contents', 'Resources', 'app.asar')) },
+        runtime: { version, sha256: await hashProductFile(path.join(desktopApp, 'Contents', 'Library', 'LaunchServices', 'nimi-runtime')) },
+        avatar: { version: avatarPackage.version, sha256: await hashProductTree(path.join(sourceRoot, 'desktop-app', 'avatar', 'dist')) },
+      },
+    };
+    await writeFile(path.join(desktopApp, 'Contents', 'Resources', 'nimi-product-identity.json'), `${JSON.stringify(productIdentity)}\n`, { flag: 'wx', mode: 0o644 });
+    // Seal the identity without changing the already signed nested binaries.
+    runReleaseCommand('/usr/bin/codesign', ['--force', '--sign', release.applicationIdentity, '--timestamp', '--options', 'runtime',
+      '--entitlements', path.join(desktopRoot, 'macos', 'entitlements', 'electron-audio.plist'), desktopApp]);
     await requireCandidateFuses(desktopApp, false);
     await notarizeAndStaple(desktopApp, release);
     // The Home submission includes the nested Host and creates its ticket.
@@ -134,6 +159,15 @@ try {
     });
     await notarizeAndStaple(pkgPath, release);
     verifySignedMacOSInstaller(pkgPath);
+    if (publicProductRelease && (runReleaseCommand('git', ['rev-parse','HEAD'], { cwd: repoRoot }).stdout.trim() !== sourceRevision
+      || runReleaseCommand('git', ['status','--porcelain','--untracked-files=normal'], { cwd: repoRoot }).stdout.trim())) throw new Error('UPDATE_SOURCE_CHANGED_DURING_BUILD');
+    // The signed metadata producer consumes this build's exact final bytes.
+    // This is a build sidecar, never a second product version ledger.
+    await writeFile(path.join(candidateRoot, 'release-build-identity.json'), `${JSON.stringify({
+      schema: 'nimi-product-build/v1', version, target: 'macos-arm64', minimumOsVersion: '13.0', realmOrigin: release.realmBaseURL, sourceRevision, dirtyInput,
+      components: productIdentity.components,
+      asset: { name: path.basename(pkgPath), size: (await stat(pkgPath)).size, sha256: await hashProductFile(pkgPath) },
+    }, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
     await rename(candidateRoot, outputRoot);
     completed = true;
     process.stdout.write(`macOS Electron release output: ${outputRoot}\n`);
@@ -204,6 +238,7 @@ async function buildReleaseInputs({
     nativeRoot: path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'darwin-arm64'),
   });
   const desktopSource = path.join(sourceRoot, 'desktop-app');
+  if (!localDevelopmentBuild) await buildMacOSProductUpdater(path.join(sourceRoot, 'product-updater'), releaseInput?.realmBaseURL);
   await stageSharpRuntime(desktopSource);
   await writeManifest(path.join(desktopSource, 'package.json'), {
     main: 'dist-electron/main.js',
@@ -368,6 +403,10 @@ async function stageNativeCarrier(appPath, sourceRoot) {
 async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopmentBuild) {
   await stageNativeCarrier(desktopApp, sourceRoot);
   if (localDevelopmentBuild) return;
+  const updaterDirectory = path.join(desktopApp, 'Contents', 'Helpers');
+  await mkdir(updaterDirectory, { recursive: true, mode: 0o755 });
+  await cp(path.join(sourceRoot, 'product-updater', 'Nimi Product Updater'), path.join(updaterDirectory, 'Nimi Product Updater'));
+  await chmod(path.join(updaterDirectory, 'Nimi Product Updater'), 0o755);
   // @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
   // Runtime reads each formal App declaration from this fixed signed resource
   // root before admitting Home or Avatar product operations.
@@ -419,6 +458,7 @@ async function signMacOSApplication(appPath, releaseInput, options) {
   const audioEntitlements = path.join(desktopRoot, 'macos', 'entitlements', 'electron-audio.plist');
   const runtimeEntitlements = path.join(desktopRoot, 'macos', 'entitlements', 'runtime.plist');
   const runtimePath = path.join(appPath, 'Contents', 'Library', 'LaunchServices', 'nimi-runtime');
+  const updaterPath = path.join(appPath, 'Contents', 'Helpers', 'Nimi Product Updater');
   await sign({
     app: appPath,
     identity: releaseInput.applicationIdentity,
@@ -427,6 +467,8 @@ async function signMacOSApplication(appPath, releaseInput, options) {
     ignore: (candidate) => Boolean(options.ignore?.(candidate))
       || (statSync(candidate).isFile() && !isMacOSMachO(candidate)),
     optionsForFile: (candidate) => {
+      if (candidate === updaterPath) return { additionalArguments: ['--identifier', 'ai.nimi.product-update'], entitlements: runtimeEntitlements,
+        hardenedRuntime: true, signatureFlags: 'runtime' };
       if (candidate === runtimePath) {
         return {
           additionalArguments: ['--identifier', 'ai.nimi.runtime'],
@@ -519,6 +561,7 @@ function resolveRolePaths(desktopApp) {
     nimi_desktop: path.join(desktopApp, 'Contents', 'MacOS', 'Nimi'),
     nimi_local_app_host: localHostExecutable(path.join(desktopApp, 'Contents', 'Frameworks', 'Nimi Local App Host.app')),
     nimi_runtime_service: path.join(desktopApp, 'Contents', 'Library', 'LaunchServices', 'nimi-runtime'),
+    nimi_product_updater: path.join(desktopApp, 'Contents', 'Helpers', 'Nimi Product Updater'),
   });
 }
 
@@ -579,6 +622,7 @@ function productionSigningIdentifier(role) {
     nimi_desktop: 'ai.nimi.apps.nimi.desktop',
     nimi_local_app_host: 'ai.nimi.apps.nimi.local-app-host',
     nimi_runtime_service: 'ai.nimi.runtime',
+    nimi_product_updater: 'ai.nimi.product-update',
   };
   const identifier = identifiers[role];
   if (!identifier) throw new Error(`unknown macOS protected-local role: ${role}`);

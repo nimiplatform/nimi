@@ -14,7 +14,7 @@ func activeWindowsRuntimeProfile() windowsRuntimeProfile {
 		runtimeTrustSetID:     WindowsRuntimeProductionTrustSetID,
 		desktopTrustSetID:     WindowsDesktopProductionTrustSetID,
 		runtimeExecutableName: "nimi.exe",
-		desktopExecutableName: "Nimi Desktop Runtime.exe",
+		desktopExecutableName: "Nimi.exe",
 		stateRelativePath:     `Nimi\Runtime\Protected`,
 		nonProduct:            false,
 	}

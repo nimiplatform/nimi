@@ -27,6 +27,17 @@ user, binds the pipe server to Desktop's exact child Runtime process, and keeps
 production service, installer, signing, and update trust unchanged outside that
 feature. Native profile choice adds no App access or reason semantics.
 
+Windows production unsigned Beta uses the compiled Platform product public key
+to authenticate the complete installed Desktop/Runtime/Avatar inventory in the
+fixed administrative non-reparse Program Files product tree. The native carrier
+retains the exact live SCM Runtime process and locked executable, verifies all
+inventory bytes and ACLs, then opens the protected channel. Runtime independently
+admits the matching Home product release and source revision while retaining its
+fixed service SID, session and protected-data custody checks. An unsigned PE or
+development certificate carries no product identity. The Host-only updater query
+has no arguments and returns the fixed admitted helper and public-key projection;
+it never replaces code, selects a release or controls the service.
+
 Its complete admitted Local App operation surface is session status, three
 protected principal-partitioned JSON storage operations, exact WorldCore
 list/create, the selected RuntimeAgent conversation operations, bounded
