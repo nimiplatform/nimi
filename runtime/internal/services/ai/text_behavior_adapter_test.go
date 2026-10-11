@@ -15,10 +15,12 @@ import (
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 27 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and seventeen Cloud targets", len(registrations))
+	if len(registrations) != 29 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and nineteen Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"mimo/mimo-v2.6-flash":            "mimo.v26-flash.chat-tools",
+		"mimo/mimo-v2.6-pro":              "mimo.v26-pro.chat-tools",
 		"anthropic/claude-sonnet-4-6":     "anthropic.sonnet46.messages",
 		"anthropic/claude-haiku-4-5":      "anthropic.haiku45.messages",
 		"anthropic/claude-opus-5-5":       "anthropic.claude-opus-5-5.messages",

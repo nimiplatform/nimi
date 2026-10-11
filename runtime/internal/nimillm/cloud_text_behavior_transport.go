@@ -21,6 +21,7 @@ import (
 // @nimi-authority: rule.nimi.runtime.ai-provider.chatgpt-plan-text-behaviors
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
 // @nimi-authority: rule.nimi.runtime.ai-provider.openai-responses-text-behaviors
+// @nimi-authority: rule.nimi.runtime.ai-provider.mimo-v26-tool-text
 // The Host supplies the exact credential-bearing target only for this call.
 // Hooks were selected and their request serialized before Job publication.
 func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
@@ -38,6 +39,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "deepseek":
 	case "dashscope":
 	case "gemini":
+	case "mimo":
 	case chatGPTPlanProvider:
 		// The public ChatGPT-plan route admits only streaming Responses.
 		path, wireStream = chatGPTPlanResponsesPath, true
@@ -58,7 +60,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if nativeGemini && (target.ProviderType != "gemini" || resolvedModelID != "gemini-3.8-flash") {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
-	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" {
+	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
 	}
 	if target.ProviderType == "openai" {

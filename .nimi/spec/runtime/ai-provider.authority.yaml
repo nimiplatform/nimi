@@ -1487,6 +1487,18 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
       - type: supersedes
         target: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
+  - id: rule.nimi.runtime.ai-provider.mimo-v26-tool-text
+    kind: rule
+    title: MiMo V2.6 admits exact non-thinking function-tool text steps
+    modality: must
+    statement: Exact mimo targets mimo-v2.6-flash and mimo-v2.6-pro admit non-thinking function Tool Use through versioned Chat Completions adapters in synchronous and streaming modes. Default or auto tool choice admits complete single or parallel calls, tool-only and text-prefix plus call output, and later external-host ToolResult turns with original call identities, schemas, business error values and message order, including multiple or in-conversation system messages. Thinking is explicitly disabled; requested reasoning, opaque reasoning continuity, provider tools, media, structured output, asynchronous Jobs and non-auto tool choices are not admitted by this slice. Runtime rejects choices which upstream would silently treat as auto. Supported sampling controls retain their values within the documented MiMo bounds, max_tokens maps to max_completion_tokens, and undocumented stream options are not sent. Stream fragments remain private until tool arguments form one schema-valid JSON object, and completion requires a valid finish reason and the DONE marker; length or repetition truncation, refusal, conflicting fragments and malformed output remain typed failures rather than repaired success. The external AI Host alone executes business tools and owns later turns; Runtime adds no workflow, replay or alternative model. Existing credential custody, endpoint composition, scheduling, cancellation and plain-text paths retain their owners; another model or protocol requires separate reviewed registration.
+    condition: Whenever these exact MiMo targets consume function Tool Use through Cloud text generation or a text-turn stream.
+    failure: Reject unsupported targets, choices and combinations with AI_TEXT_BEHAVIOR_UNSUPPORTED, malformed input with AI_INPUT_INVALID, invalid tool calls with AI_TOOL_CALL_INVALID and incomplete or invalid output with AI_TEXT_OUTPUT_INCOMPLETE or AI_OUTPUT_INVALID; preserve provider and cancellation failures without fallback or fabricated execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
     kind: rule
     title: DeepSeek Chat Completions has exact non-thinking tool and JSON adapters

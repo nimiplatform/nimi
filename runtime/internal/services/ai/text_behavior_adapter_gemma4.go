@@ -27,6 +27,8 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	registrations = append(registrations, dashscopeQwen38Max0902BehaviorRegistration())
 	registrations = append(registrations, gemini38FlashSchemaBehaviorRegistration())
 	registrations = append(registrations,
+		mimoChatBehaviorRegistration("mimo-v2.6-flash", "mimo.v26-flash.chat-tools"),
+		mimoChatBehaviorRegistration("mimo-v2.6-pro", "mimo.v26-pro.chat-tools"),
 		deepseekChatBehaviorRegistration("deepseek-flash", "deepseek.flash.chat"),
 		deepseekChatBehaviorRegistration("deepseek-v4-flash", "deepseek.v4-flash.chat"),
 		deepseekChatBehaviorRegistration("deepseek-v4-pro", "deepseek.v4-pro.chat"),
