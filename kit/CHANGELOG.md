@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.18.0 — 2026-10-11
+## 0.18.1 — 2026-10-11
 
-Use SDK 0.21.0 and the matching 0.18.0 native package. This 0.x minor includes
+Use SDK 0.21.0 and the matching 0.18.1 native package. This 0.18 release includes
 breaking protected App contract changes; the development entries below retain
 their detailed migration history. Upgrade the matching Runtime and rebuild App
 Host/preload bundles before using the new Job, speech, embedding and World
@@ -12,6 +12,10 @@ The Electron peer is now 44 and the react-i18next peer is 17. Upgrade these
 dependencies together with the App's renderer. New Job observers distinguish
 observation disposal from explicit cancellation; old Job `timeoutMs` options
 are rejected.
+
+The 0.18.0 release candidate stopped before publication because its Preview
+typecheck lacked Vite's CSS declarations. The patch adds those Preview types;
+the Runtime wire contract and public Kit APIs remain the same as 0.18.0.
 
 ## Dependency baseline (development)
 

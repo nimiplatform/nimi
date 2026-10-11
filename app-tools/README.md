@@ -2,7 +2,7 @@
 
 `app-tools` is the public full-stack developer toolkit for third-party Nimi Apps. It owns repository scaffolding, dependency and managed-file synchronization, local validation, Desktop-supervised development, App-declared test/build orchestration, deterministic packaging, and managed GitHub workflow setup.
 
-App Tools 0.11.4 defaults to SDK 0.21.0 and Kit/native 0.18.0, with Nimi Coding
+App Tools 0.11.4 defaults to SDK 0.21.0 and Kit/native 0.18.1, with Nimi Coding
 0.6.5. Existing Apps select this SDK/Kit combination explicitly before syncing;
 the tool update alone preserves their supported business dependencies. The
 matching Electron carrier requires Electron 44.
@@ -167,7 +167,7 @@ Local archives may also use paths relative to the App. Install, run sync and
 check, then use the normal dev/test/build/pack loop. Sync retains these choices;
 check verifies matrix compatibility and compares the selected tarball version,
 source and integrity with pnpm's installed dependency lock and package manifest.
-The default SDK `^0.21.0` / Kit `^0.18.0` / Rust carrier `0.10.0`
+The default SDK `^0.21.0` / Kit `^0.18.1` / Rust carrier `0.10.0`
 combination also admits complete local archives for development. Select the
 matching Runtime and native packages. A local archive does not establish public
 registry availability; production preflight checks the registry resolutions.

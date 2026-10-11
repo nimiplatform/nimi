@@ -22,7 +22,7 @@
     "appToolsVersion": "^0.11.4",
     "nimicodingVersion": "0.6.5",
     "aiSdkVersion": "^6.0.85",
-    "kitVersion": "^0.18.0",
+    "kitVersion": "^0.18.1",
     "reactVersion": "^19.3.0",
     "reactDomVersion": "^19.3.0",
     "i18nextVersion": "^26.4.2",
