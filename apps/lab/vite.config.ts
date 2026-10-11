@@ -108,6 +108,9 @@ function chunkName(id: string) {
   if (isNimiKit) {
     return 'vendor-nimi-kit';
   }
+  if (normalized.includes('/node_modules/')) {
+    return 'vendor-shared';
+  }
   if (normalized.includes('/apps/lab/src/shell/i18n/')) {
     return 'lab-i18n';
   }
@@ -140,7 +143,11 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       output: {
-        codeSplitting: { groups: [{ name: chunkName }] },
+        strictExecutionOrder: true,
+        codeSplitting: {
+          includeDependenciesRecursively: false,
+          groups: [{ name: chunkName }],
+        },
       },
     },
   },
