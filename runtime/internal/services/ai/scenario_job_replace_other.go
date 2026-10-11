@@ -24,6 +24,7 @@ func syncScenarioJobDirectory(path string) error {
 	if err != nil {
 		return err
 	}
-	defer directory.Close()
+	// Sync determines durability; closing the read-only directory is cleanup.
+	defer func() { _ = directory.Close() }()
 	return directory.Sync()
 }

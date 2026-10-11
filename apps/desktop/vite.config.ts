@@ -229,7 +229,11 @@ export default defineConfig(({ mode }) => {
           main: path.resolve(import.meta.dirname, 'src/shell/renderer/index.html'),
         },
         output: {
+          strictExecutionOrder: true,
           codeSplitting: {
+            // Keep each module in its assigned group instead of pulling the
+            // SDK and shared Kit dependencies into the app's runtime bridge.
+            includeDependenciesRecursively: false,
             groups: [{
               name(id) {
                 const normalizedId = id.split(path.sep).join('/');

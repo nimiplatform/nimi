@@ -134,7 +134,8 @@ func FileSHA256(file string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("open inventory file: %w", err)
 	}
-	defer f.Close()
+	// This handle is read-only; the hash result depends on the read outcome.
+	defer func() { _ = f.Close() }()
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		return "", fmt.Errorf("hash inventory file: %w", err)

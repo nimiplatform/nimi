@@ -52,7 +52,8 @@ func EnsurePreparedCandidate(root string, expectedRaw []byte, key string, use Ca
 	if err != nil {
 		return "", err
 	}
-	defer os.RemoveAll(temporary)
+	// Cleanup of an unused staging directory cannot change candidate admission.
+	defer func() { _ = os.RemoveAll(temporary) }()
 	if err := seal(temporary); err != nil {
 		return "", err
 	}

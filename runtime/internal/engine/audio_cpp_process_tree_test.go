@@ -96,7 +96,8 @@ func TestAudioCppProcessTreeProbe(t *testing.T) {
 			if err := child.Start(); err != nil {
 				t.Fatal(err)
 			}
-			go child.Wait()
+			// Cancellation kills this fixture process; Wait still reaps it.
+			go func() { _ = child.Wait() }()
 		}
 		if err := os.WriteFile(filepath.Join(root, name), []byte(fmt.Sprint(os.Getpid())), 0600); err != nil {
 			t.Fatal(err)
@@ -141,12 +142,12 @@ func TestAudioCppOwnerLossStopsItsActualTree(t *testing.T) {
 	if err := runtimeProcess.Start(); err != nil {
 		t.Fatal(err)
 	}
-	defer runtimeProcess.Process.Kill()
+	defer func() { _ = runtimeProcess.Process.Kill() }()
 	pids := []int{}
 	defer func() {
 		for _, pid := range pids {
 			if process, err := os.FindProcess(pid); err == nil {
-				process.Kill()
+				_ = process.Kill()
 			}
 		}
 	}()
