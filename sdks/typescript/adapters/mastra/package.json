@@ -25,7 +25,7 @@
     "@nimiplatform/sdk": "^0.8.0"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "4.0.24",
+    "@ai-sdk/provider": "4.0.25",
     "@mastra/core": "1.74.0",
     "@nimiplatform/sdk": "workspace:*",
     "@types/node": "24.19.1",

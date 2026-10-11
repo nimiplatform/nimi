@@ -62,7 +62,7 @@
     "@tanstack/react-virtual": "3.14.13",
     "ajv": "^8.20.0",
     "i18next": "26.4.2",
-    "lucide-react": "1.51.0",
+    "lucide-react": "1.52.0",
     "motion": "13.5.1",
     "pngjs": "7.0.0",
     "qrcode": "1.5.4",
