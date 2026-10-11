@@ -29,8 +29,8 @@ test('malformed, unsafe and unreadable diagnostics cannot fail the normal bootst
 
 test('ENOSPC diagnostics do not block safe current-version reopen; genuine safety failure still blocks and retains cause', async () => {
   const fixture = signedProductFixture(), directory = await mkdtemp(path.join(os.tmpdir(), 'nimi-diagnostic-save-'));
-  let host: DesktopProductUpdateHost, reopenCalls = 0, safelyReopened = 0, appCanStop = false, diagnosticWrites = 0;
-  host = new DesktopProductUpdateHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
+  let reopenCalls = 0, safelyReopened = 0, appCanStop = false, diagnosticWrites = 0;
+  const host = new DesktopProductUpdateHost({ currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: path.join(directory, 'cache'),
     policy: { ...PRODUCT_UPDATE_POLICY, publicKey: fixture.key },
     fetchImpl: async (url) => String(url).endsWith('latest.json') ? new Response(fixture.manifestBytes.toString()) : new Response(Uint8Array.from(fixture.bytes).buffer),
     verifyInstaller: async () => undefined,

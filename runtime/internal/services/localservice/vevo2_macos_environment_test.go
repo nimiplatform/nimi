@@ -73,11 +73,13 @@ func TestVeVo2MacConfirmedPreparationStartsFreshWithoutRewritingFailedJob(t *tes
 }
 
 func TestVeVo2MacCatalogRecipeProjectsCPUOfferWithoutWindowsCPUAdmission(t *testing.T) {
-	previousOS, previousArch := localRuntimeGOOS, localRuntimeGOARCH
-	t.Cleanup(func() { localRuntimeGOOS, localRuntimeGOARCH = previousOS, previousArch })
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	previousProbeRAM := localRuntimeProbeRAM
+	t.Cleanup(func() { localRuntimeProbeRAM = previousProbeRAM })
+	localRuntimeProbeRAM = func() (int64, int64) { return int64(128) << 30, int64(64) << 30 }
 	svc := newLocalEnvironmentTestService(t)
 	defer svc.Close()
-	localRuntimeGOOS, localRuntimeGOARCH = "darwin", "arm64"
 	listed, err := svc.ListLoadoutRecipes(context.Background(), &runtimev1.ListLoadoutRecipesRequest{CapabilityContract: capabilitydriver.VoiceConvertCapabilityContract})
 	if err != nil {
 		t.Fatal(err)

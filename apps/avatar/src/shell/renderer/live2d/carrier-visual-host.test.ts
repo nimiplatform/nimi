@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createLive2DCarrierVisualHost } from './carrier-visual-host.js';
 import type { Live2DBackendSession } from './backend-session.js';
 import type { Live2DVisualModelShape, Live2DVisualRuntime } from './carrier-visual-runtime.js';
 import {
@@ -420,7 +421,6 @@ async function createHostWithFakeRuntime(options: {
   posePath?: string | null;
   drawables?: readonly Readonly<{ visible: boolean; opacity: number }>[];
 }) {
-  const { createLive2DCarrierVisualHost } = await import('./carrier-visual-host.js');
   const gl = createFakeGl({ drawVisible: options.drawVisible });
   const canvas = document.createElement('canvas');
   Object.defineProperty(canvas, 'getContext', {
@@ -513,7 +513,6 @@ describe('Live2D carrier visual host', () => {
   });
 
   it('releases a partially initialized Cubism model when texture setup fails', async () => {
-    const { createLive2DCarrierVisualHost } = await import('./carrier-visual-host.js');
     const gl = createFakeGl({ drawVisible: true });
     const canvas = document.createElement('canvas');
     Object.defineProperty(canvas, 'getContext', { value: vi.fn(() => gl) });

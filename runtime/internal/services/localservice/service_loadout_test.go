@@ -825,6 +825,8 @@ func TestLoadoutJobAdmissionRejectsUndeclaredBundlePayload(t *testing.T) {
 }
 
 func TestQwen3SpeechLoadoutsResolveExecutableSelectedAssembly(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
 	tests := []struct {
 		name, contract, recipeID, requirementID string
 		identity                                capabilitydriver.Identity

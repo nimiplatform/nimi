@@ -17,7 +17,6 @@ for (const fault of ['critical-app', 'critical-formal', 'fresh-file', 'handoff']
     const cache = path.join(directory, 'cache'), store = new ProductUpdateFailureStore(cache);
     let requests = 0, ownersClosed = false, appCanStop = fault !== 'critical-app', quits = 0, handoffs = 0, reopened: DesktopProductUpdateHost | undefined;
     let candidateFile = '';
-    let host: DesktopProductUpdateHost;
     const input = {
       currentVersion: '0.2.0', target: 'macos-arm64', osVersion: '26.6.2', cacheRoot: cache,
       policy: { ...PRODUCT_UPDATE_POLICY, publicKey: fixture.key },
@@ -52,7 +51,7 @@ for (const fault of ['critical-app', 'critical-formal', 'fresh-file', 'handoff']
         reopened.restorePreinstallationFailure(failure); reopened.start(false);
       },
     };
-    host = new DesktopProductUpdateHost({ ...input, installation: ports });
+    const host = new DesktopProductUpdateHost({ ...input, installation: ports });
     try {
       await host.check(); await host.install(fixture.candidate.releaseId, true);
       const reason = fault === 'fresh-file' ? 'UPDATE_ASSET_DIGEST_MISMATCH' : fault === 'handoff' ? 'UPDATE_HANDOFF_FAILED' : 'UPDATE_CRITICAL_CLEANUP_FAILED';

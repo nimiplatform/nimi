@@ -119,7 +119,7 @@ test('service navigation preserves every connection, instance grant, and unavail
     { targetRef: 'removed-source', consumerRef: 'retired-instance', operations: ['old.read'], consumer: { appId: 'retired', displayName: 'Retired app', sourceKind: 'installed' } },
   ];
   const writes: unknown[] = [];
-  await homePanel({ getManagement: async () => ({ targets, consumers, permissions, calls: [] }), setPermission: async (input: unknown) => { writes.push(input); } }, async (document, dom) => {
+  await homePanel({ getManagement: async () => ({ targets, consumers, permissions, calls: [] }), setPermission: async (input: unknown) => { writes.push(input); } }, async (document) => {
     assert.equal(document.querySelectorAll('[data-testid=integration-permissions] tbody tr').length, 2);
     const permissionList = document.querySelector('[data-testid=integration-permissions]')!;
     assert.doesNotMatch(permissionList.textContent || '', /Full operation description|One choice permits/u);
@@ -162,7 +162,7 @@ test('call pagination and filters preserve all retained facts including removed 
     status: index === 46 ? 'unconfirmed' : index % 2 ? 'failed' : 'completed', errorCode: index === 46 ? 'SOURCE_CODE_PRESERVED' : '',
     createdAt: '2026-10-09T10:00:00Z', updatedAt: '2026-10-09T10:01:00Z', resultJson: '',
   }));
-  await homePanel({ getManagement: async () => ({ targets: [target], consumers: [], permissions: [], calls }) }, async (document, dom) => {
+  await homePanel({ getManagement: async () => ({ targets: [target], consumers: [], permissions: [], calls }) }, async (document) => {
     await clickNamed(document, 'All usage records');
     assert.equal(document.querySelectorAll('tbody tr').length, 20);
     assert.match(document.querySelector('tbody')!.textContent || '', /Former app name/u);

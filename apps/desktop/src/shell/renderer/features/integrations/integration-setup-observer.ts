@@ -13,7 +13,6 @@ export function observeIntegrationSetup(options: {
 }): () => void {
   let stopped = false;
   let pollTimer: ReturnType<typeof setTimeout> | undefined;
-  let expiryTimer: ReturnType<typeof setTimeout> | undefined;
   const stop = () => { stopped = true; clearTimeout(pollTimer); clearTimeout(expiryTimer); };
   const deadline = Date.parse(options.setup.expiresAt || '');
   const expire = () => { if (!stopped) { stop(); options.expired(); } };
@@ -35,7 +34,7 @@ export function observeIntegrationSetup(options: {
       pollTimer = setTimeout(poll, 1000);
     });
   };
-  expiryTimer = setTimeout(expire, Number.isFinite(deadline) ? Math.max(0, deadline - Date.now()) : 0);
+  const expiryTimer = setTimeout(expire, Number.isFinite(deadline) ? Math.max(0, deadline - Date.now()) : 0);
   pollTimer = setTimeout(poll, 1000);
   return stop;
 }

@@ -69,7 +69,7 @@ export class WindowsProductUpdateAdapter {
     try {
       await new Promise<void>((resolve, reject) => {
         let output = '', settled = false;
-        const finish = (error?: Error) => { if (settled) return; settled = true; clearTimeout(timer); error ? reject(error) : resolve(); };
+        const finish = (error?: Error) => { if (settled) return; settled = true; clearTimeout(timer); if (error) reject(error); else resolve(); };
         const timer = setTimeout(() => finish(new ProductUpdateError('UPDATE_HANDOFF_FAILED')), 30_000);
         child.once('error', () => finish(new ProductUpdateError('UPDATE_HANDOFF_FAILED')));
         child.once('exit', () => finish(new ProductUpdateError('UPDATE_HANDOFF_FAILED')));

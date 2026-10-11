@@ -74,7 +74,7 @@ try {
   ]);
 
   await withSdkDistLock('Windows Electron release layout inputs', async () => {
-    await buildLayoutInputs(developmentIdentity);
+    await buildLayoutInputs();
     await stageApplicationSource(sourceRoot, version);
   });
 
@@ -162,7 +162,7 @@ try {
   await rm(transactionRoot, { recursive: true, force: true });
 }
 
-async function buildLayoutInputs(identity) {
+async function buildLayoutInputs() {
   await requireFile(corepackCli);
   runPnpm(['--filter', '@nimiplatform/sdk', 'build']);
   runPnpm(['--filter', '@nimiplatform/kit', 'build']);
