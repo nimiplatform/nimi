@@ -1,34 +1,32 @@
 # Avatar 后端诊断
 
-后端本地评估归 Avatar。诊断结果可以说明后端是否加载、路由是否支持、语音与口型是否按输入呈现，但不会创建 Runtime probe 身份、专属 Runtime 存储、公共 App 权限或 LocalAgent 成功。
+Avatar 的本地诊断检查当前模型、能力配置、路由及呈现结果，不授予额外 Runtime 权限。它是 Avatar 内部工具，不是第三方 App 的独立诊断 API。
 
-## 结果形状
+## 当前返回结果
 
-Avatar 结果必须包含 `diagnostic_session_id`、backend kind、probe kind、`observed_at` 与 evidence。每项 evidence 包含 `evidence_id`、`evidence_kind`、`status` 和 `source`。状态只有 `passed`、`failed`、`unsupported`、`invalid`。
+内部 factory 返回 AvatarDebugSession，而不是 DiagnosticSessionResult：
 
-可附带不透明的公共 Runtime correlation 引用，用于关联观察。结果不含原始 Agent/账号身份、Runtime 专属存储引用、Provider/模型细节、包路径、提示词、推理内容或公共操作权限。
+| 字段 | 含义 |
+| --- | --- |
+| `debugSessionId` | 本地诊断会话标识 |
+| `probeId`、`probeKind` | 这次检查的标识与类型 |
+| `avatarInstanceId` | 可空的当前实例引用 |
+| `avatarPackageRef` | 可空的资源包引用 |
+| `backendCapabilityProfileRef` | 可空的能力配置引用 |
+| `backendKind` | live2d 或 vrm |
+| `observedAt` | 观察时间 |
+| `evidence` | 一个 AvatarDebugEvidence 对象，不是数组 |
 
-## 证据类别
+Evidence 含 evidenceId、evidenceKind、status、source、可空 reasonCode 和有界 refs。status 为 passed、failed、unsupported 或 invalid。消费者读取单个 evidence，不调用 evidence.map；后端字段名为 backendKind，不是 backend。
 
-- `package_descriptor_resolved`
-- `backend_loaded`
-- `capability_profile_validated`
-- `route_support_checked`
-- `generated_motion_checked`
-- `emotion_expression_checked`
-- `speech_lipsync_checked`
-- `carrier_diagnostics_checked`
+## 结果含义
 
-可选 payload 只包含有界强类型事实或不透明已授权引用，不能重建 Runtime 上下文，也不产生持久执行重放服务。
+诊断可以检查包描述、后端加载、能力配置、路由支持、生成动作、表情、口型或载体结果。每次结果只证明它实际检查的对象与条件。结构或本地诊断通过不证明真实 App 会话、任意模型或另一后端已经验收。
 
-## 检查动作路由
-
-把已授权强类型呈现输入与选中的 Avatar route、后端、验证过的 capability profile 及可选 mapping sidecar 一起评估。确定性 provider 返回该后端可执行输出，或确切的强类型失败。不支持就保持不支持；找到 `.vrma` 文件、截图、预览或 fixture 通过，都不能证明真实 Runtime 到载体的完整路径。
-
-真实产品结果遵循[视觉验收](/zh/avatar/visual-acceptance)和[载体验收](/zh/avatar/carrier-acceptance)。本地诊断与 fixture 测试只证明它们各自覆盖的事实。
+失败时保留当前 reasonCode 和对应引用，先修复所指的模型或配置问题；不把 unsupported 转为成功待机。实际返回类型与工厂实现见下方源码。
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
-- [`config/avatar-generated-motion-routes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-generated-motion-routes.yaml)
-- [`config/avatar-backend-capability-profile.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-backend-capability-profile.schema.yaml)
+- [`apps/avatar/src/shell/renderer/avatar-debug/avatar-debug-session.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/avatar-debug/avatar-debug-session.ts)
+- [`apps/avatar/src/shell/renderer/avatar-debug/contract.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/avatar-debug/contract.ts)

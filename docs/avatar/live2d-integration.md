@@ -1,74 +1,55 @@
 # Live2D Integration
 
-Live2D is one of Avatar's rendering backends. It uses the
-official Cubism SDK for Web, but package behavior is not inferred from
-Cubism files alone. Avatar validates the package, computes the proven
-compatibility tier, and then exposes the model through the shared
-embodiment surface.
+Live2D is a primary rendering backend for Nimi Avatar. Built atop the official Cubism SDK for Web, Avatar does not guess package capabilities from scattered Cubism files alone. Instead, it systematically validates package assets, calculates the **proven compatibility tier**, and projects the model through a shared, cross-platform embodiment surface.
 
-This page also covers Live2D adapter manifest authoring. The adapter is
-the package author's way to describe how an existing Cubism model maps
-to Avatar activity, expression, lipsync, physics, pose, and hit-region
-behavior without rewriting the original model files.
+This document also provides the authoring guide for the Live2D Adapter Manifest. The adapter manifest enables creators to map an existing Cubism model to Avatar activities, expressions, lipsync channels, physics simulations, postures, and hit-test regions without altering the original model files.
 
-## SDK Boundary
+## SDK and Renderer Boundaries
 
-| Concern | Implementation |
+| Concern | Implementation Component |
 | --- | --- |
-| SDK | Cubism SDK for Web |
-| Renderer | WebGL canvas owned by `apps/avatar` |
-| Model entry | `model3.json` plus declared motions, expressions, physics, pose, textures, and hit areas |
-| Per-frame update | Cubism `model.update()` plus Avatar backend scheduling |
-| Audio bridge | `wLipSync` drives `ParamMouthOpenY` and optional mouth-form parameters |
-| Package semantics | Adapter manifest plus compatibility validation |
+| Underlying SDK | Official Cubism SDK for Web |
+| Canvas Renderer | WebGL Canvas managed within `apps/avatar` |
+| Model Entrypoint | `model3.json`, along with declared motions, expressions, physics, textures, and hit areas |
+| Frame Update Cycle | Cubism `model.update()` coordinated with Avatar frame scheduling |
+| Audio Lipsync Bridge | `wLipSync` driving `ParamMouthOpenY` and optional mouth-form parameters |
+| Package Metadata | Verified adapter manifest and compatibility tier evaluation |
 
-The Live2D backend is `kind: 'live2d'` in Avatar's closed backend
-union. Carrier code and NAS handlers consume it through the backend
-interface. They do not reach into Cubism internals directly.
+Live2D operates under the closed backend discriminator `kind: 'live2d'`. Avatar-owned carrier translation consumes the neutral embodiment interface. Creator scripts do not receive Cubism classes or the Live2D parameter extension.
 
-## Model Loading
+## Asset Ingestion Pipeline
 
-Avatar loads a Live2D package in four steps:
+Avatar processes a Live2D package through four deterministic steps:
 
-1. Resolve the selected local Avatar asset through the Avatar package
-   resolver.
-2. Load the selected `model3.json` and every asset it declares.
-3. Validate compatibility, adapter claims, license posture, and
-   package evidence.
-4. Report model bounds and backend nominal bounds so the transparent
-   desktop shell can size the window around the visible body.
+1. **Resolution**: Locate and verify local asset paths using the Avatar package resolver;
+2. **Resource loading**: Parse the selected `model3.json` and load all referenced Moc bytecode, textures, and motion files;
+3. **Compatibility evaluation**: Validate the adapter manifest, license metadata, and asset signatures;
+4. **Window bounds calculation**: Report nominal physics bounds and mesh extents so the transparent desktop window conforms cleanly to the character's visible body.
 
-A package that fails validation is not treated as a successful Avatar
-carrier. Missing required behavior fails closed. Missing optional
-behavior lowers the compatibility tier or records an explicit
-unsupported disposition.
+Packages that fail schema or licensing validation are rejected. Missing essential files triggers fail-closed isolation; missing optional blendshapes or expressions lowers the computed compatibility tier while reporting actionable diagnostic traces.
 
 ## Compatibility Tiers
 
-| Tier | Meaning |
+| Compatibility Tier | Description & System Posture |
 | --- | --- |
-| `unsupported` | Required schema, license, model, or claimed-feature validation failed. |
-| `render_only` | The Cubism model renders, but no activity, expression, pose, lipsync, or hit-region behavior is promised. |
-| `semantic_basic` | Required companion activities are mapped, and optional features have explicit dispositions. |
-| `companion_complete` | The package proves the current full companion behavior for the active Avatar carrier. |
+| `unsupported` | Validation failed: missing core schemas, invalid licenses, or corrupted model files |
+| `render_only` | Basic rendering: character renders visually, but lacks promised motions, expressions, or lipsync |
+| `semantic_basic` | Baseline companion: essential companion activities (`neutral`, `greet`, `listening`, `thinking`) are mapped |
+| `companion_complete` | Full companion experience: verified support for all advanced Avatar desktop companion interactions |
 
-The package may request a tier, but Avatar returns only the highest tier
-that the package and adapter prove.
+A package may declare a desired tier in its manifest, but Avatar reports strictly the highest tier proven by empirical validation.
 
 ## Adapter Manifest Authoring
 
-A creator-authored Live2D package may include an embedded adapter at:
+Creators may embed an adapter manifest directly within their model package:
 
 ```text
 <model-package>/runtime/nimi/live2d-adapter.json
 ```
 
-Desktop can also select an external sidecar adapter for an existing
-package. A launch uses exactly one adapter source: embedded adapter or
-selected sidecar. Avatar does not merge adapters and does not silently
-prefer one source over the other.
+Alternatively, desktop launchers may configure an external sidecar adapter. The system enforces a single-source-of-truth policy: embedded and sidecar adapters are never merged or blended.
 
-Every adapter starts with this identity:
+The manifest begins with standard headers:
 
 ```json
 {
@@ -77,27 +58,23 @@ Every adapter starts with this identity:
 }
 ```
 
-The useful fields are:
+### Key Field Reference
 
-| Field | Purpose |
+| Field | Purpose & Usage |
 | --- | --- |
-| `adapter_id` | Stable identifier for the adapter file. |
-| `target_model` | The intended model id and `model3.json` entry. |
-| `license` | Redistribution and fixture-use posture for the package. |
-| `compatibility.requested_tier` | The tier the author is asking Avatar to evaluate. |
-| `semantics.motions` | Motion groups for idle and companion activities. |
-| `semantics.expressions` | Mapping from Avatar expression names to Cubism expression ids. |
-| `semantics.poses` | Pose support or an explicit not-applicable reason. |
-| `semantics.lipsync` | Mouth-open parameter used by the lipsync bridge. |
-| `semantics.physics` | Whether model physics is available and supported. |
-| `semantics.hit_regions` | Hit-area aliases and optional alpha-mask fallback. |
+| `adapter_id` | Stable unique identifier for the adapter file |
+| `target_model` | Target model ID and relative path to `model3.json` |
+| `license` | Redistribution rights and test fixture terms |
+| `compatibility.requested_tier` | Author's requested evaluation tier |
+| `semantics.motions` | Maps general activities (`idle`, `greet`, `thinking`) to Cubism motion groups |
+| `semantics.expressions` | Maps standardized Avatar expression names to Cubism expression IDs |
+| `semantics.lipsync` | Designates the mouth opening parameter for audio lipsync |
+| `semantics.physics` | Configures model physics simulations |
+| `semantics.hit_regions` | Maps user click aliases (`head`, `body`) to internal model hit areas |
 
-Feature claims must be explicit. If a model does not support a feature,
-mark it as `unsupported` or `not_applicable` and include the reason.
-Leaving a gap for the loader to guess weakens the package and usually
-lowers the computed tier.
+Feature declarations must be unambiguous: if a capability is missing from the model, mark it explicitly as `unsupported` or `not_applicable` with an explanation, rather than leaving fields empty for loaders to guess.
 
-## Minimum Adapter Shape
+## Minimum Adapter Example
 
 ```json
 {
@@ -160,75 +137,39 @@ lowers the computed tier.
 
 ## Authoring Checklist
 
-- The package has exactly one selected `*.model3.json`.
-- `target_model.model_id` matches the resolved package model id.
-- `FileReferences.Moc` and every declared texture are present.
-- The idle motion group exists.
-- `neutral`, `greet`, `listening`, and `thinking` map to existing
-  motion groups when requesting `semantic_basic`.
-- Every expression id in the adapter exists in
-  `FileReferences.Expressions`.
-- Pose support is claimed only when the package contains a pose file.
-- Lipsync points to an available mouth-open parameter such as
-  `ParamMouthOpenY`.
-- Physics support is claimed only when the model physics file exists
-  and loads cleanly.
-- Hit-region aliases refer to declared model hit areas, or the adapter
-  declares an alpha-mask fallback.
-- License evidence is reviewed before the package or adapter is
-  shared, committed, or shipped.
+- [ ] Exactly one `*.model3.json` file resides in the root;
+- [ ] `target_model.model_id` precisely matches the resolved model ID;
+- [ ] `FileReferences.Moc` and all referenced texture assets exist;
+- [ ] A looping `idle` motion group is configured;
+- [ ] When requesting `semantic_basic`, `neutral`, `greet`, `listening`, and `thinking` map to valid motion groups;
+- [ ] All mapped expression IDs exist within `FileReferences.Expressions`;
+- [ ] Lipsync parameters point to an active opening parameter (e.g. `ParamMouthOpenY`);
+- [ ] Hit region aliases map to declared model hit areas or specify an alpha-mask fallback;
+- [ ] Licensing terms are verified prior to distribution.
 
-## Diagnostics
+## Diagnostic Codes
 
-Adapter diagnostics are typed. Common examples include:
-
-| Code | Typical meaning |
+| Diagnostic Code | Underlying Cause & Resolution |
 | --- | --- |
-| `AVATAR_LIVE2D_COMPAT_MANIFEST_INVALID` | The adapter JSON does not match the schema. |
-| `AVATAR_LIVE2D_COMPAT_MODEL_ID_MISMATCH` | The adapter targets a different model. |
-| `AVATAR_LIVE2D_COMPAT_LICENSE_UNVERIFIED` | License posture is missing or insufficient. |
-| `AVATAR_LIVE2D_COMPAT_MOTION_MISSING` | A claimed motion group does not exist. |
-| `AVATAR_LIVE2D_COMPAT_EXPRESSION_MISSING` | A claimed expression id does not exist. |
-| `AVATAR_LIVE2D_COMPAT_LIPSYNC_PARAMETER_MISSING` | The mouth parameter is not available. |
-| `AVATAR_LIVE2D_COMPAT_HIT_REGION_MISSING` | A claimed hit area cannot be resolved. |
+| `AVATAR_LIVE2D_COMPAT_MANIFEST_INVALID` | Adapter JSON failed schema validation |
+| `AVATAR_LIVE2D_COMPAT_MODEL_ID_MISMATCH` | Adapter target model does not match resolved model |
+| `AVATAR_LIVE2D_COMPAT_LICENSE_UNVERIFIED` | Missing redistribution rights or license metadata |
+| `AVATAR_LIVE2D_COMPAT_MOTION_MISSING` | Declared motion group cannot be found in model definitions |
+| `AVATAR_LIVE2D_COMPAT_EXPRESSION_MISSING` | Declared expression ID missing from expression files |
+| `AVATAR_LIVE2D_COMPAT_POSE_UNAVAILABLE` | Supported pose mapping claimed but FileReferences.Pose missing or unusable |
+| `AVATAR_LIVE2D_COMPAT_LIPSYNC_PARAMETER_MISSING` | Specified mouth-opening parameter missing in model |
+| `AVATAR_LIVE2D_COMPAT_HIT_REGION_MISSING` | Declared hit region cannot be resolved |
 
-A diagnostic is not partial success. It tells the author which claim
-must be fixed, lowered, or marked unsupported.
+Diagnostics clearly communicate what needs resolution; Avatar avoids pretending partial failures are complete successes.
 
-## NAS Parameter Access
+## Typical Scenario: Diagnostic and Resolution
 
-Backend-neutral parameter access goes through the NAS context. Direct
-Live2D parameter writes use `Live2DBackendExtension` after type
-narrowing:
+When validating a Live2D package claiming pose support:
 
-```js
-export default {
-  requires: ['live2d-extension'],
-  async run(ctx) {
-    if (ctx.backend.kind !== 'live2d') return;
-    ctx.live2dExtension.setParameter('ParamMouthForm', 0.7);
-  }
-};
-```
-
-The direct write path is for backend-specific effects. Portable
-handlers should prefer the host-agnostic NAS surface.
-
-## Reader Scenario: A Package Loads At The Right Tier
-
-An author imports a Live2D package and attaches an adapter requesting
-`companion_complete`.
-
-1. Avatar validates the package and adapter.
-2. The model renders, but the adapter claims a pose file that is not
-   present.
-3. Avatar reports the missing pose diagnostic and returns the highest
-   proven tier.
-4. The package can still load at the lower proven tier if the remaining
-   required behavior is valid.
-
-The product surface shows what the package actually supports. It does
-not silently upgrade unsupported behavior.
+1. **Inspection**: Avatar evaluates the model package and adapter manifest against declared capability requirements.
+2. **Identify defect**: A supported pose mapping is declared, but `FileReferences.Pose` is absent or unusable.
+3. **Diagnostic feedback**: Emits typed diagnostic `AVATAR_LIVE2D_COMPAT_POSE_UNAVAILABLE` and marks the tier as unsupported rather than silently masking the error.
+4. **Resolution**: The creator either removes the unsupported pose declaration or adds the missing pose asset and re-validates the package.
 
 ## Source Basis
 

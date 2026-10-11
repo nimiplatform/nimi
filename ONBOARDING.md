@@ -131,11 +131,11 @@ pnpm runtime:health
 
 ### 4.3 配置 AI Provider 凭据（可选）
 
-如需调用云端 AI provider（如 Gemini），通过 Desktop UI 管理 Connector。
+如需调用云端 AI Provider（如 Gemini、OpenAI 等），建议直接通过 Desktop 桌面端界面管理 Connector。
 
-启动 Home 后，在「云服务」中添加 Connector。API Key 由用户在 Desktop 表单中输入，并通过受保护的管理操作提交给 Runtime ConnectorService 托管；输入期间 renderer 会接触这次填写的原文。已保存凭据不会通过普通配置投射或 AI 调用结果返回 renderer，不能把一次性输入与后续凭据托管混为一谈。
+启动 Home 后，进入「云服务」设置页面添加 Connector。API Key 在桌面端表单中输入后，将通过加密通道提交给 Runtime 的 ConnectorService 安全托管。为保障安全，已保存的真实密钥不会回传给渲染进程，也不会泄漏至日志中。
 
-CLI 配置不拥有 provider 凭据；AI 调用由已认证 App 通过 SDK 的 typed Runtime client 发起。
+本地 CLI 配置不持有 Provider 凭据；业务级 AI 调用统一由受权 App 通过 SDK 强类型 Client 向 Runtime 发起。
 
 ## 5. SDK 快速验证
 
@@ -263,7 +263,7 @@ pnpm spec:authority:check
 
 ### Q2: AI 调用报凭据错误？
 
-在 Home 的「云服务」中检查原 Connector 的状态与凭据，再检查对应 AIConfig 是否保存了确切的 Cloud 连接和目标。CLI 配置不拥有 Provider 凭据，不能通过 `providers.*` 或 `apiKeyEnv` 修复正式 App 的云端配置。已有 Job 使用提交时固定的输入，恢复时观察原 Job，不重新生成。
+请在 Home 的「云服务」中检查对应 Connector 的状态与凭据有效性，并确认目标 App 的 AIConfig 已绑定有效的云端连接与模型。本地 CLI 不持有云端凭据，因此无法直接通过环境变量覆盖已授权应用的云端配置。若异步任务执行中断，系统会保留原任务上下文便于排查，无需重复触发生成。
 
 ## 11. 参考文档
 

@@ -1,124 +1,73 @@
-# Worlds
+# Worlds Architecture Overview
 
-A World is the most important product object in Nimi. Worlds are
-why the platform exists.
+Worlds (`World`) are the core operational domains and experiential environments of the Nimi platform.
 
-## What Is A World
+## What is a World
 
-A World in Nimi is a persistent place — somewhere characters live
-and stories continue. It has rules its creator defined, shared
-state that outlasts any single session, and a growing record of
-what happened there. Its participants, human and AI alike, are not
-invented by the world: they arrive with an identity, a social
-graph, and economic standing that they carry across all worlds.
+In Nimi, a World is a persistent interactive environment: characters reside within it, and narratives unfold continuously over time. Every world features creator-defined lore and operational rules, shared present-state that outlasts any individual user session, and an append-only audit history logging significant events.
+
+Participants (human users and AI agents alike) are not local constructs of a single world: they arrive equipped with globally recognized character identities, established social graphs, and virtual asset balances valid across all worlds.
 
 A world is **not**:
+- **A Chat Room**: Dialogue represents an interaction surface inside a world; the world provides the surrounding environment that gives dialogue narrative context.
+- **A Game Campaign**: Campaigns are transient game sessions; a world continues evolving even when human participants are offline.
+- **A Single Level**: Levels are scripted encounters; a world operates under persistent rules and cumulative history independent of any single visit.
+- **An Application**: Applications project platform surfaces; a world is the authoritative domain being projected.
 
-- A chat room. Chat is a surface inside a world; the world is the
-  environment that gives the chat meaning.
-- A campaign. A campaign is a temporary play frame; a world keeps
-  evolving even when no one is playing.
-- A level. A level is a designed encounter; a world is a place that
-  has its own rules and history independent of any single visit.
-- An app. An app projects part of the platform; the world is the
-  meaning the app projects.
+A world functions as a consistent digital micro-universe: created by authors, animated by participants, and durable over time.
 
-A world is more like a small universe with consistent rules —
-authored by a creator, populated by participants, durable across
-time.
+## The Three Dimensions of a World
 
-## Three Things A World Carries
+Every world in Realm comprises three distinct, complementary architectural layers. See [State vs History](/platform/worlds/state-vs-history) for in-depth analysis.
 
-Every world carries three related but distinct ideas.
-[State vs History](/platform/worlds/state-vs-history)
-walks the state-vs-history relationship in detail (with the
-per-realm pages [Truth](/realm/truth), [World State](/realm/world-state),
-[World History](/realm/world-history) for each surface).
-
-| Concept | What it answers | Owner |
+| Dimension | Architectural Question Answered | Governing Authority |
 | --- | --- | --- |
-| Truth | What is canonically true here, regardless of when written | Realm `R-TRUTH-*` |
-| World State | What this world looks like right now | Realm `R-WSTATE-*` |
-| World History | How this world reached its current state | Realm `R-WHIST-*` |
+| **Truth** | Authoritative settings, foundational contracts, rules, and core objects governing the world (evolvable via authorized releases) | Realm `R-TRUTH-*` |
+| **World State** | The current shared operational state (locations, relations, entity attributes) | Realm `R-WSTATE-*` |
+| **World History** | The immutable, auditable log of accepted state mutations explaining how the world reached its current state | Realm `R-WHIST-*` |
 
-A surface that conflates these silently loses information. A world
-without truth has no rules. A world without state has no present. A
-world without history has no past.
+Conflating these dimensions compromises system integrity: a world without truth lacks invariant rules; a world without state cannot render the present; a world without history cannot audit the past.
 
-## Adjacent Realm Surfaces
+## Adjacent Realm Services
 
-A world also carries other typed surfaces that participate in its
-meaning:
+Worlds are augmented by adjacent Realm services:
 
-| Surface | Purpose |
+| Realm Service | Architectural Responsibility |
 | --- | --- |
-| Chat | Canonical direct human thread, message, read-state, and synchronization truth |
-| Social | Friendship admission graph; gates chat preconditions |
-| Economy | World creator economy + revenue + settlement |
-| Asset / Bundle / Resource / Binding | What the world contains and how those things attach to participants and scenes |
-| Transit | The single-hop continuity protocol via OASIS that lets participants move between worlds |
+| **Direct Chat** | Peer-to-peer thread synchronization, message delivery, and read-receipt tracking |
+| **Social Graph** | Friendship admission and social topology gating interaction prerequisites |
+| **Economy** | Creator monetization, credential ledgers, and transaction settlements |
+| **Assets & Bindings** | World-bound models, resource bundles, and attachments to entities |
+| **Transit** | Hub-and-spoke spatial routing between worlds via the OASIS system world |
 
-Realm keeps each of them; together they make a world feel like a
-place rather than a database.
+These services are coordinated by Realm, transforming static data stores into immersive virtual worlds.
 
-## What This Section Contains
+## Section Contents
 
-- [State vs History](/platform/worlds/state-vs-history) — when state
-  updates vs history appends, governed by `effectClass`. (Truth lives
-  on its own per-realm page: [Truth](/realm/truth).)
-- [OASIS](/platform/worlds/oasis) — the unique system main world.
-- [Lifecycle](/platform/worlds/lifecycle) — how a world is created,
-  published, bound to apps, suspended, revoked.
+- [State vs History](/platform/worlds/state-vs-history): Mutation envelopes and the `effectClass` model governing state updates versus history appends.
+- [OASIS](/platform/worlds/oasis): The unique system main world and central transit hub.
+- [Lifecycle](/platform/worlds/lifecycle): Creation, atomic release packaging, application binding, suspension, and revocation.
 
-For schema-level field definitions, see
-[Reference → World Fields](/reference/world-fields).
+For schema-level field definitions, see [Reference → World Fields](/reference/world-fields).
 
-## Reader Scenario: Walking Into A World
+## Scenario: Entering a World
 
-You sign into Nimi and join a world a friend has created.
+When a user signs into Nimi and visits a world created by a friend:
 
-- Your identity is the same identity you use everywhere else. The
-  world admits you; it does not invent you.
-- Your wallet, your friendships, and your asset library are all
-  visible and useful inside this world. They are not duplicated;
-  they are platform truth.
-- The world has its own rules — maybe currency is "ticket stubs",
-  maybe time runs at 4× real-time. These local rules apply inside
-  this world. They don't retroactively change your standing
-  outside it.
-- Your conversation with the agents in this world is durable.
-  Their memory of you is theirs (with your consent), not the
-  world's. When you leave for another world, that memory travels
-  with the LocalAgent in Cognition, under Runtime-mediated access.
-- When you leave, you transit through OASIS. Creator worlds cannot
-  peer-transit directly; OASIS is the hub.
+- **Ecosystem Identity**: The user's account identity remains identical to their identity across Nimi. The world admits the user without redefining their persona.
+- **Asset Portability**: Wallets, friendships, and global asset inventories are accessible within the world without state duplication.
+- **Local Rule Enforcement**: The world enforces custom internal rules (e.g., custom local scrip or accelerated diurnal cycles). These local rules apply exclusively within the world and do not retroactively mutate global account standings.
+- **Private Memory**: Dialogue with resident agents is continuous; agent memories are managed per agent by Cognition and accessed via Runtime, preventing leakage into public world state.
+- **Hub Transit**: Departing the world routes through OASIS, ensuring verified identity continuity.
 
-Every line of that walkthrough corresponds to an admitted contract.
-The architecture exists to make this experience consistent across
-worlds without any single world inventing its own rules of identity.
+## Scenario: Publishing a World
 
-## Reader Scenario: A Creator Publishing A World
+When an author designs and publishes a new world:
 
-You are designing a world. You are not just shipping a level — you
-are shipping a place.
-
-- You author the world's truth: rules, agents, scenes, projections,
-  release. The truth is creator-governed, versioned, atomic, and
-  auditable.
-- You publish via a `WorldRelease` — a transactional commit that
-  freezes the truth, the projections, and the package version. If
-  something goes wrong, rollback is a release operation, not an ad
-  hoc rewrite.
-- Your world has its own internal economy if you want one — but
-  the canonical platform economy stays on the platform. The
-  separation is intentional.
-- Once published, your world is a real Nimi destination. Participants
-  can transit to it through OASIS. Their identity, social graph, and
-  economic standing are the same as in any other world.
-
-This is the world creator's compact with the platform: the platform
-gives you durable identity and cross-world meaning; you give the
-platform a coherent place that respects the protocol primitives.
+- **Authoring Invariant Truth**: The creator defines core rules, resident character assets, scenes, and visual configurations.
+- **Atomic WorldRelease**: The creator commits a `WorldRelease` package—an atomic transaction freezing truth schemas, resource checksums, and version metadata. Rollbacks are executed as forward-moving release operations.
+- **Decoupled Local Economy**: Worlds may maintain internal tokens or point economies while platform settlement rails remain decoupled.
+- **Destination Admission**: Once published, the world becomes an active destination reachable via OASIS transit.
 
 ## Source Basis
 

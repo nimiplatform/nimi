@@ -1,42 +1,34 @@
-# Local Models and Loadouts
+# Local Models and Loadout Architecture
 
-A model file is an inventory resource. A Loadout is a saved capability configuration with an exact implementation recipe and resource bindings. Runtime's machine store keeps at most one selected Loadout per capability; that selection supplies future requests whose owner has saved Local intent.
+In Nimi's local compute architecture, model weight files represent static assets on disk. Turning weights into an active capability requires assembling them with an inference engine driver, execution recipes, and runtime parameters into a complete **Loadout**. Runtime maintains a global default Loadout for each capability, serving all applications that declare Local capability intents.
 
-## Prepare a Local Capability
+## Recommended Local Setup Workflow
 
-1. In Nimi Home's AI Capabilities workspace, inspect the capability and Runtime-issued setup options.
-2. Acquire the required model assets. Model Library owns file import, storage, verification, and removal; Downloads displays existing transfer and setup tasks.
-3. Prepare and commit the Loadout with the required model slots, content identities, options, and environment resources.
-4. Explicitly select it as that capability's machine default. This affects future Local submissions across App and shared LocalAgent owners.
-5. Save Local intent for the capability in the relevant AIConfig, then make an actual request through its protected client.
+1. **Review Capabilities**: Browse supported capabilities and operational parameters in Nimi Home under "AI Capabilities".
+2. **Acquire Model Weights**: Import local GGUF models via the Model Library or download curated weights through the Download Manager. Files are verified with SHA-256 checksums.
+3. **Assemble a Loadout**: Pair the model with optimized runtime parameters (e.g., context window size, GPU offload layers) tailored to specific workloads, saving it as a named Loadout.
+4. **Set Global Default**: Designate this Loadout as the machine default for that capability. This setting automatically applies to all apps routed to local execution.
+5. **Verify Inference**: Configure an app's AIConfig with Local intent and run an actual query to verify end-to-end performance.
 
-Installation alone does not bind or select a Loadout. An asset with no matching recipe can remain in the inventory without becoming executable. Companion resources do not become standalone capability models merely because a recipe uses them.
+## Status Indicators and Diagnostics
 
-## Interpret Status Correctly
+To streamline monitoring and troubleshooting, status indicators represent distinct lifecycle phases:
 
-| Fact | What it establishes |
-| --- | --- |
-| File verification | Stored bytes match the asset's registered content identity |
-| Resource bindings | A particular Loadout names its required resources |
-| Configuration/environment checks | That exact configuration's preparation facts and typed blockers |
-| Current selection | The machine default for future Local submissions of one capability |
-| Successful execution | The specific request completed successfully |
+| Indicator | Represents | Possible Values |
+| --- | --- | --- |
+| **File Verification** | Whether disk bytes match registered cryptographic hashes | `verified` / `corrupted` / `unchecked` |
+| **Resource Binding** | Whether all weights, adapters, and tokenizer assets are linked | `complete` / `missing_assets` |
+| **Environment Readiness** | Whether local drivers, CUDA/Metal runtimes, and libraries meet criteria | `ready` / `missing_dependency` |
+| **Default Selection** | Whether this Loadout is designated as the active machine default | `active_default` / `inactive` |
 
-These facts are not interchangeable. Unchecked or failed environment inspection remains unknown or failed; it does not prove prepared state or a missing component. Read status per configuration, not as one merged readiness grade for a model.
+Runtime provides actionable diagnostic feedback for each stage, giving developers and power users transparent visibility into the local inference stack.
 
-Runtime provides catalog compatibility and recommendation evidence. Consumers preserve Runtime ordering and do not infer compatibility from filenames, model names, tags, or process health.
+## Execution Stability Guarantees
 
-## Execution
-
-At submission, Runtime validates the selected Loadout and atomically captures a complete resolved assembly with exact resource identities. Queued, running, and resumed Jobs retain that capture. Runtime does not search installed inventory, rerank models, switch selections, or fall back when a required input is missing.
-
-The App request contains content and supported parameters. Its Local AIConfig contains no Loadout or model selector. Safe effective-selection output helps explain configuration; it is not request-side control.
-
-## Environment and Process Ownership
-
-Runtime owns admitted dependency materialization, progress, cancellation, cleanup, and execution-host supervision. Home displays the typed operations. Public Start or Warm Model actions and App-driven process polling are not part of capability execution.
-
-An environment can be prepared while a Job later fails. A process can be stopped while Runtime can start it for an admitted Job. Use the actual operation result rather than deriving execution truth from process state.
+When an application submits an inference task:
+- **Atomic Context Freezing**: Runtime records an atomic snapshot containing the active Loadout parameters, driver options, and exact model hashes.
+- **Consistent Execution Context**: Tasks in the processing queue execute against their frozen context, ensuring that parameter changes made after submission do not alter the running job.
+- **Lifecycle Management**: If the inference host process is dormant during cold start, Runtime boots the process on demand and manages process lifespan based on local memory policies.
 
 ## Source Basis
 

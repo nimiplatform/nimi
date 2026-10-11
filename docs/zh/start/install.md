@@ -1,40 +1,42 @@
-# 当前开发环境
+# 开发环境准备
 
-使用当前 Nimi 源码及相互匹配的完整包。本指南面向 App Tools 0.11.4、SDK 0.21.0、Kit/原生包 0.18.0 和匹配的 Runtime。可选 Vercel AI SDK adapter 为 0.5.0，Tauri 载体为 0.10.0。这些是工作区版本，不表示它们已在公共仓库发布。
+本指南介绍如何搭建 Nimi 开发环境，适用于使用 App Tools 0.11.4、SDK 0.21.0、Kit 0.18.0 以及对应版本的本地 Runtime。同时支持可选的 Vercel AI SDK 适配器（0.5.0）与 Tauri 容器（0.10.0）。
 
-## 工具链
+## 基础工具链
 
-使用 Node.js 24 或更新版本，以及 pnpm 10.34.5。App 项目还声明本地 Nimi Coding 0.6.3，在安装依赖后通过 `pnpm run init` 明确初始化。
+- **Node.js**：要求 Node.js 24 或更高版本（`engines.node >= 24.0.0`）。
+- **pnpm**：固定使用 pnpm 10.34.5（或兼容的 pnpm 10.x）。
+- **Nimi Coding**：App 项目通过项目本地的 Nimi Coding（0.6.5）进行规范检查，安装依赖后通过 `pnpm run init` 自动完成初始化。
 
-准备完整 App Tools、SDK、Kit，以及当前宿主对应的 Kit 原生包。通过当前源码的组件打包流程构建，或使用匹配交付包；不能把正式 App 依赖链接到源码目录，也不能在缺少当前归档时替换成旧 registry 包。Kit 原生可选依赖与 Kit 同版本。
+准备好完整的 App Tools、SDK、Kit，以及与当前系统架构匹配的 Kit 原生包。可通过当前源码打包流程构建，或使用配套的开发交付包。Kit 的原生包为可选依赖，其版本与 Kit 保持一致。
 
-## 选择当前组合
+## 选择依赖版本组合
 
-App Tools 0.11.4 默认仍生成 SDK `^0.18.1` / Kit `^0.15.3`。使用本指南的当前接口时，在初始化前把 App 的依赖声明明确改为 SDK `^0.21.0` / Kit `^0.18.0`。当前 App Tools 矩阵已准入这一组合；使用 Tauri 时对应 0.10.0。初始化和同步会保留明确选中的已准入组合。
+本指南显式选用支持的开发依赖组合 SDK `^0.21.0` 与 Kit `^0.18.0`（若使用 Tauri 容器，对应版本为 0.10.0）。注意脚手架模板默认生成 `^0.18.1` / `^0.15.3`；生成工程后请在 `package.json` 与工作区 overrides 中显式改选这两项依赖。
 
-`package.json` 保留 registry 版本声明，完整本地归档通过 `pnpm-workspace.yaml` overrides 提供。完整步骤见[创建 App](/zh/start/create-an-app)。独立升级单个包或版本号碰巧一致，都不能证明 Runtime 与原生接口匹配。
+在实际开发中，可以在 `package.json` 中声明版本，并通过 `pnpm-workspace.yaml` 的 overrides 指向本地归档。具体操作细节可参考[创建 App](/zh/start/create-an-app)。建议保持核心依赖包版本一致，以确保 Runtime 与原生接口的稳定性。
 
-## 通过 Nimi Home 运行
+## 运行与本地调试
 
-先准备匹配的 Nimi Home 开发实例与 Runtime。Home 需要 Nimi 账号并通过浏览器登录。在 Developer Mode 中注册和授权 App，再在 App 项目运行 `pnpm dev`，请求 Desktop 监督的 Electron Host。
+1. **启动 Nimi Home 与 Runtime**：准备好本地的 Nimi Home 与 Runtime 服务。Nimi Home 需要登录 Nimi 账户。
+2. **注册与授权**：在 Nimi Home 的开发者模式（Developer Mode）中注册你的应用项目并授予相应权限。
+3. **启动调试**：在应用工程根目录下运行 `pnpm dev`，系统将在受桌面端托管的 Electron 调试环境中启动应用。
 
-窗口可见不代表 Nimi Access 或 AI 配置已就绪。通过绑定宿主的客户端配置能力，准备机器选中的 Local Loadout 或确切 Cloud 目标，再执行真实请求。直接打开 Vite 或普通 loopback gRPC 都不能代替受保护 Host。
+应用窗口启动后，先确认 Nimi Home 中已备好本机模型或云端连接器，再通过客户端保存应用自身的能力路由意图，并验证完整的调用链路。
 
-公开安装包可用性见[下载页面](https://nimi.ai/download)。创建 App 项目不会安装 Home，不会发布 App，也不会授予 Registry 准入。
+查看各平台桌面客户端的当前下载与发布状态，可访问[官方下载页面](https://nimi.ai/download)。
 
-## 继续操作
+## 延伸阅读
 
-- [创建 App](/zh/start/create-an-app)
-- [第一次 AI 调用](/zh/sdk/first-ai-call)
-- [AIConfig](/zh/sdk/ai-config-surface)
-- [故障排查](/zh/start/troubleshooting)
-- [开发与分发](/zh/start/#本地开发与对外分发)
+- [创建第一个 Nimi App](/zh/start/create-an-app)
+- [发起第一次 AI 调用](/zh/sdk/first-ai-call)
+- [AI 能力配置（AIConfig）](/zh/sdk/ai-config-surface)
+- [常见问题与故障排查](/zh/start/troubleshooting)
+- [应用开发与分发模式](/zh/start/#本地开发与分发模式)
 
 ## Source Basis
 
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
-- [`app-tools/package.json`](https://github.com/nimiplatform/nimi/blob/main/app-tools/package.json)
 - [`app-tools/lib/app-dependency-combinations.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-dependency-combinations.mjs)
-- [`app-tools/lib/app-scaffold.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-scaffold.mjs)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

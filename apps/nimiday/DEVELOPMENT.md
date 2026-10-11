@@ -1,17 +1,46 @@
-# NimiDay 开发
+# NimiDay 开发指南
 
-NimiDay 由 Nimi 主仓的 pnpm workspace 统一维护，具体入口见 [README](README.md)。在仓库根目录安装依赖、运行 `pnpm dev:runtime` 与 `pnpm dev:desktop`，然后枚举并 resume 原 Day 注册。
+NimiDay 是基于 Nimi 平台构建的生活助手与日程关怀应用，依赖由 Nimi 主仓统一编排管理。
+
+## 快速开始
+
+在仓库根目录下安装依赖并启动配套服务：
 
 ```sh
-pnpm dev:nimiday -- --list-registrations
-pnpm dev:nimiday -- --resume <selector>
-pnpm --filter @nimiplatform/nimiday typecheck
-pnpm --filter @nimiplatform/nimiday typecheck:test
-pnpm --filter @nimiplatform/nimiday test
+# 启动依赖服务
+pnpm dev:runtime
+pnpm dev:desktop
 ```
 
-SDK、Kit 与 App Tools 直接消费根 workspace 的受控构建产物；不再切换“源码模式/候选包模式”，也不复制 `.nimi/local/` 中的历史 pnpm 配置。`test:app` 和 `typecheck:*:prepared` 是依赖准备完成后的局部检查入口。
+待 Nimi 桌面端（Home）启动就绪后，启动 NimiDay：
 
-若 Home 曾在无 CDP 模式下托管启动 Day，当前运行可能与 launcher 的 CDP 配置不同。先确认 Day 没有正在执行的任务或未保存草稿，再按当前注册以 `--no-cdp` 附着并正常退出，随后使用所需 CDP 配置 resume。不要创建另一个注册替代原数据。
+```sh
+# 查看已有注册实例
+pnpm dev:nimiday -- --list-registrations
 
-桌面运行记录和历史安装包保存在 `.nimi/local/`，不进入 Git。旧安装包不因源码变更而自动更新。未来安装包的构建与发布随主仓 App 的明确交付方案进行，不沿用已删除的独立项目 workflow。
+# 续接指定实例启动
+pnpm dev:nimiday -- --resume <selector>
+```
+
+首次运行可直接执行 `pnpm dev:nimiday` 进行初始化注册。
+
+## 常用开发命令
+
+在仓库根目录执行以下检查与测试命令：
+
+```sh
+# 类型检查
+pnpm --filter @nimiplatform/nimiday typecheck
+
+# 单元测试与组件测试
+pnpm --filter @nimiplatform/nimiday test
+
+# 生产构建验证
+pnpm --filter @nimiplatform/nimiday build
+```
+
+## 调试提示与端口配置
+
+- 默认 CDP 调试端口为 `9338`，可通过 `--cdp-port <port>` 参数自定义。
+- 若需关闭 CDP 调试直接启动，可附加 `--no-cdp` 参数。
+- 本地开发建议通过 `--resume` 续接原注册实例，以确保本地测试日程、任务与生活关怀记录的连续性。

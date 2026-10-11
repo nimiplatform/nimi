@@ -1,73 +1,41 @@
-# Realm
+# Realm Core Service and World Substrate
 
-Realm is the server side of the Nimi ecosystem. It is where shared world
-truth lives: accounts and identity, friendships, chat, money, worlds, and
-the characters in them. Nimi does not re-implement any of that locally —
-it connects to Realm through the SDK and plays by Realm's rules.
+Realm is the server-side foundation of the Nimi federated network, providing persistent, authoritative services for all digital worlds. Universal account identity, social graphs, world state transitions, creator economics, and cross-world travel (Transit) are unified authoritatively within Realm as the Single Source of Truth.
 
-The split of labor is simple. Runtime executes AI work. The SDK gives apps
-a safe way to reach Realm. Desktop and Web render the experience. The
-shared truth of a world stays in Realm; Nimi code only ever works with the
-typed view it receives.
+Platform responsibilities are divided into clear operational tiers:
+- **Runtime**: Local and cloud AI model inference, agent execution, and memory mediation;
+- **Realm**: Shared world states, entity relationship graphs, and creator asset registries;
+- **SDK**: Unified developer client bridging applications to Runtime and Realm;
+- **Desktop & Web**: Responsive presentation surfaces delivering immersive user experiences.
 
-## What This Section Contains
+## Chapter Guide
 
-Realm consumer entry points:
+### Authoritative State and Data Models
+- [Realm Architectural Boundaries](/realm/truth) — Division of authority between Nimi clients and Realm services;
+- [State Projections](/realm/projection) — How consumer applications ingest read-only structured views via the SDK;
+- [World State](/realm/world-state) — Current world snapshot storage and atomic commit envelopes;
+- [World History](/realm/world-history) — Immutable, append-only chronological ledgers and audit replays.
 
-- [Realm Truth Boundary](/realm/truth) — what Nimi does and does not own when
-  consuming external Realm truth.
-- [Realm Consumer Projection](/realm/projection) — how Nimi consumers receive
-  Realm API output through the SDK boundary.
-- [World State](/realm/world-state) — what the current state of a world is
-  and how it changes.
-- [World History](/realm/world-history) — the append-only record of what
-  happened in a world.
+### Core Domain Primitives
+- [Chat & Communication](/realm/chat) — Cross-world realtime messaging, delivery semantics, and thread lifecycles;
+- [Social & Economic Systems](/realm/social-and-economy) — Global friend graphs, follows, and value flows;
+- [Assets and Bindings](/realm/asset-and-binding) — Attaching creator assets and digital items to world scenes;
+- [Transit & Continuity](/realm/transit) — Navigating between worlds via the central OASIS hub.
 
-Domain reading map:
+### Creator Ecosystem and App Interconnect
+- [Creator Economy](/realm/creator-economy) — Digital content publishing, royalty settlements, and rights management;
+- [Creator Payouts](/realm/creator-payouts) — Transparent payout ledgers and disbursement auditing;
+- [App Interconnect](/realm/app-interconnect) — Best practices for third-party apps integrating Realm state.
 
-- [Chat](/realm/chat) — how conversation participates in Realm-backed meaning.
-- [Social And Economy](/realm/social-and-economy) — relationship and value-flow
-  concepts consumed from Realm.
-- [Asset And Binding](/realm/asset-and-binding) — how app readers discuss world
-  contents and attachments.
-- [Transit](/realm/transit) — continuity concepts for movement between worlds.
+## Why Nimi Applications Depend on Realm
 
-Creator and app surfaces:
+Digital worlds are not isolated islands. When users participate across desktop, web, or mobile devices, their identities, friend circles, and inventories travel with them seamlessly. Realm guarantees cross-platform consistency, eliminating fragmented local states.
 
-- [Creator Economy](/realm/creator-economy) — creator economy and settlement
-  concepts.
-- [App Interconnect](/realm/app-interconnect) — patterns for app-side Realm
-  consumption.
+## Related Documentation
 
-For the side-by-side comparison of state vs history, see
-[Platform → Worlds → State vs History](/platform/worlds/state-vs-history). The
-cross-domain [Glossary](/reference/glossary) explains "world," "truth," and
-"world history" if those terms are unfamiliar.
-
-## Why Realm Matters To Nimi Apps
-
-A Nimi app can live in many places: Desktop, Web, Avatar, creator tools, or
-an extension app built for one specific world. Each surface may show things
-differently, but none of them get to invent shared truth on their own. They
-all read Realm through generated SDK clients with typed wrappers.
-
-If Realm data cannot be fetched, authenticated, or decoded, or it no longer
-matches what the app last saw, the app has to say so — with a typed
-unavailable or error state the user can see. It must never fake a successful
-read.
-
-## Reader Scenario: An App Reads Realm Data
-
-1. **App requests Realm data.** The app calls through the SDK Realm facade.
-2. **SDK uses generated Realm core.** The request shape comes from the
-   configured external Realm OpenAPI input.
-3. **Realm responds.** The external Realm authority owns the server/domain
-   truth.
-4. **Nimi projects the result.** Runtime, Desktop, Web, or app code may cache or
-   present the output, but cannot make it canonical truth.
-5. **Failures stay typed.** Missing token, endpoint, API drift, or unavailable
-   Realm output fails closed instead of being synthesized locally.
+- [Unified Glossary](/reference/glossary)
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

@@ -1,71 +1,38 @@
-# Delegation Control
+# Delegation Control and Security Auditing
 
-## Status: Admitted Contract; Desktop-Owned Surface
+> **Status**: Specification design / Reserved contract. External agent action execution remains disabled while the action registry is unpopulated (`EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY`). In current desktop builds, users can inspect gateway and token status under "Advanced & Diagnostics → Permissions & Access"; interactive approval cards and quarantine review workflows described below represent the target security contract.
 
-Delegation Control is a Desktop surface, defined at the kernel level
-(`.nimi/spec/desktop/agent-projection.authority.yaml`). The approval
-and quarantine UI you use belongs to Desktop itself, not to app-owned
-SDK code.
+Delegation Control defines the security control plane inside Nimi Desktop. When external AI agent action execution is enabled, this control plane will prompt for explicit user approval before sensitive actions proceed, ensuring operations never execute without informed consent.
 
-## What Delegation Control Is
+For the architecture of the underlying gateway and firewall, see [Runtime → Delegated Capability](/runtime/delegated-capability). This page covers the desktop user interface and auditing contract design.
 
-Delegation Control is where **you stay in charge** of delegated
-capability. When an external AI suggests an action, the approval
-prompt appears here. When an output is quarantined, you review the
-evidence here. You approve or deny — nothing proceeds on your behalf
-without you.
+## Key Security Principles (Contract Design)
 
-The runtime side (gateway + output firewall + verdicts) lives in
-[Runtime → Delegated Capability](/runtime/delegated-capability).
-This page covers the Desktop control surface that brings those
-verdicts to you.
+1. **Explicit User Approval**: Under the delegation contract, any cross-boundary or sensitive action proposed by an AI agent requires manual confirmation before execution. Unapproved actions fail closed by default.
+2. **Quarantine Review**: When generated outputs trigger safety policies or sensitive data filters, content is intercepted into a secure quarantine. Users can inspect the exact evidence and decide whether to release or discard it.
+3. **Transparent Reasoning**: Every approval prompt details the caller's identity, the proposed operation, the parameters involved, and the specific security policy that triggered the check.
 
-## Boundary
+## Division of Responsibilities
 
-| Owns | Does NOT own |
+| Desktop Interface | Underlying Runtime Security Engine |
 | --- | --- |
-| Approval prompt rendering + decision capture | Firewall verdict (Runtime) |
-| Quarantine evidence display | Quarantine semantics (Runtime) |
-| User-facing reason copy | Reason code semantics (Runtime) |
-| Per-user policy preferences for approval defaults | Trust tier admission (Runtime) |
+| Renders approval cards and capture user decisions | Evaluates firewall rules and content classifications |
+| Displays quarantine evidence and inspectable context | Enforces hard boundaries and intercepts unauthorized calls |
+| Saves user preferences for non-critical notification defaults | Logs bounded, sanitized local audit events for every security decision |
 
-This surface renders the situation and captures your decision. The
-verdicts and quarantine logic themselves come from Runtime.
+## Specification Workflows (Contract Design)
 
-## Reader Scenario: Approval Prompt
+The following scenarios illustrate how the delegation contract governs external agent operations once the action registry and external gateway execution are active:
 
-External AI proposes a tool call; firewall verdict is
-`APPROVAL_REQUIRED`.
+### 1. Tool Call Approval
+1. **Approval Request**: An external AI agent proposes writing to a local configuration file. The security firewall marks this action as `APPROVAL_REQUIRED`.
+2. **Interactive Prompt**: Desktop displays an approval card showing the target path, content diff, and rationale.
+3. **User Action**:
+   - If approved, Runtime records the decision in the audit trail and proceeds with execution.
+   - If declined, the operation halts immediately and returns an access-denied state.
 
-1. **Runtime emits approval-required event.** Carries typed
-   delegation request, firewall verdict, sensitivity, suggested
-   action.
-2. **Desktop control surface renders.** Approval card displays
-   what the external AI suggested, why approval is needed, and the
-   user's approve / deny options.
-3. **User decides.** Approve or deny. Reason recorded.
-4. **Runtime acts on user decision.** Approval recorded against the
-   delegation session; if approved, runtime acts under its own
-   audit lineage.
-
-## Reader Scenario: Quarantine Review
-
-Provider drift or sensitivity classification quarantines an output.
-
-1. **Runtime emits quarantine event.** Carries typed evidence.
-2. **Desktop surface lists quarantined items.** User can review.
-3. **User releases or discards.** Decision recorded; runtime
-   honors.
-4. **No silent release.** Quarantined items do not flow to consumer
-   until user decision.
-
-## What Delegation Control Does Not Do
-
-- It never makes up a firewall verdict.
-- It never quietly changes quarantine semantics.
-- It offers no approval-bypass shortcuts.
-- Your preference policy can streamline prompts, but it can't override
-  an approval Runtime requires.
+### 2. Quarantined Content Handling
+When an agent's proposed action or output is classified as `QUARANTINED` by safety policies, it is intercepted and prevented from flowing into downstream applications. In the delegation workflow, the security decision and rationale are surfaced to the user for explicit review rather than silently bypassing guardrails.
 
 ## Source Basis
 

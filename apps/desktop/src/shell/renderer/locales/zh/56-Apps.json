@@ -1,9 +1,9 @@
 {
   "title": "Apps",
-  "description": "集中查看已注册的本地应用、项目根目录和声明的 App Access。",
+  "description": "管理已安装的应用与本地开发项目。",
   "collectionEyebrow": "应用管理",
   "inventoryTitle": "已接入的应用",
-  "inventoryDescription": "已注册的本地开发项目会显示其确切项目根目录和原始 App Access 声明。",
+  "inventoryDescription": "已注册的本地开发项目会显示其项目路径与申请的权限列表。",
   "inventoryCount": "{{count}} 个 App",
   "sidebar": {
     "subtitle": "本地开发 App",
@@ -73,7 +73,7 @@
     "unsignedConfirmAction": "继续并安装",
     "macosConfirmTitle": "安装这个 macOS App？",
     "macosUnsignedConfirmMessage": "此应用没有发布者的 Developer ID 签名，也未经 Apple 公证。Nimi Registry 审核和下载校验不能替代这些检查，不会授予管理员权限或创建系统沙箱。请确认信任此发布者后再继续。",
-    "macosUnnotarizedConfirmMessage": "此应用有已验证的 Developer ID 签名，但未观察到 Apple 公证。继续安装不会改变此原生验证状态，也不会授予管理员权限。",
+    "macosUnnotarizedConfirmMessage": "此应用已验证 Developer ID 签名，但未确认 Apple 公证。请确认信任此发布者后再继续安装。",
     "macosUnsigned": "无 Developer ID 签名",
     "macosNotarized": "已通过 Apple 公证",
     "macosNotarizationAbsent": "未经 Apple 公证",
@@ -89,7 +89,7 @@
     "unavailable": "Nimi Access 不可用"
   },
   "listTitle": "应用列表",
-  "listDescription": "按是否声明 App Access 域筛选已注册应用。",
+  "listDescription": "按应用申请的权限范围筛选已注册应用。",
   "developerCard": {
     "title": "接入或管理本地应用",
     "description": "在开发者模式中连接新的本地项目或管理现有注册。",

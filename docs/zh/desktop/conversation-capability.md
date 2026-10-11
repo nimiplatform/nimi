@@ -1,34 +1,28 @@
-# 会话能力投影
+# Agent 对话中的操作控件
 
-> 状态：现已可用。桌面端会显示你当前打开的这段对话有哪些能力可用。
+当前对话的控件可用于附加图片、录制语音输入、开启可用的 Realtime 会话，或播放某一条回复。这些动作需要有效的 App 会话和对应的 Runtime 能力；按钮在本地显示，并不代表执行条件已经满足。
 
-这个界面把 Runtime 返回的结果，和一小组针对当前对话的控件组合在一起。它不定义能力集合，不参与实现选择，也不给 Conversation 留下任何持久状态。
+## 当前支持的操作
 
-## 为什么是每一会话
-
-你可能想在这段对话里开语音播放、加附件，而不影响另一段对话。把控件限定在当前对话上，一次随手的选择就不会变成 Agent 的全局设置。
-
-## 边界
-
-| 拥有 | 不拥有 |
+| 操作 | 结果 |
 | --- | --- |
-| 临时控件和可用性渲染 | Conversation anchor 与连续性（Runtime） |
-| 类型化不可用与设置 UI | 语音、媒体、工具、具体实现、Quota 与 Budget 决策（Runtime） |
-| 提交前的附件选择 | 已提交附件与 Turn Truth（Runtime） |
+| 附加图片 | 为本轮添加一张待发送图片；不接受文档或代码文件附件 |
+| 录制语音输入 | 持续录音直到你停止，随后转写并提交识别出的文字 |
+| 使用可用的 Realtime 入口 | 开启独立的实时媒体会话，使用该入口自己的控件与能力条件 |
+| 播放回复 | 为选中的消息生成语音，读取完成的产物后在本地播放 |
 
-桌面端为了显示速度可以缓存界面状态，但缓存不是真实状态，也不能证明下一次操作一定能执行。
+需要讨论代码或文档时，可把相关片段粘贴为文字。临时输入和播放控件不会修改 Agent 共享的 AIConfig。
 
-## 读者场景：用户为一次会话切换语音
+## 播放一条回复
 
-1. **用户请求语音。** Desktop 为当前 Runtime Conversation anchor 提交类型化意图。
-2. **Runtime 评估请求。** 当前能力意图、授权、Quota、Budget 与具体实现可用条件决定结果。
-3. **Desktop 渲染投影。** 其他 Conversation anchor 不受影响。
+1. 找到提供播放操作的回复。
+2. 点击播放，Runtime 检查该消息所需的语音配置和执行条件。
+3. 语音产物准备并读取完成后，客户端开始播放。不可用时，按界面显示的具体原因处理。
 
-## Runtime 持有的语义
+这次操作只针对选中的回复，不会让之后所有文字回复自动带上流式音频或高亮字幕。录音输入与 Realtime 的区别见[语音交互](/zh/desktop/voice-session)。
 
-这些控件与 LocalAgent 的呈现配置和参与配置互不相干。语音、媒体、工具、实现和授权语义都留在 Runtime。界面上的开关和缓存，永远不会改写 Conversation 或 LocalAgent 本身。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-manual-voice-playback-button.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-manual-voice-playback-button.tsx)

@@ -1,12 +1,22 @@
 # Nimi Web
 
-`@nimiplatform/web` is the standalone first-party public and account surface.
+`@nimiplatform/web` is the official public web portal and account management surface for the Nimi ecosystem.
 
-It owns normal-path routes for the landing page, `/login`, `/register`, account recovery and two-factor continuation, `/account`, Nimi Home and App information, legal pages, download, and navigation. Nimi Home itself remains Desktop-hosted; App pages are informational and do not provide public installation, catalog, or distribution authority.
+## Overview
 
-Account credential interaction uses `WebAccountAuthPage` with the public Realm SDK in `browser-session` response mode. Realm owns the HttpOnly browser cookie and current-account truth. Web never stores access or refresh tokens in URLs, localStorage, or other durable browser metadata. An `oauth_next` continuation must match the admitted Realm origin and unchanged authorize transaction; Web only navigates back and never consumes the Desktop authorization code.
+The web application handles public-facing and account-related routes, including:
+- Official landing pages and product showcase
+- User authentication (`/login`, `/register`, account recovery, two-factor authentication)
+- Account management dashboard (`/account`)
+- Desktop application downloads, ecosystem documentation, and legal notices
 
-Web does not import Desktop renderer/package surfaces, Runtime internals, native IPC, local-file behavior, or Simulator product source. There is no Web Shell, hash-shell route, Desktop adapter directory, or post/social permalink entry.
+Nimi Home itself runs within the Desktop client; web pages provide product information, account controls, and secure OAuth/browser authentication handoffs.
+
+### Security and Authentication Architecture
+
+- **Session Security:** Web authentication uses `WebAccountAuthPage` powered by the Realm SDK in `browser-session` mode. Session state is secured via `HttpOnly`, `SameSite` browser cookies managed by Realm.
+- **Token Protection:** The web client never exposes or persists access/refresh tokens in URLs, `localStorage`, or client-side storage.
+- **OAuth Delegation:** During Desktop login handoffs, the web portal validates origin integrity and delegates authentication securely without exposing authorization secrets to untrusted client code.
 
 Development uses the same-origin Vite proxy when `NIMI_REALM_URL` is configured:
 

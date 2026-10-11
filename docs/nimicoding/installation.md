@@ -1,49 +1,34 @@
 # Nimi Coding Host Integration
 
-The Nimi workspace pins `@nimiplatform/nimi-coding@0.6.3` as an exact
-development dependency. A normal workspace install provides the CLI:
+The Nimi workspace pins `@nimiplatform/nimi-coding@0.6.5` as an exact development dependency. Standard workspace installation sets up the CLI tools:
 
 ```bash
 pnpm install
 ```
 
-Run direct CLI calls from the repository root as `pnpm exec nimicoding ...` so
-they resolve this pinned project-local package. Do not probe or depend on a
-global `nimicoding` binary in `PATH`.
+When executing CLI commands directly, run `pnpm exec nimicoding ...` from the repository root to ensure the workspace-local pinned package is invoked. Avoid relying on global `nimicoding` binaries in the system `PATH`.
 
-## Verify Managed Integration
+## Verifying Integration Health
 
 ```bash
 pnpm nimicoding:sync
 pnpm nimicoding:doctor
 ```
 
-In this repository, `nimicoding:sync` runs `sync --check`; it verifies managed
-files and marked instruction blocks without rewriting product authority or
-host task state. `nimicoding:doctor` checks package and managed-surface
-compatibility. Neither command validates the authority corpus, implementation
-conformance, or task readiness.
+- `pnpm nimicoding:sync`: Executes `sync --check` under the hood, validating synchronization of managed files without mutating product authority or host task state.
+- `pnpm nimicoding:doctor`: Verifies runtime compatibility between the installed package version and managed specifications.
 
-`nimicoding start` is the initial host bootstrap for a new repository. It
-creates only the documented authoring guide, managed instruction blocks, and
-ignored `.nimi/local/` root. It does not create product authority, register a
-task hook, or install a mandatory preflight. This Nimi checkout is already
-initialized, so normal work uses the guarded `sync` and `doctor` scripts above.
+For newly created empty repositories, `nimicoding start` bootstraps basic templates and local scratch directories. The current Nimi repository is fully configured; everyday development relies on the `sync` and `doctor` scripts above.
 
-The managed `AGENTS.md` and `CLAUDE.md` blocks tell an AI host which bounded
-commands are available and where their claims stop. They are instructions, not
-an execution wrapper. `start` and `sync` own only their exact managed paths and
-marked blocks.
+The managed blocks in `AGENTS.md` and `CLAUDE.md` define available tools and architectural boundaries for AI hosts; they are advisory guidelines rather than intrusive execution wrappers.
 
-## Code Reads
+## Source Code Reads and Authority Markers
 
-The current 0.6.3 pin provides `code context` for a bounded outbound
-TypeScript/TSX context and `code authority` for optional exact physical-line
-markers in TypeScript, TSX, Go, Python, and Rust. Marker lookup does not prove
-language comment context. These commands do not evaluate unannotated
-implementation or prove conformance.
+Version 0.6.5 provides two primary source inspection utilities:
+- **`code context`**: Extracts bounded outbound static context from explicit TypeScript and TSX source files;
+- **`code authority`**: Scans tracked TypeScript, TSX, Go, Python, and Rust files for explicit `@nimi-authority` and `@nimi-deprecated` marker lines. Marker discovery operates via exact line matching and does not evaluate unannotated code.
 
-## Verify Product Authority
+## Validating Product Authority
 
 ```bash
 pnpm spec:authority:check
@@ -51,22 +36,17 @@ pnpm spec:authority:compile
 pnpm spec:authority:audit
 ```
 
-For an authority edit, follow
-`.nimi/methodology/authority-authoring.yaml`: obtain bounded context, run
-semantic diff and impact with explicit budgets, format every changed
-authority file, and then check the complete `.nimi/spec` input set.
+When modifying authority specifications, follow the workflows in `.nimi/methodology/authority-authoring.yaml`:
+1. Retrieve bounded context before changes;
+2. Execute semantic diff and impact evaluations within defined byte budgets;
+3. Format changed containers using `authority fmt`;
+4. Run `authority check` across the full `.nimi/spec` corpus.
 
-The configured audit evaluates only `.nimi/config/authority-verifiers.yaml`.
-Its clear blocking status does not claim business-semantic completeness or
-implementation conformance.
+## Configuration Layout
 
-## File Placement
-
-Nimi Coding host configuration belongs under `.nimi/config/**`. The managed
-authoring guide remains under `.nimi/methodology/**`. Root `config/**` remains
-appropriate for product schemas, generator inputs, and implementation
-projections; referencing a canonical authority ID does not make such a file
-Nimi Coding configuration or a second authority.
+- **`.nimi/config/**`**: Houses configuration specific to Nimi Coding host execution;
+- **`.nimi/methodology/**`**: Contains authoritative methodology documentation;
+- **Root `config/**`**: Reserved for product-level schemas, generator inputs, and platform static maps; referencing a canonical authority ID does not turn a product file into an alternate authority source.
 
 ## Source Basis
 

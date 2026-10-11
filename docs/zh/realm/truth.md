@@ -1,26 +1,30 @@
-# Realm 真相边界
+# Realm 权威状态与职责边界
 
-世界里什么是真的，由外部的 Realm 服务说了算：数据记录、世界生命周期规则、社交与经济的不变量，都归它定。本仓库不定义其中任何一条。
+在 Nimi 的分布式架构中，跨越所有数字世界的共享权威数据——包括全局账号身份、社交关系图谱、创作者经济、数字资产权属以及世界生命周期规则——均由服务端的 Realm 统一作为**单一可信源（Single Source of Truth）**进行治理与仲裁。
 
-Nimi 通过 SDK 生成的客户端和强类型封装访问 Realm。对 App 代码来说，一条 Realm 事实就是你连接的 Realm 服务返回的数据，而不是 Nimi 在本地定义的东西。
+本地应用与桌面端不直接定义或覆写这些全局规则，而是通过 SDK 提供的类型安全客户端与标准化通道，安全消费与响应 Realm 广播的权威状态。
 
-## Nimi 拥有什么
+## Nimi 客户端与工具链的职责划分
 
-| Nimi surface | 职责 |
+| 平台模块 | 核心职责 |
 | --- | --- |
-| SDK generated Realm core | 从配置的 Realm OpenAPI 输入生成 typed client shape |
-| SDK Realm facade | consumer transport、token handling、fail-closed errors 和 typed wrappers |
-| Runtime/Desktop/Web/apps | 通过 SDK 边界消费 Realm projections |
+| **SDK Realm 客户端核心** | 根据 Realm OpenAPI 规范自动生成类型安全的数据访问接口与序列化模型 |
+| **SDK 门面（Realm Facade）** | 负责本地会话凭据注入、断线重试、安全错误映射与网络传输调度 |
+| **Runtime / Desktop / Web** | 作为消费端，安全呈现从 Realm 读取的状态投影（Projections） |
 
-## Nimi 不拥有什么
+## 明确的边界与不变量
 
-- Realm canonical records。
-- Realm social、chat、economy、asset、binding、transit 或 world rules。
-- Realm auth/session issuance truth。
-- 本仓库内新增的本地 Realm kernel contract mirror。
+- **权威唯一性**：跨世界的社交网络、好友关系、资产转移与创作者分成规则由 Realm 统一执行，本地客户端不维护脱离服务端的私有仲裁逻辑；
+- **身份真实性**：全网唯一的用户公钥凭证与跨世界通行身份由 Realm 统一签发；
+- **防伪造与强一致性**：若应用无法连接 Realm 或数据解析异常，系统将直接向用户提示明确的“服务不可用”状态，杜绝任何本地伪造“成功”的假象。
 
-如果 App 需要 Realm 数据，应使用 SDK Realm client，或在该 client 之上写 app-owned wrapper。不要复制 Realm endpoint strings、重复声明 response shapes，或把旧的本地 Realm spec mirror 当作 authority。
+应用开发者如需与 Realm 交互，请统一使用 `@nimiplatform/sdk` 提供的标准接口，避免手动拼接底层 HTTP 端点或伪造本地模型。
 
-## 来源依据
+## 相关文档
+
+- [世界权威状态与历史对比](/zh/platform/worlds/state-vs-history)
+
+## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

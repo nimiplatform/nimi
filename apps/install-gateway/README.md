@@ -4,9 +4,14 @@ Cloudflare Worker serving release distribution.
 
 ## Overview
 
-Install Gateway is a Cloudflare Worker that serves the Runtime install script and Runtime release manifest. It fetches Runtime release data from the GitHub API, validates archive checksums, and serves the fixed Runtime distribution routes.
+Install Gateway is a lightweight Cloudflare Worker responsible for serving the official Nimi Runtime installation scripts and release manifests. It retrieves release metadata from the GitHub Releases API, verifies cryptographic checksums, and provides high-availability distribution endpoints.
 
-`/runtime/latest.json` considers only stable Runtime-only releases tagged `runtime/v<SemVer>`. Complete Nimi bundles (`nimi/v`), Desktop, component and bare `v<SemVer>` tags belong to other owners and never enter this feed. A release qualifies only when all six platform archives and `checksums.txt` are uploaded, `checksums.txt` matches GitHub's digest of that asset, and each archive's checksum matches GitHub's digest of the archive. The highest qualifying version is served; when none qualifies the route returns `404` with `RUNTIME_RELEASE_NOT_FOUND`, and GitHub read failures return `502`.
+### Release Ingestion Rules
+
+The `/runtime/latest.json` endpoint distributes stable Runtime releases tagged with `runtime/v<SemVer>`:
+- **Scope Isolation:** Full Nimi suite releases (`nimi/v`), Desktop installer tags, and independent components are tracked separately and excluded from this runtime-specific feed.
+- **Verification Criteria:** A release is validated only when all target platform binaries and their corresponding `checksums.txt` digest file are present and cryptographically verified against GitHub asset digests.
+- **Serving Behavior:** Returns the latest verified version. If no qualifying releases are found, the endpoint returns a `404` with code `RUNTIME_RELEASE_NOT_FOUND`; upstream API failures return a `502`.
 
 ## Tech Stack
 

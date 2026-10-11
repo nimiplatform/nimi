@@ -35,8 +35,8 @@ importers:
         specifier: ^20.3.0
         version: 20.3.0
       '@nimiplatform/nimi-coding':
-        specifier: 0.6.3
-        version: 0.6.3
+        specifier: 0.6.5
+        version: 0.6.5
       '@protobuf-ts/plugin':
         specifier: 2.11.1
         version: 2.11.1
@@ -371,8 +371,8 @@ importers:
         specifier: workspace:*
         version: link:../../app-tools
       '@nimiplatform/nimi-coding':
-        specifier: 0.6.3
-        version: 0.6.3
+        specifier: 0.6.5
+        version: 0.6.5
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.3(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
@@ -2048,8 +2048,8 @@ packages:
       '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
       '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
 
-  '@nimiplatform/nimi-coding@0.6.3':
-    resolution: {integrity: sha512-glJNhBHPX094sukkl4DN+W9mm6En+vA6dN//BCEOHSiJ+gkBjNf0PriGbS3bqa6uliSKDy1lJ9NQYg2iN2okCA==}
+  '@nimiplatform/nimi-coding@0.6.5':
+    resolution: {integrity: sha512-h1g5kWlppe2RofaXAe64TWuOtFTIclpc2NUBEIw7UWzR3MfgXDF7nBrB4iSXGd+U/6pyU9DOrOsqB0V4h875vg==}
     engines: {node: '>=24.0.0', pnpm: '>=10.0.0'}
     hasBin: true
 
@@ -7401,7 +7401,7 @@ snapshots:
       '@tybys/wasm-util': 0.10.4
     optional: true
 
-  '@nimiplatform/nimi-coding@0.6.3':
+  '@nimiplatform/nimi-coding@0.6.5':
     dependencies:
       typescript: 5.9.3
       yaml: 2.9.1

@@ -1,38 +1,25 @@
 # Runtime
 
-Runtime 是独立的本地服务，负责把已授权的产品 intent 转成 AI 执行。App 通过
-SDK 使用它的公共 capability surface，不能导入 Runtime internal，也不能直接
-调用 Provider。
+Runtime 是 Nimi 的核心本地服务，负责将获得授权的产品意图转化为具体的 AI 执行。应用通过 SDK 提供的公开接口访问 Runtime，无需关心底层模型调度的复杂细节，敏感凭据与模型接入均由 Runtime 安全托管。
 
-## Runtime 持有什么
+## Runtime 的核心职责
 
-Runtime 持有：
+Runtime 负责管理与执行：
 
-- Local 与 Cloud AI 消费、实现选择、资源调度、Token、Quota、Budget 及
-  Credential custody；
-- 从 Realm 签发的 Character Source 物化 LocalAgent，并管理其生命周期；
-- LocalAgent Conversation、Memory 访问中介、状态、voice、event
-  和 presentation 投影；
-- 本地 process、model、service、stream 与 audit 行为；
-- 从 active protected session 推导的 App identity 与 authorization；
-- 通往独立 Realm 及可选外部能力的有限 bridge。
+- **AI 执行与资源调度**：本地模型与云端 API 的调度、资源配额（Quota/Budget）以及连接器凭据的安全托管；
+- **LocalAgent 实例管理**：基于 Realm 签发的角色描述（Character Source）在本地实例化 LocalAgent，并维护其生命周期；
+- **交互与呈现投影**：维护 LocalAgent 的对话（Conversation）、记忆访问代理、状态机、语音与交互事件流；
+- **本地服务与审计**：管理本地进程、模型加载、流式通信与本地审计日志；
+- **权限与身份判定**：基于桌面端受保护会话推导应用身份与授权范围；
+- **跨模块桥接**：提供与 Realm 服务及外部扩展能力的受控通信桥梁。
 
-无论 consumer 是 Nimi Home、Desktop、Avatar、Direct SDK Client 还是
-scaffolded App，这些职责都不会从 Runtime 转移出去。
+无论调用方是 Nimi Home、Desktop、Avatar 还是第三方 App，上述核心职责始终由 Runtime 统一管理。
 
-## 权责边界
+## 架构权责边界
 
-Realm 持有 Character identity、Character Source、World Source、canonical
-World data、social truth 与 World history。Runtime 可以消费已准入的 source
-context，但不能重新定义它。
-
-App 与第一方 surface 持有自己的产品 UI、交互和短暂 cache。它们不能接管
-Conversation 与 Memory 访问中介、LocalAgent、Provider、Credential、session
-或 authorization 真相。
-
-通用 Workflow、MCP 与 World Evolution 都不是 Runtime 核心前置。可选的
-external action capability 应单独报告 unavailable，不得阻塞 LocalAgent
-Conversation 与 Memory 访问中介、voice 或无关的能力执行。
+- **Realm**：维护持久化的角色身份（Character Identity）、世界背景（World Context）以及生态社交数据。Runtime 读取并使用这些上下文，但不修改或重新定义身份真相。
+- **应用层（Apps & UI Surfaces）**：负责自身的产品界面、用户交互与临时状态展示。应用不能越权接管对话路由、凭证管理或权限判定。
+- **渐进式扩展**：外部工作流或扩展工具均作为可选能力接入，某项可选扩展不可用时不会阻塞核心的对话交互与基础 AI 调用。
 
 ## 阅读路径
 
@@ -49,7 +36,7 @@ Conversation 与 Memory 访问中介、voice 或无关的能力执行。
 
 长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)

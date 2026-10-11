@@ -1,40 +1,25 @@
 # Runtime
 
-Runtime is an independent local service that turns authorized product intent
-into AI execution. Apps use its public capability surface through the SDK; they
-do not import Runtime internals or call providers directly.
+Runtime is the core local service responsible for translating authorized product intent into AI execution. Applications access Runtime through the public SDK surface without needing to manage low-level model dispatch; sensitive credentials and model connections remain securely held by Runtime.
 
-## What Runtime owns
+## What Runtime Manages
 
-Runtime owns:
+Runtime is responsible for:
 
-- Local and Cloud AI consumption, implementation selection, resource scheduling,
-  Token, Quota, Budget, and credential custody;
-- LocalAgent materialization and lifecycle from a Realm-issued Character
-  Source;
-- LocalAgent Conversation, Memory mediation, state, voice,
-  events, and presentation projections;
-- local process, model, service, stream, and audit behavior;
-- App identity and authorization derived from the active protected session;
-- bounded bridges to independent Realm and optional external capabilities.
+- **AI Execution & Scheduling**: Routing between local models and cloud providers, managing token budgets and quotas, and securely storing provider credentials;
+- **LocalAgent Lifecycle**: Instantiating and managing local agent instances based on Realm-issued character specifications (Character Source);
+- **Interaction & Presentation**: Maintaining conversation streams, memory mediation, internal state, voice playback, and UI event projections;
+- **Local Processes & Audit**: Managing local worker processes, model loading, streaming transport, and audit logs;
+- **Identity & Authorization**: Resolving application identity and permissions derived from the active desktop session;
+- **Ecosystem Bridges**: Providing controlled communication bridges to Realm services and external tools.
 
-These responsibilities stay with Runtime regardless of whether the consumer is
-Nimi Home, Desktop, Avatar, a direct SDK client, or a scaffolded App.
+These core responsibilities stay with Runtime regardless of whether the consumer is Nimi Home, Desktop, Avatar, or a third-party app.
 
 ## Ownership Boundaries
 
-Realm owns Character identity, Character Source, World Source, canonical World
-data, social truth, and World history. Runtime may consume admitted source
-context but cannot redefine it.
-
-Apps and first-party surfaces own their product UI, interaction, and ephemeral
-cache. They cannot take over Conversation and Memory mediation, LocalAgent,
-provider, credential, session, or authorization truth.
-
-General Workflow, MCP, and World Evolution are not Runtime core prerequisites.
-An optional external action capability reports its own unavailable state and
-does not block LocalAgent Conversation and Memory mediation, voice, or unrelated
-capability execution.
+- **Realm**: Maintains persistent character identity, world context, and ecosystem social data. Runtime consumes this context without redefining canonical identity.
+- **Applications & UI Surfaces**: Own their product UI, user interactions, and ephemeral state. Applications do not bypass Runtime to manage raw credentials or override permissions.
+- **Progressive Capabilities**: External integrations and workflow tools are optional extensions; an unavailable extension will not disrupt core conversations or fundamental AI capabilities.
 
 ## Read paths
 

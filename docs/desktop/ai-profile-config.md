@@ -1,28 +1,27 @@
-# AI Configuration in Nimi Home
+# AI Configuration and Capability Scheduling in Nimi Home
 
-Use AI Capabilities to prepare local configurations, Cloud Services to manage cloud connections, and the relevant App or shared LocalAgent AI settings to choose how each capability executes.
+In Nimi Home, users can manage local model recipes under "AI Capabilities", connect third-party providers under "Cloud Services", and assign execution routes for specific apps and agents.
 
-## Choose the Configuration Owner
+## Ownership and Configuration Scopes
 
-Each App has its own AIConfig. All LocalAgents in the current account share one LocalAgent AIConfig; selecting a different Agent does not create a new owner. Nimi Chat uses the Desktop App configuration, while Agent Chat uses the shared LocalAgent configuration.
+To ensure security isolation while enabling personalization, Nimi defines clean boundaries across AI configurations (AIConfig):
 
-For each capability, choose Local or Cloud and the required features and defaults. Local follows the machine's current Loadout for that capability. Cloud requires an exact current-account Connector and implementation target from Runtime's safe options. Credentials and endpoints are not AIConfig fields.
+- **App-Owned AIConfig**: Each Nimi App maintains its own isolated AIConfig. Applications declare what capabilities they need (e.g., text generation, transcription), and users designate whether to route them locally or to the cloud.
+- **LocalAgent Shared AIConfig**: All LocalAgents under the current user account share a unified base capability configuration, eliminating repetitive setup across different companions.
+- **Chat Contexts**: Standard desktop chat uses the Desktop App configuration, while chatting with a specific Agent utilizes the shared LocalAgent configuration.
 
-Saving replaces the complete capability list against its current revision. Preserve unchanged entries; omission clears an entry. Resolve a revision conflict before saving again. Saving does not require a successful inference probe and does not prove execution readiness.
+## Choosing Between Local and Cloud Execution
 
-## Prepare Local Capabilities
+For every declared capability, users can choose their preferred route:
 
-AI Capabilities contains Profile recommendations and sharing, the on-device model list, and the capability configuration workspace. A Loadout binds the implementation recipe and every required resource. Use the setup flow to prepare and commit it, then explicitly select the capability's default configuration.
+1. **Local**: Binds to the currently active machine default Loadout configured under AI Capabilities. Model inference runs entirely on local hardware, keeping data private and offline.
+2. **Cloud**: Routes calls through a configured third-party connector (such as OpenAI, Anthropic, or compatible endpoints). For security, sensitive credentials and endpoints are managed securely within Runtime and are never exposed as plaintext in application-level configs.
 
-The machine selection is shared by future Local requests for that capability. It is not a per-App or per-Agent model binding. Existing Jobs retain their captured execution inputs.
+## Importing and Applying AIProfiles
 
-Model Library owns file inspection, import, storage, integrity, and removal. Downloads tracks existing App, model, and environment tasks. Shared components and configuration environments show their own diagnostics; they do not create another model selector.
+Users can import portable AIProfile templates to quickly configure recommended settings. Applying an AIProfile prefills the configuration form for review. Once local models are verified or cloud API keys are linked, saving confirms the configuration.
 
-## Apply a Profile
-
-Applying a portable AIProfile fills an editor without committing owner or machine state. Review the prefill, resolve current-environment Cloud references or local resource requirements, and complete the relevant save or confirmation action. Profile provenance is descriptive, not a live binding.
-
-See [Local AI](/desktop/local-ai) for installation and [Profiles and Execution](/runtime/ai-profile-execution) for submission behavior.
+For instructions on acquiring local weights, see [Local AI in Nimi Home](/desktop/local-ai). For the runtime execution model, see [AI Profile Execution](/runtime/ai-profile-execution).
 
 ## Source Basis
 

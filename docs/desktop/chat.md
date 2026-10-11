@@ -1,93 +1,36 @@
-# Chat
+# Chat Modes and Conversation History
 
-Chat in Desktop is one surface with three kinds of conversation:
-**human**, **AI**, and **agent**. You can message another person,
-prompt a general AI assistant, or talk to a specific Nimi agent.
-Same window, three conversation shapes.
+Nimi Home offers human messaging, ordinary AI/Nimi Chat, and Agent Conversation in the chat surface. Their request, interruption, and history behavior differs.
 
-## Three Host Modes
-
-| Mode | Who you're talking to | Authority |
+| Mode | Execution and storage | Current response behavior |
 | --- | --- | --- |
-| Human | Another user | Realm chat thread |
-| AI | A generic AI assistant | Runtime via SDK |
-| Agent | A specific Nimi agent | Runtime + ConversationAnchor |
+| Human | Realm message threads | Messages and read state synchronize through Realm |
+| AI/Nimi Chat | App AI candidate request and this mode's local message storage | Waits for a complete response, then saves the messages |
+| Agent | Runtime-managed canonical Conversation | Shows text updates and supports a turn-interruption request |
 
-The mode decides what the chat window shows: the target rail (who
-you're talking to), the conversation shell, the transcript, and the
-composer.
+## Ordinary AI/Nimi Chat
 
-## Realtime Delivery
+Send a query and wait for the complete result. This path uses `generateCandidate`; it does not provide the Agent mode's token-by-token display or Stop handler. A pending request is not a committed Agent Conversation turn. Do not assume that closing or reopening the window preserves that pending execution as canonical Conversation state.
 
-Human chat receives Realm-owned realtime updates through the SDK. Nimi Chat
-uses the App AI stream, while Agent Chat consumes Runtime's typed Conversation
-events and committed snapshots. These paths retain their owners' session,
-ordering, terminal, and recovery semantics; they are not one generic message bus.
+## Agent Conversation
 
-## Streaming Chat
+Select the Agent and open its Runtime Conversation. Send text or a supported image to start a turn. While generation runs, the interface shows updates; Stop requests interruption without deleting previously committed turns.
 
-When you're talking to an AI or an agent, the reply streams in from
-Runtime as it's generated.
+After a reconnect or refresh, the client reads the committed Runtime snapshot. Local drafts, pending fragments, and the displayed status remain separate from that history.
 
-| Property | Value |
-| --- | --- |
-| Protocol | Nimi Chat uses the App text stream; Agent Chat uses typed Conversation turn and message events |
-| Bubble rendering | Incremental as chunks arrive |
-| Mid-stream stop | Available during streaming |
-| Agent partial content | Transient until committed; uncommitted text is cleared when interrupted |
-| Delivery bounds | Typed backpressure/resource failures; no unlimited buffering or generic replay |
+## Human Messaging
 
-In Agent Chat, Stop requests interruption of the current turn. Live deltas are
-not committed history: interrupted turns lose their uncommitted text. Messages
-already committed remain, including text committed before an associated action
-is interrupted. Recover from the committed snapshot, not a partial UI buffer.
+Human messages use Realm threads and their own membership and delivery rules. They do not create Agent Conversation anchors or inherit AI generation controls.
 
-## Turn Lifecycle Ownership
+## Related Documentation
 
-Desktop chat draws the conversation and forwards your intent through
-the SDK. Runtime handles the model call, the streaming lifecycle,
-ConversationAnchor continuity, and agent track execution. Desktop has
-no local surface for intercepting a turn.
-
-## Reader Scenario: Talking To An Agent
-
-You open chat, target your agent, and start typing.
-
-1. **Target rail.** You select a Character/LocalAgent as the chat target.
-   The conversation shell uses its current authorized Agent handle to open
-   that LocalAgent's single Conversation and retain its returned anchor.
-2. **Compose.** You type. The composer shows typed input shape.
-3. **Send.** The turn is submitted. Runtime's `RuntimeAgentService`
-   accepts it for the selected LocalAgent and Conversation.
-4. **Stream begins.** The assistant bubble shows transient text from typed
-   Conversation events; a committed message is recorded separately.
-5. **Mid-stream stop.** Runtime reports the interruption. Desktop clears the
-   uncommitted reply; messages already committed remain in the snapshot.
-
-The Character's durable identity is Realm truth; LocalAgent execution,
-Conversation continuity, and transcript are Runtime-owned. An agent
-conversation does not create a Realm human-chat thread.
-
-## What Desktop Chat Does Not Do
-
-| Concern | Owned by |
-| --- | --- |
-| Embodiment / avatar visuals | Avatar app — Desktop chat is no longer a Live2D / VRM carrier |
-| Memory authority | Cognition Agent-private Memory, mediated by Runtime |
-| Direct human thread truth | Realm chat |
-| Turn execution authority | Runtime agent service |
-| Streaming semantics | Runtime streaming contract |
-
-If you want embodiment, the Avatar app is the place. Desktop chat can
-show small non-carrier cues (like an expression indicator), but the
-chat window itself is no longer the Live2D/VRM carrier.
+- [Agent Actions](/desktop/message-actions)
+- [Voice Interaction](/desktop/voice-session)
 
 ## Source Basis
 
 - [`.nimi/spec/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/product-surfaces.authority.yaml)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
-- [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
-- [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.ts)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx)

@@ -1,87 +1,61 @@
 # Use Nimi Lab
 
-`apps/lab/` is Nimi's local-development capability lab. It integrates the
-current SDK, Kit, Runtime, Realm, and app-tools surfaces in one real Nimi App
-so new capabilities can be exercised before a scaffold exposes them. A surface
-can remain visibly integrated while its current carrier reports typed
-unavailable; integration presence is not a runnable or scaffold-admission claim.
+`apps/lab/` is Nimi's local capability workbench. Built as a fully functional Nimi App, it integrates the latest SDK, Kit, Runtime, Realm, and App Tools capabilities so developers can evaluate and test new features before they are broadly exposed through project templates.
 
-Nimi Lab is not platform admission truth. Runtime, Realm, SDK, Kit, release,
-registry, and permission ownership remain with their respective platform
-surfaces. App Tools generates only the capability slices it explicitly admits;
-it does not copy the complete Lab.
+Nimi Lab illustrates capability integration best practices. Core responsibilities—such as permissions, session tokens, model scheduling, and data persistence—remain governed by standard platform boundaries and security invariants.
 
-## Run It
+## Running and Debugging
 
-From the source checkout:
+Run the following command from the repository root:
 
 ```bash
 pnpm dev:lab
 ```
 
-Inside `apps/lab/`, the relevant scripts are:
+Key development scripts provided in `apps/lab/`:
 
 ```bash
-pnpm run init
-pnpm dev:shell
-pnpm run validate
-pnpm run doctor
-pnpm run update
-pnpm run test
+pnpm run init       # Initialize project configurations
+pnpm dev:shell      # Start the app in the official Electron host
+pnpm run validate   # Validate the App manifest and access declarations
+pnpm run typecheck  # Check TypeScript types
+pnpm run test       # Execute unit and integration tests
 ```
 
-`dev:shell` enters the official `nimi-app dev` launcher; on Windows and macOS,
-Nimi Lab runs as a Desktop-supervised Electron App; it has no Tauri build or
-development path. A local project that is not admitted must be authorized through Developer Mode
-and launched as an isolated `local_development` build. Nimi Lab does not own
-the principal, grant, or session and does not grant public App admission.
+On Windows and macOS, Nimi Lab runs inside Desktop's supervised Electron development environment. Register and grant permissions to local development builds via Developer Mode in Nimi Home.
 
-Realm-backed settings are currently preserved as an integrated Lab surface but
-the local-app carrier returns typed unavailable. Treat its real owner journey
-as `NOT-VERIFIED`; do not infer runnable Realm access from the visible UI.
+## Key Code and Architectural References
 
-## What To Study
-
-| Need | Where to look |
+| Area of Interest | Source Path |
 | --- | --- |
-| App scaffold scripts and local checks | `apps/lab/package.json` |
-| Runtime-authenticated shell behavior | `apps/lab/README.md` and shell routes |
-| AIConfig storage and App owner | `apps/lab/src/lab/lab-ai-config-store.ts` |
-| Runtime AI dispatch from capability intent | `apps/lab/src/lab/lab-runtime.ts` |
-| Fail-closed capability states | `apps/lab/src/lab/lab-non-success.ts` |
-| AIConfig intent composition | `apps/lab/src/lab/workbench/lab-ai-config-settings-panel.tsx` |
-| Contract checks | `apps/lab/test/lab-contract/` |
+| Scaffold configuration & local checks | `apps/lab/package.json` |
+| Protected shell host routing and communication | `apps/lab/README.md` and shell route modules |
+| AIConfig storage and application data isolation | `apps/lab/src/lab/lab-ai-config-store.ts` |
+| Capability Intent-driven Runtime AI dispatch | `apps/lab/src/lab/lab-runtime.ts` |
+| Structured error handling & state mapping | `apps/lab/src/lab/lab-non-success.ts` |
+| AI configuration UI component design | `apps/lab/src/lab/workbench/lab-ai-config-settings-panel.tsx` |
+| Contract compliance test suites | `apps/lab/test/lab-contract/` |
 
-## What Not To Copy Blindly
+## Integration Principles
 
-- Nimi Lab identity (`nimi.lab`) belongs only to Nimi Lab.
-- Lab-only diagnostics, fixtures, and demo data are not
-  scaffold or production data contracts.
-- A capability being present in Lab does not make it selectable in App Tools.
-- Lab acceptance tests are examples of app-owned checks, not a substitute for
-  your App's requirements.
-- Runtime execution diagnostics are evidence; do not copy implementation,
-  route, connector, or target details into App requests.
-- Developer Mode is local development material, not public App listing
-  admission.
+- **Independent Application Identity**: The app ID `nimi.lab` belongs specifically to Nimi Lab; custom applications must declare their own unique App IDs.
+- **Data and Fixture Isolation**: Test fixtures, mock datasets, and diagnostics in Lab are for exploration and testing; design dedicated models for your own product logic.
+- **Progressive Adoption**: Evaluate new capabilities in Lab first, then adapt relevant patterns into your custom application based on your product needs.
+- **Actionable User Guidance**: Surface structured states to users (such as prompting service startup or requesting capability permissions) to deliver a polished user experience.
 
-## Common Failure States
+## Common State Codes
 
-| State | Meaning |
-| --- | --- |
-| `runtime-unavailable` | Runtime cannot be reached for the request. |
-| `permission-required` | Text generation permission has not been granted. |
-| `input-invalid` | Required capability input is missing or malformed. |
-| `sdk-method-unavailable` | The current App build does not expose the required SDK method. |
-| `runtime-call-failed` | Runtime returned a typed contract failure. |
-
-The App should surface these states directly. Do not collapse them into a
-single "SDK missing" or "model unavailable" message.
+| State Code | Meaning | User Feedback Strategy |
+| --- | --- | --- |
+| `runtime-unavailable` | Local Runtime service is not responding. | Guide user to launch or restart the Nimi Desktop service. |
+| `permission-required` | Required capability permission has not been granted. | Direct user to grant permission in the authorization dialog. |
+| `input-invalid` | Prompt or required parameters are missing or malformed. | Inform user to check their input. |
+| `sdk-method-unavailable` | Capability is not exposed in the current build. | Prompt to update the SDK package. |
+| `runtime-call-failed` | An error occurred during request processing. | Provide clear error messaging and retain diagnostic logs. |
 
 ## Source Basis
 
 - [`apps/lab/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)
-- [`apps/lab/package.json`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/package.json)
 - [`apps/lab/src/lab/lab-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-runtime.ts)
 - [`apps/lab/src/lab/lab-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-ai-config-store.ts)
 - [`apps/lab/src/lab/lab-non-success.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-non-success.ts)

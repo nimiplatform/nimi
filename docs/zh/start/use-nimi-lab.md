@@ -1,69 +1,61 @@
 # 使用 Nimi Lab
 
-`apps/lab/` 是 Nimi 的本地能力实验 App。它在一个真实 Nimi App 中集成 SDK、Kit、Runtime、Realm 和 app-tools 表面，便于先接入并检验新能力，再决定哪些能力适合进入脚手架。某个表面可以已经集成并可见，但当前 carrier 仍返回 typed unavailable；集成存在不等于可运行或已获得脚手架准入。
+`apps/lab/` 是 Nimi 官方的能力实验台（Capability Workbench）。它作为一个完整的真实 Nimi App，集成了 SDK、Kit、Runtime、Realm 与 App Tools 的最新能力特性，供开发者在功能正式纳入脚手架推荐前进行端到端体验与集成验证。
 
-Nimi Lab 不掌握平台准入真相。Runtime、Realm、SDK、Kit、发布、registry 和 permission 仍由各自的平台表面负责。App Tools 只生成明确收录的能力切片，不会复制完整 Lab。
+Nimi Lab 展现了平台能力的集成范式。对于权限控制、会话管理、模型调度及数据持久化，各层依旧严格遵循平台统一的职责边界与安全契约。
 
-## 运行
+## 运行与调试
 
-在源码仓库根目录执行：
+在源码仓库根目录下执行：
 
 ```bash
 pnpm dev:lab
 ```
 
-`apps/lab/` 提供以下常用脚本：
+`apps/lab/` 中提供的常用工作流命令包括：
 
 ```bash
-pnpm run init
-pnpm dev:shell
-pnpm run validate
-pnpm run doctor
-pnpm run update
-pnpm run test
+pnpm run init       # 初始化项目与受管配置
+pnpm dev:shell      # 启动官方 Electron 开发容器
+pnpm run validate   # 检查 App 清单与访问声明
+pnpm run typecheck  # 检查 TypeScript 类型
+pnpm run test       # 运行单元测试与集成测试
 ```
 
-`dev:shell` 进入官方 `nimi-app dev` launcher；在 Windows 和 macOS 上，Nimi Lab 以 Desktop-supervised Electron App 运行，没有 Tauri 构建或开发路径。尚未准入的本地项目必须先由 Developer Mode 授权，再以隔离的 `local_development` build 启动。Nimi Lab 不拥有 principal、grant 或 session，也不授予公开 App 准入。
+在 Windows 和 macOS 上，Nimi Lab 默认在受桌面端托管的 Electron 调试环境中运行。本地开发版本可通过 Nimi Home 的开发者模式（Developer Mode）进行注册与权限授予。
 
-Realm-backed settings 当前作为已集成的 Lab 表面保留，但 local-app carrier 会返回 typed unavailable。其真实 owner journey 仍为 `NOT-VERIFIED`，不能由可见 UI 推断 Realm access 已可运行。
+## 关键代码与架构参考
 
-## 应该看哪里
-
-| 需要 | 位置 |
+| 探索方向 | 对应源码路径 |
 | --- | --- |
-| App scaffold scripts 与本地检查 | `apps/lab/package.json` |
-| Runtime-authenticated shell 行为 | `apps/lab/README.md` 和 shell routes |
-| AIConfig storage 与 App owner | `apps/lab/src/lab/lab-ai-config-store.ts` |
-| 由 capability intent 发起的 Runtime AI dispatch | `apps/lab/src/lab/lab-runtime.ts` |
-| Fail-closed capability states | `apps/lab/src/lab/lab-non-success.ts` |
-| AIConfig intent composition | `apps/lab/src/lab/workbench/lab-ai-config-settings-panel.tsx` |
-| Contract checks | `apps/lab/test/lab-contract/` |
+| 脚手架脚本与本地检查配置 | `apps/lab/package.json` |
+| 受保护的 Shell 容器交互与路由 | `apps/lab/README.md` 与 shell 路由文件 |
+| AI 配置存储与应用归属隔离 | `apps/lab/src/lab/lab-ai-config-store.ts` |
+| 基于能力意图（Capability Intent）的 Runtime AI 调度 | `apps/lab/src/lab/lab-runtime.ts` |
+| 结构化错误处理与异常状态映射 | `apps/lab/src/lab/lab-non-success.ts` |
+| AI 配置面板组件设计 | `apps/lab/src/lab/workbench/lab-ai-config-settings-panel.tsx` |
+| 平台契约一致性测试用例 | `apps/lab/test/lab-contract/` |
 
-## 使用边界
+## 实践要点
 
-- Nimi Lab identity (`nimi.lab`) 只属于 Nimi Lab。
-- Lab 专属 diagnostics、fixture 和 demo data 不是脚手架或生产数据契约。
-- 能力已经进入 Lab，不代表 App Tools 已允许用户选择它。
-- Lab acceptance tests 是 app-owned checks 的示例，不能替代你的 App requirements。
-- Runtime execution diagnostic 只是证据，不要把 implementation、route、connector 或 target 细节复制到 App 请求中。
-- Developer Mode 是本地开发材料，不是公开 App listing admission。
+- **应用身份独立**：Nimi Lab 使用的应用标识（`nimi.lab`）专属于该实验台，自定义应用应使用唯一的独立 App ID。
+- **配置与数据隔离**：Lab 中的测试数据、模拟夹具（Fixtures）与诊断信息仅用于演示，开发自己的应用时请建立独立的领域模型。
+- **循序渐进集成**：在 Lab 中探索新技术特性后，可结合业务场景，参考其模式在自己的应用中逐步落地。
+- **结构化状态反馈**：建议借鉴 Lab 中的做法，为用户呈现清晰具体的环境状态（如提示启动 Runtime、引导授权），提升应用体验。
 
-## 常见失败状态
+## 常见状态反馈对照
 
-| 状态 | 含义 |
-| --- | --- |
-| `runtime-unavailable` | Runtime 无法处理这次请求。 |
-| `permission-required` | 文本生成权限尚未获准。 |
-| `input-invalid` | 必需的 capability 输入缺失或格式错误。 |
-| `sdk-method-unavailable` | 当前 App build 没有暴露所需 SDK method。 |
-| `runtime-call-failed` | Runtime 返回 typed contract failure。 |
+| 状态码 | 业务含义 | 推荐提示方案 |
+| --- | --- | --- |
+| `runtime-unavailable` | 本地 Runtime 服务不可用。 | 提示用户启动或重启 Nimi 桌面端服务。 |
+| `permission-required` | 当前功能所需的权限未被授予。 | 引导用户在 Nimi 桌面端授权窗口中点击同意。 |
+| `input-invalid` | 输入参数或提示词缺失/不合规。 | 提示用户检查输入内容。 |
+| `sdk-method-unavailable` | 当前构建版本未包含该能力。 | 提示检查 SDK 版本更新。 |
+| `runtime-call-failed` | 底层服务处理失败。 | 提供友好的错误反馈并记录调试日志。 |
 
-App 应该直接呈现这些状态。不要把它们压缩成单一的 `SDK missing` 或 `model unavailable`。
-
-## 来源依据
+## Source Basis
 
 - [`apps/lab/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)
-- [`apps/lab/package.json`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/package.json)
 - [`apps/lab/src/lab/lab-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-runtime.ts)
 - [`apps/lab/src/lab/lab-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-ai-config-store.ts)
 - [`apps/lab/src/lab/lab-non-success.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-non-success.ts)

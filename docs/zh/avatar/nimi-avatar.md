@@ -1,135 +1,42 @@
-# Nimi Avatar
+# Nimi Avatar 桌面伙伴形象
 
-Nimi Avatar 是一个第一方 Tauri App（`@nimiplatform/avatar`），它把 Agent 的形象呈现为桌面上一个透明、置顶的悬浮窗。它**和桌面端是两个独立的 App**，不是子表面，是"你的 Agent 活在你桌面上"这件事的实际形态。
+Nimi Avatar 是由 Desktop 监督启动的 Electron App。它把当前已授权 Agent 的 Live2D 或 VRM 形象显示在独立的透明窗口中，负责本地动作、表情、播放与窗口交互。
 
-## Nimi Avatar 是什么
+## 角色窗口与 Companion
 
-| 属性 | 值 |
-| --- | --- |
-| 包 | `@nimiplatform/avatar` |
-| Shell | 独立 Tauri App，与桌面端分开 |
-| 窗口形态 | 透明 + 无边框 + 置顶（默认；用户可切换） |
-| 鼠标事件穿透 | 在 Agent 身体区域之外，事件穿透到下层 App |
-| 位置 | 可拖拽，跨会话记住位置 |
-| 点击反应 | 由 NimiAgentScript 处理器编程驱动 |
-| Companion 区 | 始终可见：助手气泡 + 状态栏 + 输入框 |
+角色视图占据主要窗口范围。Companion 提供对话相关控件，按明确交互或语音状态需要时出现；它不是默认常驻的停靠面板，也不计入安静状态下的固定窗口范围。
 
-它不是托盘图标，也不是侧边气泡，而是一个真实活在屏幕上的视觉存在。
+模型的后端标称尺寸、有效几何信息与本地缩放决定窗口布局。碰撞区域和可选透明度查询由所选后端提供，遮罩更新速度不等同于画面帧率，也没有跨后端统一的 60Hz 保证。
 
-## 具身化舞台与 Companion 表面
+## 何时可以交互
 
-Avatar 有两个可见区域：
+App 会话、模型、驱动和后端呈现均满足要求后，产品交互才开放。准备未完成时显示加载状态；无效会话、启动上下文或模型条件则显示诊断原因。
 
-| 区域 | 作用 |
-| --- | --- |
-| 具身化舞台 | 主可视区域，Agent 的身体在此渲染（当前为 Live2D） |
-| Companion 表面 | 始终可见的一栏：助手气泡 + 状态栏 + 输入框 |
+开发预览可以显示模型，但不表示真实 Runtime 会话或产品已经就绪，也不开放正式产品交互。具体条件见[实例生命周期](/zh/avatar/instance-lifecycle)。
 
-Companion 表面**始终可见**，没有触发按钮，也没有弹窗。它紧贴 Agent 显示。状态栏包含麦克风开关、模式标签、扬声器指示、设置齿轮。输入框是文本输入加发送。
+## 启动与会话绑定
 
-## 合成态状态机
+调用方通过正式 Avatar 宿主接口提交当前会话的 Agent handle。Desktop 与 Runtime 重新校验目标后，Desktop 启动或聚焦对应实例；已有另一位 Agent 时，需要用户确认切换。
 
-| 状态 | 含义 |
-| --- | --- |
-| `loading` | 初始化阶段，尚无具身化 |
-| `ready` | 舞台与 Companion 都已挂载，Agent 在线 |
-| `degraded:*` | 强类型降级原因（资产缺失、Runtime 不可达等） |
-| `error:*` | 强类型错误原因 |
-| `relaunch-pending` | 等待桌面端发出的启动更新 |
-| `fixture:active` | Fixture 模式（开发用） |
+Avatar 确认自己的受保护 App 会话有效，再通过传入的确切对话锚点解析该会话的 Agent handle。它不会把调用方的 handle 直接当作自己会话的操作选择器。渲染器启动上下文不包含账号凭据或调用方自行指定的模型路径；资产准备由宿主授权。
 
-`ready` 与非 ready 表面互斥：要么二者都在 ready，要么由降级表面接管。
+## 动作、表情与语音
 
-## NimiAgentScript（NAS）
+活动与情绪由内置 adapter 映射到已验证的后端能力。点击进入本地交互物理处理，不调用模型目录中的 NAS JavaScript。模型能力与名称映射见[模型能力配置](/zh/avatar/model-capabilities)。
 
-NAS 是面向 Avatar 包作者的、基于约定的 JS 处理器系统。
+普通 Conversation 语音播放读取最终语音产物；Avatar 负责本地音频分析与口型。Realtime 是独立受准入的媒体路径，不等同于这份产物的播放。
 
-| 处理器类别 | 路径 |
-| --- | --- |
-| Activity | `<model>/runtime/nimi/activity/<name>.js` |
-| Event | `<model>/runtime/nimi/event/<name>.js` |
-| Continuous | `<model>/runtime/nimi/continuous/<name>.js` |
-| Shared | `<model>/runtime/nimi/lib/` |
+## 不可用与恢复
 
-NAS 处理器使用宿主无关的具身化语义层 API 来驱动后端；类型收窄之后才能用 Live2D 专属扩展。
+Runtime 绑定、驱动或呈现条件不可用时，产品交互停止，窗口显示相应原因。条件不允许渲染时，模型视图与 Companion 不挂载。使用界面提供的恢复操作后，只有重新满足会话和呈现条件才会恢复交互。
 
-NAS 处理器自动注册：Runtime 扫描 `<model>/runtime/nimi/`，发现处理器即注册，由 Tauri notify watcher 负责热加载。
+隐藏窗口会结束本地捕获与播放等可见交互；停止 Avatar 实例只结束当前本地实例和资源，不删除 Agent 或 Conversation。Runtime 后台工作有自己的权限与生命周期。
 
-## 窗口行为细节
-
-| 项 | 值 |
-| --- | --- |
-| 装饰条 | 无 |
-| 透明 | 是 |
-| 置顶 | 默认开启（用户可切换） |
-| 动态尺寸 | 跟随模型边界与 Companion 占位 |
-| 启动位置 | 屏幕右下角，留 24px 边距 |
-| 后续位置 | 跨会话记住 |
-| 命中区 | alpha 蒙版 + bbox 双层；像素级 alpha 采样 60Hz |
-| 拖拽区 | 仅在具身化舞台内；Companion 与降级面吸收指针事件 |
-
-合起来就是这件事：Agent 在屏幕上，你能在它所在的位置和它互动，可以拖动它，屏幕的其它部分照常使用。
-
-## 设置弹层
-
-只有 4 个开关，刻意保持最小：
-
-| 开关 | 默认 |
-| --- | --- |
-| `always_on_top` | 开 |
-| `bubble_auto_open` | 开 |
-| `bubble_auto_collapse` | 开 |
-| `show_voice_captions` | 由用户决定 |
-
-不放转录长面板，不做工作站式配置。Avatar App 是一个 applet，不是工作站。
-
-## 读者场景：从桌面端打开 Avatar
-
-桌面端聊天里有一个 Agent，你想把它请到屏幕上。
-
-1. **桌面端发起 Avatar**。只发 `agent_id` 和可选的 `avatar_instance_id`、`launch_source`。**不传 token，不传 anchor，不传包描述符。**
-2. **Avatar 启动**：建窗口 → 渲染器挂载 → 发出 `avatar.app.start` → 注册第一方 App → 通过 Runtime 账户视图解析 `agent_id`。
-3. **加载视觉包**：具身化包加上 NAS 处理器。
-4. **计算命中区**：alpha 蒙版加 bbox。
-5. **挂载舞台与 Companion**：状态从 `loading` 进入 `ready`。
-6. **发出 `avatar.app.ready`**：Agent 上线。
-
-桌面端是发起方，Avatar 是 Carrier，Runtime 是权威。
-
-## 读者场景：通过 NAS 反应点击
-
-用户点击 Agent 的头部，希望 Agent 有反应。
-
-1. **点击命中具身化舞台**。alpha 蒙版判定点击位于 Agent 身体内。
-2. **发出 `avatar.user.click`**，附带命中区域信息。
-3. **NAS 事件处理器命中**：`<model>/runtime/nimi/event/onClickHead.js` 已被自动注册到这个区域。
-4. **处理器执行**：触发害羞反应——播放一段动画，加一段轻量音效，发出一次情绪事件。
-5. **具身化呈现**：Live2D 后端把这一段反应渲染出来。
-
-Avatar 包作者只是把处理器放在约定路径下，没有任何注册仪式。
-
-## 读者场景：Runtime 不可达
-
-Avatar 运行期间 Runtime 守护进程停了。
-
-1. **Avatar 探测到不可达**。
-2. **状态迁移**：合成态从 `ready` 进入 `degraded:runtime_unavailable`。
-3. **降级表面接管**：舞台与 Companion 同时被降级表面替换，强类型原因对用户可见。
-4. **不静默兜底**。Avatar 不会假装自己还能跑，也不会偷偷切到 mock fixture。
-5. **用户可选**：等 Runtime 恢复后点重载，或者关闭。
-
-恢复是**手动**的：只提供一个明确的重载按钮，不会从降级态自动回到 ready，避免把平台问题悄悄遮住。
-
-## Avatar 不做的事
-
-| 关注点 | 不做的原因 |
-| --- | --- |
-| 持久化转录 | 长会话历史归桌面端聊天 |
-| 后台语音 / 唤醒词 | 语音必须由用户显式触发 |
-| 跨锁屏的语音 | 锁屏中断语音通道 |
-| 静默切换到 mock | Runtime 不可达时 fail-closed |
-| 降级态自动恢复 | 仅手动重载 |
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`apps/avatar/src/shell/renderer/App.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/App.tsx)
+- [`apps/avatar/src/shell/renderer/voice-companion-state.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/voice-companion-state.ts)
+- [`apps/avatar/src/shell/renderer/companion-surface/companion-surface.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/companion-surface/companion-surface.tsx)
+- [`apps/avatar/src/shell/renderer/app-shell/avatar-session-agent-binding.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/app-shell/avatar-session-agent-binding.ts)
+- [`apps/avatar/src/shell/renderer/sdk/SdkDriver.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/sdk/SdkDriver.ts)

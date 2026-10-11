@@ -1,160 +1,117 @@
 # Nimi UI Material
 
-## Status: Admitted Contract; Public Use Follows Design/Runtime Surfaces
+> Status: Active specification contract; public capabilities are exposed via the Design/Runtime surface.
 
-The 5-tier material taxonomy under `P-DESIGN-022` is admitted and
-the token catalog is shipped under `config/platform-nimi-ui-tokens.yaml`. The
-perf-downgrade hook-point interface is admitted at the spec level;
-runtime-side perf-downgrade behavior is available only when exposed by
-the owning design/runtime surface.
+Under `P-DESIGN-022`, the 5-tier material taxonomy is fully specified and published in `config/platform-nimi-ui-tokens.yaml`. The performance-downgrade hook-point interface is reserved at the specification level; active rendering surfaces resolve material tiers through Kit and host transparency modes.
 
 ## What "Material" Means
 
-In the Nimi design pattern, **material** describes the surface
-treatment of a component: how opaque it is, how its backdrop blurs,
-how it reads against what is behind it. Material is a separate axis
-from color tone; you can have a `solid` action button, a
-`glass-thick` panel, a `glass-chrome` overlay — independent from
-their semantic color role.
+In the Nimi design pattern, **material** describes the surface treatment of a component: its opacity, backdrop blur, and how it reads against underlying visual layers.
 
-Material is a **closed 5-tier taxonomy**. No app or feature
-module may author a parallel material axis.
+Material is an orthogonal axis to color hue: you can pair a `solid` action button, a `glass-thick` floating modal, or a `glass-chrome` overlay with any semantic color role (primary, danger, neutral, etc.) without conflict.
+
+Material is organized as a **closed 5-tier taxonomy**. Applications and feature modules may not introduce parallel, unmanaged material hierarchies.
 
 ## The 5 Tiers
 
-In ascending opacity / blur intensity order:
+In ascending order of opacity and blur intensity:
 
-| Tier | Background token | Border token | Backdrop blur |
+| Tier | Background Token | Border Token | Backdrop Blur |
 | --- | --- | --- | --- |
-| `solid` | Resolves through `surface.*` tone family (no material bg/border token) | — | — |
+| `solid` | Resolves through `surface.*` tone families (no material bg/border token) | — | — |
 | `glass-thin` | `material.glass_thin.bg` (`--nimi-material-glass-thin-bg`) | `material.glass_thin.border` | `backdrop.blur_thin` |
 | `glass-regular` | `material.glass_regular.bg` | `material.glass_regular.border` | `backdrop.blur_regular` |
 | `glass-thick` | `material.glass_thick.bg` | `material.glass_thick.border` | `backdrop.blur_strong` |
 | `glass-chrome` | `material.glass_chrome.bg` | `material.glass_chrome.border` | `backdrop.blur_chrome` |
 
-The blur radii gradient maps to `blur_thin / blur_regular /
-blur_strong / blur_chrome`.
+The platform's blur radius gradient maps strictly to `blur_thin / blur_regular / blur_strong / blur_chrome`.
 
-The 5-tier set supersedes a prior 3-tier (`solid` /
-`glass-regular` / `glass-thick`) form. The original tier names are
-preserved byte-for-byte; `glass-thin` and `glass-chrome` are admitted
-additions.
+This 5-tier classification supersedes the earlier 3-tier model (`solid` / `glass-regular` / `glass-thick`), preserving backwards compatibility while formally adding `glass-thin` and `glass-chrome`.
 
 ## Consumer Rules
 
-| Rule | Required |
+| Rule | Enforcement Level |
 | --- | --- |
-| Consume material via `<Surface material="...">` primitive in `@nimiplatform/kit/ui`, OR equivalent `data-nimi-material="<tier>"` marker class | Yes |
-| Inline `rgba(...)` material background fills | Forbidden |
-| Inline `backdrop-filter` declarations | Forbidden |
-| Hand-picked `backdrop-blur-*` Tailwind named tokens outside kit-emitted utility classes | Forbidden |
-| Accent packs override `material.*` or `backdrop.*` tokens | Forbidden (material tokens are neutral foundation-layer) |
-| Adding a 6th tier | Requires new admission (not pre-authorized) |
+| Consume materials via the `<Surface material="...">` primitive in `@nimiplatform/kit/ui` or the equivalent `data-nimi-material="<tier>"` marker | Mandatory |
+| Hardcoded inline `rgba(...)` material background fills | Strictly forbidden |
+| Inline `backdrop-filter` declarations | Strictly forbidden |
+| Arbitrary `backdrop-blur-*` Tailwind classes outside Kit-emitted utilities | Strictly forbidden |
+| Accent packs overriding `material.*` or `backdrop.*` tokens | Strictly forbidden (materials belong to the neutral foundation layer) |
+| Adding a custom 6th tier | Requires formal platform specification proposal |
 
-The bias toward consuming material through the `<Surface>` primitive
-is what keeps tier behavior consistent across apps.
+Using the `<Surface>` primitive guarantees visual consistency across various application surfaces.
 
-## Why The Tiers
+## Design Rationale for Each Tier
 
-Each tier exists for a particular reading purpose:
+Each tier satisfies a specific visual hierarchy and readability objective:
 
-| Tier | Use |
+| Tier | Primary Purpose & Context |
 | --- | --- |
-| `solid` | High-priority surfaces where pixel readability matters most (forms, dense data) |
-| `glass-thin` | Subtle hover / overlay surfaces that should not detach visually |
-| `glass-regular` | Standard glass surfaces (most overlays, side panels) |
-| `glass-thick` | Heavier glass for surfaces that need to dominate over background motion (modals over animation) |
-| `glass-chrome` | The strongest glass treatment, for chrome-level surfaces (top bars, command palettes) |
+| `solid` | High-contrast surfaces where text readability is paramount (forms, dense data grids) |
+| `glass-thin` | Subtle hover surfaces and lightweight overlays that maintain spatial continuity |
+| `glass-regular` | Standard frosted glass surfaces (drawers, floating sidebars, dropdowns) |
+| `glass-thick` | Heavy frosted glass designed to suppress complex motion underneath (dialogs over active animations) |
+| `glass-chrome` | Maximum blur and prominence for chrome-level system surfaces (application top bars, command palettes) |
 
-The taxonomy is opinionated. Authors do not free-mix backdrop-blur
-values for new visual effects.
+The taxonomy is intentionally opinionated. Developers should not invent ad-hoc blur values for fleeting visual experiments.
 
-## Perf-Downgrade Hook-Point Interface
+## Performance Downgrade Hook Interface
 
-Glass tiers carry GPU cost. The contract reserves a perf-downgrade
-hook-point interface that runtime implementations can use to step
-down a higher-cost tier when the device cannot sustain it. Runtime
-implementation of the downgrade behavior is a separate consumer
-responsibility; the contract pins the **interface** so apps can read
-a degraded tier consistently.
+Backdrop filters incur GPU processing overhead. The design specification reserves a performance-downgrade hook interface: when running on resource-constrained devices or under low battery profiles, runtime surfaces can step down higher-cost tiers to lower-cost representations. Implementation of the downgrade behavior is a consumer-surface responsibility; the specification defines the interface so applications read degraded tiers consistently.
 
-The downgrade does **not** change the material taxonomy itself —
-it changes which tier resolves at render time. A surface authored
-as `glass-chrome` may render as `glass-regular` on a degraded
-device; the authoring contract is unchanged.
+Crucially, performance downgrades **do not alter** the component contract itself; they merely adjust the resolved tier at render time. A component declared as `glass-chrome` may render as `glass-regular` or solid on lower-tier hardware without requiring any application-level code modifications.
 
-## Accessibility Contrast Threshold
+## Accessibility Contrast Thresholds
 
-The contract pins an a11y contrast threshold for material tiers
-against admitted tone families. Tier choice cannot drop text /
-boundary contrast below the admitted threshold; consumers that
-require non-default contrast must use an admitted exception
-mechanism — not invent a parallel material axis.
+The specification pins strict accessibility (a11y) contrast minimums across material tiers against foundational text and border colors. Component styling must preserve readable contrast thresholds; specialized cases must utilize established platform contrast compensation rules rather than inventing arbitrary materials.
 
-## Reader Scenario: A Modal Picks Its Tier
+## Typical Scenario: Selecting a Tier for a Modal
 
-An app needs a modal over animated background content.
+An application presents a modal dialog over an active particle canvas:
 
-1. **Pick the tier intent.** The modal must read clearly while the
-   background may animate. `glass-thick` matches.
-2. **Use the primitive.** `<Surface material="glass-thick">...</Surface>`.
-3. **Token resolution.** Background and border resolve from
-   `material.glass_thick.*`; backdrop blur from `backdrop.blur_strong`.
-4. **Perf downgrade.** On a low-power device, runtime may downgrade
-   to `glass-regular`; the modal still reads.
+1. **Identify visual requirement**: The modal requires crisp readability while subduing animated background noise. `glass-thick` is selected.
+2. **Apply primitive**: `<Surface material="glass-thick">...</Surface>`.
+3. **Automated token binding**: Background and borders map to `material.glass_thick.*`, and backdrop blur resolves to `backdrop.blur_strong`.
+4. **Adaptive degradation**: On lower-power devices or accessibility modes, host rendering surfaces can step down rendering cost via Kit transparency modes (e.g., rendering as `glass-regular`) while keeping dialog text readable.
 
-The author wrote one `material="glass-thick"` and the rest is
-admitted.
+Developers specify `material="glass-thick"`; platform infrastructure manages variable mapping and contract resolution.
 
-## Reader Scenario: An App Tries Inline Glass
+## Typical Scenario: Intercepting Ad-Hoc Inline Blur
 
-An app author writes inline `style=\{\{ background: 'rgba(...)',
-backdropFilter: 'blur(20px)' \}\}` for a custom panel.
+A feature author writes inline styles: `style=\{\{ background: 'rgba(...)', backdropFilter: 'blur(20px)' \}\}`:
 
-1. **Reject.** Per consumer rules, inline `rgba(...)` material
-   background and inline `backdrop-filter` declarations are
-   forbidden.
-2. **Re-route.** The app uses `<Surface material="glass-regular">`
-   or whichever admitted tier matches the intent.
-3. **Visual consistency.** The app's panel matches every other
-   admitted glass surface in the platform.
+1. **Linting & review catch**: Static linters flag the disallowed inline blur declarations.
+2. **Refactor to primitive**: The component is replaced with `<Surface material="glass-regular">`.
+3. **Visual cohesion**: The panel now conforms to platform-wide aesthetic and accessibility baselines.
 
-## Reader Scenario: Wanting A Sixth Tier
+## Typical Scenario: Proposing a New Material Tier
 
-A designer proposes a sixth material tier for a new visual context.
+A designer requests a novel blur intensity for a unique surface context:
 
-1. **Closed taxonomy.** The contract does not pre-authorize
-   expansion.
-2. **Admission required.** The proposal goes through governance: new
-   tier added to `config/platform-nimi-ui-tokens.yaml` material category, new
-   blur radii admitted, new tier added to `<Surface>` primitive's
-   variant set, perf-downgrade interface reviewed.
-3. **After admission.** The new tier ships with the same consumer
-   rules.
+1. **Closed taxonomy**: Applications cannot unilaterally introduce a 6th material tier.
+2. **Formal evaluation**: A proposal is submitted to the design system maintainers to evaluate the blur gradient, followed by updating `config/platform-nimi-ui-tokens.yaml` and the `<Surface>` primitive.
+3. **Ecosystem release**: Once released, all applications can consume the new tier under uniform rules.
 
-The boundary is intentional: free-form material expansion is what
-turns a design system into per-app sprawl.
+This discipline prevents UI sprawl and guarantees long-term maintainability.
 
-## What This Does Not Do
+## Architectural Boundaries
 
-- It does not let accent packs override material tokens.
-- It does not allow inline glass.
-- It does not let apps invent custom blur values outside admitted
-  Kit utility classes.
-- It does not allow a 6th tier without admission.
-- It does not change tier behavior under perf downgrade — only the
-  resolved tier changes; the authoring contract is stable.
+- Accent packs cannot override foundational material tokens.
+- Ad-hoc inline glass styling is forbidden.
+- Custom blur radius values cannot be injected outside the token catalog.
+- Material tiers cannot be extended without formal specification updates.
+- Performance downgrades adjust render output only; component authoring contracts remain unchanged.
 
-## Boundary Summary
+## Specification Summary
 
 | Concern | Authority |
 | --- | --- |
-| 5-tier taxonomy + tokens | `P-DESIGN-022` (this contract) |
-| Token catalog | `config/platform-nimi-ui-tokens.yaml` |
-| Theme values | `config/platform-nimi-ui-themes.yaml` |
+| 5-tier material taxonomy & tokens | `P-DESIGN-022` |
+| Complete token catalog | `config/platform-nimi-ui-tokens.yaml` |
+| Preset theme values | `config/platform-nimi-ui-themes.yaml` |
 | `<Surface>` primitive | `@nimiplatform/kit/ui` |
-| Perf-downgrade interface | This contract (spec-level) |
-| Runtime perf-downgrade implementation | Consumer responsibility (separate) |
+| Performance downgrade interface | `P-DESIGN-022` (specification) |
+| Downgrade execution & transparency modes | Kit and host rendering surfaces |
 
 ## Source Basis
 

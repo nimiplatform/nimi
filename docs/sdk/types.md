@@ -1,30 +1,33 @@
 # Shared Types and Errors
 
-`@nimiplatform/sdk/types` exports shared JSON, request metadata, error, reason-code, and retry utilities. Use the types exported by the public operation you call; this module is not a universal collection of domain identifiers.
+The `@nimiplatform/sdk/types` package exports shared JSON types, request metadata, standardized error classes, structured reason codes, and retry utilities.
+
+Developers are encouraged to import types selectively according to the operations they invoke. This module provides foundational low-level primitives and error models rather than an exhaustive union of all domain entities.
 
 ## Current Exports
 
-| Export | Use |
+| Export | Role & Purpose |
 | --- | --- |
-| `JsonPrimitive`, `JsonValue`, `JsonObject` | Typed JSON values |
-| `NimiError`, `NimiErrorSource` | Error types with reason, action, trace, and retry metadata |
-| `isNimiError`, `asNimiError`, `createNimiError` | Inspect, normalize, or construct SDK errors |
-| `ReasonCode`, `ReasonCodeValue` | Shared reason constants and their type |
-| `CoreMetadata`, `CoreUnaryRequest`, `CoreStreamRequest` | Low-level SDK request descriptions; not an alternative App access path |
-| `RetryOptions`, `RetryEvent`, `RetryReasonKind` | Retry helper configuration and observations |
-| `createNimiClientId`, `createNimiUlid` | Generate identifiers for their admitted caller-owned uses |
+| `JsonPrimitive`, `JsonValue`, `JsonObject` | Strongly-typed JSON structures |
+| `NimiError`, `NimiErrorSource` | Standardized error interface and source union type with reason codes, action hints, trace IDs, and retry metadata |
+| `isNimiError`, `asNimiError`, `createNimiError` | Type-guard helpers to inspect, normalize, or construct SDK errors |
+| `ReasonCode`, `ReasonCodeValue` | Standard platform error reason constants and types |
+| `CoreMetadata`, `CoreUnaryRequest`, `CoreStreamRequest` | Low-level transport descriptors and client communication contract shapes |
+| `RetryOptions`, `RetryEvent`, `RetryReasonKind` | Configuration options and observation callbacks for retry policies |
+| `createNimiClientId`, `createNimiUlid` | Helpers to generate standardized unique identifiers |
 
-For a Nimi App, import `NimiLocalAppClient` from `@nimiplatform/sdk` and obtain the client through its generated Host binding. Import capability request/result types from their owning public SDK entry point. A type-only import does not require executing that module's transport code.
+In a standard Nimi App, import `NimiLocalAppClient` from `@nimiplatform/sdk`. Type-only imports exist purely at compile-time and incur zero runtime transport overhead.
 
-## Keep Identities in Their Owner Context
+## Keeping Identifiers in Context
 
-Many API identifiers are represented as strings; do not assume the compiler will reject every cross-domain mix-up. Keep each identifier with the result and operation that issued it. A Character reference is not a LocalAgent operation selector, and an artifact ID does not grant access.
+Many low-level platform identifiers are represented as strings. Developers should ensure identifiers remain coupled with the operations that issued them:
+- A Character reference is not an Agent handle;
+- An Artifact ID does not imply ambient read access;
+- Official App agent operations require the session-scoped `agentHandle` returned by authorized listings; never manually construct or type-cast raw local agent IDs into handles. Runtime validates the current account, application identity, session lifecycle, and target permissions at execution time.
 
-Formal App Agent operations use the session-scoped `agentHandle` from the authorized reference listing. Do not invent or cast a raw LocalAgent ID into a handle. Runtime still validates the current account, App, session, target, and operation.
+## Catching and Narrowing Typed Errors
 
-## Inspect a Typed Error
-
-`NimiError` is a TypeScript type. Use `isNimiError` to narrow an unknown caught value:
+`NimiError` provides rich diagnostic metadata. In catch blocks, use the `isNimiError` type guard to safely narrow unknown values:
 
 ```ts
 import { isNimiError, type NimiError } from '@nimiplatform/sdk/types';
@@ -32,7 +35,10 @@ import { isNimiError, type NimiError } from '@nimiplatform/sdk/types';
 export function nimiFailureDetails(error: unknown): Pick<
   NimiError, 'message' | 'reasonCode' | 'actionHint' | 'retryable'
 > | null {
+  // 1. Narrow unknown catch value
   if (!isNimiError(error)) return null;
+
+  // 2. Extract standard diagnostic properties
   return {
     message: error.message,
     reasonCode: error.reasonCode,
@@ -42,9 +48,9 @@ export function nimiFailureDetails(error: unknown): Pick<
 }
 ```
 
-This function is compiled as [`examples/sdk/06-errors.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/06-errors.ts). A `null` result means the value did not match the SDK error shape; preserve and handle the original failure through the App's normal error path. It does not mean the operation succeeded.
+Reference code is verified in [`examples/sdk/06-errors.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/06-errors.ts). A `null` return indicates that the thrown value does not conform to the `NimiError` shape; preserve the original error and handle it through the application's ordinary error pathways.
 
-Use the returned reason and action hint to choose the next user action. The `retryable` field is not permission to replay a business operation after an uncertain external outcome. For Jobs, retain the original identity and follow [observation and recovery](/runtime/streaming).
+Use the returned `reasonCode` and `actionHint` to guide user recovery. Note that `retryable: true` is an operation-level hint indicating that a retry may be attempted; it does not authorize blind replay of non-idempotent operations when external outcomes are indeterminate. For asynchronous Jobs, preserve the original Job ID and verify actual outcomes before deciding to resubmit.
 
 ## Source Basis
 

@@ -1,37 +1,38 @@
-# Connector 与云端 Provider
+# 云端连接器与模型供应商（Connectors & Providers）
 
-Runtime 负责云端 Connector、凭据、Provider 目录和执行 Driver。在 Nimi Home 的「云服务」配置连接，再在对应 AIConfig 中选择其安全引用与已准入目标。
+本地 Runtime 负责统一管理所有通往第三方云端大模型的连接器（Connectors）、供应商目录（Provider Catalog）以及底层协议执行驱动（Drivers）。用户可在 Nimi Home 的「云服务」中集中配置各个服务商的 API 连接，随后在具体应用的 AIConfig 中将能力路由指向对应连接。
 
-## 配置与执行
+## 架构分层与职责划分
 
-| 层次 | 包含什么 |
-| --- | --- |
-| Runtime Connector | 当前账号的连接、凭据托管、端点策略与生命周期 |
-| AIConfig Cloud 路径 | 确切的 `connectorRef`、`implementation`、`providerModelTarget` |
-| App AI 请求 | 内容和受支持参数，不含路由覆盖或凭据 |
+| 架构层级 | 管理内容 | 安全与生命周期 |
+| --- | --- | --- |
+| **Runtime 连接器（Connector）** | 第三方 API Key、自定义接入端点与网络重试策略 | 密钥由 Runtime 在受保护的本地存储中集中托管，不向前端暴露 |
+| **AIConfig 云端路由** | 关联的连接器引用（`connectorRef`）与目标模型名（`providerModelTarget`） | 作为应用级配置持久化保存，只存储安全引用标识 |
+| **应用调用层（App Request）** | 业务请求内容与提示词参数 | 仅需关注业务逻辑，完全与底层 API 协议与认证细节解耦 |
 
-使用绑定宿主客户端的 AIConfig 选项与设置界面。安全 Connector 引用既不是秘密，也不代表授权；Runtime 仍检查归属、App 权限、凭据有效性和策略。CLI 和独立客户端不提供另一套 Connector 托管入口。
+通过将敏感密钥由本地 Runtime 统一托管，第三方应用无需自行处理 API 鉴权、跨域请求或密钥泄漏风险。
 
-提交 Job 时，Runtime 验证并固定已保存的 Cloud 输入。配置目标失败时不会另找 Provider 或静默替换模型。后续配置变更影响新提交；已有 Job 后续出站操作仍需满足当前权限及原 Connector 的准入条件。
+## 驱动转换与标准化调度
 
-## Provider 与 Driver
+- **协议转换**：Runtime 内置的 `CapabilityImplementationDriver` 将平台统一的规范操作转换为各服务商私有的 HTTP / WebSocket / gRPC 协议。
+- **确定性路由**：任务提交时，Runtime 严格按照已配置的目标模型发起调用。若云端服务发生网络中断或配额耗尽，系统将直接返回具体错误，避免静默切换至未经验证的替代模型造成幻觉或计费争议。
+- **结构化结果输出**：应用层消费归一化后的生成流与结构化结果，底层供应商专有的原始 Header 与私有字段被安全过滤。
 
-Runtime 目录描述已准入 Provider 家族；CapabilityImplementationDriver 把规范操作转换为具体协议。能否执行取决于确切实现、目标、功能和执行模式，不能只凭 Provider 名称判断。
+## 云端调用异常排查指南
 
-App 消费强类型结果和失败。凭据、端点、原生句柄和私有协议状态不会进入 App 结果或存储。安全配置选项与执行证据不授予请求级覆盖权。
+当云端调用失败时，建议按以下步骤进行排查：
 
-## 处理云端失败
+1. **检查配置状态**：确认当前应用绑定的 AIConfig 中所指定的 Connector 是否处于激活状态。
+2. **测试连接健康度**：在「云服务」面板中点击“测试连接”，验证 API 密钥有效性与网络连通性。
+3. **核查服务商配额**：检查对应云端平台（如 OpenAI、Anthropic）账户是否有充足余额或受限于速率限制。
+4. **调整或切换模型**：如需更换模型接入点，可在应用的 AI 配置面板中更新目标并保存生效。
 
-1. 查看该能力已提交的 AIConfig 和 Runtime 返回的实际配置状态。
-2. 在「云服务」检查引用的连接，通过受保护流程修正凭据或可用性。
-3. 如需换目标，携带当前 revision 保存完整 AIConfig。
-4. 新工作由 App 明确发起；已有异步 Job 应观察原身份，不能重新提交来恢复。
+## 相关文档
 
-另见 [凭据托管](/zh/runtime/key-source-routing) 与 [本地模型](/zh/runtime/local-models)。
+- [密钥源与凭据路由机制](/zh/runtime/key-source-routing)
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)

@@ -1,45 +1,34 @@
-# Nimi Coding Host 集成
+# Nimi Coding 宿主环境集成
 
-Nimi workspace 将 `@nimiplatform/nimi-coding@0.6.3` 固定为精确的
-development dependency。正常安装 workspace 后即可使用 CLI：
+Nimi 工作区将 `@nimiplatform/nimi-coding@0.6.5` 作为严格锁定的开发依赖进行管理。在完成工作区初始化后即可直接调用其 CLI 工具：
 
 ```bash
 pnpm install
 ```
 
-直接调用 CLI 时，应在仓库根目录使用 `pnpm exec nimicoding ...`，以便解析
-workspace 精确固定的本地软件包。不要探测或依赖全局 `PATH` 中的
-`nimicoding`。
+在终端直接执行命令时，建议在仓库根目录下运行 `pnpm exec nimicoding ...`，以确保精确使用工作区本地锁定的版本。请勿探测或依赖操作系统全局 `PATH` 中的 `nimicoding` 可执行文件。
 
-## 验证受管集成
+## 验证受管集成状态
 
 ```bash
 pnpm nimicoding:sync
 pnpm nimicoding:doctor
 ```
 
-本仓库中的 `nimicoding:sync` 执行 `sync --check`；它只核验受管文件，不会
-改写产品 authority 或宿主任务状态。`nimicoding:doctor` 检查软件包与受管
-内容是否兼容。两个命令都不会验证 authority corpus、实现一致性或任务是否
-可以开始。
+- `pnpm nimicoding:sync`：在底层执行 `sync --check`，校验受管模板与配置文件的同步状态，不会擅自改写权威规范或宿主状态。
+- `pnpm nimicoding:doctor`：全面检查本地安装的包版本与受管规范结构之间的兼容性。
 
-`nimicoding start` 用于新仓库的首次接入。它只创建文档明确列出的 authoring
-guide、受管 instruction block 和被忽略的 `.nimi/local/` 根目录，不会创建
-产品 authority、注册任务 hook 或安装强制前置检查。当前 Nimi checkout 已经
-完成接入，日常工作使用上面的 `sync` 与 `doctor` 脚本即可。
+针对全新的空仓库，`nimicoding start` 可用于引导初始化基础模板（生成标准编写规范目录与 `.nimi/local/` 缓存目录）。当前 Nimi 仓库已经过完整初始化，日常维护使用上述 `sync` 与 `doctor` 脚本即可。
 
-`AGENTS.md` 与 `CLAUDE.md` 的受管区块向 AI 宿主说明可用的有界命令和声明
-边界。它们不是执行 wrapper。`start` 与 `sync` 只拥有明确登记的受管路径和
-带标记区块。
+`AGENTS.md` 与 `CLAUDE.md` 中的受管注释区块用于告知 AI 宿主当前可用的合规指令与权限边界，它们属于指导性规范，而非强制的执行劫持包装器。
 
-## 代码读取
+## 源码上下文与规范标记扫描
 
-当前 0.6.3 依赖提供 `code context`，用于读取有界的 TypeScript/TSX outbound
-context；`code authority` 用于查询 TypeScript、TSX、Go、Python 和 Rust 源码中
-可选的精确物理行标记。标记查询不证明语言注释语境；两个命令都不会评价未标注
-实现，也不证明实现符合 authority。
+当前 0.6.5 版本提供了两个核心代码分析命令：
+- **`code context`**：用于按需提取 TypeScript / TSX 文件向外引用的强类型上下文；
+- **`code authority`**：用于快速扫描 TypeScript、TSX、Go、Python 与 Rust 代码中显式声明的 `@nimi-authority` 或 `@nimi-deprecated` 物理行标记。该扫描属于轻量级静态匹配，不会对未标记的代码进行主观评价。
 
-## 验证产品 Authority
+## 规范有效性校验
 
 ```bash
 pnpm spec:authority:check
@@ -47,21 +36,19 @@ pnpm spec:authority:compile
 pnpm spec:authority:audit
 ```
 
-修改 authority 时，必须遵守 `.nimi/methodology/authority-authoring.yaml`：
-先获取有界 context，使用带显式 budget 的 semantic diff 与 impact，逐个格式化
-changed authority file，最后检查完整 `.nimi/spec` 输入集。
+在日常修改权威规范时，请严格遵守 `.nimi/methodology/authority-authoring.yaml` 中的流程指引：
+1. 提取有界上下文；
+2. 执行带有合理字节预算的语义差量与影响分析；
+3. 针对修改过的规范文件执行 `authority fmt` 格式化；
+4. 运行 `authority check` 针对完整规范集进行整体校验。
 
-Configured audit 只评价 `.nimi/config/authority-verifiers.yaml` 中的显式绑定；
-blocking clear 不表示业务语义完备或 implementation conformance 已通过。
+## 配置与目录划分
 
-## 文件位置
+- **`.nimi/config/**`**：存放 Nimi Coding 专属的宿主配置文件；
+- **`.nimi/methodology/**`**：存放受管的规范编写方法论文档；
+- **根目录 `config/**`**：存放具体的业务产品配置、代码生成器输入与系统静态字典；在其中引用规范 ID 仅作为语义追溯，并不会将其变成第二套权威规范。
 
-Nimi Coding host configuration 放在 `.nimi/config/**`。受管 authoring guide
-继续放在 `.nimi/methodology/**`。根 `config/**` 适合产品 schema、生成器输入
-和实现侧内容；引用 canonical authority ID 不会让它变成 Nimi Coding 配置，也不
-会让它成为第二套 authority。
-
-## 来源依据
+## Source Basis
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
 - [`.nimi/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-authoring.yaml)

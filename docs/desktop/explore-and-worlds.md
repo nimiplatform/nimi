@@ -1,108 +1,31 @@
-# Explore And Worlds
+# Discover Worlds and Character Sources
 
-Explore is where you discover things in Nimi — worlds, agents, and
-social posts. World detail and agent detail pages let you look closer
-before you step in.
+Explore lets you browse public worlds and character sources. A world detail page presents its setting, scenes, relationships, and character records so you can decide what to follow or which partner to add.
 
-## Explore
+## Current World Actions
 
-| Feature | Behavior |
-| --- | --- |
-| Discover feed | Curated content surface |
-| Agent details preview | Bounded agent profile preview |
-| World details preview | Bounded world profile preview |
-| Social feed | Posts and updates from your social graph |
+- Read the world's public setting, scene, and relationship sections.
+- Follow the world when that action is available.
+- Open a character source and inspect its public information.
+- Materialize a supported source as a local partner, or open the Conversation for an existing partner.
 
-Explore is a starting point. Clicking through takes you into the
-world, agent, or post flow itself — Explore makes things findable; it
-doesn't replace those destinations.
+Actions depend on the current account, source, and Runtime result. A public source preview is not access to another user's private Conversation or Cognition memory.
 
-## World Detail
+## Find a Partner Through a World
 
-Open a world and World Detail shows you what you need to know about
-it.
+1. Open a world from Explore.
+2. Browse its public sections and character records.
+3. Open the chosen character source; use the offered action to add a partner when the prerequisites are met.
+4. Open that partner's Conversation after Runtime has created or resolved it.
 
-| Surface | Content |
-| --- | --- |
-| Rules cards | World rules in user-friendly form |
-| Lorebook projections | Selected lore content |
-| Mutation audits | Recent canonical mutations |
-| Scenes | Scenes available in this world |
-| Transit | Portal / teleport entry to the world |
+The world detail links open a section or character source. They do not trigger Realm Transit, route the user through OASIS, or replace the whole Home chat context with an active world.
 
-Behind the page sits a single bounded read, `WorldDisplayDetail`.
-Several underlying reads (truth, world-state, world-history,
-projection) roll up into one coherent world page, so Desktop consumes
-that one seam instead of stitching raw Realm reads together itself.
+## Related Documentation
 
-## Agent Detail
-
-Open an agent and Agent Detail shows its public profile, read through
-the bounded `AgentDisplayDetail` seam.
-
-| Surface | Content |
-| --- | --- |
-| Public profile | Display name, presentation profile preview |
-| Owner | Who owns this agent |
-| Agents the user can see | Public agent list |
-
-Desktop carries Character/LocalAgent lists and public detail reads
-only. **Conversation stays in Runtime; long-term Memory belongs to Cognition through Runtime mediation** —
-Desktop doesn't hold them.
-
-## Reader Scenario: Discovering And Entering A World
-
-You browse Explore and find a world that catches your interest.
-
-1. **Explore feed.** Desktop renders curated content. You click a
-   world preview.
-2. **World Detail.** A bounded `WorldDisplayDetail` seam reads
-   truth, state, recent history, scenes — projects them as a
-   coherent world page.
-3. **Decide to enter.** You initiate transit. Per the platform's
-   transit primitive, transit goes through OASIS: current world →
-   OASIS → target world.
-4. **Realm transit.** Realm `R-TRANSIT-*` admits the transit;
-   identity stays canonical; social standing crosses
-   appropriately.
-5. **In the new world.** Desktop now renders the new world's
-   surfaces; chat, agents, and presentation update for the new
-   context.
-
-You moved from "browsing on Explore" to "inside a world" through
-admitted contracts at every step.
-
-## Reader Scenario: Looking At An Agent
-
-You see a public agent in Explore and want to learn more.
-
-1. **Click into Character Detail.** A bounded public-detail seam
-   resolves the Character's public profile and LocalAgent availability.
-2. **Public preview.** You see display name, presentation
-   profile preview, public worlds the agent appears in.
-3. **What you cannot see.** The LocalAgent's private Memory,
-   authorization state, or conversations with other users.
-4. **Action.** If allowed by current policy, you can
-   initiate a chat — a new `ConversationAnchor` opens; the
-   conversation is yours, not visible to others.
-
-The seam is intentionally narrow. Privacy is enforced at the
-seam level, not by client filtering.
-
-## Cross-Domain Touchpoints
-
-Explore composes its feed from several sources:
-
-| Source | What it provides |
-| --- | --- |
-| Realm | Worlds, PersonaCharacters, WorldCharacters, social posts |
-| Runtime | LocalAgent presentation profile previews |
-| Realm chat / social | Social post stream |
-
-Everything on Explore arrives through those bounded reads; it doesn't
-build private caches that could drift from the source.
+- [Transit Protocol](/realm/transit)
 
 ## Source Basis
 
 - [`.nimi/spec/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/product-surfaces.authority.yaml)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`apps/desktop/src/shell/renderer/features/world/world-detail.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/world/world-detail.tsx)
+- [`apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx)

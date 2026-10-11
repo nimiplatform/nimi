@@ -244,10 +244,10 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: 'Scripting',
+    text: 'Semantic Mapping',
     items: [
-      { text: 'Agent Script (NAS)', link: '/avatar/agent-script' },
-      { text: 'NAS Handler Authoring', link: '/avatar/nas-handler-authoring' },
+      { text: 'Activity Mapping', link: '/avatar/activity-mapping' },
+      { text: 'Model Capabilities', link: '/avatar/model-capabilities' },
       { text: 'Avatar Events', link: '/avatar/avatar-events' },
     ],
   },
@@ -255,7 +255,7 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
     text: 'Tooling',
     items: [
       { text: 'Test Fixtures', link: '/avatar/test-fixtures' },
-      { text: 'Debug Workbench', link: '/avatar/debug-workbench' },
+      { text: 'Backend Diagnostics', link: '/avatar/debug-workbench' },
     ],
   },
 ]

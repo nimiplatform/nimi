@@ -1,51 +1,51 @@
-# Avatar
+# Avatar 具身呈现
 
-Avatar 关心的是 Agent 怎么被呈现——在某个窗口里、在虚拟形象里、在动画里。规则只有一句：呈现方式可以变，Agent 本身不会因为换了一种渲染方式就变成另一个 Agent。
+Nimi Avatar 负责智能体的多模态视觉呈现与交互具身表达——无论是在桌面悬浮窗、虚拟形象舞台还是动态交互视口中。其核心设计原则是：**呈现形式可以因端制宜，但智能体本身的身份与记忆始终唯一且连贯**，绝不会因为切换了渲染后端或宿主窗口就退化为另一个孤立的 Agent。
 
-## Avatar 究竟是什么
+## 什么是 Avatar
 
-Avatar 不只是一张图。它是 AI 参与者的整个呈现层：视觉外形、动作、事件、每个 Carrier 表面愿意展示哪些部分，以及不同后端的渲染分支。
+Avatar 不仅仅是一张立绘或 3D 模型贴图。它是 AI 参与者完整的**外在呈现与交互层**：涵盖骨骼与网格外观、肢体与面部动作、交互事件派发、不同宿主（Carrier）的承载能力协商，以及面向不同图形引擎（Live2D、VRM 等）的渲染适配分支。
 
-呈现必须忠于 Agent 的真相，不能自己另搞一套。如果 Avatar 不动了，那是渲染的问题，Agent 并没有掉线；如果某个 Carrier 显示出来的样子和 Agent 的画像不一致，那是渲染层的差异，Agent 没有改变。
+视觉呈现必须忠实映射 Agent 底层的真实状态，不可擅自建立平行的业务逻辑：
+- 若 Avatar 动作出现卡顿或渲染异常，属于呈现层故障，并不代表 Agent 本身连接离线；
+- 若某个终端因硬件算力受限而采用了降级模型外观，这属于渲染层适配，Agent 的人格与认知保持完整如初。
 
-## Avatar 拥有什么、不拥有什么
+## 职责边界划分
 
-Avatar 负责：
+**Avatar 负责的范畴：**
+- 将 Agent 的抽象具身意图（动作、表情、视线等）投射至具体的宿主外壳 (Carrier)；
+- 协商评估宿主环境能否完整承载特定具身模型，并决策适配展现形态；
+- 管理各桌面端与移动端 Shell 特定的渲染管线分支。
 
-- Agent 的具身化怎么呈现到 Carrier 上；
-- Carrier 能不能展示这套具身化、以什么形态展示；
-- 各 Shell 自己的渲染分支：桌面端 Avatar 和其它 Shell 各有各的规则。
+**Avatar 不越界承担的范畴：**
+- 角色 (Character) 的全局持久化身份（由 Realm 负责）与 LocalAgent 的执行身份（由 Runtime 负责调度与生命周期管线）；
+- 智能体的长期记忆（由 Cognition 长期记忆库管理，Runtime 维护运行时会话）；
+- 虚拟世界内的社交关系网络（由 Realm 统筹）；
+- 基础推理生成与多轮对话决策（由 Runtime 调度）。
 
-Avatar 不负责：
+这种解耦至关重要：如果 Avatar 呈现层开始越权决定“Agent 是谁”或“Agent 记得什么”，呈现层就会与底层单一可信源产生冲突，破坏跨端体验的一致性。
 
-- Character 的持久身份（归 Realm）和 LocalAgent 的执行身份（Runtime 负责实例化与生命周期）；
-- LocalAgent 的长期 Memory（长期 Memory 归 Cognition；Runtime 保留自己的运行时状态）；
-- 世界里的社交关系（归 Realm）；
-- 生成与执行（归 Runtime）。
+## 典型场景：终端外壳无法承载完整具身能力
 
-这条切分很重要。如果一个 Avatar 表面开始决定"这个 Agent 是谁""它记得什么"，它就不再是呈现层，而是在和平台里真正负责这些事实的部分抢活干。
+某个 Agent 的具身设定包含了复杂的高精度物理动效或三维骨骼动画，而当前宿主环境算力不足或缺少对应渲染支持：
 
-## 读者场景：某个 Carrier 没法显示一份具身化
+1. **能力协商与准入**：宿主环境依据视觉准入契约评估该具身资产的兼容性。
+2. **严禁半成品静默渲染**：若无法完整渲染，系统不会展示破损的模型或错乱的面部，而是按照规范协议确定兜底策略：平滑降级为受支持的高质量备选方案（如轻量 2D 形态）、或者显式返回强类型的不兼容提示。
+3. **保护底层身份状态**：无论终端呈现如何降级，Realm 中的角色档案与 Runtime 中的 Agent 认知状态始终完好无损。
 
-某个 Agent 的具身化定义包含了当前 Carrier 渲染不了的动作。按 Avatar 契约处理：
+呈现层的波动隔离在 Avatar 内部，智能体依然是那个完整的智能体。
 
-1. Carrier 视觉接受契约决定这套具身化在该 Carrier 上能否准入。
-2. 不能完全准入时，Carrier 不会悄悄渲染半成品。契约决定后续走向：退到准入的备选呈现方案、拒绝、或抛出强类型不兼容。
-3. Realm 中的 Character 真相与 Runtime 中的 LocalAgent 真相不会因为 Carrier 这边发生了什么而改变。
+## 典型场景：Avatar 为什么要与 Runtime 解耦
 
-呈现的问题留在 Avatar，Agent 仍然是 Agent。
+为何呈现层不作为 Runtime 内部的一个内置功能，而要独立成专门的架构域？核心原因有三：
 
-## 读者场景：Avatar 为何独立于 Runtime
+- **多端跨宿主差异**：同一具身设定需要在不同的终端外壳（如桌面置顶透明窗、网页端内嵌舞台、移动端轻量面板等）中渲染，呈现机制具备鲜明的终端异构性；
+- **独立的视觉准入标准**：视觉渲染拥有独立的帧率、内存、GPU 着色器及材质准入规则；
+- **故障排查与确定性重放**：图形渲染问题可作为纯粹的视觉管线 Bug 进行独立调试、回放与修复，而无需混入复杂的对话推理执行上下文。
 
-有人可能会问：呈现为什么不直接放在 Runtime 里？理由有三：
+将呈现逻辑与 Runtime 剥离，能够确保各自的协议契约边界高度专注、清晰演进。
 
-- 呈现要在不同 Carrier 上以不同方式渲染（桌面端 Avatar 以及未来其它 Carrier）；
-- 呈现自己有视觉接受姿态；
-- 呈现的问题可以作为渲染问题来调试和重放，而不是作为执行问题。
-
-如果把呈现塞进 Runtime，这些关注点会挤掉 Runtime 本身的执行语义。把它们分开，每个域的契约才能各自聚焦。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)

@@ -1,67 +1,44 @@
-# Platform
+# Platform Architecture Overview
 
-Nimi is an installable, open-source, local-first personal AI product. Inside
-Nimi you meet characters, hold conversations, make creations, follow stories,
-and visit worlds — experiences that start on your own machine and stay yours.
+Nimi is an installable, open-source, local-first personal AI system. In Nimi, users meet AI characters, hold continuous conversations, create multimodal content, follow evolving narratives, and explore digital worlds. All experiences start on your personal device, with complete ownership over data and privacy.
 
-Nimi Home is the entry point, hosted by Desktop today. It fronts the
-experience without replacing anything behind it. A few parts work together:
+Nimi Home serves as the primary user hub, hosted by the Desktop shell today. It fronts the user experience and coordinates the underlying subsystems without usurping their domains:
 
-- Realm keeps ecosystem identity: your characters, friendships, and worlds,
-  plus the shared facts inside them.
-- Runtime is the AI engine. It brings characters to life locally as
-  LocalAgents and runs local and cloud models from multiple providers.
-- SDK is the single typed interface Apps use to talk to Runtime and Realm.
-- Avatar renders a character on screen — how it looks, moves, and reacts — but
-  does not run the AI behind it.
-- Kit holds shared UI pieces, used when a product surface needs them.
+- **Realm**: Maintains the ecosystem identity network—characters, social relationships, worlds, and shared authoritative world state.
+- **Runtime**: The AI execution engine. It instantiates Realm character identities into executable LocalAgents on your local machine and schedules local models (Ollama, llama.cpp) and cloud AI providers.
+- **SDK**: The single typed, capability-scoped client interface for Apps to communicate with Runtime and Realm.
+- **Avatar**: Renders characters on screen—visual presentation, 2D/3D embodiment, gaze tracking, and emotional reactions—without managing the underlying AI decisions.
+- **Kit**: Shared, high-fidelity UI primitives applied when a product surface needs cohesive styling.
 
-These parts stay separate on purpose. The part that knows who your character
-is never has to be the part that runs the AI or draws it — which is how the
-same character stays itself everywhere.
+These subsystems are deliberately decoupled. The system that defines who a character is does not need to own model execution or graphics rendering. Consequently, the same character maintains continuous identity across interfaces and worlds.
 
-## Character and LocalAgent
+## Character Identity and LocalAgent Execution
 
-You create or pick a character in Realm. Realm issues a Character Source — the
-description Runtime uses to bring that character to life as a LocalAgent
-scoped to you. The LocalAgent can draw on world context Realm has shared, but
-it never takes over the character's identity or the world's facts; those stay
-with Realm.
+Users create or select a character in Realm. Realm issues a structured Character Source defining its persona and traits; Runtime uses this definition to initialize and run a dedicated LocalAgent on the user's machine. The LocalAgent draws upon contextual world state shared by Realm, but never overrides or alters the canonical character identity or world history—those remain authoritatively governed by Realm.
 
-Apps use LocalAgent capabilities through the SDK. Runtime works out identity
-and authorization from the active session, so Apps never receive Realm
-credentials, Runtime-internal proofs, provider keys, or an account-wide list
-of LocalAgents.
+Applications access LocalAgent capabilities via the SDK. Runtime derives identity and permissions directly from the authenticated session. Apps never receive Realm account credentials, internal Runtime proofs, or AI provider API keys, nor can they enumerate unpermitted account-wide agents.
 
-See [Character And LocalAgent](/platform/agents/) and
-[Realm And Runtime As Siblings](/platform/architecture/realm-runtime-siblings).
+For deeper architectural context, see [Character and LocalAgent](/platform/agents/) and [Realm and Runtime as Siblings](/platform/architecture/realm-runtime-siblings).
 
-## Six protocol primitives
+## The Six Protocol Primitives
 
-Six protocol primitives describe the operations products can exchange across
-these boundaries, without any part taking over another part's facts:
+The platform defines six core protocol primitives to structure operations exchanged across system and world boundaries, ensuring no component overrides another's authoritative state:
 
-- State
-- Event
-- Intent
-- Action
-- Audit
-- Permission
+- **Timeflow**: Progression, temporal rhythms, and scheduling across worlds.
+- **Social**: Relationship graphs and interaction semantics.
+- **Economy**: Asset values, credential exchanges, and transaction records.
+- **Transit**: Travel and context transitions between worlds.
+- **Context**: Shared environmental framing and situational state.
+- **Presence**: Spatial occupancy and admission boundaries.
 
-See [Protocol](/platform/protocol) and
-[Execution Protocol](/platform/execution-protocol).
+See [Platform Protocol](/platform/protocol) and [Execution Protocol](/platform/execution-protocol).
 
-## Current boundary
+## System Boundaries and Scope
 
-The product loop today is Realm, Runtime, SDK, Nimi Home, and Apps. General
-Workflow, MCP, World Evolution, marketplace, registry, trust tiers, public
-distribution, and commercial settlement are not prerequisites for that loop.
-Designs for future distribution stay separate unless they would conflict with
-these boundaries.
+The current runtime loop encompasses Realm, Runtime, SDK, Nimi Home, and independent Apps. Generalized workflow orchestration (Workflow), external protocol bridges (MCP), autonomous world evolution, public app marketplaces, and commercial settlement are not prerequisites for running the core system. Future capabilities will integrate within their respective bounded domains.
 
-Simulator is archived and no longer participates in App development,
-validation, or release workflows. For current App development, follow
-[Create an App](/start/create-an-app).
+> [!NOTE]
+> The legacy Simulator has been archived and does not participate in app development or verification. For current development instructions, follow [Create an App](/start/create-an-app).
 
 ## Source Basis
 

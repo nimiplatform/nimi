@@ -1,136 +1,49 @@
-# World History
+# World History and Immutable Append-Only Ledger
 
-> Status: Running today. Realm `R-WHIST-*` keeps the permanent
-> record of what happened.
+World History records accepted canonical happened events and their provenance within a digital world. It operates as an **append-only, immutable** chronological ledger answering the question: "How did this world evolve into its present state?". It does not record ephemeral turns, private application state mutations, or operations outside canonical world admission.
 
-World history is the **append-only record** of what happened in a
-world. Every record carries its provenance. A replay run can read
-history but never write to it; only canon-mutating runs may append.
-And when something needs correcting, the fix is a new record that
-supersedes or invalidates the old one — never a silent deletion.
+In Nimi's architecture, append-only persistence provides transparency and verifiable provenance. Historical records cannot be silently rewritten or physically deleted; subsequent corrections are committed as explicit superseding events, preserving the full timeline.
 
-For the side-by-side comparison with state (when each surface
-updates per `effectClass`), see
-[State vs History](/platform/worlds/state-vs-history).
+## Core Properties of World History
 
-## Append-Only
-
-| Property | Value |
-| --- | --- |
-| Storage | Realm `R-WHIST-*` |
-| Mutability | Append-only |
-| Run kinds | `REPLAY` (cannot append) / `CANON_MUTATION` (may append) |
-| Provenance | Mandatory on every record |
-| Corrections | Supersession or invalidation; never silent deletion |
-
-The append-only posture is the audit foundation. A reader can
-trust that history is what happened, not what was edited
-afterwards.
-
-## Replay Vs Canon Mutation
-
-| Run kind | Can append? | Purpose |
+| Dimension | Specification | Architectural Value |
 | --- | --- | --- |
-| `REPLAY` | no | Reconstruct what happened |
-| `CANON_MUTATION` | yes | Apply a real mutation |
+| **Storage Engine** | Realm Event Ledger (`R-WHIST-*`) | High-throughput ingestion, distributed time-series storage |
+| **Mutability** | Strictly Append-Only | Eliminates timeline tampering and retrospective fabrication |
+| **Execution Mode** | `REPLAY` (read-only) / `CANON_MUTATION` (append-enabled) | Isolates auditing and simulations from live canonical mutations |
+| **Provenance Requirement** | Mandatory actor, time, and evidence metadata | Guarantees clear origin and causality for every committed event |
+| **Correction Mechanism** | Explicit superseding and revocation markers | Preserves complete evolution history without destructive overwrites |
 
-A replay run reads history, runs typed projections, computes
-results — without writing anything. A canon-mutation run is the
-only kind that may append. This separation is what lets replay
-be a real audit tool.
+## Strict Isolation of Execution Modes
 
-## Provenance
+- **Replay Mode (`REPLAY`)**: Used for diagnostic replays, security audits, or narrative re-simulations. It sequentially processes historical events to derive state views; appending new events to the shared world history is strictly disabled, while state mutations are evaluated per the owner authorization matrix.
+- **Canon Mutation (`CANON_MUTATION`)**: Production-level operations that advance world state and append new authoritative entries to the ledger.
 
-Every history record carries provenance: who, when, with what
-evidence. Provenance is **mandatory** — there is no way to append
-a record without it.
+This boundary ensures that auditors and developers can simulate past timelines without risking contamination of canonical history.
 
-| Field | Purpose |
-| --- | --- |
-| Actor | Who acted |
-| Time | When |
-| Evidence refs | What supports this record |
-| Schema version | What shape this record uses |
-| Source | What produced this record (extension-app id, system, etc.) |
+## Correction and Superseding Workflows
 
-A history record without provenance is rejected at admission. The
-platform does not silently accept un-attributed records.
+When creators or administrators need to correct previously submitted records, Realm enforces structured correction workflows:
 
-## Corrections
+1. **Superseding**: Appends a new event explicitly referencing the older record, providing corrected attributes and human-readable rationale.
+2. **Revocation**: Appends an explicit revocation event marking the prior event as inactive for future state calculations.
+3. **Preservation of Provenance**: The original record remains permanently preserved in the timeline. Auditors can always verify: "Event A occurred at T1, and was superseded at T2 by Event B due to reason X".
 
-When a creator (or the platform) needs to correct history, the
-correction follows admitted patterns:
+## Three Pillars of World Modeling
 
-| Correction kind | Behavior |
-| --- | --- |
-| Supersession | A new record supersedes an older one; the older record stays in history |
-| Invalidation | A record is marked invalid; the original stays |
+| Pillar | Fundamental Question | Representation |
+| --- | --- | --- |
+| **Authoritative Truth (`Truth`)** | What are the authoritative settings, rules, and core entities of this world? | Realm Truth contract (`R-TRUTH-*`), evolvable via authorized releases |
+| **World State** | What does the world look like right now? | Present-time snapshot (`WorldState`) |
+| **World History** | How did the world arrive here? | Append-only event ledger (`WorldHistory`) |
 
-What is **never** admitted: silent deletion. A history record
-that was once committed cannot vanish. The user (auditor, future
-reader) can always see "this was committed, then later
-superseded by ..." or "this was invalidated for reason ..."
+Together, these pillars create verifiable, explainable digital worlds.
 
-## Reader Scenario: A Wrong Action Gets Corrected
+## Related Documentation
 
-A history record was committed in error — perhaps a system bug
-attributed an action to the wrong participant.
-
-1. **Original record exists.** The wrong attribution is in
-   history.
-2. **Correction issued.** A creator-tooling-issued correction
-   commits a supersession record.
-3. **Both records exist.** History has the original (now
-   superseded) and the correction.
-4. **Reader sees lineage.** A reader querying history sees the
-   timeline: original → superseded by correction.
-
-The original is not deleted. The correction is its own typed
-event with its own provenance.
-
-## Reader Scenario: An Audit Replay
-
-An auditor wants to understand exactly what happened over a
-period — perhaps a specific incident.
-
-1. **Replay run.** Reads history records under typed admission.
-2. **Reconstruct.** The replay reconstructs the chain of state
-   transitions, events, projections.
-3. **No append.** The replay does not write anything to history.
-4. **Result.** The auditor has a structured reconstruction.
-
-Replay is a real audit tool because it is structurally bounded
-not to append. There is no "the audit changed history" worry.
-
-## Reader Scenario: A Provenance-Less Record Attempt
-
-An app tries to append a history record without specifying
-provenance.
-
-1. **Admission check.** Realm validates the record against
-   admitted history shape.
-2. **Provenance missing.** The record fails the provenance
-   requirement.
-3. **Reject.** The record is not admitted; an error is returned.
-4. **App sees typed error.** "missing provenance" with reason
-   code.
-
-There is no fallback to "best-effort accept." Records without
-provenance simply do not enter history.
-
-## Cross-Cutting With State And Truth
-
-History is the third side of the triangle with truth and state.
-
-| Question | Answered by |
-| --- | --- |
-| What is canonically true? | Truth |
-| What does the world look like now? | State |
-| How did it get this way? | History |
-
-A surface that conflates them silently loses information. World
-History gives the **how**, not the **what** or the **now**.
+- [World State Architecture](/realm/world-state)
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

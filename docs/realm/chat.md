@@ -1,68 +1,35 @@
-# Chat
+# Realm Realtime Messaging and Chat Architecture
 
-Realm Chat is where direct messages between two people live. The
-thread, its messages, its membership, and its read state all exist
-exactly once — in Realm, not on your desktop and not inside one
-login session. That single thread is what every surface reads.
+Realm Chat provides platform-grade human-to-human realtime messaging infrastructure. Direct conversation threads, message histories, memberships, and read receipt statuses are authoritatively persisted by Realm. Whether users connect from desktop clients, web portals, or mobile interfaces, they access the exact same synchronized message thread.
 
-## Substrate
+## Conversation Carriers and Communication Modes
 
-Realm Chat admits exactly one substrate:
+Realm Chat is dedicated to direct communication between human participants:
 
-| Substrate | Purpose |
+| Carrier | Primary Purpose | Delivery Mechanics |
+| --- | --- | --- |
+| `DIRECT` | Point-to-point private messaging between two verified users | Real-time bi-directional transport via WebSocket / Socket.IO |
+
+> **Distinction from Agent Dialogues**: Interacting with an autonomous AI companion involves dynamic context synthesis and inference steps; these are managed independently by local Runtime via `ConversationAnchor` and do not create standard Realm human chat threads.
+
+## Common Workflows
+
+### 1. Direct Messaging and State Synchronization
+1. **Thread Creation**: When a user initiates a conversation, Realm verifies friendship status in the social graph, establishing a unique `DIRECT` thread.
+2. **Realtime Delivery**: Dispatched messages commit atomically to the thread ledger and push immediately to active recipient sockets.
+3. **Cross-Device Read Status**: Reading messages on Desktop syncs the read status to Realm. When the user later opens the conversation on another client, messages are already marked as read.
+
+## Subsystem Interactions
+
+| Subsystem | Coordination Boundary |
 | --- | --- |
-| `DIRECT` | Two-party human direct messaging |
+| **Social Graph (`R-SOC-*`)** | Friendship status serves as a precondition for direct messaging; Social manages connections without storing message payloads |
+| **World Semantics (`R-TRUTH-*`)** | Public scene dialogues can optionally archive into world history upon authorized events |
+| **Runtime ConversationAnchor** | Agent turn continuity remains isolated within Runtime, ensuring clean boundaries between human messaging and AI dialogues |
 
-Any other chat shape is rejected before canonical chat state is
-created, mutated, or returned. LocalAgent conversations remain
-Runtime-owned and do not become Realm human-chat threads.
+## Related Documentation
 
-## Reader Scenario: A Direct Conversation
-
-You direct-message another user.
-
-1. **Direct substrate.** Realm admits a `DIRECT` thread between
-   you and the other user.
-2. **Send.** Your message is committed to the thread.
-3. **Realtime delivery.** Other user sees the message via
-   Socket.IO realtime delivery.
-4. **Read state.** Read state is canonical — your client's
-   "read" is recorded in the thread.
-
-The thread is canonical Realm truth. Switching devices does not
-require re-syncing; the canonical thread is the source.
-
-## Reader Scenario: Read State Across Devices
-
-You read a message on Desktop. You open the same conversation on
-Avatar.
-
-1. **Read on Desktop.** Read state is committed to Realm.
-2. **Open on Avatar.** Avatar reads the canonical thread,
-   including read state.
-3. **Avatar sees you've read it.** No silent re-display of read
-   messages.
-
-Read state is platform truth, not per-surface state. This is what
-makes multi-surface chat coherent.
-
-## How Chat Relates To Other Realm Surfaces
-
-| Surface | Relation |
-| --- | --- |
-| Social (`R-SOC-*`) | Friendship gates direct chat preconditions; social does not own the thread itself |
-| Truth (`R-TRUTH-*`) | Chat that affects world meaning may participate in truth |
-| World History (`R-WHIST-*`) | Chat events that contribute to canonical history append there |
-| Runtime ConversationAnchor | Runtime owns LocalAgent conversation continuity separately from Realm human chat |
-
-## What Chat Does Not Do
-
-| Concern | Why not |
-| --- | --- |
-| Own conversation continuity | Runtime ConversationAnchor owns that |
-| Own agent execution | RuntimeAgentService owns that |
-| Own UI rendering | Desktop chat surface owns that |
-| Admit non-direct chat shapes | Realm Chat is limited to direct human threads |
+- [Desktop Chat Interface Guide](/desktop/chat)
 
 ## Source Basis
 

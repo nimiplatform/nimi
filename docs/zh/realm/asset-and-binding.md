@@ -1,129 +1,39 @@
-# 资产与绑定
+# 数字资产与世界绑定规范（Asset & Binding）
 
-Realm 把 Resource、Asset、Bundle、Binding 拆成四个不同的强类型概念。多数平台把它们都揉成"文件"，Nimi 选择拆开：一个 Resource 可以挂到多个表面而不变成 Asset；一个 Asset 可以组合进 Bundle 而不丢失自己的所有权身份。
+在 Nimi 的世界架构中，数字资产被解构为四个层次清晰的实体概念：**Resource（基础资源）**、**OwnableAsset（可拥有资产）**、**Bundle（组合资产包）**与 **Binding（宿主绑定关系）**。这种精细的分层设计有效避免了传统系统中将一切概念简单混为“通用文件”的混乱，为资产权属、重用性与商业化提供了严密的底层支持。
 
-## Resource
+## 四大核心资产实体定义
 
-最底层的强类型内容载体。
+### 1. 基础资源（Resource）
+- **定位**：底层内容载体（如图片贴图、3D 模型网格、音频剪辑、文本设定等原始字节流）；
+- **特征**：具备全局唯一哈希与 MIME 类型，但本身不携带所有权、作者等商业属性，可被多个上层资产安全复用。
 
-| 属性 | 值 |
-| --- | --- |
-| 类型 | `IMAGE`、`VIDEO`、`AUDIO`、`TEXT` |
-| 标识 | 稳定 |
-| 存储 | Realm 托管 |
-| 分发 | 强类型 |
-| 状态 | 强类型生命周期（上传准备 → 终态化 → 删除） |
-| 是否带所有权 | 否 |
+### 2. 可拥有资产（OwnableAsset）
+- **定位**：具有明确知识产权归属的独立数字作品（如一件特定武器、一套角色皮肤、一段原创音乐）；
+- **特征**：明确记录所有者（Owner）、原创作者（Author）与创作血缘，经历 `DRAFT → READY → ARCHIVED → DELETED` 的标准生命周期。
 
-Resource 就是带 id 和类型的强类型字节流。它本身不带"谁拥有"的语义，也不是 Asset。
+### 3. 组合资产包（Bundle）
+- **定位**：由多个 `OwnableAsset` 按特定顺序与结构打包而成的集合（如一套包含服饰、发型与配饰的完整外观包）；
+- **特征**：将资产有机组合在一起，同时完整保留包内每一个成员资产的原有作者与独立权属。
 
-## OwnableAsset
+### 4. 宿主绑定（Binding）
+- **定位**：表达资产与特定宿主之间的语义连接关系（例如：“将该把光剑（Asset）挂载到虚拟世界赛博城（World）的武器商店场景（Scene）中”）；
+- **绑定分类**：
+  - `PRESENTATION`：仅作为场景氛围或视觉装饰呈现；
+  - `USE`：可在场景中作为交互道具被玩家实际使用；
+  - `IMPORT`：作为世界核心规则的基础依赖被引入。
 
-可独立拥有的正式对象。
+## 严格的绑定合法性校验矩阵
 
-| 属性 | 值 |
-| --- | --- |
-| 类型 | `WORK` 或 `ITEM` |
-| 所有者 | 记录在册 |
-| 作者 | 记录在册 |
-| 血缘 | 记录在册 |
-| 生命周期 | `DRAFT → READY → ARCHIVED → DELETED` |
-| 绑定策略 | 按 asset 决定 |
-| `previewResourceId` | 与 `resourceRefs` 分开 |
+为了防止虚拟世界中出现逻辑荒谬的资产挂载（例如将未经转换的音频原始文件作为可驾驶载具），系统制定了严格的合法性校验矩阵：
+- 仅有经过平台契约预定义的 `[对象类型] × [宿主类型] × [绑定种类]` 组合才会被系统接纳；
+- 非法或未定义的组合会被系统直接拦截，从源头上保障了虚拟世界的规则完整度与呈现一致性。
 
-OwnableAsset **和 Resource 是两个东西**。除了引用一组 resource，asset 还带所有权、作者、血缘。`previewResourceId` 是预览图字段，独立于 asset 的内容 resource。
+## 相关文档
 
-## Bundle
+- [创作者经济与价值流转体系](/zh/realm/creator-economy)
+- [世界状态规范](/zh/realm/world-state)
 
-正式的组合单位——一组按顺序排列的 OwnableAsset 引用。
+## Source Basis
 
-| 属性 | 值 |
-| --- | --- |
-| 标识 | 稳定 |
-| 所有者 | 记录在册 |
-| 成员顺序 | 保留 |
-| 封面资产 | 与成员列表分开 |
-| 生命周期 | 终态止于 `ARCHIVED`（无 `DELETED`） |
-
-Bundle 把 asset 组合在一起，但不吞并它们。每个成员 asset 保留自己的所有权和作者。
-
-注意：Bundle 生命周期止于 `ARCHIVED`，没有 `DELETED` 态。不再需要的 bundle 归档即可，底层 asset 仍然可拥有、可复用。
-
-## Binding
-
-唯一一种持久的对象-宿主关系。它是强类型的边："这个对象按这种方式挂在那个宿主上"。
-
-| 属性 | 值 |
-| --- | --- |
-| 对象类型 | `RESOURCE` / `ASSET` / `BUNDLE` |
-| 宿主类型 | `WORLD` / `AGENT` / `SCENE` / `WORLD_EVENT` / `WORLDVIEW` |
-| 绑定种类 | `PRESENTATION` / `USE` / `IMPORT` |
-| 合法性 | 由矩阵裁定，未声明组合直接拒收 |
-
-Binding 有三个自由轴（对象类型、宿主类型、种类），但**合法性矩阵只准入其中一部分组合**。未声明的组合 fail-closed。
-
-这就是为什么不存在"任意 asset 任意挂法"的乱象。一个想把 Resource 以 `IMPORT` 挂到 Agent 的创作者，会立刻知道这个组合是不是合法。
-
-## Attachment
-
-只是跨表面的展示包装，**与 Binding 不同**。
-
-| 概念 | 权威 |
-| --- | --- |
-| Binding | Realm 规范真相 |
-| Attachment | 跨表面展示包装，不是绑定真相 |
-
-Attachment 让表面可以展示"这两个有关联"，但不暗示存在规范绑定。Binding 是持久的规范真相；Attachment 是展示侧的粘合剂。
-
-## 读者场景：创作者发布一套服饰
-
-一位创作者要发布一套服饰资产。
-
-1. **Resource**。创作者把贴图、网格、元数据上传为 Resource（`IMAGE` 等）。
-2. **OwnableAsset**。创作者创建一个 `WORK` 类型（或按用途选 `ITEM`）的 OwnableAsset，引用上述 resource，所有者是创作者本人。
-3. **生命周期**。创作者定稿后，asset 从 `DRAFT` 走到 `READY`。
-4. **可选：组合成一套**。创作者创建 `Bundle`，传入有序 `memberAssetIds` 及必要的 Bundle 元数据。成员关系由 Bundle 操作建立，不是以 Bundle 为宿主的 `IMPORT` Binding。Bundle 保留自己的所有者和成员顺序。
-5. **绑定到世界或场景**：
-   - Asset → Scene 用 `USE`（asset 在某个场景里被使用）。
-   - Bundle → World 用 `PRESENTATION`（bundle 出现在世界的展示面）。
-6. **合法性矩阵**。Realm 只准入矩阵里允许的绑定。
-
-创作者通过强类型矩阵拿到明确的合法使用权。
-
-## 读者场景：一次非法绑定
-
-一个 App 想把 Resource 直接以 `IMPORT` 绑到 Agent 上。
-
-1. **提交绑定**。App 发出绑定请求。
-2. **Realm 校验**。检查合法性矩阵：`RESOURCE` × `AGENT` × `IMPORT`。
-3. **未准入**。这个组合不在矩阵里。
-4. **拒收**。fail-closed，返回强类型错误。
-5. **App 看到原因**："此绑定组合未准入，请查阅合法性矩阵。"
-
-App 不会无意中违反宿主类型。矩阵是声明式的，并强制执行。
-
-## 读者场景：Bundle 归档但 asset 还活着
-
-一位创作者归档了一个 bundle，里面引用过一个 asset。
-
-1. **Bundle 归档**。Bundle 生命周期进入 `ARCHIVED`。
-2. **成员 asset 不受影响**。bundle 引用过的 OwnableAsset 仍按自己的生命周期保持 `READY` 或 `ARCHIVED`。
-3. **可以复用**。创作者可以把同一个 asset 组进另一个 bundle。
-
-这就是 Asset 与 Bundle 必须是两个概念的原因。如果合并成一个，归档 bundle 就会让里面的内容变成孤儿；分开则保住了复用性。
-
-## 为什么是四个概念，不是一个
-
-| 概念 | 它回答的问题 |
-| --- | --- |
-| Resource | 这堆强类型字节是什么？ |
-| Asset | 谁拥有这个可独立拥有的对象？ |
-| Bundle | 这是一组怎样组合在一起的 asset？ |
-| Binding | 这个对象按什么方式挂在那个宿主上？ |
-
-合并这些概念会丢掉这些回答。"文件"这一层抽象答不出"谁拥有这个组合体"或"这个挂法是否合法"。
-
-## 来源依据
-
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`config/realm-openapi/api-nimi.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/realm-openapi/api-nimi.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

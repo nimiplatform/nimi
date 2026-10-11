@@ -1,29 +1,29 @@
-# App Coordination
+# Inter-App Collaboration and Integration Messaging
 
-Nimi Apps coordinate through purpose-specific protected operations. A formal App does not have a generic `SendAppMessage` / `SubscribeAppMessages` bus, arbitrary recipient routing, or a token-based shortcut to the internal Agent carrier.
+In the Nimi ecosystem, applications collaborate through well-defined, permission-governed operations rather than through untyped global message buses. This design ensures that apps remain modular and isolated while safely reusing services provided by other apps.
 
-## Choose the Operation for the Task
+## Contextual Integration Interfaces
 
-| Task | App surface |
-| --- | --- |
-| Call an operation exposed by another App or external service | `client.integration`, with a real provider and the user's standing permission |
-| Converse with an authorized LocalAgent | `client.conversation`, using a current Agent handle |
-| Run independent Agent work for an App project | `client.agentWork`, under its separately admitted declaration and access |
-| Publish or inspect supported App activity records | `client.activity`, following its publisher, visibility, and record lifecycle rules |
+| Task | Recommended SDK Interface | Access & Lifecycle Semantics |
+| --- | --- | --- |
+| **Invoke Services from Other Apps** | `client.integration` | Validated against typed schemas; requires explicit user permission |
+| **Engage in LocalAgent Dialogue** | `client.conversation` | Uses authorized session-scoped `agentHandle` |
+| **Execute Dedicated Agent Tasks** | `client.agentWork` | Employs dedicated project scopes and execution pipelines |
+| **Publish or Inspect Activity Events** | `client.activity` | Follows author ownership, visibility policies, and retention rules |
 
-These surfaces have different inputs, outputs, and lifetimes. An activity record is not an RPC reply, and a Conversation message is not a transport for arbitrary App business commands.
+## Practical Scenario: Querying Free Time Slots from a Calendar App
 
-## Example: Ask Another App for Available Times
+If a calendar app (such as NimiDay) exposes a structured integration endpoint to query free/busy slots:
 
-If a calendar App exposes an admitted Integration operation for availability, discover that operation and its schema through `client.integration`. Have the user grant the relevant target/operation permission, invoke the operation with schema-valid input, and observe the original call. The calendar App owns its calendar data and business handler; the calling App owns what to do with the result.
+1. **Discovery & Schema Lookup**: The calling app discovers the capability and its input schema via `client.integration`.
+2. **User Authorization**: If the calling app lacks calendar access, Runtime returns `INTEGRATION_PERMISSION_REQUIRED`, guiding the user to grant standing permission in Home's Integrations workspace before retrying.
+3. **Structured Invocation**: Once granted, the calling app dispatches typed parameters. The calendar app processes the request within its own protected execution channel and returns formatted time intervals.
 
-If the provider or permission is missing, show the actual unavailable or denied result. Do not synthesize a generic `free-time-query` message or open a private Runtime transport. See [Integrations](/runtime/integrations) for the complete boundary.
+## Protected Channels and Security Invariants
 
-## Internal Agent Carrier
-
-Runtime retains a private, fixed-subtype Agent ingress/projection carrier for its own execution. Its wire/service names can remain in implementation and generated types without becoming public App operations. The ordinary public transport rejects those message RPCs, and protected Local App calls are also rejected.
-
-Use the canonical Conversation and Realtime operations for their respective tasks. Current session admission, a caller-supplied App ID, or knowledge of an internal message name does not widen the App's operation set.
+To safeguard the operating environment:
+- **Service Isolation**: Runtime enforces boundaries around internal agent transport channels; client apps can only invoke declared, registered public integration surfaces.
+- **Identity Integrity**: Applications cannot impersonate another app ID; caller provenance is strictly attested by the desktop host supervisor.
 
 ## Source Basis
 

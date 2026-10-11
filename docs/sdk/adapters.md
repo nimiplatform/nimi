@@ -1,78 +1,49 @@
-# Adapters
+# Framework Adapters
 
-SDK framework adapters stay outside the base `@nimiplatform/sdk` package.
-Adapters are framework projections; they do not own Runtime routing, Realm
-truth, or SDK core API semantics.
+Adapters translate third-party framework calls into Nimi AI client operations. Runtime retains routing and execution; the App retains tool callbacks and its own UI or business state.
 
-The old `@nimiplatform/sdk/ai-provider` subpath is removed. It must fail
-closed instead of forwarding to an adapter.
+## Published and Source Development Packages
 
-## Current Adapters
-
-| Adapter | Distribution | Role |
+| Artifact | Version and pairing | Use in this guide |
 | --- | --- | --- |
-| Vercel AI SDK 6 | npm package `@nimiplatform/sdk-adapter-vercel-ai` | Maps Vercel language-model calls onto an App's host-bound AI client |
-| OpenAI-compatible | Source only, under `sdks/typescript/adapters/openai-compatible`; not published as a package | Maps OpenAI-compatible chat-completion shapes onto Nimi AI semantics |
+| Published npm Vercel adapter | 0.1.0; AI SDK 6, provider 3, SDK ^0.13.0 | Earlier public artifact, not interchangeable with the current source example |
+| Current workspace Vercel adapter source | 0.5.0; AI SDK ^7.0.0, provider ^4.0.0, SDK ^0.21.0 | The example below uses this development combination via matching local archives or a development delivery bundle |
+| OpenAI-compatible | Source only; not distributed as a public npm package | Internal testing and the explicitly supported compatibility subset |
 
-The current Vercel adapter is 0.5.0 and declares SDK `^0.21.0`, Vercel AI SDK
-`^6.0.0`, and `@ai-sdk/provider` `^3.0.0` peers. Use Kit/native 0.18.0 and the
-matching Runtime for the protected App path. Use the complete current local
-adapter archive until the corresponding registry release is available.
+The published 0.1.0 declarations are available in [npm artifact metadata](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.1.0). A source manifest version does not establish publication of that version. Prepare the current App combination using [Development Environment Setup](/start/install).
 
-An adapter may depend on `@nimiplatform/sdk/ai`, `@nimiplatform/sdk/ai-runner`,
-`@nimiplatform/sdk/runtime`, or feature modules. It may not reintroduce removed
-base SDK subpaths.
+## Vercel AI SDK 7 in the Current Source App
 
-Additional framework or protocol adapters are added only for a concrete
-consumer. A source directory or capability ledger row does not by itself make
-an adapter a current public product surface.
-
-## Boundary
-
-| Concern | Owner |
-| --- | --- |
-| Runtime routing, provider readiness, audit | Runtime |
-| SDK core AI request/response semantics | `@nimiplatform/sdk/ai` |
-| AI runner orchestration semantics | `@nimiplatform/sdk/ai-runner` |
-| Framework call-shape mapping | Adapter package |
-| OpenAI-compatible request/response bridge | OpenAI-compatible adapter boundary |
-
-Adapters fail closed on unsupported framework features. They must not fabricate
-success, invent provider capability, or bypass Runtime readiness.
-
-## Reader Scenario: Vercel AI SDK In A Nimi App
-
-An App built on Vercel AI SDK 6 keeps Vercel's streaming and caller-owned tool
-loop and hands the model its host-bound AI client:
+Prepare SDK 0.21.0, matching Kit/Runtime, and development archives for source adapter 0.5.0. Reuse the App's host-bound client:
 
 ```ts
 import { stepCountIs, streamText } from 'ai';
 import { createNimiLocalAppVercelLanguageModel } from '@nimiplatform/sdk-adapter-vercel-ai';
 import { getNimiLocalAppClient } from './shell/auth/local-app-client.js';
 
-const model = createNimiLocalAppVercelLanguageModel({ ai: getNimiLocalAppClient().ai });
+const model = createNimiLocalAppVercelLanguageModel({
+  ai: getNimiLocalAppClient().ai,
+});
+
 const result = streamText({
   model,
-  prompt: 'Summarize this note in three points.',
+  prompt: 'Summarize this note in three sentences.',
   stopWhen: stepCountIs(5),
 });
 ```
 
-The adapter maps Vercel call shapes onto the App's AI client. Runtime still
-owns routing and execution, and the App's AIConfig selects Local or Cloud.
-The App keeps its tool callbacks and state. The adapter package README covers
-image input and conversation history.
+The source adapter returns LanguageModelV4 and is not the AI SDK 6 pairing. Execution also requires the App's AIConfig, declarations, and valid current session. The adapter does not provide credentials, model readiness, or an authorization bypass.
 
-## Reader Scenario: OpenAI-Compatible Call Shapes
+## Other Entry Points
 
-The OpenAI-compatible bridge exists as source in this repository and is not
-published as a package, so an App cannot install it. Its design preserves the
-compatibility shape only where it is explicitly supported; unsupported
-OpenAI-compatible features return typed failures instead of falling through to
-raw Runtime or provider-native bypasses.
+Use public AI runner, Runtime, and AI utility subpaths within their contracts. The retired `@nimiplatform/sdk/ai-provider` subpath does not forward to an adapter.
+
+OpenAI-compatible supplies only the subset explicitly supported in source. There is no published package, and it cannot create a private Runtime connection or bypass capability validation.
 
 ## Source Basis
 
+- [`sdks/typescript/adapters/vercel-ai/package.json`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/adapters/vercel-ai/package.json)
+- [`sdks/typescript/adapters/vercel-ai/index.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/adapters/vercel-ai/index.ts)
+- [`sdks/typescript/adapters/vercel-ai/README.md`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/adapters/vercel-ai/README.md)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`sdks/typescript/adapters/vercel-ai/README.md`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/adapters/vercel-ai/README.md)

@@ -1,26 +1,28 @@
-# 网页端与 Nimi Home
+# 网页端与桌面端 Nimi Home
 
-Nimi 网站与 Nimi Home 服务不同的任务。公开网站介绍产品、提供下载与政策信息，并承载由 Realm 支持的账户登录和安全交互。Nimi Home 是安装后的产品入口，目前由 Desktop 承载。
+Nimi 官方网站与桌面端 Nimi Home 各自承担明确的业务定位。公开网站面向广泛的用户与开发者，负责产品介绍、各平台发布状态展示、政策条款展示，以及由 Realm 支持的统一账户登录与安全交互。而 Nimi Home 则是用户安装到本地的完整产品工作台，由桌面端程序（Desktop）监督启动并提供坚实的本地算力与应用执行环境。
 
-## 浏览器中的任务
+## 浏览器网页端定位
 
-公开网页提供产品与 App 介绍、账户登录和安全操作、法律条款、下载状态及导航。App 介绍页用于说明产品，不在浏览器里运行 Nimi Home，也不会建立 App 安装、Registry 准入或 Runtime 访问事实。
+- **产品与生态呈现**：浏览 Nimi 平台的特性介绍、开发文档与精选应用展示。
+- **账户登录与安全交互**：通过浏览器完成用户注册、多因素认证与密码重置。浏览器交互直接对接 Realm 权威认证服务，保障用户账户安全。
+- **安装包获取**：查看 macOS、Windows 等主流操作系统的当前下载与发布状态。
+- **说明**：公开网页主要用于信息展示与安全身份认证，不直接替代桌面端运行本地模型或托管本地应用。
 
-Realm 仍负责账户与生态身份。网页端呈现账户交互；Desktop 使用已准入的浏览器交接流程，不嵌入凭据表单，也不自行拼出另一条登录路径。
+## 桌面端 Nimi Home 定位
 
-## Nimi Home 中的任务
+- **本地隐私 AI 计算**：通过本地 Runtime 驱动开源大模型推理，数据全流程保留在本地，提供真正的离线与私密 AI 体验。
+- **应用生态与开发调试**：通过受桌面端托管的 Electron 开发环境，本地 App 可以直接使用 `@nimiplatform/sdk` 和 `@nimiplatform/kit` 获得硬件加速、本地存储与权限会话支持。
+- **统一设备管理**：集中管理 GPU / NPU 硬件资源、模型下载、存储限额与多智能体调度。
 
-通过 Desktop 监督的宿主运行本地 App 开发，使用 App 的公开 SDK/Kit 绑定。Runtime 负责能力执行与访问决定。公开网站不承载 Desktop renderer，也不通过 Desktop Web 适配器提供桌面端的缩小版本。
+## 典型协同流程：在浏览器完成登录并交接回桌面端
 
-第三方 App 代码使用公开 SDK 与 Kit，不导入 Desktop renderer 私有实现，也不借公开网站绕过 Runtime 授权。
+1. **发起登录**：在 Nimi Desktop 中点击登录，客户端调用系统默认浏览器打开官方授权页面。
+2. **安全认证**：使用浏览器页面提供的方式登录，并完成需要的二次验证。
+3. **授权交接**：认证完成后，浏览器通过此次登录指定的本地回调将授权码返回给桌面环境。
+4. **桌面端激活会话**：Desktop 将回调信息转交本地 Runtime，由 Runtime 验证授权码、完成一次性凭据交换并安全托管，激活本地用户会话。
 
-## 读者场景：在浏览器登录，再返回 App
-
-用户可以在浏览器完成账户交互后返回 Nimi Home。这次网页交互本身不证明某个 App 已安装、正在运行或有权调用 AI 能力。App 仍需使用当前宿主会话，并处理真实的访问或执行结果。
-
-开发 App 请从[创建 Nimi App](/zh/start/create-an-app)开始；产品构建的可用范围以[下载页](https://nimi.ai/download)为准。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

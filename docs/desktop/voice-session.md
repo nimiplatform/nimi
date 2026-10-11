@@ -1,60 +1,38 @@
-# Voice Session
+# Voice Input, Realtime, and Reply Playback
 
-> Status: Running today. Voice sessions in Desktop agent chat are live;
-> the session, executor, and workflow pieces are defined at the kernel
-> level (`agent-chat-voice-*-contract.md`).
+Agent Chat has separate paths for recorded voice input, Realtime media, and playing a reply. Check the current voice configuration and the availability shown by the interface before using a path.
 
-A voice session is where you talk with your agent out loud: you speak,
-the agent replies in voice, captions stay in sync, and the session
-state is always visible. The underlying contracts split deliberately
-into session, executor, and workflow.
+## Recorded Voice Input
 
-## Three Contracts
+1. Click the microphone control and allow microphone access when prompted.
+2. Speak while recording is active.
+3. Click again to stop. Runtime transcribes the completed recording; the client then submits the recognized text as a Conversation turn.
 
-| Contract | Owns |
-| --- | --- |
-| Voice session | Higher-level voice session lifecycle as it appears in chat |
-| Voice executor | Per-turn voice execution mechanics |
-| Voice workflow | Cross-turn workflow + identity binding |
+The current recording path uses manual stopping. A pause in speech does not automatically submit the turn, and the composer does not show a word-by-word transcript while this recording runs.
 
-The split keeps three questions apart: "did you start a voice
-conversation", "how is one turn executing", and "how does the agent's
-voice identity carry across turns".
+## Realtime Media
 
-## Boundary
+Use the separate Realtime entry when the current session and configured capability support it. It opens a media session with its own start and end controls. The current request uses manual turn detection; do not treat it as the recorded-input flow or assume that a pause automatically submits a turn.
 
-| Owns | Does NOT own |
-| --- | --- |
-| Desktop chat voice surface lifecycle + UI | Voice creation (`K-VOICE-*` runtime — see [Voice Asset Lifecycle](/runtime/voice-asset-lifecycle)) |
-| Per-turn voice executor in chat | TTS / STT provider semantics (Runtime) |
-| Workflow + identity binding in chat | Avatar lipsync (Avatar) |
+## Play a Particular Reply
 
-The Desktop voice surface plays Runtime's voice capabilities through
-the captioned chat UI. It doesn't do voice cloning or asset storage
-itself.
+Use the playback action on a reply. The client requests voice rendering for that message, waits for the completed artifact, reads it, and plays it locally. This does not enable automatic audio for every later reply or real-time highlighted subtitles.
 
-## Reader Scenario: User Voice Turn
+If voice processing fails, use the returned reason to check the session, configuration, model, or connection. Already committed text remains separate from the playback result.
 
-User taps voice in chat and speaks.
+## Avatar Playback
 
-1. **Voice session begins.** Desktop tracks lifecycle.
-2. **STT executes.** Per voice executor contract; transcribes user
-   speech.
-3. **Turn submits.** Per `RuntimeAgentService` turn lifecycle.
-4. **Agent reply streams.** TTS executes per executor contract.
-5. **Captions sync.** Desktop chat surface keeps captions aligned
-   to audio.
-6. **Avatar lipsync.** If Avatar is also open, runtime presentation
-   stream + Avatar audio pipeline drive `ParamMouthOpenY`.
+Avatar uses the canonical Conversation's final voice artifact and bounded timing information. It owns local playback and lipsync analysis. Common Runtime presentation events do not carry renderer mouth weights or viseme frames. The separate Realtime media path has its own admission and cannot be inferred from Avatar's local audio events.
 
-## What Voice Session Does Not Do
+## Related Documentation
 
-- It doesn't create voice assets (`K-VOICE-*` lives in Runtime).
-- It doesn't redefine TTS / STT provider semantics.
-- It doesn't bypass the `RuntimeAgentService` turn lifecycle.
-- It doesn't drive Avatar lipsync.
+- [Conversation Controls](/desktop/conversation-capability)
+- [Voice Asset Lifecycle](/runtime/voice-asset-lifecycle)
 
 ## Source Basis
 
 - [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
-- [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
+- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-input.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-input.ts)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-realtime-voice.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-realtime-voice.ts)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-manual-voice-playback-button.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-manual-voice-playback-button.tsx)

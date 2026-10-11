@@ -1,144 +1,55 @@
-# World State
+# World State and Atomic Commit Architecture
 
-> Status: Running today. Realm `R-WSTATE-*` keeps the shared
-> present state of every world.
+In Nimi's digital world framework, World State represents the **authoritative present snapshot** of a world. It answers the fundamental question: "What does this world look like right now?". All mutations to a world's state are orchestrated through standardized Commit Envelopes managed atomically by Realm.
 
-World state is the **durable shared present** of a world. It
-answers one question: "what does this world look like right now?"
-Every change arrives in an explicit commit envelope; truth and
-history sit on either side of state.
+For an architectural comparison between live State and append-only History, see [World State vs. History](/platform/worlds/state-vs-history).
 
-For the side-by-side comparison with history (when each surface
-updates per `effectClass`), see
-[State vs History](/platform/worlds/state-vs-history).
+## Core Properties of World State
 
-## What World State Is
+| Property | Value | Architectural Purpose |
+| --- | --- | --- |
+| **Storage Engine** | Realm Distributed State Tree (`R-WSTATE-*`) | High-availability, sub-millisecond snapshot queries |
+| **Data Shape** | Normalized present-time snapshot of the world | Read-optimized; does not require replaying event streams |
+| **Mutation Vector** | Strictly through verified Commit Envelopes | Prevents concurrency collisions and ensures auditability |
+| **Authority** | Realm core services | System-wide Single Source of Truth |
 
-| Property | Value |
-| --- | --- |
-| Storage | Realm `R-WSTATE-*` |
-| Shape | Current snapshot of the world |
-| Mutation | Through admitted commit envelope |
-| Authority | Realm |
-| Read pattern | Single-state read or projection |
+## Commit Envelope Specifications
 
-State is not a cache. It is canonical present. Apps that read
-state get the current truth; the read does not require
-reconstruction from history.
+Every proposed mutation to world state is encapsulated within a structured envelope:
 
-## The Commit Envelope
+| Key Field | Description | Invariant & Validation |
+| --- | --- | --- |
+| `worldId` | Target world being modified | Must resolve to a valid registered world in Realm |
+| `appId` | Calling application identity | Caller must hold verified write grants for this world |
+| `sessionId` | Active session token | Tracks caller session lineage |
+| `effectClass` | Blast radius classification | Declares whether state only or state + history is affected |
+| `scope` | Granularity of mutation | `WORLD` (macro), `ENTITY` (single entity), `RELATION` (inter-entity link) |
+| `schemaId` / `schemaVersion` | Schema and version reference | Enforces strict schema conformance on mutated attributes |
+| `actorRefs` | Actors initiating the action | References users or characters driving the change |
+| `reason` | Human-readable intent | Concise operational summary for monitoring and auditing |
+| `evidenceRefs` | Supporting evidence references | Links to message IDs, transaction receipts, or user gestures |
 
-Every state mutation is bound to an explicit commit envelope.
+Creator authoring tools and third-party extension apps follow the exact same commit envelope schema, ensuring fair, transparent authorization.
 
-| Field | Purpose |
-| --- | --- |
-| `worldId` | Which world is being mutated |
-| `appId` | Which app is committing |
-| `sessionId` | Session lineage |
-| `effectClass` | `NONE` / `STATE_ONLY` / `STATE_AND_HISTORY` |
-| `scope` | `WORLD` / `ENTITY` / `RELATION` |
-| `schemaId` | What schema this commit conforms to |
-| `schemaVersion` | Which version of the schema |
-| `actorRefs` | Who acted |
-| `reason` | Why |
-| `evidenceRefs` | Supporting evidence |
+## Effect Classes
 
-Creator tooling and authorized world-connected apps use **the same
-commit envelope model**. There is no privileged shortcut for
-creator tooling.
+- `STATE_AND_HISTORY` (Default): Simultaneously updates live world state and permanently appends an immutable entry to the world history ledger.
+- `STATE_ONLY`: Updates current state without appending to history (used for transient adjustments, temporary indicators, or cursor positions).
+- `NONE` (Dry-Run): Evaluates preconditions and schema compliance without applying state mutations.
 
-## Effect Class
+## Standard Mutation Flow
 
-`effectClass` controls what the commit affects:
+1. **Construct Envelope**: The app bundles the operational payload (e.g., player character entering a building).
+2. **Submit to Realm**: Dispatches the signed request via the SDK.
+3. **Validation & Optimistic Locking**: Realm checks permissions, schema versions, and optimistic concurrency version tags.
+4. **Atomic Commit & Broadcast**: Mutation commits atomically to state storage, and incremental delta events broadcast to active world clients.
+5. **Audit Archival**: Commit provenance is archived to the local audit ledger.
 
-| Value | Meaning |
-| --- | --- |
-| `NONE` | No state change; this is a dry run / probe / observation |
-| `STATE_ONLY` | Mutates state without appending to history |
-| `STATE_AND_HISTORY` | Mutates state and appends to history |
+## Related Documentation
 
-Most real mutations are `STATE_AND_HISTORY`. `STATE_ONLY` is for
-specific cases (transient adjustments, certain policy operations).
-`NONE` is for dry-runs and observation.
-
-## Scope
-
-`scope` controls what slice of the world is targeted:
-
-| Value | Targeting |
-| --- | --- |
-| `WORLD` | World-level state |
-| `ENTITY` | A specific entity inside the world |
-| `RELATION` | A relation between entities |
-
-A commit must declare its scope; ambiguous scope is rejected.
-
-## Reader Scenario: A State Mutation From An Extension App
-
-An admitted extension-app wants to change a participant's
-position in the world.
-
-1. **Build the envelope.** App constructs:
-   - `worldId`: this world
-   - `appId`: this extension-app
-   - `sessionId`: the active session
-   - `effectClass`: `STATE_AND_HISTORY`
-   - `scope`: `ENTITY`
-   - `schemaId` / `schemaVersion`: position-update schema
-   - `actorRefs`: the participant being moved
-   - `reason`: "participant moved into building"
-   - `evidenceRefs`: supporting evidence (e.g., a participant
-     action that caused the move)
-2. **Submit.** Realm receives the commit.
-3. **Validate.** Realm checks: app-world binding active, schema
-   admitted, scope appropriate, evidence valid.
-4. **Apply.** State updates; history appends.
-5. **Audit.** Commit lineage recorded.
-
-The envelope is what makes state mutations auditable. Every
-mutation can be reconstructed: who, when, why, with what evidence.
-
-## Reader Scenario: A Read Of Current State
-
-An app wants to render a world's current state.
-
-1. **Query state.** Through admitted Realm reads, the app
-   queries world state for the relevant scope.
-2. **Realm returns current state.** Single-snapshot read.
-3. **App renders.** The app sees the current state.
-
-The app does not reconstruct state from history. State is canonical
-present, optimized for read.
-
-## Reader Scenario: A Mutation That Crosses Multiple Primitives
-
-An action causes social, economic, and presence consequences —
-say, transferring an item in a public scene.
-
-1. **Multiple commits.** The platform may use multiple commits
-   to atomically capture the consequences:
-   - Item ownership transfer (`scope: RELATION`,
-     `effectClass: STATE_AND_HISTORY`)
-   - Social interaction event (related social state)
-   - Economic event (an admitted currency or revenue event)
-   - Presence record (witnesses)
-2. **Each commit envelope.** Carries its own typed envelope.
-3. **History records each.** Each commit appends a history
-   record.
-
-The action is one product moment; the underlying contract spreads
-the consequences across the right surfaces with the right typed
-envelopes.
-
-## What Apps Cannot Do
-
-| Forbidden | Why |
-| --- | --- |
-| Mutate state without an envelope | Auditability requires envelopes |
-| Use a free-form `schemaId` | Schemas are admitted at the kernel |
-| Use undeclared scope | Scope is admitted; ambiguous scope is rejected |
-| Skip evidence references | Evidence is required for traceability |
+- [World History & Append-Only Log](/realm/world-history)
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

@@ -1,32 +1,32 @@
-# AIConfig Owner Identity
+# AIConfig Ownership & Scoping
 
-AIConfig belongs to one canonical owner within the authenticated account. There are two owner kinds: an App identified by its canonical App identity, and one Runtime LocalAgent subsystem shared by all LocalAgents in that account.
+AI execution configurations (`AIConfig`) belong to a single canonical owner within the authenticated user account. System architecture recognizes exactly two kinds of owners: an independent App identified by its canonical application identity, and the shared Runtime LocalAgent subsystem shared across all LocalAgents in that account.
 
-| Consumer | Configuration owner |
+| Consumer Context | AIConfig Owner |
 | --- | --- |
-| A third-party App | That App |
-| Nimi Chat in Home | The Desktop App |
-| Agent Chat, including different LocalAgents | The shared Runtime LocalAgent subsystem |
+| A third-party App | That specific App |
+| Nimi Chat in Home | The Desktop host App |
+| Agent Chat (including different LocalAgents) | The shared Runtime LocalAgent subsystem |
 
-An individual Agent, Conversation, feature, module, window, tab, or route is not an AIConfig owner. Changing the selected Agent does not switch to a per-Agent AI configuration. Agent-specific personality, presentation, and Memory enablement remain separate settings.
+Individual Agents, Conversations, modules, windows, tabs, or UI routes are not AIConfig owners. Switching between active characters does not switch to a per-agent model routing configuration. Agent-specific personality prompts, visual embodiment settings, and memory flags remain separate attributes decoupled from model routing.
 
-## Configure Through the Protected Client
+## Configuration via the Protected Client
 
-An App reads and saves its own configuration through `client.aiConfig`. The protected session determines its account and App owner; the caller supplies no owner selector. The separately authorized shared LocalAgent configuration path requires `agent.configure` and has no Agent selector. Home may manage currently projected App owners.
+Applications read and persist their own configuration via `client.aiConfig`. The caller's account and App identity are automatically resolved from the authenticated session; callers never supply an owner selector. Conversely, managing the shared LocalAgent subsystem requires elevated `agent.configure` authorization and similarly accepts no arbitrary agent selector. Nimi Home displays and manages currently mapped App configurations.
 
-Read the current configuration and its opaque revision, then save the complete capability list with that revision. Omitting a capability clears it. A conflict requires rereading and reviewing the current value; do not silently overwrite a newer choice.
+Updates follow optimistic concurrency control: read the current configuration along with its opaque `revision` string, then submit the complete capability list carrying that revision. Capabilities omitted from the payload are cleared. If a revision conflict occurs, the application must fetch the latest configuration for user review rather than silently overwriting changes.
 
-## Configuration and Machine Selection
+## Decoupling Configuration from Hardware Inference Engines
 
-Each capability stores required standardized features, portable defaults, and an explicit route. Local is a route-only marker. Cloud stores the exact current-account Connector reference, CapabilityImplementation, and Driver-owned provider-model target. Local Loadouts and the machine's current selection belong to Runtime's separate machine store.
+Each capability entry stores standardized feature requirements, portable defaults, and an explicit routing target (`Route`). The `Local` route serves as a routing marker; the `Cloud` route specifies the exact user Connector reference, `CapabilityImplementation`, and target model. Hardware-specific inference backends (`Local Loadout`) and active device engine bindings are managed separately by Runtime's machine store.
 
-Applying an AIProfile produces editable prefill. It neither saves AIConfig nor changes a machine selection. Saving configuration and confirming machine-wide configuration changes are separate actions. There is no inheritance or automatic fallback between owners.
+Applying an AI preset profile (`AIProfile`) merely populates editable form defaults. It does not automatically persist `AIConfig` or alter machine-level hardware selections. Saving application configuration and confirming machine-level inference engine changes are distinct steps. There is no implicit inheritance or fallback between different owners.
 
-## Lifecycle
+## Lifecycle Boundaries
 
-App AIConfig follows its App or product lifecycle. The shared LocalAgent configuration survives creation, selection, and deletion of individual Agents. UI state and registration generations do not create configuration owners.
+An App's `AIConfig` lifecycle is bound to the App's lifecycle within the system. The shared LocalAgent configuration persists across the creation, selection, and deletion of individual agents. Ephemeral UI states or registration generations do not create new configuration owners.
 
-See [AIConfig Surface](/sdk/ai-config-surface) for the App API and [AI Configuration](/desktop/ai-profile-config) for Home settings.
+For client implementation details, see [AIConfig Surface](/sdk/ai-config-surface); for user-facing management, see [AI Configuration](/desktop/ai-profile-config).
 
 ## Source Basis
 

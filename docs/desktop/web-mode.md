@@ -1,24 +1,26 @@
-# Web And Nimi Home
+# Web Portal and Desktop Nimi Home
 
-The Nimi website and Nimi Home serve different tasks. The public website introduces the product, provides download and policy information, and handles account authentication and account-security interactions backed by Realm. Nimi Home is the installed product entry, currently hosted by Desktop.
+The official Nimi website and the installed Nimi Home desktop client serve distinct, complementary roles. The public web portal provides product overviews, release status, policy documentation, and Realm-backed account authentication. Nimi Home is the local execution environment, providing private local AI inference and supervised application hosting.
 
-## What Happens In The Browser
+## The Browser Web Portal
 
-Use the public Web surface for product and App information, account sign-in and security, legal pages, download status, and navigation. Web App pages are informational; they do not provide a browser-hosted Nimi Home or establish App installation, Registry admission, or Runtime access.
+- **Product & Ecosystem Showcase**: Discover platform features, read developer guides, and explore highlighted applications.
+- **Account Authentication & Security**: Register, complete two-factor authentication, and manage security settings. Browser authentication interfaces directly with Realm identity services.
+- **Installer Status**: Check current download availability and platform status.
+- **Scope Note**: The website is an information and identity portal; it does not replace the desktop app for local inference or hardware-accelerated app hosting.
 
-Realm remains the account and ecosystem identity owner. Web presents the account interaction; Desktop uses the admitted browser handoff rather than embedding credential forms or assembling a separate login path.
+## Desktop Nimi Home
 
-## What Happens In Nimi Home
+- **Private Local AI Inference**: Executes open-weights models through local Runtime, keeping sensitive prompts and files entirely on-device.
+- **App Hosting & Developer Debugging**: Supervised Electron hosts provide the current App with admitted SDK and Kit operations. Host and Runtime retain session credentials; the App receives bounded results and session status.
+- **System Resource Management**: Centrally manage GPU/NPU utilization, local model caches, disk quotas, and multi-agent coordination.
 
-Run local App development through the Desktop-supervised host and use the App's public SDK/Kit binding. Runtime owns capability execution and access decisions. The public site does not host the Desktop renderer or a Desktop Web adapter.
+## User Journey: Web Authentication Handover
 
-For third-party App code, consume the public SDK and Kit. Do not import Desktop renderer internals or use the public website as a shortcut around Runtime authorization.
-
-## Reader Scenario: Finish Sign-in, Then Continue In The App
-
-A user may complete an account interaction in the browser and return to Nimi Home. The browser interaction does not itself prove that a particular App is installed, running, or allowed to call an AI capability. The App must use the current host session and handle the real access or execution result.
-
-To start developing an App, follow [Create a Nimi App](/start/create-an-app). For available product builds, check [Download](https://nimi.ai/download).
+1. **Initiate Login**: Click "Sign In" inside Desktop; the app launches your default browser to the official authentication page.
+2. **Secure Verification**: Sign in using an authentication method offered by the browser page and complete any required two-factor verification.
+3. **Authorization Handover**: Upon verification, the browser returns an authorization code via the local loopback callback configured for this session.
+4. **Session Activation**: Desktop transfers the callback to the local Runtime, which validates the response, exchanges the code for credentials, and securely manages the session tokens.
 
 ## Source Basis
 

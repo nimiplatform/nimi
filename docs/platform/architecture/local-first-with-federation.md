@@ -1,24 +1,24 @@
-# Local-First and Multiple Devices
+# Local-First Architecture & Multi-Device Execution
 
-Nimi can execute AI on your machine using configured local capabilities, or use cloud capabilities you explicitly configure. Local-first does not mean anonymous or unrestricted offline operation: Nimi requires an account, and protected access and current authorization still apply.
+Nimi supports executing AI workloads entirely on-device using configured local models, or leveraging cloud providers that the user explicitly configures. Being "local-first" does not imply anonymous or unrestricted offline operation: Nimi is rooted in user account identity, and authenticated sessions and authorization policies apply uniformly.
 
-## Local Execution
+## Local Inference Execution
 
-Prepare the required assets and environment, save and select the capability's machine Loadout, and save Local intent in the App or shared LocalAgent AIConfig. At submission, Runtime captures that exact configuration. It does not automatically switch between Local and Cloud when a request fails.
+To execute AI tasks locally, prepare the runtime environment and model weights, configure and select the capability's machine Loadout, and specify the `Local` route in the App or shared LocalAgent AIConfig. At job submission time, Runtime locks that exact configuration. If local inference fails, the system will not silently or automatically fall back to cloud providers, ensuring users retain complete control over privacy, data flow, and API costs.
 
-Cognition stores each Agent's long-term Memory locally through Runtime's typed bridge. Memory enablement is Agent-specific; Knowledge V1 has no active ingestion or query path. Conversation and local audit remain separate Runtime records.
+Cognition stores each agent's long-term memory locally via Runtime's typed bridge. Memory enablement is managed per agent; Knowledge V1 currently has no active data ingestion or query interface. Active conversation streams and local audit logs are maintained separately by Runtime.
 
-## When the Network Is Unavailable
+## Offline Operational Boundaries
 
-Existing local work can proceed only while its required protected session, authorization, assets, and owner policies remain valid. A cold start, new login, Realm source acquisition, authorization renewal, or cloud call may require network access. A local cache cannot create account or Realm success.
+Existing local workflows can continue as long as required protected sessions, capability tokens, local model assets, and security policies remain valid. Cold restarts, new account sign-ins, fetching fresh Realm character sources, renewing authorization tokens, or issuing cloud inference calls naturally require network connectivity. Local caches serve as performance optimizations and cannot synthesize or forge successful Realm state mutations.
 
-Realm owns world, identity, social, and economy truth. Pending local intent is not a committed Realm mutation. No automatic audit upload or cross-device Memory synchronization is implied by local operation.
+Authoritative world history, character identity assets, social graphs, and economic states are owned by Realm. Pending local intents do not constitute committed Realm mutations. Operating locally does not imply automatic audit log uploads or unprompted cross-device memory synchronization.
 
-## Multiple Devices and Federation
+## Multi-Device Topology & Compute Federation
 
-Each device has its own Runtime and local configuration. An account or Character identity shared through Realm does not automatically share Loadouts, Conversation state, or Agent Memory between devices.
+Each device runs an independent Runtime daemon and maintains its own hardware-specific loadouts. Sharing an account or character identity across devices via Realm does not automatically sync local hardware loadouts, in-flight conversation streams, or agent local memory stores.
 
-Peer-to-peer compute federation is a future direction, not a current transport or installation step. Do not point an App at another machine's private Runtime endpoint to emulate it. Use only the protected host and operations admitted for the current product.
+Peer-to-peer compute federation represents a forward-looking architectural exploration, not a current networking layer or installation prerequisite. Applications must never point at private Runtime debugging ports on remote machines to simulate distribution; always use officially supported protected host interfaces.
 
 ## Source Basis
 

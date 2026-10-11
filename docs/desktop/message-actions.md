@@ -1,28 +1,25 @@
 # Agent Conversation Actions
 
-Desktop Agent Chat renders Runtime's canonical Conversation. Each LocalAgent has one Conversation shared by its authorized consumers; opening another App or window continues that same history.
+Agent Chat opens the Runtime-maintained Conversation for the selected Agent. Committed turns can be read again from another authorized surface; drafts and pending input belong to the current window.
 
-## Current Actions
+## Send Text or an Image
 
-- Open the authorized Conversation and read its committed snapshot.
-- Send a new user message through the canonical Conversation operation.
-- Request interruption of the active turn and display its actual outcome.
-- Consume the admitted attachment, artifact, and voice operations when the surface and its current access support them.
+Type a message and send it to start a turn. The current composer accepts at most one image attachment per turn, subject to the Agent's configured capabilities. Its file picker and paste handler accept image MIME types only.
 
-The current Agent Conversation contract has no regenerate, prior-message edit, or fork operation. A general-purpose chat component's controls do not grant those operations to Agent Chat. Sending a new message is a new turn, not an edit or replay of an earlier one.
+To discuss a document or code file here, paste the relevant text into the message. The composer does not upload PDF, Markdown, or source-code files as document attachments.
 
 ## Stop and Recover
 
-Live text deltas are temporary presentation. When Runtime records an interruption, Desktop clears that turn's uncommitted stream text. Messages already committed remain in the canonical history; for example, text committed before a later associated action is interrupted is not erased by Stop.
+Agent turns display text updates while generation runs. Use Stop to request interruption. Previously committed messages remain in the Conversation; interruption does not undo completed external actions.
 
-After a disconnect or reopen, recover from Runtime's committed snapshot. Do not promote a cached partial reply into a committed message or create a second transcript to preserve it. Keep the Runtime-issued anchor as the operation's revalidated continuity fence.
+After reconnecting, reload the committed Runtime snapshot. A pending fragment or local cache does not prove that a turn committed. Continue with a new message to correct or refine an earlier response rather than silently rewriting history.
 
-## Keep Product Flows Separate
+## Separate Conversation Modes
 
-Human chat history belongs to Realm. Independent App business work uses its own admitted Agent work operations and project state. Neither path supplies a hidden fork or message-rewrite API for the LocalAgent Conversation.
+Human messages use Realm threads. Ordinary AI/Nimi Chat has its own request and message-storage path; its controls do not inherit Agent Conversation's streaming and Stop behavior. See [Chat Modes](/desktop/chat).
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx)
 - [`sdks/typescript/core/app/local-app-runtime-platform-conversation.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-conversation.ts)

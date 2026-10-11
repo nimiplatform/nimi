@@ -1,170 +1,42 @@
-# Nimi Avatar
+# Nimi Avatar Desktop Companion
 
-Nimi Avatar is a first-party Tauri app (`@nimiplatform/avatar`)
-that puts an agent's character on the user's desktop as a
-transparent, always-on-top floating window. It is **a separate
-app from Desktop** — not a sub-surface — and the realization of
-"your agent is alive on your desktop."
+Nimi Avatar is an Electron App launched under Desktop supervision. It presents the currently authorized Agent through Live2D or VRM in a separate transparent window and owns local activity, expressions, playback, and window interaction.
 
-## What Nimi Avatar Is
+## Body Window and Companion
 
-| Property | Value |
-| --- | --- |
-| Package | `@nimiplatform/avatar` |
-| Shell | Tauri app, separate from Desktop |
-| Window shape | Transparent + chrome-less + always-on-top (default; user-toggleable) |
-| Mouse-event passthrough | Outside the agent's body region, events pass through to underlying app |
-| Position | Draggable; remembered across sessions |
-| Click reactions | Programmable through NimiAgentScript handlers |
-| Companion stack | Always visible: assistant message bubble + status row + composer |
+The character body determines the main window footprint. Companion controls appear when explicit interaction or voice state needs them; they are not a permanently docked panel and do not enlarge the quiet body's default footprint.
 
-It isn't a tray icon. It isn't a sidebar bubble. It is a present
-visual being living on the user's screen.
+Backend nominal bounds, valid geometry, and local scale govern the layout. Hit regions and optional opacity queries come from the selected backend. Mask update rate is distinct from draw rate; there is no universal 60Hz mask guarantee across backends.
 
-## Embodiment Stage And Companion Surface
+## When Interaction is Available
 
-Avatar has two visible regions:
+Product interaction requires a valid App session, model, driver, and ready backend presentation. Incomplete preparation shows a loading view; invalid session, launch, or model prerequisites show diagnostic reasons.
 
-| Region | Purpose |
-| --- | --- |
-| Embodiment Stage | The main visible area where the agent's body renders (Live2D today) |
-| Companion Surface | Always-visible stack: assistant-bubble + status-row + composer |
+A development preview can display a model without establishing a live Runtime session or product readiness, and it cannot enable formal product interaction. See [Instance Lifecycle](/avatar/instance-lifecycle).
 
-The companion surface is **always visible** — no trigger button,
-no popup. It is docked next to the agent. Status row holds mic
-toggle, mode label, speaker indicator, settings cog. Composer is
-text input + send.
+## Launch and Session Binding
 
-## Composition State Machine
+A caller submits its current-session Agent handle through the formal Avatar Host port. Desktop and Runtime revalidate the target before Desktop launches or focuses the matching instance. Switching from another active Agent requires user confirmation.
 
-| State | Meaning |
-| --- | --- |
-| `loading` | Initial bootstrap; no embodiment yet |
-| `ready` | Stage and companion both mounted; agent is live |
-| `degraded:*` | Typed degradation reason (asset missing, runtime unavailable, etc.) |
-| `error:*` | Typed error reason |
-| `relaunch-pending` | Awaiting Desktop launch update |
-| `fixture:active` | Fixture mode (development) |
+Avatar verifies its own protected App session and uses the exact handed-off Conversation anchor to resolve a handle for that session. It does not reuse the caller's handle as its own operation selector. Its renderer launch context contains no account credentials or caller-authored model paths; the Host authorizes asset materialization.
 
-Hard mutual exclusion between `ready` and non-ready surfaces.
-Either both are `ready` or a degraded surface takes over.
+## Activity, Expression, and Voice
 
-## NimiAgentScript (NAS)
+The built-in adapter maps activity and emotion to validated backend capabilities. Clicks go to local interaction physics, not NAS JavaScript from a model directory. See [Model Capabilities](/avatar/model-capabilities) for model facts and name mapping.
 
-NAS is the convention-based JS handler system for embodiment
-package creators.
+Ordinary Conversation playback reads the final voice artifact. Avatar owns local audio analysis and lipsync. Independently admitted Realtime media is a different path.
 
-| Handler kind | Path |
-| --- | --- |
-| Activity | `<model>/runtime/nimi/activity/<name>.js` |
-| Event | `<model>/runtime/nimi/event/<name>.js` |
-| Continuous | `<model>/runtime/nimi/continuous/<name>.js` |
-| Shared | `<model>/runtime/nimi/lib/` |
+## Unavailability and Recovery
 
-NAS handlers consume the embodiment projection API (backend-
-agnostic) and drive the backend (Live2D-specific extensions
-exposed when type-narrowed).
+A failed Runtime binding, driver, or presentation prerequisite stops product interaction and shows the corresponding reason. The model and Companion do not mount when the composition is not renderable. Recovery enables interaction only after session and presentation prerequisites pass again.
 
-NAS handlers auto-register: runtime scans `<model>/runtime/nimi/`
-and registers handlers; hot reload via Tauri notify watcher.
-
-## Window Behavior Details
-
-| Detail | Value |
-| --- | --- |
-| Decorations | None |
-| Transparency | yes |
-| Always-on-top | Default (user-toggleable) |
-| Dynamic size | Follows model bounds + companion footprint |
-| Startup position | Bottom-right with 24px padding |
-| Subsequent positions | Remembered across sessions |
-| Hit region | Alpha-mask + bbox dual-layer; pixel-level alpha sampling at 60Hz |
-| Drag region | Only inside embodiment-stage; companion + degraded absorb pointer events |
-
-These details add up to "the agent is on your screen, you can
-interact with it where it is, you can drag it, the rest of your
-screen still works."
-
-## Settings Popover
-
-Only 4 toggles. Intentionally minimal:
-
-| Toggle | Default |
-| --- | --- |
-| `always_on_top` | on |
-| `bubble_auto_open` | on |
-| `bubble_auto_collapse` | on |
-| `show_voice_captions` | (user choice) |
-
-No transcript-heavy panel. No workstation-style configuration.
-The Avatar app is an applet, not a workstation.
-
-## Reader Scenario: Opening Avatar From Desktop
-
-You have an agent in Desktop chat. You want to bring them onto
-your screen.
-
-1. **Desktop launches Avatar.** Sends only `agent_id` + optional
-   `avatar_instance_id` + optional `launch_source`. **No
-   tokens. No anchors. No package descriptors.**
-2. **Avatar bootstraps.** Window create → renderer mount → emit
-   `avatar.app.start` → register first-party app → resolve
-   `agent_id` via Runtime account projection.
-3. **Load visual package.** Embodiment package + NAS handlers.
-4. **Compute hit region.** Alpha-mask + bbox.
-5. **Mount stage + companion.** State moves `loading → ready`.
-6. **Emit `avatar.app.ready`.** Agent is live.
-
-Desktop is the launcher; Avatar is the carrier; Runtime is the
-authority.
-
-## Reader Scenario: Click Reactions Through NAS
-
-The user clicks the agent's head; you want the agent to react.
-
-1. **Click hits the embodiment stage.** Alpha-mask determines
-   that the click was inside the agent's body.
-2. **`avatar.user.click` event.** Emitted with hit region info.
-3. **NAS event handler.** A handler at
-   `<model>/runtime/nimi/event/onClickHead.js` is
-   auto-registered for this region.
-4. **Handler runs.** Triggers a shy reaction — runs an animation,
-   plays a small sound, emits an emotion event.
-5. **Embodiment projects.** The Live2D backend renders the
-   reaction.
-
-The author of the embodiment package wrote the handler at a
-convention path. No registration ceremony.
-
-## Reader Scenario: Runtime Unavailable
-
-Runtime daemon stops while Avatar is running.
-
-1. **Runtime detection.** Avatar detects the runtime is
-   unreachable.
-2. **State move.** Composition state moves
-   `ready → degraded:runtime_unavailable`.
-3. **Degraded surface takes over.** Stage + companion are both
-   replaced by the degraded surface — typed reason visible to
-   user.
-4. **No silent fallback.** Avatar doesn't pretend to operate
-   without runtime; it does not silently switch to mock fixture.
-5. **User options.** Reload (after runtime returns) or close.
-
-Recovery is **manual**: an explicit reload button only. No
-auto-self-healing from degraded back to ready. This prevents
-silently masking platform issues.
-
-## What Avatar Does Not Do
-
-| Concern | Why not |
-| --- | --- |
-| Persistent transcript | Long history lives in Desktop chat |
-| Background voice / wake word | Voice is explicit user-triggered |
-| Continuation across screen lock | Voice does not bridge across screen lock |
-| Silent fallback to mock | Fail-closed on runtime unavailable |
-| Auto-recovery from degraded | Manual reload only |
+Hiding the window stops local capture, playback, and visible interaction. Stopping an Avatar instance releases that local instance and its resources without deleting the Agent or Conversation. Runtime background work retains its own authorization and lifecycle.
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`apps/avatar/src/shell/renderer/App.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/App.tsx)
+- [`apps/avatar/src/shell/renderer/voice-companion-state.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/voice-companion-state.ts)
+- [`apps/avatar/src/shell/renderer/companion-surface/companion-surface.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/companion-surface/companion-surface.tsx)
+- [`apps/avatar/src/shell/renderer/app-shell/avatar-session-agent-binding.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/app-shell/avatar-session-agent-binding.ts)
+- [`apps/avatar/src/shell/renderer/sdk/SdkDriver.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/sdk/SdkDriver.ts)

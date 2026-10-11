@@ -11,13 +11,14 @@ Use these guides to build a third-party app for the Nimi ecosystem. Start with a
 
 For shared UI and host integration, read [Use Kit in an App](/platform/kit/use-kit-in-app). For concrete capability examples, see [Nimi Lab](/start/use-nimi-lab).
 
-## Local Development And Distribution
+## Local Development and Distribution
 
-Nimi Apps have three distinct paths: Registry-approved packages, explicitly selected immutable local-package imports, and non-package Developer Mode projects. This guide starts with Developer Mode; creating a project or opening its window does not grant Nimi Access or publish it.
+Nimi Apps support three distinct integration paths:
+- **Developer Mode**: Run your unbundled local project directly under desktop supervision and connect to Runtime for rapid iteration.
+- **Local Package Import**: Import an immutable packaged archive into Nimi for private testing and verification; this does not constitute Registry publication.
+- **Registry Distribution**: Submit an audited app package for inclusion in the official catalog for discovery and installation.
 
-The current pre-release supports protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding with human-approved descriptors, and verified Catalog discovery, installation, update, launch/focus/stop, protected-session Access, and uninstall on Windows x86_64 and macOS arm64. Explicit immutable local-package import is implemented through Desktop and Runtime on these targets, with source-qualified install, update, launch, and uninstall. Combined product acceptance and public release readiness remain separate; package lifecycle on other platforms and ordinary repair remain unavailable. Bundled/platform Apps follow their own rules.
-
-Read the [App Tools release guidance](https://github.com/nimiplatform/nimi/tree/main/app-tools#canonical-release-boundary) before preparing distribution. Keep local execution, published assets, Registry admission, installed state, and access as separate results.
+In the current pre-release, app installation, updates, and access controls are supported on macOS (arm64) and Windows (x86_64); package lifecycle on other platforms and ordinary repair remain unavailable. When preparing for distribution, refer to the [App Tools release guidance](https://github.com/nimiplatform/nimi/tree/main/app-tools#canonical-release-boundary).
 
 ## Reference When You Need It
 

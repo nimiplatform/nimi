@@ -1,43 +1,39 @@
-# 跨域产品故事
+# 跨系统协作典型场景（Product Stories）
 
-以下故事说明 owner 边界如何组合成用户可见流程。
+本篇通过具体业务场景，阐明不同系统边界在端到端用户流程中的协同方式。
 
-## 创建 Character 并使用 LocalAgent
+## 场景一：创建角色并在本地运行智能体（Character to LocalAgent）
 
-1. 用户在 Realm-owned 产品 surface 创建或选择 Character。
-2. Realm 产生 Character Source。
-3. Runtime 从该 source 物化有明确 owner 的 LocalAgent。
-4. Nimi Home 或 App 只通过 SDK 取得已授权 LocalAgent 投影。
-5. Runtime 在自己的 owner 边界内保留 Conversation、Memory 访问中介、route、readiness 与 Credential。
+1. **选择角色**：用户在 Realm 提供的产品界面中创建或选择一个角色实体（Character）；
+2. **生成源定义**：Realm 生成结构化的角色源（Character Source）；
+3. **本地实例化**：Runtime 基于该源描述，在用户本地设备上实例化出受当前账号管控的 LocalAgent；
+4. **获取能力视图**：Nimi Home 或第三方应用通过标准 SDK 仅获取经过授权的 LocalAgent 结构化视图；
+5. **内核数据隔离**：Runtime 在内部安全边界内妥善管理会话历史、记忆检索通道、模型路由状态及服务商密钥，不向下游暴露。
 
-Host 不创建 Character identity，Realm 也不执行 LocalAgent。
+宿主界面不负责创造角色的持久身份定义，Realm 也无需干预本地 LocalAgent 的具体推理调度。
 
-## 在另一 Surface 继续 Conversation
+## 场景二：在不同交互界面间无缝接续对话
 
-1. Runtime 创建 Conversation 并返回显式 anchor。
-2. Desktop 渲染 committed turn，并保留短暂 UI state。
-3. Avatar 把可见 instance 连接到同一条已授权 anchor。
-4. Runtime 仍是 continuity owner；两个 surface 都不能复制本地 history 作为
-   recovery truth。
+1. **开启会话**：Runtime 建立会话上下文，并返回明确的会话锚点（Conversation Anchor）；
+2. **多端状态呈现**：Desktop 客户端渲染已确认的对话轮次，并维护轻量的本地交互状态；
+3. **具身形象绑定**：Avatar 渲染模块将虚拟角色的 3D/2D 形象绑定至同一个已授权的会话锚点；
+4. **单一可信源保障**：Runtime 作为会话连续性的唯一权威；各前端交互界面无需也不应在本地复制离线历史作为异常恢复的可信源。
 
-Renderer motion 与 playback 留在 Avatar 本地。Conversation、voice、状态与
-presentation timing 仍是 Runtime 投影。
+渲染器视线移动与动作回放完全由 Avatar 模块本地处理；而对话文本、语音合成、推理状态与呈现时序均由 Runtime 统一投递。
 
-## 使用 Scaffolded App
+## 场景三：运行使用标准脚手架创建的独立应用（Scaffolded App）
 
-1. Nimi Home 通过当前 protected local path 启动 App。
-2. App 经标准 SDK 提交强类型 intent 与当前会话的 `agentHandle`。
-3. Runtime 从 active session 推导 account、App identity、authorization 与
-   access。
-4. App 只收到有限强类型结果，不会取得 Realm JWT、Provider Credential、
-   Runtime proof 或账号级 LocalAgent 全量清单。
+1. **安全拉起**：Nimi Home 通过本地受保护通道拉起第三方独立应用；
+2. **标准意图提交**：应用通过官方 SDK 提交结构化操作意图，并携带当前会话范围的 `agentHandle`；
+3. **自动会话鉴权**：Runtime 从活跃的安全会话中解析当前账号、应用唯一标识（App Identity）、权限范围与智能体访问凭证；
+4. **最小权限返回**：应用仅收到经过类型校验的业务结果，全程无法接触 Realm JWT、底层模型 API 密钥、Runtime 内部凭证或账号下的全量智能体清单。
 
-Direct SDK 与 scaffolded App 共享这份产品 contract。Host 集成不是用户可选的
-产品 profile。
+无论是直接嵌入 SDK 还是通过脚手架构建独立应用，均遵循统一的产品契约。应用与宿主的集成规范是系统底层的架构约束，而非由用户手动切换的配置项。
 
-长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
+> [!NOTE]
+> 长期记忆由 Cognition 系统按智能体独立管理；Runtime 仅作为授权数据调度的中介通道。当前版本的知识库系统（Knowledge V1）未开放公共调用接口。
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

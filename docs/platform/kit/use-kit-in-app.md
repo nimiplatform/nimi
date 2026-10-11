@@ -1,38 +1,36 @@
-# Use Kit In An App
+# Use Kit in an App
 
-Use `@nimiplatform/kit` when an app needs shared Nimi UI, auth, shell glue,
-telemetry, AI capability configuration, or reusable feature surfaces. App code should
-import Kit through public subpaths from `kit/package.json`; it should not import
-from `kit/**/src` or duplicate a Kit-owned capability locally.
+Use `@nimiplatform/kit` when an application needs shared Nimi UI components, authentication surfaces, Shell host integration glue, telemetry, AI capability configuration, or reusable feature surfaces.
 
-## Install
+Application code should import Kit exclusively through public subpaths declared in `kit/package.json`; never import internal source modules directly (e.g. `kit/**/src`), and avoid re-implementing capabilities that Kit already provides.
 
-Generated Nimi App scaffolds already depend on Kit. In a standalone app that
-does not, install Kit next to the SDK:
+## Installation and Dependencies
+
+Applications scaffolded via official templates already include Kit dependencies. To add Kit to an existing project alongside the SDK:
 
 ```bash
 pnpm add @nimiplatform/kit @nimiplatform/sdk
 ```
 
-Kit requires React 19. `react-dom`, `react-i18next`, and `electron` are peer
-dependencies used by specific subpaths.
+Kit is built atop React 19. `react-dom`, `react-i18next`, and `electron` are peer dependencies used on demand by specific subpaths.
 
-## Public Import Groups
+## Public Import Subpaths
 
-| Need | Import from |
+| Requirement | Import Path |
 | --- | --- |
-| Shared UI primitives, themes, accessibility, motion | `@nimiplatform/kit/ui`, `@nimiplatform/kit/ui/a11y`, `@nimiplatform/kit/ui/motion`, listed theme CSS exports |
+| Shared UI primitives, themes, accessibility, motion | `@nimiplatform/kit/ui`, `@nimiplatform/kit/ui/a11y`, `@nimiplatform/kit/ui/motion`, and designated theme CSS files |
 | Runtime account login and auth UI | `@nimiplatform/kit/auth` |
-| Pure logic helpers | Enumerated `@nimiplatform/kit/core/...` subpaths |
-| Standard shell renderer bridge | `@nimiplatform/kit/shell/renderer/bridge`, `@nimiplatform/kit/shell/renderer/bootstrap` |
-| Electron host bridge | `@nimiplatform/kit/shell/electron/main`, `@nimiplatform/kit/shell/electron/preload` |
-| Telemetry and error boundaries | `@nimiplatform/kit/telemetry`, `@nimiplatform/kit/telemetry/error-boundary` |
-| Agent Center, chat, avatar, generation, commerce | Enumerated `@nimiplatform/kit/features/...` subpaths |
+| Pure logic and capability utilities | Specific `@nimiplatform/kit/core/...` subpaths |
+| Standard shell renderer bridge & bootstrap | `@nimiplatform/kit/shell/renderer/bridge`, `@nimiplatform/kit/shell/renderer/bootstrap` |
+| Electron host process bridge | `@nimiplatform/kit/shell/electron/main`, `@nimiplatform/kit/shell/electron/preload` |
+| Telemetry and React error boundaries | `@nimiplatform/kit/telemetry`, `@nimiplatform/kit/telemetry/error-boundary` |
+| Agent Center, chat, avatar, generation, and commerce surfaces | Specific `@nimiplatform/kit/features/...` subpaths |
 
-Kit does not publish wildcard subpaths. The complete public import list is the
-`exports` object in `kit/package.json`.
+Kit does not expose wildcard exports; the authoritative list of public entry points is defined in `kit/package.json` under `exports`.
 
-## UI And Themes
+## UI Components and Themes
+
+Import standard UI primitives in your React components:
 
 ```ts
 import { Button, IconButton, Dialog, cn } from '@nimiplatform/kit/ui';
@@ -40,18 +38,19 @@ import { VISUALLY_HIDDEN_CLASS_NAME, VISUALLY_HIDDEN_STYLE } from '@nimiplatform
 import { usePrefersReducedMotion } from '@nimiplatform/kit/ui/motion';
 ```
 
+Import theme stylesheets in your application entry point:
+
 ```css
 @import '@nimiplatform/kit/ui/styles.css';
 @import '@nimiplatform/kit/ui/themes/light.css';
 @import '@nimiplatform/kit/ui/themes/nimi-accent.css';
 ```
 
-Apply one base theme (`light.css` or `dark.css`) and optionally the Nimi accent
-overlay. Do not redefine Kit token names in app CSS.
+Apply one foundational base theme (`light.css` or `dark.css`) and overlay your application's accent package as needed. Do not redefine Kit's global `--nimi-*` CSS variables in application stylesheets.
 
-## Shell And Auth
+## Shell Integration and Authentication
 
-Renderer app code uses renderer-safe shell exports:
+In renderer code, use renderer-safe Shell exports:
 
 ```ts
 import {
@@ -61,60 +60,43 @@ import {
 import { createRendererEntryModuleLoader } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
 
-A generated renderer entry calls `installNimiShellRuntimeBridge()` once.
-`createNimiLocalAppStandardShellSurface()` supplies the `standardShell` for
-the App's host-bound SDK client, created with
-`createNimiClient({ localApp: { standardShell } })`. The lower-level
-`invokeShell` and `invokeTauri` helpers are host glue for shell integrations,
-not an App's call path.
+The renderer bootstrap calls `installNimiShellRuntimeBridge()` once. `createNimiLocalAppStandardShellSurface()` provides the standard Shell implementation for the host-bound SDK client created via `createNimiClient({ localApp: { standardShell } })`. Lower-level helpers like `invokeShell` and `invokeTauri` are host-level integration glue and should not be invoked by daily business logic.
 
-Electron main/preload code uses Electron-only exports:
+In Electron main and preload scripts, use dedicated exports:
 
 ```ts
 import { createElectronRuntimeBridgeCommandNames } from '@nimiplatform/kit/shell/electron/main';
 import { installNimiElectronRuntimeBridge } from '@nimiplatform/kit/shell/electron/preload';
 ```
 
-Do not import Electron host modules from renderer app code. Do not call Runtime
-private APIs from shell code; the shell bridge preserves the SDK and standard
-capability boundary.
+Never import Electron host modules into renderer code, and never bypass the Shell bridge to invoke internal Runtime private APIs.
 
 ## AI Capability Configuration
 
-A generated App renders its AI settings with the model-config feature and
-backs it with the App's host-bound client:
+Applications can render AI settings out of the box using standard model-config components:
 
 ```ts
 import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';
 ```
 
-The generated settings panel passes `client.aiConfig.get()`,
-`client.aiConfig.listOptions(query)`, and `client.aiConfig.overwrite(input)` to
-the surface; keep that wiring when you move it. Local saves only the route
-marker and follows the machine's selected Loadout for that capability. Cloud
-settings let the owner choose a current-account Connector and an admitted
-target from Runtime's safe options, then save the exact `connectorRef`,
-`implementation`, and `providerModelTarget` in AIConfig. These are configuration
-choices, not overrides on an execution request. Runtime validates and captures
-the committed inputs at submission; preparation and actual execution remain
-separate facts. See [AI Config](/sdk/ai-config-surface).
+The standard configuration panel binds `client.aiConfig.get()`, `client.aiConfig.listOptions(query)`, and `client.aiConfig.overwrite(input)`:
 
-Agent Center presents the same kind of owner-scoped intent through
-`AgentCenterAIConfigSection` from `@nimiplatform/kit/features/agent-center/ui`.
+- **Local capabilities**: Saves route markers and adheres to the host machine's selected Loadout for that capability.
+- **Cloud capabilities**: Allows selecting an authorized connector and target model, persisting exact `connectorRef`, `implementation`, and `providerModelTarget` settings in AIConfig.
+- **Clear boundaries**: These are persistent configuration preferences, not runtime execution overrides; Runtime validates and snapshots settings upon submission, while capability readiness and inference execution remain independent assessments. See [AI Config](/sdk/ai-config-surface).
 
-## Reuse Rules
+Agent Center surfaces equivalent configuration controls via `AgentCenterAIConfigSection` from `@nimiplatform/kit/features/agent-center/ui`.
 
-- Check Kit before writing app-local UI primitives, auth flows, shell glue,
-  telemetry, AI capability configuration, chat shell, avatar stage, generation panels, or
-  commerce surfaces.
-- Use only public subpath exports. If a required shared behavior exists only in
-  `kit/**/src`, it needs a Kit export before apps consume it.
-- Keep app-specific layout and product workflows in the app.
-- Keep Runtime execution semantics in Runtime and SDK calls.
+## Reuse and Integration Guidelines
+
+- Check Kit before hand-coding local UI primitives, auth dialogs, shell adapters, AI configuration panels, or chat windows.
+- Rely strictly on public subpaths. If a needed capability exists only inside `kit/**/src`, export it officially from Kit first.
+- Keep application-specific layouts, copy, and product logic inside the application.
+- Keep execution semantics within Runtime and SDK calls.
 
 ## Verification
 
-For this repository:
+In the monorepo root:
 
 ```bash
 pnpm --filter @nimiplatform/kit build
@@ -122,7 +104,7 @@ pnpm --filter @nimiplatform/kit test
 pnpm check:nimi-kit
 ```
 
-For generated app repositories:
+In an independent application repository:
 
 ```bash
 pnpm run check

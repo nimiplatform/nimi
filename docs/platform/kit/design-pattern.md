@@ -1,202 +1,162 @@
 # Design Pattern
 
-> Status: Running today. The Nimi design pattern (`P-DESIGN-*`) is
-> the shipped cross-app contract for shared visual + interaction
-> contracts.
+> Status: Active specification. The Nimi Design Pattern (`P-DESIGN-*`) defines cross-app visual conventions and interaction contracts.
 
-The Nimi **design pattern** is the shared visual + interaction
-contract projected into `@nimiplatform/kit/ui`. It governs
-kit primitives, semantic tokens, theme schemas, and the generic
-contract any consuming app must follow.
+The Nimi **Design Pattern** is implemented and maintained in `@nimiplatform/kit/ui`. It governs UI primitives, semantic design tokens, theme layering schemas, and the shared contracts every consuming application complies with.
 
-## Foundation Source
+## Foundational Specifications
 
-| Rule | Value |
+| Dimension | Specification & Rule |
 | --- | --- |
-| Authority spec | `.nimi/spec/platform/ui-design-system.authority.yaml` |
-| Machine projections | `config/platform-*.yaml` |
-| Governed consumers | Declared by each app's local kit manifest |
-| App-local composition may | Own adoption choices, app-owned compositions, accent selection, and art direction |
-| App-local composition may NOT | Redefine shared primitive families, token taxonomies, or product authority |
+| Authoritative spec | `.nimi/spec/platform/ui-design-system.authority.yaml` |
+| Machine projection | `config/platform-*.yaml` |
+| Managed consumers | Declared in each app's local Kit manifest |
+| Allowed app ownership | Component composition, local layout, accent pack selection, product-specific visual identity |
+| Disallowed app behavior | Redefining shared primitive families, inventing unmanaged token categories, or breaking platform contracts |
 
-## Theme Pack Model (P-DESIGN-002)
+## Theme Pack Architecture (P-DESIGN-002)
 
-The shared design foundation is **constant** across apps. App
-identity comes from accent packs that layer on top.
+The shared design foundation remains consistent across all applications. Individual app brand identity is expressed through an overlay accent pack.
 
-| Layer | What it provides |
+| Layer | Content & Responsibility |
 | --- | --- |
-| Foundation scheme | Shared light / dark scheme (`nimi-light`, `nimi-dark`) |
-| Shared accent pack | `nimi-accent` |
-| Consumer accent pack | Optional app-owned pack declared in the consuming app spec manifest |
+| Foundation scheme | Shared light and dark base schemes (`nimi-light`, `nimi-dark`) |
+| Shared accent pack | Default platform accent scheme (`nimi-accent`) |
+| Consumer accent pack | App-specific accent overlay, declared in app manifest |
 
-Governed app entries import:
+Managed applications import their themes at entry:
 
-```
+```css
 @nimiplatform/kit/ui/themes/light.css
 @nimiplatform/kit/ui/themes/dark.css
-@nimiplatform/kit/ui/themes/<app>-accent.css   (exactly one)
+@nimiplatform/kit/ui/themes/<app>-accent.css   /* Exactly one accent pack */
 ```
 
-There is no "mix two accent packs" mode and no "skip the foundation
-scheme" mode.
+The system does not support combining multiple accent packs or bypassing the foundational base scheme.
 
 ## Semantic Token Taxonomy (P-DESIGN-003)
 
-Shared semantic tokens live in `config/platform-nimi-ui-tokens.yaml`. The
-admitted token categories include:
+Platform-wide semantic tokens are defined in `config/platform-nimi-ui-tokens.yaml`:
 
-| Category | Examples |
+| Category | Example Usage |
 | --- | --- |
-| `surface` | Background tones |
-| `text` | Text tones |
-| `action` | Action / button tones |
-| `overlay` | Overlay surfaces |
-| `sidebar` | Sidebar tones |
-| `field` | Form field tones |
-| `status` | Status tones |
-| `radius` | Corner radii |
-| `spacing` | Spacing scale |
-| `typography` | Font + size + weight |
-| `stroke` | Stroke weights |
-| `elevation` | Elevation tokens |
-| `motion` | Motion durations + easing |
-| `z` | Z-index scale |
-| `sizing` | Component size tokens |
-| `border` | Border tones |
-| `opacity` | Opacity scale |
-| `focus` | Focus ring tones |
-| `scrollbar` | Scrollbar tones |
-| `toggle` | Toggle tones |
-| `material` | Material tokens (see [Nimi UI Material](/platform/kit/nimi-ui-material)) |
-| `backdrop` | Backdrop blur tokens |
-| `ambient` | Ambient effect tones |
+| `surface` | Card and background surface tones |
+| `text` | Multi-tier text hierarchy and contrast |
+| `action` | Interactive button and action state tones |
+| `overlay` | Modal and popover backdrop overlays |
+| `sidebar` | Navigation and sidebar backgrounds |
+| `field` | Form input fields, borders, and controls |
+| `status` | Informational, success, warning, and error states |
+| `radius` | Consistent corner radius scale |
+| `spacing` | Spacing and margin scale |
+| `typography` | Font families, size scales, and weights |
+| `stroke` | Border stroke weights |
+| `elevation` | Shadows and depth layers |
+| `motion` | Animation durations and bezier easings |
+| `z` | Layer z-index scale |
+| `sizing` | Standard control dimensions |
+| `border` | Divider and border tones |
+| `opacity` | General opacity scale |
+| `focus` | Keyboard focus ring outlines |
+| `scrollbar` | Custom scrollbar tracks and thumbs |
+| `toggle` | Switch and checkbox active states |
+| `material` | Material textures and frosted glass (see [Nimi UI Material](/platform/kit/nimi-ui-material)) |
+| `backdrop` | Backdrop gaussian blur gradients |
+| `ambient` | Ambient glow and atmospheric highlights |
 
-Each semantic token declares whether it is a `foundation` or `accent`
-layer token. Theme pack values live in `config/platform-nimi-ui-themes.yaml`.
+Each semantic token belongs either to the `foundation` layer or the `accent` layer. Specific variable values are mapped in `config/platform-nimi-ui-themes.yaml`.
 
-App code must not invent parallel token registries for governed
-surfaces.
+App code must not introduce parallel, unmanaged token registries.
 
 ## Theme Scheme Contract (P-DESIGN-004)
 
-| Rule | Value |
+| Dimension | Contract Constraint |
 | --- | --- |
-| Resolved scheme states | `light` or `dark` |
-| Apps may NOT define | Parallel app-local theme entrypoint or root token system |
-| Accent packs may | Express product identity |
-| Accent packs may NOT | Redefine primitive family structure |
+| Resolved scheme | Evaluates strictly to `light` or `dark` |
+| Disallowed | Apps may not establish parallel theme roots or private token systems |
+| Accent freedom | Accent packs may freely convey app product identity |
+| Accent constraint | Accent packs may not alter base structural schemes |
 
-## Primitive Visual Authority (P-DESIGN-005)
+## Visual Primitives Specification (P-DESIGN-005)
 
-| Rule | Value |
+| Dimension | Contract Constraint |
 | --- | --- |
-| Variant taxonomy projection | `config/platform-nimi-ui-primitives.yaml` |
-| Implementation pattern | CVA (class-variance-authority) + Tailwind utility classes inside `kit/ui` |
-| Behavioral primitives | Radix UI headless primitives |
-| Theme registration | Semantic tokens via Tailwind `@theme` in generated CSS |
-| Primitive CSS class selectors | NOT generated separately; CVA composes |
-| App / shared-lib code may | Compose shared primitives |
-| App / shared-lib code may NOT | Define CVA variants for shared primitive families outside `kit/ui` |
+| Variant taxonomy | Canonical definitions in `config/platform-nimi-ui-primitives.yaml` |
+| Implementation | Uses `cva` (Class Variance Authority) with Tailwind CSS utilities inside `kit/ui` |
+| Interaction core | Built atop accessible, unstyled Radix UI headless primitives |
+| Token mapping | Registered via Tailwind `@theme` directives backed by generated CSS variables |
+| Consumption | Components consume variants via CVA props rather than scattered CSS classes |
+| Allowed app ownership | Composing exported Kit primitives |
+| Disallowed app behavior | Declaring custom CVA variants outside `kit/ui` for shared primitive families |
 
-## No App-Local Primitive Redefinition (P-DESIGN-006)
+## No App-Local Primitive Redefinitions (P-DESIGN-006)
 
-| Rule | Value |
+| Dimension | Contract Constraint |
 | --- | --- |
-| Governed app stylesheets may NOT | Define CVA variants or Tailwind utility overrides targeting shared primitive families |
-| App-local wrappers may | Add composition class names |
-| App-local wrappers may NOT | Redefine shared primitive visual contract |
-| Controlled exceptions may | Style app-owned selectors only |
+| Stylesheet restrictions | App stylesheets must not inject global overrides or conflicting utility classes on shared primitives |
+| Wrapper components | Allowed to build business wrappers for local composition |
+| Contract integrity | Local wrappers must not violate the established visual or interaction contracts of shared primitives |
+| Scoped overrides | Custom styling may only target app-owned private DOM nodes and class selectors |
 
 ## No App-Local Token Overrides (P-DESIGN-007)
 
-| Rule | Value |
+| Dimension | Contract Constraint |
 | --- | --- |
-| Governed app stylesheets may NOT | Assign values to `--nimi-*` CSS variables |
-| Shared semantic token values | Originate only from generated theme CSS emitted from `config/platform-nimi-ui-themes.yaml` |
-| Shared-lib handwritten CSS may | Read semantic tokens |
-| Shared-lib handwritten CSS may NOT | Provide fallback token authority |
+| Variable assignment | App stylesheets must not directly assign values to `--nimi-*` global CSS variables |
+| Token source | Semantic tokens are generated solely from `config/platform-nimi-ui-themes.yaml` |
+| Safe consumption | Application components consume variables safely via standard `var(--nimi-*)` references |
+| Conflict avoidance | Hardcoded values or conflicting token fallbacks should be avoided |
 
-## Accent Alias Phase-Out (P-DESIGN-008)
+## Deprecating Legacy Aliases (P-DESIGN-008)
 
-Generated accent packs emit shared `--nimi-*` semantic token values
-only. App-scoped alias namespaces (`--ot-*`, `--color-ot-*`,
-`--color-brand-*`, `--color-accent-*`) are not long-term authority.
-Retired app-specific full-theme compatibility outputs cannot remain
-in the generated shared-lib theme surface once foundation-plus-accent
-is active.
+Compiled accent packs emit standardized `--nimi-*` semantic tokens. Legacy alias prefixes (such as `--ot-*`, `--color-ot-*`, `--color-brand-*`, `--color-accent-*`) are transitional artifacts and are being phased out.
 
-Governed app chrome may layer app identity through shared semantic
-tokens and local `color-mix(...)` expressions, but not through
-app-scoped accent aliases for shared background / text / focus /
-surface meaning.
+Apps achieve nuanced brand expression by pairing standard semantic tokens with modern CSS functions like `color-mix(...)`, avoiding ad-hoc alias variables.
 
-## Shared Primitive Contract (P-DESIGN-010)
+## Shared Primitives Contract (P-DESIGN-010)
 
-Shared primitives:
+Shared UI primitives:
+- Are exported directly from `@nimiplatform/kit/ui`;
+- Rely on accessible Radix UI headless components (Dialog, Tooltip, ScrollArea, Select, Switch, Avatar, Popover, etc.);
+- Connect to `--nimi-*` semantic tokens via CVA variants and Tailwind classes.
 
-- Delivered by `@nimiplatform/kit/ui`
-- Built on Radix UI headless primitives (Dialog, Tooltip, ScrollArea,
-  Select, Switch, Avatar, Popover)
-- Styled with CVA + Tailwind referencing `--nimi-*` semantic tokens
+Managed app modules must use the following shell-level primitive families: `surface`, `action`, `overlay`, `sidebar`, `field`, `status`, `scroll_area`, `toggle`, and `avatar`. Apps may provide lightweight wrappers, but must preserve baseline contracts.
 
-Governed app modules **must** use shared primitives for shell-level
-families: `surface`, `action`, `overlay`, `sidebar`, `field`,
-`status`, `scroll_area`, `toggle`, `avatar`. Thin compatibility
-wrappers are permitted only if they delegate directly to
-`@nimiplatform/kit/ui` and do not redefine the visual contract.
+## Typical Scenario: Adding an Accent Pack for a New App
 
-## Reader Scenario: Adding An Accent Pack For A New App
+A new app requires a tailored visual accent:
 
-A new admitted Nimi app needs its own accent identity.
+1. **Add accent stylesheet**: Place `<app>-accent.css` under `@nimiplatform/kit/ui/themes/`.
+2. **Assign accent tokens**: Provide values for supported `accent` layer tokens; foundational base tokens remain untouched.
+3. **Import configuration**: Import base light and dark CSS plus the app's specific accent stylesheet in the entry module.
+4. **Distinct visual identity**: The application renders with its unique visual branding while preserving full platform accessibility and visual cohesion.
 
-1. **Add accent pack.** A new
-   `<app>-accent.css` lands under
-   `@nimiplatform/kit/ui/themes/`.
-2. **Tokens overridden.** The accent pack assigns values to admitted
-   `accent`-layer semantic tokens; foundation tokens stay untouched.
-3. **App imports.** App entry imports the foundation light + dark CSS
-   plus exactly its own `-accent.css`.
-4. **Visual identity emerges.** The app feels distinct while
-   sharing the foundation scheme.
+## Typical Scenario: Requesting a New Visual Variant
 
-The accent pack did not invent new token namespaces. It values
-admitted tokens.
+An application requires a button variant not covered by existing primitives:
 
-## Reader Scenario: An App Wants A New Visual Variant
+1. **Check specifications**: Inspect `config/platform-nimi-ui-primitives.yaml` for supported variants.
+2. **Outside current scope**: Avoid monkey-patching or writing custom CVA variants locally on the shared Button component.
+3. **Supported approaches**: Propose a new variant for inclusion in the official Kit specifications, or create a private, locally scoped component that does not usurp the shared primitive's name.
 
-An app author wants a button variant that doesn't match any admitted
-shared primitive variant.
+## Architectural Boundaries
 
-1. **Check the variant table first.** `config/platform-nimi-ui-primitives.yaml`
-   declares admitted variants.
-2. **If the variant isn't there:** the app cannot define a new CVA
-   variant for the shared primitive family in app-local code.
-3. **Options:** propose a new admitted variant for the shared
-   primitive (governance flow), or use a custom app-local component
-   that does not hold the same primitive name.
+- Applications cannot redefine or tamper with shared primitive contracts.
+- Applications cannot assign values directly to `--nimi-*` CSS variables.
+- Accent packs customize the accent layer only; foundation schemes remain consistent.
+- Arbitrary global CSS cannot hijack shared component selectors.
 
-The boundary keeps the shared primitive contract honest.
+## Specification Summary
 
-## What The Design Pattern Does Not Do
-
-- It does not allow per-app shared primitive redefinition.
-- It does not allow per-app `--nimi-*` token overrides.
-- It does not let accent packs change foundation tokens.
-- It does not allow free-form CSS to claim authority over shared
-  primitive families.
-
-## Boundary Summary
-
-| Concern | Authority |
+| Concern | Specification Authority |
 | --- | --- |
-| Foundation authority | `P-DESIGN-001` |
-| Theme pack model | `P-DESIGN-002` |
+| Foundational architecture | `P-DESIGN-001` |
+| Theme layering model | `P-DESIGN-002` |
 | Semantic token taxonomy | `P-DESIGN-003` + `config/platform-nimi-ui-tokens.yaml` |
-| Theme scheme contract | `P-DESIGN-004` |
-| Primitive visual authority | `P-DESIGN-005` + `config/platform-nimi-ui-primitives.yaml` |
-| App-local redefinition rules | `P-DESIGN-006`, `P-DESIGN-007`, `P-DESIGN-008` |
-| Shared primitive contract | `P-DESIGN-010` |
+| Scheme resolution contract | `P-DESIGN-004` |
+| Visual primitive system | `P-DESIGN-005` + `config/platform-nimi-ui-primitives.yaml` |
+| Local redefinition restrictions | `P-DESIGN-006`, `P-DESIGN-007`, `P-DESIGN-008` |
+| Shared primitive contracts | `P-DESIGN-010` |
 
 ## Source Basis
 

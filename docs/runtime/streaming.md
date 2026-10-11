@@ -1,31 +1,36 @@
-# Streams and Job Observation
+# Streaming Events and Scenario Job Observation
 
-A stream carries ordered typed events. Connection closure alone is not proof of successful completion. Consume the operation's terminal signal, and preserve transport failure separately from its last trustworthy state.
+In Nimi, streaming channels deliver low-latency text tokens, audio frames, and presentation state events, while prolonged heavy compute tasks—such as image synthesis, video generation, or music rendering—are managed through structured asynchronous Scenario Jobs.
 
-## Generation Streams
+## Streaming Lifecycle
 
-Text and supported speech generation use typed deltas and explicit completed or failed outcomes. Before establishment, admission can reject the call. After establishment, operation failures use the admitted failed event where delivery is possible. A broken transport or Runtime shutdown can prevent a terminal event from arriving; the client must not turn that loss into success.
+- **Structured Incremental Output**: Text and voice generation streams deltas in real-time, allowing frontends to render responsive, progressive output.
+- **Explicit Termination and Error Signaling**: Streams dispatch clear terminal events upon successful completion or failure, enabling clients to clearly distinguish socket drops from verified operational success.
+- **Resilience and State Recovery**: If network interruptions occur, conversational state is restored from the committed conversation snapshot, preserving contextual integrity.
 
-There is no general promise of replaying a partial generation after reconnect. Shared realtime mechanics provide bounded reconnect hooks; each owner defines its recovery. AI Realtime sessions are ephemeral and close on Runtime or Driver loss. LocalAgent Conversation recovery uses the committed snapshot, not durable event replay.
+## Asynchronous Scenario Jobs Workflow
 
-## Asynchronous Jobs
+For compute-intensive operations, applications follow the standardized Scenario Job pattern:
 
-The common program is Submit, repeated Get on the original Job, formal result reads, and explicit Cancel when requested. `GetScenarioJob` may admit one bounded reconciliation of an original native asynchronous task. Without a later Get, Runtime does not start another permanent provider polling round.
+1. **Submit**: The application posts a task specification. Runtime validates arguments and returns a unique `jobId`; client apps can preserve a `clientSubmissionId` for idempotency.
+2. **Observe (Get & Subscribe)**:
+   - Poll task health and terminal states via `GetScenarioJob`;
+   - Optionally listen to `SubscribeScenarioJobEvents` for real-time progress callbacks and stage updates.
+3. **Retrieve Artifacts**: Once the job achieves `completed` status, retrieve finalized files, embeddings, or structured records.
+4. **Cancellation**: If a user abandons a task, dispatching a Cancel command requests task stoppage; client applications inspect the returned terminal status and `stopOutcome` to determine whether execution was confirmed stopped or remains unconfirmed.
 
-`SubscribeScenarioJobEvents` projects snapshots and can make the UI update sooner. It is a hint alongside Get, not the driver of asynchronous provider progress or a replacement for a complete terminal Get. The App owns observation cadence. An event's terminal status does not replace operation-specific result fields returned by Get or the formal artifact reader.
+## Backpressure and Flow Control
 
-Keep `observationIssue` separate from Job status. It reports a response-local observation problem and may accompany the last trusted snapshot; it does not prove the original execution failed. Detaching a subscription, leaving a view, or losing transport stops observation, not admitted work. Explicit Cancel is a separate operation and a canceled status alone does not prove external billing or work stopped; preserve the reported stop outcome.
+To safeguard local machine resources:
+- **Adaptive Throttling**: Runtime maintains bounded buffers and subscription timeouts to prevent memory exhaustion on resource-constrained consumers.
+- **Capacity Management**: Runtime manages queue bounds and execution concurrency to prevent compute tasks from exhausting system memory and resources.
 
-For recovery, keep the original Job identity or a saved client submission identity. Look up and observe that work instead of submitting generation again. Adopt complete results into App storage before Runtime's bounded retention ends.
+## Related Documentation
 
-## Bounded Delivery
-
-Runtime bounds messages, buffering, subscriber lag, retry, and lifetime. A slow consumer receives backpressure or a typed resource/slow-consumer failure; it is not promised unlimited pause and lossless replay. Independent channels and tracks remain isolated.
-
-For wire-level details, see [Streaming Protocol](/runtime/streaming-protocol). The compilable [Scenario Job example](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/05-scenario-job.ts) uses the protected App client.
+- [Wire-level Streaming Protocol Details](/runtime/streaming-protocol)
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
-- [`sdks/typescript/runtime/scenario-jobs.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/scenario-jobs.ts)
+- [`examples/sdk/05-scenario-job.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/05-scenario-job.ts)

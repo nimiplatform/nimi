@@ -1,13 +1,8 @@
 # State vs History
 
-> Status: Running today. World State (`R-WSTATE-*`) and World
-> History (`R-WHIST-*`) are live Realm surfaces with distinct,
-> complementary roles.
+> Status: Active specification. World State (`R-WSTATE-*`) and World History (`R-WHIST-*`) are live Realm surfaces with distinct, complementary roles.
 
-A world keeps two durable records in Realm: its **state** — what is
-true right now — and its **history** — what happened. They are not
-the same thing, neither replaces the other, and an explicit rule
-decides which one an event touches.
+A world maintains two durable records in Realm: its **state** (what is true right now) and its **history** (the sequence of what happened). They are fundamentally distinct, neither replaces the other, and explicit platform contracts determine which surface an event mutates.
 
 ## What State Is
 
@@ -17,31 +12,26 @@ decides which one an event touches.
 | Purpose | Shared present-state of the world |
 | Scope | Durable shared scopes only: `WORLD`, `ENTITY`, `RELATION` |
 | Mutation method | Explicit commit envelope |
-| Story-local control variables | NOT in Realm — they stay outside |
+| Story-local control variables | Managed privately by the App; not stored in Realm |
 
-State expresses the current shared truth: a character is in this
-location, this relationship has this status, this entity has these
-attributes. State changes only through the commit envelope.
+State expresses the current shared truth: a character is at a specific location, a relationship has reached a particular milestone, or an entity possesses certain attributes. State changes exclusively through explicit commit envelopes.
 
 ## What History Is
 
 | Property | Value |
 | --- | --- |
 | Authority | Realm World History owner (`R-WHIST-*`) |
-| Purpose | Canonical happened facts |
-| Append posture | Explicit append |
-| Story trace / raw turn logs / app-private archives | NOT in Realm history |
-| Provenance per event | `appId`, `sessionId`, `actorRefs`, `reason`, `evidenceRefs`, related state/truth anchors |
-| Mutation | Append-only; corrections via supersede or invalidation; no silent hard delete |
+| Purpose | Canonical record of verified facts and audit provenance |
+| Append posture | Explicit append-only |
+| Story trace / raw inference logs / app-private archives | Excluded from Realm history |
+| Provenance per event | `appId`, `sessionId`, `actorRefs`, `reason`, `evidenceRefs`, and related state anchors |
+| Mutation rule | Append-only; corrections model supersession or invalidation without silent hard deletion |
 
-History stores the agreed record of what happened: this turn
-committed this mutation, this event was written by this app under
-this run mode. It is not a log of every model token — it is the
-official record of events the platform has accepted.
+History stores the verified sequence of what has occurred: which turn committed a change, authored by which app under what run mode. It is not an uncurated stream of model generation tokens, but rather the official chronicle of platform-verified events.
 
 ## The `effectClass` Determines Which Surface Updates
 
-Every commit envelope declares an `effectClass`:
+Every commit envelope declares an explicit `effectClass`:
 
 | `effectClass` | State write | History append |
 | --- | --- | --- |
@@ -49,124 +39,98 @@ Every commit envelope declares an `effectClass`:
 | `STATE_ONLY` | Yes | No |
 | `STATE_AND_HISTORY` | Yes | Yes |
 
-Clients must not invent additional mutation classes. The closed
-enum is the contract.
+Clients must not introduce custom mutation classes; this closed enumeration is strictly enforced by protocol contracts.
 
 ## Run Mode Authorization
 
-State writes need explicit app authorization, checked against an
-`(appId, schemaId, schemaVersion, effectClass) -> runMode` matrix
-with strict schema validation. Missing schema fields, an
-unrecognized scope, unverifiable provenance, or an unauthorized run
-mode all reject the commit.
+State writes require explicit app authorization, validated against an `(appId, schemaId, schemaVersion, effectClass) -> runMode` matrix alongside strict schema enforcement. Missing schema fields, unrecognized scopes, unverifiable provenance, or unauthorized run modes cause immediate rejection.
 
 History append constraints:
 
-| Rule | Value |
+| Rule | Constraint |
 | --- | --- |
-| `REPLAY` runs may NOT append shared world history | `R-WHIST-004` |
+| `REPLAY` runs may NOT append to shared world history | `R-WHIST-004` |
 | Only `CANON_MUTATION` rows authorized by the matrix may append | `R-WHIST-004` |
-| App-private narrative archives | App-owned, not Realm history (`R-WHIST-006`) |
+| App-private narrative archives | Owned privately by the App; excluded from Realm history (`R-WHIST-006`) |
 
-## Why Two Surfaces
+## Why Two Separate Surfaces
 
 If state absorbed history:
-- "Has this entity ever been in another location?" becomes
-  unanswerable
-- Audit / replay / reconstruction is impossible
-- Corrections by silent overwrite become a side door to lose
-  truth
+- "Has this entity ever been in another location?" becomes unanswerable.
+- Auditability, deterministic replay, and post-incident reconstruction are lost.
+- Relying on silent overwrites to patch data destroys audit trails.
 
 If history absorbed state:
-- "Where is this entity now?" requires reconstructing from a stream
-  of past events on every read
-- App reads pay an unbounded cost
-- "Now" gets ambiguous when concurrent appends race
+- Answering "Where is this entity right now?" requires replaying the entire history stream on every query.
+- App read operations incur unbounded latency and compute costs.
+- Under high concurrency, determining the "current" state becomes ambiguous.
 
-Two surfaces, one truth model. Each event explicitly declares which
-surfaces it affects via `effectClass`.
+Two dedicated surfaces serve a unified data model. Every event explicitly declares which surface it touches via `effectClass`.
 
-## Reader Scenario: A `STATE_ONLY` Mutation
+## Typical Scenario: A `STATE_ONLY` Mutation
 
-An app writes a transient world-state update with no historical
-significance.
+An app writes a transient world-state update without archival significance:
 
-1. **Commit envelope.** App submits with
-   `effectClass: STATE_ONLY`.
-2. **Realm validates.** Schema, provenance, run-mode authorization
-   all pass.
-3. **State updated.** World present-state reflects the change.
-4. **History unchanged.** No history row appended; the change is
-   stateful but not historical.
+1. **Commit envelope**: The app submits with `effectClass: STATE_ONLY`.
+2. **Realm validation**: Schema structure, provenance credentials, and run-mode permissions pass.
+3. **State updated**: The world present-state reflects the change immediately.
+4. **History unchanged**: No history row is appended; the update is stateful but not historical.
 
-## Reader Scenario: A `STATE_AND_HISTORY` Mutation
+## Typical Scenario: A `STATE_AND_HISTORY` Mutation
 
-An app writes a canon-significant mutation.
+An app commits a canonical milestone mutation:
 
-1. **Commit envelope.** `effectClass: STATE_AND_HISTORY`.
-2. **Realm validates.** Same checks; additionally checks that the
-   run mode authorizes history append (`CANON_MUTATION`).
-3. **State updated.** World present-state reflects.
-4. **History appended.** A new row with full provenance lands in
-   history.
-5. **Future replay or correction** can reference this row.
+1. **Commit envelope**: The app submits with `effectClass: STATE_AND_HISTORY`.
+2. **Realm validation**: Passes base checks and verifies that the current run mode authorizes history append (`CANON_MUTATION`).
+3. **State updated**: The world present-state updates accordingly.
+4. **History appended**: A new row with full provenance metadata lands in history.
+5. **Traceability**: Future replays or audits can reference this entry reliably.
 
-## Reader Scenario: A Correction
+## Typical Scenario: A Correction
 
-An earlier history row needs to be corrected.
+An earlier history entry needs correction:
 
-1. **No silent hard delete.** The original row stays; corrections
-   are modeled as supersede or invalidation events.
-2. **Append a correction event.** The new event references the
-   prior row and explains the supersession.
-3. **History stays append-only.** Reviewers see both the original
-   and the correction; the truth chain is intact.
+1. **No silent hard delete**: The original entry remains; corrections are modeled as superseding or invalidating events.
+2. **Append a correction event**: The new entry references the previous ID and documents the rationale for supersession.
+3. **Append-only integrity**: Auditors inspect both the original entry and the corrective action, preserving the provenance chain.
 
-The append-only invariant is what makes history a reliable audit
-surface across years.
+The append-only invariant ensures that Realm history serves as an immutable, long-term audit trail.
 
-## Reader Scenario: A Replay Consumer Tries To Write History
+## Typical Scenario: A Replay Consumer Attempts to Write History
 
-A replay consumer attempts to append history during replay.
+A replay consumer attempts to append history during execution:
 
-1. **Replay executes.** Mutation re-derived under `REPLAY` mode.
-2. **Append blocked.** Per `R-WHIST-004`, `REPLAY` runs may not
-   append shared history.
-3. **State write may proceed** if the run mode authorizes it (per
-   the matrix); history is not duplicated.
-4. **Audit reflects** the replay path; Realm history is unchanged.
+1. **Replay executes**: Mutations are re-derived under `REPLAY` mode.
+2. **Append blocked**: Per `R-WHIST-004`, `REPLAY` runs cannot append to shared history.
+3. **Controlled state write**: If the authorization matrix permits state updates for this run mode, state changes apply while history remains unpolluted.
+4. **Audit integrity**: The replay path is clearly marked; shared Realm history is untouched.
 
-## Reader Scenario: An App Wants Its Own Narrative Archive
+## Typical Scenario: An App Manages Private Narrative Logs
 
-An app needs its own per-session narrative log.
+An interactive story app needs per-session narrative logs:
 
-1. **Realm history is not the place.** Realm history stores
-   canonical happened facts only.
-2. **App-owned archive.** The app stores its narrative archive
-   under its own ownership (`R-WHIST-006`).
-3. **Not represented as Realm history.** The app does not project
-   its archive as Realm canonical world history.
+1. **Excluded from Realm history**: Realm history stores verified platform facts only.
+2. **App-owned storage**: The app persists its narrative transcripts in its private store (`R-WHIST-006`).
+3. **Clear boundary**: The app does not represent private narrative logs as Realm canonical history.
 
-## What State And History Do Not Do
+## Architectural Boundaries
 
-- They do not silently merge: state is not history; history is not
-  state.
-- `effectClass` does not admit additional values.
-- Realm does not privilege hidden write paths outside the explicit
-  commit envelope.
-- `REPLAY` runs do not silently get history append.
-- App-private archives do not become Realm canonical truth.
-- History rows are not silently hard-deleted.
+- State and history remain distinct surfaces without implicit merging.
+- `effectClass` is a closed enumeration with no ad-hoc extensions.
+- Realm disallows covert writes outside the explicit commit envelope.
+- `REPLAY` runs cannot append to history silently.
+- App-private archives never become Realm canonical state.
+- History entries are never silently hard-deleted.
 
 ## Boundary Summary
 
 | Concern | Owner |
 | --- | --- |
 | Shared present-state | Realm (`R-WSTATE-*`) |
-| Canonical happened facts | Realm (`R-WHIST-*`) |
-| Commit envelope authority | Realm (`R-WSTATE-002`) |
+| Canonical facts and audit provenance | Realm (`R-WHIST-*`) |
+| Commit envelope validation | Realm (`R-WSTATE-002`) |
 | Run-mode authorization matrix | Realm (`R-WSTATE-005`) |
-| `effectClass` closed enum | Realm (`R-WSTATE-004`) |
+| `effectClass` closed enumeration | Realm (`R-WSTATE-004`) |
 
 ## Source Basis
 

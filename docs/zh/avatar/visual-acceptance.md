@@ -1,93 +1,36 @@
-# 视觉验收
+# Avatar 视觉呈现验收
 
-## 状态：已准入契约；Avatar 拥有的测试 surface
+验证对象是 Desktop 监督启动的 Avatar 窗口、当前受保护 App 会话以及所选模型的真实输出。夹具解析、类型检查和本地诊断分别覆盖自己的行为，不能单独证明这条产品路径可用。
 
-Avatar 载体视觉验收契约规定：什么证据能证明 Carrier 真的渲染出了画面。证据分类、故障关闭边界和多后端证据形态都是固定的。自动化验收工具是 Avatar 自己的测试 surface；并非所有证据类别都是公开应用 API。
+## 准备真实路径
 
-## “视觉验收”的含义
+1. 准备匹配的 Runtime、SDK/Kit 与已验证的模型和能力配置。
+2. 启动 Runtime 与 Home，并完成 Home 登录。
+3. 通过正式调用方入口指定当前 Agent，由 Desktop 与 Runtime 重新校验启动意向和对话锚点。
+4. 在 Desktop 监督的 Avatar Electron 窗口中检查结果。源码开发入口为仓库根的 `pnpm dev:avatar`，但启动命令本身不选择默认 Agent，也不证明会话和画面已就绪。
 
-Avatar 应用的载体——由 `apps/avatar` 拥有的 canvas / WebGL 表面——必须针对当前后端产出可见的、非占位的像素，并且证据要确定、可审计。视觉验收这份契约规定的是：**哪些证据有资格完成这项证明**。
+直接 Vite、另一产品的渲染器或 fixture_not_verified 预览不能替代这个对象。
 
-严格是故意的：Avatar 载体路径是唯一真实的产品路径；桌面端聊天里那个独立的 Live2D 渲染器不是 Avatar 载体。
+## 按变更验证结果
 
-## 证据类别
+- **模型呈现**：所选 Live2D 或 VRM 模型在真实 Avatar 窗口可见，不是空画布或诊断占位。
+- **会话与交互**：当前 Agent/Conversation 绑定有效，产品交互与后端呈现均已就绪。
+- **动作与表情**：触发本次改变的受支持输入，观察对应模型结果；不把待机或另一模型的输出当作成功。
+- **窗口与碰撞**：涉及尺寸、缩放或穿透时，验证实际改变的区域和操作；没有这类变更则不重复无关检查。
+- **失败与恢复**：缺失或不支持的输入显示对应原因，恢复后仍需有效会话与呈现条件。
 
-| 类别 | 含义 | 能否完成载体视觉证明 |
-| --- | --- | --- |
-| 真实运行时路径 | 桌面启动上下文 + 本地 Agent Center 包 + 运行时 IPC 桥接 + SDK 驱动 + Avatar 载体 | 是 |
-| 确定性工具 | 受控的 Avatar 应用工具，通过稳定输入执行真实的载体绘制路径 | 是，如果它执行 Avatar 载体 canvas / WebGL 路径 |
-| 夹具 / 模拟 | 显式 `VITE_AVATAR_DRIVER=mock` 或模拟场景数据源 | 仅作为回归证据 — 不能完成载体证明 |
-| 桌面渲染器证据 | 桌面聊天 Live2D 渲染器冒烟测试或像素证据 | 否 |
-| 已关闭主题证据 | 来自旧主题的历史工件 | 否 |
+Live2D 结果只支持实际验证的 Live2D 路径，不能证明 VRM。截图、日志和自动化结果只用于说明本次真实观察到的行为，不采用已退役的固定像素网格、首帧数量或 recordCarrierVisualProof 接口。
 
-前两项可以完成证明。后三项不能。
+## 已有工程检查的范围
 
-## 所需视觉证明
+Avatar 的 typecheck 与 test 分别检查类型和测试实际覆盖的行为。仓库根 `pnpm smoke:avatar-live2d` 检查所选已导入 Live2D 资产的结构、引用与相应文件条件；它不启动 Avatar renderer，也不证明真实像素输出或语音交互。
 
-载体视觉证明必须包含以下方面的当前可执行证据：
+记录检查使用的会话、模型、后端和实际结果即可。未运行的场景如实标为未验证，不用通过的夹具或其他 renderer 结果补成产品成功。
 
--   由 `apps/avatar` 拥有而非桌面聊天应用拥有的 canvas（或等效的 WebGL 主机）
--   通过 Avatar 应用后端分支的模型加载成功
--   模型加载后，载体路径至少生成一帧非占位符可见像素
--   当实现声称支持响应式表面行为时，提供针对尺寸调整或主机边界变化的弹性证据
--   显示缺少/无效模型输入不会渲染占位符成功状态的失败证据
+## Source Basis
 
-该证明可以通过单元/集成测试、确定性无头工具或 Playwright 风格的验收工具进行自动化。无论采用何种方法，都必须记录足够的工件细节，以便后续审计。
-
-## 禁止完成证明
-
-以下证据**不得**用于完成 Avatar 载体视觉证明：
-
--   桌面聊天 Live2D 像素测试，即使它们通过桌面渲染器执行 Cubism WebGL
--   没有非占位符像素证据的静态 `<canvas>` 存在
--   只用夹具回放，却声称它是真实 Runtime 载体路径
--   已关闭主题的演示截图、检查清单或工作器结果
--   不执行绘制/像素输出的仅命令状态测试
-
-故障关闭是明确要求。没有已准入证据的成功声明属于
-`placeholder_success` 捷径，系统会拒绝。
-
-## 多后端视觉证明
-
-`recordCarrierVisualProof` 已扩展 `modelKind: BackendKind` 字段，以便载体能够按后端接受证据：
-
-```ts
-recordCarrierVisualProof(input: {
-  modelKind: 'live2d' | 'vrm';
-  // ... existing fields (canvas ref / sample grid / frame index / ...)
-}): CarrierVisualProof;
-```
-
-适用按后端划分的规则。Live2D 证据仅证明 Live2D 分支。VRM 证据仅证明 VRM 分支。禁止跨后端重用证据。
-
-## 读者场景：完成 Live2D 载体证明
-
-1.  **运行确定性工具。** Avatar 工具挂载 Live2D 后端，加载夹具层模型，驱动规范的活动序列。
-2.  **捕获采样网格。** 在确定性帧索引处进行像素采样；断言身体区域存在非占位符像素。
-3.  **记录证明。** 使用采样网格 + canvas 引用 + 帧索引 + 工具 ID 调用 `recordCarrierVisualProof({ modelKind: 'live2d', ...})`。
-4.  **审计。** 审计员从记录的工件中重放工具；重放必须重现相同的证据。
-
-该证明被准入，因为它通过确定性输入执行了载体绘制路径，并生成了可审计的工件细节。
-
-## 读者场景：一次被禁止的完成证明尝试
-
-一位贡献者提议使用桌面聊天应用的 Live2D 像素测试来完成载体证明。
-
-1.  **拒绝。** 桌面聊天 Live2D 渲染器是一个独立的实现。它不执行 Avatar 载体 canvas。
-2.  **理由代码。** "根据 `carrier-visual-acceptance-contract.md` 第3节，桌面渲染器证据不能完成载体视觉证明。"
-3.  **重新规划。** 贡献者转而构建一个 Avatar 载体确定性工具。
-
-此契约依据此规则禁止此类行为，因为混合渲染器证明会掩盖实际工作的路径。
-
-## 边界摘要
-
-| 关注点 | 所有者 |
-| --- | --- |
-| 可观察视觉结果与故障关闭边界 | Avatar |
-| 后端像素写入路径 | 当前 Live2D、VRM 或 Nimi2D 分支 |
-| 视觉包能力要求 | 经过验证的后端能力配置 |
-| 桌面聊天 Live2D 渲染器 | 桌面（独立；绝不作为 Avatar 载体证明） |
-
-## 来源依据
-
--   [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`apps/avatar/src/shell/renderer/App.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/App.tsx)
+- [`apps/avatar/src/shell/renderer/app-shell/composition-state.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/app-shell/composition-state.ts)
+- [`apps/avatar/scripts/smoke-agent-center-live2d.mjs`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/scripts/smoke-agent-center-live2d.mjs)
+- [`apps/avatar/package.json`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/package.json)

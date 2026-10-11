@@ -1,32 +1,30 @@
-# Realm Truth Boundary
+# Realm Authoritative State and Architectural Boundaries
 
-Realm, the external service, decides what is true about worlds: the records,
-the world lifecycle rules, the social and economic invariants. This repository
-defines none of those.
+In Nimi's distributed architecture, shared invariants across all digital worlds—including universal account identities, social relationship graphs, creator economics, digital asset ownership, and world lifecycle rules—are authoritatively governed by Realm as the **Single Source of Truth**.
 
-Nimi reaches Realm through generated SDK clients with typed wrappers around
-them. For app code, that means a Realm fact is data returned by the Realm
-service you are connected to — never something Nimi defines locally.
+Local applications and desktop clients do not define or mutate these global invariants unilaterally. Instead, they interact with and consume authoritative state projections through type-safe interfaces provided by the SDK.
 
-## What Nimi Owns
+## Division of Responsibilities
 
-| Nimi surface | Responsibility |
+| Platform Component | Primary Responsibility |
 | --- | --- |
-| SDK generated Realm core | Typed client shape generated from the configured Realm OpenAPI input |
-| SDK Realm facade | Consumer transport, token handling, fail-closed errors, and typed wrappers |
-| Runtime/Desktop/Web/apps | Consumer projections through the SDK boundary |
+| **SDK Generated Realm Core** | Type-safe data access models and schemas compiled from Realm OpenAPI specifications |
+| **SDK Realm Facade** | Manages session credential injection, retries, fail-closed error mapping, and transport scheduling |
+| **Runtime / Desktop / Web** | Presentation and consumer surfaces that render read-only projections received from Realm |
 
-## What Nimi Does Not Own
+## Core Invariants and Boundaries
 
-- Realm canonical records.
-- Realm social, chat, economy, asset, binding, transit, or world rules.
-- Realm auth/session issuance truth.
-- New local Realm kernel contract files in this repository.
+- **Unified Authority**: Cross-world social networks, asset transfers, and creator payout rules are enforced centrally by Realm; local clients do not maintain conflicting local arbitration engines.
+- **Identity Integrity**: Universal cryptographic identities and cross-world travel passes are issued exclusively by Realm.
+- **Fail-Closed Semantics**: If Realm connectivity is interrupted or schema mismatch occurs, the platform surfaces explicit unavailable states, preventing fabricated local success.
 
-If an app needs Realm data, it should use the SDK Realm client or an app-owned
-wrapper over that client. It should not copy Realm endpoint strings, duplicate
-response shapes, or treat old local Realm spec mirrors as authority.
+Application developers should consume Realm services exclusively via `@nimiplatform/sdk`, avoiding manual endpoint stitching or synthesized local mock schemas.
+
+## Related Documentation
+
+- [World State vs. History](/platform/worlds/state-vs-history)
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

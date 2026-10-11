@@ -49,11 +49,11 @@ pre-commit install
 
 ## Development Workflow
 
-1. Keep scope focused and update docs when behavior changes. Use a branch or worktree when it helps isolate concurrent work.
-2. Run the affected behavior and relevant local tests/type checks.
-3. Ordinary changes may be pushed directly to `main`. Follow the push CI results and repair or revert failures; `main` is an integration branch, not a promise that every commit is releasable.
-4. Use a PR for shared public contracts, native installation, data handling, and release workflow changes. Complete the relevant remote checks before merging; no independent human approval is required. Do not assume optional auto-merge waits for checks after branch rules change.
-5. Publication needs explicit authorization for the version and channel, plus that version's required validation. A commit being on `main` does not authorize its release. Authorization to publish after successful validation need not be requested again; authorization only to prepare a candidate is not publication authorization.
+1. **Focused Scope:** Keep PRs and commits tightly focused on the target task. Update corresponding documentation whenever user-visible behavior or developer APIs change.
+2. **Local Verification:** Run local tests and type checks on affected packages before submitting changes.
+3. **Continuous Integration:** Direct changes on `main` must pass automated push CI. If CI fails, promptly repair or revert the offending commit.
+4. **Pull Requests:** Use pull requests for changes involving shared contracts, native installers, sensitive security domains, or release workflows. Ensure all required remote checks pass before merging.
+5. **Release Authorization:** Code merged to `main` undergoes automated integration testing. Formal releases to public channels require completing the release verification checklist specified in [RELEASE.md](./RELEASE.md).
 
 ## AI-Assisted Contributions
 

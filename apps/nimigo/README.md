@@ -1,42 +1,53 @@
 # NimiGo
 
-NimiGo 是 Nimi 主仓内维护的 App，围绕项目、资料与可复用成果组织用户委托，由用户任命的 Runtime LocalAgent 执行。
+NimiGo 是基于 Nimi 平台构建的智能工作空间应用。用户可以指派由 Nimi 托管的 AI 角色作为项目协同伙伴，围绕项目规划、知识资料与产出物组织任务流程，由 Runtime 本地智能体（LocalAgent）负责具体执行。
 
-## 工程与运行
+## 开发与运行
 
-依赖由仓库根目录的 `pnpm-workspace.yaml` 与 `pnpm-lock.yaml` 统一维护。SDK、Kit、App Tools 使用 `workspace:*`；在根目录运行 `pnpm install --frozen-lockfile`。不在本目录独立安装或执行 scaffold init/sync。
+项目作为 Nimi 整体 Monorepo 的一部分，依赖由根目录的 `pnpm-workspace.yaml` 与 `pnpm-lock.yaml` 统一管理。SDK、Kit 与 App Tools 均以 `workspace:*` 方式引用。在仓库根目录执行 `pnpm install --frozen-lockfile` 即可完成依赖安装。
 
-先启动主仓正式开发环境：
+### 启动步骤
+
+1. **启动基础运行时与桌面外壳**：
+   在仓库根目录分别启动底层服务：
+   ```sh
+   # 终端 1
+   pnpm dev:runtime
+
+   # 终端 2
+   pnpm dev:desktop
+   ```
+
+2. **启动 NimiGo**：
+   待 Nimi 桌面端（Home）就绪后，在根目录启动或续接已有注册实例：
+   ```sh
+   # 查看当前已注册的应用实例
+   pnpm dev:nimigo -- --list-registrations
+
+   # 续接指定实例启动
+   pnpm dev:nimigo -- --resume <selector>
+   ```
+
+首次运行且未有注册实例时，直接运行 `pnpm dev:nimigo` 即可。默认开发调试端口为 `9337`（可通过 `--cdp-port <port>` 覆盖）。
+
+## 质量验证与构建
+
+在仓库根目录运行对应的校验脚本：
 
 ```sh
-pnpm dev:runtime
-# 在另一个终端运行
-pnpm dev:desktop
-```
-
-Home 就绪后，在根目录选择并续接已有注册：
-
-```sh
-pnpm dev:nimigo -- --list-registrations
-pnpm dev:nimigo -- --resume <selector>
-```
-
-首次使用且没有已有注册时，运行 `pnpm dev:nimigo`。默认开发 CDP 端口为 9337，可用 `--cdp-port` 覆盖；以启动器实际输出为准。原 App ID、注册与业务数据不随工程归属调整而更换。
-
-## 检查
-
-在根目录运行：
-
-```sh
+# 类型检查
 pnpm --filter @nimiplatform/nimigo typecheck
+
+# 单元与集成测试
 pnpm --filter @nimiplatform/nimigo test
+
+# 生产构建
 pnpm --filter @nimiplatform/nimigo build
 ```
 
-这些入口复用主仓 SDK/Kit 准备和构建锁。产品实现位于 `src/product/`，Electron 宿主位于 `src-electron/`。正式开发仍由 Desktop 监管，不直接打开 Vite 页面替代 App 验收。
+## 目录结构与架构
 
-## 产品与阶段
-
-用户说明见 [USAGE.md](USAGE.md)。本目录不维护独立仓库的发布 workflow、安装锁文件或 Tauri 替代宿主。当前源码验证与此前本地安装包的结果分开记录；这次 workspace 调整不发布或更新已有安装包。
-
-当前源码已接入 Integration 和独立 Agent 业务执行，后台执行位于本 App 的受保护 Electron Host。真实资料读取、保存成果和聊天记录隔离已通过本轮源码验收；关窗运行与安装更新仍为 NOT-VERIFIED。各项验收状态由仓库的 integration-status 单一记录管理。
+- `src/product/`：应用的核心业务逻辑、前端交互与成果管理界面
+- `src-electron/`：Electron 宿主进程实现，负责窗口生命周期与安全沙箱桥接
+- `USAGE.md`：面向最终用户的功能使用指南与操作说明
+- `PRODUCT.md`：应用产品定位、核心机制与设计规范说明

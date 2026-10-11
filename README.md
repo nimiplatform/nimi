@@ -6,7 +6,7 @@ Nimi is an installable, open-source, local-first personal AI product: use AI app
 
 [Download status](https://nimi.ai/download) · [Website](https://nimi.ai) · [Documentation](https://docs.nimi.ai) · [Releases](https://github.com/nimiplatform/nimi/releases) · [Discord](https://discord.gg/BQwHJvPn)
 
-Nimi is not available to install yet: no installer or developer preview is published, and the earlier developer previews were withdrawn. The source remains available for development. Using Nimi requires a Nimi account; you sign in through your browser. The [Download page](https://nimi.ai/download) always carries the current per-platform status.
+Nimi is currently in active development from source, and public installable packages are coming soon. The repository is available for development, exploration, and contribution. Using Nimi requires a Nimi account (sign-in via browser). See the [Download page](https://nimi.ai/download) for current per-platform status and release updates.
 
 ## What you can do with Nimi
 
@@ -35,7 +35,7 @@ Every admitted app has a public source repository and an explicit open-source li
 | OpenMontage | Admitted catalog app (text, image, video, audio, and music capabilities). | macOS arm64 · Windows x86_64 |
 | Next AI Draw.io | Admitted catalog app (text). | macOS arm64 · Windows x86_64 |
 
-Verified Catalog discovery, installation, update, launch, focus, stop, access management, and uninstall are provided on Windows x86_64 and macOS arm64 through the protected Desktop path. Explicit immutable local-package import is implemented through Desktop and Runtime on these targets, with source-qualified install, update, launch, and uninstall. Combined product acceptance and public release readiness remain separate; package lifecycle on other platforms and ordinary repair remain unavailable. Installing an app does not grant Nimi access; account and Runtime conditions still apply. The catalog page is informational: [nimi.ai/apps](https://nimi.ai/apps).
+Apps run in a protected local environment supervised by Nimi Desktop and Runtime via Developer Mode, local package imports (for development and private verification), or official Registry catalog releases. In the current development build, app installation, updates, and access controls are supported on macOS (arm64) and Windows (x86_64); package lifecycle on other platforms remains unavailable. Learn more about ecosystem apps and submission guidelines at [nimi.ai/apps](https://nimi.ai/apps).
 
 ## For developers
 
@@ -60,7 +60,13 @@ Start with the [Create a Nimi App guide](https://docs.nimi.ai/start/create-an-ap
 
 ## Platform
 
-Nimi Home is the product entry. Realm owns world and identity truth. Runtime executes local and cloud AI capabilities across supported providers. The full architecture, protocol primitives, and ownership model are documented at [docs.nimi.ai/platform](https://docs.nimi.ai/platform).
+Nimi is organized into clear architectural layers:
+- **Nimi Home (Desktop)** — The desktop application housing your conversations, characters, worlds, and apps.
+- **Runtime** — The local engine executing AI capabilities (local models or cloud providers), managing permissions, and supervising app execution.
+- **Realm** — The identity and ecosystem service maintaining persistent characters and shared worlds.
+- **Avatar** — The desktop embodiment carrier for interactive 2D/3D characters.
+
+For full architectural details, protocol primitives, and domain ownership, see [docs.nimi.ai/platform](https://docs.nimi.ai/platform).
 
 ## Release and versioning
 

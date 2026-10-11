@@ -1,47 +1,28 @@
-# Conversation Capability Projection
+# Controls in an Agent Conversation
 
-> Status: Running today. Desktop shows which capabilities are available
-> for the conversation you currently have open.
+The controls in the current conversation let you attach an image, record a voice input, open an available Realtime session, or play a particular reply. Each action depends on the active App session and the required Runtime capability; a local button state does not establish availability.
 
-This surface combines what Runtime reports with a small set of
-per-conversation controls. It doesn't define a capability set, a
-participation profile, an implementation choice, or any permanent
-Conversation state.
+## Current Controls
 
-## Why Per-Conversation
-
-You might want voice playback or attachments in one conversation and
-not in another. Scoping these controls to the conversation you have
-open keeps a quick UI choice from hardening into agent-wide state.
-
-## Boundary
-
-| Owns | Does NOT own |
+| Action | Result |
 | --- | --- |
-| Ephemeral controls and availability rendering | Conversation anchor and continuity (Runtime) |
-| Typed unavailable and setup UI | Voice, media, tool, implementation, Quota, and Budget decisions (Runtime) |
-| Attachment selection before submission | Committed attachment and turn truth (Runtime) |
+| Attach an image | Adds one pending image to this turn; document and code-file attachments are not accepted |
+| Record voice input | Captures audio until you stop recording, then transcribes and submits the recognized text |
+| Use an available Realtime entry | Opens a separate realtime media session with its own controls and capability prerequisites |
+| Play a reply | Renders voice for that message, reads its completed artifact, and plays it locally |
 
-Desktop may cache what it renders for speed, but that cache is never
-the real state — and it can't prove a future operation will execute.
+Paste code or document excerpts as text when you want the Agent to discuss them. Temporary input and playback controls do not change the Agent's shared AIConfig.
 
-## Reader Scenario: User Toggles Voice For A Conversation
+## Play One Reply
 
-1. **User requests voice.** Desktop submits typed intent for the active
-   Runtime conversation anchor.
-2. **Runtime evaluates the request.** Current capability intent, authorization,
-   Quota, Budget, and implementation availability determine the result.
-3. **Desktop renders the projection.** Other conversation anchors are
-   unaffected.
+1. Find a reply that offers the playback action.
+2. Click Play. Runtime checks the current voice configuration and generation prerequisites for that message.
+3. Once the voice artifact is ready and has been read, the client plays it. Follow the displayed reason if playback is unavailable.
 
-## Runtime Ownership
-
-These controls stay separate from the agent's presentation and
-participation profiles. Voice, media, tool, implementation, and
-authorization semantics all stay with Runtime. UI and cached state
-never rewrite the Conversation or the LocalAgent.
+This action applies to the selected reply. It is not a switch that makes every later text reply arrive with streaming audio or highlighted subtitles. See [Voice Interaction](/desktop/voice-session) for the separate input and Realtime paths.
 
 ## Source Basis
 
 - [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx)
+- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-manual-voice-playback-button.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-manual-voice-playback-button.tsx)

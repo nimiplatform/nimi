@@ -1,106 +1,36 @@
-# App Interconnect
+# Application Interconnect and Realm Integration Patterns
 
-A Nimi app does not live inside Realm — it connects to it. This
-page explains how that connection works: how an app reads Realm,
-how it earns the right to write, and how Realm concepts translate
-for outside systems.
+Nimi applications operate as external clients connecting to Realm via standardized interfaces. Through the SDK, applications query authoritative world states, listen to realtime event notifications, and submit verified mutations.
 
-## How Apps Connect To Realm
+## Communication Channels
 
-| Path | Purpose |
-| --- | --- |
-| REST | Typed Realm reads / mutations under admitted contracts |
-| WebSocket | Realtime delivery of canonical events |
+| Channel | Core Purpose | Protocol Characteristics |
+| --- | --- | --- |
+| **REST APIs** | Standard read queries and structured transaction submissions | Validated strictly against registered OpenAPI request schemas |
+| **WebSocket / SSE** | Realtime subscription and streaming of canonical events | Low-latency bi-directional or streaming updates across clients |
 
-Realm uses admitted REST and WebSocket protocols behind the SDK/Runtime carrier. A formal Nimi App uses its protected `client.realm` operations; Runtime retains Realm credential custody. The App neither receives a bearer nor creates a raw REST/WebSocket bypass.
+Applications typically use `client.realm` provided by the SDK. Session tokens are managed securely by Runtime, freeing application developers from handling low-level bearer tokens or implementing socket keepalive mechanisms manually.
 
-## App Modes And Realm Authority
+## Application Operating Modes
 
-A render-app reads Realm; an extension-app reads and writes Realm
-within its admitted binding scope.
+Applications declare operational modes depending on whether they read or mutate world data:
 
-| Mode | Realm read | Realm write | Concurrent count per world |
-| --- | --- | --- | --- |
-| `render-app` | yes | no | many |
-| `extension-app` | yes | yes | at most one active per world |
+| Operating Mode | Read Access | Write Access | Max Concurrent per World | Typical Use Cases |
+| --- | --- | --- | --- | --- |
+| **`render-app`** | Yes | No | Uncapped (Multiple concurrent) | Lore viewers, spectator cameras, dashboard overlays |
+| **`extension-app`** | Yes | Yes | **Exactly 1 active per world** | Core world mechanics, game masters, storyline controllers |
 
-A world's at-most-one-active-extension-app rule comes from this:
-if two extension-apps could both write Realm canonical state for
-the same world simultaneously, the canonical state would race.
+> **Concurrency Invariant**: Restricting a world to at most one active `extension-app` prevents race conditions and divergent timeline mutations, guaranteeing deterministic state progression.
 
-## Interop Mapping
+## Interoperability Mappings
 
-Realm interop mapping translates Realm concepts to / from external
-open-spec anchors (cross-protocol mappings). It bridges:
+When external game engines (such as Unity, Unreal Engine, or custom WebGL clients) consume Realm data, standardized bridges export read-only representations:
+- **State Serialization**: Transforms Realm internal world states into standard JSON scene graphs.
+- **Timeline Export**: Emits append-only chronological event logs for downstream analytics and story replay engines.
 
-| Bridge | Purpose |
-| --- | --- |
-| World state contract ↔ external state representations | When a Realm world's state needs to be visible externally |
-| World history contract ↔ external history representations | Cross-platform history compatibility |
-| Runtime agent ↔ Realm agent | Identity bridging |
-| Transit contract ↔ external transit shapes | Cross-protocol transit compatibility |
+## Related Documentation
 
-The interop mapping is the formal translation layer. It doesn't
-mutate Realm; it projects Realm into shapes that other systems
-can consume.
-
-## Reader Scenario: An App Reads Then Acts
-
-A render-app wants to display a world; later, the user upgrades
-to an extension-app that mutates state.
-
-1. **Render-app starts.** App reads Realm under render mode.
-2. **User wants more.** User upgrades the relationship to
-   extension-app mode.
-3. **App-world binding.** The extension-app binds to the world
-   (one active at a time).
-4. **Mutation.** The extension-app submits typed commit
-   envelopes for state mutations.
-5. **Realm admits.** Each mutation passes admitted authorization
-   matrix.
-6. **Audit lineage.** Each mutation recorded.
-
-The transition from render-only to extension-with-write requires
-explicit binding. There is no silent privilege escalation.
-
-## Reader Scenario: A Realtime Event Stream
-
-An app wants to react to canonical events as they happen.
-
-1. **Subscribe.** App opens an admitted typed Realm realtime subscription through its host-bound client
-   under admitted subscription surface.
-2. **Realtime delivery.** Events arrive as they commit.
-3. **App reacts.** Typed event handlers under admitted shapes.
-4. **Connection lifecycle.** Reconnect, backpressure, etc. under
-   admitted connection contract.
-
-Realtime is admitted; apps do not invent their own polling
-protocols when realtime is available.
-
-## Reader Scenario: External System Bridges Realm
-
-An external system wants to mirror Realm world history.
-
-1. **Read via interop mapping.** External system reads Realm
-   history under admitted interop mapping.
-2. **Translate to external shape.** The mapping projects Realm
-   concepts to external open-spec representations.
-3. **External system consumes.** No mutation flowing back unless
-   admitted.
-
-The bridge is one-directional read by default. A bidirectional
-bridge requires admitted bidirectional contract — not implicit.
-
-## Boundary Summary
-
-| Concern | Owner |
-| --- | --- |
-| Realm canonical truth | Realm kernel |
-| App access to Realm | Admitted REST + WS surfaces |
-| App-world binding | App authorization preset + binding contract |
-| Realtime delivery | Admitted subscription surface |
-| External system bridges | Realm interop mapping |
-| Cross-protocol shape | Interop mapping bridge |
+- [World State Commit Envelopes](/realm/world-state)
 
 ## Source Basis
 

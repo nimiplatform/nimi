@@ -1,57 +1,38 @@
 # Local Environment Projection
 
-## Status: Admitted Contract; Release-Gated Surface
+> Status: Standardized core contract; public capabilities are gated by official SDK package exports.
 
-The local environment projection contract is admitted at the SDK kernel level.
-The full developer-facing projection surface is usable only when present in SDK
-package exports.
-
-## What This Page Covers
-
-The Local Environment Projection contract governs **how app developers may
-consume Runtime-projected local environment state** — and what they may not
-infer or bypass. Public export admission is closed; deviation fails closed.
+The Local Environment Projection contract governs **how application developers safely consume local environment state and dependency readiness evaluated by Runtime**—and strictly restricts guessing readiness via out-of-band heuristics or bypassing platform boundaries.
 
 ## Export Boundary
 
-Admitted SDK public exports are the explicit package exports and typed
-root-client surfaces shipped by the SDK. Their product meaning comes from
-canonical SDK authority; package manifests and generated declarations project
-that meaning for consumers. Apps cannot invent new exports by convention.
+Supported SDK public capabilities are exposed strictly via explicit package exports in `package.json` and typed root-client surfaces. Product semantics are governed by canonical platform specifications; package manifests project these semantics for consumer use. Applications cannot introduce unauthorized imports by convention.
 
 ## Key Forbidden Paths
 
-| Forbidden | Why |
+| Forbidden Path | Rationale & Architectural Rule |
 | --- | --- |
-| `runtime/internal/**` | Runtime private surface; apps consume admitted SDK clients only |
-| `kit/internal/**` | Kit private surface |
-| App-layer code (`apps/**`) from another app | Apps do not depend on other app-layer code |
+| `runtime/internal/**` | Runtime private implementation; applications must consume official SDK clients exclusively |
+| `kit/internal/**` | Kit private internals without backwards-compatibility guarantees |
+| App-layer code (`apps/**`) of other apps | Applications remain decoupled and must not depend on another app's internal business code |
 
-## Reader Scenario: App Reads A Local Environment Plan
+## Typical Scenario: An Application Queries the Local Environment Setup Plan
 
-An app author wants to show a Runtime-resolved local setup plan.
+An application wishes to present the environment readiness and model setup progress to the user:
 
-1. **App creates a client.** It uses the root SDK client or
-   `@nimiplatform/sdk/runtime`.
-2. **App calls the projection.** It reads the Runtime-projected plan, selected
-   sources, activation gate, or dependency jobs through admitted runtime local
-   environment helpers.
-3. **SDK preserves Runtime truth.** The helper returns typed Runtime
-   projection state; it does not infer readiness from filesystem, Python, PATH,
-   endpoint, package-manager, or local engine details.
-4. **Removed compatibility paths fail closed.** There is no public `local-env`
-   SDK subpath unless it is explicitly shipped as an admitted package export.
+1. **Instantiate client**: Use the root SDK client or `@nimiplatform/sdk/runtime`.
+2. **Query projected state**: Read the setup plan, selected model assets, activation gates, and dependency jobs via standard environment projection helpers.
+3. **Preserve Runtime authority**: SDK helpers faithfully reflect strongly-typed Runtime state; applications must not guess readiness by scanning filesystem directories, inspecting Python virtualenvs, probing `PATH` variables, or polling local engine ports directly.
+4. **Retired compatibility paths fail closed**: Legacy experimental subpaths (such as ad-hoc `local-env` paths) fail closed unless formally admitted and exported.
 
-If the app tried `import { internal } from '@nimiplatform/sdk/runtime/internal'`,
-the boundary check rejects.
+Attempts to invoke `import { internal } from '@nimiplatform/sdk/runtime/internal'` trigger immediate compilation errors.
 
-## What This Does Not Do
+## Architectural Boundaries
 
-- It does not let apps reach `runtime/internal/**`.
-- It does not let apps call SDK runtime private internals.
-- It does not let apps fork local environment access through
-  app-layer code.
-- It does not allow new boundaries by convention.
+- Applications cannot access `runtime/internal/**`.
+- Applications cannot bypass Runtime private boundaries.
+- Applications cannot fork local environment management or state machines within client application layers.
+- Ad-hoc conventions outside formal specification cannot introduce new integration boundaries.
 
 ## Source Basis
 

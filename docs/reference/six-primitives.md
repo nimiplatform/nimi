@@ -1,81 +1,43 @@
-# Six Primitives
+# Six Core Primitives
 
-Reference table for the six fixed protocol primitives. Authoritative
-contract: `.nimi/spec/platform/core-protocol.authority.yaml` and rule family `P-PROTO-*`.
+The Nimi platform defines six universal cross-world primitives (under the `P-PROTO-*` rule family) that form the foundational contract surface across digital worlds. Individual worlds maintain autonomy over their internal mechanics and narrative storylines, while cross-boundary transactions and states conform to these six core primitives.
 
-## The Six
+## The Six Primitives Overview
 
-| Primitive | Rule | Carries |
-| --- | --- | --- |
-| Timeflow | `P-PROTO-100` | Progression, timing, temporal meaning |
-| Social | `P-PROTO-101` | Relationships, social graph semantics |
-| Economy | `P-PROTO-102` | Value, exchange, economic state |
-| Transit | `P-PROTO-103` | Movement between worlds or contexts |
-| Context | `P-PROTO-104` | Shared situational meaning |
-| Presence | `P-PROTO-105` | Who or what is present, and under what conditions |
-
-Each primitive is a contract surface. Worlds may define their own
-internal rules; meaning that crosses worlds must fit one of these six
-contracts.
-
-## Authority
-
-| Layer | Role |
-| --- | --- |
-| Platform protocol | Defines the primitives' shape and version policy |
-| Realm | Owns the source of truth and semantic execution for the six primitives |
-| Apps | Consume and observe; do not execute |
-
-The `P-PROTO-003` rule pins primitive semantic execution and truth
-source to Realm.
-
-## Cross-Consistency
-
-A world transition that involves multiple primitives must satisfy all
-relevant primitive contracts simultaneously:
-
-| Constraint | Why |
-| --- | --- |
-| A transit must satisfy Social + Economy + Context simultaneously | Transit moves a participant across worlds; social standing, economic standing, and contextual meaning must all align |
-| Presence cannot bypass social admission | Being "present" in a world requires social admission first |
-| Timeflow cannot break economy settlement windows | Time progression must respect economic settlement boundaries |
-
-The six primitives are not independent enums. They are mutually
-constraining.
-
-## Versioning Posture
-
-| Property | Value |
-| --- | --- |
-| Strategy | `strict-only` |
-| Cross-minor handshakes | Forbidden |
-| Backward compatibility shims | Forbidden |
-| Failure mode | Fail-close on contract violation |
-
-Clients must match. There is no graceful degradation pretending
-compatibility while violating contracts.
-
-## App Authorization
-
-A formal App uses the fixed protected SDK carrier and its declaration-derived operation coverage. Runtime checks the current App session and operation; Realm independently checks resource and business authorization. The App holds no portable primitive token, and a UI mode does not grant read, write, or delegation authority.
-
-## App Modes
-
-| Mode | Primitive read | Primitive write | Active count per world |
+| Primitive | Rule Prefix | Core Responsibility | Architectural Purpose |
 | --- | --- | --- | --- |
-| `render-app` | yes | no | many |
-| `extension-app` | yes | yes | at most one active per world |
+| **Timeflow** | `P-PROTO-100` | Progression, clocks, and temporal ordering | Coordinates multi-user temporal consistency |
+| **Social** | `P-PROTO-101` | Universal relationship graph and friendship networks | Universal identity bonds; eliminates per-world contact re-adds |
+| **Economy** | `P-PROTO-102` | Value flows, exchanges, and settlement ledgers | Verifiable, audit-ready financial bookkeeping |
+| **Transit** | `P-PROTO-103` | Cross-world movement, routing, and continuity | Guarantees identity persistence via OASIS hub-and-spoke |
+| **Context** | `P-PROTO-104` | Shared environmental setting and world lore | Consistent conceptual semantics across heterogeneous apps |
+| **Presence** | `P-PROTO-105` | Active occupancy, coordinates, and participant availability | Spatial awareness and scene admission |
 
-## Audit Events
+## Tiered Architectural Authorities
 
-Cross-primitive actions emit audit events recorded under the platform
-audit dictionary
-(`config/platform-audit-events.yaml`).
+| Layer | Responsibility |
+| --- | --- |
+| **Platform Protocol** | Establishes schema definitions, versioning rules, and contract validation criteria |
+| **Realm Core** | Server-side Single Source of Truth and semantic execution engine for primitives |
+| **Applications (App)** | Consumes and renders projections via SDK, submitting compliant actions |
+
+## Cross-Primitive Invariants
+
+Complex interactions often intersect multiple primitives. Realm enforces atomic compliance across interdependent domains:
+- **Transit Compound Gates**: Transitioning between worlds requires concurrent validation across Social (entry access), Economy (travel fees or item transfers), and Context (lore compatibility).
+- **Presence Conditioned on Social**: Registering active presence in protected worlds requires clearing social admission prerequisites.
+- **Timeflow & Economic Windows**: World clock ticks respect economic settlement windows to preserve financial auditability.
+
+## Strict Contract Conformance
+
+- **Explicit Schema Versioning**: Each primitive interaction declares explicit schema identifiers and versions.
+- **Fail-Closed Diagnostics**: Payloads that deviate from declared schemas fail closed with structured error codes, pointing developers directly to missing or malformed attributes.
+
+## Related Documentation
+
+- [Cross-World Transit Architecture](/realm/transit)
+- [Universal Social Graph & Economy](/realm/social-and-economy)
 
 ## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-primitives.yaml)
-- [`config/platform-protocol-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-error-codes.yaml)
-- [`config/platform-audit-events.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-audit-events.yaml)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)

@@ -1,29 +1,29 @@
-# App 协作
+# 应用间协作与能力集成（App Messaging & Integration）
 
-Nimi App 通过用途明确的受保护操作协作。正式 App 没有通用的 `SendAppMessage` / `SubscribeAppMessages` 总线、任意接收方路由或通向内部 Agent 载体的 token 捷径。
+在 Nimi 生态中，不同的应用（App）之间通过定义明确且受权限保护的接口开展协作，避免采用不可控的全局未类型化消息总线。各应用在保持自身独立性的同时，能够安全复用其他应用提供的专业能力。
 
-## 按任务选择接口
+## 场景化协作接口一览
 
-| 任务 | App 接口 |
-| --- | --- |
-| 调用其他 App 或外部服务提供的操作 | `client.integration`，需要实际 provider 和用户授予的持续权限 |
-| 与已授权 LocalAgent 对话 | `client.conversation`，使用当前 Agent handle |
-| 为 App 项目执行独立 Agent 工作 | `client.agentWork`，使用单独准入的声明与访问权限 |
-| 发布或查看受支持的 App 活动记录 | `client.activity`，遵循发布方、可见性和记录生命周期规则 |
+| 协作场景 | 推荐 SDK 接口 | 核心权限与生命周期 |
+| --- | --- | --- |
+| **调用其他应用提供的服务操作** | `client.integration` | 基于 Schema 进行参数校验，需用户在集成设置中授予常设权限 |
+| **与已授权的 LocalAgent 会话** | `client.conversation` | 使用当前会话的 `agentHandle` 发起多轮对话 |
+| **委托 Agent 执行专属项目任务** | `client.agentWork` | 具备独立声明的项目作用域与结果归档机制 |
+| **发布或查询应用活动记录** | `client.activity` | 遵循应用归属、可见性策略与生命周期规则 |
 
-这些接口的输入、结果和生命周期不同。活动记录不是 RPC 回复，Conversation 消息也不能承载任意 App 业务命令。
+## 实践示例：跨应用调用日程空闲时间
 
-## 示例：查询其他 App 的空闲时间
+当需要从日程应用（如 NimiDay）查询用户未来的空闲时间块时：
 
-如果日历 App 已提供查询空闲时间的 Integration 操作，通过 `client.integration` 发现它及其 schema。由用户授予相应目标/操作权限，再用符合 schema 的输入调用，并观察原调用。日历数据及业务 handler 归日历 App，结果如何用于项目归调用方 App。
+1. **服务发现与模式解析**：通过 `client.integration` 查询日历应用声明的 Integration 接口与其参数 Schema。
+2. **权限确认**：若当前应用尚未获得调用权限，接口返回 `INTEGRATION_PERMISSION_REQUIRED`，由应用引导用户在 Home 的「集成」工作区中为该调用授予常设权限。
+3. **安全调用与结果解析**：获得许可后，应用按照结构化入参发起调用，日历应用在其受保护的执行通道中处理业务逻辑并返回结构化数据，两端数据边界清晰隔离。
 
-Provider 或权限缺失时展示真实不可用或拒绝结果，不能改造一个通用 `free-time-query` 消息或打开私有 Runtime 传输。完整边界见[集成](/zh/runtime/integrations)。
+## 通信边界与安全保证
 
-## 内部 Agent 载体
-
-Runtime 为自身执行保留私有、固定子类型的 Agent 输入与结果载体。实现和生成类型中保留 wire/service 名称，不等于它们是公共 App 操作。普通公开传输拒绝这些消息 RPC，受保护 Local App 调用也会被拒绝。
-
-对话和实时交互使用各自的规范操作。当前会话准入、调用者填写的 App ID 或已知内部消息名，都不能扩大 App 的操作集合。
+为了防止恶意应用干扰底层系统：
+- **安全隔离**：Runtime 为内部智能体通信保留了受保护的专用通道，公开应用接口仅能调用经过审核公开声明的能力；
+- **防冒名篡改**：应用无法随意构造虚假的应用标识来伪装成其他应用，所有调用的发起方身份均由宿主环境严格担保。
 
 ## Source Basis
 

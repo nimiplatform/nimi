@@ -1,57 +1,37 @@
-# Chat
+# Realm 即时通讯与消息会话（Chat）
 
-Realm Chat 是两个人之间私聊存放的地方。聊天线程、消息、成员和已读状态都只有一份，存在 Realm 里——不在你的桌面端上，也不属于某一次登录会话。每个界面读的都是这同一条线程。
+Realm Chat 负责提供平台级的人与人即时通讯基础设施。用户之间的私聊会话线程（Thread）、消息历史、成员关系与已读回执状态，均由 Realm 服务端集中持久化存储。无论用户从桌面端、移动端或网页端登录，均可无缝同步同一份完整的对话历史。
 
-## 聊天载体
+## 会话载体与通信模式
 
-Realm Chat 只准入一种载体：
+Realm Chat 专门负责真实人类用户之间的即时沟通：
 
-| 载体 | 用途 |
+| 载体类型 | 业务用途 | 通信机制 |
+| --- | --- | --- |
+| `DIRECT` | 两位真实人类用户之间的点对点私聊会话 | 基于 WebSocket / Socket.IO 的双向实时消息通道 |
+
+> **与 Agent 对话的明确区分**：用户与 AI Agent 的对话具有不同的生命周期与上下文记忆特征，由本地 Runtime 的 `ConversationAnchor` 机制专门管理，不会混淆为 Realm 的人类私聊线程。
+
+## 典型操作场景
+
+### 1. 发起与同步即时私聊
+1. **建立会话线程**：在用户发起对话时，Realm 检查双方的好友关系，确认后初始化一条唯一的 `DIRECT` 会话线程；
+2. **实时发送与投递**：发送的消息原子化提交至该会话线程，并通过长连接即时推送至对方在线客户端；
+3. **跨设备已读回执同步**：当用户在桌面端阅读消息后，已读状态同步至 Realm；当用户随后在手机或网页端查看该会话时，消息自动呈现为已读状态，避免重复提示打扰。
+
+## 与其他平台子系统的协同关系
+
+| 平台子系统 | 协同分工 |
 | --- | --- |
-| `DIRECT` | 两位人类用户之间的直接聊天 |
+| **社交图谱（`R-SOC-*`）** | 好友关系是发起私聊的前提条件；社交系统负责好友校验，不直接存储聊天记录 |
+| **数字世界语义（`R-TRUTH-*`）** | 在公开剧情场景中，部分经过授权的对话事件可作为世界历史记录入账 |
+| **Runtime 会话锚点** | 区分 Agent 的对话连续性，人类会话与智能体交互各自保持清晰的架构边界 |
 
-其他聊天形态都会在创建、变更或返回规范聊天状态之前遭到拒绝。LocalAgent 对话归 Runtime，不会变成 Realm 的人类聊天线程。
+## 相关文档
 
-## 读者场景：一段直接对话
+- [桌面端聊天界面设计](/zh/desktop/chat)
 
-你私聊另一位用户。
-
-1. **DIRECT 载体**。Realm 准入一条 `DIRECT` thread，成员是你和对方。
-2. **发送**。你的消息 commit 到 thread。
-3. **实时投递**。对方通过 Socket.IO 实时收到。
-4. **已读状态**。已读是规范层数据，你这一端的"已读"被记进 thread。
-
-Thread 本身就是 Realm 的规范真相。换设备不需要重新同步，规范 thread 就是来源。
-
-## 读者场景：跨设备的已读状态
-
-你在桌面端读了一条消息，然后打开 Avatar 上的同一个对话。
-
-1. **桌面端读取**。已读状态 commit 到 Realm。
-2. **Avatar 打开**。Avatar 读取规范 thread，包括已读状态。
-3. **Avatar 知道你已读过**。不会把读过的消息当成未读重新提示。
-
-已读状态是平台真相，不是单个表面的本地状态。这是多表面聊天能保持一致的原因。
-
-## Chat 与其他 Realm 表面的关系
-
-| 表面 | 关系 |
-| --- | --- |
-| Social（`R-SOC-*`） | 朋友关系是私聊的前置条件；社交不持有 thread 本身 |
-| Truth（`R-TRUTH-*`） | 影响世界语义的聊天可参与到真相 |
-| World History（`R-WHIST-*`） | 进入规范历史的聊天事件追加到这里 |
-| Runtime ConversationAnchor | LocalAgent 对话连续性归 Runtime，与 Realm 人类聊天相互独立 |
-
-## Chat 不做的事
-
-| 关注点 | 不做的原因 |
-| --- | --- |
-| 持有对话连续性 | 归 Runtime ConversationAnchor |
-| 持有 agent 执行 | 归 RuntimeAgentService |
-| 持有 UI 渲染 | 归桌面端聊天表面 |
-| 准入非直接聊天形态 | Realm Chat 只处理两位人类用户的直接聊天 |
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)

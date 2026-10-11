@@ -1,42 +1,38 @@
-# Owner Domains
+# Authority Domains and Architectural Boundaries
 
-Nimi separates product truth by owner. A projection, host, package, App, docs
-page, or implementation location does not silently acquire another domain's
-truth.
+Nimi establishes explicit Authority Domains across its distributed architecture, designating a definitive owner for every category of data, state, and compute resource. Clean boundaries prevent ownership ambiguities and cross-subsystem race conditions.
 
-| Domain | Owns | Does not own |
+## Authority Domains Matrix
+
+| Domain | Authoritative Scope | Explicit Non-Scope |
 | --- | --- | --- |
-| Platform | Cross-domain protocol and product owner boundaries | Realm truth, Runtime execution, App product behavior |
-| Realm | Character, Character Source, World Source, social, economy, canonical World state and history | LocalAgent execution and local AI routing |
-| Runtime | Local and Cloud AI consumption, LocalAgent, Conversation, Memory mediation, voice, readiness, credentials, local audit, App authorization | Realm Character or World truth; product UI |
-| Cognition | Agent-private long-term Memory and derived retrieval; Knowledge V1 inactive | Conversation, authorization, AI execution |
-| SDK | Typed public consumer projection for Runtime and Realm | Provider execution, Realm truth, host-private transport |
-| Kit | Demand-driven shared UI and host composition | A reusable public capability catalog or owner-domain truth |
-| Nimi Home / Desktop | Current product home, native host, product UI and interaction | Realm or Runtime authority |
-| Avatar | Embodiment shell, renderer execution, playback, and renderer-local state | LocalAgent, Conversation and Memory mediation, AI routing |
-| App | Its product behavior and private data | Account, grant, session, LocalAgent, provider, or Realm truth |
+| **Platform Protocol** | Core cross-world primitives, system safety invariants, wire contracts | Cloud database details, local inference mechanics, app logic |
+| **Realm Server** | Global identities, Character lore templates, World state and history, Social graph, Creator economics | Local hardware compute scheduling, local weights, desktop UI states |
+| **Local Runtime** | Local model inference, cloud connector custody, LocalAgent instantiation, turn continuity, memory mediation, channel access controls | Server-side world lore arbitration, product UI presentation |
+| **Cognition** | Agent-private long-term memory, semantic embeddings, cognitive consolidation | Network transport framing, frontend rendering, driver execution |
+| **SDK** | Public type-safe interfaces, argument validation, structured error mapping | Backend storage implementations, local engine internals, raw transports |
+| **Kit** | Shared cross-platform UI widgets, interactive patterns, and layout components | Underlying state arbitration, proprietary app business data |
+| **Nimi Home / Desktop** | User command center, window management, local hardware and model configuration | Arbitrating Realm server truth or overriding local Runtime security |
+| **Avatar Application** | Live2D and 3D VRM graphics pipelines, skeletal motion, real-time lip synchronization | Agent long-term memory banks, model routing, conversation continuity |
+| **Applications (App)** | Unique application features, workflow logic, private application data | Universal platform credentials, direct provider API secrets |
 
-## Main owner transitions
+## Cross-Domain Data Flows
 
-| Transition | Meaning |
+| Direction | Coordination Mechanism |
 | --- | --- |
-| Realm → Runtime | Realm-issued Character Source enables LocalAgent materialization |
-| Realm → Runtime | Admitted World Source contributes execution context without moving World ownership |
-| Runtime → SDK | Typed authorized LocalAgent and AI projection |
-| SDK → App | Public capability use without private transport or proof custody |
-| Runtime → Avatar | Typed presentation and voice input; rendering stays Avatar-local |
-| Nimi Home → App | Protected launch and host composition; authorization remains Runtime-owned |
+| **Realm → Runtime** | Realm issues certified Character Sources; Runtime materializes and executes LocalAgents |
+| **Realm → Runtime** | Realm provides verified World context to enrich local agent contextual dialogue |
+| **Runtime → SDK** | Runtime delivers normalized generation streams and structured events to the SDK |
+| **SDK → App** | Applications consume public capabilities, leveraging protected channel access and hardware acceleration |
+| **Runtime → Avatar** | Runtime streams standardized presentation events; Avatar animates character visuals via local GPU |
+| **Nimi Home → App** | Home launches applications within supervised Electron development hosts, verified by Runtime |
 
-## Independently Scoped Capabilities
+## Related Documentation
 
-Registry-approved packages and local development follow the [App lifecycle](/start/#local-development-and-distribution). [Integrations](/runtime/integrations) have their own connection and permission contract. General Workflow, World Evolution, federation, and marketplace settlement do not become prerequisites for an unrelated admitted App operation.
-
-Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
+- [Technical Glossary](/reference/glossary)
 
 ## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)

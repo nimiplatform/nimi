@@ -1,66 +1,44 @@
 # Nimi Coding
 
-Nimi Coding gives AI hosts and repository tools deterministic access to
-project-owned canonical authority. It formats, checks, queries, relates, and
-reviews authority units; it is not an AI agent, planner, code generator,
-approval workflow, or product-spec generator.
+Nimi Coding provides deterministic access to project-owned canonical authority for AI hosts and repository tooling. It handles authority formatting, schema validation, relationship queries, dependency navigation, and impact review; it is designed as a focused specification tool rather than an autonomous AI agent, code generator, or product-spec synthesizer.
 
-This page is an explanatory projection of the exact
-`@nimiplatform/nimi-coding@0.6.3` package pinned by this workspace. The package
-CLI and its bundled README are the operational reference for command behavior.
+This documentation corresponds to `@nimiplatform/nimi-coding@0.6.5` pinned by this workspace. Command ergonomics and parameters are described authoritatively in the package's CLI help and bundled README.
 
-## Truth Boundaries
+## Specification and Configuration Boundaries
 
-| Path | Role |
+| Path Pattern | Role & Scope |
 | --- | --- |
-| `.nimi/spec/**/*.authority.{yaml,md}` | The only canonical product authority |
-| `.nimi/config/**` | Repository-owned Nimi Coding host configuration |
-| `.nimi/methodology/authority-authoring.yaml` | Managed authoring instructions |
-| `.nimi/local/**` | Ignored local verification and derived output; never authority |
-| `config/**` | Product, generator, and host implementation inputs; not Nimi Coding host configuration |
+| `.nimi/spec/**/*.authority.{yaml,md}` | The single canonical product authority source |
+| `.nimi/config/**` | Repository-owned Nimi Coding host execution configuration |
+| `.nimi/methodology/authority-authoring.yaml` | Official methodology guide for authoring authority |
+| `.nimi/local/**` | Local verification artifacts and cache outputs (git-ignored; never authoritative) |
+| `config/**` | Static inputs for apps, code generators, and host implementations; outside Nimi Coding configuration |
 
-Nimi Coding does not turn documentation, fixtures, generated output, audit
-results, or `config/**` projections into product authority.
+Nimi Coding maintains a strict single source of truth: downstream developer documentation, test fixtures, compiler outputs, or audit reports must never usurp or redefine product authority.
 
-## Bounded Code Reads
+## Bounded Code Context Reads
 
-`code context` derives a bounded, outbound TypeScript or TSX context from one
-explicit source file, top-level symbol, and tsconfig. `code authority` locates
-optional exact `@nimi-authority` and `@nimi-deprecated` markers in tracked current
-TypeScript, TSX, Go, Python, and Rust source, or reads those links back from one
-source file. These reserved standalone physical lines are located without
-proving their language comment context.
+- **`code context`**: Analyzes a specified TypeScript or TSX file, admitted top-level symbol (exported or unexported), and `tsconfig` to extract a bounded outbound static context.
+- **`code authority`**: Locates explicit `@nimi-authority` and `@nimi-deprecated` marker comments in Git-tracked TypeScript, TSX, Go, Python, and Rust source files, or inspects authority bindings for a given file.
 
-Both operations are request-local and read-only. The AI host decides when to
-call them. They do not add a task preflight, change host task state, evaluate
-unannotated code, or prove that implementation conforms to authority.
+Both commands are request-local and read-only. AI hosts invoke them on demand; they do not install mandatory preflight hooks, alter host task state, or attempt to evaluate unannotated code.
 
-## Current Workflow
+## Authority Maintenance Workflow
 
-When an exact authority ID is not already known, use bounded discovery and
-then let project authority or its responsible owner select the exact unit.
-Before changing authority, obtain its declared context. After editing, format
-every changed container, run the complete-root authority check, and use
-semantic diff and impact with explicit byte budgets.
+1. **Discovery**: When the exact authority identifier is unknown, run `authority discover` within a bounded scope to locate candidate units.
+2. **Context resolution**: Before making changes, retrieve the declared outbound context via `authority context`.
+3. **Format and validate**: After editing, format each changed file with `authority fmt` and run `authority check` across the full `.nimi/spec` corpus.
+4. **Impact analysis**: Run `authority diff` and `authority impact` with explicit byte budgets to review semantic blast radius.
+5. **Refactoring sweep**: When planning architectural changes, use `authority change-candidates` to recall impacted nodes across deterministic channels. This output serves as recall input rather than automated arbitration.
 
-For redesigns that may leave unchanged active survivors outside authored
-relations, `authority change-candidates` recalls the complete union of only the
-explicitly requested deterministic channels. It does not decide relevance,
-conflict, retirement, or conformance. `authority audit` evaluates only the
-project's configured graph and exact lexical bindings; a clear result does not
-evaluate business semantics or implementation alignment.
+The repository instructions in `AGENTS.md` and `.nimi/methodology/authority-authoring.yaml` define authoring guidelines in detail.
 
-Nimi's repository instructions in `AGENTS.md` and
-`.nimi/methodology/authority-authoring.yaml` define the required authoring
-rules. Their managed text guides AI hosts; it does not intercept prompts or own
-the host task lifecycle.
+## Next Steps
 
-## Continue
-
-- [Host integration](/nimicoding/installation)
-- [CLI reference](/nimicoding/cli-reference)
+- [Host Integration Guide](/nimicoding/installation)
+- [CLI Reference](/nimicoding/cli-reference)
 
 ## Source Basis
 
-- [`@nimiplatform/nimi-coding` README](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
 - [`.nimi/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-authoring.yaml)

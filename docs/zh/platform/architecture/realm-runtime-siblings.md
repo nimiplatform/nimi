@@ -1,30 +1,29 @@
-# Realm 与 Runtime 是同侪
+# Realm 与 Runtime 的同侪架构
 
-Realm 与 Runtime 是彼此独立的产品 authority。
+Realm 与 Runtime 是系统架构中平级独立的核心权威域（Authority Domains）。
 
-| Realm 持有 | Runtime 持有 |
-| --- | --- |
-| Character identity 与 Character Source | LocalAgent 物化与 lifecycle |
-| World Source 与 canonical World data | Local 与 Cloud AI 消费 |
-| Social、economy、World state 与 World history | Conversation、Memory 访问中介 |
-| Realm access rule 与 cloud audit | AI 实现选择、budget、Credential 与 App authorization |
+| 核心职责归属 | Realm 管控范围 | Runtime 管控范围 |
+| --- | --- | --- |
+| **身份与运行态** | 角色持久化身份（Character Identity）与角色源（Character Source） | 本地智能体（LocalAgent）的实例化与运行生命周期 |
+| **世界与算力** | 世界源描述（World Source）与数字世界权威客观事实 | 本地推理（Ollama/llama.cpp）与云端大模型 API 资源调度 |
+| **状态与会话** | 跨场景社交网络、经济系统、世界状态与历史变迁 | 实时会话管理、智能体短期上下文与记忆检索路由 |
+| **安全与准入** | Realm 资源访问策略与云端多端审计 | AI 驱动实现选择、Token 预算控制、密钥安全与应用调用鉴权 |
 
-## 交互
+## 协同交互机制
 
-Realm 签发或投影 Runtime 已获准消费的 Character Source 与 World Source。
-Runtime 从 Character Source 物化 LocalAgent，并可在执行中使用已准入 World
-Source 上下文。
+Realm 签发或投影 Character Source 与 World Source，提供经过授权的标准数据定义；Runtime 根据 Character Source 在本地实例化出专属的 LocalAgent，并在执行过程中按需引入已授权的世界上下文。
 
-Runtime 不会把运行态 Memory 或 Knowledge 写回成为 canonical Realm World
-state。Realm 不执行 LocalAgent turn，也不决定 Runtime 的 AI 实现。跨域 mutation
-必须使用对应 owner 的公共 contract。
+两者的职责严格隔离：
+- Runtime 运行态生成的临时记忆与推理数据，绝不会绕过安全规则直接写回成为 Realm 的权威世界状态；
+- Realm 并不干预 LocalAgent 的逐轮对话推理决策，也不指定 Runtime 的具体底层推理驱动；
+- 任何跨系统的状态变更，都必须调用归属方明确声明的公开标准契约进行。
 
-SDK 呈现有限 consumer surface。Nimi Home、Desktop、Avatar 与 App 都只是
-consumer，不能把两个 owner 合并成 host-local truth。
+SDK 作为统一的消费方接口，为上层应用提供调用表面。Nimi Home、Desktop 桌面客户端、Avatar 渲染系统以及各独立应用均属于服务消费方，任何客户端均不得将两者的权威状态私自合并为本地未经受控的混合状态。
 
-长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
+> [!NOTE]
+> 长期记忆由 Cognition 系统按智能体独立管理；Runtime 仅作为授权数据调度的中介通道。当前版本的知识库系统（Knowledge V1）未开放公共调用接口。
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)

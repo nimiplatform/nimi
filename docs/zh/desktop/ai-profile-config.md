@@ -1,28 +1,27 @@
-# Nimi Home 中的 AI 配置
+# Nimi Home 中的 AI 配置与能力调度
 
-在「AI 能力」中准备本地配置，在「云服务」中管理云端连接，再进入对应 App 或共享 LocalAgent 的 AI 设置，决定各项能力的执行路径。
+在 Nimi Home 中，用户可以在「AI 能力」页面中统一准备本地模型配置，在「云服务」中连接第三方模型供应商，并在具体应用或专属智能体中灵活选择其底层的执行路由。
 
-## 先确认配置归属
+## 配置的归属与范围划分
 
-每个 App 有自己的 AIConfig。当前账号的全部 LocalAgent 共用一份 LocalAgent AIConfig；切换 Agent 不会创建新的 owner。Nimi Chat 使用 Desktop App 配置，Agent Chat 使用共享 LocalAgent 配置。
+为了保证安全隔离与个性化需求，Nimi 严格区分了不同维度的 AI 配置（AIConfig）：
 
-每项能力选择 Local 或 Cloud，并保存必要的功能要求和默认参数。Local 使用机器当前选中的该能力 Loadout；Cloud 必须从 Runtime 的安全选项中选择当前账号的确切 Connector 和实现目标。凭据与端点不进入 AIConfig。
+- **应用独立配置（App-owned AIConfig）**：每个独立的 Nimi App 拥有其专属的 AIConfig。应用可以自由声明所需的能力（如文本生成、音频转写），并由用户针对该应用指定使用本地模型还是云端模型。
+- **智能体通用配置（LocalAgent Shared AIConfig）**：当前账户下的所有 LocalAgent 共享一份基础能力配置。无论切换哪个智能体进行对话，底层都会复用该配置，避免重复设置。
+- **会话与桌面聊天**：Nimi Chat 使用桌面端自身的 App 配置；而与特定 Agent 聊天时，则使用智能体的共享配置。
 
-保存时携带当前 revision，并整体替换能力列表；保留未修改项，省略表示清除。版本冲突需要重新审阅后保存。保存不要求先完成推理探测，也不代表执行已经可用。
+## 本地模型（Local）与云端服务（Cloud）的选择
 
-## 准备本地能力
+针对每一项具体能力，用户均可选择执行路径：
 
-「AI 能力」包含 Profile 推荐与分享、设备上的模型列表，以及能力配置工作区。Loadout 绑定具体实现 recipe 和全部必要资源；通过设置流程准备并提交，再明确选为该能力的默认配置。
+1. **本地方案（Local）**：自动绑定当前机器在「AI 能力」中为该能力选定的默认运行方案（Loadout）。所有硬件资源与模型推理完全在本地执行，数据安全且离线可用。
+2. **云端方案（Cloud）**：从已连接的第三方服务商（如 OpenAI、Anthropic 或兼容接口）中选择指定的目标接入点。出于安全考虑，API 密钥由本地 Runtime 安全存储，不会明文泄露至前端应用配置中。
 
-机器选择影响该能力今后的所有 Local 请求，不是某个 App 或 Agent 私有的模型绑定。已经提交的 Job 保留提交时固定的输入。
+## 导入与应用 AIProfile
 
-「模型库」负责文件查看、导入、存储、完整性和删除。「下载」展示已有 App、模型与环境任务。共享组件和配置环境展示各自的诊断，不产生另一套模型选择。
+用户可以导入或分享结构化的 AIProfile 配置文件以快速套用推荐配置。应用 AIProfile 时，系统会预填配置表单供用户审阅。用户在确认本地模型已就绪或云端 API Key 已配置后，点击保存即可正式生效。
 
-## 应用 Profile
-
-应用可移植 AIProfile 只预填编辑器，不直接提交 owner 或机器状态。审阅内容，补齐当前环境的 Cloud 引用或本地资源，再完成对应的保存或确认。Profile 来源信息只用于说明，不形成持续绑定。
-
-安装流程见 [本地 AI](/zh/desktop/local-ai)，提交行为见 [Profile 与执行](/zh/runtime/ai-profile-execution)。
+关于本地模型的下载与部署，详见[本地 AI 配置](/zh/desktop/local-ai)；关于 Runtime 层的配置解析与调用细节，请参阅 [AI Profile 与执行机制](/zh/runtime/ai-profile-execution)。
 
 ## Source Basis
 

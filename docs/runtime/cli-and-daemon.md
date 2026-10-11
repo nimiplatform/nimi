@@ -1,38 +1,50 @@
-# CLI and Daemon
+# Runtime CLI and Startup Paths
 
-Runtime is Nimi's local execution service. Formal Apps reach its admitted operations through the Desktop-supervised Host and typed SDK, not an ordinary gRPC connection with a caller-selected App ID.
+The source development supervisor and an installed fixed service use different entry points. Identify the environment before choosing startup or diagnostic commands.
 
-## Management Commands
+## Source Development
+
+At the Nimi repository root, run this in a dedicated terminal:
+
+```sh
+pnpm dev:runtime
+```
+
+The script starts the current-user source Runtime supervisor and prints its logs in the terminal. Then run `pnpm dev:desktop` and sign in through Home. Prepare dependencies, Realm/Web, and OS prerequisites using [Development Environment Setup](/start/install) and the repository's LOCAL_DEVELOPMENT.md.
+
+An ordinary Windows development terminal cannot use `nimi serve` as a substitute. That command enters the production daemon path and requires the fixed Windows service identity.
+
+## Installed Windows Fixed Service
+
+These commands require the corresponding fixed service to be installed and its control prerequisites to be satisfied. The current macOS/Linux builds do not provide this background service controller. These commands also do not manage the source supervisor.
 
 | Command | Purpose |
 | --- | --- |
-| `nimi serve` | Run the explicit foreground Runtime path |
-| `nimi start` / `nimi stop` | Request the admitted background or service controller |
-| `nimi status` / `nimi health --json` | Read the sanitized manager or service summary |
-| `nimi logs` | Read the admitted background manager's logs |
-| `nimi doctor` | Diagnose the supported Runtime attachment and process prerequisites |
-| `nimi version` | Report version information |
-| `nimi init` / `nimi config` | Manage admitted configuration; not provider credentials or product data-root selection |
+| `nimi status` | Inspect fixed-service status |
+| `nimi start` | Start the installed fixed service |
+| `nimi stop` | Stop that fixed service |
+| `nimi logs` | Inspect its logs |
 
-Background commands fail explicitly when the build has no admitted manager; they do not create a substitute process or probe private capability methods. A daemon process being present does not prove protected access, model preparation, or successful inference.
+`nimi serve` is a production daemon entry point, not permission to start the protected service from an ordinary terminal.
 
-## Development and Production
+## Environment and Service Diagnostics
 
-For Home/App development, use the repository's supported development launch and Developer Mode flow. Windows and macOS local development use a per-user, non-elevated Runtime; the production service topology is not a prerequisite for that journey. Linux local App support remains deferred.
+- `nimi doctor` checks local environment and dependency prerequisites.
+- `nimi version` reports the binary version.
+- `nimi health --json` reads the corresponding running service's health summary, subject to reachability and its access conditions.
 
-`nimi serve` is useful for explicit Runtime source development, but a foreground daemon alone does not authorize a formal App. Production service installation, custody, update, and uninstall have their own product lifecycle.
+READY means the daemon is serving RPCs. A particular AI operation still needs a valid Loadout, model, session, and execution configuration. The source supervisor's current-user mode does not establish the identity or configuration of a production fixed service.
 
-Product data discovery uses `~/.nimi/nimi.json`. The optional `NIMI_RUNTIME_CONFIG_PATH` is an explicit nonproduction portable mode with no default portable path. See [Runtime Configuration](/runtime/config-contract) before invoking configuration initialization; do not use a retired config path or create a second data-root authority.
+## Related Documentation
 
-## Configure AI in Home
-
-Use Cloud Services for protected Connector custody and AI Capabilities for Loadouts, resources, and machine selection. Save the App or shared LocalAgent AIConfig separately. The CLI has no parallel provider credential, model selection, or generation configuration owner, and Knowledge V1 has no CLI path.
-
-## Shutdown and Recovery
-
-Daemon health uses `STARTING`, `READY`, `DEGRADED`, and `STOPPING`. Shutdown closes affected streams; transport closure may prevent a terminal frame from arriving. Never infer a successful generation from a closed connection. Re-establish authorized state and observe an existing Job or Conversation through its owner recovery contract; do not replay business work.
+- [Runtime Configuration](/runtime/config-contract)
+- [App Troubleshooting](/start/troubleshooting)
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
+- [`scripts/dev-runtime.mjs`](https://github.com/nimiplatform/nimi/blob/main/scripts/dev-runtime.mjs)
+- [`runtime/internal/entrypoint/runtime_production_windows.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/internal/entrypoint/runtime_production_windows.go)
+- [`runtime/internal/daemonctl/manager.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/internal/daemonctl/manager.go)
+- [`runtime/internal/daemonctl/protected_service_controller_stub.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/internal/daemonctl/protected_service_controller_stub.go)

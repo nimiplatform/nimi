@@ -1,55 +1,42 @@
-# Optional Action Execution
+# Controlled Action Execution Protocol
 
-Nimi can place an optional fail-closed boundary around external or
-delegated actions. This boundary is not a prerequisite for Local AI,
-LocalAgent, Conversation, Memory, or ordinary Runtime
-readiness.
+Nimi establishes a fail-closed security boundary around external and delegated actions. This boundary operates independently from core Local AI, LocalAgent conversations, memory retrieval, or standard Runtime readiness.
 
-## Safety Order
+## Execution Safety Lifecycle
 
-When an action surface enables the full execution boundary, it uses
-this order:
+When an action surface enables the full execution security boundary, operations strictly follow this phased progression:
 
 ```
 discover → dry-run → verify → commit → audit
 ```
 
-| Stage | Safety outcome |
+| Phase | Phase Responsibility & Safety Invariant |
 | --- | --- |
-| `discover` | Return only actions visible to the current scoped principal |
-| `dry-run` | Produce a typed proposal without committing side effects |
-| `verify` | Check the proposal against current intent and policy |
-| `commit` | Apply the authorized action with idempotency protection |
-| `audit` | Record the outcome and lineage |
+| `discover` | Return only operations visible and permitted to the current scoped principal |
+| `dry-run` | Produce a structured proposal payload without committing side effects |
+| `verify` | Validate the proposal against active user intent, access policies, and guardrails |
+| `commit` | Apply the authorized action under strict idempotency guarantees |
+| `audit` | Permanently log the terminal outcome and execution lineage |
 
-A failed verification never becomes a commit. A commit whose audit
-outcome is uncertain fails closed. High-risk actions cannot use a path
-that omits the safeguards required by their owner.
+If `verify` fails, execution halts immediately; the pipeline never advances to `commit`. If the audit outcome of a commit is indeterminate, the system fails closed. High-risk operations can never bypass the safeguards mandated by their governing authority.
 
-## Owner Boundary
+## Authority Boundaries
 
-The action owner defines the allowed operation, input, output, risk
-class, and authorization result. Runtime may provide a delegated
-gateway, approval step, and output firewall without becoming the owner
-of Realm or App truth. Nimi Home or another host may present approval
-UI without becoming the action authority.
+The action owner defines permitted operations, schema inputs, outputs, risk classifications, and authorization criteria. Runtime provides the delegated gateway, user confirmation workflow, and output filtering, without usurping ownership over Realm or application state. Nimi Home or other desktop hosts render approval dialogs, but do not act as the authoritative decision arbiter.
 
-General Workflow, MCP, A2A, or a public Action Registry are not implied
-by this boundary. If a future adapter uses it, that adapter remains
-separately owned and non-blocking.
+This boundary does not imply complex workflow engines, external MCP bridges, or public action catalogs. Future adapters that utilize this boundary remain independently owned and non-blocking.
 
-## Reader Scenario: A Verified Write
+## Scenario: Verified Write Operation
 
-An optional external-action surface proposes a write.
+When an external extension initiates a persistent write:
 
-1. Discovery returns the scoped operation.
-2. Dry-run produces a typed proposal with no side effects.
-3. Verification confirms current intent and policy.
-4. Commit applies the action once.
-5. Audit records the terminal result.
+1. **Discovery**: Returns only permitted operations scoped to the active session.
+2. **Dry-Run**: Generates a typed preview proposal with zero side effects.
+3. **Verification**: Validates intent and safety policies, requesting user confirmation if required.
+4. **Commit**: Executes the mutation exactly once under idempotency locks.
+5. **Audit**: Logs the terminal result and lineage metadata.
 
-If verification fails at step three, the flow stops before commit and
-returns a typed refusal.
+If verification fails at step three, execution terminates before commit, returning a structured refusal to the caller.
 
 ## Source Basis
 

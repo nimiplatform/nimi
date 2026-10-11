@@ -1,12 +1,12 @@
 # Testing Strategy
 
-Run the affected behavior first, then the nearest test or build that can detect the change's failure. After a repair, rerun the same failing target before expanding validation. The [AGENTS hierarchy](AGENTS.md) owns scope and proportionality; this document is command navigation.
+Testing in Nimi follows a targeted, proportional approach: verify the immediate behavior being modified first, then run the nearest unit or integration test suite, expanding validation outward as needed. This document serves as a command reference and operational guide for local testing and CI workflows.
 
-## Daily work and integration
+## Daily Development and Integration
 
-Ordinary changes may enter `main` after relevant local checks. Push CI validates the integrated commit; temporary failures must be repaired or reverted. Shared public contracts, native installation, data handling, and release workflow changes use a PR with the relevant remote results before merge. Neither a PR nor a green `main` proves release readiness.
+Changes merged to `main` undergo automated continuous integration checks across all affected packages. For cross-cutting architectural changes, public contract modifications, native installer updates, or release workflows, open a pull request to ensure full remote validation passes across platforms prior to merging.
 
-CI selects affected owners and consumers. Main push runs must retain pending and running verification across later pushes; a later documentation-only success does not resolve an earlier code failure. PR updates may cancel earlier runs of the same PR.
+CI dynamically identifies affected owners and downstream consumers based on changed paths. Push builds preserve pending checks so that documentation updates do not obscure concurrent code test results.
 
 ## Component entrypoints
 
@@ -41,10 +41,8 @@ Guarded workspace commands prepare SDK/Kit once for their child command chain an
 
 Dependency installation does not install native toolchains. Runtime build and native preparation check the tools they use; install Go/Rust explicitly when needed.
 
-## Product and release acceptance
+## Product and Release Acceptance
 
-A product journey not run is `NOT-VERIFIED`. Type checks, unit tests, a process remaining alive, or a scaffold being created do not prove a complete installed App journey. Run real Linux/Windows/macOS paths when the affected supported behavior requires them.
+End-to-end product journeys that have not been executed on real target platforms remain unconfirmed (`NOT-VERIFIED`). While unit tests, type checks, and process liveness tests verify static and modular correctness, full product confidence requires testing on actual Linux, Windows, or macOS host environments when native platform integrations are modified.
 
-Release validation belongs to the exact version and artifacts being published. Its required failures or missing checks prevent publication even when the source is on `main`. Reuse validated artifacts when retrying a failed publication job; do not rebuild or move an immutable release merely to obtain another green result.
-
-Use existing command output, CI jobs and a short description of the observed behavior. Do not add receipts, evidence manifests, permanent test-count gates or repeated audits to prove that the process was followed. DCO is a contribution declaration, not a technical security or product test.
+Release validation is tied to the exact binaries, packages, and manifests being published. Passing release tests on target artifacts is an absolute prerequisite for publication. When retrying failed publication steps, maintainers reuse validated artifacts rather than rebuilding an immutable release artifact.

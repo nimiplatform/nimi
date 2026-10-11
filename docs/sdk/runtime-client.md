@@ -1,22 +1,22 @@
 # Runtime Client
 
-A Nimi App uses one host-bound `NimiLocalAppClient`, normally created by the generated Kit integration. Use `client.ai`, `client.aiConfig`, and the separately admitted App capability surfaces. The App does not choose its account, App owner, Runtime address, or protected transport.
+A standard Nimi App consumes a single host-bound client instance (`NimiLocalAppClient`), typically instantiated during app bootstrap via Kit. Application code interacts with platform services through `client.ai`, `client.aiConfig`, and authorized feature surfaces; the App does not manage user accounts, App identity headers, Runtime endpoints, or low-level transport security.
 
-`@nimiplatform/sdk/runtime` also exposes typed Runtime facilities for hosts and admitted infrastructure. Importing a type or constructing a direct client does not grant App authority. Ordinary loopback gRPC rejects App-scoped AI execution, AIConfig, and storage; it is not an alternative App integration path.
+The `@nimiplatform/sdk/runtime` module exports strongly-typed Runtime interfaces for Desktop hosts and trusted system infrastructure. Merely importing types or constructing a direct client does not grant application privileges. Standard loopback gRPC connections reject App-scoped AI execution, AIConfig management, and secure storage; direct clients must not be used as an application integration backdoor.
 
-## Requests and Results
+## Requests and Execution Results
 
-AI requests carry content and supported parameters. The committed AIConfig supplies the Local or Cloud route; Runtime captures the selected Local Loadout or exact Cloud configuration at submission. The SDK does not choose substitute implementations or inject credentials.
+AI generation requests carry prompt contents and supported execution parameters. Persistent AIConfig preferences supply the intended Local or Cloud route; Runtime binds directly to the active Local Loadout or configured Cloud target at submission. The SDK does not swap models or inject credentials on the client.
 
-Streams expose typed ordered output and terminal outcomes. Asynchronous Jobs use Submit, repeated Get, complete result reads, and explicit Cancel. Retain the original Job identity when observation fails; do not resubmit work to recover a connection. See [Streaming](/runtime/streaming).
+- **Streaming responses**: Emit ordered, strongly-typed event chunks ending with an explicit terminal outcome.
+- **Asynchronous Jobs**: Follow standard lifecycle operations: Submit, poll Get, fetch complete results, or invoke Cancel. If client observation is interrupted, resume queries using the original Job ID rather than resubmitting duplicate workloads. See [Streaming](/runtime/streaming).
+- **LocalAgent operations**: Agent interactions execute through session-scoped authorized handles. Conversations, task execution, shared configurations, memory controls, and realtime streams are each protected by specific capability scopes. Cognition manages long-term memory via Runtime mediation; Knowledge V1 does not expose a public client surface.
 
-LocalAgent operations use session-scoped authorized handles. Conversation, business execution, shared configuration, Memory management, and realtime each retain their own operation coverage. Cognition owns long-term Memory through Runtime mediation; Knowledge V1 has no public client surface.
+## Error Handling and Fault Tolerance
 
-## Handle Failures
+The SDK preserves strongly-typed error codes, structured reason codes, and diagnostic metadata returned by Runtime. When input payloads are malformed or authorization is missing, requests fail closed. Missing methods or unsupported option combinations must be reported to the user gracefully; applications must not attempt to call Runtime private packages or contact providers directly.
 
-Preserve the typed error, reason, and available action details. Malformed data and missing authority fail closed. A missing method or unsupported combination is not permission to call Runtime internals or a Provider directly.
-
-Start with [First AI Call](/sdk/first-ai-call), [AIConfig](/sdk/ai-config-surface), and [App authorization](/platform/agents/participation-authority).
+To get started, review [First AI Call](/sdk/first-ai-call), [AI Config](/sdk/ai-config-surface), and [App Authorization](/platform/agents/participation-authority).
 
 ## Source Basis
 

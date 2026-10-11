@@ -2,18 +2,15 @@
 aside: false
 ---
 
-# SDK
+# SDK Guide
 
-The Nimi SDK is the app-facing boundary for Runtime, Realm, AI, agent,
-feature, and shared-type consumption. The active implementation lives under
-`sdks/typescript` and is the public `@nimiplatform/sdk` package.
+The Nimi SDK is the official boundary for applications integrating Runtime, Realm, AI inference, Agent collaboration, feature modules, and shared type definitions. The core implementation lives under `sdks/typescript` and is published as `@nimiplatform/sdk`.
 
-## Start Here: A Nimi App
+These host-bound examples target the SDK 0.21.0 source development combination with matching Kit/Runtime. Prepare its local archives or development bundle through [Environment Setup](/start/install). The Vercel example uses source adapter 0.5.0 and AI SDK 7; see [Adapters](/sdk/adapters) for the separate published-artifact pairing.
 
-A Nimi App uses one host-bound client. Nimi Home launches the App in a
-supervised Host, the Host injects the standard shell, and Runtime derives the
-account, the App identity, and its access from that protected session. The App
-supplies no App ID, account, token, or Runtime endpoint.
+## Quick Start: Building a Nimi App
+
+For standard Nimi Apps, development requires **a single host-bound client**. When Nimi Home launches an application in a supervised host, the host automatically injects a standard Shell bridge. The underlying Runtime resolves the signed-in user, application identity, and access boundaries directly from this protected session. Applications do not need to provide or manage App IDs, user credentials, tokens, or Runtime host endpoints.
 
 ```ts
 import { createNimiClient, type NimiLocalAppClient } from '@nimiplatform/sdk';
@@ -29,94 +26,71 @@ export function getNimiLocalAppClient(): NimiLocalAppClient {
 }
 ```
 
-A project created with App Tools already contains this client in
-`src/shell/auth/local-app-client.ts`; reuse it. Then make your
-[First AI Call](/sdk/first-ai-call) through it.
+Projects created with Nimi tooling already include this client factory in `src/shell/auth/local-app-client.ts`. Simply reuse it. Next, make your [First AI Call](/sdk/first-ai-call) through it.
 
-## Other Entry Points And Who They Are For
+## Common Entry Points & Recommended Use Cases
 
-| Entry | Use it when |
+| Entry Point | Recommended Use Case |
 | --- | --- |
-| `client.ai.text.generateCandidate` | An App needs one text answer. [First AI Call](/sdk/first-ai-call) walks through it. |
-| `client.aiConfig` | An App reads or saves its own capability intent. See [AI Config](/sdk/ai-config-surface). |
-| `createNimiLocalAppTextModel(client.ai)` from `@nimiplatform/sdk/ai` | An App runs its own multi-step tool loop, needs JSON output, or sends image parts. It uses the same host-bound client. |
-| `createNimiLocalAppVercelLanguageModel({ ai: client.ai })` from `@nimiplatform/sdk-adapter-vercel-ai` | An App is built on Vercel AI SDK 6. It is a separate package; check its release pairing in [Adapters](/sdk/adapters). |
-| `createNimiClient({ appId, runtime, realm })` | A program outside the Nimi App surface, such as a script that signs in to Realm itself and stores its own tokens. |
+| `client.ai.text.generateCandidate` | When an App needs standard single-turn text responses. See [First AI Call](/sdk/first-ai-call) for step-by-step guidance. |
+| `client.aiConfig` | Read or persist an App's AI capability preferences and routing intents. See [AI Config](/sdk/ai-config-surface). |
+| `createNimiLocalAppTextModel(client.ai)` (from `@nimiplatform/sdk/ai`) | When an App coordinates multi-step tool-calling loops, structured JSON output, or multi-modal vision inputs using the host-bound client. |
+| `createNimiLocalAppVercelLanguageModel({ ai: client.ai })` (from `@nimiplatform/sdk-adapter-vercel-ai`) | When building on the Vercel AI SDK 7 ecosystem. Distributed as an independent adapter package; see [Adapters](/sdk/adapters). |
+| `createNimiClient({ appId, runtime, realm })` | Dedicated to independent background daemons or standalone scripts managing their own Realm authentication outside the App surface. |
 
-The last entry returns a direct `NimiClient`, not an App client. An App ID in
-its configuration grants no access. Over a plain loopback gRPC connection,
-Runtime rejects App-scoped operations such as AI execution and Jobs, App
-AIConfig, App storage, and Agent Conversation with
-`PROTECTED_ORIGIN_ROLE_MISMATCH`. Do not replace an App's host-bound client
-with it.
+> [!WARNING]
+> The last entry point, `createNimiClient({ appId, ... })`, returns a direct `NimiClient`, not an App client. Providing an App ID in its configuration does not grant supervised application privileges. Over standard loopback gRPC connections, Runtime strictly rejects App-scoped operations (such as AI execution, Job scheduling, App AIConfig, and Agent conversations) with `PROTECTED_ORIGIN_ROLE_MISMATCH`. Do not replace an App's host-bound client with it.
 
-## Surfaces
+## Architecture Surfaces
 
 <SdkSurfaces />
 
-## What This Section Contains
+## Documentation Sections
 
-- [Boundaries](/sdk/boundaries) — the import and call rules apps must follow.
-- [First AI Call](/sdk/first-ai-call) — one text generation through the
-  App's host-bound client.
-- [AI Config](/sdk/ai-config-surface) — an App's own capability intent.
-- [Runtime Client](/sdk/runtime-client) — the typed Runtime projection and
-  its supported consumer contexts.
-- [Realm And Composition](/sdk/realm-world-client) — Realm truth and admitted
-  world-facing composition without restoring `@nimiplatform/sdk/world`.
-- [Adapters](/sdk/adapters) — external framework adapters such as
-  `@nimiplatform/sdk-adapter-vercel-ai`.
-- [Shared Types](/sdk/types) — portable public types and errors.
+- [Boundaries](/sdk/boundaries) — Import constraints and invocation rules apps must observe.
+- [First AI Call](/sdk/first-ai-call) — Step-by-step guide to generating text through the host-bound client.
+- [AI Config](/sdk/ai-config-surface) — Managing app-level model preferences and capability routing.
+- [Runtime Client](/sdk/runtime-client) — Strongly-typed Runtime client for trusted external contexts.
+- [Realm and Composition](/sdk/realm-world-client) — Consuming Realm canonical state and supported world composition features.
+- [Adapters](/sdk/adapters) — External framework adapters (e.g. `@nimiplatform/sdk-adapter-vercel-ai`).
+- [Shared Types](/sdk/types) — Portable public interfaces and normalized SDK error models.
 
-## Public Surface Set
+## Public Export Subpaths
 
-The TypeScript SDK has one base package. External framework
-adapters are independent packages, not base SDK subpaths.
+The TypeScript SDK adopts a single foundation package design; third-party framework adapters are distributed as distinct packages:
 
-| Public entry | Role |
+| Entry Point / Package | Responsibility & Role |
 | --- | --- |
-| `@nimiplatform/sdk` | `createNimiClient` and the shared public exports; Apps create their host-bound client here |
-| `@nimiplatform/sdk/app` | Host-bound App client, standard shell contracts, and typed App operations |
-| `@nimiplatform/sdk/ai` | Model interfaces, including the App text model binding |
-| `@nimiplatform/sdk/runtime` | Typed Runtime clients for their supported consumer contexts; not an App authorization bypass |
-| `@nimiplatform/sdk/realm` | Realm clients for independently authenticated programs; Apps use Realm operations on their App client |
-| `@nimiplatform/sdk/types` | Shared public types and SDK errors |
-| `@nimiplatform/sdk/contracts` | Public contract descriptors |
-| `@nimiplatform/sdk/ai-runner` | Framework-neutral AI runner facade |
-| `@nimiplatform/sdk/testing` | Test helpers for SDK consumers |
-| `@nimiplatform/sdk/features/*` | Demand-driven feature modules backed by a concrete consumer contract |
+| `@nimiplatform/sdk` | Core factory `createNimiClient` and primary public exports |
+| `@nimiplatform/sdk/app` | Host-bound App client types, standard shell contracts, and typed operations |
+| `@nimiplatform/sdk/ai` | AI model interfaces and text model binding utilities |
+| `@nimiplatform/sdk/runtime` | Strongly-typed Runtime client for supported environments; strictly respects authorization boundaries |
+| `@nimiplatform/sdk/realm` | Standalone Realm client for independent scripts; Apps access Realm via their host-bound client |
+| `@nimiplatform/sdk/types` | Portable public interfaces, schema types, and SDK error models |
+| `@nimiplatform/sdk/contracts` | Open platform contract descriptors |
+| `@nimiplatform/sdk/ai-runner` | Framework-agnostic AI runner facade |
+| `@nimiplatform/sdk/testing` | Test harnesses and fixtures for SDK consumers |
+| `@nimiplatform/sdk/features/*` | Demand-driven, consumer-oriented feature modules |
 
-The removed subpaths must fail closed: `@nimiplatform/sdk/world`,
-`@nimiplatform/sdk/scope`, `@nimiplatform/sdk/ai-provider`,
-`@nimiplatform/sdk/ai-app`, and old runtime compatibility subpaths are not
-forwarded.
+Legacy deprecated subpaths (such as `@nimiplatform/sdk/world`, `@nimiplatform/sdk/scope`, `@nimiplatform/sdk/ai-provider`, etc.) are completely retired and intentionally fail closed upon import.
 
-## Why The SDK Exists
+## Purpose of the SDK
 
-Nimi has multiple owner domains. Runtime owns execution and LocalAgent Conversation. Cognition owns long-term Memory through Runtime mediation; Knowledge V1 is inactive. Realm owns Character, World, social, and
-semantic truth. Desktop owns native shell behavior. Application code needs a
-stable way to use those domains without importing their private implementation.
+Nimi partitions responsibilities across distinct owner domains: Runtime coordinates local execution and Agent conversations; Cognition manages long-term memory; Realm maintains characters, virtual worlds, and social graphs; Desktop delivers native Shell integration.
 
-The SDK is that boundary. It projects admitted owner-domain behavior into
-developer-facing TypeScript APIs. It does not invent Runtime, Realm, or Desktop
-truth.
+Application code needs a reliable, idiomatic way to interact with these capabilities without coupling to private internal plumbing. The SDK establishes this formal contract boundary—projecting core platform protocols into ergonomic TypeScript APIs while safeguarding the platform's single source of truth.
 
-## Reader Scenario: A First Integration
+## Typical Scenario: First-Time Integration
 
-An App that needs Realm data and Runtime-backed generation should:
+An application requiring Realm world data alongside local AI inference should:
 
-1. Reuse its generated host-bound client; do not construct a second client
-   with an App ID or endpoint.
-2. Save the capability intent it needs, such as `text.generate`, through
-   `client.aiConfig` or the generated AI settings.
-3. Run AI work through `client.ai`. For a first text generation, start with
-   [First AI Call](/sdk/first-ai-call).
-4. Read Realm Worlds and PersonaCharacters through the App client's Realm
-   operations.
-5. Handle typed errors by their reason code and keep the actual error visible.
+1. **Reuse the host-bound client**: Use the preconfigured client from the project scaffold rather than instantiating a second client.
+2. **Declare required capabilities**: Specify intents such as `text.generate` via `client.aiConfig` or the built-in configuration UI.
+3. **Execute AI operations**: Run tasks via `client.ai`, starting with [First AI Call](/sdk/first-ai-call).
+4. **Query Realm resources**: Safely access virtual worlds and personas through the host-bound client's Realm methods.
+5. **Handle structured errors**: Inspect standard error reason codes for robust error handling while preserving diagnostics for troubleshooting.
 
-That App does not import Runtime internals, Realm REST routes, or removed SDK
-compatibility paths.
+Applications should never craft raw gRPC calls or bypass SDK contracts to invoke REST routes directly.
 
 ## Source Basis
 

@@ -1,33 +1,33 @@
 # Local AI in Nimi Home
 
-Open **AI Capabilities** to prepare and select local capability configurations. Its home combines Profile recommendations and sharing with the models on this device. The capability workspace shows saved configurations, their resources, preparation state, and the current default.
+In Nimi Home's "AI Capabilities" section, you can configure local model resources and execution profiles. It provides curated recommendations, community loadouts, local model imports, environment health checks, and machine-wide default configurations (Loadouts).
 
-## Where to Act
+## Functional Areas
 
-| Surface | Task |
-| --- | --- |
-| AI Capabilities | Configure a capability and explicitly select its machine default |
-| Model Library | Inspect, import, verify, remove, and manage storage for model files |
-| Configuration environment | Inspect the environment required by one saved configuration |
-| Shared components | Inspect machine-shared components through their owner operations |
-| Downloads | Follow App, model, and environment tasks already created |
-| Cloud Services | Manage cloud connections separately |
+| Section | Core Tasks | Purpose |
+| --- | --- | --- |
+| **AI Capabilities Workspace** | Browse configured capabilities and set machine defaults | Set the preferred execution plan for text generation, embeddings, etc. |
+| **Model Library** | View local model files, import, verify integrity, manage disk space | Manage local weights, GGUF files, and storage quotas |
+| **Environment & Drivers** | Check inference engine and hardware acceleration prerequisites | Validate GPU drivers, CUDA, Metal, or Vulkan support |
+| **Download Manager** | Track background downloads for models, apps, and dependencies | Monitor download progress, speed, and network throughput |
+| **Cloud Services** | Configure cloud provider API keys and compatible endpoints | Provide cloud execution targets when apps or users explicitly choose Cloud routing |
 
-## From Model to First Request
+## Getting Started: Setting Up a Local Model
 
-Install or import the required assets, configure the implementation recipe and all required resources into a Loadout, and explicitly select it for the capability. Then save Local intent in the App's AI settings and run an actual request. For Agent Chat, the intent belongs to the account's shared LocalAgent configuration.
+A typical workflow from importing a model to running your first request:
 
-The selected Loadout is a machine default for that capability, so changing it affects future Local submissions from other owners too. Existing Jobs keep their submitted execution inputs.
+1. **Import or Download**: Import existing model weights (such as GGUF files) in the Model Library, or download tested models directly. The system verifies integrity hashes upon completion.
+2. **Create or Select a Loadout**: Bundle the model with optimized inference parameters into a named Loadout tailored to your tasks (e.g., chat, coding, reasoning).
+3. **Set as Capability Default**: In the AI Capabilities panel, mark this Loadout as the machine default for that capability.
+4. **Run a Query**: In any Nimi App or Desktop Chat, select "Local" mode to start private, low-latency, offline inference.
 
-## What the Status Means
+## Understanding Status Indicators
 
-File verification means registered bytes match. A configuration's preparation status combines that configuration's resources and environment checks. The default label identifies current selection. None of these labels proves that a request has executed successfully.
+- **File Integrity**: Verifies that downloaded bytes match registered checksums to prevent corrupted weights.
+- **Environment Readiness**: Confirms that your hardware, drivers, and runtime dependencies meet the model's operational requirements.
+- **Default Tag**: Marks the active machine default for that capability. Changing a default loadout updates subsequent Local requests across apps that route to local compute.
 
-Models with several variants or configurations keep those distinctions. A missing recipe match is shown as unidentified use; a companion resource is not described as independently performing the capability. An unchecked environment remains unchecked.
-
-Runtime supplies compatibility, recommendations, progress, and failures. Home does not rank replacements or select an alternative when a Job fails. Dependencies install through Runtime's admitted materializer, with explicit progress and failure, rather than arbitrary shell commands in the renderer.
-
-For exact configuration and execution semantics, see [Local Models and Loadouts](/runtime/local-models).
+For technical deep dives into local inference mechanics and loadouts, see [Local Models and Loadouts](/runtime/local-models).
 
 ## Source Basis
 

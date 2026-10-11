@@ -1,63 +1,38 @@
-# 错误归属（Error Ownership）
+# 错误模型与分层归属（Error Ownership）
 
-按 Nimi 各层把错误契约、规则前缀和权威源对应起来的参考表。
+在 Nimi 架构中，系统通过标准化的错误码前缀与分层映射机制，清晰标识错误的产生来源、责任主体与推荐处理方案。
 
-## 各层归属
+## 各层级错误码前缀对照
 
-| 层 | 归属契约 | 规则前缀 | 它持有什么 |
+| 架构层级 | 归属契约规范 | 规则前缀 | 核心职责与错误范畴 |
 | --- | --- | --- | --- |
-| 平台协议 | `.nimi/spec/platform/core-protocol.authority.yaml` | `P-PROTO-*` | 跨世界协议错误码、动作提示、审计事件分类 |
-| Runtime | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-ERR-*` | reason code、错误分类、retry 与契约失败的区分 |
-| Runtime 流式 | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-STREAM-*` | 终态帧、流级失败语义 |
-| SDK | `.nimi/spec/sdks/client-core.authority.yaml` | `S-ERROR-*` | 面向 App 的错误呈现、强类型错误形态 |
-| 桌面端 | `.nimi/spec/desktop/shell-ui.authority.yaml` | `rule.nimi.desktop.shell-ui.*` | UI 错误边界、retry 策略、用户侧错误渲染 |
+| **平台核心协议** | `.nimi/spec/platform/core-protocol.authority.yaml` | `P-PROTO-*` | 跨世界基础协议错误、世界准入拦截、时空连续性违规 |
+| **本地运行时（Runtime）** | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-ERR-*` | 推理超时、硬件驱动不可用、显存溢出、凭据失效 |
+| **Runtime 流式通道** | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-STREAM-*` | 增量分片解析错误、背压溢出、流提前中止 |
+| **SDK 客户端** | `.nimi/spec/sdks/client-core.authority.yaml` | `S-ERROR-*` | 参数格式校验失败、客户端网络断开、本地状态不一致 |
+| **桌面端前端（Desktop）** | `.nimi/spec/desktop/shell-ui.authority.yaml` | `rule.nimi.desktop.shell-ui.*` | UI 错误边界捕获、用户交互引导、视图渲染异常 |
 
-## 翻译表
+## 错误分类与可恢复性判定
 
-平台到 Runtime 的映射，是协议级错误与 Runtime reason code 之间的规范翻译点：`config/platform-error-code-mapping.yaml`。
-
-各层各自的枚举表：
-
-| 表 | 层 |
-| --- | --- |
-| `config/platform-protocol-error-codes.yaml` | 平台 |
-| `proto/runtime/v1/common.proto` | Runtime |
-| `.nimi/spec/runtime/rpc-foundations.authority.yaml` | Runtime 跨层 |
-| `config/sdks-error-codes.yaml` | SDK |
-| `.nimi/spec/desktop/shell-runtime.authority.yaml` | 桌面端 |
-
-## 区分"传输恢复"和"契约失败"
-
-| 失败类型 | 谁能恢复 | 权威来源 |
+| 错误分类 | 典型表现 | 推荐处理策略 |
 | --- | --- | --- |
-| 传输错误（网络、超时、瞬时 5xx） | retry、auth refresh | 传输 / SDK 传输契约 |
-| 需要刷新认证 | auth refresh、token 轮换 | Runtime auth + SDK 传输 |
-| 契约失败（强类型形态、MIME、schema、字段缺失） | retry 不能救；fail-closed | 归属契约 |
-| 流式终态失败 | 流中段救不回来；发出终态失败帧 | Runtime 流式 |
+| **瞬时传输错误** | 偶发网络超时、连接闪断、HTTP 502/503 | 传输重试严格遵循操作幂等契约：安全读或幂等调用可执行指数退避重试；外部副作用未确认的操作须先查询原任务/调用状态，禁止盲目重新提交 |
+| **凭据过期** | Token 过期、会话需要刷新 | Runtime 在后台静默刷新凭据；重新发起未完成请求须遵循操作幂等契约与未确认副作用边界 |
+| **契约与参数错误** | 缺少必填字段、MIME 类型不符、Schema 校验未通过 | 系统直接返回类型化错误，指导开发者在代码中修正入参 |
+| **流式中断错误** | 模型生成中途中断、用户主动点击停止 | 前端优雅清理残缺未提交内容，并保留已落地的完整历史消息 |
 
-retry 和 auth refresh 是传输机制，不能用来悄悄恢复 decode、content-type、schema、契约这类失败。
+## 端到端错误传播与呈现示例
 
-## 一次失败穿越多层
+当底层云端模型服务发生临时故障时，系统经历清晰的错误传播与映射链路：
 
-一次失败通常会跨多层。举例：上游 provider 在流式生成中途失败，会按下表展开：
+1. **Provider 返回异常**：远程大模型服务返回 HTTP 500 内部错误；
+2. **Runtime 归类与捕获**：本地执行驱动将其捕获，归类为规范 `K-ERR-*` 规则约束下的标准原因码 `AI_PROVIDER_INTERNAL`，并记录现场审计日志与 Trace ID；
+3. **SDK 结构化封装**：SDK 门面将其包装为结构化 `NimiError` 对象（包含 `reasonCode: 'AI_PROVIDER_INTERNAL'` 与操作建议 `actionHint: 'retry_with_backoff_or_switch_provider'`）；
+4. **桌面端友好呈现**：UI 界面在消息气泡旁展示准确的提示信息（例如：“模型服务商发生内部错误，请稍后重试或切换模型”），并提供明确的操作选项。
 
-| 层 | 动作 |
-| --- | --- |
-| Provider | 返回瞬时错误帧 |
-| Runtime provider-health | 归到 `K-ERR-*` 族 |
-| Runtime 流式 | 决定恢复或终结；终结则发出强类型终态失败帧 |
-| Runtime 审计 | 记录失败和 trace 血缘 |
-| SDK 错误呈现 | 按 `S-ERROR-*` 投出强类型 App 侧错误 |
-| 桌面端 UI | 在 `D-*` 错误边界下呈现 |
-| 用户 | 看到的是受治理的失败，而不是被伪造出来的成功 |
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-error-codes.yaml)
-- [`config/platform-error-code-mapping.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-error-code-mapping.yaml)
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`config/sdks-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-error-codes.yaml)
 - [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)
-- [`.nimi/spec/desktop/shell-runtime.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-runtime.authority.yaml)

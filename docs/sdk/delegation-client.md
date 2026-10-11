@@ -1,64 +1,49 @@
 # Delegation Client
 
-## Status: Admitted Contract; Release-Gated Surface
+> Status: Standardized core contract; public capabilities are gated by official SDK package exports.
 
-The runtime delegation client contract is admitted at the SDK kernel
-level. The contract pins how an SDK consumer integrates with the
-runtime delegation gateway + output firewall; the client surface is
-usable only when present in SDK package exports.
+The runtime delegation client contract standardizes how SDK consumers interact securely with the Runtime delegation gateway and output firewall. The client surface is usable strictly when exposed through official SDK package exports.
 
-## What This Client Does
+## Purpose and Scope
 
-The Delegation Client is the SDK surface for an app or external AI host that
-integrates with delegated capability — proposing observations,
-queries, intents, tool requests, presentation updates, artifact
-creates, or controlled tests through the runtime delegation gateway.
+The Delegation Client provides a structured SDK surface for applications or external AI hosts integrating delegated capabilities. It allows clients to submit typed observations, queries, proposed intents, tool requests, presentation layout updates, artifact creation requests, and sandboxed test executions to the Runtime delegation gateway.
 
-All proposals go through the runtime output firewall (see
-[Runtime → Delegated Capability](/runtime/delegated-capability)).
-The SDK does not let proposals reach a consumer surface
-pre-firewall.
+**All proposals must traverse the Runtime output firewall** (see [Runtime → Delegated Capability](/runtime/delegated-capability)). The SDK strictly prevents uninspected proposals from reaching downstream application code.
 
 ## Method Surface
 
-| Method | Purpose |
+| Method | Role & Description |
 | --- | --- |
-| `OBSERVE` | Submit a typed observation |
-| `QUERY` | Submit a typed query |
-| `SUGGEST_INTENT` | Propose an intent |
-| `SUGGEST_TOOL_REQUEST` | Propose a tool call |
-| `SUGGEST_PRESENTATION` | Propose a presentation update |
-| `CREATE_ARTIFACT` | Propose creating an artifact |
-| `CONTROLLED_TEST` | Run a controlled, sandboxed test |
+| `OBSERVE` | Submit typed environmental or behavioral observations |
+| `QUERY` | Submit structured query requests |
+| `SUGGEST_INTENT` | Propose a high-level operational intent |
+| `SUGGEST_TOOL_REQUEST` | Propose executing a specific tool invocation |
+| `SUGGEST_PRESENTATION` | Propose layout or presentation state updates |
+| `CREATE_ARTIFACT` | Propose generating and persisting an artifact file |
+| `CONTROLLED_TEST` | Execute a strictly sandboxed, non-destructive test |
 
-All of these are **suggestions / observations**, not actions.
+All methods represent **proposals or observations**, never unilateral mutations.
 
-## No Fallback Knobs
+## No Silent Fallback Knobs
 
-The SDK surface deliberately does not expose route / provider
-rescue fallback knobs for delegation. Runtime preserves the admitted operation's captured target and typed failure semantics. A delegation that fails firewall is reported as the typed
-failure — not silently retried with a different provider.
+The SDK deliberately avoids exposing routing or provider fallback switches. Runtime enforces target locking and typed error semantics: a delegated proposal that fails firewall screening is reported as an explicit typed failure, rather than silently falling back to unverified alternate providers.
 
-## Reader Scenario: App Proposes A Tool Call
+## Typical Scenario: An Application Proposes a Tool Call
 
-An app backed by an external AI proposes a tool call.
+A feature module powered by an external AI suggests executing a tool:
 
-1. **App calls SDK.** `delegationClient.suggestToolRequest(...)`.
-2. **Runtime delegation gateway opens.** Per the trust tier of the
-   provider profile.
-3. **Output firewall validates.** Schema, provenance, descriptor
-   hash, sensitivity classification, prompt poisoning detection.
-4. **Verdict.** Typed verdict (`ACCEPTED_SUGGESTION`,
-   `APPROVAL_REQUIRED`, `QUARANTINED`, etc.).
-5. **If approved:** Runtime acts under its own audit lineage; SDK
-   surfaces the typed result to the app.
+1. **Submit proposal**: The module invokes `delegationClient.suggestToolRequest(...)`.
+2. **Gateway intake**: The Runtime delegation gateway validates the request against the trust tier of the provider profile.
+3. **Output firewall inspection**: The firewall validates payload schema, origin provenance, descriptor hash, data sensitivity, and prompt injection risks.
+4. **Enforce verdict**: A typed verdict is returned (e.g. `ACCEPTED_SUGGESTION`, `APPROVAL_REQUIRED`, `QUARANTINED`).
+5. **Execution**: If approved, Runtime executes the action within its audit lineage and returns typed results back through the SDK.
 
-## What This Client Does Not Do
+## Architectural Boundaries
 
-- It does not let proposals bypass the output firewall.
-- It does not expose route or provider rescue knobs.
-- It does not let consumer code execute proposed actions directly.
-- It does not silently retry across providers when contract failure.
+- Proposals may never bypass the output firewall.
+- No manual provider rescue switches or silent retry mechanisms are exposed.
+- Downstream consumer code cannot execute proposed actions without gateway approval.
+- Contract failures trigger immediate rejections rather than unverified cross-provider retries.
 
 ## Source Basis
 

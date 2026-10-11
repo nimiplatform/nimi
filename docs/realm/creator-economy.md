@@ -1,136 +1,48 @@
-# Creator Economy
+# Creator Economy and Value Distribution
 
-> Status: Running today. The Realm economy contracts (`R-ECON-*`)
-> are live, and creator revenue policy is connected to them. For
-> the payout pipeline narrative see
-> [Creator Payouts](/realm/creator-payouts).
+The Creator Economy infrastructure in Realm provides monetization and value-sharing rails for digital world architects, 3D artists, and lore builders. It defines how digital creations are registered, how proceeds are apportioned among collaborators, and how disbursements are settled.
 
-The creator economy is the slice of Realm's economy that is about
-world creators earning money: revenue attribution, share plans,
-settlement, and withdrawal. The World Creator Economy and Creator
-Revenue Policy definitions connect those ideas to the economy
-contracts that actually run them.
+For details on the settlement and banking payout pipeline, see [Creator Payouts and Settlement Flows](/realm/creator-payouts).
 
-## Where Creator Economy Lives
+> Status: The economic event ledger and revenue split models are settled under `R-ECON-*`; the creator payout pipeline and user-facing withdrawal interfaces represent an admitted platform direction rather than an active Desktop "Financial Center" or public App API.
 
-| Surface | Authority |
-| --- | --- |
-| Realm Economy | `R-ECON-*` — append-only economy event stream |
-| World Creator Economy | Bridge between platform economy and creator-side concepts |
-| Creator Revenue Policy | Maps share plans, settlement rules |
-| Desktop Wallet | Projects this into the creator's UI |
+## Tiered Architectural Model
 
-The creator economy is canonical at the Realm layer; the creator-
-side conceptual surface is where share plans and revenue policies
-attach.
+| Layer | Domain | Responsibility |
+| --- | --- | --- |
+| **Realm Economic Core (`R-ECON-*`)** | Immutable Append-Only Ledger | Records verifiable asset purchases, royalty allocations, and disbursements |
+| **World Creator Agreements** | Rights and Licensing Framework | Governs IP ownership and downstream distribution terms for virtual items |
+| **Revenue Policies & Split Plans** | Commercial Distribution Rules | Encapsulates mathematical revenue partitions among collaborating creators |
+| **Creator Desktop Workspace (Planned)** | Creator Dashboard & Accounting (Platform Direction) | Conceptual design for visualizing sales analytics, historical settlements, and withdrawal flows |
 
-## Append-Only Revenue Events
+## Append-Only Financial Ledger Events
 
-Every revenue event is typed and appended.
+Financial operations emit structured events into immutable ledgers:
 
-| Event kind | Purpose |
-| --- | --- |
-| Purchase | Buyer purchases admitted ownable assets |
-| Settlement | Periodic settlement per share plan |
-| Withdrawal | Creator withdraws settled funds |
-| Correction | Supersedes a prior event under admitted correction flow |
+- **Purchase Events**: Emitted when users purchase digital assets, passes, or virtual goods.
+- **Settlement Events**: Dispatched when the engine executes scheduled split schemes, crediting individual creator balances.
+- **Withdrawal Events**: Emitted when a creator requests payout of settled funds under admitted withdrawal flows.
+- **Correction Events**: Used when refunds or dispute adjustments occur, replacing older entries by appending explicit offsets rather than mutating past records.
 
-Append-only is the audit foundation. Every revenue event has
-provenance, timestamp, and typed shape. Settlement events
-reference the admitted revenue-source events they settle.
+## Multi-Collaborator Revenue Splits
 
-## Share Plans
+Supports multi-party revenue distribution for collaborative projects:
+- **Explicit Split Plans**: Bound to unique Plan IDs with designated effective timestamp windows.
+- **Automated Apportionment**: Allocates proceeds according to verified percentages (e.g., 70% Lead Author, 20% Modeler, 10% Composer).
+- **Forward-Only Versioning**: Updating a split scheme applies exclusively to transactions occurring after the effective timestamp; historical settlements remain untampered.
 
-A share plan declares how revenue is split among creators and
-contributors.
+## Planned Workflow: Creator Payout and Settlement (Platform Direction)
 
-| Property | Value |
-| --- | --- |
-| Plan id | Stable identity |
-| Owner | The creator who authored the plan |
-| Splits | Typed share allocations |
-| Effective dates | When this plan applies |
-| Versioning | New share plans supersede older ones (no silent overwrite) |
+1. **Review Available Balance**: Creator balances are projected dynamically from settled Realm economic ledger events.
+2. **Disbursement Request**: The creator submits a withdrawal request through platform-supervised payout channels once available.
+3. **Escrow & Verification**: Realm logs the withdrawal intent as a typed `Withdrawal` event, subject to platform compliance checks.
+4. **End-to-End Auditability**: Every payout record traces back to the granular user purchase events that generated the proceeds.
 
-A creator who wants to change their share plan publishes a new
-plan; the old one is superseded but not deleted.
+## Related Documentation
 
-## Bridge Mappings
-
-`world-creator-economy.md` and `creator-revenue-policy.md` are
-**bridge** files. They map external open-spec anchors (the
-broader concepts of "creator economy" or "revenue policy") onto
-local Realm economy contracts.
-
-| Bridge | Purpose |
-| --- | --- |
-| World Creator Economy | Domain bridge for creator-economy concepts |
-| Creator Revenue Policy | Domain bridge for revenue policies |
-
-The bridge files make external mental models reachable; the
-canonical authority remains in the kernel `R-ECON-*` rules.
-
-## Reader Scenario: A Creator Receives Revenue
-
-An admitted revenue source is attributed to a creator's world and
-settled under the active share plan.
-
-1. **Source attribution.** Realm resolves the typed source origin.
-2. **Settlement event triggered.** Per the active share plan,
-   settlement is scheduled or computed.
-3. **Settlement event commits.** Splits are recorded; each
-   creator's wallet projection updates.
-4. **Audit lineage.** Source attribution, settlement event, and
-   each creator's settlement record remain linked.
-5. **Creator views.** Through Desktop Wallet, the creator sees the
-   resulting settlement and its source attribution.
-
-The full chain is reconstructible. A creator who wants to know
-"why did I receive this much" can walk back through the events.
-
-## Reader Scenario: A Withdrawal
-
-A creator wants to withdraw settled funds.
-
-1. **Withdrawal request.** Creator submits withdrawal under
-   admitted withdrawal flow.
-2. **Realm validates.** Sufficient balance, admitted withdrawal
-   destination, etc.
-3. **Withdrawal event.** Typed event committed; balance
-   decreases by withdrawn amount.
-4. **External settlement.** Outside Realm, the funds move to the
-   creator's external account under admitted withdrawal mechanism.
-
-The withdrawal event is canonical Realm truth. The mechanism that
-moves funds externally is admitted but separate from Realm core
-truth.
-
-## Reader Scenario: A Share Plan Update
-
-A creator updates their share plan to add a new contributor.
-
-1. **Compose new plan.** Creator composes a new share plan with
-   the additional contributor.
-2. **Publish.** Realm admits the new plan; old plan is
-   superseded with effective-date semantics.
-3. **Future settlements use new plan.** From the new plan's
-   effective date onward, settlements split per the new plan.
-4. **Past settlements unchanged.** Already-settled events use
-   their original share plan; they are not retroactively
-   rewritten.
-5. **Audit lineage.** Old plan + new plan + supersession event
-   all in the canonical record.
-
-A share plan is canonical; updating it preserves history.
-
-## What Creator Economy Does Not Do
-
-| Concern | Why not |
-| --- | --- |
-| AI compute cost accounting | Separate runtime concern, not Realm core truth |
-| World-internal currencies | World creators may run their own internal currencies; those are not platform canonical |
-| Subscription processor internals | Lives in admitted subscription surface, not creator economy directly |
+- [Creator Payouts & Settlement Flows](/realm/creator-payouts)
+- [Asset Attachment & Binding Specification](/realm/asset-and-binding)
 
 ## Source Basis
 
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

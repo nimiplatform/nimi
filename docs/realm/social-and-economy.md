@@ -1,145 +1,50 @@
-# Social And Economy
+# Universal Social Graph and Economic Systems
 
-Two of Realm's jobs are remembering who relates to whom and
-tracking how value moves. Social covers the first, Economy the
-second. Once either one records something, the record is never
-rewritten — both only ever append.
+Within Realm's platform governance, two foundational invariants are maintained: **how participants establish trusted relationships** (Social Graph), and **how digital value flows securely** (Economic System). Both systems operate on append-only event ledgers, guaranteeing transparent, verifiable records.
 
-## Social
+## Universal Social Graph
 
-Friendship in Realm is one record per pair of people. Alice and
-Bob share exactly one friendship, no matter how many worlds or
-apps they both use.
+In the Nimi world network, user friendships are universal and indivisible across applications and realms:
 
-| Property | Value |
-| --- | --- |
-| Storage | Realm `R-SOC-*` |
-| Shape | Ordered-pair uniqueness graph |
-| Cross-world visibility | yes — same friendship in every world |
-| Cross-app visibility | yes — same friendship in every Nimi app |
-| Mutation | Through admitted Realm contracts |
+| Dimension | Specification | Architectural Value |
+| --- | --- | --- |
+| **Storage Engine** | Realm Social Graph (`R-SOC-*`) | Globally distributed storage with instant state replication |
+| **Topology** | Graph of unique ordered pairs | Exactly one authoritative relationship exists between any two users |
+| **Cross-World Continuity** | Yes; accessible across every world | No need to re-add friends when traveling to new worlds |
+| **Cross-App Shared State** | Yes; visible across all Nimi Apps | Prevents fragmented, isolated contact directories |
 
-### What Social Does
+### Social Subsystem Responsibilities
+- **Relationship & Gating**: Manages friend requests, approvals, blocks, and follows. Private direct messaging typically checks social graph preconditions.
+- **Decoupled from Messaging**: The social subsystem governs "who is connected with whom"; conversational message streams are managed independently by Realm Chat.
 
-- Tracks friendship and admission graph.
-- Gates human-chat preconditions — chat between two users may
-  require an admitted social state.
-- Does **not** own the chat thread itself; chat is owned by Realm
-  Chat.
+## Platform Economic Systems
 
-### Why Friendship Is Canonical
+Platform economics follow a strict **append-only bookkeeping model**:
 
-If friendship were per-app or per-world, two apps could disagree
-about whether two users are friends. Apps would need to sync;
-syncs would conflict; user experience would fragment.
+| Dimension | Specification | Architectural Rationale |
+| --- | --- | --- |
+| **Storage Engine** | Realm Economic Ledger (`R-ECON-*`) | Immutable distributed financial recordkeeping |
+| **Event Typing** | Explicit typed entries (Purchase, Settlement, Withdrawal) | Guarantees transparent provenance for all value flows |
+| **Correction Mechanism** | Ledger corrections occur exclusively via explicit Correction entries | Prohibits destructive row mutations, ensuring audit integrity |
+| **Decoupling Compute & Assets** | Local inference compute costs remain decoupled from Realm assets | Local hardware resource consumption is isolated from virtual assets |
 
-Canonical friendship is one truth across the platform. Apps read;
-Realm is authoritative.
+## Typical Scenarios
 
-## Economy
+### 1. Cross-World Social Continuity
+1. **Connect**: Alice and Bob connect in a fantasy realm; Realm registers the friendship record.
+2. **Travel**: When Alice travels to a sci-fi space station world, Bob remains visible in her contact rail for immediate messaging.
+3. **Layered Local Rules**: Worlds can layer local context rules (e.g., factional boundaries) on top of the underlying universal connection.
 
-The canonical platform economy is **append-only**: every currency
-transaction, revenue attribution, and settlement event has explicit
-typed semantics.
+### 2. Automated Creator Royalties
+1. **Asset Purchase**: A user purchases a world prop, emitting a structured `Purchase` event.
+2. **Settlement Allocation**: Realm references the registered revenue split scheme to partition proceeds, committing a `Settlement` event.
+3. **Wallet Derivation**: Creator wallet balances update automatically from the authoritative ledger, providing verifiable audit trails.
 
-| Property | Value |
-| --- | --- |
-| Storage | Realm `R-ECON-*` |
-| Shape | Append-only event stream |
-| Event types | Explicit; admitted at kernel level |
-| Settlement | Typed events |
-| AI compute cost | Not modeled as Realm core truth (separate concern) |
+## Related Documentation
 
-### What Economy Owns
-
-- Currency transaction history.
-- Revenue attribution and splits for creator content.
-- Settlement events.
-- Wallet balance projections.
-
-### What Economy Does Not Own
-
-- AI compute cost (separate runtime concern).
-- World-internal currencies (a world may have its own ticket
-  stubs; those are not platform canonical economy).
-- Subscription / payment processor internals (those live in their
-  own admitted surfaces).
-
-### Append-Only Posture
-
-The economy stream is append-only at the canonical layer. A
-mistaken settlement event does not get deleted; it gets superseded
-by a correction event. The full chain is reconstructible.
-
-This matters because economic correctness is auditable. A creator
-who wants to know exactly how their revenue settled can read the
-event stream end-to-end without ambiguity.
-
-## Reader Scenario: A Friendship That Crosses Worlds
-
-Alice and Bob become friends in World A, where they were both
-visiting.
-
-1. **Friend request.** Alice sends; Realm admits the request.
-2. **Bob accepts.** Realm admits; ordered-pair record created
-   in `R-SOC-*`.
-3. **Visible everywhere.** When Alice visits World B, the
-   friendship with Bob is visible. World B's local social rules
-   may apply (perhaps "friend" grants different privileges in
-   World B), but the canonical friendship is the same one
-   record.
-4. **Cross-app.** Any Nimi app reading social state sees the
-   same friendship.
-
-A new app launching does not need to re-admit the friendship.
-
-## Reader Scenario: A Revenue Settlement
-
-An admitted revenue source is attributed to a creator's content.
-
-1. **Source attribution.** Realm resolves the typed source origin.
-2. **Settlement event.** Per the active share plan, a typed
-   settlement event is committed.
-3. **Wallet projection updates.** The creator's resulting balance
-   is derived from the canonical ledger.
-4. **Audit lineage.** Source origin, settlement event, and share
-   plan remain linked.
-5. **Withdrawal.** The creator can withdraw through the admitted
-   withdrawal flow.
-
-The revenue chain is reconstructible end-to-end. Nothing is silent.
-
-## Reader Scenario: A World With Internal Currency
-
-A creator's world uses ticket stubs for in-world transactions.
-
-1. **In-world tickets.** The creator's world rules describe
-   ticket stub semantics — local economy, local rules.
-2. **Not Realm canonical.** Ticket stubs are world-local; they
-   do not appear in `R-ECON-*` event stream.
-3. **Conversion if admitted.** If the world admits a conversion
-   event between ticket stubs and platform currency, that
-   conversion appears as a typed canonical economy event.
-4. **Cross-world standing unchanged.** Tickets in World A do
-   not affect Bob's canonical wallet balance unless an admitted
-   conversion event records it.
-
-The split is intentional. Worlds get internal economic creativity;
-the platform-canonical economy stays one auditable truth.
-
-## How Social And Economy Connect
-
-Some events involve both:
-
-| Event | Touches |
-| --- | --- |
-| Creator revenue settlement | Economy events may reference an admitted source owner |
-| Becoming friends | Social event; may unlock social-gated economic features |
-
-When an event touches both, the platform does not collapse them
-into one record. Each surface gets its typed event; the full
-chain links them through audit lineage.
+- [Creator Economy and Royalties](/realm/creator-economy)
+- [Realm Realtime Chat Architecture](/realm/chat)
 
 ## Source Basis
 
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

@@ -1,78 +1,49 @@
 # Avatar
 
-Avatar covers how an Agent gets shown — in a window, as a virtual
-character, in an animation. The rule is simple: presentation can vary,
-but the Agent itself doesn't become a different Agent just because
-rendering changed.
+Nimi Avatar governs the multimodal presentation and embodied interaction of AI agents—whether in desktop transparent windows, virtual stages, or interactive viewports. The guiding architectural principle is simple: **presentation may adapt across carriers, but the Agent itself remains unique and continuous**, never fragmenting into an isolated identity merely because a renderer or host changes.
 
-## What An Avatar Actually Is
+## What an Avatar Actually Is
 
-An avatar isn't just an image. It's the whole presentation layer for an
-AI participant: the visual body, the motion, the events, what each
-carrier surface is willing to display, and the rendering branches of
-each backend.
+An avatar is much more than a static sprite or 3D mesh. It is the comprehensive **presentation and interaction layer** for an AI participant: encompassing visual meshes, facial/body motions, physical events, carrier capability negotiation, and backend rendering pipelines across graphical backends (Live2D, VRM, etc.).
 
-Presentation has to follow the agent's truth, not make up its own. If
-an avatar stops moving because the renderer hit a bug, that's a
-presentation problem — the agent itself didn't go offline. If a carrier
-shows a different look from what the agent's profile says, that's a
-renderer mismatch — the agent didn't change.
+Presentation must faithfully mirror underlying agent state rather than synthesizing parallel truths:
+- If an avatar animation freezes due to a renderer glitch, that is an isolated presentation defect—the underlying agent is not offline;
+- If a carrier displays an optimized fallback model on low-power hardware, that is a local rendering adaptation—the agent's personality and cognition remain unchanged.
 
-## What Avatar Owns And What It Does Not Own
+## Division of Responsibilities
 
-Avatar owns:
+**Avatar owns:**
+- Projecting abstract agent embodiment cues (motions, expressions, gaze targets) onto a concrete carrier surface;
+- Negotiating whether a carrier can render a given visual model and determining the appropriate fallback form;
+- Managing shell-specific rendering branches across desktop and platform environments.
 
-- how an agent's embodiment is presented onto a carrier;
-- whether a carrier can display that embodiment, and in what shape;
-- the shell-specific rendering branches (Desktop avatars and other
-  shells each have their own rules).
+**Avatar does not own:**
+- Character persistent identity (governed by Realm) or LocalAgent execution identity (managed by Runtime lifecycles);
+- An Agent's long-term memory (maintained by Cognition; Runtime tracks active session state);
+- Social graphs and relationship networks within virtual worlds (owned by Realm);
+- Dialogue inference generation and cognitive planning (orchestrated by Runtime).
 
-Avatar doesn't own:
+This decoupling is essential: if the presentation layer were to arbitrarily determine "who the agent is" or "what it remembers," it would conflict with platform sources of truth and compromise cross-platform continuity.
 
-- Character identity (Realm keeps durable identity) or LocalAgent
-  execution identity (Runtime materializes the agent and runs its
-  lifecycle);
-- LocalAgent long-term memory (Cognition keeps long-term Memory;
-  Runtime keeps its own runtime state);
-- the world's social relationships (Realm keeps those);
-- generation and execution (Runtime does that).
+## Typical Scenario: A Carrier Cannot Render Full Embodiment Capabilities
 
-This split matters. An Avatar surface that started deciding who an
-agent is, or what it remembers, would stop being a presentation layer
-and start competing with the parts of the platform those facts belong
-to.
+An agent's embodiment definition contains complex skeletal animations or particle physics that the target device cannot sustain:
 
-## Reader Scenario: An Embodiment That A Carrier Cannot Display
+1. **Capability negotiation**: The carrier evaluates asset requirements against visual acceptance contracts.
+2. **No silent half-renders**: The carrier avoids displaying broken meshes or corrupt blendshapes. It triggers governed fallback: stepping down to an admitted alternative presentation (such as a lightweight 2D sprite) or returning a typed incompatibility error.
+3. **Preserving underlying authority**: Character identity in Realm and cognitive state in Runtime remain untouched by carrier adaptations.
 
-Suppose an agent has an embodiment definition that includes motion
-behavior the current carrier cannot render. Under the avatar
-contracts:
+Presentation adjustments stay encapsulated within Avatar; the Agent remains the Agent.
 
-1. The carrier visual acceptance contract decides whether the
-   embodiment is admitted on this carrier.
-2. If the embodiment is not fully admissible, the carrier does not
-   silently render a half-version. The contract decides what happens
-   (fall back to an admitted projection, refuse, or signal a typed
-   incompatibility).
-3. The Character and LocalAgent truth in Realm and Runtime is unchanged
-   regardless of what the carrier does.
+## Typical Scenario: Why Avatar is Decoupled from Runtime
 
-The presentation problem stays in Avatar. The agent stays the agent.
+Why is presentation an autonomous architectural domain rather than an internal Runtime module? There are three primary reasons:
 
-## Reader Scenario: Why Avatar Is Separate From Runtime
+- **Carrier diversity**: The same embodiment must project across diverse host environments (floating desktop windows, web viewports, lightweight overlays);
+- **Independent visual acceptance**: Graphics rendering involves distinct metrics (framerate budgets, GPU shaders, memory thresholds, texture formats);
+- **Isolated debugging and replay**: Rendering bugs can be inspected, profiled, and replayed as pure graphics pipeline issues without dragging in complex dialogue session states.
 
-Suppose someone asks why presentation is its own authority instead of
-a runtime feature. The reason is that presentation:
-
-- has to be projected differently across carriers (Desktop's avatar,
-  potentially other carriers);
-- has its own visual acceptance posture;
-- can be debugged or replayed as a presentation problem rather than as
-  an execution problem.
-
-If presentation lived inside Runtime, those concerns would crowd
-Runtime's execution semantics. Splitting them keeps each domain's
-contracts focused.
+Separating presentation from Runtime keeps each domain's contracts focused, testable, and robust.
 
 ## Source Basis
 

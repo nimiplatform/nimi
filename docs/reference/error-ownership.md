@@ -1,69 +1,38 @@
-# Error Ownership
+# Error Ownership and Layered Fault Attribution
 
-Reference table mapping each layer of the Nimi stack to its error
-contract, rule prefix, and authoritative source.
+The Nimi architecture organizes errors through standardized code prefixes and mapping layers, attributing faults to specific subsystems while providing clear remediation paths.
 
-## Per-Layer Ownership
+## Error Prefixes Across Architectural Layers
 
-| Layer | Owner contract | Rule prefix | What it owns |
+| Layer | Governing Authority | Prefix | Scope & Responsibility |
 | --- | --- | --- | --- |
-| Platform protocol | `.nimi/spec/platform/core-protocol.authority.yaml` | `P-PROTO-*` | Cross-world protocol error codes, action hints, audit event taxonomy |
-| Runtime | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-ERR-*` | Reason codes, error classification, retry vs contract-failure distinction |
-| Runtime streaming | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-STREAM-*` | Terminal frames, stream-level failure semantics |
-| SDK | `.nimi/spec/sdks/client-core.authority.yaml` | `S-ERROR-*` | App-facing error projection, typed error shapes |
-| Desktop | `.nimi/spec/desktop/shell-ui.authority.yaml` | `rule.nimi.desktop.shell-ui.*` | UI error boundary, retry policy, user-facing error rendering |
+| **Platform Protocol** | `.nimi/spec/platform/core-protocol.authority.yaml` | `P-PROTO-*` | Cross-world primitive violations, world gating, spacetime continuity |
+| **Local Runtime** | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-ERR-*` | Inference timeouts, driver failures, VRAM exhaustion, invalid tokens |
+| **Runtime Streaming** | `.nimi/spec/runtime/rpc-foundations.authority.yaml` | `K-STREAM-*` | Delta parsing errors, buffer overflows, premature stream termination |
+| **SDK Client** | `.nimi/spec/sdks/client-core.authority.yaml` | `S-ERROR-*` | Application argument validation, transport disconnections, state drift |
+| **Desktop Shell** | `.nimi/spec/desktop/shell-ui.authority.yaml` | `rule.nimi.desktop.shell-ui.*` | UI error boundary catches, retry policies, user notifications |
 
-## Translation Tables
+## Error Classifications and Remediation Strategies
 
-The Platform-to-Runtime mapping is the canonical translation point
-between protocol-level errors and runtime reason codes:
-`config/platform-error-code-mapping.yaml`.
-
-Per-layer enumerations live in their own tables:
-
-| Table | Layer |
-| --- | --- |
-| `config/platform-protocol-error-codes.yaml` | Platform |
-| `proto/runtime/v1/common.proto` | Runtime |
-| `.nimi/spec/runtime/rpc-foundations.authority.yaml` | Runtime cross-layer |
-| `config/sdks-error-codes.yaml` | SDK |
-| `.nimi/spec/desktop/shell-runtime.authority.yaml` | Desktop |
-
-## Distinguishing Transport Recovery From Contract Failure
-
-| Failure class | Recoverable by | Authority |
+| Classification | Manifestation | Recommended Remediation Strategy |
 | --- | --- | --- |
-| Transport error (network, timeout, transient 5xx) | Retry, auth refresh | Transport / SDK transport contract |
-| Auth refresh required | Auth refresh, token rotation | Runtime auth + SDK transport |
-| Contract failure (typed shape, MIME, schema, missing field) | Not recoverable by retry; fails closed | Owner contract |
-| Streaming terminal failure | Cannot rescue mid-stream; emit terminal failure frame | Runtime streaming |
+| **Transient Transport Errors** | Network timeouts, socket resets, HTTP 502/503 | Retries follow operation idempotency contracts: safe read or idempotent calls may use exponential backoff; operations with unconfirmed external side effects require inspecting the original job/call status rather than blind resubmission |
+| **Credential Expiry** | Expired tokens, session refreshes | Runtime refreshes credentials in the background; resubmission of pending requests must respect operation idempotency and unconfirmed side-effect boundaries |
+| **Contract / Validation Errors** | Missing fields, malformed MIME types, schema drift | Fail closed; inspect structured reason code to fix caller arguments |
+| **Streaming Interruption** | Network drop mid-generation, user stop action | Clear transient incomplete tokens while preserving committed turn history |
 
-Retry and auth refresh are transport mechanisms only. They must never
-silently rescue a decode, content-type, schema, or contract failure.
+## End-to-End Error Propagation Flow
 
-## Cross-Layer Error Walk
+When an upstream model provider experiences a transient outage:
 
-A single failure typically crosses multiple layers. A worked example:
-a streaming generation request whose upstream provider fails mid-response
-lands as:
-
-| Layer | Action |
-| --- | --- |
-| Provider | Returns transient error frame |
-| Runtime provider-health | Classifies under `K-ERR-*` family |
-| Runtime streaming | Decides recover-vs-terminate; if terminate, emits typed terminal failure frame |
-| Runtime audit | Records failure with trace lineage |
-| SDK error projection | Projects typed app-facing error per `S-ERROR-*` |
-| Desktop UI | Surfaces under `D-*` error boundary |
-| User | Sees governed failure, never a fabricated success |
+1. **Provider Failure**: Remote model API returns an HTTP 500 error.
+2. **Runtime Classification**: Runtime captures the event, classifies it under reason code `AI_PROVIDER_INTERNAL` (governed by runtime rule `K-ERR-*`), and logs local audit traces with a Trace ID.
+3. **SDK Normalization**: The SDK encapsulates the exception into a structured `NimiError` (with `reasonCode: 'AI_PROVIDER_INTERNAL'` and action hint `retry_with_backoff_or_switch_provider`).
+4. **Desktop UI Rendering**: The UI catches the error at its component boundary, rendering a contextual prompt ("Model provider encountered an internal error; please try again later or switch provider") with actionable retry controls.
 
 ## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-error-codes.yaml)
-- [`config/platform-error-code-mapping.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-error-code-mapping.yaml)
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`config/sdks-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/sdks-error-codes.yaml)
 - [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)
-- [`.nimi/spec/desktop/shell-runtime.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-runtime.authority.yaml)

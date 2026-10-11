@@ -1,26 +1,26 @@
-# Realm Consumer Projection
+# Realm State Projection Mechanics
 
-When a Nimi app reads Realm data, what it receives through the SDK is a typed
-local view of that data. That view is not a second source of Realm truth, and
-it is not a local copy of Realm's domain model.
+In Nimi's distributed architecture, client applications consume data from Realm through structured, **read-only State Projections** provided by the SDK. Projections serve UI presentation layers across Desktop, Web, and mobile clients, while authoritative data invariants and persistence remain governed by Realm.
 
-Apps, Runtime, Desktop, and Web all read Realm through the SDK's typed
-clients. Local state may cache or display what Realm returned, but it can
-never become the truth itself.
+## Consumer Layering and Invariants
 
-## Consumer Rules
+| Layer | Responsibility | Architectural Rationale |
+| --- | --- | --- |
+| **SDK Generated Core** | Compiled directly from external Realm OpenAPI specifications | Guarantees protocol synchronization between client and server |
+| **SDK Facade** | Manages credentials, retry policies, and structured error handling | Simplifies application development while shielding transport nuances |
+| **Application & Desktop Views** | Renders state projections, managing ephemeral UI caches | Caches optimize rendering responsiveness; authoritative state lives upstream |
 
-| Concern | Boundary |
-| --- | --- |
-| Generated API input | Comes from the configured external Realm OpenAPI source |
-| SDK facade | May wrap generated operations with typed fail-closed behavior |
-| Runtime/Desktop projection | May present Realm output, but cannot synthesize Realm success |
-| App wrappers | May adapt SDK output for product UI, but cannot redefine Realm semantics |
+## Protocol Evolution and Anti-Drift Strategy
 
-When Realm API drift appears, regenerate the SDK core from the configured Realm
-input and update consumer contracts/tests. Do not patch drift by copying Realm
-spec text into this repository or by freezing handwritten DTOs.
+When Realm APIs evolve across releases:
+- **Schema-Driven Regeneration**: Re-compile SDK core models from updated OpenAPI specifications to maintain strict contract compliance.
+- **Fail-Closed Diagnostics**: If schema mismatch or API drift is detected, SDK facades emit structured error reasons, guiding developers to upgrade dependencies rather than risking silent client corruption.
+
+## Related Documentation
+
+- [Unified Glossary](/reference/glossary)
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

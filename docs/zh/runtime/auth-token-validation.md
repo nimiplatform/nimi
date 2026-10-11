@@ -1,103 +1,53 @@
-# Token 验证
+# 身份令牌（Token）校验与授权规范
 
-Bearer JWT 验证仅适用于准入此认证路径的操作，不能证明受保护 Local App 来源。正式 Nimi App 使用验证过的 Host 会话，不接收 Realm bearer；见[账号与会话](/zh/runtime/account-and-session)。
+在 Nimi 的网络边界上，公开 API 与远程交互采用基于业界标准的 JWT 令牌校验机制。受保护的桌面端应用则使用经过验证的本地宿主会话与 Runtime 通信，详情请参阅[账号与会话](/zh/runtime/account-and-session)。
 
-## 承载令牌输入模型
+## 承载令牌（Bearer Token）传输规范
 
-| 规则 | 值 |
-| --- | --- |
-| 头部键 | gRPC 元数据 `authorization`（HTTP `Authorization` 在此处标准化） |
-| 令牌格式 | 仅 `Bearer <jwt>` |
-| 无头部 | 匿名（不是错误） |
-| 头部存在但格式错误 | `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`（不降级为匿名） |
-
-格式错误的令牌**绝不会**被视为匿名。运行时会以类型化的原因拒绝请求，而不会默默地丢弃身份。
-
-## 必需声明
-
-领域 JWT 最小强制声明：
-
-| 声明 | 目的 |
-| --- | --- |
-| `iss` | 发行者 |
-| `aud` | 受众 |
-| `sub` | 主体 |
-| `exp` | 过期时间 |
-| `iat` | 发行时间 |
-| `nbf`（当存在时） | 必须在时间窗口验证中得到尊重 |
-
-## 算法和头部约束
-
-| 规则 | 值 |
-| --- | --- |
-| 允许的算法 | 仅 `RS256`，密钥形状遵循生成的 Realm JWKS 契约 |
-| `alg=none` | 拒绝 |
-| 缺少 `kid` | 拒绝 |
-
-`alg=none` 是一个已知的 JWT 漏洞向量。运行时无条件拒绝。
-
-## JWKS 缓存和刷新
-
-| 规则 | 值 |
-| --- | --- |
-| 读取姿态 | 缓存优先；缓存未命中或 `kid` 未命中触发单次刷新 |
-| 刷新失败 | 不得降级为匿名；返回 `UNAUTHENTICATED` |
-| 失败回退 | 短 TTL 窗口可能继续使用最近成功的快照用于已命中的 `kid` |
-| `auth.jwt.jwksUrl` | 运行时验证公钥的唯一许可来源 |
-| `publicKeyPath` | 不是有效的验证来源 |
-| 默认方案 | HTTPS；仅当主机是回环地址 (`localhost` / `127.0.0.0/8` / `::1`) 时允许 HTTP，用于本地开发 |
-
-## 时钟偏移
-
-| 规则 | 值 |
-| --- | --- |
-| 偏移窗口 | 固定 `±60s` |
-| 超出窗口 | 令牌无效；没有软容忍度 |
-
-在偏移窗口内的令牌会被验证。超出窗口则不会。运行时不进行协商。
-
-## 会话撤销检查
-
-签名验证通过后，如果会话域可用，运行时仍会检查会话撤销。
-
-| 规则 | 值 |
-| --- | --- |
-| 已撤销/过期的会话 | `UNAUTHENTICATED` + `SESSION_EXPIRED`；需要重新认证，不可重试 |
-| 无法判断撤销状态 | `UNAVAILABLE` + `AUTH_REVOCATION_UNAVAILABLE`；可重试，不能回退为匿名或有效会话 |
-| 自省端点 | `auth.jwt.revocationUrl` |
-| 自省所需的声明 | `sid` |
-| 缺少配置 (`issuer` / `audience` / `jwksUrl` / `revocationUrl`) | 承载 JWT 路径关闭 |
-
-自省合同是固定的：向 `revocationUrl` 发送 `POST` 请求，JSON 正文包含 `session_id`、`subject_user_id`、`issuer`、`audience`、`issued_at`、`expires_at`。响应正文必须包含 `active: boolean`、`revoked: boolean`，可选 `expires_at`。`revoked=true` 或 `active=false` 都算作已撤销。网络错误、非 2xx 或非法响应返回 `UNAVAILABLE` 与 `AUTH_REVOCATION_UNAVAILABLE`，**不得**降级为匿名或有效会话。
-
-## 认证与授权
-
-这两个阶段是不同的，并按固定顺序执行：
-
-| 阶段 | 问题 | 失败代码 |
+| 规范项目 | 约定规则 | 异常处理说明 |
 | --- | --- | --- |
-| 认证 (AuthN) | “令牌和会话是否有效？” | 无效令牌：`AUTH_TOKEN_INVALID`；会话已撤销/过期：`SESSION_EXPIRED`；撤销状态未知：`AUTH_REVOCATION_UNAVAILABLE`，状态码见上表 |
-| 授权 (AuthZ) | “这个主体被允许这样做吗？它是否拥有它声称要修改的内容？” | `PERMISSION_DENIED` + 类型化的授权原因 |
+| **传输头部** | gRPC 元数据 `authorization` 或 HTTP Header `Authorization` | 格式统一标准化处理 |
+| **令牌格式** | 严格遵循 `Bearer <jwt>` 格式 | 缺少前缀视为格式错误 |
+| **匿名访问** | 允许公开接口在未携带头部时以匿名访客模式执行 | 仅限于公开接口 |
+| **格式错误处理** | 返回 `UNAUTHENTICATED` 并携带 `AUTH_TOKEN_INVALID` 原因代码 | 格式错误的令牌不会被当作匿名用户降级放行 |
 
-混淆这两个阶段是一个常见的错误模式。有效的令牌并不意味着拥有权。缺少令牌并不是授权失败。
+## JWT 必需声明（Claims）
 
-## 授权所有权姿态
+一个合法的 Realm 身份 JWT 必须包含以下核心标准声明：
 
-授权所有权规则管理哪种主体拥有哪种类型的资源。主体类型包括：
+- `iss`（Issuer）：令牌签发方域名（必须与 `auth.jwt.issuer` 一致）；
+- `aud`（Audience）：目标受众服务（令牌 aud 必须等于配置的 `auth.jwt.audience`，或其 audience 数组包含该配置值）；
+- `sub`（Subject）：持有该凭证的用户或主体的唯一标识；
+- `exp`（Expiration Time）：令牌到期时间（在固定的 `±60 秒` 时钟偏移窗口内校验）；
+- `iat`（Issued At）：令牌签发时间戳；
+- `nbf`（Not Before）：生效时间（若存在则执行时间窗口校验）；
+- `sid`（Session ID）：会话标识符，在验签通过后用于会话撤销状态校验。
 
-| 主体类型 | 来源 |
-| --- | --- |
-| 第一方 Nimi 用户 | `RuntimeAccountService` |
-| 准入的第一方应用 | 第一方范围绑定 |
-| 本地第一方机器行为者 | 运行时内部权限 |
-| 外部主体 (ExternalPrincipal) | `K-DELEG-*` 委托提供者网关 |
+## 签名算法与密钥发现（JWKS）
 
-每种主体类型都有准入的授权域。跨域访问关闭；外部主体不能直接修改第一方账户拥有的资源。建议的修改从外部主体通过委托能力网关和输出防火墙路由。
+- **算法约束**：严格限定为 `RS256` 算法，禁止其他未声明算法、对称密钥签名、`alg=none` 或未携带 `kid` 标头的令牌；
+- **公钥发现与缓存**：Runtime 定期从配置的官方 `auth.jwt.jwksUrl` 端点拉取并缓存验签公钥集。当遇到未识别的 `kid` 时，触发一次安全刷新；
+- **时钟偏移容忍**：对 `exp` 与 `nbf` 应用固定的 `±60 秒` 容忍窗口，窗口之外不提供弹性容差。
 
-认证通过不代表受保护 App 来源或操作授权。Bearer 被拒绝后，不能回退为匿名执行，也不能绕过原生 Host 边界。
+## 会话撤销检查与失败原因分类
 
-## 来源依据
+Bearer 认证的生效依赖 `auth.jwt.revocationUrl`、`auth.jwt.issuer`、`auth.jwt.audience` 与 `auth.jwt.jwksUrl` 作为一个原子配置组完整存在。
+
+- **撤销状态校验**：JWT 签名与声明校验通过后，Runtime 向配置的 `auth.jwt.revocationUrl` 发送包含 `session_id`、`subject_user_id`、`issuer`、`audience`、`issued_at`、`expires_at` 的 JSON POST 请求。撤销端点必须返回 HTTP 200 及包含 `active: boolean` 和 `revoked: boolean` 的 JSON。若 `revoked: true` 或 `active: false`，则判定会话已撤销。
+- **认证失败原因码分类**：
+  - 格式错误、签名无效、缺少必需声明、未声明算法或时间窗口越界，返回 `UNAUTHENTICATED` 并携带原因码 `AUTH_TOKEN_INVALID`；
+  - 已确认撤销或已过期的会话，返回 `UNAUTHENTICATED` 并携带原因码 `SESSION_EXPIRED`；
+  - 撤销检查无法确定（网络故障、非 2xx 响应、非 JSON 载荷等），返回 `UNAVAILABLE` 并携带原因码 `AUTH_REVOCATION_UNAVAILABLE`（提示重试）；绝不降级为活跃或匿名状态放行。
+
+## 认证（AuthN）与授权（AuthZ）的清晰分离
+
+- **认证（Authentication）**：“你是谁？令牌是否真实有效、会话是否存活？”——校验签名完整性、声明约束、有效期及会话撤销状态；
+- **授权（Authorization）**：“你是否有权操作该资源？”——在认证通过后，根据调用方主体身份与其声明的权限范围判定是否允许执行操作。
+
+二者分工明确：认证成功仅证明调用方身份可信，具体业务操作仍需通过严格的权限范围校验。
+
+## Source Basis
 
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
-- [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
+- [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)

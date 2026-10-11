@@ -1,84 +1,47 @@
-# 世界字段
+# 数字世界核心字段与规范（World Fields）
 
-世界（World）概念的字段级与契约级参考。
+本文档提供 Nimi 数字世界（World）在字段层级与契约层级的核心数据结构参考。
 
-## 世界是什么
+## 数字世界的核心属性定义
 
-| 属性 | 说明 |
+| 属性定义 | 规范说明 |
 | --- | --- |
-| 身份 | 唯一的世界 id；可排序；不复用 |
-| 创建 | 由已准入的世界创建者创建 |
-| 持久性 | 长期存在；世界状态跨越会话边界存续；世界历史只追加 |
-| 可组合性 | 通过六大平台基础协议与其他世界互操作 |
-| 权威 | 规范化的世界真相、世界状态、世界历史归 Realm |
+| **世界唯一标识（worldId）** | 全网唯一、不可篡改的字符串标识，具备时间排序特征 |
+| **创作者归属（creatorId）** | 创建该世界的用户或团队账户 ID，拥有该世界的规则管理与收益权 |
+| **持久性特征** | 世界的状态与历史独立于具体用户的在线状态，跨越会话边界持续存在 |
+| **多协议互联** | 原生支持平台六大基础协议（Timeflow, Social, Economy, Transit, Context, Presence） |
+| **单一可信源** | 规范的世界规则、世界当前状态与历史日志统一由 Realm 持久化存储 |
 
-世界不是关卡、聊天室、剧本，也不是一次 App 会话。即使没人在场，世界仍在演化。
+## 世界架构的三大核心数据支柱
 
-## Realm 中三个相关概念
-
-| 概念 | 回答 | 归属契约 |
+| 核心支柱 | 字段含义 | 对应数据契约 |
 | --- | --- | --- |
-| Truth | 在这个世界里规范上为真的事实，与写入时间无关 | Realm Truth owner（`R-TRUTH-*`） |
-| World State | 世界此刻的样子 | Realm World State owner（`R-WSTATE-*`） |
-| World History | 世界如何到达当前状态 | Realm World History owner（`R-WHIST-*`） |
+| **权威设定（Truth）** | 该世界的权威设定、基础规则与核心实体（可通过授权的 CorePatch 或 WorldRelease 版本演进） | Realm 规则字典（`R-TRUTH-*`） |
+| **当前状态（World State）** | 世界在当前时刻的实体、属性与空间快照 | Realm 状态树（`R-WSTATE-*`） |
+| **历史账本（World History）** | 世界从诞生至今经历的仅追加事件流 | Realm 历史日志（`R-WHIST-*`） |
 
-三者不可互换。把它们混在一起的面会静默丢信息。
+## OASIS 系统主世界规范
 
-## 由 Realm 持有的相邻世界真相面
+- **枢纽定位**：OASIS 是全网唯一官方主世界，作为所有数字世界之间的通用中转枢纽；
+- **平台公有**：不属于任何单一商业创作者，由平台公有治理；
+- **默认安全归位点**：在跨世界漫游遇阻或目标世界离线时，作为参与者的默认安全避风港。
 
-| 面 | 契约 | 规则前缀 |
-| --- | --- | --- |
-| 聊天 | Realm Chat owner | `R-CHAT-*` |
-| 社交 | Realm Social owner | `R-SOC-*` |
-| 经济 | Realm Economy owner | `R-ECON-*` |
-| 资产 | Realm Asset owner | `R-ASSET-*` |
-| 通行 | Realm Transit owner | `R-TRANSIT-*` |
-| 绑定 | Realm Binding owner | `R-BIND-*` |
-| 资源 | Realm Resource owner | `R-RSRC-*` |
-| Bundle | Realm Bundle owner | `R-BNDL-*` |
+## 应用与世界连接关系（App-World Binding）
 
-## OASIS
-
-| 属性 | 值 |
+| 绑定状态 | 业务含义 |
 | --- | --- |
-| 状态 | 系统唯一主世界；正式归在规范化真相中 |
-| 归属 | 不可由任何创建者持有 |
-| 替换性 | 不可由 App 约定替代 |
-| 角色 | 默认返回点；世界间唯一通行枢纽 |
+| `(new)` | 世界已建立，尚未绑定任何活跃的应用控制器 |
+| `active` | 某个 Extension App 已成功绑定并拥有世界状态的写入权限 |
+| `suspended` | 绑定关系临时挂起，暂不允许写入新状态 |
+| `revoked` | 绑定关系已解除，世界重新开放供其他应用申请绑定 |
 
-## App-世界绑定
+> **单活跃写入者约束**：为了保证世界演进的时序一致性，同一世界在同一时刻仅允许绑定至多一个活跃的 `extension-app`。多个纯展示类的 `render-app` 则不受数量限制。
 
-一个世界同一时刻至多绑定一个活跃 extension-app。其他 App 可以以纯渲染模式使用世界数据。
+## 相关文档
 
-| 状态 | 含义 |
-| --- | --- |
-| `(new)` | 世界存在但未绑定 App |
-| `active` | 一个 extension-app 已绑定并写入 |
-| `suspended` | 绑定挂起；重新绑定需要显式重新准入 |
-| `revoked` | 绑定已移除；世界开放给新绑定 |
+- [世界状态机制详解](/zh/realm/world-state)
 
-重新绑定必须先吊销，绑定不会静默转移。
-
-## App 模式
-
-| 模式 | 读 | 写 | 单世界并发数 |
-| --- | --- | --- | --- |
-| `render-app` | 是 | 否 | 多个 |
-| `extension-app` | 是 | 是 | 至多一个活跃 |
-
-## 六基础协议跨一致性
-
-涉及多项基础协议的世界状态变化必须同时满足所有相关契约：
-
-- 一次 transit 必须同时满足 Social + Economy + Context。
-- Presence 不能绕过社交准入。
-- Timeflow 不能打破经济结算窗口。
-
-六项基础协议不是相互独立的枚举，而是相互约束。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-primitives.yaml)
-- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

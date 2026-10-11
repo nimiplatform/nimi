@@ -1,28 +1,27 @@
-# Memory and Knowledge
+# Agent Memory Architecture and Knowledge Boundaries
 
-Cognition owns long-term Memory and its lifecycle. Runtime owns LocalAgent identity, Conversation, authorization, context assembly, and the typed bridge that delivers committed events and returns bounded Memory outcomes. Knowledge belongs to Cognition's domain but has no active V1 read, write, or public client path.
+In Nimi's cognitive framework, long-term memory lifecycle and synthesis are governed by Cognition. Local Runtime manages LocalAgent operational identities, conversation turn staging, and acts as the secure mediation broker between agent sessions and memory stores.
 
-## Agent-Private Memory
+## Memory Isolation and Ownership Principles
 
-Each LocalAgent has a separate opaque Memory bank. Sharing a Character Source does not share memories. Realm owns Character and World source truth; Memory cannot rewrite canonical World state or history.
+- **Independent Memory Banks**: Each LocalAgent maintains a dedicated, isolated Memory Bank. Distinct instances spawned from the same base Character maintain separate experiential memories.
+- **World Invariance**: The authoritative history and lore of a digital world are anchored in Realm; an agent's personal memory cannot unilaterally mutate shared world lore or global states.
+- **Session-Scoped Access**: All read/write operations targeting memory pass through Runtime's authorization gates. Client applications interact via structured SDK APIs, prevented by design from cross-tenant snooping.
 
-Runtime mediates access before any operation reaches Cognition. Apps do not query a Cognition corpus directly, choose an account-wide bank, or reconstruct memories from a local message cache. Authorized Memory management uses its separately admitted Runtime surface; ordinary Agent conversation access does not grant Memory management.
+## Context Assembly and Recall Mechanics
 
-## Conversation and Recall
+When a user initiates a conversation turn, the system stages context through clear phases:
 
-Runtime keeps the committed Conversation and may ask Cognition for relevant Memory while planning a turn. Recall is optional: missing readiness, an unavailable index, or no matching memory yields zero optional hits without blocking an otherwise valid turn. This does not permit fabricated recall or a fallback Runtime Memory store.
+1. **Context Capture**: Runtime extracts recent turn history and active conversation anchors.
+2. **Semantic Recall**: Runtime requests relevant memories from Cognition matching the user's intent.
+3. **Resilient Degradation**: Memory recall functions as an enhancement. If index warm-up is in progress or zero matches are found, the service returns an empty list, allowing generation to proceed without delay.
+4. **Memory Consolidation**: As meaningful interactions conclude, Cognition evaluates conversation milestones and commits consolidated memories in the background.
 
-Cognition alone decides and commits Memory admission, correction, supersession, forgetting, and derived index state. A write is not successful until its owner has durably committed the outcome. See [Cognition](/cognition/) for those operations.
+## Memory Lifecycle Controls
 
-## Memory Enablement and Deletion
-
-Memory enablement belongs to each LocalAgent and is independent of the shared LocalAgent AIConfig. New LocalAgents start enabled; pre-cut existing LocalAgents require explicit enablement. Disabling stops new delivery and Recall at a durable cutoff without deleting existing memories. Re-enabling does not replay the disabled interval or revive pre-cut work.
-
-Delete-all preserves the enabled setting but deletes the Agent's Memory through the owner lifecycle barrier. App access revocation removes that App's access; it does not delete the Agent's Memory. LocalAgent termination and an actually observed canonical account-deletion signal have separate deletion rules. Logout, network failure, and account switch are not account-deletion signals.
-
-## Knowledge V1
-
-There is no generic Knowledge ingestion, search, CLI, or SDK surface in V1. Conversation summaries, immutable Character/World lorebook context, and Cognition source retrieval remain distinct from Knowledge. A missing Knowledge API is not an invitation to use removed wire methods.
+- **Per-Agent Memory Toggle**: Each LocalAgent has an independent memory switch. Disabling it halts new ingestion and recall while safely preserving stored historical memories.
+- **Memory Deletion**: Users can clear an agent's memory bank at any time; this removes all stored memories from recall while leaving raw conversation history and base character persona intact.
+- **Account Deletion Cleanup**: Upon an observed typed Realm `ACCOUNT_DELETED` result, associated local memory stores for that account namespace are cleaned up locally on the current device.
 
 ## Source Basis
 

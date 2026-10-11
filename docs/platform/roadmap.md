@@ -1,18 +1,18 @@
-# Product Direction and Availability
+# Product Roadmap & Architectural Direction
 
-Nimi brings local and cloud AI capabilities, Apps, and AI characters into one personal product. Use the [download status](https://nimi.ai/download) for product availability and [development setup](/start/install) for the current source toolchain.
+Nimi integrates local and cloud AI compute, interactive apps, and deeply realized AI characters into a unified personal product. Check [Download Status](https://nimi.ai/download) for client availability and [Development Setup](/start/install) for source toolchains.
 
-## Build Against Current Interfaces
+## Building on Current Stable Interfaces
 
-The current development interfaces separate App AIConfig, machine Loadouts, protected App sessions, and Runtime execution. Agent conversations use Runtime-owned continuity and optional Cognition Memory; Knowledge V1 has no active public path.
+Current development interfaces establish clean separation between App AIConfig, local inference engine loadouts, protected application sessions, and Runtime execution. Agent conversations leverage Runtime-managed context continuity alongside optional Cognition long-term memory; Knowledge V1 currently has no active public interface.
 
-App development, local-package import, verified Catalog distribution, and public product release are different stages. See [App development and distribution](/start/#local-development-and-distribution) for their prerequisites and current platform limits. An implementation or a successful local build alone does not establish public release readiness.
+Application development, local package import, verified catalog distribution, and public general release represent distinct stages. See [Application Development & Distribution](/start/#local-development-and-distribution) for prerequisites and current platform boundaries. Local compilation success alone does not equate to public release readiness.
 
-## Future Capabilities
+## Forward-Looking Platform Capabilities
 
-General Workflow, World Evolution, compute federation, marketplace settlement, and unadmitted protocol adapters do not become usable APIs merely because they appear in architectural direction. Their absence must not block unrelated admitted capabilities. No delivery date or automatic activation follows from a roadmap mention.
+General workflow orchestration (Workflow), autonomous world evolution, distributed compute federation, marketplace settlement, and experimental protocol adapters do not become usable APIs simply by being mentioned in architectural roadmaps. Their deferred rollout does not block active stable capabilities, nor does an architectural mention imply a committed delivery timeline or automated activation.
 
-For a needed capability, begin with the [SDK](/sdk/) and its current typed surface. If the required operation or exact implementation combination is unavailable, preserve the typed failure and follow the relevant component's changes before depending on it.
+When designing features, build against current typed interfaces in the [SDK](/sdk/). If a required capability or backend combination is not yet supported, handle typed refusals gracefully and track future releases before relying on them.
 
 ## Source Basis
 

@@ -1,87 +1,50 @@
 # SDK Boundaries
 
-The SDK boundary exists to keep app integration stable and honest. It is
-not only a convenience package. It is the line between public app-facing
-behavior and private owner-domain implementation.
+The SDK boundary ensures application integration remains stable, predictable, and maintainable over time. It is not merely a collection of helper utilities, but an architectural firewall separating public application code from internal owner-domain implementations (Runtime, Realm, Desktop).
 
-The kernel rules behind this page live under `S-BOUNDARY-*` and
-`S-SURFACE-*`.
+Core design specifications are detailed under `S-BOUNDARY-*` and `S-SURFACE-*`.
 
-## The Boundary Rules
+## Core Boundary Rules
 
-- Apps should use SDK public exports instead of private Runtime or Realm
-  paths.
-- SDK surfaces should not silently redefine Runtime, Realm, or Desktop truth.
-- Package location, a source directory, or a docs page does not create a
-  public SDK promise.
-- A readable docs page is not enough to create a new SDK promise. The
-  promise needs admission first; the page is a projection second.
+- **Use public exports exclusively**: Applications must consume platform capabilities through the SDK's public subpaths, avoiding direct imports from private Runtime or Realm packages.
+- **Preserve the single source of truth**: SDK surfaces project platform capabilities into idiomatic APIs without silently altering or redefining underlying authoritative state.
+- **Formal contract adherence**: File locations, internal source trees, and unofficial notes do not constitute stability guarantees. Public promises are established through formal specifications and managed package exports.
 
-## Why Boundary Violations Are Expensive
+## Why Boundary Violations Incur Heavy Technical Debt
 
-Boundary violations are expensive in AI products precisely because they
-look harmless at first. A direct import, a local helper, a temporary
-route — none of those breaks anything in the moment.
+Boundary violations often appear innocuous initially—importing a deep internal helper or issuing an ad-hoc socket request rarely breaks functionality on day one.
 
-Over time those violations become structural. The app's behavior is
-now coupled to internals it never admitted as part of its surface. The
-app forms a local expectation of how Runtime or Realm behaves that may
-not match the contract. Agents, apps, and docs drift from each other
-because each is anchored to a slightly different reality.
+Over time, however, these shortcuts accumulate into severe architectural debt: application logic couples tightly to internal plumbing that offers no stability guarantees. When the underlying subsystem refactors or optimizes internal algorithms, the application breaks unexpectedly. Furthermore, bypassing the standard shell discards essential security session context, introducing subtle state drift.
 
-## Reader Scenario: The "Just One Helper" Anti-Pattern
+## Typical Scenario: "Just One Internal Helper"
 
-Suppose an app developer needs a small piece of formatting that already
-exists in the runtime package. The convenient move is to import that
-helper directly. The SDK boundary says no.
+A developer needs string formatting or data serialization that happens to exist inside `runtime/internal/**`, and considers importing it directly:
 
-The reasoning is:
+1. **Risk profile**: Internal packages are subject to immediate refactoring, renaming, or deletion without deprecation cycles.
+2. **Proper resolution**:
+   - If the logic represents app-specific business utilities, implement it locally within the app;
+   - If the capability serves general platform needs, propose its formal inclusion into `@nimiplatform/sdk` public exports.
 
-1. The runtime package's internals have no admitted external contract.
-2. Importing from there silently imports an unstable shape.
-3. The helper might disappear or change in the next runtime change set.
-4. If the helper is generally useful, the right move is to admit it as
-   part of an SDK surface, not to absorb a private import.
+Maintaining clear module boundaries is not academic pedantry; it ensures applications upgrade smoothly across releases.
 
-Refusing the import is not pedantry. It is what keeps the app's surface
-stable and predictable.
+## Typical Scenario: Bypassing the SDK to Query Runtime Directly
 
-## Reader Scenario: An App That Tries To Skip SDK
+Attempting to bypass the SDK in pursuit of perceived performance gains or quick debugging:
 
-Suppose an app wants to call into Runtime directly for performance
-reasons, bypassing the SDK projection. That is a different shape of the
-same boundary violation.
+1. **Missing security context**: The standard SDK client automatically carries security session credentials injected by the Desktop host. Bypassing the SDK results in direct RPC calls lacking origin authentication, causing immediate rejection by Runtime interceptors.
+2. **Proper resolution**: Route requests through the host-bound client. If performance or streaming bottlenecks arise, address them by tuning SDK transport parameters or proposing official SDK API enhancements.
 
-- Apps consume Runtime through public SDK methods, not arbitrary runtime
-  imports.
-- Runtime-owned behavior must stay behind Runtime contracts and SDK
-  projection.
-- Calling Runtime internals directly skips the stable error, transport,
-  and authority boundary the app is supposed to inherit.
+## Demarcation: Inside vs. Outside the Boundary
 
-The performance argument can be real. The right way to satisfy it is to
-admit a new SDK pattern, not to slip past the boundary.
+**Inside the Boundary (Stable, versioned public contracts):**
+- Officially documented SDK subpaths and exported namespaces;
+- Strongly-typed Runtime operations, world interaction primitives, and Realm canonical query APIs;
+- Portable schema definitions and normalized error models under `@nimiplatform/sdk/types`.
 
-## What Belongs Inside The Boundary, And What Belongs Outside
-
-Inside the boundary lives anything an app or external integration
-can rely on as a stable promise:
-
-- public SDK sub-paths and exports;
-- documented runtime methods, world composition primitives, realm
-  facade reads, scope projection;
-- typed shared building blocks under `@nimiplatform/sdk/types`.
-
-Outside the boundary lives everything that exists for runtime
-implementation reasons:
-
-- private runtime packages, internal client code, transport-level
-  glue;
-- private realm internals;
-- Desktop internals or Runtime-private Memory and Knowledge implementation.
-
-The boundary itself is defined by canonical SDK authority and projected by the
-package exports and generated public declarations shipped to consumers.
+**Outside the Boundary (Private subsystem implementations):**
+- Runtime private packages, internal transport glue, and IPC handlers;
+- Realm internal database schemas and state machine implementations;
+- Desktop native window processes and private OS integrations.
 
 ## Source Basis
 

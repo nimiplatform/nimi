@@ -1,27 +1,23 @@
-# Delegated Capability
+# Delegated Capabilities and Action Gateway
 
-Delegated or external action is an optional Runtime capability. It is not a
-prerequisite for Local AI, LocalAgent Conversation, Memory, voice,
-SDK use, Nimi Home, Avatar, or ordinary App capability execution.
+Delegated Capabilities constitute an optional extension within Runtime designed to safely govern external agent operations—such as third-party tool invocations, IDE integrations, or cross-system workflows. Operating as an isolated subsystem, it does not impede core local inference, conversation continuity, voice sessions, or everyday app development.
 
-## Boundary
+## Security Sandbox and Protection Boundaries
 
-When a delegated capability is separately admitted, Runtime owns its gateway,
-authorization, output validation, approval decision, and audit projection. An
-external provider may propose typed input, but it cannot directly mutate Realm
-truth, create LocalAgent truth, or bypass the active session.
+When delegated capabilities are activated, Runtime enforces comprehensive governance through dedicated gateways and execution sandboxes:
 
-Provider-native payloads, tool schemas, credentials, and external execution
-state stay behind the Runtime boundary. Consumers receive only a typed,
-authorized result.
+- **Ingress Gateway**: Authenticates caller signatures and token validity, verifying that requests originate from registered principals.
+- **Output Firewall**: Analyzes proposed action parameters against sensitivity heuristics to intercept unauthorized operations.
+- **Explicit Approval**: Actions that mutate system state or access sensitive resources trigger interactive user approvals on the Desktop control plane.
+- **Audit Lineage**: Significant external invocations, parameter digests, and user decisions are recorded as sanitized, bounded local audit events subject to retention quotas.
 
-## Failure behavior
+External services can propose structured actions, but they cannot bypass session tokens or directly manipulate underlying state without explicit grants.
 
-An unavailable external capability reports its own typed unavailable or failed
-state. Runtime must not convert that state into LocalAgent failure or a global
-readiness blocker.
+## Fault Isolation and Resilience
 
-MCP can be an adapter to the separately owned [Integration](/runtime/integrations) contract. Ordinary App Integration calls do not require a delegated Agent session, suggestion firewall, quarantine, or approval replay. Actual adapter and operation availability must be checked separately. A2A remains a future seam. Consumers do not instantiate private protocol clients to bypass Runtime.
+To ensure core system stability:
+- If an external tool or provider goes offline, Runtime isolates the error to that specific call, returning a structured unavailable status without degrading the agent's baseline conversation capabilities.
+- **Open Standards (MCP)**: Integrates with open specifications such as the Model Context Protocol (MCP) to map heterogeneous external tools into standardized, auditable platform actions.
 
 ## Source Basis
 

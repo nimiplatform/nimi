@@ -1,36 +1,28 @@
-# LocalAgent Presentation Stream
+# Agent 呈现输入与语音关联
 
-Runtime 持有短暂 LocalAgent turn、状态、activity、emotion、voice、interruption
-与 presentation 投影真相。Consumer 只持有自己的渲染、playback、interaction
-和短暂 UI 状态。
+正式 App 通过 SDK 的 embodiment 客户端读取和订阅有界的 Agent 呈现数据。Runtime 提供语义与时序，Avatar 负责将这些输入转换为模型动作、表情和本地播放。
 
-## 投影边界
+## 通用呈现事件
 
-Presentation stream 只携带强类型、已授权的产品 event。Runtime 在提交任何
-event 前校验 model 与 Provider output。原始 parser payload、Provider
-metadata、Credential、prompt、tool material 与内部 proof 都不会成为公共
-stream 字段。
+当前事件类型为 activity、emotion、posture 和 voice-timing。语音时序包含时长、截止时间及轮次关联等信息，不携带渲染器口型权重、viseme/phoneme 帧、骨骼曲线或播放指令。
 
-访问从 active session 推导。操作需要目标时，consumer 必须提供显式
-LocalAgent 或 Conversation target，不能推断全局 current LocalAgent。
+调用需使用当前 App 会话的 `agentHandle` 与确切的 `conversationAnchorId`。Runtime 按当前会话、访问声明与操作校验结果，返回可读取的快照和更新。
 
-## Avatar 与其他 Renderer
+## Avatar 的最终语音播放
 
-Avatar 可以把强类型 Runtime input 映射为 renderer-local motion、expression、
-camera、physics、lipsync 与 playback。这些细节留在 Avatar 本地，renderer
-state 不能写回成为 LocalAgent 真相，App 也不会取得 raw motion 或 driver
-control。
+1. Conversation 提交最终语音 sidecar，其中包含语音产物引用。
+2. Avatar 使用自己会话的 Agent handle 和对话锚点，通过 `conversation.readArtifact` 读取该产物。
+3. Avatar 在本地播放音频并分析口型，再由选中的 Live2D 或 VRM 后端呈现。
 
-Desktop 与其他 App 遵循同一规则：可见状态是投影，不是合成或覆盖 Runtime
-状态的权限。
+Avatar 本地发出的 audio_chunk 事件可以携带已读取的完整产物字节；这个名称不表示 Runtime 给 Avatar 提供原生语音流。独立 Realtime 媒体与一般语音生成有各自的 API 和准入条件。
 
-## 失败行为
+## 消费端职责
 
-不可用的 diagnostics、voice 或可选 presentation 细节应单独报告强类型状态，
-不能伪造 Runtime success，也不能阻塞无关 LocalAgent Conversation。
+Desktop 将会话结果及本地输入、播放状态用于轻量提示。Avatar 独立消费自己获准读取的数据，不依赖 Desktop 把缓存或口型帧转发给它。渲染器状态和播放进度不会反向改写 Runtime 的对话或 Agent 语义。
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
-- [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`proto/runtime/v1/agent_presentation.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/agent_presentation.proto)
+- [`sdks/typescript/core/app/local-app-runtime-platform-embodiment.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-embodiment.ts)
+- [`apps/avatar/src/shell/renderer/sdk/SdkDriver.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/sdk/SdkDriver.ts)

@@ -37,7 +37,7 @@
   },
   "library": {
     "title": "Library",
-    "description": "Installed and admitted Nimi apps."
+    "description": "Installed Nimi apps ready to use."
   },
   "discovery": {
     "title": "Discovery",
@@ -46,7 +46,7 @@
   "agentChat": {
     "title": "Agent Chat",
     "scope": "Scope",
-    "anchor": "Anchor"
+    "anchor": "Topic"
   },
   "loading": {
     "readiness": "Loading readiness...",
@@ -71,20 +71,20 @@
   "feedScopes": {
     "personal": "Personal",
     "friends": "Friends",
-    "persona_activity": "Persona Activity",
+    "persona_activity": "Characters",
     "world_character_activity": "World Characters"
   },
   "feedScopeHeaderLabels": {
     "personal": "Me",
     "friends": "Friends",
-    "persona_activity": "Personas",
+    "persona_activity": "Characters",
     "world_character_activity": "World Characters"
   },
   "feedScopeDescriptions": {
     "personal": "Your private posting lane.",
     "friends": "Updates from people you trust.",
-    "persona_activity": "Public activity from PersonaCharacters.",
-    "world_character_activity": "Public activity from admitted world characters."
+    "persona_activity": "Public activity from AI characters.",
+    "world_character_activity": "Public activity from world characters."
   },
   "feedScopeEmpty": {
     "personal": "You haven't posted anything yet.",

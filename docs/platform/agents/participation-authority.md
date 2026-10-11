@@ -1,18 +1,19 @@
-# LocalAgent Access and App Authorization
+# LocalAgent Access and Application Authorization
 
-A formal App uses its protected, host-bound SDK client to list authorized Agent references. It submits the returned session-scoped opaque `agentHandle` for admitted Agent operations. A raw LocalAgent ID, stable binding, or cached reference is not an operation authority.
+A formal application uses its host-bound SDK client to enumerate authorized agent references, submitting the returned session-scoped opaque `agentHandle` when invoking permitted operations. Raw LocalAgent IDs, static bindings, or cached local handles do not constitute valid operational authority.
 
-Runtime derives and revalidates the account, App subject, current registration and declaration, operation coverage, target access, and session generation. Reconnect or session rotation requires fresh authorized references; the App must not replay a prior business action to restore access.
+Runtime resolves and revalidates security parameters before each execution: authenticated account identity, application subject, declared capability scopes, operational coverage, target agent permissions, and active session generation. Following connection drops or session rotations, the application must acquire fresh authorized handles; replaying prior business requests to recover access is rejected.
 
-## Separate Operation Families
+## Granular Capability Scope Families
 
-Ordinary `agent.local` access carries bounded Conversation and Agent Realtime operations, source introductions, and typed output. It does not expose private Memory, Knowledge, prompts, provider configuration, presentation internals, or account-wide Agent inventory.
+System operations adhere to strict scope boundaries:
+- **Standard Local Access (`agent.local`)**: Grants bounded access to conversation turns, Agent Realtime streaming, persona summaries, and typed responses. It explicitly withholds private Cognition memories, knowledge records, system prompts, AI provider credentials, Avatar internal pipeline states, and unpermitted agent inventories.
+- **Shared Inference Configuration (`agent.configure`)**: Requires explicit, elevated authorization to update shared LocalAgent capability intent configurations (AIConfig). Machine Loadout management and machine-level model selection remain separately governed by Home and Runtime management surfaces.
+- **Memory & Business Workflows**: Managing agent long-term memory or executing application-specific workflows requires separate declared capability scopes; standard conversation permissions never imply access to them. Knowledge V1 currently exposes no public operational interface.
 
-Shared LocalAgent configuration requires `agent.configure`. Agent-specific Memory management and independent App business execution require their separately admitted operation and declaration coverage. Conversation access alone does not grant them. Knowledge V1 has no public operation path.
+App-authored instructions, custom skills, and business logic must use dedicated business and skill contracts. They cannot be committed into standard conversational history or promoted into core Character identities. The application owns its project lifecycle and result handling.
 
-App-authored business instructions and skills use the dedicated business/skill contracts; they are not committed as ordinary chat or promoted into Agent identity. The App owns its project workflow and result adoption.
-
-Nimi Home and Desktop host the App but do not replace Runtime authorization or Cognition Memory ownership. An unavailable or unauthorized operation returns its typed failure without a private-interface fallback.
+Nimi Home and Desktop host the application environment, but do not override Runtime authorization checks or Cognition memory boundaries. Unauthorized or unavailable operations fail closed, returning structured error responses without private fallback channels.
 
 ## Source Basis
 

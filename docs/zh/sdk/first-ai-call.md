@@ -30,29 +30,29 @@ export async function generateText(prompt: string) {
 }
 ```
 
-从 App 的实际操作中调用 `generateText()`，展示返回的 `text`。等待时显示加载状态；失败时展示实际错误和可行的恢复动作，不能用示例回答冒充 Runtime 输出。
+从 App 的实际操作中调用 `generateText()`，展示返回的 `text`。建议在请求过程中展示加载状态，遇到失败时根据返回的错误码给出清晰的恢复提示。
 
-请求传入对话内容，不自行选择模型、连接器、执行地址、fallback 或机器绑定。Runtime 从受保护宿主会话确定 App 身份，再使用当前本地或云端配置。提供商凭据仍由 Runtime 管理。
+请求传入对话内容，无需在客户端指定具体的模型或连接器地址。Runtime 会从当前受保护的宿主会话中识别 App 身份，并应用该 App 配置的本地或云端能力。提供商凭据始终由 Runtime 统一管理。
 
 ## 处理第一次失败
 
 | 失败情况 | 下一步 |
 | --- | --- |
-| App 会话未建立或访问被拒绝 | 回到受管启动与宿主授权流程，不要换成直连 Node/gRPC client，也不要自行传入身份。 |
+| App 会话未建立或访问被拒绝 | 回到受管启动与宿主授权流程，确认已在 Nimi Home 开发者模式中完成 App 授权。 |
 | `not-found`（原因 `ai-config-not-found`）或缺少 `text.generate` 意图 | 在该 App 的 AI 设置中保存能力意图，再重试实际调用。 |
-| 本地模型或云端配置不可用 | 检查该 App 当前设置，以及 Runtime 所选模型或连接器状态。保留真实错误；路线已配置不能证明执行成功。 |
+| 本地模型或云端配置不可用 | 检查该 App 当前设置，以及 Runtime 所选模型或连接器的运行状态。 |
 | Runtime 已断开 | 恢复原有 Nimi Home／Runtime 开发实例，必要时重新打开受管 App，再重试同一操作。 |
-| 请求发出后执行失败 | 查看 typed error 及其可用的原因、行动提示，不在客户端伪造 fallback 或悄悄切换提供商。 |
+| 请求发出后执行失败 | 查看 typed error 及其包含的原因与行动建议，根据错误详情进行针对性排查。 |
 
-排查接入时，同一个 client 提供 `auth.status()` 和 `aiConfig.get()`。它们只读取当前状态，不能代替一次实际生成。其他环境问题见[排错指南](/zh/start/troubleshooting)。
+排查接入时，同一个 client 提供 `auth.status()` 和 `aiConfig.get()` 用于诊断当前会话与配置状态。其他环境问题见[排错指南](/zh/start/troubleshooting)。
 
 ## 确认结果
 
-运行 App 仓库已有的检查，再在实际受管窗口中通过它自己的 client 完成一次请求。分别确认等待、成功和实际遇到的失败。成功返回一句问候，可以证明首次能力调用已经完成，不能据此宣称完整产品旅程或公开分发已就绪。
+运行 App 项目已有的检查脚本，并在桌面端监督的 App 窗口中发起一次真实请求。测试并确认等待、成功及异常处理等状态均按预期工作。
 
 第三方 App 不需要把 Nimi 主仓的 SDK／Lab 全量测试复制成先修步骤；应使用该项目实际声明的 scripts。
 
-## 来源依据
+## Source Basis
 
 - [`app-tools/templates/default-starter/src/shell/auth/local-app-client.ts`](https://github.com/nimiplatform/nimi/blob/main/app-tools/templates/default-starter/src/shell/auth/local-app-client.ts)
 - [`sdks/typescript/core/app/local-app-runtime-platform-ai-config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-ai-config.ts)

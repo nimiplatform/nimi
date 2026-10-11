@@ -1,9 +1,9 @@
 {
   "title": "Apps",
-  "description": "See registered local apps, project roots, and declared App Access in one place.",
+  "description": "Manage your installed apps and local development projects.",
   "collectionEyebrow": "App management",
   "inventoryTitle": "Connected apps",
-  "inventoryDescription": "Registered local development projects appear here with their exact project roots and raw App Access declarations.",
+  "inventoryDescription": "Registered local development projects appear here with their project roots and declared permissions.",
   "inventoryCount": "{{count}} apps",
   "sidebar": {
     "subtitle": "Local development apps",
@@ -73,7 +73,7 @@
     "unsignedConfirmAction": "Continue and install",
     "macosConfirmTitle": "Install this macOS App?",
     "macosUnsignedConfirmMessage": "This app has no Developer ID publisher signature and has not been notarized by Apple. Nimi Registry review and download verification do not replace those checks, grant administrator access, or create an operating-system sandbox. Continue only if you trust this publisher.",
-    "macosUnnotarizedConfirmMessage": "This app has a verified Developer ID signature, but no Apple notarization was observed. Continuing does not change that native verification status or grant administrator access.",
+    "macosUnnotarizedConfirmMessage": "This app has a verified developer signature, but Apple notarization was not observed. Continue only if you trust this publisher.",
     "macosUnsigned": "No Developer ID signature",
     "macosNotarized": "Apple notarized",
     "macosNotarizationAbsent": "Not notarized by Apple",
@@ -89,7 +89,7 @@
     "unavailable": "Nimi Access unavailable"
   },
   "listTitle": "App list",
-  "listDescription": "Filter registered apps by whether they declare App Access domains.",
+  "listDescription": "Filter registered apps by declared access permissions.",
   "developerCard": {
     "title": "Connect or manage a local app",
     "description": "Connect a new local project or manage existing registrations in Developer Mode.",

@@ -1,109 +1,33 @@
-# Embodiment Projection
+# Embodiment Translation
 
-> Status: Running today. The projection layer is the live
-> backend-agnostic seam between agent semantics and backend
-> execution.
+Avatar's built-in translation maps admitted Agent semantics to its selected graphics backend. It is an Avatar-local seam, not a creator scripting API.
 
-Embodiment Projection is the **backend-agnostic API surface** where
-what the agent is doing becomes visible output on a carrier. NAS
-handlers call the projection; the projection turns those calls into
-backend-specific work (Live2D today, VRM next).
-For the broader architectural framing see
-[Host-Agnostic Architecture](/avatar/host-agnostic-architecture.md).
+## Input and Output
 
-## What Projection Owns
-
-| Responsibility | Surface |
+| Input | Avatar-local handling |
 | --- | --- |
-| Consume runtime / SDK semantic bundle | Read agent state, presentation profile, current emotion, motion |
-| Produce backend-specific calls | Translate semantics into the active backend |
-| Backend-agnostic API | Same NAS handler shape regardless of backend |
-| Backend-specific extensions | Available to handlers when type-narrowed (e.g., `live2dExtension`) |
+| Activity and emotion | Validate the current target and map to supported routes or expressions |
+| Semantic posture | Apply admitted backend-specific presentation without redefining Agent state |
+| Bounded voice timing and final voice artifact | Correlate local playback and derive lipsync locally |
+| Backend bounds and hit regions | Derive the body footprint and local pointer behavior |
 
-A NAS handler that operates on backend-agnostic API works with
-any backend. A NAS handler that uses `live2dExtension` is bound
-to Live2D backend.
+The active branch is `live2d` or `vrm`. A model's capability profile and optional mapping sidecar determine whether a route is supported. Unsupported or invalid input fails closed; current Avatar does not run NAS creator files or an injected ctx interface.
 
-## Discriminated Union For Backend
+## Backend Extensions
 
-Backend branch is a **closed union**: `live2d | vrm`.
+Only Avatar-owned translation can access branch-local extensions after type narrowing. Live2D parameter IDs remain backend facts, not public APML tags or Runtime activity IDs. A VRM branch cannot use the Live2D extension.
 
-| Property | Value |
-| --- | --- |
-| Type | Discriminated union |
-| Members | `live2d`, `vrm` (future) |
-| Extension access | Only when type-narrowed |
-| Closed | New backends require admitted contract |
+## Local Observations
 
-A NAS handler does not invent a third backend. The backend list
-is admitted; new backends require kernel admission.
+The current mapping emits `avatar.activity.start`, `avatar.activity.end`, `avatar.activity.cancel` and `avatar.expression.change` for their corresponding local outcomes. A local rendering result neither commits a Conversation turn nor becomes an authoritative Agent state. See [Avatar Events](/avatar/avatar-events) for producer details.
 
-## How Projection Works At Runtime
+## Related Documentation
 
-| Step | Producer | Consumer |
-| --- | --- | --- |
-| Runtime emits semantic bundle | Runtime presentation stream | Avatar projection layer |
-| Projection translates | Avatar projection layer | NAS handler API |
-| NAS handler runs | NAS handler | Backend-specific API (when type-narrowed) |
-| Backend renders | Live2D / VRM / etc. | Visible output |
-
-## Reader Scenario: A Cross-Backend NAS Handler
-
-A package author writes a `wave` activity handler that should
-work on any backend.
-
-1. **Handler at convention path.**
-   `<model>/runtime/nimi/activity/wave.js`.
-2. **Use backend-agnostic API.** Handler calls embodiment
-   projection methods (motion, expression, pose, lookat,
-   params, wait).
-3. **Projection translates.** On Live2D, it routes through
-   Live2D extension; on VRM, it would route through VRM
-   extension.
-4. **Same handler ships everywhere.** No backend-specific code.
-
-Backend-agnostic handlers are portable.
-
-## Reader Scenario: A Backend-Specific NAS Handler
-
-A package author wants to use a Live2D-specific feature.
-
-1. **Type-narrow.** Handler asserts the backend is `live2d`.
-2. **Use `live2dExtension`.** The Live2D-specific extension API
-   is now available.
-3. **Handler runs only on Live2D.** If the user installs the
-   package on a VRM-backed avatar, the type narrowing fails;
-   handler falls back to admitted alternative or marks the
-   activity as not supported.
-
-The discriminated union prevents accidental backend coupling.
-
-## Reader Scenario: A Semantic Bundle Drives Activity
-
-The agent's runtime emits a "happy" emotion event.
-
-1. **Runtime emits.** `runtime.agent.expression.*` event with
-   emotion = happy.
-2. **Projection consumes.** Maps emotion to admitted Live2D
-   parameters (e.g., mouth shape, expression preset).
-3. **Live2D backend renders.** Agent shows happy expression on
-   the embodiment stage.
-4. **NAS handler may compose.** A `continuous` handler may add
-   additional motion that reinforces the emotion.
-
-The runtime is the source; projection is the typed translation;
-backend is the renderer.
-
-## Boundary Summary
-
-| Concern | Owner |
-| --- | --- |
-| Agent semantic state | Runtime presentation profile + stream |
-| Projection semantics | Avatar embodiment projection contract |
-| NAS handler API | Avatar agent-script contract |
-| Backend-specific calls | Backend branch contract (live2d / vrm) |
+- [Backend-Neutral Architecture](/avatar/host-agnostic-architecture)
+- [Model Capabilities](/avatar/model-capabilities)
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
+- [`apps/avatar/src/shell/renderer/semantic-projection/event-dispatch.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/semantic-projection/event-dispatch.ts)
+- [`apps/avatar/src/shell/renderer/carrier/backend-branch.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/carrier/backend-branch.ts)

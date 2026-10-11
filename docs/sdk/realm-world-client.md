@@ -1,25 +1,24 @@
 # Realm Access from an App
 
-Realm owns account, Character, World, social, economy, history, and asset truth. A Nimi App consumes the admitted `client.realm` operations on its host-bound client. Runtime mediates authorized Realm access without giving the App a Realm token or raw REST/WebSocket transport.
+User accounts, character personas (Character), virtual worlds (World), social graphs, virtual economies, historical facts, and shared assets are authoritatively managed by Realm. A Nimi App interacts with these assets through the standard `client.realm` methods on its host-bound client. Runtime acts as a secure mediation proxy, handling authorized Realm interactions without leaking sensitive Realm authentication tokens or exposing raw REST/WebSocket transport channels directly to the application layer.
 
-## Typed Owner Operations
+## Strongly-Typed Domain Operations
 
-Use only the operations exposed for the App's current declaration and access. The protected carrier derives the account and App subject. PersonaCharacter owner operations, World surfaces, and Realm realtime each keep their own typed input, authorization, and result contract; a generic arbitrary-path proxy is not admitted.
+Applications may invoke only those operations explicitly declared in their App manifest and granted by authorization policies. Both user account and application identities are derived automatically from the protected host session. Persona character mutations, World query interfaces, and Realm realtime channels maintain strict, strongly-typed inputs, permissions, and response contracts; unbounded generic proxies are disallowed.
 
-The direct `@nimiplatform/sdk/realm` facade remains a separate SDK surface for consumers that own an admitted Realm session. It is not a way for a formal Nimi App to escape its host-bound access. The removed `@nimiplatform/sdk/world` subpath remains absent.
+The standalone `@nimiplatform/sdk/realm` facade serves external scripts that independently manage Realm authentication sessions. Standard Nimi Apps must not use it to escape the security boundaries of their host session. The retired `@nimiplatform/sdk/world` subpath remains permanently removed.
 
-## Compose a Product Flow
+## Composing an Application Flow
 
-1. Read the needed Realm information through an admitted App operation.
-2. Use `client.ai` for App AI work, or the separately authorized Agent operation for Agent work.
-3. Keep project workflow and result adoption in the App.
-4. If the user requests a Realm mutation, submit it through its admitted Realm owner operation and display that actual result.
+1. **Read authoritative state**: Query necessary world information or character profiles via standard App Realm methods.
+2. **Coordinate AI and Agents**: Execute application AI workflows via `client.ai`, and route autonomous agent tasks through authorized Agent methods.
+3. **Manage app-local state**: Keep local drafts, UI state machines, and view layouts within the application.
+4. **Commit state mutations**: When the user requests a Realm mutation, call the appropriate owner method and render the verified server response.
 
-Local execution, a cached projection, or an App success message cannot commit Realm truth. A missing carrier or denied operation fails explicitly; do not replace it with raw `/api/...` calls.
+Local client caches, optimistic UI updates, or transient success messages do not constitute authoritative Realm state. When session tokens expire or operations are rejected, calls fail explicitly with typed errors; applications must not attempt raw `/api/...` side-channel requests.
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)

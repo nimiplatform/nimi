@@ -242,14 +242,14 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       intro:
         'Nimi 应用是可以在 Nimi 中使用的应用。每个上架应用都有公开的源码仓库和明确的开源许可。',
       statusNote:
-        '目录发现、安装、更新与卸载通过 Desktop 产品路径在 macOS arm64 与 Windows x86_64 上提供；具体可用性同时取决于当前 Runtime 状态与账号条件。本页只作介绍，不提供安装。',
+        '应用的浏览、安装、更新与卸载可在 Nimi 桌面客户端（支持 macOS arm64 与 Windows x86_64）中进行。网页仅作介绍展示，不直接提供安装。',
       listTitle: '目录中的应用',
       platformsLabel: '平台',
       platforms: ['macOS arm64', 'Windows x86_64'],
       capabilitiesLabel: 'AI 能力',
       sourceLabel: '源码',
       licenseLabel: '许可',
-      summaryFallback: '已通过目录准入的应用。',
+      summaryFallback: '已上架的 Nimi 应用。',
       itemCta: '了解应用',
       createTitle: '创建你自己的个人应用',
       createIntro:
@@ -263,7 +263,7 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       createCaveat: '当前没有网页版创建器；创建过程在本地开发环境中完成。',
       guideCta: '阅读创建指南',
       notFoundTitle: '未找到这个应用',
-      notFoundBody: '这个地址没有对应的已准入应用。',
+      notFoundBody: '未找到符合条件的应用。',
       backToApps: '返回全部应用',
     },
     shared: {
@@ -305,14 +305,14 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       intro:
         'Nimi Apps are the apps you can use inside Nimi. Every admitted app has a public source repository and an explicit open-source license.',
       statusNote:
-        'Catalog discovery, installation, update, and uninstall are provided through the Desktop product path on macOS arm64 and Windows x86_64; availability at any moment also depends on your Runtime state and account conditions. This page is informational and does not install anything.',
+        'App discovery, installation, updates, and uninstallation are available in the Nimi desktop client (macOS arm64 and Windows x86_64). This page provides informational overviews only.',
       listTitle: 'Apps in the catalog',
       platformsLabel: 'Platforms',
       platforms: ['macOS arm64', 'Windows x86_64'],
       capabilitiesLabel: 'AI capabilities',
       sourceLabel: 'Source',
       licenseLabel: 'License',
-      summaryFallback: 'An admitted app in the current catalog.',
+      summaryFallback: 'An available app in the current catalog.',
       itemCta: 'View app',
       createTitle: 'Create your own personal app',
       createIntro:
@@ -326,7 +326,7 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       createCaveat: 'There is no web-based creator; creation happens in a local development environment.',
       guideCta: 'Read the creation guide',
       notFoundTitle: 'App not found',
-      notFoundBody: 'No admitted app matches this address.',
+      notFoundBody: 'No available app matches this address.',
       backToApps: 'Back to all apps',
     },
     shared: {

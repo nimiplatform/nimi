@@ -1,58 +1,56 @@
-# 世界生命周期
+# 数字世界生命周期管理（World Lifecycle）
 
-Nimi 的世界是为长久存在而建的。这一页跟随一个世界走完它的整段生命：从创作者脑中的一个想法，到参与者可以到访的已发布世界，到绑定了 extension-app 的世界，再到可能被暂停或撤销的世界。每一步背后的状态机都由 Realm 维护。
+Nimi 中的数字世界旨在长期演进。本篇系统阐述一个数字世界从构思设计、原子发布、第三方应用绑定，到日常维护乃至暂停或下线的完整生命周期流转。底层状态机由 Realm 权威统一管控。
 
-字段层面的状态定义见 [Reference → State Machines](/zh/reference/state-machines) 与 [Reference → World Fields](/zh/reference/world-fields)。
+字段层面的规范定义请参阅 [参考手册 → 系统核心状态机](/zh/reference/state-machines) 与 [参考手册 → 数字世界核心字段](/zh/reference/world-fields)。
 
-## 撰写与发布
+## 撰写设计与原子化发布
 
-世界由创作者撰写。创作者工具维护规范的 `WorldCore`，以及准入的
-`WorldCharacterCore`、timeline、scene、history 和产品元数据，并通过
-`WorldCoreIngressPackage` 或 `CorePatch` 原子提交。
+数字世界由创作者基于创作者套件进行设计。创作者工具维护核心的 `WorldCore` 设定，以及受控的常驻角色定义 `WorldCharacterCore`、时间线、场景空间、事件历史和产品元数据。
 
-发布的那一刻是一次 core commit：一次原子事务，把已准入 core 对象状态冻结成同一个规范化锚点。一次 commit 携带：
+发布操作在底层是一次原子事务提交（Core Commit），通过提交 `WorldCoreIngressPackage` 或差异包 `CorePatch`，将审核通过的核心对象状态一次性冻结为全局唯一的规范化锚点。提交包严格包含：
 
-- Core schema version
-- 出处（谁发布、用什么工具）
-- 校验和 / 差异元数据
-- replacement 或 patch 血缘
+- **核心 Schema 版本号**：保证数据结构的解析兼容性；
+- **发布出处信息**：明确发布主体与构建工具签名；
+- **校验和与差异哈希**：保障包内容的完整性与防篡改；
+- **版本演进与血缘链路**：记录继承或补丁的祖先版本。
 
-原子性是关键。WorldCore、WorldCharacterCore、scene、timeline、history 状态必须落在同一次事务提交里。半发布的世界不被准入。
+**原子性是系统生命周期的绝对基石**：世界核心设定、角色设定、场景模型、时间线与历史状态必须在同一次数据库事务中同时提交生效。系统严格拒绝处于中间态或“半发布”状态的数据。
 
-发布走 **`WorldCoreIngressPackage`** 或 **`CorePatch`**。它区分：
+发布包结构细分：
 
-| 组成 | 用途 |
+| 组成部分 | 业务用途与职责 |
 | --- | --- |
-| Core world object | identity、ownership、time model、timeline、history 和产品元数据 |
-| Core character objects | 绑定到世界的 world-owned characters |
-| Runtime source snapshot 输入 | 用于按值物化 LocalAgent 的数据 |
-| 治理 / 发布元数据 | 版本、出处、审计 |
+| **Core World Object** | 唯一标识、所有权、时间流转模型、时间线、历史与产品展示元数据 |
+| **Core Character Objects** | 绑定到该数字世界的常驻角色实体集合 |
+| **Runtime Source Snapshot 输入** | 供 Runtime 在本地高保真实例化 LocalAgent 所需的按值传递数据快照 |
+| **治理与发布元数据** | 版本语义、签名出处与合规审计日志 |
 
-Lorebook 文本与 prompt payload 永远不是这个包的规范化中心。它们可以是 source-core 字段或下游 prompt-context 输入，但不能替代 core 对象。
+设定集（Lorebook）与引导词（Prompt）文本绝非发布包的核心主体。它们可以作为角色源描述的补充字段或下游上下文输入，但绝不能替代核心对象模型。
 
-## 回滚也是发布操作
+## 版本回滚是一次前向的发布操作
 
-如果一次 release 出问题，回滚本身也是一次 release —— 不是临时改写已存在的 release。
+当已发布版本发现严重缺陷需要回退时，系统的回滚机制本身作为一次合法的全新发布操作执行，严禁直接通过数据库底层静默修改或物理删除已生效的历史记录。
 
-- 回滚的 `WorldRelease` 引用上一个良性 release。
-- 回滚血缘进入 release 记录。
-- 世界历史把回滚记录为一次 `CANON_MUTATION` 运行。
-- 出问题的 release 不从历史中删除，它被取代。
+- 回滚版本的 `WorldRelease` 显式引用之前已验证的良好版本标识；
+- 回滚的溯源血缘作为不可分割的元数据记录进版本包中；
+- 世界历史将此次回滚正式记录为一次类型为 `CANON_MUTATION` 的变更执行；
+- 存在缺陷的历史版本不会被物理抹除，而是在版本链上被正式标记为“已废弃并被取代”。
 
-这意味着回滚保留审计可追溯性：后来读历史的人，能看到回滚回的是什么、在何时、为什么。
+这一设计确保了全链路的合规审计追溯：后续任何审计方均可清晰查阅何人在何时因何原因触发了版本回滚。
 
-## App 与世界的绑定
+## 数字世界与独立应用的绑定契约（App-World Binding）
 
-世界在被某个 App 绑上之后才好用 —— App 是参与者真正用来与世界交互的入口。绑定是显式的，且有边界。
+数字世界通常需要配合前端应用界面供用户进行交互体验。应用与数字世界的绑定分为两种受严格约束的模式：
 
-| 模式 | 读世界数据 | 写世界数据 | 单世界并发数 |
+| 绑定模式 | 读取世界数据 | 写入/变更世界数据 | 单个世界的并发限制 |
 | --- | --- | --- | --- |
-| `render-app` | 可以 | 不可以 | 多个 |
-| `extension-app` | 可以 | 可以 | 单世界至多一个活跃 |
+| **渲染应用（`render-app`）** | 支持 | 不支持（只读） | 支持多个同时连接 |
+| **扩展应用（`extension-app`）** | 支持 | 支持（具写权限） | 同一时间至多允许一个活跃绑定 |
 
-任意时刻，一个世界至多只有一个活跃的 **extension-app** 绑定。多个 **render-app** 可以同时读同一个世界，互不抢占。
+在任意时刻，一个数字世界最多只能绑定一个活跃的**扩展应用（`extension-app`）**，以杜绝多写冲突。而多个只读的**渲染应用（`render-app`）**可以并发读取世界数据，彼此互不阻塞。
 
-### 绑定生命周期
+### 绑定生命周期状态机
 
 ```
 (new) ──admit──▶ active ──suspend──▶ suspended ──resume──▶ active
@@ -60,45 +58,41 @@ Lorebook 文本与 prompt payload 永远不是这个包的规范化中心。它�
                   └────────────────revoke──────────────────────────▶ revoked
 ```
 
-| 状态 | 含义 |
+| 状态节点 | 状态语义与业务含义 |
 | --- | --- |
-| `(new)` | 世界存在，没有 App 绑定 |
-| `active` | 一个准入的 extension-app 正在写 |
-| `suspended` | 绑定暂停；恢复需要显式重新准入 |
-| `revoked` | 绑定已撤销；世界开放给新一次准入 |
+| `(new)` | 世界已创建发布，当前未绑定任何扩展应用 |
+| `active` | 经审核授权的扩展应用已正式绑定，具备世界状态的受控写入权 |
+| `suspended` | 绑定关系被暂时冻结；恢复需要显式重新申请审核准入 |
+| `revoked` | 绑定关系已永久撤销；该世界重新释放，可接受新的应用绑定 |
 
-暂停可逆，撤销不可逆。要换一个 extension-app，必须先撤销 —— 平台不会把写权威从一个 extension-app 静默转给另一个。
+暂停状态是可逆的；而撤销状态是终态不可逆的。创作者若需更换绑定的扩展应用，必须先将原应用的状态置为撤销——系统绝不允许将写权限从一个应用静默转移给另一个应用。
 
-## 转场与世界可达性
+## 空间漫游与世界可用性
 
-已发布的世界是参与者可以转场到的去处。转场走 OASIS，详见 [OASIS](/zh/platform/worlds/oasis)。一个当前没绑 extension-app 的世界，仍然可被 render-app 读取；这是「即使没有 App 在写，真相和状态也仍然存在」的体现。
+已发布的数字世界正式进入全局漫游网络。用户之间的世界切换均经由系统主世界 OASIS 完成（详见 [系统主世界 OASIS](/zh/platform/worlds/oasis)）。未绑定扩展应用的世界依然允许渲染应用读取并展示其静态客观事实。
 
-如果创作者把世界下线，原本在那个世界里的参与者默认回到 OASIS。他们的身份与标识不受影响。
+若创作者因维护主动将世界临时下线，原本置身于该世界内的在线玩家将由系统安全转移回 OASIS 枢纽，用户的核心身份、好友关系与个人资产完全不受影响。
 
-## 读者场景：把一个世界从头发布出去
+## 业务场景：端到端发布新世界
 
-某创作者完成世界设计，准备发布。
+1. **确立世界观**：梳理基础公理、常驻角色设定、交互场景与界面呈现；
+2. **生成发布草稿**：在创作者套件中构建最小发布集（`importSource`、`truthDraft`、`stateDraft`、`historyDraft`），此时数据仅保存在创作者本地；
+3. **打包标准化发布包**：将草稿整合为标准规范包，区分核心设定、派生配置、视图映射与治理签名；
+4. **提交原子事务发布**：以 `WorldRelease` 正式提交，一次性锁定各数据结构与资源哈希；
+5. **接入漫游网络**：世界正式对外开放，玩家可从 OASIS 前往造访，渲染应用可建立读取连接，合规应用可申请绑定写权限；
+6. **归档审计日志**：世界历史记录本次发布的审计流水，为未来的版本追踪或回滚建立权威基准。
 
-1. **撰写真相**。真相产物：世界规则、Agent 规则、场景、呈现。
-2. **暂存草稿**。最小发布候选：`importSource`、`truthDraft`、`stateDraft`、`historyDraft`。这些是创作者本地的工作集，未发布前不属于 Realm 规范化。
-3. **打成 CanonicalTruthPackage**。包区分真相单元、派生输入、呈现输入、治理元数据。
-4. **以 `WorldRelease` 原子发布**。这一次 commit 冻结真相、呈现、包版本，并携带出处、校验和 / 差异、回滚血缘。
-5. **世界成为去处**。参与者可以经 OASIS 转场到此。render-app 可读；准入的 extension-app 可绑定写权威。
-6. **审计血缘**。世界历史把这次 release 记为一次 `CANON_MUTATION` 运行。后续任何回滚也会作为另一次 `CANON_MUTATION` 运行回引这一次 release。
+## 业务场景：安全更换绑定的扩展应用
 
-原子事务的形态是关键性质。平台不准入半发布的世界。
+某创作者希望将世界绑定的扩展应用从“应用 A”替换为“应用 B”：
 
-## 读者场景：替换活跃的 extension-app
+1. **撤销原绑定**：创作者发起撤销操作，应用 A 的绑定状态从 `active` 流转为 `revoked`，其写入权限即刻失效；
+2. **授权新绑定**：创作者申请绑定应用 B，系统完成合规校验后，应用 B 的状态从 `(new)` 晋升为 `active` 并获取写入权限；
+3. **消除状态竞争**：整个过程中不存在两个应用同时具备写权限的重叠时间窗口。
 
-某创作者想把活跃绑定从 extension-app A 切到 extension-app B。
+严格的排他性规则确保了数字世界“此刻状态”的唯一可信性，杜绝了多方并发写入导致的脏数据。
 
-1. 创作者撤销 A 的绑定。A 从 `active` 走到 `revoked`，不再持有写权威。
-2. 创作者准入 B。B 的绑定从 `(new)` 走到 `active`，B 开始持有写权威。
-3. 中间没有 A、B 都能写的重叠窗口。换绑不是静默转交。
-
-为什么这么严？因为一个世界对「此刻为真的」只允许一份规范化真相。如果两个 extension-app 同时写，两份不同真相会互相覆盖。平台让转交是显式的。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

@@ -1,30 +1,26 @@
-# Integrations
+# External Integrations and Service Operations
 
-Use `client.integration` on the host-bound App client to discover and invoke admitted external-service or Nimi App operations. An integration operation is a service action, not an AI CapabilityContract. Ordinary App calls do not need a LocalAgent or Conversation.
+Through the `client.integration` API in the SDK, Nimi applications can discover and execute authorized operations provided by external services (such as chat bots, developer tooling, or automated services) as well as peer Nimi Apps. Integration operations are deterministic service actions distinct from open-ended generative AI, providing efficient, structured execution.
 
-## Connect and Authorize
+## Connection Setup and Scoped Grants
 
-Home's Integrations workspace manages connections, user choices, and invocation history. A connection identifies the selected external account and its execution and credential-custody location. Runtime owns standing permission for the exact Nimi account, consumer App subject, operations, and target.
+Users manage third-party service connections and authorization permissions centrally in Nimi Home under "Integrations":
 
-Discovery, installing a source, an App Access declaration, or a Skill does not grant invocation permission. The consumer cannot approve itself. Credential setup uses the trusted management flow and write-only secrets; safe target/configuration projections do not return credentials.
+- **Account Linkage & Credential Storage**: Link external service accounts (such as Telegram Bots, Lark applications, or MCP servers). Secrets and access tokens are managed securely in protected local storage by Runtime; the UI only displays sanitized connection metadata.
+- **Standing Permissions**: Standing permissions binding the app subject, target, and actions must be granted in Nimi Home under "Integrations". When an invocation lacks required permissions, Runtime returns `INTEGRATION_PERMISSION_REQUIRED`, and the application guides the user to grant permission in the management interface.
+- **Supported Standards**: Supports Model Context Protocol (MCP) servers alongside messaging platform adapters. Operational capabilities depend on the declared JSON Schema of the integration.
 
-Current typed connection forms include MCP, Telegram, Weixin, Feishu, official QQ, and OneBot v11. Actual availability depends on the implemented adapter, selected account/protocol, and exact operation combination. A descriptor alone does not establish executable support; file and media support must be checked for the selected platform and recipient.
+## Standard Invocation Workflow
 
-## Invoke and Observe
+1. **Discovery**: The application calls `client.integration.listCatalog()` or `client.integration.listConnections()` to inspect available integration connectors, connection instances, and supported actions.
+2. **Execution**: Dispatches `client.integration.invoke()` with the target identifier, action name, and validated arguments.
+3. **Observation**: Tracks execution using `getCall`, handling terminal statuses (`completed`, `failed`, `canceled`, or `unconfirmed`).
+4. **Integration**: Incorporates the structured result into the app's internal workflow.
 
-1. Discover the target and its described operations through the protected client.
-2. Have the user configure the connection and standing permission through the management flow.
-3. Call `invoke` with the admitted target, operation, and schema-valid parameters.
-4. Retain the returned call identity and observe it with `getCall` or `listCalls`; handle `accepted`, `completed`, `failed`, `canceled`, and `unconfirmed` distinctly.
-5. Adopt the result into the App's own project workflow.
+## Error Handling and Idempotency
 
-Cancellation requests a stop; it does not promise rollback of an external side effect. Native messaging writes do not silently retry. Provider acceptance is not recipient delivery or read confirmation, and an unconfirmed result is not a safe instruction to resend.
-
-## App Providers and Skills
-
-An App can expose admitted operation descriptors and actual handlers through the provider interface. Runtime derives provider identity and handler lifetime from its exact protected Host. A Skill explains how to use an operation but creates no handler or permission.
-
-Runtime owns bounded invocation and authorization facts. The consumer App owns goals, plans, waiting, business completion, and recovery. Restoring a technical session does not resume or replay business tasks. The optional delegated suggestion/firewall path is separate and is not a prerequisite for ordinary Integration calls.
+- **External Side Effects**: When dispatching actions with external side effects (such as outbound chat messages), check call status rather than issuing blind retries upon network timeout to avoid duplicated messages.
+- **Graceful Failure**: If a remote integration service is unreachable or credentials have expired, Runtime returns actionable diagnostics guiding the user to re-link or verify network connectivity.
 
 ## Source Basis
 

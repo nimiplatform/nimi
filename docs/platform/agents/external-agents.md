@@ -1,23 +1,14 @@
-# External Participation
+# External Agent & Ecosystem Participation
 
-External agents and external action integrations are not part of today's
-LocalAgent core. Their absence holds nothing back: local AI, LocalAgent
-conversations, Memory, voice, SDK use, Nimi Home, Avatar, and
-ordinary App capability execution all work without them.
+External agents and third-party action integrations do not form part of the core LocalAgent execution engine today. Their absence does not constrain the system: local AI inference, LocalAgent conversations, long-term memory retrieval, speech synthesis, SDK interfaces, Nimi Home, Avatar rendering, and standard application capability workflows all function completely independently.
 
-If an external integration joins in the future, it joins on Nimi's terms: as
-an outside security principal with explicit limits, or as a bounded
-participant view. It would not become a Character, a LocalAgent, the owner of
-either, or a Conversation owner, and it would not create a new platform-wide
-Agent concept.
+If external ecosystem integrations are admitted in future releases, they adhere strictly to Nimi's core security invariants:
+- External entities integrate either as an outside security principal with explicit scope boundaries, or as a read-only participant view.
+- External integrations never become Character assets, LocalAgent instances, or owners of either entity, and they cannot usurp conversation lifecycles or introduce redundant platform-wide `Agent` abstractions.
 
-External input must come in through the explicit, typed Runtime and SDK
-boundary. Provider-native payloads, tool schemas, transport credentials, and
-external execution state do not become public product facts just because some
-screen can display them.
+All external inputs must cross through explicit, typed Runtime and SDK boundaries. Provider-native payloads, proprietary tool schemas, transport security tokens, and external execution logs do not become authoritative platform facts merely because a UI client is capable of rendering them.
 
-No current App should need an external action plane for basic LocalAgent
-operation.
+Standard Nimi application development and execution do not require an external action execution plane.
 
 ## Source Basis
 

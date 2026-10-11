@@ -1,38 +1,29 @@
-# Multimodal Capabilities
+# Multimodal Capabilities and Asset Custody
 
-Nimi exposes typed capability requests and complete typed or owned-artifact results for admitted image, video, audio, speech, music, and vision operations. Support depends on the exact configured implementation, features, and execution mode; it is not implied by a provider family or installed model.
+Nimi provides unified, type-safe APIs and lifecycle custody for image generation, video rendering, speech synthesis, music composition, and visual reasoning. Capabilities adapt dynamically based on local loaded models and configured cloud connectors.
 
-## Request Inputs
+## Request and Input Conventions
 
-Use the protected App client's operation-specific request shape. Supply content, admitted resource references, and supported parameters. Do not inject provider context, credentials, endpoints, a Local Loadout, or a request-time routing override.
+When dispatching multimodal requests, use standard SDK client interfaces:
 
-Resource input rules differ by operation. For example, media attached to text generation uses the admitted content-part and owned-artifact contract; a speech Job has its own bytes/URI, MIME, duration, and feature limits. Use the typed API and Runtime-issued support facts rather than converting every media input into a generic URL.
+- **Clean Inputs**: Pass structured prompt text, media byte buffers, or secured asset references without embedding vendor-specific proprietary headers in application logic.
+- **Media Adapters**: Tasks accept tailored multimedia payloads conforming to specific operation contracts. For example, text and vision turns accept remote HTTP/HTTPS image URLs or uploaded artifact references (`artifact-ref` obtained via the SDK artifact upload API), while operations such as vision-locate require an `imageArtifactId`; voice cloning tasks accept reference audio buffers subject to duration and format constraints. Direct `file://` URIs are not accepted for local image inputs.
 
-## Asynchronous Results
+## Asynchronous Outcomes and Structured Data
 
-Submit once and retain the original Job identity. Repeated Get observes and may reconcile a native asynchronous task; subscription events are optional hints. A completed Job requires the entire validated result, including all required artifacts or typed fields. Provider-private task phases do not become a second public state machine.
+Multimodal operations typically run as asynchronous scenario jobs:
 
-Some outputs are typed values rather than artifacts: text annotation, transcription, and vision locations have their own result shapes. Voice creation returns its VoiceAsset and VoiceReference through complete terminal Get. A successful empty result, such as no locations, is distinct from a missing required result.
+- **Managed Artifacts**: Generated images, video clips, and audio files are held in managed custody by Runtime. Applications download or stream assets using opaque handles (e.g., `voiceAssetId` or artifact IDs).
+- **Structured Values**: Operations such as visual grounding, speech transcription, or OCR return structured JSON records (e.g., bounding boxes, aligned timestamps, categorized labels) for immediate programmatic consumption.
 
-## Artifact Custody
+## Asset Custody and Retention
 
-Runtime owns an accepted artifact's bytes, integrity, MIME, audience, lifetime, and authorized reads. An artifact ID is an opaque identity scoped to its Runtime, not a public download URL or proof of access. Read through the admitted App artifact operation and preserve the returned metadata.
-
-Adopt all results needed by the project into App storage before Runtime's bounded retention expires. Saving only a Job or artifact ID is not durable project storage. Music editing, subtitle assembly, chunking, listening review, and business completion remain App responsibilities.
-
-## Failures and Cancellation
-
-Invalid input, unavailable features, incomplete output, failed acquisition, or lost authority returns a typed failure or observation issue. Do not fabricate an artifact, silently drop one member of a required output set, switch implementations, or resubmit generation to recover a result. Explicit Cancel and observation detachment have different effects; preserve submission and stop outcomes.
-
-See [Job observation](/runtime/streaming), [AIConfig](/sdk/ai-config-surface), and the [SDK capability notes](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/README.md).
+- **Integrity & Access Control**: Managed media assets are stored with verified MIME types, SHA-256 integrity checksums, and strict inter-app isolation.
+- **Persistence Best Practices**: Runtime maintains transient caching policies for generated artifacts. If your app requires long-term persistence for projects, copy finalized assets into app-local storage upon job completion.
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
-- [`config/runtime-voice-enums.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-voice-enums.yaml)
-- [`config/runtime-tts-provider-capability-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-tts-provider-capability-matrix.yaml)
-
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
-
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)

@@ -1,71 +1,39 @@
-# 运行时配置
+# Runtime 运行时配置规范
 
-> 状态：当前生效。Active authority 位于
-> `.nimi/spec/runtime/protected-session.authority.yaml` 与
-> `.nimi/spec/runtime/service-operations.authority.yaml`。
+Runtime 的基础配置与产品控制（Product Control）遵循严格的分层设计：
 
-Runtime 配置与 Product Control 是两个不同平面：
+- `~/.nimi/nimi.json` 是产品级全局控制文件，定义全局数据根目录 `dataRoot.path` 的权威路径。
+- 系统安全区（例如 Windows 上的 `%ProgramData%\Nimi\Runtime\Protected`）保存服务内部私有的状态、密钥与会话证据。
+- 受保护的 Runtime 服务严格依循 Product Control 中选定的路径，保证本地数据的一致性与安全性。
 
-- `~/.nimi/nimi.json` 是固定的 Product Control 记录，也是
-  `dataRoot.path` 唯一的产品发现 authority。
-- Windows 上的 `%ProgramData%\Nimi\Runtime\Protected` 保存服务主体私有的
-  状态、配置、凭据、会话、审计和 data-root 验证证据。
-- Protected Runtime 只能保存与 Product Control 选择绑定的派生状态，不能选择
-  或覆盖 `dataRoot.path`；两者不一致时必须 fail-closed 并进入 repair。
+## 生产环境数据目录组织
 
-## 生产环境
-
-生产 Runtime 不发现用户可写的 portable config。其私有配置位置由已安装的
-protected service 固定，不允许用户配置，也不作为普通物理路径对外展示。
-
-数据平面始终从 Product Control 读取，并只派生：
+在标准生产环境中，所有本地核心数据均统一组织在由 Product Control 声明的数据根目录下：
 
 ```text
-<dataRoot>/models
-<dataRoot>/dependencies
-<dataRoot>/environments
-<dataRoot>/apps
-<dataRoot>/accounts
-<dataRoot>/logs
-<dataRoot>/audit
+<dataRoot>/models         # 本地 AI 模型权重文件与 GGUF 存储
+<dataRoot>/dependencies   # 本地推理驱动及加速库依赖
+<dataRoot>/environments   # 运行时受控执行环境
+<dataRoot>/apps           # 安装的本地 Nimi App 程序包
+<dataRoot>/accounts       # 本地用户账户与会话数据
+<dataRoot>/logs           # 系统滚动服务日志
+<dataRoot>/audit          # 本地安全审计账本（SQLite）
 ```
 
-环境变量、argv、Desktop 状态、测试和 protected Runtime 状态都不能提供另一份
-产品 data root。
+这种集中式管理避免了文件散落在未知目录，便于用户进行统一备份与磁盘空间管理。
 
-## 显式 nonproduction portable 模式
+## 非生产可移植模式（Nonproduction Portable Mode）
 
-`NIMI_RUNTIME_CONFIG_PATH` 仅是显式 nonproduction portable 配置入口，不存在
-默认 portable config 路径。`~/.nimi/runtime/config.json` 与
-`~/.nimi/config.json` 均已退役，不是发现或迁移输入。
+在自动化测试或开发者隔离调试场景中，可通过指定环境变量 `NIMI_RUNTIME_CONFIG_PATH` 指向一个自定义的配置文件：
+- **格式严格校验**：自定义配置文件必须遵循最新的官方配置 Schema；
+- **凭据隔离**：可移植配置仅用于覆盖本地端口与非敏感调试参数，第三方 API 凭据仍由受保护的本地存储安全保管。
 
-Portable 配置：
+## 配置的原子性写入与生效周期
 
-- 必须使用当前 schema，内容无效时 fail-closed；
-- 可以配置已准入的非生产 Runtime 行为；
-- 不得包含 `dataRootRef` 或任何 `managedRoots` 值；
-- 不得成为 Product Control 或生产 Runtime 私有状态；
-- 只有显式提供时，`nimi doctor` 或 `nimi version` 才能以
-  nonproduction 标签报告该入口。
+- **原子更新**：配置文件的修改均采用原子替换写入机制，避免因并发写入或异常断电产生文件损坏；
+- **生效周期**：配置参数在服务启动时加载校验；配置调整在守护进程重启后生效。
 
-portable configuration 不拥有 provider credential。CLI 对 `providers.*` 的
-mutation 会 fail closed；生产凭据和配置继续由 protected Connector service 保管。
-
-## 验证与写入
-
-配置验证 fail-closed，不接受部分成功。服务私有写入与显式 portable 写入均使用
-原子替换。每个字段的 reload 行为必须单独声明；未声明的字段不得被推断为可热重载。
-
-## Runtime 配置不做的事情
-
-- 不定位或选择 `dataRoot.path`。
-- 不从 ProgramData 读取 Product Control。
-- 不默认读取 `~/.nimi/runtime` 下的配置文件。
-- 不通过 `doctor`、`version`、Desktop、SDK 或 app surface 暴露生产私有配置路径。
-- 不允许 portable config 覆盖 Product Control 或 protected Runtime 的派生
-  data-root 验证状态。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)

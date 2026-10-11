@@ -1,120 +1,55 @@
-# 世界状态
+# 世界状态与原子提交机制（World State）
 
-> 状态：今天已在线上运行。Realm `R-WSTATE-*` 保存着所有世界共享的当下状态。
+在 Nimi 的世界架构中，世界状态（World State）代表着该数字世界在**当下的权威快照**。它精确解答了系统核心问题：“这个世界现在是什么样？”。所有对世界状态的修改，均通过标准化的提交信封（Commit Envelope）由 Realm 集中进行版本控制与原子性持久化。
 
-世界状态是一个世界的**持久共享当下**。它只回答一个问题："这个世界现在是什么样？"每一次变更都以一份显式的 commit envelope 提交；真相和历史分别守在状态的两侧。
+关于世界当前状态（State）与历史长河（History）的深层设计差异，请参阅[状态与历史对比](/zh/platform/worlds/state-vs-history)。
 
-关于状态与历史的逐项对照（每种 `effectClass` 下两个表面各自何时更新），见[状态与历史](/zh/platform/worlds/state-vs-history)。
+## 世界状态的核心特征
 
-## 世界状态是什么
+| 属性维度 | 规格定义 | 架构价值 |
+| --- | --- | --- |
+| **存储体系** | Realm 分布式状态树（`R-WSTATE-*`） | 保证高可用与毫秒级快照读取 |
+| **数据形态** | 当前时刻的世界最新结构化快照 | 读取即代表最新状态，无需从历史事件中重新计算回放 |
+| **变更方式** | 严格通过提交信封（Commit Envelope）原子写入 | 保证状态变更可追溯、防并发竞争与数据冲突 |
+| **权威归属** | Realm 核心服务 | 全网统一的单一可信源 |
 
-| 属性 | 值 |
-| --- | --- |
-| 存储 | Realm `R-WSTATE-*` |
-| 形状 | 世界的当前快照 |
-| 变更 | 通过准入的 commit envelope |
-| 权威 | Realm |
-| 读取模式 | 单状态读取或 projection |
+## 提交信封（Commit Envelope）字段规范
 
-状态不是缓存，它就是规范当下。读状态的应用拿到的是当下真相；这次读取不需要从历史里重建。
+每一次尝试修改世界状态的操作，均需封装为标准的结构化信封：
 
-## Commit Envelope
+| 关键字段 | 字段说明 | 业务约束 |
+| --- | --- | --- |
+| `worldId` | 发生变更的目标世界 ID | 必须为已在 Realm 注册的有效世界 |
+| `appId` | 发起该次变更的应用 ID | 应用必须已获得对该世界的写入授权 |
+| `sessionId` | 当前执行者的会话上下文 | 追踪变更的会话血缘 |
+| `effectClass` | 变更影响分类 | 声明该操作仅修改状态，还是同步追加历史日志 |
+| `scope` | 状态变更的作用范围 | `WORLD`（世界级）、`ENTITY`（单个实体）、`RELATION`（实体间关系） |
+| `schemaId` / `schemaVersion` | 数据结构与业务 Schema 版本 | 保证状态数据符合预定义的数据结构约束 |
+| `actorRefs` | 触发该动作的主体引用 | 记录具体哪个角色或用户发起了变更 |
+| `reason` | 状态变更的业务原因说明 | 人类可读的操作摘要，便于后续审计与复盘 |
+| `evidenceRefs` | 支撑该次变更的证据引用 | 关联相关的会话消息或动作凭证 |
 
-每一次状态变更都绑定到一份显式 commit envelope。
+创作者工具与普通扩展应用均使用同一套提交信封模型，保证了权限控制的公平与透明。
 
-| 字段 | 用途 |
-| --- | --- |
-| `worldId` | 哪个世界要变更 |
-| `appId` | 哪个应用在 commit |
-| `sessionId` | 会话血缘 |
-| `effectClass` | `NONE` / `STATE_ONLY` / `STATE_AND_HISTORY` |
-| `scope` | `WORLD` / `ENTITY` / `RELATION` |
-| `schemaId` | 这次 commit 遵循哪份 schema |
-| `schemaVersion` | schema 的哪一版 |
-| `actorRefs` | 谁动手 |
-| `reason` | 原因 |
-| `evidenceRefs` | 支撑证据 |
+## 变更影响分类（Effect Class）
 
-创作者工具和获授权的世界连接应用使用**同一份 commit envelope 模型**。创作者工具没有特权捷径。
+- `STATE_AND_HISTORY`（默认常见模式）：状态更新生效的同时，在世界历史日志中自动追加一条不可篡改的历史记录。
+- `STATE_ONLY`：仅更新即时状态，不写入永久历史（通常用于短暂的位置微调、瞬时状态标记等无需永久保留的场景）。
+- `NONE`（试运行模式）：用于变更前的前置校验与 Dry-run 试探，不产生任何真实状态变更。
 
-## Effect Class
+## 典型操作场景：应用发起状态更新
 
-`effectClass` 控制本次 commit 影响什么：
+1. **构建提交信封**：应用根据当前业务动作组装信封内容（例如玩家角色进入某栋建筑）；
+2. **提交至 Realm**：应用通过 SDK 发送包含签名的提交请求；
+3. **安全校验与冲突检测**：Realm 校验应用写入权限、Schema 版本兼容性及并发乐观锁版本；
+4. **状态落地与广播**：变更原子化写入状态库，并向该世界内的其他客户端广播增量状态事件；
+5. **审计流水归档**：操作血缘自动入账，便于后续全景回溯。
 
-| 值 | 含义 |
-| --- | --- |
-| `NONE` | 不变更状态；这是 dry run / 探针 / 观察 |
-| `STATE_ONLY` | 变更状态但不追加历史 |
-| `STATE_AND_HISTORY` | 变更状态并追加历史 |
+## 相关文档
 
-绝大多数真实变更是 `STATE_AND_HISTORY`。`STATE_ONLY` 留给特定情形（瞬时调整、某些策略性操作）。`NONE` 留给 dry-run 和观察。
+- [世界历史与仅追加日志](/zh/realm/world-history)
 
-## Scope
-
-`scope` 控制变更切入到世界的哪一片：
-
-| 值 | 目标 |
-| --- | --- |
-| `WORLD` | 世界级状态 |
-| `ENTITY` | 世界中某个具体实体 |
-| `RELATION` | 实体之间的某条关系 |
-
-每次 commit 必须声明 scope；scope 含糊的 commit 会被拒收。
-
-## 读者场景：扩展应用发起的状态变更
-
-某个准入的扩展应用要修改一个参与者在世界中的位置。
-
-1. **构造 envelope**。应用填写：
-   - `worldId`：本世界
-   - `appId`：本扩展应用
-   - `sessionId`：当前活跃会话
-   - `effectClass`：`STATE_AND_HISTORY`
-   - `scope`：`ENTITY`
-   - `schemaId` / `schemaVersion`：位置更新 schema
-   - `actorRefs`：被移动的参与者
-   - `reason`："参与者进入建筑"
-   - `evidenceRefs`：支撑证据（例如导致这次移动的参与者动作）
-2. **提交**。Realm 收到 commit。
-3. **校验**。Realm 检查应用-世界绑定是否生效、schema 是否准入、scope 是否合理、证据是否有效。
-4. **应用**。状态更新；历史追加。
-5. **审计**。commit 血缘入账。
-
-Envelope 是状态变更可审计的关键。每一次变更都可以重建：谁、何时、为何、用了什么证据。
-
-## 读者场景：读取当前状态
-
-某应用要渲染一个世界的当前状态。
-
-1. **查询状态**。应用通过准入的 Realm 读取，按相关 scope 查世界状态。
-2. **Realm 返回当前状态**。单快照读取。
-3. **应用渲染**。应用拿到当前状态。
-
-应用不需要从历史重建状态。状态就是规范当下，针对读取做了优化。
-
-## 读者场景：跨多条基础协议的变更
-
-一次动作引发社交、经济、存在感三方面的后果——比如在一个公共 scene 里转移一件物品。
-
-1. **多次 commit**。平台可能用多次 commit 来原子化地捕获后果：
-   - 物品所有权转移（`scope: RELATION`、`effectClass: STATE_AND_HISTORY`）
-   - 社交互动事件（相关社交状态）
-   - 经济事件（已准入的货币或收入事件）
-   - 存在感记录（旁观者）
-2. **每条 commit 自带 envelope**。各自携带强类型 envelope。
-3. **历史各记一笔**。每条 commit 都在历史中追加一条记录。
-
-这次动作是一个产品时刻；底层契约把后果分发到正确的表面，每一份都带正确的强类型 envelope。
-
-## 应用不能做的事
-
-| 禁止 | 原因 |
-| --- | --- |
-| 不带 envelope 改状态 | 可审计性需要 envelope |
-| 用自定义的 `schemaId` | Schema 在 kernel 准入 |
-| 不声明 scope 或 scope 含糊 | scope 是声明式的；含糊会被拒收 |
-| 跳过证据引用 | 可追溯性要求带证据 |
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

@@ -2,7 +2,7 @@
 
 Profile: `standalone`
 
-Nimi Lab is the full-capability local-development and incubation App. `nimi.app.yaml` carries App identity and a raw `app_access` declaration used by the supervised development path. Development commands do not constitute product acceptance.
+Nimi Lab is the incubation and capability testing application within the Nimi ecosystem. It serves as a comprehensive testbed for developers to exercise, benchmark, and validate new SDK capabilities, AI models, and multimodal pipelines under the supervised Electron development environment.
 
 ## Development
 
@@ -14,21 +14,16 @@ pnpm run check
 pnpm run build
 ```
 
-`init` runs the pinned local `nimicoding sync --apply` projection and writes app-scaffold lock state. It is explicit after install; package installation does not mutate `.nimi/**` by itself.
+- `init`: Runs project-local code generation and synchronizes app-scaffold lock state.
+- `dev`: Launches the Electron development host and Vite dev server under Desktop supervision (equivalent to `pnpm dev:electron`).
+- `check`: Runs the complete test and schema validation suite.
+- `build`: Produces the standalone production build.
 
-`dev` uses the same official launcher as every generated local app and selects
-Electron for the current local-development path. `pnpm dev:electron` is the
-explicit equivalent. The Nimi desktop host owns project registration, the dev
-server, and the native host. Renderer HMR and host-controlled native rebuilds reuse
-an unchanged registration; source and declaration changes advance their own
-independent generations.
+### App Permissions and Access Boundaries
 
-The Lab manifest declares the raw App Access domains `realm.data`, `runtime.consume`, `agent.local`, `agent.configure`, and `app.activity`. Unknown valid declaration items remain preserved but inert. Registration, source generation, declaration generation, identity-session posture, account posture, and protected App Access availability are independent facts. During IMP1 every protected operation returns typed `SDK_LOCAL_APP_ACCESS_UNAVAILABLE` before touching a shell carrier; the App does not prompt, request, or fabricate access. No Runtime credential, registration handle, Registered App Subject, or protected session material enters the renderer or terminal. Paths not run in the current development environment remain `NOT-VERIFIED`.
-
-Lab uses its repository-owned `check` (`test` plus `validate`) and `build`
-commands for the non-public workspace validation topology. It does not retain
-the retired public `doctor` or `update` commands and does not substitute public
-standalone `nimi-app sync/check` for workspace validation.
+The Lab manifest requests the standard App Access scopes: `realm.data`, `runtime.consume`, `agent.local`, `agent.configure`, and `app.activity`. Operations adhere strictly to protected channel security contracts:
+- Sensitive runtime credentials, system registration tokens, and private session material are never exposed to renderer processes or command-line logs.
+- Unimplemented or unauthorized operations return structured error codes rather than silently failing or bypassing security boundaries.
 
 World Tour submits a `world.generate` Scenario Job through the current App
 AIConfig, adopts the returned world archive as an App asset, writes its small
@@ -78,12 +73,4 @@ additional documents again before a new run. Decisions records the exact spec
 it sent as its input under the same limit, and its answers; answers too large
 for the shared history leave only their summary in the record.
 
-When a third-party App adaptation adds a canonical capability or an important
-behavior to an existing contract, the same task adds the Lab entry, a focused
-regression for the new mechanism, and the real Desktop-supervised Lab
-acceptance path, all through the existing composition, history and tests. If
-Lab is not a suitable place for it, record the specific lifecycle or input
-reason instead. Lab coverage never changes App Tools scaffold admission, which
-stays a separate decision.
-
-Public distribution, listing, release descriptors, ordinary visibility, install truth, and protected ingress are deferred platform contracts. Nimi Lab neither generates nor validates their inputs or outcomes.
+When adding a new canonical AI capability or adapting a third-party App workflow to Nimi, the change must include a corresponding Lab entry, a focused regression test, and real Desktop-supervised Lab acceptance in the same task (or document the specific lifecycle or input reason if Lab cannot host it). Lab entries verify capability behavior under supervised execution; public SDK surfaces and App Tools scaffold admission remain governed by their respective domain owners.

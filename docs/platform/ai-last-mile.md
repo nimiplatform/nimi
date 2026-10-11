@@ -1,37 +1,30 @@
-# AI Last Mile
+# AI Execution Last Mile
 
-The current AI last mile is the path from authorized user intent to Runtime
-LocalAgent execution and back to a typed product projection.
+The AI last mile represents the end-to-end execution path: from an authorized user intent, through Runtime LocalAgent processing, returning a structured read-only projection to the consuming application.
 
-Runtime owns LocalAgent Conversation, Memory mediation, Local
-and Cloud AI consumption, implementation selection, execution admission,
-budget, credentials, and App authorization. SDK exposes the bounded public access surface. Apps own
-their product interaction and rendering, not execution truth.
+Architectural ownership across this boundary is cleanly separated:
+- **Runtime** owns LocalAgent conversation lifecycles, memory routing, local and cloud AI scheduling, driver selection, safety validation, token budgeting, and application authorization.
+- **SDK** exposes the bounded, type-safe public interface.
+- **Apps** own their UI interactions and presentation, without managing underlying execution state or private credentials.
 
-## Core path
+## Core Execution Pipeline
 
-1. A user or App submits typed intent through the SDK.
-2. Runtime derives account, App identity, authorization, and LocalAgent access
-   from the active session.
-3. Runtime evaluates capability intent, authorization, Quota, and Budget, then
-   captures the machine-selected Local Loadout or exact committed Cloud inputs at Job submission.
-4. Runtime validates execution output before committing Conversation or other
-   LocalAgent truth.
-5. The consumer receives only the authorized typed projection.
+1. **Intent Submission**: A user or application submits a typed intent via the SDK.
+2. **Session Verification**: Runtime derives the user account, application identity, authorization scopes, and target LocalAgent permissions from the active secure session.
+3. **Capability Evaluation & Config Binding**: Runtime validates the requested capability against quotas and budgets, binding the machine-selected Local Loadout or cloud provider parameters upon job creation.
+4. **Validation & State Commit**: Runtime validates model outputs against structural and safety constraints before committing conversation history or agent state.
+5. **Projection Return**: The caller receives only the authorized, structured view to update its UI.
 
-Provider calls, raw parser output, credentials, Runtime proof, and private
-context do not cross into App-owned state.
+Provider API keys, raw parser logs, internal Runtime tokens, and private agent contexts never leak into application-owned state.
 
-## Optional external action
+## Optional External Actions
 
-An external action plane may be admitted separately, but it is not part of the
-core path above. Its absence or failure must not block ordinary LocalAgent
-Conversation and Memory mediation, voice, or ordinary AI execution.
+External delegated actions can be integrated as an optional capability plane. However, they are not a prerequisite for the core conversation pipeline. The absence or failure of external tools never blocks core LocalAgent dialogue, memory recall, voice interaction, or standard AI generation.
 
-See [Delegated Capability](/runtime/delegated-capability) for that isolated
-boundary.
+For details on this security boundary, see [Delegated Capability](/runtime/delegated-capability).
 
-Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
+> [!NOTE]
+> Long-term memory is managed by Cognition and isolated per agent; Runtime mediates authorized recall and updates. Knowledge V1 currently has no active public client interface.
 
 ## Source Basis
 

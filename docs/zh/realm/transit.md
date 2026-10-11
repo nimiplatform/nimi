@@ -1,111 +1,28 @@
-# Transit
+# Transit 跨世界协议
 
-Transit 是参与者在世界之间移动时使用的**单跳连续性协议**。创作者世界之间不能直接对接 transit，每一次穿越都要经过 OASIS。这不是物流上的繁琐设计，是一份连续性保证。
+Transit 定义参与者在世界之间移动时的准入、身份连续性与结果，由 Realm 拥有。平台契约以 OASIS 为中枢组织跨世界路径：源世界 → OASIS → 目标世界。
 
-## 单跳经过 OASIS
+## 协议中的职责
 
-| 属性 | 值 |
-| --- | --- |
-| 拓扑 | hub-and-spoke；OASIS 是 hub |
-| 直接 creator-to-creator transit | 不允许 |
-| Transit 路径 | 源世界 → OASIS → 目标世界 |
-| 身份 | 整段 transit 中保持 |
-| 真相变更 | transit 过程中没有 |
-| 审计 | 每一跳都入账 |
+- Realm 解析参与者身份、源世界和目标世界，并验证对应的准入条件。
+- OASIS 是协议规定的中枢与回归点，不能由 App 私有世界替代。
+- 目标世界的局部规则不创建新的全局身份，也不授予 App 越过 Realm 校验的权限。
+- 转场结果与失败原因以 Realm 的正式结果为准，不能从本地路由或缓存推断成功。
 
-为什么是 hub-and-spoke 而不是点对点？两条设计性质依赖它：
+## 当前 Home 世界入口
 
-| 性质 | hub-and-spoke 如何支撑 |
-| --- | --- |
-| 跨世界身份连续 | OASIS 是规范锚；身份在每一跳之间锚住不动 |
-| 默认归位点 | 目标世界不可达时，参与者回到 OASIS |
-| 不可替换性 | OASIS 是规范真相的一部分，没有创作者世界能取代它 |
-| 边界化的对接策略 | N 条 transit 策略（每个世界 ↔ OASIS）而不是 N×N |
+Home 的探索与世界详情用于阅读公开设定、场景、关系和角色档案，以及关注世界、查看角色源、添加伙伴或打开已有伙伴的对话。当前入口不提交 Transit 请求，不会因点击世界分区链接自动经 OASIS 漫游，也不会切换整个 Home 的活跃世界上下文。
 
-## 身份保持
+需要完成当前发现任务时，按照[探索世界与角色源](/zh/desktop/explore-and-worlds)的步骤操作。不要把协议流程当作当前 Home 的“进入世界”按钮说明。
 
-Transit 不会改写参与者的规范身份。变化的是**上下文**——他们处在哪个世界。不变的是**身份**——他们是谁。
+## 相关文档
 
-| transit 中保持不变 | transit 中会变 |
-| --- | --- |
-| 身份（规范层） | 当前世界上下文 |
-| 社交关系 | 世界内部的本地社交规则 |
-| 经济关系 | 世界内部的经济语义 |
-| Avatar 呈现配置 | 目标世界对载体的接受策略 |
+- [OASIS](/zh/platform/worlds/oasis)
+- [六大基础协议](/zh/reference/six-primitives)
 
-Memory 仍由 Cognition 按 Agent 私有隔离；进入另一个世界不会创建共享记忆库。Knowledge V1 暂无活动路径。
-
-## 读者场景：在两个世界之间移动
-
-某用户要把角色从世界 A 移到世界 B。
-
-1. **发起 transit**。用户启动迁移，准入的 transit 基础协议生效。
-2. **hub-and-spoke 路由**。Realm 把这次 transit 路由为：世界 A → OASIS → 世界 B。
-3. **在 OASIS 中**。身份锚定在规范真相上；参与者位于 hub。
-4. **进入世界 B**。Realm 按世界 B 的准入策略放行。
-5. **抵达世界 B**。参与者已在世界 B，规范身份、社交图、钱包均保持。
-
-整段移动里，**身份不变**。参与者不是世界 B 里的"新实体"，而是同一个规范实体。
-
-## 读者场景：目标世界不可达
-
-某用户发起 transit，但目标世界离线。
-
-1. **发起**。用户开始向目标世界 transit。
-2. **Realm 检查**。目标世界处于 `unavailable`（创作者下线，或在维护）。
-3. **默认归位**。参与者按默认回到 OASIS。不会被卡死。
-4. **用户选择**。在 OASIS，用户可以挑另一个世界进入，也可以等目标世界恢复。
-
-如果没有 OASIS 这个默认归位点，"穿越中世界宕机"就是一个要单独处理的错误。有了 OASIS，它是一次平稳的回退。
-
-## 读者场景：被禁止的直连 transit
-
-某创作者应用想直接把参与者从世界 A 送到世界 B，绕开 OASIS。
-
-1. **提交 transit**。应用尝试直连。
-2. **Realm 校验**。直连的 creator-to-creator transit 不准入。
-3. **拒收**。fail-closed；强类型错误。
-4. **没有捷径**。应用没法构造"绕路方案"，协议要求 OASIS 在路径上。
-
-正因为禁止了直连，连续性保证才是真实的。创作者无权放弃 hub。
-
-## 跨域触点
-
-Transit 同时触及多条基础协议。一次 transit 必须满足：
-
-| 基础协议 | 要求 |
-| --- | --- |
-| Transit | 该次穿越被准入 |
-| Social | 参与者的社交关系在目标世界被准入 |
-| Economy | 经济关系可转移 / 可被接受 |
-| Context | 情境语义在两个世界之间保持 |
-| Presence | 在目标世界产生新的存在记录 |
-
-平台的六项基础协议彼此约束。Transit 是"多条基础协议在同一动作上汇合"的典型例子。
-
-## 各世界的 transit 策略
-
-每个世界都声明自己准入的 transit 策略：哪些参与者可以进入、需要哪些社交 / 经济 / 上下文前置、离开时本地状态如何处理。
-
-| 元素 | 拥有方 |
-| --- | --- |
-| 源世界的 transit 策略 | 源世界的创作者 |
-| OASIS hub 策略 | 平台 |
-| 目标世界的准入策略 | 目标世界的创作者 |
-
-一次 transit 必须同时满足三层策略。任意一层失败都 fail-closed。
-
-## Transit 不做的事
-
-| 关注点 | 不做的原因 |
-| --- | --- |
-| 改写规范身份 | 身份是 Realm 规范真相 |
-| 改写规范经济 | 经济关系是规范层数据 |
-| 跳过 OASIS | hub-and-spoke 是拓扑；没有捷径 |
-| 允许 N×N 点对点 transit | 设计上禁止 |
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-primitives.yaml)
+- [`apps/desktop/src/shell/renderer/features/world/world-detail.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/world/world-detail.tsx)
+- [`apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx)

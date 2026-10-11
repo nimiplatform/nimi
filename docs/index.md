@@ -4,30 +4,30 @@ layout: home
 hero:
   name: Nimi
   text: Developer Documentation
-  tagline: Build third-party Nimi Apps, connect AI capabilities through the SDK, and learn how to run and distribute your app.
+  tagline: Build modern Nimi Apps, seamlessly integrate on-device and cloud AI capabilities through the SDK, and explore cross-world continuity.
   actions:
     - theme: brand
       text: Create an App
       link: /start/create-an-app
     - theme: alt
-      text: SDK reference
+      text: SDK Reference
       link: /sdk/
 
 features:
-  - title: Set up and run
-    details: Check the development prerequisites, create your project, and start it through Nimi Home.
+  - title: Quick Start & Execution
+    details: Verify development prerequisites, scaffold a project, and launch your app in Nimi Home.
     link: /start/
-  - title: Connect AI capabilities
-    details: Use the public SDK, configure capability intent, and handle the result of a real call.
+  - title: Connect AI Capabilities
+    details: Use the strongly-typed SDK to declare capability preferences and execute on-device or cloud inference.
     link: /sdk/first-ai-call
-  - title: Troubleshoot integration
-    details: Find the next step when project checks, Runtime access, or an AI request fail.
+  - title: Troubleshooting & Diagnostics
+    details: Clear, step-by-step diagnostic workflows for project setup, Runtime access, and AI execution failures.
     link: /start/troubleshooting
 ---
 
-Start with [Create a Nimi App](/start/create-an-app), then connect the capability your app needs. The [SDK reference](/sdk/) and [Runtime documentation](/runtime/) explain the interfaces, configuration, and execution behavior in detail.
+Get started with [Create a Nimi App](/start/create-an-app), then connect the capabilities your application needs. The [SDK Reference](/sdk/) and [Runtime Architecture](/runtime/) provide comprehensive API specifications, configuration guides, and execution models.
 
-Looking to use Nimi rather than develop an app? Visit [nimi.ai](https://nimi.ai) and check the [current download status](https://nimi.ai/download). Nimi Home requires a Nimi account; you sign in through your browser.
+Looking to install and experience the Nimi desktop client directly? Visit [nimi.ai](https://nimi.ai) and check the [download page](https://nimi.ai/download). Nimi Home requires a Nimi account; sign-in is completed securely through your browser.
 
 ## Source Basis
 

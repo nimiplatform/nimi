@@ -1,169 +1,39 @@
-# Asset And Binding
+# Digital Assets and World Binding Architecture
 
-Realm keeps four ideas separate that most platforms mash together
-as "files": Resource, Asset, Bundle, and Binding. Keeping them
-separate is what lets one Resource appear in many places without
-becoming an Asset, and lets an Asset join a Bundle without giving
-up its own ownership.
+Within Nimi's digital world framework, content assets are structured across four well-defined conceptual tiers: **Resource**, **OwnableAsset**, **Bundle**, and **Binding**. Rather than treating everything as generic files, this modular design provides precise governance for ownership, composability, and monetization.
 
-## Resource
+## Four Core Asset Entities
 
-The lowest typed content carrier.
+### 1. Resource
+- **Concept**: Foundational content bytes (e.g., textures, 3D meshes, audio clips, narrative text files).
+- **Invariants**: Bound to content hashes and MIME types, but holds no ownership or authorship metadata, enabling safe deduplication and reuse across higher-level assets.
 
-| Property | Value |
-| --- | --- |
-| Types | `IMAGE`, `VIDEO`, `AUDIO`, `TEXT` |
-| Identity | Stable |
-| Storage | Realm-managed |
-| Delivery | Typed |
-| Status | Typed lifecycle (upload prep → finalize → delete) |
-| Implies ownership? | No |
+### 2. OwnableAsset
+- **Concept**: Standalone digital property with verified intellectual property provenance (e.g., an authored sword model, avatar skin, or musical score).
+- **Invariants**: Permanently records Owner, Author, and creation lineage; advances through standard lifecycle phases (`DRAFT → READY → ARCHIVED → DELETED`).
 
-A Resource is just typed bytes with an id and a type. It doesn't
-imply who owns it; it is not an asset by itself.
+### 3. Bundle
+- **Concept**: An ordered composite grouping of multiple `OwnableAssets` (e.g., an entire costume set bundling a hat, cloak, and boots).
+- **Invariants**: Encapsulates assets without merging them, preserving the independent authorship and ownership of each member asset.
 
-## OwnableAsset
+### 4. Binding
+- **Concept**: Semantic relationship attaching an asset to a host entity (e.g., "attaching a laser sword (`Asset`) to the weapon shop (`Scene`) in Cyber City (`World`)").
+- **Binding Kinds**:
+  - `PRESENTATION`: Mounted purely for visual decoration or ambience;
+  - `USE`: Usable as an interactive object within the scene;
+  - `IMPORT`: Linked as a structural dependency for world rules.
 
-An independently ownable formal object.
+## Strict Validity Binding Matrix
 
-| Property | Value |
-| --- | --- |
-| Types | `WORK` or `ITEM` |
-| Owner | Tracked |
-| Authorship | Tracked |
-| Lineage | Tracked |
-| Lifecycle | `DRAFT → READY → ARCHIVED → DELETED` |
-| Binding policy | Per-asset |
-| `previewResourceId` | Separate from `resourceRefs` |
+To prevent absurd asset configurations (e.g., mounting raw audio files as drivable vehicles), Realm enforces an explicit validation matrix:
+- Only permissible combinations of `[Object Type] × [Host Type] × [Binding Kind]` are admitted.
+- Unregistered or conflicting combinations fail closed, preserving world logic and visual coherence.
 
-An OwnableAsset is **distinct from a Resource**. An asset has
-ownership, authorship, and lineage in addition to whatever
-resources it references. The `previewResourceId` is a separate
-field for the preview image, kept apart from the asset's content
-resources.
+## Related Documentation
 
-## Bundle
-
-A formal composition unit — an ordered group of OwnableAsset
-references.
-
-| Property | Value |
-| --- | --- |
-| Identity | Stable |
-| Owner | Tracked |
-| Member ordering | Preserved |
-| Cover asset | Separate from member list |
-| Lifecycle | Ends at `ARCHIVED` (no `DELETED`) |
-
-A Bundle composes assets but does not absorb them. Each member
-asset retains its own ownership and authorship.
-
-Note: Bundle lifecycle ends at `ARCHIVED` — there is no `DELETED`
-state. A bundle that is no longer wanted is archived; the
-underlying assets remain ownable and reusable.
-
-## Binding
-
-The only durable object-to-host relation. This is the typed edge
-that says "this object is attached to this host in this way."
-
-| Property | Value |
-| --- | --- |
-| Object types | `RESOURCE` / `ASSET` / `BUNDLE` |
-| Host types | `WORLD` / `AGENT` / `SCENE` / `WORLD_EVENT` / `WORLDVIEW` |
-| Binding kinds | `PRESENTATION` / `USE` / `IMPORT` |
-| Legality | Matrix-governed; undeclared combinations rejected |
-
-A binding has three free axes (object type, host type, kind), but
-the **legality matrix admits only a subset** of combinations. An
-undeclared combination fails closed.
-
-This is what prevents "bind any asset to any host any way" sprawl.
-A creator who wants to attach a Resource as `IMPORT` to an Agent
-will discover whether that's an admitted legal combination.
-
-## Attachment
-
-A cross-surface display envelope only. Distinct from Binding.
-
-| Concept | Authority |
-| --- | --- |
-| Binding | Realm canonical truth |
-| Attachment | Cross-surface display envelope, not binding truth |
-
-An attachment lets surfaces show "look, this is associated" without
-implying a canonical binding. A binding is durable canonical truth;
-an attachment is presentation glue.
-
-## Reader Scenario: A Creator Publishes An Outfit
-
-A creator wants to publish an outfit asset.
-
-1. **Resources.** The creator uploads texture / mesh /
-   metadata as Resources (`IMAGE`, etc.).
-2. **OwnableAsset.** The creator creates an OwnableAsset of type
-   `WORK` (or `ITEM` depending on use). The asset references the
-   resources; ownership is the creator.
-3. **Lifecycle.** Asset moves `DRAFT → READY` once the creator
-   finalizes.
-4. **Optional: bundle into a set.** The creator creates a `Bundle`, supplying
-   its ordered `memberAssetIds` and the required Bundle metadata. Membership
-   is part of the Bundle operation; it is not an `IMPORT` Binding to a Bundle
-   host. The bundle retains its own owner and member ordering.
-5. **Bind to a world or scene.** The creator binds:
-   - Asset → Scene as `USE` (the asset is used in a scene).
-   - Bundle → World as `PRESENTATION` (the bundle appears in
-     the world's presentation surface).
-6. **Legality matrix.** Realm admits each binding only if it's
-   in the admitted legality matrix.
-
-The creator gets explicit legal use rights through the typed
-matrix.
-
-## Reader Scenario: An Illegal Binding Combination
-
-An app tries to bind a Resource directly to an Agent as `IMPORT`.
-
-1. **Submit binding.** The app sends the binding request.
-2. **Realm validates.** Checks the legality matrix:
-   `RESOURCE` × `AGENT` × `IMPORT`.
-3. **Not admitted.** This combination is not in the matrix.
-4. **Reject.** Fail-closed; typed error returned.
-5. **App sees reason.** "This binding combination is not
-   admitted; check the legality matrix."
-
-The app cannot accidentally violate a host type. The matrix is
-declarative and enforced.
-
-## Reader Scenario: An Asset Survives Bundle Archival
-
-A creator archives a bundle that contained an asset.
-
-1. **Bundle archived.** Bundle lifecycle moves to `ARCHIVED`.
-2. **Member assets unaffected.** The OwnableAssets that the
-   bundle composed remain `READY` or `ARCHIVED` per their own
-   lifecycle.
-3. **Reuse possible.** The creator can compose the same asset
-   into a different bundle.
-
-This is why Asset and Bundle are distinct concepts. Collapsing
-them would mean archiving a bundle would orphan its content;
-keeping them separate preserves reusability.
-
-## Why Four Concepts Instead Of One
-
-| Concept | What it answers |
-| --- | --- |
-| Resource | What are these typed bytes? |
-| Asset | Who owns this thing as an independently-ownable object? |
-| Bundle | What is this composed group of assets? |
-| Binding | How is this object attached to that host? |
-
-Collapsing them would lose the answers. A "file" abstraction can
-not answer "who owns this composed group" or "is this a legal
-attachment."
+- [Creator Economy Architecture](/realm/creator-economy)
+- [World State Architecture](/realm/world-state)
 
 ## Source Basis
 
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
-- [`config/realm-openapi/api-nimi.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/realm-openapi/api-nimi.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

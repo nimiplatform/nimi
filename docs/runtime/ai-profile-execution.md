@@ -1,30 +1,30 @@
-# Profiles, Loadouts, and Execution
+# Profile, Loadout, and Execution Scheduling
 
-An AIProfile is a portable configuration package. Applying it produces editable prefill; it does not commit AIConfig, select a Loadout, install assets, or start execution.
+AIProfile is a portable configuration package designed for sharing and templating. Applying an AIProfile generates editable prefilled values in the configuration interface—it does not silently overwrite existing AIConfigs, switch machine Loadouts, or initiate background inference.
 
-## Three Separate Records
+## Three Distinct Configuration Objects
 
-| Record | Purpose |
-| --- | --- |
-| AIProfile | Share portable choices and defaults without machine identities or secrets |
-| AIConfig | Save one App owner's or the shared LocalAgent owner's complete capability intent and revision |
-| Loadout | Save one machine-local capability implementation, Driver dialect and recipe, options, and exact resource bindings |
+| Object | Scope & Responsibility | Security & Storage |
+| --- | --- | --- |
+| **AIProfile** | Portable capability configuration template for cross-device sharing | Contains suggested parameters and model tags; contains no secrets or machine identities |
+| **AIConfig** | Authoritative capability configuration for an App or shared across an account's LocalAgents | Stores revision, route (Local vs. Cloud), and parameters; each app has one config, while all LocalAgents for an account share a single config |
+| **Loadout** | Concrete execution recipe for a capability on this local machine | Directly binds inference drivers, execution recipes, and verified local model weights |
 
-Runtime keeps zero or more Loadouts per capability and at most one current selection per capability. A Local AIConfig entry contains only the Local route marker; it does not copy that selected Loadout. A Cloud entry saves the exact Connector reference, CapabilityImplementation, and provider-model target.
+A machine can maintain multiple Loadouts for a given capability, but only one is selected as the active machine default at any time. When an app configures Local routing, Runtime routes its requests to this default Loadout. For Cloud routing, AIConfig explicitly points to a configured connector reference and provider target.
 
-## Prepare, Commit, Select
+## Preparation and Atomic Commit
 
-A machine configuration change uses its admitted Prepare and Commit flow with explicit confirmation. Installing a model only creates an inventory resource; binding the required resources into a Loadout and selecting that Loadout are distinct actions. Changing the machine selection affects future Local submissions for that capability across owners, so the UI must explain that scope.
+Changing local machine configurations follows standard preparation and verification workflows (Prepare / Commit):
+- Importing or downloading a model only adds the weights to the local resource inventory.
+- Binding weights to an execution recipe and setting it as the default Loadout is an explicit configuration step.
+- The active default Loadout applies to all subsequent Local inference requests across apps.
 
-Configuration validity, resource bindings, environment compatibility, current selection, process state, and actual execution are separate facts. A selected or prepared configuration is not proof of successful inference.
+## Input Snapshot Invariance
 
-## Capture at Submission
-
-At Job submission, Runtime checks the committed AIConfig and current authority. For Local it captures the selected Loadout and complete resolved assembly, including exact content identities. For Cloud it captures the committed Connector and implementation target under Runtime credential custody.
-
-Queued, running, and resumed Jobs use those persisted inputs. They do not reread a changed AIConfig or machine selection, rank alternatives, probe for a better model, or silently fall back. Current authorization is still checked separately. Missing configuration or resources return typed failures.
-
-An App sends content and supported operation parameters through its host-bound client. It does not attach a profile, Local Loadout, endpoint, credential, or request-time routing override. [AIConfig](/sdk/ai-config-surface) is the separate configuration API.
+To ensure execution consistency throughout a task's lifecycle:
+1. **Immutable Execution Context**: When an inference Job is submitted, Runtime freezes a snapshot of the active AIConfig and resolved Loadout parameters. The job continuously executes using this snapshot.
+2. **Isolation from Configuration Drift**: Queued or executing jobs continue using the exact parameters captured at submission; they are not perturbed by subsequent setting changes or silent fallbacks.
+3. **Explicit Failure Semantics**: If required model files or hardware acceleration drivers become unavailable, Runtime returns structured error codes and actionable diagnostics.
 
 ## Source Basis
 

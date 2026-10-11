@@ -1,75 +1,32 @@
-# Profile
+# User Profile and Personal Space
 
-Your profile in Desktop is where you see and edit how you appear:
-display name, avatar, and bio. It also lists the agents you own and
-the worlds you've created or visited. Your profile is the one identity
-that travels with you across every world.
+In Nimi Desktop, the "Profile" page is the central hub where you manage your digital presence. Here, you can personalize your display name, update your avatar, write a personal bio, and view your owned AI agents alongside the worlds you have created or explored. Your profile serves as your universal identity across all worlds and applications.
 
-## What The Profile Carries
+## Profile Attributes Overview
 
-| Field | Source |
-| --- | --- |
-| Display name | Realm canonical user identity |
-| Profile avatar | Realm asset reference |
-| Owned agents | Realm agent reads — the agents this user owns |
-| Created worlds | Realm world reads — worlds this user has authored |
-| Visited worlds | Realm world history projection |
-| Bio / description | User-editable profile field |
+| Field | Source & Functionality | Editable? |
+| --- | --- | --- |
+| **Display Name** | Your visible name shown across chats, posts, and moments | Yes, customizable anytime |
+| **Avatar** | Visual icon stored securely in Realm resource storage | Yes, customizable anytime |
+| **Bio** | Short descriptive biography or personal status | Yes, customizable anytime |
+| **Account ID** | Cryptographically derived unique identifier assigned at registration | Immutable, permanent identity |
+| **Owned Agents** | Autonomous agents created and managed by your account | Auto-synced with agent creations |
+| **Worlds Created & Visited** | Digital worlds you authored and footprints of recent journeys | Auto-updated from your world activity |
 
-Your profile isn't stored on this one machine. Saving an edit updates
-Realm through its profile flows; Desktop is the editor, not the
-storage.
+Profile modifications are synchronized authoritatively across devices through Realm. Updates take effect immediately in every world and app where your identity participates.
 
-## Profile Detail As A Shared Surface
+## Contextual Previews and Privacy Guarantees
 
-Other parts of Desktop — the profile preview in chat, the preview in
-Explore — read the same profile detail. One profile shape, presented
-wherever it's needed.
+When other users click your avatar in group chats, community posts, or the Explore feed, Desktop renders a privacy-preserving read-only preview:
+- **Publicly Visible**: Display name, avatar, bio, and any worlds or agents you have explicitly marked as public.
+- **Privacy-Protected**: Private friend lists, private agent settings, and account security details are never exposed to third-party viewers.
 
-## Reader Scenario: Editing Your Profile
+## User Journey: Updating Your Profile
 
-You open your profile in Desktop and update your display name.
-
-1. **Open profile.** Desktop reads your profile from Realm.
-2. **Edit.** You change the display name in the editor.
-3. **Save.** Desktop submits a typed profile mutation to Realm.
-4. **Realm admits.** The profile is updated under admitted
-   profile contracts.
-5. **Cross-app visibility.** The new display name is visible in
-   every app and every world the user appears in.
-6. **Audit.** The profile change is recorded.
-
-Your profile is one identity across the platform; Desktop is one
-editor for it.
-
-## Reader Scenario: Viewing Another User's Profile
-
-You click into another user's profile from chat.
-
-1. **Profile preview.** A bounded `ProfileDisplayDetail` seam
-   resolves the user's public profile.
-2. **What you see.** Display name, avatar, public agents (owned
-   agents the other user has set as visible), public worlds.
-3. **What you do not see.** Private profile fields and friend lists
-   — those are not part of the public detail.
-
-The public profile is intentionally narrow. Privacy is enforced
-by the seam, not by client-side filtering.
-
-## Profile And Identity
-
-Your profile is the editable layer around an identity that itself
-doesn't change from here.
-
-| Concept | Mutable from Profile? |
-| --- | --- |
-| Display name | yes |
-| Profile avatar (visual) | yes |
-| Bio / description | yes |
-| User identity (canonical id) | no — fixed at account creation |
-| Owned agents (the agents themselves) | no — agent authority lives in Realm |
-
-You can edit how you appear; you cannot edit who you are.
+1. **Open Profile**: Click your avatar in Desktop's navigation bar to open your profile.
+2. **Edit Information**: Click "Edit Profile" to modify your display name, bio, or upload a new avatar image.
+3. **Save and Synchronize**: Click "Save"; Desktop commits the changes through the SDK to Realm.
+4. **Universal Update**: Your updated profile propagates instantly across all open conversations, friend feeds, and active worlds.
 
 ## Source Basis
 

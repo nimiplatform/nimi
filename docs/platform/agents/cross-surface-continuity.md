@@ -1,37 +1,27 @@
 # Cross-Surface Continuity
 
-Switch screens and the conversation is still there. That continuity comes from
-a single shared source kept by Realm and Runtime — not from surfaces syncing
-UI state with each other.
+When switching across windows, apps, or displays, conversations with your agent remain seamless. This continuity stems from authoritative state maintained jointly by Realm and Runtime—not from individual UI surfaces syncing state with one another.
 
-Realm supplies the Character and the Character Source. Runtime runs the
-LocalAgent and keeps its Conversation, Memory mediation,
-state, and presentation output. Each surface gets a bounded view through the
-standard SDK, according to the current session and what it is authorized to
-see.
+Realm provides the persistent Character identity and Character Source. Runtime instantiates the LocalAgent, orchestrating its active conversation lifecycle, memory mediation, internal state machines, and visual presentation streams. Each surface consumes a bounded, read-only projection via the standard SDK, strictly constrained by active session authorization.
 
-## What may move between surfaces
+## Entities Exchanged Across Surfaces
 
-- stable Character and LocalAgent references;
-- an explicit Runtime Conversation anchor;
-- committed Conversation views and typed status;
-- authorized presentation and voice artifacts.
+The following entities can be shared across surfaces through official contracts:
+- Stable Character references and session-scoped LocalAgent handles (`agentHandle`);
+- An explicit Runtime Conversation Anchor;
+- Committed dialogue turns and structured execution states;
+- Authorized presentation artifacts and synthesized speech streams.
 
-A receiving surface holds references and views, not ownership of what they
-point to.
+A receiving surface receives only references and read-only projections—never authoritative ownership of the underlying data.
 
-## What stays local
+## Subsystem-Local States
 
-Window layout, renderer state, playback controls, route state, draft input,
-and other short-lived UI details stay with the consumer. A local cache can
-make rendering faster, but it can never stand in for recovery, Conversation,
-Memory, Knowledge, or authorization data.
+Window layout geometries, rendering pipeline contexts, media playback controls, application route parameters, user draft inputs, and other ephemeral UI states remain strictly local to the consumer. Local client caches accelerate visual rendering, but cannot replace authoritative state recovery or serve as sources of truth for conversations, memory, or permissions.
 
-When authorization changes or an anchor goes stale, the consumer must use the
-typed result Runtime returns. Copying another surface's cached state is not a
-fallback.
+If authorization scopes change or a conversation anchor expires, client surfaces must handle the structured response returned by Runtime. Copying cached state from an adjacent window is never an acceptable fallback.
 
-Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
+> [!NOTE]
+> Long-term memory is managed by Cognition and isolated per agent; Runtime mediates authorized recall and updates. Knowledge V1 currently has no active public client interface.
 
 ## Source Basis
 

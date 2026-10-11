@@ -1,40 +1,42 @@
-# Current Development Setup
+# Development Environment Setup
 
-Use the current Nimi source and a matching set of complete packages. These guides target App Tools 0.11.4, SDK 0.21.0, Kit/native 0.18.0, and the matching Runtime. The optional Vercel AI SDK adapter is 0.5.0; the optional Tauri carrier is 0.10.0. These are checkout versions, not a claim that they are already public registry releases.
+This guide walks you through setting up a development environment for Nimi, targeting App Tools 0.11.4, SDK 0.21.0, Kit 0.18.0, and a matching local Runtime build. It also covers the optional Vercel AI SDK adapter (0.5.0) and Tauri carrier (0.10.0).
 
 ## Required Toolchain
 
-Use Node.js 24 or newer and pnpm 10.34.5. App projects also declare project-local Nimi Coding 0.6.3, initialized explicitly by `pnpm run init` after dependency installation.
+- **Node.js**: Node.js 24 or newer is required (`engines.node >= 24.0.0`).
+- **pnpm**: pnpm 10.34.5 (or compatible pnpm 10.x).
+- **Nimi Coding**: App projects use project-local Nimi Coding (0.6.5) for specification verification, automatically initialized via `pnpm run init` after installing dependencies.
 
-Have complete App Tools, SDK, Kit, and the matching Kit native package for your host. Use the current source's component packaging workflow or a matching package delivery; do not link production App dependencies to source directories or substitute an older registry package when a current archive is missing. Kit's native optional package is versioned with Kit.
+Prepare the App Tools, SDK, Kit, and matching Kit native packages for your OS and CPU architecture. These can be packaged directly from source or obtained from a development delivery bundle. Kit's native package is an optional dependency versioned alongside Kit.
 
-## Select the Current Combination
+## Dependency Selection
 
-App Tools 0.11.4 currently generates SDK `^0.18.1` / Kit `^0.15.3` by default. To use the current interfaces in these guides, explicitly change the generated App's dependency declarations to SDK `^0.21.0` / Kit `^0.18.0` before initialization. That combination is admitted by the current App Tools dependency matrix, including Tauri 0.10.0 when used. Initialization/synchronization preserves an explicitly selected admitted pair.
+This guide explicitly uses the admitted development pair SDK `^0.21.0` and Kit `^0.18.0` (or Tauri 0.10.0 if using Tauri). Note that scaffolded templates default to `^0.18.1` / `^0.15.3`; update the two dependency declarations in `package.json` and workspace overrides accordingly.
 
-Keep registry version declarations in `package.json`; supply the complete local archives through `pnpm-workspace.yaml` overrides. See [Create an App](/start/create-an-app) for the full sequence. Independent package upgrades or matching version numbers alone do not establish matching Runtime/native behavior.
+In your project, declare dependencies in `package.json` and map them to local archives using overrides in `pnpm-workspace.yaml`. See [Create an App](/start/create-an-app) for step-by-step instructions. Keeping dependent package versions aligned ensures stability across Runtime and native interfaces.
 
-## Run Through Nimi Home
+## Running and Debugging
 
-A matching Nimi Home development instance and Runtime must be available. Home requires a Nimi account and browser sign-in. Register and authorize the App through Developer Mode, then use `pnpm dev` in the App project to request its Desktop-supervised Electron Host.
+1. **Start Nimi Home and Runtime**: Ensure your local Nimi Home and Runtime instances are running. Nimi Home requires signing in with a Nimi account.
+2. **Register and Authorize**: In Nimi Home's Developer Mode, register your local project and grant the necessary capability permissions.
+3. **Launch the App**: Run `pnpm dev` in your project root to start the app inside Desktop's supervised Electron development host.
 
-A visible App window does not prove Nimi Access or AI configuration is ready. Configure the App's capability through its host-bound client, prepare the machine's selected Local Loadout or exact Cloud target, and run a real request. Direct Vite or ordinary loopback gRPC does not replace the protected Host.
+Once the window opens, ensure local loadouts and cloud connectors have been configured in Nimi Home, save your app's capability routing intent using the SDK client, and verify your end-to-end AI workflow.
 
-Check the [Download page](https://nimi.ai/download) for public installer availability. Creating an App project does not install Home, publish an App, or grant Registry admission.
+To check client availability and download options across platforms, visit the [official download page](https://nimi.ai/download).
 
 ## Next Steps
 
 - [Create an App](/start/create-an-app)
 - [First AI Call](/sdk/first-ai-call)
-- [AIConfig](/sdk/ai-config-surface)
-- [Troubleshooting](/start/troubleshooting)
-- [Development and distribution](/start/#local-development-and-distribution)
+- [AI Capability Configuration (AIConfig)](/sdk/ai-config-surface)
+- [Troubleshooting Integration Issues](/start/troubleshooting)
+- [Development and Distribution](/start/#local-development-and-distribution)
 
 ## Source Basis
 
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
-- [`app-tools/package.json`](https://github.com/nimiplatform/nimi/blob/main/app-tools/package.json)
 - [`app-tools/lib/app-dependency-combinations.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-dependency-combinations.mjs)
-- [`app-tools/lib/app-scaffold.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-scaffold.mjs)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

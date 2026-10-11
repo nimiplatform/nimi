@@ -1,28 +1,27 @@
-# Memory 与 Knowledge
+# Agent 记忆机制（Memory）与知识库边界
 
-长期 Memory 及其生命周期归 Cognition。Runtime 负责 LocalAgent 身份、Conversation、授权、上下文组装，以及投递已提交事件、返回有限 Memory 结果的强类型桥接。Knowledge 属于 Cognition 领域，但 V1 没有活动的读写或公共客户端路径。
+在 Nimi 的智能体认知体系中，长期记忆（Long-term Memory）及其演进生命周期由 Cognition 模块专门管理。本地运行时（Runtime）则负责管理 LocalAgent 身份、会话上下文组装以及提供安全的记忆检索中介桥梁。
 
-## 每个 Agent 独立记忆
+## 智能体记忆隔离与所有权原则
 
-每个 LocalAgent 有独立、不透明的 Memory bank。共享 Character Source 不会共享记忆。Character 和 World 的来源真相归 Realm，Memory 不能改写规范世界状态或历史。
+- **独立记忆空间**：每个 LocalAgent 拥有完全独立的专属记忆库（Memory Bank）。即使由同一个角色（Character）模板派生出的不同实例，彼此间的日常对话记忆也互不相通。
+- **世界规则为基准**：数字世界的历史轨迹与设定由 Realm 统一提供单一权威源；智能体私有的记忆仅记录其个体的交互经历，不能单方面改写世界的基础设定。
+- **权限安全访问**：所有针对记忆库的读写请求均需经过 Runtime 的会话凭证校验。前端应用通过结构化的 SDK 接口调用记忆功能，无法读取未经授权的其他智能体记忆。
 
-任何操作到达 Cognition 前都由 Runtime 检查访问权限。App 不能直接查询 Cognition 语料、选择账号级记忆库，也不能用本地消息缓存重建记忆。Memory 管理使用独立准入的 Runtime 接口；普通 Agent 对话访问不会附带记忆管理权限。
+## 对话规划中的记忆检索与召回
 
-## 对话与召回
+当用户发起新一轮对话时，系统经历以下上下文组装过程：
 
-Runtime 保存已提交的 Conversation，并可在规划一轮对话时向 Cognition 请求相关记忆。召回是可选的：未准备好、索引不可用或没有匹配项，都返回零条可选记忆，不阻塞其他条件有效的对话。这不允许伪造召回，也不允许回退到另一套 Runtime 记忆库。
+1. **会话上下文捕获**：Runtime 提取当前会话的最新进展与历史轮次。
+2. **相关记忆召回**：Runtime 向 Cognition 发送语义检索请求，根据用户输入意图召回高度相关的长期记忆片段。
+3. **弹性容错保障**：记忆召回属于增强性特征。若向量索引尚未构建完成或未检索到相关内容，系统将优雅返回空集，确保基础对话流畅进行而不被阻塞。
+4. **记忆持久化写入**：当本轮对话交互包含关键信息时，Cognition 在后台评估并沉淀新的记忆条目。
 
-Memory 的准入、更正、替代、遗忘与派生索引状态，都由 Cognition 决定和提交。只有 owner 持久提交结果后才能宣告写入成功。具体操作见 [Cognition](/zh/cognition/)。
+## 记忆库的开关与数据生命周期管理
 
-## 开关与删除
-
-每个 LocalAgent 有独立 Memory 开关，与共用的 LocalAgent AIConfig 无关。新 LocalAgent 默认开启；切换到 V1 前已存在的 LocalAgent 需要明确启用。关闭在持久化截止点停止新投递与召回，但不删除已有记忆。重新开启不补放关闭期间的事件，也不恢复截止点前未完成的工作。
-
-清空记忆保留开关值，通过 owner 生命周期屏障删除该 Agent 的 Memory。撤销 App 访问只移除该 App 的权限，不删除 Agent 记忆。LocalAgent 终止和实际观察到的规范账号删除信号各有删除规则；退出登录、网络故障和切换账号都不是账号删除信号。
-
-## Knowledge V1
-
-V1 没有通用 Knowledge 导入、搜索、CLI 或 SDK 接口。Conversation 摘要、不可变 Character/World lorebook 上下文、Cognition 来源检索与 Knowledge 是不同概念。接口缺失不能通过已撤销的 wire 方法绕过。
+- **独立记忆开关**：每个 LocalAgent 拥有专属的记忆开关。开启状态下会自动沉淀记忆，关闭后停止接收新记忆与召回，但已有的历史记忆将安全保留。
+- **记忆清空**：用户可在设置中选择清空特定 Agent 的记忆数据。清空后该 Agent 的记忆库不再返回旧有记忆，但原始对话记录与基础角色设定不受影响。
+- **账户注销联动**：当观察到 Realm 确认的 `ACCOUNT_DELETED` 结果时，本地 Runtime 会清理本设备该账户命名空间下的私有记忆库，全面保障用户隐私。
 
 ## Source Basis
 

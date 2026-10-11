@@ -1,77 +1,37 @@
-# Runtime Configuration
+# Runtime Configuration Contract
 
-> Status: Running today. Active authority is
-> `.nimi/spec/runtime/protected-session.authority.yaml` and
-> `.nimi/spec/runtime/service-operations.authority.yaml`.
+Runtime configuration and product-level control are strictly separated across distinct planes:
 
-Runtime configuration and Product Control are separate:
+- `~/.nimi/nimi.json` is the definitive Product Control record that declares the authoritative `dataRoot.path`.
+- System-protected locations (e.g., `%ProgramData%\Nimi\Runtime\Protected` on Windows) store internal credentials, session states, and verification proofs.
+- Runtime strictly respects the storage roots established by Product Control, ensuring consistency and safety across all platform surfaces.
 
-- `~/.nimi/nimi.json` is the fixed Product Control record and the only
-  product-discovery authority for `dataRoot.path`.
-- On Windows, `%ProgramData%\Nimi\Runtime\Protected` contains
-  service-principal-owned private state, configuration, credentials, sessions,
-  audit, and data-root verification evidence.
-- Protected Runtime state may contain only a derived binding to the Product
-  Control selection. It cannot select or override `dataRoot.path`; disagreement
-  fails closed and enters repair.
+## Production Data Directory Structure
 
-## Production
-
-Production Runtime does not discover a user-writable portable config file. Its
-private configuration location is fixed by the installed protected service and
-is neither user-configurable nor reported as an ordinary physical path.
-
-The selected data plane is always read from Product Control and derives exactly:
+In standard production environments, all critical local assets reside under the declared `dataRoot`:
 
 ```text
-<dataRoot>/models
-<dataRoot>/dependencies
-<dataRoot>/environments
-<dataRoot>/apps
-<dataRoot>/accounts
-<dataRoot>/logs
-<dataRoot>/audit
+<dataRoot>/models         # Local model weights and GGUF files
+<dataRoot>/dependencies   # Inference engine libraries and hardware accelerators
+<dataRoot>/environments   # Execution sandboxes and virtual environments
+<dataRoot>/apps           # Installed Nimi App packages
+<dataRoot>/accounts       # Local user accounts and authenticated sessions
+<dataRoot>/logs           # Rotating daemon logs
+<dataRoot>/audit          # Local security audit ledger (SQLite)
 ```
 
-Environment variables, argv, Desktop state, tests, and protected Runtime state
-cannot supply another product data root.
+This centralized organization prevents random disk pollution and simplifies backup and storage management.
 
-## Explicit nonproduction portable mode
+## Nonproduction Portable Mode
 
-`NIMI_RUNTIME_CONFIG_PATH` exists only as an explicit nonproduction portable
-configuration entry. There is no default portable config path. In particular,
-`~/.nimi/runtime/config.json` and `~/.nimi/config.json` are retired and are not
-discovery or migration inputs.
+For automated testing or isolated developer sandboxing, developers can supply a custom configuration via the `NIMI_RUNTIME_CONFIG_PATH` environment variable:
+- **Strict Validation**: The target configuration must conform strictly to the active schema.
+- **Credential Protection**: Portable files manage non-sensitive test parameters and port assignments; provider credentials remain safeguarded in protected local storage.
 
-Portable configuration:
+## Atomic Writes and Controlled Reloading
 
-- must use the current schema and fail closed on invalid content;
-- may configure admitted nonproduction Runtime behavior;
-- must not contain `dataRootRef` or any `managedRoots` value;
-- must not become Product Control or production Runtime private state;
-- is shown by `nimi doctor` or `nimi version` only when explicitly supplied,
-  and then only with a nonproduction label.
-
-Portable configuration never owns provider credentials. CLI attempts to mutate
-`providers.*` fail closed; production credentials and configuration remain in
-protected Connector service custody.
-
-## Validation and writes
-
-Configuration validation is fail-closed; partial success is not admitted.
-Service-owned and explicit portable writes use atomic replacement. Reload
-behavior must be declared per field; an undeclared field is not assumed to
-hot-reload.
-
-## What Runtime configuration does not do
-
-- It does not locate or choose `dataRoot.path`.
-- It does not read Product Control from ProgramData.
-- It does not default to a file below `~/.nimi/runtime`.
-- It does not expose production private configuration paths through
-  `doctor`, `version`, Desktop, SDK, or app surfaces.
-- It does not allow a portable config to override Product Control or protected
-  Runtime-derived data-root verification.
+- **Atomic File Writes**: Configuration mutations write to temporary buffers and rename atomically to prevent corruption during unexpected shutdowns.
+- **Controlled Application**: Configuration parameters are loaded at startup; modifications take effect upon daemon restart.
 
 ## Source Basis
 

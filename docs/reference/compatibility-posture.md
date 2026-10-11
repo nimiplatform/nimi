@@ -1,28 +1,26 @@
-# Compatibility and Version Changes
+# Compatibility Posture and Versioning Strategy
 
-Use a matching Runtime, SDK, Kit, and native carrier combination. A TypeScript API compiling against one SDK does not prove that an older host or native package carries the same contract.
+To maintain long-term stability and predictability across distributed systems, Nimi adheres to a clear compatibility matrix and semantic versioning release policies.
 
-## Current Development
+## Development Dependencies and Coordinated Matching
 
-These guides describe the current checkout. During prerelease development, superseded internal interfaces are removed instead of preserved through hidden shims, dual paths, or automatic startup migration. Where old local test data needs disposal, use the specific owner or one-time repair procedure; do not delete unrelated user state.
+During application development, use verified package combinations (App Tools, SDK, Kit, and matching local Runtime builds):
+- **Toolchain Cohesion**: Clean TypeScript compilation verifies frontend static contracts; runtime stability additionally depends on aligned native bindings and Runtime service versions.
+- **Local Package Overrides**: In development or pre-release testing, map workspace dependencies to local archives via `pnpm-workspace.yaml` overrides to test against a unified release baseline.
 
-Current development packages may be supplied as complete local archives. Keep their declared versions and use explicit package-manager overrides, then run the App's synchronization, installation, and checks. See [Development Setup](/start/install).
+## Immutability of Published Releases
 
-## Published Components
+- **Semantic Versioning (SemVer)**: Once packages are published to official registries or tagged in git releases, packages are strictly immutable.
+- **Breaking Change Guidance**: In 0.x releases (the current lifecycle for SDK and Kit), breaking architectural evolutions increment the minor version number (e.g. 0.18 -> 0.19) accompanied by explicit migration notes, reserving 1.0.0 for formal platform readiness decisions. For 1.0+ releases, breaking changes increment the major version number following SemVer.
+- **Independent Component Lifecycles**: SDK, Kit, App Tools, and desktop shells release on decoupled cadences while adhering to explicit dependency bounds.
 
-Published packages and release tags are immutable. A breaking public change needs its component's version and upgrade instructions; internal prerelease hard-cut rules do not erase already published obligations. SDK, Kit, App Tools, and shell components release independently.
+## Fail-Closed Validation and Troubleshooting
 
-## Contract Failures
-
-Malformed input, unsupported operation combinations, missing authorization, or invalid returned data fail closed with typed errors. Retry and reconnect do not repair contract violations, guarantee generation replay, or authorize resubmission after an uncertain external outcome.
-
-For asynchronous recovery, retain and observe the original Job and its complete result. For a newer capability, update the matching carrier set instead of adding private transport or provider calls.
+- **Explicit Parameter Validation**: Malformed arguments, ungranted scopes, or unsupported options fail closed with structured, descriptive diagnostics.
+- **Resilience Best Practices**: Transient transport errors can be retried automatically when operations are idempotent; operations with unconfirmed external side effects must verify existing job or call status rather than executing blind retry loops. Contract schema validation errors fail closed and must be resolved in code.
 
 ## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/platform/governance-release.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/governance-release.authority.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
-- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
-- [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
-- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)

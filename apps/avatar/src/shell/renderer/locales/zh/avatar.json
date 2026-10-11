@@ -223,7 +223,7 @@
       "loading": "伙伴形象正在加载",
       "recovering": "伙伴形象正在恢复",
       "ready": "伙伴形象已就绪",
-      "not_verified": "夹具预览——尚未验证为实时运行时伙伴形象",
+      "not_verified": "测试预览——尚未验证为实时伙伴形象",
       "speaking": "伙伴形象正在说话",
       "voice_failed": "声音播放失败",
       "lipsync_silent": "声音正在播放，口型已静默",

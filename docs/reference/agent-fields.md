@@ -1,43 +1,38 @@
-# Character and LocalAgent Fields
+# Character and LocalAgent Fields and Mapping Specifications
 
-Nimi uses separate identifiers and owners for persistent Character truth and
-local AI execution.
+In Nimi's architecture, persistent character templates (Character) and active local runtime instances (LocalAgent) are cleanly decoupled, each belonging to dedicated authority domains.
 
-| Field or concept | Owner | Meaning |
+## Core Concepts and Field Mappings
+
+| Field / Concept | Authority Domain | Scope & Purpose |
 | --- | --- | --- |
-| Character reference | Realm | Persistent identity and social/world reference |
-| PersonaCharacter / WorldCharacter | Realm | Character forms owned by Realm |
-| Character Source | Realm | Identity source Runtime may use for materialization |
-| World Source | Realm | World context source; not sufficient to create LocalAgent identity |
-| LocalAgent ID | Runtime | Owner-scoped local execution entity |
-| LocalAgent owner | Runtime | Explicit owner relation; never inferred from an App cache |
-| Conversation anchor | Runtime | One explicit LocalAgent Conversation |
-| Long-term Memory | Cognition | Agent-private memory; Runtime mediates authorization and bounded access |
-| Knowledge | Cognition | No active V1 ingestion, query, or public client path |
-| AI capability execution | Runtime | Capability-intent evaluation, implementation selection, quota, budget, and execution diagnostics |
-| Presentation configuration | Runtime | Durable LocalAgent inputs for authorized projections |
-| Transient presentation state | Runtime | Turn, state, activity, emotion, voice, and timing projection |
-| Renderer state | Avatar or consuming App | Ephemeral rendering, playback, and interaction only |
+| **Character Reference** | Realm | Globally unique identifier and canonical definition of a character |
+| **PersonaCharacter / WorldCharacter** | Realm | Character archetype: autonomous companion vs. in-world narrative NPC |
+| **Character Source** | Realm | Structured package containing lore and personas used for local instantiation |
+| **World Source** | Realm | Contextual world setting and environmental parameters |
+| **LocalAgent ID** | Runtime | Unique identifier of the local operational instance |
+| **ConversationAnchor** | Runtime | Persistent handle binding the agent's single, continuous conversation |
+| **Long-Term Memory** | Cognition | Private memory bank mediated securely by Runtime |
+| **Capability Intent** | Runtime | Declared model inference requirements, quotas, and execution routes |
+| **Presentation Configuration** | Runtime | Durable appearance settings, voice bindings, and baseline demeanor |
+| **Ephemeral Interaction State** | Runtime | Per-turn real-time interaction phase (`listening`, `thinking`, `speaking`) |
+| **Renderer State** | Avatar App | Live2D / 3D VRM graphics pipeline state, vertex shaders, and joint transforms |
 
-## Access fields
+## Access Conventions and Scopes
 
-Runtime derives account, App identity, authorization, target LocalAgent or
-scope, and operation from the active session. A formal App uses the session-scoped `agentHandle` returned by its authorized reference listing, not a raw LocalAgent ID.
+Applications interact with agents using secure session scopes:
+- **Session-Scoped Handles (`agentHandle`)**: Applications interact with companions via temporary handles issued by the supervised host, rather than hardcoding static internal IDs.
+- **Least-Privilege Exposure**: Provider API keys, user private keys, and low-level sandbox transports remain shielded inside Runtime and are never exposed to frontend renderers.
 
-Realm JWTs, provider credentials, Runtime session proof, private authorization
-evidence, raw source context, and account-wide LocalAgent inventory are not App
-fields.
+## Dialogue Continuity
 
-## Continuity
+Each LocalAgent maintains a single conversation thread bound to its `ConversationAnchor`. Whether invoked from the main window, a quick drawer, or an application widget, interactions seamlessly append to this unified context, preserving behavioral continuity.
 
-A LocalAgent ID does not identify a Conversation. Consumers keep the explicit
-Conversation anchor returned by Runtime. Each LocalAgent has one Conversation,
-shared by its authorized consumers. Different LocalAgents materialized from
-one Character Source retain independent mutable operational state.
+## Related Documentation
+
+- [Conversation Anchor Deep Dive](/platform/agents/conversation-anchor)
 
 ## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

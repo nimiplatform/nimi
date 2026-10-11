@@ -1,25 +1,17 @@
-# Cross-World Identity
+# Cross-World Identity Continuity
 
-A character stays itself in every world. That continuity lives in Realm's
-Character identity, not in any single world.
+A character remains itself in every digital world. That identity continuity is grounded in Realm's Character identity layer rather than within any single world boundary.
 
-A Character can take part in more than one world under Realm's identity,
-relationship, membership, and access rules. Entering a new world never creates
-a second character, and a world's own source alone cannot establish a
-LocalAgent identity.
+A Character participates in multiple worlds under Realm's governance regarding identity, relationships, world memberships, and access controls. Entering a new world never duplicates the character or creates a secondary persona. Furthermore, a world's local configuration cannot autonomously establish a globally recognized LocalAgent identity.
 
-Runtime runs a LocalAgent only from a Character Source issued by Realm. It can
-use admitted world context for execution and optional Cognition source recall; this does not create an active Knowledge path.
+Runtime instantiates a LocalAgent solely from a Character Source issued authoritatively by Realm. During execution, it can incorporate authorized world context and optional Cognition memory recall; this does not activate unmanaged knowledge pathways.
 
-More than one LocalAgent can run from the same Character Source. Each keeps
-its own Conversation, state, budget, lifecycle, and Agent-private Cognition Memory. Sharing a source does
-not mean sharing live local state.
+Multiple LocalAgents may be instantiated from the same base Character Source across different contexts. Each instance maintains its own dialogue stream, execution state machine, token budget, process lifecycle, and agent-private Cognition memory. Sharing a common character definition does not equate to sharing active runtime memory.
 
-Apps only see the references and views they are authorized for. They cannot
-merge LocalAgents by character reference, or treat a local cache as
-cross-world identity.
+Applications receive only authorized references and structured views. They cannot conflate distinct LocalAgents by shared character reference, nor can they use local client caches to forge cross-world identity.
 
-Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
+> [!NOTE]
+> Long-term memory is managed by Cognition and isolated per agent; Runtime mediates authorized recall and updates. Knowledge V1 currently has no active public client interface.
 
 ## Source Basis
 

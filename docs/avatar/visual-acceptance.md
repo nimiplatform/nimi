@@ -1,127 +1,36 @@
-# Visual Acceptance
+# Avatar Visual Acceptance
 
-## Status: Admitted Contract; Release-Gated Surface
+The acceptance target is the Desktop-supervised Avatar window, its current protected App session, and actual output from the selected model. Fixture parsing, type checks, and local diagnostics prove their own covered behavior; none alone establishes this product path.
 
-The Avatar carrier visual acceptance contract defines what evidence
-is allowed to prove that the carrier really renders. The evidence
-classes, the fail-closed boundary, and the multi-backend evidence
-shape are fixed. The automated acceptance harnesses are Avatar's own
-test surfaces; not every evidence class is available as a public app
-API.
+## Prepare the Real Path
 
-## What "Visual Acceptance" Means
+1. Prepare matching Runtime, SDK/Kit, and a validated model with its capability profile.
+2. Start Runtime and Home and complete Home sign-in.
+3. Select the current Agent through a formal caller entry. Desktop and Runtime revalidate the launch intent and Conversation anchor.
+4. Inspect the Desktop-supervised Avatar Electron window. The source development entry is `pnpm dev:avatar` at the repository root, but this command neither selects a default Agent nor proves session or presentation readiness.
 
-The Avatar app's carrier — the canvas / WebGL surface owned by
-`apps/avatar` — must produce visible non-placeholder pixels for the
-active backend, with deterministic, auditable evidence. Visual
-acceptance is the contract that says **what evidence is allowed to
-close that proof**.
+Direct Vite, another product's renderer, or a fixture_not_verified preview cannot substitute for this target.
 
-It is deliberately strict because the Avatar carrier path is the only
-real product path; Desktop chat's separate Live2D renderer is not the
-Avatar carrier.
+## Verify the Changed Behavior
 
-## Evidence Classes
+- **Model presentation**: The selected Live2D or VRM model is visible in the real Avatar window, not an empty canvas or diagnostic placeholder.
+- **Session and interaction**: The current Agent/Conversation binding is valid, and product interaction and backend presentation are ready.
+- **Activity and expression**: Trigger the supported input changed by this work and observe that model's output; idle or another model does not prove it.
+- **Window and hit regions**: When bounds, scale, or passthrough change, inspect the affected region and operation. Do not repeat unrelated checks for changes that do not affect them.
+- **Failure and recovery**: Missing or unsupported input shows the applicable reason; recovery still requires valid session and presentation prerequisites.
 
-| Class | Meaning | Can close carrier visual proof |
-| --- | --- | --- |
-| Real runtime path | Desktop launch context + local Agent Center package + runtime IPC bridge + SDK driver + Avatar carrier | Yes |
-| Deterministic harness | Controlled Avatar app harness exercising the real carrier draw path with stable inputs | Yes, if it exercises the Avatar carrier canvas / WebGL path |
-| Fixture / mock | Explicit `VITE_AVATAR_DRIVER=mock` or mock scenario data source | Regression evidence only — does not close carrier proof |
-| Desktop renderer evidence | Desktop chat Live2D renderer smoke or pixel evidence | No |
-| Historical planning evidence | Old screenshots, checklists, or reports | No |
+A Live2D result covers the tested Live2D path, not VRM. Screenshots, logs, and automation explain what was actually observed. There is no current fixed pixel-grid/frame-count gate or recordCarrierVisualProof API.
 
-The first two close proof. The last three do not.
+## Existing Engineering Checks
 
-## Required Visual Proof
+Avatar typecheck and test cover types and the behavior actually exercised by their tests. The repository-root `pnpm smoke:avatar-live2d` checks the selected imported Live2D asset's structure, references, and file prerequisites. It does not launch an Avatar renderer or prove pixel output or voice interaction.
 
-Carrier visual proof must include current executable evidence for:
-
-- a canvas (or equivalent WebGL host) owned by `apps/avatar`, not
-  Desktop chat
-- model load success through the Avatar app backend branch
-- at least one frame where the carrier path produces non-placeholder
-  visible pixels after model load
-- resilience evidence for resize or host-bound changes when the
-  implementation claims responsive surface behavior
-- failure evidence showing missing / invalid model input does not
-  render a success state without evidence
-
-The proof may be automated through unit / integration tests, a
-deterministic headless harness, or a Playwright-style acceptance
-harness. Whichever method is used must record enough artifact detail
-for later audit.
-
-## Forbidden Closure
-
-The following evidence MUST NOT close Avatar carrier visual proof:
-
-- Desktop chat Live2D pixel tests, even if they exercise Cubism
-  WebGL through the Desktop renderer
-- static `<canvas>` existence without non-placeholder pixel evidence
-- fixture-only scenario playback reported as the real runtime carrier
-  path
-- old demo screenshots, checklists, or implementation reports
-- command-state-only tests that do not exercise draw / pixel output
-
-The fail-closed posture is intentional. A success claim without
-admitted evidence is a `placeholder_success` shortcut and is rejected.
-
-## Multi-Backend Visual Proof
-
-`recordCarrierVisualProof` is extended with `modelKind: BackendKind`
-so the carrier accepts evidence per backend:
-
-```ts
-recordCarrierVisualProof(input: {
-  modelKind: 'live2d' | 'vrm';
-  // ... existing fields (canvas ref / sample grid / frame index / ...)
-}): CarrierVisualProof;
-```
-
-Per-backend rules apply. Live2D evidence proves only the Live2D
-branch. VRM evidence proves only the VRM branch. Cross-backend reuse
-of evidence is forbidden.
-
-## Reader Scenario: Closing Live2D Carrier Proof
-
-1. **Run the deterministic harness.** Avatar harness mounts the
-   Live2D backend, loads a fixture-tier model, drives a canonical
-   activity sequence.
-2. **Capture sample grid.** Pixel sample at deterministic frame
-   indexes; assert non-placeholder pixels in body region.
-3. **Record proof.** `recordCarrierVisualProof({ modelKind: 'live2d',
-   ...})` with sample grid + canvas ref + frame index + harness id.
-4. **Audit.** Auditor replays the harness from the recorded artifact;
-   replay must reproduce the same evidence.
-
-The proof is admitted because it exercises the carrier draw path with
-deterministic input and produces auditable artifact detail.
-
-## Reader Scenario: A Forbidden Closure Attempt
-
-A contributor proposes closing carrier proof using Desktop chat's
-Live2D pixel test.
-
-1. **Reject.** Desktop chat Live2D renderer is a separate
-   implementation. It does not exercise the Avatar carrier canvas.
-2. **Reason code.** "Desktop renderer evidence cannot close carrier
-   visual proof per `carrier-visual-acceptance-contract.md` §3."
-3. **Re-route.** Contributor builds an Avatar-carrier deterministic
-   harness instead.
-
-The contract is closed under this rule because mixing renderer proofs
-hides which path actually works.
-
-## Boundary Summary
-
-| Concern | Owner |
-| --- | --- |
-| Observable visual result + fail-closed boundary | Avatar |
-| Backend-specific pixel write paths | Active Live2D, VRM, or Nimi2D branch |
-| Asset capability requirements | Validated backend capability profile |
-| Desktop chat Live2D renderer | Desktop (separate; never Avatar carrier proof) |
+Record the session, model, backend, and actual result relevant to the check. Mark unrun cases as unverified instead of filling them with fixture success or another renderer's evidence.
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
+- [`apps/avatar/src/shell/renderer/App.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/App.tsx)
+- [`apps/avatar/src/shell/renderer/app-shell/composition-state.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/app-shell/composition-state.ts)
+- [`apps/avatar/scripts/smoke-agent-center-live2d.mjs`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/scripts/smoke-agent-center-live2d.mjs)
+- [`apps/avatar/package.json`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/package.json)

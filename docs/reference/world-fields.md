@@ -1,90 +1,47 @@
-# World Fields
+# World Schema and Core Fields Reference
 
-Reference for the World concept: what a world is at the field and
-contract level.
+This reference provides definitions and contract structures for the digital World concept within Nimi.
 
-## What A World Is
+## Core Attributes of a Digital World
 
-| Property | Description |
+| Attribute | Specification |
 | --- | --- |
-| Identity | A unique world id; sortable; non-recyclable |
-| Authoring | Created by an admitted world creator |
-| Persistence | Long-lived; world state survives session boundaries; world history is append-only |
-| Composability | Interoperable with other worlds via the six platform primitives |
-| Authority | Realm owns canonical world truth, world state, and world history |
+| **World Identifier (`worldId`)** | Globally unique, immutable string with time-sortable properties |
+| **Creator Ownership (`creatorId`)** | User or organization account holding governance and monetization rights |
+| **Durable Continuity** | Exists independently of user presence, persisting across session boundaries |
+| **Protocol Composability** | Operates over the six core primitives (Timeflow, Social, Economy, Transit, Context, Presence) |
+| **Single Source of Truth** | Canonical rules, live state, and historical events are maintained authoritatively by Realm |
 
-A world is not a level, a chat room, a campaign, or an app session. A
-world keeps evolving even when no participants are present.
+## Three Structural Pillars
 
-## Three Related Realm Concepts
-
-| Concept | What it answers | Owner contract |
+| Pillar | Focus | Authoritative Governing Contract |
 | --- | --- | --- |
-| Truth | What is canonically true in this world, regardless of when it was written | Realm Truth owner (`R-TRUTH-*`) |
-| World State | What the world looks like right now | Realm World State owner (`R-WSTATE-*`) |
-| World History | How the world reached its current state | Realm World History owner (`R-WHIST-*`) |
+| **Authoritative Truth (`Truth`)** | Authoritative world settings, rules, identities, and core objects (evolvable via authorized CorePatch or WorldRelease) | Realm Truth owner (`R-TRUTH-*`) |
+| **World State** | Normalized snapshot of the world right now | Realm World State owner (`R-WSTATE-*`) |
+| **World History** | Append-only event log showing how the world reached this state | Realm World History owner (`R-WHIST-*`) |
 
-These three are not interchangeable. A surface that conflates them
-silently loses information.
+## The OASIS Hub World Invariant
 
-## Adjacent Realm Surfaces Owned As World Truth
+- **System Hub**: OASIS is the primary network hub connecting all federated digital worlds.
+- **Platform Public Utility**: Not owned by private creators; governed as a neutral platform commons.
+- **Default Recovery Haven**: Acts as the safe fallback destination when target worlds are offline or unreachable.
 
-| Surface | Contract | Rule prefix |
-| --- | --- | --- |
-| Chat | Realm Chat owner | `R-CHAT-*` |
-| Social | Realm Social owner | `R-SOC-*` |
-| Economy | Realm Economy owner | `R-ECON-*` |
-| Asset | Realm Asset owner | `R-ASSET-*` |
-| Transit | Realm Transit owner | `R-TRANSIT-*` |
-| Binding | Realm Binding owner | `R-BIND-*` |
-| Resource | Realm Resource owner | `R-RSRC-*` |
-| Bundle | Realm Bundle owner | `R-BNDL-*` |
+## App-World Binding States
 
-## OASIS
-
-| Property | Value |
+| Binding State | Definition |
 | --- | --- |
-| Status | The unique system main world; formally part of canonical truth |
-| Ownership | Cannot be owned by any creator |
-| Replaceability | Cannot be replaced by an app convention |
-| Role | Default return point and sole transit hub between worlds |
+| `(new)` | World created; zero active extension applications attached |
+| `active` | One extension app verified and authorized with write privileges |
+| `suspended` | Binding paused temporarily; mutations intercepted |
+| `revoked` | Binding detached; world open for new applicant applications |
 
-## App-World Binding
+> **Concurrency Constraint**: A world permits at most one active `extension-app` to prevent race conditions in canonical state. Multiple read-only `render-apps` may attach concurrently without restriction.
 
-A world can bind to at most one active extension-app at a time. Other
-apps may consume world data in render-only mode.
+## Related Documentation
 
-| State | Meaning |
-| --- | --- |
-| `(new)` | World exists but no app is bound |
-| `active` | One extension-app is bound and writing |
-| `suspended` | Binding is paused; rebinding requires explicit re-admission |
-| `revoked` | Binding is removed; world becomes available for new binding |
-
-Re-binding requires revoking first; binding is not silently transferred.
-
-## App Modes
-
-| Mode | Read | Write | Concurrent count per world |
-| --- | --- | --- | --- |
-| `render-app` | yes | no | many |
-| `extension-app` | yes | yes | at most one active |
-
-## Six-Primitive Cross-Consistency
-
-A world transition that involves multiple primitives must satisfy all
-relevant primitive contracts simultaneously:
-
-- A transit must satisfy Social + Economy + Context simultaneously.
-- Presence can't bypass social admission.
-- Timeflow cannot break economy settlement windows.
-
-The six primitives are not independent enums; they are mutually
-constraining.
+- [World State Architecture](/realm/world-state)
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-primitives.yaml)
-- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

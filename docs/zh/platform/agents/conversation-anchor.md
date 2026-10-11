@@ -1,33 +1,24 @@
-# Conversation Anchor
+# 会话锚点机制（Conversation Anchor）
 
-Conversation anchor 是你和某个 LocalAgent 之间一段具体对话的名字。它由
-Runtime 签发，是以后指认这段对话唯一可靠的方式。它不是 LocalAgent 的身
-份，也无法从 UI 路由、Avatar 实例、本地对话缓存，或某个界面最近展示过
-的 LocalAgent 推断出来。
+会话锚点（Conversation Anchor）是用户与指定 LocalAgent 之间特定会话上下文的全局唯一标识。它由 Runtime 权威签发，是后续跨界面、跨进程定位并接续该段对话的唯一合法凭据。
 
-对话的开启、提交、快照、恢复和中断都由 Runtime 负责，对外的视图也是
-Runtime 提供的。每个 LocalAgent 只有一条 Conversation：首次打开时创建，后续
-已授权调用者取得同一份已提交连续性。保留 SDK 返回的 Runtime anchor，作为
-操作重新核验的连续性条件；它不选择 App、窗口或分支私有历史。
+会话锚点不是 LocalAgent 的身份 ID，绝不能通过 UI 路由参数、Avatar 具身实例 ID、前端本地消息缓存或最近活跃的智能体状态进行猜测或拼接。
 
-## 创建与恢复
+会话的开启、轮次提交、状态快照、异常恢复与打断中断，均由 Runtime 统一管控并对外暴露标准化视图。每个 LocalAgent 对应唯一的活跃主会话上下文：首次打开时建立，后续所有获得授权的调用者均接入相同的已提交会话连续性。调用方应当妥善保存 SDK 返回的 Runtime 会话锚点，将其作为连续性验证凭据；会话锚点不用于隔离应用私有分支或窗口私有历史。
 
-调用方提交强类型 intent 和明确的 LocalAgent 目标。Runtime 会先根据当前
-会话弄清账号、App 身份、授权，以及所有权或访问权限，然后才创建或恢复
-对话。
+## 会话创建与状态恢复
 
-恢复只依赖 Runtime 保存的 anchor 和快照。本地消息历史只是 UI 缓存：它
-证明不了连续性，也重建不出对话、记忆或知识里真正的内容。
+调用方通过 SDK 提交结构化的操作意图并声明目标智能体引用。在创建或恢复会话前，Runtime 会依据当前活跃的安全会话严格核验用户账号、应用身份、授权策略以及对目标 LocalAgent 的访问权限。
 
-## 投影边界
+会话的状态恢复完全依赖 Runtime 维护的锚点索引与内存快照。前端本地存储的消息记录仅充当 UI 渲染缓存：它无法作为状态证明，更无法反向重构会话流、长期记忆或知识库的真实上下文。
 
-已授权的使用方可以收到当前对话中已提交的轮次和有限状态。原始服务商输
-出、解析器负载、凭证、内部 prompt 和 Runtime 内部凭据一律保持私有。
+## 视图投影与安全边界
 
-Avatar 可以把一个可见实例挂到已授权的对话上做呈现，但它的 launch ID 和
-renderer 状态既不能创建这段对话，也不能证明它。
+获得授权的调用方可以订阅当前会话中已提交的对话轮次与状态更新。而大模型服务商的原始 Token 序列、解析器底层数据、认证凭据、系统级引导词（System Prompt）以及 Runtime 内部鉴权上下文始终保持私有隔离。
 
-## 来源依据
+Avatar 渲染模块可以将虚拟角色的 2D/3D 形象实例挂载到已授权的会话锚点上以进行动作呈现。Avatar 的启动实例 ID 与渲染器管线状态既无法创建会话，也不能作为会话存在的有效证明。
+
+## Source Basis
 
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)

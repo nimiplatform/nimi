@@ -1,46 +1,34 @@
-# LocalAgent 执行
+# LocalAgent 运行时生命周期与执行架构
 
-Runtime 持有 LocalAgent 物化与执行。LocalAgent 从 Realm 签发的 Character
-Source 物化，并绑定显式 owner；它不是第二套 Realm 身份，平台也不存在默认
-LocalAgent。
+本地运行时（Runtime）负责 LocalAgent 的本地实例化、上下文维护与执行调度。LocalAgent 由 Realm 签发并认证的 Character 规范派生而来，并与确切的所有者（Owner）强绑定；它是智能体在本地执行环境中的受控实体。
 
-## 执行边界
+## 执行职责边界
 
-Runtime 持有：
+Runtime 集中管理以下核心逻辑：
 
-- LocalAgent 物化、生命周期与 owner 隔离；
-- Conversation anchor、committed turn、恢复与中断；
-- Memory 访问中介；
-- AI 能力意图评估、具体实现选择、Quota、Budget 与 Provider Credential custody；
-- 执行输出在成为 Conversation、状态、voice 或 presentation 真相前的校验；
-- 面向已授权 consumer 的强类型投影。
+- **实例生命周期与所有权隔离**：负责 LocalAgent 的本地初始化、内存分配、运行态上下文维护及跨租户隔离；
+- **会话连续性（ConversationAnchor）**：维护会话锚点，保证多轮交互中的上下文连续性、断点恢复与生成中断处理；
+- **长期记忆中介**：充当 Cognition 记忆系统的受保护中介，安全代理记忆的检索、召回与持久化；
+- **能力意图解析与凭据托管**：解析应用声明的能力意图（Capability Intent），按已配置的 Local 或 Cloud 路由执行本地推理任务或云端调用，并在受保护环境中托管 API 密钥与认证凭据；
+- **结构化输出校验**：在模型生成内容落地为会话记录、交互状态或语音流之前，执行统一的安全校验与格式归一化；
+- **安全投影给上层应用**：向已获授权的调用方提供类型安全的结构化视图。
 
-App 通过 SDK 提交强类型 intent。Runtime 从 active session 推导 account、
-App identity、authorization 与 LocalAgent access。正式 App 使用当前会话的 `agentHandle`，不提交原始 LocalAgent ID；缓存 handle 不能证明持续访问权。
+应用层通过 SDK 提交高阶意图，Runtime 基于当前活跃的会话自动推导调用方身份与权限范围。正规 App 应使用当前会话颁发的 `agentHandle` 与 Agent 交互，避免硬编码底层内部 ID。
 
-## Consumer 边界
+## 消费端与前端架构边界
 
-App、Desktop、Nimi Home 与 Avatar 可以渲染已授权的 Conversation、状态、
-voice 与 presentation 投影。它们不能消费原始 Provider 或 parser output、
-维护 Runtime proof、从 UI history 重建 Memory 或 Knowledge，也不能创建
-LocalAgent success。
+桌面端（Desktop）、主页（Nimi Home）与形象引擎（Avatar）作为呈现层，订阅并渲染已授权的会话、状态及多媒体投影：
 
-Avatar 消费强类型 embodiment input，只持有 shell interaction、renderer
-execution、playback 与短暂 visual state。
+- **表现层解耦**：前端界面无需解析供应商底层私有协议，也不维护执行状态机。
+- **虚拟形象消费**：Avatar 读取获准消费的活动、情绪、语义姿态和有界语音时序，负责后端映射，以及由最终语音产物派生的本地播放与口型。渲染器口型帧不属于 Runtime 通用输入。
 
-## 连续性
+## 会话连续性与状态隔离
 
-每个 LocalAgent 只有一条 Runtime 管理的 Conversation 和显式 anchor。后续
-已授权打开（包括来自另一个 App）继续同一已提交历史。从同一 Character
-Source 物化的不同 LocalAgent 保持独立状态；调用者不能按 App 或窗口拆分
-一个 LocalAgent 的 Conversation。
+每个 LocalAgent 维持单一由 Runtime 托管的权威会话（Conversation）。即使从多个不同的前端窗口或应用中唤起，也会自动汇入并延续同一段对话历史。
 
-参见 [Conversation Anchor](/zh/platform/agents/conversation-anchor) 与
-[LocalAgent 访问](/zh/platform/agents/participation-authority)。
+由同一个 Character 模板派生出的不同 LocalAgent 之间保持严格独立的状态空间。关于会话锚点与授权机制的详细说明，请参阅[会话锚点（Conversation Anchor）](/zh/platform/agents/conversation-anchor)与[智能体参与权限](/zh/platform/agents/participation-authority)。
 
-长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)

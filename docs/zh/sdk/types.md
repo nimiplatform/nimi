@@ -1,30 +1,33 @@
-# 共享类型与错误
+# 共享类型与错误处理
 
-`@nimiplatform/sdk/types` 导出共享 JSON、请求元数据、错误、原因码和重试工具。按实际调用的公共操作选择类型，这个模块不是所有领域标识的统一集合。
+`@nimiplatform/sdk/types` 集中导出了跨模块共享的基础 JSON 结构、请求元数据、标准错误模型、结构化原因码 (Reason Code) 以及重试控制工具。
 
-## 当前导出
+推荐开发者根据具体调用的业务方法按需引入类型；该模块主要提供通用的基础数据类型与错误抽象，各业务领域的特化实体类型请从对应功能子路径导入。
 
-| 导出 | 用途 |
+## 核心公开导出速查
+
+| 导出类型 / 工具 | 核心定位与用途 |
 | --- | --- |
-| `JsonPrimitive`、`JsonValue`、`JsonObject` | 强类型 JSON 值 |
-| `NimiError`、`NimiErrorSource` | 包含原因、行动提示、追踪和重试信息的错误类型 |
-| `isNimiError`、`asNimiError`、`createNimiError` | 判断、规范化或构造 SDK 错误 |
-| `ReasonCode`、`ReasonCodeValue` | 共享原因常量及其类型 |
-| `CoreMetadata`、`CoreUnaryRequest`、`CoreStreamRequest` | SDK 底层请求描述，不是另一条 App 访问路径 |
-| `RetryOptions`、`RetryEvent`、`RetryReasonKind` | 重试工具的配置与观察信息 |
-| `createNimiClientId`、`createNimiUlid` | 为已准入的调用者用途生成标识 |
+| `JsonPrimitive`、`JsonValue`、`JsonObject` | 严谨的强类型 JSON 数据表示 |
+| `NimiError`、`NimiErrorSource` | 包含错误原因码、操作建议 (Action Hint)、链路追踪与重试标识的标准化错误接口与来源联合类型 |
+| `isNimiError`、`asNimiError`、`createNimiError` | 用于运行时收窄、规范化或构造 SDK 错误的工具函数 |
+| `ReasonCode`、`ReasonCodeValue` | 平台共享的标准错误原因常量与类型定义 |
+| `CoreMetadata`、`CoreUnaryRequest`、`CoreStreamRequest` | 底层请求描述符与客户端通信契约结构 |
+| `RetryOptions`、`RetryEvent`、`RetryReasonKind` | 传输层重试机制的策略配置与观测回调 |
+| `createNimiClientId`、`createNimiUlid` | 用于生成规范唯一标识符的工具函数 |
 
-Nimi App 从 `@nimiplatform/sdk` 导入 `NimiLocalAppClient`，通过生成的 Host 绑定取得客户端。能力请求和结果类型从所属的公共 SDK 入口导入。仅导入类型不要求执行该模块的传输代码。
+在标准 Nimi App 中，从 `@nimiplatform/sdk` 导入 `NimiLocalAppClient` 即可。仅引入类型定义属于编译期语法，不会引入任何额外的运行时传输层开销。
 
-## 保留标识的归属
+## 严格保持标识符的上下文归属
 
-不少 API 标识以字符串表示，不能假设编译器会拒绝所有跨领域误用。保留标识与签发它的结果、操作之间的关系。Character 引用不是 LocalAgent 操作选择器，artifact ID 也不授予访问权。
+在系统设计中，许多底层标识符在表现形式上均为字符串（如各种 ID）。开发者需注意保持标识符与其签发上下文的对应关系，避免语义混淆：
+- 例如，角色引用 (Character Ref) 不等同于智能体句柄 (Agent Handle)；
+- 产物文件 ID (Artifact ID) 本身并不代表调用方拥有该文件的访问权；
+- 标准 App 在调用 Agent 能力时，必须使用受权列表返回的会话级 `agentHandle`，切勿手动拼接或强制类型转换原始的本地智能体 ID。底层 Runtime 依然会在执行时严格校验当前账号、App 身份、会话生命周期与目标权限。
 
-正式 App 的 Agent 操作使用已授权引用列表返回的会话级 `agentHandle`，不要自行生成或强转原始 LocalAgent ID。Runtime 仍检查当前账号、App、会话、目标与操作。
+## 强类型错误捕获与类型收窄 (Type Narrowing)
 
-## 判断强类型错误
-
-`NimiError` 是 TypeScript 类型。用 `isNimiError` 收窄捕获到的未知值：
+`NimiError` 提供了丰富的排错元数据。在 `try...catch` 块中，可以使用 `isNimiError` 守卫函数安全收窄未知捕获值：
 
 ```ts
 import { isNimiError, type NimiError } from '@nimiplatform/sdk/types';
@@ -32,7 +35,10 @@ import { isNimiError, type NimiError } from '@nimiplatform/sdk/types';
 export function nimiFailureDetails(error: unknown): Pick<
   NimiError, 'message' | 'reasonCode' | 'actionHint' | 'retryable'
 > | null {
+  // 1. 类型守卫收窄
   if (!isNimiError(error)) return null;
+
+  // 2. 提取标准错误诊断属性
   return {
     message: error.message,
     reasonCode: error.reasonCode,
@@ -42,9 +48,9 @@ export function nimiFailureDetails(error: unknown): Pick<
 }
 ```
 
-同一函数在 [`examples/sdk/06-errors.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/06-errors.ts) 中参与编译检查。返回 `null` 表示该值不符合 SDK 错误形状，应保留原始失败并交给 App 的正常错误处理，不表示操作成功。
+参考示例代码可参阅 [`examples/sdk/06-errors.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/06-errors.ts)。若返回 `null`，说明抛出的值不符合 `NimiError` 形状；应保留原始错误对象，按应用常规异常流程处理。
 
-根据实际原因和行动提示选择下一步。`retryable` 不意味着外部结果不确定时可以重放业务操作。Job 应保留原身份，遵循[观察与恢复](/zh/runtime/streaming)。
+根据返回的 `reasonCode` 与 `actionHint` 引导用户采取下一步操作。需要特别注意的是：`retryable: true` 是操作层面的重试提示，并不意味着在外部业务结果尚未确认时可以盲目重试具有副作用的非幂等写入。涉及异步 Job 的任务，应保留原 Job ID，核实其实际执行结果后再决定是否重新提交。
 
 ## Source Basis
 

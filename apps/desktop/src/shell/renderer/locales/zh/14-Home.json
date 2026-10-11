@@ -37,7 +37,7 @@
   },
   "library": {
     "title": "应用库",
-    "description": "已安装且已准入的 Nimi 应用。"
+    "description": "已安装且可使用的 Nimi 应用。"
   },
   "discovery": {
     "title": "发现",
@@ -45,8 +45,8 @@
   },
   "agentChat": {
     "title": "Agent Chat",
-    "scope": "作用域",
-    "anchor": "锚点"
+    "scope": "范围",
+    "anchor": "主题"
   },
   "loading": {
     "readiness": "正在加载就绪度...",
@@ -71,20 +71,20 @@
   "feedScopes": {
     "personal": "我的",
     "friends": "好友",
-    "persona_activity": "Persona 动态",
+    "persona_activity": "角色动态",
     "world_character_activity": "世界角色"
   },
   "feedScopeHeaderLabels": {
     "personal": "我",
     "friends": "好友",
-    "persona_activity": "Persona",
+    "persona_activity": "角色",
     "world_character_activity": "世界角色"
   },
   "feedScopeDescriptions": {
     "personal": "你的个人发布流。",
-    "friends": "来自可信好友的更新。",
-    "persona_activity": "来自 PersonaCharacter 的公开动态。",
-    "world_character_activity": "来自已准入世界角色的公开动态。"
+    "friends": "来自好友的更新。",
+    "persona_activity": "来自 AI 角色的公开动态。",
+    "world_character_activity": "来自世界角色的公开动态。"
   },
   "feedScopeEmpty": {
     "personal": "你还没有发布任何帖子。",

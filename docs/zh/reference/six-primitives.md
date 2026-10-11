@@ -1,72 +1,43 @@
-# 六大基础协议
+# 六大核心基础协议（Six Core Primitives）
 
-平台六大固定基础协议参考。权威契约：`.nimi/spec/platform/core-protocol.authority.yaml`，规则族 `P-PROTO-*`。
+Nimi 平台定义了六大跨世界通用的核心基础协议（`P-PROTO-*` 规则族），作为数字世界之间互联互通的技术基石。各个独立的虚拟世界可以自由定制其内部的场景机制与剧情规则，但在涉及跨越世界边界的交互与状态流转时，统一遵循这六项基础契约。
 
-## 六项基础协议
+## 六大基础协议对照
 
-| 基础协议 | 规则 | 承载 |
-| --- | --- | --- |
-| Timeflow | `P-PROTO-100` | 推进、时序、时间含义 |
-| Social | `P-PROTO-101` | 关系、社交图语义 |
-| Economy | `P-PROTO-102` | 价值、交换、经济状态 |
-| Transit | `P-PROTO-103` | 跨世界或跨语境的移动 |
-| Context | `P-PROTO-104` | 共享情境含义 |
-| Presence | `P-PROTO-105` | 在场的是谁、以何种条件 |
-
-每一项都是一个契约面。世界可以定义自己的内部规则；跨世界的语义必须落进这六个契约之一。
-
-## 权威
-
-| 层 | 角色 |
-| --- | --- |
-| 平台协议 | 定义基础协议形态与版本策略 |
-| Realm | 持有六大基础协议的真相源与语义执行 |
-| App | 使用与观察；不执行 |
-
-`P-PROTO-003` 把基础协议的语义执行与真相源固定在 Realm。
-
-## 跨基础协议一致性
-
-涉及多项基础协议的世界状态变化必须同时满足所有相关契约：
-
-| 约束 | 原因 |
-| --- | --- |
-| 一次 transit 必须同时满足 Social + Economy + Context | transit 让参与者跨世界移动；社交位次、经济位次、语境含义必须三者对齐 |
-| Presence 不能绕过社交准入 | 在一个世界 "在场" 必须先通过社交准入 |
-| Timeflow 不能打破经济结算窗口 | 时间推进必须尊重经济结算边界 |
-
-六项基础协议不是相互独立的枚举，而是相互约束。
-
-## 版本策略
-
-| 属性 | 值 |
-| --- | --- |
-| 策略 | `strict-only` |
-| 跨小版本握手 | 禁止 |
-| 向后兼容 shim | 禁止 |
-| 失败模式 | 契约违例 fail-closed |
-
-客户端必须严格匹配。不存在违反契约却假装兼容的优雅降级。
-
-## App 授权
-
-正式 App 使用固定的受保护 SDK 载体及声明派生的操作覆盖。Runtime 检查当前 App 会话与操作，Realm 独立检查资源及业务权限。App 不持有可移植的基础协议 token，UI 模式也不会授予读、写或委派权限。
-
-## App 模式
-
-| 模式 | 基础协议读 | 基础协议写 | 单世界活跃数 |
+| 基础协议 | 规则编号 | 核心职责 | 业务价值 |
 | --- | --- | --- | --- |
-| `render-app` | 是 | 否 | 多个 |
-| `extension-app` | 是 | 是 | 单世界至多一个活跃 |
+| **Timeflow（时间流）** | `P-PROTO-100` | 协调世界内部的时钟推进、时间快慢与时序同步 | 保证多用户与智能体交互的时序一致性 |
+| **Social（社交网络）** | `P-PROTO-101` | 维护跨世界的全局好友图谱、关系位次与群组 | 实现全网通用的统一社交关系，免去重复加好友 |
+| **Economy（经济系统）** | `P-PROTO-102` | 统一管理资产买卖、分成清算与跨界价值流转 | 建立可审计、防双花的仅追加财务流水账本 |
+| **Transit（跨界漫游）** | `P-PROTO-103` | 负责参与者在世界之间移动的连续性与路由 | 基于 OASIS 枢纽保证用户身份不蜕化、平稳容错 |
+| **Context（情境语义）** | `P-PROTO-104` | 规范世界背景、世界观 Lore 及环境设定交互 | 保证不同应用理解统一的世界情境含义 |
+| **Presence（在场状态）** | `P-PROTO-105` | 跟踪用户与智能体在特定场景中的在场与活跃度 | 支持多人空间同步、场景准入与状态感知 |
 
-## 审计事件
+## 权威分工与架构层级
 
-跨基础协议的动作会产出审计事件，记录在平台审计字典：`config/platform-audit-events.yaml`。
+| 架构层级 | 权责定位 |
+| --- | --- |
+| **平台核心协议（Platform Protocol）** | 定义协议的数据结构、版本演进与合规性检验标准 |
+| **服务端 Realm** | 统一作为六大基础协议的权威数据源与执行仲裁中心 |
+| **客户端应用（App）** | 通过 SDK 消费并呈现状态，遵循统一契约发起操作 |
 
-## 来源依据
+## 跨协议的一致性约束
+
+现实中的业务动作往往同时涉及多项基础协议。为了确保全局状态的完整性，系统强制推行联合约束：
+- **漫游复合校验**：一次 Transit 穿越必须同时满足目标世界的 Social（社交准入）、Economy（经济结算）与 Context（情境兼容）；
+- **在场以社交为前提**：在特定受保护世界中取得 Presence 状态，需先通过该世界的 Social 准入规则；
+- **时间与结算窗口对齐**：Timeflow 的世界时钟推进需严格尊重 Economy 的周期性清算窗口。
+
+## 版本演进与契约兼容
+
+- **版本策略**：六大协议采用严格类型系统规范，各接口包含显式的版本标识；
+- **异常处理**：若客户端传入的数据不符合目标协议 Schema，系统以显式类型化错误拒绝请求，并提供具体的字段级校验报告，引导开发者精准调整。
+
+## 相关文档
+
+- [跨世界漫游协议详解](/zh/realm/transit)
+- [全局社交图谱与经济系统](/zh/realm/social-and-economy)
+
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`config/platform-protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-primitives.yaml)
-- [`config/platform-protocol-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-protocol-error-codes.yaml)
-- [`config/platform-audit-events.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-audit-events.yaml)
-- [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)

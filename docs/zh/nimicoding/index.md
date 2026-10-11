@@ -1,60 +1,44 @@
 # Nimi Coding
 
-Nimi Coding 为 AI 宿主和仓库工具提供确定性的 project-owned canonical
-authority 访问能力。它负责格式化、检查、查询、关系导航与变更审查；它不是
-AI Agent、规划器、代码生成器、审批流程或产品规范生成器。
+Nimi Coding 为 AI 宿主环境与工程工具链提供确定性的规范权威（Canonical Authority）检索与校验能力。它负责规范文件的自动格式化、静态结构校验、关系图谱查询、依赖导航与变更影响审查；它定位为专注的底层规范效能工具，而非自主决策的 AI Agent、代码生成器或产品设计生成器。
 
-本页说明 workspace 精确固定的 `@nimiplatform/nimi-coding@0.6.3`。命令行为
-以软件包 CLI 和软件包内 README 为操作参考。
+本章节基于当前工作区精确锁定的 `@nimiplatform/nimi-coding@0.6.5` 版本编写。具体 CLI 指令细节与参数请以软件包随附的 README 与终端输出为准。
 
-## Truth 边界
+## 规范与配置边界划分
 
-| 路径 | 作用 |
+| 文件路径模式 | 核心定位与职责 |
 | --- | --- |
-| `.nimi/spec/**/*.authority.{yaml,md}` | 唯一 canonical product authority |
-| `.nimi/config/**` | 仓库自有的 Nimi Coding host configuration |
-| `.nimi/methodology/authority-authoring.yaml` | 受管的 authority 编写说明 |
-| `.nimi/local/**` | 被忽略的本地校验与派生输出，永远不是 authority |
-| `config/**` | 产品、生成器和宿主实现输入，不是 Nimi Coding host configuration |
+| `.nimi/spec/**/*.authority.{yaml,md}` | 全局唯一的平台级规范权威来源 (Canonical Product Authority) |
+| `.nimi/config/**` | 仓库自有的 Nimi Coding 宿主运行配置 |
+| `.nimi/methodology/authority-authoring.yaml` | 权威规范编写与维护的官方指导方法论 |
+| `.nimi/local/**` | 本地测试产物与校验缓存（已被 Git 忽略，绝不作为权威依据） |
+| `config/**` | 应用、代码生成器与宿主实现的静态输入，不属于 Nimi Coding 内部配置 |
 
-Nimi Coding 不会把文档、fixture、生成物、审计结果或 `config/**` 派生内容变成
-产品 authority。
+Nimi Coding 保持严格的单一可信源防线：任何下游生成的开发文档、测试用例、临时构建产物或审计报告，均不得反向定义或修改权威规范。
 
-## 有界代码读取
+## 边界清晰的代码上下文检索
 
-`code context` 从指定的 TypeScript 或 TSX 文件、顶层 symbol 与 tsconfig
-即时读取有界的 outbound context。`code authority` 定位 Git 已跟踪的当前
-TypeScript、TSX、Go、Python 和 Rust 源码中的可选 `@nimi-authority`、
-`@nimi-deprecated` 精确标记，也可以从单个源码文件反查这些关联。这些是
-保留的独立物理行；定位不会证明它们处于语言注释语境。
+- **`code context`**：从指定的 TypeScript / TSX 源码文件、符合准入声明形式的顶层标识符（不要求导出）与 `tsconfig` 中，即时分析并提取有界的向外静态依赖上下文（Outbound Context）。
+- **`code authority`**：在 Git 纳管的 TypeScript、TSX、Go、Python 与 Rust 代码中，精确扫描由行注释保留的 `@nimi-authority` 或 `@nimi-deprecated` 规范锚点，亦支持从单个源文件反查其绑定的规范章节。
 
-两个命令都只处理当前请求，而且只读。是否调用由 AI 宿主决定。它们不会加入
-任务前置检查，不会改变宿主任务状态，也不会评价未标注代码或证明实现符合
-authority。
+上述两项指令均为纯只读操作，且完全遵循按需调用的原则；它们不作为强制的前置流水线门禁，不变更任务生命周期，亦不会对未标记的代码进行主观臆测。
 
-## 当前流程
+## 规范变更与维护工作流
 
-尚不知道精确 authority ID 时，先做有界 discovery，再由项目 authority 或
-责任 owner 选择精确单元。修改前获取其声明的 context；修改后逐文件格式化，
-对完整 authority 根执行检查，并使用带显式 byte budget 的 semantic diff 与
-impact。
+1. **有界检索**：在尚未明确具体规范 ID 时，先通过 `authority discover` 进行有界发现，再由架构维护者锁定目标条目。
+2. **提取上下文**：在动手修改规范前，先通过 `authority context` 读取该条目的完整声明依赖。
+3. **格式化与校验**：修改完成后，逐一使用 `authority fmt` 规范化代码格式，并运行 `authority check` 针对全局规范集执行完整性校验。
+4. **影响分析**：使用显式限制字节预算的 `authority diff` 与 `authority impact` 审查变更影响范围。
+5. **重构候选排查**：在涉及深层重构时，通过 `authority change-candidates` 检索受影响候选集；该命令仅作为线索召回，不代替人工语义评审。
 
-如果 redesign 可能在 authored relations 之外留下 unchanged active survivors，
-`authority change-candidates` 只召回显式请求的 deterministic channels 的完整
-union，不判断 relevance、conflict、retirement 或 conformance。`authority audit`
-只评价项目配置的 graph 和 exact lexical bindings；clear 不表示业务语义或实现
-对齐已经通过。
+项目根目录的 `AGENTS.md` 与 `.nimi/methodology/authority-authoring.yaml` 定义了详细的规范编写守则。
 
-仓库的 `AGENTS.md` 与 `.nimi/methodology/authority-authoring.yaml` 定义
-具体 authoring 规则。受管文本只为 AI 宿主提供说明，不会拦截 prompt，也不
-拥有宿主任务生命周期。
+## 延伸阅读
 
-## 继续阅读
+- [宿主环境集成](/zh/nimicoding/installation)
+- [CLI 命令参考速查](/zh/nimicoding/cli-reference)
 
-- [Host 集成](/zh/nimicoding/installation)
-- [CLI 参考](/zh/nimicoding/cli-reference)
+## Source Basis
 
-## 来源依据
-
-- [`@nimiplatform/nimi-coding` README](https://github.com/nimiplatform/nimi-coding/blob/main/README.zh-CN.md)
+- [`nimi-coding/README.zh-CN.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.zh-CN.md)
 - [`.nimi/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-authoring.yaml)

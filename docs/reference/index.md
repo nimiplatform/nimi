@@ -1,37 +1,23 @@
-# Reference
+# Reference Manual
 
-Reference is the product-concept dictionary for Nimi. Each page is a
-field listing, table, or enumeration sourced from `.nimi/spec/**`. None
-of these pages narrate — for narrative, see the domain sections
-(Platform / Runtime / SDK / Desktop / Realm / Avatar /
-Nimi Coding).
+The Reference Manual serves as the central directory of technical specifications, field schemas, state machines, and system invariants across the Nimi platform. Use these pages to quickly verify interface definitions, parameter names, and architectural boundaries.
 
-## Pages
+## Reference Catalog
 
-| Page | Use when you need to know... |
+| Reference Document | Key Topics & Coverage |
 | --- | --- |
-| [Glossary](/reference/glossary) | What a cross-domain term means in one place |
-| [World Fields](/reference/world-fields) | What a World looks like at the field level |
-| [Character and LocalAgent Fields](/reference/agent-fields) | How Realm-owned Character identity relates to Runtime-owned LocalAgent materialization |
-| [Six Primitives](/reference/six-primitives) | The cross-world contract surfaces in tabular form |
-| [State Machines](/reference/state-machines) | Every named state machine and its canonical states |
-| [Authority Domains](/reference/authority-domains) | Which domain owns which kind of truth |
-| [Error Ownership](/reference/error-ownership) | Which layer owns which error contract |
-| [Compatibility Posture](/reference/compatibility-posture) | The platform-wide compatibility envelope and forbidden compatibility shapes |
-| [Forbidden Claims](/reference/forbidden-claims) | Public docs forbidden claim list with detection patterns |
-
-## When To Use Each Page
-
-If you need a single term defined, start at the
-[Glossary](/reference/glossary). If you need the canonical fields of a
-World or a Character/LocalAgent boundary, the
-[World Fields](/reference/world-fields) and
-[Agent Fields](/reference/agent-fields) pages are the field-level
-sources.
-
-For named state machines, [State Machines](/reference/state-machines)
-is the consolidated table. For ownership of any kind of truth or
-error, [Authority Domains](/reference/authority-domains) and
-[Error Ownership](/reference/error-ownership) say which domain answers.
+| [Glossary](/reference/glossary) | Core platform terminology and cross-system concept definitions |
+| [World Fields](/reference/world-fields) | World entity data schemas, state definitions, and metadata |
+| [Agent Fields](/reference/agent-fields) | Identity schema and mapping from Character assets to LocalAgent execution |
+| [Six Primitives](/reference/six-primitives) | Cross-world foundation protocol specifications and schemas |
+| [State Machines](/reference/state-machines) | Core state machines including daemon health, sessions, and task lifecycles |
+| [Authority Domains](/reference/authority-domains) | Single Source of Truth assignments across Realm, Runtime, SDK, and App layers |
+| [Error Ownership](/reference/error-ownership) | Standard error prefixes, propagation chains, and handling layers |
+| [Compatibility Posture](/reference/compatibility-posture) | Semantic versioning, cross-layer dependency contracts, and upgrade strategies |
+| [Architectural Invariants](/reference/forbidden-claims) | Core design constraints, anti-patterns, and verified best practices |
 
 ## Source Basis
+
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)

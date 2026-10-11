@@ -14,36 +14,28 @@ NimiDay 让你的 Nimi 助理替你照看日常：家人、自己、家里的大
 
 ## 安排与回复跟进
 
-“参考资料”可直接读取获准的外部文档或 Go 的指定成果版本，无需 Agent 或消息账户。Go 成果会显示文档标题与正文；确认正文或编辑需要保留的摘录后，可保存到现有家庭手册。结构化原始响应仅供高级查看，不会直接当作资料正文保存。
-
-“安排跟进”可选择获准的 Telegram Bot 连接、私人聊天对象和实际发送正文。Day 会保存自己的安排、检查必要信息、通知固定对象，并判断真实收到的回复。必要时可参考获准的 Go 指定成果版本。
-
-首期支持明确的私人聊天数字 ID；同一账户与对象同时只有一项等待中的安排。旧消息、其他对象消息以及通知之前的消息不会触发这项跟进。外部文本不能增加对象、换账户或要求 Day 额外发送消息。
-
-让对方先在 Telegram 中私聊所选 Bot，再请 Bot 的管理者从这条消息的 Chat 信息核对数字 `id`、`private` 类型和对象姓名。每行填“数字 ID 对象名称”，不要填群组、频道或 `@用户名`；Bot 凭据仍只在 Nimi 管理。Telegram 的[Bot 使用说明](https://core.telegram.org/bots#how-do-bots-work)和[Chat 字段](https://core.telegram.org/bots/api#chat)解释了这两个前提。若连接已经由 Nimi 接收消息，不要另开一个接收程序争用同一 Bot。
-
-使用 Go 成果时，在 Go 打开文档、选定版本后复制引用，粘贴到 Day 的“Go 成果版本引用”。Day 会识别版本并显示标题预览，调用时只使用其中三个精确标识；实际读取到的标题、正文和版本核对结果为准。原有三个标识的引用仍可读取。
-
-安排建立、通知已发、回复已收及指定对象均确认分别显示。助理忙时保留原材料与账户，空闲后继续。通知效果未确认时停止后续动作，需手动核对，不自动重发。
-
-“需要你决定”的原安排可填写补充说明。还没通知时，可补齐时间与通知正文，再明确发起新一次检查和发送；已经通知时，只处理尚未判断的实际回复，或继续等新回复，不改写和重发旧通知。每次继续都保留已发通知、收到的回复和补充说明。若不再继续，点“结束跟进，改为手动处理”，然后自行在 Telegram 沟通。发送效果未确认时只有核对和结束出口，不会用再次发送来猜测结果。
-
-只有实际保存的回复判断才算处理完成；模型仅说“收到了”不算。已经收到的回复还没评估完时不会宣布全部确认，较晚的更正也会纳入判断。
+- **添加参考资料**：可以直接读取授权的外部文档或 NimiGo 中生成的项目成果。导入后，NimiDay 会显示文档标题与正文；你可以确认正文或编辑需要保留的摘录，保存到对应的家庭手册中。
+- **安排 Telegram 跟进**：你可以配置 Telegram 机器人，向指定联系人发送通知并跟进回复：
+  - **准备联系人**：让对方先在 Telegram 中给你的 Bot 发送一条私聊消息，获取其数字聊天 ID（Chat ID）。在 NimiDay 中按“数字 ID 姓名”添加。
+  - **进度清晰**：从建立安排、发出通知到收到并确认回复，每一步进度都会清晰展示。
+  - **安全防扰**：每个联系人同一时间只进行一项跟进任务；发送未确认时不会重复轰炸对方，需要你手动确认或改为自行沟通。
+- **引用 NimiGo 成果**：在 NimiGo 中打开文档，复制版本引用并粘贴到 NimiDay，即可预览并关联该成果内容。
+- **遇到需要决定的事项**：如果对方回复的内容需要你定夺（如确认具体时间），事项会出现在“需要你决定”中。补充说明后可让助理继续跟进，也可以随时点击“结束跟进，改为手动处理”。
+- **真实判断**：只有助理真正分析并确认了对方的答复，才算跟进完成；如果对方后续发来更正信息，助理也会及时更新判断。
 
 ## 运行方式
 
-- “安排跟进”在关窗后继续，由仍在运行的 Day 执行部分负责；可停止某项跟进，或在菜单选择“退出并停止 Day”。退出、执行失效后不自动恢复或重发。
-- NimiDay 窗口打开时（可以最小化）提醒和例行会准时进行；关闭期间到期的提醒，下次打开时显示在“你不在时”，例行不会自动补跑（只在打开的那一刻前后两分钟内到点的例行照常开始）。
-- 助理说“记下了”，就是真的保存了：万一保存没有成功，助理会如实告诉你还没保存，NimiDay 也会提示并可以马上重试。
-- 其他 App 的动态太多、一次没载入完时，列表下方会说明，并可以“载入更早的”。
-- 安静时段内只有“重要”的提醒会打扰你，其余在结束后汇总告诉你。
-- 助理对事项做的改动都会记录下来，可以一键撤销；随时可以停止 NimiDay 交给助理的事，不会打断 TA 在其他 App 里正在做的工作。撤销过的改动和你已经做的决定，NimiDay 会在下次交代工作时一并告诉助理，TA 不会按旧的说法继续。
-- 和助理的连接断开时，NimiDay 会自动重新连接几次；仍连不上时如实告诉你，并可以手动重试。
-- 更换助理时，NimiDay 交给原来那位、还没做完的事会先停止并如实记录；排队中的事交给新任的助理。
-- 你的资料由 Nimi 按账号保存在本机。助理的性格、规范聊天和个人记忆由 Nimi 保管；Day 的业务交流与成果独立保存，不自动写入规范聊天或对话记忆；更换助理时，照看对象、事项、手册和技能都留在 NimiDay。
+- **后台跟进**：只关闭窗口、没有退出 NimiDay 时，已在后台启动的跟进可以继续；可在系统菜单中选择“退出并停止 NimiDay”。
+- **准时提醒与例行**：窗口打开（可最小化）时，提醒和例行事项会准时触发；窗口关闭期间不会自动推进例行任务，错过的提醒会在下次打开时的“你不在时”统一展示。
+- **可靠保存**：助理明确确认“记下了”，内容才会真正保存；若网络或服务出现异常，助理会如实说明未保存并提供重试按钮。
+- **改动可追溯、可撤销**：助理调整过的日程事项均有记录，支持一键撤销。撤销记录和你的新决定会自动同步给助理，避免重复旧动作。
+- **数据与记忆隔离**：你的日程、家庭手册和照看对象始终保存在本地。更换助理时，已有数据完整保留；助理在 NimiDay 中的工作记录与主对话记忆保持独立，互不混淆。
 
 ## English
 
-NimiDay lets your Nimi companion look after everyday life: the people and things you care about, organized by time and person, with on-time reminders and a companion who plans, prepares and follows up using everyday skills. Reminders from other apps (ParentOS care and growth reminders, ShiJing daily readings) are filed under the right person and can be put on your own schedule. You can chat, dictate, or talk with your companion like a phone call. NimiDay runs while it is open (even minimized); reminders due while it is closed appear under "While you were away" and routines are never replayed.
+NimiDay lets your Nimi companion look after everyday life: the people and things you care about, organized by time and person, with on-time reminders and a companion who plans, prepares, and follows up using everyday skills.
 
-Arrangements and replies can continue in the running Day Host after its window closes. Ask each recipient to message the chosen Telegram Bot privately, then have the Bot owner check the private chat ID and person’s name. Paste a copied Go version reference to reuse an exact document. When your decision is needed, add information to the original arrangement or end it and handle the conversation yourself. A new explicit attempt can check and send a previously unsent notice; it never resends an existing notice. Unknown send results require manual checking. Received replies are only considered processed after their assessments are saved, and all already-received replies are assessed before declaring completion.
+- **Reminders & routines**: Care and growth reminders from apps like ParentOS and ShiJing are grouped under the right person and can be added directly to your schedule.
+- **Telegram follow-up**: Your companion can reach out to trusted contacts via Telegram, collect their replies, and help you finalize plans.
+- **Reliable tracking**: Changes made by your companion can be reviewed and undone with a single click. When follow-ups need your input, you can add notes or take over directly.
+- **Privacy & local storage**: Your family handbook, care objects, and schedules stay securely on your computer. When you switch companions, your personal data remains intact.

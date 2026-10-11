@@ -1,125 +1,60 @@
-# Cognition
+# Cognition Architecture
 
-Cognition is where long-term Memory lives in Nimi. When an Agent
-remembers your name, your preferences, or something you told it last
-month, that memory came from Cognition.
+Cognition is the dedicated home for an Agent's long-term Memory in Nimi. When an Agent recalls your name, your preferences, or a conversation from last month across different sessions, that capability is powered by Cognition.
 
-Cognition is its own owner inside the platform. Runtime runs the
-conversation; Cognition keeps what is worth remembering. The two are
-connected by a narrow, typed Bridge, and neither side absorbs the
-other.
+Cognition functions as an autonomous owner domain within the platform: Runtime drives dialogue execution, while Cognition extracts and persists meaningful information. The two domains interact through a strongly-typed Runtime-Bridge protocol, maintaining clean decoupling, strong isolation, and unambiguous responsibilities.
 
-## What This Means For You
+## Core Capabilities and User Experience
 
-- Your Agent remembers you across sessions. Close the app, come back
-  next week, and the same Agent still knows what you told it, as long
-  as it was worth keeping. Memory belongs to the Agent itself, not to
-  one conversation or one world, so it stays with that Agent.
-- Memory is private to each Agent. Two Agents on the same account
-  keep separate memories, and neither can read the other's. There is
-  no shared account profile behind them.
-- You can correct a stored memory through the authorized Memory management
-  surface. Select the entry, submit the corrected content, and wait for the
-  committed owner result before treating the new fact as current.
-- You can select stored memories and explicitly confirm Forget. After
-  Cognition commits the operation, its durable barrier prevents restarts,
-  retries, index rebuilds, and replays from reviving those memories. An ordinary
-  chat request to forget is not confirmation that this operation ran.
-- Secrets don't become memories. Passwords, tokens, credentials, and
-  content marked "do not remember" are rejected before they can be
-  retained.
-- Memory knows how it knows. Each memory carries honest provenance:
-  whether you said it explicitly, whether it was inferred, or whether
-  it was consolidated from earlier memories.
+- **Cross-session continuity**: Agents retain long-term memory across sessions. Close the application, return days later, and the same Agent still remembers previously established facts. Memories attach directly to the Agent entity rather than a transient chat window or single world.
+- **Strict per-Agent isolation**: Memory is partitioned per Agent. Two Agents owned by the same user maintain distinct, isolated memory banks and cannot cross-query each other's memories; the platform never maintains an ambient, account-wide shared profile.
+- **Governed memory correction**: Users can inspect and correct stored memories via authorized management surfaces. When a user selects an entry and submits updated text, the change commits atomically before the updated fact becomes active.
+- **Explicit confirmation for forgetting**: Users can explicitly confirm forgetting specific memories. Once committed by Cognition, a durable Forget Barrier ensures the entry is removed from active recall, and subsequent restarts, retries, index rebuilds, or event replays will not restore it. Raw conversation transcripts and Realm Character personas remain unaltered. A casual remark in standard chat does not trigger this management operation.
+- **Privacy and credential filtering**: Sensitive credentials are automatically filtered. Passwords, private keys, API tokens, and statements explicitly expressing "do not remember" are rejected before reaching storage.
+- **Transparent provenance**: Every persisted memory tracks its origin: whether it was explicitly stated by the user, inferred from context, or synthesized from earlier memories.
 
-Memory is also allowed to be absent. If recall is still building,
-unavailable, or simply finds nothing, the conversation continues
-normally with zero memories. A read hiccup never fabricates results
-and never blocks a turn. Writes are stricter: a correction or forget
-is only reported done after Cognition has durably committed it.
+Memory retrieval is resilient: if background indexing is underway or retrieval is temporarily unavailable, the conversation proceeds smoothly without memory context. Retrieval hiccups never synthesize hallucinations and never block turn execution. Conversely, write and forget operations adhere to strict transactional consistency, reporting completion only after Cognition durably commits to disk.
 
-## What Cognition Owns
+## Cognition Ownership Scope
 
-- Each Agent's long-term Memory: one opaque, Agent-private logical
-  bank bound to one Agent. Not an account profile, not a workspace
-  bank, and not something an App can query directly.
-- Memory truth and lifecycle: admission, provenance, correction and
-  supersession, forget barriers, and deletion.
-- The V1 pipelines: one Remember pipeline, a full-text Recall
-  pipeline, an embedding Recall pipeline, a deterministic exact
-  Forget pipeline, and a small static router that picks one pipeline
-  per operation.
-- Derived retrieval indexes (full-text and vector). They are
-  rebuildable projections of canonical Memory and never decide what
-  is true.
-- A bounded Agent Source lane: typed source units from one Runtime
-  snapshot, indexed for semantic search under the same per-Agent and
-  per-snapshot isolation. It is derived state, not world truth.
+- **Per-Agent long-term Memory**: An opaque, Agent-private logical bank bound exclusively to a single Agent. It is not an account profile, not a shared workspace store, and cannot be directly queried by external Apps.
+- **Memory authority and lifecycle**: Governs intake filtering, provenance tracking, supersession, forget barriers, and permanent deletion.
+- **V1 core processing pipelines**: Includes a Remember pipeline, a full-text recall pipeline, a vector embedding recall pipeline, an exact Forget pipeline, and a static operation router.
+- **Derived search indexes**: Auxiliary full-text and vector indexes built atop canonical memory banks; indexes are rebuildable projections that do not own truth.
+- **Bounded Agent resource lanes**: Strongly-typed source units derived from Runtime snapshots, partitioned per Agent to assist context construction.
 
-Long-term Knowledge also belongs to Cognition's domain, but V1 has no
-active Knowledge path: nothing reads or writes Knowledge yet, and
-Memory never promotes itself into Knowledge.
+> [!NOTE]
+> Long-term Knowledge is architecturally designated under Cognition, but in the V1 milestone no public read/write paths are active, and memories never promote themselves to shared knowledge without explicit workflows.
 
-## What Stays With Runtime And Realm
+## Separation of Concerns: Runtime vs. Realm
 
-Runtime keeps running the show: LocalAgent identity, authorization,
-the Conversation and its committed events, context planning, AI
-execution, and the final commit of each turn. Authorization is
-evaluated by Runtime before any Memory operation crosses the Bridge,
-and Runtime is the only caller Cognition accepts.
+- **Runtime owns the execution lifecycle**: Manages LocalAgent identity, session authorization, conversations, context planning, AI inference, and final turn commits. Runtime evaluates permissions before any memory request traverses the Bridge; Cognition accepts calls exclusively from trusted Runtime instances.
+- **Realm owns world canonical state**: An Agent's private memory of events within a virtual world does not alter that world's canonical state machine or public history.
+- **Applications and SDKs stay outside Cognition**: External apps cannot address Cognition directly; they interact with memory through bounded, validated responses mediated by Runtime.
 
-Realm keeps world truth. A memory about something that happened in a
-world does not rewrite that world's state or history.
+## Typical Scenario: Remembering Across Sessions
 
-Apps and SDKs never touch Cognition. They see Memory only as bounded
-results returned through Runtime.
+On Monday, you mention a peanut allergy to your Agent and close the application. On Friday, you ask for snack recommendations:
 
-## Reader Scenario: Remembering You Across Sessions
+1. **Intake on Monday**: Runtime logs the message as an event and dispatches it across the Bridge to Cognition.
+2. **Extraction and persistence**: Cognition's Remember pipeline assesses the fact as durable, and Cognition Core atomically commits it with provenance marked as "explicitly stated."
+3. **Recall on Friday**: When planning the turn context, Runtime requests relevant memories from Cognition, which returns the peanut allergy entry.
+4. **Contextual injection**: Runtime incorporates the preference into the prompt context, allowing the model to naturally avoid peanut snacks.
 
-Suppose on Monday you tell your Agent you're allergic to peanuts.
-That evening you close the app. On Friday you ask it to suggest a
-snack.
+If the search index had been rebuilding during step 3, Cognition would return "unavailable," and the turn would proceed normally without that memory entry.
 
-1. On Monday, Runtime committed your message as an event and
-   delivered it to Cognition through the Bridge.
-2. Cognition's Remember pipeline judged it worth keeping and proposed
-   the memory; Cognition Core committed it atomically, with provenance
-   marking it as something you explicitly said.
-3. On Friday, while planning the turn, Runtime asks Cognition for
-   relevant memories. Recall returns the allergy as a hit.
-4. Runtime decides how to use that hit in context. The snack
-   suggestions steer clear of peanuts.
+## Typical Scenario: Correcting and Forgetting
 
-If the recall index had still been building on Friday, step 3 would
-have returned "unavailable" instead of a hit, and the turn would have
-continued anyway, just without that memory.
+A stored memory indicates you work at Company A, but you have transitioned to Company B:
 
-## Reader Scenario: Correcting And Forgetting
+1. **Access management surface**: Open the authorized Memory management panel for that Agent and view saved entries.
+2. **Submit correction**: Select the outdated entry, submitting its `memoryId` alongside the updated text. Runtime validates the manager handle and `agent.configure` permissions before forwarding to Cognition.
+3. **Atomic update**: Once committed by Cognition, the updated fact becomes current and the superseded entry leaves the active recall view.
+4. **Confirm forget**: To remove the former workplace from memory recall, select the entry and confirm the Forget operation (`confirmed: true`). Once the forget barrier commits, the memory will no longer be recalled, and subsequent index rebuilds or event replays will not revive it. (Raw conversation history and baseline character personas remain untouched.)
 
-Suppose a stored memory says you work at Acme, but you now work at Beta.
+Mentioning "I left Company A" in casual conversation does not trigger this administrative deletion; permanent modifications must be confirmed through authorized management interfaces.
 
-1. Open the authorized Memory management surface for the intended Agent and
-   inspect its stored entries.
-2. Select the incorrect entry and submit its `memoryId` with the corrected
-   content. Runtime validates the current Manager handle and `agent.configure`
-   access before forwarding the operation to Cognition.
-3. Only after the owner commits the correction does the corrected fact become
-   current and the superseded entry leave default recall. Pending, rejected,
-   or failed operations are not completed corrections.
-
-To forget memories about the old job, select the exact entries and confirm the
-Forget operation. The SDK request carries their `memoryIds` and `confirmed:
-true`; the owner result establishes whether the barrier was committed. No
-restart, retry, index rebuild, or replay may restore those forgotten entries.
-A later eligible event can form a new memory; it does not revive an old one.
-
-Saying "I left Acme" or "Forget everything about my old job" in ordinary chat
-does not perform this management operation. Automatic Remember has its own
-bounded admission rules and may make no change; a conversational reply is not
-a durable correction or deletion acknowledgement.
-
-Because banks are Agent-private, none of this touches any other Agent
-you talk to. Another Agent's memory of you is its own.
+Because memory banks are strictly partitioned per Agent, adjusting one Agent's memory leaves your conversations with other Agents completely unaffected.
 
 ## Source Basis
 

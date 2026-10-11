@@ -35,7 +35,7 @@ const platformGroups: DefaultTheme.SidebarItem[] = [
     text: '世界',
     items: [
       { text: '世界总览', link: '/zh/platform/worlds/' },
-      { text: '真相、状态与历史', link: '/zh/platform/worlds/state-vs-history' },
+      { text: '权威状态与历史', link: '/zh/platform/worlds/state-vs-history' },
       { text: 'OASIS', link: '/zh/platform/worlds/oasis' },
       { text: '世界生命周期', link: '/zh/platform/worlds/lifecycle' },
     ],
@@ -196,7 +196,7 @@ const realmGroups: DefaultTheme.SidebarItem[] = [
   {
     text: '世界语义',
     items: [
-      { text: '外部真相边界', link: '/zh/realm/truth' },
+      { text: '外部权威与状态边界', link: '/zh/realm/truth' },
       { text: '世界状态', link: '/zh/realm/world-state' },
       { text: '世界历史', link: '/zh/realm/world-history' },
       { text: '消费者投影', link: '/zh/realm/projection' },
@@ -239,15 +239,15 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
       { text: 'Live2D 集成', link: '/zh/avatar/live2d-integration' },
       { text: 'VRM 动作编写', link: '/zh/avatar/vrm-motion-authoring' },
       { text: '生成式动作提供器', link: '/zh/avatar/generated-motion-provider' },
-      { text: '载体视觉可接受性', link: '/zh/avatar/carrier-acceptance' },
-      { text: '视觉接受度', link: '/zh/avatar/visual-acceptance' },
+      { text: 'Carrier 视觉呈现验收', link: '/zh/avatar/carrier-acceptance' },
+      { text: '视觉呈现验收', link: '/zh/avatar/visual-acceptance' },
     ],
   },
   {
-    text: '脚本',
+    text: '语义映射',
     items: [
-      { text: 'Agent Script (NAS)', link: '/zh/avatar/agent-script' },
-      { text: 'NAS 处理程序编写', link: '/zh/avatar/nas-handler-authoring' },
+      { text: '活动映射', link: '/zh/avatar/activity-mapping' },
+      { text: '模型能力配置', link: '/zh/avatar/model-capabilities' },
       { text: 'Avatar 事件', link: '/zh/avatar/avatar-events' },
     ],
   },
@@ -255,7 +255,7 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
     text: '工具',
     items: [
       { text: '测试夹具', link: '/zh/avatar/test-fixtures' },
-      { text: '调试工作台', link: '/zh/avatar/debug-workbench' },
+      { text: '渲染后端诊断', link: '/zh/avatar/debug-workbench' },
     ],
   },
 ]

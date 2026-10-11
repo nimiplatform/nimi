@@ -1,31 +1,36 @@
-# 流与 Job 观察
+# 流式事件与异步任务观察机制
 
-流承载有序的强类型事件。连接关闭本身不能证明成功；需要消费该操作定义的终止信号，并区分传输失败与最后一次可信状态。
+在 Nimi 中，流式通信（Streaming）承载着实时的文本生成切片、音频帧以及模型状态事件；而长耗时操作（如图像生成、视频渲染或音乐合成）则通过异步任务（Scenario Job）模型进行统一调度与状态追踪。
 
-## 生成流
+## 生成流生命周期
 
-文本及受支持的语音生成使用强类型增量和明确的完成或失败结果。建流前，准入检查可拒绝调用；建流后，在仍能投递时通过规定的失败事件报告业务失败。传输断开或 Runtime 关闭可能导致终止事件无法到达，客户端不能把这种中断当成成功。
+- **结构化增量推送**：文本与语音生成通过流式通道实时返回增量数据分片，前端应用可实现低延迟的即时呈现。
+- **显式完成与错误通知**：流式管道在生成正常结束或发生异常时均会发送明确的终态事件，使客户端能够准确区分网络传输断开与实际业务成功。
+- **连接弹性与恢复策略**：若发生网络临时抖动，会话可基于当前会话快照重新同步。对于对话类交互，系统优先从已落地的权威轮次中恢复，确保上下文的一致性。
 
-平台不承诺重连后普遍重放未完成的生成。共享实时层只提供有限重连机制，恢复由各 owner 决定。AI Realtime 会话是临时状态，Runtime 或 Driver 丢失时关闭；LocalAgent Conversation 从已提交快照恢复，不依赖持久事件重放。
+## 异步任务（Scenario Job）工作流
 
-## 异步 Job
+对于耗时较长的重型计算任务，系统采用标准的异步作业模式：
 
-统一流程是 Submit、反复 Get 原 Job、正式读取结果，以及用户明确要求时 Cancel。`GetScenarioJob` 可以为原生异步任务触发一次有界核对；没有后续 Get，Runtime 不会启动常驻 Provider 轮询。
+1. **提交任务（Submit）**：应用提交生成请求，Runtime 校验参数并返回唯一的 `jobId`；应用端可记录 `clientSubmissionId` 确保幂等性。
+2. **状态轮询与事件订阅（Get & Subscribe）**：
+   - 应用可通过 `GetScenarioJob` 轮询任务状态；
+   - 也可结合 `SubscribeScenarioJobEvents` 实时接收中间进度事件，提升界面交互体验。
+3. **获取最终产物（Artifacts）**：当任务状态转为 `COMPLETED` 时，应用调用读取接口获取生成的文件或结构化数据。
+4. **用户主动取消（Cancel）**：若用户中途决定停止，可发送取消请求；应用端需检查返回的终态与 `stopOutcome` 以确认底层计算是否已真正中止或仍处于未确认状态。
 
-`SubscribeScenarioJobEvents` 返回状态快照，能让界面更及时更新。它是 Get 之外的提示，不负责推动异步 Provider，也不能代替完整终态 Get。观察频率归 App。事件中的终态不替代 Get 或正式 artifact 读取接口中的专属结果字段。
+## 背压与资源保护
 
-`observationIssue` 与 Job 状态分开：它表示本次观察的问题，可伴随最后可信快照返回，但不能证明原任务失败。取消订阅、离开页面或断线只结束观察，不取消已准入工作。明确 Cancel 是另一项操作；仅有 canceled 状态也不能证明外部计费或执行停止，必须保留返回的 stop outcome。
+为了确保系统长期稳定运行：
+- **流量自适应控制**：Runtime 为每个活动连接设置了合理的缓冲区上限与超时阈值，防止高频事件淹没低性能消费端。
+- **容量管理**：Runtime 维护队列上限与并发约束，防止计算任务耗尽系统内存与资源。
 
-恢复时保留原 Job 身份或预先保存的提交身份，查询并观察原工作，不重新生成。在 Runtime 的有限保留期结束前，把完整结果保存为 App 数据。
+## 相关文档
 
-## 有界投递
-
-Runtime 限制消息、缓冲、订阅延迟、重试与存活时间。慢消费者会收到反压或强类型资源/消费过慢失败，不承诺无限暂停与无损重放。独立通道和轨道相互隔离。
-
-Wire 细节见 [流式协议](/zh/runtime/streaming-protocol)，可编译的 [Scenario Job 示例](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/05-scenario-job.ts) 使用受保护 App 客户端。
+- [底层流式协议细节](/zh/runtime/streaming-protocol)
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
-- [`sdks/typescript/runtime/scenario-jobs.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/scenario-jobs.ts)
+- [`examples/sdk/05-scenario-job.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/05-scenario-job.ts)

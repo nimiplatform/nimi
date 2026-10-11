@@ -11,13 +11,14 @@
 
 需要共享 UI 或宿主集成时，读[在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。需要具体能力示例时，读[使用 Nimi Lab](/zh/start/use-nimi-lab)。
 
-## 本地开发与对外分发
+## 本地开发与分发模式
 
-Nimi App 有三条独立路径：Registry 批准的安装包、用户明确选择的不可变本地包导入，以及不使用安装包的 Developer Mode 项目。本指南从本地开发开始；创建项目或打开窗口本身不会授予 Nimi Access，也不会发布 App。
+Nimi App 提供三条独立的接入与分发路径：
+- **开发者模式（Developer Mode）**：直接在本地启动未打包的开发项目，由桌面端监督运行并连接 Runtime，便于快速调试迭代。
+- **本地包导入**：导入经过打包的不可变应用包进行本地私有测试与验证；这不代表已在官方 Registry 发布。
+- **Registry 目录分发**：经审核后收录进入官方应用目录，供用户浏览与安装。
 
-当前预发布允许已明确配置的试点 App 仓库通过受保护 tag 触发 GitHub Actions，并发布不可变 GitHub Release；静态 Registry 的接入和描述符准入需要人工批准。Windows x86_64 与 macOS arm64 已支持验证目录发现、安装、更新、启动/聚焦/停止、受保护会话 Access 和卸载。这些平台已有通过 Desktop 与 Runtime 实现的不可变本地包导入，以及区分来源的安装、更新、启动和卸载；联合产品验收与公开发布就绪仍需分别确认。其他平台的包生命周期与普通修复仍不可用。内置或平台 App 另有规则。
-
-准备分发前，请阅读 [App Tools 发布说明](https://github.com/nimiplatform/nimi/tree/main/app-tools#canonical-release-boundary)。本地运行、发布制品、Registry 准入、安装状态和访问能力各自独立，不能相互代替。
+在当前版本中，应用管理与访问控制支持 macOS (arm64) 与 Windows (x86_64)；其他平台的包生命周期与普通修复仍不可用。准备对外发布时，请参考 [App Tools 发布说明](https://github.com/nimiplatform/nimi/tree/main/app-tools#canonical-release-boundary)。
 
 ## 按需要查参考
 
@@ -28,7 +29,7 @@ Nimi App 有三条独立路径：Registry 批准的安装包、用户明确选�
 
 想了解个人 AI 产品或普通用户下载状态，请访问[官网](https://nimi.ai)和[下载页](https://nimi.ai/download)。使用 Nimi Home 需要 Nimi 账号，并在浏览器中登录。
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)

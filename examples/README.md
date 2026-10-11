@@ -1,68 +1,52 @@
 # Nimi Examples
 
-The SDK examples are App code for a Nimi App. Each module takes the App's
-host-bound `NimiLocalAppClient`: in a project created with
-`@nimiplatform/app-tools`, pass `getNimiLocalAppClient()` from
-`src/shell/auth/local-app-client.ts`.
+This directory provides developer examples demonstrating how to use the Nimi TypeScript SDK (`@nimiplatform/sdk`) and ecosystem tools to build personal AI applications.
 
-They run inside the App's Desktop-supervised Host (`pnpm dev` in the App
-project), not as standalone Node scripts. Runtime accepts App operations only
-from a verified Host session; a direct gRPC client with an App ID is rejected
-for AI execution, App AIConfig and App storage.
+## How SDK Examples Work
 
-## SDK Examples
+In a Nimi App, your application interacts with the local Runtime through a host-bound client (`NimiLocalAppClient`). For projects generated with `@nimiplatform/app-tools`, you can obtain this client via `getNimiLocalAppClient()` from `src/shell/auth/local-app-client.ts`.
 
-| File | Shows |
-| --- | --- |
-| `sdk/01-first-call.ts` | One text answer with `client.ai.text.generateCandidate` |
-| `sdk/02-streaming.ts` | A streamed text turn with `client.ai.text.streamTurn`, including stop |
-| `sdk/03-ai-config.ts` | Saving a Local `text.generate` intent without dropping the App's other capabilities |
-| `sdk/04-vercel-ai-sdk.ts` | Vercel AI SDK 6 through `createNimiLocalAppVercelLanguageModel` |
-| `sdk/05-scenario-job.ts` | Submit once, observe an asynchronous `text-annotate` Job with Get, and resume by Job ID |
-| `sdk/06-errors.ts` | Narrow unknown failures with `isNimiError` and retain typed details |
-| `sdk/07-voice-create.ts` | Submit one `voice-create` Job from a text description using a saved submission identity |
-| `sdk/advanced/app-access.ts` | Session posture from `client.auth.status()` and typed failure details |
+SDK calls execute in the context of the App's supervised desktop session (`pnpm dev` in your app workspace), where the local Runtime enforces permissions and routes requests to the configured local model or cloud connector.
 
-Each call needs the App's matching App Access declaration (for example
-`runtime.consume`) and a saved capability intent (for example `text.generate`).
-The request carries content only; Runtime captures the machine-selected Local Loadout or the exact committed
-Cloud Connector and target when the Job is submitted.
+## SDK Example Catalog
 
-The streaming example preserves `traceId` and the Runtime interruption's
-`resubmitDisposition`. An uncertain outcome does not authorize resubmission.
-When cleanup also fails, `AggregateError.cause` retains the primary failure and
-`errors` retains both failures; typed primary metadata remains on the combined
-error. Closing the stream once does not prove an external operation rolled back.
+| File | Feature Demonstrated | Description |
+| --- | --- | --- |
+| `sdk/01-first-call.ts` | Basic Text Generation | Simple prompt-response flow using `client.ai.text.generateCandidate` |
+| `sdk/02-streaming.ts` | Streamed Text & Cancellation | Real-time response streaming with `client.ai.text.streamTurn`, including graceful cancellation handling |
+| `sdk/03-ai-config.ts` | Capability Configuration | Persisting local AI capability intents without modifying unrelated app settings |
+| `sdk/04-vercel-ai-sdk.ts` | Vercel AI SDK Integration | Using `@nimiplatform/sdk-adapter-vercel-ai` with standard Vercel AI SDK (v6) language models |
+| `sdk/05-scenario-job.ts` | Asynchronous Scenario Jobs | Submitting an async job (e.g. `text-annotate`), observing status, and polling for results |
+| `sdk/06-errors.ts` | Typed Error Handling | Inspecting and narrowing structured runtime errors using `isNimiError` |
+| `sdk/07-voice-create.ts` | Voice Generation Job | Creating custom voice profiles from descriptive prompts via async job submission |
+| `sdk/advanced/app-access.ts` | Session & Authorization Status | Inspecting current session posture and access state via `client.auth.status()` |
 
-The Vercel example uses the separate `@nimiplatform/sdk-adapter-vercel-ai`
-package. Install a release whose `@nimiplatform/sdk` peer range covers the SDK
-version your App uses.
+## Key Concepts & Best Practices
 
-## Runtime CLI
+- **Declarative Access & Routing**: Requests only need to supply prompt content and parameters. The Nimi Runtime automatically routes the request according to the user's configured model or connector and active app permissions.
+- **Graceful Stream Interruption**: When streaming responses (`sdk/02-streaming.ts`), applications should handle user cancellations cleanly and preserve error metadata when connections drop.
+- **Vercel AI SDK Support**: The `@nimiplatform/sdk-adapter-vercel-ai` package allows developers to plug Nimi's local and cloud models directly into existing Vercel AI SDK workflows.
 
-`runtime/cli-quickstart.sh` checks a local Runtime with the `nimi` CLI
-(`doctor`, `version`, `health --json`, `status`). It does not call AI
-capabilities.
+## Runtime CLI Quickstart
 
-## App Scaffolds
+The `runtime/cli-quickstart.sh` script demonstrates useful diagnostic commands using the `nimi` CLI (`doctor`, `version`, `health --json`, and `status`).
 
-Generate a fresh App with the `@nimiplatform/app-tools` CLI; this package does
-not keep a hand-maintained scaffold copy.
+## Creating a New App
+
+To create a new app using the Nimi App Tools scaffold:
 
 ```bash
 pnpm dlx --package=file:./nimi-packages/nimiplatform-app-tools-0.11.4.tgz nimi-app create --dir my-nimi-app --profile standalone
 ```
 
-## Compile Gate
+## Running Checks
+
+Type-check and test the examples against the current workspace packages:
 
 ```bash
+# Type-check all examples
 pnpm --filter @nimiplatform/examples run check
+
+# Run streaming and error regression tests
+pnpm --filter @nimiplatform/examples test
 ```
-
-The gate type-checks these modules against the SDK and adapter sources in
-this repository. CI runs it when the SDK, the adapter, or these examples
-change.
-
-`pnpm --filter @nimiplatform/examples test` also runs the streaming example's
-cancellation and terminal-result regressions. These isolated consumer tests
-do not establish a live Host or model execution.

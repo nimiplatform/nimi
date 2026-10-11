@@ -1,74 +1,51 @@
 # Platform Kit
 
-`@nimiplatform/kit` provides reusable UI and host-integration building
-blocks for Nimi Apps. It lets real consumers share a visual language,
-accessibility behavior, shell adapters, and common interaction
-primitives without moving product truth into the package.
+`@nimiplatform/kit` provides reusable UI components and host integration building blocks for Nimi Apps. Developers can readily share visual design language, accessibility behaviors, Shell adapters, and common UI interaction primitives, while business logic and domain authority remain firmly owned by the Apps and underlying platform services.
 
-## Current Role
+## Core Module Surfaces
 
-| Kit surface | Responsibility |
+| Subpath | Scope & Responsibility |
 | --- | --- |
-| `ui` | Shared tokens, themes, and UI primitives |
-| `auth` | Reusable authentication presentation and adapters |
-| `core` | Host-neutral utility and capability helpers |
-| `telemetry` | Renderer telemetry and error-boundary helpers |
-| `shell/tauri` | Rust host glue for Tauri Apps; carries a subset of the standard shell |
+| `ui` | Shared design tokens, theme schemes, and core UI primitives |
+| `auth` | Reusable user authentication presentation and adapter workflows |
+| `core` | Host-neutral utilities and capability helper libraries |
+| `telemetry` | Renderer telemetry and React error boundary components |
+| `shell/tauri` | Lightweight Rust host glue for Tauri environments |
 
-Kit is demand driven. A reusable surface is added when a real App or
-host needs the same behavior and the product owner is already clear.
-Kit does not prebuild a public feature catalog merely to make the
-ecosystem look complete.
+Kit follows a demand-driven evolution principle: reusable surfaces are added only when multiple apps or host environments have clear reuse requirements and unambiguous component boundaries. Kit avoids speculative design and does not assemble redundant catalogs simply for the appearance of ecosystem completeness.
 
-## Tauri Hosts
+## Host Environments: Electron and Tauri
 
-Nimi App development runs in the Desktop-supervised Electron Host, and the
-default build packages that Electron Host; it carries the complete standard
-shell. Tauri remains an explicitly configured build alternative, and the
-shared Tauri crate carries a subset. On a Tauri Host, an App has its
-session status, App AIConfig, one-shot text generation (`generateCandidate`),
-artifact upload, App storage (JSON documents and assets), Realm World and
-PersonaCharacter operations, shared Agent AIConfig, Agent manager, autonomy,
-presentation and memory controls, embodiment, and App activity.
+Nimi App development defaults to the Desktop-supervised Electron host, which packages the complete standard shell.
 
-Streamed text turns, Scenario execution and Jobs, artifact reads, voice
-assets, Realm chat and realtime, Agent introduction, references and work,
-Integrations, Agent Conversation, AI and Agent realtime, video sessions, App
-media playback handles, Avatar host handoff, and Resource Pack import are not
-carried by Tauri. Calling them on a Tauri Host fails with
-`capability-unavailable` (reason `tauri-standard-shell-operation-unsupported`)
-before any Tauri command runs. App-owned Tauri commands are unaffected.
+Tauri is an explicitly configured lightweight alternative, where the shared Tauri crate implements a targeted subset of capabilities:
 
-## Owner Boundary
+- **Supported on Tauri**: Session status queries, App AIConfig, single-shot text generation (`generateCandidate`), Artifact uploads, local storage (JSON documents and static assets), Realm World and PersonaCharacter operations, shared Agent AIConfig, Agent management (autonomy, appearance, memory controls, embodiment), and App Activity tracking.
+- **Not supported on Tauri**: Streamed text turns, Scenario orchestration and Job scheduling, Artifact downloads, voice assets, Realm realtime chat and channels, Agent collaboration recommendations, third-party Integrations, realtime audio/video sessions, native media player handles, Avatar host handoff, and Resource Pack imports.
+- **Invocation behavior**: Attempting to invoke unsupported capabilities on a Tauri host fails immediately before shell dispatch with `capability-unavailable` (reason `tauri-standard-shell-operation-unsupported`). Custom Tauri commands registered independently by the App are unaffected.
 
-Kit may own reusable presentation and host-neutral interaction
-behavior. It does not own:
+## Ownership Boundaries
 
-- App-specific product flows or layout;
-- Runtime LocalAgent, Conversation, Memory, Knowledge, or readiness;
-- Realm world, Character, account, or social truth;
-- Avatar execution or rendering authority;
-- provider routing, backend execution, or authorization truth.
+Kit owns reusable presentation patterns and host-neutral interaction mechanics. It deliberately avoids owning:
 
-Apps import Kit through public subpaths and compose those primitives
-locally. They do not import private Kit paths or duplicate a shared
-primitive under App-local ownership.
+- App-specific business workflows, layouts, or product logic;
+- Runtime layer concerns (LocalAgent, Conversation, Memory, Knowledge, or readiness states);
+- Realm virtual worlds, character personas, accounts, or social graph canonical state;
+- Avatar execution pipelines or skeletal rendering core authority;
+- AI provider routing, backend execution, or permission authorization rules.
 
-## Reader Scenario: Reusing A Shared Dialog
+Apps consume Kit via public subpaths and compose primitives locally. Apps should not import internal private paths from Kit, nor should they duplicate primitives already maintained by Kit.
 
-An App needs the same accessible confirmation dialog already used by a
-first-party surface.
+## Typical Scenario: Reusing a Shared Confirmation Dialog
 
-1. The App imports the public Kit dialog and shared semantic tokens.
-2. The App provides its own product copy and action handler.
-3. Kit supplies focus management, keyboard behavior, and shared visual
-   semantics.
-4. The App remains the owner of the product decision; Kit remains the
-   owner of the reusable interaction primitive.
+An App requires an accessible, platform-consistent confirmation modal:
 
-For visual-system details, see
-[Design Pattern](/platform/kit/design-pattern). For App integration,
-see [Use Kit In An App](/platform/kit/use-kit-in-app).
+1. **Import cleanly**: The App imports `Dialog` and semantic tokens from `@nimiplatform/kit/ui`.
+2. **Define business content**: The App supplies its own dialog copy, form elements, and action handlers.
+3. **Delegate interaction mechanics**: Kit manages keyboard focus traps, navigation, and accessibility semantics automatically.
+4. **Clear division of labor**: Product decisions remain in the App; accessibility and visual consistency are guaranteed by Kit.
+
+For visual design guidelines, see [Design Pattern](/platform/kit/design-pattern). To get started integrating Kit in your application, see [Use Kit in an App](/platform/kit/use-kit-in-app).
 
 ## Source Basis
 

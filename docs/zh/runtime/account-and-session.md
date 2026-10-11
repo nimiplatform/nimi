@@ -1,35 +1,32 @@
-# 账号与受保护 App 会话
+# 账户认证与受保护应用会话
 
-用户身份与账号授权归 Realm。RuntimeAccountService 管理本地浏览器授权事务、授权码交换、刷新、重启恢复与凭据托管。Desktop 传递浏览器启动和 loopback 回调，Web 提供凭据交互；两侧 renderer 都不接收 bearer。
+在 Nimi 架构中，全网通用的用户身份认证与账号权限由 Realm 核心统一签发。本地的 `RuntimeAccountService` 负责协调本地浏览器授权流、授权码（OAuth Code）交换、自动刷新与凭据安全托管。桌面端（Desktop）负责拉起浏览器并协助本地回调，所有敏感情报（如 Access Token）均保留在受保护的本地环境中，不向前端应用渲染进程暴露。
 
-## 通过 Home 登录
+## 登录流程与授权握手
 
-1. Home 向 RuntimeAccountService 请求登录事务。
-2. Desktop 在浏览器打开 owner 返回的确切 URL。
-3. 用户通过 Web 完成 Realm 授权。
-4. Desktop 把经过验证的回调交给 Runtime；只有 Runtime 交换授权码并建立本地托管。
-5. Home 展示有限的当前用户和会话信息。
+1. **发起登录**：Nimi Home 向 `RuntimeAccountService` 请求创建新的认证事务；
+2. **拉起浏览器**：Desktop 自动打开由系统生成的官方认证页面；
+3. **完成身份校验**：用户在浏览器中通过 Realm 完成登录、多因素验证或通行密钥校验；
+4. **安全回调握手**：浏览器将授权码通过该次登录指定的本地回环回调（Loopback）安全传递给本地 Runtime；
+5. **凭据安全托管**：由 Runtime 负责与 Realm 验证授权码并完成一次性凭据交换，将长效凭据安全托管于受保护的本地存储；
+6. **就绪同步**：Home 接收到认证成功的通知，展示当前登录用户信息。
 
-Runtime 不可用、回调非法、事务不匹配或授权过期时拒绝继续。Renderer 不能另拼登录 URL，也不能自行交换 token。
+## 应用权限隔离与会话绑定
 
-## App 访问
+通过 Nimi Home 启动的桌面端 App 会使用官方 SDK 自动建立受保护的宿主会话绑定：
+- **身份自动推导**：Runtime 基于调用方的宿主会话凭证，自动推导其所属账号、应用身份及授权的能力范围（Scopes），应用无需手动传入明文 Token；
+- **凭据保护防越权**：应用无需直接持有敏感的 Realm Bearer Token，所有对云端资源或本地模型的访问均由 Runtime 统一鉴权代理；
+- **独立客户端限制**：非受控的普通直连调用无法获取应用级私有权限，确保了受保护通道的隔离与准入边界。
 
-Desktop 监督的 App 使用标准宿主绑定 SDK。Runtime 验证确切启动的 Host peer，并推导已注册 App 主体、账号上下文、声明代次、操作与访问范围。Localhost、App ID 或可移植 bearer 都不足以证明受保护来源。
+## 会话变更与生命周期响应
 
-App 只消费安全状态和强类型能力结果，不调用公开 `GetAccessToken`，不持有 Realm access/refresh token，也不用 Runtime 颁发的 bearer 直连 Realm。受保护 Realm 操作通过强类型 broker，凭据留在 Runtime。Nimi App 之外的独立 SDK 程序另有 token 托管边界，不能因此取得受保护 App 权限。
-
-## 会话变化
-
-切换账号、退出、注册变化或访问撤销会使对应入口和引用失效。单纯技术会话轮换或观察断线不会取消已准入的有限 Job；真正权限撤销会阻止新的出站工作及未授权结果发布。刷新会话不重放 App 任务。
-
-退出登录不是删除账号。本地 Cognition 清理只响应实际观察到且正确关联的 Realm 账号删除结果，不能宣称已远程物理擦除离线设备。
-
-另见 [App 授权](/zh/platform/agents/participation-authority) 与 [Job 观察](/zh/runtime/streaming)。
+- **会话刷新与断线重连**：当短期 Token 过期时，Runtime 会在后台自动完成静默刷新，不打断正在进行的会话；
+- **账号切换与退出**：用户主动切换账户或退出登录后，之前的应用会话将自动失效并清空缓存；
+- **任务连续性**：对于已处于排队或执行中的长耗时计算任务，会话轮换不会强行中断底层已提交的工作，但未获授权的第三方将无法提取任务结果。
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
 - [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
-
 - [`proto/runtime/v1/account.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/account.proto)

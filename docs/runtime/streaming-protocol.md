@@ -1,33 +1,27 @@
-# Streaming Protocol
+# Low-Level Streaming Protocol and Wire Conventions
 
-Runtime RPCs declare their own event shapes and close behavior. An App normally consumes their protected SDK projection, rather than constructing a direct gRPC connection.
+Runtime RPC endpoints define explicit event formats and lifecycle semantics. In typical development workflows, applications interact with streams through the standard SDK without needing to parse low-level binary gRPC frames directly.
 
-| Surface | Normal completion | Interruption |
+## Streaming Endpoints and Lifecycle Behaviors
+
+| Endpoint | Normal Completion | Interruption & Recovery Handling |
 | --- | --- | --- |
-| `StreamScenario` | Typed completed or failed terminal event | Transport loss can prevent terminal delivery; do not infer success |
-| `SubscribeScenarioJobEvents` | Job snapshots through a terminal state, then closure | Re-observe the original Job with Get; detachment does not cancel work |
-| `ExportAuditEvents` | Final chunk with `eof=true` | An interrupted export is incomplete |
-| Long-lived subscriptions | Follow the owning operation's lifecycle; no universal success frame | Session, authority, transport, or daemon changes can close the subscription |
+| `StreamScenario` | Emits terminal frame with `completed` status | Emits explicit `failed` events; socket disconnects trigger connection timeouts |
+| `SubscribeScenarioJobEvents` | Delivers status snapshots up to terminal state, then closes | Re-query with `GetScenarioJob`; ending observation does not cancel background compute |
+| `ExportAuditEvents` | Final batch marked with `eof: true` | Interrupted streams yield partial output; re-exporting requires a new export request over the desired time window |
+| **Long-Lived Subscriptions** | Follows specific owner resource lifecycles | Cleanly terminates upon session invalidation or daemon restart |
 
-## Generation Events
+## Generation Stream Handling Principles
 
-Admission failure before stream establishment is an operation error. An established generation stream carries the admitted started, delta, usage, completed, or failed shapes. Consumers preserve ordered content and distinguish a successful terminal from failed or interrupted delivery. Speech bytes and MIME information must satisfy the exact speech output contract.
+1. **Strict Ordering**: Incremental text deltas maintain strict sequential ordering across the transport layer, ensuring coherent text reassembly in the UI.
+2. **Separation of Metrics and Data**: Content chunks, performance metrics (e.g., token `usage`), and lifecycle signals (start, completion) are demarcated into distinct message envelopes.
+3. **Reconnection Strategies**: For interactive streaming, brief disconnects prompt actionable retry banners; for asynchronous jobs, client apps re-bind using the persistent `jobId`.
 
-A terminal frame cannot be guaranteed after connection loss. Do not retry a partial generation as if it resumed the original operation. An explicit new generation is a separate App action.
+## Backpressure and Resource Protection
 
-## Job Snapshots and Complete Results
-
-A Job can emit multiple snapshots of the same status or event type. Do not discard a newer snapshot merely because its type repeats. Events do not expose every typed terminal result.
-
-Use repeated `GetScenarioJob` calls on the same identity. Each call may reconcile the original native provider task within bounded work. Read the complete terminal response, including operation-specific results such as VoiceAsset/VoiceReference or vision locations, and use `GetScenarioArtifacts` for contracts with formal artifact output. An empty valid result is distinct from an absent required result.
-
-An observation error is not a fabricated Job terminal. SDK observation helpers retain the original Job, expose typed issues, and separate observation abort from explicit execution cancellation. See [Streams and Job Observation](/runtime/streaming).
-
-## Reconnect and Resource Limits
-
-Shared realtime infrastructure owns ordering, generation fencing, cancellation, bounded buffering, and safe lifecycle metadata. It does not own generic replay or durable checkpoints. Realm defines its cursor recovery, LocalAgent recovers from its committed Conversation snapshot, and AI Realtime remains session-ephemeral.
-
-Backpressure is bounded: slow consumers may be closed with a typed failure. Daemon shutdown or stale authority closes affected subscriptions and fences late data. A client must re-establish authorized state through the owning surface before accepting a new generation.
+To prevent slow consumers from causing memory exhaustion within Runtime:
+- **Bounded Buffers**: Streaming channels enforce bounded sliding windows, applying backpressure upstream to inference workers when buffers saturate.
+- **Connection Pruning**: Dangling or unresponsive socket connections are reclaimed automatically after bounded timeouts, freeing system socket handles.
 
 ## Source Basis
 

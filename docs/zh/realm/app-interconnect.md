@@ -1,86 +1,38 @@
-# 应用互联
+# 应用互联与数据交互范式（App Interconnect）
 
-Nimi App 并不住在 Realm 里面，而是从外面连进来。这一页讲的就是这层连接：App 怎么读 Realm，怎么获得写入的资格，以及 Realm 的概念怎么翻译成外部系统能懂的形式。
+Nimi 应用并不直接嵌入在 Realm 服务端内部，而是作为外部客户端通过标准协议与平台进行互联。应用可通过受保护的 SDK 接口，高效读取世界权威状态、订阅实时事件并安全提交状态变更。
 
-## 应用怎么连到 Realm
+## 应用与 Realm 的通信通道
 
-| 通道 | 用途 |
-| --- | --- |
-| REST | 在已准入契约下对 Realm 做强类型读取与变更 |
-| WebSocket | 实时分发规范事件 |
+| 通信通道 | 核心用途 | 协议特征 |
+| --- | --- | --- |
+| **REST 接口** | 执行标准化的只读查询与结构化提交 | 具备明确的请求校验与参数 Schema 约束 |
+| **WebSocket / SSE** | 实时订阅并分发数字世界中的规范事件 | 低延迟双向或单向推送，保证多端视图实时联动 |
 
-Realm 在 SDK/Runtime 载体后使用已准入 REST 与 WebSocket 协议。正式 Nimi App 使用受保护的 `client.realm` 操作，凭据留在 Runtime，不接收 bearer，也不建立原始 REST/WebSocket 旁路。
+正式 Nimi App 建议使用由 SDK 封装的 `client.realm` 客户端。敏感认证凭据由本地 Runtime 统一托管与注入，应用代码无需自行管理底层的 Bearer Token 或手动维护 WebSocket 重连逻辑。
 
-## 应用模式与 Realm 权威
+## 应用运行模式（Render-App 与 Extension-App）
 
-render-app 只读 Realm；extension-app 在已准入的绑定作用域内既读也写。
+根据应用对世界数据的读写需求，平台支持两种运行模式：
 
-| 模式 | 读 Realm | 写 Realm | 同一世界并发数 |
-| --- | --- | --- | --- |
-| `render-app` | 是 | 否 | 多个 |
-| `extension-app` | 是 | 是 | 同一世界至多一个活跃 |
+| 运行模式 | 读取权限 | 写入权限 | 同一世界活跃上限 | 典型产品场景 |
+| --- | --- | --- | --- | --- |
+| **`render-app`（只读展示型）** | 支持 | 不支持 | 无限制（允许多个） | 世界观信息面板、场景全景观众端、统计仪表盘 |
+| **`extension-app`（扩展互动型）** | 支持 | 支持 | **同一世界仅允许 1 个** | 世界主游戏逻辑、专属剧情脚本控制器、世界事件驱动器 |
 
-"同一世界至多一个活跃 extension-app"的限制原因很直接：如果同一世界有两个 extension-app 同时写规范状态，规范状态就会发生竞争。
+> **并发约束原理**：限定同一世界至多存在一个活跃的 `extension-app`，是为了从根本上避免多个写入者同时提交互相冲突的世界状态变动，从而确保世界演进的强一致性与确定性。
 
-## 互操作映射
+## 跨平台互操作映射（Interoperability Mappings）
 
-Realm 互操作映射在 Realm 概念与外部开放规范锚点之间做翻译，桥接以下几对：
+当需要将 Realm 内部的数据结构导出给第三方引擎（如 Unity、Unreal Engine 或外部 Web 平台）消费时，系统提供标准化的只读转换桥梁：
+- **状态格式映射**：将 Realm 的标准世界状态转换为通用的 JSON 场景树；
+- **历史记录导出**：按时间序导出不可篡改的世界事件流水，便于外部进行数据分析与剧情复盘。
 
-| 桥接 | 用途 |
-| --- | --- |
-| 世界状态契约 ↔ 外部状态表示 | Realm 世界状态需要对外可见时 |
-| 世界历史契约 ↔ 外部历史表示 | 跨平台的历史兼容 |
-| Runtime Agent ↔ Realm Agent | 身份桥接 |
-| Transit 契约 ↔ 外部 transit 形态 | 跨协议的 transit 兼容 |
+## 相关文档
 
-互操作映射是一层正式翻译。它不修改 Realm，只把 Realm 渲染成其他系统能消费的形态。
+- [世界状态提交信封机制](/zh/realm/world-state)
 
-## 读者场景：一个应用先读后写
-
-一个 render-app 想展示某个世界；之后用户把它升级成一个会修改状态的 extension-app。
-
-1. **render-app 启动**。应用以 render 模式读 Realm。
-2. **用户想做更多**。用户把这层关系升级成 extension-app 模式。
-3. **应用与世界绑定**。这个 extension-app 与世界建立绑定（同一时刻只有一个活跃）。
-4. **变更**。extension-app 提交强类型 commit envelope 来修改状态。
-5. **Realm 准入**。每次变更都过一遍已准入的授权矩阵。
-6. **审计血缘**。每次变更都登记入账。
-
-从只读升级到可写，必须显式建立绑定。没有静默的权威提升。
-
-## 读者场景：实时事件流
-
-一个应用想实时响应规范事件。
-
-1. **订阅**。应用通过绑定宿主的客户端打开已准入的强类型 Realm 实时订阅。
-2. **实时分发**。事件提交后即送达。
-3. **应用响应**。事件处理器按已准入的形态处理强类型事件。
-4. **连接生命周期**。重连、背压等都按已准入的连接契约进行。
-
-实时是已准入能力。实时可用时，应用不需要自己设计轮询协议。
-
-## 读者场景：外部系统桥接 Realm
-
-一个外部系统想镜像 Realm 的世界历史。
-
-1. **通过互操作映射读取**。外部系统在已准入的互操作映射下读 Realm 历史。
-2. **翻译成外部形态**。映射把 Realm 概念渲染成外部开放规范的表示。
-3. **外部系统消费**。除非另有准入，不会有变更回流。
-
-桥接默认是单向读。要双向，必须有已准入的双向契约，不会隐式启用。
-
-## 边界归属
-
-| 关注点 | 归属 |
-| --- | --- |
-| Realm 规范真相 | Realm 内核 |
-| 应用接入 Realm | 已准入的 REST + WS 面 |
-| 应用与世界绑定 | 应用授权预设 + 绑定契约 |
-| 实时分发 | 已准入的订阅面 |
-| 外部系统桥接 | Realm 互操作映射 |
-| 跨协议形态 | 互操作映射桥接 |
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/sdks/realm-consumer.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/realm-consumer.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

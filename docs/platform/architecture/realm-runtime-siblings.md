@@ -1,27 +1,27 @@
-# Realm And Runtime As Siblings
+# Realm and Runtime as Siblings
 
-Realm and Runtime are independent product authorities.
+Realm and Runtime operate as decoupled, peer architectural authorities.
 
-| Realm owns | Runtime owns |
-| --- | --- |
-| Character identity and Character Source | LocalAgent materialization and lifecycle |
-| World Source and canonical World data | Local and Cloud AI consumption |
-| Social, economy, World state, and World history | Conversation, Memory mediation |
-| Realm access rules and cloud audit | AI implementation selection, budget, credentials, and App authorization |
+| Subsystem Domain | Realm Governance | Runtime Governance |
+| --- | --- | --- |
+| **Identity & Lifecycle** | Character persistent identity & Character Source definitions | LocalAgent instantiation & on-device lifecycle |
+| **World State & AI Compute** | World Source specifications & canonical world history | Local (Ollama/llama.cpp) & cloud AI model scheduling |
+| **State & Sessions** | Social relationship graphs, economy, and persistent world state | Active conversations, session state, and memory mediation |
+| **Security & Policy** | Realm access policies and multi-device cloud audit trails | Inference driver selection, token budgets, API keys, and app authorization |
 
-## Interaction
+## Inter-Domain Coordination
 
-Realm issues or projects the Character and World sources that Runtime is
-authorized to consume. Runtime materializes a LocalAgent from a Character
-Source and may use admitted World Source context during execution.
+Realm issues or projects Character Source and World Source structures that Runtime is authorized to consume. Runtime instantiates a LocalAgent from the Character Source and incorporates authorized World Source context during execution.
 
-Cognition Memory does not become canonical Realm World state through Runtime mediation. Realm does not execute LocalAgent turns or choose Runtime implementations.
-Any cross-domain mutation uses the owning domain's public contract.
+The architectural boundary strictly prevents cross-domain contamination:
+- Transient memory or reasoning outputs produced by Runtime are never written back into canonical Realm world state without explicit validation.
+- Realm does not execute LocalAgent conversation turns or mandate Runtime inference drivers.
+- Any mutation crossing domains must invoke the owning domain's public contract.
 
-SDK presents the bounded consumer surface. Nimi Home, Desktop, Avatar, and Apps
-remain consumers; none can merge the two owners into a host-local truth.
+The SDK presents a bounded consumer surface. Nimi Home, Desktop shell, Avatar rendering, and independent Apps are consumers; no host environment can merge these two distinct authorities into a private local state.
 
-Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
+> [!NOTE]
+> Long-term memory is managed by Cognition and isolated per agent; Runtime mediates authorized recall and updates. Knowledge V1 currently has no active public client interface.
 
 ## Source Basis
 

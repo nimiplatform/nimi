@@ -1,64 +1,52 @@
-# Transport And Error
+# Transport and Error Handling
 
-The SDK Transport And Error surface covers how the SDK talks to
-runtime over admitted transports + how runtime errors project into
-typed SDK errors that apps can handle predictably.
+The SDK Transport and Error handling mechanisms govern how the SDK communicates with Runtime over supported physical transports (such as Desktop IPC or gRPC), and how low-level runtime errors translate into predictable, strongly-typed SDK errors for applications.
 
-## Transport
+## Transport Management
 
-| Concern | Authority |
+| Concern | Specification & Rule |
 | --- | --- |
 | Transport bindings | `.nimi/spec/sdks/client-core.authority.yaml` |
-| Connection lifecycle | Per admitted transport |
-| Reconnect strategy | Transport-level only (does NOT rescue contract failure) |
+| Connection lifecycle | Managed independently per supported transport (heartbeats, state machines) |
+| Reconnect strategy | Restricted strictly to transport-level recovery (never rescues business contract errors) |
 
-Transports admitted in the contract govern how SDK calls reach
-runtime. The transport layer is responsible for bytes; it is not
-responsible for "fixing" contract-level errors.
+The transport layer guarantees reliable byte transmission; it maintains socket connectivity and never silently attempts to patch business contract violations.
 
-## Error Projection
+## Error Projection Architecture
 
-| Concern | Authority |
+| Concern | Specification & Rule |
 | --- | --- |
-| Error projection from runtime to SDK | `.nimi/spec/sdks/client-core.authority.yaml` |
-| Reason code surfacing | Typed; never silently dropped |
-| Decode / content-type / schema failures | Surface as typed SDK errors; not retried |
-| Auth / transport failures | Surface as typed SDK errors; may retry per transport policy |
+| Error translation from Runtime to SDK | `.nimi/spec/sdks/client-core.authority.yaml` |
+| Structured Reason Code preservation | Strongly-typed; never silently dropped or swallowed |
+| Decode failures / Content-Type / Schema violations | Surfaces as typed validation errors; retries are forbidden |
+| Authentication expiration / Transport disconnects | Surfaces as typed connection errors; retried per transport policy |
 
-The boundary: **retry / auth refresh are transport / auth mechanisms
-only**. They do not rescue decode, content-type, schema, or contract
-failures. A schema-invalid response does not become valid by retrying.
+> [!IMPORTANT]
+> **Automatic retries and token refreshes are transport and authentication recovery mechanisms only**. They cannot resolve payload decode failures, Content-Type mismatches, schema violations, or business contract breaches. A schema-invalid response will never become valid by being retried.
 
-## Reader Scenario: A Schema-Invalid Response
+## Typical Scenario: A Schema-Invalid Response
 
-Runtime returns a response that fails schema validation at the SDK.
+A Runtime API returns a response that fails SDK schema validation:
 
-1. **SDK projects error.** Typed SDK error with schema-failure
-   reason code.
-2. **No silent retry.** Transport may retry transport failures; this
-   is not one.
-3. **App handles the typed error.** Surfaces user-visible reason
-   without pretending success.
+1. **Typed error projection**: The SDK wraps the failure into a structured SDK error containing a precise schema failure reason code.
+2. **No silent retry**: Transport retries handle physical network drops; semantic contract failures are rejected immediately.
+3. **Application handling**: The application catches the typed error and displays user-friendly diagnostic information without fabricating success.
 
-## Reader Scenario: A Transport Disconnect
+## Typical Scenario: Transport Disconnect
 
-Runtime daemon enters STOPPING; SDK transport disconnects.
+The Runtime daemon enters a stopping state or restarts, causing the SDK transport connection to drop:
 
-1. **SDK detects.** Per `S-RUNTIME-028` `runtime.disconnected` or
-   gRPC status.
-2. **Transport reconnect strategy.** Per admitted transport
-   policy.
-3. **App receives typed transport error.** App decides whether to
-   retry the call after reconnect.
-4. **No spoof success.** Transport disconnect does not silently
-   produce a faked response.
+1. **Failure detection**: The SDK captures the connection drop via protocol events (`runtime.disconnected` or gRPC status codes).
+2. **Reconnect strategy**: The client triggers exponential backoff reconnection according to transport policy.
+3. **Notify application**: The SDK surfaces a typed transport error, allowing the application to decide whether to replay the business call upon reconnection.
+4. **No fake success**: Transport drops never synthesize mock data or pretend success.
 
-## What Transport And Error Do Not Do
+## Architectural Boundaries
 
-- They do not rescue schema / content-type / decode / contract
-  failures via retry.
-- They do not silently drop reason codes.
-- They do not let auth refresh substitute for fixing a schema error.
+- Retries must never be used to mask schema, decoding, or contract failures.
+- Structured reason codes must never be discarded during error translation.
+- Authentication refreshes cannot be abused to circumvent data validation errors.
+- Real failures must be propagated faithfully without pseudo-success.
 
 ## Source Basis
 

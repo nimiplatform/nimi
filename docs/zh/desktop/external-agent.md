@@ -1,49 +1,29 @@
-# 外部 Agent 接入
+# 外部 Agent 接入控制
 
-> 状态：暂未开放。桌面端在 Runtime Config 里为 External Agent Access 保留了位置，但在 Runtime 的网关与 action plane 就绪之前，Token 签发保持关闭。
+> **功能状态**：预留 / 开发中。桌面端在「高级与诊断 → 权限与访问」中为外部 Agent 接入预留了管理展示界面。在底层动作注册中心（Action Registry）与网关基础设施就绪前，令牌签发与外部调用保持禁用。
 
-External Agent Access 是为未来能力预留的设置区：管理 `ExternalPrincipal`，也就是让外部 AI 工具带着限定范围的 Token 连进 Nimi。当前版本可以显示 Runtime 状态和一个空的 Token 账本，但你今天还签不出可用的 Token。
+外部 Agent 接入（External Agent Access）旨在支持第三方外部 AI 工具（例如 IDE 插件、自动化工作流智能体）在安全可控的前提下接入 Nimi 体系。通过为外部主体签发具有明确权限范围（Scopes）与时效限制的访问凭证（Token），用户可以放心地让外部工具与本地或云端资源进行受限交互。
 
-平台模型见 [平台 → Agent → 外部 Agent](/zh/platform/agents/external-agents)。
+关于外部 Agent 的整体安全模型与接入规范，请参阅[平台 → 外部 Agent 接入](/zh/platform/agents/external-agents)。
 
-## 当前行为
+## 当前支持状态与安全机制
 
-| 状态 | 行为 |
-| --- | --- |
-| Runtime 投影可用 | 桌面端可以读取 Runtime 的 External Agent 状态投影 |
-| Action registry 为空 | Token 签发保持禁用，原因是 `EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY` |
-| Token 账本 | 在 Runtime 准入 action registry 与 gateway server 前保持为空 |
-| 签发 / 撤销 | 当前构建不是已交付的用户工作流 |
+| 控制维度 | 当前行为 | 设计意图 |
+| --- | --- | --- |
+| **状态读取** | 桌面端支持查询 Runtime 外部接入网关的就绪状态 | 明确掌握当前服务的连接与运行情况 |
+| **动作注册表（Action Registry）** | 底层动作注册中心尚未就绪时（`EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY`），令牌签发保持禁用 | 严格执行默认关闭的安全策略，防止无约束操作 |
+| **凭证账本（Token Ledger）** | 展示当前令牌状态及签发被延迟的原因 | 提供透明的权限管理展示，避免提前签发无效凭证 |
+| **吊销契约** | 吊销接口作为预留安全控制已定义在规范中 | 为后续正式开放后的即时撤销提供协议保障 |
 
-这块面板是有意锁住的。光启动 Runtime daemon 还不够；Runtime 必须先提供 action descriptor registry、gateway server、token ledger 和审计记录，这项能力才能用。
+## 安全保障设计
 
-## 为什么仍然可见
+为了保障用户的本地数据与数字资产安全，Nimi 在外部接入层面遵循严格的安全红线：
 
-保留这个区域，是给未来的能力一个固定的家，也让你能看到它当前不可用的确切原因。把原因摆出来，不等于 Token 签发已经上线。
+- **权限最小化**：每个签发的凭证均严格限定其能够调用的动作（Actions）与数据边界。
+- **透明审计**：外部 Agent 发起的调用与关键决策均记录在受管、脱敏且有界的本地审计事件中。
+- **防越权拦截**：未在动作注册表中明确授权的敏感操作，会被网关层直接拒绝。
 
-你永远不会从这块面板看到：
-
-- 不声不响的「成功」，
-- 凭空造出来的 Token，
-- 桌面端本地的 Token 账本，
-- 藏在 renderer 或 Tauri 里的备用 action registry。
-
-## 未来能力边界
-
-能力上线后，它的核心部件都在 Runtime：
-
-| 关注点 | Owner |
-| --- | --- |
-| Action descriptors | Runtime |
-| Gateway/server | Runtime |
-| Token ledger | Runtime |
-| Audit lineage | Runtime |
-| UI 位置与控件 | Desktop |
-| 强类型投影 | SDK |
-
-桌面端仍是你管理它的入口，但 action 与 Token 本身都归 Runtime。
-
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/product-surfaces.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)

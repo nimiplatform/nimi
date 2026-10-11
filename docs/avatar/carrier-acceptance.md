@@ -1,94 +1,67 @@
 # Carrier Visual Acceptance
 
-A **carrier** is the host surface that renders an embodiment — the
-place where the agent actually appears. The carrier visual acceptance
-contract decides whether a given embodiment can be displayed on a
-given carrier. It is the check behind "this agent can be shown here."
+A **carrier** is the host surface responsible for rendering an embodiment — such as a viewport, canvas, or window widget where the character actually appears. The carrier visual acceptance contract determines whether a given embodiment package can be hosted and displayed on a specific carrier target.
 
-## What Carrier Acceptance Decides
+## Acceptance Decisions
 
-| Decision | Result |
+| Scenario | Evaluation Result |
 | --- | --- |
-| Embodiment fits the carrier's typed contract | Admit and render |
-| Embodiment exceeds the carrier's contract | Refuse or fall back to admitted projection |
-| Embodiment is malformed | Refuse with typed error |
-| Embodiment would violate carrier policy | Refuse with typed reason |
+| Embodiment matches carrier capabilities and requirements | Accepted: initialize and render |
+| Embodiment exceeds carrier limits (e.g., complexity tier) | Rejected or degraded: fallback to an authorized simplified projection |
+| Embodiment definition is malformed | Rejected: returns typed schema/contract error |
+| Embodiment violates carrier security or policy rules | Rejected: returns typed policy error |
 
-The carrier does **not** silently render a half-version. The
-contract decides; the result is one of admit, fallback, or
-refuse.
+Carriers do not perform partial, unverified, or silent half-rendering. Every acceptance decision is evaluated through typed capability checks, deterministically producing an accepted, degraded, or rejected outcome.
 
-## Why The Carrier Decides
+## Why Carrier-Level Evaluation Matters
 
-If embodiments could render anywhere they wanted, a high-detail
-package designed for a desktop carrier might overrun a constrained
-mobile carrier. A package designed for one backend might attempt
-to render on a different backend.
+If embodiments could render unconditionally across any host surface, high-fidelity 3D assets designed for high-performance desktop carriers could overwhelm constrained mobile or embedded devices. Similarly, assets tailored for a specific backend (like Live2D) might be incorrectly mounted onto an incompatible 3D engine (like three-vrm).
 
-The carrier visual acceptance contract is what each carrier
-declares about what it can host. Embodiments either fit or do
-not fit; the platform makes the decision typed.
+The carrier acceptance contract formalizes what each carrier can host. Embodiments declare their requirements, carriers declare their supported profiles, and the platform verifies compatibility before invoking any rendering pipeline.
 
-## Reader Scenario: A Heavy Embodiment On A Constrained Carrier
+## Developer Scenarios
 
-A user installs a richly-animated embodiment package and tries to
-view it on a constrained carrier (e.g., low-power device).
+### 1. High-Detail Embodiment on a Constrained Carrier
 
-1. **Carrier declares its contract.** What backend, what motion
-   complexity tier, what asset size limits.
-2. **Embodiment package is read.** Embodiment package's
-   declared requirements.
-3. **Acceptance check.** Carrier visual acceptance contract
-   compares.
-4. **Decision: fall back.** The full embodiment would exceed
-   the carrier's tier; the contract decides to fall back to an
-   admitted projection (e.g., a static or simplified
-   presentation).
-5. **User sees fallback.** With a typed reason — "your device
-   does not support this embodiment's full motion tier."
+A user installs an embodiment package with complex skeletal animations and high-resolution textures on a low-power device:
 
-The fallback is admitted; the user is not surprised by silent
-half-rendering.
+1. **Carrier declares capabilities:** The carrier declares supported backends, motion complexity tiers, and memory/asset bounds.
+2. **Package inspection:** The carrier inspects the package manifest and resource descriptors.
+3. **Acceptance evaluation:** The acceptance contract evaluates whether the package fits within the host profile.
+4. **Fallback decision:** The full embodiment exceeds device limits; the contract transitions to an authorized degraded projection (such as a 2D snapshot or simplified animation tier).
+5. **Typed notification:** The host surfaces a clear, actionable reason (e.g., `"Device profile does not meet minimum requirements for full motion tier"`).
 
-## Reader Scenario: A Carrier Refuses A Backend Mismatch
+The fallback is explicit and predictable, preventing silent crashes or incomplete visual artifacts.
 
-An embodiment is Live2D-only; carrier is VRM-only.
+### 2. Backend Mismatch Rejection
 
-1. **Acceptance check.** Live2D embodiment vs VRM-only carrier.
-2. **Reject.** Backend mismatch; not admitted.
-3. **Typed error.** "This carrier does not support Live2D
-   backend."
-4. **No partial render.** The carrier does not attempt to
-   project Live2D into VRM space.
+An embodiment requires a Live2D Cubism runtime, but the current carrier only supports VRM 3D:
 
-The discriminated union of backends makes mismatches detectable
-before any rendering attempt.
+1. **Acceptance check:** The carrier compares the package's backend kind against its supported engines.
+2. **Rejection:** Detects backend mismatch (`live2d` requested, `vrm` available).
+3. **Typed error:** Returns a structured error indicating unsupported backend.
+4. **Clean boundary:** The carrier aborts before initializing renderer state or allocating WebGL contexts.
 
-## Reader Scenario: An Embodiment Is Updated Mid-Session
+Discriminated unions ensure that backend mismatches are identified and handled prior to any render execution.
 
-A creator updates the embodiment package while a user is viewing
-the agent.
+### 3. Hot-Reloading Updates During an Active Session
 
-1. **New embodiment delivered.** Possibly through admitted
-   update flow.
-2. **Carrier re-evaluates.** Acceptance contract checks the new
-   version.
-3. **If admitted.** Carrier transitions smoothly (within
-   admitted transition contract).
-4. **If not admitted.** Carrier holds the previous version; or
-   moves to `degraded:embodiment-incompatible` state.
-5. **User sees state.** Either the new embodiment or a typed
-   degraded state.
+A creator publishes an updated embodiment package while an agent is currently active:
 
-A creator's update does not silently break a user's session.
+1. **Update signal:** A new package descriptor is received via the update channel.
+2. **Re-evaluation:** The carrier evaluates the updated package against the active carrier contract.
+3. **Compatible update:** If accepted, the carrier performs a smooth asset transition within defined transition bounds.
+4. **Incompatible update:** If the new version exceeds capabilities, the carrier retains the existing working version or cleanly transitions to `degraded:embodiment-incompatible`.
+5. **Session stability:** Active conversations and agent state are preserved without abrupt failures.
 
-## What Acceptance Does Not Do
+## Scope and Non-Goals
 
-| Concern | Why not |
+| Concern | Responsibility Boundary |
 | --- | --- |
-| Determine identity | Character identity belongs to Realm and LocalAgent execution identity to Runtime; the carrier accepts presentation |
-| Mutate embodiment package | Carrier reads; package is creator-published |
-| Render outside its admitted tier | The contract limits are explicit |
+| Character identity | Managed by Realm; carrier only handles presentation |
+| Execution context | Managed by Runtime and LocalAgent; carrier handles viewport rendering |
+| Package authoring & mutation | Packages are read-only artifacts created by creators |
+| Unbounded rendering | Carriers strictly adhere to declared resource and complexity limits |
 
 ## Source Basis
 

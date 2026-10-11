@@ -1,8 +1,8 @@
 # @nimiplatform/avatar
 
-Nimi Avatar（阿凡达）是桌面悬浮 embodiment carrier。Authority-defined backend union is `live2d | vrm`; no renderer backend is the semantic home of Runtime or Avatar product truth.
+`@nimiplatform/avatar` is the desktop floating embodiment carrier for Nimi AI characters. It supports `live2d` and `vrm` rendering backends under a unified presentation model.
 
-> This README is a non-authoritative operator guide. Normative authority lives
+> This README is an operator and developer guide. Normative authority lives
 > in [`../../.nimi/spec/avatar/embodiment-surface.authority.yaml`](../../.nimi/spec/avatar/embodiment-surface.authority.yaml), with admitted machine inputs under `config/avatar-*.yaml`.
 
 ## Quick Links
@@ -16,10 +16,10 @@ Nimi Avatar（阿凡达）是桌面悬浮 embodiment carrier。Authority-defined
 
 The normal path is Desktop bridge/handoff to a local Avatar asset:
 
-- Launch context requires a current-session canonical `agent_handle`；the common
-  Host handoff accepts an optional `conversation_anchor_id` and resolves or
-  revalidates the canonical fence before native launch。`avatar_instance_id`
-  and non-authoritative `launch_source` are optional.
+- Launch context requires a current-session canonical `agent_handle`. The common
+  Host handoff accepts an optional `conversation_anchor_id` and revalidates the
+  session fence before native launch. `avatar_instance_id` and optional
+  `launch_source` are preserved.
 - The handle and anchor are selectors, not authorization proof. Runtime/SDK
   validates their active session binding.
 - Missing or invalid launch context fails closed; Avatar does not choose a default agent.

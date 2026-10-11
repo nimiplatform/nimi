@@ -1,34 +1,32 @@
 # Avatar Backend Diagnostics
 
-Avatar owns local backend evaluation. A diagnostic result can explain whether a backend loaded, a route is supported, or a speech/lipsync projection rendered correctly. It creates no Runtime probe identity, special Runtime store, public App entitlement, or LocalAgent success.
+Local diagnostics inspect the selected model, capability profile, route, and presentation result without granting Runtime privileges. This is Avatar-internal tooling, not a separate third-party App diagnostic API.
 
-## Result Shape
+## Current Result Shape
 
-The Avatar-owned result requires `diagnostic_session_id`, backend kind, probe kind, `observed_at`, and evidence. Each evidence item contains `evidence_id`, `evidence_kind`, `status`, and `source`. Status is exactly `passed`, `failed`, `unsupported`, or `invalid`.
+The internal factory returns AvatarDebugSession, not DiagnosticSessionResult:
 
-An optional opaque common Runtime correlation reference can connect observations. Raw Agent/account identity, Runtime special-store references, provider/model details, package paths, prompts, reasoning, and public operation authority do not enter the result.
+| Field | Meaning |
+| --- | --- |
+| `debugSessionId` | Local diagnostic session ID |
+| `probeId` and `probeKind` | Identity and kind of this evaluation |
+| `avatarInstanceId` | Nullable instance reference |
+| `avatarPackageRef` | Nullable package reference |
+| `backendCapabilityProfileRef` | Nullable capability-profile reference |
+| `backendKind` | live2d or vrm |
+| `observedAt` | Observation timestamp |
+| `evidence` | One AvatarDebugEvidence object, not an array |
 
-## Evidence Kinds
+Evidence contains evidenceId, evidenceKind, status, source, nullable reasonCode, and bounded refs. Status is passed, failed, unsupported, or invalid. Read the single evidence object rather than calling evidence.map. The backend field is backendKind, not backend.
 
-- `package_descriptor_resolved`
-- `backend_loaded`
-- `capability_profile_validated`
-- `route_support_checked`
-- `generated_motion_checked`
-- `emotion_expression_checked`
-- `speech_lipsync_checked`
-- `carrier_diagnostics_checked`
+## Interpreting a Result
 
-Optional evidence payloads contain typed bounded facts or opaque authorized references. They do not reconstruct Runtime context or create a durable execution replay service.
+An evaluation can check package descriptors, backend loading, profiles, route support, generated motion, expressions, lipsync, or carrier results. It proves only the object and conditions actually inspected. Structural or local diagnostic success does not establish a live App session, arbitrary model support, or another backend's acceptance.
 
-## Check a Motion Route
-
-Evaluate the authorized typed presentation input against the selected Avatar route, backend, validated capability profile, and optional mapping sidecar. The deterministic provider returns executable output for that backend or the exact typed failure. An unsupported route remains unsupported; a found `.vrma` file, screenshot, preview, or passing fixture does not prove the real Runtime-to-carrier journey.
-
-Use the [visual acceptance](/avatar/visual-acceptance) and [carrier acceptance](/avatar/carrier-acceptance) requirements for a real product result. Local diagnostics and fixture tests remain useful evidence within their own scope.
+Keep the returned reasonCode and refs on failure, then repair the implicated model or profile. Do not reinterpret unsupported as successful idle playback. The source below defines the actual return type and factory.
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
-- [`config/avatar-generated-motion-routes.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-generated-motion-routes.yaml)
-- [`config/avatar-backend-capability-profile.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/avatar-backend-capability-profile.schema.yaml)
+- [`apps/avatar/src/shell/renderer/avatar-debug/avatar-debug-session.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/avatar-debug/avatar-debug-session.ts)
+- [`apps/avatar/src/shell/renderer/avatar-debug/contract.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/avatar-debug/contract.ts)

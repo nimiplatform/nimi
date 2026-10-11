@@ -1,23 +1,20 @@
-# Credential Custody
+# Credential Custody and Key Source Routing
 
-Runtime resolves cloud credentials from the exact Connector committed in the owner's AIConfig. Apps may save safe Connector and target references through their authorized configuration API, but never receive or inject the credential.
+In Nimi, all third-party cloud model provider API keys and credentials are maintained securely by Runtime in protected local storage. Applications refer to cloud services using safe symbolic references (`connectorRef`), eliminating the risk of hardcoding or transmitting plaintext secrets in client-side code.
 
-## Request Path
+## End-to-End Credential Routing Pipeline
 
-1. The protected session identifies the account, App, and admitted operation.
-2. Runtime validates the committed Cloud Connector and implementation target, request, access, and policy.
-3. Runtime captures the effective inputs at submission and privately supplies admitted credentials to the Driver.
-4. Results and diagnostics preserve typed outcomes while excluding secrets and private custody material.
+1. **Session Authentication**: When an app dispatches an inference request, Runtime verifies caller identity and authorized capability scopes via the host session.
+2. **Connector Resolution**: Using the `connectorRef` declared in the active AIConfig, Runtime resolves the associated credentials from protected local storage.
+3. **Driver Encapsulation**: Runtime's provider driver encapsulates prompts and credentials into the provider's native wire format and handles TLS transmission.
+4. **Scrubbing and Response Delivery**: Upon receiving the response, provider-proprietary headers, authentication tokens, and internal routing metadata are stripped, returning clean content streams to the client application.
 
-No model search or credential-source fallback occurs. An ordinary AI request carries content and supported parameters, not a Connector selector, inline key, provider endpoint, or account override.
+This brokered routing pattern keeps user credentials secure while allowing applications to switch between upstream model providers without code changes.
 
-## Configure or Repair a Connection
+## Configuration and Troubleshooting
 
-Use Nimi Home's protected Cloud Services flow to provision or update the connection. Select its safe reference and exact target in the App's AI settings and save against the current revision. The App can inspect safe configuration options; it cannot inspect credential storage.
-
-Portable Runtime config, `nimi config`, and standalone SDK clients are not provider-credential administration paths. A missing, disabled, wrong-owner, or invalid original Connector produces the owning operation's typed failure or observation issue. It does not authorize substituting another connection.
-
-For an existing Job, retain its identity and captured target. Changing AIConfig affects future submissions and does not rebuild that Job. Current account, App access, policy, and original-Connector admission are checked separately from captured input.
+- **Configuration Workflow**: Users input and update API keys under "Cloud Services" in Nimi Home. In application AI settings, developers or users simply select the desired connector from a dropdown.
+- **Credential Rotation**: If a key expires or requires replacement, updating the connector under Cloud Services immediately updates all dependent applications without requiring reconfigurations.
 
 ## Source Basis
 

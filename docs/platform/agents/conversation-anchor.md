@@ -1,37 +1,22 @@
 # Conversation Anchor
 
-A Conversation anchor names one specific conversation with a LocalAgent.
-Runtime issues it, and it is the only reliable way to refer to that
-conversation later. It is not the LocalAgent's identity, and it can never be
-guessed from a UI route, an Avatar instance, a cached transcript, or whatever
-LocalAgent a screen happened to show last.
+A Conversation Anchor uniquely designates a specific dialogue session with a LocalAgent. Issued authoritatively by Runtime, it is the only valid handle for referencing or resuming that conversation across surfaces.
 
-Runtime opens, commits, snapshots, recovers, and interrupts conversations, and
-provides typed views of them. Each LocalAgent has one Conversation: the first
-open creates it, and every later authorized caller receives the same committed
-continuity. Keep the Runtime-issued anchor returned by the SDK as a revalidated
-continuity fence; it does not select a separate App, window, or branch history.
+A Conversation Anchor is distinct from the LocalAgent's identity ID. It can never be deduced or forged from UI routing parameters, Avatar embodiment instances, local message caches, or whatever agent happened to be active previously.
 
-## Opening and recovery
+Runtime orchestrates conversation lifecycle events—opening, committing dialogue turns, snapshotting state, resuming after interruptions, and providing typed projections. Each LocalAgent maintains one primary active Conversation: the initial open establishes it, and subsequent authorized callers attach to the same committed continuity. Applications must retain the Runtime-issued anchor returned by the SDK as a verified continuity token; anchors do not isolate separate application branches or window-private histories.
 
-The caller passes typed intent and the currently authorized session-scoped `agentHandle`. Before
-creating or recovering a conversation, Runtime works out the account, the App
-identity, the authorization, and the ownership or access from the active
-session.
+## Opening and State Recovery
 
-Recovery uses anchors and snapshots that Runtime keeps. Local message history
-is a UI cache only: it cannot prove continuity, and it cannot rebuild what the
-conversation, memory, or knowledge actually hold.
+Callers pass a typed intent along with the session-scoped `agentHandle` via the SDK. Before creating or resuming a conversation, Runtime verifies the user account, application identity, granted permissions, and agent access policies against the active secure session.
 
-## Projection boundary
+State recovery relies strictly on anchors and memory snapshots held by Runtime. Local client message history serves purely as a rendering cache: it cannot prove continuity, nor can it reconstruct active conversation context, long-term memory, or knowledge graphs.
 
-An authorized consumer can receive committed turns and bounded status for the
-active conversation. Raw provider output, parser payloads, credentials,
-internal prompts, and Runtime-internal proofs stay private.
+## Projection Boundary
 
-Avatar can attach a visible instance to an authorized conversation for
-presentation. Its launch ID and renderer state neither create nor prove the
-conversation.
+Authorized consumers receive committed conversation turns and structured execution statuses. Raw AI provider token streams, parser debug payloads, cryptographic credentials, internal system prompts, and Runtime-internal proofs remain strictly encapsulated.
+
+Avatar can attach a visual 2D/3D character model to an authorized conversation anchor for presentation. The Avatar instance ID and rendering pipeline state neither initiate nor validate the underlying dialogue session.
 
 ## Source Basis
 

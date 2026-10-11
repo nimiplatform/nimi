@@ -1,75 +1,39 @@
-# Relationships And Social
+# Contacts and Social Graph in Desktop
 
-There is no standalone Contacts page in Desktop. Relationship actions
-show up where you're already acting: profile details, the chat
-relationship rail, Explore discovery, Home profile cards, and
-notifications.
+In Nimi Desktop, social connections are not relegated to a standalone address book page. Instead, social relationships are woven contextually into everyday activities: profile views, chat contact rails, discovery streams in Explore, and the notification center.
 
-Your social graph lives in Realm. Desktop reads the current
-relationship state, offers the actions that fit the context, and sends
-changes back through the standard Realm/SDK path.
+Relationship data is authoritatively managed by Realm. Desktop reflects relationship states within relevant views and captures user actions (such as sending requests or blocking users), syncing them securely through the SDK.
 
-## What Desktop Projects
+## Contextual Social Touchpoints
 
-| Surface | Behavior |
+| Interaction Surface | Capabilities & Actions |
 | --- | --- |
-| Profile detail | Show relationship status, request friendship, remove friend, block user |
-| Chat relationship rail | Show available people and agents inside Chat context |
-| Explore / Home discovery | Offer contextual add-friend actions from discovered profiles |
-| Notifications | Accept, reject, or review incoming friend requests |
-| AgentFriend gating | Enforce agent friend quota and local-agent launch preconditions |
+| **Profile Detail** | View relationship status (friends/unconnected/blocked), send friend requests, remove, or block |
+| **Chat Contact Rail** | View available friends and public agents directly within the chat context |
+| **Explore & Discovery Feeds** | Follow or send friend requests while browsing worlds, characters, or community posts |
+| **Notification Center** | Triage incoming friend requests: accept, decline, or review profile details |
+| **Agent Friendship Quotas** | Evaluate agent friend limits and prerequisites before launching LocalAgents |
 
-You won't find a Contacts tab in the main navigation, a separate page
-shell, or a sidebar entry. That shape was retired on purpose, so
-relationships stay attached to profiles and to whatever you're doing
-right now.
+This context-first design removes unnecessary screen-switching and keeps social interactions seamless.
 
-## Friendship As Canonical Truth
+## Unified Platform Social State
 
-Friendship in Nimi is platform-wide. Once it's established, it isn't
-tied to one world, one session, or one app. It's visible in every
-world you both visit and every Nimi app you both use.
+In the Nimi ecosystem, friendship is a network-wide invariant. Once established, it spans across every world you visit and every Nimi application you launch together:
 
-| Property | Value |
-| --- | --- |
-| Storage | Realm `R-SOC-*` |
-| Shape | Ordered-pair uniqueness graph |
-| Cross-world visibility | yes |
-| Cross-app visibility | yes |
-| Mutation | Through admitted Realm contracts |
+- **Authoritative Storage**: Managed consistently in Realm across all endpoints.
+- **Cross-World and Cross-App Visibility**: No need to re-add friends when moving between worlds or apps.
+- **Security & Integrity**: Friend requests, approvals, and blocks are mediated by structured contracts that guard against impersonation and unauthorized mutations.
 
-Desktop never treats relationship state as a private local cache. It
-shows the state stored in Realm — and when that state can't be read or
-a change isn't allowed, the action doesn't go through.
+## Common Workflows
 
-## Reader Scenario: Sending A Friend Request
+### 1. Sending and Accepting Friend Requests
+1. **Open Profile**: Click a user's avatar from Explore or a shared conversation to view their profile card.
+2. **Send Request**: Click "Add Friend"; Desktop dispatches a structured request via the SDK to Realm.
+3. **Receive Notification**: The recipient receives a real-time notification card.
+4. **Approve Request**: Upon acceptance, the friendship activates instantly across all shared environments.
 
-You discover a profile from Explore or Home and send a friend request.
-
-1. **Open profile context.** The profile detail surface shows the
-   current relationship projection.
-2. **Submit request.** Desktop sends a typed friend request through the
-   admitted Realm/SDK path.
-3. **Realm admits.** The request is recorded; the recipient sees it in
-   their notification context.
-4. **Recipient accepts.** Realm marks the friendship `active`.
-5. **Visible everywhere.** The relationship is now platform truth and
-   appears in other admitted contexts.
-
-No Contacts page is involved.
-
-## Reader Scenario: Blocking A User
-
-You block a user from a profile context.
-
-1. **Block.** The contextual profile surface submits the block request.
-2. **Realm admits.** The social graph records the block.
-3. **Cross-context effect.** Chat and other relationship-dependent
-   preconditions refuse further direct interaction.
-4. **Audit lineage.** The mutation is recorded with its admitted
-   source.
-
-The block is one social truth, not a Desktop-only setting.
+### 2. Privacy and Blocking
+If you wish to prevent interactions with a specific user, choose "Block" on their profile. Realm updates the social graph, immediately halting direct messages, invitations, and private feed visibility across all worlds and applications.
 
 ## Source Basis
 

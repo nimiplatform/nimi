@@ -9,8 +9,8 @@
     "heading": "选择 Nimi 存储模型、应用和大型本地数据的位置。",
     "subline": "Nimi 会把模型、应用和大型本地数据保存在你选择的文件夹中。",
     "selectedHeading": "确认 Nimi 的本地数据存储位置。",
-    "selectedSubline": "继续以验证所选文件夹并完成产品控制设置。",
-    "preparing": "Nimi 正在创建本地产品记录…",
+    "selectedSubline": "继续以确认所选文件夹并完成初始设置。",
+    "preparing": "Nimi 正在准备本地运行环境…",
     "pathPlaceholder": "尚未选择文件夹",
     "chooseFolder": "选择文件夹…",
     "changeFolder": "更换文件夹…",
@@ -18,55 +18,55 @@
     "finish": "继续"
   },
   "repair": {
-    "heading": "Nimi 需要修复一个必需的本地组件",
-    "body": "恢复必需的产品控制、账户、数据根目录、运行时服务或受保护状态组件，然后重试验证。",
+    "heading": "部分本地组件需要恢复",
+    "body": "启动所需的设置或服务出现问题，请打开支持查看原因并处理，然后重试。",
     "retry": "重试"
   },
   "blocked": {
-    "heading": "Nimi 无法安全继续",
-    "body": "Nimi 目前无法安全创建产品控制、使用所选数据根目录，或验证必需的账户和运行时状态。"
+    "heading": "暂时无法继续",
+    "body": "无法安全初始化产品配置、使用所选数据目录，或验证必需的账户与运行时状态。请排查后重试。"
   },
   "ready": {
     "heading": "Nimi 已就绪",
-    "body": "正在打开 Nimi Chat…"
+    "body": "正在打开 Nimi…"
   },
   "reconcilingAuth": "正在同步登录状态…",
   "states": {
     "not_logged_in": {
       "title": "登录后即可使用 Nimi。",
-      "body": "存在已认证的账户会话后，才会进入正常产品使用。"
+      "body": "登录你的 Nimi 账号即可开始使用。"
     },
     "config_missing": {
-      "title": "Nimi 正在创建本地产品记录。",
-      "body": "产品记录存在后即可选择数据位置。"
+      "title": "Nimi 正在初始化配置。",
+      "body": "初始化完成后即可选择数据存储位置。"
     },
     "data_root_missing": {
       "title": "选择 Nimi 存储模型、应用和大型本地数据的位置。",
-      "body": "选择一个可写的绝对路径文件夹，然后由 Nimi 验证并记录它。"
+      "body": "请选择一个有读写权限的本地文件夹作为数据存储位置。"
     },
     "data_root_selected": {
       "title": "Nimi 正在验证所选数据文件夹。",
-      "body": "你可以更换文件夹、重试验证，或继续完成产品控制设置。"
+      "body": "你可以更换文件夹，或直接点击继续完成设置。"
     },
     "repair_required": {
-      "title": "Nimi 需要在正常使用前修复一个必需的本地组件。",
-      "body": "恢复必需的产品控制、账户、数据根目录、运行时服务或受保护状态组件。"
+      "title": "Nimi 需要修复部分本地组件后才能继续。",
+      "body": "请检查必需的产品配置、账户、数据目录或运行时服务状态，然后点击重试。"
     },
     "blocked": {
-      "title": "Nimi 暂时无法安全继续。",
-      "body": "解决阻塞产品控制的原因，然后重试验证。"
+      "title": "Nimi 暂时无法继续。",
+      "body": "请排查产品配置、数据存储或运行时服务问题，然后重试。"
     },
     "ready_for_use": {
       "title": "Nimi 已就绪。",
-      "body": "正常产品使用会打开到聊天和 Nimi Chat。"
+      "body": "即将为你打开 Nimi 主界面。"
     }
   },
   "errors": {
-    "productControlCreateFailed": "无法创建本地 Nimi 产品记录。",
+    "productControlCreateFailed": "初始化本地产品配置失败。",
     "dataRootMissing": "请先为 Nimi 选择一个文件夹再继续。",
     "dataRootPickFailed": "打开文件夹选择器失败。",
-    "dataRootRecordFailed": "记录 nimi_data 失败。",
-    "dataRootUnavailable": "无法将此文件夹用作 nimi_data。请选择一个绝对路径、非磁盘根目录且 Nimi 能创建并写入数据的文件夹。",
-    "finalizationRequestFailed": "验证产品控制设置失败。"
+    "dataRootRecordFailed": "保存数据存储位置失败。",
+    "dataRootUnavailable": "无法将此文件夹用作数据存储目录。请选择一个非磁盘根目录且具有读写权限的文件夹。",
+    "finalizationRequestFailed": "完成初始化设置失败，请重试。"
   }
 }

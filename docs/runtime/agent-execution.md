@@ -1,47 +1,32 @@
-# LocalAgent Execution
+# LocalAgent Runtime Lifecycle and Execution Architecture
 
-Runtime owns LocalAgent materialization and execution. A LocalAgent is created
-from a Realm-issued Character Source under an explicit owner; it is not a
-second Realm identity and there is no platform-wide default LocalAgent.
+Runtime manages LocalAgent initialization, execution, and state isolation. A LocalAgent is instantiated locally from a Realm-certified Character Source under an explicit owner, acting as the local execution entity for the agent.
 
-## Execution boundary
+## Execution Responsibilities
 
-Runtime owns:
+Runtime manages the following core domains:
 
-- LocalAgent materialization, lifecycle, and owner isolation;
-- Conversation anchors, committed turns, recovery, and interruption;
-- Memory mediation;
-- AI capability-intent evaluation, implementation selection, Quota, Budget,
-  and provider credential custody;
-- validation of execution output before it becomes Conversation, state, voice, or
-  presentation truth;
-- typed projections for authorized consumers.
+- **Lifecycle and Owner Isolation**: Handles local instantiation, memory allocation, runtime context, and tenant isolation for LocalAgents;
+- **Conversation Continuity (ConversationAnchor)**: Preserves anchors to guarantee multi-turn context continuity, recovery across restarts, and clean generation interruption;
+- **Memory Mediation**: Operates as a protected broker for Cognition, safely arbitrating memory storage, indexing, and recall;
+- **Capability Evaluation & Credential Custody**: Resolves application capability intents into local inference tasks or cloud calls while safeguarding API credentials in protected memory;
+- **Structured Output Validation**: Validates generated tokens, safety classifications, and audio streams before committing them to authoritative transcripts;
+- **Typed Projections**: Delivers type-safe, structured state views to authorized consumers.
 
-Apps submit typed intent through the SDK. Runtime derives the account, App
-identity, authorization, and LocalAgent access from the active session. A formal App uses a current session-scoped `agentHandle`, not a raw LocalAgent ID; a cached handle is not proof of continuing access.
+Applications submit high-level intents through the SDK. Runtime derives the caller identity and authorization scopes directly from the active session. Standard apps use session-scoped `agentHandle` references rather than raw internal IDs.
 
-## Consumer boundary
+## Consumer and Presentation Boundaries
 
-Apps, Desktop, Nimi Home, and Avatar may render authorized Conversation, state,
-voice, and presentation projections. They do not consume raw provider or parser
-output, maintain Runtime proof, reconstruct Memory or Knowledge from UI
-history, or create LocalAgent success.
+Desktop, Nimi Home, and Avatar function as presentation layers, rendering authorized conversation, status, and multimodal projections:
 
-Avatar consumes typed embodiment input and owns only shell interaction,
-renderer execution, playback, and ephemeral visual state.
+- **Presentation Decoupling**: Frontend renderers consume normalized events without dealing with provider-specific wire protocols or execution mechanics.
+- **Embodiment Consumers**: Avatar reads admitted activity, emotion, semantic posture, and bounded voice timing. It owns the backend mapping and local playback/lipsync derived from the canonical final voice artifact; renderer mouth frames are not common Runtime inputs.
 
-## Continuity
+## Continuity and State Isolation
 
-Each LocalAgent has one Runtime-owned Conversation and explicit anchor. Later
-authorized opens, including from another App, continue the same committed
-history. Different LocalAgents materialized from the same Character Source
-keep independent operational state; callers cannot partition one LocalAgent's
-Conversation by App or window.
+Each LocalAgent maintains a single authoritative Conversation managed by Runtime. Subsequent authorized sessions—even when originating from different applications—continue the same committed dialogue history.
 
-See [Conversation Anchor](/platform/agents/conversation-anchor) and
-[LocalAgent Access](/platform/agents/participation-authority).
-
-Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
+Distinct LocalAgents instantiated from the same base Character remain strictly isolated in memory and state. For details on anchor mechanics and access policies, see [Conversation Anchor](/platform/agents/conversation-anchor) and [Participation Authority](/platform/agents/participation-authority).
 
 ## Source Basis
 

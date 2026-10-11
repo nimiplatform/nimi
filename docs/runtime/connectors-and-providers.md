@@ -1,37 +1,38 @@
-# Connectors and Cloud Providers
+# Cloud Connectors and Model Providers
 
-Runtime owns cloud Connector resources, credentials, provider catalogs, and execution Drivers. Configure a connection in Nimi Home's Cloud Services, then select its safe reference and an admitted target in the relevant AIConfig.
+Runtime manages cloud Connectors, provider catalogs, and low-level protocol execution drivers. Users configure API connections and endpoints in Nimi Home under "Cloud Services", and then link capabilities to those connectors within application AIConfigs.
 
-## Configuration and Execution
+## Architecture and Layering
 
-| Layer | Carries |
-| --- | --- |
-| Runtime Connector | Current-account connection, credential custody, endpoint policy, and lifecycle |
-| AIConfig Cloud route | Exact `connectorRef`, `implementation`, and `providerModelTarget` |
-| App AI request | Content and supported operation parameters; no routing override or credential |
+| Layer | Responsibility | Security & Scope |
+| --- | --- | --- |
+| **Runtime Connector** | Third-party API keys, custom endpoints, retry and timeout policies | Credentials stored securely in protected local storage; hidden from renderers |
+| **AIConfig Cloud Route** | References to active connectors (`connectorRef`) and targets (`providerModelTarget`) | Persisted as application configuration using safe symbolic references |
+| **Application Layer** | High-level prompts, parameters, and business logic | Fully decoupled from wire protocols, HTTP headers, and credential handling |
 
-Use the host-bound App client's AIConfig options and settings UI. A safe Connector reference is not a secret or authorization grant. Runtime still checks ownership, App access, credential validity, and policy. The CLI and standalone clients do not provide a parallel Connector custody path.
+Centralizing sensitive credentials within Runtime prevents API key leaks and eliminates complex networking plumbing from client applications.
 
-At Job submission, Runtime validates and captures the committed Cloud inputs. It does not search for another provider or silently choose another model when the configured target fails. Later configuration changes apply to future submissions; current authorization and original-Connector admission still govern subsequent outbound actions for existing Jobs.
+## Driver Adaptation and Deterministic Scheduling
 
-## Providers and Drivers
+- **Protocol Translation**: Runtime's `CapabilityImplementationDriver` translates uniform platform operations into provider-specific REST, WebSocket, or gRPC requests.
+- **Deterministic Routing**: Once submitted, Runtime routes calls strictly to the designated target. If a remote provider experiences an outage or rate limit, Runtime returns the exact upstream failure rather than falling back to an unverified model that could cause hallucinations or unexpected billing.
+- **Normalized Outputs**: Applications consume standardized response streams and structured errors; proprietary headers and vendor-specific envelopes are stripped cleanly.
 
-The Runtime provider catalog describes admitted families, and a CapabilityImplementationDriver translates the canonical operation into that provider's protocol. Support depends on the exact implementation, target, features, and execution mode, not merely a provider name.
+## Troubleshooting Cloud Failures
 
-Apps consume typed results and failures. Provider credentials, endpoints, native handles, and private protocol state stay out of App results and storage. Safe configuration options and execution evidence do not permit request-time overrides.
+If a cloud inference call fails, follow this diagnostic workflow:
 
-## Resolve a Cloud Failure
+1. **Verify Route Configuration**: Ensure the active AIConfig references a valid, enabled Connector.
+2. **Test Connector Health**: Use the "Test Connection" button in Cloud Services to verify API key validity and network connectivity.
+3. **Check Provider Quotas**: Verify that your provider account (e.g., OpenAI, Anthropic) has sufficient credit balance and has not hit rate limits.
+4. **Update Targets**: If switching to an alternative model, update the capability target in the AI configuration panel and save.
 
-1. Inspect the capability's committed AIConfig and Runtime-issued effective selection.
-2. In Cloud Services, inspect the referenced connection and correct its credentials or availability through the protected flow.
-3. If changing the target, save the whole AIConfig against the current revision.
-4. Submit new work only as an explicit App action. For an existing asynchronous Job, observe its original identity instead of resubmitting it.
+## Related Documentation
 
-See [Credential Custody](/runtime/key-source-routing) and [Local Models](/runtime/local-models).
+- [Key Source Routing Specification](/runtime/key-source-routing)
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
-- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)

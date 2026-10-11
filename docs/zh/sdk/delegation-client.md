@@ -1,51 +1,51 @@
-# 委托客户端
+# 委托客户端 (Delegation Client)
 
-## 状态：已准入契约；公开使用以 SDK package exports 为准
+> 规范状态：底层核心契约已标准化；对外能力以 SDK 官方发布的导出接口为准。
 
-运行时委托客户端合约已在 SDK 内核级别被准入。该合约规定了 SDK 消费者如何与运行时委托网关和输出防火墙集成；只有出现在 SDK package exports 中的客户端 surface 才能作为公开 API 使用。
+运行时委托客户端在 SDK 内核层面规范了 SDK 消费者如何与 Runtime 委托网关 (Delegation Gateway) 及输出防火墙 (Output Firewall) 安全协同。只有在 SDK 公开导出的包中出现的接口，方可作为公开 API 调用。
 
-## 该客户端的作用
+## 核心定位与职责
 
-委托客户端是用于集成委托功能的模块或应用程序的SDK界面，通过运行时委托网关提出观察、查询、意图、工具请求、展示更新、创建工件或受控测试。
+委托客户端是专为对接外部委托能力的应用程序或扩展模块设计的 SDK 交互表面。它允许应用向 Runtime 委托网关提出结构化的观察报告、信息查询、行动意图、工具调用请求、UI 呈现更新、产物创建建议或受控沙盒测试。
 
-所有提议都需经过运行时输出防火墙（参见[Runtime → Delegated Capability](/runtime/delegated-capability)）。SDK不允许任何提议在通过防火墙之前到达消费者界面。
+**所有建议均必须经过 Runtime 输出防火墙的全面安全审查**（参阅 [Runtime 委托能力](/zh/runtime/delegated-capability)）。SDK 绝不允许未经防火墙过滤的外部提议直接触达业务消费端。
 
-## 方法界面
+## 接口方法速查
 
-| 方法 | 目的 |
+| 方法 | 核心定位与用途 |
 | --- | --- |
-| `OBSERVE` | 提交类型化的观察 |
-| `QUERY` | 提交类型化的查询 |
-| `SUGGEST_INTENT` | 提议一个意图 |
-| `SUGGEST_TOOL_REQUEST` | 提议一个工具调用 |
-| `SUGGEST_PRESENTATION` | 提议一个展示更新 |
-| `CREATE_ARTIFACT` | 提议创建一个工件 |
-| `CONTROLLED_TEST` | 运行一个受控的沙盒测试 |
+| `OBSERVE` | 提交强类型的环境或行为观察事实 |
+| `QUERY` | 提交强类型的信息查询请求 |
+| `SUGGEST_INTENT` | 建议或提议一个高阶业务意图 |
+| `SUGGEST_TOOL_REQUEST` | 提议调用特定的工具函数 |
+| `SUGGEST_PRESENTATION` | 建议更新 UI 呈现状态或展示布局 |
+| `CREATE_ARTIFACT` | 提议创建或持久化一个产物文件 (Artifact) |
+| `CONTROLLED_TEST` | 在受控隔离的沙盒中执行安全验证测试 |
 
-所有这些都是**建议/观察**，而不是动作。
+上述所有方法均表达为**提议 (Suggestions) 或观察 (Observations)**，而非直接的破坏性生效动作。
 
-## 无回退开关
+## 无隐式降级开关
 
-SDK界面故意不暴露路由/提供者救援回退旋钮。Runtime 保留已准入操作的固定目标与强类型失败语义。未能通过防火墙的委托将作为类型化失败报告——而不是默默地使用不同的提供者重试。
+SDK 接口故意不暴露任何手动的路由或 Provider 降级回退开关。底层 Runtime 严格保持既定操作的目标锁定与强类型错误语义：未通过防火墙安全审查的委托提议，将被立即返回为标准错误结果，而绝不会在后台静默切换至其他 Provider 进行不可信重试。
 
-## 读者场景：模块提议一个工具调用
+## 典型场景：应用提议执行工具调用
 
-由外部AI支持的模块提议一个工具调用。
+由外部 AI 模型驱动的业务模块试图发起一次工具调用：
 
-1. **模块调用SDK。** `delegationClient.suggestToolRequest(...)`.
-2. **运行时委托网关打开。** 根据提供者配置文件的信任层级。
-3. **输出防火墙验证。** 模式、来源、描述符哈希、敏感度分类、提示中毒检测。
-4. **裁决。** 类型化裁决（`ACCEPTED_SUGGESTION`、`APPROVAL_REQUIRED`、`QUARANTINED`等）。
-5. **如果批准：** 运行时在其自身的审计谱系下执行；SDK将类型化结果呈现给模块。
+1. **发起建议**：模块调用 SDK 接口 `delegationClient.suggestToolRequest(...)`。
+2. **网关准入校验**：Runtime 委托网关根据当前 Provider Profile 的信任评级验证请求合法性。
+3. **输出防火墙安全审查**：防火墙执行数据 Schema 校验、溯源验证、描述符哈希校验、敏感度数据分级以及提示词注入 (Prompt Poisoning) 风险排查。
+4. **生成安全判定**：返回强类型判定结果（如 `ACCEPTED_SUGGESTION` 批准采纳、`APPROVAL_REQUIRED` 需用户确认、`QUARANTINED` 隔离阻断等）。
+5. **执行与回传**：若通过判定，Runtime 在自有的完整审计溯源链条下调度执行，并通过 SDK 将结构化执行结果安全回传给应用。
 
-## 该客户端不做的事情
+## 核心设计红线
 
-- 它不允许提议绕过输出防火墙。
-- 它不暴露路由或提供者救援旋钮。
-- 它不允许消费者代码直接执行提议的动作。
-- 当合约失败时，它不会默默地跨提供者重试。
+- 严禁任何外部提议绕过输出防火墙直接执行。
+- 不提供手动的 Provider 隐式回退或静默抢救开关。
+- 业务消费层代码不得直接执行未经网关仲裁的外部提议。
+- 当契约校验失败时，绝不静默切换模型进行无序重试。
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
 - [`.nimi/spec/runtime/delegation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/delegation.authority.yaml)

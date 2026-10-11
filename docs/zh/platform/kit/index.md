@@ -1,54 +1,53 @@
 # Platform Kit
 
-`@nimiplatform/kit` 为 Nimi App 提供可复用 UI 与宿主接入构件。真实
-consumer 可以共享视觉语言、无障碍行为、shell adapter 与常用交互 primitive，
-产品真相不会因此进入 Kit。
+`@nimiplatform/kit` 为 Nimi App 提供通用的 UI 组件与宿主接入构件。开发者可以开箱即用地共享视觉设计语言、无障碍交互规范、Shell 适配器以及常用组件原语，同时业务逻辑与核心数据权威依然严格归属于 App 与对应的底层模块。
 
-## 当前职责
+## 核心职责模块
 
-| Kit surface | 职责 |
+| 模块子路径 | 核心定位与职责 |
 | --- | --- |
-| `ui` | 共享 token、theme 与 UI primitive |
-| `auth` | 可复用 authentication presentation 与 adapter |
-| `core` | 宿主无关 utility 与 capability helper |
-| `telemetry` | Renderer telemetry 与 error-boundary helper |
-| `shell/tauri` | Tauri App 使用的 Rust 宿主 glue，只承载标准 shell 的一部分 |
+| `ui` | 共享设计 Token、主题方案与基础 UI 组件原语 |
+| `auth` | 开箱即用的用户认证交互组件与适配层 |
+| `core` | 宿主环境无关的基础工具库与能力辅助函数 |
+| `telemetry` | 渲染层遥测与 Error Boundary 错误边界组件 |
+| `shell/tauri` | 专为 Tauri 环境提供的轻量 Rust 宿主接入胶水代码 |
 
-Kit 按真实需求扩展。只有真实 App 或宿主需要复用同一行为，而且产品 owner
-已经明确时，才增加 reusable surface。Kit 不为“生态完整”预建公共功能目录。
+Kit 遵循按需演进原则：仅当多个应用或宿主环境存在明确的复用诉求、且所有权边界清晰时，才会沉淀为公共模块。Kit 避免过度设计，不盲目为了表面的“生态完整”而预先堆砌未验证的冗余组件。
 
-## Tauri 宿主
+## 宿主环境支持：Electron 与 Tauri
 
-Nimi App 在由 Desktop 监督的 Electron 宿主中开发，默认构建打包的也是这个 Electron 宿主，它承载完整的标准 shell。Tauri 仍是需要明确配置的构建选项，共享的 Tauri crate 只承载其中一部分。在 Tauri 宿主上，App 可以使用会话状态、App AIConfig、一次性文本生成（`generateCandidate`）、artifact 上传、App 存储（JSON 文档与资源文件）、Realm World 与 PersonaCharacter 操作、共享 Agent AIConfig、Agent 管理、自主性、形象与记忆控制、具身状态，以及 App 活动。
+Nimi App 默认推荐在由 Desktop 调度的 Electron 宿主环境中开发与运行，其默认构建产物也面向 Electron，承载完整的标准能力 Shell。
 
-流式文本回合、Scenario 执行与 Job、artifact 读取、音色资源、Realm 聊天与实时通道、Agent 介绍、引用与工作、Integrations、Agent Conversation、AI 与 Agent 实时会话、视频会话、App 媒体播放句柄、Avatar 宿主交接和 Resource Pack 导入都不由 Tauri 承载。在 Tauri 宿主上调用它们，会在任何 Tauri 命令执行前以 `capability-unavailable`（原因 `tauri-standard-shell-operation-unsupported`）失败。App 自己注册的 Tauri 命令不受影响。
+Tauri 作为一个轻量级可选的构建目标，由共享的 Tauri Crate 承载标准能力的一个受限子集：
 
-## Owner 边界
+- **Tauri 支持的能力**：会话状态查询、App AI 配置（AIConfig）、单次文本生成（`generateCandidate`）、Artifact 产物上传、App 本地存储（JSON 文档与静态资源）、Realm World 与 PersonaCharacter 基础操作、共享 Agent AIConfig、Agent 基础管理（自主性、形象、记忆控制、具身状态）以及 App Activity 记录。
+- **Tauri 暂不支持的能力**：流式文本会话、Scenario 复杂执行与 Job 调度、Artifact 文件下载读取、语音音色资源管理、Realm 实时音视频与聊天通道、Agent 协作推荐与工作流、第三方 Integrations 集成、实时音视频交互、媒体播放器原生句柄、Avatar 宿主交接以及 Resource Pack 资源包导入。
+- **调用行为**：在 Tauri 宿主中调用上述暂不支持的能力时，调用将在底层命令分发前直接以 `capability-unavailable`（原因代码 `tauri-standard-shell-operation-unsupported`）显式报错返回。App 自身在 Tauri 中注册的私有命令不受影响。
 
-Kit 可以持有可复用呈现与宿主无关交互行为，但不持有：
+## 职责所有权边界
 
-- App 特有产品流程或布局；
-- Runtime 的 LocalAgent、Conversation、Memory、Knowledge 或 readiness；
-- Realm 的世界、Character、账户或社交真相；
-- Avatar 执行或渲染权威；
-- Provider 路由、后端执行或 authorization truth。
+Kit 的职责聚焦于可复用的呈现层逻辑与宿主无关的交互行为，坚决不越界承担：
 
-App 通过公共 subpath 引入 Kit，并在本地组合 primitive。App 不导入 Kit
-私有路径，也不在 App 本地重复建立共享 primitive owner。
+- App 特定的业务工作流、页面排版与产品决策；
+- Runtime 层的 LocalAgent、Conversation、Memory、Knowledge 或就绪状态管理；
+- Realm 层的虚拟世界、角色设定、账户或社交图谱权威状态；
+- Avatar 核心执行管线或骨骼渲染引擎的底层权威；
+- AI Provider 路由分发、后端执行或权限校验逻辑。
 
-## 读者场景：复用共享 Dialog
+App 仅需通过公开的子路径按需引入 Kit，并在本地灵活组合组件。App 不应直接引用 Kit 的内部私有路径，也不应在 App 内部重新发明已被 Kit 良好封装的共享原语。
 
-一个 App 需要使用第一方表面已有的无障碍确认 Dialog。
+## 典型场景：复用共享确认对话框 (Dialog)
 
-1. App 引入 Kit 的公共 Dialog 与共享 semantic token。
-2. App 提供自己的产品文案与 action handler。
-3. Kit 负责焦点管理、键盘行为与共享视觉语义。
-4. 产品决策仍归 App，可复用交互 primitive 仍归 Kit。
+应用需要使用与系统一致、且符合无障碍规范的确认弹窗：
 
-视觉系统细节见[设计模式](/zh/platform/kit/design-pattern)，App 接入方式见
-[在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
+1. **按需引入**：App 从 `@nimiplatform/kit/ui` 导入标准的 `Dialog` 组件以及语义 Token。
+2. **定义业务内容**：App 自主定义弹窗的提示文案、表单内容与操作响应函数。
+3. **委托交互细节**：Kit 自动处理键盘导航、焦点捕捉管理 (Focus Trap) 与无障碍语义属性。
+4. **权责清晰**：产品业务决策完全留在 App，底层交互规范与视觉一致性由 Kit 保障。
 
-## 来源依据
+视觉系统的设计原则请参阅[设计模式](/zh/platform/kit/design-pattern)，在实际项目中引入与配置 Kit 请参阅[在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
+
+## Source Basis
 
 - [`.nimi/spec/platform/ui-design-system.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ui-design-system.authority.yaml)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

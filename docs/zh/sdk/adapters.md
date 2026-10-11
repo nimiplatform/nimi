@@ -1,62 +1,49 @@
-# 适配器
+# 框架适配器
 
-SDK 的框架适配器放在 base `@nimiplatform/sdk` package 之外。适配器是框架投影，不拥有 Runtime 路由、Realm 真值或 SDK core API 语义。
+适配器把第三方框架调用转换为 Nimi AI 客户端操作。Runtime 仍负责路由与执行，App 负责工具函数和自己的界面或业务状态。
 
-旧的 `@nimiplatform/sdk/ai-provider` 子路径已删除。它必须 fail closed，不能转发到任何适配器。
+## 区分发布包与源码开发包
 
-## 当前适配器
-
-| 适配器 | 分发方式 | 角色 |
+| 制品 | 版本与配对 | 本指南的用途 |
 | --- | --- | --- |
-| Vercel AI SDK 6 | npm package `@nimiplatform/sdk-adapter-vercel-ai` | 把 Vercel language model 调用映射到 App 绑定宿主的 AI client |
-| OpenAI-compatible | 只有源码，位于 `sdks/typescript/adapters/openai-compatible`，没有作为 package 发布 | 把 OpenAI-compatible chat completion 形状映射到 Nimi AI 语义 |
+| npm 已发布的 Vercel 适配器 | 0.1.0；AI SDK 6、provider 3、SDK ^0.13.0 | 历史公开制品，不与当前源码示例混用 |
+| 当前工作区 Vercel 适配器源码 | 0.5.0；AI SDK ^7.0.0、provider ^4.0.0、SDK ^0.21.0 | 下方示例使用这一开发组合，通过匹配的本地归档或开发交付包提供 |
+| OpenAI-compatible | 仅源码，未作为公共 npm 包分发 | 内部测试与已明确支持的兼容子集 |
 
-当前 Vercel adapter 为 0.5.0，声明 SDK `^0.21.0`、Vercel AI SDK `^6.0.0` 与 `@ai-sdk/provider` `^3.0.0` peer。受保护 App 路径使用 Kit/原生包 0.18.0 和匹配 Runtime；对应 registry 版本发布前使用完整当前本地归档。
+公开 0.1.0的声明可在 [npm 制品元数据](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.1.0)查询。源码包的版本号不表示同版本已经发布。当前App开发环境见[开发环境准备](/zh/start/install)。
 
-适配器可以依赖 `@nimiplatform/sdk/ai`、`@nimiplatform/sdk/ai-runner`、
-`@nimiplatform/sdk/runtime` 或 feature module。它不能恢复已删除的 base SDK 子路径。
+## 在当前源码 App 中使用 Vercel AI SDK 7
 
-其他 framework 或 protocol adapter 只在出现具体 consumer 时增加。仅存在
-source directory 或 capability ledger row，不代表该 adapter 已成为当前公共
-产品 surface。
-
-## 边界
-
-| 关注点 | Owner |
-| --- | --- |
-| Runtime 路由、provider readiness、审计 | Runtime |
-| SDK core AI request/response 语义 | `@nimiplatform/sdk/ai` |
-| AI runner 编排语义 | `@nimiplatform/sdk/ai-runner` |
-| 框架调用形状映射 | Adapter package |
-| OpenAI-compatible request/response bridge | OpenAI-compatible adapter boundary |
-
-适配器遇到不支持的框架能力必须 fail closed。它不得伪造成功、发明 provider capability，也不得绕过 Runtime readiness。
-
-## 读者场景：在 Nimi App 中使用 Vercel AI SDK
-
-基于 Vercel AI SDK 6 的 App 保留 Vercel 的流式输出和由调用方驱动的工具循环，把 App 绑定宿主的 AI client 交给 model：
+准备SDK 0.21.0、匹配Kit/Runtime以及源码 adapter 0.5.0的开发归档。复用App已有的宿主绑定client：
 
 ```ts
 import { stepCountIs, streamText } from 'ai';
 import { createNimiLocalAppVercelLanguageModel } from '@nimiplatform/sdk-adapter-vercel-ai';
 import { getNimiLocalAppClient } from './shell/auth/local-app-client.js';
 
-const model = createNimiLocalAppVercelLanguageModel({ ai: getNimiLocalAppClient().ai });
+const model = createNimiLocalAppVercelLanguageModel({
+  ai: getNimiLocalAppClient().ai,
+});
+
 const result = streamText({
   model,
-  prompt: 'Summarize this note in three points.',
+  prompt: '请用三句话总结这份笔记。',
   stopWhen: stepCountIs(5),
 });
 ```
 
-适配器把 Vercel 的调用形状映射到 App 的 AI client。路由和执行仍由 Runtime 负责，本地还是云端由 App 的 AIConfig 决定；工具回调和状态仍归 App。图片输入和对话历史的处理方式见该适配器 package 的 README。
+源码 adapter返回 LanguageModelV4，不能作为AI SDK 6的当前配对。执行还需要该 App 已有的 AIConfig、能力声明与当前有效会话；适配器不提供账户凭据、模型就绪或权限旁路。
 
-## 读者场景：OpenAI-compatible 调用形状
+## 其他入口
 
-OpenAI-compatible 迁移桥目前只在本仓库中以源码形式存在，没有作为 package 发布，App 无法安装使用。它的设计只在明确支持的范围内保留兼容形状；不支持的 OpenAI-compatible 特性会返回强类型失败，而不是掉到 raw Runtime 或 provider-native bypass。
+公共AI runner、Runtime和AI工具子路径按各自契约使用。旧 `@nimiplatform/sdk/ai-provider` 已退役，不转发到适配器。
 
-## 来源依据
+OpenAI-compatible 只提供源码中明确支持的子集；没有发布包，也不能用它直连私人Runtime接口或绕过能力校验。
 
+## Source Basis
+
+- [`sdks/typescript/adapters/vercel-ai/package.json`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/adapters/vercel-ai/package.json)
+- [`sdks/typescript/adapters/vercel-ai/index.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/adapters/vercel-ai/index.ts)
+- [`sdks/typescript/adapters/vercel-ai/README.md`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/adapters/vercel-ai/README.md)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
-- [`sdks/typescript/adapters/vercel-ai/README.md`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/adapters/vercel-ai/README.md)

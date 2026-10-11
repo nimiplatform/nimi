@@ -6,7 +6,7 @@ Nimi Home 是 Nimi 个人 AI 产品的桌面入口，将对话、角色、作品
 
 第三方 App 开发从[创建 Nimi App](/zh/start/create-an-app)开始。受支持的开发命令会在 Desktop 监督的 Electron 宿主中启动 App。直接用浏览器打开渲染页面，不能建立这个 App 会话，也不能获得它的受保护 Runtime 访问能力。
 
-本地运行不等于公开发布。Registry 已验证安装包、明确选择的不可变本地包导入、Developer Mode 是三条独立路径。当前预发布在 Windows x86_64 与 macOS arm64 上支持 Registry 包生命周期（包括更新）和本地开发；这些平台已有通过 Desktop 与 Runtime 实现的不可变本地包导入，以及区分来源的安装、更新、启动和卸载；联合产品验收与公开发布就绪仍需分别确认。其他平台的包生命周期与普通修复仍不可用。试点分发和准入条件见 [App 分发](/zh/start/#本地开发与对外分发)。
+本地开发主要通过 Developer Mode 进行，便于在桌面宿主中快速调试；打包验证支持本地导入不可变包，对外分发则通过官方 Registry 审核目录。目前桌面应用管理支持 Windows (x86_64) 与 macOS (arm64)；其他平台的包生命周期与普通修复仍不可用。更多要求见[本地开发与分发模式](/zh/start/#本地开发与分发模式)。
 
 ## 按任务选择入口
 
@@ -15,7 +15,7 @@ Nimi Home 是 Nimi 个人 AI 产品的桌面入口，将对话、角色、作品
 - **下载产品：**查看[当前发布状态](https://nimi.ai/download)；目前还没有发布 Nimi Home 下载。使用 Nimi Home 需要 Nimi 账号，并在浏览器中登录。
 - **了解网页端：**[网页端与 Nimi Home](/zh/desktop/web-mode)说明公开／账号网站与桌面入口各自的用途。
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)

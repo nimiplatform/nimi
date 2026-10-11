@@ -1,112 +1,74 @@
 # OASIS
 
-OASIS is the one world every Nimi user passes through: the system
-main world. It is written into the platform itself — there is
-exactly one, it belongs to no creator, and no app can swap it out
-for its own convention.
+OASIS is the central world every Nimi user traverses: the system main world. Built directly into the platform core protocol, it is globally unique, belongs to no single creator, and cannot be replaced by any app-local convention.
 
 ## What OASIS Is
 
 | Property | Value |
 | --- | --- |
 | Status | The unique system main world |
-| Authority | Part of canonical Realm truth |
-| Ownership | Cannot be owned by any creator |
-| Replaceability | Cannot be replaced by an app convention |
-| Role | Default return point and sole transit hub between worlds |
-| Read surface | `GET /api/world/oasis` is a formal truth read |
+| Authority | Core component of canonical Realm authority |
+| Ownership | Public platform asset; cannot be owned by any creator |
+| Replaceability | Cannot be superseded or replaced by app conventions |
+| Role | Default return point and sole authoritative transit hub between worlds |
+| Read surface | `GET /api/realm/core/oasis` provides canonical state queries |
 
-OASIS is not a brand. It isn't a "demo world." It isn't a tutorial
-zone that creators can clone or supersede. It is part of the
-platform's canonical model.
+OASIS is not a brand, not a temporary demo world, and not a tutorial zone that creators can clone or bypass. It is an integral architectural foundation of the platform's multi-world continuity model.
 
 ## Why OASIS Exists
 
-Most cross-world platforms either skip the hub problem or solve it
-informally — there is some "main lobby" by app convention, and
-worlds peer-link as they please. Nimi takes the opposite approach.
+Most cross-world platforms either avoid the hub problem entirely or solve it through informal conventions—designating an ad-hoc "main lobby" while allowing arbitrary peer-to-peer (P2P) connections between worlds. This quickly fractures user identity and state continuity. Nimi takes a structured, verifiable approach.
 
-Two design properties depend on OASIS:
+Key architectural properties depend on OASIS:
 
-- **Single-hop continuity protocol.** Creator worlds cannot directly
-  peer-transit to other creator worlds. Transit goes through OASIS:
-  World A → OASIS → World B. This is what makes identity continuity
-  across world-context change a real guarantee, not an
-  implementation accident.
-- **Default return point.** When a participant leaves a creator
-  world, OASIS is where they return. This means there is always a
-  canonical place that the platform can route someone to without
-  depending on any single creator's world being available.
+- **Single-hop continuity protocol**: Creator worlds cannot directly peer-transit to other creator worlds. All transits are routed through OASIS: World A → OASIS → World B. This turns identity and state continuity across world-context changes into an enforced protocol guarantee rather than an implementation accident.
+- **Default safe return point**: When a participant leaves a creator world or when a world becomes unreachable, they return safely to OASIS. The platform always maintains a well-defined fallback destination without depending on the uptime or availability of any individual creator world.
 
-Together, these mean OASIS is the platform's continuity backbone —
-the thing that lets identity, social graph, and economic standing
-keep their meaning across creator worlds.
+Together, OASIS forms the backbone of platform continuity—ensuring identity, social graphs, and economic standing maintain coherent meaning across creator worlds.
 
-## OASIS Compared To Other Metaverse Hubs
+## OASIS Compared to Traditional Metaverse Hubs
 
-OASIS in Ready Player One is a single shared physical-world simulation.
-Nimi's OASIS borrows the idea of a hub of meaning, but it is a
-**social and semantic engine** rather than a physical engine.
+In traditional fiction, the OASIS is depicted as a monolithic physics engine simulating a single virtual universe. Nimi borrows the concept of a "hub of meaning," but implements it as a **social and semantic authority engine** rather than a physics simulator.
 
-| Property | OASIS-style metaverse hub | Nimi OASIS |
+| Property | Traditional Metaverse Hub | Nimi OASIS |
 | --- | --- | --- |
-| Substrate | Physics simulation | Semantic + social truth |
-| Rules | Inherited by all worlds | Each world authors its own internal rules |
-| Cross-world identity | Often inherited | First-class platform truth |
-| Hub authority | Often a single company | Platform-level canonical model |
-| Brand-replaceable | Sometimes yes | No — OASIS is part of canonical truth |
+| Substrate | Monolithic physics simulation & rendering | Semantic models and social authority state |
+| Rule system | All worlds inherit centralized physics/engine rules | Each world authors its own internal interaction and game logic |
+| Cross-world identity | Often proprietary or loosely coupled | First-class platform citizen with protocol continuity |
+| Hub authority | Owned and controlled by a single vendor | Canonical model governed by open platform protocols |
+| Replaceability | Subject to vendor lock-in | Core protocol anchor; cannot be superseded by third-party worlds |
 
-Nimi's OASIS is a transit hub and continuity anchor, not a
-shared physics arena. World-internal rules are created by world
-creators; what crosses worlds uses the six protocol primitives.
+Nimi OASIS is a transit hub and continuity anchor, not a monolithic shared physics arena. World-internal rules are created by world creators, while cross-world movements and interactions strictly follow core platform protocols.
 
-## Reader Scenario: A Participant Moves Between Two Worlds
+## Typical Scenario: A Participant Moves Between Two Worlds
 
-A user in World A wants to visit World B.
+A user in World A wants to visit World B:
 
-1. The user initiates transit. The Transit primitive contract
-   governs this move.
-2. The system routes the move through OASIS: World A → OASIS →
-   World B. There is no direct creator-world-to-creator-world
-   transit.
-3. While transiting, the participant's identity stays canonical;
-   no world is allowed to silently invent a new identity for them.
-4. World B admits the participant under its own local rules. The
-   user is the same person, with the same friendships and wallet
-   they had in World A.
+1. **Initiate transit**: The user initiates movement. The Transit primitive contract governs and validates the transition.
+2. **Hub routing**: The system routes the transition through OASIS: World A → OASIS → World B. Direct, uncontrolled creator-world-to-creator-world transit is disallowed.
+3. **Identity continuity**: Throughout transit, the participant's identity remains canonical; no external world can forge an unverified persona.
+4. **Governed admission**: World B admits the participant under its own local rules. The user arrives with their verified identity, social connections, and wallet intact.
 
-Why through OASIS? Because OASIS is part of canonical truth. A
-direct world-to-world transit would create N×N peer-link policies;
-the OASIS hub design replaces that with N policies (each world's
-contract with OASIS).
+Why route through OASIS? Direct world-to-world transit creates an $N \times N$ mesh of peering policies. An OASIS-centered architecture simplifies this into $N$ standardized contracts between each world and OASIS.
 
-## Reader Scenario: A Default Return When A World Goes Down
+## Typical Scenario: Graceful Fallback When a World Goes Down
 
-Suppose a world the user is in is taken offline by its creator.
+Suppose the creator world currently hosting a user is taken offline or experiences an outage:
 
-- Without a hub: the participant is stranded; the platform has no
-  canonical place to route them.
-- With OASIS: the participant returns to OASIS automatically.
-  Their identity and standing are unaffected. They can choose
-  another world to enter.
+- **Without a central hub**: The participant is stranded with disconnected state; the platform has no canonical place to route them safely.
+- **With OASIS**: The participant returns automatically to OASIS. Their identity, credentials, and state remain intact, allowing them to freely choose another world to explore.
 
-The hub is not just a launch point — it is what makes a multi-world
-platform robust against any single world's availability.
+The hub serves not just as a launchpad, but as a resilient fail-safe that shields users from individual world downtime.
 
-## Reader Scenario: A Creator Cannot Replace OASIS
+## Typical Scenario: Creator Autonomy and Hub Boundaries
 
-Suppose a creator wants to ship a "main world" of their own and
-have all their content's transit route through it.
+A creator builds a premier world and wishes to funnel all affiliated sub-experiences exclusively through it:
 
-- They can absolutely build a popular world. Creator worlds are
-  first-class.
-- They cannot replace OASIS. The platform's transit protocol routes
-  through OASIS by design; a creator world cannot serve that role.
-- They cannot make OASIS optional. Direct creator-to-creator
-  transit is not admitted in the platform protocol.
+- **First-class creator worlds**: Creators have full freedom to build rich, expressive worlds that operate as first-class citizens.
+- **System main world cannot be replaced**: Platform transit protocols route through OASIS by design; creator worlds cannot act as system-level transit hubs.
+- **OASIS cannot be bypassed**: Direct, unregulated creator-to-creator transit is outside supported protocol contracts.
 
-The non-replaceability is the point. If OASIS were brand-replaceable,
-the continuity guarantees would be too.
+This boundary is essential: if the central hub could be swapped out arbitrarily, the platform's guarantees of identity continuity and verifiable state would degrade immediately.
 
 ## Source Basis
 

@@ -13,20 +13,21 @@ ledger.
 
 | Concern | Owner |
 | --- | --- |
-| Durable Character identity, world truth, history, account/social truth | Realm |
-| LocalAgent materialization and lifecycle | Runtime |
-| Conversation, committed events, Memory authorization and lifecycle mediation, provider routing, jobs | Runtime |
-| Canonical long-term Memory and Knowledge, provenance, ranking, correction, forgetting and deletion | Cognition |
-| Typed App-facing access and transport projection | SDK |
-| Reusable UI, shell, accessibility, tokens, and headless primitives | Kit |
-| Product-specific screens, user-intent wiring, and ephemeral UI state | App |
-| Current first-party home and native host composition | Nimi Home / Desktop |
-| Embodiment presentation | Avatar |
+| Persistent Character identity, authoritative world state, history, account/social state | Realm |
+| LocalAgent execution runtime, materialization, and process lifecycle | Runtime |
+| Conversations, committed events, memory access authorization, provider routing, jobs | Runtime |
+| Canonical long-term memory and knowledge, provenance, ranking, and retention | Cognition |
+| Typed client interfaces, cross-process transport, and developer APIs | SDK |
+| Reusable UI components, design tokens, accessibility, and shell foundations | Kit |
+| Application-specific workflows, user-facing views, and local state management | App |
+| Primary desktop shell, user workspace, and app supervisor | Nimi Home / Desktop |
+| Visual embodiment presentation and animation rendering | Avatar |
 
-Character and LocalAgent are related but distinct. Realm owns the
-durable Character. Runtime materializes that Character as a LocalAgent
-for execution. Projection records, App bindings, Desktop stores, and
-Avatar instances do not become identity owners.
+Character and LocalAgent are related but distinct concepts. Realm manages the
+persistent Character definition, persona attributes, and social identity. Runtime
+instantiates that Character as an active LocalAgent execution instance for active sessions.
+UI projections, App bindings, and Avatar visual renderers consume this state without creating
+parallel identity truth.
 
 ## App Authorization
 
@@ -42,27 +43,15 @@ Avatar instances do not become identity owners.
 Direct SDK use and a scaffolded App are integration paths, not
 user-facing product profiles.
 
-## Consumer Boundaries
-
-- Runtime owns execution, readiness, LocalAgent, Conversation, committed events,
-  Memory authorization and lifecycle mediation, provider/model routing, audit
-  outcomes, and fail-closed enforcement.
-- Cognition owns canonical long-term Memory and Knowledge. V1 implements
-  long-term Memory and bounded Agent Source custody; Knowledge has no active
-  V1 execution path. Runtime and Apps do not maintain parallel long-term stores.
-- Realm owns durable world and Character truth. Runtime and Apps use
-  admitted Realm consumer surfaces.
-- SDK owns typed access and developer ergonomics, never platform truth.
-- Kit owns reusable presentation primitives only when real consumers
-  need them; it does not prebuild a speculative public feature catalog.
-- Apps own product composition and ephemeral state. They do not cache
-  themselves into a new owner.
-- Nimi Home is the current host, not an irreplaceable cross-platform
-  authority.
-- Avatar renders owner projections; it does not directly drive or take
-  ownership of Character/LocalAgent execution.
-- Simulator is archived under `archive/simulator` and is no longer an active
-  workspace, App qualification surface, or CI/release prerequisite.
+## Subsystem Responsibilities
+- Runtime manages execution, LocalAgent instances, conversational sessions, committed events, memory access authorization, provider/model routing, and fail-closed channel access controls.
+- Cognition manages long-term memory and knowledge structures. V1 implements long-term memory and bounded agent source custody. Runtime and Apps do not maintain parallel, conflicting long-term stores.
+- Realm manages authoritative world definitions and persistent Character identities. Runtime and Apps consume these via standard Realm SDK interfaces.
+- SDK provides typed client abstractions, transport handling, and developer ergonomics, maintaining strict decoupling from internal backend state.
+- Kit provides reusable UI components, design tokens, and shared presentation primitives driven by actual app requirements.
+- Apps manage application-specific views, local workflows, and ephemeral user interface state.
+- Nimi Home serves as the desktop workstation and application supervisor.
+- Avatar renders character visual projections (2D/3D embodiments) without altering character execution logic or identity state.
 
 ## Deferred And Isolated Capabilities
 

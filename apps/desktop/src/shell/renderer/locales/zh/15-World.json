@@ -1,7 +1,7 @@
 {
   "title": "世界",
-  "subtitle": "浏览世界设定，并发现可连接的 Source",
-  "searchPlaceholder": "搜索世界、主题、Persona...",
+  "subtitle": "浏览世界设定，探索丰富多元的角色与故事",
+  "searchPlaceholder": "搜索世界、主题、角色...",
   "clearSearch": "清除搜索",
   "searchByNameOrDescription": "按名称或描述搜索世界...",
   "loading": "正在加载世界...",
@@ -23,7 +23,7 @@
   "chronoFlow": "时间流速：{{value}}X",
   "header": {
     "kicker": "World Atlas",
-    "description": "公开世界背景、规则与 Source 目录，用来选择感兴趣的 Character 或 Persona。"
+    "description": "公开世界背景、规则与角色目录，探索属于你的故事伙伴。"
   },
   "atlas": {
     "discovery": {
@@ -33,8 +33,8 @@
     "discoverMore": "发现更多世界",
     "countSummary": "{{value}} 个世界 / 公开设定索引",
     "worldCount": "{{value}} 个世界",
-    "sourceDiscovery": "Source 发现",
-    "sourceCount": "{{value}} sources",
+    "sourceDiscovery": "探索角色",
+    "sourceCount": "{{value}} 位角色",
     "followed": {
       "title": "我的关注世界",
       "summary": "{{value}} 个世界 · 仅本机保存",
@@ -49,7 +49,7 @@
       "unavailable": "登录后才能关注世界。"
     },
     "publicWorld": "公开世界",
-    "emptySources": "当这个世界暴露公开 Source 时，Character 和 Persona 会显示在这里。",
+    "emptySources": "当这个世界有公开角色时，会显示在这里。",
     "schemaTabs": {
       "overview": "概览",
       "entities": "实体",
@@ -58,7 +58,7 @@
     "entityKinds": "实体类型",
     "relationshipGraph": "关系图谱",
     "worldCharacters": "WorldCharacter",
-    "sourceBoundaryNote": "{{characters}} 个世界角色绑定到 WorldEntityCore；{{personas}} 个 Persona 保持用户拥有的 Source。",
+    "sourceBoundaryNote": "{{characters}} 个世界角色；{{personas}} 个专属角色。",
     "noEntityKinds": "暂无公开实体类型。",
     "noRelationshipTypes": "暂无公开关系类型。",
     "totalSources": "总计",
@@ -71,7 +71,7 @@
     "more": "更多",
     "featured": {
       "title": "精选世界",
-      "body": "公共世界精选，用于 Source 发现与设定上下文。",
+      "body": "公共世界精选，用于探索精彩设定与角色伙伴。",
       "viewAll": "查看全部",
       "open": "打开 {{name}}"
     },
@@ -136,20 +136,20 @@
     "gridView": "网格视图",
     "listView": "列表视图",
     "sort": {
-      "active": "Source 最丰富",
+      "active": "角色最丰富",
       "recent": "最近更新",
-      "inhabitants": "Source 数"
+      "inhabitants": "角色数"
     }
   },
   "sidebar": {
-    "create": "探索 Source",
+    "create": "探索角色",
     "library": "库",
     "collections": "合集",
-    "pulse": "Source 索引",
+    "pulse": "角色索引",
     "activeWorlds": "公开世界",
     "activeWorldsSub": "共 {{total}} 个",
-    "inhabitants": "可发现 Source",
-    "inhabitantsSub": "包含 Character 与 Persona",
+    "inhabitants": "可结识伙伴",
+    "inhabitantsSub": "探索世界角色与伙伴",
     "weeklyVisits": "世界设定",
     "filters": {
       "all": "全部世界",
@@ -164,7 +164,7 @@
     "idle": "静默"
   },
   "stats": {
-    "inhabitants": "Source",
+    "inhabitants": "伙伴",
     "personas": "Persona",
     "entities": "实体",
     "characters": "角色",

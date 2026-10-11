@@ -1,83 +1,58 @@
 # Backend Branches
 
-Avatar supports exactly three backend kinds, and the list is closed:
-`live2d | vrm | nimi2d`. A single Avatar-owned factory validates the
-model and picks the matching branch. A package or third-party App
-cannot register another renderer at runtime.
+Avatar supports exactly two graphics backend kinds, and the list is strictly closed: `live2d | vrm`. A single Avatar-owned factory validates the asset manifest and initializes the matching graphics branch. Model packages or third-party applications cannot dynamically inject unadmitted renderers at runtime.
 
 ## Shared Branch Contract
 
-Every branch exposes the same backend-neutral shape:
+Every graphics branch implements the identical engine-neutral interface:
 
-| Surface | Purpose |
+| Member | Purpose & Lifecycle Role |
 | --- | --- |
-| `kind` | The validated `live2d`, `vrm`, or `nimi2d` discriminator |
-| `nominalBounds` | Positive logical size and normalized body center |
-| `projection` | Activity, emotion, motion, expression, and reset operations |
-| `surface` | The Avatar-owned render component |
-| `metadata()` | Opaque branch diagnostics |
-| `shutdown()` | Release render, audio, and projection resources |
+| `kind` | Validated branch discriminator: `'live2d' | 'vrm'` |
+| `nominalBounds` | Positive logical dimensions and normalized body center coordinates |
+| `projection` | Standard interface handling activities, emotions, motions, expressions, and resets |
+| `surface` | React / WebGL rendering viewport component managed by Avatar |
+| `metadata()` | Opaque branch diagnostics and telemetry indicators |
+| `shutdown()` | Disposes GPU textures, WebGL contexts, audio buffers, and animation clocks |
 
-The carrier uses only this shared shape. Backend metadata does not become
-cross-backend product truth, and renderer identifiers do not escape through
-the backend-neutral projection.
+The carrier shell program interacts exclusively with this shared contract. Engine-specific internals and raw GL handles never leak across the neutral projection boundary.
 
-## Live2D
+## Live2D Branch
 
-The Live2D branch loads and validates a Cubism model, renders it on the Avatar
-surface, derives bounded hit regions, and consumes local audio for lipsync.
-Live2D alone exposes the branch-local `setParameter` extension. Only
-Avatar-owned projection translation may call that extension after narrowing
-the branch kind.
+The Live2D branch loads and validates Cubism models, renders them on a WebGL canvas, derives high-frequency alpha collision hit regions, and drives real-time lipsync from local audio streams. Live2D alone provides the low-level `setParameter` parameter write extension, which can only be called after explicit type narrowing within Avatar's projection layer.
 
-## VRM
+## VRM 3D Branch
 
-The VRM branch loads a validated VRM model and its typed capability profile.
-The profile records humanoid bones, expressions, look-at support, pose limits,
-and supported deterministic motion routes. Unsupported routes fail closed;
-the branch does not pretend that missing bones or expressions succeeded.
+The VRM branch loads verified 3D humanoid models along with their typed Capability Profile. The profile records Humanoid bone mappings, blendshape expressions, LookAt gaze targets, joint rotational constraints, and supported deterministic motion routes. If a model lacks essential bones or blendshapes, unsupported routes fail closed immediately to prevent geometry distortion or synthetic success.
 
-VRM is a current admitted Avatar backend branch, not a future placeholder and
-not a public third-party driver surface.
+VRM is an active supported branch with robust rigging and material handling, not a theoretical placeholder.
 
-## Nimi2D
+## Standalone Layered Animation Specification (Nimi2D)
 
-The Nimi2D branch loads a digest-validated Nimi2D package and its capability
-profile, creates the Nimi2D composer, and renders the admitted layer plan. Its
-profile determines whether expression, speech-mouth, idle-life, and gesture
-motion lanes are available.
+The Nimi2D package represents an independent layered animation specification. It is not an active Avatar product backend kind in the closed `live2d | vrm` union. Any future admission of additional backends remains governed by formal authority updates.
 
-Nimi2D package internals remain owned by Nimi2D. Avatar consumes the validated
-package and profile without redefining their schema or content-governance
-meaning.
+## Engine-Neutral Projection Pipeline
 
-## Backend-Neutral Projection
+Authoritative presentation intents from Runtime arrive in Avatar as strongly-typed semantic inputs. Avatar preserves their meaning in neutral structures before the active branch translates them into engine-specific draw commands:
 
-A Runtime presentation result reaches Avatar as typed semantic input. Avatar
-first preserves that meaning in backend-neutral cues, then the active branch
-maps the cues to renderer-local operations:
-
-| Cue | Example branch operation |
+| Semantic Intent Input | Graphics Branch Translation Example |
 | --- | --- |
-| activity or motion | Live2D motion group, VRM deterministic route, or Nimi2D motion lane |
-| emotion or expression | Live2D parameter/expression stack, VRM expression manager, or Nimi2D expression lane |
-| speak | Branch audio consumer and renderer-local mouth weights |
-| surface bounds | Branch nominal bounds and hit-region protocol |
+| Activity or Motion | Live2D motion groups or VRM skeletal animation tracks |
+| Emotion or Expression | Live2D expression stacks or VRM blendshape morph targets |
+| Speech Audio (Speak) | Audio buffer analysis paired with real-time mouth-opening weights |
+| Surface Viewport Bounds | Validated nominal bounds and bounded hit regions; opacity queries follow the selected backend |
 
-Reset and shutdown clear only Avatar-owned local state. They do not alter
-Runtime presentation, continuity, participation, or provenance.
+Resetting or terminating a branch clears only local graphics buffers; it leaves Runtime conversation history, participation status, and cognitive state intact.
 
-## Reader Scenario: Selecting a Branch
+## Typical Scenario: Automated Branch Selection
 
-1. Runtime authorizes a visual package.
-2. The verified native host materializes it under the protected data root.
-3. Avatar validates the model manifest.
-4. The single branch factory selects `live2d`, `vrm`, or `nimi2d`.
-5. An unknown kind, an incomplete profile, or invalid bounds keeps the carrier
-   non-ready.
+1. **Authorize visual package**: Runtime authorizes a specific model package.
+2. **Sandbox loading**: The native host loads the package within an isolated directory.
+3. **Manifest inspection**: Avatar verifies asset hashes and model descriptor schemas.
+4. **Factory dispatch**: The branch factory instantiates the appropriate `live2d` or `vrm` branch.
+5. **Fail-closed handling**: If format signatures are unrecognized or dimensions invalid, the shell stays in a protected non-ready state with explicit diagnostic reporting.
 
-Adding a fourth backend requires an explicit product decision and a complete
-typed implementation; there is no placeholder or plugin fallback.
+Introducing additional graphics backends requires formal architectural review and complete typed pipeline implementations; loose plugin architectures are explicitly avoided.
 
 ## Source Basis
 

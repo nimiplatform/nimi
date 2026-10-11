@@ -9,8 +9,8 @@
     "heading": "Choose where Nimi stores models, apps, and large local data.",
     "subline": "Nimi keeps models, apps, and large local data in the folder you select.",
     "selectedHeading": "Confirm where Nimi stores its local data.",
-    "selectedSubline": "Continue to validate the selected folder and finish Product Control setup.",
-    "preparing": "Nimi is creating its local product record…",
+    "selectedSubline": "Continue to confirm the selected folder and finish initial setup.",
+    "preparing": "Nimi is preparing the local environment…",
     "pathPlaceholder": "No folder chosen yet",
     "chooseFolder": "Choose folder…",
     "changeFolder": "Change folder…",
@@ -18,55 +18,55 @@
     "finish": "Continue"
   },
   "repair": {
-    "heading": "Nimi needs to repair a required local component",
-    "body": "Restore the required Product Control, account, data-root, Runtime service, or protected-state component, then retry validation.",
+    "heading": "Nimi needs to repair local components",
+    "body": "Restore required product configuration, account, data root, or runtime service components, then retry.",
     "retry": "Retry"
   },
   "blocked": {
-    "heading": "Nimi cannot continue safely",
-    "body": "Nimi cannot safely create Product Control, use the selected data root, or validate the required account and Runtime state yet."
+    "heading": "Cannot continue yet",
+    "body": "Nimi cannot safely initialize product configuration, access the selected data folder, or validate required account and runtime state. Please check and retry."
   },
   "ready": {
     "heading": "Nimi is ready",
-    "body": "Opening Nimi Chat…"
+    "body": "Opening Nimi…"
   },
   "reconcilingAuth": "Reconciling sign-in state…",
   "states": {
     "not_logged_in": {
       "title": "Sign in to use Nimi.",
-      "body": "Normal product use starts after an authenticated account session exists."
+      "body": "Sign in with your Nimi account to get started."
     },
     "config_missing": {
-      "title": "Nimi is creating its local product record.",
-      "body": "Data location selection appears after the product record exists."
+      "title": "Nimi is initializing configuration.",
+      "body": "Storage location setup will appear once initialization completes."
     },
     "data_root_missing": {
       "title": "Choose where Nimi stores models, apps, and large local data.",
-      "body": "Choose an absolute writable folder, then let Nimi verify and record it."
+      "body": "Choose a writable local folder where Nimi can store application data."
     },
     "data_root_selected": {
       "title": "Nimi is validating the selected data folder.",
-      "body": "You can change the folder, retry validation, or continue to finish Product Control setup."
+      "body": "You can change the folder or continue to complete setup."
     },
     "repair_required": {
-      "title": "Nimi needs to repair a required local component before normal use.",
-      "body": "Restore the required Product Control, account, data-root, Runtime service, or protected-state component."
+      "title": "Nimi needs to repair some local components before continuing.",
+      "body": "Please check required product configuration, account, data root, or runtime service status, then retry."
     },
     "blocked": {
       "title": "Nimi cannot continue safely yet.",
-      "body": "Resolve the blocking Product Control cause, then retry validation."
+      "body": "Please resolve product configuration, data storage, or runtime service issues, then retry."
     },
     "ready_for_use": {
       "title": "Nimi is ready.",
-      "body": "Normal product use opens to Chat and Nimi Chat."
+      "body": "Opening Nimi Home…"
     }
   },
   "errors": {
-    "productControlCreateFailed": "Failed to create the local Nimi product record.",
+    "productControlCreateFailed": "Failed to initialize local product configuration.",
     "dataRootMissing": "Choose a folder for Nimi before continuing.",
     "dataRootPickFailed": "Failed to open the folder picker.",
-    "dataRootRecordFailed": "Failed to record nimi_data.",
-    "dataRootUnavailable": "This folder cannot be used for nimi_data. Choose an absolute non-root folder that Nimi can create and write data in.",
-    "finalizationRequestFailed": "Failed to validate Product Control setup."
+    "dataRootRecordFailed": "Failed to save data storage location.",
+    "dataRootUnavailable": "This folder cannot be used for application data. Choose a writable, non-root folder.",
+    "finalizationRequestFailed": "Failed to complete setup. Please try again."
   }
 }

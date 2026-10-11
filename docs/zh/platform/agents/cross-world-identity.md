@@ -1,23 +1,19 @@
-# 跨 World 身份
+# 跨世界身份连续性（Cross-World Identity）
 
-角色在每个世界里都是它自己。这种连续性存在于 Realm 的 Character 身份
-里，不在任何单一世界里。
+角色在任何数字世界中始终保持一致的自我认同。这种身份连续性建立在 Realm 的 Character 身份层之上，而非受限于任何单个具体的虚拟世界。具体的对话流与长期记忆则由对应 LocalAgent 的 Runtime 与 Cognition 生命周期独立维护。
 
-一个 Character 可以按照 Realm 的身份、关系、成员与访问规则，参与多个
-World。走进一个新世界不会造出第二个角色；世界自己的来源也无法单独建立
-LocalAgent 身份。
+一个 Character 实体可以按照 Realm 统筹的身份规范、社交关系、世界成员准入与访问策略，合规参与多个不同的数字世界。角色漫游进入一个新世界，绝不会凭空派生出第二个新角色；单个世界的局部配置也无法绕过系统独立建立具有全局意义的 LocalAgent 身份。
 
-Runtime 只能从 Realm 签发的 Character Source 运行 LocalAgent。它可以混入
-世界准入的上下文用于执行及可选 Cognition 来源检索，但这不会启用 Knowledge 路径。
+Runtime 仅基于 Realm 签发的官方 Character Source 实例化 LocalAgent。在执行过程中，智能体可按需加载经授权的世界情境上下文与 Cognition 记忆检索；但这不会开启未受控的私有知识库旁路。
 
-同一个 Character Source 可以运行出多个 LocalAgent，各自保留独立 Conversation、状态、预算、生命周期及 Cognition 私有 Memory。共享同一份来源不等于共享本地状态。
+同一个 Character Source 可以由 Runtime 在不同场景下实例化出独立的 LocalAgent 运行态。各个实例独立维护其对话流、执行状态机、Token 预算、进程生命周期以及专属于该智能体的 Cognition 长期记忆。共享同一份基础角色设定，并不等同于共享运行时的瞬时内存与执行状态。
 
-App 只能看到已授权的引用和视图。它不能按角色引用合并 LocalAgent，也不
-能用本地缓存冒充跨 World 身份。
+第三方应用仅能访问其已获授权的角色引用与只读数据视图，严禁私自将多个 LocalAgent 的状态进行隐式拼接，更不能利用前端本地缓存伪造全局跨世界身份。
 
-长期 Memory 归 Cognition，按 Agent 私有隔离；Runtime 中介已授权投递、召回与管理。Knowledge V1 没有活动读写或公共客户端路径。
+> [!NOTE]
+> 长期记忆由 Cognition 系统按智能体独立管理；Runtime 仅作为授权数据调度的中介通道。当前版本的知识库系统（Knowledge V1）未开放公共调用接口。
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)

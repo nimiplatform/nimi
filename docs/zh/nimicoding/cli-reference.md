@@ -1,63 +1,42 @@
-# Nimi Coding CLI 参考
+# Nimi Coding CLI 命令参考
 
-公开集成面是 `nimicoding` CLI。机器 Consumer 必须同时处理命令退出状态与
-JSON product；空结果不表示其显式声明范围之外也完整或 clean。
+`nimicoding` CLI 是 Nimi Coding 的标准调用入口。在脚本或自动化流程中调用时，请同时检查命令退出码 (Exit Code) 与返回的 JSON 结构化数据；空结果仅表示在其限定查询范围内未匹配到结果，不代表对代码正确性、规范符合性或范围外情况的评价。
 
-在仓库根目录通过 `pnpm exec nimicoding ...` 调用 workspace 精确固定的软件
-包。全局 `PATH` 中的 binary 不是受支持的可用性检查。下表为简洁起见省略
-此前缀。
+在仓库根目录下通过 `pnpm exec nimicoding ...` 调用工作区本地锁定的版本。为简洁起见，下表中省略 `pnpm exec nimicoding` 前缀。
 
-| 用途 | 命令 |
+## 命令速查表
+
+| 功能分类 | 常用命令 |
 | --- | --- |
-| 编写与准入 | `authority fmt`、`authority check`、`authority compile` |
-| 检查仓库使用 | `authority anchors`、`authority consumers`、`authority terms`、`authority closed-sets` |
-| 定位与读取 | `authority discover`、`authority query`、`authority context` |
-| 关系导航 | `authority refs`、`authority path`、`authority subgraph` |
-| 分析与审查变更 | `authority diff`、`authority change-candidates`、`authority impact`、`authority audit`、`authority review` |
-| 读取有界实现 context（0.6+） | `code context` |
-| 查询显式代码与 authority 关联（0.6.1+） | `code authority` |
-| 仓库集成 | `start`、`sync`、`doctor`、`clear` |
+| 规范编写与格式化 | `authority fmt`、`authority check`、`authority compile` |
+| 仓库使用与引用分析 | `authority anchors`、`authority consumers`、`authority terms`、`authority closed-sets` |
+| 规范定位与上下文读取 | `authority discover`、`authority query`、`authority context` |
+| 拓扑关系与路径导航 | `authority refs`、`authority path`、`authority subgraph` |
+| 变更差异与影响审查 | `authority diff`、`authority change-candidates`、`authority impact`、`authority audit`、`authority review` |
+| 静态源码上下文分析 (0.6+) | `code context` |
+| 显式代码与规范关联查询 (0.6.1+) | `code authority` |
+| 仓库受管配置维护 | `start`、`sync`、`doctor`、`clear` |
 
-有界命令需要显式正数限制，例如 `--max-units`、`--max-edges` 和
-`--max-bytes`。如果完整结果超出预算，命令应拒绝，而不是发布被截断且可能
-影响阻断判断的结果。
+## 关键参数与调用约束
 
-`change-candidates` 只返回 caller-selected channels 的确定性召回理由，不做语义
-裁决。`audit` 只报告 configured graph 与 exact lexical violations。`review`
-把业务语义和 implementation conformance 固定为 `not_evaluated`。
+- **显式预算限制**：带有范围约束的命令强制要求传入正整数预算参数（如 `--max-units`、`--max-edges`、`--max-bytes`）。当实际匹配结果超出预算时，命令将直接报错拒绝，而绝不会返回容易误导的截断数据。
+- **候选召回 (`change-candidates`)**：仅按调用方指定的检索通道返回确定性的相关候选条目，不进行主观的语义裁决。
+- **静态代码上下文 (`code context`)**：接收一个具体的 TypeScript 或 TSX 文件、顶层 Symbol、`tsconfig` 路径及字节预算，返回该符号向外的直接静态引用，不涵盖运行时动态派发。
+- **规范标记扫描 (`code authority`)**：扫描源码中显式声明的保留物理行：
+  - TypeScript、TSX、Go 与 Rust：
+    ```text
+    // @nimi-authority: <exact-authority-id>
+    // @nimi-deprecated: <exact-authority-id>
+    ```
+  - Python：
+    ```text
+    # @nimi-authority: <exact-authority-id>
+    # @nimi-deprecated: <exact-authority-id>
+    ```
+  - 标记扫描属于精确的逐行文本匹配；标记仅应标注在极少数核心领域所有者文件的关键节点，切勿大面积滥用或覆盖无状态的辅助函数。
+- **受管工具维护**：`start`、`sync` 与 `doctor` 仅用于维护受管配置与环境健康度，不拦截正常开发流程，亦不会劫持 AI 任务状态。
 
-`code context` 接受一个明确的 TypeScript 或 TSX 文件、顶层 symbol、tsconfig
-和 byte budget。它返回 root-direct outbound 静态 context，不包含 inbound
-impact、runtime dispatch 或完整任务 context。
+## Source Basis
 
-`code authority` 扫描可选的保留独立物理行。TypeScript、TSX、Go 和 Rust 使用：
-
-```text
-// @nimi-authority: <exact-authority-id>
-// @nimi-deprecated: <exact-authority-id>
-```
-
-Python 使用对应的 `# @nimi-authority: ...` 与 `# @nimi-deprecated: ...`。
-Scanner 有意不证明语言注释语境：多行字符串中的精确保留物理行也会被识别。
-不含 `@` 的旧格式不会被识别。
-
-Authority 标记只应放在少量关键语义 owner 附近，不应覆盖机械 helper 或测试。
-Deprecated 标记记录开发者已经通过直接 authority 证据或真实产品失败确认的
-判断；完成 hard cut 时直接删除。标记查询不会评价未标注代码，也不证明
-declaration ownership、实现一致性或 hard cut 已全部完成。
-
-`code context` 需要 Nimi Coding 0.6.0 或更高版本；保留 marker 合同需要
-0.6.1，本 workspace 精确固定 0.6.3。
-
-`start` 只初始化文档列出的受管内容。`sync` 检查或更新这些精确内容，`doctor`
-检查软件包与受管内容是否兼容。这些命令不会拦截 AI 任务、安装强制前置检查、
-验证实现一致性或拥有任务状态。
-
-Nimi 的 guarded shortcut 位于根 `package.json`。Authority authoring 要求以
-`.nimi/methodology/authority-authoring.yaml` 为准，不要把命令配方复制进
-另一份配置或 workflow artifact。
-
-## 来源依据
-
-- [`@nimiplatform/nimi-coding` README](https://github.com/nimiplatform/nimi-coding/blob/main/README.zh-CN.md)
+- [`nimi-coding/README.zh-CN.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.zh-CN.md)
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)

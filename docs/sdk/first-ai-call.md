@@ -30,25 +30,25 @@ export async function generateText(prompt: string) {
 }
 ```
 
-Call `generateText()` from an App action and present the returned `text`. Show a loading state while the promise is pending; on rejection, show the actual error and an appropriate recovery action. Do not render a sample response as though it came from Runtime.
+Call `generateText()` from an App action and present the returned `text`. Display a loading state while waiting for the response, and handle errors by showing actionable feedback to the user.
 
-The request carries conversation content. It does not select a model, connector, execution endpoint, fallback, or machine binding. Runtime obtains the App identity from the protected host session and applies its current Local or Cloud intent. Provider credentials remain in Runtime-owned configuration.
+The request carries conversation content. It does not need to specify execution endpoints or providers. Runtime obtains the App identity from the protected host session and applies the configured Local or Cloud intent. Provider credentials remain in Runtime-owned configuration.
 
 ## Diagnose the First Failure
 
 | Failure | Next step |
 | --- | --- |
-| No bound App session or an access error | Return to the supervised App launch and its host access flow. Do not replace the binding with a direct Node/gRPC client or supply your own identity. |
+| No bound App session or an access error | Return to the supervised App launch and confirm the app has been granted access in Nimi Home Developer Mode. |
 | `not-found` with reason `ai-config-not-found`, or a missing `text.generate` intent | Save the capability intent for this App in its AI settings, then retry the actual call. |
-| Local model or cloud configuration is unavailable | Inspect that App's current settings and the Runtime-selected model or connector state. Preserve the actual error; a configured route is not a successful execution. |
+| Local model or cloud configuration is unavailable | Inspect the App's current settings and verify that the Runtime-selected model or connector is ready. |
 | Runtime disconnected | Restore the existing Nimi Home/Runtime development instance, reopen the supervised App if needed, and retry the same action. |
-| Execution fails after dispatch | Inspect the typed error and its available reason/action fields. Do not synthesize a client-side fallback or switch providers silently. |
+| Execution fails after dispatch | Inspect the typed error and its reason/action fields to diagnose the root cause. |
 
-For setup debugging, the same client exposes `auth.status()` and `aiConfig.get()`. These are current state reads, not substitutes for an actual generation request. More setup errors are covered in [Troubleshooting](/start/troubleshooting).
+For setup debugging, the same client exposes `auth.status()` and `aiConfig.get()` to inspect current session posture and configuration. More setup errors are covered in [Troubleshooting](/start/troubleshooting).
 
 ## Confirm the Result
 
-Run the App repository's existing checks, then make one request in its actual supervised window using its own client. Confirm pending, success, and any observed failure separately. A returned greeting can verify the first capability call; it does not establish that the App's full product journey or public distribution is ready.
+Run the App repository's automated checks, then trigger a request from the supervised window using its host-bound client. Verify that pending, success, and error states all render and behave as expected.
 
 Do not copy Nimi's repository-wide SDK/Lab test commands into a third-party App as a prerequisite. Follow the scripts declared by that project.
 

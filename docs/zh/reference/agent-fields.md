@@ -1,40 +1,38 @@
-# Character 与 LocalAgent 字段
+# 角色（Character）与智能体（LocalAgent）核心字段与映射规范
 
-Nimi 为持久 Character 真相与本地 AI 执行使用不同的 identifier 与 owner。
+在 Nimi 的体系设计中，作为持久化数字资产的角色模板（Character）与在本地设备运行的智能体实例（LocalAgent）被严格解耦，各自归属于不同的权威域。
 
-| 字段或概念 | Owner | 含义 |
+## 角色与智能体核心概念对照
+
+| 概念/字段 | 归属权威域 | 业务含义与用途 |
 | --- | --- | --- |
-| Character reference | Realm | 持久身份及社交/World 引用 |
-| PersonaCharacter / WorldCharacter | Realm | Realm 持有的 Character 形态 |
-| Character Source | Realm | Runtime 物化时可使用的身份来源 |
-| World Source | Realm | World 上下文来源；不足以单独创建 LocalAgent identity |
-| LocalAgent ID | Runtime | 有明确 owner 的本地执行实体 |
-| LocalAgent owner | Runtime | 显式 owner 关系；不能从 App cache 推断 |
-| Conversation anchor | Runtime | 一条显式 LocalAgent Conversation |
-| 长期 Memory | Cognition | Agent 私有记忆；Runtime 中介授权与有限访问 |
-| Knowledge | Cognition | V1 无活动导入、查询或公共客户端路径 |
-| AI capability execution | Runtime | 能力意图评估、具体实现选择、quota、budget 与执行诊断 |
-| Presentation configuration | Runtime | 面向已授权投影的持久 LocalAgent 输入 |
-| 短暂 presentation state | Runtime | Turn、状态、activity、emotion、voice 与 timing 投影 |
-| Renderer state | Avatar 或 consuming App | 仅短暂渲染、playback 与 interaction |
+| **Character Reference** | Realm | 持久化数字角色的全局唯一标识与设定引用 |
+| **PersonaCharacter / WorldCharacter** | Realm | 角色形态分类：独立虚拟伴侣（Persona）或世界专属角色（World） |
+| **Character Source** | Realm | 签发的结构化角色规范数据包，供本地 Runtime 进行实例化 |
+| **World Source** | Realm | 角色所处数字世界的上下文设定与环境背景 |
+| **LocalAgent ID** | Runtime | 在本地运行环境中的智能体实例唯一标识 |
+| **ConversationAnchor** | Runtime | 该智能体当前维持的唯一连续会话流句柄 |
+| **长期记忆（Memory）** | Cognition | 该智能体的私有认知记忆库，由 Runtime 安全代理检索 |
+| **AI 能力意图（Capability Intent）** | Runtime | 该角色对话推理所需调用的模型能力与参数路由 |
+| **呈现设置（Presentation Config）** | Runtime | 智能体对外展示的持久化外观配置、默认声线与个性设定 |
+| **交互呈现状态（Interaction State）** | Runtime | 单轮对话中的实时互动状态（如正在思考、倾听或说话中） |
+| **渲染态（Renderer State）** | Avatar 应用 | 在图形引擎中由 GPU 实时计算的骨骼旋转、材质着色与表情动效 |
 
-## 访问字段
+## 授权会话与访问规范
 
-Runtime 从 active session 推导 account、App identity、authorization、目标
-LocalAgent 或 scope，以及 operation。正式 App 使用已授权引用列表返回的会话级 `agentHandle`，不提交原始 LocalAgent ID。
+应用通过 SDK 与智能体交互时，遵循严格的会话凭证规范：
+- **动态派生会话句柄（agentHandle）**：前端应用通过认证后的宿主环境获取短期会话句柄与智能体交互，无需在业务代码中硬编码底层实例 ID；
+- **凭据最小化暴露**：底层的云端 API Key、用户私钥凭证均由 Runtime 安全隔离，绝不返回给前端应用渲染层。
 
-Realm JWT、Provider Credential、Runtime session proof、私有 authorization
-evidence、原始 source context 与账号级 LocalAgent 全量清单都不是 App 字段。
+## 连续性保障
 
-## 连续性
+每个 LocalAgent 维持单一由 `ConversationAnchor` 标识的连续会话流。授权应用无论是从主窗口、桌面小部件还是嵌入式侧栏唤起对话，都会自动接续该会话的历史上下文，确保智能体的记忆与对话连贯一致。
 
-LocalAgent ID 不能标识 Conversation。Consumer 保留 Runtime 返回的显式
-Conversation anchor。每个 LocalAgent 只有一条 Conversation，由其已授权消费者
-共同延续。同一 Character Source 物化出的不同 LocalAgent 不共享可变运行态状态。
+## 相关文档
 
-## 来源依据
+- [会话锚点详解](/zh/platform/agents/conversation-anchor)
+
+## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
-- [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)

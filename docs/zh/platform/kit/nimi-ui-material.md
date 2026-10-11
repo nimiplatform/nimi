@@ -1,117 +1,119 @@
-# Nimi UI 材质
+# Nimi UI 材质规范
 
-## 状态：已准入契约；公开使用以 design/runtime 暴露面为准
+> 规范状态：正式生效契约；公开能力由 Design/Runtime 规范接口对外暴露。
 
-`P-DESIGN-022` 下的五级材质分类已被准入，并且令牌目录已在 `config/platform-nimi-ui-tokens.yaml` 中发布。性能降级钩子接口在规范层面已被准入；运行时侧性能降级行为必须通过 design/runtime 暴露面使用。
+根据 `P-DESIGN-022` 规范，Nimi 确立了标准五级材质分类，并在 `config/platform-nimi-ui-tokens.yaml` 中发布了完整的 Token 目录。性能降级 Hook 接口已在规范层面作为预留设计标准化；具体材质降级由 Kit 与宿主渲染表面结合显式透明度策略处理。
 
-## 什么是“材质”
+## 什么是“材质” (Material)
 
-在 Nimi 设计模式中，**材质** 描述了组件的表面处理方式：它的不透明度、背景模糊程度以及它与背后内容的对比度。材质是一个独立于颜色色调的轴；你可以有一个 `solid` 动作按钮、一个 `glass-thick` 面板、一个 `glass-chrome` 覆盖层——这些都与其语义颜色角色无关。
+在 Nimi 设计模式中，**材质** 描述了组件表面的物理光感与质感处理：包括不透明度、高斯背景模糊程度，以及其与底层视觉内容的对比关系。
 
-材质是一个**封闭的五级分类**。任何应用、模块或功能模块不得创建平行的材质轴。
+材质是独立于色彩色相的一个正交维度：你可以拥有一个 `solid` 纯色的操作按钮、一个 `glass-thick` 较厚的浮动面板，或是一个 `glass-chrome` 系统级的覆盖层——这些材质形态与其语义颜色（如主色、危险色）互不冲突、自由正交。
 
-## 五级分类
+材质体系采用**严谨的封闭式五级分类**，任何应用或业务模块均不得在外部发明平行的材质体系。
 
-按不透明度/模糊强度递增顺序排列：
+## 标准五级材质分类
 
-| 层级 | 背景令牌 | 边框令牌 | 背景模糊 |
+按不透明度与模糊强度递增排列：
+
+| 层级 | 背景 Token | 边框 Token | 背景模糊梯度 |
 | --- | --- | --- | --- |
-| `solid` | 通过 `surface.*` 色调家族解析（无材质背景/边框令牌） | — | — |
+| `solid` | 通过 `surface.*` 底色家族解析（无额外材质背景/边框） | — | — |
 | `glass-thin` | `material.glass_thin.bg` (`--nimi-material-glass-thin-bg`) | `material.glass_thin.border` | `backdrop.blur_thin` |
 | `glass-regular` | `material.glass_regular.bg` | `material.glass_regular.border` | `backdrop.blur_regular` |
 | `glass-thick` | `material.glass_thick.bg` | `material.glass_thick.border` | `backdrop.blur_strong` |
 | `glass-chrome` | `material.glass_chrome.bg` | `material.glass_chrome.border` | `backdrop.blur_chrome` |
 
-模糊半径梯度映射到 `blur_thin / blur_regular / blur_strong / blur_chrome`。
+系统内建的模糊半径梯度精确映射到 `blur_thin / blur_regular / blur_strong / blur_chrome`。
 
-五级分类取代了之前的三级形式（`solid` / `glass-regular` / `glass-thick`）。原始层级名称保持不变；`glass-thin` 和 `glass-chrome` 是新增加的层级。
+这套五级分类完整演进并取代了早期的三级模式（`solid` / `glass-regular` / `glass-thick`），在保证向下兼容的基础上新增了 `glass-thin` 与 `glass-chrome`。
 
-## 消费者规则
+## 开发者规范
 
-| 规则 | 是否必须 |
+| 规则要求 | 约束等级 |
 | --- | --- |
-| 通过 `@nimiplatform/kit/ui` 中的 `<Surface material="...">` 原始组件消费材质，或使用等效的 `data-nimi-material="<tier>"` 标记类 | 是 |
-| 内联 `rgba(...)` 材质背景填充 | 禁止 |
-| 内联 `backdrop-filter` 声明 | 禁止 |
-| 在工具包生成的实用类之外手动选择 `backdrop-blur-*` Tailwind 命名令牌 | 禁止 |
-| 强调包覆盖 `material.*` 或 `backdrop.*` 令牌 | 禁止（材质令牌是中立的基础层） |
-| 添加第六个层级 | 需要新的准入（未预先授权） |
+| 通过 `@nimiplatform/kit/ui` 导出的 `<Surface material="...">` 原语组件或 `data-nimi-material="<tier>"` 标记类消费材质 | 强制遵循 |
+| 严禁在内联样式中使用硬编码的 `rgba(...)` 材质背景 | 严格禁止 |
+| 严禁手写内联 `backdrop-filter` 样式声明 | 严格禁止 |
+| 严禁脱离 Kit 规范而在 Tailwind 中随意拼装未经验证的 `backdrop-blur-*` 类名 | 严格禁止 |
+| 严禁在强调色包 (Accent Pack) 中覆盖 `material.*` 或 `backdrop.*` 基础 Token | 严格禁止（材质属于全局中立底盘） |
+| 自行添加第六级自定义材质 | 需提交官方规范提案（不支持私有扩展） |
 
-通过 `<Surface>` 原始组件消费材质的偏好确保了跨应用的一致性行为。
+统一采用 `<Surface>` 原语组件能够保证材质效果在各应用界面中保持一致规范。
 
-## 层级存在的原因
+## 各材质层级的设计初衷
 
-每个层级的存在都有其特定的阅读目的：
+每个材质层级均服务于特定的界面信息层级与可读性诉求：
 
-| 层级 | 用途 |
+| 层级 | 核心应用场景与设计意图 |
 | --- | --- |
-| `solid` | 高优先级表面，像素可读性最重要（表单、密集数据） |
-| `glass-thin` | 微妙的悬停/覆盖表面，不应在视觉上脱离 |
-| `glass-regular` | 标准玻璃表面（大多数覆盖层、侧边栏） |
-| `glass-thick` | 较重的玻璃表面，用于需要主导背景运动的表面（动画上的模态框） |
-| `glass-chrome` | 最强的玻璃处理，用于铬级别表面（顶部栏、命令面板） |
+| `solid` | 高对比度界面，像素级清晰度至关重要（表单输入、复杂密集数据表） |
+| `glass-thin` | 轻量级悬停卡片与轻度叠加层，保持界面的呼吸感与空间连贯性 |
+| `glass-regular` | 标准玻璃态表面，适用于常规抽屉、浮动侧边栏与多数悬浮菜单 |
+| `glass-thick` | 较厚重的高对比度玻璃表面，用于需要压制底层复杂动效的场景（如背景动画之上的弹窗） |
+| `glass-chrome` | 最高强度的玻璃处理，专用于系统框架级表面 (Chrome surfaces，如应用顶栏、命令面板) |
 
-该分类是有意见的。作者不能自由混合背景模糊值以创建新的视觉效果。
+该分类具有明确的设计主见 (Opinionated)。开发者不可随意混搭非标准的模糊半径来拼凑临时视觉效果。
 
-## 性能降级钩子接口
+## 性能降级 Hook 接口
 
-玻璃层级会带来 GPU 成本。合同保留了一个性能降级钩子接口，运行时实现可以使用该接口在设备无法承受时降级为较低成本的层级。运行时实现降级行为是单独的消费者责任；合同固定了**接口**，以便应用可以一致地读取降级后的层级。
+毛玻璃模糊滤镜对客户端 GPU 存在一定的计算开销。设计规范预留了性能降级 Hook 接口：当运行在低配终端设备或需要节能时，具体的宿主渲染表面可按接口定义将高开销层级回退为低开销层级。具体的降级行为由宿主/渲染表面实现承接，规范层面定义该接口以确保应用获得一致的降级体验。
 
-降级**不会**改变材质分类本身——它改变了渲染时解析的层级。一个被编写为 `glass-chrome` 的表面可能在降级设备上渲染为 `glass-regular`；编写合同保持不变。
+需要强调的是，性能降级**不会改变**组件本身的声明契约，它仅在运行时动态调整实际解析的材质层级。例如，声明为 `glass-chrome` 的组件在低算力设备上可能会以 `glass-regular` 甚至纯色渲染，而业务组件的声明代码无需做任何修改。
 
-## 可访问性对比阈值
+## 无障碍对比度保障
 
-合同固定了材质层级对已准入色调家族的 a11y 对比阈值。层级选择不能使文本/边界对比度低于已准入的阈值；需要非默认对比度的消费者必须使用已准入的例外机制——而不是发明一个平行的材质轴。
+设计规范严格锁定了材质层级与标准文字/边框色系之间的无障碍 (a11y) 对比度阈值。选择材质层级时，必须确保文本可读性始终高于既定阈值；如遇到极端特殊场景，应走规范既有的对比度补偿机制，而不是发明未经审核的私有材质。
 
-## 读者场景：模态框选择其层级
+## 典型场景：弹窗选择适配的材质层级
 
-一个应用需要在动画背景内容上显示一个模态框。
+应用需要在一个包含动态背景粒子动画的画布上方弹出模态框：
 
-1. **选择层级意图。** 模态框必须清晰可读，而背景可以动画。`glass-thick` 符合要求。
-2. **使用原始组件。** `<Surface material="glass-thick">...</Surface>`。
-3. **令牌解析。** 背景和边框从 `material.glass_thick.*` 解析；背景模糊从 `backdrop.blur_strong` 解析。
-4. **性能降级。** 在低功耗设备上，运行时可能会降级为 `glass-regular`；模态框仍然可读。
+1. **明确视觉意图**：模态框需要压制底层动画干扰，保证弹窗文本极佳的可读性，选择 `glass-thick`。
+2. **声明原语组件**：使用 `<Surface material="glass-thick">...</Surface>`。
+3. **样式自动绑定**：背景和边框自动绑定 `material.glass_thick.*`，背景模糊精准匹配 `backdrop.blur_strong`。
+4. **自适应降级**：若设备处于低算力或节能状态，宿主表面可将渲染层级回退（如以 `glass-regular` 呈现），弹窗内容始终清晰可读。
 
-作者只需写一个 `material="glass-thick"`，其余部分都是已准入的。
+开发者仅需声明 `material="glass-thick"`，后续的渲染管线与变量解析均由平台底层机制统一承接。
 
-## 读者场景：模块尝试内联玻璃
+## 典型场景：规范拦截手写内联模糊样式
 
-一个模块作者为自定义面板编写内联 `style=\{\{ background: 'rgba(...)', backdropFilter: 'blur(20px)' \}\}`。
+某业务模块开发者在自定义面板中尝试编写内联样式 `style=\{\{ background: 'rgba(...)', backdropFilter: 'blur(20px)' \}\}`：
 
-1. **拒绝。** 根据消费者规则，内联 `rgba(...)` 材质背景和内联 `backdrop-filter` 声明是禁止的。
-2. **重新路由。** 模块使用 `<Surface material="glass-regular">` 或其他符合意图的已准入层级。
-3. **视觉一致性。** 模块的面板与其他平台中的已准入玻璃表面匹配。
+1. **静态扫描与代码拦截**：开发检查工具将捕获违规的手写内联材质与滤镜代码。
+2. **调整为规范原语**：改用标准的 `<Surface material="glass-regular">` 或适配当前层级的规范组件。
+3. **视觉一致性保障**：面板视觉效果与平台其他界面浑然一体，并自动获得主题切换与性能降级支持。
 
-## 读者场景：想要第六个层级
+## 典型场景：提出新增材质层级诉求
 
-一个设计师提出一个新的视觉上下文所需的第六个材质层级。
+设计师在特定界面场景中希望引入一种全新的视觉模糊规格：
 
-1. **封闭分类。** 合同未预先授权扩展。
-2. **需要准入。** 提案需经过治理：将新层级添加到 `config/platform-nimi-ui-tokens.yaml` 材质类别中，准入新的模糊半径，将新层级添加到 `<Surface>` 原始组件的变体集中，审查性能降级接口。
-3. **准入后。** 新层级以相同的消费者规则发布。
+1. **规范防收敛发散**：核心规范采用封闭枚举，禁止直接在应用端随意扩充第六级材质。
+2. **走标准化流程**：向设计规范委员会提交提案，评估新模糊梯度的合理性，通过后统一定义在 `config/platform-nimi-ui-tokens.yaml`，并同步更新 `<Surface>` 原语与降级测试用例。
+3. **官方发布消费**：新层级经官方发布后，全体应用即可统一合规使用。
 
-这种边界是故意设定的：自由形式的材质扩展会使设计系统变成每个应用的蔓延。
+这种边界约束是必要的防线：不受控的随意扩展会让设计系统迅速演变为难以维护的样式碎片。
 
-## 这些规则不包括的内容
+## 关键设计红线
 
-- 它不允许强调包覆盖材质令牌。
-- 它不允许内联玻璃。
-- 它不允许应用在已准入的工具包实用类之外发明自定义模糊值。
-- 它不允许未经准入就添加第六个层级。
-- 它不会在性能降级下改变层级行为——只有解析的层级发生变化；编写合同是稳定的。
+- 强调色包 (Accent Pack) 严禁覆盖基础材质 Token。
+- 严禁手写内联模糊滤镜与透明度样式。
+- 严禁在规范之外随意发明未经验证的模糊数值。
+- 严禁在未经标准化评审前私自扩展材质层级。
+- 性能降级仅作用于运行时渲染解析，不改变开发者的声明式组件接口。
 
-## 边界总结
+## 规范边界速查
 
-| 关注点 | 权威 |
+| 关注维度 | 规范所有者 |
 | --- | --- |
-| 五级分类 + 令牌 | `P-DESIGN-022`（此合同） |
-| 令牌目录 | `config/platform-nimi-ui-tokens.yaml` |
-| 主题值 | `config/platform-nimi-ui-themes.yaml` |
-| `<Surface>` 原始组件 | `@nimiplatform/kit/ui` |
-| 性能降级接口 | 此合同（规范层面） |
-| 运行时性能降级实现 | 消费者责任（单独） |
+| 五级材质分类与 Token 架构 | `P-DESIGN-022` |
+| Token 完整目录 | `config/platform-nimi-ui-tokens.yaml` |
+| 主题预设具体值 | `config/platform-nimi-ui-themes.yaml` |
+| `<Surface>` 原语组件 | `@nimiplatform/kit/ui` |
+| 性能降级规范接口 | `P-DESIGN-022`（规范定义） |
+| 降级执行与透明度策略 | Kit 与宿主渲染表面 |
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/ui-design-system.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ui-design-system.authority.yaml)
 - [`config/platform-nimi-ui-tokens.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-nimi-ui-tokens.yaml)

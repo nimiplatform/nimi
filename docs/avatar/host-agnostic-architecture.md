@@ -1,121 +1,40 @@
-# Host-Agnostic Architecture
+# Backend-Neutral Architecture
 
-> Status: Running today. The host-agnostic projection layer is the
-> live core of Avatar; backend branches plug into it.
+Runtime owns Agent and Conversation semantics. Avatar consumes admitted semantic updates and final voice artifacts, then owns the local mapping, rendering, playback, and window behavior.
 
-Avatar is built around one architectural commitment: **agent semantics
-do not belong to a renderer**. What the agent is doing — its activity,
-expression, pose, gaze, and speech — is a fact the Runtime maintains.
-Live2D, VRM, and any future backend are interchangeable execution
-branches behind a single backend-agnostic projection layer.
+`Runtime / SDK inputs → Avatar built-in translation → selected Live2D or VRM branch`
 
-The teaching model is:
+## Layer Responsibilities
 
-```
-agent semantics  →  embodiment projection  →  backend-specific execution
-```
+| Layer | Responsibility |
+| --- | --- |
+| Runtime and SDK | Current-session Agent/Conversation references, activity, emotion, semantic posture, and bounded voice timing |
+| Avatar translation | Validated input mapping, local expressions and playback, hit regions, and shell intent |
+| Backend branch | Model loading, draw loop, branch-specific parameters, and graphics resources |
 
-- **Agent semantics** live on the Runtime / SDK side: activity ids,
-  the presentation stream, emotion state, and the conversation anchor.
-  Avatar never invents semantic truth.
-- **Embodiment projection** is Avatar's host-agnostic API. It consumes
-  the runtime bundle and event stream and translates them into
-  backend-neutral cues: `activity`, `expression`, `pose`, `lookat`,
-  `status_text`, `speak`, hit-region intent, and shell intent.
-- **Backend execution** is whichever branch is mounted: Live2D today
-  via Cubism SDK for Web; VRM via three-vrm tomorrow. Each backend
-  implements the same `BackendBranch` interface.
+The backend union is exactly `live2d` and `vrm`. Live2D uses Cubism; VRM uses three-vrm. Avatar-owned translation may use Live2D's parameter extension after kind narrowing. Model packages cannot inject creators' handlers or private backends.
 
-## What the Projection Layer Owns
+## Activity and Emotion
 
-| Layer | What it owns | What it does NOT own |
-| --- | --- | --- |
-| Agent semantics (runtime / SDK) | activity, emotion, posture, status text, presentation stream, conversation anchor | per-frame backend calls |
-| Embodiment projection (Avatar) | backend-neutral cue translation, shell-bounds intent, hit-region intent, NAS handler API surface | runtime semantic truth, backend pixels |
-| Backend branch (Live2D / VRM / …) | model loading, parameter writes, draw loop, audio bridge, alpha mask | backend selection (closed union, kernel-admitted) |
+The built-in adapter consumes `runtime.agent.presentation.activity_requested` and `runtime.agent.state.emotion_changed`. Supported input maps to the selected model's route or expression. `avatar.expression.change` is a local observation, not a new Runtime emotion or a cross-App synchronization command.
 
-The projection layer is the **only** place where semantics meet
-rendering. NAS handlers stay above it; backend branches stay below it.
+## Window Bounds
 
-## Closed Backend Union
+Backend nominal bounds and the admitted local scale determine the quiet body's footprint. Companion controls and other transient overlays are not added as a permanent docked stack. Their appearance depends on explicit interaction or voice state, product readiness, and the current quiet state.
 
-Backends are not pluggable strings. `BackendKind` is a closed
-discriminated union: `'live2d' | 'vrm'`. New backends require a
-contract amendment. This is why a NAS handler written today against
-the projection API will keep working when the VRM surface is exposed —
-handlers do not hard-code the backend.
+## Voice
 
-Backend-specific extensions exist (e.g., `Live2DBackendExtension` for
-parameter-id direct writes), but they are reachable only after type
-narrowing. A handler that uses `live2dExtension` declares
-`requires: ['live2d-extension']` and accepts that it will not run on
-non-Live2D backends.
+Avatar reads the canonical final-voice artifact through its own session and performs local playback/lipsync. Common Runtime presentation data does not provide phoneme frames or mouth weights. Each surface uses its own admitted data rather than copying another window's cache.
 
-## Reader Scenario: Same Handler Runs on Both Backends
+## Related Documentation
 
-A package author writes a `wave` activity handler at
-`<model>/runtime/nimi/activity/wave.js`. The handler calls projection
-methods: motion, expression, wait, pose. No `live2dExtension`. No
-backend literals.
-
-1. **Today (Live2D mounted).** Projection translates motion/expression
-   calls into Cubism API calls; the wave plays.
-2. **Tomorrow (VRM mounted).** Projection translates the same calls
-   into three-vrm API calls; the wave plays the VRM equivalent.
-3. **Same handler, two backends.** No per-backend code in the
-   embodiment package. The closed union is what makes this safe — the
-   handler does not invent a third backend that projection cannot
-   translate.
-
-## Reader Scenario: Carrier Bounds Stay Backend-Agnostic
-
-The Avatar window must size itself to whatever the active backend is
-rendering: Live2D model alpha bbox today, VRM viewport tomorrow.
-
-1. **Backend reports `BackendNominalBounds`.** Width, height, body
-   center. Backend-defined; projection-consumed.
-2. **App shell consumes via projection.** Window `set_size` happens
-   through the projection-owned shell intent, not through a Live2D
-   call.
-3. **Companion surface composes.** Always-visible companion surface
-   adds its footprint to the embodiment bounds; the shell resizes once
-   per change.
-
-The Avatar window does not know whether Live2D or VRM is mounted. It
-just consumes projection.
-
-## Reader Scenario: Cross-Surface Continuity
-
-The same agent appears in Desktop chat and in the Avatar carrier. Both
-must reflect the same emotion at the same time.
-
-1. **Runtime emits `runtime.agent.state.emotion_changed`.** Authoritative.
-2. **Projection translates.** Avatar consumes the event; projection
-   emits an `avatar.expression.changed` event with the typed
-   transition.
-3. **Backend renders.** Live2D parameters update; carrier shows the
-   new expression.
-4. **Desktop chat surface also reflects.** Desktop's
-   `.nimi/spec/desktop/agent-projection.authority.yaml` consumes the runtime event
-   directly; both surfaces stay in sync because runtime is the single
-   source.
-
-The carrier and the chat surface never have to coordinate with each
-other. They both consume runtime.
-
-## Boundary Summary
-
-| Concern | Owner | Surface |
-| --- | --- | --- |
-| activity / emotion / posture truth | runtime | `runtime.agent.*` events |
-| persistent presentation profile | Runtime | typed Runtime presentation profile |
-| backend-neutral projection API | Avatar | `BackendProjection` |
-| backend-specific execution | active backend branch | closed Live2D, VRM, or Nimi2D branch |
-| handler convention | Avatar (NAS) | Avatar-local admitted handlers |
-| desktop chat avatar transient surface | Desktop | `.nimi/spec/desktop/agent-projection.authority.yaml` |
+- [Activity Mapping](/avatar/activity-mapping)
+- [Model Capabilities](/avatar/model-capabilities)
+- [Instance Lifecycle](/avatar/instance-lifecycle)
 
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
+- [`apps/avatar/src/shell/renderer/semantic-projection/event-dispatch.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/semantic-projection/event-dispatch.ts)
+- [`apps/avatar/src/shell/renderer/App.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/avatar/src/shell/renderer/App.tsx)

@@ -1,45 +1,37 @@
-# Platform Governance
+# Platform Governance & System Boundaries
 
-Nimi keeps durable identity, world truth, AI execution, presentation,
-and App composition under separate owners. A product surface may
-combine them, but it cannot silently take ownership of them.
+Nimi establishes clear ownership boundaries across durable identity, world state, AI execution, visual presentation, and application composition. Product surfaces can compose these capabilities, but never assume authoritative ownership over the underlying systems.
 
-## Owner Map
+## Subsystem Owner Mapping
 
-| Concern | Product owner |
-| --- | --- |
-| World identity, history, and durable Character identity | Realm |
-| LocalAgent execution, Conversation and Memory mediation | Runtime |
-| Long-term Memory; Knowledge V1 inactive | Cognition |
-| App-facing typed access | SDK |
-| Current first-party home and product UI | Nimi Home / Desktop |
-| Embodiment presentation | Avatar |
-| Reusable consumer UI | Kit |
+| Architectural Concern | Canonical Owner | Boundary Definition |
+| --- | --- | --- |
+| World identity, event history, and durable Character assets | Realm | Realm maintains canonical character identities and cross-world social graphs |
+| LocalAgent execution, conversation state, and memory routing | Runtime | Runtime instantiates character definitions into active LocalAgents on device |
+| Long-term memory storage | Cognition | Memory is isolated per agent; Knowledge V1 is currently inactive |
+| Typed public application interfaces | SDK | SDK enforces typed contracts, permission checks, and input validation |
+| First-party product interface & desktop shell | Nimi Home / Desktop | Orchestrates presentation and workflows without owning core system truth |
+| Character embodiment & rendering | Avatar | Manages 2D/3D avatars, animation, and gaze tracking without managing AI logic |
+| Shared UI primitives | Kit | Reusable UI components ensuring visual design consistency |
 
-Character and LocalAgent form the clearest example. Realm owns the
-durable Character. Runtime materializes that Character as a LocalAgent
-for execution. A Desktop store, Avatar instance, or App binding may
-refer to either identity, but it does not become a third owner.
+The boundary between `Character` and `LocalAgent` illustrates this governance model:
+- **Realm** owns the static, persistent Character definition.
+- **Runtime** instantiates that definition into an active LocalAgent on the user's local device.
 
-## App Boundary
+Desktop client caches, Avatar embodiment instances, and application-level bindings may reference both entities, but never become a competing third identity authority.
 
-An App receives Runtime capability from its active session and app
-identity. It does not receive Realm credentials or maintain its own
-Runtime proof. Realm access uses the admitted SDK or host surface;
-Conversation and Memory mediation remain Runtime services.
+## Application Isolation Boundaries
 
-Nimi Home is the current first-party host. It composes these owners into
-a product experience and can be replaced without moving their truth
-into the host.
+Applications consume Runtime capabilities via the SDK based on the active session and declared application identity. Applications do not receive Realm master tokens and do not maintain private Runtime credentials. Access to Realm entities is mediated through validated SDK APIs, while conversation state and memory routing remain managed by Runtime.
 
-## Deferred Capabilities
+Nimi Home is the primary first-party desktop host, orchestrating these subsystems into a unified experience. Changing or replacing the host shell does not compromise the underlying authoritative data.
 
-General Workflow, MCP, World Evolution, Marketplace, public Registry,
-Trust Tier, and commercial settlement are not prerequisites for the
-current Local AI and Windows product loop. Existing future designs stay
-isolated until their owner and activation boundary are decided.
+## Incremental Evolution & Non-Blocking Scope
 
-Cognition owns Agent-private long-term Memory; Runtime mediates authorized delivery, recall, and management. Knowledge V1 has no active read, write, or public client path.
+General workflow orchestration (Workflow), external MCP bridges, autonomous world evolution, public app marketplaces, and commercial settlement are not prerequisites for the active local personal AI product loop. Future architectures remain isolated until their ownership and activation boundaries are settled.
+
+> [!NOTE]
+> Long-term memory is managed by Cognition and isolated per agent; Runtime mediates authorized recall and updates. Knowledge V1 currently has no active public client interface.
 
 ## Source Basis
 

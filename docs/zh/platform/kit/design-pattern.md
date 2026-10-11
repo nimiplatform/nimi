@@ -1,170 +1,166 @@
 # 设计模式
 
-> 状态：运行中 (Running)。Nimi 设计模式 (`P-DESIGN-*`) 是
-> 用于共享视觉和交互约定的跨应用权威。
+> 状态：当前规范可用。Nimi 设计模式 (`P-DESIGN-*`) 规范了跨应用的共享视觉风格与核心交互约定。
 
-Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交互权威。它管理 kit primitives、语义令牌、主题 schema，以及任何消费方 app 接入时必须遵守的通用契约。
+Nimi **设计模式** 由 `@nimiplatform/kit/ui` 落地并维护。它定义了 Kit UI 原语组件、语义 Design Token、主题扩展模式，以及所有接入应用共同遵循的视觉与交互契约。
 
-## 基础权威
+## 规范基石
 
-| 规则 | 值 |
+| 规则维度 | 对应规范与约定 |
 | --- | --- |
 | 权威规范 | `.nimi/spec/platform/ui-design-system.authority.yaml` |
-| Machine projection | `config/platform-*.yaml` |
-| 管理的消费方 | 由各 app 本地 kit manifest 声明 |
-| App 本地组合可以 | 拥有 adoption 选择、app-owned compositions、accent 选择和艺术指导 |
-| App 本地组合不可以 | 重新定义共享 primitive 家族、令牌分类或产品 authority |
+| 机器投射配置 | `config/platform-*.yaml` |
+| 受纳管的应用 | 由各 App 本地 Kit Manifest 明确声明 |
+| App 自主范围 | 可自主决定组件引入方式、页面组合布局、强调色方案与界面设计语言 |
+| App 禁止行为 | 禁止随意篡改共享原语组件族、重定义全局 Token 分类或破坏基础系统契约 |
 
-## 主题包模型 (P-DESIGN-002)
+## 主题方案模型 (P-DESIGN-002)
 
-共享的设计基础在各个应用之间是**恒定**的。应用的身份通过叠加在其上的强调包来体现。
+Nimi 采用“基础底色 + 品牌强调色”的分层主题架构。跨应用的基础视觉底盘保持统一稳定，应用的独特性则通过叠加的强调色包 (Accent Pack) 呈现。
 
-| 层 | 提供的内容 |
+| 主题层级 | 包含内容与职责 |
 | --- | --- |
-| 基础方案 | 共享的浅色/深色方案 (`nimi-light`, `nimi-dark`) |
-| 共享强调包 | `nimi-accent` |
-| 消费方强调包 | 可选，由消费方 app spec manifest 拥有 |
+| 基础底色 (Base Scheme) | 全局共享的浅色/深色底色方案 (`nimi-light`, `nimi-dark`) |
+| 默认强调包 (Default Accent) | 系统通用强调色方案 (`nimi-accent`) |
+| 应用专属强调包 (App Accent) | 应用级自定义强调色包，在 App Spec Manifest 中声明 |
 
-受管理的应用条目导入：
+受纳管的应用在入口处按需导入：
 
-```
+```css
 @nimiplatform/kit/ui/themes/light.css
 @nimiplatform/kit/ui/themes/dark.css
-@nimiplatform/kit/ui/themes/<app>-accent.css   （恰好一个）
+@nimiplatform/kit/ui/themes/<app>-accent.css   /* 仅限引入恰好一个强调包 */
 ```
 
-没有“混合两个强调包”的模式，也没有“跳过基础方案”的模式。
+系统不支持混用多个强调包，也不允许跳过基础底色包单独渲染。
 
-## 语义令牌分类 (P-DESIGN-003)
+## 语义 Token 分类 (P-DESIGN-003)
 
-共享的语义令牌位于 `config/platform-nimi-ui-tokens.yaml` 中。已准入的令牌类别包括：
+平台共享的语义 Token 清单维护在 `config/platform-nimi-ui-tokens.yaml` 中，涵盖以下核心分类：
 
-| 类别 | 示例 |
+| 类别分类 | 典型用途与示例 |
 | --- | --- |
-| `surface` | 背景色调 |
-| `text` | 文本色调 |
-| `action` | 动作/按钮色调 |
-| `overlay` | 叠加表面 |
-| `sidebar` | 侧边栏色调 |
-| `field` | 表单字段色调 |
-| `status` | 状态色调 |
-| `radius` | 圆角半径 |
-| `spacing` | 间距比例 |
-| `typography` | 字体 + 大小 + 字重 |
-| `stroke` | 笔画权重 |
-| `elevation` | 高度令牌 |
-| `motion` | 动画持续时间 + 缓动 |
-| `z` | Z-index 比例 |
-| `sizing` | 组件大小令牌 |
-| `border` | 边框色调 |
-| `opacity` | 不透明度比例 |
-| `focus` | 焦点环色调 |
-| `scrollbar` | 滚动条色调 |
-| `toggle` | 切换色调 |
-| `material` | 材质令牌（参见 [Nimi UI Material](/platform/kit/nimi-ui-material)） |
-| `backdrop` | 背景模糊令牌 |
-| `ambient` | 环境效果色调 |
+| `surface` | 背景表面与卡片底色 |
+| `text` | 文本多级颜色与透明度 |
+| `action` | 交互按钮与操作反馈色 |
+| `overlay` | 浮层与弹窗遮罩背景 |
+| `sidebar` | 导航栏与侧边栏底色 |
+| `field` | 输入框与表单控件背景/边框 |
+| `status` | 成功/警示/危险/信息等状态反馈色 |
+| `radius` | 统一圆角比例梯度 |
+| `spacing` | 基础间距与边距尺度 |
+| `typography` | 字体家族、字号梯度与字重规范 |
+| `stroke` | 边框笔触线宽 |
+| `elevation` | 阴影与层深高度 |
+| `motion` | 动画动效时长与贝塞尔曲线缓动函数 |
+| `z` | 浮层 Z-index 层级规范 |
+| `sizing` | 常用控件尺寸标准 |
+| `border` | 分割线与外边框颜色 |
+| `opacity` | 通用不透明度尺度 |
+| `focus` | 键盘焦点环高亮色 |
+| `scrollbar` | 自定义滚动条槽与滑块样式 |
+| `toggle` | 开关与复选框选中状态色 |
+| `material` | 材质与毛玻璃质感（参阅 [Nimi UI 材质](/zh/platform/kit/nimi-ui-material)） |
+| `backdrop` | 背景高斯模糊梯度 |
+| `ambient` | 氛围光晕与动态着色 |
 
-每个语义令牌声明其属于 `foundation` 或 `accent` 层令牌。主题包值位于 `config/platform-nimi-ui-themes.yaml` 中。
+每个语义 Token 均明确归属于基础底盘 (`foundation`) 或强调层 (`accent`)。具体主题变量值在 `config/platform-nimi-ui-themes.yaml` 中定义。
 
-应用代码不得为受管理的表面创建并行的令牌注册表。
+应用代码严禁自行维护平行的私有 Token 注册表。
 
 ## 主题方案契约 (P-DESIGN-004)
 
-| 规则 | 值 |
+| 规则维度 | 约束规范 |
 | --- | --- |
-| 解析的方案状态 | `light` 或 `dark` |
-| 应用不可以定义 | 并行的应用本地主题入口点或根令牌系统 |
-| 强调包可以 | 表达产品身份 |
-| 强调包不可以 | 重新定义基本家族结构 |
+| 当前生效方案 | 解析为 `light`（浅色）或 `dark`（深色） |
+| 禁止行为 | App 禁止定义平行生效的私有主题根入口或脱离规范的根变量体系 |
+| 强调包权限 | 可自由表达 App 独特的品牌色与强调风格 |
+| 强调包禁忌 | 不得篡改基础底色与组件族的基本结构定义 |
 
-## 基本视觉权威 (P-DESIGN-005)
+## 视觉组件规范 (P-DESIGN-005)
 
-| 规则 | 值 |
+| 规则维度 | 约束规范 |
 | --- | --- |
-| 变体分类权威 | `config/platform-nimi-ui-primitives.yaml` |
-| 实现模式 | CVA（类方差权威）+ Tailwind 工具类在 `kit/ui` 内 |
-| 行为原语 | Radix UI 无头原语 |
-| 主题注册 | 通过 Tailwind `@theme` 在生成的 CSS 中使用语义令牌 |
-| 原语 CSS 类选择器 | 不单独生成；CVA 组合 |
-| 应用/共享库代码可以 | 组合共享原语 |
-| 应用/共享库代码不可以 | 在 `kit/ui` 之外为共享原语家族定义 CVA 变体 |
+| 变体分类依据 | `config/platform-nimi-ui-primitives.yaml` |
+| 实现机制 | 在 `kit/ui` 内部采用 `cva` (Class Variance Authority) 配合 Tailwind 工具类 |
+| 交互无样式内核 | 基于成熟的 Radix UI Headless 原语构建无障碍与交互逻辑 |
+| 主题样式绑定 | 通过 Tailwind `@theme` 绑定由 Token 生成的 CSS 变量 |
+| 组件样式消费 | 不单独生成分散的类名选择器，通过 CVA 变体参数统一消费 |
+| App 自主范围 | 自由组合使用 Kit 导出的标准原语组件 |
+| App 禁止行为 | 严禁在 `kit/ui` 之外针对共享组件族私自发明或重定义 CVA 变体 |
 
-## 不允许应用本地重新定义原语 (P-DESIGN-006)
+## 禁止 App 本地私自重定义组件族 (P-DESIGN-006)
 
-| 规则 | 值 |
+| 规则维度 | 约束规范 |
 | --- | --- |
-| 受管理的应用样式表不可以 | 定义针对共享原语家族的 CVA 变体或 Tailwind 工具类覆盖 |
-| 应用本地包装器可以 | 添加组合类名 |
-| 应用本地包装器不可以 | 重新定义共享原语的视觉契约 |
-| 受控例外可以 | 仅对应用拥有的选择器进行样式设置 |
+| 样式表约束 | 受纳管 App 的样式表禁止针对共享原语组件定义全局覆盖类名或破坏性的 Tailwind 规则 |
+| 本地包装规范 | 允许编写业务级包装组件以添加局部排版样式 |
+| 视觉契约保护 | 包装组件不得破坏或颠覆共享原语既定的交互与视觉语义契约 |
+| 局部扩展限制 | 自定义样式仅可作用于 App 自身拥有的私有 DOM 节点与类名 |
 
-## 不允许应用本地令牌覆盖 (P-DESIGN-007)
+## 禁止 App 本地覆盖全局 Token (P-DESIGN-007)
 
-| 规则 | 值 |
+| 规则维度 | 约束规范 |
 | --- | --- |
-| 受管理的应用样式表不可以 | 为 `--nimi-*` CSS 变量赋值 |
-| 共享语义令牌值 | 仅来自从 `config/platform-nimi-ui-themes.yaml` 生成的主题 CSS |
-| 共享库手写 CSS 可以 | 读取语义令牌 |
-| 共享库手写 CSS 不可以 | 提供备用令牌权威 |
+| 变量赋值禁令 | 受纳管 App 的本地样式表严禁直接为 `--nimi-*` 全局 CSS 变量重新赋值 |
+| 共享 Token 来源 | 语义 Token 仅由 `config/platform-nimi-ui-themes.yaml` 编译生成 |
+| 共享代码使用规范 | 公共组件与业务组件均应通过 `var(--nimi-*)` 安全读取语义 Token |
+| 兜底机制 | 避免在局部 CSS 中使用硬编码颜色或提供相互冲突的备用 Token |
 
-## 强调别名逐步淘汰 (P-DESIGN-008)
+## 逐步淘汰私有别名 (P-DESIGN-008)
 
-生成的强调包仅发出共享的 `--nimi-*` 语义令牌值。应用范围的别名命名空间（`--ot-*`, `--color-ot-*`, `--color-brand-*`, `--color-accent-*`）不是长期权威。已退役的应用特定全主题兼容输出在基础加强调激活后不能保留在生成的共享库主题表面上。
+编译生成的强调包仅输出统一的 `--nimi-*` 语义 Token。早期的私有别名前缀（如 `--ot-*`、`--color-ot-*`、`--color-brand-*`、`--color-accent-*`）属于历史过渡产物，不再作为长期标准。历史兼容样式在基础主题与强调包正常激活后将全面退役。
 
-受管理的应用界面可以通过共享语义令牌和本地 `color-mix(...)` 表达式来分层应用身份，但不能通过应用范围的强调别名来表示共享背景/文本/焦点/表面含义。
+应用界面可通过标准语义 Token 配合本地 `color-mix(...)` 实现细致的品牌个性化表达，而不应依赖私有的别名变量来表达底色、文字、焦点等核心语义。
 
 ## 共享原语契约 (P-DESIGN-010)
 
-共享原语：
+共享 UI 原语组件：
+- 统一由 `@nimiplatform/kit/ui` 发布导出；
+- 基于 Radix UI 优秀且符合无障碍标准的 Headless 组件（Dialog、Tooltip、ScrollArea、Select、Switch、Avatar、Popover 等）；
+- 通过 CVA 变体与 Tailwind 工具类引用 `--nimi-*` 语义 Token。
 
-- 由 `@nimiplatform/kit/ui` 提供
-- 基于 Radix UI 无头原语（Dialog, Tooltip, ScrollArea, Select, Switch, Avatar, Popover）
-- 使用 CVA + Tailwind 引用 `--nimi-*` 语义令牌进行样式设置
+受纳管的应用模块在构建页面级组件时，**必须**使用以下 Shell 级基础组件族：`surface`、`action`、`overlay`、`sidebar`、`field`、`status`、`scroll_area`、`toggle`、`avatar`。应用仅可编写轻量透明的转发包装层，不得颠覆其既定视觉契约。
 
-受管理的应用模块**必须**使用共享原语进行壳级家族：`surface`, `action`, `overlay`, `sidebar`, `field`, `status`, `scroll_area`, `toggle`, `avatar`。仅允许直接委托给 `@nimiplatform/kit/ui` 的薄兼容包装器，且不重新定义视觉契约。
+## 典型场景：为新应用定制专属强调包
 
-## 读者场景：为新应用添加强调包
+新增的应用需要独特的品牌色调：
 
-一个新的准入 Nimi 应用需要自己的强调身份。
+1. **创建强调包样式**：在 `@nimiplatform/kit/ui/themes/` 目录下新增 `<app>-accent.css`。
+2. **定义强调 Token**：为规范支持的 `accent` 层语义 Token 赋予具体色值，基础底盘 Token 保持不变。
+3. **引入配置**：在应用入口中按序引入基础浅色/深色 CSS 及该 App 专属的 `-accent.css`。
+4. **呈现视觉风格**：应用在保持平台整体交互规范与底盘一致的前提下，完美展现其品牌识别度。
 
-1. **添加强调包。** 新的 `<app>-accent.css` 文件将放置在 `@nimiplatform/kit/ui/themes/` 下。
-2. **令牌被覆盖。** 强调包为已准入的 `accent` 层语义令牌分配值；基础令牌保持不变。
-3. **应用导入。** 应用入口导入基础浅色 + 深色 CSS 以及恰好其自身的 `-accent.css`。
-4. **视觉身份显现。** 应用感觉独特，同时共享基础方案。
+强调包仅针对现有的标准 Token 进行个性化赋值，并不需要、也不允许发明未经规范登记的私有 Token 前缀。
 
-强调包没有发明新的令牌命名空间。它为已准入的令牌赋值。
+## 典型场景：开发者需要新增视觉变体
 
-## 读者场景：模组作者想要一个新的视觉变体
+应用需要一种现有组件族未曾提供的按钮形态：
 
-模组作者希望有一个与任何已准入的共享原语变体都不匹配的按钮变体。
+1. **核对规范配置**：检查 `config/platform-nimi-ui-primitives.yaml` 中已支持的变体列表。
+2. **超出支持范围时**：严禁在 App 本地代码中为共享 Button 组件私加 CVA 变体枚举。
+3. **合理应对路径**：若该样式具有通用性，可发起规范提案将新变体纳入官方支持；若仅属于 App 内部的孤立特化视觉，应封装为完全私有的局部组件，避免滥用共享原语命名。
 
-1. **首先检查变体表。** `config/platform-nimi-ui-primitives.yaml` 声明了已准入的变体。
-2. **如果变体不在其中：** 模组不能在应用本地代码中为共享原语家族定义新的 CVA 变体。
-3. **选项：** 提议为共享原语新增一个已准入的变体（治理流程），或者使用一个不持有相同原语名称的自定义应用本地组件。
+## 关键设计红线
 
-边界保持共享原语契约的真实性。
+- 禁止 App 私自覆盖或篡改共享原语组件既有语义。
+- 禁止在 App 本地为 `--nimi-*` 变量赋值。
+- 强调色包只作用于 Accent 语义层，禁止篡改 Foundation 基础底色 Token。
+- 杜绝任意自由 CSS 对公共原语组件进行全局污染。
 
-## 设计模式不做的事情
+## 规范边界速查
 
-- 它不允许每个应用重新定义共享原语。
-- 它不允许每个应用覆盖 `--nimi-*` 令牌。
-- 它不允许强调包更改基础令牌。
-- 它不允许自由形式的 CSS 对共享原语家族声称权威。
-
-## 边界摘要
-
-| 关注点 | 权威 |
+| 关注维度 | 规范所有者 |
 | --- | --- |
-| 基础权威 | `P-DESIGN-001` |
-| 主题包模型 | `P-DESIGN-002` |
-| 语义令牌分类 | `P-DESIGN-003` + `config/platform-nimi-ui-tokens.yaml` |
-| 主题方案契约 | `P-DESIGN-004` |
-| 基本视觉权威 | `P-DESIGN-005` + `config/platform-nimi-ui-primitives.yaml` |
-| 应用本地重新定义规则 | `P-DESIGN-006`, `P-DESIGN-007`, `P-DESIGN-008` |
-| 共享原语契约 | `P-DESIGN-010` |
+| 整体设计基石 | `P-DESIGN-001` |
+| 主题分层模型 | `P-DESIGN-002` |
+| 语义 Token 分类标准 | `P-DESIGN-003` + `config/platform-nimi-ui-tokens.yaml` |
+| 主题生效方案契约 | `P-DESIGN-004` |
+| 视觉原语实现体系 | `P-DESIGN-005` + `config/platform-nimi-ui-primitives.yaml` |
+| 本地重定义与覆盖禁令 | `P-DESIGN-006`, `P-DESIGN-007`, `P-DESIGN-008` |
+| 共享原语核心契约 | `P-DESIGN-010` |
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/spec/platform/ui-design-system.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ui-design-system.authority.yaml)
 - [`config/platform-nimi-ui-tokens.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/platform-nimi-ui-tokens.yaml)

@@ -1,76 +1,56 @@
-# World Lifecycle
+# World Lifecycle Management
 
-A world in Nimi is built to last. This page follows one through its
-whole life: from an idea in a creator's head, to a published place
-participants can visit, to a world with an extension-app bound to
-it, to one that can be suspended or revoked. Realm keeps the state
-machinery behind every step.
+Worlds in Nimi are built for long-term operational continuity. This document details the end-to-end lifecycle of a World: from conceptual authoring and atomic publishing, to application binding, ongoing maintenance, and eventual suspension or deprecation. Underlying state machines are governed authoritatively by Realm.
 
-For schema-level state field definitions, see
-[Reference → State Machines](/reference/state-machines) and
-[Reference → World Fields](/reference/world-fields).
+For schema-level state definitions, see [Reference → State Machines](/reference/state-machines) and [Reference → World Fields](/reference/world-fields).
 
-## Authoring And Publish
+## Authoring and Atomic Publishing
 
-A world is authored by a creator. Creator tooling maintains the
-world's canonical `WorldCore` plus admitted `WorldCharacterCore`
-records, timeline, scene, history, and product metadata.
+Creators design worlds using authoring suites. Tooling maintains the canonical `WorldCore` alongside verified resident characters (`WorldCharacterCore`), timeline tracks, spatial scenes, historical event structures, and product metadata.
 
-The publish moment is a core commit: an atomic `WorldCoreIngressPackage`
-or `CorePatch` that freezes the admitted core object state into a single
-canonical anchor. A commit carries:
+The publishing operation is executed as an atomic commit (`Core Commit`) via a `WorldCoreIngressPackage` or a delta `CorePatch`, freezing verified core object states into an immutable canonical release. A commit strictly includes:
 
-- Core schema version
-- Provenance (who released, what tooling)
-- Checksum / diff metadata
-- Replacement or patch lineage
+- **Core Schema Version**: Guaranteeing serialization compatibility;
+- **Provenance Attestation**: Signing identity and build tooling metadata;
+- **Checksums & Diff Manifests**: Ensuring artifact integrity and tamper-proofing;
+- **Lineage Tree**: Declaring replacement or patch lineage.
 
-Atomicity matters. World core, character core, scene, timeline, and history
-state land in one transactional commit. Half-published worlds are not admitted.
+**Atomicity is fundamental**: World core schemas, character entities, scenes, timelines, and history records land in a single transactional commit. Partially published or inconsistent worlds are rejected.
 
-The commit is published through the **`WorldCoreIngressPackage`** or
-**`CorePatch`**. It distinguishes:
+The publication package distinguishes four primary components:
 
-| Component | Purpose |
+| Component | Responsibility & Architectural Scope |
 | --- | --- |
-| Core world object | Identity, ownership, time model, timeline, history, and product metadata |
-| Core character objects | World-owned characters bound to the world |
-| Runtime source snapshot inputs | By-value materialization data for LocalAgent creation |
-| Governance/release metadata | Version, provenance, audit |
+| **Core World Object** | Identity, ownership, timeflow models, timeline tracks, history, and presentation metadata |
+| **Core Character Objects** | Canonical characters resident within and bound to the world |
+| **Runtime Snapshot Inputs** | By-value materialization payloads required by Runtime to instantiate LocalAgents |
+| **Governance & Metadata** | Semantic versioning, cryptographic provenance, and compliance audit records |
 
-Lorebook text and prompt payloads are never the package's canonical center.
-They may be source-core fields or downstream prompt-context inputs, but they do
-not replace the core objects.
+Lorebooks and prompt templates do not serve as the canonical center of the package. They represent source attributes or downstream inference inputs, but never supersede core world schemas.
 
-## Rollback Is A Release Operation
+## Rollback as a Forward Release Operation
 
-If a release contains a problem, rollback is itself a release —
-not an ad hoc edit of the existing release.
+When an active release exhibits critical defects, rolling back is itself executed as a forward-moving release transaction—not an ad-hoc overwrite or physical deletion of existing release history.
 
-- A rollback `WorldRelease` references the prior good release.
-- Rollback lineage is part of the release record.
-- World history records the rollback as a `CANON_MUTATION` run.
-- The bad release is not deleted from history; it is superseded.
+- The rollback `WorldRelease` explicitly references the preceding verified good release ID;
+- Rollback lineage is embedded as immutable metadata within the release record;
+- World history permanently logs the rollback as a `CANON_MUTATION` run;
+- The defective release is never deleted from history; it is formally superseded.
 
-This means rollback preserves audit traceability: anyone reading
-history later can see exactly what was rolled back, when, and why.
+This design guarantees unbroken auditability: retrospective reviews can verify exactly what was superseded, when, and why.
 
-## App-World Binding
+## App-to-World Binding Contracts
 
-A world is most useful when an app is bound to it — the app is what
-participants actually use to interact with the world. Binding is
-explicit and bounded.
+Worlds typically require client applications for interactive user experiences. Application bindings operate under two distinct modes:
 
-| Mode | Reads world data | Writes world data | Concurrent count per world |
+| Binding Mode | Reads World State | Mutates/Writes World State | Concurrency Limit Per World |
 | --- | --- | --- | --- |
-| `render-app` | yes | no | many |
-| `extension-app` | yes | yes | at most one active per world |
+| **Render App (`render-app`)** | Yes | No (Read-Only) | Multiple concurrent connections |
+| **Extension App (`extension-app`)** | Yes | Yes (Read-Write) | At most one active binding per world |
 
-A world has at most one active **extension-app** binding at any
-time. Multiple **render-apps** can read the same world concurrently;
-they do not gate each other.
+A world allows at most one active **extension app (`extension-app`)** binding at any given time, eliminating conflicting writes. Multiple read-only **render apps (`render-app`)** may connect simultaneously without blocking each other.
 
-### Binding lifecycle
+### Binding Lifecycle State Machine
 
 ```
 (new) ──admit──▶ active ──suspend──▶ suspended ──resume──▶ active
@@ -78,69 +58,39 @@ they do not gate each other.
                   └────────────────revoke──────────────────────────▶ revoked
 ```
 
-| State | Meaning |
+| Lifecycle State | Operational Meaning |
 | --- | --- |
-| `(new)` | World exists; no app is bound |
-| `active` | An admitted extension-app is bound and writing |
-| `suspended` | Binding is paused; rebinding requires explicit re-admission |
-| `revoked` | Binding is removed; world is available for new admission |
+| `(new)` | World is published; no extension app is currently bound |
+| `active` | An admitted extension app is bound with authorized write access |
+| `suspended` | Binding is temporarily frozen; resumption requires explicit re-admission |
+| `revoked` | Binding is permanently dissolved; the world is freed for new application admission |
 
-Suspension is reversible; revocation is not. Re-binding requires
-revoking first — the platform does not silently transfer write
-authority from one extension-app to another.
+Suspension is reversible; revocation is terminal. Replacing an extension app requires revoking the incumbent first—the platform never silently transfers write authority between applications.
 
-## Transit And World Availability
+## Spatial Transit and World Availability
 
-A published world becomes a destination participants can transit to.
-Transit goes through OASIS — see [OASIS](/platform/worlds/oasis).
-A world that is not currently bound to an extension-app is still
-readable by render-apps; it is the truth and the state that exist
-even when no app is actively writing.
+Published worlds join the global transit network. Cross-world navigation routes exclusively through the system world OASIS (see [OASIS](/platform/worlds/oasis)). Worlds without an active extension app remain fully accessible in read-only mode to render apps.
 
-If a world is taken offline by its creator, participants who were
-in that world return to OASIS by default. Their identity and
-standing are unaffected.
+If a creator takes a world offline for maintenance, active participants within that world are routed back to the OASIS hub automatically. User identities, friendship graphs, and asset inventories remain unaffected.
 
-## Reader Scenario: Publishing A World End-To-End
+## Scenario: Publishing a World End-to-End
 
-A creator finishes designing a world and wants to publish.
+1. **Author Axioms**: Define world rules, resident characters, scenes, and visual bindings;
+2. **Stage Draft Artifacts**: Assemble minimal staging sets (`importSource`, `truthDraft`, `stateDraft`, `historyDraft`) locally;
+3. **Assemble Package**: Package drafts into a standardized bundle separating core rules, derived configs, and signatures;
+4. **Execute Atomic Release**: Submit via `WorldRelease`, locking object schemas and content hashes;
+5. **Join Transit Grid**: The world becomes an active destination reachable from OASIS, readable by render apps, and open for extension app admission;
+6. **Audit Inscription**: World history records the release transaction as a permanent `CANON_MUTATION` milestone.
 
-1. **Author truth.** Truth artifacts: world rules, agent rules,
-   scenes, projections.
-2. **Stage drafts.** Minimal publish candidates: `importSource`,
-   `truthDraft`, `stateDraft`, `historyDraft`. These are the
-   creator's local working set, not Realm canonical until publish.
-3. **Bundle into a CanonicalTruthPackage.** The package
-   distinguishes truth units, derivation inputs, projection
-   inputs, and governance metadata.
-4. **Publish atomically as a `WorldRelease`.** The release commit
-   freezes truth, projections, and package version. It carries
-   provenance, checksum/diff, and rollback lineage.
-5. **World becomes a destination.** Participants can transit to
-   the world via OASIS. Render-apps can read it; an admitted
-   extension-app can bind for write authority.
-6. **Audit lineage.** World history records the release as a
-   `CANON_MUTATION` run. Any future rollback is recorded as
-   another `CANON_MUTATION` run referencing this release.
+## Scenario: Replacing an Active Extension App
 
-The atomic transactional shape is the key property. The platform
-does not admit half-published worlds.
+When an author transitions an active binding from Extension App A to Extension App B:
 
-## Reader Scenario: Replacing The Active Extension-App
+1. **Revoke Incumbent**: Author revokes App A; its binding transitions from `active` to `revoked`, immediately extinguishing write authority.
+2. **Admit Successor**: Author binds App B; its binding transitions from `(new)` to `active`, granting write permissions.
+3. **Eliminate Concurrency Race**: No overlapping window exists where both apps hold write privileges.
 
-A creator wants to switch from extension-app A to extension-app B.
-
-1. The creator revokes A's binding. A's binding moves from
-   `active` to `revoked`. A no longer has write authority.
-2. The creator admits B. B's binding moves from `(new)` to
-   `active`. B now has write authority.
-3. There is no overlap window where both A and B can write.
-   Re-binding is not silent transfer.
-
-Why this strictness? Because a world has only one canonical truth
-of "what is true now." If two extension-apps could both write, two
-different truths would race to overwrite each other. The platform
-makes the transition explicit.
+This strict mutual exclusion preserves a single authoritative present-state for the world.
 
 ## Source Basis
 

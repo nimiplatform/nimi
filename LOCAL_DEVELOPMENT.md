@@ -1,18 +1,15 @@
 # Nimi 本地开发指南
 
-本文描述 Windows 与 macOS 当前唯一受支持的 Desktop/Runtime/第三方 App
-开发路径。项目尚未发布：开发路径使用当前固定实现，不提供 legacy、dual path、
-自动迁移或测试旁路。
+本文档介绍在 Windows 与 macOS 环境下进行 Nimi Desktop、Runtime 及应用开发的标准流程与规范。
 
-本地开发保留真实产品安全边界：
+本地开发严格遵循生产级的安全边界设计：
 
-- Runtime source development 只能由独立的当前用户 supervisor 承载；fixed-service
-  验收使用单独的固定服务命令；
-- Desktop 只通过受保护的 Desktop control carrier 访问 Runtime；
-- 第三方 App 只由 Desktop supervisor 启动；
-- renderer 不持有 bearer、Runtime endpoint、principal、grant、lease 或 session；
-- Developer Mode、项目同意与具体 operation permission 相互独立；
-- 无法建立受保护 carrier 时返回 typed unavailable，不伪造成功。
+- **隔离监管**：源码级 Runtime 开发由独立进程监管；系统级服务验收使用专门的安装与校验命令。
+- **安全通道**：Desktop 仅通过受控的本地通信通道访问 Runtime。
+- **监督启动**：应用均由 Desktop 监督启动，并通过受保护通道与本地环境通信。
+- **零凭据泄露**：前端渲染层不持有敏感 Token、底层 RPC 端点或未授权的系统凭据。
+- **权限解耦**：开发者模式（Developer Mode）、应用授权与具体的业务操作权限彼此独立管理。
+- **确定性反馈**：当无法建立安全通信通道时，系统返回明确的结构化不可用错误，严禁伪成功。
 
 ## 开发路径
 
@@ -206,7 +203,4 @@ Electron renderer origin。`package.json` 至少提供：
 }
 ```
 
-Electron main 使用 `registerNimiElectronAppBridge`；preload 使用 Kit 标准 bridge；
-renderer 不接触 Node、raw IPC 或受保护 session material。不得增加普通 Runtime gRPC
-client、localhost trust、mock auth、direct shell launch、token 参数或 protected
-operation pseudo-success。
+Electron 主进程使用 `registerNimiElectronAppBridge`；预加载脚本（Preload）使用 Kit 标准桥接；渲染进程不直接接触 Node.js 原生 API 或私有通信句柄。应用统一通过受保护的 SDK 客户端与宿主安全交互，严禁私自绕过受控通道或硬编码系统直连。
