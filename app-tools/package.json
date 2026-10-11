@@ -18,11 +18,11 @@
     "provenance": true
   },
   "nimiScaffoldVersions": {
-    "sdkVersion": "^0.18.1",
+    "sdkVersion": "^0.21.0",
     "appToolsVersion": "^0.11.4",
     "nimicodingVersion": "0.6.5",
     "aiSdkVersion": "^6.0.85",
-    "kitVersion": "^0.15.3",
+    "kitVersion": "^0.18.0",
     "reactVersion": "^19.3.0",
     "reactDomVersion": "^19.3.0",
     "i18nextVersion": "^26.4.2",
@@ -38,7 +38,7 @@
     "tailwindcssViteVersion": "^4.3.3",
     "tauriCliVersion": "^2.11.4",
     "yamlVersion": "^2.9.1",
-    "nimiShellTauriVersion": "0.7.0",
+    "nimiShellTauriVersion": "0.10.0",
     "electronPackagerVersion": "^20.3.0",
     "electronVersion": "^44.5.1",
     "esbuildVersion": "^0.28.2",

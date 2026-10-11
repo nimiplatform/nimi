@@ -2,6 +2,11 @@
 
 `app-tools` is the public full-stack developer toolkit for third-party Nimi Apps. It owns repository scaffolding, dependency and managed-file synchronization, local validation, Desktop-supervised development, App-declared test/build orchestration, deterministic packaging, and managed GitHub workflow setup.
 
+App Tools 0.11.4 defaults to SDK 0.21.0 and Kit/native 0.18.0, with Nimi Coding
+0.6.5. Existing Apps select this SDK/Kit combination explicitly before syncing;
+the tool update alone preserves their supported business dependencies. The
+matching Electron carrier requires Electron 44.
+
 It does not own GitHub publisher or repository truth, registry review/main, Runtime installed state, Desktop process state, or Nimi Access. Nimi Account and the private Nimi backend are not publisher credentials or App-release infrastructure.
 
 For your first public release, start with [Publishing on GitHub](#publishing-on-github), including the read-only repository-settings credential.

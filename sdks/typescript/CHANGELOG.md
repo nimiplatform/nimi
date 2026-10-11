@@ -1,5 +1,18 @@
 # SDK migration notes
 
+## 0.21.0 — 2026-10-11
+
+Use this release with Kit/native 0.18.0 and a Runtime that implements the same
+protected App contracts. Package publication does not publish a Runtime or a
+complete Nimi installer. The development entries below retain the detailed
+migration history, including the changes from earlier 0.x versions.
+
+The main migration is the unified asynchronous Job lifecycle: preserve the
+original Job ID, read a full terminal Get response, and request cancellation
+explicitly. Remove Job `timeoutMs` options. Embedding retrieval purpose, speech
+diarization, speaker representations, and owned World image inputs require the
+matching Runtime and native carriers.
+
 ## SDK 0.21.0 — Text-stream failure preservation (development)
 
 The protected text stream and Local App text model now retain the operation

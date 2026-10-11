@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.18.0 — 2026-10-11
+
+Use SDK 0.21.0 and the matching 0.18.0 native package. This 0.x minor includes
+breaking protected App contract changes; the development entries below retain
+their detailed migration history. Upgrade the matching Runtime and rebuild App
+Host/preload bundles before using the new Job, speech, embedding and World
+surfaces. Publishing Kit does not publish a complete Nimi installer.
+
+The Electron peer is now 44 and the react-i18next peer is 17. Upgrade these
+dependencies together with the App's renderer. New Job observers distinguish
+observation disposal from explicit cancellation; old Job `timeoutMs` options
+are rejected.
+
 ## Dependency baseline (development)
 
 The unpublished Kit now requires Electron 44 and react-i18next 17 peers. Upgrade
