@@ -167,10 +167,10 @@ Local archives may also use paths relative to the App. Install, run sync and
 check, then use the normal dev/test/build/pack loop. Sync retains these choices;
 check verifies matrix compatibility and compares the selected tarball version,
 source and integrity with pnpm's installed dependency lock and package manifest.
-The current SDK `^0.21.0` / Kit `^0.18.0` / Rust carrier `0.10.0`
-combination is explicitly admitted for development. Select the complete matching
-Runtime and native packages; this neither changes fresh-scaffold defaults nor
-claims public registry availability.
+The default SDK `^0.21.0` / Kit `^0.18.0` / Rust carrier `0.10.0`
+combination also admits complete local archives for development. Select the
+matching Runtime and native packages. A local archive does not establish public
+registry availability; production preflight checks the registry resolutions.
 Workspace members declare their own SDK/Kit dependencies and share the root
 tarball overrides. pnpm writes each member's `specifier` relative to that member,
 while resolved versions and package records remain workspace-relative; check
