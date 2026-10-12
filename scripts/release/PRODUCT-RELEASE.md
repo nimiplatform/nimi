@@ -139,6 +139,16 @@ prepares both targets, validates the complete set and retains a ready artifact.
 `publish=true` additionally runs the real publication entry.
 Source/admission/key are checked before signing work.
 
+If Windows preparation succeeded but macOS failed (for example, a transient
+Apple ticket-stapling network error), set `prepared_windows_run_id` and
+`prepared_windows_run_attempt` to that successful Windows producer. Keep the
+original `source_sha` and admission. The workflow skips Windows, produces only
+macOS, downloads the exact original four Windows files, and subjects the merged
+seven-file set to the unchanged complete validator before publication. Missing,
+expired, differently signed or mismatched source/cohort assets refuse publication.
+This partial handoff cannot be combined with `prepared_run_id` for a complete set;
+it does not change or re-sign the retained Windows target.
+
 To publish a previously prepared and approved set from GitHub, set
 `prepared_run_id` and `prepared_run_attempt` to the run that produced its
 `nimi-product-ready-<run>-<attempt>` artifact. Keep `source_sha` and admission

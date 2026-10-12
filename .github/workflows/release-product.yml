@@ -23,6 +23,14 @@ on:
         description: Attempt that produced the selected ready artifact
         default: '1'
         type: string
+      prepared_windows_run_id:
+        description: Reuse an exact prepared Windows artifact while producing macOS; empty builds Windows
+        default: ''
+        type: string
+      prepared_windows_run_attempt:
+        description: Attempt that produced the selected prepared Windows artifact
+        default: '1'
+        type: string
 
 permissions:
   contents: read
@@ -51,6 +59,8 @@ jobs:
           PRODUCT_SIGNING_KEY: ${{ secrets.NIMI_PRODUCT_UPDATE_SIGNING_KEY_PEM }}
           PREPARED_RUN_ID: ${{ inputs.prepared_run_id }}
           PREPARED_RUN_ATTEMPT: ${{ inputs.prepared_run_attempt }}
+          PREPARED_WINDOWS_RUN_ID: ${{ inputs.prepared_windows_run_id }}
+          PREPARED_WINDOWS_RUN_ATTEMPT: ${{ inputs.prepared_windows_run_attempt }}
         run: |
           set -euo pipefail
           [[ "${SOURCE_SHA}" =~ ^[a-f0-9]{40}$ ]]
@@ -61,6 +71,11 @@ jobs:
           if [[ -n "${PREPARED_RUN_ID}" ]]; then
             [[ "${PREPARED_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
             [[ "${PREPARED_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]
+            test -z "${PREPARED_WINDOWS_RUN_ID}"
+          fi
+          if [[ -n "${PREPARED_WINDOWS_RUN_ID}" ]]; then
+            [[ "${PREPARED_WINDOWS_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
+            [[ "${PREPARED_WINDOWS_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]
           fi
           node --input-type=module -e "import {requireProductSigningKey,validateProductReleaseAdmission} from './scripts/lib/product-release-assets.mjs'; import fs from 'node:fs'; requireProductSigningKey(process.env.PRODUCT_SIGNING_KEY); validateProductReleaseAdmission(JSON.parse(process.env.RELEASE_ADMISSION),{version:JSON.parse(fs.readFileSync('apps/desktop/package.json')).version,sourceRevision:process.env.SOURCE_SHA});"
 
@@ -83,7 +98,7 @@ jobs:
 
   windows:
     needs: [input, security]
-    if: inputs.prepared_run_id == ''
+    if: inputs.prepared_run_id == '' && inputs.prepared_windows_run_id == ''
     runs-on: windows-latest
     timeout-minutes: 180
     steps:
@@ -143,7 +158,7 @@ jobs:
 
   assemble:
     needs: [input, security, macos, windows]
-    if: always() && needs.input.result == 'success' && needs.security.result == 'success' && ((inputs.prepared_run_id != '' && needs.macos.result == 'skipped' && needs.windows.result == 'skipped') || (inputs.prepared_run_id == '' && needs.macos.result == 'success' && needs.windows.result == 'success'))
+    if: always() && needs.input.result == 'success' && needs.security.result == 'success' && ((inputs.prepared_run_id != '' && needs.macos.result == 'skipped' && needs.windows.result == 'skipped') || (inputs.prepared_run_id == '' && needs.macos.result == 'success' && (needs.windows.result == 'success' || (inputs.prepared_windows_run_id != '' && needs.windows.result == 'skipped'))))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -162,6 +177,15 @@ jobs:
         with:
           pattern: nimi-product-*-${{ github.run_id }}-${{ github.run_attempt }}
           merge-multiple: true
+          path: .nimi/local/product-release/ready
+      - name: Download the original prepared Windows target
+        if: inputs.prepared_windows_run_id != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: nimi-product-windows-amd64-${{ inputs.prepared_windows_run_id }}-${{ inputs.prepared_windows_run_attempt }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.prepared_windows_run_id }}
           path: .nimi/local/product-release/ready
       - name: Download the original complete prepared file set
         if: inputs.prepared_run_id != ''
