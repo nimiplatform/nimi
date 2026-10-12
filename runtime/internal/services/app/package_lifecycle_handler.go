@@ -55,6 +55,7 @@ func (s *Service) ListApprovedAppCatalogTargets(
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
+// @nimi-authority: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
 func (s *Service) ListCommittedAppReleases(
 	ctx context.Context,
 	req *runtimev1.ListCommittedAppReleasesRequest,
@@ -68,17 +69,23 @@ func (s *Service) ListCommittedAppReleases(
 	}
 	releases, err := store.ListCommittedReleases(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("list committed App releases: %w", err)
+		return nil, appPackageInventoryReadError(err)
 	}
 	projected := make([]*runtimev1.CommittedAppRelease, 0, len(releases))
 	for _, release := range releases {
 		value, projectErr := committedAppReleaseProjection(release)
 		if projectErr != nil {
-			return nil, projectErr
+			return nil, appPackageInventoryReadError(projectErr)
 		}
 		registration, err := s.localAppKernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)
+		if errors.Is(err, localappkernel.ErrRegistrationUnavailable) {
+			// Durable releases survive a root copy or another installation. A
+			// launch selector is projected only through this host's exact binding;
+			// reading the inventory must neither reopen nor remove foreign records.
+			continue
+		}
 		if err != nil {
-			return nil, err
+			return nil, appPackageInventoryReadError(err)
 		}
 		value.DisplayName = registration.DisplayName
 		value.AppAccess = append([]string(nil), registration.RawDeclaration...)
@@ -88,6 +95,14 @@ func (s *Service) ListCommittedAppReleases(
 		Releases:   projected,
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
+}
+
+func appPackageInventoryReadError(err error) error {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return appPackageLifecycleError("read installed App inventory", err)
+	}
+	return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE, err,
+		grpcerr.ReasonOptions{Message: "installed App inventory is unavailable"})
 }
 
 func (s *Service) ListAppPackageJobs(

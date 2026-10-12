@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -15,6 +17,93 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func commitInventoryTestRelease(t *testing.T, kernel *localappkernel.Kernel, appID string) localappkernel.CommitPackageReleaseResult {
+	t.Helper()
+	ctx := context.Background()
+	store := kernel.PackageLifecycle()
+	job, err := store.Begin(ctx, localappkernel.BeginPackageJobInput{
+		AppID: appID, SourceClass: localappkernel.SourceClassUserImported, Kind: localappkernel.PackageJobInstall,
+		TargetRef: "local-package:v1:" + appID + ":1.0.0", ProgressBasis: localappkernel.PackageProgressIndeterminate,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, phase := range []localappkernel.PackageJobPhase{localappkernel.PackageJobReadingLocal, localappkernel.PackageJobVerifying, localappkernel.PackageJobStaging, localappkernel.PackageJobCommitting} {
+		job, err = store.Advance(ctx, job.JobID, job.Phase, phase, localappkernel.PackageJobProgress{})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	appRoot := filepath.Join(kernel.DataRoot(), appID)
+	committed, err := store.CommitPackageRelease(ctx, localappkernel.CommitPackageReleaseInput{
+		JobID: job.JobID, Version: "1.0.0", LaunchConfigJSON: []byte(`{"fixture":"storage-only"}`), AppInfoJSON: []byte(`{"fixture":"storage-only"}`),
+		Registration: localappkernel.RegisterInstalledInput{
+			AppID: appID, DisplayName: appID + " display", SourceClass: localappkernel.SourceClassUserImported,
+			SourceRef: "local-package-app:v1:" + appID, ProjectRoot: appRoot, ManifestPath: filepath.Join(appRoot, "nimi.app.yaml"),
+			RawDeclaration: []string{"runtime.consume"}, ImmutableLineageID: job.TargetRef, ProvenanceRevision: 1,
+			ExecutionProfileRef: "macos-current-user-v1", HostExecutableDigest: "host:test", PayloadRootDigest: "payload:test",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return committed
+}
+
+func TestCommittedAppInventoryKeepsOtherHostBindingsInactive(t *testing.T) {
+	ctx, originalService, original := packageHandlerFixture(t)
+	foreign := commitInventoryTestRelease(t, original, "test.original")
+	identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 42)
+	if err != nil {
+		t.Fatal(err)
+	}
+	database, err := localappkernel.CanonicalRegistrationDatabasePath(original.DataRoot())
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err := localappkernel.OpenSQLite(ctx, database, identity, localappkernel.Options{HostInstallID: "different-host-install", DataRoot: original.DataRoot()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = current.Close() })
+	local := commitInventoryTestRelease(t, current, "test.current")
+	service := New(nil, WithLocalAppKernel(current))
+	for _, test := range []struct {
+		service *Service
+		release localappkernel.CommitPackageReleaseResult
+	}{{service, local}, {originalService, foreign}} {
+		response, err := test.service.ListCommittedAppReleases(ctx, &runtimev1.ListCommittedAppReleasesRequest{})
+		if err != nil {
+			t.Fatalf("an unbound package must not fail the current-host inventory: %v", err)
+		}
+		if len(response.Releases) != 1 || response.Releases[0].AppId != test.release.Registration.AppID ||
+			string(response.Releases[0].LaunchSelector) != test.release.Registration.RegistrationHandle ||
+			response.Releases[0].DisplayName != test.release.Registration.DisplayName ||
+			len(response.Releases[0].AppAccess) != 1 {
+			t.Fatalf("inventory leaked another host or lost current facts: %+v", response)
+		}
+	}
+	if _, err := current.Registrations().GetByHandle(ctx, foreign.Registration.RegistrationHandle); !errors.Is(err, localappkernel.ErrRegistrationUnavailable) {
+		t.Fatalf("listing reopened another host's registration: %v", err)
+	}
+	retained, err := current.PackageLifecycle().ListCommittedReleases(ctx)
+	if err != nil || len(retained) != 2 {
+		t.Fatalf("listing changed durable releases: %+v %v", retained, err)
+	}
+}
+
+func TestCommittedAppInventoryStorageFailureRemainsTyped(t *testing.T) {
+	ctx, service, kernel := packageHandlerFixture(t)
+	if err := kernel.Close(); err != nil {
+		t.Fatal(err)
+	}
+	_, err := service.ListCommittedAppReleases(ctx, &runtimev1.ListCommittedAppReleasesRequest{})
+	assertPackageHandlerReason(t, err, codes.Unavailable, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+	if strings.Contains(status.Convert(err).Message(), "database") {
+		t.Fatalf("private storage detail leaked: %v", err)
+	}
+}
 
 type staticApprovedAppCatalogProvider struct {
 	targets []publicappregistry.ResolvedApprovedTarget
