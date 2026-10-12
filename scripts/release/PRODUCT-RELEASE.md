@@ -91,10 +91,11 @@ The builder signs the app and roles, notarizes/staples, creates the signed PKG,
 then notarizes/staples and validates the **final PKG bytes** before the sidecar
 hash. Preparation rechecks Installer Team/notarized PKG, signs the timed update
 envelope and copies those final bytes verbatim. Do not modify or repackage them.
-An Apple `stapler staple` connection-loss error (`68`, `NSURLErrorDomain -1005`)
-retries that same ticket download after 5, 15 and 30 seconds. Exhaustion still
-fails the build. Notary submissions, TLS/signature refusals and validation
-commands are not retried by this rule; validation remains mandatory before hashing.
+An Apple `stapler staple` or `stapler validate` connection-loss error (`68`,
+`NSURLErrorDomain -1005`) retries that exact operation after 5, 15 and 30 seconds.
+Validation also contacts Apple. Exhaustion still fails the build. Notary
+submissions and TLS/signature/policy refusals are not retried by this rule;
+actual successful validation remains mandatory before hashing.
 
 On Windows, from the same clean source SHA:
 
@@ -152,6 +153,16 @@ seven-file set to the unchanged complete validator before publication. Missing,
 expired, differently signed or mismatched source/cohort assets refuse publication.
 This partial handoff cannot be combined with `prepared_run_id` for a complete set;
 it does not change or re-sign the retained Windows target.
+
+To verify macOS first, manually dispatch `build-macos-production.yml` with the
+exact `source_ref`, `prepare_product=true`, `realm_target=production` and original
+`release_admission`. This runs the same guarded producer and emits the three
+prepared macOS files without building Windows. After it succeeds and source CI
+passes, dispatch `release-product.yml` with `prepared_macos_run_id` and
+`prepared_macos_run_attempt` pointing to that artifact. macOS is skipped; Windows
+is prepared from the same source, and the original Mac files join the unchanged
+complete-set validation/publisher. Both prepared target references may be supplied
+when both already exist. Target references cannot be mixed with `prepared_run_id`.
 
 To publish a previously prepared and approved set from GitHub, set
 `prepared_run_id` and `prepared_run_attempt` to the run that produced its

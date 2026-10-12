@@ -31,6 +31,18 @@ on:
       - pnpm-lock.yaml
   workflow_dispatch:
     inputs:
+      source_ref:
+        description: Exact main source SHA for product preparation; empty uses this workflow revision
+        default: ''
+        type: string
+      prepare_product:
+        description: Prepare the signed macOS target for the complete product publisher
+        default: false
+        type: boolean
+      release_admission:
+        description: Original product admission JSON; required when preparing a product target
+        default: ''
+        type: string
       realm_target:
         description: Sealed Realm target; local acceptance is not a public release
         type: choice
@@ -97,6 +109,19 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
+      - name: Validate frozen product preparation inputs
+        if: inputs.prepare_product
+        env:
+          SOURCE_SHA: ${{ inputs.source_ref || github.sha }}
+          RELEASE_ADMISSION: ${{ inputs.release_admission }}
+          PRODUCT_SIGNING_KEY: ${{ secrets.NIMI_PRODUCT_UPDATE_SIGNING_KEY_PEM }}
+        run: |
+          set -euo pipefail
+          [[ "${SOURCE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "${SOURCE_SHA}"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "${SOURCE_SHA}" origin/main
+          node --input-type=module -e "import {requireProductSigningKey,validateProductReleaseAdmission} from './scripts/lib/product-release-assets.mjs'; import fs from 'node:fs'; requireProductSigningKey(process.env.PRODUCT_SIGNING_KEY); validateProductReleaseAdmission(JSON.parse(process.env.RELEASE_ADMISSION),{version:JSON.parse(fs.readFileSync('apps/desktop/package.json')).version,sourceRevision:process.env.SOURCE_SHA});"
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:

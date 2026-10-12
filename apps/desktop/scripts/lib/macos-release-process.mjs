@@ -80,15 +80,15 @@ export function runReleaseCommand(command, args, options = {}) {
     });
     if (result.error || result.status !== 0) {
       const output = `${result.stderr || ''}\n${result.stdout || ''}`;
-      // Apple may accept notarization before a ticket download loses its
-      // connection. Retry only that download; all signing and validation
-      // commands still require their own actual success.
+      // Both ticket attachment and validation can contact Apple. Retry only
+      // their explicit connection-loss result; successful validation remains
+      // mandatory, and signature/TLS/policy refusals still fail immediately.
       if (!result.error && command === '/usr/bin/xcrun'
-        && args[0] === 'stapler' && args[1] === 'staple' && result.status === 68
+        && args[0] === 'stapler' && ['staple', 'validate'].includes(args[1]) && result.status === 68
         && /Error Domain=NSURLErrorDomain Code=-1005\b/u.test(output)
         && attempt < ticketRetryDelays.length) {
         const delay = ticketRetryDelays[attempt];
-        process.stderr.write(`Apple ticket download connection lost; retry ${attempt + 1}/${ticketRetryDelays.length} in ${delay / 1000}s.\n`);
+        process.stderr.write(`Apple ticket ${args[1]} connection lost; retry ${attempt + 1}/${ticketRetryDelays.length} in ${delay / 1000}s.\n`);
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delay);
         continue;
       }
