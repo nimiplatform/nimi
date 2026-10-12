@@ -617,6 +617,32 @@ describe('Electron local-development protected control', () => {
     })).rejects.toThrow();
   });
 
+  it('reports only the bounded native failure stage when Host diagnostics are enabled', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      for (const [stage, expected] of [['bind-process-trust-7', 'bind-process-trust-7'], ['C:/private/file', 'none']]) {
+        vi.stubEnv('NIMI_PROTECTED_LOCAL_DIAGNOSTICS', '1');
+        const control = createNimiElectronLocalDevelopmentControlForBinding(binding({
+          desktopListLocalDevelopmentRegistrations: async () => ({
+            status: 'error', reasonCode: 'local-development-supervisor-required', retryable: false,
+            reasonMetadata: { diagnostic_stage: stage, privateField: 'hidden-detail' },
+          }),
+        }));
+        await expect(control.listRegistrations()).rejects.toMatchObject({ reasonCode: 'local-development-supervisor-required' });
+        expect(log).toHaveBeenLastCalledWith('[protected-local development-control] failed', {
+          operation: 'list_local_development_registrations', reasonCode: 'local-development-supervisor-required', diagnosticStage: expected,
+        });
+        log.mockClear();
+        vi.stubEnv('NIMI_PROTECTED_LOCAL_DIAGNOSTICS', '0');
+        await expect(control.listRegistrations()).rejects.toThrow();
+        expect(log).not.toHaveBeenCalled();
+      }
+    } finally {
+      log.mockRestore();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('preserves actual controlled-child exit codes and refuses invented running terminals', async () => {
     for (const value of [{ running: true, exitCode: null }, { running: false, exitCode: 75 }, { running: false, exitCode: null }]) {
       const control = createNimiElectronLocalDevelopmentControlForBinding(binding({ desktopLocalDevelopmentHostStatus: async () => ({ status: 'ok' as const, value }) }));

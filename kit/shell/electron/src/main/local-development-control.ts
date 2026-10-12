@@ -6,7 +6,7 @@ import { NimiElectronShellHostError } from './types.js';
 
 type NativeJsonOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
-  | { readonly status: 'error'; readonly reasonCode: unknown; readonly retryable: unknown };
+  | { readonly status: 'error'; readonly reasonCode: unknown; readonly retryable: unknown; readonly reasonMetadata?: unknown };
 
 const NATIVE_CONTROL_DEADLINE_MS = 20_000;
 
@@ -229,6 +229,14 @@ async function invokeNative(invoke: () => Promise<NativeJsonOutcome>, operation:
       || !/^[A-Za-z][A-Za-z0-9_-]{0,127}$/u.test(outcome.reasonCode)
       || typeof outcome.retryable !== 'boolean') {
       throw controlError('runtime-service-untrusted', false, operation);
+    }
+    if (process.env.NIMI_PROTECTED_LOCAL_DIAGNOSTICS === '1') {
+      const stage = isRecord(outcome.reasonMetadata) ? outcome.reasonMetadata.diagnostic_stage : undefined;
+      console.warn('[protected-local development-control] failed', {
+        operation,
+        reasonCode: outcome.reasonCode,
+        diagnosticStage: typeof stage === 'string' && /^[a-z][a-z0-9-]{0,95}$/u.test(stage) ? stage : 'none',
+      });
     }
     throw controlError(outcome.reasonCode, outcome.retryable, operation);
   }
