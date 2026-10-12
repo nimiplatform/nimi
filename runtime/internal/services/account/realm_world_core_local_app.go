@@ -216,10 +216,11 @@ func (validation *worldCoreDTOValidation) identity(value any, depth int) bool {
 	return validation.optionalTextArray(object, "divergences", depth+1, true) && validation.optionalTextArray(object, "themes", depth+1, true)
 }
 
+// @nimi-authority: rule.nimi.platform.core-protocol.world-creator-app-operations
 func (validation *worldCoreDTOValidation) presentation(value any, depth int) bool {
 	object, ok := validation.object(value, depth,
-		[]string{"bannerResourceRef", "displayName", "iconResourceRef", "palette", "tagline", "title"}, nil)
-	return ok && optionalTextFields(object, 4_096, "bannerResourceRef", "displayName", "iconResourceRef", "tagline", "title") &&
+		[]string{"bannerResourceRef", "displayName", "heroResourceRef", "iconResourceRef", "palette", "tagline", "title"}, nil)
+	return ok && optionalTextFields(object, 4_096, "bannerResourceRef", "displayName", "heroResourceRef", "iconResourceRef", "tagline", "title") &&
 		validation.optionalTextArray(object, "palette", depth+1, true)
 }
 

@@ -20,6 +20,22 @@ func TestLocalAppWorldCoreListProjectsOnlyExactDTOs(t *testing.T) {
 	}
 }
 
+func TestLocalAppWorldCoreListPreservesHeroResourceReference(t *testing.T) {
+	raw := strings.Replace(validLocalAppWorldCoreJSON("world-with-hero"),
+		`"presentation":{}`, `"presentation":{"heroResourceRef":"hero-image"}`, 1)
+	raw = strings.Replace(raw, `"resourceRefs":[]`,
+		`"resourceRefs":[{"refId":"hero-image","kind":"image"}]`, 1)
+	response := projectLocalAppWorldCoreListResponse(&runtimev1.InvokeRealmUnaryResponse{
+		Accepted: true, ResponseJson: "[" + raw + "]",
+		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
+		HttpStatus:        200,
+	})
+	if !response.GetAccepted() || !strings.Contains(response.GetResponseJson(), `"heroResourceRef":"hero-image"`) {
+		t.Fatalf("canonical hero resource reference was rejected or lost: %+v", response)
+	}
+}
+
 func TestLocalAppWorldCoreCreateProjectsOnlyOneExactDTO(t *testing.T) {
 	response := projectLocalAppWorldCoreCreateResponse(&runtimev1.InvokeRealmUnaryResponse{
 		Accepted: true, ResponseJson: validLocalAppWorldCoreJSON("world-created"),
@@ -53,6 +69,8 @@ func TestLocalAppWorldCoreListRejectsUnknownMissingAndCredentialAdjacentDTOsWith
 	for name, raw := range map[string]string{
 		"missing lorebook declaration":   strings.Replace(valid, `"lorebookDeclaration":{"identityBaseSetting":"A test world.","rolePlacements":[],"worldRules":[]},`, ``, 1),
 		"malformed lorebook declaration": strings.Replace(valid, `"identityBaseSetting":"A test world."`, `"identityBaseSetting":null`, 1),
+		"malformed hero reference":       strings.Replace(valid, `"presentation":{}`, `"presentation":{"heroResourceRef":7}`, 1),
+		"unknown presentation field":     strings.Replace(valid, `"presentation":{}`, `"presentation":{"heroResourceRef":"hero-image","unknownField":"private"}`, 1),
 		"unknown":                        strings.Replace(valid, `"id":"world-1"`, `"id":"world-1","privateField":"private"`, 1),
 		"missing":                        strings.Replace(valid, `,"authoring":{"source":"manual"}`, ``, 1),
 		"duplicate":                      strings.Replace(valid, `"id":"world-1"`, `"id":"world-1","id":"other"`, 1),
