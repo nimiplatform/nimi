@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.19.1 — Candidate, not yet published
+## 0.19.1 — 2026-10-12
+
+Published macOS App carriers can connect to the source-development Runtime when
+Desktop launches the installed App with its exact Runtime executable observation.
+The App keeps its packaged native carrier. The existing current-user socket,
+live peer PID/audit token, executable ownership/path and process-liveness checks
+remain mandatory, followed by Runtime's installed-source/session admission.
+An absent source observation retains production trust; an invalid observation
+or peer fails closed without fallback. Production Desktop control and signing
+policy are unchanged. Rebuild and publish Apps with this native patch before
+Catalog acceptance against a source Runtime; older immutable packages cannot
+gain it from a Host-only update.
 
 Closing a Home or bundled Avatar subscription now cancels its underlying idle Runtime stream immediately. Previously the reader could retain the stream until another event arrived, preventing complete connection cleanup. This is a compatible carrier fix; the Runtime wire, native exports and admission are unchanged.
 

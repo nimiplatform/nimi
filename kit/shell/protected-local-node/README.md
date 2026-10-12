@@ -3,6 +3,13 @@
 Host-only Node-API projection of the shared Nimi protected carrier for Electron
 main processes.
 
+From 0.19.1 the public macOS native package supports both the production Local
+App service and explicitly Desktop-supervised installed Apps in a source Runtime
+environment. Installed Apps keep this package in their own payload; Desktop
+provides only the exact source Runtime observation. Native peer verification and
+Runtime-owned installed-source/session admission remain required. A failed check
+never selects another Runtime profile, and production Desktop control is unchanged.
+
 For Host diagnostics, the existing `NIMI_PROTECTED_LOCAL_DIAGNOSTICS=1` switch also writes the exact admitted control-invalidation reason and an available numeric gRPC status to stderr. It does not log status messages or other error metadata.
 
 The 0.19 production candidate builds the public Windows npm artifact for the

@@ -27,6 +27,16 @@ user, binds the pipe server to Desktop's exact child Runtime process, and keeps
 production service, installer, signing, and update trust unchanged outside that
 feature. Native profile choice adds no App access or reason semantics.
 
+The published macOS Local App carrier also supports installed Apps supervised
+by a source-development Home. It consumes the Host's exact Runtime executable
+observation, derives the current user's fixed local-App socket and runs the same
+per-user native peer checks as the development carrier. The Host strips workspace
+carrier overrides, so the App continues to load its admitted package bytes.
+Missing observation uses the production Local App profile; invalid observation
+or a mismatched peer fails closed without a production/source fallback. This
+does not redirect production Desktop control or bypass Runtime's independent
+installed-source, session or App Access admission.
+
 Windows production unsigned Beta uses the compiled Platform product public key
 to authenticate the complete installed Desktop/Runtime/Avatar inventory in the
 fixed administrative non-reparse Program Files product tree. The native carrier

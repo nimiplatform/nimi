@@ -287,8 +287,10 @@ fn with_host_profile_environment(
 }
 
 fn installed_app_environment(environment: Vec<CString>) -> Vec<CString> {
-    // Packaged Apps load their own fixed resource carrier. The source Runtime
-    // executable observation remains available to a source-built carrier.
+    // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-037a
+    // Packaged Apps load their own fixed resource carrier. Retain only the
+    // exact Runtime observation for that carrier's D2 peer verification;
+    // never replace the admitted App payload with a workspace native module.
     environment
         .into_iter()
         .filter(|value| {

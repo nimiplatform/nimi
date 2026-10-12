@@ -1,4 +1,3 @@
-#[cfg(feature = "macos-source-local-development")]
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::fd::RawFd;
@@ -32,7 +31,6 @@ unsafe extern "C" {
         require_trusted_anchor: i32,
         require_ad_hoc: i32,
     ) -> i32;
-    #[cfg(feature = "macos-source-local-development")]
     fn nimi_macos_verify_per_user_runtime_peer(
         socket_fd: i32,
         expected_path: *const libc::c_char,
@@ -40,7 +38,6 @@ unsafe extern "C" {
     ) -> i32;
 }
 
-#[cfg(feature = "macos-source-local-development")]
 const SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT: &str =
     "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE";
 
@@ -51,6 +48,13 @@ pub(crate) fn runtime_socket_path() -> Result<PathBuf, ProtectedCarrierError> {
 
 #[cfg(not(feature = "macos-source-local-development"))]
 pub(crate) fn local_app_runtime_socket_path() -> Result<PathBuf, ProtectedCarrierError> {
+    // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-037a
+    // Installed Apps keep their published carrier. Only the source Host's
+    // explicit Runtime observation selects D2; failed trust never falls back.
+    if std::env::var_os(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT).is_some() {
+        expected_source_runtime_executable()?;
+        return per_user_runtime_socket("runtime-local-app.sock");
+    }
     Ok(PathBuf::from(MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH))
 }
 
@@ -64,7 +68,6 @@ pub(crate) fn local_app_runtime_socket_path() -> Result<PathBuf, ProtectedCarrie
     per_user_runtime_socket("runtime-local-app.sock")
 }
 
-#[cfg(feature = "macos-source-local-development")]
 fn per_user_runtime_socket(filename: &str) -> Result<PathBuf, ProtectedCarrierError> {
     let uid = unsafe { libc::geteuid() };
     if uid == 0 {
@@ -113,6 +116,9 @@ pub(crate) fn verify_runtime_peer_once(
     socket_fd: RawFd,
     socket_path: &str,
 ) -> Result<(), ProtectedCarrierError> {
+    if std::env::var_os(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT).is_some() {
+        return verify_source_runtime_peer(socket_fd, socket_path);
+    }
     if socket_fd < 0
         || (socket_path != MACOS_RUNTIME_SOCKET_PATH
             && socket_path != MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH)
@@ -145,10 +151,20 @@ pub(crate) fn verify_runtime_peer_once(
     socket_fd: RawFd,
     socket_path: &str,
 ) -> Result<(), ProtectedCarrierError> {
-    let desktop = runtime_socket_path()?;
-    let local_app = local_app_runtime_socket_path()?;
-    if socket_fd < 0 || (socket_path != desktop.as_os_str() && socket_path != local_app.as_os_str())
-    {
+    verify_source_runtime_peer(socket_fd, socket_path)
+}
+
+fn verify_source_runtime_peer(
+    socket_fd: RawFd,
+    socket_path: &str,
+) -> Result<(), ProtectedCarrierError> {
+    let local_app = per_user_runtime_socket("runtime-local-app.sock")?;
+    let admitted_endpoint = socket_path == local_app.as_os_str();
+    // A published App carrier does not redirect production Desktop control.
+    #[cfg(feature = "macos-source-local-development")]
+    let admitted_endpoint = admitted_endpoint
+        || socket_path == per_user_runtime_socket("runtime-desktop.sock")?.as_os_str();
+    if socket_fd < 0 || !admitted_endpoint {
         return Err(untrusted());
     }
     use std::os::unix::ffi::OsStrExt;
@@ -167,14 +183,28 @@ pub(crate) fn verify_runtime_peer_once(
     peer_verification_result(status)
 }
 
-#[cfg(feature = "macos-source-local-development")]
 fn expected_source_runtime_executable() -> Result<PathBuf, ProtectedCarrierError> {
-    let path = std::env::var_os(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT)
+    validate_source_runtime_executable(std::env::var_os(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT))
+}
+
+fn validate_source_runtime_executable(
+    observed: Option<std::ffi::OsString>,
+) -> Result<PathBuf, ProtectedCarrierError> {
+    use std::os::unix::fs::MetadataExt;
+    let path = observed
         .map(PathBuf::from)
-        .filter(|path| path.is_absolute() && path.is_file())
+        .filter(|path| path.is_absolute())
         .ok_or_else(untrusted)?;
     let canonical = std::fs::canonicalize(&path).map_err(|_| untrusted())?;
-    if canonical != path {
+    let metadata = std::fs::symlink_metadata(&path).map_err(|_| untrusted())?;
+    let uid = unsafe { libc::geteuid() };
+    if canonical != path
+        || uid == 0
+        || !metadata.is_file()
+        || metadata.uid() != uid
+        || metadata.mode() & 0o022 != 0
+        || metadata.mode() & 0o111 == 0
+    {
         return Err(untrusted());
     }
     Ok(path)
@@ -289,6 +319,93 @@ fn untrusted() -> ProtectedCarrierError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn source_runtime_observation_requires_current_user_canonical_executable() {
+        use std::os::unix::fs::{symlink, PermissionsExt};
+        let root = std::env::temp_dir().join(format!(
+            "nimi-source-peer-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        let executable = root.join("runtime");
+        std::fs::write(&executable, b"fixture").unwrap();
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(
+            validate_source_runtime_executable(Some(executable.clone().into())).unwrap(),
+            executable
+        );
+        let alias = root.join("alias");
+        symlink(&executable, &alias).unwrap();
+        for value in [
+            None,
+            Some("".into()),
+            Some("relative/runtime".into()),
+            Some(root.clone().into()),
+            Some(root.join("missing").into()),
+            Some(alias.into()),
+        ] {
+            let error = validate_source_runtime_executable(value).unwrap_err();
+            assert_eq!(
+                error.reason_code(),
+                ProtectedCarrierReasonCode::RuntimeServiceUntrusted
+            );
+            assert!(!error.retryable());
+        }
+        for mode in [0o600, 0o720, 0o702] {
+            std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(mode)).unwrap();
+            assert!(validate_source_runtime_executable(Some(executable.clone().into())).is_err());
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(not(feature = "macos-source-local-development"))]
+    #[test]
+    fn published_carrier_selects_only_explicit_installed_source_runtime() {
+        const CHILD: &str = "NIMI_TEST_INSTALLED_SOURCE_RUNTIME_PROFILE";
+        if let Some(case) = std::env::var_os(CHILD) {
+            assert_eq!(
+                runtime_socket_path().unwrap(),
+                PathBuf::from(MACOS_RUNTIME_SOCKET_PATH)
+            );
+            match case.to_str().unwrap() {
+                "production" => assert_eq!(
+                    local_app_runtime_socket_path().unwrap(),
+                    PathBuf::from(MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH)
+                ),
+                "source" => assert_eq!(
+                    local_app_runtime_socket_path().unwrap(),
+                    per_user_runtime_socket("runtime-local-app.sock").unwrap()
+                ),
+                "invalid" => assert_eq!(
+                    local_app_runtime_socket_path().unwrap_err().reason_code(),
+                    ProtectedCarrierReasonCode::RuntimeServiceUntrusted
+                ),
+                _ => panic!("unknown test case"),
+            }
+            return;
+        }
+        for case in ["production", "source", "invalid"] {
+            let mut child = std::process::Command::new(std::env::current_exe().unwrap());
+            child.args(["--exact", "macos_peer_trust::tests::published_carrier_selects_only_explicit_installed_source_runtime"])
+                .env(CHILD, case).env_remove(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT);
+            if case == "source" {
+                child.env(
+                    SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT,
+                    std::env::current_exe().unwrap(),
+                );
+            }
+            if case == "invalid" {
+                child.env(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT, "");
+            }
+            assert!(child.status().unwrap().success(), "profile {case}");
+        }
+    }
 
     #[test]
     fn direct_signing_policy_values_are_closed() {
