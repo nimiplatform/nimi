@@ -179,7 +179,18 @@ async fn invoke_inner(
             RawBytesCodec,
         )
         .await
-        .map_err(|status| runtime_status_error(status, bundled_avatar))?;
+        .map_err(|status| {
+            if std::env::var_os("NIMI_PROTECTED_LOCAL_DIAGNOSTICS").as_deref()
+                == Some(std::ffi::OsStr::new("1"))
+            {
+                // Static admitted method only; never log request or status message.
+                eprintln!(
+                    "[protected-local desktop-unary] method={method_id} grpc_status_code={}",
+                    status.code() as i32
+                );
+            }
+            runtime_status_error(status, bundled_avatar)
+        })?;
     Ok(response.into_inner())
 }
 

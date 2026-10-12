@@ -92,7 +92,12 @@ pub(crate) async fn open_first_party(
     let (sender, receiver) = mpsc::channel(32);
     tokio::spawn(async move {
         loop {
-            match stream.message().await {
+            let message = tokio::select! {
+                biased;
+                _ = sender.closed() => break,
+                message = stream.message() => message,
+            };
+            match message {
                 Ok(Some(bytes)) => {
                     if sender.send(Ok(bytes)).await.is_err() {
                         break;
@@ -221,7 +226,12 @@ pub(crate) async fn open_bundled_avatar(
     let (sender, receiver) = mpsc::channel(32);
     tokio::spawn(async move {
         loop {
-            match stream.message().await {
+            let message = tokio::select! {
+                biased;
+                _ = sender.closed() => break,
+                message = stream.message() => message,
+            };
+            match message {
                 Ok(Some(bytes)) => {
                     if sender.send(Ok(bytes)).await.is_err() {
                         break;
@@ -305,5 +315,93 @@ mod tests {
         let error = map_first_party_status(status);
         assert_eq!(error.reason_code(), "runtime-service-unavailable");
         assert!(error.reason_metadata().is_empty());
+    }
+}
+
+#[cfg(all(test, any(target_os = "windows", target_os = "macos")))]
+mod cancellation_tests {
+    use super::*;
+    use std::sync::Arc;
+    use tokio::net::TcpListener;
+    use tokio::sync::Notify;
+    use tokio_stream::wrappers::{ReceiverStream, TcpListenerStream};
+    use tonic::transport::{Endpoint, Server};
+
+    mod probe {
+        tonic::include_proto!("nimi.carrier.test");
+    }
+
+    struct IdleProbe(Arc<Notify>);
+
+    #[tonic::async_trait]
+    impl probe::stream_probe_server::StreamProbe for IdleProbe {
+        type IdleStream = ReceiverStream<Result<probe::CarrierPayload, tonic::Status>>;
+
+        async fn idle(
+            &self,
+            _: tonic::Request<probe::CarrierPayload>,
+        ) -> Result<tonic::Response<Self::IdleStream>, tonic::Status> {
+            let (sender, receiver) = mpsc::channel(1);
+            let closed = self.0.clone();
+            tokio::spawn(async move {
+                sender.closed().await;
+                closed.notify_one();
+            });
+            Ok(tonic::Response::new(ReceiverStream::new(receiver)))
+        }
+    }
+
+    async fn assert_idle_stream_canceled(avatar: bool) {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let closed = Arc::new(Notify::new());
+        let service = probe::stream_probe_server::StreamProbeServer::new(IdleProbe(closed.clone()));
+        let server = tokio::spawn(async move {
+            Server::builder()
+                .add_service(service)
+                .serve_with_incoming(TcpListenerStream::new(listener))
+                .await
+        });
+        let channel = Endpoint::from_shared(format!("http://{address}"))
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        let method = "/nimi.carrier.test.StreamProbe/Idle";
+        if avatar {
+            drop(
+                open_bundled_avatar(channel, method, Vec::new(), None)
+                    .await
+                    .unwrap(),
+            );
+        } else {
+            drop(
+                open_first_party(
+                    channel,
+                    crate::desktop_unary::DesktopFirstPartyProfile::Machine,
+                    method,
+                    Vec::new(),
+                    None,
+                )
+                .await
+                .unwrap(),
+            );
+        }
+        let canceled = tokio::time::timeout(Duration::from_secs(2), closed.notified()).await;
+        server.abort();
+        assert!(
+            canceled.is_ok(),
+            "dropping the Host receiver must cancel an idle Runtime stream"
+        );
+    }
+
+    #[tokio::test]
+    async fn dropping_first_party_receiver_cancels_idle_runtime_stream() {
+        assert_idle_stream_canceled(false).await;
+    }
+
+    #[tokio::test]
+    async fn dropping_avatar_receiver_cancels_idle_runtime_stream() {
+        assert_idle_stream_canceled(true).await;
     }
 }

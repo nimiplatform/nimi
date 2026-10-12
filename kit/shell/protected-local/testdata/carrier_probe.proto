@@ -6,6 +6,10 @@ service CarrierProbe {
   rpc Echo(CarrierPayload) returns (CarrierPayload);
 }
 
+service StreamProbe {
+  rpc Idle(CarrierPayload) returns (stream CarrierPayload);
+}
+
 message CarrierPayload {
   bytes payload = 1;
 }

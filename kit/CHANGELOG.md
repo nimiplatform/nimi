@@ -2,7 +2,9 @@
 
 ## 0.19.1 — Candidate, not yet published
 
-The existing Host-only protected-local diagnostic switch now reports the exact admitted reason for invalidating a Desktop control connection and its numeric gRPC status when available. Status messages and other error metadata are excluded. The Runtime wire, native exports, admission and reconnection behavior are unchanged. This candidate supports investigation of the installed Windows Beta startup failure; it does not claim that failure is repaired.
+Closing a Home or bundled Avatar subscription now cancels its underlying idle Runtime stream immediately. Previously the reader could retain the stream until another event arrived, preventing complete connection cleanup. This is a compatible carrier fix; the Runtime wire, native exports and admission are unchanged.
+
+The existing Host-only protected-local diagnostic switch reports the exact admitted reason for invalidating a Desktop control connection, its numeric gRPC status when available, and the static unary method that failed. Request content, status messages and other error metadata are excluded. The installed Windows Beta startup failure remains under investigation.
 
 ## 0.19.0 — Production Beta carrier candidate
 
