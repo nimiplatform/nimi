@@ -115,7 +115,7 @@ jobs:
           pnpm --filter @nimiplatform/kit build
           pnpm --filter @nimiplatform/desktop typecheck
           pnpm --filter @nimiplatform/desktop test:unit:rest -- macos-runtime-service.test.ts chat-agent-voice-capture.test.ts runtime-config-loadout-behavior.test.ts
-          node --test apps/desktop/test/macos-release-policy.test.mjs
+          node --test apps/desktop/test/macos-release-policy.test.mjs apps/desktop/test/macos-release-command.test.mjs
           go -C runtime test ./internal/services/account ./internal/services/localservice -run 'TestProtectedBinaryCustody|TestSearchCatalogModels' -count=1
       - name: Import signing identities into a temporary Keychain
         env:

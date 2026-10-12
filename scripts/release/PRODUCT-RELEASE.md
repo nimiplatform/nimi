@@ -91,6 +91,10 @@ The builder signs the app and roles, notarizes/staples, creates the signed PKG,
 then notarizes/staples and validates the **final PKG bytes** before the sidecar
 hash. Preparation rechecks Installer Team/notarized PKG, signs the timed update
 envelope and copies those final bytes verbatim. Do not modify or repackage them.
+An Apple `stapler staple` connection-loss error (`68`, `NSURLErrorDomain -1005`)
+retries that same ticket download after 5, 15 and 30 seconds. Exhaustion still
+fails the build. Notary submissions, TLS/signature refusals and validation
+commands are not retried by this rule; validation remains mandatory before hashing.
 
 On Windows, from the same clean source SHA:
 

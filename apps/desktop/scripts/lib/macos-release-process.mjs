@@ -69,20 +69,36 @@ export function isMacOSMachO(candidate) {
 }
 
 export function runReleaseCommand(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    cwd: options.cwd,
-    encoding: 'utf8',
-    env: options.env ?? process.env,
-    maxBuffer: 16 * 1024 * 1024,
-    stdio: options.inherit ? 'inherit' : ['ignore', 'pipe', 'pipe'],
-  });
-  if (result.error || result.status !== 0) {
-    const diagnostic = boundedDiagnostic(`${result.stderr || ''}\n${result.stdout || ''}`);
-    throw new Error(`${path.basename(command)} failed with status ${result.status ?? 'unavailable'}${diagnostic ? `: ${diagnostic}` : ''}`, {
-      cause: result.error,
+  const ticketRetryDelays = [5000, 15000, 30000];
+  for (let attempt = 0; ; attempt += 1) {
+    const result = spawnSync(command, args, {
+      cwd: options.cwd,
+      encoding: 'utf8',
+      env: options.env ?? process.env,
+      maxBuffer: 16 * 1024 * 1024,
+      stdio: options.inherit ? 'inherit' : ['ignore', 'pipe', 'pipe'],
     });
+    if (result.error || result.status !== 0) {
+      const output = `${result.stderr || ''}\n${result.stdout || ''}`;
+      // Apple may accept notarization before a ticket download loses its
+      // connection. Retry only that download; all signing and validation
+      // commands still require their own actual success.
+      if (!result.error && command === '/usr/bin/xcrun'
+        && args[0] === 'stapler' && args[1] === 'staple' && result.status === 68
+        && /Error Domain=NSURLErrorDomain Code=-1005\b/u.test(output)
+        && attempt < ticketRetryDelays.length) {
+        const delay = ticketRetryDelays[attempt];
+        process.stderr.write(`Apple ticket download connection lost; retry ${attempt + 1}/${ticketRetryDelays.length} in ${delay / 1000}s.\n`);
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delay);
+        continue;
+      }
+      const diagnostic = boundedDiagnostic(output);
+      throw new Error(`${path.basename(command)} failed with status ${result.status ?? 'unavailable'}${diagnostic ? `: ${diagnostic}` : ''}`, {
+        cause: result.error,
+      });
+    }
+    return Object.freeze({ stdout: String(result.stdout || ''), stderr: String(result.stderr || '') });
   }
-  return Object.freeze({ stdout: String(result.stdout || ''), stderr: String(result.stderr || '') });
 }
 
 export function verifySignedMacOSCode(executable, expectedIdentifier, expectedTeamId) {
