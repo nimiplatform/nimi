@@ -1,5 +1,5 @@
 import { PRODUCT_UPDATE_POLICY } from '../../../config/product-update-policy.mjs';
-import { PRODUCT_CHANNELS, ProductUpdateError, authenticateProductEnvelope, compareProductVersions, productManifestName, readBoundedResponse, validateProductRelease } from '../../../config/product-update-contract.mjs';
+import { PRODUCT_CHANNELS, ProductUpdateError, authenticateProductEnvelope, compareProductVersions, matchesProductAssetUrl, productManifestName, readBoundedResponse, validateProductRelease } from '../../../config/product-update-contract.mjs';
 
 function productVersionFromTag(tag) {
   if (typeof tag !== 'string' || !tag.startsWith('nimi/v')) return null;
@@ -27,8 +27,7 @@ export async function resolveProductManifest(releases, channel, target, fetchImp
     const manifests = release.assets.filter((asset) => asset.name === manifestName);
     if (manifests.length !== 1) throw new ProductUpdateError('UPDATE_METADATA_INVALID');
     const manifest = manifests[0];
-    const prefix = `https://github.com/${PRODUCT_UPDATE_POLICY.repository}/releases/download/${encodeURIComponent(release.tag_name)}/`;
-    if (manifest.state !== 'uploaded' || manifest.browser_download_url !== `${prefix}${manifest.name}`
+    if (manifest.state !== 'uploaded' || !matchesProductAssetUrl(manifest.browser_download_url,release.tag_name,manifest.name)
       || !/^sha256:[a-f0-9]{64}$/u.test(manifest.digest)) throw new ProductUpdateError('UPDATE_METADATA_INVALID');
     let response;
     try { response = await fetchImpl(manifest.browser_download_url, { signal: AbortSignal.timeout(PRODUCT_UPDATE_POLICY.requestTimeoutMs) }); }
@@ -52,7 +51,7 @@ export async function resolveProductManifest(releases, channel, target, fetchImp
     const candidate = validateProductRelease(identity);
     const assets = release.assets.filter((asset) => asset.name === candidate.asset.name);
     if (assets.length !== 1 || assets[0].state !== 'uploaded'
-      || assets[0].browser_download_url !== candidate.asset.url
+      || !matchesProductAssetUrl(assets[0].browser_download_url,candidate.releaseId,candidate.asset.name)
       || assets[0].size !== candidate.asset.size || assets[0].digest !== `sha256:${candidate.asset.sha256}`) {
       throw new ProductUpdateError('UPDATE_ASSET_INVALID');
     }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { resolveProductManifest } from '../src/product-release-feed.mjs';
 import { handleInstallGatewayRequest } from '../src/index.mjs';
-import { compareProductVersions, verifyProductEnvelope } from '../../../config/product-update-contract.mjs';
+import { compareProductVersions, verifyProductEnvelope, productAssetUrl, matchesProductAssetUrl } from '../../../config/product-update-contract.mjs';
 import { signedProductFixture } from './product-release-fixture.mjs';
 
 test('signed final-asset binding projects only immutable product target and channel', async () => {
@@ -13,6 +13,20 @@ test('signed final-asset binding projects only immutable product target and chan
   await assert.rejects(resolveProductManifest([fixture.release], 'stable', 'macos-arm64', fetch, fixture.key), /UPDATE_RELEASE_NOT_FOUND/);
   assert.equal(compareProductVersions('0.3.0', '0.3.0-rc.2'), 1);
   assert.equal(compareProductVersions('0.3.0-rc.1', '0.3.0-beta.9'), 1);
+});
+test('GitHub slash-tag URLs identify the exact resource from the unchanged signed encoded URL', async () => {
+  const f=signedProductFixture();
+  const release={...f.release,assets:f.release.assets.map(a=>({...a,browser_download_url:a.browser_download_url.replace(encodeURIComponent(f.candidate.releaseId),f.candidate.releaseId)}))};
+  const result=await resolveProductManifest([release],'beta','macos-arm64',async()=>new Response(f.manifestBytes),f.key);
+  assert.deepEqual(await verifyProductEnvelope(result,f.key),f.candidate);
+});
+test('URI matching never widens the repository, tag, asset, scheme or credential/query scope',()=>{
+  const id='nimi/v0.2.0',name='nimi-update-windows-amd64.json',url=productAssetUrl(id,name);
+  assert.equal(matchesProductAssetUrl(url,id,name),true);
+  assert.equal(matchesProductAssetUrl(url.replace('nimi%2Fv0.2.0','nimi/v0.2.0'),id,name),true);
+  for(const wrong of [url.replace('https:','http:'),url.replace('github.com','example.invalid'),url.replace('/nimiplatform/nimi/','/other/nimi/'),url.replace('v0.2.0','v0.3.0'),url.replace(name,'other.json'),url+'?key=x',url+'#fragment',url.replace('https://','https://user@'),url.replace('%2F','%252F')]) {
+    assert.equal(matchesProductAssetUrl(wrong,id,name),false,wrong);
+  }
 });
 test('tampered payload, wrong signing key, final asset digest and identity fail closed', async () => {
   const f = signedProductFixture(), other = signedProductFixture();

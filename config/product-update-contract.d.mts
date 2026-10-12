@@ -10,6 +10,7 @@ export class ProductUpdateError extends Error { code: string; constructor(code: 
 export function rejectProductUpdate(code: string): never;
 export function compareProductVersions(left: string, right: string): number;
 export function productAssetUrl(releaseId: string, name: string): string;
+export function matchesProductAssetUrl(value: unknown, releaseId: string, name: string): boolean;
 export function productManifestName(target: string): string;
 export function validateProductRelease(value: unknown, now?: number): ProductRelease;
 export function verifyProductEnvelope(value: unknown, publicKey?: string | null, now?: number): Promise<ProductRelease>;

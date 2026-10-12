@@ -29,6 +29,17 @@ export function compareProductVersions(left, right) {
 export function productAssetUrl(releaseId, name) {
   return `https://github.com/${PRODUCT_UPDATE_POLICY.repository}/releases/download/${encodeURIComponent(releaseId)}/${encodeURIComponent(name)}`;
 }
+// GitHub's API renders slash tags unescaped; signed metadata retains its
+// canonical escaped URI. Compare the exact resource, never a URL prefix.
+export function matchesProductAssetUrl(value, releaseId, name) {
+  if (typeof value !== 'string') return false;
+  try {
+    const actual = new URL(value), expected = new URL(productAssetUrl(releaseId, name));
+    return actual.origin === expected.origin && !actual.username && !actual.password
+      && !actual.search && !actual.hash
+      && decodeURIComponent(actual.pathname) === decodeURIComponent(expected.pathname);
+  } catch { return false; }
+}
 export function productManifestName(target) {
   if (!PRODUCT_TARGETS.includes(target)) rejectProductUpdate('UPDATE_TARGET_UNSUPPORTED');
   return `nimi-update-${target}.json`;

@@ -177,7 +177,11 @@ publication is an actual published state needing owner review, not a rollback.
 Before publication GitHub may report draft-only `untagged-...` download URLs.
 Those temporary URLs are not consumed or written into signed metadata. Draft
 verification still binds the exact release ID, source, names, sizes and digests;
-the publisher requires the exact final tag-bound URLs after publication.
+the publisher requires the exact final tag-and-file resource after publication.
+GitHub's unescaped slash tag and the signed metadata's percent-escaped tag are
+the same URI resource. Verification compares that exact HTTPS repository path
+and rejects other repositories, tags, filenames, credentials, queries or fragments;
+the signed canonical URI and all published bytes remain unchanged.
 
 ## Gateway and real acceptance
 

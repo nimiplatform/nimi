@@ -12,6 +12,7 @@ function fixtureBatch() {
   const mac=signedProductFixture(), win=signedProductFixture({target:'windows-amd64',publishedAt:mac.candidate.publishedAt,expiresAt:mac.candidate.expiresAt},undefined,mac.privateKey);
   return {releaseId:mac.candidate.releaseId,version:mac.candidate.version,sourceRevision:mac.candidate.sourceRevision,channel:'beta',releases:[mac.candidate,win.candidate],files:[{name:mac.candidate.asset.name,path:'/prepared/pkg',size:7,sha256:'b'.repeat(64)},{name:'nimi-update-macos-arm64.json',path:'/prepared/json',size:8,sha256:'c'.repeat(64)}]};
 }
+const githubAssetUrl = (releaseId,name) => productAssetUrl(releaseId,name).replace(encodeURIComponent(releaseId),releaseId);
 
 test('a clean newer main publisher reads the frozen payload version and rejects dirty, unrelated or unadmitted source',async(t)=>{
   const root=await mkdtemp(path.join(os.tmpdir(),'nimi-publish-source-'));
@@ -30,7 +31,7 @@ test('a clean newer main publisher reads the frozen payload version and rejects 
 });
 function remoteApi(batch,{initial='none',fault,onUpload=()=>undefined}={}) {
   const calls=[]; let nextId=73;
-  const assets=batch.files.map(file=>({name:file.name,state:'uploaded',size:file.size,digest:`sha256:${file.sha256}`,browser_download_url:initial==='published'?productAssetUrl(batch.releaseId,file.name):`https://github.com/nimiplatform/nimi/releases/download/untagged-e24b64cbee08717f0417/${file.name}`}));
+  const assets=batch.files.map(file=>({name:file.name,state:'uploaded',size:file.size,digest:`sha256:${file.sha256}`,browser_download_url:initial==='published'?githubAssetUrl(batch.releaseId,file.name):`https://github.com/nimiplatform/nimi/releases/download/untagged-e24b64cbee08717f0417/${file.name}`}));
   let release=initial==='none'?null:{id:72,tag_name:batch.releaseId,target_commitish:batch.sourceRevision,prerelease:true,draft:initial!=='published',immutable:initial==='published',assets:initial==='published'?structuredClone(assets):[structuredClone(assets[0])]};
   let tag=initial==='published'?{object:{type:'commit',sha:batch.sourceRevision}}:null;
   const gh=async(args)=>{
@@ -48,7 +49,7 @@ function remoteApi(batch,{initial='none',fault,onUpload=()=>undefined}={}) {
       const name=new URL(endpoint).searchParams.get('name'), file=batch.files.find(f=>f.name===name);
       release.assets.push({...assets.find(a=>a.name===name),digest:`sha256:${fault==='digest'?'d'.repeat(64):file.sha256}`});onUpload();return release.assets.at(-1);
     }
-    if(method==='PATCH') {assert.ok(endpoint.endsWith(`/releases/${release.id}`));release.draft=false;release.immutable=true;release.assets.forEach(asset=>{asset.browser_download_url=fault==='published-url'?'https://example.invalid/asset':productAssetUrl(batch.releaseId,asset.name);});tag={object:{type:'commit',sha:batch.sourceRevision}};return structuredClone(release);}
+    if(method==='PATCH') {assert.ok(endpoint.endsWith(`/releases/${release.id}`));release.draft=false;release.immutable=true;release.assets.forEach(asset=>{asset.browser_download_url=fault==='published-url'?'https://example.invalid/asset':githubAssetUrl(batch.releaseId,asset.name);});tag={object:{type:'commit',sha:batch.sourceRevision}};return structuredClone(release);}
     if(method==='GET' && /\/releases\/\d+$/u.test(endpoint)) {assert.ok(endpoint.endsWith(`/releases/${release.id}`));return structuredClone(release);}
     throw Error('Unexpected GitHub API '+args.join(' '));
   };

@@ -1,5 +1,5 @@
 import { PRODUCT_UPDATE_POLICY } from '../../config/product-update-policy.mjs';
-import { PRODUCT_TARGETS, productAssetUrl, validateProductRelease, compareProductVersions } from '../../config/product-update-contract.mjs';
+import { PRODUCT_TARGETS, matchesProductAssetUrl, validateProductRelease, compareProductVersions } from '../../config/product-update-contract.mjs';
 import { spawnSync } from 'node:child_process';
 
 // Publishing code can advance without rebuilding an approved payload. Both
@@ -36,7 +36,7 @@ function requireRemoteAssets(release,batch) {
     if(matches.length!==1 || matches[0].state!=='uploaded' || matches[0].size!==file.size || matches[0].digest!==`sha256:${file.sha256}`
       // GitHub draft assets use an untagged temporary URL until publication.
       // Nothing consumes that URL; the exact published address stays required.
-      || (!release.draft && matches[0].browser_download_url!==productAssetUrl(batch.releaseId,file.name))) throw Error('PRODUCT_RELEASE_REMOTE_ASSET_MISMATCH');
+      || (!release.draft && !matchesProductAssetUrl(matches[0].browser_download_url,batch.releaseId,file.name))) throw Error('PRODUCT_RELEASE_REMOTE_ASSET_MISMATCH');
   }
 }
 
