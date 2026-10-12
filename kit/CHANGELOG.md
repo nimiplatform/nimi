@@ -19,7 +19,7 @@ without changing the scanner or native trust checks.
 
 Closing a Home or bundled Avatar subscription now cancels its underlying idle Runtime stream immediately. Previously the reader could retain the stream until another event arrived, preventing complete connection cleanup. This is a compatible carrier fix; the Runtime wire, native exports and admission are unchanged.
 
-The existing Host-only protected-local diagnostic switch reports the exact admitted reason for invalidating a Desktop control connection, its numeric gRPC status when available, and the static unary method that failed. Request content, status messages and other error metadata are excluded. The installed Windows Beta startup failure remains under investigation.
+The existing Host-only protected-local diagnostic switch reports the exact admitted reason for invalidating a Desktop control connection, its numeric gRPC status when available, and the static unary method that failed. Request content, status messages and other error metadata are excluded.
 
 ## 0.19.0 — Production Beta carrier candidate
 
