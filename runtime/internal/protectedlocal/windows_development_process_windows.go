@@ -182,8 +182,8 @@ func canonicalWindowsLocalDevelopmentPolicy(policy LocalDevelopmentProcessPolicy
 	if err != nil {
 		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageHostExecutable, fmt.Errorf("canonicalize host executable: %w", err))
 	}
-	canonicalRoot = filepath.Clean(canonicalRoot)
-	canonicalHost = filepath.Clean(canonicalHost)
+	canonicalRoot = normalizeWindowsDevelopmentPath(canonicalRoot)
+	canonicalHost = normalizeWindowsDevelopmentPath(canonicalHost)
 	info, err := os.Stat(canonicalHost)
 	if err != nil || !info.Mode().IsRegular() {
 		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageHostExecutable, fmt.Errorf("host executable must be a readable regular file"))
@@ -231,7 +231,24 @@ func windowsLongLocalDevelopmentPath(path string) (string, error) {
 	if n >= size {
 		return "", fmt.Errorf("project host alias changed while expanding its path")
 	}
-	return filepath.Clean(windows.UTF16ToString(buffer[:n])), nil
+	return normalizeWindowsDevelopmentPath(windows.UTF16ToString(buffer[:n])), nil
+}
+
+// Windows final-handle paths and process image paths can describe the same
+// file with different namespace prefixes. Normalize only DOS/UNC spellings
+// after filesystem canonicalization, before comparing roots or binding paths.
+func normalizeWindowsDevelopmentPath(value string) string {
+	const extended = `\\?\`
+	const extendedUNC = `\\?\UNC\`
+	if len(value) >= len(extendedUNC) && strings.EqualFold(value[:len(extendedUNC)], extendedUNC) {
+		value = `\\` + value[len(extendedUNC):]
+	} else if strings.HasPrefix(value, extended) {
+		dos := value[len(extended):]
+		if volume := filepath.VolumeName(dos); len(volume) == 2 && volume[1] == ':' {
+			value = dos
+		}
+	}
+	return filepath.Clean(value)
 }
 
 func windowsPathWithinRoot(root string, candidate string) bool {

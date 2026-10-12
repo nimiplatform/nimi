@@ -225,7 +225,10 @@ func (store *localDevelopmentStore) PendingLaunchPolicy(_ context.Context, launc
 	if !ok || ticket.Process.PID != 0 {
 		return protectedlocal.LocalDevelopmentProcessPolicy{}, errLocalDevelopmentLaunchExpired
 	}
-	return protectedlocal.LocalDevelopmentProcessPolicy{ProjectRoot: ticket.Project.ProjectRoot, HostExecutablePath: ticket.HostExecutable}, nil
+	return protectedlocal.LocalDevelopmentProcessPolicy{
+		ProjectRoot: ticket.Project.ProjectRoot, HostExecutablePath: ticket.HostExecutable,
+		ProjectHostAliasPath: localDevelopmentProjectHostAliasPath(ticket.Project.ProjectRoot, ticket.Project.ShellKind),
+	}, nil
 }
 
 func (store *localDevelopmentStore) BindLaunch(_ context.Context, launchID protectedlocal.Identifier, process protectedlocal.ProcessTuple) (time.Time, error) {

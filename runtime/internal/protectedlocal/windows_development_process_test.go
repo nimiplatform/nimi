@@ -83,7 +83,7 @@ func TestWindowsLocalDevelopmentProcessVerifierBindsSuspendedChildBeforeResume(t
 	process, liveness, err := verifier.VerifyLocalDevelopmentProcess(
 		context.Background(),
 		uint32(child.Process.Pid),
-		LocalDevelopmentProcessPolicy{ProjectRoot: filepath.Dir(executable), HostExecutablePath: executable},
+		LocalDevelopmentProcessPolicy{ProjectRoot: `\\?\` + filepath.Dir(executable), HostExecutablePath: executable},
 	)
 	if err != nil {
 		stage, _ := WindowsProcessTrustStageFromError(err)
@@ -127,6 +127,37 @@ func TestCanonicalWindowsLocalDevelopmentPolicyAcceptsExactExternalProjectAlias(
 		ProjectRoot: projectRoot, HostExecutablePath: rogue, ProjectHostAliasPath: alias,
 	}); err == nil {
 		t.Fatal("unrelated external host must remain rejected")
+	}
+}
+
+func TestCanonicalWindowsLocalDevelopmentPolicyNormalizesExtendedPaths(t *testing.T) {
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	host := filepath.Join(root, "electron.exe")
+	if err := os.WriteFile(host, []byte("host fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, input := range []LocalDevelopmentProcessPolicy{
+		{ProjectRoot: `\\?\` + root, HostExecutablePath: host},
+		{ProjectRoot: root, HostExecutablePath: `\\?\` + host},
+		{ProjectRoot: `\\?\` + root, HostExecutablePath: `\\?\` + host},
+	} {
+		policy, err := canonicalWindowsLocalDevelopmentPolicy(input)
+		if err != nil {
+			t.Fatalf("the same in-project file must not require an external alias: %v", err)
+		}
+		if policy.ProjectRoot != root || policy.HostExecutablePath != host {
+			t.Fatalf("policy did not retain one canonical path form: %+v", policy)
+		}
+	}
+	outside := filepath.Join(t.TempDir(), "electron.exe")
+	if err := os.WriteFile(outside, []byte("other host"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := canonicalWindowsLocalDevelopmentPolicy(LocalDevelopmentProcessPolicy{ProjectRoot: `\\?\` + root, HostExecutablePath: outside}); err == nil {
+		t.Fatal("normalizing a namespace must not admit an unrelated external host")
 	}
 }
 
