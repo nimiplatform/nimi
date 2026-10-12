@@ -194,7 +194,12 @@ where
         Ok(receiver) => receiver,
         Err(error) => {
             streams().lock().await.remove(stream_id.as_str());
-            clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+            clear_desktop_control_on_transport_reason(
+                &control,
+                error.reason_code(),
+                error.reason_metadata(),
+            )
+            .await;
             return NativeJsonOutcome::host_reason_with_metadata(
                 error.reason_code(),
                 error.retryable(),
@@ -256,7 +261,12 @@ pub async fn desktop_first_party_product_stream_next(
         Some(Err(error)) => {
             streams().lock().await.remove(stream_id.as_str());
             if let Some(control) = stream.control.upgrade() {
-                clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+                clear_desktop_control_on_transport_reason(
+                    &control,
+                    error.reason_code(),
+                    error.reason_metadata(),
+                )
+                .await;
             }
             next_error_with_metadata(
                 error.reason_code(),

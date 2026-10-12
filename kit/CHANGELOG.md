@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.19.1 — Candidate, not yet published
+
+The existing Host-only protected-local diagnostic switch now reports the exact admitted reason for invalidating a Desktop control connection and its numeric gRPC status when available. Status messages and other error metadata are excluded. The Runtime wire, native exports, admission and reconnection behavior are unchanged. This candidate supports investigation of the installed Windows Beta startup failure; it does not claim that failure is repaired.
+
 ## 0.19.0 — Production Beta carrier candidate
 
 The Windows native package now targets the formal Nimi Runtime service using the Platform-admitted Ed25519 product inventory key. This changes the deployment boundary and is a breaking 0.x minor change. Upgrade Kit and its native packages together for the complete Nimi Beta product; the Runtime wire and SDK 0.21.0 API remain unchanged.

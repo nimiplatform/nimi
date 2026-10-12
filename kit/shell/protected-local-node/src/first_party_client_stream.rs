@@ -39,7 +39,12 @@ pub async fn desktop_account_product_client_stream(
     {
         Ok(response) => NativeBytesOutcome::success(response.response_bytes),
         Err(error) => {
-            clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+            clear_desktop_control_on_transport_reason(
+                &control,
+                error.reason_code(),
+                error.reason_metadata(),
+            )
+            .await;
             NativeBytesOutcome::error_with_metadata(
                 error.reason_code(),
                 error.retryable(),
@@ -73,7 +78,12 @@ pub async fn desktop_bundled_avatar_client_stream(
     {
         Ok(response) => NativeBytesOutcome::success(response.response_bytes),
         Err(error) => {
-            clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+            clear_desktop_control_on_transport_reason(
+                &control,
+                error.reason_code(),
+                error.reason_metadata(),
+            )
+            .await;
             NativeBytesOutcome::error_with_metadata(
                 error.reason_code(),
                 error.retryable(),

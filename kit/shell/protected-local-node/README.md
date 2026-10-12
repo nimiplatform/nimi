@@ -3,6 +3,8 @@
 Host-only Node-API projection of the shared Nimi protected carrier for Electron
 main processes.
 
+For Host diagnostics, the existing `NIMI_PROTECTED_LOCAL_DIAGNOSTICS=1` switch also writes the exact admitted control-invalidation reason and an available numeric gRPC status to stderr. It does not log status messages or other error metadata.
+
 The 0.19 production candidate builds the public Windows npm artifact for the
 formal Runtime service and its Platform-signed complete-product inventory.
 The admitted Platform public key is sealed into that carrier; an absent key

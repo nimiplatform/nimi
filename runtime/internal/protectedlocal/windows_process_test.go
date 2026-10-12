@@ -123,8 +123,8 @@ func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(
 	}
 	select {
 	case <-liveness.Revoked():
-		t.Fatal("live client process witness was already revoked")
-	default:
+		t.Fatal("live client process witness revoked while its process and logon remained unchanged")
+	case <-time.After(time.Second):
 	}
 
 	wrongIdentity := identity

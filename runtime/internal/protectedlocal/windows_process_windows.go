@@ -510,26 +510,40 @@ func (liveness *windowsProcessLiveness) watch() {
 	defer close(liveness.done)
 	for {
 		result, err := windows.WaitForSingleObject(liveness.handle, 250)
-		if err != nil || result == windows.WAIT_OBJECT_0 {
+		if err != nil {
+			reportWindowsPeerRejection(windowsPipeOperationFailure(WindowsPipeStageClientLiveness, "wait for retained Windows client process", err))
+			liveness.revoke()
+			return
+		}
+		if result == windows.WAIT_OBJECT_0 {
 			liveness.revoke()
 			return
 		}
 		if result != uint32(windows.WAIT_TIMEOUT) {
+			reportWindowsPeerRejection(windowsPipeOperationFailure(WindowsPipeStageClientLiveness, "wait for retained Windows client process", fmt.Errorf("unexpected process wait result")))
 			liveness.revoke()
 			return
 		}
 		if err := revalidateWindowsActiveSessionIdentity(context.Background(), liveness.activeSession); err != nil {
+			reportWindowsPeerRejection(err)
 			liveness.revoke()
 			return
 		}
 		var token windows.Token
 		if err := windows.OpenProcessToken(liveness.handle, windows.TOKEN_QUERY, &token); err != nil {
+			reportWindowsPeerRejection(windowsPipeOperationFailure(WindowsPipeStageClientTokenOpen, "revalidate retained Windows client token", err))
 			liveness.revoke()
 			return
 		}
 		observed, err := inspectWindowsDesktopToken(token, liveness.activeSession)
 		_ = token.Close()
-		if err != nil || !liveness.connectedLogon.sameLogon(observed) {
+		if err != nil {
+			reportWindowsPeerRejection(err)
+			liveness.revoke()
+			return
+		}
+		if !liveness.connectedLogon.sameLogon(observed) {
+			reportWindowsPeerRejection(windowsPipeOperationFailure(WindowsPipeStageActiveLogonCorrelation, "revalidate retained Windows client logon", fmt.Errorf("connected process logon changed")))
 			liveness.revoke()
 			return
 		}

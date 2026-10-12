@@ -184,7 +184,12 @@ pub async fn desktop_machine_product_unary(
         {
             Ok(response) => NativeBytesOutcome::success(response.response_bytes),
             Err(error) => {
-                clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+                clear_desktop_control_on_transport_reason(
+                    &control,
+                    error.reason_code(),
+                    error.reason_metadata(),
+                )
+                .await;
                 NativeBytesOutcome::error_with_metadata(
                     error.reason_code(),
                     error.retryable(),
@@ -230,7 +235,12 @@ pub async fn desktop_account_product_unary(
         {
             Ok(response) => NativeBytesOutcome::success(response.response_bytes),
             Err(error) => {
-                clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+                clear_desktop_control_on_transport_reason(
+                    &control,
+                    error.reason_code(),
+                    error.reason_metadata(),
+                )
+                .await;
                 NativeBytesOutcome::error_with_metadata(
                     error.reason_code(),
                     error.retryable(),
@@ -612,7 +622,12 @@ pub async fn desktop_bundled_avatar_unary(
         {
             Ok(response) => NativeBytesOutcome::success(response.response_bytes),
             Err(error) => {
-                clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+                clear_desktop_control_on_transport_reason(
+                    &control,
+                    error.reason_code(),
+                    error.reason_metadata(),
+                )
+                .await;
                 NativeBytesOutcome::error_with_metadata(
                     error.reason_code(),
                     error.retryable(),
@@ -771,7 +786,8 @@ pub async fn desktop_account_switch_account(
 pub async fn fixed_runtime_service_status() -> NativeJsonOutcome {
     match current_or_open_desktop_control().await {
         Ok(control) => NativeJsonOutcome::success(project_verified_runtime_release(
-            control.runtime_service_mode(), control.runtime_release_version(),
+            control.runtime_service_mode(),
+            control.runtime_release_version(),
         )),
         Err(error) => NativeJsonOutcome::host_error(error),
     }
@@ -779,13 +795,23 @@ pub async fn fixed_runtime_service_status() -> NativeJsonOutcome {
 
 #[napi(js_name = "windowsProductUpdateHost")]
 pub fn windows_product_update_host() -> NativeJsonOutcome {
-    #[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
+    #[cfg(all(
+        target_os = "windows",
+        not(feature = "windows-source-local-development")
+    ))]
     match nimi_shell_protected_local::windows_product_update_host() {
-        Ok((helper,public_key)) => return NativeJsonOutcome::success(serde_json::json!({ "helperPath": helper, "publicKey": public_key })),
+        Ok((helper, public_key)) => {
+            return NativeJsonOutcome::success(
+                serde_json::json!({ "helperPath": helper, "publicKey": public_key }),
+            )
+        }
         Err(error) => return NativeJsonOutcome::protected_error(error),
     }
-    #[cfg(not(all(target_os = "windows", not(feature = "windows-source-local-development"))))]
-    NativeJsonOutcome::host_reason("runtime-service-untrusted",false)
+    #[cfg(not(all(
+        target_os = "windows",
+        not(feature = "windows-source-local-development")
+    )))]
+    NativeJsonOutcome::host_reason("runtime-service-untrusted", false)
 }
 
 #[cfg(target_os = "macos")]
@@ -819,7 +845,8 @@ pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
     )))]
     if let Ok(control) = current_or_open_desktop_control().await {
         return NativeJsonOutcome::success(project_verified_runtime_release(
-            control.runtime_service_mode(), control.runtime_release_version(),
+            control.runtime_service_mode(),
+            control.runtime_release_version(),
         ));
     }
     #[cfg(not(any(
@@ -996,7 +1023,9 @@ pub fn desktop_launch_installed_app<'env>(
 }
 
 #[napi(js_name = "desktopCancelInstalledAppLaunch")]
-pub fn desktop_cancel_installed_app_launch(input: NativeInstalledAppLaunchInput) -> NativeJsonOutcome {
+pub fn desktop_cancel_installed_app_launch(
+    input: NativeInstalledAppLaunchInput,
+) -> NativeJsonOutcome {
     installed_launch_cancellation::cancel(&input.launch_selector);
     NativeJsonOutcome::success(json!({"canceled": true}))
 }
@@ -1183,7 +1212,9 @@ pub async fn desktop_local_development_host_status(
         Err(error) => return NativeJsonOutcome::host_error(error),
     };
     match control.local_development_host_status(supervisor_run_id) {
-        Ok((running, exit_code)) => NativeJsonOutcome::success(json!({ "running": running, "exitCode": exit_code })),
+        Ok((running, exit_code)) => {
+            NativeJsonOutcome::success(json!({ "running": running, "exitCode": exit_code }))
+        }
         Err(error) => {
             clear_desktop_control_on_host_failure(&control, &error).await;
             NativeJsonOutcome::host_error(error)
@@ -1380,10 +1411,12 @@ where
 async fn clear_desktop_control_on_transport_reason(
     control: &Arc<dyn NimiDesktopControl>,
     reason_code: &str,
+    reason_metadata: &std::collections::BTreeMap<String, String>,
 ) {
     if !invalidates_desktop_transport(reason_code) {
         return;
     }
+    diagnose_desktop_transport_invalidation(reason_code, reason_metadata);
     clear_desktop_control(control).await;
 }
 
@@ -1394,7 +1427,27 @@ async fn clear_desktop_control_on_host_failure(
     if !invalidates_desktop_transport(error.reason_code().as_str()) {
         return;
     }
+    diagnose_desktop_transport_invalidation(error.reason_code().as_str(), error.reason_metadata());
     clear_desktop_control(control).await;
+}
+
+fn diagnose_desktop_transport_invalidation(
+    reason_code: &str,
+    reason_metadata: &std::collections::BTreeMap<String, String>,
+) {
+    if std::env::var_os("NIMI_PROTECTED_LOCAL_DIAGNOSTICS").as_deref()
+        != Some(std::ffi::OsStr::new("1"))
+    {
+        return;
+    }
+    // Callers pass only an admitted transport reason. Project the numeric
+    // status, never the status message or other Runtime error metadata.
+    let status = reason_metadata
+        .get("grpc_status_code")
+        .and_then(|value| value.parse::<u8>().ok())
+        .filter(|value| *value <= 16)
+        .map_or_else(|| "none".to_string(), |value| value.to_string());
+    eprintln!("[protected-local desktop-control] invalidate reason={reason_code} grpc_status_code={status}");
 }
 
 fn invalidates_desktop_transport(reason_code: &str) -> bool {
