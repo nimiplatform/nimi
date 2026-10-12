@@ -2,8 +2,8 @@
 
 This is the concrete execution guide for `nimi/v<Desktop package version>`,
 separate from SDK, Runtime-only and third-party App releases. Source preparation,
-actual artifacts and real product acceptance are different results. This work
-has only local engineering evidence; no release, deployment or CI run was made.
+actual artifacts and real product acceptance are different results. A successful
+build or publication does not establish installed-product acceptance.
 
 ## Inputs and custody
 
@@ -18,9 +18,10 @@ has only local engineering evidence; no release, deployment or CI run was made.
   stays disabled, and their local realmOrigin prevents public promotion.
   CLI consumes an existing private-key file via `--signing-key`; it never
   generates a replacement. The workflow's `NIMI_PRODUCT_UPDATE_SIGNING_KEY_PEM`
-  secret is an **unprovisioned custody reference**, not evidence that a secret
-  exists. Platform must approve/provision that binding outside this source-only
-  task before executing it. Do not put private keys in chat, Git or artifacts.
+  secret is a custody reference; its name alone does not prove provisioning or
+  a match to the admitted key. Platform must approve/provision that binding,
+  and the workflow verifies the actual pair before signing work. Do not put
+  private keys in chat, Git or artifacts.
 - Mac reuses `NIMI_MACOS_SIGNING_P12_BASE64`,
   `NIMI_MACOS_SIGNING_P12_PASSWORD`, `NIMI_NOTARY_APPLE_ID` and
   `NIMI_NOTARY_APP_PASSWORD` from the existing temporary-Keychain workflow;
@@ -132,8 +133,19 @@ composition. Those remain explicit acceptance prerequisites.
 
 `.github/workflows/release-product.yml` is manual. `publish=false` builds and
 prepares both targets, validates the complete set and retains a ready artifact.
-`publish=true` additionally runs the real publication entry. No trigger was run
-in this task. Source/admission/key are checked before signing work.
+`publish=true` additionally runs the real publication entry.
+Source/admission/key are checked before signing work.
+
+To publish a previously prepared and approved set from GitHub, set
+`prepared_run_id` and `prepared_run_attempt` to the run that produced its
+`nimi-product-ready-<run>-<attempt>` artifact. Keep `source_sha` and admission
+equal to that original set. The existing workflow downloads that exact artifact
+from this repository with read-only Actions permission, verifies all seven
+original files through the same source/key/cohort/final-byte validator, and
+uses the same publisher. It does not rebuild, re-sign or refresh signed times.
+Missing artifacts, source/trust mismatches and expired metadata still refuse
+publication. The workflow definition can be newer than the frozen payload source;
+the artifact's signed source remains the product tag's source.
 
 Only after owner approval of a concrete ready set may an authorized operator run:
 

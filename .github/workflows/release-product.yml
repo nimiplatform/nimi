@@ -15,6 +15,14 @@ on:
         description: Publish the validated draft as immutable after both platforms are ready
         default: false
         type: boolean
+      prepared_run_id:
+        description: Reuse an existing complete ready artifact from this repository; empty builds both platforms
+        default: ''
+        type: string
+      prepared_run_attempt:
+        description: Attempt that produced the selected ready artifact
+        default: '1'
+        type: string
 
 permissions:
   contents: read
@@ -41,6 +49,8 @@ jobs:
           SOURCE_SHA: ${{ inputs.source_sha }}
           RELEASE_ADMISSION: ${{ inputs.release_admission }}
           PRODUCT_SIGNING_KEY: ${{ secrets.NIMI_PRODUCT_UPDATE_SIGNING_KEY_PEM }}
+          PREPARED_RUN_ID: ${{ inputs.prepared_run_id }}
+          PREPARED_RUN_ATTEMPT: ${{ inputs.prepared_run_attempt }}
         run: |
           set -euo pipefail
           [[ "${SOURCE_SHA}" =~ ^[a-f0-9]{40}$ ]]
@@ -48,6 +58,10 @@ jobs:
           git fetch --no-tags origin main:refs/remotes/origin/main
           git merge-base --is-ancestor "${SOURCE_SHA}" origin/main
           test -n "${PRODUCT_SIGNING_KEY}"
+          if [[ -n "${PREPARED_RUN_ID}" ]]; then
+            [[ "${PREPARED_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
+            [[ "${PREPARED_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]
+          fi
           node --input-type=module -e "import {requireProductSigningKey,validateProductReleaseAdmission} from './scripts/lib/product-release-assets.mjs'; import fs from 'node:fs'; requireProductSigningKey(process.env.PRODUCT_SIGNING_KEY); validateProductReleaseAdmission(JSON.parse(process.env.RELEASE_ADMISSION),{version:JSON.parse(fs.readFileSync('apps/desktop/package.json')).version,sourceRevision:process.env.SOURCE_SHA});"
 
   security:
@@ -59,6 +73,7 @@ jobs:
 
   macos:
     needs: input
+    if: inputs.prepared_run_id == ''
     uses: ./.github/workflows/build-macos-production.yml
     with:
       source_ref: ${{ inputs.source_sha }}
@@ -68,6 +83,7 @@ jobs:
 
   windows:
     needs: [input, security]
+    if: inputs.prepared_run_id == ''
     runs-on: windows-latest
     timeout-minutes: 180
     steps:
@@ -126,8 +142,12 @@ jobs:
           if-no-files-found: error
 
   assemble:
-    needs: [macos, windows]
+    needs: [input, security, macos, windows]
+    if: always() && needs.input.result == 'success' && needs.security.result == 'success' && ((inputs.prepared_run_id != '' && needs.macos.result == 'skipped' && needs.windows.result == 'skipped') || (inputs.prepared_run_id == '' && needs.macos.result == 'success' && needs.windows.result == 'success'))
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -138,9 +158,19 @@ jobs:
           node-version: 24
           package-manager-cache: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: inputs.prepared_run_id == ''
         with:
           pattern: nimi-product-*-${{ github.run_id }}-${{ github.run_attempt }}
           merge-multiple: true
+          path: .nimi/local/product-release/ready
+      - name: Download the original complete prepared file set
+        if: inputs.prepared_run_id != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: nimi-product-ready-${{ inputs.prepared_run_id }}-${{ inputs.prepared_run_attempt }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.prepared_run_id }}
           path: .nimi/local/product-release/ready
       - name: Verify every final asset before publication
         env:
@@ -155,7 +185,7 @@ jobs:
 
   publish:
     needs: assemble
-    if: inputs.publish
+    if: always() && needs.assemble.result == 'success' && inputs.publish
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
