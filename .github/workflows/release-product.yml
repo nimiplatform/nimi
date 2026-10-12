@@ -202,7 +202,7 @@ jobs:
           path: .nimi/local/product-release/ready
       - name: Stage draft upload verify and immutable publish
         env:
-          GH_TOKEN: ${{ secrets.NIMI_GITHUB_RELEASES_TOKEN }}
+          GH_TOKEN: ${{ secrets.NIMI_PRODUCT_RELEASES_TOKEN }}
           SOURCE_SHA: ${{ inputs.source_sha }}
         run: |
           set -euo pipefail

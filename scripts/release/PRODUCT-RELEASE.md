@@ -28,13 +28,16 @@ build or publication does not establish installed-product acceptance.
   Developer ID identities must be Team RMZJPQQR3X. Local-acceptance Realm builds
   remain non-publishable. Final release sidecar must say
   `realmOrigin=https://realm.nimi.ai`.
-- Publisher reuses the existing `NIMI_GITHUB_RELEASES_TOKEN` reference. Its
+- Publisher uses the dedicated `NIMI_PRODUCT_RELEASES_TOKEN` reference. Its
   actual permissions are not assumed: publication needs release/tag write and
-  immutable-settings administration read. If the existing release-read token
-  lacks these, publication refuses until the owner approves suitable custody.
+  immutable-settings administration read. Keep it scoped to nimiplatform/nimi
+  and provision it only for the publishing workflow. It is never deployed to
+  Gateway. Missing custody or permissions refuse publication.
   No script enables immutability or changes secrets/repository settings.
 - Gateway reuses existing Cloudflare account/API token custody and the optional
-  release-read GitHub token. No signing private key is deployed to Gateway.
+  read-only `NIMI_GITHUB_RELEASES_TOKEN`. Refresh that reader separately from
+  publishing custody. No publishing token or signing private key is deployed
+  to Gateway.
 
 The operator's ephemeral admission JSON is publishing input, not another
 version or evidence ledger. Its exact keys are:
