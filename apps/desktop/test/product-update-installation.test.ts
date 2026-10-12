@@ -58,12 +58,14 @@ test('missing consent/readiness, changed candidate, critical failure and handoff
   }
 });
 
-test('actual production adapter stays closed with unconfigured key and rejects untrusted receipt', async () => {
+test('actual production adapter stays closed outside its installed owner and rejects malformed receipt', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'nimi-install-readiness-'));
   const adapter = new MacOSProductUpdateAdapter(directory, true);
   try {
     assert.equal(await adapter.ready(), false);
     await writeFile(path.join(directory, 'handoff.json'), JSON.stringify({ envelope: { payload: '', signature: '' } }), { mode: 0o600 });
-    await assert.rejects(adapter.reconcile(async () => { throw new Error('must not read health before receipt trust'); }), /UPDATE_TRUST_NOT_CONFIGURED/);
+    // Windows rejects this macOS receipt's POSIX ownership/mode before reading it.
+    const refusal = process.platform === 'win32' ? /UPDATE_HANDOFF_INVALID/ : /UPDATE_METADATA_INVALID/;
+    await assert.rejects(adapter.reconcile(async () => { throw new Error('must not read health before receipt trust'); }), refusal);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

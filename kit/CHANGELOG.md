@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0 — Production Beta carrier candidate
+
+The Windows native package now targets the formal Nimi Runtime service using the Platform-admitted Ed25519 product inventory key. This changes the deployment boundary and is a breaking 0.x minor change. Upgrade Kit and its native packages together for the complete Nimi Beta product; the Runtime wire and SDK 0.21.0 API remain unchanged.
+
+The published 0.18.1 Windows artifact remains the D2 source-development carrier. Existing D2 projects must retain that explicit combination or consume a complete deliberately built source-development package; no production-to-D2 fallback is introduced. Production builds refuse an absent Platform key. The formal product installer, matched carrier and Runtime must use the same admitted key.
+
 ## 0.18.1 — 2026-10-11
 
 Use SDK 0.21.0 and the matching 0.18.1 native package. This 0.18 release includes

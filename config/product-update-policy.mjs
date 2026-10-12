@@ -3,9 +3,8 @@ export const PRODUCT_UPDATE_POLICY = Object.freeze({
   channel: 'beta',
   endpoint: 'https://install.nimi.ai/nimi',
   repository: 'nimiplatform/nimi',
-  // Admission requires the actual release signing public key. Empty trust
-  // cannot validate a candidate; never generate a development replacement.
-  publicKey: null,
+  // Platform-approved raw Ed25519 release signing public key.
+  publicKey: 'hcbaPfpofg03H/qVizlO0n2N3owg2VyDj+dD83IuWQI=',
   macOSTeamId: 'RMZJPQQR3X',
   checkIntervalMs: 6 * 60 * 60 * 1000,
   requestTimeoutMs: 30_000,

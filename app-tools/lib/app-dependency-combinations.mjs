@@ -1,6 +1,6 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
 
-// The default remains the tested public combination. Explicitly selected
+// The manifest names the tested candidate/default combination. Explicitly selected
 // development pairs use the same current Host, never an older template.
 // Their complete tarballs and installed identities are checked separately;
 // admitting a source pair here makes no publication or product-acceptance claim.
@@ -9,6 +9,7 @@ const SDK = '@nimiplatform/sdk';
 const KIT = '@nimiplatform/kit';
 
 export const ADDITIONAL_DEPENDENCY_COMBINATIONS = Object.freeze([
+  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.18.1', nimiShellTauriVersion: '0.10.0', source: 'existing' }),
   Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.18.0', nimiShellTauriVersion: '0.10.0', source: 'existing' }),
   Object.freeze({ sdkVersion: '^0.20.0', kitVersion: '^0.17.0', nimiShellTauriVersion: '0.9.0', source: 'existing' }),
   Object.freeze({ sdkVersion: '^0.18.1', kitVersion: '^0.15.3', nimiShellTauriVersion: '0.7.0', source: 'existing' }),

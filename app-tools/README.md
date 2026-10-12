@@ -2,10 +2,12 @@
 
 `app-tools` is the public full-stack developer toolkit for third-party Nimi Apps. It owns repository scaffolding, dependency and managed-file synchronization, local validation, Desktop-supervised development, App-declared test/build orchestration, deterministic packaging, and managed GitHub workflow setup.
 
-App Tools 0.11.4 defaults to SDK 0.21.0 and Kit/native 0.18.1, with Nimi Coding
-0.6.5. Existing Apps select this SDK/Kit combination explicitly before syncing;
-the tool update alone preserves their supported business dependencies. The
-matching Electron carrier requires Electron 44.
+The prepared App Tools 0.12.0 default is SDK 0.21.0 and Kit/native 0.19.0 for
+the complete Nimi Beta production Runtime, with Nimi Coding 0.6.5 and Electron 44.
+Existing Apps explicitly select that combination before syncing. The previously
+published SDK 0.21.0 / Kit 0.18.1 D2 combination remains admitted for existing
+source-development projects; updating the tool alone preserves their dependencies.
+Candidate manifest versions do not establish registry publication.
 
 It does not own GitHub publisher or repository truth, registry review/main, Runtime installed state, Desktop process state, or Nimi Access. Nimi Account and the private Nimi backend are not publisher credentials or App-release infrastructure.
 
@@ -115,8 +117,9 @@ rejected rather than normalized. A matrix range in the manifest does not
 require an automatic upgrade; install with the frozen lockfile until
 deliberately selecting and synchronizing a new component combination.
 
-The current source guide uses App Tools 0.11.4 with SDK `^0.21.0`, Kit/native
-`^0.18.0`, the matching Runtime, and Tauri `0.10.0` when selected. Fresh scaffold
+The production Beta candidate guide uses App Tools 0.12.0 with SDK `^0.21.0`,
+Kit/native `^0.19.0`, the matching production Runtime, and Tauri `0.10.0` when
+selected. Existing D2 projects retain their declared `^0.18.1` Kit combination. Fresh scaffold
 defaults still come from `nimiScaffoldVersions` in `package.json`; explicitly
 select the current SDK/Kit pair to use this guide. On an initialized App, run
 `nimi-app sync`, install the resulting dependencies, then run `nimi-app check`
@@ -155,9 +158,9 @@ overrides in the App's own `pnpm-workspace.yaml`:
 packages:
   - .
 overrides:
-  '@nimiplatform/app-tools': file:D:/nimi-packages/nimiplatform-app-tools-0.11.4.tgz
+  '@nimiplatform/app-tools': file:D:/nimi-packages/nimiplatform-app-tools-0.12.0.tgz
   '@nimiplatform/sdk': file:D:/nimi-packages/nimiplatform-sdk-0.21.0.tgz
-  '@nimiplatform/kit': file:D:/nimi-packages/nimiplatform-kit-0.18.0.tgz
+  '@nimiplatform/kit': file:D:/nimi-packages/nimiplatform-kit-0.19.0.tgz
 ```
 
 These are example artifact locations; use the complete packages you were given.

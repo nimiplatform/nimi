@@ -17,3 +17,12 @@ test('mixing one new package with the old carrier still fails before scaffold wr
   assert.throws(()=>resolveDependencyCombination(app('^0.19.0','^0.15.3'),versions),/Unsupported SDK\/Kit combination/);
   assert.throws(()=>resolveDependencyCombination(app('^0.18.1','^0.16.0'),versions),/Unsupported SDK\/Kit combination/);
 });
+
+test('production Beta defaults preserve the published D2 combination for existing projects',()=>{
+  const production={sdkVersion:'^0.21.0',kitVersion:'^0.19.0',nimiShellTauriVersion:'0.10.0'};
+  assert.equal(resolveDependencyCombination({},production).kitVersion,'^0.19.0');
+  assert.equal(resolveDependencyCombination(app('^0.21.0','^0.19.0'),production).source,'default');
+  assert.deepEqual(resolveDependencyCombination(app('^0.21.0','^0.18.1'),production),{
+    sdkVersion:'^0.21.0',kitVersion:'^0.18.1',nimiShellTauriVersion:'0.10.0',source:'existing',
+  });
+});

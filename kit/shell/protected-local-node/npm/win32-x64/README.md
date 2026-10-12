@@ -9,8 +9,10 @@ The binary exports only the bounded Desktop control and Local App operations
 declared by the parent protected-local-node package. Protected App operations
 remain fail-closed while App Access admission is unavailable.
 
-This Kit release targets the existing Windows D2 Runtime. Desktop supplies the
-explicit D2 launch environment and exact Runtime executable; the binary retains
-the canonical-path, same-user, non-elevated session, and process checks. App
-registration, the exact Desktop launch witness, and fresh App Access remain
-Runtime-owned. The package is not a production Runtime service trust fallback.
+This Kit release targets the formal Windows Nimi Runtime service. The compiled
+Platform Ed25519 key authenticates the installed complete-product inventory,
+fixed administrative paths and locked executable bytes. Runtime still owns App
+registration, the exact Desktop launch witness and fresh App Access.
+
+Kit 0.18.1 remains the separately published D2 source-development artifact;
+production admission does not fall back to its trust boundary.

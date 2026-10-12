@@ -29,8 +29,10 @@ test('gateway separates empty product source, unconfigured trust and upstream fa
   const route = '/nimi/beta/macos-arm64/latest.json';
   const empty = await request(route, async () => new Response('[]'));
   assert.equal(empty.status, 404); assert.deepEqual(await empty.json(), { error: 'UPDATE_RELEASE_NOT_FOUND' });
-  const missingKey = await request(route, async () => new Response(JSON.stringify([signedProductFixture().release])));
-  assert.equal(missingKey.status, 503); assert.deepEqual(await missingKey.json(), { error: 'UPDATE_TRUST_NOT_CONFIGURED' });
+  const fixture = signedProductFixture();
+  await assert.rejects(resolveProductManifest([fixture.release], 'beta', 'macos-arm64', async () => { throw new Error('must not fetch without trust'); }, null), /UPDATE_TRUST_NOT_CONFIGURED/);
+  const wrongKey = await request(route, async (url) => String(url).endsWith('latest.json') ? new Response(fixture.manifestBytes) : new Response(JSON.stringify([fixture.release])));
+  assert.equal(wrongKey.status, 502); assert.deepEqual(await wrongKey.json(), { error: 'UPDATE_SIGNATURE_INVALID' });
   const upstream = await request(route, async () => new Response('', { status: 503 }));
   assert.equal(upstream.status, 502);
   assert.equal((await request('/desktop/latest.json', async () => { throw new Error('must not fetch'); })).status, 404);

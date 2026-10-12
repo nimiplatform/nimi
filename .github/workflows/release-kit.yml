@@ -185,14 +185,14 @@ jobs:
       - name: Test the Windows native crates for publication
         if: github.event_name != 'pull_request'
         run: pnpm test:kit:native
-      - name: Build the public Windows D2 carrier
-        run: node kit/shell/protected-local-node/scripts/build-windows-x64-source-local-development-package.mjs
+      - name: Build the production Windows native carrier
+        run: node kit/shell/protected-local-node/scripts/build-windows-x64-package.mjs
       - name: Test the real release native binding
         shell: pwsh
         run: |
-          $env:CARGO_TARGET_DIR = Join-Path $env:GITHUB_WORKSPACE 'kit/shell/protected-local-node/target/windows-source-local-development'
+          $env:CARGO_TARGET_DIR = Join-Path $env:GITHUB_WORKSPACE 'kit/shell/protected-local-node/target/windows-production'
           node kit/shell/protected-local-node/test/native-input-contract.cjs release
-          if ($LASTEXITCODE -ne 0) { throw 'Windows D2 native contract failed' }
+          if ($LASTEXITCODE -ne 0) { throw 'Windows production native contract failed' }
       - name: Pack and dry-run the Windows native package
         shell: pwsh
         run: |

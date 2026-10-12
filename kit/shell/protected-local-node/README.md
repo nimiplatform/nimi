@@ -3,12 +3,15 @@
 Host-only Node-API projection of the shared Nimi protected carrier for Electron
 main processes.
 
-The current public Windows npm artifact is built for D2 Runtime using the
-existing `windows-source-local-development` Cargo feature. It supports the
-shared caller contract for separately admitted installed and Developer Mode
-Apps, with their source/admission distinction preserved by Runtime. The formal
-production Runtime carrier and its Platform-signed complete-product inventory verifier remain separately built
-and fail closed; publishing a D2 artifact does not change that service boundary.
+The 0.19 production candidate builds the public Windows npm artifact for the
+formal Runtime service and its Platform-signed complete-product inventory.
+The admitted Platform public key is sealed into that carrier; an absent key
+refuses the build. The release workflow does not substitute a D2 artifact.
+
+The previously published 0.18.1 Windows artifact uses the separate
+`windows-source-local-development` Cargo feature for D2 Runtime. Existing D2
+projects retain their explicit dependency combination. Its process, App Access
+and source-admission checks remain distinct from formal service admission.
 
 The addon exposes exact Local App operations, including:
 
