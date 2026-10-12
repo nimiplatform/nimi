@@ -40,6 +40,19 @@ test('packaged macOS Electron resolves only its sealed native carrier resource',
 const macOSTest = process.platform === 'darwin' ? test : test.skip;
 const windowsTest = process.platform === 'win32' ? test : test.skip;
 
+test('unpackaged Windows Apps can use the fixed Runtime without selecting a source carrier', () => {
+  const host = { architecture: 'x64', platform: 'win32', sourceDefaultApp: true };
+  assert.equal(resolveNimiElectronProtectedLocalPackageSpecifier(windowsPackage, host), windowsPackage);
+  for (const invalid of [
+    { ...host, architecture: 'arm64' },
+    { ...host, sourceSourceLocalDevelopment: '0' },
+    { ...host, sourceSourceLocalDevelopment: '1' },
+    { ...host, sourceEntry: 'D:/unadmitted/index.cjs' },
+  ]) {
+    assert.throws(() => resolveNimiElectronProtectedLocalPackageSpecifier(windowsPackage, invalid), /protected-carrier-required/u);
+  }
+});
+
 test('Windows D2 installed hosts use the packaged binding and reject workspace overrides', () => {
   const installedHost = {
     architecture: 'x64',

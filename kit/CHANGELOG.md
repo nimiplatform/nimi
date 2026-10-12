@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.19.3 — 2026-10-12
+
+Unpackaged Windows Electron Apps supervised by the fixed Nimi service now load
+their published native carrier. Electron's default-App flag no longer selects
+the source Runtime profile by itself. Explicit source-profile inputs still
+require the admitted workspace carrier, and malformed inputs fail closed.
+Host diagnostics also retain the bounded stage of a refused development launch.
+
 ## 0.19.2 — 2026-10-12
 
 Published macOS App carriers can connect to the source-development Runtime when

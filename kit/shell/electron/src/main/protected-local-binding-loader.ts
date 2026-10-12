@@ -39,16 +39,17 @@ export function resolveNimiElectronProtectedLocalPackageSpecifier(
     readonly sourceEntry?: string;
   },
 ): string {
-  const sourceRequested = input.sourceDefaultApp
-    || input.sourceSourceLocalDevelopment !== undefined
+  const sourceRequested = input.sourceSourceLocalDevelopment !== undefined
     || input.sourceEntry !== undefined;
   if (input.platform === 'win32') {
-    if (!sourceRequested) return packageName;
     if (input.architecture !== 'x64'
-      || packageName !== WINDOWS_X64_BINDING_PACKAGE
-      || input.sourceSourceLocalDevelopment !== '1') {
+      || packageName !== WINDOWS_X64_BINDING_PACKAGE) {
       throw new Error('protected-carrier-required');
     }
+    // An unpackaged Electron App may be supervised by the fixed service.
+    // Only an explicit source profile selects the workspace carrier.
+    if (!sourceRequested) return packageName;
+    if (input.sourceSourceLocalDevelopment !== '1') throw new Error('protected-carrier-required');
     // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-037a
     if (input.sourceDefaultApp !== true) {
       if (input.sourceEntry !== undefined) throw new Error('protected-carrier-required');
@@ -74,7 +75,7 @@ export function resolveNimiElectronProtectedLocalPackageSpecifier(
   if (input.architecture !== 'arm64' || packageName !== MACOS_ARM64_BINDING_PACKAGE) {
     throw new Error('protected-carrier-required');
   }
-  if (sourceRequested) {
+  if (sourceRequested || input.sourceDefaultApp) {
     if (input.sourceDefaultApp !== true || input.sourceSourceLocalDevelopment !== '1') {
       throw new Error('protected-carrier-required');
     }
