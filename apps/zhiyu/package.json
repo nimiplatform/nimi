@@ -20,7 +20,7 @@
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "fflate": "0.8.3",
-    "lucide-react": "1.51.0",
+    "lucide-react": "1.52.0",
     "postcss": "8.5.29",
     "react": "19.3.0",
     "react-dom": "19.3.0"
@@ -37,6 +37,6 @@
     "tailwindcss": "^4.3.3",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vite": "8.3.3"
+    "vite": "8.3.4"
   }
 }
