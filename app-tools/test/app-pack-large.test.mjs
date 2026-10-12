@@ -8,7 +8,7 @@ import { hashAppArchive, readAppArchiveFile, writeAppArchiveFile } from '../lib/
 test('App archive hash and file I/O support a ZIP32 payload above the native int32 input limit', () => {
   const bytes = Buffer.alloc(0x80000001);
   // Independent Python hashlib reference for 2 GiB + 1 zero bytes.
-  assert.equal(hashAppArchive(bytes), 'b8030a8ab89280935633d8d991da3d9907c0f12e8b6fc3bfc515f4d440872b6e');
+  assert.equal(hashAppArchive(bytes), 'b8030a8ab89280935633d8d991da3d9907c0f12e8b6fc3bfc515f4d440872b6e'); // pragma: allowlist secret - deterministic digest of zero bytes
   const directory = mkdtempSync(path.join(os.tmpdir(), 'nimi-large-archive-'));
   const file = path.join(directory, 'large.nimiapp');
   try {
