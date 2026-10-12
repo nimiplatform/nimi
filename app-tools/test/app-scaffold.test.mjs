@@ -84,6 +84,32 @@ const LAB_SOURCE_IDENTITY_LITERALS = [
   'nimiapp-lab-shell',
 ];
 
+test('generated renderer configuration accepts CSS imports and Vite environment types', () => {
+  const currentVersions = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8')).nimiScaffoldVersions;
+  const snapshot = buildAppScaffoldSnapshot({
+    profile: 'standalone', versions: currentVersions, appId: 'test.renderer-types',
+    appTitle: 'Renderer Types Test', packageName: 'test-renderer-types', features: [],
+  });
+  const config = JSON.parse(snapshot.filesByPath.get('tsconfig.json').content);
+  const options = {
+    ...ts.convertCompilerOptionsFromJson(config.compilerOptions, testDir).options,
+    noUncheckedSideEffectImports: true,
+  };
+  const entry = path.join(testDir, '__generated-renderer-types.ts');
+  const source = 'import "./styles.css"; export const isProduction = import.meta.env.PROD;';
+  const host = ts.createCompilerHost(options);
+  const getSourceFile = host.getSourceFile;
+  host.getSourceFile = (file, languageVersion, onError, shouldCreateNewSourceFile) => (
+    path.normalize(file) === entry
+      ? ts.createSourceFile(file, source, languageVersion, true)
+      : getSourceFile(file, languageVersion, onError, shouldCreateNewSourceFile)
+  );
+  const program = ts.createProgram([entry], options, host);
+  assert.deepEqual(ts.getPreEmitDiagnostics(program).map((diagnostic) => (
+    ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')
+  )), []);
+});
+
 test('generated AI Studio initializer typechecks against the installed i18next API', () => {
   const currentVersions = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8')).nimiScaffoldVersions;
   const snapshot = buildAppScaffoldSnapshot({
