@@ -148,7 +148,10 @@ original files through the same source/key/cohort/final-byte validator, and
 uses the same publisher. It does not rebuild, re-sign or refresh signed times.
 Missing artifacts, source/trust mismatches and expired metadata still refuse
 publication. The workflow definition can be newer than the frozen payload source;
-the artifact's signed source remains the product tag's source.
+the artifact's signed source remains the product tag's source. The publisher
+runs clean, admitted main code and reads version from the frozen payload commit,
+which must be its main-line ancestor; it never substitutes the operator's newer
+package version. Dirty or unadmitted operator code refuses publication.
 
 Only after owner approval of a concrete ready set may an authorized operator run:
 
@@ -170,6 +173,11 @@ different existing assets block. No asset is patched after publish. GitHub's
 is used; [immutable settings read](https://docs.github.com/en/rest/repos/repos#check-if-immutable-releases-are-enabled-for-a-repository)
 requires owner-approved administration read permission. A failure after final
 publication is an actual published state needing owner review, not a rollback.
+
+Before publication GitHub may report draft-only `untagged-...` download URLs.
+Those temporary URLs are not consumed or written into signed metadata. Draft
+verification still binds the exact release ID, source, names, sizes and digests;
+the publisher requires the exact final tag-bound URLs after publication.
 
 ## Gateway and real acceptance
 

@@ -1,5 +1,23 @@
 import { PRODUCT_UPDATE_POLICY } from '../../config/product-update-policy.mjs';
-import { PRODUCT_TARGETS, productAssetUrl, validateProductRelease } from '../../config/product-update-contract.mjs';
+import { PRODUCT_TARGETS, productAssetUrl, validateProductRelease, compareProductVersions } from '../../config/product-update-contract.mjs';
+import { spawnSync } from 'node:child_process';
+
+// Publishing code can advance without rebuilding an approved payload. Both
+// revisions remain on main; version and signed source come from the payload.
+export function readProductPublishSource(sourceRevision, repoRoot = process.cwd()) {
+  if (!/^[a-f0-9]{40}$/u.test(sourceRevision)) throw Error('PRODUCT_RELEASE_SOURCE_INVALID');
+  const git = args => spawnSync('git', args, { cwd: repoRoot, encoding: 'utf8', windowsHide: true });
+  const head = git(['rev-parse', 'HEAD']);
+  const status = git(['status', '--porcelain', '--untracked-files=normal']);
+  if (head.status !== 0 || status.status !== 0 || status.stdout.trim()) throw Error('PRODUCT_RELEASE_OPERATOR_DIRTY');
+  if (git(['merge-base', '--is-ancestor', head.stdout.trim(), 'refs/remotes/origin/main']).status !== 0) throw Error('PRODUCT_RELEASE_OPERATOR_NOT_MAIN');
+  if (git(['merge-base', '--is-ancestor', sourceRevision, head.stdout.trim()]).status !== 0) throw Error('PRODUCT_RELEASE_SOURCE_NOT_ANCESTOR');
+  const manifest = git(['show', `${sourceRevision}:apps/desktop/package.json`]);
+  if (manifest.status !== 0) throw Error('PRODUCT_RELEASE_SOURCE_INVALID');
+  const version = JSON.parse(manifest.stdout).version;
+  compareProductVersions(version, version);
+  return { version };
+}
 
 function requireFreshMetadata(batch, now) {
   if(!Array.isArray(batch.releases) || batch.releases.length!==PRODUCT_TARGETS.length) throw Error('PRODUCT_RELEASE_METADATA_INCOMPLETE');
@@ -16,7 +34,9 @@ function requireRemoteAssets(release,batch) {
   for(const file of batch.files) {
     const matches=release.assets.filter(a=>a.name===file.name);
     if(matches.length!==1 || matches[0].state!=='uploaded' || matches[0].size!==file.size || matches[0].digest!==`sha256:${file.sha256}`
-      || matches[0].browser_download_url!==productAssetUrl(batch.releaseId,file.name)) throw Error('PRODUCT_RELEASE_REMOTE_ASSET_MISMATCH');
+      // GitHub draft assets use an untagged temporary URL until publication.
+      // Nothing consumes that URL; the exact published address stays required.
+      || (!release.draft && matches[0].browser_download_url!==productAssetUrl(batch.releaseId,file.name))) throw Error('PRODUCT_RELEASE_REMOTE_ASSET_MISMATCH');
   }
 }
 

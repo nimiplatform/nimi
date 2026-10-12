@@ -1,16 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { publishPreparedProductRelease } from './product-release-publish.mjs';
+import { publishPreparedProductRelease, readProductPublishSource } from './product-release-publish.mjs';
 import { productAssetUrl } from '../../config/product-update-contract.mjs';
 import { signedProductFixture } from '../../apps/install-gateway/test/product-release-fixture.mjs';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import os from 'node:os';
 
 function fixtureBatch() {
   const mac=signedProductFixture(), win=signedProductFixture({target:'windows-amd64',publishedAt:mac.candidate.publishedAt,expiresAt:mac.candidate.expiresAt},undefined,mac.privateKey);
   return {releaseId:mac.candidate.releaseId,version:mac.candidate.version,sourceRevision:mac.candidate.sourceRevision,channel:'beta',releases:[mac.candidate,win.candidate],files:[{name:mac.candidate.asset.name,path:'/prepared/pkg',size:7,sha256:'b'.repeat(64)},{name:'nimi-update-macos-arm64.json',path:'/prepared/json',size:8,sha256:'c'.repeat(64)}]};
 }
+
+test('a clean newer main publisher reads the frozen payload version and rejects dirty, unrelated or unadmitted source',async(t)=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'nimi-publish-source-'));
+  t.after(async()=>{assert.equal(path.dirname(root),path.resolve(os.tmpdir()));await rm(root,{recursive:true,force:true});});
+  const git=args=>{const r=spawnSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true});assert.equal(r.status,0,r.stderr);return r.stdout.trim();};
+  git(['init','-b','main']);git(['config','user.name','Release test']);git(['config','user.email','release-test@example.invalid']);git(['config','core.autocrlf','false']);
+  const desktop=path.join(root,'apps','desktop');await mkdir(desktop,{recursive:true});
+  const manifest=path.join(desktop,'package.json');await writeFile(manifest,'{"version":"0.2.0"}\n');git(['add','.']);git(['commit','-m','payload']);const source=git(['rev-parse','HEAD']);
+  await writeFile(manifest,'{"version":"0.3.0"}\n');git(['add','.']);git(['commit','-m','newer operator']);git(['update-ref','refs/remotes/origin/main','HEAD']);
+  assert.deepEqual(readProductPublishSource(source,root),{version:'0.2.0'});
+  const dirty=path.join(root,'dirty.txt');await writeFile(dirty,'unreviewed');assert.throws(()=>readProductPublishSource(source,root),/PRODUCT_RELEASE_OPERATOR_DIRTY/);await rm(dirty);
+  git(['checkout','--orphan','unrelated']);git(['commit','--allow-empty','-m','unrelated']);const unrelated=git(['rev-parse','HEAD']);git(['checkout','main']);
+  assert.throws(()=>readProductPublishSource(unrelated,root),/PRODUCT_RELEASE_SOURCE_NOT_ANCESTOR/);
+  git(['checkout','-b','unadmitted']);await writeFile(manifest,'{"version":"0.4.0"}\n');git(['add','.']);git(['commit','-m','unadmitted operator']);
+  assert.throws(()=>readProductPublishSource(source,root),/PRODUCT_RELEASE_OPERATOR_NOT_MAIN/);
+});
 function remoteApi(batch,{initial='none',fault,onUpload=()=>undefined}={}) {
   const calls=[]; let nextId=73;
-  const assets=batch.files.map(file=>({name:file.name,state:'uploaded',size:file.size,digest:`sha256:${file.sha256}`,browser_download_url:productAssetUrl(batch.releaseId,file.name)}));
+  const assets=batch.files.map(file=>({name:file.name,state:'uploaded',size:file.size,digest:`sha256:${file.sha256}`,browser_download_url:initial==='published'?productAssetUrl(batch.releaseId,file.name):`https://github.com/nimiplatform/nimi/releases/download/untagged-e24b64cbee08717f0417/${file.name}`}));
   let release=initial==='none'?null:{id:72,tag_name:batch.releaseId,target_commitish:batch.sourceRevision,prerelease:true,draft:initial!=='published',immutable:initial==='published',assets:initial==='published'?structuredClone(assets):[structuredClone(assets[0])]};
   let tag=initial==='published'?{object:{type:'commit',sha:batch.sourceRevision}}:null;
   const gh=async(args)=>{
@@ -28,7 +48,7 @@ function remoteApi(batch,{initial='none',fault,onUpload=()=>undefined}={}) {
       const name=new URL(endpoint).searchParams.get('name'), file=batch.files.find(f=>f.name===name);
       release.assets.push({...assets.find(a=>a.name===name),digest:`sha256:${fault==='digest'?'d'.repeat(64):file.sha256}`});onUpload();return release.assets.at(-1);
     }
-    if(method==='PATCH') {assert.ok(endpoint.endsWith(`/releases/${release.id}`));release.draft=false;release.immutable=true;tag={object:{type:'commit',sha:batch.sourceRevision}};return structuredClone(release);}
+    if(method==='PATCH') {assert.ok(endpoint.endsWith(`/releases/${release.id}`));release.draft=false;release.immutable=true;release.assets.forEach(asset=>{asset.browser_download_url=fault==='published-url'?'https://example.invalid/asset':productAssetUrl(batch.releaseId,asset.name);});tag={object:{type:'commit',sha:batch.sourceRevision}};return structuredClone(release);}
     if(method==='GET' && /\/releases\/\d+$/u.test(endpoint)) {assert.ok(endpoint.endsWith(`/releases/${release.id}`));return structuredClone(release);}
     throw Error('Unexpected GitHub API '+args.join(' '));
   };
@@ -50,6 +70,11 @@ test('existing exact draft resumes by ID without creating another and only uploa
 test('already published immutable release is idempotently verified without writes',async()=>{
   const batch=fixtureBatch(),remote=remoteApi(batch,{initial:'published'});await publishPreparedProductRelease(batch,remote.gh,'/notes');
   assert.ok(!remote.calls.some(c=>c.includes('--method')));
+});
+test('published final URLs remain strict after draft-only temporary URLs disappear',async()=>{
+  const batch=fixtureBatch(),remote=remoteApi(batch,{fault:'published-url'});
+  await assert.rejects(publishPreparedProductRelease(batch,remote.gh,'/notes'),/PRODUCT_RELEASE_REMOTE_ASSET_MISMATCH/);
+  assert.equal(remote.getRelease().draft,false,'a failure after publication must not be reported as an unpublished draft');
 });
 test('disabled immutable, conflicting tag/source/draft and mismatched remote bytes never publishes',async()=>{
   for(const fault of ['immutable-off','digest','wrong-tag','wrong-source','duplicate-draft']) {
