@@ -3,7 +3,7 @@
 Host-only Node-API projection of the shared Nimi protected carrier for Electron
 main processes.
 
-From 0.19.1 the public macOS native package supports both the production Local
+From 0.19.2 the public macOS native package supports both the production Local
 App service and explicitly Desktop-supervised installed Apps in a source Runtime
 environment. Installed Apps keep this package in their own payload; Desktop
 provides only the exact source Runtime observation. Native peer verification and

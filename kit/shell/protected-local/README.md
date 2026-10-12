@@ -92,7 +92,9 @@ outstanding identities.
 
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,
-account identity, or Runtime boot epoch. Immutable package admission remains
-typed unavailable; only an already-bound `local_development` process can open a
-positive Local App session at this checkpoint. Linux remains compile-only and
-fails closed until its native trust carrier is admitted.
+account identity, or Runtime boot epoch. Runtime independently admits each
+local-development or verified-installed source and binds the exact
+Desktop-launched process before opening a Local App session. Carrier selection
+does not replace package verification or convert one source's admission into
+another's. Linux remains compile-only and fails closed until its native trust
+carrier is admitted.

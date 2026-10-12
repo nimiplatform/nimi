@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/kit",
-  "version": "0.19.1",
+  "version": "0.19.2",
   "description": "The product-grade cross-app toolkit for Nimi apps.",
   "license": "MIT",
   "private": false,

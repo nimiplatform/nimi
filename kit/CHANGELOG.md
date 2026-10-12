@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.19.1 — 2026-10-12
+## 0.19.2 — 2026-10-12
 
 Published macOS App carriers can connect to the source-development Runtime when
 Desktop launches the installed App with its exact Runtime executable observation.
@@ -12,6 +12,10 @@ or peer fails closed without fallback. Production Desktop control and signing
 policy are unchanged. Rebuild and publish Apps with this native patch before
 Catalog acceptance against a source Runtime; older immutable packages cannot
 gain it from a Host-only update.
+
+The 0.19.1 candidate stopped before publication because an existing signing-test
+placeholder moved within the secret-scan baseline. The baseline is synchronized
+without changing the scanner or native trust checks.
 
 Closing a Home or bundled Avatar subscription now cancels its underlying idle Runtime stream immediately. Previously the reader could retain the stream until another event arrived, preventing complete connection cleanup. This is a compatible carrier fix; the Runtime wire, native exports and admission are unchanged.
 
