@@ -136,10 +136,10 @@ func TestCloudRequiredFeaturesPublicConfigAndCapture(t *testing.T) {
 }
 
 func TestCloudVoiceRequiredFeaturesRejectBeforePublication(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", "https://provider.example.test", Config{})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc-2026-01-22", "https://provider.example.test", Config{})
 	const appID = "app.voice-required-features"
 	intent := publicCloudFeatureIntent(t, fixture, appID, "voice.create")
-	intent.RequiredFeatures = []string{"input.audio"}
+	intent.RequiredFeatures = []string{"input.text"}
 	writeCtx := protectedAppAIConfigPrincipalContext("user-001", appID)
 	written, err := fixture.service.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig(appID, intent), ExpectedRevision: "0"})
 	if err != nil || !written.GetCommitted() {
@@ -159,7 +159,7 @@ func TestCloudVoiceRequiredFeaturesRejectBeforePublication(t *testing.T) {
 	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_CONFIG_INVALID {
 		t.Fatalf("voice mismatch reason = %v", err)
 	}
-	intent.RequiredFeatures = []string{"input.text"}
+	intent.RequiredFeatures = []string{"input.audio"}
 	written, err = fixture.service.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig(appID, intent), ExpectedRevision: written.GetRevision()})
 	if err != nil || !written.GetCommitted() {
 		t.Fatalf("voice compatible overwrite = %v %v", written, err)

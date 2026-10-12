@@ -334,8 +334,16 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	foundImageModels := map[string]bool{}
 	foundVoiceWorkflowCapabilities := map[string]string{}
 	foundSpeechSynthesizeModels := map[string]bool{}
+	foundRetiredDesignModels := map[string]bool{}
 	for _, model := range resp.GetModels() {
 		modelID := strings.TrimSpace(model.GetModelLabel())
+		switch model.GetProviderModelId() {
+		case "qwen3-tts-vd-2026-01-26", "qwen3-tts-vd-realtime-2026-01-15":
+			if len(model.GetCapabilities()) != 1 || model.GetCapabilities()[0] != "audio.synthesize" {
+				t.Fatalf("retired design must remain synthesis-only: %v", model)
+			}
+			foundRetiredDesignModels[model.GetProviderModelId()] = true
+		}
 		for _, capability := range model.GetCapabilities() {
 			switch strings.TrimSpace(capability) {
 			case "audio.synthesize":
@@ -362,8 +370,13 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	if foundVoiceWorkflowCapabilities["qwen3-tts-vc"] != "voice.create" {
 		t.Fatalf("expected qwen3-tts-vc voice.create, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vc"])
 	}
-	if foundVoiceWorkflowCapabilities["qwen3-tts-vd"] != "voice.create" {
-		t.Fatalf("expected qwen3-tts-vd voice.create, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vd"])
+	if len(foundRetiredDesignModels) != 2 {
+		t.Fatalf("existing design synthesis models missing: %v", foundRetiredDesignModels)
+	}
+	for _, model := range []string{"qwen-audio-3.0-tts-plus", "qwen-audio-3.0-tts-flash", "cosyvoice-v3.5-plus", "cosyvoice-v3.5-flash"} {
+		if foundVoiceWorkflowCapabilities[model] != "voice.create" {
+			t.Fatalf("active voice creation missing for %s", model)
+		}
 	}
 }
 func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {

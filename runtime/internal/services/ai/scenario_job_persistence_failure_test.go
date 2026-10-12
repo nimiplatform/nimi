@@ -89,10 +89,10 @@ func TestCloudVoiceRunningPersistenceFailureDoesNotCallProviderOrPublishAsset(t 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		providerCalls.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"output":{"voice":"must-not-publish"}}`))
+		_, _ = w.Write([]byte(`{"output":{"voice_id":"must-not-publish"}}`))
 	}))
 	defer server.Close()
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", server.URL, Config{AllowLoopbackEndpoint: true})
 	store, _ := newDurableScenarioJobStoreForFailureTest(t)
 	store.persistenceFailure = func(attempt scenarioJobPersistenceAttempt) error {
 		if attempt.Operation == scenarioJobPersistTransition && attempt.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
@@ -106,7 +106,7 @@ func TestCloudVoiceRunningPersistenceFailureDoesNotCallProviderOrPublishAsset(t 
 		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-			TargetModelId: "qwen3-tts-vd",
+			TargetModelId: "qwen-audio-3.0-tts-plus",
 			Source:        &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "hello"}},
 		}}},
 	})
@@ -142,17 +142,17 @@ func TestCloudVoiceTerminalPersistenceFailureRetainsCompleteResultForGet(t *test
 		if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 			t.Error(err)
 		}
-		if input, ok := body["input"].(map[string]any); ok && input["action"] == "delete" {
+		if input, ok := body["input"].(map[string]any); ok && input["action"] == "delete_voice" {
 			cleanupCalls.Add(1)
-			_, _ = w.Write([]byte(`{"request_id":"cleanup-known","output":{"voice":"must-remain-private"}}`))
+			_, _ = w.Write([]byte(`{"request_id":"cleanup-known","output":{}}`))
 			return
 		}
 		providerCalls.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"output": map[string]any{"voice": "must-remain-private", "preview_audio": map[string]any{"response_format": "wav", "sample_rate": 16000, "data": base64.StdEncoding.EncodeToString(mediaBudgetTestWAV())}}})
+		_ = json.NewEncoder(w).Encode(map[string]any{"output": map[string]any{"voice_id": "must-remain-private", "preview_audio": map[string]any{"response_format": "wav", "sample_rate": 16000, "data": base64.StdEncoding.EncodeToString(mediaBudgetTestWAV())}}})
 	}))
 	defer server.Close()
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", server.URL, Config{AllowLoopbackEndpoint: true})
 	store, localStatePath := newDurableScenarioJobStoreForFailureTest(t)
 	var terminalAttempts atomic.Int32
 	store.persistenceFailure = func(attempt scenarioJobPersistenceAttempt) error {
@@ -179,7 +179,7 @@ func TestCloudVoiceTerminalPersistenceFailureRetainsCompleteResultForGet(t *test
 		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-			TargetModelId: "qwen3-tts-vd",
+			TargetModelId: "qwen-audio-3.0-tts-plus",
 			Source:        &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "hello"}},
 		}}},
 	})

@@ -275,7 +275,7 @@ func TestSubmitLocalAppSpeechJobAcceptsTypedVoiceSpecAndBindsOwner(t *testing.T)
 }
 
 func TestSubmitLocalAppScenarioJobVoiceWorkflowWithoutCurrentAccountConnectorFailsClosed(t *testing.T) {
-	catalogFixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", "https://example.invalid", Config{})
+	catalogFixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", "https://example.invalid", Config{})
 	svc := newTestService(nil)
 	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1",
 		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, catalogFixture.connectorID, catalogFixture.descriptor))); err != nil {
@@ -306,7 +306,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowMapsProviderUnauthorizedThroughRe
 	}))
 	defer server.Close()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", server.URL, Config{AllowLoopbackEndpoint: true})
 	if err := overwriteAIConfigStoreForTest(context.Background(), fixture.service.aiConfigStore, "user-001",
 		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.connectorID, fixture.descriptor))); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
@@ -393,7 +393,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t
 	}))
 	defer server.Close()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", server.URL, Config{AllowLoopbackEndpoint: true})
 	baseStore := fixture.service.aiConfigStore
 	if err := overwriteAIConfigStoreForTest(context.Background(), baseStore, "user-001",
 		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.connectorID, fixture.descriptor))); err != nil {

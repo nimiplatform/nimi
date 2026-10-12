@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-10-02-dashscope-wan-native-i2v
+catalog_version: 2026-10-12-dashscope-retire-qwen-voice-design
 inventory_mode: static_source
 default_text_model: qwen3.7-plus
 models:
@@ -402,10 +402,9 @@ models:
   - model_id: qwen3-tts-vd
     provider: dashscope
     model_type: tts
-    updated_at: 2026-01-26
+    updated_at: 2026-10-12
     capabilities:
       - audio.synthesize
-      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -414,12 +413,10 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
-      retrieved_at: 2026-10-02
-      note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
+      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
+      retrieved_at: 2026-10-12
+      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
     api_model_id: qwen3-tts-vd-2026-01-26
-    features:
-      - input.text
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a4
@@ -431,7 +428,6 @@ models:
     updated_at: 2026-01-26
     capabilities:
       - audio.synthesize
-      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -440,12 +436,10 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
-      retrieved_at: 2026-10-02
-      note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
+      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
+      retrieved_at: 2026-10-12
+      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
     api_model_id: qwen3-tts-vd-2026-01-26
-    features:
-      - input.text
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a4
@@ -642,7 +636,6 @@ models:
     updated_at: 2026-01-15
     capabilities:
       - audio.synthesize
-      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -651,11 +644,9 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
-    features:
-      - input.text
+      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
+      retrieved_at: 2026-10-12
+      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
     voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: &a11
@@ -676,7 +667,6 @@ models:
     updated_at: 2025-12-16
     capabilities:
       - audio.synthesize
-      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -685,12 +675,10 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
+      retrieved_at: 2026-10-12
+      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
     api_model_id: qwen3-tts-vd-realtime-2026-01-15
-    features:
-      - input.text
     voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: *a11
@@ -3793,9 +3781,9 @@ voices:
       - qwen3-tts-vd
       - qwen3-tts-vd-2026-01-26
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
-      retrieved_at: 2026-10-02
-      note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
+      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
+      retrieved_at: 2026-10-12
+      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
   - voice_id: user-custom
     voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
     provider: dashscope
@@ -3837,9 +3825,9 @@ voices:
       - qwen3-tts-vd-realtime-2026-01-15
       - qwen3-tts-vd-realtime-2025-12-16
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
-      retrieved_at: 2026-04-18
-      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+      url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
+      retrieved_at: 2026-10-12
+      note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
 selection_profiles:
   - provider: dashscope
     profile_id: text.general
@@ -3889,35 +3877,6 @@ voice_workflow_models:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
       retrieved_at: 2026-03-05
       note: qwen tts voice cloning documentation
-    langs:
-      - zh
-      - en
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
-  - workflow_model_id: qwen-voice-design
-    workflow_type: text_description
-    workflow_family: dashscope
-    input_contract_ref: dashscope_voice_design_input_v1
-    output_persistence: provider_persistent
-    request_options:
-      instruction_text_mode: required
-      preview_text_mode: required
-      supports_language: true
-      supports_preferred_name: true
-    target_model_refs:
-      - qwen3-tts-vd
-      - qwen3-tts-vd-2026-01-26
-      - qwen3-tts-vd-realtime-2026-01-15
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
-      retrieved_at: 2026-10-02
-      note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
     langs:
       - zh
       - en
@@ -4066,26 +4025,11 @@ model_workflow_bindings:
       - qwen-voice-enrollment
     workflow_types:
       - reference_audio
-  - model_id: qwen3-tts-vd
-    workflow_model_refs:
-      - qwen-voice-design
-    workflow_types:
-      - text_description
-  - model_id: qwen3-tts-vd-2026-01-26
-    workflow_model_refs:
-      - qwen-voice-design
-    workflow_types:
-      - text_description
   - model_id: qwen3-tts-vc-realtime-2026-01-15
     workflow_model_refs:
       - qwen-voice-enrollment
     workflow_types:
       - reference_audio
-  - model_id: qwen3-tts-vd-realtime-2026-01-15
-    workflow_model_refs:
-      - qwen-voice-design
-    workflow_types:
-      - text_description
   - model_id: cosyvoice-v3.5-plus
     workflow_model_refs:
       - voice-enrollment-clone

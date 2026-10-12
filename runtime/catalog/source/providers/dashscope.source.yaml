@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-10-02-dashscope-wan-native-i2v
+catalog_version: 2026-10-12-dashscope-retire-qwen-voice-design
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -121,6 +121,10 @@ sources:
     url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
     retrieved_at: 2026-10-02
     note: Qwen voice design requires explicit preview text and supports owner-managed voice deletion.
+  - source_id: dashscope_voice_design_retirement_doc
+    url: https://platform.qianwenai.com/docs/api-reference/speech-synthesis/voice-design/http-api
+    retrieved_at: 2026-10-12
+    note: Qwen voice design creation is retired. Retain existing voice references and synthesis models; current Qwen-Audio-TTS/CosyVoice design uses voice-enrollment.
   - source_id: dashscope_qwen_realtime_tts_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
     retrieved_at: 2026-04-18
@@ -532,10 +536,9 @@ models:
       - qwen3-tts-vc-2026-01-22
   - model_id: qwen3-tts-vd
     api_model_id: qwen3-tts-vd-2026-01-26
-    updated_at: 2026-01-26
-    source_ids: [dashscope_voice_design_doc]
-    capabilities: [audio.synthesize, voice.create]
-    features: [input.text]
+    updated_at: 2026-10-12
+    source_ids: [dashscope_voice_design_retirement_doc, dashscope_voice_design_doc]
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: dynamic_user_scoped
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
@@ -589,10 +592,9 @@ models:
     aliases:
       - qwen3-tts-vc-realtime-2025-11-27
   - model_id: qwen3-tts-vd-realtime-2026-01-15
-    updated_at: 2026-04-18
-    capabilities: [audio.synthesize, voice.create]
-    features: [input.text]
-    source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_voice_design_doc, dashscope_models_pricing_doc]
+    updated_at: 2026-10-12
+    capabilities: [audio.synthesize]
+    source_ids: [dashscope_voice_design_retirement_doc, dashscope_qwen_realtime_tts_doc, dashscope_voice_design_doc, dashscope_models_pricing_doc]
     voice:
       discovery_mode: dynamic_user_scoped
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
@@ -1585,22 +1587,6 @@ voice_workflow_models:
       - qwen3-tts-vc-realtime-2026-01-15
     langs_ref: short_v1
     source_ids: [dashscope_voice_cloning_doc, dashscope_qwen_realtime_tts_doc]
-  - workflow_model_id: qwen-voice-design
-    workflow_type: text_description
-    workflow_family: dashscope
-    input_contract_ref: dashscope_voice_design_input_v1
-    output_persistence: provider_persistent
-    request_options:
-      instruction_text_mode: required
-      preview_text_mode: required
-      supports_language: true
-      supports_preferred_name: true
-    target_model_refs:
-      - qwen3-tts-vd
-      - qwen3-tts-vd-2026-01-26
-      - qwen3-tts-vd-realtime-2026-01-15
-    langs_ref: short_v1
-    source_ids: [dashscope_voice_design_doc, dashscope_qwen_realtime_tts_doc]
   - workflow_model_id: voice-enrollment-qwen-audio-clone
     workflow_type: reference_audio
     workflow_family: cosyvoice
@@ -1679,18 +1665,9 @@ model_workflow_bindings:
   - model_id: qwen3-tts-vc-2026-01-22
     workflow_model_refs: [qwen-voice-enrollment]
     workflow_types: [reference_audio]
-  - model_id: qwen3-tts-vd
-    workflow_model_refs: [qwen-voice-design]
-    workflow_types: [text_description]
-  - model_id: qwen3-tts-vd-2026-01-26
-    workflow_model_refs: [qwen-voice-design]
-    workflow_types: [text_description]
   - model_id: qwen3-tts-vc-realtime-2026-01-15
     workflow_model_refs: [qwen-voice-enrollment]
     workflow_types: [reference_audio]
-  - model_id: qwen3-tts-vd-realtime-2026-01-15
-    workflow_model_refs: [qwen-voice-design]
-    workflow_types: [text_description]
   - model_id: cosyvoice-v3.5-plus
     workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
     workflow_types: [reference_audio, text_description]

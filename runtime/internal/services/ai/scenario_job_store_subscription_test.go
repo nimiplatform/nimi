@@ -190,7 +190,7 @@ func TestGoogleVeoLegacyDeadlineRejectedBeforeNativeCreate(t *testing.T) {
 }
 
 func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", "https://example.com", Config{})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", "https://example.com", Config{})
 	svc := fixture.service
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice.create", fixture.targetRef)
 
@@ -203,7 +203,7 @@ func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
 				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-					TargetModelId: "qwen3-tts-vd",
+					TargetModelId: "qwen-audio-3.0-tts-plus",
 					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 						InstructionText: "calm female voice",
 						PreviewText:     "This is the explicit voice preview.",
@@ -245,7 +245,7 @@ func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 	}
 }
 
-func TestSubmitScenarioJobDashScopeVoiceTextDescriptionUsesAPIModelTarget(t *testing.T) {
+func TestSubmitScenarioJobDashScopeVoiceTextDescriptionUsesActiveDesignTarget(t *testing.T) {
 	var capturedPayload map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/audio/tts/customization" {
@@ -258,13 +258,13 @@ func TestSubmitScenarioJobDashScopeVoiceTextDescriptionUsesAPIModelTarget(t *tes
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"output": map[string]any{
-				"voice": "dashscope-design-voice",
+				"voice_id": "dashscope-design-voice",
 			},
 		})
 	}))
 	defer func() { server.Close() }()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL+"/compatible-mode/v1", Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", server.URL+"/compatible-mode/v1", Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice.create", fixture.targetRef)
 
@@ -278,7 +278,7 @@ func TestSubmitScenarioJobDashScopeVoiceTextDescriptionUsesAPIModelTarget(t *tes
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
 				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
-					TargetModelId: "qwen3-tts-vd",
+					TargetModelId: "qwen-audio-3.0-tts-plus",
 					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 						InstructionText: "Warm, clear Mandarin speaking voice with steady pacing.",
 						PreviewText:     "Hello from the desktop voice design workflow.",
@@ -299,8 +299,11 @@ func TestSubmitScenarioJobDashScopeVoiceTextDescriptionUsesAPIModelTarget(t *tes
 	if !ok {
 		t.Fatalf("expected captured input map, got=%T payload=%v", capturedPayload["input"], capturedPayload)
 	}
-	if got := strings.TrimSpace(nimillm.ValueAsString(input["target_model"])); got != "qwen3-tts-vd-2026-01-26" {
-		t.Fatalf("target_model=%q, want qwen3-tts-vd-2026-01-26", got)
+	if got := strings.TrimSpace(nimillm.ValueAsString(input["target_model"])); got != "qwen-audio-3.0-tts-plus" {
+		t.Fatalf("target_model=%q, want qwen-audio-3.0-tts-plus", got)
+	}
+	if capturedPayload["model"] != "voice-enrollment" || input["action"] != "create_voice" {
+		t.Fatalf("expected current voice design protocol, got %v", capturedPayload)
 	}
 }
 
