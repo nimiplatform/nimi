@@ -1416,7 +1416,7 @@ async fn clear_desktop_control_on_transport_reason(
     if !invalidates_desktop_transport(reason_code) {
         return;
     }
-    diagnose_desktop_transport_invalidation(reason_code, reason_metadata);
+    diagnose_desktop_transport_invalidation("product-call", reason_code, reason_metadata);
     clear_desktop_control(control).await;
 }
 
@@ -1427,11 +1427,12 @@ async fn clear_desktop_control_on_host_failure(
     if !invalidates_desktop_transport(error.reason_code().as_str()) {
         return;
     }
-    diagnose_desktop_transport_invalidation(error.reason_code().as_str(), error.reason_metadata());
+    diagnose_desktop_transport_invalidation("host-call", error.reason_code().as_str(), error.reason_metadata());
     clear_desktop_control(control).await;
 }
 
 fn diagnose_desktop_transport_invalidation(
+    family: &'static str,
     reason_code: &str,
     reason_metadata: &std::collections::BTreeMap<String, String>,
 ) {
@@ -1447,7 +1448,7 @@ fn diagnose_desktop_transport_invalidation(
         .and_then(|value| value.parse::<u8>().ok())
         .filter(|value| *value <= 16)
         .map_or_else(|| "none".to_string(), |value| value.to_string());
-    eprintln!("[protected-local desktop-control] invalidate reason={reason_code} grpc_status_code={status}");
+    eprintln!("[protected-local desktop-control] invalidate family={family} reason={reason_code} grpc_status_code={status}");
 }
 
 fn invalidates_desktop_transport(reason_code: &str) -> bool {
