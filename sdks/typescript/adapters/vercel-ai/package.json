@@ -27,10 +27,10 @@
     "ai": "^7.0.0"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "4.0.24",
+    "@ai-sdk/provider": "4.0.26",
     "@nimiplatform/sdk": "workspace:*",
     "@types/node": "24.19.1",
-    "ai": "7.0.130",
+    "ai": "7.0.137",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "zod": "4.6.5"

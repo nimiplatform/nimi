@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@electron/asar": "4.3.1",
-    "@electron/notarize": "3.1.1",
+    "@electron/notarize": "3.1.2",
     "@electron/osx-sign": "2.7.1",
     "@electron/packager": "20.3.0",
     "@eslint/js": "^10.0.1",
@@ -53,16 +53,16 @@
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.1",
-    "vite": "8.3.3"
+    "vite": "8.3.4"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@tanstack/react-query": "5.104.1",
-    "@tanstack/react-virtual": "3.14.13",
+    "@tanstack/react-virtual": "3.14.14",
     "ajv": "^8.20.0",
     "i18next": "26.4.2",
-    "lucide-react": "1.51.0",
+    "lucide-react": "1.52.0",
     "motion": "13.5.1",
     "pngjs": "7.0.0",
     "qrcode": "1.5.4",
