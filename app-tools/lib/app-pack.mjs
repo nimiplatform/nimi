@@ -9,6 +9,11 @@
 import { createHash } from 'node:crypto';
 import {
   existsSync,
+  openSync,
+  closeSync,
+  fstatSync,
+  readSync,
+  writeSync,
   lstatSync,
   mkdirSync,
   readFileSync,
@@ -49,6 +54,43 @@ function sortedValue(value) {
 
 function canonicalJson(value) {
   return `${JSON.stringify(sortedValue(value), null, 2)}\n`;
+}
+
+export function hashAppArchive(bytes) {
+  const hash = createHash('sha256');
+  // Node's native crypto update accepts at most an int32-sized input even
+  // though a valid ZIP32 App archive can exceed 2 GiB.
+  const chunkBytes = 64 * 1024 * 1024;
+  for (let offset = 0; offset < bytes.length; offset += chunkBytes) {
+    hash.update(bytes.subarray(offset, offset + chunkBytes));
+  }
+  return hash.digest('hex');
+}
+
+export function writeAppArchiveFile(filePath, bytes) {
+  const fd = openSync(filePath, 'w');
+  try {
+    let offset = 0;
+    while (offset < bytes.length) {
+      const written = writeSync(fd, bytes, offset, Math.min(64 * 1024 * 1024, bytes.length - offset));
+      if (written <= 0) throw new Error('App archive write did not make progress');
+      offset += written;
+    }
+  } finally { closeSync(fd); }
+}
+
+export function readAppArchiveFile(filePath) {
+  const fd = openSync(filePath, 'r');
+  try {
+    const bytes = Buffer.allocUnsafe(fstatSync(fd).size);
+    let offset = 0;
+    while (offset < bytes.length) {
+      const read = readSync(fd, bytes, offset, Math.min(64 * 1024 * 1024, bytes.length - offset), null);
+      if (read <= 0) throw new Error('App archive ended before its recorded size');
+      offset += read;
+    }
+    return bytes;
+  } finally { closeSync(fd); }
 }
 
 function sameCanonicalValue(left, right) {
@@ -114,7 +156,7 @@ function collectPayload(payloadPath, os) {
   const stat = lstatSync(payloadPath);
   if (stat.isSymbolicLink()) throw new Error('Pack payload must not contain symbolic links');
   if (stat.isFile()) {
-    return [{ relative: path.basename(payloadPath), bytes: readFileSync(payloadPath), mode: stat.mode & 0o111 ? 0o755 : 0o644 }];
+    return [{ relative: path.basename(payloadPath), bytes: readAppArchiveFile(payloadPath), mode: stat.mode & 0o111 ? 0o755 : 0o644 }];
   }
   if (!stat.isDirectory()) throw new Error('Pack payload must be a regular file or directory');
   const entries = [];
@@ -129,7 +171,7 @@ function collectPayload(payloadPath, os) {
       } else if (entryStat.isDirectory()) {
         walk(absolute, relative);
       } else if (entryStat.isFile()) {
-        entries.push({ relative, bytes: readFileSync(absolute), mode: entryStat.mode & 0o111 ? 0o755 : 0o644 });
+        entries.push({ relative, bytes: readAppArchiveFile(absolute), mode: entryStat.mode & 0o111 ? 0o755 : 0o644 });
       } else {
         throw new Error(`Unsupported pack payload entry: ${relative}`);
       }
@@ -478,14 +520,14 @@ export function packAppTarget(cwd, options = {}) {
     { name: 'app-info.json', bytes: infoBytes, mode: 0o644 },
     ...payloadEntries,
   ]);
-  const sha256 = createHash('sha256').update(archive).digest('hex');
+  const sha256 = hashAppArchive(archive);
   const outputDir = path.join(targetDir, OUTPUT_DIR);
   mkdirSync(outputDir, { recursive: true });
   const stem = `${input.appId}-${input.version}-${input.targetId}`;
   const artifactPath = path.join(outputDir, `${stem}.nimiapp`);
   const metadataPath = path.join(outputDir, `${stem}.target.json`);
   const appInfoPath = path.join(outputDir, `${stem}.app-info.json`);
-  writeFileSync(artifactPath, archive);
+  writeAppArchiveFile(artifactPath, archive);
   writeFileSync(appInfoPath, infoBytes);
   const metadata = {
     format: TARGET_METADATA_FORMAT,
@@ -535,8 +577,8 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
     validateNativeExecutionFacts(target.native_trust, target.execution_profile, metadataLabel, target.os);
     const artifactPath = path.join(outputDir, assetName);
     if (!existsSync(artifactPath)) throw new Error(`Target artifact is missing: ${target.asset_name}`);
-    const bytes = readFileSync(artifactPath);
-    if (bytes.length !== target.size || createHash('sha256').update(bytes).digest('hex') !== target.sha256) throw new Error(`Target artifact changed after pack: ${target.asset_name}`);
+    const bytes = readAppArchiveFile(artifactPath);
+    if (bytes.length !== target.size || hashAppArchive(bytes) !== target.sha256) throw new Error(`Target artifact changed after pack: ${target.asset_name}`);
     const entries = readNimiAppArchive(bytes);
     const infoAsset = target.app_info;
     if (infoAsset?.asset_name !== `${appId}-${version}-${target.target_id}.app-info.json` || !Number.isSafeInteger(infoAsset.size) || infoAsset.size <= 0 || infoAsset.size > APP_INFO_MAX_BYTES) throw new Error(`Target App info reference is invalid: ${target.target_id}`);
