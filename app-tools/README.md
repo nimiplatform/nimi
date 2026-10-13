@@ -117,9 +117,11 @@ rejected rather than normalized. A matrix range in the manifest does not
 require an automatic upgrade; install with the frozen lockfile until
 deliberately selecting and synchronizing a new component combination.
 
-The production Beta candidate guide uses App Tools 0.12.0 with SDK `^0.21.0`,
-Kit/native `^0.19.0`, the matching production Runtime, and Tauri `0.10.0` when
-selected. Existing D2 projects retain their declared `^0.18.1` Kit combination. Fresh scaffold
+The production Beta candidate guide uses App Tools 0.12.3 with SDK `^0.21.0`,
+Kit/native `^0.20.0`, the matching production Runtime, and Tauri `0.10.0` when
+selected. Existing production `^0.19.0` and D2 `^0.18.1` projects retain their
+declared Kit combination. Before explicitly upgrading to Kit 0.20, follow the
+[Realtime and conversation setup migration notes](../kit/CHANGELOG.md). Fresh scaffold
 defaults still come from `nimiScaffoldVersions` in `package.json`; explicitly
 select the current SDK/Kit pair to use this guide. On an initialized App, run
 `nimi-app sync`, install the resulting dependencies, then run `nimi-app check`
@@ -170,7 +172,7 @@ Local archives may also use paths relative to the App. Install, run sync and
 check, then use the normal dev/test/build/pack loop. Sync retains these choices;
 check verifies matrix compatibility and compares the selected tarball version,
 source and integrity with pnpm's installed dependency lock and package manifest.
-The default SDK `^0.21.0` / Kit `^0.18.1` / Rust carrier `0.10.0`
+The default SDK `^0.21.0` / Kit `^0.20.0` / Rust carrier `0.10.0`
 combination also admits complete local archives for development. Select the
 matching Runtime and native packages. A local archive does not establish public
 registry availability; production preflight checks the registry resolutions.

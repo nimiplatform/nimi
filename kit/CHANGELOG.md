@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.20.0 — 2026-10-13
+
+This release includes breaking 0.x API changes. Keep SDK 0.21.0 and upgrade
+Kit together with its matching 0.20.0 native npm package; the Rust carrier ABI
+and crate version remain unchanged.
+
+### Agent Realtime playback migration
 
 Agent Realtime retains interruption controls until Host audio playback drains,
 including after Runtime output generation completes. Host media adapters must
@@ -9,9 +15,11 @@ interrupt and close must also release that wait. `interruptOutput()` now returns
 `null` when it only stops completed output still playing locally. Consumers that
 read its Runtime acknowledgement must check for `null`; no acknowledgement is
 fabricated for local playback. This return-type widening is a breaking 0.x minor
-API change for the next release; the shipped version is unchanged here.
+API change. Custom Host playback adapters must implement the drain and
+interruption contract above; callers must handle the nullable result before
+reading its Runtime acknowledgement.
 
-## Conversation setup panel brand icon (next minor, development)
+### Conversation setup panel migration
 
 - `ConversationSetupPanel` gains an optional `icon`, and
   `CanonicalConversationShell` a matching `setupIcon`, so a product renders its
@@ -28,14 +36,15 @@ API change for the next release; the shipped version is unchanged here.
   them. Migration: stop passing the diagnostics and eyebrow props. All other
   additions are optional and backward compatible.
 
-## Current-machine Local action (next minor, development)
+### Current-machine Local action
 
 - The current-machine Local action shows an applied label from observed
   configuration and keeps that action available for an explicit recheck.
   Machine selections can change independently of the App AIConfig revision;
   each click reads them again, skips unchanged routes, and applies newly
   selected capabilities with the existing compare-and-swap operation.
-## Host AIConfig option projection (next release, development)
+
+### Host AIConfig option projection
 
 Electron App-owned Node services now project the public preset-voice query to
 the native AIConfig input. `services.aiConfig.listOptions({ kind: 'preset-voices' })`

@@ -26,3 +26,14 @@ test('production Beta defaults preserve the published D2 combination for existin
     sdkVersion:'^0.21.0',kitVersion:'^0.18.1',nimiShellTauriVersion:'0.10.0',source:'existing',
   });
 });
+
+test('Kit 0.20 defaults preserve existing production Apps until an explicit minor upgrade',()=>{
+  const current={sdkVersion:'^0.21.0',kitVersion:'^0.20.0',nimiShellTauriVersion:'0.10.0'};
+  assert.equal(resolveDependencyCombination({},current).kitVersion,'^0.20.0');
+  assert.equal(resolveDependencyCombination(app('^0.21.0','^0.20.0'),current).source,'default');
+  assert.deepEqual(resolveDependencyCombination(app('^0.21.0','^0.19.0'),current),{
+    sdkVersion:'^0.21.0',kitVersion:'^0.19.0',nimiShellTauriVersion:'0.10.0',source:'existing',
+  });
+  assert.equal(resolveDependencyCombination(app('^0.21.0','^0.18.1'),current).kitVersion,'^0.18.1');
+  assert.throws(()=>resolveDependencyCombination(app('^0.20.0','^0.20.0'),current),/Unsupported SDK\/Kit combination/);
+});
