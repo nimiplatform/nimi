@@ -63,11 +63,21 @@ func (t CloudEmbedTarget) DefaultDimensions() uint32 {
 
 // CloudEmbedMappedRequest is the immutable output of Driver request mapping.
 type CloudEmbedMappedRequest struct {
-	providerModelID   string
-	inputs            []string
-	dimensions        *uint32
-	protocol          CloudEmbedProtocol
-	defaultDimensions uint32
+	providerModelID    string
+	inputs             []string
+	dimensions         *uint32
+	protocol           CloudEmbedProtocol
+	defaultDimensions  uint32
+	transportBatchSize int
+}
+
+// TransportBatchSize is captured by the exact Driver without changing the
+// public request bound or exposing provider-specific controls to consumers.
+func (r *CloudEmbedMappedRequest) TransportBatchSize() int {
+	if r == nil {
+		return 0
+	}
+	return r.transportBatchSize
 }
 
 func (r *CloudEmbedMappedRequest) Protocol() CloudEmbedProtocol {
@@ -255,7 +265,15 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 		value := spec.GetDimensions()
 		dimensions = &value
 	}
-	return &CloudEmbedMappedRequest{providerModelID: target.providerModelID, inputs: inputs, dimensions: dimensions, protocol: protocol, defaultDimensions: defaultDimensions}, nil
+	// DashScope's reviewed compatible v3/v4 protocol accepts at most ten
+	// inputs per HTTP call. Keep the admitted sixteen-input Scenario intact;
+	// the Host transports its batches under the same captured target.
+	// https://help.aliyun.com/en/model-studio/embedding-interfaces-compatible-with-openai
+	transportBatchSize := CloudEmbedMaxInputsPerRequest
+	if target.provider == "dashscope" && (target.providerModelID == "text-embedding-v3" || target.providerModelID == "text-embedding-v4") {
+		transportBatchSize = 10
+	}
+	return &CloudEmbedMappedRequest{providerModelID: target.providerModelID, inputs: inputs, dimensions: dimensions, protocol: protocol, defaultDimensions: defaultDimensions, transportBatchSize: transportBatchSize}, nil
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract

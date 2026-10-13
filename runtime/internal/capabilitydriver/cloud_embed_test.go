@@ -97,6 +97,39 @@ func TestCloudEmbedReasonNormalization(t *testing.T) {
 	}
 }
 
+func TestCloudEmbedTransportBatchLimitDoesNotShrinkTheAdmittedRequest(t *testing.T) {
+	for _, tc := range []struct {
+		provider, model string
+		limit           int
+	}{
+		{"dashscope", "text-embedding-v4", 10},
+		{"dashscope", "text-embedding-v3", 10},
+		{"dashscope", "text-embedding-v2", 16},
+		{"openai", "text-embedding-3-small", 16},
+		{"gemini", "gemini-embedding-2", 16},
+	} {
+		t.Run(tc.provider+"/"+tc.model, func(t *testing.T) {
+			driver := providerCloudEmbedDriver{provider: tc.provider}
+			target := CloudEmbedTarget{provider: tc.provider, providerModelID: tc.model}
+			inputs := make([]string, CloudEmbedMaxInputsPerRequest)
+			for index := range inputs {
+				inputs[index] = fmt.Sprintf("input-%d", index)
+			}
+			mapped, err := driver.MapRequest(target, &runtimev1.TextEmbedScenarioSpec{Inputs: inputs, Purpose: runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT}, nil)
+			if err != nil || len(mapped.Inputs()) != 16 || mapped.TransportBatchSize() != tc.limit {
+				t.Fatalf("mapping=%+v err=%v", mapped, err)
+			}
+			inputs[0] = "caller changed"
+			if mapped.Inputs()[0] != "input-0" {
+				t.Fatal("batch mapping changed captured inputs")
+			}
+			if _, err := driver.MapRequest(target, &runtimev1.TextEmbedScenarioSpec{Inputs: append(inputs, "too many")}, nil); cloudInvocationKind(err) != CloudInvocationFailureRequest {
+				t.Fatalf("seventeen inputs must remain invalid: %v", err)
+			}
+		})
+	}
+}
+
 func cloudInvocationKind(err error) CloudInvocationFailureKind {
 	var invocation *CloudInvocationError
 	if errors.As(err, &invocation) {

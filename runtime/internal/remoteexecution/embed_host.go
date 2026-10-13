@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -56,6 +57,7 @@ func NewProviderEmbedHost(connectors *connector.ConnectorStore, transport *nimil
 	return &ProviderEmbedHost{connectors: connectors, transport: transport, audit: audit, allowLoopback: allowLoopback}
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
 func (h *ProviderEmbedHost) ExecuteEmbed(
 	ctx context.Context,
 	connectorRecord connector.ConnectorRecord,
@@ -66,7 +68,7 @@ func (h *ProviderEmbedHost) ExecuteEmbed(
 	if err := h.recordEmbedDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED); err != nil {
 		return capabilitydriver.CloudEmbedTransportResponse{}, err
 	}
-	if h == nil || h.transport == nil || request == nil || request.ProviderModelID() != target.ProviderModelID() {
+	if h == nil || h.transport == nil || request == nil || request.ProviderModelID() != target.ProviderModelID() || request.TransportBatchSize() < 1 {
 		err := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, "error", err)
 	}
@@ -75,9 +77,38 @@ func (h *ProviderEmbedHost) ExecuteEmbed(
 		return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
-	vectors, usage, err := h.transport.EmbedWithTarget(ctx, request.ProviderModelID(), request.Inputs(), request.Dimensions(), request.Protocol(), remoteTarget)
-	if err != nil {
+	inputs := request.Inputs()
+	batchSize := request.TransportBatchSize()
+	vectors := make([]*structpb.ListValue, 0, len(inputs))
+	var inputTokens, outputTokens int64
+	completeUsage := true
+	for offset := 0; offset < len(inputs); offset += batchSize {
+		if err := ctx.Err(); err != nil {
+			return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)
+		}
+		batch := inputs[offset:min(offset+batchSize, len(inputs))]
+		values, reportedUsage, err := h.transport.EmbedWithTarget(ctx, request.ProviderModelID(), batch, request.Dimensions(), request.Protocol(), remoteTarget)
+		if err != nil {
+			return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)
+		}
+		vectors = append(vectors, values...)
+		if reportedUsage == nil {
+			completeUsage = false
+		} else {
+			if reportedUsage.GetInputTokens() > math.MaxInt64-inputTokens || reportedUsage.GetOutputTokens() > math.MaxInt64-outputTokens {
+				err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+				return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, "error", err)
+			}
+			inputTokens += reportedUsage.GetInputTokens()
+			outputTokens += reportedUsage.GetOutputTokens()
+		}
+	}
+	if err := ctx.Err(); err != nil {
 		return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)
+	}
+	var usage *runtimev1.UsageStats
+	if completeUsage {
+		usage = &runtimev1.UsageStats{InputTokens: inputTokens, OutputTokens: outputTokens}
 	}
 	if err := h.recordEmbedDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED); err != nil {
 		return capabilitydriver.CloudEmbedTransportResponse{}, err
