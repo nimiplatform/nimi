@@ -1,3 +1,4 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
@@ -17,18 +18,9 @@ import type { ExplorePersonaSourceCardData } from './explore-cards';
 import type { ExploreSectionId } from './explore-section-nav';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { parsePersonaSources } from './explore-persona-source-projection';
-import {
-  WORLD_CATALOG_CONTRACT_VERSION,
-  fetchWorldCatalogPage,
-  worldCatalogQueryKey,
-} from '../world/world-detail-queries.js';
+import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
 import type { WorldCatalogPaging } from '../world/world-list';
-import {
-  characterSourceMaterializationFailureMessage,
-  characterSourceRefKey,
-  discoverCharacterSourceLocalAgents,
-  resolveCharacterSourceState,
-} from './character-source-materialization';
+import { characterSourceMaterializationFailureMessage, characterSourceRefKey, discoverCharacterSourceLocalAgents, resolveCharacterSourceState } from './character-source-materialization';
 import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
@@ -54,6 +46,8 @@ type ExplorePanelProps = {
 // @nimi-authority: definition.nimi.desktop.product-surfaces.explore
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r001
 export function ExplorePanel(props: ExplorePanelProps) {
+
+  const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
   const appStore = useAppStoreApi();
   const mounted = useRef(true);
@@ -67,11 +61,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
-  const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<
@@ -234,18 +224,14 @@ export function ExplorePanel(props: ExplorePanelProps) {
       if (target) {
         await launchAgentConversationFromDisplay({
           target,
-          setActiveTab,
-          setChatMode,
-          setSelectedTargetForSource,
-          setAgentConversationSelection,
+          navigation,
+
           setAgentConversationTargetSnapshot,
         });
         logRendererEvent({ level: 'info', area: 'explore', message: 'action:realm-source-materialization:partner-ready' });
         return;
       }
-      setSelectedTargetForSource('agent', null);
-      setChatMode('agent');
-      setActiveTab('chat');
+      void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
       if (!isCurrent()) return;
       setFeedback({
         kind: 'success',
@@ -269,11 +255,10 @@ export function ExplorePanel(props: ExplorePanelProps) {
     bindings,
     ownerUserId,
     queryClient,
-    setActiveTab,
-    setAgentConversationSelection,
+    navigation,
+
     setAgentConversationTargetSnapshot,
-    setChatMode,
-    setSelectedTargetForSource,
+
   ]);
 
   const onToggleCategory = useCallback(
@@ -290,19 +275,19 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const onPostAuthorOpen = useCallback(
     (target: PostCardAuthorProfileTarget) => {
       if (target.kind === 'character') {
-        navigateToSourceDetail(target.sourceRef);
+        navigation.push({ id: 'source-detail', sourceRef: target.sourceRef });
         return;
       }
       setSelectedProfileTarget(target);
     },
-    [navigateToSourceDetail],
+    [navigation],
   );
 
   const onPersonaSourceOpen = useCallback(
     (sourceRef: CharacterSourceRefV3) => {
-      navigateToSourceDetail(sourceRef);
+      navigation.push({ id: 'source-detail', sourceRef: sourceRef });
     },
-    [navigateToSourceDetail],
+    [navigation],
   );
 
   return (

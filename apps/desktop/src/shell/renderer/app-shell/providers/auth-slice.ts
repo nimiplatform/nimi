@@ -1,8 +1,6 @@
 import {
   DEFAULT_CHAT_SOURCE_FILTER,
-  DEFAULT_SELECTED_TARGET_BY_SOURCE,
   DEFAULT_VIEW_MODE_BY_SOURCE_TARGET,
-  EMPTY_AGENT_CONVERSATION_SELECTION,
 } from '../../features/chat/chat-shell-types';
 import type { AppStoreSet, AppStoreState } from './store-types';
 
@@ -57,21 +55,13 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
             suspendedAgentSelection: accountId
               ? {
                 accountId,
-                agentTarget: state.selectedTargetBySource.agent,
-                agentThread: state.lastSelectedThreadByMode.agent,
-                conversationSelection: state.agentConversationSelection,
                 conversationTargetByHandle: state.agentConversationTargetByHandle,
               }
               : state.suspendedAgentSelection,
-            selectedTargetBySource: {
-              ...state.selectedTargetBySource,
-              agent: null,
-            },
             lastSelectedThreadByMode: {
               ...state.lastSelectedThreadByMode,
               agent: null,
             },
-            agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
             agentConversationTargetByHandle: {},
           };
         }
@@ -81,14 +71,14 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           return {
             auth,
             suspendedAgentSelection: null,
-            selectedTargetBySource: { ...state.selectedTargetBySource, agent: suspended.agentTarget },
-            lastSelectedThreadByMode: { ...state.lastSelectedThreadByMode, agent: suspended.agentThread },
-            agentConversationSelection: suspended.conversationSelection,
             agentConversationTargetByHandle: suspended.conversationTargetByHandle,
           };
         }
         if (projection.status === 'anonymous' || projection.status === 'switching') {
-          return { auth, suspendedAgentSelection: null };
+          return { auth, suspendedAgentSelection: null, agentConversationTargetByHandle: {}, pendingAgentComposerPrefill: null, pendingNimiComposerPrefill: null };
+        }
+        if (projection.status === 'authenticated' && accountIdOf(state.auth.user) && accountIdOf(state.auth.user) !== accountIdOf(projection.user)) {
+          return { auth, agentConversationTargetByHandle: {}, pendingAgentComposerPrefill: null, pendingNimiComposerPrefill: null };
         }
         return { auth };
       }),
@@ -112,12 +102,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           reasonCode: state.auth.reasonCode,
           accountReasonCode: state.auth.accountReasonCode,
         },
-        selectedChatId: null,
-        chatMode: 'ai',
         chatSourceFilter: DEFAULT_CHAT_SOURCE_FILTER,
-        selectedTargetBySource: {
-          ...DEFAULT_SELECTED_TARGET_BY_SOURCE,
-        },
         viewModeBySourceTarget: {
           ...DEFAULT_VIEW_MODE_BY_SOURCE_TARGET,
         },
@@ -126,7 +111,6 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           human: null,
           agent: null,
         },
-        agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
         agentConversationTargetByHandle: {},
         agentComposerDrafts: {},
         chatSetupState: {

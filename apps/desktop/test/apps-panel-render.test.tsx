@@ -194,7 +194,7 @@ function baseProps(overrides: Partial<AppsPanelViewProps> = {}): AppsPanelViewPr
     onSearchChange: () => {},
     selectedEntryKey: null,
     requestedDetailSection: null,
-    requestedDetailNavigationRevision: 0,
+    navigationEntryKey: 'entry-1',
     onCardAction: () => {},
     onBack: () => {},
     onOpenDeveloperMode: () => {},

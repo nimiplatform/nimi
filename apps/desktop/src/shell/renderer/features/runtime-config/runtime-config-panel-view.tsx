@@ -101,7 +101,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             } : undefined}
             runtimeWritesDisabled={model.runtimeWritesDisabled}
             focusedTaskId={model.setupTaskFocus?.taskId ?? null}
-            actionFocus={state.actionFocus}
+            actionFocus={model.actionFocus}
             savedConfigsContext={model.loadoutNavigationContext}
             profileUseOwner={model.profileUseOwner}
             onOpenSetupTask={model.onOpenSetupTask}
@@ -112,9 +112,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             onOpenModelMarket={model.onOpenModelMarket}
             onOpenAdvancedDiagnostics={() => model.onChangePage('advancedDiagnostics')}
             onOpenCloudServices={() => model.onChangePage('cloudServices')}
-            onClearActionFocus={() =>
-              model.updateState((prev) => (prev.actionFocus ? { ...prev, actionFocus: null } : prev))
-            }
+            onClearActionFocus={model.clearActionFocus}
             onCloseProfileUseOwner={model.onCloseProfileUseOwner}
             onCloseSavedConfigs={model.onCloseSavedConfigs}
           />
@@ -146,7 +144,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               {activePage === 'modelLibrary' ? (
                 <ModelLibraryPage
                   model={model}
-                  onClearActionFocus={() => model.updateState((prev) => ({ ...prev, actionFocus: null }))}
+                  onClearActionFocus={model.clearActionFocus}
                 />
               ) : null}
               {activePage === 'cloudServices' ? <CloudServicesPage model={model} state={state} /> : null}

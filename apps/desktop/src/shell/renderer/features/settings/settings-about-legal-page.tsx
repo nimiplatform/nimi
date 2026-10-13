@@ -1,12 +1,8 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../../app-shell/providers/app-store';
-import {
-  Button,
-  Card,
-  PageShell,
-  Section,
-} from './settings-layout-components.js';
+
+import { Button, Card, PageShell, Section } from './settings-layout-components.js';
 import { ShieldIcon } from './settings-assets.js';
 
 function FileTextIcon({ className = '' }: { className?: string }) {
@@ -66,8 +62,8 @@ function LegalDocumentCard({
 }
 
 export function AboutLegalPage() {
+  const navigation = useHomeNavigation();
   const { t } = useTranslation();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
 
   return (
     <PageShell
@@ -80,13 +76,13 @@ export function AboutLegalPage() {
             title={t('Legal.terms.title')}
             description={t('Settings.aboutLegalTermsDescription')}
             icon={<FileTextIcon className="h-5 w-5" />}
-            onOpen={() => setActiveTab('terms-of-service')}
+            onOpen={() => navigation.push({ id: 'terms-of-service' })}
           />
           <LegalDocumentCard
             title={t('Legal.privacy.title')}
             description={t('Settings.aboutLegalPrivacyDescription')}
             icon={<ShieldIcon className="h-5 w-5" />}
-            onOpen={() => setActiveTab('privacy-policy')}
+            onOpen={() => navigation.push({ id: 'privacy-policy' })}
           />
         </div>
       </Section>

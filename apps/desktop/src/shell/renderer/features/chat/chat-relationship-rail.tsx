@@ -1,3 +1,4 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { IconToggleAction, ScrollArea } from '@nimiplatform/kit/ui';
@@ -47,9 +48,9 @@ function RelationshipAvatar({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
-  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
-  const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
+
   const ownerUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
   const { t } = useTranslation();
   const ref = useRef<HTMLButtonElement>(null);
@@ -136,10 +137,10 @@ function RelationshipAvatar({
     setHoverCardPos(null);
     if (profileTarget) {
       if (profileTarget.kind === 'character') {
-        navigateToSourceDetail(profileTarget.sourceRef);
+        navigation.push({ id: 'source-detail', sourceRef: profileTarget.sourceRef });
         return;
       }
-      navigateToProfile(profileTarget.profileId);
+      navigation.push({ id: 'profile', profileId: profileTarget.profileId });
       return;
     }
     if (profileOpenPendingRef.current) {
@@ -152,7 +153,7 @@ function RelationshipAvatar({
       sdk: bindings.sdk,
     }).then((sourceRef) => {
       if (sourceRef) {
-        navigateToSourceDetail(sourceRef);
+        navigation.push({ id: 'source-detail', sourceRef: sourceRef });
         return;
       }
       onSelect();
@@ -326,7 +327,6 @@ export function ChatRelationshipRail({
             ))}
           </>
         ) : null}
-
 
       </ScrollArea>
       <div className="mt-2 flex w-full shrink-0 flex-col items-center gap-2 border-t border-white/70 px-1 pb-1 pt-3">

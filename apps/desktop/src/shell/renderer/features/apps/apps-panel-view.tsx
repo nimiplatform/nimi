@@ -102,7 +102,7 @@ export interface AppsPanelViewProps {
   readonly onSearchChange: (query: string) => void;
   readonly selectedEntryKey: string | null;
   readonly requestedDetailSection: NimiDesktopOpenAppsSection | null;
-  readonly requestedDetailNavigationRevision: number;
+  readonly navigationEntryKey: string;
   readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly onBack: () => void;
   readonly onOpenDeveloperMode: () => void;
@@ -139,7 +139,7 @@ export function AppsPanelView({
   onSearchChange,
   selectedEntryKey,
   requestedDetailSection,
-  requestedDetailNavigationRevision,
+  navigationEntryKey,
   onCardAction,
   onBack,
   onOpenDeveloperMode,
@@ -300,7 +300,7 @@ export function AppsPanelView({
               entry={selectedEntry}
               sourceEntries={sourceEntries}
               requestedSection={requestedDetailSection}
-              requestedNavigationRevision={requestedDetailNavigationRevision}
+              navigationEntryKey={navigationEntryKey}
               onBack={onBack}
               onOpenEntry={(entryKey) => onCardAction(entryKey, 'details')}
               onRemoveSource={(entryKey) => onCardAction(entryKey, 'remove')}

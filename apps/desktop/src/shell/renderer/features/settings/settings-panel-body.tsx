@@ -13,7 +13,7 @@ import {
 } from '@nimiplatform/kit/ui';
 import { getSettingsMenuSections } from './settings-assets.js';
 import { renderSettingsPage } from './settings-pages.js';
-import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
+import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 
 const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
   Account: 'Settings.sectionAccount',
@@ -41,27 +41,23 @@ const COMPACT_SETTINGS_LAYOUT_MAX_WIDTH = 620;
 
 export function SettingsPanelBody() {
   const { t } = useTranslation();
-  const settings = useDesktopRendererCommands().settings;
+  const controller = useHomeNavigation();
   const menuSections = getSettingsMenuSections();
   const containerRef = useRef<HTMLDivElement>(null);
   const resizePointerIdRef = useRef<number | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(216);
-  const [selectedId, setSelectedId] = useState(() => settings.loadSelected('profile'));
+  const selectedId = useHomeDestination().settingsSection ?? 'profile';
   const [isCompactLayout, setIsCompactLayout] = useState(false);
   const [compactView, setCompactView] = useState<'list' | 'detail'>('list');
 
   const handleSelect = (id: string) => {
-    settings.persistSelected(id);
-    setSelectedId(id);
+    void controller.push({ id: 'settings', settingsSection: id });
     if (isCompactLayout) {
       setCompactView('detail');
     }
   };
 
-  useEffect(() => settings.subscribeOpenSection((id) => {
-    setSelectedId(id);
-    setCompactView('detail');
-  }), [settings]);
+  useEffect(() => setCompactView('detail'), [selectedId]);
 
   useEffect(() => {
     const container = containerRef.current;

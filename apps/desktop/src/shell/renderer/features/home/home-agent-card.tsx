@@ -1,3 +1,4 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { Avatar, Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { ArrowRight, ArrowUp, Compass, MessageCircle } from 'lucide-react';
@@ -6,11 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
-import {
-  fetchLocalAgentList,
-  localAgentListQueryKey,
-  type LocalAgentListItem,
-} from '../agents/local-agent-list-model.js';
+import { fetchLocalAgentList, localAgentListQueryKey, type LocalAgentListItem } from '../agents/local-agent-list-model.js';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 
 export type HomeAgentCardState = 'loading' | 'none' | 'unavailable' | 'ready';
@@ -246,13 +243,10 @@ export function HomeAgentCardView({
 
 /** Live wrapper used by Home. Agent truth comes from Runtime; the composer routes into the agent conversation with the text prefilled. */
 export function HomeAgentCard({ heading, status }: { heading: ReactNode; status: ReactNode }) {
+  const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const enabled = authStatus === 'authenticated' && Boolean(ownerUserId);
@@ -290,19 +284,19 @@ export function HomeAgentCard({ heading, status }: { heading: ReactNode; status:
 
   const openConversation = useCallback(async (selected: LocalAgentListItem | null | undefined, initialComposerText?: string) => {
     if (!selected) return;
+    const generation = navigation.getSnapshot().generation;
     const target = await resolveAgentTargetSnapshotForSourceRef({
       sourceRef: selected.sourceRef,
       ownerUserId,
       sdk: bindings.sdk,
     }).catch(() => null);
+    if (navigation.getSnapshot().generation !== generation) return;
     if (target) {
       await launchAgentConversationFromDisplay({
         target,
         initialComposerText: initialComposerText ?? null,
-        setActiveTab,
-        setChatMode,
-        setSelectedTargetForSource,
-        setAgentConversationSelection,
+        navigation,
+
         setAgentConversationTargetSnapshot,
         setPendingAgentComposerPrefill,
       });
@@ -313,25 +307,21 @@ export function HomeAgentCard({ heading, status }: { heading: ReactNode; status:
     if (initialComposerText) {
       setPendingAgentComposerPrefill({ sourceKey: selected.sourceKey, text: initialComposerText });
     }
-    setSelectedTargetForSource('agent', null);
-    setChatMode('agent');
-    setActiveTab('chat');
+    void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
   }, [
     bindings.sdk,
     ownerUserId,
-    setActiveTab,
-    setAgentConversationSelection,
+    navigation,
+
     setAgentConversationTargetSnapshot,
-    setChatMode,
+
     setPendingAgentComposerPrefill,
-    setSelectedTargetForSource,
+
   ]);
 
   const openAgentList = useCallback(() => {
-    setSelectedTargetForSource('agent', null);
-    setChatMode('agent');
-    setActiveTab('chat');
-  }, [setActiveTab, setChatMode, setSelectedTargetForSource]);
+    void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
+  }, [navigation]);
 
   const state: HomeAgentCardState = !enabled || agents.isPending
     ? 'loading'
@@ -350,7 +340,7 @@ export function HomeAgentCard({ heading, status }: { heading: ReactNode; status:
       status={status}
       onContinueChat={() => void openConversation(agent)}
       onSendMessage={(text) => void openConversation(agent, text)}
-      onExplore={() => setActiveTab('explore')}
+      onExplore={() => navigation.push({ id: 'explore' })}
       onOpenAgent={(id) => void openConversation(shownOthers.find((item) => item.localAgentRef === id))}
       onViewAllAgents={openAgentList}
     />

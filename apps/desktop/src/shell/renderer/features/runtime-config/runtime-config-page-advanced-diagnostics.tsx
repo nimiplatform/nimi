@@ -10,7 +10,7 @@
  * export stay Support-owned.
  */
 
-import { useEffect, useState } from 'react';
+import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useTranslation } from 'react-i18next';
 import { NimiTabs, Surface, cn } from '@nimiplatform/kit/ui';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -55,13 +55,8 @@ const SUB_PANES: Array<{ id: AdvancedDiagnosticsPaneId; labelKey: string; defaul
 export function AdvancedDiagnosticsPage({ model }: AdvancedDiagnosticsPageProps) {
   const { t } = useTranslation();
   const auditData = useGlobalAuditData(true);
-  const [pane, setPane] = useState<AdvancedDiagnosticsPaneId>(model.advancedDiagnosticsPaneRequest?.pane ?? 'services');
-  // Deep links (e.g. Home → Activity & Usage) arrive as a revisioned request so
-  // repeating the same pane still re-selects it after the user switched away.
-  const paneRequest = model.advancedDiagnosticsPaneRequest;
-  useEffect(() => {
-    if (paneRequest) setPane(paneRequest.pane);
-  }, [paneRequest]);
+  const navigation = useHomeNavigation();
+  const pane = useHomeDestination().runtime?.pane ?? 'services';
 
   return (
     <div className="min-w-0 space-y-6" data-testid="runtime-advanced-diagnostics">
@@ -80,7 +75,7 @@ export function AdvancedDiagnosticsPage({ model }: AdvancedDiagnosticsPageProps)
             label: t(tab.labelKey, { defaultValue: tab.defaultLabel }),
           }))}
           value={pane}
-          onValueChange={(value) => setPane(value as AdvancedDiagnosticsPaneId)}
+          onValueChange={(value) => void navigation.push({ id: 'diagnostics', runtime: { pane: value as AdvancedDiagnosticsPaneId } })}
         />
       </div>
 

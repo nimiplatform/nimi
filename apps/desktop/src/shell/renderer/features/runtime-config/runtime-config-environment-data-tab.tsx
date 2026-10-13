@@ -1,8 +1,8 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NimiText, Surface } from '@nimiplatform/kit/ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { useAppStore } from '../../app-shell/providers/app-store';
 
 type StorageUsage = {
   localStorageBytes: number;
@@ -25,9 +25,10 @@ function formatBytes(bytes: number): string {
  * instead of duplicating them.
  */
 export function EnvironmentDataTab() {
+  const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   const [usage, setUsage] = useState<StorageUsage | null>(null);
   const [dataRoot, setDataRoot] = useState('');
   const [loadFailed, setLoadFailed] = useState(false);
@@ -51,8 +52,7 @@ export function EnvironmentDataTab() {
   }, [refresh]);
 
   const openSettingsDataManagement = () => {
-    bindings.app.commands.settings.openSection('data');
-    setActiveTab('settings');
+    void navigation.push({ id: 'settings', settingsSection: 'data' });
   };
 
   return (

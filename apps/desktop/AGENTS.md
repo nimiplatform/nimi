@@ -26,7 +26,7 @@
 - Support (account menu) owns guided repair, diagnostics, logs, and recovery; its section set is contract-fixed (`rule.nimi.desktop.product-surfaces.r023`).
 - AI Capabilities owns the Profile quick-start home and capability master-detail workspace; Cloud Services is an independent primary entry. Downloads is a persistent global utility over existing App, model and environment jobs. Home is the personal AI overview with an explicit Activity entry to the Realm feed. Advanced & Diagnostics remains a secondary system-management destination.
 - Authorization/Grant split: account projection and Web account-management handoff → Settings > Security; local-development project registrations and activity → Settings > Developer; external-agent tokens and delegated approvals → Advanced & Diagnostics > Permissions & Access.
-- Never embed a whole settings page inside another surface (or vice versa); deep-link via `settings.openSection(id)` / `setActiveTab` instead. Single-home every control exactly once.
+- Never embed a whole settings page inside another surface (or vice versa); use the current Home navigation controller to push `{ id: 'settings', settingsSection }`. Single-home every control exactly once.
 
 ## Verification Commands
 - Renderer TypeScript or behavior changes: `pnpm --filter @nimiplatform/desktop typecheck` and the directly affected test.

@@ -10,7 +10,6 @@ export function addConnectorToState(
   return {
     ...prev,
     connectors: [...prev.connectors, connector],
-    selectedConnectorId: connector.id,
   };
 }
 
@@ -18,8 +17,6 @@ export function replaceConnectorsInState(
   prev: RuntimeConfigStateV11,
   connectors: ApiConnector[],
 ): RuntimeConfigStateV11 {
-  const previousSelectedId = prev.selectedConnectorId;
-  const selectedStillExists = connectors.some((c) => c.id === previousSelectedId);
   const previousById = new Map(prev.connectors.map((connector) => [connector.id, connector]));
   return {
     ...prev,
@@ -49,46 +46,12 @@ export function replaceConnectorsInState(
         modelCapabilities: previous.modelCapabilities,
       };
     }),
-    selectedConnectorId: selectedStillExists
-      ? previousSelectedId
-      : (connectors[0]?.id || ''),
   };
 }
 
-export function removeSelectedConnector(
-  prev: RuntimeConfigStateV11,
-  selectedConnectorId: string | null,
-): RuntimeConfigStateV11 {
-  if (!selectedConnectorId) return prev;
-  const remaining = prev.connectors.filter((connector) => connector.id !== selectedConnectorId);
-  if (remaining.length === 0) {
-    return {
-      ...prev,
-      connectors: [],
-      selectedConnectorId: '',
-    };
-  }
-  const fallback = remaining[0];
-  if (!fallback) return prev;
-  return {
-    ...prev,
-    connectors: remaining,
-    selectedConnectorId: fallback.id,
-  };
-}
-
-export function removeConnectorFromState(
-  prev: RuntimeConfigStateV11,
-  connectorId: string | null,
-): RuntimeConfigStateV11 {
+export function removeConnectorFromState(prev: RuntimeConfigStateV11, connectorId: string | null): RuntimeConfigStateV11 {
   if (!connectorId) return prev;
-  if (prev.selectedConnectorId === connectorId) {
-    return removeSelectedConnector(prev, connectorId);
-  }
-  return {
-    ...prev,
-    connectors: prev.connectors.filter((connector) => connector.id !== connectorId),
-  };
+  return { ...prev, connectors: prev.connectors.filter(connector => connector.id !== connectorId) };
 }
 
 export function updateConnectorField(

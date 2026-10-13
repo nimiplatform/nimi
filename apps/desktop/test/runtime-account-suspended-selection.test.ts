@@ -13,25 +13,25 @@ function projection(status: RuntimeAccountAuthProjection['status'], accountId?: 
 }
 
 function openPartner(app: ReturnType<typeof store>) {
-  app.setState((state) => ({
-    selectedTargetBySource: { ...state.selectedTargetBySource, agent: 'agent:ren' },
-    lastSelectedThreadByMode: { ...state.lastSelectedThreadByMode, agent: 'thread-7' },
-  }));
+  const agentHandle = `agent_ref_${'a'.repeat(43)}`;
+  app.getState().setAgentConversationTargetSnapshot({ agentHandle, conversationAnchorId: 'anchor-a', displayName: 'Partner', handle: '', avatarUrl: null, worldId: null, worldName: null, bio: null, ownershipType: null, greeting: null, builtinDocsContext: null });
+  void app.navigation.push({ id: 'chat', chat: { mode: 'agent', agentHandle, conversationAnchorId: 'anchor-a', targetId: agentHandle } });
 }
 
-test('an unproven account hides the open partner and brings it back for the same account', () => {
+test('an unproven account clears page history and retains proven business references only for the same account', () => {
   const app = store();
   app.getState().applyRuntimeAccountProjection(projection('authenticated', 'account-a'));
   openPartner(app);
 
   app.getState().applyRuntimeAccountProjection(projection('unavailable'));
   app.getState().applyRuntimeAccountProjection(projection('unavailable'));
-  assert.equal(app.getState().selectedTargetBySource.agent, null, 'hidden while identity is unproven');
+  assert.equal(app.navigation.getSnapshot().current.destination.id, 'home');
+  assert.equal(app.navigation.getSnapshot().canGoBack, false);
   assert.equal(app.getState().lastSelectedThreadByMode.agent, null);
 
   app.getState().applyRuntimeAccountProjection(projection('authenticated', 'account-a'));
-  assert.equal(app.getState().selectedTargetBySource.agent, 'agent:ren');
-  assert.equal(app.getState().lastSelectedThreadByMode.agent, 'thread-7');
+  assert.equal(app.navigation.getSnapshot().current.destination.id, 'home');
+  assert.equal(Object.values(app.getState().agentConversationTargetByHandle)[0]?.conversationAnchorId, 'anchor-a');
   assert.equal(app.getState().suspendedAgentSelection, null);
 });
 
@@ -43,7 +43,8 @@ test('another account, a sign-out or an account switch never receives the suspen
     app.getState().applyRuntimeAccountProjection(projection('unavailable'));
     app.getState().applyRuntimeAccountProjection(next);
     app.getState().applyRuntimeAccountProjection(projection('authenticated', 'account-a'));
-    assert.equal(app.getState().selectedTargetBySource.agent, null, next.status);
+    assert.equal(app.navigation.getSnapshot().current.destination.id, 'home', next.status);
+    assert.deepEqual(app.getState().agentConversationTargetByHandle, {}, next.status);
   }
   const app = store();
   app.getState().applyRuntimeAccountProjection(projection('authenticated', 'account-a'));
@@ -51,5 +52,6 @@ test('another account, a sign-out or an account switch never receives the suspen
   app.getState().applyRuntimeAccountProjection(projection('unavailable'));
   app.getState().clearAuthSession();
   app.getState().applyRuntimeAccountProjection(projection('authenticated', 'account-a'));
-  assert.equal(app.getState().selectedTargetBySource.agent, null, 'sign-out drops it');
+  assert.equal(app.navigation.getSnapshot().current.destination.id, 'home', 'sign-out clears the page');
+  assert.deepEqual(app.getState().agentConversationTargetByHandle, {}, 'sign-out drops the references');
 });

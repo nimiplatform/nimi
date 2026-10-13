@@ -1,3 +1,4 @@
+import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, LoadingSkeleton, NimiText, Surface } from '@nimiplatform/kit/ui';
@@ -6,7 +7,7 @@ import { WorldDetail } from './world-detail';
 import { WorldCatalogRail } from './world-list-rail';
 import { useFollowedWorlds } from './world-follow-store-context.js';
 import { WORLD_EXPLORER_THEME } from './world-list-theme';
-import { useAppStore } from '../../app-shell/providers/app-store';
+
 import type { WorldListItem } from './world-list-model';
 
 export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean }) {
@@ -101,11 +102,9 @@ export function WorldCatalogContent({
   railFlap?: ReactNode;
 }) {
   const { t } = useTranslation();
-  // The catalog selection lives in the UI slice so it survives the Explore
-  // panel unmount during the source-detail round trip (navigateBack restores
-  // only the tab; local state would reset to selectInitialWorld).
-  const storeSelectedWorldId = useAppStore((state) => state.exploreSelectedWorldId);
-  const setExploreSelectedWorldId = useAppStore((state) => state.setExploreSelectedWorldId);
+  const navigation = useHomeNavigation();
+  const destination = useHomeDestination();
+  const storeSelectedWorldId = useHomeDestination().exploreWorldId ?? null;
   const fallbackWorldId = useMemo(() => selectInitialWorld(worlds), [worlds]);
   const selectedWorldId = storeSelectedWorldId ?? fallbackWorldId;
   const query = searchQuery ?? '';
@@ -141,7 +140,7 @@ export function WorldCatalogContent({
         searchQuery={query}
         onSearchChange={(value) => onSearchQueryChange?.(value)}
         selectedWorldId={selectedWorld?.id ?? null}
-        onSelectWorld={setExploreSelectedWorldId}
+        onSelectWorld={worldId => void navigation.push({ id: 'explore', exploreSection: 'worlds', search: destination.search ?? '', exploreWorldId: worldId ?? undefined })}
         isFollowed={followed.isFollowed}
         followAvailable={followed.available}
         onToggleFollow={followed.toggle}

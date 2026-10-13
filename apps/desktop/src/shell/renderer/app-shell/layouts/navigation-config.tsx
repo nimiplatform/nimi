@@ -200,6 +200,7 @@ export function NavLink({
       <motion.button
         type="button"
         data-testid={testId ?? E2E_IDS.navTab(String(item.id))}
+        aria-current={active ? 'page' : undefined}
         onClick={onClick}
         layout
         whileHover={interactiveMotion.whileHover}

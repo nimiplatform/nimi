@@ -334,6 +334,7 @@ export function createRealmHumanChatData(sdk: DesktopRendererSdkPort) {
   const service = createDesktopRealmChatService(sdk);
   const emit = sdk.socialData.emitDataError;
   return Object.freeze({
+    loadChatById: (chatId: string) => service.getChatById(chatId),
     loadChatList: (limit = 20) => loadChatList(service, emit, limit, sdk.offline),
     loadMoreChatList: (cursor?: string) => loadMoreChatList(service, emit, cursor),
     startChatWithTarget: (targetAccountId: string, initialMessage: string | null = null) =>

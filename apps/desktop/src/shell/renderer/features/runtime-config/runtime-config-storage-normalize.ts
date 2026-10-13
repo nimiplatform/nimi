@@ -1,6 +1,4 @@
 import {
-  normalizePageIdV11,
-  normalizeRuntimeConfigActionFocus,
   normalizeSourceV11,
   normalizeUiModeV11,
   type RuntimeConfigStateV11,
@@ -28,21 +26,17 @@ export function normalizeStoredStateV11(parsed: StoredStateV11): RuntimeConfigSt
   const parsedRecord = parsed as StoredStateV11 & JsonObject;
   const local = normalizeLocalFromAny(parsedRecord, fallback);
 
-  const rawActivePage = parsedRecord.activePage || fallback.activePage;
 
   // Connectors are NOT loaded from localStorage; neither are Runtime endpoint or inventory.
   // Runtime bridge config and Runtime SDK projections are the single source of
   // truth. Renderer storage keeps UI preferences only.
   return {
-    version: 15,
+    version: 16,
     initializedByV11: Boolean(parsed.initializedByV11),
-    activePage: normalizePageIdV11(rawActivePage),
-    actionFocus: normalizeRuntimeConfigActionFocus(parsedRecord.actionFocus),
     diagnosticsCollapsed: parsed.diagnosticsCollapsed !== false,
     uiMode: normalizeUiModeV11(parsed.uiMode || fallback.uiMode),
     selectedSource: normalizeSourceV11(parsed.selectedSource || fallback.selectedSource),
     local,
     connectors: [],
-    selectedConnectorId: '',
   };
 }

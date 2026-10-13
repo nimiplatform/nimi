@@ -68,96 +68,19 @@ export type LocalStateV11 = {
 export type ApiConnector = NimiRuntimeConfigConnectorProjection;
 
 export type RuntimeConfigStateV11 = {
-  version: 15;
+  version: 16;
   initializedByV11: boolean;
-  activePage: RuntimePageIdV11;
-  actionFocus: RuntimeConfigActionFocus | null;
   diagnosticsCollapsed: boolean;
   selectedSource: SourceIdV11;
   uiMode: UiModeV11;
   local: LocalStateV11;
   connectors: ApiConnector[];
-  selectedConnectorId: string;
 };
 
 export const DEFAULT_CONNECTOR_ENDPOINT_V11 = NIMI_RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT;
 
 export function normalizeSourceV11(value: unknown): SourceIdV11 {
   return value === 'cloud' ? 'cloud' : 'local';
-}
-
-export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
-  if (
-    value === 'aiSettings'
-    || value === 'modelLibrary'
-    || value === 'cloudServices'
-    || value === 'advancedDiagnostics'
-  ) {
-    return value;
-  }
-  return 'aiSettings';
-}
-
-export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfigActionFocus | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  if (
-    record.page === 'cloudServices'
-    && record.action === 'add-connector'
-    && record.focus === 'runtime-config-action-focus.cloud-connector-draft'
-  ) {
-    return {
-      page: 'cloudServices',
-      action: 'add-connector',
-      focus: 'runtime-config-action-focus.cloud-connector-draft',
-    };
-  }
-  if (
-    record.page === 'aiSettings' && record.action === 'open-saved-configs'
-    && record.focus === 'runtime-config-action-focus.saved-configs'
-  ) {
-    return {
-      page: 'aiSettings',
-      action: 'open-saved-configs',
-      focus: 'runtime-config-action-focus.saved-configs',
-    };
-  }
-  if (
-    record.page === 'modelLibrary'
-    && record.action === 'install-model'
-    && record.focus === 'runtime-config-action-focus.model-library-install'
-  ) {
-    return {
-      page: 'modelLibrary',
-      action: 'install-model',
-      focus: 'runtime-config-action-focus.model-library-install',
-    };
-  }
-  if (
-    record.page === 'modelLibrary'
-    && record.action === 'import-model-files'
-    && record.focus === 'runtime-config-action-focus.model-library-import'
-  ) {
-    return {
-      page: 'modelLibrary',
-      action: 'import-model-files',
-      focus: 'runtime-config-action-focus.model-library-import',
-    };
-  }
-  if (
-    record.page === 'modelLibrary'
-    && record.action === 'manage-model-files'
-    && record.focus === 'runtime-config-action-focus.model-library-files'
-  ) {
-    return {
-      page: 'modelLibrary',
-      action: 'manage-model-files',
-      focus: 'runtime-config-action-focus.model-library-files',
-    };
-  }
-  return null;
 }
 
 export function normalizeUiModeV11(value: unknown): UiModeV11 {

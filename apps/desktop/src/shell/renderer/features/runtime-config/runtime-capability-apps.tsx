@@ -1,6 +1,7 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
+
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import type { DesktopAppsEntry, DesktopAppsPanelProjection } from '../apps/apps-panel-projection.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
@@ -132,14 +133,13 @@ export function RuntimeCapabilityAppsCard(props: {
 
 /** Apps on this device that use the capability; a row opens that App's detail. */
 export function RuntimeCapabilityApps(props: { readonly state: CapabilityAppsColumn }) {
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
+  const navigation = useHomeNavigation();
+
   return (
     <RuntimeCapabilityAppsCard
       state={props.state}
       onOpen={(entry) => {
-        setAppsDetailAppId(entry.identity.appId, null, entry.identity.entryKey);
-        setActiveTab('apps');
+        void navigation.push({ id: 'apps', appId: entry.identity.appId, appEntryKey: entry.identity.entryKey });
       }}
     />
   );

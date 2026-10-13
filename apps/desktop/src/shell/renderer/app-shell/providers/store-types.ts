@@ -1,24 +1,8 @@
 import type { RuntimeDefaults } from '../../bridge';
-import type {
-  ConversationMode,
-  ConversationSourceFilter,
-  ConversationSetupState,
-  ConversationViewMode,
-} from '@nimiplatform/kit/features/chat/headless';
+import type { ConversationMode, ConversationSourceFilter, ConversationSetupState, ConversationViewMode } from '@nimiplatform/kit/features/chat/headless';
 import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
-import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
-import type {
-  NimiConversationSelection,
-  AgentComposerPrefill,
-  AgentConversationSelection,
-  ChatSetupStateByMode,
-  LastSelectedThreadByMode,
-  SelectedTargetBySource,
-  ViewModeBySourceTarget,
-} from '../../features/chat/chat-shell-types';
+import type { AgentComposerPrefill, ChatSetupStateByMode, LastSelectedThreadByMode, ViewModeBySourceTarget } from '../../features/chat/chat-shell-types';
 import type { ChatThinkingPreference } from '../../features/chat/chat-shared-thinking';
-import type { ExploreSectionId } from '../../features/explore/explore-section-nav';
-import type { CharacterSourceRefV3 } from '../../features/realm-source/realm-source-identity.js';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
@@ -36,9 +20,6 @@ export type AuthStatus =
 
 export type SuspendedAgentSelection = {
   readonly accountId: string;
-  readonly agentTarget: SelectedTargetBySource['agent'];
-  readonly agentThread: LastSelectedThreadByMode['agent'];
-  readonly conversationSelection: AgentConversationSelection;
   readonly conversationTargetByHandle: Record<string, AgentLocalTargetSnapshot>;
 };
 
@@ -74,14 +55,6 @@ export type WorldDetailNavigationOptions = {
   initialSubpage?: WorldDetailInitialSubpage | null;
 };
 
-export type NavigationRouteSnapshot = {
-  activeTab: AppTab;
-  selectedProfileId: string | null;
-  selectedSourceRef: CharacterSourceRefV3 | null;
-  selectedWorldId: string | null;
-  selectedWorldInitialSubpage: WorldDetailInitialSubpage | null;
-};
-
 export type RuntimeFieldMap = {
   targetType: string;
   targetAccountId: string;
@@ -110,16 +83,10 @@ export type AppStoreState = {
     failureDetail?: string;
   };
   runtimeFields: RuntimeFieldMap;
-  activeTab: AppTab;
-  navigationBackStack: NavigationRouteSnapshot[];
-  chatMode: ConversationMode;
   chatThinkingPreference: ChatThinkingPreference;
   chatSourceFilter: ConversationSourceFilter;
-  selectedTargetBySource: SelectedTargetBySource;
   viewModeBySourceTarget: ViewModeBySourceTarget;
   lastSelectedThreadByMode: LastSelectedThreadByMode;
-  nimiConversationSelection: NimiConversationSelection;
-  agentConversationSelection: AgentConversationSelection;
   agentConversationTargetByHandle: Record<string, AgentLocalTargetSnapshot>;
   /**
    * The partner and conversation that were open when Runtime stopped proving
@@ -137,24 +104,9 @@ export type AppStoreState = {
   /** Text typed on Home that Nimi Chat opens a new conversation with. */
   pendingNimiComposerPrefill: { text: string; requestId: number } | null;
   chatSetupState: ChatSetupStateByMode;
-  selectedChatId: string | null;
-  selectedProfileId: string | null;
-  selectedSourceRef: CharacterSourceRefV3 | null;
-  selectedWorldId: string | null;
-  selectedWorldInitialSubpage: WorldDetailInitialSubpage | null;
-  exploreActiveSection: ExploreSectionId;
-  exploreSearchText: string;
-  exploreSelectedWorldId: string | null;
-  appsDetailAppId: string | null;
-  appsDetailEntryKey: string | null;
-  appsDetailSection: NimiDesktopOpenAppsSection | null;
-  appsDetailNavigationRevision: number;
-  /** Transient Home message intent: the Realm Post the Activity feed should show first. */
-  activityFocusPostId: string | null;
-  /** Bumped on every entry to Home (including the Logo while Home is open); Home then shows its overview. */
-  homeEntryRevision: number;
-  homeEntryDestination: 'overview' | 'integrations';
   profileDetailOverlayOpen: boolean;
+  primaryRailVisible: boolean;
+  setPrimaryRailVisible: (visible: boolean) => void;
   chatProfilePanelTarget: 'self' | 'other' | null;
   offlineTier: OfflineTier;
   setOfflineTier: (tier: OfflineTier) => void;
@@ -168,19 +120,14 @@ export type AppStoreState = {
   clearAuthSession: () => void;
   setRuntimeField: (key: keyof RuntimeFieldMap, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
-  setActiveTab: (tab: AppTab, homeDestination?: 'overview' | 'integrations') => void;
-  setChatMode: (mode: ConversationMode) => void;
   setChatThinkingPreference: (preference: ChatThinkingPreference) => void;
   setChatSourceFilter: (filter: ConversationSourceFilter) => void;
-  setSelectedTargetForSource: (source: ConversationMode, targetId: string | null) => void;
   setChatViewMode: (
     source: ConversationMode,
     targetId: string,
     mode: ConversationViewMode,
   ) => void;
   setLastSelectedThreadForMode: (mode: ConversationMode, threadId: string | null) => void;
-  setNimiConversationSelection: (selection: NimiConversationSelection) => void;
-  setAgentConversationSelection: (selection: AgentConversationSelection) => void;
   setAgentConversationTargetSnapshot: (target: AgentLocalTargetSnapshot) => void;
   setPendingAgentComposerPrefill: (input: { agentHandle?: string | null; sourceKey?: string | null; text: string }) => void;
   clearPendingAgentComposerPrefill: (requestId: number) => void;
@@ -188,26 +135,8 @@ export type AppStoreState = {
   setPendingNimiComposerPrefill: (text: string) => void;
   clearPendingNimiComposerPrefill: (requestId: number) => void;
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
-  setSelectedChatId: (chatId: string | null) => void;
-  setSelectedProfileId: (profileId: string | null) => void;
-  setSelectedWorldId: (worldId: string | null) => void;
-  setExploreActiveSection: (section: ExploreSectionId) => void;
-  setExploreSearchText: (text: string) => void;
-  setExploreSelectedWorldId: (worldId: string | null) => void;
-  setAppsDetailAppId: (
-    appId: string | null,
-    section?: NimiDesktopOpenAppsSection | null,
-    entryKey?: string | null,
-  ) => void;
-  /** Opens the Activity feed showing this Realm Post first. */
-  openActivityPost: (postId: string) => void;
-  clearActivityFocusPost: () => void;
   setProfileDetailOverlayOpen: (open: boolean) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
-  navigateToProfile: (profileId: string) => void;
-  navigateToSourceDetail: (sourceRef: CharacterSourceRefV3) => void;
-  navigateToWorld: (worldId: string, options?: WorldDetailNavigationOptions) => void;
-  navigateBack: () => void;
   setStatusBanner: (banner: InlineFeedbackState | null) => void;
 };
 

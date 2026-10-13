@@ -57,34 +57,7 @@ export type DesktopRendererStorageDirs = {
   readonly auditDir: string;
 };
 
-const VISIBLE_SETTINGS_SELECTED_IDS = Object.freeze([
-  'profile',
-  'appearance',
-  'privacy',
-  'security',
-  'notifications',
-  'developer',
-  'data',
-  'about-legal',
-]);
-
-export function normalizeSettingsSelectedId(id: string, fallback: string): string {
-  const candidate = String(id || '').trim();
-  if (VISIBLE_SETTINGS_SELECTED_IDS.includes(candidate)) {
-    return candidate;
-  }
-  const fallbackCandidate = String(fallback || '').trim();
-  if (VISIBLE_SETTINGS_SELECTED_IDS.includes(fallbackCandidate)) {
-    return fallbackCandidate;
-  }
-  return 'profile';
-}
-
 export interface DesktopRendererSettingsPort {
-  loadSelected(fallback: string): string;
-  persistSelected(id: string): void;
-  openSection(id: string): void;
-  subscribeOpenSection(listener: (id: string) => void): () => void;
   loadAppearancePreferences(): AppearancePreferences;
   persistAppearancePreferences(preferences: AppearancePreferences): void;
   subscribeAppearancePreferences(
@@ -99,27 +72,13 @@ export interface DesktopRendererSettingsPort {
 }
 
 export function createMemoryDesktopRendererSettingsPort(): DesktopRendererSettingsPort {
-  let selectedId = 'profile';
   let appearancePreferences: AppearancePreferences = {
     theme: 'system',
     reduceMotion: false,
   };
   const appearanceListeners = new Set<(preferences: AppearancePreferences) => void>();
-  const openSectionListeners = new Set<(id: string) => void>();
 
   return Object.freeze({
-    loadSelected: (fallback: string) => normalizeSettingsSelectedId(selectedId, fallback),
-    persistSelected(id: string) {
-      selectedId = normalizeSettingsSelectedId(id, 'profile');
-    },
-    openSection(id: string) {
-      selectedId = normalizeSettingsSelectedId(id, 'profile');
-      for (const listener of openSectionListeners) listener(selectedId);
-    },
-    subscribeOpenSection(listener: (id: string) => void) {
-      openSectionListeners.add(listener);
-      return () => openSectionListeners.delete(listener);
-    },
     loadAppearancePreferences: () => ({ ...appearancePreferences }),
     persistAppearancePreferences(preferences: AppearancePreferences) {
       appearancePreferences = { ...preferences };

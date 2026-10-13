@@ -1,3 +1,4 @@
+import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
 import { useActiveAgentConversationSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
 import {
@@ -91,13 +92,14 @@ function normalizeText(value: unknown): string {
 export function useAgentConversationModeHost(
   input: UseAgentConversationModeHostInput,
 ): DesktopConversationModeHost {
+  const homeChat = useHomeChatPosition();
   const { t } = useTranslation();
   const streamController = useStreamController();
   const bindings = useDesktopRendererBindings();
   const queryClient = useQueryClient();
   const appStore = useAppStoreApi();
   const authUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const openChatTarget = homeChat.openTarget;
   const setAgentConversationTargetSnapshot = useAppStore(
     (state) => state.setAgentConversationTargetSnapshot,
   );
@@ -223,10 +225,11 @@ export function useAgentConversationModeHost(
         });
         const latestTarget = shellActiveTargetRef.current;
         const latestState = appStore.getState();
-        const latestSelection = latestState.agentConversationSelection;
+        const latestSelection = appStore.navigation.getSnapshot().current.destination.chat;
         if (rebound
           && latestState.auth.status === 'authenticated'
           && normalizeText(latestState.auth.user?.id) === accountId
+          && latestSelection?.mode === 'agent'
           && normalizeText(latestSelection.agentHandle) === staleAgentHandle
           && normalizeText(latestSelection.conversationAnchorId) === conversationAnchorId
           && normalizeText(
@@ -481,7 +484,7 @@ export function useAgentConversationModeHost(
       targetId: agentHandle,
     }),
     setSubmittingThreadId,
-    clearSelectedTarget: () => setSelectedTargetForSource('agent', null),
+    clearSelectedTarget: () => openChatTarget('agent', null),
     submittingThreadId,
     syncSelectionToThread,
     t,

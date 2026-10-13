@@ -1,3 +1,4 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueries } from '@tanstack/react-query';
@@ -20,10 +21,11 @@ import { createRealmWorldData } from '../world/data/realm-world-data.js';
  * it is not rendered on other people's profiles.
  */
 export function FollowedWorldsTab() {
+  const navigation = useHomeNavigation();
   const sdk = useDesktopRendererSdk();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
-  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+
   const followed = useFollowedWorlds();
 
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
@@ -93,7 +95,7 @@ export function FollowedWorldsTab() {
           key={world.id}
           world={world}
           view="grid"
-          onOpen={() => navigateToWorld(world.id)}
+          onOpen={() => navigation.push({ id: 'world-detail', worldId: world.id })}
           followed={followed.isFollowed(world.id)}
           followAvailable={followed.available}
           onToggleFollow={() => followed.toggle(world.id)}

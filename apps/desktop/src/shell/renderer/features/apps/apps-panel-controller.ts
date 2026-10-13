@@ -13,7 +13,6 @@ import type {
   AppsInstallStartResult,
 } from './apps-install-intent.js';
 import { approvedCatalogTargetMatchesIntent, createAppsInstallIntentController } from './apps-install-intent.js';
-import { resolveDetailEntryKey } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import {
   desktopAppsEntryKey,
@@ -34,7 +33,6 @@ import { AppPackageJobPhase, type AppPackageJob } from '@nimiplatform/sdk/runtim
 
 export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
-  readonly detailEntryKey: string | null;
   readonly searchQuery: string;
   readonly actionError: AppsActionError | null;
   readonly pendingActions: readonly AppsPendingAction[];
@@ -45,7 +43,6 @@ export interface AppsPanelActions {
   readonly setSearchQuery: (query: string) => void;
   readonly runCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly retryProjection: () => void;
-  readonly closeDetail: () => void;
   readonly acknowledgeAIConfigMutation: (entryKey: string, result: NimiAIConfigOverwriteResult) => void;
   readonly confirmInstall: () => void;
   readonly cancelInstall: () => void;
@@ -54,6 +51,7 @@ export interface AppsPanelActions {
 export type AppsPanelController = AppsPanelState & AppsPanelActions;
 
 export interface AppsPanelControllerDeps {
+  readonly selectedEntryKey?: string | null;
   readonly readPackageInfo?: DesktopAppsProjectionSource['readPackageInfo'];
   readonly buildLiveBridge?: typeof createDesktopAppsLiveBridge;
   readonly listCommittedReleases: DesktopAppsProjectionSource['listCommittedReleases'];
@@ -258,7 +256,6 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     projectionRef.current = next;
     queryClient.setQueryData(projectionKey, next);
   }, [queryClient]);
-  const [detailEntryKey, setDetailEntryKey] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   // A failure belongs to the entry it happened on. Opening or polling details
   // never clears it; only the next action or a retry does.
@@ -366,13 +363,6 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   }, [reload]);
 
   useEffect(() => {
-    if (projection?.status !== 'loaded') return;
-    // `null` detail id is the library view; the controller only clears a
-    // selection whose entry actually disappeared and never auto-selects.
-    setDetailEntryKey((currentKey) => resolveDetailEntryKey(projection.entries, currentKey));
-  }, [projection]);
-
-  useEffect(() => {
     if (!installConfirmation || projection?.status !== 'loaded') return;
     const currentEntry = projection.entries.find((entry) => (
       entry.identity.entryKey === desktopAppsEntryKey(installConfirmation.appId, 'verified')
@@ -390,11 +380,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
 
   const runCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     if (action === 'details' || action === 'open-ai-config') {
-      // 'open-ai-config' is detail navigation with an AI-models section
-      // request; the section itself is store-level and set by the dispatch
-      // layer in apps-panel.tsx.
-      setDetailEntryKey(entryKey);
-      return;
+      throw new Error('App detail navigation belongs to the Home destination.');
     }
     setActionFailure(null);
     if (projection?.status !== 'loaded') return;
@@ -456,7 +442,6 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     void reloader.refreshCatalog();
   }, [reload, reloader]);
 
-  const closeDetail = useCallback((): void => setDetailEntryKey(null), []);
   const acknowledgeAIConfigMutation = useCallback((
     entryKey: string,
     result: NimiAIConfigOverwriteResult,
@@ -493,10 +478,9 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     setInstallConfirmation(null);
   }, [installIntentController]);
 
-  const actionError = visibleAppsActionError(actionFailure, detailEntryKey, projection?.status === 'loaded' ? projection.entries : []);
+  const actionError = visibleAppsActionError(actionFailure, deps.selectedEntryKey ?? null, projection?.status === 'loaded' ? projection.entries : []);
   return {
     projection,
-    detailEntryKey,
     searchQuery,
     actionError,
     pendingActions,
@@ -504,7 +488,6 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     runCardAction,
     setSearchQuery,
     retryProjection,
-    closeDetail,
     acknowledgeAIConfigMutation,
     confirmInstall,
     cancelInstall,

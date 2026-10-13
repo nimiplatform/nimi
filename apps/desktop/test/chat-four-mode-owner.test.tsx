@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { createHomeNavigation } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 
 function readDesktopFile(relativePath: string): string {
   return readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
@@ -58,7 +59,7 @@ test('agent-conversation-launcher requires the canonical handle and Conversation
   const { launchAgentConversationFromDisplay } = await import(
     '../src/shell/renderer/features/chat/agent-conversation-launcher.js'
   );
-  let setChatModeCalls = 0;
+  const setChatModeCalls = 0;
   await assert.rejects(
     () => launchAgentConversationFromDisplay({
       target: {
@@ -75,10 +76,7 @@ test('agent-conversation-launcher requires the canonical handle and Conversation
         greeting: null,
         builtinDocsContext: null,
       },
-      setActiveTab: () => {},
-      setChatMode: () => { setChatModeCalls += 1; },
-      setSelectedTargetForSource: () => {},
-      setAgentConversationSelection: () => {},
+      navigation: createHomeNavigation(),
       setAgentConversationTargetSnapshot: () => {},
     }),
     /Canonical Agent target requires agentHandle and Conversation anchor/,
@@ -91,6 +89,7 @@ test('agent conversation launcher can prefill composer without authoring a threa
     '../src/shell/renderer/features/chat/agent-conversation-launcher.js'
   );
   const observedEffects = new Set<string>();
+  const navigation = createHomeNavigation();
   let pendingPrefill: { agentHandle: string; text: string } | null = null;
 
   await launchAgentConversationFromDisplay({
@@ -115,10 +114,7 @@ test('agent conversation launcher can prefill composer without authoring a threa
       observedEffects.add('prefill');
       pendingPrefill = input;
     },
-    setActiveTab: () => { observedEffects.add('tab'); },
-    setChatMode: () => { observedEffects.add('mode'); },
-    setSelectedTargetForSource: () => { observedEffects.add('target'); },
-    setAgentConversationSelection: () => { observedEffects.add('selection'); },
+    navigation,
     setAgentConversationTargetSnapshot: () => { observedEffects.add('snapshot'); },
   });
 
@@ -128,6 +124,7 @@ test('agent conversation launcher can prefill composer without authoring a threa
   });
   assert.deepEqual(
     observedEffects,
-    new Set(['snapshot', 'target', 'selection', 'prefill', 'mode', 'tab']),
+    new Set(['snapshot', 'prefill']),
   );
+  assert.equal(navigation.getSnapshot().current.destination.chat?.conversationAnchorId, 'anchor-agent-1');
 });

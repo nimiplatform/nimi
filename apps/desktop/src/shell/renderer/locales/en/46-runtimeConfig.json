@@ -1,4 +1,5 @@
 {
+  "positionUnavailable": "This item is unavailable. Your navigation position has been kept.",
   "reasonMessages": {
     "AI_PROVIDER_TIMEOUT": "AI provider request timed out.",
     "AI_PROVIDER_UNAVAILABLE": "AI provider is unavailable.",
@@ -735,7 +736,7 @@
     "greetingWithName": "{{greeting}}, {{name}}",
     "composerLabel": "Message {{name}}",
     "composerPlaceholder": "Chat with {{name}}…",
-    "composerSend": "Send",
+    "composerSend": "Open chat",
     "tryPrompts": "Try",
     "prompts": {
       "introduce": "Tell me about yourself",

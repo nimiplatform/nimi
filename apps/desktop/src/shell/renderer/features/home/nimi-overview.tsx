@@ -1,26 +1,20 @@
+import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { IntegrationsPanel } from '../integrations/integrations-panel.js';
 import { Button, InlineAlert, LoadingSkeleton, ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, ArrowUp } from 'lucide-react';
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { formatBytes, formatTransferRate } from '../../components/download-format.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
-import {
-  useDesktopRendererBindings,
-  useDesktopRendererCommands,
-  useDesktopRendererSdk,
-} from '../../renderer/binding-context.js';
+import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { hasAvailableCatalogUpdate } from '../apps/apps-card-actions.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
 import { useGlobalDownloads } from '../runtime-config/global-downloads-context.js';
-import {
-  capabilityPreparationState,
-  useCapabilityInventory,
-} from '../runtime-config/runtime-capability-inventory.js';
+import { capabilityPreparationState, useCapabilityInventory } from '../runtime-config/runtime-capability-inventory.js';
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
 import { isDownloadTerminal } from '../runtime-config/runtime-config-model-center-utils.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
@@ -82,25 +76,21 @@ function HomeMessagesScope({ systemMessages, children }: {
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 export function NimiOverview() {
+
+  const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const i18n = useDesktopI18nResource();
   const sdk = useDesktopRendererSdk();
   const commands = useDesktopRendererCommands();
-  const bindings = useDesktopRendererBindings();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
+
   const authUser = useAppStore((state) => state.auth.user);
   const authStatus = useAppStore((state) => state.auth.status);
   const inventory = useCapabilityInventory();
   const downloads = useGlobalDownloads();
   const apps = useAppsOverview();
-  // The Message center is a Home-internal view; every Home entry, including
-  // the Logo while Home is already open, shows the overview.
-  const homeEntryRevision = useAppStore((state) => state.homeEntryRevision);
-  const homeEntryDestination = useAppStore((state) => state.homeEntryDestination);
-  const [view, setView] = useState<'overview' | 'center' | 'integrations'>(homeEntryDestination);
-  useEffect(() => setView(homeEntryDestination), [homeEntryRevision, homeEntryDestination]);
+  const homeEntryDestination = useHomeDestination().homeSection ?? 'overview';
+  const view = homeEntryDestination;
+  const setView = (homeSection: 'overview' | 'center' | 'integrations') => void navigation.push({ id: 'home', homeSection });
   const [centerFilter, setCenterFilter] = useState<HomeMessageFilter>('all');
   const [centerSource, setCenterSource] = useState<string | null>(null);
   const splitColumns = useXlSplitColumns();
@@ -147,22 +137,19 @@ export function NimiOverview() {
     && !apps.data.runtimeError && apps.data.catalogStatus !== 'unavailable'
     && !inventory.isPending && unique.length === 0 && prepared.length === 0 && !inventory.isError;
   const openApp = (appId: string, entryKey: string) => {
-    setAppsDetailAppId(appId, null, entryKey);
-    setActiveTab('apps');
+    void navigation.push({ id: 'apps', appId, appEntryKey: entryKey });
   };
   // Publish the intent, then switch tabs so the runtime panel controller
   // mounts and applies it (it is not mounted on Home).
   const openDiagnostics = (pane: RuntimeAdvancedDiagnosticsPane) => {
     commands.runtimeConfigNavigation.openPage('advancedDiagnostics', { pane });
-    setActiveTab('diagnostics');
+
   };
   const openChat = () => {
-    setChatMode('ai');
-    setActiveTab('chat');
+    void navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant' } });
   };
   const openMessageSettings = () => {
-    bindings.app.commands.settings.openSection('notifications');
-    setActiveTab('settings');
+    void navigation.push({ id: 'settings', settingsSection: 'notifications' });
   };
   const openCenter = (filter: HomeMessageFilter) => {
     setCenterFilter(filter);
@@ -183,7 +170,7 @@ export function NimiOverview() {
       progress: item.bytesTotal ? { value: item.bytesReceived + item.bytesReused, max: item.bytesTotal } : null,
       time: item.createdAt || null,
       app: null,
-      open: () => setActiveTab('downloads'),
+      open: () => navigation.push({ id: 'downloads' }),
     })),
     ...failed.map((task) => systemMessage({
       kind: 'setup',
@@ -195,7 +182,7 @@ export function NimiOverview() {
       app: null,
       open: () => {
         commands.runtimeConfigNavigation.openSetupTask(task.taskId);
-        setActiveTab('runtime');
+
       },
     })),
     ...updates.map((entry) => systemMessage({
@@ -238,7 +225,7 @@ export function NimiOverview() {
         <button
           type="button"
           className="rounded-md text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-          onClick={() => setActiveTab('runtime')}
+          onClick={() => navigation.push({ id: 'runtime' })}
           data-testid="home-status-capabilities"
         >
           {t('runtimeConfig.overview.statusCapabilities', { count: prepared.length })}
@@ -285,7 +272,7 @@ export function NimiOverview() {
               context={cardContext(messages)}
               onViewAll={() => openCenter('all')}
               onViewPending={() => openCenter('pending')}
-              onViewActivity={() => setActiveTab('activity')}
+              onViewActivity={() => navigation.push({ id: 'activity' })}
               onOpenSettings={openMessageSettings}
             />
           </ScrollArea>
@@ -300,7 +287,7 @@ export function NimiOverview() {
         <section className="rounded-[24px] bg-[var(--nimi-surface-panel)] px-5 py-3.5 shadow-[var(--nimi-elevation-base)]" data-testid="home-integrations">
           <button
             type="button"
-            onClick={() => setActiveTab('home', 'integrations')}
+            onClick={() => navigation.push({ id: 'home', homeSection: 'integrations' })}
             className="group flex w-full items-center gap-3 text-left focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
           >
             <span className="flex min-w-0 flex-1 items-baseline gap-2.5">
@@ -329,7 +316,7 @@ export function NimiOverview() {
                   <Button
                     tone={index === 0 ? 'primary' : 'secondary'}
                     size="sm"
-                    onClick={() => (step === 'model' ? setActiveTab('runtime') : step === 'chat' ? openChat() : setActiveTab('apps'))}
+                    onClick={() => (step === 'model' ? navigation.push({ id: 'runtime' }) : step === 'chat' ? openChat() : navigation.push({ id: 'apps' }))}
                   >
                     {t(`runtimeConfig.overview.firstRun.${step}.action`)}
                     <ArrowRight size={14} />
@@ -343,7 +330,7 @@ export function NimiOverview() {
             <SectionHeader
               title={t('runtimeConfig.overview.apps')}
               action={t('runtimeConfig.overview.allApps')}
-              onAction={() => setActiveTab('apps')}
+              onAction={() => navigation.push({ id: 'apps' })}
             />
             {apps.isError ||
             apps.data?.status === 'error' ||
@@ -407,7 +394,7 @@ export function NimiOverview() {
   );
 
   const renderPage = (messages: HomeMessages | null) => view === 'integrations' ? (
-    <IntegrationsPanel appIconUrls={iconUrls} onBack={() => setActiveTab('home', 'overview')} />
+    <IntegrationsPanel appIconUrls={iconUrls} onBack={() => navigation.push({ id: 'home', homeSection: 'overview' })} />
   ) : (
     <div className="flex min-h-0 flex-1 flex-col p-3">
       {view === 'center' && messages ? (

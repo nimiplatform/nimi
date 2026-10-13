@@ -94,7 +94,7 @@ test('composer copy uses the picked wording in both locales', async () => {
   await initI18n(); await changeLocale('zh');
   const html = render();
   assert.match(html, /placeholder="和 Lumi 聊聊…"/);
-  assert.match(html, />发送</);
+  assert.match(html, />去聊天</);
   assert.match(html, />试试</);
   assert.match(html, />介绍一下你自己</);
   assert.match(html, />你今天在想什么</);

@@ -60,7 +60,7 @@ test('the AI settings page navigates back to the recorded source on return', asy
   ]);
   assert.match(page, /resolveRuntimeSetupReturnTarget/u);
   assert.match(page, /onReturnToSource=\{onReturnToSource\}/u);
-  assert.match(page, /setActiveTab\(target\.tab\)/u);
+  assert.match(page, /navigation\.push\(\{ id: target\.tab \}\)/u);
   assert.match(open, /return \{ kind: 'tab', tab: 'apps' \}/u);
   assert.match(open, /return \{ kind: 'tab', tab: 'chat' \}/u);
 });
@@ -76,7 +76,7 @@ test('the AI settings page notice leaves recorded failures to the task view and 
   const between = (start: string, end: string) => page.slice(page.indexOf(start), page.indexOf(end, page.indexOf(start)));
   assert.match(between('const onHome = () => {', '};'), /setError\(null\)/u);
   assert.match(between('const onReturnToSource = () => {', '};'), /setError\(null\)/u);
-  assert.match(between('<RuntimeConfigSetupTaskView', 'onReturnToSource='), /props\.onCloseSetupTask\(\);\s*setError\(null\);/u);
+  assert.match(between('<RuntimeConfigSetupTaskView', 'onReturnToSource='), /navigation\.push\(homeRuntimeDestination\('aiSettings', \{ capabilityContract: focusedTask\.capabilityContract \}\)\);\s*setError\(null\);/u);
 });
 
 test('the AI settings page hosts the profile library section with all five entries', async () => {

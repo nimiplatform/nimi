@@ -1,3 +1,4 @@
+import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -29,13 +30,14 @@ function readCachedWorldDetailListItem(
 }
 
 export function WorldDetailActivePanel() {
+  const navigation = useHomeNavigation();
   const sdk = useDesktopRendererSdk();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
-  const selectedWorldId = useAppStore((state) => state.selectedWorldId);
-  const selectedWorldInitialSubpage = useAppStore((state) => state.selectedWorldInitialSubpage);
-  const navigateBack = useAppStore((state) => state.navigateBack);
+  const selectedWorldId = useHomeDestination().worldId ?? null;
+  const selectedWorldInitialSubpage = useHomeDestination().worldSubpage ?? null;
+
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const cachedWorldDetail = selectedWorldId
     ? queryClient.getQueryData<WorldDisplayDetail>(
@@ -90,7 +92,7 @@ export function WorldDetailActivePanel() {
           </button>
           <button
             type="button"
-            onClick={navigateBack}
+            onClick={navigation.back}
             className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]"
           >
             {t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
@@ -108,7 +110,7 @@ export function WorldDetailActivePanel() {
         </span>
         <button
           type="button"
-          onClick={navigateBack}
+          onClick={navigation.back}
           className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]"
         >
           {t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
@@ -117,5 +119,5 @@ export function WorldDetailActivePanel() {
     );
   }
 
-  return <WorldDetail world={selectedWorld} onBack={navigateBack} initialSubpage={selectedWorldInitialSubpage} />;
+  return <WorldDetail world={selectedWorld} onBack={navigation.back} initialSubpage={selectedWorldInitialSubpage} />;
 }

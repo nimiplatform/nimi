@@ -1,10 +1,8 @@
-import { useEffect, useMemo } from 'react';
-import {
-  type ConversationSetupAction,
-  type ConversationTargetSummary,
-} from '@nimiplatform/kit/features/chat/headless';
+import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
+import { useMemo } from 'react';
+import { type ConversationSetupAction, type ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../../app-shell/providers/app-store';
+
 import { useAiConversationModeHost } from './chat-nimi-shell-adapter';
 import { ChatNimiThreadListSheet } from './chat-nimi-session-list-panel';
 import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
@@ -28,26 +26,17 @@ export function ChatNimiModeContent({
   onSetupAction,
   onSelectTarget,
 }: ChatNimiModeContentProps) {
+  const homeChat = useHomeChatPosition();
   const { t } = useTranslation();
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const nimiConversationSelection = useAppStore((state) => state.nimiConversationSelection);
-  const setNimiConversationSelection = useAppStore((state) => state.setNimiConversationSelection);
-  const lastSelectedAiThread = useAppStore((state) => state.lastSelectedThreadByMode.ai ?? null);
-  const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.ai ?? null);
+  const nimiConversationSelection = homeChat.nimiSelection;
+  const selectNimiThread = homeChat.selectNimiThread;
+  const storeSelectedTargetId = homeChat.targetId;
 
   const { host } = useAiConversationModeHost({
     selection: nimiConversationSelection,
-    lastSelectedThreadId: lastSelectedAiThread,
-    setSelection: setNimiConversationSelection,
+    lastSelectedThreadId: null,
+    setSelection: selectNimiThread,
   });
-
-  // Sync host selectedTargetId to store
-  useEffect(() => {
-    if (!host.selectedTargetId || storeSelectedTargetId) {
-      return;
-    }
-    setSelectedTargetForSource('ai', host.selectedTargetId);
-  }, [host.selectedTargetId, setSelectedTargetForSource, storeSelectedTargetId]);
 
   const selectedTargetId = storeSelectedTargetId || host.selectedTargetId || null;
   const selectedTarget = useMemo(

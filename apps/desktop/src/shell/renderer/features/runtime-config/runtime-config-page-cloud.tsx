@@ -13,7 +13,7 @@ import {
 import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../../app-shell/providers/app-store';
+import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { CatalogOverridesDrawer } from './runtime-config-catalog-overrides-drawer';
 import { removeConnectorFromState, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
@@ -37,6 +37,12 @@ const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
 const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
 
 export function CloudServicesPage({ model, state }: CloudPageProps) {
+  const navigation = useHomeNavigation();
+  const destination = useHomeDestination();
+  const refineConnector = (previousId: string, connectorId: string) => {
+    const current = navigation.getSnapshot().current.destination;
+    if (current.id === 'cloud' && current.runtime?.connectorId === previousId) void navigation.replace({ id: 'cloud', runtime: { connectorId } });
+  };
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const connectorSdk = useRuntimeConfigConnectorSdk();
@@ -61,7 +67,6 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   const [catalogOverrideProviderId, setCatalogOverrideProviderId] = useState('');
   const connectorsRef = useRef(state.connectors);
   connectorsRef.current = state.connectors;
-  const consumedActionFocusRef = useRef('');
   const reportError = useCallback((label: string, error: unknown) => {
     model.setPageFeedback({
       kind: 'error',
@@ -94,7 +99,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
               connector.isDraft && connector.id !== operation.connector.id
             ));
             const next = replaceConnectorsInState(prev, [...connectors, ...drafts]);
-            return { ...next, selectedConnectorId: acquiredConnectorId };
+            return next;
           });
         } catch (error) {
           if (!isCurrent()) {
@@ -112,11 +117,11 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
                   ? { ...connector, id: acquiredConnectorId, isDraft: false, hasCredential: true }
                   : connector
               )),
-              selectedConnectorId: acquiredConnectorId,
             };
           });
           reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
         }
+        if (isCurrent()) refineConnector(operation.connector.id, acquiredConnectorId);
       } else {
         updateState((prev) => {
           const currentConnector = prev.connectors.find((connector) => connector.id === operation.connector.id);
@@ -133,6 +138,12 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   const managedOAuthBusy = connectorOAuth.busy;
   const managedOAuthPending = connectorOAuth.pending;
   const selectedConnectorId = selectedConnector?.id || '';
+  useEffect(() => {
+    if (destination.id === 'cloud' && !destination.runtime?.connectorId && selectedConnectorId) {
+      const current = navigation.getSnapshot().current;
+      if (current.destination === destination) void navigation.replace({ id: 'cloud', runtime: { connectorId: selectedConnectorId } });
+    }
+  }, [destination, navigation, selectedConnectorId]);
   const connectorScope = selectedConnector?.scope || 'user';
   const isRuntimeSystem = connectorScope === 'runtime-system';
   const isMachineGlobal = connectorScope === 'machine-global';
@@ -280,21 +291,13 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     setCreateDialogOpen(true);
   }, []);
   useEffect(() => {
-    const actionFocus = state.actionFocus;
+    const actionFocus = model.actionFocus;
     if (actionFocus?.focus !== 'runtime-config-action-focus.cloud-connector-draft') {
       return;
     }
-    const focusKey = `${actionFocus.page}:${actionFocus.action}:${state.connectors.length}`;
-    if (consumedActionFocusRef.current === focusKey) {
-      return;
-    }
-    consumedActionFocusRef.current = focusKey;
     setCreateDialogOpen(true);
-    updateState((prev) => ({
-      ...prev,
-      actionFocus: null,
-    }));
-  }, [state.actionFocus, state.connectors.length, updateState]);
+    model.clearActionFocus();
+  }, [model.actionFocus, model.clearActionFocus, state.connectors.length]);
   const onDeleteConnector = useCallback(async (connectorId: string) => {
     const connector = state.connectors.find((item) => item.id === connectorId) || null;
     if (!connector || connector.scope === 'runtime-system' || connector.isSystemOwned || deletingConnectorId) return;
@@ -329,8 +332,8 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     if (connector) {
       setConnectorLabelDraft(String(connector.label || ''));
     }
-    updateState((prev) => ({ ...prev, selectedConnectorId: connectorId }));
-  }, [invalidateManagedOAuth, selectedConnectorId, state.connectors, updateState]);
+    void navigation.push({ id: 'cloud', runtime: { connectorId } });
+  }, [invalidateManagedOAuth, selectedConnectorId, state.connectors, navigation]);
   const onAcquireManagedOAuth = useCallback(() => {
     if (!selectedConnector || !selectedConnectorId || !isBrowserManagedConnector) {
       return;
@@ -401,7 +404,8 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         ? await sdkCreateConnector({ provider: selected.provider, endpoint: draft.endpoint.trim(), label: draft.label.trim() || selected.label, credentialValue, authMode: 'api_key' })
         : await sdkUpdateConnector({ connectorId: selected.id, label: draft.label.trim() || selected.label, endpoint: draft.endpoint.trim(), ...(credentialValue ? { credentialValue, authMode: 'api_key' as const } : {}) });
       if (!saved) throw new Error(t('runtimeConfig.product.connectionSaveFailed'));
-      updateState(prev => ({ ...prev, connectors: prev.connectors.map(item => item.id === selected.id ? saved : item), selectedConnectorId: prev.selectedConnectorId === selected.id ? saved.id : prev.selectedConnectorId }));
+      updateState(prev => ({ ...prev, connectors: prev.connectors.map(item => item.id === selected.id ? saved : item) }));
+      refineConnector(selected.id, saved.id);
       setTokenDraft('');
       setTokenSavedConnectorId(saved.id);
       model.onVaultChanged();
@@ -455,7 +459,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
             onAddConnector={onAddConnector}
             onDeleteConnector={(connectorId) => onDeleteConnector(connectorId).catch((e) => reportError('Remove connector failed', e))}
             onSelectConnector={onSelectConnector}
-            selectedConnectorId={state.selectedConnectorId}
+            selectedConnectorId={selectedConnectorId}
             uncheckedCount={uncheckedConnectors.length}
             t={t}
           />
@@ -513,6 +517,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         connectedProviders={state.connectors.map((connector) => connector.provider)}
         onClose={() => setCreateDialogOpen(false)}
         onCreated={(connectorId) => {
+          const entry = navigation.getSnapshot();
           setCreateDialogOpen(false);
           void (async () => {
             setSavingToken(true);
@@ -521,8 +526,9 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
               updateState((prev) => {
                 const drafts = prev.connectors.filter((connector) => connector.isDraft);
                 const next = replaceConnectorsInState(prev, [...connectors, ...drafts]);
-                return { ...next, selectedConnectorId: connectorId };
+                return next;
               });
+              if (navigation.getSnapshot().generation === entry.generation && navigation.getSnapshot().current.key === entry.current.key) void navigation.push({ id: 'cloud', runtime: { connectorId } });
               const created = connectors.find(connector => connector.id === connectorId);
               if (created && created.authMode === 'oauth_managed' && isNimiBrowserManagedConnectorProfile(created.providerAuthProfile) && !chatGPTPlanDisclosureSeen()) {
                 setChatGPTPlanWelcomeOpen(true);

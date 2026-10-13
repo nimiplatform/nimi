@@ -1,3 +1,4 @@
+import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, InlineAlert, LoadingSkeleton, ScrollArea, Surface } from '@nimiplatform/kit/ui';
@@ -14,7 +15,6 @@ import { HomeCreatePostButton, HomeFeedScopeNav } from './home-feed-controls';
 import { prepareHomeFeedItems } from './utils';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
 
 // Optimistic post placeholder component
 function PublishingPostCard() {
@@ -79,14 +79,14 @@ function useHomeFeedColumns(): HomeFeedColumns {
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r036
 export function HomeView(props: HomeViewProps) {
+  const navigation = useHomeNavigation();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
-  const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
-  const focusPostIntent = useAppStore((state) => state.activityFocusPostId);
-  const clearActivityFocusPost = useAppStore((state) => state.clearActivityFocusPost);
-  // A Home message opens one Post first; the intent is consumed once and the
-  // Post is read through the existing Realm Post read and its visibility checks.
-  const [focusedPostId, setFocusedPostId] = useState<string | null>(focusPostIntent);
+
+  const focusPostIntent = useHomeDestination().postId ?? null;
+  // History restores the read-only Post reference; publishing/open actions are not replayed.
+  const focusedPostId = focusPostIntent;
+  const closeFocusedPost = () => void navigation.replace({ id: 'activity' });
   const [createPostOpen, setCreatePostOpen] = useState(false);
   const [selectedFeedProfile, setSelectedFeedProfile] = useState<
     Extract<PostCardAuthorProfileTarget, { kind: 'human' }> | null
@@ -102,11 +102,11 @@ export function HomeView(props: HomeViewProps) {
   const homeFeedColumns = useHomeFeedColumns();
   const handleOpenAuthorProfile = useCallback((target: PostCardAuthorProfileTarget) => {
     if (target.kind === 'character') {
-      navigateToSourceDetail(target.sourceRef);
+      navigation.push({ id: 'source-detail', sourceRef: target.sourceRef });
       return;
     }
     setSelectedFeedProfile(target);
-  }, [navigateToSourceDetail]);
+  }, [navigation]);
 
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
@@ -122,12 +122,6 @@ export function HomeView(props: HomeViewProps) {
     },
     [props.feedScope, realmSocialData],
   );
-
-  useEffect(() => {
-    if (!focusPostIntent) return;
-    setFocusedPostId(focusPostIntent);
-    clearActivityFocusPost();
-  }, [clearActivityFocusPost, focusPostIntent]);
 
   const focusedPost = useQuery({
     queryKey: ['activity-focused-post', focusedPostId, refreshKey],
@@ -177,7 +171,7 @@ export function HomeView(props: HomeViewProps) {
               >
                 <div className="flex items-center justify-between gap-2 px-1">
                   <h2 className="text-sm font-semibold text-[var(--nimi-text-secondary)]">{t('Home.focusedPost.title')}</h2>
-                  <Button tone="ghost" size="sm" onClick={() => setFocusedPostId(null)}>
+                  <Button tone="ghost" size="sm" onClick={closeFocusedPost}>
                     {t('Home.focusedPost.close')}
                   </Button>
                 </div>
@@ -200,11 +194,11 @@ export function HomeView(props: HomeViewProps) {
                     post={focusedPost.data}
                     actionAdapter={postCardActionAdapter}
                     onDelete={() => {
-                      setFocusedPostId(null);
+                      closeFocusedPost();
                       setRefreshKey((k) => k + 1);
                     }}
                     onBlock={() => {
-                      setFocusedPostId(null);
+                      closeFocusedPost();
                       setRefreshKey((k) => k + 1);
                     }}
                     showAddFriendBadge={false}

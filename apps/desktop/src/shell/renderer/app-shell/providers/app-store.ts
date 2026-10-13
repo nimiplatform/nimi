@@ -2,8 +2,10 @@ import {
   createContext,
   createElement,
   useContext,
+  useSyncExternalStore,
   type PropsWithChildren,
 } from 'react';
+import type { HomeDestination } from './home-navigation.js';
 import { useStore } from 'zustand/react';
 
 import type { AppStoreApi } from './app-store-factory.js';
@@ -40,4 +42,14 @@ export function useAppStoreApi(): AppStoreApi {
 
 export function useAppStore<T>(selector: (state: AppStoreState) => T): T {
   return useStore(useAppStoreApi(), selector);
+}
+
+export function useHomeNavigation() { return useAppStoreApi().navigation; }
+export function useHomeDestination(): HomeDestination {
+  const navigation = useHomeNavigation();
+  return useSyncExternalStore(navigation.subscribe, navigation.getSnapshot, navigation.getSnapshot).current.destination;
+}
+export function useHomeEntryKey(): string {
+  const navigation = useHomeNavigation();
+  return useSyncExternalStore(navigation.subscribe, navigation.getSnapshot, navigation.getSnapshot).current.key;
 }

@@ -12,6 +12,7 @@ import {
 import {
   AppStoreProvider,
   useAppStore,
+  useHomeDestination,
 } from '../src/shell/renderer/app-shell/providers/app-store.js';
 import { createDesktopQueryClient } from '../src/shell/renderer/infra/query-client/query-client.js';
 import { createDesktopI18n } from '../src/shell/renderer/i18n/desktop-i18n.js';
@@ -38,6 +39,7 @@ import { createTestStreamController } from './helpers/test-stream-controller.js'
 import { createScenarioJobController } from '../src/shell/renderer/features/turns/scenario-job-controller.js';
 import { createUnavailableDesktopRendererAuthPort } from '../src/shell/renderer/renderer/auth-port.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from '../src/shell/renderer/renderer/runtime-config-navigation-port.js';
+import { createHomeNavigation, type HomeNavigation } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 import { createUnavailableDesktopRendererOfflinePort } from '../src/shell/renderer/renderer/offline-port.js';
 import { createUnavailableDesktopRendererWorldFollowPort } from '../src/shell/renderer/renderer/world-follow-port.js';
 import { createUnavailableDesktopRendererSupportRepairPort } from '../src/shell/renderer/renderer/support-repair-port.js';
@@ -74,20 +76,20 @@ test('createAppStore owns independent state and injected effects per renderer in
   const second = createAppStore(createDependencies(secondEffects));
 
   assert.notEqual(first, second);
-  first.getState().setActiveTab('explore');
+  first.navigation.push({ id: 'explore' });
   first.getState().setChatThinkingPreference('on');
-  first.getState().setChatMode('agent');
 
-  assert.equal(first.getState().activeTab, 'explore');
-  assert.equal(second.getState().activeTab, 'home');
+  assert.equal(first.navigation.getSnapshot().current.destination.id, 'explore');
+  assert.equal(second.navigation.getSnapshot().current.destination.id, 'home');
   assert.equal(first.getState().chatThinkingPreference, 'on');
   assert.equal(second.getState().chatThinkingPreference, 'off');
   assert.deepEqual(firstEffects.preferences, ['on']);
   assert.deepEqual(secondEffects.preferences, []);
 });
 
-test('Agent target refresh atomically replaces a rotated session handle for the same Conversation anchor', () => {
+test('Agent target refresh reconciles the current reference without adding history', async () => {
   const store = createAppStore(createDependencies({ preferences: [] }));
+  store.getState().setAuthSession({ id: 'account-a' });
   const staleHandle = `agent_ref_${'a'.repeat(43)}`;
   const currentHandle = `agent_ref_${'b'.repeat(43)}`;
   const baseTarget = {
@@ -107,12 +109,7 @@ test('Agent target refresh atomically replaces a rotated session handle for the 
     ...baseTarget,
     agentHandle: staleHandle,
   });
-  store.getState().setAgentConversationSelection({
-    agentHandle: staleHandle,
-    conversationAnchorId: baseTarget.conversationAnchorId,
-    targetId: staleHandle,
-  });
-  store.getState().setSelectedTargetForSource('agent', staleHandle);
+  await store.navigation.push({ id: 'chat', chat: { mode: 'agent', agentHandle: staleHandle, conversationAnchorId: baseTarget.conversationAnchorId, targetId: staleHandle } });
   store.getState().setAgentConversationTargetSnapshot({
     ...baseTarget,
     agentHandle: currentHandle,
@@ -120,12 +117,14 @@ test('Agent target refresh atomically replaces a rotated session handle for the 
 
   const state = store.getState();
   assert.deepEqual(Object.keys(state.agentConversationTargetByHandle), [currentHandle]);
-  assert.deepEqual(state.agentConversationSelection, {
+  assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, {
+    mode: 'agent',
     agentHandle: currentHandle,
     conversationAnchorId: baseTarget.conversationAnchorId,
     targetId: currentHandle,
   });
-  assert.equal(state.selectedTargetBySource.agent, currentHandle);
+  await store.navigation.back();
+  assert.equal(store.navigation.getSnapshot().current.destination.id, 'home');
 });
 
 test('AppStoreProvider resolves the store belonging to the current renderer tree', () => {
@@ -169,7 +168,7 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
   function InstanceSnapshot() {
     const location = useLocation();
     const { i18n } = useTranslation();
-    const activeTab = useAppStore((state) => state.activeTab);
+    const activeTab = useHomeDestination().id;
     return createElement('span', null, `${location.pathname}|${activeTab}|${i18n.language}`);
   }
   const createRouter = (entry: string) => function InstanceRouter(props: PropsWithChildren) {
@@ -280,6 +279,7 @@ function createCanonicalBindings(input: {
     state: null,
     key: input.prefix,
   });
+  let lifecycleNavigation: HomeNavigation | null = null;
   return createNimiCanonicalRendererHostBindings({
     scope: host.facade.scope,
     capabilities: host.facade.capabilities,
@@ -354,7 +354,10 @@ function createCanonicalBindings(input: {
         }),
         auth: createUnavailableDesktopRendererAuthPort(),
         firstRun: createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED'),
-        runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(),
+        runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(() => {
+          if (!lifecycleNavigation) throw new Error('Test lifecycle is not connected.');
+          return lifecycleNavigation;
+        }),
         settings: createMemoryDesktopRendererSettingsPort(),
         worldFollow: createUnavailableDesktopRendererWorldFollowPort('TEST_WORLD_FOLLOW_UNAVAILABLE'),
         supportRepair: createUnavailableDesktopRendererSupportRepairPort('TEST_SUPPORT_REPAIR_UNAVAILABLE'),
@@ -413,6 +416,7 @@ function createCanonicalBindings(input: {
         connectLifecycle(lifecycle: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
         >[0]) {
+          lifecycleNavigation = lifecycle.navigation;
           lifecycle.setBootstrapError(null);
           lifecycle.setBootstrapReady(true);
           return () => undefined;
@@ -447,7 +451,7 @@ test('canonical Desktop resources are fresh for every factory invocation', async
   const second = createDesktopRendererResources(secondBindings);
   await Promise.all([first.i18n.init(), second.i18n.init()]);
 
-  first.store.getState().setActiveTab('explore');
+  first.store.navigation.push({ id: 'explore' });
   first.queryClient.setQueryData(['instance'], 'first');
   const firstAbortController = first.streamController.startStream('shared-chat');
   first.scenarioJobController.startJobTracking('shared-job');
@@ -457,8 +461,8 @@ test('canonical Desktop resources are fresh for every factory invocation', async
   assert.notEqual(first.i18n.instance, second.i18n.instance);
   assert.notEqual(first.Router, second.Router);
   assert.notEqual(first.streamController, second.streamController);
-  assert.equal(first.store.getState().activeTab, 'explore');
-  assert.equal(second.store.getState().activeTab, 'home');
+  assert.equal(first.store.navigation.getSnapshot().current.destination.id, 'explore');
+  assert.equal(second.store.navigation.getSnapshot().current.destination.id, 'home');
   assert.equal(first.queryClient.getQueryData(['instance']), 'first');
   assert.equal(second.queryClient.getQueryData(['instance']), undefined);
   assert.equal(first.streamController.getStreamState('shared-chat').phase, 'waiting');
@@ -476,33 +480,25 @@ test('canonical Desktop resources are fresh for every factory invocation', async
 test('renderer settings ports isolate selection, subscriptions, and preferences per instance', () => {
   const first = createMemoryDesktopRendererSettingsPort();
   const second = createMemoryDesktopRendererSettingsPort();
-  const opened: string[] = [];
-  const unsubscribe = first.subscribeOpenSection((id) => opened.push(id));
   const firstPreferences: AppearancePreferences = {
     theme: 'dark',
     reduceMotion: true,
   };
 
-  first.openSection('developer');
   first.persistAppearancePreferences(firstPreferences);
 
-  assert.equal(first.loadSelected('profile'), 'developer');
-  assert.equal(second.loadSelected('profile'), 'profile');
-  assert.deepEqual(opened, ['developer']);
   assert.deepEqual(first.loadAppearancePreferences(), firstPreferences);
   assert.deepEqual(second.loadAppearancePreferences(), {
     theme: 'system',
     reduceMotion: false,
   });
 
-  unsubscribe();
-  first.openSection('profile');
-  assert.deepEqual(opened, ['developer']);
 });
 
-test('runtime config navigation retains pre-subscription intent and isolates renderer instances', () => {
-  const first = createDesktopRendererRuntimeConfigNavigationPort();
-  const second = createDesktopRendererRuntimeConfigNavigationPort();
+test('runtime config navigation retains pre-subscription actions and isolates renderer instances', async () => {
+  const firstNavigation = createHomeNavigation(), secondNavigation = createHomeNavigation();
+  const first = createDesktopRendererRuntimeConfigNavigationPort(() => firstNavigation);
+  const second = createDesktopRendererRuntimeConfigNavigationPort(() => secondNavigation);
   const revisions: number[] = [];
 
   first.openPage('aiSettings');
@@ -512,11 +508,14 @@ test('runtime config navigation retains pre-subscription intent and isolates ren
     action: 'add-connector',
     focus: 'runtime-config-action-focus.cloud-connector-draft',
   });
+  await Promise.resolve();
 
   assert.deepEqual(first.get(), {
-    revision: 2,
+    revision: 1,
     intent: {
       kind: 'focus-action',
+      entryKey: firstNavigation.getSnapshot().current.key,
+      generation: firstNavigation.getSnapshot().generation,
       actionFocus: {
         page: 'cloudServices',
         action: 'add-connector',
@@ -528,9 +527,9 @@ test('runtime config navigation retains pre-subscription intent and isolates ren
     revision: 0,
     intent: null,
   });
-  assert.deepEqual(revisions, [2]);
+  assert.deepEqual(revisions, [1]);
 
   unsubscribe();
   first.openPage('modelLibrary');
-  assert.deepEqual(revisions, [2]);
+  assert.deepEqual(revisions, [1]);
 });

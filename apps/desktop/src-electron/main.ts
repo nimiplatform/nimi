@@ -37,6 +37,9 @@ import {
   createNimiElectronDesktopControlHost,
   createNimiElectronDeveloperModeStatusProbe,
   createNimiElectronRuntimeLifecycleHost,
+  createNimiElectronAppChromeHost,
+  createNimiElectronAppChromeWindowOptions,
+  type NimiElectronAppChromeHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronFileDialogOpenPayload,
@@ -205,6 +208,7 @@ let chatAiStoreHost: DesktopElectronChatAiStoreHost | undefined;
 let menuBarHost: DesktopElectronMenuBarHost | undefined;
 let connectorAuthAcquisitionHost: DesktopElectronConnectorAuthAcquisitionHost | undefined;
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
+let homeChromeHost: NimiElectronAppChromeHost | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 let productUpdateHost: DesktopProductUpdateHost | undefined;
@@ -796,6 +800,15 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     // @nimi-authority: definition.nimi.desktop.command-execution.registered-surface
     // @nimi-authority: rule.nimi.desktop.command-execution.r005
     // @nimi-authority: rule.nimi.desktop.command-execution.r006
+    homeChromeHost = createNimiElectronAppChromeHost({
+      metadata: { name: 'Nimi Home', version: desktopPackage.version },
+      allowedRendererUrls: allowedRendererUrls(), app,
+      appCommands: [
+        { id: 'home.open-settings', menu: 'file', labels: { en: 'Settings', zh: '设置' } },
+        { id: 'home.open-downloads', menu: 'view', labels: { en: 'Downloads', zh: '下载' } },
+      ],
+      menu: { buildFromTemplate: template => Menu.buildFromTemplate(template as Electron.MenuItemConstructorOptions[]), setApplicationMenu: menu => Menu.setApplicationMenu(menu as Electron.Menu | null) },
+    });
     registeredRuntimeBridge = registerNimiElectronRuntimeBridge({
       appId: APP_ID,
       commandPolicy: createDesktopHomeCommandPolicy(normalHomeWorkAllowed),
@@ -907,6 +920,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ...bundledAvatarHost.desktopCommandHandlers,
       },
       standardShellHost: {
+        chromeHost: homeChromeHost,
         allowAllStandardShellCommands: true,
         runDataRootOperation: (operation) => dataRootOperationGate.runShared(operation),
         standardDataRootBinding: {
@@ -1159,6 +1173,7 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
 // @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-002
 async function createMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
+    ...createNimiElectronAppChromeWindowOptions(),
     width: 1440,
     height: 940,
     minWidth: 390,
@@ -1179,6 +1194,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     },
   });
   mainWindow = window;
+  homeChromeHost?.bindWindow(window);
   if (process.platform === 'win32') {
     window.setAppDetails({
       appId: APP_ID,
@@ -1203,6 +1219,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
   window.on('show', () => menuBarHost?.setWindowVisible(true));
   window.on('hide', () => menuBarHost?.setWindowVisible(false));
   const invalidateDesktopSender = () => {
+    homeChromeHost?.invalidateAll();
     executionNotices.disableNotifications();
     for (const listener of desktopSenderInvalidationListeners) listener();
   };

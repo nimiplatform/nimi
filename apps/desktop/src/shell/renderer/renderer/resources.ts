@@ -95,6 +95,7 @@ export function createDesktopRendererResources(
     dispose() {
       if (disposed) return;
       disposed = true;
+      store.navigation.dispose();
       disconnectLifecycle();
       anchorBindings.dispose();
       agentVisibleProjections.dispose();

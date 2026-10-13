@@ -1,8 +1,9 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { Button, InlineAlert } from '@nimiplatform/kit/ui';
 import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
+
 import { desktopBridge } from '../../bridge.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useGlobalDownloads } from './global-downloads-context.js';
@@ -57,16 +58,17 @@ export function TransferRecoveryControls(props: {
 }
 
 export function ModelTransferRecoveryActions(props: { readonly event: RecoveryTransfer; readonly disabled?: boolean }) {
+  const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const commands = useDesktopRendererCommands();
   const local = useRuntimeConfigLocalEnvironmentClient();
   const downloads = useGlobalDownloads();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   return <TransferRecoveryControls {...props} onAction={async (action) => {
     if (action === 'view_related_transfer') {
       if (!downloads || !props.event.relatedInstallSessionId) throw Error(t('runtimeConfig.downloads.relatedTransferUnavailable'));
       downloads.selectTransfer(props.event.relatedInstallSessionId);
-      setActiveTab('downloads');
+      navigation.push({ id: 'downloads' });
       return;
     }
     if (action === 'check_sync') {

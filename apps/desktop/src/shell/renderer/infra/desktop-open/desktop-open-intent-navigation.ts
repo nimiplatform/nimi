@@ -1,19 +1,9 @@
 import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
-import type { AppStoreState } from '../../app-shell/providers/app-store';
-import {
-  loadRuntimeConfigStateV11,
-  persistRuntimeConfigStateV11,
-} from '../../features/runtime-config/runtime-config-storage-persist';
+import type { HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 import type { RuntimePageIdV11 } from '../../features/runtime-config/runtime-config-state-types';
-import { dispatchSettingsOpenSection } from '../../features/settings/settings-storage';
 import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
 
-export type DesktopOpenIntentStore = Pick<AppStoreState,
-  | 'setActiveTab'
-  | 'setExploreActiveSection'
-  | 'setExploreSearchText'
-  | 'setAppsDetailAppId'
->;
+export type DesktopOpenIntentStore = HomeNavigation;
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-003
 export function applyDesktopOpenIntentToAppStore(
@@ -26,39 +16,27 @@ export function applyDesktopOpenIntentToAppStore(
   const { runtimeConfigNavigation, store } = input;
   switch (intent.kind) {
     case 'open-explore': {
-      store.setExploreActiveSection(intent.section);
-      store.setExploreSearchText(intent.query ?? '');
-      store.setActiveTab('explore');
+      void store.push({ id: 'explore', exploreSection: intent.section, search: intent.query ?? '' });
       return;
     }
     case 'open-runtime-config': {
-      const state = loadRuntimeConfigStateV11();
       const actionFocus = runtimeConfigActionFocusForIntent(intent);
       const page = resolveRuntimePageForIntent(intent);
-      persistRuntimeConfigStateV11({
-        ...state,
-        activePage: page,
-        actionFocus,
-      });
-      runtimeConfigNavigation.openPage(page);
       if (actionFocus) {
         runtimeConfigNavigation.focusAction(actionFocus);
-      }
-      store.setActiveTab(page === 'cloudServices' ? 'cloud' : 'runtime');
+      } else runtimeConfigNavigation.openPage(page);
       return;
     }
     case 'open-apps': {
-      store.setAppsDetailAppId(intent.appId ?? null, intent.section ?? null);
-      store.setActiveTab('apps');
+      void store.push({ id: 'apps', ...(intent.appId ? { appId: intent.appId, appSection: intent.section } : {}) });
       return;
     }
     case 'open-settings': {
-      dispatchSettingsOpenSection(intent.section);
-      store.setActiveTab('settings');
+      void store.push({ id: 'settings', settingsSection: intent.section });
       return;
     }
     case 'open-integrations': {
-      store.setActiveTab('home', 'integrations');
+      void store.push({ id: 'home', homeSection: 'integrations' });
       return;
     }
   }

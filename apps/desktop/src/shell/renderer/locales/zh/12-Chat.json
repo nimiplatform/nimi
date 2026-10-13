@@ -1,4 +1,5 @@
 {
+  "positionUnavailable": "这个会话暂时无法读取。可以重试或选择其他会话；当前位置会保留原会话引用。",
   "appReferences": {
     "title": "与这位伙伴相关的应用消息",
     "loading": "正在读取应用消息…",

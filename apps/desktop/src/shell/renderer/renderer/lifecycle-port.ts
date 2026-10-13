@@ -7,6 +7,7 @@ import type {
   RuntimeAccountAuthProjection,
 } from '../app-shell/providers/store-types.js';
 import type { InlineFeedbackState } from '../ui/feedback/inline-feedback.js';
+import type { HomeNavigation } from '../app-shell/providers/home-navigation.js';
 
 /**
  * Narrow mutation surface used by production bootstrap and renderer hosts
@@ -18,7 +19,7 @@ export interface DesktopRendererLifecyclePort {
   bootstrap(): Readonly<Pick<AppStoreState, 'bootstrapError' | 'bootstrapReady'>>;
   translate(key: string, options?: Readonly<Record<string, unknown>>): string;
   subscribeBootstrap(listener: () => void): () => void;
-  setActiveTab(tab: AppStoreState['activeTab']): void;
+  readonly navigation: HomeNavigation;
   setOfflineTier(tier: AppStoreState['offlineTier']): void;
   setAuthBootstrapping(): void;
   applyRuntimeAccountProjection(projection: RuntimeAccountAuthProjection): void;
@@ -67,7 +68,7 @@ export function createDesktopRendererLifecyclePort(
         listener();
       });
     },
-    setActiveTab: (tab) => store.getState().setActiveTab(tab),
+    navigation: store.navigation,
     setOfflineTier: (tier) => store.getState().setOfflineTier(tier),
     setAuthBootstrapping: () => store.getState().setAuthBootstrapping(),
     applyRuntimeAccountProjection: (projection) => (

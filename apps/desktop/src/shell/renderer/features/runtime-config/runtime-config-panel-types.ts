@@ -1,5 +1,4 @@
 import type {
-  RuntimeAdvancedDiagnosticsPane,
   RuntimeConfigStatusV11,
   RuntimeConfigStateV11,
 } from './runtime-config-state-types';
@@ -51,7 +50,9 @@ export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
   hydrated: boolean;
   runtimeStatus: RuntimeConfigStatusV11 | null;
-  activePage: RuntimeConfigStateV11['activePage'];
+  activePage: import('./runtime-config-state-types.js').RuntimePageIdV11;
+  actionFocus: import('./runtime-config-state-types.js').RuntimeConfigActionFocus | null;
+  clearActionFocus: () => void;
   showCloudApiKey: boolean;
   connectorModelQuery: string;
   vaultEntryCount: number;
@@ -70,12 +71,10 @@ export type RuntimeConfigPanelControllerModel = {
   modelMarketContext: RuntimeConfigModelMarketContext | null;
   setupTaskFocus: { readonly taskId: string } | null;
   profileUseOwner: RuntimeConfigProfileUseOwner | null;
-  /** Latest deep-link request for an Advanced & Diagnostics sub-pane; revision changes per request. */
-  advancedDiagnosticsPaneRequest: { readonly pane: RuntimeAdvancedDiagnosticsPane; readonly revision: number } | null;
   setShowCloudApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
   setConnectorModelQuery: (value: string) => void;
   setPageFeedback: (value: InlineFeedbackState | null) => void;
-  onChangePage: (pageId: RuntimeConfigStateV11['activePage']) => void;
+  onChangePage: (pageId: import('./runtime-config-state-types.js').RuntimePageIdV11) => void;
   onOpenSavedConfigs: (context?: RuntimeConfigLoadoutNavigationContext) => void;
   onOpenModelMarket: (context: RuntimeConfigModelMarketContext) => void;
   /** Opens the Model Library on the downloaded files with the import menu open. */

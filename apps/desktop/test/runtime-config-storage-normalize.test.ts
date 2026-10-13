@@ -5,9 +5,8 @@ import { normalizeStoredStateV11 } from '../src/shell/renderer/features/runtime-
 
 test('runtime config storage normalization drops retired local node state', () => {
   const normalized = normalizeStoredStateV11({
-    version: 13,
+    version: 16,
     initializedByV11: true,
-    activePage: 'environment',
     diagnosticsCollapsed: false,
     uiMode: 'advanced',
     selectedSource: 'local',
@@ -24,7 +23,6 @@ test('runtime config storage normalization drops retired local node state', () =
   assert.equal('endpoint' in normalized.local, false);
   assert.equal('nodeMatrix' in normalized.local, false);
   assert.deepEqual(normalized.connectors, []);
-  // Retired page values reset rather than preserving a compatibility mapping.
-  assert.equal(normalized.activePage, 'aiSettings');
-  assert.equal(normalized.version, 15);
+  assert.equal('activePage' in normalized, false);
+  assert.equal(normalized.version, 16);
 });

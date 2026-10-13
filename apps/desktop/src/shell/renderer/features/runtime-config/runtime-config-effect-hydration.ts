@@ -7,7 +7,7 @@ import {
 } from '@nimiplatform/kit/core/storage-json';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
-  RUNTIME_CONFIG_STORAGE_KEY_V15,
+  RUNTIME_CONFIG_STORAGE_KEY_V16,
 } from './runtime-config-storage-defaults';
 import { loadRuntimeConfigStateV11 } from './runtime-config-storage-persist';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
@@ -27,7 +27,7 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
     if (!input.bootstrapReady || input.hydrated) return;
 
     const storage = resolveBrowserStorage('local');
-    const hadStoredState = readStorageTextFrom(storage, RUNTIME_CONFIG_STORAGE_KEY_V15).state === 'ready';
+    const hadStoredState = readStorageTextFrom(storage, RUNTIME_CONFIG_STORAGE_KEY_V16).state === 'ready';
 
     const loaded = loadRuntimeConfigStateV11();
 
@@ -44,7 +44,7 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
         message: 'runtime-config:v15-storage-initialized',
         flowId,
         details: {
-          storageKey: RUNTIME_CONFIG_STORAGE_KEY_V15,
+          storageKey: RUNTIME_CONFIG_STORAGE_KEY_V16,
           hadStoredState,
         },
       });

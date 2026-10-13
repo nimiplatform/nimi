@@ -28,6 +28,10 @@ const REPAIR_COMMANDS: ReadonlySet<string> = new Set([
   NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'],
   NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
   NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
+  NIMI_STANDARD_SHELL_COMMANDS['shell-ui.chromeBind'],
+  NIMI_STANDARD_SHELL_COMMANDS['shell-ui.chromeStateSet'],
+  NIMI_STANDARD_SHELL_COMMANDS['shell-ui.chromeCommand'],
+  NIMI_STANDARD_SHELL_COMMANDS['shell-ui.chromeUnbind'],
 ]);
 const REPAIR_RUNTIME_METHODS: ReadonlySet<string> = new Set([
   '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',

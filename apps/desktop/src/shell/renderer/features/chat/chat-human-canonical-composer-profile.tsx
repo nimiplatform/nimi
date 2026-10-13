@@ -1,3 +1,4 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -90,6 +91,7 @@ export function HumanCanonicalComposer(props: {
     worldName?: string | null;
   } | null;
 }) {
+  const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const realmHumanChatData = useRealmHumanChatData();
   const uploadPlaceholders = useChatUploadPlaceholderStore();
@@ -97,7 +99,7 @@ export function HumanCanonicalComposer(props: {
   const queryClient = useQueryClient();
   const offlineTier = useAppStore((state) => state.offlineTier);
   const currentUserId = String(useAppStore((state) => state.auth.user?.id) || '');
-  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const setFeedback = emitFeedbackToast;
@@ -315,7 +317,7 @@ export function HumanCanonicalComposer(props: {
             } : null}
             triggerTestId={E2E_IDS.chatHeaderProfileToggle}
             openProfileTestId={E2E_IDS.chatOpenUserProfile}
-            onOpenHumanProfilePage={(profileId) => navigateToProfile(profileId)}
+            onOpenHumanProfilePage={(profileId) => navigation.push({ id: 'profile', profileId: profileId })}
           />
         ) : null}
       />
@@ -334,13 +336,14 @@ export function HumanCanonicalComposer(props: {
 export function HumanCanonicalProfileDrawer(props: {
   selectedChat: RealmChatViewDto | null;
 }) {
+  const navigation = useHomeNavigation();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const i18n = useDesktopI18nResource();
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
   const currentUserId = String(currentUser?.id || '');
-  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+
   const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
   const setProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
   const otherUser = props.selectedChat?.otherUser;
@@ -389,7 +392,7 @@ export function HumanCanonicalProfileDrawer(props: {
           if (!profileSummary.id) {
             return;
           }
-          navigateToProfile(profileSummary.id);
+          navigation.push({ id: 'profile', profileId: profileSummary.id });
         }}
         viewFullProfileLabel={profileActionLabel}
       />

@@ -1,9 +1,7 @@
 import {
   readStorageJsonFrom,
-  readStorageTextFrom,
   resolveBrowserStorage,
   writeStorageJsonTo,
-  writeStorageTextTo,
 } from '@nimiplatform/kit/core/storage-json';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import { desktopBridge } from '../../bridge.js';
@@ -14,59 +12,7 @@ import {
   SETTINGS_APPEARANCE_PREFERENCES_STORAGE_KEY,
   type AppearancePreferences,
 } from './settings-device-preferences.js';
-import {
-  normalizeSettingsSelectedId,
-  type DesktopRendererSettingsPort,
-} from '../../renderer/settings-port.js';
-
-export const SETTINGS_SELECTED_STORAGE_KEY = 'nimi.settings.selected';
-export const SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY = 'nimi.settings.targetId';
-export const SETTINGS_OPEN_SECTION_EVENT = 'nimi://settings-open-section';
-
-export function loadStoredSettingsSelected(fallback: string): string {
-  const result = readStorageTextFrom(resolveBrowserStorage('local'), SETTINGS_SELECTED_STORAGE_KEY);
-  return result.state === 'ready'
-    ? normalizeSettingsSelectedId(String(result.value || ''), fallback)
-    : normalizeSettingsSelectedId(fallback, 'profile');
-}
-
-export function persistStoredSettingsSelected(id: string): void {
-  writeStorageTextTo(resolveBrowserStorage('local'), SETTINGS_SELECTED_STORAGE_KEY, normalizeSettingsSelectedId(id, 'profile'));
-}
-
-export function dispatchSettingsOpenSection(id: string): void {
-  const normalized = normalizeSettingsSelectedId(id, 'profile');
-  persistStoredSettingsSelected(normalized);
-  globalThis.window?.dispatchEvent?.(
-    new CustomEvent(SETTINGS_OPEN_SECTION_EVENT, {
-      detail: normalized,
-    }),
-  );
-}
-
-export function addSettingsOpenSectionListener(onOpen: (id: string) => void): () => void {
-  const eventTarget = globalThis.window;
-  if (!eventTarget?.addEventListener) {
-    return () => {};
-  }
-  const onEvent = (event: Event) => {
-    const next = normalizeSettingsSelectedId(String((event as CustomEvent<unknown>).detail || ''), 'profile');
-    onOpen(next);
-  };
-  eventTarget.addEventListener(SETTINGS_OPEN_SECTION_EVENT, onEvent);
-  return () => {
-    eventTarget.removeEventListener(SETTINGS_OPEN_SECTION_EVENT, onEvent);
-  };
-}
-
-export function loadStoredSettingsTargetId(): string {
-  const result = readStorageTextFrom(resolveBrowserStorage('local'), SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY);
-  return result.state === 'ready' ? String(result.value || '').trim() : '';
-}
-
-export function persistStoredSettingsTargetId(targetId: string): void {
-  writeStorageTextTo(resolveBrowserStorage('local'), SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY, String(targetId || '').trim());
-}
+import type { DesktopRendererSettingsPort } from '../../renderer/settings-port.js';
 
 async function estimateProductionStorageUsage() {
   const storage = resolveBrowserStorage('local');
@@ -158,10 +104,6 @@ export function createDesktopProductionSettingsPort(): DesktopRendererSettingsPo
   );
 
   return Object.freeze({
-    loadSelected: loadStoredSettingsSelected,
-    persistSelected: persistStoredSettingsSelected,
-    openSection: dispatchSettingsOpenSection,
-    subscribeOpenSection: addSettingsOpenSectionListener,
     loadAppearancePreferences,
     persistAppearancePreferences: (value: AppearancePreferences) => persistDevicePreferences(
       SETTINGS_APPEARANCE_PREFERENCES_STORAGE_KEY,

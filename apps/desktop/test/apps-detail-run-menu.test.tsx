@@ -94,7 +94,7 @@ test('a local-development build keeps 停止 beside 启动中 and in the overflo
     onSearchChange: () => {},
     selectedEntryKey: entry.identity.entryKey,
     requestedDetailSection: null,
-    requestedDetailNavigationRevision: 0,
+    navigationEntryKey: 'entry-1',
     onCardAction: (entryKey, action) => actions.push(`${entryKey}:${action}`),
     onBack: () => {},
     onOpenDeveloperMode: () => {},

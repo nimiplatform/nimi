@@ -1,25 +1,11 @@
-import {
-  Button,
-  ConfirmDialog,
-  IconButton,
-  InlineAlert,
-  LoadingSkeleton,
-  NimiTabs,
-  ScrollArea,
-  StatusBadge,
-  Surface,
-  Tooltip,
-} from '@nimiplatform/kit/ui';
-import {
-  isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
-  isNimiRuntimeLocalEnvironmentDependencyReadyState,
-} from '@nimiplatform/sdk/runtime';
+import { Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, NimiTabs, ScrollArea, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
+import { isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyReadyState } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase, AppPackageSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
 import { Download, RefreshCw } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
+
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { formatBytes } from '../../components/download-format.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
@@ -29,21 +15,7 @@ import { packageJobKey } from '../apps/apps-downloads-observer.js';
 import { appDownloadPhase } from '../apps/apps-downloads-view.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
 import { useGlobalDownloads } from './global-downloads-context.js';
-import {
-  appJobLane,
-  DownloadTaskRow,
-  downloadModelName,
-  environmentLane,
-  environmentStage,
-  groupTransferAttempts,
-  interruptionReasonKey,
-  setupTaskLane,
-  setupTaskStatusTone,
-  transferLane,
-  transferStage,
-  type DownloadStage,
-  type DownloadsLane,
-} from './global-downloads-presentation.js';
+import { appJobLane, DownloadTaskRow, downloadModelName, environmentLane, environmentStage, groupTransferAttempts, interruptionReasonKey, setupTaskLane, setupTaskStatusTone, transferLane, transferStage, type DownloadStage, type DownloadsLane } from './global-downloads-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { componentPresentation } from './runtime-environment-presentation.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
@@ -153,7 +125,7 @@ export function GlobalDownloadsView() {
       : [],
   );
   const commands = useDesktopRendererCommands();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   const store = getRuntimeSetupTaskStore();
   const snapshot = useRuntimeSetupTasks(store);
   const inventory = useCapabilityInventory();
@@ -553,7 +525,7 @@ export function GlobalDownloadsView() {
                         className="shrink-0"
                         onClick={() => {
                           commands.runtimeConfigNavigation.openSetupTask(tasks[0]!.taskId);
-                          setActiveTab('runtime');
+
                         }}
                       >
                         {t('runtimeConfig.downloads.openSetup')}

@@ -7,15 +7,11 @@ import {
 } from '../src/shell/renderer/infra/desktop-open/desktop-open-intent-navigation';
 import { productionAppStore } from '../src/shell/renderer/app-shell/providers/production-app-store';
 import {
-  loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
 import {
   createDefaultStateV11,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
-import {
-  SETTINGS_SELECTED_STORAGE_KEY,
-} from '../src/shell/renderer/features/settings/settings-storage';
 import {
   createDesktopRendererRuntimeConfigNavigationPort,
   type DesktopRendererRuntimeConfigNavigationPort,
@@ -88,13 +84,13 @@ let runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort;
 
 function applyDesktopOpenIntentToAppStore(intent: NimiDesktopOpenIntent): void {
   applyDesktopOpenIntent(intent, {
-    store: productionAppStore.getState(),
+    store: productionAppStore.navigation,
     runtimeConfigNavigation,
   });
 }
 
 test.beforeEach(() => {
-  runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort();
+  runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort(() => productionAppStore.navigation);
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
     value: new MemoryStorage(),
@@ -104,15 +100,7 @@ test.beforeEach(() => {
     value: new EventTarget(),
   });
   persistRuntimeConfigStateV11(createDefaultStateV11());
-  productionAppStore.setState({
-    activeTab: 'chat',
-    exploreActiveSection: 'worlds',
-    exploreSearchText: '',
-    appsDetailAppId: null,
-    appsDetailEntryKey: null,
-    appsDetailSection: null,
-    appsDetailNavigationRevision: 0,
-  });
+  productionAppStore.navigation.reset({ id: 'chat' });
 });
 
 test.afterEach(() => {
@@ -136,36 +124,35 @@ test.afterEach(() => {
 });
 
 for (const target of DESKTOP_OPEN_TARGETS) {
-  test(`Desktop Open ${target.rowId} maps to Desktop renderer state`, () => {
+  test(`Desktop Open ${target.rowId} maps to Desktop renderer state`, async () => {
     applyDesktopOpenIntentToAppStore(target.intent);
+    await Promise.resolve();
 
-    const appState = productionAppStore.getState();
+    const appState = productionAppStore.navigation.getSnapshot().current.destination;
     if (target.rowId === 'target.integrations') {
-      assert.equal(appState.homeEntryDestination, 'integrations');
-      assert.ok(appState.homeEntryRevision > 0);
+      assert.equal(appState.homeSection, 'integrations');
     }
     assert.equal(
-      appState.activeTab,
+      appState.id,
       target.rowId === 'target.runtime-connector' ? 'cloud' : target.expected.activeTab,
     );
 
     if (target.expected.activeTab === 'explore') {
-      assert.equal(appState.exploreActiveSection, target.expected.section);
-      assert.equal(appState.exploreSearchText, target.expected.query ?? '');
+      assert.equal(appState.exploreSection, target.expected.section);
+      assert.equal(appState.search, target.expected.query ?? '');
     }
 
     if (target.expected.activeTab === 'runtime') {
-      const runtimeState = loadRuntimeConfigStateV11();
-      assert.equal(runtimeState.activePage, target.expected.page);
+      assert.equal(appState.id === 'cloud' ? 'cloudServices' : appState.runtime?.page, target.expected.page);
       if (target.rowId === 'target.runtime-connector') {
-        assert.deepEqual(runtimeState.actionFocus, {
+        assert.deepEqual(runtimeConfigNavigation.takeAction(), {
           page: 'cloudServices',
           action: 'add-connector',
           focus: 'runtime-config-action-focus.cloud-connector-draft',
         });
       }
       if (target.rowId === 'target.runtime-model') {
-        assert.deepEqual(runtimeState.actionFocus, {
+        assert.deepEqual(runtimeConfigNavigation.takeAction(), {
           page: 'modelLibrary',
           action: 'install-model',
           focus: 'runtime-config-action-focus.model-library-install',
@@ -174,89 +161,46 @@ for (const target of DESKTOP_OPEN_TARGETS) {
     }
 
     if (target.expected.activeTab === 'apps') {
-      assert.equal(appState.appsDetailAppId, target.expected.appId ?? null);
-      assert.equal(appState.appsDetailSection, target.expected.appsSection ?? null);
+      assert.equal(appState.appId, target.expected.appId ?? undefined);
+      assert.equal(appState.appSection, target.expected.appsSection ?? undefined);
     }
 
     if (target.rowId === 'target.settings-profile') {
-      assert.equal(localStorage.getItem(SETTINGS_SELECTED_STORAGE_KEY), target.expected.section);
+      assert.equal(productionAppStore.navigation.getSnapshot().current.destination.settingsSection, target.expected.section);
     }
   });
 }
 
-test('Desktop Open Intent maps runtime connector actions to Runtime Cloud Services state', () => {
-  applyDesktopOpenIntentToAppStore({
-    kind: 'open-runtime-config',
-    page: 'cloud',
-    action: 'add-connector',
+test('Desktop Open action is consumed once and does not replay through history', async () => {
+  applyDesktopOpenIntentToAppStore({ kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' });
+  await Promise.resolve();
+  assert.equal(productionAppStore.navigation.getSnapshot().current.destination.id, 'cloud');
+  assert.deepEqual(runtimeConfigNavigation.takeAction(), {
+    page: 'cloudServices', action: 'add-connector', focus: 'runtime-config-action-focus.cloud-connector-draft',
   });
-
-  assert.equal(productionAppStore.getState().activeTab, 'cloud');
-  assert.equal(loadRuntimeConfigStateV11().activePage, 'cloudServices');
-  assert.deepEqual(loadRuntimeConfigStateV11().actionFocus, {
-    page: 'cloudServices',
-    action: 'add-connector',
-    focus: 'runtime-config-action-focus.cloud-connector-draft',
-  });
-  assert.deepEqual(runtimeConfigNavigation.get(), {
-    revision: 2,
-    intent: {
-      kind: 'focus-action',
-      actionFocus: {
-        page: 'cloudServices',
-        action: 'add-connector',
-        focus: 'runtime-config-action-focus.cloud-connector-draft',
-      },
-    },
-  });
-});
-
-test('Desktop Open Intent maps runtime model install actions to the Model Library with install focus', () => {
-  applyDesktopOpenIntentToAppStore({
-    kind: 'open-runtime-config',
-    page: 'models',
-    action: 'install-model',
-  });
-
-  assert.equal(productionAppStore.getState().activeTab, 'runtime');
-  assert.equal(loadRuntimeConfigStateV11().activePage, 'modelLibrary');
-  assert.deepEqual(loadRuntimeConfigStateV11().actionFocus, {
-    page: 'modelLibrary',
-    action: 'install-model',
-    focus: 'runtime-config-action-focus.model-library-install',
-  });
-  assert.deepEqual(runtimeConfigNavigation.get(), {
-    revision: 2,
-    intent: {
-      kind: 'focus-action',
-      actionFocus: {
-        page: 'modelLibrary',
-        action: 'install-model',
-        focus: 'runtime-config-action-focus.model-library-install',
-      },
-    },
-  });
+  await productionAppStore.navigation.back();
+  await productionAppStore.navigation.forward();
+  assert.equal(runtimeConfigNavigation.takeAction(), null);
 });
 
 test('Desktop Open Intent maps settings profile and app details to owned surfaces', () => {
   // A public app-only intent replaces a prior source-qualified Home intent.
-  productionAppStore.getState().setAppsDetailAppId('nimi.parentos', null, 'verified:nimi.parentos');
+  productionAppStore.navigation.reset({ id: 'apps', appId: 'nimi.parentos', appEntryKey: 'verified:nimi.parentos' });
   applyDesktopOpenIntentToAppStore({
     kind: 'open-settings',
     section: 'profile',
   });
-  assert.equal(productionAppStore.getState().activeTab, 'settings');
-  assert.equal(localStorage.getItem(SETTINGS_SELECTED_STORAGE_KEY), 'profile');
+  assert.equal(productionAppStore.navigation.getSnapshot().current.destination.id, 'settings');
+  assert.equal(productionAppStore.navigation.getSnapshot().current.destination.settingsSection, 'profile');
 
   applyDesktopOpenIntentToAppStore({
     kind: 'open-apps',
     appId: 'nimi.notes',
     section: 'ai-models',
   });
-  const state = productionAppStore.getState();
-  assert.equal(state.activeTab, 'apps');
-  assert.equal(state.appsDetailAppId, 'nimi.notes');
-  assert.equal(state.appsDetailEntryKey, null);
-  assert.equal(state.appsDetailSection, 'ai-models');
-  assert.equal(state.appsDetailNavigationRevision, 2);
+  const state = productionAppStore.navigation.getSnapshot().current.destination;
+  assert.equal(state.id, 'apps');
+  assert.equal(state.appId, 'nimi.notes');
+  assert.equal(state.appEntryKey, undefined);
+  assert.equal(state.appSection, 'ai-models');
 });

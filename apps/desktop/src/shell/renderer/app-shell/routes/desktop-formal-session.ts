@@ -76,7 +76,7 @@ export function useDesktopFormalSessionReadiness(): DesktopFormalSessionReadines
     if (pending.current || !enabled || !accountId) return;
     pending.current = true;
     streams.clearAllStreams();
-    store.getState().setActiveTab('home');
+    store.navigation.reset({ id: 'home' });
     setAttempt(value => value + 1);
   }, [accountId, enabled, store, streams]);
 

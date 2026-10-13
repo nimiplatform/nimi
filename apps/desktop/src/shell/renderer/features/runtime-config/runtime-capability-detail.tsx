@@ -32,7 +32,7 @@ import {
   Search,
   SlidersHorizontal,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
@@ -207,14 +207,9 @@ export function RuntimeCapabilityDetail(props: Props) {
     if (summary.downloadBytes === null) return { text: t('runtimeConfig.product.downloadSizeUnknown'), tone: 'muted' };
     return { text: t('runtimeConfig.product.downloadSize', { size: formatBytes(summary.downloadBytes) }), tone: 'download' };
   };
-  // Customizing works on the current model, so its tab exists only with one; a
-  // section left on it after the selection is gone falls back to the overview.
+  // Missing configuration cannot rewrite a visited section.
   const sections = props.selected ? ['overview', 'models', 'advanced'] : ['overview', 'models'];
-  const section = props.section === 'advanced' && !props.selected ? 'overview' : props.section;
-  const { onSection } = props;
-  useEffect(() => {
-    if (section !== props.section) onSection(section);
-  }, [onSection, props.section, section]);
+  const section = props.section;
   if (props.section === 'saved')
     return (
       <SavedConfigsView
@@ -602,6 +597,7 @@ export function RuntimeCapabilityDetail(props: Props) {
             </div>
           ) : null}
 
+          {section === 'advanced' && !props.selected ? <InlineAlert tone="warning">{t('runtimeConfig.localModels.configurationMissing')}</InlineAlert> : null}
           {section === 'advanced' && props.selected ? (
             <RuntimeCapabilityCustomizeTab
               selected={props.selected}

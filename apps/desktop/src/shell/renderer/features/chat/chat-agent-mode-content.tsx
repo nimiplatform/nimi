@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  type ConversationSetupAction,
-  type ConversationTargetSummary,
-} from '@nimiplatform/kit/features/chat/headless';
+import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
+import { useEffect, useMemo, useState } from 'react';
+import { type ConversationSetupAction, type ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
@@ -27,14 +25,14 @@ export function ChatAgentModeContent({
   onSetupAction,
   onSelectTarget,
 }: ChatAgentModeContentProps) {
+  const homeChat = useHomeChatPosition();
   const { t } = useTranslation();
   const [diagnosticsSectionVisible, setDiagnosticsSectionVisible] = useState(false);
   const authStatus = useAppStore((state) => state.auth.status);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const agentConversationSelection = useAppStore((state) => state.agentConversationSelection);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.agent ?? null);
+  const agentConversationSelection = homeChat.agentSelection;
+  const selectAgentConversation = homeChat.selectAgentConversation;
+  const storeSelectedTargetId = homeChat.targetId;
 
   const host = useAgentConversationModeHost({
     authStatus,
@@ -45,31 +43,9 @@ export function ChatAgentModeContent({
     agentCenterOpen: settingsOpen,
     runtimeFields,
     selection: agentConversationSelection,
-    setSelection: setAgentConversationSelection,
+    setSelection: selectAgentConversation,
   });
 
-  // Bridge sidebar target selection to host
-  const prevTargetIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (storeSelectedTargetId && storeSelectedTargetId !== prevTargetIdRef.current) {
-      const selected = allTargets.find((target) => (
-        target.source === 'agent' && target.id === storeSelectedTargetId
-      ));
-      const agentHandle = typeof selected?.metadata?.agentHandle === 'string'
-        ? selected.metadata.agentHandle.trim()
-        : '';
-      host.onSelectTarget?.(agentHandle || storeSelectedTargetId);
-    }
-    prevTargetIdRef.current = storeSelectedTargetId;
-  }, [allTargets, host, storeSelectedTargetId]);
-
-  // Sync host selectedTargetId to store
-  useEffect(() => {
-    if (!host.selectedTargetId || storeSelectedTargetId) {
-      return;
-    }
-    setSelectedTargetForSource('agent', host.selectedTargetId);
-  }, [host.selectedTargetId, setSelectedTargetForSource, storeSelectedTargetId]);
   useEffect(() => {
     if (settingsOpen) {
       return;

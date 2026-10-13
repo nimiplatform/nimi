@@ -1,70 +1,34 @@
-import {
-  Button,
-  InlineAlert,
-  ScrollArea,
-  SelectField,
-  SidebarShell,
-  Surface,
-} from '@nimiplatform/kit/ui';
+import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../app-shell/providers/app-store.js';
+import { Button, InlineAlert, ScrollArea, SelectField, SidebarShell, Surface } from '@nimiplatform/kit/ui';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
 import { CircleDashed, LoaderCircle, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
+
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { RuntimeCapabilityApps, useCapabilityAppsColumn } from './runtime-capability-apps.js';
 import { RuntimeCapabilityDetail } from './runtime-capability-detail.js';
 import { resetRuntimePageViewport } from './runtime-config-page-shell.js';
-import {
-  type CapabilityPreparationState,
-  capabilityPreparationState,
-  useCapabilityInventory,
-} from './runtime-capability-inventory.js';
-import {
-  capabilityIcon,
-  capabilityModelIdentity,
-  capabilityRecommendedFilesOnDevice,
-  capabilityRecommendedRecipeOnDevice,
-  distinctSavedLoadouts,
-  groupCapabilities,
-  setupPlanAllowsDirectUse,
-  setupTaskModelTitle,
-} from './runtime-capability-presentation.js';
+import { type CapabilityPreparationState, capabilityPreparationState, useCapabilityInventory } from './runtime-capability-inventory.js';
+import { capabilityIcon, capabilityModelIdentity, capabilityRecommendedFilesOnDevice, capabilityRecommendedRecipeOnDevice, distinctSavedLoadouts, groupCapabilities, setupPlanAllowsDirectUse, setupTaskModelTitle } from './runtime-capability-presentation.js';
 import { RuntimeConfigAiSettingsProfilesSection } from './runtime-config-ai-settings-profiles.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { useRuntimeEnvironmentObservation } from './runtime-environment-observation.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
-import type {
-  RuntimeConfigLoadoutNavigationContext,
-  RuntimeConfigModelMarketContext,
-  RuntimeConfigProfileUseOwner,
-} from './runtime-config-panel-types.js';
+import type { RuntimeConfigLoadoutNavigationContext, RuntimeConfigModelMarketContext, RuntimeConfigProfileUseOwner } from './runtime-config-panel-types.js';
 import { RuntimeConfigSetupTaskView } from './runtime-config-setup-task-view.js';
-import type { RuntimeConfigStateV11 } from './runtime-config-state-types.js';
+import type { RuntimeConfigActionFocus } from './runtime-config-state-types.js';
+import { homeRuntimeDestination, type HomeRuntimePosition } from '../../app-shell/providers/home-navigation.js';
 import { RuntimeLocalModelListSection } from './runtime-local-model-list-section.js';
 import type { LocalModelConfiguration } from './runtime-local-model-list.js';
 import { SavedConfigsView } from './runtime-config-page-loadouts.js';
-import {
-  CONVERSATION_CAPABILITY,
-  type RuntimeProfileQuickStartConversation,
-} from './runtime-profile-quick-start.js';
+import { CONVERSATION_CAPABILITY, type RuntimeProfileQuickStartConversation } from './runtime-profile-quick-start.js';
 import { RuntimeProfileTaskView } from './runtime-profile-task-view.js';
-import {
-  RuntimeSetupFailureMessage,
-  runtimeSetupFailureText,
-  type RuntimeSetupFailureNotice,
-} from './runtime-setup-failure-message.js';
+import { RuntimeSetupFailureMessage, runtimeSetupFailureText, type RuntimeSetupFailureNotice } from './runtime-setup-failure-message.js';
 import { resolveRuntimeSetupReturnTarget } from './runtime-setup-task-open.js';
-import {
-  createRuntimeSetupTaskRunnerPorts,
-  currentDesktopAccountIdForSetup,
-} from './runtime-setup-task-ports.js';
-import {
-  createRuntimeSetupCandidate,
-  resolveRuntimeSetupPreparation,
-  runRuntimeSetupPreparation,
-} from './runtime-setup-task-runner.js';
+import { createRuntimeSetupTaskRunnerPorts, currentDesktopAccountIdForSetup } from './runtime-setup-task-ports.js';
+import { createRuntimeSetupCandidate, resolveRuntimeSetupPreparation, runRuntimeSetupPreparation } from './runtime-setup-task-runner.js';
 import { getRuntimeSetupTaskStore, type RuntimeSetupTaskDraft } from './runtime-setup-task-store.js';
 import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 
@@ -72,7 +36,7 @@ export type AiSettingsPageProps = {
   readonly advancedDiagnostics?: { readonly content: ReactNode; readonly onClose: () => void };
   readonly runtimeWritesDisabled: boolean;
   readonly focusedTaskId: string | null;
-  readonly actionFocus: RuntimeConfigStateV11['actionFocus'];
+  readonly actionFocus: RuntimeConfigActionFocus | null;
   readonly savedConfigsContext: RuntimeConfigLoadoutNavigationContext | null;
   readonly profileUseOwner: RuntimeConfigProfileUseOwner | null;
   readonly onOpenSetupTask: (taskId: string) => void;
@@ -116,18 +80,22 @@ export function RailStatusMark(props: {
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
 export function AiSettingsPage(props: AiSettingsPageProps) {
+  const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
+
   const inventory = useCapabilityInventory();
   const library = useRuntimeModelLibrary();
   const store = getRuntimeSetupTaskStore();
   const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const ports = useMemo(() => createRuntimeSetupTaskRunnerPorts(sdk, localEnvironment), [sdk, localEnvironment]);
-  const [capability, setCapability] = useState<string | null>(null);
-  const [section, setSection] = useState('overview');
-  const [modelConfiguration, setModelConfiguration] = useState<LocalModelConfiguration | null>(null);
+  const destination = useHomeDestination();
+  const entryKey = useHomeEntryKey();
+  const position = destination.runtime;
+  const capability = position?.capabilityContract ?? null;
+  const section = position?.section ?? 'overview';
+  const modelConfiguration = position?.loadoutId && capability ? { loadoutId: position.loadoutId, capability } : null;
+  const openSection = (value: string) => { void navigation.push(homeRuntimeDestination('aiSettings', { ...position, section: value as HomeRuntimePosition['section'] })); };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<RuntimeSetupFailureNotice | null>(null);
   const [homeRevision, setHomeRevision] = useState(0);
@@ -141,33 +109,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const appsColumn = useCapabilityAppsColumn(visibleCapability);
   const label = (id: string) => displayRuntimeConfigCapabilityLabel(id, t);
   useEffect(() => {
-    if (props.profileUseOwner) {
-      setModelConfiguration(null);
-      setCapability(null);
-      setSection('overview');
-    }
-  }, [props.profileUseOwner]);
-  useEffect(() => {
-    if (props.actionFocus?.focus !== 'runtime-config-action-focus.saved-configs') return;
-    const target = props.savedConfigsContext?.capabilityContract ?? inventory.capabilities[0];
-    if (!target) return;
-    setModelConfiguration(null);
-    setCapability(target);
-    setSection('saved');
-    props.onClearActionFocus();
-  }, [props.actionFocus, props.savedConfigsContext, inventory.capabilities, props.onClearActionFocus]);
-
-  useEffect(() => {
-    const target = props.savedConfigsContext?.capabilityContract;
-    if (target && !props.actionFocus) {
-      setModelConfiguration(null);
-      setCapability(target);
-      setSection('overview');
-      // Returning from acquisition refreshes files and choices without selecting a model.
-      void inventory.refetch();
-      void library.refetch();
-    }
-  }, [props.savedConfigsContext]);
+    // Resolve only an unspecified saved-config entry; explicit references stay intact.
+    if (destination.id !== 'runtime' || position?.page !== 'aiSettings' || position.section !== 'saved' || position.capabilityContract || !inventory.capabilities[0]) return;
+    const current = navigation.getSnapshot().current;
+    if (current.key === entryKey) void navigation.replace(homeRuntimeDestination('aiSettings', { ...position, capabilityContract: inventory.capabilities[0] }));
+  }, [destination.id, position, inventory.capabilities, navigation, entryKey]);
 
   const selection = inventory.data?.aggregate.selections.find(
     (item) => item.capabilityContract === visibleCapability,
@@ -228,7 +174,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     : null;
   const inlineTask = focusedTask?.source.kind === 'runtime' && !focusedTask.draft?.profileUseId ? focusedTask : undefined;
   const openSetupTask = (taskId: string) => {
-    setSection('overview');
     props.onOpenSetupTask(taskId);
   };
   const taskModel = status?.task ? setupTaskModelTitle(status.task, inventory.data?.aggregate.loadouts ?? [], recipes) : '';
@@ -321,7 +266,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         openSetupTask(task.taskId);
         return;
       }
-      setSection('overview');
+      openSection('overview');
       emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.product.modelPicker.selected') });
     } catch (caught) {
       setError({ message: caught instanceof Error ? caught.message : String(caught) });
@@ -398,47 +343,26 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     },
   };
   const onHome = () => {
-    props.advancedDiagnostics?.onClose();
-    setModelConfiguration(null);
-    props.onCloseSetupTask();
-    props.onCloseSavedConfigs();
-    props.onCloseProfileUseOwner();
-    setCapability(null);
-    setSection('overview');
-    setError(null);
-    setHomeRevision((value) => value + 1);
-    void inventory.refetch();
+    void navigation.push(homeRuntimeDestination('aiSettings'));
+    setError(null); setHomeRevision(value => value + 1); void inventory.refetch();
   };
   const openCapability = (id: string) => {
-    props.advancedDiagnostics?.onClose();
-    setModelConfiguration(null);
-    props.onCloseSetupTask();
-    props.onCloseSavedConfigs();
-    setCapability(id);
-    setSection('overview');
+    const pending = capabilityPreparationState({ capability: id, inventory: inventory.data, tasks: inventory.tasks, unavailable: inventory.isError }).task;
+    void navigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: id,
+      ...(pending?.source.kind === 'runtime' && !pending.draft?.profileUseId ? { setupTaskId: pending.taskId } : {}) }));
     setError(null);
-    const pending = capabilityPreparationState({
-      capability: id, inventory: inventory.data, tasks: inventory.tasks, unavailable: inventory.isError,
-    }).task;
-    if (pending?.source.kind === 'runtime' && !pending.draft?.profileUseId) openSetupTask(pending.taskId);
   };
-  // Model rows keep their exact Loadout identity; opening one never changes the default.
   const openModelConfiguration = (configuration: LocalModelConfiguration) => {
-    props.onCloseSetupTask();
-    props.onCloseSavedConfigs();
-    setCapability(configuration.capability);
-    setModelConfiguration(configuration);
+    void navigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: configuration.capability, loadoutId: configuration.loadoutId }));
     setError(null);
   };
   const onReturnToSource = () => {
     const target = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
     props.onCloseSetupTask();
     setError(null);
-    if (target?.kind === 'tab') setActiveTab(target.tab);
     if (target?.kind === 'tab' && target.tab === 'apps' && focusedTask?.source.ownerAppId) {
-      setAppsDetailAppId(focusedTask.source.ownerAppId);
-      setActiveTab('apps');
-    }
+      void navigation.push({ id: 'apps', appId: focusedTask.source.ownerAppId });
+    } else if (target?.kind === 'tab') void navigation.push({ id: target.tab });
     void inventory.refetch();
   };
 
@@ -609,7 +533,14 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   <RuntimeSetupFailureMessage failure={error} />
                 </InlineAlert>
               ) : null}
-              {focusedTask && !inlineTask ? (
+              {props.focusedTaskId && !focusedTask ? (
+                <InlineAlert tone="warning">{t('runtimeConfig.positionUnavailable')}</InlineAlert>
+              ) : visibleCapability && !inventory.isPending && !inventory.isError && !inventory.capabilities.includes(visibleCapability) ? (
+                <InlineAlert tone="warning">
+                  <p>{t('runtimeConfig.positionUnavailable')}</p>
+                  <Button size="sm" tone="secondary" onClick={() => { void inventory.refetch(); }}>{t('Common.retry')}</Button>
+                </InlineAlert>
+              ) : focusedTask && !inlineTask ? (
                 focusedTask.draft?.profileUseId ? (
                   <RuntimeProfileTaskView
                     key={focusedTask.draft.profileUseId}
@@ -628,8 +559,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     disabled={props.runtimeWritesDisabled}
                     onImportModelFiles={props.onOpenModelImport}
                     onClose={() => {
-                      setCapability(focusedTask.capabilityContract);
-                      props.onCloseSetupTask();
+                      void navigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: focusedTask.capabilityContract }));
                       setError(null);
                       void inventory.refetch();
                     }}
@@ -646,7 +576,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   backLabel={t('runtimeConfig.localModels.backToModels')}
                   onBack={onHome}
                   environmentWritesDisabled={props.runtimeWritesDisabled}
-                  onPrepareEnvironment={(loadout) => { setModelConfiguration(null); void onStart(loadout.recipeId, loadout); }}
+                  onPrepareEnvironment={(loadout) => { void onStart(loadout.recipeId, loadout); }}
                   onOpenModelMarket={props.onOpenModelMarket}
                 />
               ) : !visibleCapability ? (
@@ -712,7 +642,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   status={status!}
                   taskModel={taskModel}
                   section={section}
-                  onSection={setSection}
+                  onSection={openSection}
                   busy={busy}
                   disabled={props.runtimeWritesDisabled}
                   navigationContext={props.savedConfigsContext}
@@ -732,8 +662,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                       disabled={props.runtimeWritesDisabled}
                       onImportModelFiles={props.onOpenModelImport}
                       onClose={() => {
-                        setCapability(inlineTask.capabilityContract);
-                        props.onCloseSetupTask();
+                        void navigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: inlineTask.capabilityContract }));
                         setError(null);
                         void inventory.refetch();
                         void library.refetch();

@@ -1,30 +1,17 @@
+import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
-import {
-  characterSourceMaterializationFailureMessage,
-  characterSourceMaterializationMessage,
-  characterSourceRefKey,
-  discoverCharacterSourceLocalAgents,
-  resolveCharacterSourceState,
-  type CharacterSourceDiscoveredLocalAgent,
-} from '../explore/character-source-materialization';
+import { characterSourceMaterializationFailureMessage, characterSourceMaterializationMessage, characterSourceRefKey, discoverCharacterSourceLocalAgents, resolveCharacterSourceState, type CharacterSourceDiscoveredLocalAgent } from '../explore/character-source-materialization';
 import { createAnotherCharacterSourcePartner, ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
-import {
-  fetchLocalAgentList,
-  localAgentListQueryKey,
-  toLocalAgentSourceDiscoveryProjections,
-} from '../agents/local-agent-list-model';
+import { fetchLocalAgentList, localAgentListQueryKey, toLocalAgentSourceDiscoveryProjections } from '../agents/local-agent-list-model';
 import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
-import { EMPTY_AGENT_CONVERSATION_SELECTION } from '../chat/chat-shell-types.js';
+
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import {
-  sourceDisplayDetailQueryKey,
-  fetchSourceDisplayDetail,
-} from './source-detail-queries.js';
+import { sourceDisplayDetailQueryKey, fetchSourceDisplayDetail } from './source-detail-queries.js';
 import { SourceDetailView } from './source-detail-view.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -40,20 +27,17 @@ export function SourceDetailPanel({
   sourceRef?: CharacterSourceRefV3 | null;
   onBack?: (() => void) | null;
 } = {}) {
+
+  const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
   const appStore = useAppStoreApi();
   const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
-  const storeSelectedSourceRef = useAppStore((state) => state.selectedSourceRef);
+  const storeSelectedSourceRef = useHomeDestination().sourceRef ?? null;
   const selectedSourceRef = sourceRefProp === undefined ? storeSelectedSourceRef : sourceRefProp;
-  const navigateBack = useAppStore((state) => state.navigateBack);
-  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const setFeedback = emitFeedbackToast;
@@ -251,20 +235,15 @@ export function SourceDetailPanel({
         await launchAgentConversationFromDisplay({
           target: conversationTarget,
           initialComposerText: prefillText || null,
-          setActiveTab,
-          setChatMode,
-          setSelectedTargetForSource,
-          setAgentConversationSelection,
+          navigation,
+
           setAgentConversationTargetSnapshot,
           setPendingAgentComposerPrefill,
         });
         return;
       }
       setPendingAgentComposerPrefill({ text: '' });
-      setAgentConversationSelection(EMPTY_AGENT_CONVERSATION_SELECTION);
-      setSelectedTargetForSource('agent', null);
-      setChatMode('agent');
-      setActiveTab('chat');
+      void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
       setFeedback({
         kind: 'error',
         message: i18n.t('SourceDetail.partnerUnavailable', {
@@ -304,12 +283,12 @@ export function SourceDetailPanel({
         error={profileQuery.isError}
         primaryActionJoining={sourceMaterialization?.sourceKey === currentSourceKey
           && sourceMaterialization.ownerUserId === ownerUserId}
-        onBack={onBack === null ? undefined : (onBack ?? navigateBack)}
+        onBack={onBack === null ? undefined : (onBack ?? navigation.back)}
         onOpenWorld={() => {
           if (!source?.worldId) {
             return;
           }
-          navigateToWorld(source.worldId);
+          navigation.push({ id: 'world-detail', worldId: source.worldId });
         }}
         onPrimaryAction={() => {
           void handlePrimaryAction();

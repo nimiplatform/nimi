@@ -1,5 +1,6 @@
+import { useHomeNavigation, useHomeDestination } from '../providers/app-store.js';
 import { GlobalDownloadsProvider } from '../../features/runtime-config/global-downloads-context.js';
-import React, { Suspense, lazy, useEffect, useRef, type MouseEvent, type PropsWithChildren } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, useAppStoreApi, type AppTab } from '../providers/app-store';
 import {
@@ -11,8 +12,6 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { MainLayoutView } from './main-layout-view';
 import { AppsDownloadsProvider } from '../../features/apps/apps-downloads-context.js';
-
-const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
 
 const ChatRealtimeSyncHost = lazy(async () => {
   const mod = await import('../../features/realtime/use-chat-realtime-sync');
@@ -56,11 +55,12 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
 }
 
 export function MainLayout() {
+  const navigation = useHomeNavigation();
   const navigate = useNavigate();
   const bindings = useDesktopRendererBindings();
   const appStore = useAppStoreApi();
-  const activeTab = useAppStore((state) => state.activeTab);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const activeTab = useHomeDestination().id;
+
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
   const logoutDependencies = useLogoutSessionDependencies();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -80,7 +80,7 @@ export function MainLayout() {
   }, [bindings]);
 
   useEffect(
-    () => bindings.app.events.connectDesktopOpenIntents(appStore.getState()),
+    () => bindings.app.events.connectDesktopOpenIntents(appStore.navigation),
     [appStore, bindings],
   );
 
@@ -118,26 +118,9 @@ export function MainLayout() {
     });
   };
 
-  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
-
   const onNav = (tabId: string) => {
     tabSwitchPending.current = { fromTab: activeTab, toTab: tabId, startMs: bindings.clock.now() };
-    if (tabId === 'profile') {
-      setSelectedProfileId(null);
-    }
-    setActiveTab(tabId as AppTab);
-  };
-
-  const onTitlebarMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    if (!bindings.app.projection.titlebarDragEnabled()) return;
-    if (event.button !== 0) return;
-    if (event.detail > 1) return;
-    if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;
-    const target = event.target as HTMLElement | null;
-    if (target?.closest('[data-titlebar-interactive="true"]')) return;
-    void bindings.app.commands.startWindowDrag().catch(() => {
-      // no-op
-    });
+    navigation.push({ id: tabId as AppTab });
   };
 
   return (
@@ -157,12 +140,11 @@ export function MainLayout() {
           void onLogout();
         }}
         onLogin={() => {
-          setActiveTab('chat');
+          navigation.push({ id: 'chat' });
           void navigate('/login', {
             state: { returnToChat: true },
           });
         }}
-        onTitlebarMouseDown={onTitlebarMouseDown}
       />
       <NonCriticalStartupBoundary>
         <Suspense fallback={null}>

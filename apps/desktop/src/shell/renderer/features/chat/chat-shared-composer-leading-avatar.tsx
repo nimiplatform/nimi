@@ -1,3 +1,4 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Avatar, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
@@ -125,10 +126,11 @@ function ChatComposerAvatarHoverPreview(props: {
   onOpenHumanProfilePage?: (profileId: string) => void;
   children: ReactNode;
 }) {
+  const navigation = useHomeNavigation();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
-  const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
+
   const bindings = useDesktopRendererBindings();
   const [open, setOpen] = useState(false);
   const [humanProfileModalOpen, setHumanProfileModalOpen] = useState(false);
@@ -218,7 +220,7 @@ function ChatComposerAvatarHoverPreview(props: {
     cancelTimers();
     setOpen(false);
     if (props.target.kind === 'character') {
-      navigateToSourceDetail(props.target.sourceRef);
+      navigation.push({ id: 'source-detail', sourceRef: props.target.sourceRef });
       return;
     }
     if (!props.target.profileId) {
@@ -229,7 +231,7 @@ function ChatComposerAvatarHoverPreview(props: {
       return;
     }
     setHumanProfileModalOpen(true);
-  }, [cancelTimers, navigateToSourceDetail, props.onOpenHumanProfilePage, props.target]);
+  }, [cancelTimers, navigation, props.onOpenHumanProfilePage, props.target]);
 
   const handleTriggerClick = useCallback(() => {
     cancelTimers();

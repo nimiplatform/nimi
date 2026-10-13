@@ -5,7 +5,7 @@ import {
 } from '@nimiplatform/kit/core/storage-json';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
-  RUNTIME_CONFIG_STORAGE_KEY_V15,
+  RUNTIME_CONFIG_STORAGE_KEY_V16,
   createDefaultStateV11,
   type StoredStateV11,
 } from './runtime-config-storage-defaults';
@@ -13,12 +13,12 @@ import { normalizeStoredStateV11 } from './runtime-config-storage-normalize';
 
 export function loadRuntimeConfigStateV11(): RuntimeConfigStateV11 {
   const storage = resolveBrowserStorage('local');
-  const current = readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V15);
+  const current = readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V16);
   if (current.state === 'ready' && current.value && typeof current.value === 'object') {
-    if (current.value.version === 15) return normalizeStoredStateV11(current.value);
+    if (current.value.version === 16) return normalizeStoredStateV11(current.value);
   }
-  // Hard cut: only the current v15 snapshot is read. Older payloads are never
-  // migrated; the preference resets safely to the default (AI Settings).
+  // Hard cut: only the current v16 snapshot is read. Older payloads are never
+  // migrated; the preference resets safely to the default preferences.
   return createDefaultStateV11();
 }
 
@@ -27,10 +27,8 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
   // Runtime bridge config / Runtime SDK projections are the single source of
   // truth. Renderer storage keeps UI preferences only.
   const payload: StoredStateV11 = {
-    version: 15,
+    version: 16,
     initializedByV11: Boolean(state.initializedByV11),
-    activePage: state.activePage,
-    actionFocus: state.actionFocus,
     diagnosticsCollapsed: Boolean(state.diagnosticsCollapsed),
     uiMode: state.uiMode,
     selectedSource: state.selectedSource,
@@ -42,7 +40,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
   };
   writeStorageJsonTo(
     resolveBrowserStorage('local'),
-    RUNTIME_CONFIG_STORAGE_KEY_V15,
+    RUNTIME_CONFIG_STORAGE_KEY_V16,
     payload,
   );
 }

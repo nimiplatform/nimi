@@ -1,9 +1,9 @@
+import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../app-shell/providers/app-store.js';
 import type { GetAppPackageInfoRequest } from '@nimiplatform/sdk/runtime/wire-types';
-import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useCallback, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
-import { useAppStore } from '../../app-shell/providers/app-store';
-import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import type { HomeNavigation } from '../../app-shell/providers/home-navigation.js';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
@@ -14,14 +14,7 @@ import { packageJobKey } from './apps-downloads-observer.js';
 import { useAppsDownloads } from './apps-downloads-context.js';
 import { catalogTargetMatchesJob } from './apps-downloads-view.js';
 import { resolveRequestedAppDetailEntry, type DesktopAppsEntry } from './apps-panel-projection.js';
-import {
-  AppPackageJobPhase,
-  AppPackageJobKind,
-  AppPackageSourceClass,
-  ReasonCode,
-  type AppPackageJob,
-  type CancelAppPackageJobResponse,
-} from '@nimiplatform/sdk/runtime/wire-types';
+import { AppPackageJobPhase, AppPackageJobKind, AppPackageSourceClass, ReasonCode, type AppPackageJob, type CancelAppPackageJobResponse } from '@nimiplatform/sdk/runtime/wire-types';
 
 export function assertCanceledPackageJobResponse(
   requested: AppPackageJob,
@@ -45,19 +38,12 @@ export function dispatchAppsPanelCardAction(input: {
   readonly entryKey: string;
   readonly appId: string;
   readonly action: AppCardActionId;
-  readonly setAppsDetailAppId: (
-    appId: string | null,
-    section?: NimiDesktopOpenAppsSection | null,
-    entryKey?: string | null,
-  ) => void;
+  readonly navigation: HomeNavigation;
   readonly runCardAction: (entryKey: string, action: AppCardActionId) => void;
 }): void {
   if (input.action === 'details' || input.action === 'open-ai-config') {
-    input.setAppsDetailAppId(
-      input.appId,
-      input.action === 'open-ai-config' ? 'ai-models' : null,
-      input.entryKey,
-    );
+    void input.navigation.push({ id: 'apps', appId: input.appId, appSection: input.action === 'open-ai-config' ? 'ai-models' : undefined, appEntryKey: input.entryKey });
+    return;
   }
   input.runCardAction(input.entryKey, input.action);
 }
@@ -65,17 +51,16 @@ export function dispatchAppsPanelCardAction(input: {
 export function AppsPanel({
   downloadsOnly = false,
 }: { readonly downloadsOnly?: boolean } = {}): ReactElement {
+  const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const downloads = useAppsDownloads();
   if (!downloads) throw new Error('APPS_DOWNLOADS_PROVIDER_MISSING');
-  const settings = useDesktopRendererCommands().settings;
   const sdk = useDesktopRendererSdk();
-  const requestedDetailAppId = useAppStore((state) => state.appsDetailAppId);
-  const requestedDetailEntryKey = useAppStore((state) => state.appsDetailEntryKey);
-  const requestedDetailSection = useAppStore((state) => state.appsDetailSection);
-  const requestedDetailNavigationRevision = useAppStore((state) => state.appsDetailNavigationRevision);
-  const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const requestedDetailAppId = useHomeDestination().appId ?? null;
+  const requestedDetailEntryKey = useHomeDestination().appEntryKey ?? null;
+  const requestedDetailSection = useHomeDestination().appSection ?? null;
+  const navigationEntryKey = useHomeEntryKey();
+
   const readAppAIConfig = useCallback(
     (appId: string, options: { readonly timeoutMs: number; readonly signal: AbortSignal }) => (
       sdk.accountProduct().appAIConfig(appId).get(options)
@@ -143,6 +128,7 @@ export function AppsPanel({
     }
   }, [sdk]);
   const controller = useAppsPanelController({
+    selectedEntryKey: requestedDetailEntryKey,
     cancelPackageJob,
     listApprovedCatalogTargets,
     startInstall,
@@ -155,7 +141,6 @@ export function AppsPanel({
   });
   const {
     projection,
-    detailEntryKey,
     searchQuery,
     actionError,
     pendingActions,
@@ -163,18 +148,16 @@ export function AppsPanel({
     runCardAction,
     setSearchQuery,
     retryProjection,
-    closeDetail,
     acknowledgeAIConfigMutation,
     confirmInstall,
     cancelInstall,
   } = controller;
   const getLocalImportClient = useCallback(() => sdk.machineProduct().apps, [sdk]);
   const localImportStarted = useCallback((job: AppPackageJob) => {
-    closeDetail();
-    setAppsDetailAppId(null);
+    void navigation.replace({ id: 'apps' });
     void downloads.observer.refresh();
     downloads.openDownloads(packageJobKey(job));
-  }, [closeDetail, downloads.observer, downloads.openDownloads, setAppsDetailAppId]);
+  }, [navigation, downloads.observer, downloads.openDownloads]);
   const localImport = useAppsLocalImport(getLocalImportClient, localImportStarted);
   const handleCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     if (action === 'details' || action === 'open-ai-config') downloads.showLibrary();
@@ -190,35 +173,24 @@ export function AppsPanel({
       entryKey,
       appId: entry.identity.appId,
       action,
-      setAppsDetailAppId,
+      navigation,
       runCardAction,
     });
-  }, [downloads.showLibrary, projection, runCardAction, setAppsDetailAppId, localImport.choose]);
+  }, [downloads.showLibrary, projection, runCardAction, navigation, localImport.choose]);
 
   // A link that names an App with several sources lists those sources for the
   // user to choose; it never guesses one.
-  const [sourceChoice, setSourceChoice] = useState<string | null>(null);
-  useEffect(() => {
-    if (!requestedDetailAppId || projection?.status !== 'loaded') return;
-    const entry = resolveRequestedAppDetailEntry(projection.entries, requestedDetailAppId, requestedDetailEntryKey);
-    if (entry) { setSourceChoice(null); runCardAction(entry.identity.entryKey, 'details'); return; }
-    const sources = projection.entries.filter((candidate) => candidate.identity.appId === requestedDetailAppId);
-    if (!requestedDetailEntryKey && sources.length > 1) {
-      closeDetail();
-      setSearchQuery(requestedDetailAppId);
-      setSourceChoice(sources[0]!.identity.displayName || requestedDetailAppId);
-    }
-  }, [closeDetail, projection, requestedDetailAppId, requestedDetailEntryKey, requestedDetailNavigationRevision, runCardAction, setSearchQuery]);
-
-  const selectedEntry = projection?.status === 'loaded'
-    ? projection.entries.find((entry) => entry.identity.entryKey === detailEntryKey) ?? null
-    : null;
+  const selectedEntry = requestedDetailAppId && projection?.status === 'loaded'
+    ? resolveRequestedAppDetailEntry(projection.entries, requestedDetailAppId, requestedDetailEntryKey) : null;
+  const detailEntryKey = selectedEntry?.identity.entryKey ?? null;
+  const sources = requestedDetailAppId && projection?.status === 'loaded' ? projection.entries.filter(entry => entry.identity.appId === requestedDetailAppId) : [];
+  const sourceChoice = !detailEntryKey && !requestedDetailEntryKey && sources.length > 1 ? sources[0]!.identity.displayName || requestedDetailAppId : null;
 
   const viewDownloadApp = (job: AppPackageJob) => {
     downloads.showLibrary();
     const entry = projection?.status === 'loaded' ? projection.entries.find((candidate) => candidate.identity.appId === job.appId && candidate.identity.sourceClass === (job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'user_imported' : 'verified')) : null;
     if (entry) handleCardAction(entry.identity.entryKey, 'details');
-    else { closeDetail(); setSearchQuery(job.appId); }
+    else { void navigation.push({ id: 'apps', appId: job.appId }); setSearchQuery(job.appId); }
   };
 
   return (
@@ -229,7 +201,6 @@ export function AppsPanel({
         downloads={downloads}
         onViewDownloadApp={(job) => {
           viewDownloadApp(job);
-          if (downloadsOnly) setActiveTab('apps');
         }}
         onRetryDownload={(job) => {
           if (job.sourceClass === AppPackageSourceClass.USER_IMPORTED) {
@@ -244,23 +215,21 @@ export function AppsPanel({
           if (entry && catalogTargetMatchesJob(entry.catalogTarget, job)) runCardAction(entry.identity.entryKey, job.kind === AppPackageJobKind.UPDATE ? 'update' : 'install');
         }}
         projection={projection}
-        searchQuery={searchQuery}
-        onSearchChange={(value) => { setSourceChoice(null); setSearchQuery(value); }}
+        searchQuery={sourceChoice ? requestedDetailAppId! : searchQuery}
+        onSearchChange={setSearchQuery}
         sourceChoiceNotice={sourceChoice && !detailEntryKey ? t('Apps.chooseSource', { app: sourceChoice }) : null}
         selectedEntryKey={detailEntryKey}
         requestedDetailSection={
           requestedDetailAppId === selectedEntry?.identity.appId ? requestedDetailSection : null
         }
-        requestedDetailNavigationRevision={requestedDetailNavigationRevision}
+        navigationEntryKey={navigationEntryKey}
         onCardAction={handleCardAction}
         onBack={() => {
-          setAppsDetailAppId(null);
-          closeDetail();
+          void navigation.back();
         }}
         onImportLocal={() => void localImport.choose()}
         onOpenDeveloperMode={() => {
-          settings.openSection('developer');
-          setActiveTab('settings');
+          void navigation.push({ id: 'settings', settingsSection: 'developer' });
         }}
         onRetry={retryProjection}
         onAIConfigChanged={acknowledgeAIConfigMutation}

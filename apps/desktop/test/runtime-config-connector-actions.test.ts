@@ -14,13 +14,12 @@ const checked: ApiConnector = {
   models: ['text-model'], modelCapabilities: { 'text-model': ['text.generate'] },
 };
 function stateWith(connector = checked) {
-  return { ...createDefaultStateV11(), connectors: [connector], selectedConnectorId: connector.id };
+  return { ...createDefaultStateV11(), connectors: [connector] };
 }
 
 test('reloading inventory on page return retains the actual check and discovered models', () => {
   const next = replaceConnectorsInState(stateWith(), [{ ...inventory, label: 'Renamed' }]);
   assert.deepEqual(next.connectors, [{ ...checked, label: 'Renamed' }]);
-  assert.equal(next.selectedConnectorId, checked.id);
 });
 
 test('inventory refresh preserves failed checks as well as successful checks', () => {
@@ -51,8 +50,6 @@ test('new and deleted connections follow runtime inventory without reviving old 
   const added = { ...inventory, id: 'connection-2' };
   const next = replaceConnectorsInState(stateWith(), [added]);
   assert.deepEqual(next.connectors, [added]);
-  assert.equal(next.selectedConnectorId, added.id);
   const empty = replaceConnectorsInState(stateWith(), []);
   assert.deepEqual(empty.connectors, []);
-  assert.equal(empty.selectedConnectorId, '');
 });

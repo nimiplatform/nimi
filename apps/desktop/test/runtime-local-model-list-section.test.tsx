@@ -6,8 +6,11 @@ import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
-import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store.js';
+import { AppStoreProvider, useHomeDestination } from '../src/shell/renderer/app-shell/providers/app-store.js';
+import { homeRuntimeDestination } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 import runtimeConfigEn from '../src/shell/renderer/locales/en/46-runtimeConfig.json';
+import { createDesktopI18n } from '../src/shell/renderer/i18n/desktop-i18n.js';
+import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-context.js';
 
 // Renders the real AI Capabilities home against a fake SDK that records every
 // Runtime call. The list must render, expand and refresh through reads only:
@@ -169,19 +172,22 @@ async function withHome(run: (ui: {
   const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
   const { AiSettingsPage } = await import('../src/shell/renderer/features/runtime-config/runtime-config-page-ai-settings.js');
   const testI18n = createInstance();
+  const i18nResource = createDesktopI18n({ initialLocale: 'en', development: false, now: Date.now });
+  await i18nResource.init();
   await testI18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: incompleteExamples ? { runtimeConfig: runtimeConfigEn } : {} } } });
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
+  store.navigation.reset(homeRuntimeDestination(diagnosticsInitiallyOpen ? 'advancedDiagnostics' : 'aiSettings'));
   const { sdk, calls, failedChecks, dependencyStates } = createFakeSdk(incompleteExamples);
   const bindings = { app: { commands: {} }, sdk } as unknown as DesktopCanonicalRendererBindings;
   const root = createRoot(dom.window.document.getElementById('root')!);
   const noop = () => undefined;
   function WorkspaceHarness() {
-    const [diagnostics, setDiagnostics] = React.useState(diagnosticsInitiallyOpen);
+    const diagnostics = useHomeDestination().id === 'diagnostics';
     return <AiSettingsPage
       advancedDiagnostics={diagnostics ? {
         content: <div data-testid="diagnostics-test-content" />,
-        onClose: () => setDiagnostics(false),
+        onClose: () => { void store.navigation.push(homeRuntimeDestination('aiSettings')); },
       } : undefined}
       runtimeWritesDisabled={false}
       focusedTaskId={null}
@@ -193,7 +199,7 @@ async function withHome(run: (ui: {
       onOpenModelFiles={noop}
       onOpenSavedConfigs={noop}
       onOpenModelMarket={noop}
-      onOpenAdvancedDiagnostics={() => setDiagnostics(true)}
+      onOpenAdvancedDiagnostics={() => { void store.navigation.push(homeRuntimeDestination('advancedDiagnostics')); }}
       onOpenCloudServices={noop}
       onClearActionFocus={noop}
       onCloseProfileUseOwner={noop}
@@ -213,6 +219,7 @@ async function withHome(run: (ui: {
     await act(async () =>
       root.render(
         <I18nextProvider i18n={testI18n}>
+          <DesktopI18nResourceProvider resource={i18nResource}>
           <QueryClientProvider client={queryClient}>
             <AppStoreProvider store={store}>
               <DesktopRendererBindingProvider bindings={bindings}>
@@ -222,6 +229,7 @@ async function withHome(run: (ui: {
               </DesktopRendererBindingProvider>
             </AppStoreProvider>
           </QueryClientProvider>
+          </DesktopI18nResourceProvider>
         </I18nextProvider>,
       ),
     );

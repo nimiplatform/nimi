@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo } from 'react';
+import { Suspense, lazy, useMemo } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
 import {
   collapseRealmHumanChatsToTargets,
@@ -11,6 +11,7 @@ import {
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { InlineAlert } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
@@ -40,6 +41,7 @@ type UseHumanConversationModeHostInput = {
   authStatus: AuthStatus;
   selectedChatId: string | null;
   setSelectedChatId: (chatId: string | null) => void;
+  onOpenThread?: (threadId: string) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
 };
 
@@ -91,7 +93,14 @@ export function useHumanConversationModeHost(
 
   const noMessagesFallback = t('Chat.noMessages', { defaultValue: 'No messages yet' });
   const unknownTitle = t('Common.unknown', { defaultValue: 'Unknown' });
-  const allChats = ((chatsQuery.data as { items?: RealmChatViewDto[] } | undefined)?.items || []) as RealmChatViewDto[];
+  const listedChats = ((chatsQuery.data as { items?: RealmChatViewDto[] } | undefined)?.items || []) as RealmChatViewDto[];
+  const chatDetailQuery = useQuery({
+    queryKey: ['human-chat-detail', selectedChatId],
+    queryFn: () => realmHumanChatData.loadChatById(selectedChatId!),
+    enabled: authStatus === 'authenticated' && Boolean(selectedChatId) && !listedChats.some(chat => chat.id === selectedChatId),
+  });
+  const allChats = useMemo(() => chatDetailQuery.data && !listedChats.some(chat => chat.id === chatDetailQuery.data.id)
+    ? [...listedChats, chatDetailQuery.data] : listedChats, [listedChats, chatDetailQuery.data]);
   const allChatsSorted = useMemo(
     () => [...allChats].sort(compareRealmHumanChatsByRecency),
     [allChats],
@@ -213,17 +222,6 @@ export function useHumanConversationModeHost(
   const rightSidebarOverlayMenu = canonicalSurface.rightSidebarOverlayMenu;
   const rightSidebarAutoOpenKey = canonicalSurface.rightSidebarAutoOpenKey;
 
-  useEffect(() => {
-    if (!selectedChatId) {
-      return;
-    }
-    const exists = allChats.some((chat) => String(chat.id || '') === String(selectedChatId));
-    if (!exists) {
-      setSelectedChatId(null);
-      setChatProfilePanelTarget(null);
-    }
-  }, [allChats, selectedChatId, setChatProfilePanelTarget, setSelectedChatId]);
-
   const setupState = useMemo(() => {
     if (authStatus === 'authenticated') {
       return createReadyConversationSetupState('human');
@@ -262,6 +260,10 @@ export function useHumanConversationModeHost(
     activeThreadId: selectedChatId,
     targets,
     selectedTargetId: selectedChat ? getRealmHumanTargetId(selectedChat) : null,
+    topContent: selectedChatId && !selectedChat ? <InlineAlert tone={chatDetailQuery.isError ? 'warning' : 'info'}>
+      {chatDetailQuery.isPending ? t('Common.loading') : t('Chat.positionUnavailable')}
+      {chatDetailQuery.isError ? <button type="button" onClick={() => void chatDetailQuery.refetch()}>{t('Common.retry')}</button> : null}
+    </InlineAlert> : null,
     messages: canonicalMessages,
     onSelectTarget: (targetId) => {
       const normalizedTargetId = String(targetId || '').trim();
@@ -320,7 +322,7 @@ export function useHumanConversationModeHost(
       },
     },
     onSelectThread: (threadId: string) => {
-      setSelectedChatId(threadId);
+      input.onOpenThread?.(threadId);
       setChatProfilePanelTarget(null);
     },
     // Always pass transcript/stage props: the shell can render the transcript
@@ -356,7 +358,7 @@ export function useHumanConversationModeHost(
         )}
       </Suspense>
     ),
-    composerContent: selectedChatId ? (
+    composerContent: selectedChatId && selectedChat ? (
       <HumanCanonicalComposer
         selectedChatId={selectedChatId}
         leadingAvatar={selectedChat ? {
@@ -388,6 +390,9 @@ export function useHumanConversationModeHost(
     selectedChat,
     selectedChatTitle,
     selectedChatId,
+    chatDetailQuery.isError,
+    chatDetailQuery.isPending,
+    chatDetailQuery.refetch,
     setChatProfilePanelTarget,
     setSelectedChatId,
     stagePanelProps,

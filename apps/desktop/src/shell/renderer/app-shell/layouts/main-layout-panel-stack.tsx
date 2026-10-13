@@ -1,6 +1,7 @@
+import { useHomeNavigation } from '../providers/app-store.js';
 import { Button } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../providers/app-store';
+
 import { Suspense, lazy, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { AppTab } from '../providers/app-store';
@@ -8,10 +9,7 @@ import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import type { ExploreSectionId } from '../../features/explore/explore-section-nav';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '../../features/world/world-detail-route-state';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import {
-  DESKTOP_PANEL_VARIANTS,
-  useDesktopPanelCustom,
-} from '../../ui/motion/desktop-motion';
+import { DESKTOP_PANEL_VARIANTS, useDesktopPanelCustom } from '../../ui/motion/desktop-motion';
 
 const ChatPage = lazy(async () => {
   const mod = await import('../../features/chat/chat-page');
@@ -121,8 +119,9 @@ export function MainLayoutPanelStack({
   onExploreSectionChange,
   onExploreSearchTextChange,
 }: MainLayoutPanelStackProps) {
+  const navigation = useHomeNavigation();
   const { t } = useTranslation();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   return (
     <>
       {runtimeEverMounted ? (
@@ -154,7 +153,7 @@ export function MainLayoutPanelStack({
           ) : null}
           {activeTab === 'activity' ? (
             <MotionPanelFrame panelId="activity">
-              <Button tone="ghost" className="self-start" onClick={() => setActiveTab('home')}>
+              <Button tone="ghost" className="self-start" onClick={() => navigation.push({ id: 'home' })}>
                 {t('runtimeConfig.overview.back')}
               </Button>
               <HomePanel feedScope={homeFeedScope} onFeedScopeChange={onHomeFeedScopeChange} />

@@ -1,33 +1,15 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InlineAlert, Surface } from '@nimiplatform/kit/ui';
-import {
-  ModelConfigAIConfigSurface,
-  type ModelConfigCopy,
-} from '@nimiplatform/kit/features/model-config';
-import { useAppStore } from '../../app-shell/providers/app-store';
-import {
-  useDesktopRendererCommands,
-  useDesktopRendererSdk,
-} from '../../renderer/binding-context.js';
-import {
-  DESKTOP_NIMI_APP_ID,
-  useDesktopNimiAppAIConfig,
-  useOverwriteDesktopNimiAppAIConfig,
-} from './chat-nimi-app-ai-config.js';
-import {
-  getRuntimeSetupTaskStore,
-} from '../runtime-config/runtime-setup-task-store.js';
-import {
-  openOrCreateRuntimeSetupTask,
-} from '../runtime-config/runtime-setup-task-open.js';
-import {
-  currentDesktopAccountIdForSetup,
-} from '../runtime-config/runtime-setup-task-ports.js';
-import {
-  resolveChatSettingsCapabilityDescription,
-  resolveChatSettingsCapabilityLabel,
-} from './chat-model-config-copy.js';
+import { ModelConfigAIConfigSurface, type ModelConfigCopy } from '@nimiplatform/kit/features/model-config';
+
+import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { DESKTOP_NIMI_APP_ID, useDesktopNimiAppAIConfig, useOverwriteDesktopNimiAppAIConfig } from './chat-nimi-app-ai-config.js';
+import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
+import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-task-open.js';
+import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup-task-ports.js';
+import { resolveChatSettingsCapabilityDescription, resolveChatSettingsCapabilityLabel } from './chat-model-config-copy.js';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
 
 export type ChatSettingsPanelProps = {
@@ -227,11 +209,12 @@ function AiModeSettings(props: {
   showPresenceContent?: boolean;
   showDiagnosticsFooter?: boolean;
 }) {
+  const navigation = useHomeNavigation();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
   const { t, i18n } = useTranslation();
   const copy = useNimiChatModelConfigCopy();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   const appAIConfig = useDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
 
@@ -239,7 +222,6 @@ function AiModeSettings(props: {
     props.onDiagnosticsVisibilityChange?.(true);
     return () => { props.onDiagnosticsVisibilityChange?.(false); };
   }, [props.onDiagnosticsVisibilityChange]);
-
 
   const openMachineLoadout = useCallback((capabilityContract: string) => {
     void currentDesktopAccountIdForSetup().then((accountId) => {
@@ -252,12 +234,12 @@ function AiModeSettings(props: {
           returnFocus: 'chat',
         },
         openTask: (taskId) => {
-          setActiveTab('runtime');
+
           runtimeConfigNavigation.openSetupTask(taskId);
         },
       });
     });
-  }, [runtimeConfigNavigation, setActiveTab]);
+  }, [runtimeConfigNavigation, navigation]);
 
   const footer = props.showDiagnosticsFooter === false ? null : (
     <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-3">

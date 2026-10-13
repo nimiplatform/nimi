@@ -1,4 +1,5 @@
 import { createAppsInstallIntentController } from '../src/shell/renderer/features/apps/apps-install-intent.js';
+import { createHomeNavigation } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -152,36 +153,32 @@ describe('Desktop Apps controller action boundary', () => {
 
   it('replaces a stale external detail request when the user selects another App', () => {
     const events: string[] = [];
+    const navigation = createHomeNavigation();
     dispatchAppsPanelCardAction({
       entryKey: 'local_development:nimi.parentos:dev-parentos',
       appId: 'nimi.parentos',
       action: 'details',
-      setAppsDetailAppId: (appId, _section, entryKey) => events.push(`request:${String(appId)}:${String(entryKey)}`),
+      navigation,
       runCardAction: (entryKey, action) => events.push(`controller:${entryKey}:${action}`),
     });
 
-    assert.deepEqual(events, [
-      'request:nimi.parentos:local_development:nimi.parentos:dev-parentos',
-      'controller:local_development:nimi.parentos:dev-parentos:details',
-    ]);
+    assert.deepEqual(events, []);
+    assert.deepEqual(navigation.getSnapshot().current.destination, { id: 'apps', appId: 'nimi.parentos', appEntryKey: 'local_development:nimi.parentos:dev-parentos' });
   });
 
   it('requests the ai-models section when the AI config pill opens the detail', () => {
     const events: string[] = [];
+    const navigation = createHomeNavigation();
     dispatchAppsPanelCardAction({
       entryKey: 'local_development:nimi.parentos:dev-parentos',
       appId: 'nimi.parentos',
       action: 'open-ai-config',
-      setAppsDetailAppId: (appId, section) => {
-        events.push(`request:${String(appId)}:${String(section ?? null)}`);
-      },
+      navigation,
       runCardAction: (entryKey, action) => events.push(`controller:${entryKey}:${action}`),
     });
 
-    assert.deepEqual(events, [
-      'request:nimi.parentos:ai-models',
-      'controller:local_development:nimi.parentos:dev-parentos:open-ai-config',
-    ]);
+    assert.deepEqual(events, []);
+    assert.equal(navigation.getSnapshot().current.destination.appSection, 'ai-models');
   });
 
   it('acknowledges AIConfig only on the exact source entry', () => {

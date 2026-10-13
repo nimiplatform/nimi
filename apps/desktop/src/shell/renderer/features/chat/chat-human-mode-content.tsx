@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useRef } from 'react';
-import {
-  type ConversationSetupAction,
-  type ConversationTargetSummary,
-} from '@nimiplatform/kit/features/chat/headless';
+import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
+import { useMemo } from 'react';
+import { type ConversationSetupAction, type ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useHumanConversationModeHost } from './chat-human-adapter';
 import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
+import { chatSidebarQueryAuthStatus } from './chat-sidebar-targets.js';
 
 export type ChatHumanModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -23,53 +22,28 @@ export function ChatHumanModeContent({
   onSetupAction,
   onSelectTarget,
 }: ChatHumanModeContentProps) {
+  const homeChat = useHomeChatPosition();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
-  const selectedChatId = useAppStore((state) => state.selectedChatId);
-  const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const ownerUserId = useAppStore(state => String(state.auth.user?.id ?? ''));
+  const selectedChatId = homeChat.humanThreadId;
   const setChatProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const lastSelectedHumanThread = useAppStore((state) => state.lastSelectedThreadByMode.human ?? null);
-  const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.human ?? null);
+  const storeSelectedTargetId = homeChat.targetId;
 
   const host = useHumanConversationModeHost({
-    authStatus,
+    authStatus: chatSidebarQueryAuthStatus(authStatus, ownerUserId),
     selectedChatId,
-    setSelectedChatId,
+    setSelectedChatId: homeChat.resolveHumanThread,
+    onOpenThread: threadId => homeChat.open({ mode: 'human', threadId }),
     setChatProfilePanelTarget,
   });
-
-  // Bridge sidebar target selection to host
-  const prevTargetIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (storeSelectedTargetId && storeSelectedTargetId !== prevTargetIdRef.current) {
-      host.onSelectTarget?.(storeSelectedTargetId);
-    }
-    prevTargetIdRef.current = storeSelectedTargetId;
-  }, [host, storeSelectedTargetId]);
-
-  // Restore lastSelectedHumanThread on mount
-  useEffect(() => {
-    if (selectedChatId || !lastSelectedHumanThread) {
-      return;
-    }
-    setSelectedChatId(lastSelectedHumanThread);
-  }, [lastSelectedHumanThread, selectedChatId, setSelectedChatId]);
-
-  // Sync host selectedTargetId to store
-  useEffect(() => {
-    if (!host.selectedTargetId || storeSelectedTargetId) {
-      return;
-    }
-    setSelectedTargetForSource('human', host.selectedTargetId);
-  }, [host.selectedTargetId, setSelectedTargetForSource, storeSelectedTargetId]);
 
   const selectedTargetId = storeSelectedTargetId || host.selectedTargetId || null;
   const selectedTarget = useMemo(
     () => selectedTargetId
-      ? allTargets.find((target) => target.id === selectedTargetId) || null
+      ? allTargets.find((target) => target.id === selectedTargetId) || host.targets?.find(target => target.id === selectedTargetId) || null
       : null,
-    [allTargets, selectedTargetId],
+    [allTargets, selectedTargetId, host.targets],
   );
 
   return (

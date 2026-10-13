@@ -1,6 +1,8 @@
+import { useHomeNavigation, useHomeDestination } from '../providers/app-store.js';
+import { homeNavigationColumn } from '../providers/home-navigation.js';
 // @nimi-authority: rule.nimi.desktop.shell-ui.r023
 import { ExecutionNotificationPreferenceSync } from '../../features/home/execution-notices.js';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Plug } from 'lucide-react';
 import logoImage from '../../assets/logo.png';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +19,6 @@ import {
 import { DEFAULT_HOME_FEED_SCOPE } from '../../features/home/home-feed-controls';
 import { MainLayoutPanelStack } from './main-layout-panel-stack';
 import { shouldHideMainLayoutPrimaryRail } from './main-layout-primary-rail';
-import { MainLayoutTopBar } from './main-layout-topbar';
 import {
   MainLayoutSettingsMenu,
   type SettingsMenuAnchorPosition,
@@ -40,7 +41,6 @@ import {
 } from './navigation-config';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
-import { resolveMainLayoutTitlebarFrame } from './main-layout-titlebar-frame';
 import { GlobalDownloadsNavigation } from '../../features/runtime-config/global-downloads-view.js';
 import { ProductUpdateNotice } from '../../features/home/product-update-notice.js';
 
@@ -64,31 +64,23 @@ type MainLayoutViewProps = {
   onSwitchAccount: () => void;
   onLogout: () => void;
   onLogin: () => void;
-  onTitlebarMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
 };
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r001
 export function MainLayoutView(props: MainLayoutViewProps) {
+  const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
-  const titlebarDragEnabled = bindings.app.projection.titlebarDragEnabled();
-  const titlebarFrame = resolveMainLayoutTitlebarFrame(titlebarDragEnabled);
-  const titlebarTopInsetClass = titlebarFrame.topInsetClass;
-  const shellContentTopPaddingClass = titlebarFrame.contentTopPaddingClass;
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const authUser = useAppStore((state) => state.auth.user);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const homeEntryDestination = useAppStore((state) => state.homeEntryDestination);
-  const exploreActiveSection = useAppStore((state) => state.exploreActiveSection);
-  const setExploreActiveSection = useAppStore((state) => state.setExploreActiveSection);
-  const exploreSearchText = useAppStore((state) => state.exploreSearchText);
-  const setExploreSearchText = useAppStore((state) => state.setExploreSearchText);
+
+  const homeEntryDestination = useHomeDestination().homeSection ?? 'overview';
+  const exploreActiveSection = useHomeDestination().exploreSection ?? 'worlds';
+  const exploreSearchText = useHomeDestination().search ?? '';
+  const railVisible = useAppStore(state => state.primaryRailVisible);
+  const destination = useHomeDestination();
+  const navigationColumn = homeNavigationColumn(destination);
   const isAnonymousShell = props.authStatus !== 'authenticated';
-  // Authenticated shells render all surface controls in-page (chat is bare,
-  // home/explore own their headers), so the floating glass topbar only serves
-  // the anonymous shell's nav/login actions. Frameless builds keep a slim
-  // invisible drag strip.
-  const collapseTopbar = !isAnonymousShell;
   const notificationIdentityRef = useMemo(
     () => resolveNotificationIdentityRef(props.authStatus, authUser),
     [props.authStatus, authUser],
@@ -106,7 +98,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const sidebarWidthClass = 'w-[60px]';
-  const titlebarLeftInsetClass = titlebarFrame.leftInsetClass;
   const [homeFeedScope, setHomeFeedScope] = useState(DEFAULT_HOME_FEED_SCOPE);
   const reducedMotion = useDesktopReducedMotion();
   const interactiveMotion = useDesktopInteractiveMotion();
@@ -232,7 +223,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       return;
     }
     if (itemId === 'settings') {
-      bindings.app.commands.settings.persistSelected('profile');
       props.onNav('settings');
       setSettingsMenuOpen(false);
       return;
@@ -269,31 +259,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       className="flex h-full w-full min-h-0 min-w-0 flex-col overflow-clip bg-[var(--nimi-surface-canvas)]"
     >
       <ExecutionNotificationPreferenceSync />
-      {collapseTopbar ? (
-        titlebarDragEnabled ? (
-          <div
-            className={`absolute inset-x-0 ${titlebarTopInsetClass} z-[11000] h-7 ${titlebarLeftInsetClass}`}
-            data-shell-titlebar="true"
-            onMouseDown={props.onTitlebarMouseDown}
-          />
-        ) : null
-      ) : (
-        <MainLayoutTopBar
-          authStatus={props.authStatus}
-          titlebarTopInsetClass={titlebarTopInsetClass}
-          titlebarLeftInsetClass={titlebarLeftInsetClass}
-          activeTab={props.activeTab}
-          onLogin={props.onLogin}
-          onOpenChat={() => props.onNav('chat')}
-          onOpenRuntimeConfig={() => props.onNav('diagnostics')}
-          onMouseDown={props.onTitlebarMouseDown}
-        />
-      )}
-
       <div
-        className={`relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 ${collapseTopbar ? (titlebarDragEnabled ? 'pt-14' : 'pt-3') : shellContentTopPaddingClass}`}
+        className="relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 pt-3"
       >
-        {hidePrimaryRail || isAnonymousShell ? null : (
+        {hidePrimaryRail || isAnonymousShell || !railVisible ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
             className={`flex h-full shrink-0 flex-col ${sidebarWidthClass}`}
@@ -329,7 +298,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     <NavLink
                       key={item.id}
                       item={item}
-                      active={props.activeTab === item.id || (props.activeTab === 'diagnostics' && item.id === 'runtime')}
+                      active={navigationColumn === item.id}
                       collapsed
                       onClick={() => props.onNav(item.id)}
                     />
@@ -340,13 +309,13 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     active={integrationsRailActive}
                     collapsed
                     testId="integrations-rail-entry"
-                    onClick={() => setActiveTab('home', 'integrations')}
+                    onClick={() => navigation.push({ id: 'home', homeSection: 'integrations' })}
                   />
                   {quickNavItems.map((item) => (
                     <NavLink
                       key={item.id}
                       item={item}
-                      active={props.activeTab === item.id}
+                      active={navigationColumn === item.id}
                       collapsed
                       onClick={() => props.onNav(item.id)}
                     />
@@ -436,8 +405,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             runtimeActive={runtimeActive}
             runtimeEverMounted={runtimeEverMounted}
             onHomeFeedScopeChange={setHomeFeedScope}
-            onExploreSectionChange={setExploreActiveSection}
-            onExploreSearchTextChange={setExploreSearchText}
+            onExploreSectionChange={section => void navigation.push({ id: 'explore', exploreSection: section, search: destination.search ?? '' })}
+            onExploreSearchTextChange={search => void navigation.replace({ id: 'explore', exploreSection: destination.exploreSection ?? 'worlds', search, exploreWorldId: destination.exploreWorldId })}
           />
         </div>
       </div>
@@ -465,7 +434,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               isItemActive={isSettingsMenuItemActive}
               onOpenItem={openSettingsSubmenuItem}
               onEditProfile={() => {
-              bindings.app.commands.settings.persistSelected('profile');
               props.onNav('settings');
               setSettingsMenuOpen(false);
               }}

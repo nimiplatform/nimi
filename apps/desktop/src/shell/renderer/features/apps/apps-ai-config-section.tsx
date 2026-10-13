@@ -1,35 +1,16 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@nimiplatform/kit/ui';
-import {
-  CANONICAL_CAPABILITY_IDS,
-} from '@nimiplatform/kit/core/runtime-capabilities';
-import {
-  type NimiAIConfigOverwriteResult,
-} from '@nimiplatform/kit/core/sdk-contract';
-import {
-  ModelConfigAIConfigSurface,
-  type ModelConfigCapabilitySection,
-  type ModelConfigCopy,
-} from '@nimiplatform/kit/features/model-config';
-import { useAppStore } from '../../app-shell/providers/app-store';
-import {
-  useDesktopRendererCommands,
-  useDesktopRendererSdk,
-} from '../../renderer/binding-context.js';
-import {
-  useDesktopNimiAppAIConfig,
-  useOverwriteDesktopNimiAppAIConfig,
-} from '../chat/chat-nimi-app-ai-config.js';
-import {
-  getRuntimeSetupTaskStore,
-} from '../runtime-config/runtime-setup-task-store.js';
-import {
-  openOrCreateRuntimeSetupTask,
-} from '../runtime-config/runtime-setup-task-open.js';
-import {
-  currentDesktopAccountIdForSetup,
-} from '../runtime-config/runtime-setup-task-ports.js';
+import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
+import { type NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
+import { ModelConfigAIConfigSurface, type ModelConfigCapabilitySection, type ModelConfigCopy } from '@nimiplatform/kit/features/model-config';
+
+import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { useDesktopNimiAppAIConfig, useOverwriteDesktopNimiAppAIConfig } from '../chat/chat-nimi-app-ai-config.js';
+import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
+import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-task-open.js';
+import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup-task-ports.js';
 
 export const APPS_AI_CONFIG_APP_ACCESS_DOMAIN = 'runtime.consume';
 
@@ -331,9 +312,10 @@ export function AppsAIConfigSection({
   declaredCapabilityRefs = [],
   onAIConfigChanged,
 }: AppsAIConfigSectionProps) {
+  const navigation = useHomeNavigation();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   const appAIConfig = useDesktopNimiAppAIConfig(appId);
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
   const { t, i18n } = useTranslation();
@@ -402,23 +384,23 @@ export function AppsAIConfigSection({
           returnFocus: `apps:${appId}`,
         },
         openTask: (taskId) => {
-          setActiveTab('runtime');
+
           runtimeConfigNavigation.openSetupTask(taskId);
         },
       });
     });
-  }, [appId, runtimeConfigNavigation, setActiveTab]);
+  }, [appId, runtimeConfigNavigation, navigation]);
 
   const openProfileUse = useCallback(() => {
     // The profile library opens in this app's owner context: the selected
     // capabilities prepare on this machine and the app routes save once.
-    setActiveTab('runtime');
+
     runtimeConfigNavigation.openProfileUse({
       kind: 'app',
       ownerAppId: appId,
       returnFocus: `apps:${appId}`,
     });
-  }, [appId, runtimeConfigNavigation, setActiveTab]);
+  }, [appId, runtimeConfigNavigation, navigation]);
 
   return (
     <section data-testid={`apps-ai-config-${appId}`}>

@@ -1,6 +1,8 @@
+import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../app-shell/providers/app-store.js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import type { RuntimeAdvancedDiagnosticsPane, RuntimePageIdV11 } from './runtime-config-state-types';
+import type { RuntimeConfigActionFocus, RuntimePageIdV11 } from './runtime-config-state-types';
+import { homeRuntimeDestination, type HomeRuntimePosition } from '../../app-shell/providers/home-navigation.js';
 import { persistRuntimeConfigStateV11 } from './runtime-config-storage-persist';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
@@ -23,19 +25,35 @@ export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 const RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS = 30_000;
 
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
-  const [loadoutNavigationContext, setLoadoutNavigationContext] = useState<RuntimeConfigLoadoutNavigationContext | null>(null);
-  const [modelMarketContext, setModelMarketContext] = useState<RuntimeConfigModelMarketContext | null>(null);
-  const [setupTaskFocus, setSetupTaskFocus] = useState<{ readonly taskId: string } | null>(null);
-  const [profileUseOwner, setProfileUseOwner] = useState<RuntimeConfigProfileUseOwner | null>(null);
-  const [advancedDiagnosticsPaneRequest, setAdvancedDiagnosticsPaneRequest] = useState<{ readonly pane: RuntimeAdvancedDiagnosticsPane; readonly revision: number } | null>(null);
+  const homeNavigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
   const runtimeConnectorSdk = useRuntimeConfigConnectorSdk();
   const runtimeConfigNavigation = bindings.app.commands.runtimeConfigNavigation;
-  const activeTab = useAppStore((state) => state.activeTab);
+  const destination = useHomeDestination();
+  const entryKey = useHomeEntryKey();
+  const position = destination.runtime;
+  const activeTab = destination.id;
+  const activePage: RuntimePageIdV11 = activeTab === 'cloud' ? 'cloudServices' : activeTab === 'diagnostics' ? 'advancedDiagnostics' : position?.page ?? 'aiSettings';
+  const draftKey = (value: HomeRuntimePosition) => JSON.stringify([value.capabilityContract, value.recipeId, value.recipeRevision, value.slotId]);
+  const drafts = useRef(new Map<string, RuntimeConfigLoadoutNavigationContext['draft']>());
+  const marketData = useRef(new Map<string, Extract<RuntimeConfigModelMarketContext, { kind: 'slot' }>>());
+  const [offeredSelection, setOfferedSelection] = useState<{ entryKey: string; offerRef: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ entryKey: string; action: RuntimeConfigActionFocus } | null>(null);
+  const actionFocus = pendingAction?.entryKey === entryKey ? pendingAction.action : null;
+  const loadoutNavigationContext = useMemo<RuntimeConfigLoadoutNavigationContext | null>(() => activePage === 'aiSettings' && position?.section === 'saved' && position.capabilityContract ? {
+    capabilityContract: position.capabilityContract, recipeId: position.recipeId, recipeRevision: position.recipeRevision, slotId: position.slotId,
+    draft: drafts.current.get(draftKey(position)), autoSelectOfferRef: offeredSelection?.entryKey === entryKey ? offeredSelection.offerRef : undefined,
+  } : null, [activePage, position, offeredSelection, entryKey]);
+  const modelMarketContext: RuntimeConfigModelMarketContext | null = activePage === 'modelLibrary' && position?.market && position.capabilityContract
+    ? position.market === 'browse' ? { kind: 'browse', capabilityContract: position.capabilityContract } : marketData.current.get(position.offerRef ?? '') ?? null : null;
+  const setupTaskFocus = activePage === 'aiSettings' && position?.setupTaskId ? { taskId: position.setupTaskId } : null;
+  const profileUseOwner = activePage === 'aiSettings' ? position?.profileOwner ?? null : null;
+  useEffect(() => {
+    setOfferedSelection(previous => previous?.entryKey === entryKey ? previous : null);
+    setPendingAction(previous => previous?.entryKey === entryKey ? previous : null);
+  }, [entryKey]);
   const runtimeTabActive = ['runtime', 'cloud', 'diagnostics'].includes(activeTab);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const [navigationRevision, setNavigationRevision] = useState(0);
-  const navigationSeen = useRef(0);
+
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const offlineTier = useAppStore((state) => state.offlineTier);
   const setPageFeedback = emitFeedbackToast;
@@ -45,6 +63,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const derived = useRuntimeConfigPanelDerived({
     state: panelState.state,
     connectorModelQuery: panelState.connectorModelQuery,
+    selectedConnectorId: activeTab === 'cloud' ? position?.connectorId : undefined,
   });
 
   // Live refs so the command context reads the latest state/guard values at
@@ -110,119 +129,35 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     panelState.setVaultVersion((v) => v + 1);
   }, [panelState.setVaultVersion]);
 
-  const onChangePage = useCallback((pageId: RuntimePageIdV11) => {
-      setActiveTab(
-        pageId === 'cloudServices' ? 'cloud' : pageId === 'advancedDiagnostics' ? 'diagnostics' : 'runtime',
-      );
-      setLoadoutNavigationContext(null);
-      setModelMarketContext(null);
-      setSetupTaskFocus(null);
-      setProfileUseOwner(null);
-    panelState.updateState((prev) => ({
-      ...prev,
-      activePage: pageId,
-    }));
-  }, [panelState.updateState, setActiveTab],
-  );
-
-  const onOpenSetupTask = useCallback((taskId: string) => {
-    setLoadoutNavigationContext(null);
-    setModelMarketContext(null);
-    setSetupTaskFocus({ taskId });
-    panelState.updateState((previous) => ({ ...previous, activePage: 'aiSettings', actionFocus: null }));
-  }, [panelState.updateState]);
-
-  const onCloseSetupTask = useCallback(() => {
-    setSetupTaskFocus(null);
-  }, []);
-
-  // Saved configurations live inside AI Settings; the action focus carries
-  // deep links across page switches (the view consumes and clears it).
+  const onChangePage = useCallback((page: RuntimePageIdV11) => { void homeNavigation.push(homeRuntimeDestination(page)); }, [homeNavigation]);
+  const onOpenSetupTask = useCallback((taskId: string) => { void homeNavigation.push(homeRuntimeDestination('aiSettings', { setupTaskId: taskId })); }, [homeNavigation]);
+  const onCloseSetupTask = useCallback(() => { void homeNavigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: position?.capabilityContract })); }, [homeNavigation, position]);
   const onOpenSavedConfigs = useCallback((context?: RuntimeConfigLoadoutNavigationContext) => {
-    setLoadoutNavigationContext(context ?? null);
-    setModelMarketContext(null);
-    setSetupTaskFocus(null);
-    setProfileUseOwner(null);
-    panelState.updateState((previous) => ({
-      ...previous,
-      activePage: 'aiSettings',
-      actionFocus: {
-        page: 'aiSettings',
-        action: 'open-saved-configs',
-        focus: 'runtime-config-action-focus.saved-configs',
-      },
-    }));
-  }, [panelState.updateState]);
-
+    const refs: HomeRuntimePosition = { section: 'saved', capabilityContract: context?.capabilityContract, recipeId: context?.recipeId, recipeRevision: context?.recipeRevision, slotId: context?.slotId };
+    if (context?.draft) drafts.current.set(draftKey(refs), context.draft);
+    void homeNavigation.push(homeRuntimeDestination('aiSettings', refs));
+    if (context?.autoSelectOfferRef) setOfferedSelection({ entryKey: homeNavigation.getSnapshot().current.key, offerRef: context.autoSelectOfferRef });
+  }, [homeNavigation]);
   const onOpenModelMarket = useCallback((context: RuntimeConfigModelMarketContext) => {
-    setModelMarketContext(context);
-    panelState.updateState((previous) => ({ ...previous, activePage: 'modelLibrary', actionFocus: null }));
-  }, [panelState.updateState]);
-
-  // "Import model files" is a local-files intent, not discovery: the library
-  // lands on the downloaded files and opens the import menu (the view consumes
-  // and clears the focus).
-  const onOpenModelImport = useCallback(() => {
-    setModelMarketContext(null);
-    panelState.updateState((previous) => ({
-      ...previous,
-      activePage: 'modelLibrary',
-      actionFocus: {
-        page: 'modelLibrary',
-        action: 'import-model-files',
-        focus: 'runtime-config-action-focus.model-library-import',
-      },
-    }));
-  }, [panelState.updateState]);
-
-  // "Manage model files" is the same local-files intent without the import
-  // menu: the library lands on the downloaded files instead of discovery.
-  const onOpenModelFiles = useCallback(() => {
-    onChangePage('modelLibrary');
-    panelState.updateState((previous) => ({
-      ...previous,
-      actionFocus: {
-        page: 'modelLibrary',
-        action: 'manage-model-files',
-        focus: 'runtime-config-action-focus.model-library-files',
-      },
-    }));
-  }, [onChangePage, panelState.updateState]);
-
-  const onReturnToContextualLoadout = useCallback(() => {
-    const context = modelMarketContext;
-    setModelMarketContext(null);
-    if (context?.kind === 'browse') {
-      setLoadoutNavigationContext({ capabilityContract: context.capabilityContract });
-      setSetupTaskFocus(null);
-      panelState.updateState((previous) => ({ ...previous, activePage: 'aiSettings', actionFocus: null }));
-      return;
+    if (context.kind === 'slot') {
+      marketData.current.set(context.candidate.offerRef, context);
+      drafts.current.set(draftKey(context), context.draft);
     }
-    onOpenSavedConfigs(context ? {
-      capabilityContract: context.capabilityContract,
-      recipeId: context.recipeId,
-      recipeRevision: context.recipeRevision,
-      slotId: context.slotId,
-      draft: context.draft,
-      autoSelectOfferRef: context.candidate.offerRef,
-    } : undefined);
-  }, [modelMarketContext, onOpenSavedConfigs, panelState.updateState]);
-
-  const onOpenProfileUseForOwner = useCallback((owner: RuntimeConfigProfileUseOwner) => {
-    setLoadoutNavigationContext(null);
-    setModelMarketContext(null);
-    setSetupTaskFocus(null);
-    setProfileUseOwner(owner);
-    panelState.updateState((previous) => ({ ...previous, activePage: 'aiSettings', actionFocus: null }));
-  }, [panelState.updateState]);
-
-  const onCloseProfileUseOwner = useCallback(() => {
-    setProfileUseOwner(null);
-  }, []);
-
-  const onCloseSavedConfigs = useCallback(() => {
-    setLoadoutNavigationContext(null);
-  }, []);
+    void homeNavigation.push(homeRuntimeDestination('modelLibrary', context.kind === 'browse'
+      ? { market: 'browse', capabilityContract: context.capabilityContract }
+      : { market: 'slot', capabilityContract: context.capabilityContract, recipeId: context.recipeId, recipeRevision: context.recipeRevision, slotId: context.slotId, offerRef: context.candidate.offerRef }));
+  }, [homeNavigation]);
+  const onOpenModelImport = useCallback(() => runtimeConfigNavigation.focusAction({ page: 'modelLibrary', action: 'import-model-files', focus: 'runtime-config-action-focus.model-library-import' }), [runtimeConfigNavigation]);
+  const onOpenModelFiles = useCallback(() => { void homeNavigation.push(homeRuntimeDestination('modelLibrary', { section: 'downloaded' })); }, [homeNavigation]);
+  const onReturnToContextualLoadout = useCallback(() => {
+    if (modelMarketContext?.kind === 'browse') { void homeNavigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: modelMarketContext.capabilityContract })); return; }
+    onOpenSavedConfigs(modelMarketContext ? { capabilityContract: modelMarketContext.capabilityContract, recipeId: modelMarketContext.recipeId,
+      recipeRevision: modelMarketContext.recipeRevision, slotId: modelMarketContext.slotId, draft: modelMarketContext.draft, autoSelectOfferRef: modelMarketContext.candidate.offerRef } : undefined);
+  }, [homeNavigation, modelMarketContext, onOpenSavedConfigs]);
+  const onOpenProfileUseForOwner = useCallback((owner: RuntimeConfigProfileUseOwner) => runtimeConfigNavigation.openProfileUse(owner), [runtimeConfigNavigation]);
+  const onCloseProfileUseOwner = useCallback(() => onChangePage('aiSettings'), [onChangePage]);
+  const onCloseSavedConfigs = useCallback(() => { void homeNavigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: position?.capabilityContract })); }, [homeNavigation, position]);
+  const clearActionFocus = useCallback(() => setPendingAction(null), []);
 
   const installActions = useRuntimeConfigInstallActions({
     setStatusBanner: setPageFeedback,
@@ -272,106 +207,20 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   }, [panelState.hydrated, panelState.state]);
 
   useEffect(() => {
-    if (!panelState.hydrated) return;
-    const navigation = runtimeConfigNavigation.get();
-    if (!navigation.intent || navigation.revision === navigationSeen.current) {
-      panelState.updateState((prev) => {
-        const page =
-          activeTab === 'cloud'
-            ? 'cloudServices'
-            : activeTab === 'diagnostics'
-              ? 'advancedDiagnostics'
-              : activeTab === 'runtime'
-                ? prev.activePage === 'modelLibrary'
-                  ? 'modelLibrary'
-                  : 'aiSettings'
-                : null;
-        return !page || prev.activePage === page ? prev : { ...prev, activePage: page };
-      });
-      return;
-    }
-    navigationSeen.current = navigation.revision;
-    const applyNavigation = () => {
-      const navigation = runtimeConfigNavigation.get();
-      if (navigation.revision === 0 || !navigation.intent) return;
-      const intent = navigation.intent;
-      setLoadoutNavigationContext(null);
-      setModelMarketContext(null);
-      setProfileUseOwner(null);
-      const targetPage =
-        intent.kind === 'open-page'
-          ? intent.page
-          : intent.kind === 'focus-action'
-            ? intent.actionFocus.page
-            : 'aiSettings';
-      setActiveTab(
-        targetPage === 'cloudServices'
-          ? 'cloud'
-          : targetPage === 'advancedDiagnostics'
-            ? 'diagnostics'
-            : 'runtime',
-      );
-      if (intent.kind === 'open-page') {
-        setSetupTaskFocus(null);
-        if (intent.pane) setAdvancedDiagnosticsPaneRequest({ pane: intent.pane, revision: navigation.revision });
-        panelState.updateState((prev) => ({
-          ...prev,
-          activePage: intent.page,
-        }));
-        return;
-      }
-      if (intent.kind === 'open-setup-task') {
-        setSetupTaskFocus({ taskId: intent.taskId });
-        panelState.updateState((prev) => ({
-          ...prev,
-          activePage: 'aiSettings',
-          actionFocus: null,
-        }));
-        return;
-      }
-      if (intent.kind === 'open-profile-use') {
-        setSetupTaskFocus(null);
-        setProfileUseOwner(intent.owner);
-        panelState.updateState((prev) => ({
-          ...prev,
-          activePage: 'aiSettings',
-          actionFocus: null,
-        }));
-        return;
-      }
-      if (intent.kind === 'open-capability') {
-        setSetupTaskFocus(null);
-        setLoadoutNavigationContext({ capabilityContract: intent.capabilityContract });
-        panelState.updateState(prev => ({ ...prev, activePage: 'aiSettings', actionFocus: null }));
-        return;
-      }
-      setSetupTaskFocus(null);
-      panelState.updateState((prev) => ({
-        ...prev,
-        activePage: intent.actionFocus.page,
-        actionFocus: intent.actionFocus,
-      }));
+    const consume = () => {
+      const action = runtimeConfigNavigation.takeAction();
+      if (action) setPendingAction({ action, entryKey: homeNavigation.getSnapshot().current.key });
     };
-    applyNavigation();
-  }, [panelState.updateState,
-    panelState.hydrated,
-    activeTab,
-    runtimeConfigNavigation,
-    navigationRevision,
-    setActiveTab,
-  ]);
-
-  useEffect(
-    () =>
-      runtimeConfigNavigation.subscribe(() => setNavigationRevision(runtimeConfigNavigation.get().revision)),
-    [runtimeConfigNavigation],
-  );
+    consume(); return runtimeConfigNavigation.subscribe(consume);
+  }, [runtimeConfigNavigation, homeNavigation]);
 
   return {
     state: panelState.state,
     hydrated: panelState.hydrated,
     runtimeStatus: derived.runtimeStatus,
-    activePage: panelState.state?.activePage || 'aiSettings',
+    activePage,
+    actionFocus,
+    clearActionFocus,
     showCloudApiKey: panelState.showCloudApiKey,
     connectorModelQuery: panelState.connectorModelQuery,
     vaultEntryCount: panelState.vaultEntryCount,
@@ -390,7 +239,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     modelMarketContext,
     setupTaskFocus,
     profileUseOwner,
-    advancedDiagnosticsPaneRequest,
     setShowCloudApiKey: panelState.setShowCloudApiKey,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
     setPageFeedback,

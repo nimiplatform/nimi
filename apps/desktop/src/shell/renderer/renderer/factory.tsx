@@ -9,6 +9,7 @@ import { DesktopRendererContent } from './content.js';
 import { createDesktopRendererResources } from './resources.js';
 import { DesktopRendererBindingProvider } from './binding-context.js';
 import { DesktopMotionProvider } from '../ui/motion/desktop-motion.js';
+import { HomeChrome } from '../app-shell/providers/home-chrome.js';
 
 function DesktopMainSurface(props: {
   readonly bindings: DesktopCanonicalRendererBindings;
@@ -56,14 +57,13 @@ function DesktopMainSurface(props: {
                 streamController={props.resources.streamController}
                 worldFollowStore={props.resources.worldFollowStore}
               >
-                <AppErrorBoundary>
                   <div
                     data-nimi-semantic-id="desktop-main-content"
                     className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
                   >
-                    <DesktopRendererContent />
+                    <HomeChrome />
+                    <AppErrorBoundary><DesktopRendererContent /></AppErrorBoundary>
                   </div>
-                </AppErrorBoundary>
               </AppProviders>
             </DesktopRendererBindingProvider>
           ) : null}

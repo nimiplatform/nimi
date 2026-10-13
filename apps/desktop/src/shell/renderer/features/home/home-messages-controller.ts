@@ -1,23 +1,11 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useMemo } from 'react';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
+
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { mergeActivitySnapshots } from './home-app-activity-model.js';
 import { useHomeAppActivity, type HomeAppActivity } from './home-app-activity.js';
-import {
-  activityMessage,
-  isHideableMessage,
-  realmPostMessage,
-  type HomeMessage,
-  type HomeSystemItemMessage,
-} from './home-messages-model.js';
-import {
-  isHiddenFromHome,
-  isSourceOffHome,
-  useHomeMessagePreferences,
-  type HomeMessagePreferences,
-  type HomeMessagePreferencesController,
-  type HomeMessagePreferencesStorage,
-} from './home-messages-preferences.js';
+import { activityMessage, isHideableMessage, realmPostMessage, type HomeMessage, type HomeSystemItemMessage } from './home-messages-model.js';
+import { isHiddenFromHome, isSourceOffHome, useHomeMessagePreferences, type HomeMessagePreferences, type HomeMessagePreferencesController, type HomeMessagePreferencesStorage } from './home-messages-preferences.js';
 import { HOME_REALM_POST_PREVIEW, useHomeRealmPosts, type HomeRealmPosts } from './home-realm-posts.js';
 
 /** Where a message stands relative to the Home preview. */
@@ -56,8 +44,9 @@ function placementOf(message: HomeMessage, preferences: HomeMessagePreferences |
 export function useHomeMessages(input: Readonly<{
   systemMessages: readonly HomeSystemItemMessage[];
 }>): HomeMessages {
+  const navigation = useHomeNavigation();
   const sdk = useDesktopRendererSdk();
-  const openActivityPost = useAppStore((state) => state.openActivityPost);
+
   const app = useHomeAppActivity();
   const realm = useHomeRealmPosts(true);
   const storage = useMemo<HomeMessagePreferencesStorage>(() => ({
@@ -94,7 +83,7 @@ export function useHomeMessages(input: Readonly<{
     placement: (message) => placementOf(message, ready),
     open: (message) => {
       if (message.sourceKind === 'system') message.system.open();
-      else if (message.sourceKind === 'realm-post') openActivityPost(message.post.id);
+      else if (message.sourceKind === 'realm-post') navigation.push({ id: 'activity', postId: message.post.id });
       else app.open(message.record);
     },
     markRead: (message) => {

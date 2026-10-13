@@ -1,3 +1,4 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -55,12 +56,12 @@ type ProfileDetailModalProps = {
 const INTERNAL_OPEN_CHAT_ERROR_CODE = 'PROFILE_OPEN_CHAT_FAILED';
 
 export function ProfileDetailModal(props: ProfileDetailModalProps) {
+  const navigation = useHomeNavigation();
   const realmHumanChatData = useRealmHumanChatData();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+
   const setProfileDetailOverlayOpen = useAppStore((state) => state.setProfileDetailOverlayOpen);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setFeedback = emitFeedbackToast;
@@ -160,8 +161,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         worldId: '',
       });
       await queryClient.invalidateQueries({ queryKey: ['chats'] });
-      setSelectedChatId(String(result.chatId));
-      setActiveTab('chat');
+      await navigation.push({ id: 'chat', chat: { mode: 'human', targetId: profile.id, threadId: String(result.chatId) } });
       props.onClose();
     } catch (error) {
       setFeedback({
@@ -174,9 +174,8 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     profile,
     props,
     queryClient,
-    setActiveTab,
+    navigation,
     setRuntimeFields,
-    setSelectedChatId,
     toChatErrorMessage,
   ]);
 

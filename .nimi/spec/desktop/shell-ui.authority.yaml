@@ -72,7 +72,7 @@ units:
     kind: rule
     title: Window controls are host-bounded
     modality: must
-    statement: Desktop enables title-bar drag only in the Desktop host through the standard start_window_drag shell capability, disables window management in Web, and enables the menu-bar shell only on macOS through enableMenuBarShell.
+    statement: Desktop enables title-bar drag only in its native Host through the standard start_window_drag shell capability or the shared Kit Electron chrome drag region with interactive exclusions and Host geometry; Web uses non-draggable content presentation and no native window command. Shared chrome remains visible outside authentication and business gates. The separate macOS status-item menu-bar shell remains gated by enableMenuBarShell and retains Desktop-owned hide, restore and quit semantics.
     condition: Whenever shell window controls are exposed.
     failure: Reject host-incompatible window actions and return an explicit unsupported or unavailable result.
     relations:
@@ -1107,5 +1107,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.home-shell
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.standard-navigation
+    kind: rule
+    title: Home single navigation ownership
+    modality: must
+    statement: Home adopts the single Kit navigation controller for all ordinary primary and secondary pages, profile/source/world details, conversation references, Home section, Apps entry/section, Settings section and Activity focus. UI links, notifications, Desktop Open, capability links and macOS status-item navigation all commit through it. Column highlight derives from current destination; writable global activeTab, navigationBackStack and duplicate detail-position fields are removed. Authentication access state is separate; account replacement clears old position history and pending work without restoring or replaying business actions.
+    condition: Whenever an App consumes standard Kit navigation or chrome.
+    failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
+    relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane

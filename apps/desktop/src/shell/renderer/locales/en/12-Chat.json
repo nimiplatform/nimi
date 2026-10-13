@@ -1,4 +1,5 @@
 {
+  "positionUnavailable": "This conversation is unavailable. You can retry or choose another conversation; its reference is kept here.",
   "appReferences": {
     "title": "App messages for this partner",
     "loading": "Loading App messages…",

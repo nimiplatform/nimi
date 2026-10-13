@@ -1,3 +1,4 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { WorldMaterializationContext, type WorldMaterializationState } from './world-materialization-context.js';
@@ -7,35 +8,17 @@ import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
-import {
-  characterSourceMaterializationFailureMessage,
-  characterSourceRefKey,
-  discoverCharacterSourceLocalAgents,
-  resolveCharacterSourceState,
-} from '../explore/character-source-materialization';
+import { characterSourceMaterializationFailureMessage, characterSourceRefKey, discoverCharacterSourceLocalAgents, resolveCharacterSourceState } from '../explore/character-source-materialization';
 import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import { localAgentListQueryKey } from '../agents/local-agent-list-model';
 import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
-import { EMPTY_AGENT_CONVERSATION_SELECTION } from '../chat/chat-shell-types.js';
-import {
-  NarrativeWorldDetailPage,
-  OasisWorldDetailPage,
-} from './world-detail-template';
+
+import { NarrativeWorldDetailPage, OasisWorldDetailPage } from './world-detail-template';
 import type { WorldCharacter } from './world-detail-types';
 import { useWorldPeopleCatalog } from './world-detail-people-catalog.js';
 import type { WorldListItem } from './world-list-model';
-import {
-  fetchWorldPrimaryDisplayDetail,
-  fetchWorldSupplementalDisplayDetail,
-  toWorldPrimaryDisplayDetail,
-  toWorldSupplementalDisplayDetail,
-  type WorldDisplayDetail,
-  toWorldDisplayFallback,
-  worldDisplayDetailQueryKey,
-  worldPrimaryDisplayDetailQueryKey,
-  worldSupplementalDisplayDetailQueryKey,
-} from './world-detail-queries';
+import { fetchWorldPrimaryDisplayDetail, fetchWorldSupplementalDisplayDetail, toWorldPrimaryDisplayDetail, toWorldSupplementalDisplayDetail, type WorldDisplayDetail, toWorldDisplayFallback, worldDisplayDetailQueryKey, worldPrimaryDisplayDetailQueryKey, worldSupplementalDisplayDetailQueryKey } from './world-detail-queries';
 import { useFollowedWorlds } from './world-follow-store-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { createRealmWorldData } from './data/realm-world-data.js';
@@ -49,6 +32,8 @@ type WorldDetailProps = {
 };
 
 export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps) {
+
+  const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
   const appStore = useAppStoreApi();
   const mounted = useRef(true);
@@ -59,11 +44,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
-  const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const detailViewportRef = useRef<HTMLDivElement | null>(null);
@@ -290,7 +271,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   // World characters are not chat-reachable until Runtime creates a localAgent
   // from a fresh Realm materialization packet on this device.
   const handleViewCharacter = (character: WorldCharacter) => {
-    navigateToSourceDetail(character.sourceRef);
+    navigation.push({ id: 'source-detail', sourceRef: character.sourceRef });
   };
 
   const followed = useFollowedWorlds();
@@ -372,19 +353,14 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
     if (conversationTarget) {
       await launchAgentConversationFromDisplay({
         target: conversationTarget,
-        setActiveTab,
-        setChatMode,
-        setSelectedTargetForSource,
-        setAgentConversationSelection,
+        navigation,
+
         setAgentConversationTargetSnapshot,
         setPendingAgentComposerPrefill,
       });
       return;
     }
-    setAgentConversationSelection(EMPTY_AGENT_CONVERSATION_SELECTION);
-    setSelectedTargetForSource('agent', null);
-    setChatMode('agent');
-    setActiveTab('chat');
+    void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
   };
 
   return (

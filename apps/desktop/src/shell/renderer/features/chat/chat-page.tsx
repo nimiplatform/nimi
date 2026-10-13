@@ -1,3 +1,5 @@
+import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import type { ConversationSetupAction } from '@nimiplatform/kit/features/chat/headless';
 import { useNavigate } from 'react-router-dom';
@@ -7,20 +9,10 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
 import { DESKTOP_NIMI_APP_ID } from './chat-nimi-app-ai-config';
-import {
-  getRuntimeSetupTaskStore,
-} from '../runtime-config/runtime-setup-task-store.js';
-import {
-  openOrCreateRuntimeSetupTask,
-} from '../runtime-config/runtime-setup-task-open.js';
-import {
-  currentDesktopAccountIdForSetup,
-} from '../runtime-config/runtime-setup-task-ports.js';
-import {
-  chatSidebarQueryAuthStatus,
-  openAgentTargetSnapshotFromSummary,
-  useChatTargetsForSidebar,
-} from './chat-sidebar-targets';
+import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
+import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-task-open.js';
+import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup-task-ports.js';
+import { openAgentTargetSnapshotFromSummary, useChatTargetsForSidebar } from './chat-sidebar-targets';
 
 function createLazyImportError(label: string, error: unknown): Error {
   const reason = error instanceof Error ? error.message : String(error || 'unknown import error');
@@ -123,19 +115,20 @@ function ChatModeUnavailable({ mode }: { mode: string }) {
 }
 
 export function ChatPage() {
+  const homeChat = useHomeChatPosition();
+  const navigation = useHomeNavigation();
   const sdk = useDesktopRendererSdk();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const navigate = useNavigate();
   const authStatus = useAppStore((state) => state.auth.status);
-  const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
-  const chatMode = useAppStore((state) => state.chatMode);
-  const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource[state.chatMode] ?? null);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const chatMode = homeChat.mode;
+  const storeSelectedTargetId = homeChat.targetId;
+  const openChatMode = homeChat.openMode;
+
+  const selectAgentConversation = homeChat.selectAgentConversation;
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const agentConversationTargetByHandle = useAppStore((state) => state.agentConversationTargetByHandle);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
   const [nimiThreadListOpen, setNimiThreadListOpen] = useState(false);
 
@@ -152,7 +145,7 @@ export function ChatPage() {
       ? agentConversationTargetByHandle[String(selected.metadata?.agentHandle || '').trim()]
       : null;
     if (existing?.agentHandle && existing.conversationAnchorId) {
-      setAgentConversationSelection({
+      selectAgentConversation({
         agentHandle: existing.agentHandle,
         conversationAnchorId: existing.conversationAnchorId,
         targetId: existing.agentHandle,
@@ -163,7 +156,7 @@ export function ChatPage() {
     void openAgentTargetSnapshotFromSummary(selected, sdk.conversation()).then((snapshot) => {
       if (!cancelled && snapshot) {
         setAgentConversationTargetSnapshot(snapshot);
-        setAgentConversationSelection({
+        selectAgentConversation({
           agentHandle: snapshot.agentHandle || null,
           conversationAnchorId: snapshot.conversationAnchorId || null,
           targetId: snapshot.agentHandle || null,
@@ -181,7 +174,7 @@ export function ChatPage() {
     allTargets,
     agentConversationTargetByHandle,
     chatMode,
-    setAgentConversationSelection,
+
     setAgentConversationTargetSnapshot,
     sdk,
     storeSelectedTargetId,
@@ -212,33 +205,6 @@ export function ChatPage() {
     });
   }, []);
 
-  useEffect(() => {
-    if (!storeSelectedTargetId) {
-      return;
-    }
-    const targetExists = allTargets.some((target) => target.id === storeSelectedTargetId);
-    if (targetExists) {
-      return;
-    }
-    // Pending account refresh is not a change of recipient. The sidebar may
-    // still be loading its retained projection, so keep the current selection.
-    if (authStatus === 'refresh-pending' && chatSidebarQueryAuthStatus(authStatus, ownerUserId) === 'authenticated') {
-      return;
-    }
-    if (authStatus !== 'authenticated') {
-      setChatMode('ai');
-      setSelectedTargetForSource('ai', 'ai:assistant');
-      return;
-    }
-    // Agent mode owns its selection via `agentConversationSelection` and synthesizes
-    // a target when the agent isn't in the friends sidebar (e.g. world-launched agents).
-    // Clearing here would fight the agent shell's restore effect and loop.
-    if (chatMode === 'agent') {
-      return;
-    }
-    setSelectedTargetForSource(chatMode, null);
-  }, [allTargets, authStatus, chatMode, ownerUserId, setChatMode, setSelectedTargetForSource, storeSelectedTargetId]);
-
   useLayoutEffect(() => {
     setChatSettingsOpen(false);
   }, [chatMode, storeSelectedTargetId]);
@@ -252,20 +218,19 @@ export function ChatPage() {
 
   const handleSetupAction = useCallback((action: ConversationSetupAction) => {
     if (action.kind === 'sign-in') {
-      setChatMode(action.returnToMode || chatMode);
-      setActiveTab('chat');
+      openChatMode(action.returnToMode || chatMode);
       void navigate('/login', {
         state: { returnToChat: true },
       });
       return;
     }
     if (chatMode === 'ai' || chatMode === 'agent' || action.returnToMode === 'ai' || action.returnToMode === 'agent') {
-      setChatMode(action.returnToMode || chatMode);
+      openChatMode(action.returnToMode || chatMode);
       setChatSettingsOpen(true);
       setNimiThreadListOpen(false);
       return;
     }
-    setChatMode(action.returnToMode || chatMode);
+    openChatMode(action.returnToMode || chatMode);
     // The conversation setup action opens the shared setup task for the exact
     // Nimi app owner instead of the legacy overview page; the original input
     // is never re-sent.
@@ -279,12 +244,12 @@ export function ChatPage() {
           returnFocus: 'chat',
         },
         openTask: (taskId) => {
-          setActiveTab('runtime');
+
           runtimeConfigNavigation.openSetupTask(taskId);
         },
       });
     });
-  }, [chatMode, navigate, runtimeConfigNavigation, setActiveTab, setChatMode]);
+  }, [chatMode, navigate, runtimeConfigNavigation, navigation, openChatMode]);
 
   const handleSelectTarget = useCallback((targetId: string) => {
     const target = allTargets.find((t) => t.id === targetId);
@@ -293,16 +258,15 @@ export function ChatPage() {
     }
     const targetMode = target.source;
     if (targetMode === 'agent') {
+      const entry = navigation.getSnapshot().current.key;
       void openAgentTargetSnapshotFromSummary(target, sdk.conversation()).then((agentSnapshot) => {
-        if (!agentSnapshot?.agentHandle || !agentSnapshot.conversationAnchorId) return;
+        if (!agentSnapshot?.agentHandle || !agentSnapshot.conversationAnchorId || navigation.getSnapshot().current.key !== entry) return;
         setAgentConversationTargetSnapshot(agentSnapshot);
-        setAgentConversationSelection({
+        homeChat.open({ mode: 'agent',
           agentHandle: agentSnapshot.agentHandle,
           conversationAnchorId: agentSnapshot.conversationAnchorId,
           targetId: agentSnapshot.agentHandle,
         });
-        if (chatMode !== 'agent') setChatMode('agent');
-        setSelectedTargetForSource('agent', agentSnapshot.agentHandle);
       }).catch((error: unknown) => {
         logRendererEvent({
           level: 'warn', area: 'chat', message: 'action:canonical-agent-open:failed',
@@ -311,17 +275,14 @@ export function ChatPage() {
       });
       return;
     }
-    if (chatMode !== targetMode) {
-      setChatMode(targetMode);
-    }
-    setSelectedTargetForSource(targetMode, targetId);
+    homeChat.open({ mode: targetMode, targetId, ...(targetMode === 'human' && target.canonicalSessionId ? { threadId: target.canonicalSessionId } : {}) });
   }, [
     allTargets,
-    chatMode,
-    setAgentConversationSelection,
+    homeChat.open,
+    navigation,
+
     setAgentConversationTargetSnapshot,
-    setChatMode,
-    setSelectedTargetForSource,
+
     sdk,
   ]);
 

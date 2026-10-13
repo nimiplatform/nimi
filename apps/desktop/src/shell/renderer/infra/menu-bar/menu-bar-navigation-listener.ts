@@ -9,14 +9,10 @@ import {
   MENU_BAR_OPEN_TAB_EVENT,
   parseMenuBarOpenTabPayload,
 } from '../../../shared/menu-bar-types.js';
-import {
-  loadRuntimeConfigStateV11,
-  persistRuntimeConfigStateV11,
-} from '../../features/runtime-config/runtime-config-storage-persist';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port';
 import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
 
-type MenuBarNavigationPort = Pick<DesktopRendererLifecyclePort, 'setActiveTab'>;
+type MenuBarNavigationPort = Pick<DesktopRendererLifecyclePort, 'navigation'>;
 
 export function connectMenuBarNavigation(
   port: MenuBarNavigationPort,
@@ -33,19 +29,11 @@ export function connectMenuBarNavigation(
     try {
       const payload = parseMenuBarOpenTabPayload(event.payload);
       if (payload.tab !== 'runtime') {
-        port.setActiveTab(payload.tab);
+        void port.navigation.push({ id: payload.tab });
         return;
       }
-      const state = loadRuntimeConfigStateV11();
       const page = payload.page;
-      persistRuntimeConfigStateV11({
-        ...state,
-        activePage: page,
-      });
       runtimeConfigNavigation.openPage(page);
-      port.setActiveTab(
-          page === 'cloudServices' ? 'cloud' : page === 'advancedDiagnostics' ? 'diagnostics' : 'runtime',
-        );
     } catch {
       logRendererEvent({
         level: 'warn',

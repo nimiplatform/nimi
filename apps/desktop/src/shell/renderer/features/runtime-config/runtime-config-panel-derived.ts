@@ -18,9 +18,10 @@ export type RuntimeConfigPanelDerivedModel = {
 export function useRuntimeConfigPanelDerived(input: {
   state: RuntimeConfigStateV11 | null;
   connectorModelQuery: string;
+  selectedConnectorId?: string;
 }): RuntimeConfigPanelDerivedModel {
   const selectedConnector = input.state
-    ? input.state.connectors.find((connector) => connector.id === input.state?.selectedConnectorId) || input.state.connectors[0] || null
+    ? (input.selectedConnectorId ? input.state.connectors.find(connector => connector.id === input.selectedConnectorId) ?? null : input.state.connectors[0] ?? null)
     : null;
 
   const orderedConnectors = useMemo(

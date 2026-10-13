@@ -1,3 +1,4 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ function createOpenChatError(message: string): Error {
 }
 
 export function usePostCardActionAdapter(): PostCardActionAdapter {
+  const navigation = useHomeNavigation();
   const realmSocialData = useRealmSocialData();
   const realmHumanChatData = useRealmHumanChatData();
   const bindings = useDesktopRendererBindings();
@@ -22,8 +24,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
     defaultValue: 'Failed to open chat',
   });
   const queryClient = useQueryClient();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const authStatus = useAppStore((state) => state.auth.status);
@@ -89,17 +90,13 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
       const nextChatsSnapshot = { ...chatsSnapshot, items: mergedItems };
       queryClient.setQueryData(['chats', authStatus], nextChatsSnapshot);
       queryClient.setQueryData(['chats'], nextChatsSnapshot);
-      setSelectedChatId(chatId);
       setRuntimeFields({
         targetType: 'FRIEND',
         targetAccountId: authorId,
         agentId: '',
         worldId: '',
       });
-      setActiveTab('chat');
-      bindings.clock.schedule(0, (scheduleResult) => {
-        if (scheduleResult.ok) setSelectedChatId(chatId);
-      });
+      await navigation.push({ id: 'chat', chat: { mode: 'human', targetId: authorId, threadId: chatId } });
     },
     renderFriendRequestSurface: (input) => (
       <AddFriendModal
@@ -125,8 +122,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
     queryClient,
     realmHumanChatData,
     realmBaseUrl,
-    setActiveTab,
+    navigation,
     setRuntimeFields,
-    setSelectedChatId,
   ]);
 }

@@ -1,4 +1,5 @@
 {
+  "positionUnavailable": "这一项暂时不可用，已保留当前浏览位置。",
   "reasonMessages": {
     "AI_PROVIDER_TIMEOUT": "AI 服务商请求超时。",
     "AI_PROVIDER_UNAVAILABLE": "AI 服务商当前不可用。",
@@ -735,7 +736,7 @@
     "greetingWithName": "{{greeting}}，{{name}}",
     "composerLabel": "给 {{name}} 发消息",
     "composerPlaceholder": "和 {{name}} 聊聊…",
-    "composerSend": "发送",
+    "composerSend": "去聊天",
     "tryPrompts": "试试",
     "prompts": {
       "introduce": "介绍一下你自己",

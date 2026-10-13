@@ -1,16 +1,12 @@
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import type { AppStoreState } from '../../app-shell/providers/store-types';
-import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
-import type { AgentConversationSelection } from './chat-shell-types.js';
+import type { HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 import { projectCanonicalAgentTargetSnapshot } from './chat-agent-thread-model.js';
 
 type AgentConversationLauncherInput = {
   target: AgentLocalTargetSnapshot;
   initialComposerText?: string | null;
-  setActiveTab: AppStoreState['setActiveTab'];
-  setChatMode: AppStoreState['setChatMode'];
-  setSelectedTargetForSource: (source: ConversationMode, targetId: string | null) => void;
-  setAgentConversationSelection: (selection: AgentConversationSelection) => void;
+  navigation: HomeNavigation;
   setAgentConversationTargetSnapshot: AppStoreState['setAgentConversationTargetSnapshot'];
   setPendingAgentComposerPrefill?: AppStoreState['setPendingAgentComposerPrefill'];
 };
@@ -49,13 +45,11 @@ async function launchAgentInteractionFromDisplay(
   const agentHandle = target.agentHandle!;
   const conversationAnchorId = target.conversationAnchorId!;
 
+  const generation = input.navigation.getSnapshot().generation;
+  const result = await input.navigation.push({ id: 'chat', chat: { mode: 'agent', agentHandle, conversationAnchorId, targetId: agentHandle } });
+  if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error(`Chat navigation was ${result.status}.`);
+  if (input.navigation.getSnapshot().generation !== generation) throw new Error('Chat scope changed before the action completed.');
   input.setAgentConversationTargetSnapshot(target);
-  input.setSelectedTargetForSource('agent', agentHandle);
-  input.setAgentConversationSelection({
-    agentHandle,
-    conversationAnchorId,
-    targetId: agentHandle,
-  });
   const initialComposerText = String(input.initialComposerText || '').trim();
   if (initialComposerText) {
     input.setPendingAgentComposerPrefill?.({
@@ -63,8 +57,6 @@ async function launchAgentInteractionFromDisplay(
       text: initialComposerText,
     });
   }
-  input.setChatMode('agent');
-  input.setActiveTab('chat');
 
   return {
     interaction: input.interaction,

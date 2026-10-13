@@ -1,33 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type {
-  NimiLoadoutRecipe,
-  NimiMachineLoadout,
-  NimiRuntimeModelAssetRecord,
-} from '@nimiplatform/sdk/runtime';
+import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
 import { Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
 import { Check, CheckCircle2, Lock } from 'lucide-react';
-import {
-  useDesktopRendererCommands,
-  useDesktopRendererSdk,
-} from '../../renderer/binding-context.js';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
+import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
+
 import { capabilityIcon, capabilityModelIdentity } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { downloadRuntimeConfigProfileArtifact } from './runtime-config-profile-presentation.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { exportRuntimeConfigAIProfileFromLoadouts } from './runtime-config-ai-profile-transfer.js';
-import {
-  buildRuntimeConfigShareInventory,
-  defaultRuntimeConfigShareChoice,
-  includedRuntimeConfigShareLoadouts,
-  resolveRuntimeConfigShareChoices,
-  runtimeConfigShareFileName,
-  type RuntimeConfigShareBlockReason,
-  type RuntimeConfigShareChoices,
-  type RuntimeConfigShareInventory,
-  type RuntimeConfigShareUse,
-} from './runtime-config-profile-share-model.js';
+import { buildRuntimeConfigShareInventory, defaultRuntimeConfigShareChoice, includedRuntimeConfigShareLoadouts, resolveRuntimeConfigShareChoices, runtimeConfigShareFileName, type RuntimeConfigShareBlockReason, type RuntimeConfigShareChoices, type RuntimeConfigShareInventory, type RuntimeConfigShareUse } from './runtime-config-profile-share-model.js';
 import type { RuntimeConfigLoadoutNavigationContext } from './runtime-config-panel-types.js';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -53,7 +36,7 @@ export function ProfileExportPanel(props: {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   const loadoutsClient = useMemo(() => sdk.machineProduct().local.loadouts, [sdk]);
   const modelAssetsClient = useRuntimeConfigLocalEnvironmentClient();
 
@@ -155,7 +138,7 @@ export function ProfileExportPanel(props: {
       props.onOpenSavedConfigs(context);
       return;
     }
-    setActiveTab('runtime');
+
     runtimeConfigNavigation.focusAction({
       page: 'aiSettings',
       action: 'open-saved-configs',

@@ -1,4 +1,5 @@
-import { useAppStore } from '../../app-shell/providers/app-store.js';
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { startDownloadPolling } from '../runtime-config/download-polling.js';
@@ -17,17 +18,18 @@ const AppsDownloadsContext = createContext<AppsDownloadsContextValue | null>(nul
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-home-009a
 export function AppsDownloadsProvider({ children }: PropsWithChildren) {
+  const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   const [snapshot, setSnapshot] = useState<AppsJobsSnapshot>({ jobs: [], status: 'loading', pendingIds: [], error: null });
   const polling = useRef<ReturnType<typeof startDownloadPolling> | null>(null);
   const hasActiveJobs = snapshot.jobs.some((job) => !packageJobIsTerminal(job));
   const [view, setView] = useState<'library' | 'downloads'>('library');
   const [selectedJobId, selectJob] = useState<string | null>(null);
   const openDownloads = useCallback((jobId?: string) => { setView('downloads'); selectJob(jobId ?? null);
-      setActiveTab('downloads');
+      navigation.push({ id: 'downloads' });
     },
-    [setActiveTab],
+    [navigation],
   );
   const showLibrary = useCallback(() => setView('library'), []);
   const observer = useMemo(() => createAppsJobsObserver(bindings.sdk.machineProduct().apps, setSnapshot, async () => {

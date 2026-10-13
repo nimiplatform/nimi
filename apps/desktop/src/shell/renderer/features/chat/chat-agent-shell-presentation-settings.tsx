@@ -1,22 +1,12 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  AgentCenter,
-  type AgentCenterI18n,
-  type AgentCenterPlacementActions,
-  type AgentCenterSectionId,
-} from '@nimiplatform/kit/features/agent-center';
-import { useAppStore } from '../../app-shell/providers/app-store';
+import { AgentCenter, type AgentCenterI18n, type AgentCenterPlacementActions, type AgentCenterSectionId } from '@nimiplatform/kit/features/agent-center';
+
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import {
-  getRuntimeSetupTaskStore,
-} from '../runtime-config/runtime-setup-task-store.js';
-import {
-  openOrCreateRuntimeSetupTask,
-} from '../runtime-config/runtime-setup-task-open.js';
-import {
-  currentDesktopAccountIdForSetup,
-} from '../runtime-config/runtime-setup-task-ports.js';
+import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
+import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-task-open.js';
+import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup-task-ports.js';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 
 type AgentConversationSettingsContentProps = {
@@ -37,10 +27,11 @@ export function resolveAgentCenterIdentityBadge(input: {
 }
 
 export function AgentConversationSettingsContent({ input }: AgentConversationSettingsContentProps) {
+  const navigation = useHomeNavigation();
   const { i18n } = useTranslation();
   const sdk = useDesktopRendererSdk();
   const [activeSection, setActiveSection] = useState<AgentCenterSectionId>('overview');
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
+
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const agentCenterI18n = useMemo<AgentCenterI18n>(() => ({
     language: i18n.resolvedLanguage || i18n.language,
@@ -54,7 +45,7 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
   const placementActions = useMemo<AgentCenterPlacementActions>(() => ({
     close: input.onCloseAgentCenter,
     openRuntimeSettings: () => {
-      setActiveTab('runtime');
+
       runtimeConfigNavigation.openPage('aiSettings');
     },
     openReferenceVoiceSetup: (scope) => {
@@ -63,7 +54,7 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
           capabilityContract: scope === 'creation' ? 'voice.create' : 'audio.synthesize',
           source: { kind: scope === 'creation' ? 'app' : 'local-agent', accountId,
             ...(scope === 'creation' ? { ownerAppId: sdk.appId() } : {}), returnFocus: 'chat:agent' },
-          openTask: (taskId) => { setActiveTab('runtime'); runtimeConfigNavigation.openSetupTask(taskId); },
+          openTask: (taskId) => {  runtimeConfigNavigation.openSetupTask(taskId); },
         });
       });
     },
@@ -79,13 +70,13 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
             returnFocus: 'chat:agent',
           },
           openTask: (taskId) => {
-            setActiveTab('runtime');
+
             runtimeConfigNavigation.openSetupTask(taskId);
           },
         });
       });
     },
-  }), [input.onCloseAgentCenter, runtimeConfigNavigation, setActiveTab, sdk]);
+  }), [input.onCloseAgentCenter, runtimeConfigNavigation, navigation, sdk]);
   if (!input.runtimeAgentCenterAdapter) return null;
   return (
     <AgentCenter

@@ -1,12 +1,10 @@
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
-export const RUNTIME_CONFIG_STORAGE_KEY_V15 = 'nimi:runtime-config:v15';
+export const RUNTIME_CONFIG_STORAGE_KEY_V16 = 'nimi:runtime-config:v16';
 
 export type StoredStateV11 = {
-  version: 15;
+  version: 16;
   initializedByV11: boolean;
-  activePage: RuntimeConfigStateV11['activePage'];
-  actionFocus?: RuntimeConfigStateV11['actionFocus'];
   diagnosticsCollapsed: boolean;
   uiMode: RuntimeConfigStateV11['uiMode'];
   selectedSource: RuntimeConfigStateV11['selectedSource'];
@@ -15,10 +13,8 @@ export type StoredStateV11 = {
 
 export function createDefaultStateV11(): RuntimeConfigStateV11 {
   return {
-    version: 15,
+    version: 16,
     initializedByV11: false,
-    activePage: 'aiSettings',
-    actionFocus: null,
     diagnosticsCollapsed: true,
     uiMode: 'simple',
     selectedSource: 'local',
@@ -28,6 +24,5 @@ export function createDefaultStateV11(): RuntimeConfigStateV11 {
       lastDetail: '',
     },
     connectors: [],
-    selectedConnectorId: '',
   };
 }

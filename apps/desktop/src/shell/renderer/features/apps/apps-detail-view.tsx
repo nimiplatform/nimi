@@ -101,7 +101,7 @@ export interface AppsDetailViewProps {
   /** Other sources of the same App, for cross-source management. */
   readonly sourceEntries: readonly DesktopAppsEntry[];
   readonly requestedSection: NimiDesktopOpenAppsSection | null;
-  readonly requestedNavigationRevision: number;
+  readonly navigationEntryKey: string;
   readonly onBack: () => void;
   readonly onOpenEntry: (entryKey: string) => void;
   readonly onRemoveSource?: (entryKey: string) => void;
@@ -126,7 +126,7 @@ function LocalDevelopmentAppsDetailView({
   entry,
   sourceEntries,
   requestedSection,
-  requestedNavigationRevision,
+  navigationEntryKey,
   onBack,
   onOpenEntry,
   onRemoveSource,
@@ -157,7 +157,7 @@ function LocalDevelopmentAppsDetailView({
 
   useEffect(() => {
     setActiveTab(requestedSection === 'ai-models' && aiModelsAvailable ? 'ai-models' : 'overview');
-  }, [aiModelsAvailable, identity.appId, requestedNavigationRevision, requestedSection]);
+  }, [aiModelsAvailable, identity.appId, navigationEntryKey, requestedSection]);
 
   useEffect(() => {
     let alive = true;
@@ -441,7 +441,7 @@ function InstalledAppsDetailView({
   entry,
   sourceEntries,
   requestedSection,
-  requestedNavigationRevision,
+  navigationEntryKey,
   onBack,
   onOpenEntry,
   onRemoveSource,
@@ -466,7 +466,7 @@ function InstalledAppsDetailView({
   );
   useEffect(() => {
     setActiveTab(requestedSection === 'ai-models' && aiModelsAvailable ? 'ai-models' : 'overview');
-  }, [aiModelsAvailable, entry.identity.entryKey, requestedNavigationRevision, requestedSection]);
+  }, [aiModelsAvailable, entry.identity.entryKey, navigationEntryKey, requestedSection]);
 
   useEffect(() => () => {
     if (copyResetTimerRef.current !== null) {

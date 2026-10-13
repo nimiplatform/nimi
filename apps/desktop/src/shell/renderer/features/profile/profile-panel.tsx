@@ -1,3 +1,4 @@
+import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useMemo, useRef, useState } from 'react';
@@ -39,16 +40,15 @@ function toErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function ProfilePanel() {
+  const navigation = useHomeNavigation();
   const realmHumanChatData = useRealmHumanChatData();
   const realmSocialData = useRealmSocialData();
   const i18n = useDesktopI18nResource().instance;
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
-  const selectedProfileId = useAppStore((state) => state.selectedProfileId);
-  const navigateBack = useAppStore((state) => state.navigateBack);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const selectedProfileId = useHomeDestination().profileId ?? null;
+
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const queryClient = useQueryClient();
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
@@ -100,9 +100,7 @@ export function ProfilePanel() {
 
     try {
       const result = await realmHumanChatData.startChatWithTarget(profile.id);
-      if (result?.chatId) {
-        setSelectedChatId(String(result.chatId));
-      }
+      if (!result?.chatId) throw new Error('Chat could not be opened.');
       const chatsSnapshot = await realmHumanChatData.loadChatList();
       queryClient.setQueriesData({ queryKey: ['chats'] }, () => chatsSnapshot);
       setRuntimeFields({
@@ -111,7 +109,7 @@ export function ProfilePanel() {
         agentId: '',
         worldId: '',
       });
-      setActiveTab('chat');
+      await navigation.push({ id: 'chat', chat: { mode: 'human', targetId: profile.id, threadId: String(result.chatId) } });
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -168,7 +166,7 @@ export function ProfilePanel() {
         message: i18n.t('Relationship.blockUserSuccess', { defaultValue: 'User blocked.' }),
       });
       setBlockConfirmOpen(false);
-      navigateBack();
+      navigation.back();
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -216,7 +214,7 @@ export function ProfilePanel() {
         message: i18n.t('Relationship.removeFriendSuccess', { defaultValue: 'Friend removed.' }),
       });
       setRemoveConfirmOpen(false);
-      navigateBack();
+      navigation.back();
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -295,7 +293,7 @@ export function ProfilePanel() {
           <ProfileDetailErrorState
             backLabel={i18n.t('Common.back')}
             label={i18n.t('ProfileView.error')}
-            onClose={navigateBack}
+            onClose={navigation.back}
             retryLabel={i18n.t('Common.retry', { defaultValue: 'Retry' })}
             onRetry={() => { void profileQuery.refetch(); }}
           />
@@ -341,7 +339,7 @@ export function ProfilePanel() {
             error={error}
             hideBackButton
             externalScrollContainerRef={profileScrollContainerRef}
-            onClose={navigateBack}
+            onClose={navigation.back}
             onMessage={() => {
               void onMessage();
             }}

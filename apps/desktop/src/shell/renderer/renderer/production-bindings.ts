@@ -84,7 +84,10 @@ export function createDesktopProductionBindings(
 ): DesktopCanonicalRendererBindings {
   const dependencies = createProductionAppStoreDependencies();
   const attention = createBrowserAppAttentionSource();
-  const runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort();
+  const runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort(() => {
+    if (!connectedLifecycle) throw new Error('Home navigation owner is not connected.');
+    return connectedLifecycle.navigation;
+  });
   const offline = createDesktopProductionOfflinePort(getOfflineCoordinator());
   const runtimeHealthCoordinator = createRuntimeHealthCoordinator(
     getDesktopAuditAdminClient,

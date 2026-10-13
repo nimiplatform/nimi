@@ -1,6 +1,8 @@
 // @nimi-authority: rule.nimi.desktop.shell-ui.r005
 
 import { useEffect, useState } from 'react';
+import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { homeRuntimeDestination } from '../../app-shell/providers/home-navigation.js';
 import { useTranslation } from 'react-i18next';
 import { NimiTabs } from '@nimiplatform/kit/ui';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -31,16 +33,15 @@ export function ModelLibraryPage(props: {
 }) {
   const { t } = useTranslation();
   const { model } = props;
-  const actionFocus = model.state?.actionFocus;
+  const actionFocus = model.actionFocus;
+  const navigation = useHomeNavigation();
+  const destination = useHomeDestination();
   // The downloaded tab carries the installed-asset count badge.
   const downloadedCount = useRuntimeModelLibrary().data?.assets.length ?? 0;
   // Local-files intents open on the downloaded files from the first render, so
   // discovery never mounts (or queries the market) on the way there.
-  const [section, setSection] = useState<LocalModelCenterSection>(() =>
-    actionFocus?.focus === 'runtime-config-action-focus.model-library-files'
-    || actionFocus?.focus === 'runtime-config-action-focus.model-library-import'
-      ? 'downloaded'
-      : 'discover');
+  const section = destination.runtime?.section === 'downloaded' ? 'downloaded' : 'discover';
+  const openSection = (value: 'discover' | 'downloaded') => { void navigation.push(homeRuntimeDestination('modelLibrary', { ...destination.runtime, section: value })); };
   // Counts import requests so a repeated deep link reopens the menu.
   const [importMenuRequest, setImportMenuRequest] = useState(0);
 
@@ -49,19 +50,16 @@ export function ModelLibraryPage(props: {
   const { onClearActionFocus } = props;
   useEffect(() => {
     if (actionFocus?.focus === 'runtime-config-action-focus.model-library-install') {
-      setSection('discover');
       onClearActionFocus();
       return;
     }
     // "Manage model files" lands on the local files.
     if (actionFocus?.focus === 'runtime-config-action-focus.model-library-files') {
-      setSection('downloaded');
       onClearActionFocus();
       return;
     }
     // "Import model files" lands on the local files with the import menu open.
     if (actionFocus?.focus === 'runtime-config-action-focus.model-library-import') {
-      setSection('downloaded');
       setImportMenuRequest((value) => value + 1);
       onClearActionFocus();
     }
@@ -90,7 +88,7 @@ export function ModelLibraryPage(props: {
             ) : t(item.labelKey, { defaultValue: item.defaultLabel }),
           }))}
           value={section}
-          onValueChange={(value) => setSection(value as LocalModelCenterSection)}
+          onValueChange={(value) => openSection(value as 'discover' | 'downloaded')}
         />
       </div>
       <LocalModelCenter
@@ -102,11 +100,11 @@ export function ModelLibraryPage(props: {
             context={model.modelMarketContext}
             onModelInstalled={refreshInstalledAssets}
             onReturnToLoadout={model.onReturnToContextualLoadout}
-            onOpenDownloaded={() => setSection('downloaded')}
+            onOpenDownloaded={() => openSection('downloaded')}
           />
         )}
         importMenuRequest={importMenuRequest}
-        onOpenDiscover={() => setSection('discover')}
+        onOpenDiscover={() => openSection('discover')}
         runtimeWritesDisabled={model.runtimeWritesDisabled}
       />
     </RuntimePageShell>
