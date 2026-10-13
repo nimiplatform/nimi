@@ -218,6 +218,27 @@ describe('Electron formal App local host', () => {
     }
   });
 
+  it('lets a cold Desktop reference query finish beyond the session renewal budget', async () => {
+    const reference = { agentHandle: `agent_ref_${'a'.repeat(43)}`, agentBinding: `agent_binding_${'b'.repeat(43)}`, activityAgentRef: 'agr_selected', displayName: 'Selected' };
+    const unary = vi.fn(async (input: { methodId: string; timeoutMs?: number; signal?: AbortSignal }) => {
+      expect(input.methodId.endsWith('/ResolveDesktopAgentReference')).toBe(true);
+      expect(input.timeoutMs).toBe(30_000);
+      await new Promise<void>(resolve => setTimeout(resolve, 3_000));
+      expect(input.signal?.aborted).toBe(false);
+      return ResolveDesktopAgentReferenceResponse.toBinary({ reference });
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({ profile: 'desktop', appId: 'nimi.desktop', control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost });
+    vi.useFakeTimers();
+    try {
+      const resolved = owner.resolveDesktopAgentReference({ localAgentRef: 'selected' });
+      await vi.advanceTimersByTimeAsync(3_001);
+      await expect(resolved).resolves.toEqual({ reference });
+    } finally {
+      vi.useRealTimers();
+      await owner.dispose();
+    }
+  });
+
   it('rejects non-Desktop and malformed named resolver requests before native dispatch', async () => {
     const unary = vi.fn(async () => new Uint8Array());
     const avatar = createNimiElectronFormalAppLocalHostOwner({ profile: 'avatar', appId: 'nimi.avatar', control: { bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost });

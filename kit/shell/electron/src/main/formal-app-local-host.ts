@@ -69,6 +69,9 @@ type FormalAssetWrite = {
 };
 
 const FORMAL_SESSION_RENEW_TIMEOUT_MS = 2_000;
+// Reference resolution reads the owner's Agent inventory and display assets;
+// it is an ordinary unary query, not a technical session renewal or cleanup.
+const DESKTOP_AGENT_REFERENCE_TIMEOUT_MS = 30_000;
 const FORMAL_SESSION_RENEW_INTERVAL_MS = 5 * 60 * 1_000;
 
 export type NimiElectronFormalAppLocalHostOwner = Readonly<{
@@ -780,7 +783,9 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     if (!request || typeof request !== 'object' || Array.isArray(request)
       || !formalExactKeys(request, ['localAgentRef'])) throw new NimiElectronLocalAppHostError('invalid-payload', false);
     const localAgentRef = exactFormalText(request.localAgentRef);
-    return runBoundedFormalHostOperation(signal => runtime.resolveDesktopAgentReference({ localAgentRef }, { signal }));
+    return runBoundedFormalHostOperation(signal => runtime.resolveDesktopAgentReference(
+      { localAgentRef }, { signal, timeoutMs: DESKTOP_AGENT_REFERENCE_TIMEOUT_MS },
+    ), DESKTOP_AGENT_REFERENCE_TIMEOUT_MS);
   };
   const wrapped = wrapFormalHost({ ...implemented, resolveDesktopAgentReference }, invalidateFormalSessionResources, rebindFormalSession, trackOperation);
   const { resolveDesktopAgentReference: resolveDesktopAgentReferenceForOwner, ...standardHost } = wrapped;
@@ -1255,6 +1260,7 @@ function describeFormalHostError(value: unknown): string {
 
 async function runBoundedFormalHostOperation<T>(
   operation: (signal: AbortSignal) => Promise<T>,
+  timeoutMs = FORMAL_SESSION_RENEW_TIMEOUT_MS,
 ): Promise<T> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -1262,7 +1268,7 @@ async function runBoundedFormalHostOperation<T>(
     timer = setTimeout(() => {
       controller.abort();
       reject(new NimiElectronLocalAppHostError('runtime-service-unavailable', true));
-    }, FORMAL_SESSION_RENEW_TIMEOUT_MS);
+    }, timeoutMs);
     timer.unref?.();
   });
   try {

@@ -165,6 +165,9 @@ pub(super) async fn submit_job(
     if !request.client_submission_id.is_empty() {
         require_submission_id(&request.client_submission_id)?;
     }
+    // Proto tag 9 remains a rejection slot: Runtime rejects every nonzero
+    // legacy timeout before dispatch. Carry it unchanged, never as a Job deadline.
+    #[allow(deprecated)]
     let mut grpc_request = Request::new(ProtoSubmitJobRequest {
         spec: Some(spec),
         timeout_ms: request.timeout_ms,
