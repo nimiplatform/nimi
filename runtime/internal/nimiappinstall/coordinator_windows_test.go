@@ -828,6 +828,97 @@ func TestRecoveryContinuesOtherJobsWhenCommittedPayloadIsMissing(t *testing.T) {
 	}
 }
 
+func TestRecoveryPreservesUnboundInstalledPackageWithoutDisablingNewInstalls(t *testing.T) {
+	ctx := context.Background()
+	coordinator, client, kernel, transport := newInstallFixture(t, false)
+	installed, err := coordinator.Install(ctx, resolveInstallFixture(t, client))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataRoot := kernel.DataRoot()
+	if err := coordinator.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := kernel.Close(); err != nil {
+		t.Fatal(err)
+	}
+	identity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	databasePath, err := localappkernel.CanonicalRegistrationDatabasePath(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := localappkernel.OpenSQLite(ctx, databasePath, identity, localappkernel.Options{
+		HostInstallID: "different-product-install", DataRoot: dataRoot,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = reopened.Close() }()
+	interrupted, err := reopened.PackageLifecycle().Begin(ctx, localappkernel.BeginPackageJobInput{
+		AppID: "publisher.interrupted-import", SourceClass: localappkernel.SourceClassUserImported,
+		Kind: localappkernel.PackageJobInstall, TargetRef: "local-package:interrupted:1.0.0",
+		ProgressBasis: localappkernel.PackageProgressIndeterminate, Cancelable: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	workPath := filepath.Join(dataRoot, "apps", "packages", packageWorkDirectory, interrupted.JobID)
+	if err := os.Mkdir(workPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := Recover(ctx, reopened); err != nil {
+		t.Fatalf("an unavailable registration disabled package recovery: %v", err)
+	}
+	recovered, err := reopened.PackageLifecycle().GetJob(ctx, interrupted.JobID)
+	if err != nil || recovered.Phase != localappkernel.PackageJobFailed || recovered.ReasonCode != "runtime-interrupted" {
+		t.Fatalf("unrelated interrupted import was not recovered: %+v, %v", recovered, err)
+	}
+	if _, err := os.Stat(workPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("unrelated interrupted work was not cleaned: %v", err)
+	}
+	owner, err := NewCoordinator(client, reopened, slog.New(slog.NewTextHandler(io.Discard, nil)), auditlog.New(64, 16))
+	if err != nil {
+		t.Fatalf("new installation owner is unavailable: %v", err)
+	}
+	defer func() { _ = owner.Close() }()
+	if _, err := reopened.Registrations().GetActiveByHandle(ctx, installed.Registration.RegistrationHandle); !errors.Is(err, localappkernel.ErrRegistrationUnavailable) {
+		t.Fatalf("recovery reopened another installation's registration: %v", err)
+	}
+	preserved, err := reopened.PackageLifecycle().GetCommittedRelease(ctx, installed.Release.AppID, installed.Release.SourceClass)
+	if err != nil || preserved.RegistrationHandle != installed.Release.RegistrationHandle || preserved.ReleaseRef != installed.Release.ReleaseRef {
+		t.Fatalf("recovery changed the preserved committed release: %+v, %v", preserved, err)
+	}
+	if _, err := os.Stat(installed.Registration.ManifestPath); err != nil {
+		t.Fatalf("recovery removed the unavailable installation's package: %v", err)
+	}
+	selected := filepath.Join(t.TempDir(), "new-explicit-import.nimiapp")
+	if err := os.WriteFile(selected, transport.asset, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	preview, err := owner.PrepareLocalPackage(ctx, selected)
+	if err != nil {
+		t.Fatalf("unavailable installation blocked local import preview: %v", err)
+	}
+	job, err := owner.StartLocalPackage(ctx, preview.Selector, "", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitForInstallPhase(t, reopened, job.JobID, localappkernel.PackageJobCompleted)
+	newRelease, err := reopened.PackageLifecycle().GetCommittedRelease(ctx, installTestAppID, localappkernel.SourceClassUserImported)
+	if err != nil || newRelease.RegistrationHandle == installed.Registration.RegistrationHandle {
+		t.Fatalf("explicit import reused the unbound registration: %+v, %v", newRelease, err)
+	}
+	if err := owner.WithInstalledLaunch(ctx, installed.Registration.RegistrationHandle, func(InstalledLaunch) error {
+		t.Fatal("preserved package was admitted for launch without a binding")
+		return nil
+	}); !errors.Is(err, localappkernel.ErrRegistrationUnavailable) {
+		t.Fatalf("unbound launch error: %v", err)
+	}
+}
+
 func TestRecoveryReopensKernelAndPausesInterruptedJob(t *testing.T) {
 	coordinator, client, kernel, _ := newInstallFixture(t, false)
 	selector := resolveInstallFixture(t, client)

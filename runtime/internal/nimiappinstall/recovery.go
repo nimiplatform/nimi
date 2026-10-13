@@ -350,6 +350,15 @@ func (coordinator *Coordinator) protectedReleaseRoots(ctx context.Context) (map[
 			continue
 		}
 		registration, err := coordinator.kernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)
+		// @nimi-authority: rule.nimi.runtime.app-surface.r051
+		if errors.Is(err, localappkernel.ErrRegistrationUnavailable) {
+			// Preserved registrations without this installation's exact binding
+			// remain inaccessible, but are not corrupt package-owner state. Their
+			// roots cannot be resolved by this host, so retain all release roots
+			// instead of treating them as orphans or disabling unrelated installs.
+			allowSweep = false
+			continue
+		}
 		if err != nil {
 			allowSweep = false
 			integrityErr = errors.Join(integrityErr, fmt.Errorf("resolve committed App registration for recovery: %w", err))
