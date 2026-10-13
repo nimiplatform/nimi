@@ -29,6 +29,52 @@ func TestCloneLocalResolvedAssemblyPreservesRequestPayloadBytes(t *testing.T) {
 	}
 }
 
+func TestOrderedSystemOnlyAssemblyRetainsExactAdapterAcrossReplay(t *testing.T) {
+	entry := capabilitydriver.Gemma4BehaviorCohort()[0]
+	selected := selectedTextExecutionForTest(t, "ordered-system", "model.gguf")
+	selected.Requirements[0].Role = runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN
+	selected.ExactBindings[0].RequirementRole = runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN
+	selected.ExactBindings[0].VerifiedContentID = entry.ContentID
+	selected.ExactBindings[0].EntrySHA256 = entry.EntrySHA256
+	selected.ExactBindings[0].TemplateIdentity = entry.TemplateIdentity
+	request := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "system", Content: "policy"}, {Role: "user", Content: "request"}, {Role: "system", Content: "context"}}}
+	facts, err := localTextBehaviorAdapterResolutionFacts(selected, projectLocalTextBehaviorAdapterMatchFacts(selected))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := resolveTextBehaviorAdapterForFacts(productionTextBehaviorAdapterRegistrations(), facts, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	adapter, err := resolved.runtimeAdapter()
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := (capabilitydriver.LlamaTextDriver{}).PlanTextInvocation(capabilitydriver.TextInvocationInput{
+		ModelContextWindowTokens: selected.ModelContextWindowTokens, ExactBindings: projectInvocationExactBindings(selected.ExactBindings),
+		BehaviorMatch: projectLocalTextBehaviorAdapterMatchFacts(selected), BehaviorAdapter: adapter, Request: request, Stream: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assembly, err := localResolvedAssemblyForText(selected, request, plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	persisted, err := cloneLocalResolvedAssembly(assembly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{capabilityDrivers: capabilitydriver.NewProductionRegistry(), textBehaviorAdapters: productionTextBehaviorAdapterRegistrations()}
+	if _, err := service.localTextEffectiveInputsFromResolvedAssembly(persisted); err != nil {
+		t.Fatalf("ordered system replay: %v", err)
+	}
+	persisted.LoadPlan.Text.BehaviorAdapter.Version = "unknown"
+	if _, err := service.localTextEffectiveInputsFromResolvedAssembly(persisted); err == nil {
+		t.Fatal("changed adapter identity must not replay")
+	}
+}
+
 func TestValidateRehydratedResolvedAssemblyPlanRejectsCompleteRequestDrift(t *testing.T) {
 	captured := &localResolvedAssembly{
 		Request: localResolvedAssemblyRequest{

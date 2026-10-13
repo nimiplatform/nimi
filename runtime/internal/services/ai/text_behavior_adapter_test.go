@@ -13,6 +13,35 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t *testing.T) {
+	for _, entry := range capabilitydriver.Gemma4BehaviorCohort() {
+		registration := gemma4TextBehaviorRegistration(entry)
+		facts := textBehaviorAdapterResolutionFacts{
+			ImplementationID: registration.ImplementationID, DriverID: registration.DriverID, DriverDialect: registration.DriverDialect,
+			LocalTarget: &textBehaviorLocalResolutionTarget{
+				RecipeID: registration.LocalTarget.RecipeID, RecipeRevision: registration.LocalTarget.RecipeRevision,
+				ModelContents: registration.LocalTarget.ModelContents, TemplateIdentity: entry.TemplateIdentity,
+			},
+		}
+		for _, tools := range []bool{false, true} {
+			spec := &runtimev1.TextGenerateScenarioSpec{}
+			if tools {
+				spec = testTextBehaviorToolSpec()
+			}
+			spec.Input = []*runtimev1.ChatMessage{{Role: "system", Content: "policy"}, {Role: "user", Content: "request"}, {Role: "system", Content: "context"}}
+			for _, mode := range []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB} {
+				_, err := resolveTextBehaviorAdapterForFacts([]textBehaviorAdapterRegistration{registration}, facts, mode, spec)
+				if entry.TemplateIdentity == gemma4E2BTemplateIdentity && err != nil {
+					t.Fatalf("E2B ordered messages tools=%t mode=%v: %v", tools, mode, err)
+				}
+				if entry.TemplateIdentity != gemma4E2BTemplateIdentity && textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+					t.Fatalf("unreviewed template admitted: %v", err)
+				}
+			}
+		}
+	}
+}
+
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
 	if len(registrations) != 29 {

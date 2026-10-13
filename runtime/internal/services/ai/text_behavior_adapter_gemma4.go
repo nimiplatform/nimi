@@ -7,7 +7,7 @@ import (
 
 const (
 	gemma4TextBehaviorAdapterID      = "llama.cpp.gemma4.text-behavior"
-	gemma4TextBehaviorAdapterVersion = "1"
+	gemma4TextBehaviorAdapterVersion = "2"
 	gemma4TextRecipeID               = capabilitydriver.LlamaGemma4RecipeID
 	gemma4TextRecipeRevision         = "1"
 	gemma4TextDriverDialect          = capabilitydriver.LlamaDriverDialect
@@ -49,6 +49,20 @@ func gemma4TextBehaviorRegistration(entry capabilitydriver.Gemma4BehaviorCohortE
 		runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 	}
 	toolProjection := capabilitydriver.Gemma4ToolUseCapabilityProjection()
+	combinations := []textBehaviorCombination{
+		{ToolUse: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},
+		{Reasoning: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},
+		{StructuredOutput: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},
+	}
+	// The pinned E2B template renders each later system message in place as
+	// its own system turn. The serializer already preserves these boundaries,
+	// including around tool round trips; no hoisting or role rewriting is needed.
+	if entry.TemplateIdentity == gemma4E2BTemplateIdentity {
+		combinations = append(combinations,
+			textBehaviorCombination{OrderedSystemMessages: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},
+			textBehaviorCombination{ToolUse: true, OrderedSystemMessages: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},
+		)
+	}
 	return textBehaviorAdapterRegistration{
 		AdapterID: gemma4TextBehaviorAdapterID, Version: gemma4TextBehaviorAdapterVersion,
 		ImplementationID: "local.text.generate.llama-cpp", DriverID: "nimi.runtime.driver.llama-cpp",
@@ -83,11 +97,7 @@ func gemma4TextBehaviorRegistration(entry capabilitydriver.Gemma4BehaviorCohortE
 				},
 				SupportsStrictJSONSchema: true,
 			},
-			Combinations: []textBehaviorCombination{
-				{ToolUse: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},
-				{Reasoning: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},
-				{StructuredOutput: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},
-			},
+			Combinations: combinations,
 		},
 		ExecutionSemantics: textBehaviorExecutionSemantics{
 			RequiredTemplateIdentity: entry.TemplateIdentity,

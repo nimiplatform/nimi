@@ -1070,9 +1070,10 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 			if adapter.RequiredTemplateIdentity != "" && adapter.RequiredTemplateIdentity != expectedMatch.TemplateIdentity {
 				return fmt.Errorf("local ResolvedAssembly text behavior adapter template differs from the exact model axis")
 			}
-			if len(assembly.AdmittedTextBehaviors) == 0 {
-				return fmt.Errorf("local ResolvedAssembly text behavior adapter has no admitted behavior")
-			}
+			// An exact adapter may own ordered system messages or its declared
+			// plain-text combination without enabling tools, reasoning or schema
+			// output. Rehydration re-resolves the captured request and adapter;
+			// the optional-behavior enum list is not the admission authority.
 		} else if len(assembly.AdmittedTextBehaviors) != 0 {
 			return fmt.Errorf("local ResolvedAssembly admitted text behavior has no adapter")
 		}

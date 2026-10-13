@@ -13,6 +13,36 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func TestGemma4SerializerPreservesSystemBoundariesAndPositions(t *testing.T) {
+	spec := &runtimev1.TextGenerateScenarioSpec{SystemPrompt: "policy", Input: []*runtimev1.ChatMessage{
+		{Role: "system", Content: "identity"}, {Role: "user", Content: "request"},
+		{Role: "system", Content: "context"}, {Role: "assistant", Content: "answer"},
+	}}
+	for _, stream := range []bool{false, true} {
+		serialized, err := Gemma4TextBehaviorRequestSerializer(spec, stream)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var body struct {
+			Messages []struct {
+				Role    string `json:"role"`
+				Content string `json:"content"`
+			} `json:"messages"`
+		}
+		if err := json.Unmarshal(serialized.Payload, &body); err != nil {
+			t.Fatal(err)
+		}
+		if len(body.Messages) != 5 {
+			t.Fatalf("messages: %#v", body.Messages)
+		}
+		for i, want := range append([]*runtimev1.ChatMessage{{Role: "system", Content: spec.SystemPrompt}}, spec.Input...) {
+			if body.Messages[i].Role != want.Role || body.Messages[i].Content != want.Content {
+				t.Fatalf("message %d changed: %#v", i, body.Messages)
+			}
+		}
+	}
+}
+
 func TestGemma4BehaviorSerializerMapsToolsRoundTripStructuredAndReasoning(t *testing.T) {
 	tool := gemma4ToolForTest(t, "weather")
 	toolResult := structpb.NewStringValue("sunny")
