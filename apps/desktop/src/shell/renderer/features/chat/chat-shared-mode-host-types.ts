@@ -47,11 +47,11 @@ export type DesktopConversationModeHost = {
   thinkingState?: 'on' | 'off' | 'unsupported';
   onThinkingToggle?: () => void;
   setupDescription?: ReactNode;
-  /** Product-toned overline/title/action copy for the setup-blocking panel. */
-  setupEyebrow?: ReactNode;
+  /** Product-toned title/action copy and brand mark for the setup-blocking panel. */
   setupTitle?: ReactNode;
+  /** Brand mark rendered on the setup-blocking panel. */
+  setupIcon?: ReactNode;
   setupActionLabel?: string;
-  setupDiagnosticsLabel?: string;
   onSelectTarget?: (targetId: string | null) => void;
   onSelectThread?: (threadId: string) => void;
   /** Content rendered in the new right panel (between conversation pane and contact rail). */

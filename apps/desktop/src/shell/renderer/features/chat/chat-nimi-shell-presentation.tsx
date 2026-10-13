@@ -13,12 +13,10 @@ import type {
 } from '../../bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS, CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS, CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS } from './chat-shared-content-layout';
-import {
-  RuntimeInspectCard,
-} from './chat-runtime-inspect-content';
 import { toConversationThreadSummary } from './chat-nimi-thread-model';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import setupLogoImage from '../../assets/logo.png';
 
 const ChatSettingsPanel = lazy(async () => {
   const mod = await import('./chat-shared-settings-panel');
@@ -43,10 +41,6 @@ type UseAiConversationPresentationInput = {
   onDismissHostFeedback: () => void;
   pendingFirstBeat: boolean;
   renderMessageContent: CanonicalMessageContentSlot;
-  intentSummary: {
-    label: string;
-    detail: string | null;
-  };
   setChatThinkingPreference: (value: ChatThinkingPreference) => void;
   setupPending: boolean;
   setupState: ConversationSetupState;
@@ -63,16 +57,6 @@ type UseAiConversationPresentationInput = {
 export function useAiConversationPresentation(
   input: UseAiConversationPresentationInput,
 ): DesktopConversationModeHost {
-  const diagnosticsContent = useMemo(() => (
-    <RuntimeInspectCard
-      label={input.t('Chat.diagnosticsRuntimeLabel', { defaultValue: 'Runtime' })}
-      value={input.t('Chat.settingsRuntimeExecutionOwned', {
-        defaultValue: 'Execution checked by Runtime on submit',
-      })}
-      detail={input.intentSummary.detail}
-    />
-  ), [input.intentSummary.detail, input.t]);
-
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;
@@ -155,7 +139,7 @@ export function useAiConversationPresentation(
     characterData: input.aiCharacterData,
     settingsContent: (
       <Suspense fallback={null}>
-        <ChatSettingsPanel diagnosticsContent={diagnosticsContent} />
+        <ChatSettingsPanel showDiagnosticsFooter={false} />
       </Suspense>
     ),
     settingsDrawerTitle: input.t('Chat.settingsTitle', { defaultValue: 'Settings' }),
@@ -190,16 +174,15 @@ export function useAiConversationPresentation(
       : input.setupState.status === 'unavailable'
         ? input.t('Chat.nimiSetupUnavailableDescription')
       : input.t('Chat.nimiIntentRequired', {
-        defaultValue: 'Nimi can chat with you through an on-device or cloud model. Choose one to start chatting.',
+        defaultValue: 'Pick a local or cloud model to start your first conversation.',
       }),
-    setupEyebrow: input.t('Chat.nimiSetupEyebrow', { defaultValue: 'Nimi Chat' }),
+    setupIcon: <img src={setupLogoImage} alt="" aria-hidden="true" className="h-16 w-16 object-contain" />,
     setupTitle: input.setupPending
       ? input.t('Chat.nimiSetupLoadingTitle', { defaultValue: 'Preparing Nimi Chat…' })
       : input.setupState.status === 'unavailable'
         ? input.t('Chat.nimiSetupUnavailableTitle')
-      : input.t('Chat.nimiSetupTitle', { defaultValue: 'Choose a model for Nimi' }),
+      : input.t('Chat.nimiSetupTitle', { defaultValue: 'Start chatting with Nimi' }),
     setupActionLabel: input.t('Chat.nimiSetupAction', { defaultValue: 'Choose a model' }),
-    setupDiagnosticsLabel: input.t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),
     thinkingState: input.thinkingSupported
       ? (input.thinkingPreference === 'on' ? 'on' : 'off')
       : 'unsupported',
@@ -209,7 +192,6 @@ export function useAiConversationPresentation(
     };
   }, [
     adapter,
-    diagnosticsContent,
     hostFeedbackNode,
     input.activeThreadId,
     input.aiCharacterData,

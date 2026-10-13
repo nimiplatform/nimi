@@ -224,7 +224,7 @@ it('keeps the transcript scroll root inside the content column and reserves bott
       await flush();
     });
 
-    expect(container.textContent).toContain('Setup Required');
+    expect(container.textContent).toContain('Conversation setup is incomplete.');
     expect(container.textContent).toContain('Configure AI capability intent first.');
     expect(container.querySelector('[data-canonical-target-field="bubble"]')).toBeNull();
   });

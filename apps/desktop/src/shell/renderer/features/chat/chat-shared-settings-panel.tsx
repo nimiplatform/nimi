@@ -259,18 +259,18 @@ function AiModeSettings(props: {
     });
   }, [runtimeConfigNavigation, setActiveTab]);
 
-  const footer = (
+  const footer = props.showDiagnosticsFooter === false ? null : (
     <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-3">
-      {props.showDiagnosticsFooter !== false && props.diagnosticsContent ? (
+      {props.diagnosticsContent ? (
         <div data-chat-settings-module="diagnostics" className="space-y-2">
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
             {t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
           </div>
           {props.diagnosticsContent}
         </div>
-      ) : props.showDiagnosticsFooter !== false ? (
+      ) : (
         <DisabledSettingsNote label={props.unavailableReason} />
-      ) : null}
+      )}
     </div>
   );
 

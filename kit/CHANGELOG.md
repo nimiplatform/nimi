@@ -1,5 +1,22 @@
 # Changelog
 
+## Conversation setup panel brand icon (next minor, development)
+
+- `ConversationSetupPanel` gains an optional `icon`, and
+  `CanonicalConversationShell` a matching `setupIcon`, so a product renders its
+  own brand mark on the setup-blocking panel; the generic sparkle glyph is
+  removed. The panel drops its floating card chrome and presents the brand
+  mark, product copy, and primary action directly on the conversation
+  background; the unavailable state keeps its status icon, and a panel without
+  an icon stays typographic. The primary action uses the shared action radius
+  instead of a capsule.
+- The collapsed issue-code disclosure is removed together with the
+  `diagnosticsLabel`/`setupDiagnosticsLabel` props, and the overline row is
+  removed together with the `eyebrow`/`setupEyebrow` props; setup issues
+  remain available on `ConversationSetupState.issues` for hosts that need
+  them. Migration: stop passing the diagnostics and eyebrow props. All other
+  additions are optional and backward compatible.
+
 ## 0.19.3 — 2026-10-12
 
 Unpackaged Windows Electron Apps supervised by the fixed Nimi service now load

@@ -89,7 +89,7 @@ describe('conversation shell ui', () => {
     });
   });
 
-  it('renders product copy and keeps issue codes inside a collapsed disclosure', async () => {
+  it('renders product copy without surfacing raw issue codes', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -107,9 +107,7 @@ describe('conversation shell ui', () => {
               returnToMode: 'ai',
             },
           }}
-          eyebrow="Nimi Chat"
           title="Choose a model for Nimi"
-          diagnosticsLabel="Technical details"
           resolveActionLabel={() => 'Choose a model'}
           onAction={() => undefined}
         />,
@@ -117,16 +115,51 @@ describe('conversation shell ui', () => {
       await flush();
     });
 
-    expect(container.textContent).toContain('Nimi Chat');
     expect(container.textContent).toContain('Choose a model for Nimi');
     expect(container.textContent).not.toContain('Setup Required');
     expect(container.querySelector('button')?.textContent).toContain('Choose a model');
+    expect(container.querySelector('details')).toBeNull();
+    expect(container.textContent).not.toContain('ai-capability-intent-required');
+  });
 
-    const details = container.querySelector('details');
-    expect(details).not.toBeNull();
-    expect(details?.open).toBe(false);
-    expect(details?.textContent).toContain('Technical details');
-    expect(details?.textContent).toContain('ai-capability-intent-required');
+  it('renders the provided brand icon and otherwise no decorative glyph', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ConversationSetupPanel
+          state={{
+            mode: 'ai',
+            status: 'setup-required',
+            issues: [],
+            primaryAction: null,
+          }}
+          icon={<img data-testid="brand-mark" src="brand.svg" alt="" />}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-testid="brand-mark"]')).not.toBeNull();
+
+    await act(async () => {
+      root?.render(
+        <ConversationSetupPanel
+          state={{
+            mode: 'ai',
+            status: 'setup-required',
+            issues: [],
+            primaryAction: null,
+          }}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-testid="brand-mark"]')).toBeNull();
+    expect(container.querySelector('svg')).toBeNull();
   });
 
   it('renders the canonical runtime inspect sidebar with shared panel controls', async () => {

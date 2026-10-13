@@ -32,6 +32,7 @@ import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS, CHAT_TRANSCRIPT_
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { resolveAgentComposerVoiceState } from './chat-agent-voice-session.js';
+import setupLogoImage from '../../assets/logo.png';
 
 export function useAgentConversationPresentation(
   input: UseAgentConversationPresentationInput,
@@ -381,10 +382,9 @@ export function useAgentConversationPresentation(
     setupDescription: input.t('Chat.agentSetupDescription', {
       defaultValue: 'Sign in to your Nimi account to start chatting with your partners.',
     }),
-    setupEyebrow: input.t('Chat.mode.agent', { defaultValue: 'Partner' }),
+    setupIcon: <img src={setupLogoImage} alt="" aria-hidden="true" className="h-16 w-16 object-contain" />,
     setupTitle: input.t('Chat.agentSetupTitle', { defaultValue: 'Sign in to chat with partners' }),
     setupActionLabel: input.t('Chat.agentSetupAction', { defaultValue: 'Sign in' }),
-    setupDiagnosticsLabel: input.t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),
   }), [
     adapter,
     hostFeedbackNode,

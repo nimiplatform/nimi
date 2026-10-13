@@ -247,18 +247,13 @@ export function useAiConversationModeHost(
       : textIntent?.route.oneofKind === 'cloud'
         ? t('Chat.settingsIntentCloud', { defaultValue: 'Cloud AI' })
         : t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-    detail: textIntent
-      ? t('Chat.settingsRuntimeResolvesOnSubmit', {
-        defaultValue: 'Runtime resolves implementation and reports typed execution errors on submit.',
-      })
-      : null,
   }), [t, textIntent]);
 
   const aiCharacterData = useMemo(() => ({
     name: t('Chat.nimiAssistantName', { defaultValue: 'Nimi' }),
     avatarUrl: null,
     avatarFallback: 'AI',
-    handle: intentSummary.detail || null,
+    handle: null,
     bio: null,
     interactionState: {
       phase: submittingThreadId ? 'thinking' as const : 'idle' as const,
@@ -272,7 +267,7 @@ export function useAiConversationModeHost(
       border: 'rgba(56,189,248,0.34)',
       text: '#0c4a6e',
     },
-  }), [intentSummary.detail, submittingThreadId, t]);
+  }), [submittingThreadId, t]);
 
   const syntheticTarget = useMemo(() => ({
     id: 'ai:assistant',
@@ -390,7 +385,6 @@ export function useAiConversationModeHost(
     onDismissHostFeedback: () => setHostFeedback(null),
     pendingFirstBeat,
     renderMessageContent,
-    intentSummary,
     setChatThinkingPreference,
     setupPending: appAIConfig.isPending,
     setupState,

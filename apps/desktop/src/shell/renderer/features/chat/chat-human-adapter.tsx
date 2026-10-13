@@ -23,6 +23,7 @@ import {
 } from './chat-human-canonical-components';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import type { AuthStatus } from '../../app-shell/providers/app-store';
+import setupLogoImage from '../../assets/logo.png';
 
 import {
   ChatRuntimeInspectContent,
@@ -371,10 +372,9 @@ export function useHumanConversationModeHost(
     setupDescription: t('Chat.humanSetupRequired', {
       defaultValue: 'Human conversations with friends require a Nimi account.',
     }),
-    setupEyebrow: t('Chat.mode.human', { defaultValue: 'Human' }),
+    setupIcon: <img src={setupLogoImage} alt="" aria-hidden="true" className="h-16 w-16 object-contain" />,
     setupTitle: t('Chat.humanSetupTitle', { defaultValue: 'Sign in to keep chatting' }),
     setupActionLabel: t('Chat.humanSetupAction', { defaultValue: 'Sign in' }),
-    setupDiagnosticsLabel: t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),
   }), [
     adapter,
     authStatus,
