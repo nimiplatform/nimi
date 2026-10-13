@@ -11,6 +11,14 @@ const repoRootNormalized = repoRoot.replaceAll('\\', '/');
 function chunkName(id: string): string | undefined {
   const normalized = id.replaceAll('\\', '/');
 
+  // Keep each App's authored locale copy in its own cacheable content chunk.
+  // Combining all preview dictionaries makes the locale entry exceed the App
+  // chunk budget as more previews are added. These remain non-vendor chunks.
+  if (normalized.startsWith(`${repoRootNormalized}/apps/web/src/landing/content/app-preview-copy/`)) {
+    const copy = /\/([^/]+)\.(en|zh)\.ts$/u.exec(normalized);
+    if (copy) return `landing-copy-${copy[1]}-${copy[2]}`;
+  }
+
   if (
     normalized.includes('/node_modules/react/')
     || normalized.includes('/node_modules/react-dom/')
